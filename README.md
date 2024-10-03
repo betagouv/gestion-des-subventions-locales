@@ -42,6 +42,9 @@ pip install -r requirements.txt -r requirements-dev.txt
 # Paramétrage
 cp .env.example .env
 
+# install pre-commit hooks
+pre-commit install
+
 # Initialisation de la base de données
 python manage.py migrate
 
