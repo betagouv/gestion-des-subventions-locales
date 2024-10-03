@@ -48,4 +48,3 @@ addopts = "--ruff --reuse-db --cov-report xml --cov-report term-missing --cov=gs
 exclude = ["**/migrations/*.py"]
 ignore = ["E501"]
 select = ["I", "F", "E", "DJ", "C90"]
-
