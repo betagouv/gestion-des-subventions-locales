@@ -45,6 +45,12 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
+    - name: Check linting
+      run: |
+        ruff check
+        ruff format --check
+    - name: Check migrations
+      run: python manage.py makemigrations --check --dry-run
     - name: Run Tests
       run: |
         python -m pytest
