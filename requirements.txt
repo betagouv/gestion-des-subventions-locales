@@ -16,7 +16,11 @@ celery==5.4.0
     #   django-celery-results
     #   gsl (pyproject.toml)
 certifi==2024.8.30
-    # via sentry-sdk
+    # via
+    #   requests
+    #   sentry-sdk
+charset-normalizer==3.3.2
+    # via requests
 click==8.1.7
     # via
     #   celery
@@ -38,14 +42,30 @@ django==5.1.1
     #   dj-database-url
     #   django-celery-beat
     #   django-celery-results
+    #   django-crispy-forms
+    #   django-csp
+    #   django-dsfr
+    #   django-referrer-policy
     #   django-timezone-field
     #   gsl (pyproject.toml)
 django-celery-beat==2.7.0
     # via gsl (pyproject.toml)
 django-celery-results==2.5.1
     # via gsl (pyproject.toml)
+django-crispy-forms==2.3
+    # via django-dsfr
+django-csp==3.8
+    # via gsl (pyproject.toml)
+django-dsfr==1.3.1
+    # via gsl (pyproject.toml)
+django-referrer-policy==1.0
+    # via gsl (pyproject.toml)
 django-timezone-field==7.0
     # via django-celery-beat
+django-widget-tweaks==1.5.0
+    # via django-dsfr
+idna==3.10
+    # via requests
 kombu==5.4.2
     # via celery
 prompt-toolkit==3.0.48
@@ -62,6 +82,8 @@ python-dotenv==1.0.1
     # via gsl (pyproject.toml)
 redis==5.1.0
     # via gsl (pyproject.toml)
+requests==2.32.3
+    # via django-dsfr
 sentry-sdk==2.15.0
     # via gsl (pyproject.toml)
 six==1.16.0
@@ -76,7 +98,9 @@ tzdata==2024.2
     #   django-celery-beat
     #   kombu
 urllib3==2.2.3
-    # via sentry-sdk
+    # via
+    #   requests
+    #   sentry-sdk
 vine==5.1.0
     # via
     #   amqp
