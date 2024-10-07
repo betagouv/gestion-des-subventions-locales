@@ -13,6 +13,7 @@ dependencies = [
     "redis",
     "django-celery-beat",
     "python-dotenv",
+    "dj-database-url",
 ]
 # to add someday:
 # django-dsfr

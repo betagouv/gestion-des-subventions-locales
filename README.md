@@ -22,7 +22,7 @@ psql
 Puis, dans cette invite de commandes, créez la base de données et l'utilisateur : 
 
 ```sql
-CREATE USER gsl_team;
+CREATE USER gsl_team WITH PASSWORD 'gsl_pass';
 CREATE DATABASE gsl OWNER gsl_team;
 ALTER USER gsl_team CREATEDB;
 ```
