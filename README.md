@@ -6,6 +6,17 @@
 source venv/bin/activate
 python manage.py runserver
 ```
+Tests :
+
+```bash
+python -m pytest
+```
+
+Linting :
+
+```bash
+ruff format && ruff check --fix
+```
 
 ## Première installation
 
