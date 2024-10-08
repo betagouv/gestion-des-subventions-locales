@@ -67,7 +67,7 @@ INSTALLED_APPS = [
     "widget_tweaks",
     "dsfr",
     # gsl apps:
-    "core",
+    "gsl_core",
     "gsl_pages",
 ]
 
@@ -82,7 +82,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-AUTH_USER_MODEL = "core.Collegue"
+AUTH_USER_MODEL = "gsl_core.Collegue"
 ROOT_URLCONF = "gsl.urls"
 LANGUAGE_CODE = "fr"
 
