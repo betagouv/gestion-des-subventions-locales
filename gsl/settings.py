@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
+# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -63,12 +63,18 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "core",
+    # dependencies:
+    "widget_tweaks",
+    "dsfr",
+    # gsl apps:
+    "gsl_core",
+    "gsl_pages",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -76,8 +82,9 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-AUTH_USER_MODEL = "core.Collegue"
+AUTH_USER_MODEL = "gsl_core.Collegue"
 ROOT_URLCONF = "gsl.urls"
+LANGUAGE_CODE = "fr"
 
 TEMPLATES = [
     {
@@ -90,12 +97,19 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "dsfr.context_processors.site_config",
             ],
         },
     },
 ]
 
 WSGI_APPLICATION = "gsl.wsgi.application"
+
+STATIC_URL = "/static/"
+STATIC_ROOT = os.getenv("STATIC_ROOT", BASE_DIR / "static")
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.getenv("MEDIA_ROOT", BASE_DIR / "media")
 
 
 # Database

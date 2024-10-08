@@ -1,6 +1,6 @@
 import pytest
 
-from core.models import Collegue
+from gsl_core.models import Collegue
 
 
 @pytest.mark.django_db
