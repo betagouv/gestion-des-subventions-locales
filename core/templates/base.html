@@ -1,0 +1,17 @@
+{% extends "dsfr/base.html" %}
+{% load static i18n %}
+
+{% block header %}
+    {% include "blocks/header.html" %}
+{% endblock header %}
+
+{% block footer %}
+    {% include "blocks/footer.html" %}
+{% endblock footer %}
+
+{% block extra_js %}
+    <script src="{% static 'js/common.js' %}">
+    </script>
+{% endblock extra_js %}
+
+{% block lang %}{% get_current_language as LANGUAGE_CODE %}{{ LANGUAGE_CODE }}{% endblock lang %}
