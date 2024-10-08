@@ -1,0 +1,295 @@
+query getDemarche(
+    $demarcheNumber: Int!
+    $state: DossierState
+    $order: Order
+    $after: String
+    $updatedSince: ISO8601DateTime
+) {
+    demarche(number: $demarcheNumber) {
+        id
+        number
+        title
+        description
+        dateCreation
+        datePublication
+        dateDepublication
+        dossiers(first: 30, state: $state, order: $order, after: $after, updatedSince: $updatedSince) {
+            pageInfo {
+                endCursor
+                hasNextPage
+            }
+            nodes {
+                ...DossierFragment
+            }
+        }
+        groupeInstructeurs {
+            ...GroupeInstructeurFragment
+        }
+    }
+}
+
+
+query getDemarcheLight(
+    $demarcheNumber: Int!
+    $state: DossierState
+    $order: Order
+    $after: String
+    $updatedSince: ISO8601DateTime
+) {
+    demarche(number: $demarcheNumber) {
+        id
+        number
+        title
+        description
+        dateCreation
+        datePublication
+        dateDepublication
+        dossiers(first: 100, state: $state, order: $order, after: $after, updatedSince: $updatedSince) {
+            pageInfo {
+                endCursor
+                hasNextPage
+            }
+            nodes {
+                ...DossierBaseFragment
+            }
+        }
+    }
+}
+
+query getDossier($dossierNumber: Int!) {
+    dossier(number: $dossierNumber) {
+        ...DossierFragment
+        demarche {
+            ...DemarcheDescriptorFragment
+        }
+    }
+}
+
+query getDeletedDossiers($demarcheNumber: Int!, $order: Order, $after: String) {
+    demarche(number: $demarcheNumber) {
+        deletedDossiers(order: $order, after: $after) {
+            pageInfo {
+                endCursor
+                hasNextPage
+            }
+            nodes {
+                ...DeletedDossierFragment
+            }
+        }
+    }
+}
+
+fragment DossierBaseFragment on Dossier {
+    id
+    number
+    archived
+    state
+    dateDerniereModification
+    dateDerniereCorrectionEnAttente
+    dateDepot
+    datePassageEnConstruction
+    datePassageEnInstruction
+    dateTraitement
+    dateSuppressionParUsager
+    dateSuppressionParAdministration
+    motivation
+}
+
+fragment DossierFragment on Dossier {
+    ...DossierBaseFragment
+    groupeInstructeur {
+        id
+        number
+        label
+    }
+    traitements {
+        state
+        dateTraitement
+    }
+    instructeurs {
+        id
+        email
+    }
+    messages {
+        id
+        email
+        createdAt
+        discardedAt
+        body
+        correction {
+            ...CorrectionFragment
+        }
+    }
+
+    champs {
+        ...ChampFragment
+        ...RootChampFragment
+    }
+    annotations {
+        ...ChampFragment
+        ...RootChampFragment
+    }
+    demandeur {
+        ...PersonneMoraleFragment
+    }
+}
+
+fragment DemarcheDescriptorFragment on DemarcheDescriptor {
+    id
+    number
+    title
+    description
+    state
+    declarative
+    dateCreation
+    datePublication
+    dateDerniereModification
+    dateDepublication
+    dateFermeture
+}
+
+fragment DeletedDossierFragment on DeletedDossier {
+    id
+    number
+    dateSupression
+    state
+    reason
+}
+
+
+fragment RootChampFragment on Champ {
+    ... on RepetitionChamp {
+        champs {
+            ...ChampFragment
+        }
+    }
+    ... on SiretChamp {
+        etablissement {
+            ...PersonneMoraleFragment
+        }
+    }
+}
+
+fragment ChampFragment on Champ {
+    id
+    label
+    stringValue
+    ... on DateChamp {
+        date
+    }
+    ... on DatetimeChamp {
+        datetime
+    }
+    ... on CheckboxChamp {
+        checked: value
+    }
+    ... on DecimalNumberChamp {
+        decimalNumber: value
+    }
+    ... on IntegerNumberChamp {
+        integerNumber: value
+    }
+    ... on CiviliteChamp {
+        civilite: value
+    }
+    ... on LinkedDropDownListChamp {
+        primaryValue
+        secondaryValue
+    }
+    ... on MultipleDropDownListChamp {
+        values
+    }
+    ... on PieceJustificativeChamp {
+        file {
+            ...FileFragment
+        }
+    }
+    ... on AddressChamp {
+        address {
+            ...AddressFragment
+        }
+    }
+    ... on CommuneChamp {
+        commune {
+            name
+            code
+        }
+        departement {
+            name
+            code
+        }
+    }
+}
+
+fragment PersonneMoraleFragment on PersonneMorale {
+    siret
+    naf
+    address {
+        ...AddressFragment
+    }
+    entreprise {
+        siren
+        capitalSocial
+        numeroTvaIntracommunautaire
+        formeJuridique
+        formeJuridiqueCode
+        nomCommercial
+        raisonSociale
+        siretSiegeSocial
+        codeEffectifEntreprise
+        dateCreation
+        nom
+        prenom
+        attestationFiscaleAttachment {
+            ...FileFragment
+        }
+        attestationSocialeAttachment {
+            ...FileFragment
+        }
+    }
+    association {
+        rna
+        titre
+        objet
+        dateCreation
+        dateDeclaration
+        datePublication
+    }
+}
+
+fragment FileFragment on File {
+    filename
+    contentType
+    checksum
+    byteSizeBigInt
+    url
+}
+
+fragment AddressFragment on Address {
+    type
+    streetAddress
+    streetNumber
+    streetName
+    postalCode
+    cityName
+    cityCode
+    departmentName
+    departmentCode
+    regionName
+    regionCode
+}
+
+fragment CorrectionFragment on Correction {
+    dateResolution
+    reason
+}
+
+fragment GroupeInstructeurFragment on GroupeInstructeur {
+    id
+    number
+    label
+    instructeurs {
+        id
+        email
+    }
+}
