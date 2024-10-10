@@ -54,6 +54,21 @@ class Dossier(models.Model):
     ds_id = models.CharField("Identifiant DS")
     ds_number = models.IntegerField("Numéro DS")
     ds_state = models.CharField("État DS", choices=DS_STATE_VALUES)
+    ds_date = models.DateTimeField("Date de dépôt")  # @todo
+
+    collectivite = models.CharField("Collectivité", blank=True)
+    intitule = models.CharField("Intitulé", blank=True)
+    montant_demande = models.IntegerField("Montant demandé", null=True, blank=True)
+    cout_total_projet = models.IntegerField(
+        "Coût total du projet", null=True, blank=True
+    )
+
+    MAPPED_FIELDS = (
+        collectivite,
+        intitule,
+        montant_demande,
+        cout_total_projet,
+    )
 
     class Meta:
         verbose_name = "Dossier"
@@ -70,7 +85,16 @@ class Profile(models.Model):
         return f"Profil {self.ds_email}"
 
 
+def mapping_field_choices():
+    return [(field.name, field.verbose_name) for field in Dossier.MAPPED_FIELDS]
+
+
 class FieldMappingForHuman(models.Model):
+    label = models.CharField("Libellé du champ DS")
+    django_field = models.CharField(
+        "Champ correspondant dans Django", choices=mapping_field_choices
+    )
+
     def __str__(self):
         return f"Correspondance {self.pk}"
 
