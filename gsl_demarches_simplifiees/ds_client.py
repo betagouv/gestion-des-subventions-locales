@@ -71,3 +71,10 @@ class DsClient:
             variables["after"] = end_cursor
             result = self.launch_graphql_query("getDemarche", variables=variables)
             yield from result["data"]["demarche"]["dossiers"]["nodes"]
+
+    def get_one_dossier(self, dossier_number) -> dict:
+        variables = {
+            "dossierNumber": dossier_number,
+        }
+        result = self.launch_graphql_query("getDossier", variables)
+        return result["data"]["dossier"]
