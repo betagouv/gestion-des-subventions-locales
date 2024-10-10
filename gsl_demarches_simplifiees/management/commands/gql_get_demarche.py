@@ -11,4 +11,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         client = DsClient()
+        print("===== démarches : =======")
         print(client.get_demarche(options["demarche_number"]))
+        print("===== dossiers : ========")
+        for dossier in client.get_demarche_dossiers(options["demarche_number"]):
+            print(dossier)
+            print("-" * 30)
