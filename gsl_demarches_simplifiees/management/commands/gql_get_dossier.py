@@ -7,8 +7,8 @@ class Command(BaseCommand):
     help = "Get info about one demarche from its number"
 
     def add_arguments(self, parser):
-        parser.add_argument("demarche_number", type=int)
+        parser.add_argument("dossier_number", type=int)
 
     def handle(self, *args, **options):
         client = DsClient()
-        print(client.get_demarche(options["demarche_number"]))
+        print(client.get_one_dossier(options["dossier_number"]))

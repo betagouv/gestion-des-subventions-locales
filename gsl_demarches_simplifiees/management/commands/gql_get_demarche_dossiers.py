@@ -11,4 +11,13 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         client = DsClient()
-        print(client.get_demarche(options["demarche_number"]))
+        for index, dossier in enumerate(
+            client.get_demarche_dossiers(options["demarche_number"])
+        ):
+            print(f"----- #{index} -----")
+            print(dossier)
+
+        message = f"Total: {index+1} dossier(s)"
+        print("=" * len(message))
+        print(message)
+        print("=" * len(message))
