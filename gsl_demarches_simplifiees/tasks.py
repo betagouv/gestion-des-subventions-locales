@@ -1,5 +1,5 @@
 from gsl_demarches_simplifiees.ds_client import DsClient
-from gsl_demarches_simplifiees.models import Demarche
+from gsl_demarches_simplifiees.models import Demarche, Profile
 
 
 def camelcase(my_string):
@@ -17,9 +17,15 @@ def save_demarche_from_ds(demarche_number):
     }
     try:
         demarche = Demarche.objects.get(ds_id=demarche_data["id"])
-        for field, value in django_data:
+        for field, value in django_data.items():
             demarche.__setattr__(field, value)
         demarche.save()
     except Demarche.DoesNotExist:
-        print(demarche_data)
         demarche = Demarche.objects.create(**django_data)
+
+    for groupe in demarche_data["groupeInstructeurs"]:
+        for instructeur in groupe["instructeurs"]:
+            instructeur, _ = Profile.objects.get_or_create(
+                ds_id=instructeur["id"], ds_email=instructeur["email"]
+            )
+            demarche.ds_instructeurs.add(instructeur)

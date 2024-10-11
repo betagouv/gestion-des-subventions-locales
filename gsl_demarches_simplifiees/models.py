@@ -33,10 +33,10 @@ class Demarche(DsModel):
     ds_state = models.CharField("État DS", choices=STATE_VALUES)
     ds_date_creation = models.DateTimeField(
         "Date de création dans DS", blank=True, null=True
-    )  # ISO8601DateTime
+    )
     ds_date_fermeture = models.DateTimeField(
         "Date de fermeture dans DS", blank=True, null=True
-    )  # ISO8601DateTime
+    )
     ds_instructeurs = models.ManyToManyField("gsl_demarches_simplifiees.Profile")
 
     class Meta:

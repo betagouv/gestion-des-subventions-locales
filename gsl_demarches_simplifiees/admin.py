@@ -5,7 +5,7 @@ from gsl_demarches_simplifiees.models import Demarche, Dossier, FieldMappingForH
 
 @admin.register(Demarche)
 class DemarcheAdmin(admin.ModelAdmin):
-    pass
+    readonly_fields = [field.name for field in Demarche._meta.get_fields()]
 
 
 @admin.register(Dossier)
