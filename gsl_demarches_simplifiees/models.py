@@ -2,7 +2,15 @@
 from django.db import models
 
 
-class Demarche(models.Model):
+class DsModel(models.Model):
+    created_at = models.DateTimeField("Date de création", auto_now_add=True)
+    updated_at = models.DateTimeField("Date de modification", auto_now=True)
+
+    class Meta:
+        abstract = True
+
+
+class Demarche(DsModel):
     """
     Class used to keep DS' "Démarches" data
     See:
@@ -19,15 +27,15 @@ class Demarche(models.Model):
 
     # Fields prefixed with ds_ are DS fixed fields,
     # copied as-is, without any mapping needed.
-    ds_id = models.CharField("Identifiant DS")
-    ds_number = models.IntegerField("Numéro DS")  # type Int graphql
+    ds_id = models.CharField("Identifiant DS", unique=True)
+    ds_number = models.IntegerField("Numéro DS", unique=True)  # type Int graphql
     ds_title = models.CharField("Titre DS")
     ds_state = models.CharField("État DS", choices=STATE_VALUES)
     ds_date_creation = models.DateTimeField(
-        "Date de création dans DS"
+        "Date de création dans DS", blank=True, null=True
     )  # ISO8601DateTime
     ds_date_fermeture = models.DateTimeField(
-        "Date de fermeture dans DS", blank=True
+        "Date de fermeture dans DS", blank=True, null=True
     )  # ISO8601DateTime
     ds_instructeurs = models.ManyToManyField("gsl_demarches_simplifiees.Profile")
 
@@ -38,7 +46,7 @@ class Demarche(models.Model):
         return f"Démarche {self.ds_number}"
 
 
-class Dossier(models.Model):
+class Dossier(DsModel):
     """
     See https://www.demarches-simplifiees.fr/graphql/schema/index.html#definition-Dossier
     """
@@ -67,13 +75,17 @@ class Dossier(models.Model):
         blank=True,
         choices=NATURE_PORTEUR_DE_PROJET_VALUES,
     )
-    # @todo: foreignkey vers un modèle "arrondissement"
-    porteur_de_projet_arrondissement = models.CharField(
-        "Département et arrondissement du porteur de projet", blank=True
+    porteur_de_projet_arrondissement = models.ForeignKey(
+        "gsl_demarches_simplifiees.Arrondissement",
+        models.SET_NULL,
+        verbose_name="Département et arrondissement du porteur de projet",
+        blank=True,
+        null=True,
     )
     porteur_de_projet_fonction = models.CharField(
         "Fonction du porteur de projet", blank=True
     )
+
     porteur_de_projet_nom = models.CharField("Nom du porteur de projet", blank=True)
     porteur_de_projet_prenom = models.CharField(
         "Prénom du porteur de projet", blank=True
@@ -97,26 +109,25 @@ class Dossier(models.Model):
     projet_travaux = models.BooleanField(
         "Le projet d'investissement comprend-il des travaux ?", null=True
     )
-    # @todo: M2M modèle ProjetZonage
-    projet_zonage = models.CharField(
-        "Zonage spécifique : le projet est il situé dans l'une des zones suivantes ?",
-        blank=True,
+    projet_zonage = models.ManyToManyField(
+        "gsl_demarches_simplifiees.ProjetZonage",
+        verbose_name="Zonage spécifique : le projet est il situé dans l'une des zones suivantes ?",
     )
-    # @todo: M2M modèle ProjetContractualisation
-    projet_contractualisation = models.CharField(
-        "Contractualisation : le projet est-il inscrit dans un ou plusieurs contrats avec l'Etat ?",
-        blank=True,
+    projet_contractualisation = models.ManyToManyField(
+        "gsl_demarches_simplifiees.ProjetContractualisation",
+        verbose_name="Contractualisation : le projet est-il inscrit dans un ou plusieurs contrats avec l'Etat ?",
     )
     projet_contractualisation_autre = models.CharField(
         "Autre contrat : précisez le contrat concerné", blank=True
     )
+
     # ----
     environnement_transition_eco = models.BooleanField(
         "Le projet concourt-il aux enjeux de la transition écologique ?"
     )
-    # @todo M2M modèle objectifs environnementaux
-    environnement_objectifs = models.CharField(
-        "Si oui, indiquer quels sont les objectifs environnementaux impactés favorablement."
+    environnement_objectifs = models.ManyToManyField(
+        "gsl_demarches_simplifiees.ObjectifEnvironnemental",
+        verbose_name="Si oui, indiquer quels sont les objectifs environnementaux impactés favorablement.",
     )
     environnement_artif_sols = models.BooleanField(
         "Le projet implique-t-il une artificialisation des sols ?", null=True
@@ -148,17 +159,23 @@ class Dossier(models.Model):
         "Dispositif de financement sollicité",
         choices=DEMANDE_DISPOSITIF_SOLLICITE_VALUES,
     )
-    # @todo M2M
-    demande_eligibilite_detr = models.CharField("Eligibilité de l'opération à la DETR")
-    # @todo M2M
-    demande_eligibilite_dsil = models.CharField("Eligibilité de l'opération à la DSIL")
+    demande_eligibilite_detr = models.ManyToManyField(
+        "gsl_demarches_simplifiees.CritereEligibiliteDetr",
+        verbose_name="Eligibilité de l'opération à la DETR",
+    )
+
+    demande_eligibilite_dsil = models.ManyToManyField(
+        "gsl_demarches_simplifiees.CritereEligibiliteDsil",
+        verbose_name="Eligibilité de l'opération à la DSIL",
+    )
     demande_montant = models.DecimalField(
         "Montant de l'aide demandée", max_digits=12, decimal_places=2
     )
-    # @todo M2M
-    demande_autres_aides = models.CharField(
-        "En 2024, comptez-vous solliciter d'autres aides publiques pour financer cette opération  ?"
+    demande_autres_aides = models.ManyToManyField(
+        "gsl_demarches_simplifiees.AutreAide",
+        verbose_name="En 2024, comptez-vous solliciter d'autres aides publiques pour financer cette opération  ?",
     )
+
     demande_autre_precision = models.TextField(
         "Autre - précisez le dispositif de financement concerné"
     )
@@ -172,7 +189,40 @@ class Dossier(models.Model):
         "Si oui, précisez le niveau de priorité de ce dossier."
     )
 
-    MAPPED_FIELDS = ()
+    MAPPED_FIELDS = (
+        porteur_de_projet_nature,
+        porteur_de_projet_arrondissement,
+        porteur_de_projet_fonction,
+        porteur_de_projet_nom,
+        porteur_de_projet_prenom,
+        maitrise_douvrage_deleguee,
+        maitrise_douvrage_siret,
+        projet_intitule,
+        projet_adresse,
+        projet_immo,
+        projet_travaux,
+        projet_zonage,
+        projet_contractualisation,
+        projet_contractualisation_autre,
+        environnement_transition_eco,
+        environnement_objectifs,
+        environnement_artif_sols,
+        date_debut,
+        date_achevement,
+        finance_cout_total,
+        finance_recettes,
+        demande_annee_precedente,
+        demande_numero_demande_precedente,
+        demande_dispositif_sollicite,
+        demande_eligibilite_detr,
+        demande_eligibilite_dsil,
+        demande_montant,
+        demande_autres_aides,
+        demande_autre_precision,
+        demande_autre_numero_dossier,
+        demande_autre_dsil_detr,
+        demande_priorite_dsil_detr,
+    )
 
     class Meta:
         verbose_name = "Dossier"
@@ -181,8 +231,46 @@ class Dossier(models.Model):
         return f"Dossier {self.ds_number}"
 
 
-class Profile(models.Model):
-    ds_id = models.CharField("Identifiant DS")
+class DsChoiceLibelle(DsModel):
+    label = models.CharField("Libellé", unique=True)
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return self.label
+
+
+class Arrondissement(DsChoiceLibelle):
+    pass
+
+
+class ProjetZonage(DsChoiceLibelle):
+    pass
+
+
+class ProjetContractualisation(DsChoiceLibelle):
+    pass
+
+
+class ObjectifEnvironnemental(DsChoiceLibelle):
+    pass
+
+
+class CritereEligibiliteDetr(DsChoiceLibelle):
+    pass
+
+
+class CritereEligibiliteDsil(DsChoiceLibelle):
+    pass
+
+
+class AutreAide(DsChoiceLibelle):
+    pass
+
+
+class Profile(DsModel):
+    ds_id = models.CharField("Identifiant DS", unique=True)
     ds_email = models.EmailField("E-mail")
 
     def __str__(self):
@@ -190,19 +278,24 @@ class Profile(models.Model):
 
 
 def mapping_field_choices():
-    return [(field.name, field.verbose_name) for field in Dossier.MAPPED_FIELDS]
+    return tuple(
+        (field.name, f"{field.name} - {field.verbose_name}")
+        for field in Dossier.MAPPED_FIELDS
+    )
 
 
-class FieldMappingForHuman(models.Model):
-    label = models.CharField("Libellé du champ DS")
+class FieldMappingForHuman(DsModel):
+    label = models.CharField("Libellé du champ DS", unique=True)
     django_field = models.CharField(
-        "Champ correspondant dans Django", choices=mapping_field_choices
+        "Champ correspondant dans Django",
+        choices=mapping_field_choices,
+        blank=True,
     )
 
     def __str__(self):
         return f"Correspondance {self.pk}"
 
 
-class FieldMappingForComputer(models.Model):
+class FieldMappingForComputer(DsModel):
     def __str__(self):
         return f"Correspondance technique {self.pk}"
