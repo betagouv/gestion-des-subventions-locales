@@ -292,10 +292,18 @@ class FieldMappingForHuman(DsModel):
         blank=True,
     )
 
+    class Meta:
+        verbose_name = "Réconciliation de champ"
+        verbose_name_plural = "Réconciliations de champs"
+
     def __str__(self):
         return f"Correspondance {self.pk}"
 
 
 class FieldMappingForComputer(DsModel):
+    class Meta:
+        verbose_name = "Correspondance technique"
+        verbose_name_plural = "Correspondances techniques"
+
     def __str__(self):
         return f"Correspondance technique {self.pk}"
