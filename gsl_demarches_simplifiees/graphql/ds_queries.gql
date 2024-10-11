@@ -3,17 +3,21 @@ query getDemarche(
     $state: DossierState
     $order: Order
     $after: String
+    $includeGroupeInstructeurs: Boolean = false
+    $includeDossiers: Boolean = false
     $updatedSince: ISO8601DateTime
 ) {
     demarche(number: $demarcheNumber) {
         id
         number
         title
+        state
         description
         dateCreation
         datePublication
         dateDepublication
-        dossiers(first: 30, state: $state, order: $order, after: $after, updatedSince: $updatedSince) {
+        dateFermeture
+        dossiers(first: 30, state: $state, order: $order, after: $after, updatedSince: $updatedSince) @include(if: $includeDossiers) {
             pageInfo {
                 endCursor
                 hasNextPage
@@ -22,7 +26,7 @@ query getDemarche(
                 ...DossierFragment
             }
         }
-        groupeInstructeurs {
+        groupeInstructeurs @include(if: $includeGroupeInstructeurs) {
             ...GroupeInstructeurFragment
         }
     }
