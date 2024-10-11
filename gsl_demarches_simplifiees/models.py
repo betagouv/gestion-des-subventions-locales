@@ -56,19 +56,123 @@ class Dossier(models.Model):
     ds_state = models.CharField("État DS", choices=DS_STATE_VALUES)
     ds_date = models.DateTimeField("Date de dépôt")  # @todo
 
-    collectivite = models.CharField("Collectivité", blank=True)
-    intitule = models.CharField("Intitulé", blank=True)
-    montant_demande = models.IntegerField("Montant demandé", null=True, blank=True)
-    cout_total_projet = models.IntegerField(
-        "Coût total du projet", null=True, blank=True
+    NATURE_PORTEUR_DE_PROJET_VALUES = (
+        ("commune", "Commune"),
+        ("epci", "EPCI"),
+        ("petr", "Pôle d'équilibre territorial et rural"),
+        ("syco", "Syndicat de communes"),
+    )
+    porteur_de_projet_nature = models.CharField(
+        "Nature du porteur de projet",
+        blank=True,
+        choices=NATURE_PORTEUR_DE_PROJET_VALUES,
+    )
+    # @todo: foreignkey vers un modèle "arrondissement"
+    porteur_de_projet_arrondissement = models.CharField(
+        "Département et arrondissement du porteur de projet", blank=True
+    )
+    porteur_de_projet_fonction = models.CharField(
+        "Fonction du porteur de projet", blank=True
+    )
+    porteur_de_projet_nom = models.CharField("Nom du porteur de projet", blank=True)
+    porteur_de_projet_prenom = models.CharField(
+        "Prénom du porteur de projet", blank=True
+    )
+    # ---
+    maitrise_douvrage_deleguee = models.BooleanField(
+        "La maîtrise d'ouvrage de l'opération sera-t-elle déléguée ?", null=True
+    )
+    maitrise_douvrage_siret = models.CharField(
+        "Identification du maître d'ouvrage", blank=True
+    )
+    # ---
+    projet_intitule = models.CharField("Intitulé du projet", blank=True)
+    projet_adresse = models.TextField(
+        "Adresse principale du projet", blank=True
+    )  # @todo : addresse = complexe
+    projet_immo = models.BooleanField(
+        "Le projet d'investissement comprend-il des acquisitions immobilières ?",
+        null=True,
+    )
+    projet_travaux = models.BooleanField(
+        "Le projet d'investissement comprend-il des travaux ?", null=True
+    )
+    # @todo: M2M modèle ProjetZonage
+    projet_zonage = models.CharField(
+        "Zonage spécifique : le projet est il situé dans l'une des zones suivantes ?",
+        blank=True,
+    )
+    # @todo: M2M modèle ProjetContractualisation
+    projet_contractualisation = models.CharField(
+        "Contractualisation : le projet est-il inscrit dans un ou plusieurs contrats avec l'Etat ?",
+        blank=True,
+    )
+    projet_contractualisation_autre = models.CharField(
+        "Autre contrat : précisez le contrat concerné", blank=True
+    )
+    # ----
+    environnement_transition_eco = models.BooleanField(
+        "Le projet concourt-il aux enjeux de la transition écologique ?"
+    )
+    # @todo M2M modèle objectifs environnementaux
+    environnement_objectifs = models.CharField(
+        "Si oui, indiquer quels sont les objectifs environnementaux impactés favorablement."
+    )
+    environnement_artif_sols = models.BooleanField(
+        "Le projet implique-t-il une artificialisation des sols ?", null=True
+    )
+    # ---
+    date_debut = models.DateField(
+        "Date de commencement de l'opération", null=True, blank=True
+    )
+    date_achevement = models.DateField(
+        "Date prévisionnelle d'achèvement de l'opération"
+    )
+    # ---
+    finance_cout_total = models.DecimalField(
+        "Coût total de l'opération (en euros HT)", max_digits=12, decimal_places=2
+    )
+    finance_recettes = models.BooleanField("Le projet va-t-il générer des recettes ?")
+    # ---
+    demande_annee_precedente = models.BooleanField(
+        "Avez-vous déjà présenté cette opération au titre de campagnes DETR/DSIL en 2023 ?"
+    )
+    demande_numero_demande_precedente = models.CharField(
+        "Précisez le numéro du dossier déposé antérieurement"
+    )
+    DEMANDE_DISPOSITIF_SOLLICITE_VALUES = (
+        ("DETR", "DETR"),
+        ("DSIL", "DSIL"),
+    )
+    demande_dispositif_sollicite = models.CharField(
+        "Dispositif de financement sollicité",
+        choices=DEMANDE_DISPOSITIF_SOLLICITE_VALUES,
+    )
+    # @todo M2M
+    demande_eligibilite_detr = models.CharField("Eligibilité de l'opération à la DETR")
+    # @todo M2M
+    demande_eligibilite_dsil = models.CharField("Eligibilité de l'opération à la DSIL")
+    demande_montant = models.DecimalField(
+        "Montant de l'aide demandée", max_digits=12, decimal_places=2
+    )
+    # @todo M2M
+    demande_autres_aides = models.CharField(
+        "En 2024, comptez-vous solliciter d'autres aides publiques pour financer cette opération  ?"
+    )
+    demande_autre_precision = models.TextField(
+        "Autre - précisez le dispositif de financement concerné"
+    )
+    demande_autre_numero_dossier = models.CharField(
+        "Si votre dossier a déjà été déposé, précisez le numéro de dossier"
+    )
+    demande_autre_dsil_detr = models.BooleanField(
+        "Présentez-vous une autre opération au titre de la DETR/DSIL 2024 ?"
+    )
+    demande_priorite_dsil_detr = models.IntegerField(
+        "Si oui, précisez le niveau de priorité de ce dossier."
     )
 
-    MAPPED_FIELDS = (
-        collectivite,
-        intitule,
-        montant_demande,
-        cout_total_projet,
-    )
+    MAPPED_FIELDS = ()
 
     class Meta:
         verbose_name = "Dossier"
