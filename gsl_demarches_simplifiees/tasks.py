@@ -1,5 +1,11 @@
 from gsl_demarches_simplifiees.ds_client import DsClient
-from gsl_demarches_simplifiees.models import Demarche, Profile
+from gsl_demarches_simplifiees.models import (
+    Demarche,
+    Dossier,
+    FieldMappingForComputer,
+    FieldMappingForHuman,
+    Profile,
+)
 
 
 def camelcase(my_string):
@@ -23,9 +29,60 @@ def save_demarche_from_ds(demarche_number):
     except Demarche.DoesNotExist:
         demarche = Demarche.objects.create(**django_data)
 
+    save_groupe_instructeurs(demarche_data, demarche)
+    save_field_mappings(demarche_data, demarche)
+
+
+def save_groupe_instructeurs(demarche_data, demarche):
     for groupe in demarche_data["groupeInstructeurs"]:
         for instructeur in groupe["instructeurs"]:
             instructeur, _ = Profile.objects.get_or_create(
                 ds_id=instructeur["id"], ds_email=instructeur["email"]
             )
             demarche.ds_instructeurs.add(instructeur)
+
+
+def save_field_mappings(demarche_data, demarche):
+    reversed_mapping = {
+        field.verbose_name: field.name for field in Dossier.MAPPED_FIELDS
+    }
+    for champ_descriptor in demarche_data["activeRevision"]["champDescriptors"]:
+        ds_type = champ_descriptor["__typename"]
+        if ds_type not in (
+            "DropDownListChampDescriptor",
+            "TextChampDescriptor",
+            "YesNoChampDescriptor",
+            "SiretChampDescriptor",
+            "PhoneChampDescriptor",
+            "AddressChampDescriptor",
+            "MultipleDropDownListChampDescriptor",
+        ):
+            continue
+        ds_label = champ_descriptor["label"]
+        ds_id = champ_descriptor["id"]
+        qs_human_mapping = FieldMappingForHuman.objects.filter(label=ds_label)
+        qs_computer_mapping = FieldMappingForComputer.objects.filter(
+            ds_field_id=ds_id, demarche=demarche
+        )
+        if qs_computer_mapping.exists():
+            continue
+        if qs_human_mapping.exists():
+            human_mapping = qs_human_mapping.get()
+            if human_mapping.django_field:
+                FieldMappingForComputer.objects.create(
+                    ds_field_id=ds_id,
+                    demarche=demarche,
+                    ds_field_label=ds_label,
+                    ds_field_type=ds_type,
+                    django_field=human_mapping.django_field,
+                    field_mapping_for_human=human_mapping,
+                )
+                continue
+        if ds_label in reversed_mapping:
+            FieldMappingForComputer.objects.create(
+                ds_field_id=ds_id,
+                demarche=demarche,
+                ds_field_label=ds_label,
+                ds_field_type=ds_type,
+                django_field=reversed_mapping.get(ds_label),
+            )

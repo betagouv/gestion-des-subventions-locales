@@ -1,6 +1,11 @@
 from django.contrib import admin
 
-from gsl_demarches_simplifiees.models import Demarche, Dossier, FieldMappingForHuman
+from gsl_demarches_simplifiees.models import (
+    Demarche,
+    Dossier,
+    FieldMappingForComputer,
+    FieldMappingForHuman,
+)
 
 
 @admin.register(Demarche)
@@ -17,3 +22,11 @@ class DossierAdmin(admin.ModelAdmin):
 @admin.register(FieldMappingForHuman)
 class FieldMappingForHumanAdmin(admin.ModelAdmin):
     pass
+
+
+@admin.register(FieldMappingForComputer)
+class FieldMappingForComputerAdmin(admin.ModelAdmin):
+    readonly_fields = [
+        field.name for field in FieldMappingForComputer._meta.get_fields()
+    ]
+    list_display = ("ds_field_id", "ds_field_label", "django_field", "demarche")

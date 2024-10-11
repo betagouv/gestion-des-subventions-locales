@@ -284,6 +284,10 @@ def mapping_field_choices():
     )
 
 
+def reversed_mapping():
+    return
+
+
 class FieldMappingForHuman(DsModel):
     label = models.CharField("Libellé du champ DS", unique=True)
     django_field = models.CharField(
@@ -291,16 +295,38 @@ class FieldMappingForHuman(DsModel):
         choices=mapping_field_choices,
         blank=True,
     )
+    demarche = models.ForeignKey(
+        Demarche,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Démarche sur laquelle ce libellé de champ a été trouvé la première fois",
+    )
 
     class Meta:
         verbose_name = "Réconciliation de champ"
         verbose_name_plural = "Réconciliations de champs"
 
     def __str__(self):
-        return f"Correspondance {self.pk}"
+        return f"Réconciliation {self.pk}"
 
 
 class FieldMappingForComputer(DsModel):
+    demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
+    ds_field_id = models.CharField("ID du champ DS", unique=True)
+    ds_field_label = models.CharField(
+        "Libellé DS",
+        help_text="Libellé au moment où ce champ a été rencontré pour la première fois — il a pu changer depuis !",
+    )
+    ds_field_type = models.CharField("Type de champ DS")
+    django_field = models.CharField("Champ Django", choices=mapping_field_choices)
+    field_mapping_for_human = models.ForeignKey(
+        FieldMappingForHuman,
+        on_delete=models.SET_NULL,
+        null=True,
+        help_text="Réconciliation utilisée pour créer cette correspondance",
+    )
+
     class Meta:
         verbose_name = "Correspondance technique"
         verbose_name_plural = "Correspondances techniques"
