@@ -62,7 +62,16 @@ class Dossier(DsModel):
     ds_id = models.CharField("Identifiant DS")
     ds_number = models.IntegerField("Numéro DS")
     ds_state = models.CharField("État DS", choices=DS_STATE_VALUES)
-    ds_date = models.DateTimeField("Date de dépôt")  # @todo
+    ds_date_depot = models.DateTimeField("Date de dépôt", null=True, blank=True)
+    ds_date_passage_en_construction = models.DateTimeField(
+        "Date de passage en construction", null=True, blank=True
+    )
+    ds_date_passage_en_instruction = models.DateTimeField(
+        "Date de passage en instruction", null=True, blank=True
+    )
+    ds_date_derniere_modification_champs = models.DateTimeField(
+        "Date de dernière modification", null=True, blank=True
+    )
 
     NATURE_PORTEUR_DE_PROJET_VALUES = (
         ("commune", "Commune"),
@@ -123,7 +132,7 @@ class Dossier(DsModel):
 
     # ----
     environnement_transition_eco = models.BooleanField(
-        "Le projet concourt-il aux enjeux de la transition écologique ?"
+        "Le projet concourt-il aux enjeux de la transition écologique ?", null=True
     )
     environnement_objectifs = models.ManyToManyField(
         "gsl_demarches_simplifiees.ObjectifEnvironnemental",
@@ -137,7 +146,7 @@ class Dossier(DsModel):
         "Date de commencement de l'opération", null=True, blank=True
     )
     date_achevement = models.DateField(
-        "Date prévisionnelle d'achèvement de l'opération"
+        "Date prévisionnelle d'achèvement de l'opération", null=True
     )
     # ---
     finance_cout_total = models.DecimalField(

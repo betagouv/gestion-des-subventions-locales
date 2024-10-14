@@ -30,3 +30,4 @@ class FieldMappingForComputerAdmin(admin.ModelAdmin):
         field.name for field in FieldMappingForComputer._meta.get_fields()
     ]
     list_display = ("ds_field_id", "ds_field_label", "django_field", "demarche")
+    list_filter = ("demarche__ds_number", "ds_field_type")
