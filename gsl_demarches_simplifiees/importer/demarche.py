@@ -87,3 +87,8 @@ def save_field_mappings(demarche_data, demarche):
                 ds_field_type=ds_type,
                 django_field=reversed_mapping.get(ds_label),
             )
+            continue
+        FieldMappingForHuman.objects.create(
+            label=ds_label,
+            demarche=demarche,
+        )

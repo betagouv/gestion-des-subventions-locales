@@ -1,794 +1,129 @@
 {
-  "data": {
-    "demarche": {
-      "id": "un-id-qui-nest-pas-un-vrai==",
-      "number": 123456,
-      "title": "Titre de la démarche",
-      "state": "brouillon",
-      "declarative": null,
-      "dateCreation": "2024-10-07T14:47:24+02:00",
-      "dateFermeture": null,
-      "chorusConfiguration": {
-        "centreDeCout": "",
-        "domaineFonctionnel": "",
-        "referentielDeProgrammation": ""
+  "id": "un-id-qui-nest-pas-un-vrai==",
+  "number": 123456,
+  "title": "Titre de la démarche",
+  "state": "brouillon",
+  "declarative": null,
+  "dateCreation": "2024-10-07T14:47:24+02:00",
+  "dateFermeture": null,
+  "chorusConfiguration": {
+    "centreDeCout": "",
+    "domaineFonctionnel": "",
+    "referentielDeProgrammation": ""
+  },
+  "activeRevision": {
+    "id": "TEST_ID_MTYyNjE0",
+    "datePublication": null,
+    "champDescriptors": [
+      {
+        "__typename": "ExplicationChampDescriptor",
+        "id": "TEST_ID_k5Njg5OA==",
+        "label": "Votre demande dématérialisée de DETR/DSIL pour l'année 2024",
+        "description": "Ce formulaire est destiné aux collectivités territoriales qui souhaitent déposer une demande de subvention au titre de la DETR ou de la DSIL 2024. Votre demande sera automatiquement orientée vers la préfecture ou la sous-préfecture compétente.\r\n\r\n<br />\r\n\r\nLes priorités et les modalités de dépôts des dossiers sont adaptés aux niveaux régional et départemental. **Pour plus d'informations sur le calendrier et les conditions d'octroi des subventions dans votre département, consultez l'instruction transmise par votre préfecture de département**. Si vous n'avez pas reçu cette instruction, [contactez votre préfecture de département](https://lannuaire.service-public.fr/navigation/prefecture) ou consultez son site internet.\r\n\r\n",
+        "required": false,
+        "collapsibleExplanationEnabled": true,
+        "collapsibleExplanationText": "\r\nPour constituer votre dossier, les sections suivantes sont à compléter :\r\n\r\n-Informations sur le porteur de projet\r\n-Présentation de l'opération\r\n-Plan de financement prévisionnel\r\n-Finalisation du dossier\r\n\r\n\r\n<br />\r\n\r\nVotre dossier est enregistré automatiquement après chaque modification. Vous pouvez à tout moment fermer la fenêtre et reprendre plus tard là où vous en étiez."
       },
-      "activeRevision": {
-        "id": "TEST_ID_MTYyNjE0",
-        "datePublication": null,
-        "champDescriptors": [
-          {
-            "__typename": "ExplicationChampDescriptor",
-            "id": "TEST_ID_k5Njg5OA==",
-            "label": "Votre demande dématérialisée de DETR/DSIL pour l'année 2024",
-            "description": "Ce formulaire est destiné aux collectivités territoriales qui souhaitent déposer une demande de subvention au titre de la DETR ou de la DSIL 2024. Votre demande sera automatiquement orientée vers la préfecture ou la sous-préfecture compétente.\r\n\r\n<br />\r\n\r\nLes priorités et les modalités de dépôts des dossiers sont adaptés aux niveaux régional et départemental. **Pour plus d'informations sur le calendrier et les conditions d'octroi des subventions dans votre département, consultez l'instruction transmise par votre préfecture de département**. Si vous n'avez pas reçu cette instruction, [contactez votre préfecture de département](https://lannuaire.service-public.fr/navigation/prefecture) ou consultez son site internet.\r\n\r\n",
-            "required": false,
-            "collapsibleExplanationEnabled": true,
-            "collapsibleExplanationText": "\r\nPour constituer votre dossier, les sections suivantes sont à compléter :\r\n\r\n-Informations sur le porteur de projet\r\n-Présentation de l'opération\r\n-Plan de financement prévisionnel\r\n-Finalisation du dossier\r\n\r\n\r\n<br />\r\n\r\nVotre dossier est enregistré automatiquement après chaque modification. Vous pouvez à tout moment fermer la fenêtre et reprendre plus tard là où vous en étiez."
-          },
-          {
-            "__typename": "HeaderSectionChampDescriptor",
-            "id": "TEST_ID_ODgwNDAy",
-            "label": "Informations sur le porteur de projet",
-            "description": null,
-            "required": false
-          },
-          {
-            "__typename": "ExplicationChampDescriptor",
-            "id": "TEST_ID_Mjk0NTM2Mg==",
-            "label": "Identification de la collectivité porteuse du projet",
-            "description": "",
-            "required": false,
-            "collapsibleExplanationEnabled": false,
-            "collapsibleExplanationText": ""
-          },
-          {
-            "__typename": "DropDownListChampDescriptor",
-            "id": "TEST_ID_MTk3NzQ0NQ==",
-            "label": "Nature du porteur de projet",
-            "description": "Sauf cas particulier, les porteurs de projets éligibles à la DETR et à la DSIL sont les communes et les établissements publics de coopération intercommunale.",
-            "required": true,
-            "options": [
-              "Commune",
-              "EPCI",
-              "Pôle d'équilibre territorial et rural",
-              "Syndicat de communes"
-            ],
-            "otherOption": true
-          },
-          {
-            "__typename": "DropDownListChampDescriptor",
-            "id": "TEST_ID_MzI3Njk1NA==",
-            "label": "Département et arrondissement du porteur de projet",
-            "description": "Votre dossier sera transmis à l'autorité compétente pour instruire votre dossier.",
-            "required": true,
-            "options": [
-              "07 - Ardèche - arrondissement de Largentière",
-              "07 - Ardèche - arrondissement de Privas",
-              "07 - Ardèche - arrondissement de Tournon-sur-Rhône",
-              "67 - Bas-Rhin - arrondissement de Haguenau-Wissembourg",
-              "67 - Bas-Rhin - arrondissement de Molsheim",
-              "67 - Bas-Rhin - arrondissement de Saverne",
-              "67 - Bas-Rhin - arrondissement de Sélestat-Erstein",
-              "67 - Bas-Rhin - arrondissement de Strasbourg",
-              "68 - Haut-Rhin - arrondissement de Altkirch",
-              "68 - Haut-Rhin - arrondissement de Colmar-Ribeauvillé",
-              "68 - Haut-Rhin - arrondissement de Mulhouse",
-              "68 - Haut-Rhin - arrondissement de Thann-Guebwiller",
-              "69 - Rhône - arrondissement de Lyon",
-              "69 - Rhône - arrondissement de Villefranche-sur-Saône",
-              "70 - Haute-Saône - arrondissement de Lure",
-              "70 - Haute-Saône - arrondissement de Vesoul",
-              "971 - Guadeloupe - arrondissement de Basse-Terre",
-              "971 - Guadeloupe - arrondissement de Pointe-à-Pitre",
-              "972 - Martinique - arrondissement de Fort-de-France",
-              "972 - Martinique - arrondissement de La Trinité",
-              "972 - Martinique - arrondissement de Le Marin",
-              "972 - Martinique - arrondissement de Saint-Pierre",
-              "973 - Guyane - arrondissement de Cayenne",
-              "973 - Guyane - arrondissement de Saint-Laurent-du-Maroni",
-              "974 - La Réunion - arrondissement de Saint-Denis",
-              "974 - La Réunion - arrondissement de Saint-Pierre",
-              "974 - La Réunion - arrondissement de Saint-Benoît",
-              "974 - La Réunion - arrondissement de Saint-Paul"
-            ],
-            "otherOption": false
-          },
-          {
-            "__typename": "DropDownListChampDescriptor",
-            "id": "TEST_ID_MjkzNDM2NA==",
-            "label": "Fonction du porteur de projet",
-            "description": "La demande de subvention est présentée par le maire ou le président de l'établissement public de coopération intercommunale compétent (article R2334-22 du CGCT).",
-            "required": true,
-            "options": [
-              "Maire",
-              "Président d'EPCI"
-            ],
-            "otherOption": true
-          },
-          {
-            "__typename": "TextChampDescriptor",
-            "id": "TEST_ID_MjkzNDM2MA==",
-            "label": "Nom du porteur de projet",
-            "description": "",
-            "required": true
-          },
-          {
-            "__typename": "TextChampDescriptor",
-            "id": "TEST_ID_MjkzNDM2Mg==",
-            "label": "Prénom du porteur de projet",
-            "description": "",
-            "required": true
-          },
-          {
-            "__typename": "YesNoChampDescriptor",
-            "id": "TEST_ID_Mjk5Nzg0MA==",
-            "label": "La maîtrise d'ouvrage de l'opération sera-t-elle déléguée ?",
-            "description": "Une collectivité peut bénéficier d’une subvention au titre de la DETR, de la DSIL afin de financer une opération pour laquelle elle a délégué la maîtrise d’ouvrage, à condition qu’elle justifie d’une participation financière à hauteur d’au moins 20% de la totalité des financements publics mobilisés. ",
-            "required": true
-          },
-          {
-            "__typename": "SiretChampDescriptor",
-            "id": "TEST_ID_Mjk0NTU5OA==",
-            "label": "Identification du maître d'ouvrage",
-            "description": "Merci d'indiquer le code SIRET de la personne morale délégataire de la maîtrise d'ouvrage.",
-            "required": true
-          },
-          {
-            "__typename": "PieceJustificativeChampDescriptor",
-            "id": "TEST_ID_MzM0NDQ4MQ==",
-            "label": "Joindre la convention de délégation",
-            "description": "Convention signée par la collectivité déléguant la maîtrise d'ouvrage et l'entité délégataire.",
-            "required": true,
-            "fileTemplate": null
-          },
-          {
-            "__typename": "ExplicationChampDescriptor",
-            "id": "TEST_ID_MTUwNjQwMQ==",
-            "label": "Identification de la personne chargée du suivi du dossier",
-            "description": "",
-            "required": false,
-            "collapsibleExplanationEnabled": false,
-            "collapsibleExplanationText": null
-          },
-          {
-            "__typename": "TextChampDescriptor",
-            "id": "TEST_ID_MjkzNDM5MQ==",
-            "label": "Nom",
-            "description": "",
-            "required": true
-          },
-          {
-            "__typename": "TextChampDescriptor",
-            "id": "TEST_ID_MjkzNDM5Mw==",
-            "label": "Prénom",
-            "description": "",
-            "required": true
-          },
-          {
-            "__typename": "TextChampDescriptor",
-            "id": "TEST_ID_MjkzNDM5NA==",
-            "label": "Fonction",
-            "description": "",
-            "required": true
-          },
-          {
-            "__typename": "TextChampDescriptor",
-            "id": "TEST_ID_NDU4MzEwNQ==",
-            "label": "Couleur du ciel",
-            "description": "",
-            "required": true
-          },
-          {
-            "__typename": "PhoneChampDescriptor",
-            "id": "TEST_ID_MjkzNDQwMQ==",
-            "label": "Téléphone",
-            "description": "",
-            "required": true
-          },
-          {
-            "__typename": "HeaderSectionChampDescriptor",
-            "id": "TEST_ID_Mjk3MTQxNw==",
-            "label": "Présentation de l'opération",
-            "description": "",
-            "required": false
-          },
-          {
-            "__typename": "ExplicationChampDescriptor",
-            "id": "TEST_ID_MzI5MzY1Mw==",
-            "label": "Description du projet",
-            "description": "",
-            "required": false,
-            "collapsibleExplanationEnabled": false,
-            "collapsibleExplanationText": null
-          },
-          {
-            "__typename": "TextChampDescriptor",
-            "id": "TEST_ID_Mjk3MTQ0NA==",
-            "label": "Intitulé du projet",
-            "description": "Description succincte et précise de l'opération pour laquelle vous demandez le soutien de l’État. Exemple : rénovation énergétique de l'école primaire, mise en accessibilité de la mairie, création d'une maison France Services.",
-            "required": true
-          },
-          {
-            "__typename": "AddressChampDescriptor",
-            "id": "TEST_ID_MzAyMDUwMA==",
-            "label": "Adresse principale du projet",
-            "description": "Si possible, précisez une adresse précise, à défaut le nom de la commune qui accueille l'opération.",
-            "required": true
-          },
-          {
-            "__typename": "PieceJustificativeChampDescriptor",
-            "id": "TEST_ID_Mjk0NTY0NA==",
-            "label": "Délibération du conseil municipal ou de l'organe délibérant de l'EPCI",
-            "description": "Fournir la délibération du conseil municipal ou de l'organe délibérant de l'établissement public de coopération intercommunale adoptant l'opération et arrêtant ses modalités de financement.",
-            "required": true,
-            "fileTemplate": null
-          },
-          {
-            "__typename": "PieceJustificativeChampDescriptor",
-            "id": "TEST_ID_MzI3Njk1Nw==",
-            "label": "Joindre un document de présentation de votre projet",
-            "description": "Ce document explicatif doit préciser l'objet de l'opération, les objectifs poursuivis, sa durée, le coût prévisionnel global ainsi que le montant de la subvention sollicitée.",
-            "required": true,
-            "fileTemplate": null
-          },
-          {
-            "__typename": "YesNoChampDescriptor",
-            "id": "TEST_ID_MzI5MzU1Mw==",
-            "label": "Le projet d'investissement comprend-il des acquisitions immobilières ?",
-            "description": "",
-            "required": true
-          },
-          {
-            "__typename": "PieceJustificativeChampDescriptor",
-            "id": "TEST_ID_MzI5MzU1Mg==",
-            "label": "Joindre un plan de situation et/ou le plan cadastral",
-            "description": "",
-            "required": true,
-            "fileTemplate": null
-          },
-          {
-            "__typename": "PieceJustificativeChampDescriptor",
-            "id": "TEST_ID_MzI5MzU1NA==",
-            "label": "Si l’acquisition du terrain est effective, joindre le titre de propriété et la justification de son caractère onéreux.",
-            "description": "",
-            "required": false,
-            "fileTemplate": null
-          },
-          {
-            "__typename": "YesNoChampDescriptor",
-            "id": "TEST_ID_MzI5MzU1NQ==",
-            "label": "Le projet d'investissement comprend-il des travaux ?",
-            "description": "En cas de travaux, vous devez impérativement joindre les justificatifs suivants : situation juridique des terrains et des immeubles, plan de situation et plan de masse des travaux, programme détaillé des travaux et dossier d'avant projet définitif.  **Attention : le projet doit également respecter les dispositions du code de l'urbanisme (notamment l'obligation de déclaration préalable, permis de construire et la demande d'un avis de la DRAC pour les travaux à proximité de monuments classés).**",
-            "required": true
-          },
-          {
-            "__typename": "PieceJustificativeChampDescriptor",
-            "id": "TEST_ID_MzI5MzU1Ng==",
-            "label": "Justificatif travaux 01 - Situation juridique des terrains et immeubles",
-            "description": "Joindre un document précisant la situation juridique des terrains et immeubles et établissant que le demandeur a ou aura la libre disposition de ceux-ci.",
-            "required": true,
-            "fileTemplate": null
-          },
-          {
-            "__typename": "PieceJustificativeChampDescriptor",
-            "id": "TEST_ID_MzMzNTgyNQ==",
-            "label": "Justificatif travaux 02 - Plan de situation et plan de masse des travaux",
-            "description": "",
-            "required": true,
-            "fileTemplate": null
-          },
-          {
-            "__typename": "PieceJustificativeChampDescriptor",
-            "id": "TEST_ID_MzMzNTgyNg==",
-            "label": "Justificatif travaux 03 - Programme détaillé des travaux",
-            "description": "",
-            "required": true,
-            "fileTemplate": null
-          },
-          {
-            "__typename": "PieceJustificativeChampDescriptor",
-            "id": "TEST_ID_MzMzNTgyNw==",
-            "label": "Justificatif travaux 04 - Dossier d'avant-projet définitif",
-            "description": "",
-            "required": false,
-            "fileTemplate": null
-          },
-          {
-            "__typename": "MultipleDropDownListChampDescriptor",
-            "id": "TEST_ID_Mjk0NTQyMw==",
-            "label": "Zonage spécifique : le projet est il situé dans l'une des zones suivantes ?",
-            "description": "Sélectionner un ou plusieurs zonages spécifiques.",
-            "required": true,
-            "options": [
-              "Aucun zonage",
-              "Quartiers prioritaires de la politique de la Ville (QPV)",
-              "Nouveau programme de rénovation urbaine (NPNRU)",
-              "ÉcoQuartier",
-              "Territoires Engagées pour la Nature (TEN)",
-              "Zones de revitalisation rurale (ZRR)",
-              "Territoires d'industrie (TI)",
-              "Zone de protection du patrimoine architectural, urbain et paysager (ZPPAUP)",
-              "Aire de mise en valeur de l'architecture et du patrimoine (AVAP)",
-              "Site patrimonial remarquable (SPR)",
-              "Avenir montagne"
-            ]
-          },
-          {
-            "__typename": "MultipleDropDownListChampDescriptor",
-            "id": "TEST_ID_Mjk0NzQzNQ==",
-            "label": "Contractualisation : le projet est-il inscrit dans un ou plusieurs contrats avec l'Etat ?",
-            "description": "Indiquer si le projet s'inscrit dans un contrat signé entre la collectivité et l’État. Exemple : projet inscrit dans un contrat de relance et de transition écologique (CRTE), conventions Action Cœur de Ville et Petites villes de Demain, etc.",
-            "required": false,
-            "options": [
-              "Contrat de relance et de transition écologique (CRTE)",
-              "Action Cœur de Ville (ACV)",
-              "Petites Villes de Demain (PVD)",
-              "Contrat de ruralité",
-              "Contrat de plan État-Région (CPER)",
-              "Contrat de Convergence et de Transformation (CCT)",
-              "Opération de revitalisation du territoire (ORT)",
-              "Opération d'intérêt national (OIN)",
-              "Opération programmée d'amélioration de l'habitat (OPAH)",
-              "Projet partenarial d’aménagement (PPA)",
-              "Autre contrat"
-            ]
-          },
-          {
-            "__typename": "TextChampDescriptor",
-            "id": "TEST_ID_MzM0MjIxNg==",
-            "label": "Autre contrat : précisez le contrat concerné",
-            "description": "",
-            "required": true
-          },
-          {
-            "__typename": "ExplicationChampDescriptor",
-            "id": "TEST_ID_MzI5MzY1NA==",
-            "label": "Impact environnemental du projet",
-            "description": "",
-            "required": false,
-            "collapsibleExplanationEnabled": false,
-            "collapsibleExplanationText": null
-          },
-          {
-            "__typename": "YesNoChampDescriptor",
-            "id": "TEST_ID_MzQ2NzY5OQ==",
-            "label": "Le projet concourt-il aux enjeux de la transition écologique ?",
-            "description": "",
-            "required": true
-          },
-          {
-            "__typename": "MultipleDropDownListChampDescriptor",
-            "id": "TEST_ID_MzI4MDE4Mw==",
-            "label": "Si oui, indiquer quels sont les objectifs environnementaux impactés favorablement.",
-            "description": "",
-            "required": true,
-            "options": [
-              "Lutte contre le changement climatique",
-              "Adaptation au changement climatique et à prévention des risques naturels",
-              "Amélioration de la gestion de la ressource en eau",
-              "Amélioration de la gestion des déchets et prévention des risques technologiques",
-              "Lutte contre les pollutions",
-              "Protection de la biodiversité et des espaces naturels, agricoles et sylvicoles"
-            ]
-          },
-          {
-            "__typename": "TextareaChampDescriptor",
-            "id": "TEST_ID_MzQ2NzcwMA==",
-            "label": "Justifier en quelques mots.",
-            "description": "",
-            "required": false
-          },
-          {
-            "__typename": "YesNoChampDescriptor",
-            "id": "TEST_ID_MzI5MzY1NQ==",
-            "label": "Le projet implique-t-il une artificialisation des sols ?",
-            "description": "L'artificialisation des sols désigne la transformation d’un espace naturel en terrain imperméabilisé.",
-            "required": true
-          },
-          {
-            "__typename": "ExplicationChampDescriptor",
-            "id": "TEST_ID_Mjk0NTcxMA==",
-            "label": "Dates prévisionnelles de réalisation du projet",
-            "description": "",
-            "required": false,
-            "collapsibleExplanationEnabled": false,
-            "collapsibleExplanationText": null
-          },
-          {
-            "__typename": "DateChampDescriptor",
-            "id": "TEST_ID_Mjk0NTcxMg==",
-            "label": "Date de commencement de l'opération",
-            "description": " **Si cette date n'est pas connue précisément, indiquer une date prévisionnelle.**",
-            "required": true
-          },
-          {
-            "__typename": "DateChampDescriptor",
-            "id": "TEST_ID_Mjk0NTcxNA==",
-            "label": "Date prévisionnelle d'achèvement de l'opération",
-            "description": "En application des dispositions de [l’article R2334-29 du CGCT](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006397216), le bénéficiaire dispose d'un délai de quatre ans à compter de la date de déclaration du début d'exécution pour achever l'opération.",
-            "required": true
-          },
-          {
-            "__typename": "HeaderSectionChampDescriptor",
-            "id": "TEST_ID_Mjk0NTQzOA==",
-            "label": "Plan de financement prévisionnel",
-            "description": "",
-            "required": false
-          },
-          {
-            "__typename": "ExplicationChampDescriptor",
-            "id": "TEST_ID_MzM1NDI5MA==",
-            "label": "Dépenses et recettes prévisionnelles",
-            "description": "",
-            "required": false,
-            "collapsibleExplanationEnabled": false,
-            "collapsibleExplanationText": null
-          },
-          {
-            "__typename": "DecimalNumberChampDescriptor",
-            "id": "TEST_ID_Mjk0NzQzNw==",
-            "label": "Coût total de l'opération (en euros HT)",
-            "description": "Indiquer le montant prévisionnel HORS TAXES en euros des dépenses de l'opération. Seules les dépenses inscrites en section d'investissement sont éligibles.",
-            "required": true
-          },
-          {
-            "__typename": "PieceJustificativeChampDescriptor",
-            "id": "TEST_ID_MzMzNTUxOQ==",
-            "label": "Justificatifs des dépenses prévisionnelles",
-            "description": "Joindre un devis descriptif détaillant les dépenses ([consultez la source juridique](https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000416510)).",
-            "required": true,
-            "fileTemplate": null
-          },
-          {
-            "__typename": "YesNoChampDescriptor",
-            "id": "TEST_ID_MzM1ODI1MA==",
-            "label": "Le projet va-t-il générer des recettes ?",
-            "description": "Loyers, produits de cessions, etc.",
-            "required": true
-          },
-          {
-            "__typename": "PieceJustificativeChampDescriptor",
-            "id": "TEST_ID_MzM1NDM1OA==",
-            "label": "Plan de financement détaillé",
-            "description": "L'utilisation du modèle joint est obligatoire.",
-            "required": true,
-            "fileTemplate": {
-              "__typename": "File",
-              "filename": "Modèle plan de financement.ods",
-              "contentType": "application/vnd.oasis.opendocument.spreadsheet",
-              "checksum": "TEST_CHECKSUM",
-              "byteSize": "7197",
-              "url": "https://example.net/no-real-id",
-              "createdAt": "2024-10-07T14:47:24+02:00"
-            }
-          },
-          {
-            "__typename": "ExplicationChampDescriptor",
-            "id": "TEST_ID_MzI3OTcwOA==",
-            "label": "Aides à l'investissement sollicitées",
-            "description": "",
-            "required": false,
-            "collapsibleExplanationEnabled": false,
-            "collapsibleExplanationText": null
-          },
-          {
-            "__typename": "YesNoChampDescriptor",
-            "id": "TEST_ID_MzM0MjIxOA==",
-            "label": "Avez-vous déjà présenté cette opération au titre de campagnes DETR/DSIL en 2023 ?",
-            "description": "Si votre demande concerne une opération pour laquelle une demande a déjà été déposée au titre de la DETR et/ou de la DSIL en 2023 et que l'opération n'a pas été modifiée depuis, vous pouvez demander une nouvelle instruction de ce dossier au titre de l'exercice 2024.",
-            "required": true
-          },
-          {
-            "__typename": "TextChampDescriptor",
-            "id": "TEST_ID_MzM0MjIyMA==",
-            "label": "Précisez le numéro du dossier déposé antérieurement",
-            "description": "",
-            "required": false
-          },
-          {
-            "__typename": "DropDownListChampDescriptor",
-            "id": "TEST_ID_MzI3Njk1OQ==",
-            "label": "Dispositif de financement sollicité",
-            "description": "Préciser si vous souhaitez soumettre votre dossier pour une demande de financement au titre de la dotation d'équipement des territoires ruraux (DETR), de la dotation de soutien à l'investissement local (DSIL). **Pour la DETR, une commission d'élus fixe la liste des catégories d'opérations prioritaires au niveau départemental. Pour en savoir plus, rapprochez vous de votre préfecture.**",
-            "required": true,
-            "options": [
-              "DETR",
-              "DSIL"
-            ],
-            "otherOption": false
-          },
-          {
-            "__typename": "MultipleDropDownListChampDescriptor",
-            "id": "TEST_ID_MzUwOTY5OQ==",
-            "label": "Eligibilité de l'opération à la DETR",
-            "description": "Les catégories d'opérations prioritaires et, dans des limites fixées par décret en Conseil d'Etat, les taux minimaux et maximaux de subvention applicables à chacune d'elles sont fixées chaque année par la commission d'élus prévue par l'article [L2334-37 du CGCT](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000036433035).",
-            "required": false,
-            "options": [
-              "Premier choix",
-              "Deuxième choix"
-            ]
-          },
-          {
-            "__typename": "MultipleDropDownListChampDescriptor",
-            "id": "TEST_ID_MzI3NzAyNA==",
-            "label": "Eligibilité de l'opération à la DSIL",
-            "description": "Indiquez à quelle(s) catégorie(s) de la DSIL votre opération est rattachable. Les opérations éligibles à la DSIL sont listées à l'article L2334-42 du Code général des collectivités locales.",
-            "required": true,
-            "options": [
-              "1° Rénovation thermique, transition énergétique, développement des énergies renouvelables ;",
-              "2° Mise aux normes et de sécurisation des équipements publics ;",
-              "3° Développement d'infrastructures en faveur de la mobilité ou de la construction de logements ;",
-              "4° Développement du numérique et de la téléphonie mobile ;",
-              "5° Création, transformation et rénovation des bâtiments scolaires ;",
-              "6° Réalisation d'hébergements et d'équipements publics rendus nécessaires par l'accroissement du nombre d'habitants.",
-              "7° Opérations visant au développement des territoires ruraux inscrites dans un contrat (ex : CRTE)"
-            ]
-          },
-          {
-            "__typename": "DecimalNumberChampDescriptor",
-            "id": "TEST_ID_NDU4MzEwOA==",
-            "label": "Je demande ce montant de subventions",
-            "description": "",
-            "required": true
-          },
-          {
-            "__typename": "MultipleDropDownListChampDescriptor",
-            "id": "TEST_ID_MzI3OTcxNA==",
-            "label": "En 2024, comptez-vous solliciter d'autres aides publiques pour financer cette opération  ?",
-            "description": "Préciser si vous souhaitez ou avez déjà déposé un dossier pour un autre dispositif de financement public.",
-            "required": false,
-            "options": [
-              "Fonds vert",
-              "Dotation politique de la ville (DPV)",
-              "Fonds National d'Aménagement et de Développement du Territoire (FNADT)",
-              "Aide du Conseil régional",
-              "Aide du Conseil départemental",
-              "Aide d'un EPCI",
-              "Aide de l'Union Européenne",
-              "Autre"
-            ]
-          },
-          {
-            "__typename": "TextChampDescriptor",
-            "id": "TEST_ID_MzMzMzI4Mg==",
-            "label": "Autre - précisez le dispositif de financement concerné",
-            "description": "",
-            "required": true
-          },
-          {
-            "__typename": "TextChampDescriptor",
-            "id": "TEST_ID_MzMzMzIzNg==",
-            "label": "Si votre dossier a déjà été déposé, précisez le numéro de dossier",
-            "description": "",
-            "required": false
-          },
-          {
-            "__typename": "YesNoChampDescriptor",
-            "id": "TEST_ID_MzMzNTYxMg==",
-            "label": "Présentez-vous une autre opération au titre de la DETR/DSIL 2024 ?",
-            "description": "Cochez \"oui\" si vous comptez ou avez déjà déposé une demande de subvention au titre de la DETR ou de la DSIL 2024 pour une autre opération d'investissement.",
-            "required": true
-          },
-          {
-            "__typename": "IntegerNumberChampDescriptor",
-            "id": "TEST_ID_MzMzNTY1MA==",
-            "label": "Si oui, précisez le niveau de priorité de ce dossier.",
-            "description": "Indiquer le rang de classement du projet par rapport aux autres dossiers que vous souhaitez déposer en 2024.",
-            "required": true
-          },
-          {
-            "__typename": "HeaderSectionChampDescriptor",
-            "id": "TEST_ID_MzI3OTg2Mg==",
-            "label": "Finalisation du dossier",
-            "description": "",
-            "required": false
-          },
-          {
-            "__typename": "ExplicationChampDescriptor",
-            "id": "TEST_ID_MzI5MzU1Nw==",
-            "label": "Pièces complémentaires",
-            "description": "",
-            "required": false,
-            "collapsibleExplanationEnabled": false,
-            "collapsibleExplanationText": null
-          },
-          {
-            "__typename": "RepetitionChampDescriptor",
-            "id": "TEST_ID_Mjk3NzYxOA==",
-            "label": "Pièces complémentaires",
-            "description": "Inclure ici tous les documents utiles à l'instruction de votre demande, notamment :\r\n* Audit ou diagnostic énergétique\r\n* Documents d'urbanisme (déclaration préalable, permis de construire)\r\n* Devis\r\n* Justificatifs des autres financements publics obtenus\r\n",
-            "required": false,
-            "champDescriptors": [
-              {
-                "__typename": "PieceJustificativeChampDescriptor",
-                "id": "TEST_ID_Mjk3NzYyMA==",
-                "label": "Ajouter un document",
-                "description": "",
-                "required": false,
-                "fileTemplate": null
-              }
-            ]
-          },
-          {
-            "__typename": "TextareaChampDescriptor",
-            "id": "TEST_ID_MzM1NDI0NA==",
-            "label": "Commentaire libre",
-            "description": "Indiquez ici tout autre information utile à l'instruction du dossier.",
-            "required": false
-          },
-          {
-            "__typename": "ExplicationChampDescriptor",
-            "id": "TEST_ID_MzExODQ5Nw==",
-            "label": "Engagements du porteur de projet",
-            "description": "",
-            "required": false,
-            "collapsibleExplanationEnabled": false,
-            "collapsibleExplanationText": null
-          },
-          {
-            "__typename": "CheckboxChampDescriptor",
-            "id": "TEST_ID_MzI3ODI2NA==",
-            "label": "Engagement n°1 - obligation d'information en cas de modification du projet",
-            "description": "En cochant la case, le demandeur s'engage à informer par écrit et sans délais la préfecture de département ou la sous-préfecture de son arrondissement si l'opération est annulée, si le coût de l'opération est révisé à la hausse ou à la baisse ou si l'opération est reportée.",
-            "required": true
-          },
-          {
-            "__typename": "CheckboxChampDescriptor",
-            "id": "TEST_ID_MzI3ODI3Mw==",
-            "label": "Engagement n°2 - Obligation de publication du plan de financement",
-            "description": "En cochant la case, le demandeur s'engage à respecter l'obligation de publication de son plan de financement régie par les articles L. 1111-11 et D. 1111-8 du Code général des collectivités territoriales.",
-            "required": true
-          },
-          {
-            "__typename": "CheckboxChampDescriptor",
-            "id": "TEST_ID_MzI3ODI2Nw==",
-            "label": "Engagement n°3 - Exactitude des informations",
-            "description": "En cochant la case, le demandeur atteste sur l'honneur l'exactitude des informations renseignées dans ce formulaire.",
-            "required": true
-          },
-          {
-            "__typename": "ExplicationChampDescriptor",
-            "id": "TEST_ID_MzI3ODI3OQ==",
-            "label": "Vous êtes sur le point de déposer votre dossier",
-            "description": "Le dépôt du dossier s’effectue en cliquant sur le bouton bleu en bas à droite de la présente page. L'opération peut prendre plusieurs minutes. Il n'est pas utile de cliquer plusieurs fois sur le bouton ou de rafraichir la page. Le dépôt du dossier et sa réception par les services de l’État vous seront confirmés automatiquement par courriel, à l'adresse renseignée lors de la création de votre compte \"Démarches simplifiées\".",
-            "required": false,
-            "collapsibleExplanationEnabled": false,
-            "collapsibleExplanationText": null
-          }
+      {
+        "__typename": "HeaderSectionChampDescriptor",
+        "id": "TEST_ID_ODgwNDAy",
+        "label": "Informations sur le porteur de projet",
+        "description": null,
+        "required": false
+      },
+      {
+        "__typename": "DropDownListChampDescriptor",
+        "id": "TEST_ID_MTk3NzQ0NQ==",
+        "label": "Nature du porteur de projet",
+        "description": "Champ qui porte le même nom dans Django",
+        "required": true,
+        "options": [
+          "Commune",
+          "EPCI",
+          "Pôle d'équilibre territorial et rural",
+          "Syndicat de communes"
         ],
-        "annotationDescriptors": [
-          {
-            "__typename": "ExplicationChampDescriptor",
-            "id": "TEST_ID_Mjk4MjQ3OQ==",
-            "label": "Partie réservée au service responsable de l’instruction de la DETR et/ou DSIL",
-            "description": "",
-            "required": false,
-            "collapsibleExplanationEnabled": false,
-            "collapsibleExplanationText": null
-          },
-          {
-            "__typename": "TextChampDescriptor",
-            "id": "TEST_ID_MzM1NDYzNA==",
-            "label": "Contact de l'agent instructeur à indiquer au demandeur",
-            "description": "S'il est renseigné, ce champ sera ajouté aux courriels de notification envoyés lors du passage en instruction du dossier puis lors de son acceptation, de son classement sans suite ou de son refus. Ex : Prénom NOM, tel : 01 xx xx xx xx",
-            "required": false
-          },
-          {
-            "__typename": "TextareaChampDescriptor",
-            "id": "TEST_ID_Mjk3NjEzMA==",
-            "label": "Champ libre pour le service instructeur",
-            "description": "",
-            "required": false
-          },
-          {
-            "__typename": "RepetitionChampDescriptor",
-            "id": "TEST_ID_MzEzNjg0Nw==",
-            "label": "Autres documents utiles à l'instruction",
-            "description": "",
-            "required": false,
-            "champDescriptors": [
-              {
-                "__typename": "PieceJustificativeChampDescriptor",
-                "id": "TEST_ID_MzI4ODg1NA==",
-                "label": "Pièce-jointe complémentaire",
-                "description": "",
-                "required": false,
-                "fileTemplate": null
-              }
-            ]
-          },
-          {
-            "__typename": "ExplicationChampDescriptor",
-            "id": "TEST_ID_MzM3MDQ3OA==",
-            "label": "Partie à compléter en cas de programmation du dossier",
-            "description": "",
-            "required": false,
-            "collapsibleExplanationEnabled": false,
-            "collapsibleExplanationText": null
-          },
-          {
-            "__typename": "DropDownListChampDescriptor",
-            "id": "TEST_ID_MzAyMDUxMw==",
-            "label": "Imputation budgétaire - Choix de la dotation",
-            "description": "Préciser la ligne budgétaire vers laquelle le projet doit être orienté.",
-            "required": false,
-            "options": [
-              "DETR",
-              "DSIL"
-            ],
-            "otherOption": true
-          },
-          {
-            "__typename": "CheckboxChampDescriptor",
-            "id": "TEST_ID_MzMzNjEwMA==",
-            "label": "Projet concourant à la transition écologique au sens budget vert",
-            "description": "",
-            "required": false
-          },
-          {
-            "__typename": "CheckboxChampDescriptor",
-            "id": "TEST_ID_MzM3MDcwMg==",
-            "label": "Projet situé en QPV",
-            "description": "",
-            "required": false
-          },
-          {
-            "__typename": "CheckboxChampDescriptor",
-            "id": "TEST_ID_MzM3MDY5MQ==",
-            "label": "Projet rattaché à un CRTE",
-            "description": "",
-            "required": false
-          },
-          {
-            "__typename": "DecimalNumberChampDescriptor",
-            "id": "TEST_ID_MTk5MDI2Ng==",
-            "label": "Montant des dépenses éligibles retenues (€)",
-            "description": "Montant total des dépenses éligibles retenues à faire figurer sur l'arrêté préfectoral notifiant la décision de financement.",
-            "required": false
-          },
-          {
-            "__typename": "DecimalNumberChampDescriptor",
-            "id": "TEST_ID_Mjk4MjUwMA==",
-            "label": "Montant définitif de la subvention (€)",
-            "description": "Montant de la subvention à faire figurer sur l'arrêté préfectoral notifiant la décision de financement.",
-            "required": false
-          },
-          {
-            "__typename": "DecimalNumberChampDescriptor",
-            "id": "TEST_ID_MzI4ODg1Mw==",
-            "label": "Taux de subvention (%)",
-            "description": "Le taux de subvention à faire figurer sur l'arrêté préfectoral notifiant la décision de financement. \r\nSources juridiques : articles [L. 1111-10](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000041411642/) et [R.2334-27](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044166963) CGCT.",
-            "required": false
-          },
-          {
-            "__typename": "ExplicationChampDescriptor",
-            "id": "TEST_ID_MzQ2NDA1OQ==",
-            "label": "Pour plus d'information sur les annotations privées",
-            "description": "Contactez le bureau des concours financiers de l'Etat à l'adresse dgc-gestion-dotations@dgcl.gouv.fr",
-            "required": false,
-            "collapsibleExplanationEnabled": false,
-            "collapsibleExplanationText": null
-          }
+        "otherOption": true
+      },
+      {
+        "__typename": "TextChampDescriptor",
+        "id": "TEST_ID_MjkzNDM2MA==",
+        "label": "Un champ qui ne porte pas ce nom-là dans Django",
+        "description": "",
+        "required": true
+      },
+      {
+        "__typename": "YesNoChampDescriptor",
+        "id": "TEST_ID_Mjk5Nzg0MA==",
+        "label": "La maîtrise d'ouvrage de l'opération sera-t-elle déléguée ?",
+        "description": "Une collectivité peut bénéficier d’une subvention au titre de la DETR, de la DSIL afin de financer une opération pour laquelle elle a délégué la maîtrise d’ouvrage, à condition qu’elle justifie d’une participation financière à hauteur d’au moins 20% de la totalité des financements publics mobilisés. ",
+        "required": true
+      },
+      {
+        "__typename": "SiretChampDescriptor",
+        "id": "TEST_ID_Mjk0NTU5OA==",
+        "label": "Identification du maître d'ouvrage",
+        "description": "Merci d'indiquer le code SIRET de la personne morale délégataire de la maîtrise d'ouvrage.",
+        "required": true
+      },
+      {
+        "__typename": "PieceJustificativeChampDescriptor",
+        "id": "TEST_ID_MzM0NDQ4MQ==",
+        "label": "Joindre la convention de délégation",
+        "description": "Convention signée par la collectivité déléguant la maîtrise d'ouvrage et l'entité délégataire.",
+        "required": true,
+        "fileTemplate": null
+      },
+      {
+        "__typename": "DecimalNumberChampDescriptor",
+        "id": "TEST_ID_Mjk0NzQzNw==",
+        "label": "Coût total de l'opération (en euros HT)",
+        "description": "Indiquer le montant prévisionnel HORS TAXES en euros des dépenses de l'opération. Seules les dépenses inscrites en section d'investissement sont éligibles.",
+        "required": true
+      },
+      {
+        "__typename": "MultipleDropDownListChampDescriptor",
+        "id": "TEST_ID_MzUwOTY5OQ==",
+        "label": "Eligibilité de l'opération à la DETR",
+        "description": "Les catégories d'opérations prioritaires et, dans des limites fixées par décret en Conseil d'Etat, les taux minimaux et maximaux de subvention applicables à chacune d'elles sont fixées chaque année par la commission d'élus prévue par l'article [L2334-37 du CGCT](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000036433035).",
+        "required": false,
+        "options": [
+          "Premier choix",
+          "Deuxième choix"
         ]
       },
-      "groupeInstructeurs": [
+      {
+        "__typename": "TextareaChampDescriptor",
+        "id": "TEST_ID_MzM1NDI0NA==",
+        "label": "Commentaire libre",
+        "description": "Indiquez ici tout autre information utile à l'instruction du dossier.",
+        "required": false
+      },
+      {
+        "__typename": "CheckboxChampDescriptor",
+        "id": "TEST_ID_MzI3ODI2NA==",
+        "label": "Engagement n°1 - obligation d'information en cas de modification du projet",
+        "description": "En cochant la case, le demandeur s'engage à informer par écrit et sans délais la préfecture de département ou la sous-préfecture de son arrondissement si l'opération est annulée, si le coût de l'opération est révisé à la hausse ou à la baisse ou si l'opération est reportée.",
+        "required": true
+      }
+    ],
+    "annotationDescriptors": []
+  },
+  "groupeInstructeurs": [
+    {
+      "id": "TEST_ID_dHJ1Y3RldXItMjQzNDgw",
+      "number": 243480,
+      "label": "défaut",
+      "instructeurs": [
         {
-          "id": "TEST_ID_dHJ1Y3RldXItMjQzNDgw",
-          "number": 243480,
-          "label": "défaut",
-          "instructeurs": [
-            {
-              "id": "TEST_ID_ldXItMTIzNTcx",
-              "email": "hubert.lingot@example.com"
-            },
-            {
-              "id": "TEST_ID_XItMTIzOTQy",
-              "email": "icham.halo@example.com"
-            }
-          ]
+          "id": "TEST_ID_ldXItMTIzNTcx",
+          "email": "hubert.lingot@example.com"
+        },
+        {
+          "id": "TEST_ID_XItMTIzOTQy",
+          "email": "icham.halo@example.com"
         }
       ]
     }
-  }
+  ]
 }
