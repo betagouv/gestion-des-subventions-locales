@@ -5,11 +5,13 @@ import pytest
 
 from gsl_demarches_simplifiees.importer.demarche import (
     save_field_mappings,
+    save_groupe_instructeurs,
 )
 from gsl_demarches_simplifiees.models import (
     Demarche,
     FieldMappingForComputer,
     FieldMappingForHuman,
+    Profile,
 )
 
 pytestmark = pytest.mark.django_db
@@ -31,6 +33,24 @@ def demarche_data_without_dossier():
         Path(__file__).parent / "ds_fixtures" / "demarche_data_with_revision.json"
     ) as handle:
         return json.loads(handle.read())
+
+
+def test_save_groupe_instructeurs(demarche, demarche_data_without_dossier):
+    save_groupe_instructeurs(demarche_data_without_dossier, demarche)
+    assert Profile.objects.count() == 2
+    assert Profile.objects.filter(
+        ds_id="TEST_ID_ldXItMTIzNTcx", ds_email="hubert.lingot@example.com"
+    ).exists()
+
+
+def test_save_groupe_instructeurs_if_already_exists(
+    demarche, demarche_data_without_dossier
+):
+    assert Profile.objects.create(
+        ds_id="TEST_ID_ldXItMTIzNTcx", ds_email="hubert.lingot@example.com"
+    )
+    save_groupe_instructeurs(demarche_data_without_dossier, demarche)
+    assert Profile.objects.count() == 2
 
 
 def test_new_human_mapping_is_created_if_ds_label_is_unknown(
