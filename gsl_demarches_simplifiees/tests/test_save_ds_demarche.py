@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from gsl_demarches_simplifiees.importer.demarche import (
+    get_or_create_demarche,
     save_field_mappings,
     save_groupe_instructeurs,
 )
@@ -33,6 +34,29 @@ def demarche_data_without_dossier():
         Path(__file__).parent / "ds_fixtures" / "demarche_data_with_revision.json"
     ) as handle:
         return json.loads(handle.read())
+
+
+def test_get_existing_demarche_updates_ds_fields(demarche_data_without_dossier):
+    existing_demarche = Demarche.objects.create(
+        ds_id="un-id-qui-nest-pas-un-vrai==",
+        ds_number=666666,
+        ds_title="Le titre qui va changer",
+        ds_state=Demarche.STATE_PUBLIEE,
+    )
+    returned_demarche = get_or_create_demarche(demarche_data_without_dossier)
+    assert existing_demarche.ds_id == returned_demarche.ds_id
+    assert existing_demarche.pk == returned_demarche.pk
+    assert returned_demarche.ds_title == "Titre de la démarche"
+    assert returned_demarche.ds_number == 123456
+    assert returned_demarche.ds_state == "brouillon"
+
+
+def test_get_new_demarche_prefills_ds_fields(demarche_data_without_dossier):
+    demarche = get_or_create_demarche(demarche_data_without_dossier)
+    assert demarche.ds_id == "un-id-qui-nest-pas-un-vrai=="
+    assert demarche.ds_number == 123456
+    assert demarche.ds_title == "Titre de la démarche"
+    assert demarche.ds_state == "brouillon"
 
 
 def test_save_groupe_instructeurs(demarche, demarche_data_without_dossier):

@@ -17,6 +17,12 @@ def save_demarche_from_ds(demarche_number):
     client = DsClient()
     result = client.get_demarche(demarche_number)
     demarche_data = result["data"]["demarche"]
+    demarche = get_or_create_demarche(demarche_data)
+    save_groupe_instructeurs(demarche_data, demarche)
+    save_field_mappings(demarche_data, demarche)
+
+
+def get_or_create_demarche(demarche_data):
     ds_fields = ("id", "number", "title", "state", "date_creation", "date_fermeture")
     django_data = {
         f"ds_{field}": demarche_data[camelcase(field)] for field in ds_fields
@@ -29,8 +35,7 @@ def save_demarche_from_ds(demarche_number):
     except Demarche.DoesNotExist:
         demarche = Demarche.objects.create(**django_data)
 
-    save_groupe_instructeurs(demarche_data, demarche)
-    save_field_mappings(demarche_data, demarche)
+    return demarche
 
 
 def save_groupe_instructeurs(demarche_data, demarche):
