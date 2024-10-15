@@ -18,11 +18,16 @@ class Demarche(DsModel):
     https://www.demarches-simplifiees.fr/graphql/schema/index.html#definition-DemarcheDescriptor
     """
 
+    STATE_BROUILLON = "brouillon"
+    STATE_CLOSE = "close"
+    STATE_DEPUBLIEE = "depubliee"
+    STATE_PUBLIEE = "publiee"
+
     STATE_VALUES = (
-        ("brouillon", "Brouillon"),
-        ("close", "Close"),
-        ("depubliee", "Dépubliée"),
-        ("publiee", "Publiée"),
+        (STATE_BROUILLON, "Brouillon"),
+        (STATE_CLOSE, "Close"),
+        (STATE_DEPUBLIEE, "Dépubliée"),
+        (STATE_PUBLIEE, "Publiée"),
     )
 
     # Fields prefixed with ds_ are DS fixed fields,

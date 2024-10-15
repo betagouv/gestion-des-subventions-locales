@@ -51,6 +51,7 @@ def save_field_mappings(demarche_data, demarche):
         if ds_type not in (
             "DropDownListChampDescriptor",
             "TextChampDescriptor",
+            "TextareaChampDescriptor",
             "YesNoChampDescriptor",
             "SiretChampDescriptor",
             "PhoneChampDescriptor",
