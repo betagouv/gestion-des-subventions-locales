@@ -43,7 +43,7 @@ dev = [
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "gsl.settings"
-addopts = "--ruff --reuse-db --cov-report xml --cov-report term-missing --cov=. -p no:warnings"
+addopts = "--ruff --create-db --cov-report xml --cov-report term-missing --cov=. -p no:warnings"
 
 
 [tool.ruff.lint]

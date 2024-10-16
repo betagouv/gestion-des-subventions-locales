@@ -1,0 +1,129 @@
+{
+  "id": "un-id-qui-nest-pas-un-vrai==",
+  "number": 123456,
+  "title": "Titre de la démarche",
+  "state": "brouillon",
+  "declarative": null,
+  "dateCreation": "2024-10-07T14:47:24+02:00",
+  "dateFermeture": null,
+  "chorusConfiguration": {
+    "centreDeCout": "",
+    "domaineFonctionnel": "",
+    "referentielDeProgrammation": ""
+  },
+  "activeRevision": {
+    "id": "TEST_ID_MTYyNjE0",
+    "datePublication": null,
+    "champDescriptors": [
+      {
+        "__typename": "ExplicationChampDescriptor",
+        "id": "TEST_ID_k5Njg5OA==",
+        "label": "Votre demande dématérialisée de DETR/DSIL pour l'année 2024",
+        "description": "Ce formulaire est destiné aux collectivités territoriales qui souhaitent déposer une demande de subvention au titre de la DETR ou de la DSIL 2024. Votre demande sera automatiquement orientée vers la préfecture ou la sous-préfecture compétente.\r\n\r\n<br />\r\n\r\nLes priorités et les modalités de dépôts des dossiers sont adaptés aux niveaux régional et départemental. **Pour plus d'informations sur le calendrier et les conditions d'octroi des subventions dans votre département, consultez l'instruction transmise par votre préfecture de département**. Si vous n'avez pas reçu cette instruction, [contactez votre préfecture de département](https://lannuaire.service-public.fr/navigation/prefecture) ou consultez son site internet.\r\n\r\n",
+        "required": false,
+        "collapsibleExplanationEnabled": true,
+        "collapsibleExplanationText": "\r\nPour constituer votre dossier, les sections suivantes sont à compléter :\r\n\r\n-Informations sur le porteur de projet\r\n-Présentation de l'opération\r\n-Plan de financement prévisionnel\r\n-Finalisation du dossier\r\n\r\n\r\n<br />\r\n\r\nVotre dossier est enregistré automatiquement après chaque modification. Vous pouvez à tout moment fermer la fenêtre et reprendre plus tard là où vous en étiez."
+      },
+      {
+        "__typename": "HeaderSectionChampDescriptor",
+        "id": "TEST_ID_ODgwNDAy",
+        "label": "Informations sur le porteur de projet",
+        "description": null,
+        "required": false
+      },
+      {
+        "__typename": "DropDownListChampDescriptor",
+        "id": "TEST_ID_MTk3NzQ0NQ==",
+        "label": "Nature du porteur de projet",
+        "description": "Champ qui porte le même nom dans Django",
+        "required": true,
+        "options": [
+          "Commune",
+          "EPCI",
+          "Pôle d'équilibre territorial et rural",
+          "Syndicat de communes"
+        ],
+        "otherOption": true
+      },
+      {
+        "__typename": "TextChampDescriptor",
+        "id": "TEST_ID_MjkzNDM2MA==",
+        "label": "Un champ qui ne porte pas ce nom-là dans Django",
+        "description": "",
+        "required": true
+      },
+      {
+        "__typename": "YesNoChampDescriptor",
+        "id": "TEST_ID_Mjk5Nzg0MA==",
+        "label": "La maîtrise d'ouvrage de l'opération sera-t-elle déléguée ?",
+        "description": "Une collectivité peut bénéficier d’une subvention au titre de la DETR, de la DSIL afin de financer une opération pour laquelle elle a délégué la maîtrise d’ouvrage, à condition qu’elle justifie d’une participation financière à hauteur d’au moins 20% de la totalité des financements publics mobilisés. ",
+        "required": true
+      },
+      {
+        "__typename": "SiretChampDescriptor",
+        "id": "TEST_ID_Mjk0NTU5OA==",
+        "label": "Identification du maître d'ouvrage",
+        "description": "Merci d'indiquer le code SIRET de la personne morale délégataire de la maîtrise d'ouvrage.",
+        "required": true
+      },
+      {
+        "__typename": "PieceJustificativeChampDescriptor",
+        "id": "TEST_ID_MzM0NDQ4MQ==",
+        "label": "Joindre la convention de délégation",
+        "description": "Convention signée par la collectivité déléguant la maîtrise d'ouvrage et l'entité délégataire.",
+        "required": true,
+        "fileTemplate": null
+      },
+      {
+        "__typename": "DecimalNumberChampDescriptor",
+        "id": "TEST_ID_Mjk0NzQzNw==",
+        "label": "Coût total de l'opération (en euros HT)",
+        "description": "Indiquer le montant prévisionnel HORS TAXES en euros des dépenses de l'opération. Seules les dépenses inscrites en section d'investissement sont éligibles.",
+        "required": true
+      },
+      {
+        "__typename": "MultipleDropDownListChampDescriptor",
+        "id": "TEST_ID_MzUwOTY5OQ==",
+        "label": "Eligibilité de l'opération à la DETR",
+        "description": "Les catégories d'opérations prioritaires et, dans des limites fixées par décret en Conseil d'Etat, les taux minimaux et maximaux de subvention applicables à chacune d'elles sont fixées chaque année par la commission d'élus prévue par l'article [L2334-37 du CGCT](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000036433035).",
+        "required": false,
+        "options": [
+          "Premier choix",
+          "Deuxième choix"
+        ]
+      },
+      {
+        "__typename": "TextareaChampDescriptor",
+        "id": "TEST_ID_MzM1NDI0NA==",
+        "label": "Commentaire libre",
+        "description": "Indiquez ici tout autre information utile à l'instruction du dossier.",
+        "required": false
+      },
+      {
+        "__typename": "CheckboxChampDescriptor",
+        "id": "TEST_ID_MzI3ODI2NA==",
+        "label": "Engagement n°1 - obligation d'information en cas de modification du projet",
+        "description": "En cochant la case, le demandeur s'engage à informer par écrit et sans délais la préfecture de département ou la sous-préfecture de son arrondissement si l'opération est annulée, si le coût de l'opération est révisé à la hausse ou à la baisse ou si l'opération est reportée.",
+        "required": true
+      }
+    ],
+    "annotationDescriptors": []
+  },
+  "groupeInstructeurs": [
+    {
+      "id": "TEST_ID_dHJ1Y3RldXItMjQzNDgw",
+      "number": 243480,
+      "label": "défaut",
+      "instructeurs": [
+        {
+          "id": "TEST_ID_ldXItMTIzNTcx",
+          "email": "hubert.lingot@example.com"
+        },
+        {
+          "id": "TEST_ID_XItMTIzOTQy",
+          "email": "icham.halo@example.com"
+        }
+      ]
+    }
+  ]
+}

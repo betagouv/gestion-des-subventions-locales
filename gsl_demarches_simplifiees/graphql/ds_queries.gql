@@ -1,140 +1,331 @@
-query getDemarche(
+  query getDemarche(
     $demarcheNumber: Int!
     $state: DossierState
     $order: Order
+    $first: Int
+    $last: Int
+    $before: String
     $after: String
+    $archived: Boolean
+    $revision: ID
+    $createdSince: ISO8601DateTime
     $updatedSince: ISO8601DateTime
-) {
+    $pendingDeletedFirst: Int
+    $pendingDeletedLast: Int
+    $pendingDeletedBefore: String
+    $pendingDeletedAfter: String
+    $pendingDeletedSince: ISO8601DateTime
+    $deletedFirst: Int
+    $deletedLast: Int
+    $deletedBefore: String
+    $deletedAfter: String
+    $deletedSince: ISO8601DateTime
+    $includeGroupeInstructeurs: Boolean = false
+    $includeDossiers: Boolean = false
+    $includePendingDeletedDossiers: Boolean = false
+    $includeDeletedDossiers: Boolean = false
+    $includeRevision: Boolean = false
+    $includeService: Boolean = false
+    $includeChamps: Boolean = true
+    $includeAnotations: Boolean = true
+    $includeTraitements: Boolean = true
+    $includeInstructeurs: Boolean = true
+    $includeAvis: Boolean = false
+    $includeMessages: Boolean = false
+    $includeCorrections: Boolean = false
+    $includeGeometry: Boolean = false
+  ) {
     demarche(number: $demarcheNumber) {
-        id
-        number
-        title
-        description
-        dateCreation
-        datePublication
-        dateDepublication
-        dossiers(first: 30, state: $state, order: $order, after: $after, updatedSince: $updatedSince) {
-            pageInfo {
-                endCursor
-                hasNextPage
-            }
-            nodes {
-                ...DossierFragment
-            }
+      id
+      number
+      title
+      state
+      declarative
+      dateCreation
+      dateFermeture
+      chorusConfiguration {
+        centreDeCout
+        domaineFonctionnel
+        referentielDeProgrammation
+      }
+      activeRevision @include(if: $includeRevision) {
+        ...RevisionFragment
+      }
+      groupeInstructeurs @include(if: $includeGroupeInstructeurs) {
+        ...GroupeInstructeurFragment
+      }
+      service @include(if: $includeService) {
+        ...ServiceFragment
+      }
+      dossiers(
+        state: $state
+        order: $order
+        first: $first
+        last: $last
+        before: $before
+        after: $after
+        archived: $archived
+        createdSince: $createdSince
+        updatedSince: $updatedSince
+        revision: $revision
+      ) @include(if: $includeDossiers) {
+        pageInfo {
+          ...PageInfoFragment
         }
-        groupeInstructeurs {
-            ...GroupeInstructeurFragment
+        nodes {
+          ...DossierFragment
         }
+      }
+      pendingDeletedDossiers(
+        first: $pendingDeletedFirst
+        last: $pendingDeletedLast
+        before: $pendingDeletedBefore
+        after: $pendingDeletedAfter
+        deletedSince: $pendingDeletedSince
+      ) @include(if: $includePendingDeletedDossiers) {
+        pageInfo {
+          ...PageInfoFragment
+        }
+        nodes {
+          ...DeletedDossierFragment
+        }
+      }
+      deletedDossiers(
+        first: $deletedFirst
+        last: $deletedLast
+        before: $deletedBefore
+        after: $deletedAfter
+        deletedSince: $deletedSince
+      ) @include(if: $includeDeletedDossiers) {
+        pageInfo {
+          ...PageInfoFragment
+        }
+        nodes {
+          ...DeletedDossierFragment
+        }
+      }
     }
-}
+  }
 
-
-query getDemarcheLight(
-    $demarcheNumber: Int!
+  query getGroupeInstructeur(
+    $groupeInstructeurNumber: Int!
     $state: DossierState
     $order: Order
+    $first: Int
+    $last: Int
+    $before: String
     $after: String
+    $archived: Boolean
+    $revision: ID
+    $createdSince: ISO8601DateTime
     $updatedSince: ISO8601DateTime
-) {
-    demarche(number: $demarcheNumber) {
+    $pendingDeletedOrder: Order
+    $pendingDeletedFirst: Int
+    $pendingDeletedLast: Int
+    $pendingDeletedBefore: String
+    $pendingDeletedAfter: String
+    $pendingDeletedSince: ISO8601DateTime
+    $deletedOrder: Order
+    $deletedFirst: Int
+    $deletedLast: Int
+    $deletedBefore: String
+    $deletedAfter: String
+    $deletedSince: ISO8601DateTime
+    $includeDossiers: Boolean = false
+    $includePendingDeletedDossiers: Boolean = false
+    $includeDeletedDossiers: Boolean = false
+    $includeChamps: Boolean = true
+    $includeAnotations: Boolean = true
+    $includeTraitements: Boolean = true
+    $includeInstructeurs: Boolean = true
+    $includeAvis: Boolean = false
+    $includeMessages: Boolean = false
+    $includeCorrections: Boolean = false
+    $includeGeometry: Boolean = false
+  ) {
+    groupeInstructeur(number: $groupeInstructeurNumber) {
+      id
+      number
+      label
+      instructeurs @include(if: $includeInstructeurs) {
         id
-        number
-        title
-        description
-        dateCreation
-        datePublication
-        dateDepublication
-        dossiers(first: 100, state: $state, order: $order, after: $after, updatedSince: $updatedSince) {
-            pageInfo {
-                endCursor
-                hasNextPage
-            }
-            nodes {
-                ...DossierBaseFragment
-            }
+        email
+      }
+      dossiers(
+        state: $state
+        order: $order
+        first: $first
+        last: $last
+        before: $before
+        after: $after
+        archived: $archived
+        createdSince: $createdSince
+        updatedSince: $updatedSince
+        revision: $revision
+      ) @include(if: $includeDossiers) {
+        pageInfo {
+          ...PageInfoFragment
         }
+        nodes {
+          ...DossierFragment
+        }
+      }
+      pendingDeletedDossiers(
+        order: $pendingDeletedOrder
+        first: $pendingDeletedFirst
+        last: $pendingDeletedLast
+        before: $pendingDeletedBefore
+        after: $pendingDeletedAfter
+        deletedSince: $pendingDeletedSince
+      ) @include(if: $includePendingDeletedDossiers) {
+        pageInfo {
+          ...PageInfoFragment
+        }
+        nodes {
+          ...DeletedDossierFragment
+        }
+      }
+      deletedDossiers(
+        order: $deletedOrder
+        first: $deletedFirst
+        last: $deletedLast
+        before: $deletedBefore
+        after: $deletedAfter
+        deletedSince: $deletedSince
+      ) @include(if: $includeDeletedDossiers) {
+        pageInfo {
+          ...PageInfoFragment
+        }
+        nodes {
+          ...DeletedDossierFragment
+        }
+      }
     }
-}
+  }
 
-query getDossier($dossierNumber: Int!) {
+  query getDossier(
+    $dossierNumber: Int!
+    $includeRevision: Boolean = false
+    $includeService: Boolean = false
+    $includeChamps: Boolean = true
+    $includeAnotations: Boolean = true
+    $includeTraitements: Boolean = true
+    $includeInstructeurs: Boolean = true
+    $includeAvis: Boolean = false
+    $includeMessages: Boolean = false
+    $includeCorrections: Boolean = false
+    $includeGeometry: Boolean = false
+  ) {
     dossier(number: $dossierNumber) {
-        ...DossierFragment
-        demarche {
-            ...DemarcheDescriptorFragment
-        }
+      ...DossierFragment
+      demarche {
+        ...DemarcheDescriptorFragment
+      }
     }
-}
+  }
 
-query getDeletedDossiers($demarcheNumber: Int!, $order: Order, $after: String) {
-    demarche(number: $demarcheNumber) {
-        deletedDossiers(order: $order, after: $after) {
-            pageInfo {
-                endCursor
-                hasNextPage
-            }
-            nodes {
-                ...DeletedDossierFragment
-            }
-        }
+  query getDemarcheDescriptor(
+    $demarche: FindDemarcheInput!
+    $includeRevision: Boolean = false
+    $includeService: Boolean = false
+  ) {
+    demarcheDescriptor(demarche: $demarche) {
+      ...DemarcheDescriptorFragment
     }
-}
+  }
 
-fragment DossierBaseFragment on Dossier {
+  fragment ServiceFragment on Service {
+    nom
+    siret
+    organisme
+    typeOrganisme
+  }
+
+  fragment GroupeInstructeurFragment on GroupeInstructeur {
+    id
+    number
+    label
+    instructeurs @include(if: $includeInstructeurs) {
+      id
+      email
+    }
+  }
+
+  fragment DossierFragment on Dossier {
+    __typename
     id
     number
     archived
+    prefilled
     state
     dateDerniereModification
-    dateDerniereCorrectionEnAttente
     dateDepot
     datePassageEnConstruction
     datePassageEnInstruction
     dateTraitement
+    dateExpiration
     dateSuppressionParUsager
-    dateSuppressionParAdministration
+    dateDerniereCorrectionEnAttente @include(if: $includeCorrections)
+    dateDerniereModificationChamps
+    dateDerniereModificationAnnotations
     motivation
-}
-
-fragment DossierFragment on Dossier {
-    ...DossierBaseFragment
+    motivationAttachment {
+      ...FileFragment
+    }
+    attestation {
+      ...FileFragment
+    }
+    pdf {
+      ...FileFragment
+    }
+    usager {
+      email
+    }
+    prenomMandataire
+    nomMandataire
+    deposeParUnTiers
+    connectionUsager
     groupeInstructeur {
-        id
-        number
-        label
-    }
-    traitements {
-        state
-        dateTraitement
-    }
-    instructeurs {
-        id
-        email
-    }
-    messages {
-        id
-        email
-        createdAt
-        discardedAt
-        body
-        correction {
-            ...CorrectionFragment
-        }
-    }
-
-    champs {
-        ...ChampFragment
-        ...RootChampFragment
-    }
-    annotations {
-        ...ChampFragment
-        ...RootChampFragment
+      ...GroupeInstructeurFragment
     }
     demandeur {
-        ...PersonneMoraleFragment
+      __typename
+      ...PersonnePhysiqueFragment
+      ...PersonneMoraleFragment
+      ...PersonneMoraleIncompleteFragment
     }
-}
+    demarche {
+      revision {
+        id
+      }
+    }
+    instructeurs @include(if: $includeInstructeurs) {
+      id
+      email
+    }
+    traitements @include(if: $includeTraitements) {
+      state
+      emailAgentTraitant
+      dateTraitement
+      motivation
+    }
+    champs @include(if: $includeChamps) {
+      ...ChampFragment
+      ...RootChampFragment
+    }
+    annotations @include(if: $includeAnotations) {
+      ...ChampFragment
+      ...RootChampFragment
+    }
+    avis @include(if: $includeAvis) {
+      ...AvisFragment
+    }
+    messages @include(if: $includeMessages) {
+      ...MessageFragment
+    }
+  }
 
-fragment DemarcheDescriptorFragment on DemarcheDescriptor {
+  fragment DemarcheDescriptorFragment on DemarcheDescriptor {
     id
     number
     title
@@ -146,126 +337,309 @@ fragment DemarcheDescriptorFragment on DemarcheDescriptor {
     dateDerniereModification
     dateDepublication
     dateFermeture
-}
+    notice { url }
+    deliberation { url }
+    demarcheURL
+    cadreJuridiqueURL
+    service @include(if: $includeService) {
+      ...ServiceFragment
+    }
+    revision @include(if: $includeRevision) {
+      ...RevisionFragment
+    }
+  }
 
-fragment DeletedDossierFragment on DeletedDossier {
+  fragment DeletedDossierFragment on DeletedDossier {
     id
     number
     dateSupression
     state
     reason
-}
+  }
 
-
-fragment RootChampFragment on Champ {
-    ... on RepetitionChamp {
-        champs {
-            ...ChampFragment
+  fragment RevisionFragment on Revision {
+    id
+    datePublication
+    champDescriptors {
+      ...ChampDescriptorFragment
+      ... on RepetitionChampDescriptor {
+        champDescriptors {
+          ...ChampDescriptorFragment
         }
+      }
     }
-    ... on SiretChamp {
-        etablissement {
-            ...PersonneMoraleFragment
+    annotationDescriptors {
+      ...ChampDescriptorFragment
+      ... on RepetitionChampDescriptor {
+        champDescriptors {
+          ...ChampDescriptorFragment
         }
+      }
     }
-}
+  }
 
-fragment ChampFragment on Champ {
+  fragment ChampDescriptorFragment on ChampDescriptor {
+    __typename
     id
     label
+    description
+    required
+    ... on DropDownListChampDescriptor {
+      options
+      otherOption
+    }
+    ... on MultipleDropDownListChampDescriptor {
+      options
+    }
+    ... on LinkedDropDownListChampDescriptor {
+      options
+    }
+    ... on PieceJustificativeChampDescriptor {
+      fileTemplate {
+        ...FileFragment
+      }
+    }
+    ... on ExplicationChampDescriptor {
+      collapsibleExplanationEnabled
+      collapsibleExplanationText
+    }
+  }
+
+  fragment AvisFragment on Avis {
+    id
+    question
+    reponse
+    dateQuestion
+    dateReponse
+    claimant {
+      email
+    }
+    expert {
+      email
+    }
+    attachments {
+      ...FileFragment
+    }
+  }
+
+  fragment MessageFragment on Message {
+    id
+    email
+    body
+    createdAt
+    attachments {
+      ...FileFragment
+    }
+    correction @include(if: $includeCorrections) {
+      reason
+      dateResolution
+    }
+  }
+
+  fragment GeoAreaFragment on GeoArea {
+    id
+    source
+    description
+    geometry @include(if: $includeGeometry) {
+      type
+      coordinates
+    }
+    ... on ParcelleCadastrale {
+      commune
+      numero
+      section
+      prefixe
+      surface
+    }
+  }
+
+  fragment RootChampFragment on Champ {
+    ... on RepetitionChamp {
+      rows {
+        champs {
+          ...ChampFragment
+        }
+      }
+    }
+    ... on CarteChamp {
+      geoAreas {
+        ...GeoAreaFragment
+      }
+    }
+    ... on DossierLinkChamp {
+      dossier {
+        id
+        number
+        state
+      }
+    }
+  }
+
+  fragment ChampFragment on Champ {
+    id
+    champDescriptorId
+    __typename
+    label
     stringValue
+    updatedAt
+    prefilled
     ... on DateChamp {
-        date
+      date
     }
     ... on DatetimeChamp {
-        datetime
+      datetime
     }
     ... on CheckboxChamp {
-        checked: value
+      checked: value
     }
     ... on DecimalNumberChamp {
-        decimalNumber: value
+      decimalNumber: value
     }
     ... on IntegerNumberChamp {
-        integerNumber: value
+      integerNumber: value
     }
     ... on CiviliteChamp {
-        civilite: value
+      civilite: value
     }
     ... on LinkedDropDownListChamp {
-        primaryValue
-        secondaryValue
+      primaryValue
+      secondaryValue
     }
     ... on MultipleDropDownListChamp {
-        values
+      values
     }
     ... on PieceJustificativeChamp {
-        file {
-            ...FileFragment
-        }
+      files {
+        ...FileFragment
+      }
     }
     ... on AddressChamp {
-        address {
-            ...AddressFragment
-        }
+      address {
+        ...AddressFragment
+      }
+      commune {
+        ...CommuneFragment
+      }
+      departement {
+        ...DepartementFragment
+      }
+    }
+    ... on EpciChamp {
+      epci {
+        ...EpciFragment
+      }
+      departement {
+        ...DepartementFragment
+      }
     }
     ... on CommuneChamp {
-        commune {
-            name
-            code
-        }
-        departement {
-            name
-            code
-        }
+      commune {
+        ...CommuneFragment
+      }
+      departement {
+        ...DepartementFragment
+      }
     }
-}
+    ... on DepartementChamp {
+      departement {
+        ...DepartementFragment
+      }
+    }
+    ... on RegionChamp {
+      region {
+        ...RegionFragment
+      }
+    }
+    ... on PaysChamp {
+      pays {
+        ...PaysFragment
+      }
+    }
+    ... on SiretChamp {
+      etablissement {
+        ...PersonneMoraleFragment
+      }
+    }
+    ... on RNFChamp {
+      rnf {
+        ...RNFFragment
+      }
+      commune {
+        ...CommuneFragment
+      }
+      departement {
+        ...DepartementFragment
+      }
+    }
+    ... on EngagementJuridiqueChamp {
+      engagementJuridique {
+        ...EngagementJuridiqueFragment
+      }
+    }
+  }
 
-fragment PersonneMoraleFragment on PersonneMorale {
+  fragment PersonneMoraleFragment on PersonneMorale {
     siret
+    siegeSocial
     naf
+    libelleNaf
     address {
-        ...AddressFragment
+      ...AddressFragment
     }
     entreprise {
-        siren
-        capitalSocial
-        numeroTvaIntracommunautaire
-        formeJuridique
-        formeJuridiqueCode
-        nomCommercial
-        raisonSociale
-        siretSiegeSocial
-        codeEffectifEntreprise
-        dateCreation
-        nom
-        prenom
-        attestationFiscaleAttachment {
-            ...FileFragment
-        }
-        attestationSocialeAttachment {
-            ...FileFragment
-        }
+      siren
+      capitalSocial
+      numeroTvaIntracommunautaire
+      formeJuridique
+      formeJuridiqueCode
+      nomCommercial
+      raisonSociale
+      siretSiegeSocial
+      codeEffectifEntreprise
+      dateCreation
+      nom
+      prenom
+      attestationFiscaleAttachment {
+        ...FileFragment
+      }
+      attestationSocialeAttachment {
+        ...FileFragment
+      }
     }
     association {
-        rna
-        titre
-        objet
-        dateCreation
-        dateDeclaration
-        datePublication
+      rna
+      titre
+      objet
+      dateCreation
+      dateDeclaration
+      datePublication
     }
-}
+  }
 
-fragment FileFragment on File {
+  fragment PersonneMoraleIncompleteFragment on PersonneMoraleIncomplete {
+    siret
+  }
+
+  fragment PersonnePhysiqueFragment on PersonnePhysique {
+    civilite
+    nom
+    prenom
+    email
+  }
+
+
+  fragment FileFragment on File {
+    __typename
     filename
     contentType
     checksum
-    byteSizeBigInt
+    byteSize: byteSizeBigInt
     url
-}
+    createdAt
+  }
 
-fragment AddressFragment on Address {
+  fragment AddressFragment on Address {
+    label
     type
     streetAddress
     streetNumber
@@ -277,19 +651,50 @@ fragment AddressFragment on Address {
     departmentCode
     regionName
     regionCode
-}
+  }
 
-fragment CorrectionFragment on Correction {
-    dateResolution
-    reason
-}
+  fragment PaysFragment on Pays {
+    name
+    code
+  }
 
-fragment GroupeInstructeurFragment on GroupeInstructeur {
+  fragment RegionFragment on Region {
+    name
+    code
+  }
+
+  fragment DepartementFragment on Departement {
+    name
+    code
+  }
+
+  fragment EpciFragment on Epci {
+    name
+    code
+  }
+
+  fragment CommuneFragment on Commune {
+    name
+    code
+    postalCode
+  }
+
+  fragment RNFFragment on RNF {
     id
-    number
-    label
-    instructeurs {
-        id
-        email
+    title
+    address {
+      ...AddressFragment
     }
-}
+  }
+
+  fragment EngagementJuridiqueFragment on EngagementJuridique {
+    montantEngage
+    montantPaye
+  }
+
+  fragment PageInfoFragment on PageInfo {
+    hasPreviousPage
+    hasNextPage
+    startCursor
+    endCursor
+  }
