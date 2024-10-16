@@ -44,8 +44,10 @@ def dossier_ds_number():
 
 
 @pytest.fixture
-def dossier(dossier_ds_id, demarche):
-    return Dossier(ds_id=dossier_ds_id, ds_demarche=demarche)
+def dossier(dossier_ds_id, demarche, dossier_ds_number):
+    return Dossier(
+        ds_id=dossier_ds_id, ds_demarche=demarche, ds_number=dossier_ds_number
+    )
 
 
 @pytest.fixture
@@ -166,3 +168,24 @@ def idfn(fixture_value):
 @pytest.mark.parametrize("input,expected", extract_field_test_data, ids=idfn)
 def test_extract_field_data(input, expected, dossier_converter):
     assert dossier_converter.extract_ds_data(input) == expected
+
+
+def test_inject_scalar_value(dossier_converter, dossier):
+    dossier_converter.inject_into_field(
+        dossier, Dossier._meta.get_field("date_achevement"), datetime.date(2025, 2, 2)
+    )
+    dossier.save()
+    assert dossier.date_achevement == datetime.date(2025, 2, 2)
+
+
+def test_inject_foreign_key_value(dossier_converter, dossier):
+    dossier_converter.inject_into_field(
+        dossier,
+        Dossier._meta.get_field("porteur_de_projet_arrondissement"),
+        "67 - Bas-Rhin - arrondissement de Haguenau-Wissembourg",
+    )
+    dossier.save()
+    assert (
+        dossier.porteur_de_projet_arrondissement.label
+        == "67 - Bas-Rhin - arrondissement de Haguenau-Wissembourg"
+    )

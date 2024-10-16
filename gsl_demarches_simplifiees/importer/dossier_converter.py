@@ -1,10 +1,16 @@
 import datetime
 
-from gsl_demarches_simplifiees.models import Dossier, FieldMappingForComputer
+from django.db import models
+
+from gsl_demarches_simplifiees.models import (
+    Dossier,
+    DsChoiceLibelle,
+    FieldMappingForComputer,
+)
 
 
 class DossierConverter:
-    def __init__(self, ds_dossier_data, dossier):
+    def __init__(self, ds_dossier_data: dict, dossier: Dossier):
         self.ds_field_ids = tuple(champ["id"] for champ in ds_dossier_data["champs"])
         self.ds_fields_by_id = {
             champ["id"]: champ for champ in ds_dossier_data["champs"]
@@ -55,5 +61,20 @@ class DossierConverter:
         if ds_typename == "DateChamp":
             return datetime.date(*(int(s) for s in ds_field_data["date"].split("-")))
 
-    def inject_into_field(self, dossier, django_field_object, injectable_value):
-        pass
+        raise NotImplementedError(
+            f"DS Fields of type '{ds_typename}' are not supported"
+        )
+
+    def inject_into_field(
+        self, dossier: Dossier, django_field_object: models.Field, injectable_value
+    ):
+        if isinstance(django_field_object, models.ForeignKey):
+            if not issubclass(django_field_object.related_model, DsChoiceLibelle):
+                raise NotImplementedError("Can only inject DsChoiceLibelle objects")
+            injectable_value, _ = (
+                django_field_object.related_model.objects.get_or_create(
+                    label=injectable_value
+                )
+            )
+
+        dossier.__setattr__(django_field_object.name, injectable_value)
