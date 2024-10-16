@@ -56,13 +56,20 @@ class Dossier(DsModel):
     See https://www.demarches-simplifiees.fr/graphql/schema/index.html#definition-Dossier
     """
 
+    STATE_ACCEPTE = "accepte"
+    STATE_EN_CONSTRUCTION = "en_construction"
+    STATE_EN_INSTRUCTION = "en_instruction"
+    STATE_REFUSE = "refuse"
+    STATE_SANS_SUITE = "sans_suite"
+
     DS_STATE_VALUES = (
-        ("accepte", "Accepté"),
-        ("en_construction", "En construction"),
-        ("en_instruction", "En instruction"),
-        ("refuse", "Refusé"),
-        ("sans_suite", "Classé sans suite"),
+        (STATE_ACCEPTE, "Accepté"),
+        (STATE_EN_CONSTRUCTION, "En construction"),
+        (STATE_EN_INSTRUCTION, "En instruction"),
+        (STATE_REFUSE, "Refusé"),
+        (STATE_SANS_SUITE, "Classé sans suite"),
     )
+
     ds_demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
     ds_id = models.CharField("Identifiant DS")
     ds_number = models.IntegerField("Numéro DS")
