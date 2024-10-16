@@ -162,15 +162,22 @@ class Dossier(DsModel):
     )
     # ---
     finance_cout_total = models.DecimalField(
-        "Coût total de l'opération (en euros HT)", max_digits=12, decimal_places=2
+        "Coût total de l'opération (en euros HT)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
     )
-    finance_recettes = models.BooleanField("Le projet va-t-il générer des recettes ?")
+    finance_recettes = models.BooleanField(
+        "Le projet va-t-il générer des recettes ?", null=True
+    )
     # ---
     demande_annee_precedente = models.BooleanField(
-        "Avez-vous déjà présenté cette opération au titre de campagnes DETR/DSIL en 2023 ?"
+        "Avez-vous déjà présenté cette opération au titre de campagnes DETR/DSIL en 2023 ?",
+        null=True,
     )
     demande_numero_demande_precedente = models.CharField(
-        "Précisez le numéro du dossier déposé antérieurement"
+        "Précisez le numéro du dossier déposé antérieurement",
+        blank=True,
     )
     DEMANDE_DISPOSITIF_SOLLICITE_VALUES = (
         ("DETR", "DETR"),
@@ -179,6 +186,7 @@ class Dossier(DsModel):
     demande_dispositif_sollicite = models.CharField(
         "Dispositif de financement sollicité",
         choices=DEMANDE_DISPOSITIF_SOLLICITE_VALUES,
+        blank=True,
     )
     demande_eligibilite_detr = models.ManyToManyField(
         "gsl_demarches_simplifiees.CritereEligibiliteDetr",
@@ -190,7 +198,10 @@ class Dossier(DsModel):
         verbose_name="Eligibilité de l'opération à la DSIL",
     )
     demande_montant = models.DecimalField(
-        "Montant de l'aide demandée", max_digits=12, decimal_places=2
+        "Montant de l'aide demandée",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
     )
     demande_autres_aides = models.ManyToManyField(
         "gsl_demarches_simplifiees.AutreAide",
@@ -198,16 +209,20 @@ class Dossier(DsModel):
     )
 
     demande_autre_precision = models.TextField(
-        "Autre - précisez le dispositif de financement concerné"
+        "Autre - précisez le dispositif de financement concerné",
+        blank=True,
     )
     demande_autre_numero_dossier = models.CharField(
-        "Si votre dossier a déjà été déposé, précisez le numéro de dossier"
+        "Si votre dossier a déjà été déposé, précisez le numéro de dossier",
+        blank=True,
     )
     demande_autre_dsil_detr = models.BooleanField(
-        "Présentez-vous une autre opération au titre de la DETR/DSIL 2024 ?"
+        "Présentez-vous une autre opération au titre de la DETR/DSIL 2024 ?",
+        null=True,
     )
     demande_priorite_dsil_detr = models.IntegerField(
-        "Si oui, précisez le niveau de priorité de ce dossier."
+        "Si oui, précisez le niveau de priorité de ce dossier.",
+        null=True,
     )
 
     MAPPED_FIELDS = (

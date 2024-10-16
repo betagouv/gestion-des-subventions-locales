@@ -62,8 +62,6 @@ def test_get_existing_dossier(
 
 
 @pytest.fixture
-def demarche_data_without_dossier():
-    with open(
-        Path(__file__).parent / "ds_fixtures" / "demarche_data_with_revision.json"
-    ) as handle:
+def ds_dossier_data():
+    with open(Path(__file__).parent / "ds_fixtures" / "dossier_data.json") as handle:
         return json.loads(handle.read())
