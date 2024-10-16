@@ -13,12 +13,7 @@ def save_demarche_dossiers_from_ds(demarche_number):
     client = DsClient()
     for dossier_data in client.get_demarche_dossiers(demarche_number):
         ds_id = dossier_data["id"]
-        dossier_qs = Dossier.objects.filter(ds_id=ds_id)
-        if dossier_qs.exists():
-            dossier = dossier_qs.get()
-        else:
-            demarche = Demarche.objects.get(ds_number=demarche_number)
-            dossier = Dossier(ds_id=ds_id, ds_demarche=demarche)
+        dossier = get_or_create_dossier(ds_id, demarche_number)
 
         django_data = extract_django_data(dossier_data)
 
@@ -29,6 +24,14 @@ def save_demarche_dossiers_from_ds(demarche_number):
             dossier.save()
         except Exception as e:
             print(e)
+
+
+def get_or_create_dossier(ds_dossier_id, demarche_number):
+    dossier_qs = Dossier.objects.filter(ds_id=ds_dossier_id)
+    if dossier_qs.exists():
+        return dossier_qs.get()
+    demarche = Demarche.objects.get(ds_number=demarche_number)
+    return Dossier(ds_id=ds_dossier_id, ds_demarche=demarche)
 
 
 def extract_django_data(dossier_data):
