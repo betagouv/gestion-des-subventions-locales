@@ -1,3 +1,4 @@
+import datetime
 import json
 from pathlib import Path
 
@@ -53,6 +54,115 @@ def ds_dossier_data():
         return json.loads(handle.read())
 
 
+@pytest.fixture
+def dossier_converter(ds_dossier_data, dossier):
+    return DossierConverter(ds_dossier_data, dossier)
+
+
 def test_create_dossier_converter(ds_dossier_data, dossier):
     dossier_converter = DossierConverter(ds_dossier_data, dossier)
     assert dossier_converter.ds_field_ids
+
+
+extract_field_test_data = (
+    (
+        {
+            "id": "TEST_ID_MzMzNjEwMA==",
+            "champDescriptorId": "TEST_ID_MzMzNjEwMA==",
+            "__typename": "CheckboxChamp",
+            "label": "Projet concourant à la transition écologique au sens budget vert",
+            "stringValue": "false",
+            "updatedAt": "2024-10-16T10:05:33+02:00",
+            "prefilled": False,
+            "checked": False,
+        },
+        False,
+    ),
+    (
+        {
+            "id": "TEST_ID_MzQ2NzY5OQ==",
+            "champDescriptorId": "TEST_ID_MzQ2NzY5OQ==",
+            "__typename": "CheckboxChamp",
+            "label": "Le projet concourt-il aux enjeux de la transition écologique ?",
+            "stringValue": "true",
+            "updatedAt": "2024-10-16T10:07:58+02:00",
+            "prefilled": False,
+            "checked": True,
+        },
+        True,
+    ),
+    (
+        {
+            "id": "TEST_ID_MzQ2NzcwMA==",
+            "champDescriptorId": "TEST_ID_MzQ2NzcwMA==",
+            "__typename": "TextChamp",
+            "label": "Justifier en quelques mots.",
+            "stringValue": "lorem ipsum dolor sit amet",
+            "updatedAt": "2024-10-16T10:08:14+02:00",
+            "prefilled": False,
+        },
+        "lorem ipsum dolor sit amet",
+    ),
+    (
+        {
+            "id": "TEST_ID_Mjk0NTcxMg==",
+            "champDescriptorId": "TEST_ID_Mjk0NTcxMg==",
+            "__typename": "DateChamp",
+            "label": "Date de commencement de l'opération",
+            "stringValue": "15 janvier 2025",
+            "updatedAt": "2024-10-16T10:08:21+02:00",
+            "prefilled": False,
+            "date": "2025-01-15",
+        },
+        datetime.date(2025, 1, 15),
+    ),
+    (
+        {
+            "id": "TEST_ID_Mjk0NzQzNw==",
+            "champDescriptorId": "TEST_ID_Mjk0NzQzNw==",
+            "__typename": "DecimalNumberChamp",
+            "label": "Coût total de l'opération (en euros HT)",
+            "stringValue": "256888.00",
+            "updatedAt": "2024-10-16T10:08:46+02:00",
+            "prefilled": False,
+            "decimalNumber": 256888,
+        },
+        256888,
+    ),
+    (
+        {
+            "id": "TEST_ID_NDU4MzEwOA==",
+            "champDescriptorId": "TEST_ID_NDU4MzEwOA==",
+            "__typename": "DecimalNumberChamp",
+            "label": "Je demande ce montant de subventions",
+            "stringValue": "2349.90",
+            "updatedAt": "2024-10-16T10:09:15+02:00",
+            "prefilled": False,
+            "decimalNumber": 2349.9,
+        },
+        2349.9,
+    ),
+    (
+        {
+            "id": "TEST_ID_MzUwOTY5OQ==",
+            "champDescriptorId": "TEST_ID_MzUwOTY5OQ==",
+            "__typename": "MultipleDropDownListChamp",
+            "label": "Eligibilité de l'opération à la DETR",
+            "stringValue": "Premier choix, Deuxième choix",
+            "updatedAt": "2024-10-16T10:09:07+02:00",
+            "prefilled": False,
+            "values": ["Premier choix", "Deuxième choix"],
+        },
+        ["Premier choix", "Deuxième choix"],
+    ),
+)
+
+
+def idfn(fixture_value):
+    if isinstance(fixture_value, dict):
+        return fixture_value["__typename"]
+
+
+@pytest.mark.parametrize("input,expected", extract_field_test_data, ids=idfn)
+def test_extract_field_data(input, expected, dossier_converter):
+    assert dossier_converter.extract_ds_data(input) == expected
