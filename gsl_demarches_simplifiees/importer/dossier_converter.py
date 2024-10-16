@@ -1,3 +1,5 @@
+import datetime
+
 from gsl_demarches_simplifiees.models import Dossier, FieldMappingForComputer
 
 
@@ -46,6 +48,12 @@ class DossierConverter:
 
         if ds_typename == "DecimalNumberChamp":
             return ds_field_data["decimalNumber"]
+
+        if ds_typename == "MultipleDropDownListChamp":
+            return ds_field_data["values"]
+
+        if ds_typename == "DateChamp":
+            return datetime.date(*(int(s) for s in ds_field_data["date"].split("-")))
 
     def inject_into_field(self, dossier, django_field_object, injectable_value):
         pass
