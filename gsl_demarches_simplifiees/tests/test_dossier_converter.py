@@ -45,7 +45,7 @@ def dossier_ds_number():
 
 @pytest.fixture
 def dossier(dossier_ds_id, demarche, dossier_ds_number):
-    return Dossier(
+    return Dossier.objects.create(
         ds_id=dossier_ds_id, ds_demarche=demarche, ds_number=dossier_ds_number
     )
 
@@ -189,3 +189,17 @@ def test_inject_foreign_key_value(dossier_converter, dossier):
         dossier.porteur_de_projet_arrondissement.label
         == "67 - Bas-Rhin - arrondissement de Haguenau-Wissembourg"
     )
+
+
+def test_inject_manytomany_value(dossier_converter, dossier):
+    dossier_converter.inject_into_field(
+        dossier,
+        Dossier._meta.get_field("projet_zonage"),
+        [
+            "Territoires d'industrie (TI)",
+            "Territoires Engagées pour la Nature (TEN)",
+            "Site patrimonial remarquable (SPR)",
+        ],
+    )
+    dossier.save()
+    assert len(dossier.projet_zonage.all()) == 3

@@ -1,4 +1,5 @@
 import datetime
+from collections.abc import Iterable
 
 from django.db import models
 
@@ -68,6 +69,20 @@ class DossierConverter:
     def inject_into_field(
         self, dossier: Dossier, django_field_object: models.Field, injectable_value
     ):
+        if isinstance(django_field_object, models.ManyToManyField):
+            if not isinstance(injectable_value, Iterable):
+                injectable_value = [injectable_value]
+            if not issubclass(django_field_object.related_model, DsChoiceLibelle):
+                raise NotImplementedError("Can only inject DsChoiceLibelle objects")
+
+            for value in injectable_value:
+                related, _ = django_field_object.related_model.objects.get_or_create(
+                    label=value
+                )
+                dossier.__getattribute__(django_field_object.name).add(related)
+
+            return
+
         if isinstance(django_field_object, models.ForeignKey):
             if not issubclass(django_field_object.related_model, DsChoiceLibelle):
                 raise NotImplementedError("Can only inject DsChoiceLibelle objects")
