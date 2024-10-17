@@ -7,6 +7,20 @@ from gsl_demarches_simplifiees.models import (
     Profile,
 )
 
+IMPORTED_DS_FIELDS = (
+    "AddressChampDescriptor",
+    "DateChampDescriptor",
+    "DecimalNumberChampDescriptor",
+    "DropDownListChampDescriptor",
+    "IntegerNumberChampDescriptor",
+    "MultipleDropDownListChampDescriptor",
+    "PhoneChampDescriptor",
+    "SiretChampDescriptor",
+    "TextChampDescriptor",
+    "TextareaChampDescriptor",
+    "YesNoChampDescriptor",
+)
+
 
 def camelcase(my_string):
     s = my_string.title().replace("_", "")
@@ -53,18 +67,7 @@ def save_field_mappings(demarche_data, demarche):
     }
     for champ_descriptor in demarche_data["activeRevision"]["champDescriptors"]:
         ds_type = champ_descriptor["__typename"]
-        if ds_type not in (
-            "DropDownListChampDescriptor",
-            "TextChampDescriptor",
-            "TextareaChampDescriptor",
-            "YesNoChampDescriptor",
-            "SiretChampDescriptor",
-            "PhoneChampDescriptor",
-            "AddressChampDescriptor",
-            "MultipleDropDownListChampDescriptor",
-            "DecimalNumberChampDescriptor",
-            "IntegerNumberChampDescriptor",
-        ):
+        if ds_type not in IMPORTED_DS_FIELDS:
             continue
         ds_label = champ_descriptor["label"]
         ds_id = champ_descriptor["id"]
