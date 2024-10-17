@@ -62,6 +62,8 @@ def save_field_mappings(demarche_data, demarche):
             "PhoneChampDescriptor",
             "AddressChampDescriptor",
             "MultipleDropDownListChampDescriptor",
+            "DecimalNumberChampDescriptor",
+            "IntegerNumberChampDescriptor",
         ):
             continue
         ds_label = champ_descriptor["label"]
@@ -93,7 +95,8 @@ def save_field_mappings(demarche_data, demarche):
                 django_field=reversed_mapping.get(ds_label),
             )
             continue
-        FieldMappingForHuman.objects.create(
-            label=ds_label,
-            demarche=demarche,
-        )
+        if not qs_human_mapping.exists():
+            FieldMappingForHuman.objects.create(
+                label=ds_label,
+                demarche=demarche,
+            )
