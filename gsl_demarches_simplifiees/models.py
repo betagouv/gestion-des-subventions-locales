@@ -88,16 +88,12 @@ class Dossier(DsModel):
         "Date de dernière modification des champs", null=True, blank=True
     )
 
-    NATURE_PORTEUR_DE_PROJET_VALUES = (
-        ("commune", "Commune"),
-        ("epci", "EPCI"),
-        ("petr", "Pôle d'équilibre territorial et rural"),
-        ("syco", "Syndicat de communes"),
-    )
-    porteur_de_projet_nature = models.CharField(
-        "Nature du porteur de projet",
+    porteur_de_projet_nature = models.ForeignKey(
+        "gsl_demarches_simplifiees.NaturePorteurProjet",
+        models.SET_NULL,
+        verbose_name="Nature du porteur de projet",
         blank=True,
-        choices=NATURE_PORTEUR_DE_PROJET_VALUES,
+        null=True,
     )
     porteur_de_projet_arrondissement = models.ForeignKey(
         "gsl_demarches_simplifiees.Arrondissement",
@@ -278,6 +274,10 @@ class DsChoiceLibelle(DsModel):
 
     def __str__(self):
         return self.label
+
+
+class NaturePorteurProjet(DsChoiceLibelle):
+    pass
 
 
 class Arrondissement(DsChoiceLibelle):
