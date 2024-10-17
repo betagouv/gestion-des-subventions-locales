@@ -11,7 +11,8 @@ def save_demarche_dossiers_from_ds(demarche_number):
     client = DsClient()
     for dossier_data in client.get_demarche_dossiers(demarche_number):
         ds_id = dossier_data["id"]
-        dossier = get_or_create_dossier(ds_id, demarche_number)
+        ds_dossier_number = dossier_data["number"]
+        dossier = get_or_create_dossier(ds_id, ds_dossier_number, demarche_number)
 
         try:
             dossier.save()
@@ -19,12 +20,14 @@ def save_demarche_dossiers_from_ds(demarche_number):
             print(e)
 
 
-def get_or_create_dossier(ds_dossier_id, demarche_number):
+def get_or_create_dossier(ds_dossier_id, ds_dossier_number, demarche_number):
     dossier_qs = Dossier.objects.filter(ds_id=ds_dossier_id)
     if dossier_qs.exists():
         return dossier_qs.get()
     demarche = Demarche.objects.get(ds_number=demarche_number)
-    return Dossier(ds_id=ds_dossier_id, ds_demarche=demarche)
+    return Dossier.objects.create(
+        ds_id=ds_dossier_id, ds_demarche=demarche, ds_number=ds_dossier_number
+    )
 
 
 """
