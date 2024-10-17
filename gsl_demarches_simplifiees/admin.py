@@ -21,7 +21,7 @@ class DossierAdmin(admin.ModelAdmin):
 
 @admin.register(FieldMappingForHuman)
 class FieldMappingForHumanAdmin(admin.ModelAdmin):
-    pass
+    list_display = ("label", "django_field")
 
 
 @admin.register(FieldMappingForComputer)
