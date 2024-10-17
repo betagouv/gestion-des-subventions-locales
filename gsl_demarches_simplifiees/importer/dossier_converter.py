@@ -10,7 +10,21 @@ from gsl_demarches_simplifiees.models import (
 )
 
 
+def camelcase(my_string):
+    s = my_string.title().replace("_", "")
+    return f"{s[0].lower()}{s[1:]}"
+
+
 class DossierConverter:
+    UNMAPPED_FIELDS = (
+        "state",
+        "date_depot",
+        "date_derniere_modification",
+        "date_passage_en_construction",
+        "date_passage_en_instruction",
+        "date_derniere_modification_champs",
+    )
+
     def __init__(self, ds_dossier_data: dict, dossier: Dossier):
         self.ds_field_ids = tuple(champ["id"] for champ in ds_dossier_data["champs"])
         self.ds_fields_by_id = {
@@ -20,12 +34,20 @@ class DossierConverter:
             ds_field_id__in=self.ds_field_ids
         ).exclude(django_field="")
 
+        self.ds_dossier_data = ds_dossier_data
+
         self.ds_id_to_django_field = {
             mapping.ds_field_id: Dossier._meta.get_field(mapping.django_field)
             for mapping in self.computed_mappings.all()
         }
 
         self.dossier = dossier
+
+    def fill_unmapped_fields(self):
+        for field in self.UNMAPPED_FIELDS:
+            django_field = f"ds_{field}"
+            ds_key = camelcase(field)
+            self.dossier.__setattr__(django_field, self.ds_dossier_data[ds_key])
 
     def convert_all_fields(self):
         for ds_field_id in self.ds_id_to_django_field:

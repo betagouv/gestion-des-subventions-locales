@@ -81,8 +81,11 @@ class Dossier(DsModel):
     ds_date_passage_en_instruction = models.DateTimeField(
         "Date de passage en instruction", null=True, blank=True
     )
-    ds_date_derniere_modification_champs = models.DateTimeField(
+    ds_date_derniere_modification = models.DateTimeField(
         "Date de dernière modification", null=True, blank=True
+    )
+    ds_date_derniere_modification_champs = models.DateTimeField(
+        "Date de dernière modification des champs", null=True, blank=True
     )
 
     NATURE_PORTEUR_DE_PROJET_VALUES = (
