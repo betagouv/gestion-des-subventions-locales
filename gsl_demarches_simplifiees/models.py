@@ -70,6 +70,8 @@ class Dossier(DsModel):
         (STATE_SANS_SUITE, "Classé sans suite"),
     )
 
+    raw_ds_data = models.JSONField("Données DS brutes", null=True, blank=True)
+
     ds_demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
     ds_id = models.CharField("Identifiant DS")
     ds_number = models.IntegerField("Numéro DS")
@@ -352,7 +354,7 @@ class FieldMappingForHuman(DsModel):
 
 class FieldMappingForComputer(DsModel):
     demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
-    ds_field_id = models.CharField("ID du champ DS", unique=True)
+    ds_field_id = models.CharField("ID du champ DS")
     ds_field_label = models.CharField(
         "Libellé DS",
         help_text="Libellé au moment où ce champ a été rencontré pour la première fois — il a pu changer depuis !",
@@ -369,6 +371,12 @@ class FieldMappingForComputer(DsModel):
     class Meta:
         verbose_name = "Correspondance technique"
         verbose_name_plural = "Correspondances techniques"
+        constraints = (
+            models.UniqueConstraint(
+                fields=("demarche", "ds_field_id"),
+                name="unique_ds_field_id_per_demarche",
+            ),
+        )
 
     def __str__(self):
         return f"Correspondance technique {self.pk}"

@@ -42,6 +42,7 @@ class DossierConverter:
         }
 
         self.dossier = dossier
+        self.dossier.raw_ds_data = ds_dossier_data
 
     def fill_unmapped_fields(self):
         for field in self.UNMAPPED_FIELDS:
@@ -72,11 +73,14 @@ class DossierConverter:
         if ds_typename == "CheckboxChamp":
             return ds_field_data["checked"]
 
-        if ds_typename == "TextChamp":
+        if ds_typename in ("TextChamp", "SiretChamp"):
             return ds_field_data["stringValue"]
 
         if ds_typename == "DecimalNumberChamp":
             return ds_field_data["decimalNumber"]
+
+        if ds_typename == "IntegerNumberChamp":
+            return int(ds_field_data["integerNumber"])
 
         if ds_typename == "MultipleDropDownListChamp":
             return ds_field_data["values"]

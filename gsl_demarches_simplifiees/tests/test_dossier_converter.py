@@ -157,6 +157,34 @@ extract_field_test_data = (
         },
         ["Premier choix", "Deuxième choix"],
     ),
+    (
+        {
+            "id": "TEST_ID_zNTY1MA==",
+            "label": "Si oui, précisez le niveau de priorité de ce dossier.",
+            "prefilled": False,
+            "updatedAt": "2024-02-20T23:03:28+01:00",
+            "__typename": "IntegerNumberChamp",
+            "stringValue": "2",
+            "integerNumber": "2",
+            "champDescriptorId": "Q2hhbXAtMzMzNTY1MA==",
+        },
+        2,
+    ),
+    (
+        {
+            "id": "Q2hhbXAtMjk0NTU5OA==",
+            "champDescriptorId": "Q2hhbXAtMjk0NTU5OA==",
+            "__typename": "SiretChamp",
+            "label": "Identification du maître d'ouvrage",
+            "stringValue": "69850088100033",
+            "updatedAt": "2024-10-17T21:12:12+02:00",
+            "prefilled": False,
+            "etablissement": {},
+            "entreprise": {},
+            "association": None,
+        },
+        "69850088100033",
+    ),
 )
 
 
