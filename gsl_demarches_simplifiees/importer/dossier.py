@@ -28,16 +28,3 @@ def get_or_create_dossier(ds_dossier_id, ds_dossier_number, demarche_number):
     return Dossier.objects.create(
         ds_id=ds_dossier_id, ds_demarche=demarche, ds_number=ds_dossier_number
     )
-
-
-"""
-    for champ in dossier_data["champs"]:
-        ds_champ_id = champ["id"]
-        if ds_champ_id in ds_id_to_django_field:
-            django_field = ds_id_to_django_field[ds_champ_id]
-            if isinstance(django_field, models.CharField):
-                ds_field_value = champ["stringValue"]
-                django_data[django_field.name] = ds_field_value
-
-    return django_data
-"""
