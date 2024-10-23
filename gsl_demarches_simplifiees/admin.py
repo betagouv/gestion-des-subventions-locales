@@ -16,7 +16,8 @@ class DemarcheAdmin(admin.ModelAdmin):
 
 @admin.register(Dossier)
 class DossierAdmin(admin.ModelAdmin):
-    pass
+    list_filter = ("ds_demarche__ds_number",)
+    list_display = ("ds_number", "ds_demarche__ds_number", "ds_state")
 
 
 @admin.register(FieldMappingForHuman)
