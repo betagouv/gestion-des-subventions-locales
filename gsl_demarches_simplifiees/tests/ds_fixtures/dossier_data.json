@@ -1,0 +1,841 @@
+{
+  "__typename": "Dossier",
+  "id": "TEST_ID_yMDU1Mjg1Nw==",
+  "number": 5522885577,
+  "archived": false,
+  "prefilled": false,
+  "state": "en_construction",
+  "dateDerniereModification": "2024-10-16T10:09:33+02:00",
+  "dateDepot": "2024-10-16T10:09:32+02:00",
+  "datePassageEnConstruction": "2024-10-16T10:09:32+02:00",
+  "datePassageEnInstruction": null,
+  "dateTraitement": null,
+  "dateExpiration": "2025-10-16T10:09:32+02:00",
+  "dateSuppressionParUsager": null,
+  "dateDerniereModificationChamps": "2024-10-16T10:09:29+02:00",
+  "dateDerniereModificationAnnotations": "2024-10-16T10:05:33+02:00",
+  "motivation": null,
+  "motivationAttachment": null,
+  "attestation": null,
+  "pdf": {
+    "__typename": "File",
+    "filename": "dossier-5522885577.pdf",
+    "contentType": "application/pdf",
+    "checksum": "",
+    "byteSize": "0",
+    "url": "https://example.com/api/v2/99998",
+    "createdAt": "2024-10-16T10:10:03+02:00"
+  },
+  "usager": {
+    "email": "alban.gulhar@example.net"
+  },
+  "prenomMandataire": null,
+  "nomMandataire": null,
+  "deposeParUnTiers": false,
+  "connectionUsager": "password",
+  "groupeInstructeur": {
+    "id": "TEST_ID_HJ1Y3RldXItMjQzNDgw",
+    "number": 243480,
+    "label": "défaut",
+    "instructeurs": [
+      {
+        "id": "TEST_ID_XItMTIzNTcx",
+        "email": "icham.halo@beta.gouv.fr"
+      },
+      {
+        "id": "TEST_ID_3RldXItMTIzOTQy",
+        "email": "hubert.lingot@beta.gouv.fr"
+      }
+    ]
+  },
+  "demandeur": {
+    "__typename": "PersonneMorale",
+    "siret": "21670449400014",
+    "siegeSocial": true,
+    "naf": "84.11Z",
+    "libelleNaf": "Administration publique générale",
+    "address": {
+      "label": "COMMUNE DE SCHIRRHEIN\r\n\r\n\r\n89 RUE PRINCIPALE\r\n\r\n67240 SCHIRRHEIN\r\nFRANCE",
+      "type": "housenumber",
+      "streetAddress": "89 RUE PRINCIPALE",
+      "streetNumber": "89",
+      "streetName": "PRINCIPALE",
+      "postalCode": "67240",
+      "cityName": "Schirrhein",
+      "cityCode": "67449",
+      "departmentName": null,
+      "departmentCode": null,
+      "regionName": "Grand Est",
+      "regionCode": "44"
+    },
+    "entreprise": {
+      "siren": "216704494",
+      "capitalSocial": "-1",
+      "numeroTvaIntracommunautaire": null,
+      "formeJuridique": "Commune et commune nouvelle",
+      "formeJuridiqueCode": "7210",
+      "nomCommercial": "",
+      "raisonSociale": "COMMUNE DE SCHIRRHEIN",
+      "siretSiegeSocial": "21670449400014",
+      "codeEffectifEntreprise": "12",
+      "dateCreation": "1978-01-01",
+      "nom": null,
+      "prenom": null,
+      "attestationFiscaleAttachment": null,
+      "attestationSocialeAttachment": null
+    },
+    "association": null
+  },
+  "demarche": {
+    "revision": {
+      "id": "TEST_ID_lUmV2aXNpb24tMTYyNjE0"
+    },
+    "id": "TEST_ID_LTEwMzkyNg==",
+    "number": 11223344,
+    "title": "Titre de la démarche",
+    "description": "CETTE DÉMARCHE EST UNE DÉMARCHE TEST.\r\nLES DOSSIERS DÉPOSÉS NE SERONT PAS TRAITES.\r\n\r\nBienvenue sur le formulaire unique de demande de subvention au titre de la DETR et de la DSIL 2024. Il s'adresse aux communes et EPCI éligibles qui souhaitent déposer une demande de financement au titre de ces deux dispositifs.\r\n\r\nLa **dotation d'équipement des territoires ruraux (DETR)** soutient les projets d'investissement des communes et de leurs groupements. Les priorités de financement de cette dotation sont fixées chaque année au niveau départemental par une commission d'élus. Les dossiers déposés par le biais de cette démarche seront transmis au préfet de département qui attribue les subventions. Pour plus d'informations sur la DETR : https://aides-territoires.beta.gouv.fr/aides/b4d8-copie-16h46-financer-des-projets-dinvestissem/\r\n\r\nLa **dotation de soutien à l'investissement local (DSIL)** soutient également les projets d'investissement des communes et de leurs groupements qui répondent à l'une des six priorités instaurées par la loi :\r\n* Rénovation thermique, transition énergétique, développement des énergies renouvelables ;\r\n* Mise aux normes et de sécurisation des équipements publics ;\r\n* Développement d'infrastructures en faveur de la mobilité ou de la construction de logements ;\r\n* Développement du numérique et de la téléphonie mobile\r\n* Création, transformation et rénovation des bâtiments scolaires\r\n* Réalisation d'hébergements et d'équipements publics rendus nécessaires par l'accroissement du nombre d'habitants.\r\n\r\nLes dossiers déposés par le biais de cette démarche seront transmis au préfet de région, responsable de l'attribution des subventions. Pour plus d'informations sur la DSIL : https://aides-territoires.beta.gouv.fr/aides/1182-copie-13h44-financer-des-projets-dinvestissem/\r\n\r\nVotre dossier sera enregistré automatiquement après chaque modification. Vous pourrez donc y revenir à tout moment pour le compléter puis le déposer.\r\n\r\nPlus d'information disponibles sur le site: https://www.collectivites-locales.gouv.fr",
+    "state": "brouillon",
+    "declarative": null,
+    "dateCreation": "2024-10-07T14:47:24+02:00",
+    "datePublication": null,
+    "dateDerniereModification": "2024-10-16T10:09:33+02:00",
+    "dateDepublication": null,
+    "dateFermeture": null,
+    "notice": null,
+    "deliberation": null,
+    "demarcheURL": "https://www.demarches-simplifiees.fr/example-url",
+    "cadreJuridiqueURL": "https://www.legifrance.gouv.fr/example-url"
+  },
+  "instructeurs": [],
+  "traitements": [
+    {
+      "state": "en_construction",
+      "emailAgentTraitant": null,
+      "dateTraitement": "2024-10-16T10:09:32+02:00",
+      "motivation": null
+    }
+  ],
+  "champs": [
+    {
+      "id": "TEST_ID_Mjk5Njg5OA==",
+      "champDescriptorId": "TEST_ID_Mjk5Njg5OA==",
+      "__typename": "TextChamp",
+      "label": "Votre demande dématérialisée de DETR/DSIL pour l'année 2024",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_ODgwNDAy",
+      "champDescriptorId": "TEST_ID_ODgwNDAy",
+      "__typename": "TextChamp",
+      "label": "Informations sur le porteur de projet",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_Mjk0NTM2Mg==",
+      "champDescriptorId": "TEST_ID_Mjk0NTM2Mg==",
+      "__typename": "TextChamp",
+      "label": "Identification de la collectivité porteuse du projet",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MTk3NzQ0NQ==",
+      "champDescriptorId": "TEST_ID_MTk3NzQ0NQ==",
+      "__typename": "TextChamp",
+      "label": "Nature du porteur de projet",
+      "stringValue": "Commune",
+      "updatedAt": "2024-10-16T10:05:50+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MzI3Njk1NA==",
+      "champDescriptorId": "TEST_ID_MzI3Njk1NA==",
+      "__typename": "TextChamp",
+      "label": "Département et arrondissement du porteur de projet",
+      "stringValue": "67 - Bas-Rhin - arrondissement de Haguenau-Wissembourg",
+      "updatedAt": "2024-10-16T10:05:57+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MjkzNDM2NA==",
+      "champDescriptorId": "TEST_ID_MjkzNDM2NA==",
+      "__typename": "TextChamp",
+      "label": "Fonction du porteur de projet",
+      "stringValue": "Maire",
+      "updatedAt": "2024-10-16T10:05:58+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MjkzNDM2MA==",
+      "champDescriptorId": "TEST_ID_MjkzNDM2MA==",
+      "__typename": "TextChamp",
+      "label": "Nom du porteur de projet",
+      "stringValue": "Le-Maire",
+      "updatedAt": "2024-10-16T10:06:07+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MjkzNDM2Mg==",
+      "champDescriptorId": "TEST_ID_MjkzNDM2Mg==",
+      "__typename": "TextChamp",
+      "label": "Prénom du porteur de projet",
+      "stringValue": "Monsieur",
+      "updatedAt": "2024-10-16T10:06:09+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_Mjk5Nzg0MA==",
+      "champDescriptorId": "TEST_ID_Mjk5Nzg0MA==",
+      "__typename": "CheckboxChamp",
+      "label": "La maîtrise d'ouvrage de l'opération sera-t-elle déléguée ?",
+      "stringValue": "false",
+      "updatedAt": "2024-10-16T10:06:12+02:00",
+      "prefilled": false,
+      "checked": false
+    },
+    {
+      "id": "TEST_ID_MTUwNjQwMQ==",
+      "champDescriptorId": "TEST_ID_MTUwNjQwMQ==",
+      "__typename": "TextChamp",
+      "label": "Identification de la personne chargée du suivi du dossier",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MjkzNDM5MQ==",
+      "champDescriptorId": "TEST_ID_MjkzNDM5MQ==",
+      "__typename": "TextChamp",
+      "label": "Nom",
+      "stringValue": "Gulhar",
+      "updatedAt": "2024-10-16T10:06:25+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MjkzNDM5Mw==",
+      "champDescriptorId": "TEST_ID_MjkzNDM5Mw==",
+      "__typename": "TextChamp",
+      "label": "Prénom",
+      "stringValue": "Alban",
+      "updatedAt": "2024-10-16T10:06:27+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MjkzNDM5NA==",
+      "champDescriptorId": "TEST_ID_MjkzNDM5NA==",
+      "__typename": "TextChamp",
+      "label": "Fonction",
+      "stringValue": "Testeur JS",
+      "updatedAt": "2024-10-16T10:06:31+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_NDU4MzEwNQ==",
+      "champDescriptorId": "TEST_ID_NDU4MzEwNQ==",
+      "__typename": "TextChamp",
+      "label": "Couleur du ciel",
+      "stringValue": "Bleue",
+      "updatedAt": "2024-10-16T10:06:35+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MjkzNDQwMQ==",
+      "champDescriptorId": "TEST_ID_MjkzNDQwMQ==",
+      "__typename": "TextChamp",
+      "label": "Téléphone",
+      "stringValue": "01 23 45 67 89",
+      "updatedAt": "2024-10-16T10:06:38+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_Mjk3MTQxNw==",
+      "champDescriptorId": "TEST_ID_Mjk3MTQxNw==",
+      "__typename": "TextChamp",
+      "label": "Présentation de l'opération",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MzI5MzY1Mw==",
+      "champDescriptorId": "TEST_ID_MzI5MzY1Mw==",
+      "__typename": "TextChamp",
+      "label": "Description du projet",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_Mjk3MTQ0NA==",
+      "champDescriptorId": "TEST_ID_Mjk3MTQ0NA==",
+      "__typename": "TextChamp",
+      "label": "Intitulé du projet",
+      "stringValue": "Réfection du toit de l'école",
+      "updatedAt": "2024-10-16T10:06:47+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MzAyMDUwMA==",
+      "champDescriptorId": "TEST_ID_MzAyMDUwMA==",
+      "__typename": "AddressChamp",
+      "label": "Adresse principale du projet",
+      "stringValue": "2 Rue des Ecoles 67240 Schirrhein",
+      "updatedAt": "2024-10-16T10:07:10+02:00",
+      "prefilled": false,
+      "address": {
+        "label": "2 Rue des Ecoles 67240 Schirrhein",
+        "type": "housenumber",
+        "streetAddress": "2 Rue des Ecoles",
+        "streetNumber": "2",
+        "streetName": "Rue des Ecoles",
+        "postalCode": "67240",
+        "cityName": "Schirrhein",
+        "cityCode": "67449",
+        "departmentName": "Bas-Rhin",
+        "departmentCode": "67",
+        "regionName": "Grand Est",
+        "regionCode": "44"
+      },
+      "commune": {
+        "name": "Schirrhein",
+        "code": "67449",
+        "postalCode": "67240"
+      },
+      "departement": {
+        "name": "Bas-Rhin",
+        "code": "67"
+      }
+    },
+    {
+      "id": "TEST_ID_Mjk0NTY0NA==",
+      "champDescriptorId": "TEST_ID_Mjk0NTY0NA==",
+      "__typename": "PieceJustificativeChamp",
+      "label": "Délibération du conseil municipal ou de l'organe délibérant de l'EPCI",
+      "stringValue": null,
+      "updatedAt": "2024-10-16T10:07:34+02:00",
+      "prefilled": false,
+      "files": []
+    },
+    {
+      "id": "TEST_ID_MzI3Njk1Nw==",
+      "champDescriptorId": "TEST_ID_MzI3Njk1Nw==",
+      "__typename": "PieceJustificativeChamp",
+      "label": "Joindre un document de présentation de votre projet",
+      "stringValue": null,
+      "updatedAt": "2024-10-16T10:07:38+02:00",
+      "prefilled": false,
+      "files": []
+    },
+    {
+      "id": "TEST_ID_MzI5MzU1Mw==",
+      "champDescriptorId": "TEST_ID_MzI5MzU1Mw==",
+      "__typename": "CheckboxChamp",
+      "label": "Le projet d'investissement comprend-il des acquisitions immobilières ?",
+      "stringValue": "false",
+      "updatedAt": "2024-10-16T10:07:39+02:00",
+      "prefilled": false,
+      "checked": false
+    },
+    {
+      "id": "TEST_ID_MzI5MzU1NQ==",
+      "champDescriptorId": "TEST_ID_MzI5MzU1NQ==",
+      "__typename": "CheckboxChamp",
+      "label": "Le projet d'investissement comprend-il des travaux ?",
+      "stringValue": "false",
+      "updatedAt": "2024-10-16T10:07:40+02:00",
+      "prefilled": false,
+      "checked": false
+    },
+    {
+      "id": "TEST_ID_Mjk0NTQyMw==",
+      "champDescriptorId": "TEST_ID_Mjk0NTQyMw==",
+      "__typename": "MultipleDropDownListChamp",
+      "label": "Zonage spécifique : le projet est il situé dans l'une des zones suivantes ?",
+      "stringValue": "Territoires d'industrie (TI), Territoires Engagées pour la Nature (TEN), Site patrimonial remarquable (SPR)",
+      "updatedAt": "2024-10-16T10:07:48+02:00",
+      "prefilled": false,
+      "values": [
+        "Territoires d'industrie (TI)",
+        "Territoires Engagées pour la Nature (TEN)",
+        "Site patrimonial remarquable (SPR)"
+      ]
+    },
+    {
+      "id": "TEST_ID_Mjk0NzQzNQ==",
+      "champDescriptorId": "TEST_ID_Mjk0NzQzNQ==",
+      "__typename": "MultipleDropDownListChamp",
+      "label": "Contractualisation : le projet est-il inscrit dans un ou plusieurs contrats avec l'Etat ?",
+      "stringValue": "Opération d'intérêt national (OIN), Petites Villes de Demain (PVD), Contrat de Convergence et de Transformation (CCT)",
+      "updatedAt": "2024-10-16T10:07:54+02:00",
+      "prefilled": false,
+      "values": [
+        "Opération d'intérêt national (OIN)",
+        "Petites Villes de Demain (PVD)",
+        "Contrat de Convergence et de Transformation (CCT)"
+      ]
+    },
+    {
+      "id": "TEST_ID_MzI5MzY1NA==",
+      "champDescriptorId": "TEST_ID_MzI5MzY1NA==",
+      "__typename": "TextChamp",
+      "label": "Impact environnemental du projet",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MzQ2NzY5OQ==",
+      "champDescriptorId": "TEST_ID_MzQ2NzY5OQ==",
+      "__typename": "CheckboxChamp",
+      "label": "Le projet concourt-il aux enjeux de la transition écologique ?",
+      "stringValue": "true",
+      "updatedAt": "2024-10-16T10:07:58+02:00",
+      "prefilled": false,
+      "checked": true
+    },
+    {
+      "id": "TEST_ID_MzI4MDE4Mw==",
+      "champDescriptorId": "TEST_ID_MzI4MDE4Mw==",
+      "__typename": "MultipleDropDownListChamp",
+      "label": "Si oui, indiquer quels sont les objectifs environnementaux impactés favorablement.",
+      "stringValue": "Lutte contre le changement climatique, Adaptation au changement climatique et à prévention des risques naturels",
+      "updatedAt": "2024-10-16T10:08:03+02:00",
+      "prefilled": false,
+      "values": [
+        "Lutte contre le changement climatique",
+        "Adaptation au changement climatique et à prévention des risques naturels"
+      ]
+    },
+    {
+      "id": "TEST_ID_MzQ2NzcwMA==",
+      "champDescriptorId": "TEST_ID_MzQ2NzcwMA==",
+      "__typename": "TextChamp",
+      "label": "Justifier en quelques mots.",
+      "stringValue": "lorem ipsum dolor sit amet",
+      "updatedAt": "2024-10-16T10:08:14+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MzI5MzY1NQ==",
+      "champDescriptorId": "TEST_ID_MzI5MzY1NQ==",
+      "__typename": "CheckboxChamp",
+      "label": "Le projet implique-t-il une artificialisation des sols ?",
+      "stringValue": "false",
+      "updatedAt": "2024-10-16T10:08:15+02:00",
+      "prefilled": false,
+      "checked": false
+    },
+    {
+      "id": "TEST_ID_Mjk0NTcxMA==",
+      "champDescriptorId": "TEST_ID_Mjk0NTcxMA==",
+      "__typename": "TextChamp",
+      "label": "Dates prévisionnelles de réalisation du projet",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_Mjk0NTcxMg==",
+      "champDescriptorId": "TEST_ID_Mjk0NTcxMg==",
+      "__typename": "DateChamp",
+      "label": "Date de commencement de l'opération",
+      "stringValue": "15 janvier 2025",
+      "updatedAt": "2024-10-16T10:08:21+02:00",
+      "prefilled": false,
+      "date": "2025-01-15"
+    },
+    {
+      "id": "TEST_ID_Mjk0NTcxNA==",
+      "champDescriptorId": "TEST_ID_Mjk0NTcxNA==",
+      "__typename": "DateChamp",
+      "label": "Date prévisionnelle d'achèvement de l'opération",
+      "stringValue": "16 mai 2025",
+      "updatedAt": "2024-10-16T10:08:26+02:00",
+      "prefilled": false,
+      "date": "2025-05-16"
+    },
+    {
+      "id": "TEST_ID_Mjk0NTQzOA==",
+      "champDescriptorId": "TEST_ID_Mjk0NTQzOA==",
+      "__typename": "TextChamp",
+      "label": "Plan de financement prévisionnel",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MzM1NDI5MA==",
+      "champDescriptorId": "TEST_ID_MzM1NDI5MA==",
+      "__typename": "TextChamp",
+      "label": "Dépenses et recettes prévisionnelles",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_Mjk0NzQzNw==",
+      "champDescriptorId": "TEST_ID_Mjk0NzQzNw==",
+      "__typename": "DecimalNumberChamp",
+      "label": "Coût total de l'opération (en euros HT)",
+      "stringValue": "256888.00",
+      "updatedAt": "2024-10-16T10:08:46+02:00",
+      "prefilled": false,
+      "decimalNumber": 256888
+    },
+    {
+      "id": "TEST_ID_MzMzNTUxOQ==",
+      "champDescriptorId": "TEST_ID_MzMzNTUxOQ==",
+      "__typename": "PieceJustificativeChamp",
+      "label": "Justificatifs des dépenses prévisionnelles",
+      "stringValue": null,
+      "updatedAt": "2024-10-16T10:08:52+02:00",
+      "prefilled": false,
+      "files": [
+        {
+          "__typename": "File",
+          "filename": "exemple.pdf",
+          "contentType": "application/pdf",
+          "checksum": "jV3LkJh+8C5IYP6uhmwuDQ==",
+          "byteSize": "20159",
+          "url": "https://static.demarches-simplifiees.fr:443/v1/AUTH_db3cbfc79c914f87b192ff7c6bb176f0/ds_activestorage_backup/2024/10/16/aN/aNnTgTzdSafWMWbYggAsAKng2U7c?temp_url_sig=017225ac14ddd1dac0678ca12dadd67b83e4b974&temp_url_expires=1729069804&filename=exemple.pdf&inline",
+          "createdAt": "2024-10-16T10:08:52+02:00"
+        }
+      ]
+    },
+    {
+      "id": "TEST_ID_MzM1ODI1MA==",
+      "champDescriptorId": "TEST_ID_MzM1ODI1MA==",
+      "__typename": "CheckboxChamp",
+      "label": "Le projet va-t-il générer des recettes ?",
+      "stringValue": "false",
+      "updatedAt": "2024-10-16T10:08:48+02:00",
+      "prefilled": false,
+      "checked": false
+    },
+    {
+      "id": "TEST_ID_MzM1NDM1OA==",
+      "champDescriptorId": "TEST_ID_MzM1NDM1OA==",
+      "__typename": "PieceJustificativeChamp",
+      "label": "Plan de financement détaillé",
+      "stringValue": null,
+      "updatedAt": "2024-10-16T10:08:57+02:00",
+      "prefilled": false,
+      "files": [
+        {
+          "__typename": "File",
+          "filename": "exemple.pdf",
+          "contentType": "application/pdf",
+          "checksum": "jV3LkJh+8C5IYP6uhmwuDQ==",
+          "byteSize": "20159",
+          "url": "https://static.demarches-simplifiees.fr:443/v1/AUTH_db3cbfc79c914f87b192ff7c6bb176f0/ds_activestorage_backup/2024/10/16/LM/LM8gZKH8pNdUJEKA5oV6NT3bKSqL?temp_url_sig=ce444369287bc35f56dd45759fc6cbf73a8214d7&temp_url_expires=1729069804&filename=exemple.pdf&inline",
+          "createdAt": "2024-10-16T10:08:57+02:00"
+        }
+      ]
+    },
+    {
+      "id": "TEST_ID_MzI3OTcwOA==",
+      "champDescriptorId": "TEST_ID_MzI3OTcwOA==",
+      "__typename": "TextChamp",
+      "label": "Aides à l'investissement sollicitées",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MzM0MjIxOA==",
+      "champDescriptorId": "TEST_ID_MzM0MjIxOA==",
+      "__typename": "CheckboxChamp",
+      "label": "Avez-vous déjà présenté cette opération au titre de campagnes DETR/DSIL en 2023 ?",
+      "stringValue": "false",
+      "updatedAt": "2024-10-16T10:09:01+02:00",
+      "prefilled": false,
+      "checked": false
+    },
+    {
+      "id": "TEST_ID_MzI3Njk1OQ==",
+      "champDescriptorId": "TEST_ID_MzI3Njk1OQ==",
+      "__typename": "TextChamp",
+      "label": "Dispositif de financement sollicité",
+      "stringValue": "DETR",
+      "updatedAt": "2024-10-16T10:09:05+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MzUwOTY5OQ==",
+      "champDescriptorId": "TEST_ID_MzUwOTY5OQ==",
+      "__typename": "MultipleDropDownListChamp",
+      "label": "Eligibilité de l'opération à la DETR",
+      "stringValue": "Premier choix, Deuxième choix",
+      "updatedAt": "2024-10-16T10:09:07+02:00",
+      "prefilled": false,
+      "values": [
+        "Premier choix",
+        "Deuxième choix"
+      ]
+    },
+    {
+      "id": "TEST_ID_NDU4MzEwOA==",
+      "champDescriptorId": "TEST_ID_NDU4MzEwOA==",
+      "__typename": "DecimalNumberChamp",
+      "label": "Je demande ce montant de subventions",
+      "stringValue": "2349.90",
+      "updatedAt": "2024-10-16T10:09:15+02:00",
+      "prefilled": false,
+      "decimalNumber": 2349.9
+    },
+    {
+      "id": "TEST_ID_MzI3OTcxNA==",
+      "champDescriptorId": "TEST_ID_MzI3OTcxNA==",
+      "__typename": "MultipleDropDownListChamp",
+      "label": "En 2024, comptez-vous solliciter d'autres aides publiques pour financer cette opération  ?",
+      "stringValue": "Aide d'un EPCI, Aide de l'Union Européenne",
+      "updatedAt": "2024-10-16T10:09:22+02:00",
+      "prefilled": false,
+      "values": [
+        "Aide d'un EPCI",
+        "Aide de l'Union Européenne"
+      ]
+    },
+    {
+      "id": "TEST_ID_MzMzNTYxMg==",
+      "champDescriptorId": "TEST_ID_MzMzNTYxMg==",
+      "__typename": "CheckboxChamp",
+      "label": "Présentez-vous une autre opération au titre de la DETR/DSIL 2024 ?",
+      "stringValue": "false",
+      "updatedAt": "2024-10-16T10:09:24+02:00",
+      "prefilled": false,
+      "checked": false
+    },
+    {
+      "id": "TEST_ID_MzI3OTg2Mg==",
+      "champDescriptorId": "TEST_ID_MzI3OTg2Mg==",
+      "__typename": "TextChamp",
+      "label": "Finalisation du dossier",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MzI5MzU1Nw==",
+      "champDescriptorId": "TEST_ID_MzI5MzU1Nw==",
+      "__typename": "TextChamp",
+      "label": "Pièces complémentaires",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_Mjk3NzYxOA==",
+      "champDescriptorId": "TEST_ID_Mjk3NzYxOA==",
+      "__typename": "RepetitionChamp",
+      "label": "Pièces complémentaires",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false,
+      "rows": []
+    },
+    {
+      "id": "TEST_ID_MzM1NDI0NA==",
+      "champDescriptorId": "TEST_ID_MzM1NDI0NA==",
+      "__typename": "TextChamp",
+      "label": "Commentaire libre",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MzExODQ5Nw==",
+      "champDescriptorId": "TEST_ID_MzExODQ5Nw==",
+      "__typename": "TextChamp",
+      "label": "Engagements du porteur de projet",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MzI3ODI2NA==",
+      "champDescriptorId": "TEST_ID_MzI3ODI2NA==",
+      "__typename": "CheckboxChamp",
+      "label": "Engagement n°1 - obligation d'information en cas de modification du projet",
+      "stringValue": "true",
+      "updatedAt": "2024-10-16T10:09:28+02:00",
+      "prefilled": false,
+      "checked": true
+    },
+    {
+      "id": "TEST_ID_MzI3ODI3Mw==",
+      "champDescriptorId": "TEST_ID_MzI3ODI3Mw==",
+      "__typename": "CheckboxChamp",
+      "label": "Engagement n°2 - Obligation de publication du plan de financement",
+      "stringValue": "true",
+      "updatedAt": "2024-10-16T10:09:28+02:00",
+      "prefilled": false,
+      "checked": true
+    },
+    {
+      "id": "TEST_ID_MzI3ODI2Nw==",
+      "champDescriptorId": "TEST_ID_MzI3ODI2Nw==",
+      "__typename": "CheckboxChamp",
+      "label": "Engagement n°3 - Exactitude des informations",
+      "stringValue": "true",
+      "updatedAt": "2024-10-16T10:09:29+02:00",
+      "prefilled": false,
+      "checked": true
+    },
+    {
+      "id": "TEST_ID_MzI3ODI3OQ==",
+      "champDescriptorId": "TEST_ID_MzI3ODI3OQ==",
+      "__typename": "TextChamp",
+      "label": "Vous êtes sur le point de déposer votre dossier",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    }
+  ],
+  "annotations": [
+    {
+      "id": "TEST_ID_Mjk4MjQ3OQ==",
+      "champDescriptorId": "TEST_ID_Mjk4MjQ3OQ==",
+      "__typename": "TextChamp",
+      "label": "Partie réservée au service responsable de l’instruction de la DETR et/ou DSIL",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MzM1NDYzNA==",
+      "champDescriptorId": "TEST_ID_MzM1NDYzNA==",
+      "__typename": "TextChamp",
+      "label": "Contact de l'agent instructeur à indiquer au demandeur",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_Mjk3NjEzMA==",
+      "champDescriptorId": "TEST_ID_Mjk3NjEzMA==",
+      "__typename": "TextChamp",
+      "label": "Champ libre pour le service instructeur",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MzEzNjg0Nw==",
+      "champDescriptorId": "TEST_ID_MzEzNjg0Nw==",
+      "__typename": "RepetitionChamp",
+      "label": "Autres documents utiles à l'instruction",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false,
+      "rows": [
+        {
+          "champs": [
+            {
+              "id": "TEST_ID_MzI4ODg1NHwwMUpBQTVSUERKMzJWS1dUWjJWQTlKTlREVw==",
+              "champDescriptorId": "TEST_ID_MzI4ODg1NA==",
+              "__typename": "PieceJustificativeChamp",
+              "label": "Pièce-jointe complémentaire",
+              "stringValue": "",
+              "updatedAt": "2024-10-16T10:05:33+02:00",
+              "prefilled": false,
+              "files": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TEST_ID_MzM3MDQ3OA==",
+      "champDescriptorId": "TEST_ID_MzM3MDQ3OA==",
+      "__typename": "TextChamp",
+      "label": "Partie à compléter en cas de programmation du dossier",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MzAyMDUxMw==",
+      "champDescriptorId": "TEST_ID_MzAyMDUxMw==",
+      "__typename": "TextChamp",
+      "label": "Imputation budgétaire - Choix de la dotation",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    },
+    {
+      "id": "TEST_ID_MzMzNjEwMA==",
+      "champDescriptorId": "TEST_ID_MzMzNjEwMA==",
+      "__typename": "CheckboxChamp",
+      "label": "Projet concourant à la transition écologique au sens budget vert",
+      "stringValue": "false",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false,
+      "checked": false
+    },
+    {
+      "id": "TEST_ID_MzM3MDcwMg==",
+      "champDescriptorId": "TEST_ID_MzM3MDcwMg==",
+      "__typename": "CheckboxChamp",
+      "label": "Projet situé en QPV",
+      "stringValue": "false",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false,
+      "checked": false
+    },
+    {
+      "id": "TEST_ID_MzM3MDY5MQ==",
+      "champDescriptorId": "TEST_ID_MzM3MDY5MQ==",
+      "__typename": "CheckboxChamp",
+      "label": "Projet rattaché à un CRTE",
+      "stringValue": "false",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false,
+      "checked": false
+    },
+    {
+      "id": "TEST_ID_MTk5MDI2Ng==",
+      "champDescriptorId": "TEST_ID_MTk5MDI2Ng==",
+      "__typename": "DecimalNumberChamp",
+      "label": "Montant des dépenses éligibles retenues (€)",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false,
+      "decimalNumber": null
+    },
+    {
+      "id": "TEST_ID_Mjk4MjUwMA==",
+      "champDescriptorId": "TEST_ID_Mjk4MjUwMA==",
+      "__typename": "DecimalNumberChamp",
+      "label": "Montant définitif de la subvention (€)",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false,
+      "decimalNumber": null
+    },
+    {
+      "id": "TEST_ID_MzI4ODg1Mw==",
+      "champDescriptorId": "TEST_ID_MzI4ODg1Mw==",
+      "__typename": "DecimalNumberChamp",
+      "label": "Taux de subvention (%)",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false,
+      "decimalNumber": null
+    },
+    {
+      "id": "TEST_ID_MzQ2NDA1OQ==",
+      "champDescriptorId": "TEST_ID_MzQ2NDA1OQ==",
+      "__typename": "TextChamp",
+      "label": "Pour plus d'information sur les annotations privées",
+      "stringValue": "",
+      "updatedAt": "2024-10-16T10:05:33+02:00",
+      "prefilled": false
+    }
+  ]
+}

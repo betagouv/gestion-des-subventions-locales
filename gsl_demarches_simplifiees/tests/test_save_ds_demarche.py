@@ -90,7 +90,7 @@ def test_new_human_mapping_is_created_if_ds_label_is_unknown(
     assert FieldMappingForHuman.objects.filter(
         label="Un champ qui ne porte pas ce nom-là dans Django"
     ).exists()
-    assert FieldMappingForComputer.objects.count() == 4
+    assert FieldMappingForComputer.objects.count() == 5
 
 
 def test_existing_human_mapping_is_used_if_possible(

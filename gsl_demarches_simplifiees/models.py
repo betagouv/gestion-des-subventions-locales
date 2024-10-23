@@ -56,13 +56,22 @@ class Dossier(DsModel):
     See https://www.demarches-simplifiees.fr/graphql/schema/index.html#definition-Dossier
     """
 
+    STATE_ACCEPTE = "accepte"
+    STATE_EN_CONSTRUCTION = "en_construction"
+    STATE_EN_INSTRUCTION = "en_instruction"
+    STATE_REFUSE = "refuse"
+    STATE_SANS_SUITE = "sans_suite"
+
     DS_STATE_VALUES = (
-        ("accepte", "Accepté"),
-        ("en_construction", "En construction"),
-        ("en_instruction", "En instruction"),
-        ("refuse", "Refusé"),
-        ("sans_suite", "Classé sans suite"),
+        (STATE_ACCEPTE, "Accepté"),
+        (STATE_EN_CONSTRUCTION, "En construction"),
+        (STATE_EN_INSTRUCTION, "En instruction"),
+        (STATE_REFUSE, "Refusé"),
+        (STATE_SANS_SUITE, "Classé sans suite"),
     )
+
+    raw_ds_data = models.JSONField("Données DS brutes", null=True, blank=True)
+
     ds_demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
     ds_id = models.CharField("Identifiant DS")
     ds_number = models.IntegerField("Numéro DS")
@@ -74,20 +83,19 @@ class Dossier(DsModel):
     ds_date_passage_en_instruction = models.DateTimeField(
         "Date de passage en instruction", null=True, blank=True
     )
-    ds_date_derniere_modification_champs = models.DateTimeField(
+    ds_date_derniere_modification = models.DateTimeField(
         "Date de dernière modification", null=True, blank=True
     )
-
-    NATURE_PORTEUR_DE_PROJET_VALUES = (
-        ("commune", "Commune"),
-        ("epci", "EPCI"),
-        ("petr", "Pôle d'équilibre territorial et rural"),
-        ("syco", "Syndicat de communes"),
+    ds_date_derniere_modification_champs = models.DateTimeField(
+        "Date de dernière modification des champs", null=True, blank=True
     )
-    porteur_de_projet_nature = models.CharField(
-        "Nature du porteur de projet",
+
+    porteur_de_projet_nature = models.ForeignKey(
+        "gsl_demarches_simplifiees.NaturePorteurProjet",
+        models.SET_NULL,
+        verbose_name="Nature du porteur de projet",
         blank=True,
-        choices=NATURE_PORTEUR_DE_PROJET_VALUES,
+        null=True,
     )
     porteur_de_projet_arrondissement = models.ForeignKey(
         "gsl_demarches_simplifiees.Arrondissement",
@@ -155,15 +163,22 @@ class Dossier(DsModel):
     )
     # ---
     finance_cout_total = models.DecimalField(
-        "Coût total de l'opération (en euros HT)", max_digits=12, decimal_places=2
+        "Coût total de l'opération (en euros HT)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
     )
-    finance_recettes = models.BooleanField("Le projet va-t-il générer des recettes ?")
+    finance_recettes = models.BooleanField(
+        "Le projet va-t-il générer des recettes ?", null=True
+    )
     # ---
     demande_annee_precedente = models.BooleanField(
-        "Avez-vous déjà présenté cette opération au titre de campagnes DETR/DSIL en 2023 ?"
+        "Avez-vous déjà présenté cette opération au titre de campagnes DETR/DSIL en 2023 ?",
+        null=True,
     )
     demande_numero_demande_precedente = models.CharField(
-        "Précisez le numéro du dossier déposé antérieurement"
+        "Précisez le numéro du dossier déposé antérieurement",
+        blank=True,
     )
     DEMANDE_DISPOSITIF_SOLLICITE_VALUES = (
         ("DETR", "DETR"),
@@ -172,6 +187,7 @@ class Dossier(DsModel):
     demande_dispositif_sollicite = models.CharField(
         "Dispositif de financement sollicité",
         choices=DEMANDE_DISPOSITIF_SOLLICITE_VALUES,
+        blank=True,
     )
     demande_eligibilite_detr = models.ManyToManyField(
         "gsl_demarches_simplifiees.CritereEligibiliteDetr",
@@ -183,7 +199,10 @@ class Dossier(DsModel):
         verbose_name="Eligibilité de l'opération à la DSIL",
     )
     demande_montant = models.DecimalField(
-        "Montant de l'aide demandée", max_digits=12, decimal_places=2
+        "Montant de l'aide demandée",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
     )
     demande_autres_aides = models.ManyToManyField(
         "gsl_demarches_simplifiees.AutreAide",
@@ -191,16 +210,20 @@ class Dossier(DsModel):
     )
 
     demande_autre_precision = models.TextField(
-        "Autre - précisez le dispositif de financement concerné"
+        "Autre - précisez le dispositif de financement concerné",
+        blank=True,
     )
     demande_autre_numero_dossier = models.CharField(
-        "Si votre dossier a déjà été déposé, précisez le numéro de dossier"
+        "Si votre dossier a déjà été déposé, précisez le numéro de dossier",
+        blank=True,
     )
     demande_autre_dsil_detr = models.BooleanField(
-        "Présentez-vous une autre opération au titre de la DETR/DSIL 2024 ?"
+        "Présentez-vous une autre opération au titre de la DETR/DSIL 2024 ?",
+        null=True,
     )
     demande_priorite_dsil_detr = models.IntegerField(
-        "Si oui, précisez le niveau de priorité de ce dossier."
+        "Si oui, précisez le niveau de priorité de ce dossier.",
+        null=True,
     )
 
     MAPPED_FIELDS = (
@@ -253,6 +276,10 @@ class DsChoiceLibelle(DsModel):
 
     def __str__(self):
         return self.label
+
+
+class NaturePorteurProjet(DsChoiceLibelle):
+    pass
 
 
 class Arrondissement(DsChoiceLibelle):
@@ -327,7 +354,7 @@ class FieldMappingForHuman(DsModel):
 
 class FieldMappingForComputer(DsModel):
     demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
-    ds_field_id = models.CharField("ID du champ DS", unique=True)
+    ds_field_id = models.CharField("ID du champ DS")
     ds_field_label = models.CharField(
         "Libellé DS",
         help_text="Libellé au moment où ce champ a été rencontré pour la première fois — il a pu changer depuis !",
@@ -344,6 +371,12 @@ class FieldMappingForComputer(DsModel):
     class Meta:
         verbose_name = "Correspondance technique"
         verbose_name_plural = "Correspondances techniques"
+        constraints = (
+            models.UniqueConstraint(
+                fields=("demarche", "ds_field_id"),
+                name="unique_ds_field_id_per_demarche",
+            ),
+        )
 
     def __str__(self):
         return f"Correspondance technique {self.pk}"
