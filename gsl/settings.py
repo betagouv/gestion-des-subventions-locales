@@ -85,9 +85,10 @@ MIDDLEWARE = [
 ]
 
 AUTHENTICATION_BACKENDS = [
-    "mozilla_django_oidc.auth.OIDCAuthenticationBackend",
+    "gsl_oidc.backends.OIDCAuthenticationBackend",
     "django.contrib.auth.backends.ModelBackend",
 ]
+
 AUTH_USER_MODEL = "gsl_core.Collegue"
 ROOT_URLCONF = "gsl.urls"
 LANGUAGE_CODE = "fr"
