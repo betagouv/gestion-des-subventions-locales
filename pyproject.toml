@@ -17,9 +17,8 @@ dependencies = [
     "django-dsfr",
     "django-referrer-policy",
     "django-csp",
+    "mozilla-django-oidc",
 ]
-# to add someday:
-# django-dsfr
 
 [tool.setuptools]
 packages = ["gsl"]

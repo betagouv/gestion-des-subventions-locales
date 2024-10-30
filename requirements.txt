@@ -19,6 +19,8 @@ certifi==2024.8.30
     # via
     #   requests
     #   sentry-sdk
+cffi==1.17.1
+    # via cryptography
 charset-normalizer==3.3.2
     # via requests
 click==8.1.7
@@ -35,6 +37,11 @@ click-repl==0.3.0
     # via celery
 cron-descriptor==1.4.5
     # via django-celery-beat
+cryptography==43.0.3
+    # via
+    #   josepy
+    #   mozilla-django-oidc
+    #   pyopenssl
 dj-database-url==2.2.0
     # via gsl (pyproject.toml)
 django==5.1.1
@@ -48,6 +55,7 @@ django==5.1.1
     #   django-referrer-policy
     #   django-timezone-field
     #   gsl (pyproject.toml)
+    #   mozilla-django-oidc
 django-celery-beat==2.7.0
     # via gsl (pyproject.toml)
 django-celery-results==2.5.1
@@ -66,12 +74,20 @@ django-widget-tweaks==1.5.0
     # via django-dsfr
 idna==3.10
     # via requests
+josepy==1.14.0
+    # via mozilla-django-oidc
 kombu==5.4.2
     # via celery
+mozilla-django-oidc==4.0.1
+    # via gsl (pyproject.toml)
 prompt-toolkit==3.0.48
     # via click-repl
 psycopg2-binary==2.9.9
     # via gsl (pyproject.toml)
+pycparser==2.22
+    # via cffi
+pyopenssl==24.2.1
+    # via josepy
 python-crontab==3.2.0
     # via django-celery-beat
 python-dateutil==2.9.0.post0
@@ -83,7 +99,9 @@ python-dotenv==1.0.1
 redis==5.1.0
     # via gsl (pyproject.toml)
 requests==2.32.3
-    # via django-dsfr
+    # via
+    #   django-dsfr
+    #   mozilla-django-oidc
 sentry-sdk==2.15.0
     # via gsl (pyproject.toml)
 six==1.16.0

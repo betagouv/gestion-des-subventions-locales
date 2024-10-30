@@ -59,6 +59,7 @@ if SENTRY_DSN:
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
+    "mozilla_django_oidc",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
@@ -81,6 +82,11 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
+
+AUTHENTICATION_BACKENDS = [
+    "gsl_oidc.backends.OIDCAuthenticationBackend",
+    "django.contrib.auth.backends.ModelBackend",
 ]
 
 AUTH_USER_MODEL = "gsl_core.Collegue"
@@ -150,7 +156,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "fr-fr"
 
 TIME_ZONE = "UTC"
 
@@ -174,3 +180,26 @@ DS_API_TOKEN = os.getenv("DS_API_TOKEN", "")
 DS_API_URL = os.getenv(
     "DS_API_URL", "https://www.demarches-simplifiees.fr/api/v2/graphql"
 )
+
+# Redirect after login/logout - used by OIDC backends
+
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
+
+# Connection to "Pro Connect" (OIDC)
+
+OIDC_RP_SIGN_ALGO = "RS256"
+OIDC_OP_JWKS_ENDPOINT = os.getenv("PROCONNECT_JWKS_ENDPOINT")
+OIDC_RP_CLIENT_ID = os.getenv("PROCONNECT_CLIENT_ID")
+OIDC_RP_CLIENT_SECRET = os.getenv("PROCONNECT_CLIENT_SECRET")
+OIDC_RP_SCOPES = "openid email given_name usual_name uid siret idp_id"
+OIDC_OP_AUTHORIZATION_ENDPOINT = os.getenv("PROCONNECT_AUTHORIZATION_ENDPOINT")
+OIDC_OP_TOKEN_ENDPOINT = os.getenv("PROCONNECT_TOKEN_ENDPOINT")
+OIDC_OP_USER_ENDPOINT = os.getenv("PROCONNECT_USER_ENDPOINT")
+
+OIDC_OP_LOGOUT_ENDPOINT = os.getenv("PROCONNECT_SESSION_END")
+
+OIDC_AUTH_REQUEST_EXTRA_PARAMS = {"acr_values": "eidas1"}
+OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = 4 * 60 * 60
+OIDC_STORE_ID_TOKEN = True
+ALLOW_LOGOUT_GET_METHOD = True
