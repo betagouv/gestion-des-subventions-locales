@@ -181,6 +181,11 @@ DS_API_URL = os.getenv(
     "DS_API_URL", "https://www.demarches-simplifiees.fr/api/v2/graphql"
 )
 
+# Redirect after login/logout - used by OIDC backends
+
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
+
 # Connection to "Pro Connect" (OIDC)
 
 OIDC_RP_SIGN_ALGO = "RS256"
