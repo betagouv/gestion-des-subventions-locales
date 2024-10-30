@@ -4,6 +4,9 @@ import requests
 from mozilla_django_oidc.auth import (
     OIDCAuthenticationBackend as MozillaOIDCAuthenticationBackend,
 )
+from mozilla_django_oidc.auth import (
+    default_username_algo,
+)
 
 from gsl_core.models import Collegue
 
@@ -57,3 +60,6 @@ class OIDCAuthenticationBackend(MozillaOIDCAuthenticationBackend):
                 user.__setattr__(key, value)
         user.save()
         return user
+
+    def get_username(self, claims):
+        return default_username_algo(claims.get("proconnect_sub"))
