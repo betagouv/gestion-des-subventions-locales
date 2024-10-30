@@ -5,6 +5,8 @@ from mozilla_django_oidc.auth import (
     OIDCAuthenticationBackend as MozillaOIDCAuthenticationBackend,
 )
 
+from gsl_core.models import Collegue
+
 logger = getLogger(__name__)
 
 
@@ -23,7 +25,6 @@ class OIDCAuthenticationBackend(MozillaOIDCAuthenticationBackend):
             proxies=self.get_settings("OIDC_PROXY", None),
         )
         user_response.raise_for_status()
-
         try:
             # cas où le type du token JWT est `application/json`
             return user_response.json()
@@ -31,3 +32,28 @@ class OIDCAuthenticationBackend(MozillaOIDCAuthenticationBackend):
             # sinon, on présume qu'il s'agit d'un token JWT au format `application/jwt`
             # comme c'est le cas pour ProConnect.
             return self.verify_token(user_response.text)
+
+    def get_data_for_user_create_and_update(self, claims):
+        return {
+            "email": claims.get("email"),
+            "first_name": claims.get("given_name", ""),
+            "last_name": claims.get("usual_name", ""),
+            "proconnect_sub": claims.get("sub"),
+            "proconnect_uid": claims.get("uid", ""),
+            "proconnect_idp_id": claims.get("idp_id"),
+            "proconnect_siret": claims.get("siret", ""),
+            "proconnect_chorusdt": claims.get("chorusdt", ""),
+        }
+
+    def create_user(self, claims):
+        username = self.get_username(claims)
+        return self.UserModel.objects.create_user(
+            username, **self.get_data_for_user_create_and_update(claims)
+        )
+
+    def update_user(self, user: Collegue, claims):
+        for key, value in self.get_data_for_user_create_and_update(claims).items():
+            if value:
+                user.__setattr__(key, value)
+        user.save()
+        return user
