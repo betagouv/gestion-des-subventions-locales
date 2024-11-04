@@ -12,13 +12,13 @@
     </li>
     <li>
         {% if user.is_authenticated %}
-            {{ user.email }}
-            <form action="{% url 'oidc_logout' %}" method="post">
+            {{ user.first_name }} {{ user.last_name }}
+            <form action="{% url 'oidc_logout' %}" method="post" class="sr-only">
                 {% csrf_token %}
                 <input type="submit" value="Déconnexion">
             </form>
         {% else %}
-            <a class="fr-btn fr-icon-lock-line" href="{% url 'oidc_authentication_init' %}">
+            <a class="fr-btn fr-icon-lock-line" href="{% url "login" %}">
                 Se connecter
             </a>
         {% endif %}
