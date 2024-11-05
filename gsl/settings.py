@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     "gsl_core",
     "gsl_demarches_simplifiees",
     "gsl_pages",
+    "gsl_oidc",
 ]
 
 MIDDLEWARE = [

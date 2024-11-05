@@ -10,6 +10,7 @@ from django.urls import include, path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("", include("gsl_oidc.urls")),
     path("", include("gsl_pages.urls")),
     path("oidc/", include("mozilla_django_oidc.urls")),
 ]
