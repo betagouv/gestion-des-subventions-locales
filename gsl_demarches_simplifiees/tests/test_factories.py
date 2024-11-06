@@ -1,16 +1,17 @@
 import pytest
 
-from ..models import (
-    Demandeur,
-    Projet,
+from gsl_demarches_simplifiees.models import (
+    Demarche,
+    Dossier,
 )
-from .factories import DemandeurFactory, ProjetFactory
+
+from .factories import DemarcheFactory, DossierFactory
 
 pytestmark = pytest.mark.django_db
 
 test_data = (
-    (DemandeurFactory, Demandeur),
-    (ProjetFactory, Projet),
+    (DemarcheFactory, Demarche),
+    (DossierFactory, Dossier),
 )
 
 
