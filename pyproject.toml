@@ -5,19 +5,20 @@ authors = [{ name = "Agnès Haasser", email = "agnes.haasser@beta.gouv.fr" }]
 readme = "README.md"
 license = { file = "LICENSE" }
 dependencies = [
-    "django",
-    "psycopg2-binary",
-    "sentry-sdk",
     "celery",
-    "django_celery_results",
-    "redis",
-    "django-celery-beat",
-    "python-dotenv",
     "dj-database-url",
+    "django",
+    "django-celery-beat",
+    "django-csp",
     "django-dsfr",
     "django-referrer-policy",
-    "django-csp",
+    "django_celery_results",
+    "gunicorn",
     "mozilla-django-oidc",
+    "psycopg2-binary",
+    "python-dotenv",
+    "redis",
+    "sentry-sdk",
     "whitenoise",
 ]
 
@@ -30,16 +31,16 @@ build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
-    "django-query-counter",
-    "ruff",
-    "pytest-ruff",
-    "pytest-django",
-    "pytest-cov",
     "diff-cover",
-    "pytest-xdist",
-    "pre-commit",
+    "django-query-counter",
     "factory_boy",
+    "pre-commit",
+    "pytest",
+    "pytest-cov",
+    "pytest-django",
+    "pytest-ruff",
+    "pytest-xdist",
+    "ruff",
 ]
 
 [tool.pytest.ini_options]
