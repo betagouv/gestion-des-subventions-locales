@@ -38,6 +38,7 @@ dev = [
     "diff-cover",
     "pytest-xdist",
     "pre-commit",
+    "factory_boy",
 ]
 
 [tool.pytest.ini_options]

@@ -18,6 +18,36 @@ class DemarcheAdmin(admin.ModelAdmin):
 class DossierAdmin(admin.ModelAdmin):
     list_filter = ("ds_demarche__ds_number",)
     list_display = ("ds_number", "ds_demarche__ds_number", "ds_state")
+    fieldsets = (
+        (
+            "Informations générales",
+            {"fields": ("ds_demarche", "ds_id", "ds_number", "ds_state")},
+        ),
+        (
+            "Champs DS",
+            {
+                "classes": ("collapse", "open"),
+                "fields": tuple(field.name for field in Dossier.MAPPED_FIELDS),
+            },
+        ),
+        (
+            "Dates",
+            {
+                "classes": ("collapse", "open"),
+                "fields": (
+                    "ds_date_depot",
+                    "ds_date_passage_en_construction",
+                    "ds_date_passage_en_instruction",
+                    "ds_date_derniere_modification",
+                    "ds_date_derniere_modification_champs",
+                ),
+            },
+        ),
+        (
+            "Données brutes",
+            {"classes": ("collapse", "open"), "fields": ("raw_ds_data",)},
+        ),
+    )
 
 
 @admin.register(FieldMappingForHuman)

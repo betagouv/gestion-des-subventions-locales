@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     # gsl apps:
     "gsl_core",
     "gsl_demarches_simplifiees",
+    "gsl_projet",
     "gsl_pages",
     "gsl_oidc",
 ]
