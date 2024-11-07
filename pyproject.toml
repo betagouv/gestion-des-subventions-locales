@@ -18,6 +18,7 @@ dependencies = [
     "django-referrer-policy",
     "django-csp",
     "mozilla-django-oidc",
+    "whitenoise",
 ]
 
 [tool.setuptools]
