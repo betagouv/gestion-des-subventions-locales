@@ -72,6 +72,8 @@ django-timezone-field==7.0
     # via django-celery-beat
 django-widget-tweaks==1.5.0
     # via django-dsfr
+gunicorn==23.0.0
+    # via gsl (pyproject.toml)
 idna==3.10
     # via requests
 josepy==1.14.0
@@ -80,6 +82,8 @@ kombu==5.4.2
     # via celery
 mozilla-django-oidc==4.0.1
     # via gsl (pyproject.toml)
+packaging==24.1
+    # via gunicorn
 prompt-toolkit==3.0.48
     # via click-repl
 psycopg2-binary==2.9.9
@@ -126,3 +130,5 @@ vine==5.1.0
     #   kombu
 wcwidth==0.2.13
     # via prompt-toolkit
+whitenoise==6.8.2
+    # via gsl (pyproject.toml)
