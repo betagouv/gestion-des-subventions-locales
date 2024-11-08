@@ -23,6 +23,17 @@ def save_demarche_dossiers_from_ds(demarche_number):
             print(e)
 
 
+def refresh_dossier_from_saved_data(dossier_ds_number):
+    dossier = Dossier.objects.get(ds_number=dossier_ds_number)
+    dossier_converter = DossierConverter(dossier.raw_ds_data, dossier)
+    dossier_converter.fill_unmapped_fields()
+    dossier_converter.convert_all_fields()
+    try:
+        dossier.save()
+    except Exception as e:
+        print(e)
+
+
 def get_or_create_dossier(ds_dossier_id, ds_dossier_number, demarche_number):
     dossier_qs = Dossier.objects.filter(ds_id=ds_dossier_id)
     if dossier_qs.exists():
