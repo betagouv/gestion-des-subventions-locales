@@ -80,6 +80,9 @@ class Adresse(BaseModel):
     )
     street_address = models.CharField("Adresse", blank=True)
 
+    def __str__(self):
+        return self.label
+
     def update_from_raw_ds_data(self, raw_ds_data):
         if isinstance(raw_ds_data, str):
             self.label = raw_ds_data
