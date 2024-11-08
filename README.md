@@ -65,3 +65,16 @@ python manage.py createsuperuser
 # Lancement du serveur !
 python manage.py runserver
 ```
+
+
+
+## Exécuter Celery
+
+:warning: Tout d'abord, installez et lancez un serveur Redis.
+
+Ensuite, cette commande permet d'exécuter le worker Celery qui exécutera les tâches
+planifiées ou cronées :
+
+```bash
+python -m celery -A gsl worker --beat --scheduler django -l INFO
+```
