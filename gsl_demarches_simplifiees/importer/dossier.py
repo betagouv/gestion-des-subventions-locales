@@ -13,7 +13,9 @@ def save_demarche_dossiers_from_ds(demarche_number):
     for dossier_data in client.get_demarche_dossiers(demarche_number):
         ds_id = dossier_data["id"]
         ds_dossier_number = dossier_data["number"]
-        dossier = get_or_create_dossier(ds_id, ds_dossier_number, demarche_number)
+        dossier = get_or_create_dossier(
+            ds_id, ds_dossier_number, demarche_number, dossier_data
+        )
         dossier_converter = DossierConverter(dossier_data, dossier)
         dossier_converter.fill_unmapped_fields()
         dossier_converter.convert_all_fields()
@@ -34,11 +36,17 @@ def refresh_dossier_from_saved_data(dossier_ds_number):
         print(e)
 
 
-def get_or_create_dossier(ds_dossier_id, ds_dossier_number, demarche_number):
+def get_or_create_dossier(ds_dossier_id, ds_dossier_number, demarche_number, raw_data):
     dossier_qs = Dossier.objects.filter(ds_id=ds_dossier_id)
     if dossier_qs.exists():
-        return dossier_qs.get()
+        dossier = dossier_qs.get()
+        dossier.raw_ds_data = raw_data
+        dossier.save()
+        return dossier
     demarche = Demarche.objects.get(ds_number=demarche_number)
     return Dossier.objects.create(
-        ds_id=ds_dossier_id, ds_demarche=demarche, ds_number=ds_dossier_number
+        ds_id=ds_dossier_id,
+        ds_demarche=demarche,
+        ds_number=ds_dossier_number,
+        raw_ds_data=raw_data,
     )

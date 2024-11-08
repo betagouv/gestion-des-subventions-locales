@@ -45,7 +45,9 @@ def dossier_ds_number():
 def test_create_new_dossier(
     demarche_number, demarche, dossier_ds_id, dossier_ds_number
 ):
-    dossier = get_or_create_dossier(dossier_ds_id, dossier_ds_number, demarche_number)
+    dossier = get_or_create_dossier(
+        dossier_ds_id, dossier_ds_number, demarche_number, {}
+    )
     assert dossier.ds_id == dossier_ds_id
     assert dossier.ds_demarche.ds_number == demarche_number
 
@@ -60,7 +62,7 @@ def test_get_existing_dossier(
         ds_state=Dossier.STATE_EN_INSTRUCTION,
     )
     retrieved_dossier = get_or_create_dossier(
-        dossier_ds_id, dossier_ds_number, demarche_number
+        dossier_ds_id, dossier_ds_number, demarche_number, {}
     )
     assert existing_dossier.pk == retrieved_dossier.pk
 
