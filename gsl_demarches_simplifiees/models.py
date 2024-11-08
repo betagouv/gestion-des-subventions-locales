@@ -1,6 +1,8 @@
 # Create your models here.
 from django.db import models
 
+from gsl_core.models import Adresse
+
 
 class DsModel(models.Model):
     created_at = models.DateTimeField("Date de création", auto_now_add=True)
@@ -121,9 +123,9 @@ class Dossier(DsModel):
     )
     # ---
     projet_intitule = models.CharField("Intitulé du projet", blank=True)
-    projet_adresse = models.TextField(
-        "Adresse principale du projet", blank=True
-    )  # @todo : addresse = complexe
+    projet_adresse = models.OneToOneField(
+        Adresse, on_delete=models.PROTECT, blank=True, null=True
+    )
     projet_immo = models.BooleanField(
         "Le projet d'investissement comprend-il des acquisitions immobilières ?",
         null=True,

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.models import Group
 
-from gsl_core.models import Collegue
+from gsl_core.models import Arrondissement, Collegue, Commune, Departement, Region
 
 
 @admin.register(Collegue)
@@ -35,4 +35,8 @@ class CollegueAdmin(admin.ModelAdmin):
     )
 
 
+admin.site.register(Commune)
+admin.site.register(Arrondissement)
+admin.site.register(Departement)
+admin.site.register(Region)
 admin.site.unregister(Group)

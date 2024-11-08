@@ -3,6 +3,7 @@ from collections.abc import Iterable
 
 from django.db import models
 
+from gsl_core.models import Adresse
 from gsl_demarches_simplifiees.models import (
     Dossier,
     DsChoiceLibelle,
@@ -85,12 +86,23 @@ class DossierConverter:
         if ds_typename == "MultipleDropDownListChamp":
             return ds_field_data["values"]
 
+        if ds_typename == "AddressChamp":
+            return ds_field_data["address"] or ds_field_data["stringValue"]
+
         if ds_typename == "DateChamp":
             return datetime.date(*(int(s) for s in ds_field_data["date"].split("-")))
 
         raise NotImplementedError(
             f"DS Fields of type '{ds_typename}' are not supported"
         )
+
+    def _prepare_address_for_injection(
+        self, dossier: Dossier, django_field_object: models.Field, injectable_value
+    ):
+        adresse = dossier.__getattribute__(django_field_object.name) or Adresse()
+        adresse.update_from_raw_ds_data(injectable_value)
+        adresse.save()
+        return adresse
 
     def inject_into_field(
         self, dossier: Dossier, django_field_object: models.Field, injectable_value
@@ -110,12 +122,18 @@ class DossierConverter:
             return
 
         if isinstance(django_field_object, models.ForeignKey):
-            if not issubclass(django_field_object.related_model, DsChoiceLibelle):
-                raise NotImplementedError("Can only inject DsChoiceLibelle objects")
-            injectable_value, _ = (
-                django_field_object.related_model.objects.get_or_create(
-                    label=injectable_value
+            if issubclass(django_field_object.related_model, Adresse):
+                injectable_value = self._prepare_address_for_injection(
+                    dossier, django_field_object, injectable_value
                 )
-            )
+
+            elif not issubclass(django_field_object.related_model, DsChoiceLibelle):
+                raise NotImplementedError("Can only inject DsChoiceLibelle objects")
+            else:
+                injectable_value, _ = (
+                    django_field_object.related_model.objects.get_or_create(
+                        label=injectable_value
+                    )
+                )
 
         dossier.__setattr__(django_field_object.name, injectable_value)
