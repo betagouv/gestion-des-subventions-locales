@@ -1,13 +1,13 @@
 import pytest
 
-from gsl_core.tests.factories import CollegueFactory
+from gsl_core.tests.factories import AdresseFactory, CollegueFactory
 from gsl_demarches_simplifiees.models import Profile
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
 from ..models import Projet
 from .factories import ProjetFactory
 
-pytestmark = pytest.mark.django_db
+pytestmark = pytest.mark.django_db(transaction=True)
 
 
 def test_user_can_see_a_projet_if_they_are_explicit_instructeur():
@@ -23,3 +23,15 @@ def test_user_can_see_a_projet_if_they_are_explicit_instructeur():
     projets_for_user = Projet.objects.for_user(user).all()
     assert unrelated_projet not in projets_for_user
     assert related_projet in projets_for_user
+
+
+def test_create_projet_from_dossier():
+    dossier = DossierFactory(projet_adresse=AdresseFactory())
+    projet = Projet.get_or_create_from_ds_dossier(dossier)
+    assert isinstance(projet, Projet)
+    assert projet.address is not None
+    assert projet.address.commune == dossier.projet_adresse.commune
+    assert projet.address != dossier.projet_adresse
+
+    other_projet = Projet.get_or_create_from_ds_dossier(dossier)
+    assert other_projet == projet
