@@ -3,6 +3,7 @@ import json
 import pytest
 
 from ..models import Adresse, Commune, Region
+from .factories import AdresseFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -59,3 +60,12 @@ def test_it_works_with_a_simple_string(simple_string_address):
     adresse.save()
 
     assert adresse.label == simple_string_address
+
+
+def test_an_adress_can_be_cloned():
+    adresse = AdresseFactory()
+    cloned = adresse.clone()
+    cloned.save()
+    assert adresse.pk is not None
+    assert cloned.pk != adresse.pk
+    assert cloned.commune == adresse.commune

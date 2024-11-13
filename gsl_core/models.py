@@ -118,3 +118,9 @@ class Adresse(BaseModel):
             )
             self.commune = commune
         return self
+
+    def clone(self):
+        cloned = self.__class__()
+        for field in "label postal_code commune street_address".split(" "):
+            cloned.__setattr__(field, self.__getattribute__(field))
+        return cloned
