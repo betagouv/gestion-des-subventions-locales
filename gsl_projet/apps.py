@@ -6,3 +6,6 @@ class GslProjetConfig(AppConfig):
     name = "gsl_projet"
 
     verbose_name = "3. Projets"
+
+    def ready(self):
+        from . import signals  # noqa F401
