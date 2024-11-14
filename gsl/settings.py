@@ -85,6 +85,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "gsl_oidc.middleware.LoginRequiredMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -186,6 +187,8 @@ DS_API_TOKEN = os.getenv("DS_API_TOKEN", "")
 DS_API_URL = os.getenv(
     "DS_API_URL", "https://www.demarches-simplifiees.fr/api/v2/graphql"
 )
+
+LOGIN_URL = "/comptes/login/"
 
 # Redirect after login/logout - used by OIDC backends
 
