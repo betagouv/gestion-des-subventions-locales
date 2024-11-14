@@ -22,6 +22,9 @@ class ProjetManager(models.Manager):
             dossier_ds__ds_demarche__ds_instructeurs__ds_email=user.email
         )
 
+    def get_queryset(self):
+        return super().get_queryset().select_related("dossier_ds")
+
 
 class Projet(models.Model):
     # demandeur = models.ForeignKey(Demandeur, on_delete=models.PROTECT)
@@ -34,7 +37,7 @@ class Projet(models.Model):
     objects = ProjetManager()
 
     def __str__(self):
-        return f"Projet {self.pk}"
+        return f"Projet {self.pk} — Dossier {self.dossier_ds.ds_number}"
 
     @classmethod
     def get_or_create_from_ds_dossier(cls, ds_dossier: Dossier):
