@@ -11,7 +11,11 @@ from gsl_demarches_simplifiees.models import (
     Dossier,
 )
 
-pytestmark = pytest.mark.django_db
+pytestmark = [
+    pytest.mark.django_db,
+    pytest.mark.usefixtures("celery_session_app"),
+    pytest.mark.usefixtures("celery_session_worker"),
+]
 
 
 @pytest.fixture
