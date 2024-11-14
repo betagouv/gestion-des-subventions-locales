@@ -1,6 +1,8 @@
 # Create your models here.
 from django.db import models
 
+from gsl_core.models import Adresse
+
 
 class DsModel(models.Model):
     created_at = models.DateTimeField("Date de création", auto_now_add=True)
@@ -121,9 +123,9 @@ class Dossier(DsModel):
     )
     # ---
     projet_intitule = models.CharField("Intitulé du projet", blank=True)
-    projet_adresse = models.TextField(
-        "Adresse principale du projet", blank=True
-    )  # @todo : addresse = complexe
+    projet_adresse = models.OneToOneField(
+        Adresse, on_delete=models.PROTECT, blank=True, null=True
+    )
     projet_immo = models.BooleanField(
         "Le projet d'investissement comprend-il des acquisitions immobilières ?",
         null=True,
@@ -192,11 +194,13 @@ class Dossier(DsModel):
     demande_eligibilite_detr = models.ManyToManyField(
         "gsl_demarches_simplifiees.CritereEligibiliteDetr",
         verbose_name="Eligibilité de l'opération à la DETR",
+        blank=True,
     )
 
     demande_eligibilite_dsil = models.ManyToManyField(
         "gsl_demarches_simplifiees.CritereEligibiliteDsil",
         verbose_name="Eligibilité de l'opération à la DSIL",
+        blank=True,
     )
     demande_montant = models.DecimalField(
         "Montant de l'aide demandée",
@@ -207,6 +211,7 @@ class Dossier(DsModel):
     demande_autres_aides = models.ManyToManyField(
         "gsl_demarches_simplifiees.AutreAide",
         verbose_name="En 2024, comptez-vous solliciter d'autres aides publiques pour financer cette opération  ?",
+        blank=True,
     )
 
     demande_autre_precision = models.TextField(
@@ -224,6 +229,7 @@ class Dossier(DsModel):
     demande_priorite_dsil_detr = models.IntegerField(
         "Si oui, précisez le niveau de priorité de ce dossier.",
         null=True,
+        blank=True,
     )
 
     MAPPED_FIELDS = (

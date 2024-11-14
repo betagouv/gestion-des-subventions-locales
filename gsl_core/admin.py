@@ -1,7 +1,14 @@
 from django.contrib import admin
 from django.contrib.auth.models import Group
 
-from gsl_core.models import Collegue
+from gsl_core.models import (
+    Adresse,
+    Arrondissement,
+    Collegue,
+    Commune,
+    Departement,
+    Region,
+)
 
 
 @admin.register(Collegue)
@@ -35,4 +42,18 @@ class CollegueAdmin(admin.ModelAdmin):
     )
 
 
+@admin.register(Adresse)
+class AdresseAdmin(admin.ModelAdmin):
+    list_display = ("label", "postal_code", "commune")
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        queryset = queryset.select_related("commune")
+        return queryset
+
+
+admin.site.register(Commune)
+admin.site.register(Arrondissement)
+admin.site.register(Departement)
+admin.site.register(Region)
 admin.site.unregister(Group)

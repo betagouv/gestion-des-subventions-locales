@@ -1,11 +1,12 @@
 from django.contrib import admin
 
-from gsl_demarches_simplifiees.models import (
+from .models import (
     Demarche,
     Dossier,
     FieldMappingForComputer,
     FieldMappingForHuman,
 )
+from .tasks import task_refresh_dossier_from_saved_data
 
 
 @admin.register(Demarche)
@@ -16,7 +17,7 @@ class DemarcheAdmin(admin.ModelAdmin):
 
 @admin.register(Dossier)
 class DossierAdmin(admin.ModelAdmin):
-    list_filter = ("ds_demarche__ds_number",)
+    list_filter = ("ds_demarche__ds_number", "ds_state")
     list_display = ("ds_number", "ds_demarche__ds_number", "ds_state")
     fieldsets = (
         (
@@ -48,6 +49,13 @@ class DossierAdmin(admin.ModelAdmin):
             {"classes": ("collapse", "open"), "fields": ("raw_ds_data",)},
         ),
     )
+    actions = ("refresh_from_db",)
+    raw_id_fields = ("projet_adresse",)
+
+    @admin.action(description="Rafraîchir depuis la base de données")
+    def refresh_from_db(self, request, queryset):
+        for dossier in queryset:
+            task_refresh_dossier_from_saved_data.delay(dossier.ds_number)
 
 
 @admin.register(FieldMappingForHuman)

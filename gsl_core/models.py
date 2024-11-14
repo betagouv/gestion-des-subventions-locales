@@ -74,6 +74,53 @@ class Arrondissement(BaseModel):
 
 class Adresse(BaseModel):
     label = models.TextField("Adresse complète")
-    postal_code = models.CharField("Code postal")
-    commune = models.ForeignKey(Commune, on_delete=models.PROTECT)
-    street_address = models.CharField("Adresse")
+    postal_code = models.CharField("Code postal", blank=True)
+    commune = models.ForeignKey(
+        Commune, on_delete=models.PROTECT, null=True, blank=True
+    )
+    street_address = models.CharField("Adresse", blank=True)
+
+    def __str__(self):
+        return self.label
+
+    def update_from_raw_ds_data(self, raw_ds_data):
+        if isinstance(raw_ds_data, str):
+            self.label = raw_ds_data
+            return self
+        self.label = raw_ds_data.get("label")
+        self.postal_code = raw_ds_data.get("postalCode")
+        self.street_address = raw_ds_data.get("streetAddress")
+
+        if all(
+            raw_ds_data.get(key)
+            for key in (
+                "cityName",
+                "cityCode",
+                "departmentName",
+                "departmentCode",
+                "regionName",
+                "regionCode",
+            )
+        ):
+            region, _ = Region.objects.get_or_create(
+                insee_code=raw_ds_data.get("regionCode"),
+                name=raw_ds_data.get("regionName"),
+            )
+            departement, _ = Departement.objects.get_or_create(
+                insee_code=raw_ds_data.get("departmentCode"),
+                name=raw_ds_data.get("departmentName"),
+                region=region,
+            )
+            commune, _ = Commune.objects.get_or_create(
+                insee_code=raw_ds_data.get("cityCode"),
+                name=raw_ds_data.get("cityName"),
+                departement=departement,
+            )
+            self.commune = commune
+        return self
+
+    def clone(self):
+        cloned = self.__class__()
+        for field in "label postal_code commune street_address".split(" "):
+            cloned.__setattr__(field, self.__getattribute__(field))
+        return cloned

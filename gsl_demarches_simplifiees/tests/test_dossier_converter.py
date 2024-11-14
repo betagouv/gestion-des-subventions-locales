@@ -4,13 +4,18 @@ from pathlib import Path
 
 import pytest
 
+from gsl_core.models import Adresse
 from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverter
 from gsl_demarches_simplifiees.models import (
     Demarche,
     Dossier,
 )
 
-pytestmark = pytest.mark.django_db
+pytestmark = [
+    pytest.mark.django_db,
+    pytest.mark.usefixtures("celery_session_app"),
+    pytest.mark.usefixtures("celery_session_worker"),
+]
 
 
 @pytest.fixture
@@ -172,8 +177,8 @@ extract_field_test_data = (
     ),
     (
         {
-            "id": "Q2hhbXAtMjk0NTU5OA==",
-            "champDescriptorId": "Q2hhbXAtMjk0NTU5OA==",
+            "id": "TEST_ID_k0NTU5OA==",
+            "champDescriptorId": "TEST_ID_jk0NTU5OA==",
             "__typename": "SiretChamp",
             "label": "Identification du maître d'ouvrage",
             "stringValue": "69850088100033",
@@ -185,12 +190,68 @@ extract_field_test_data = (
         },
         "69850088100033",
     ),
+    (
+        {
+            "id": "TEST_ID_yMDUwMA==",
+            "champDescriptorId": "TEST_ID_AyMDUwMA==",
+            "__typename": "AddressChamp",
+            "label": "Adresse principale du projet",
+            "stringValue": "Rue Jean-Henri Fabre 12780 Saint-Léons",
+            "updatedAt": "2024-11-06T15:55:12+01:00",
+            "prefilled": False,
+            "address": None,
+            "commune": None,
+            "departement": None,
+        },
+        "Rue Jean-Henri Fabre 12780 Saint-Léons",
+    ),
+    (
+        {
+            "id": "TEST_ID_AyMDUwMA==",
+            "champDescriptorId": "TEST_ID_MDUwMA==",
+            "__typename": "AddressChamp",
+            "label": "Adresse principale du projet",
+            "stringValue": "2 Rue des Ecoles 67240 Schirrhein",
+            "updatedAt": "2024-10-16T10:07:10+02:00",
+            "prefilled": False,
+            "address": {
+                "label": "2 Rue des Ecoles 67240 Schirrhein",
+                "type": "housenumber",
+                "streetAddress": "2 Rue des Ecoles",
+                "streetNumber": "2",
+                "streetName": "Rue des Ecoles",
+                "postalCode": "67240",
+                "cityName": "Schirrhein",
+                "cityCode": "67449",
+                "departmentName": "Bas-Rhin",
+                "departmentCode": "67",
+                "regionName": "Grand Est",
+                "regionCode": "44",
+            },
+            "commune": {"name": "Schirrhein", "code": "67449", "postalCode": "67240"},
+            "departement": {"name": "Bas-Rhin", "code": "67"},
+        },
+        {
+            "label": "2 Rue des Ecoles 67240 Schirrhein",
+            "type": "housenumber",
+            "streetAddress": "2 Rue des Ecoles",
+            "streetNumber": "2",
+            "streetName": "Rue des Ecoles",
+            "postalCode": "67240",
+            "cityName": "Schirrhein",
+            "cityCode": "67449",
+            "departmentName": "Bas-Rhin",
+            "departmentCode": "67",
+            "regionName": "Grand Est",
+            "regionCode": "44",
+        },
+    ),
 )
 
 
 def idfn(fixture_value):
     if isinstance(fixture_value, dict):
-        return fixture_value["__typename"]
+        return fixture_value.get("__typename", "dict")
 
 
 @pytest.mark.parametrize("input,expected", extract_field_test_data, ids=idfn)
@@ -231,3 +292,29 @@ def test_inject_manytomany_value(dossier_converter, dossier):
     )
     dossier.save()
     assert len(dossier.projet_zonage.all()) == 3
+
+
+def test_inject_address_value(dossier_converter, dossier):
+    dossier_converter.inject_into_field(
+        dossier,
+        Dossier._meta.get_field("projet_adresse"),
+        {
+            "label": "2 Rue des Ecoles 67240 Schirrhein",
+            "type": "housenumber",
+            "streetAddress": "2 Rue des Ecoles",
+            "streetNumber": "2",
+            "streetName": "Rue des Ecoles",
+            "postalCode": "67240",
+            "cityName": "Schirrhein",
+            "cityCode": "67449",
+            "departmentName": "Bas-Rhin",
+            "departmentCode": "67",
+            "regionName": "Grand Est",
+            "regionCode": "44",
+        },
+    )
+    dossier.save()
+    assert Adresse.objects.count() == 1
+    assert dossier.projet_adresse.label.startswith("2 Rue des Ecoles")
+    assert dossier.projet_adresse.commune.name == "Schirrhein"
+    assert dossier.projet_adresse.commune.insee_code == "67449"
