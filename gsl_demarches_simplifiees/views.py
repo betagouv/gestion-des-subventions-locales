@@ -15,7 +15,7 @@ from .tasks import task_save_demarche_from_ds
 @staff_member_required
 @require_GET
 def get_ds_demarches_from_numbers(request):
-    return render(request, "gsl_ds/get_demarches_from_numbers.html")
+    return render(request, "gsl_demarches_simplifiees/get_demarches_from_numbers.html")
 
 
 @staff_member_required
@@ -49,7 +49,9 @@ def get_celery_task_results(request):
         task_name="gsl_demarches_simplifiees.tasks.task_save_demarche_from_ds",
         status__in=(states.FAILURE, states.PENDING),
     )
-    return render(request, "gsl_ds/get_ds_tasks_status.html", {"tasks": tasks})
+    return render(
+        request, "gsl_demarches_simplifiees/get_ds_tasks_status.html", {"tasks": tasks}
+    )
 
 
 class DemarcheListView(ListView):
