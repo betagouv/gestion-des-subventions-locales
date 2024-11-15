@@ -12,5 +12,9 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("gsl_oidc.urls")),
     path("", include("gsl_pages.urls")),
+    path(
+        "ds/",
+        include(("gsl_demarches_simplifiees.urls", "gsl_demarches_simplifiees"), "ds"),
+    ),
     path("oidc/", include("mozilla_django_oidc.urls")),
 ]

@@ -23,23 +23,25 @@
                        target="_self"
                        {% if request.path == home_url %}aria-current="true"{% endif %}>Accueil</a>
                 </li>
+                {% if request.user.is_staff %}
                 <li class="fr-nav__item">
                     <button class="fr-nav__btn"
                             aria-expanded="false"
                             aria-controls="menu-resources"
-                            {% if '/resources' in request.path %}aria-current="true"{% endif %}
+                            {% if '/ds' in request.path %}aria-current="true"{% endif %}
                     >
-                        Ressources
+                        Administration
                     </button>
                     <div class="fr-collapse fr-menu" id="menu-resources">
                         <ul class="fr-menu__list">
                             <li>
-                                {% url 'resource_colors' as resource_colors_url %}
+                                {% url 'ds:add-demarches' as add_demarches_url %}
                                 <a class="fr-nav__link"
-                                   href="{{ resource_colors_url }}"
+                                   href="{{ add_demarches_url }}"
                                    target="_self"
-                                   {% if request.path == resource_colors_url %}aria-current="true"{% endif %}>Menu
-                                    d'exemple</a>
+                                   {% if request.path == add_demarches_url %}aria-current="true"{% endif %}>
+                                    Ajouter des démarches DS
+                                </a>
                             </li>
                             <li>
                                 {% url 'resource_icons' as resource_icons_url %}
@@ -60,6 +62,7 @@
                         </ul>
                     </div>
                 </li>
+            {% endif %}
             </ul>
         </nav>
     </div>
