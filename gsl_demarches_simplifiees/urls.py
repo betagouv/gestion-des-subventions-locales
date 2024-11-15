@@ -23,4 +23,9 @@ urlpatterns = [
         views.DemarcheListView.as_view(),
         name="liste-demarches",
     ),
+    path(
+        "demarche/<int:demarche_ds_number>/mapping/",
+        views.get_demarche_mapping,
+        name="get-demarche-mapping",
+    ),
 ]

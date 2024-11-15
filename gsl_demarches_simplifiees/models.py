@@ -386,3 +386,6 @@ class FieldMappingForComputer(DsModel):
 
     def __str__(self):
         return f"Correspondance technique {self.pk}"
+
+    def django_field_label(self):
+        return Dossier._meta.get_field(self.django_field).verbose_name

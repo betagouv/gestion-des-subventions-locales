@@ -8,7 +8,7 @@
                 <div class="fr-tile__body">
                     <div class="fr-tile__content">
                         <h3 class="fr-tile__title">
-                            <a href="#">{{ demarche.ds_title }}</a>
+                            <a href="{% url "ds:get-demarche-mapping" demarche_ds_number=demarche.ds_number %}">{{ demarche.ds_title }}</a>
                         </h3>
                         <p class="fr-tile__detail">{{ demarche.ds_number }}</p>
                         <div class="fr-tile__start">

@@ -2,13 +2,13 @@
 from celery import states
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import ngettext
 from django.views.decorators.http import require_GET, require_POST
 from django.views.generic.list import ListView
 from django_celery_results.models import TaskResult
 
-from .models import Demarche
+from .models import Demarche, Dossier, FieldMappingForComputer
 from .tasks import task_save_demarche_from_ds
 
 
@@ -62,3 +62,14 @@ class DemarcheListView(ListView):
         context = super().get_context_data(**kwargs)
         context["title"] = "Liste des démarches"
         return context
+
+
+@staff_member_required
+def get_demarche_mapping(request, demarche_ds_number):
+    demarche = get_object_or_404(Demarche, ds_number=demarche_ds_number)
+    context = {
+        "demarche": demarche,
+        "django_fields": Dossier.MAPPED_FIELDS,
+        "existing_mappings": FieldMappingForComputer.objects.filter(demarche=demarche),
+    }
+    return render(request, "gsl_demarches_simplifiees/demarche_mapping.html", context)
