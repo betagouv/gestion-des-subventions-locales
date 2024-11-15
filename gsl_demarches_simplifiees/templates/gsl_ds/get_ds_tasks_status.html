@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load static dsfr_tags %}
+{% block content %}
+
+    <h1>Résultat des recherches sur DS</h1>
+    {% dsfr_django_messages %}
+    <p>
+        Ce tableau n’indique que les recherches de démarches qui ont échoué sur DS.
+        Consultez-le si vous ne voyez pas certaines démarches dans la liste.
+    </p>
+    <div class="fr-table fr-table--bordered" id="table-bordered-component">
+        <div class="fr-table__wrapper">
+            <div class="fr-table__container">
+                <div class="fr-table__content">
+                    <table>
+                        <tr>
+                            <th>Numéro de démarche</th>
+                            <th>État</th>
+                            <th>Résultat</th>
+                        </tr>
+                        {% for task in tasks %}
+                            <tr>
+                                <th>{{ task.task_args|slice:"2:-3" }}</th>
+                                <td>{{ task.status }}</td>
+                                <td>{{ task.result }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

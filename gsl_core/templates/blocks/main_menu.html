@@ -44,12 +44,11 @@
                                 </a>
                             </li>
                             <li>
-                                {% url 'resource_icons' as resource_icons_url %}
+                                {% url 'ds:task-results' as task_results_url %}
                                 <a class="fr-nav__link"
-                                   href="{{ resource_icons_url }}"
+                                   href="{{ task_results_url }}"
                                    target="_self"
-                                   {% if request.path == resource_icons_url %}aria-current="true"{% endif %}>Pour voir à
-                                    quoi ça ressemble</a>
+                                   {% if request.path == task_results_url %}aria-current="true"{% endif %}>Résultats des ajouts</a>
                             </li>
                             <li>
                                 {% url 'resource_pictograms' as resource_pictograms_url %}

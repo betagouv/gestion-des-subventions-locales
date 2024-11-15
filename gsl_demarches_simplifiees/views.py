@@ -1,9 +1,11 @@
 # Create your views here.
+from celery import states
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import redirect, render
 from django.utils.translation import ngettext
 from django.views.decorators.http import require_GET, require_POST
+from django_celery_results.models import TaskResult
 
 from .tasks import task_save_demarche_from_ds
 
@@ -37,3 +39,12 @@ def post_get_ds_demarches_from_numbers(request):
         ) % {"count": number_of_demarches_in_the_pipe}
         messages.success(request, message)
     return redirect("ds:add-demarches")
+
+
+@staff_member_required
+def get_celery_task_results(request):
+    tasks = TaskResult.objects.filter(
+        task_name="gsl_demarches_simplifiees.tasks.task_save_demarche_from_ds",
+        status__in=(states.FAILURE, states.PENDING),
+    )
+    return render(request, "gsl_ds/get_ds_tasks_status.html", {"tasks": tasks})
