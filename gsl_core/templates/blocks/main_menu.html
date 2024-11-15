@@ -24,44 +24,43 @@
                        {% if request.path == home_url %}aria-current="true"{% endif %}>Accueil</a>
                 </li>
                 {% if request.user.is_staff %}
-                <li class="fr-nav__item">
-                    <button class="fr-nav__btn"
-                            aria-expanded="false"
-                            aria-controls="menu-resources"
-                            {% if '/ds' in request.path %}aria-current="true"{% endif %}
-                    >
-                        Administration
-                    </button>
-                    <div class="fr-collapse fr-menu" id="menu-resources">
-                        <ul class="fr-menu__list">
-                            <li>
-                                {% url 'ds:add-demarches' as add_demarches_url %}
-                                <a class="fr-nav__link"
-                                   href="{{ add_demarches_url }}"
-                                   target="_self"
-                                   {% if request.path == add_demarches_url %}aria-current="true"{% endif %}>
-                                    Ajouter des démarches DS
-                                </a>
-                            </li>
-                            <li>
-                                {% url 'ds:task-results' as task_results_url %}
-                                <a class="fr-nav__link"
-                                   href="{{ task_results_url }}"
-                                   target="_self"
-                                   {% if request.path == task_results_url %}aria-current="true"{% endif %}>Résultats des ajouts</a>
-                            </li>
-                            <li>
-                                {% url 'resource_pictograms' as resource_pictograms_url %}
-                                <a class="fr-nav__link"
-                                   href="{{ resource_pictograms_url }}"
-                                   target="_self"
-                                   {% if request.path == resource_pictograms_url %}aria-current="true"{% endif %}>Quand
-                                    il faudra mettre un vrai menu</a>
-                            </li>
-                        </ul>
-                    </div>
-                </li>
-            {% endif %}
+                    <li class="fr-nav__item">
+                        <button class="fr-nav__btn"
+                                aria-expanded="false"
+                                aria-controls="menu-resources"
+                                {% if '/ds' in request.path %}aria-current="true"{% endif %}
+                        >
+                            Administration DS
+                        </button>
+                        <div class="fr-collapse fr-menu" id="menu-resources">
+                            <ul class="fr-menu__list">
+                                <li>
+                                    {% url 'ds:liste-demarches' as liste_demarches_url %}
+                                    <a class="fr-nav__link"
+                                       href="{{ liste_demarches_url }}"
+                                       target="_self"
+                                       {% if request.path == liste_demarches_url %}aria-current="true"{% endif %}>Démarches</a>
+                                </li>
+                                <li>
+                                    {% url 'ds:add-demarches' as add_demarches_url %}
+                                    <a class="fr-nav__link"
+                                       href="{{ add_demarches_url }}"
+                                       target="_self"
+                                       {% if request.path == add_demarches_url %}aria-current="true"{% endif %}>
+                                        Ajouter des démarches
+                                    </a>
+                                </li>
+                                <li>
+                                    {% url 'ds:task-results' as task_results_url %}
+                                    <a class="fr-nav__link"
+                                       href="{{ task_results_url }}"
+                                       target="_self"
+                                       {% if request.path == task_results_url %}aria-current="true"{% endif %}>Erreurs</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                {% endif %}
             </ul>
         </nav>
     </div>

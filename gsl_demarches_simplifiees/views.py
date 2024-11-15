@@ -5,8 +5,10 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import redirect, render
 from django.utils.translation import ngettext
 from django.views.decorators.http import require_GET, require_POST
+from django.views.generic.list import ListView
 from django_celery_results.models import TaskResult
 
+from .models import Demarche
 from .tasks import task_save_demarche_from_ds
 
 
@@ -48,3 +50,13 @@ def get_celery_task_results(request):
         status__in=(states.FAILURE, states.PENDING),
     )
     return render(request, "gsl_ds/get_ds_tasks_status.html", {"tasks": tasks})
+
+
+class DemarcheListView(ListView):
+    model = Demarche
+    paginate_by = 100
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = "Liste des démarches"
+        return context

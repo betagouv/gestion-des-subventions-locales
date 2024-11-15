@@ -18,4 +18,9 @@ urlpatterns = [
         views.get_celery_task_results,
         name="task-results",
     ),
+    path(
+        "liste-demarches/",
+        views.DemarcheListView.as_view(),
+        name="liste-demarches",
+    ),
 ]
