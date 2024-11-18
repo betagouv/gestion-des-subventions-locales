@@ -9,7 +9,7 @@ from django.views.generic.list import ListView
 from django_celery_results.models import TaskResult
 
 from .models import Demarche, Dossier, FieldMappingForComputer
-from .tasks import task_save_demarche_from_ds
+from .tasks import task_save_demarche_dossiers_from_ds, task_save_demarche_from_ds
 
 
 @staff_member_required
@@ -46,7 +46,10 @@ def post_get_ds_demarches_from_numbers(request):
 @staff_member_required
 def get_celery_task_results(request):
     tasks = TaskResult.objects.filter(
-        task_name="gsl_demarches_simplifiees.tasks.task_save_demarche_from_ds",
+        task_name__in=(
+            "gsl_demarches_simplifiees.tasks.task_save_demarche_from_ds",
+            "gsl_demarches_simplifiees.tasks.task_save_demarche_dossiers_from_ds",
+        ),
         status__in=(states.FAILURE, states.PENDING),
     )
     return render(
@@ -73,3 +76,11 @@ def get_demarche_mapping(request, demarche_ds_number):
         "existing_mappings": FieldMappingForComputer.objects.filter(demarche=demarche),
     }
     return render(request, "gsl_demarches_simplifiees/demarche_mapping.html", context)
+
+
+@staff_member_required
+@require_POST
+def fetch_demarche_dossiers(request):
+    demarche_ds_number = int(request.POST.get("demarche_ds_number"))
+    task_save_demarche_dossiers_from_ds.delay(demarche_ds_number)
+    return redirect("ds:liste-demarches")

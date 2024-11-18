@@ -11,21 +11,29 @@
                             {{ demarche.ds_title }}
                         </h3>
                         <p class="fr-tile__desc">{{ demarche.ds_number }}</p>
-                        <p class="fr-tile__detail">
+                        <div class="fr-tile__detail">
                             <a href="{% url "ds:get-demarche-mapping" demarche_ds_number=demarche.ds_number %}"
                                class="fr-btn fr-btn--sm  fr-mr-3v">
-                                <span class="fr-icon-git-pull-request-fill fr-icon--sm fr-mr-2v" aria-hidden="true"></span>
+                                    <span class="fr-icon-git-pull-request-fill fr-icon--sm fr-mr-2v"
+                                          aria-hidden="true"></span>
                                 Correspondances de champs
                             </a>
-                            <a href="#" class="fr-btn fr-btn--sm fr-mr-3v">
-                                <span class="fr-icon-download-line fr-icon--sm fr-mr-2v" aria-hidden="true"></span>
-                                Chercher les dossiers
-                            </a>
-                            <a href="{% url "admin:gsl_demarches_simplifiees_dossier_changelist" %}{% querystring ds_demarche__ds_number=demarche.ds_number %}" class="fr-btn fr-btn--sm fr-mr-3v">
+                            <form action="{% url "ds:fetch-demarche-dossiers" %}" method="POST" id="get_dossiers_demarche_{{ demarche.ds_number }}">
+                                {% csrf_token %}
+                                <input type="hidden" name="demarche_ds_number" value="{{ demarche.ds_number }}">
+                                <button type="submit" href="#" class="fr-btn fr-btn--sm fr-mr-3v">
+                                    <span class="fr-icon-download-line fr-icon--sm fr-mr-2v" aria-hidden="true"></span>
+                                    Chercher les dossiers
+                                    <span class="fr-sr-only">de la démarche {{ demarche.ds_number }}</span>
+                                </button>
+                            </form>
+                            <a href="{% url "admin:gsl_demarches_simplifiees_dossier_changelist" %}{% querystring ds_demarche__ds_number=demarche.ds_number %}"
+                               class="fr-btn fr-btn--sm fr-mr-3v">
                                 <span class="fr-icon-folder-2-fill fr-icon--sm fr-mr-2v" aria-hidden="true"></span>
                                 Liste des dossiers
                             </a>
-                        </p>
+                        </div>
+
                         <div class="fr-tile__start">
                             <p class="fr-badge fr-badge--sm fr-badge--purple-glycine">{{ demarche.ds_state }}</p>
                         </div>

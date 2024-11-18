@@ -14,13 +14,15 @@
                 <div class="fr-table__content">
                     <table>
                         <tr>
-                            <th>Numéro de démarche</th>
-                            <th>État</th>
-                            <th>Résultat</th>
+                            <th scope="col">Numéro de démarche</th>
+                            <th scope="col">Tâche</th>
+                            <th scope="col">État</th>
+                            <th scope="col">Résultat</th>
                         </tr>
                         {% for task in tasks %}
                             <tr>
-                                <th>{{ task.task_args|slice:"2:-3" }}</th>
+                                <th scope="row">{{ task.task_args|slice:"2:-3" }}</th>
+                                <td>{{ task.task_name }}</td>
                                 <td>{{ task.status }}</td>
                                 <td>{{ task.result }}</td>
                             </tr>

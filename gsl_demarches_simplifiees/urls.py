@@ -28,4 +28,9 @@ urlpatterns = [
         views.get_demarche_mapping,
         name="get-demarche-mapping",
     ),
+    path(
+        "demarche/fetch-dossiers/",
+        views.fetch_demarche_dossiers,
+        name="fetch-demarche-dossiers",
+    ),
 ]
