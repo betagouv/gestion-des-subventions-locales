@@ -4,13 +4,28 @@
     <h1>Démarches DS</h1>
     <ul>
         {% for demarche in object_list %}
-            <li class="fr-tile fr-tile--sm fr-tile--horizontal fr-enlarge-link fr-mb-3w">
+            <li class="fr-tile fr-tile--sm fr-tile--horizontal fr-mb-3w">
                 <div class="fr-tile__body">
                     <div class="fr-tile__content">
                         <h3 class="fr-tile__title">
-                            <a href="{% url "ds:get-demarche-mapping" demarche_ds_number=demarche.ds_number %}">{{ demarche.ds_title }}</a>
+                            {{ demarche.ds_title }}
                         </h3>
-                        <p class="fr-tile__detail">{{ demarche.ds_number }}</p>
+                        <p class="fr-tile__desc">{{ demarche.ds_number }}</p>
+                        <p class="fr-tile__detail">
+                            <a href="{% url "ds:get-demarche-mapping" demarche_ds_number=demarche.ds_number %}"
+                               class="fr-btn fr-btn--sm  fr-mr-3v">
+                                <span class="fr-icon-git-pull-request-fill fr-icon--sm fr-mr-2v" aria-hidden="true"></span>
+                                Correspondances de champs
+                            </a>
+                            <a href="#" class="fr-btn fr-btn--sm fr-mr-3v">
+                                <span class="fr-icon-download-line fr-icon--sm fr-mr-2v" aria-hidden="true"></span>
+                                Chercher les dossiers
+                            </a>
+                            <a href="{% url "admin:gsl_demarches_simplifiees_dossier_changelist" %}{% querystring ds_demarche__ds_number=demarche.ds_number %}" class="fr-btn fr-btn--sm fr-mr-3v">
+                                <span class="fr-icon-folder-2-fill fr-icon--sm fr-mr-2v" aria-hidden="true"></span>
+                                Liste des dossiers
+                            </a>
+                        </p>
                         <div class="fr-tile__start">
                             <p class="fr-badge fr-badge--sm fr-badge--purple-glycine">{{ demarche.ds_state }}</p>
                         </div>
