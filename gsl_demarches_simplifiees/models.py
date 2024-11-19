@@ -389,3 +389,6 @@ class FieldMappingForComputer(DsModel):
 
     def django_field_label(self):
         return Dossier._meta.get_field(self.django_field).verbose_name
+
+    def django_field_type(self):
+        return str(Dossier._meta.get_field(self.django_field).__class__)[32:-2]

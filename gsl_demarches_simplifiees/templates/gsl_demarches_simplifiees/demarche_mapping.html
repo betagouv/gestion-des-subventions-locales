@@ -3,24 +3,33 @@
 {% block content %}
     <h1>Correspondances de champs Django / DS pour la démarche {{ demarche.ds_number }}</h1>
     <h2>{{ demarche.ds_title }}</h2>
-
-    <table>
-        <tr>
-            <th>Champ Django</th>
-            <th>Type</th>
-            <th>Champ DS</th>
-            <th>Type DS</th>
-        </tr>
-        {% for mapping in existing_mappings %}
-            <tr>
-                <td>
-                    {{ mapping.django_field }} <br> {{ mapping.django_field_label }}
-                </td>
-                <td>Liste déroulante</td>
-                <td>{{ mapping.ds_field_label }}</td><td>{{ mapping.ds_field_type }}</td>
-            </tr>
-        {% endfor %}
-    </table>
+    <div class="fr-table fr-table--bordered" id="table-bordered-component">
+        <div class="fr-table__wrapper">
+            <div class="fr-table__container">
+                <div class="fr-table__content">
+                    <table>
+                        <tr>
+                            <th>Champ Django</th>
+                            <th>Champ DS</th>
+                        </tr>
+                        {% for mapping in existing_mappings %}
+                            <tr>
+                                <td>
+                                    {{ mapping.django_field }} <br>
+                                    {{ mapping.django_field_label }} <br>
+                                    {{ mapping.django_field_type }}
+                                </td>
+                                <td>
+                                    {{ mapping.ds_field_label }}<br>
+                                    {{ mapping.ds_field_type }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 
 
 {% endblock %}
