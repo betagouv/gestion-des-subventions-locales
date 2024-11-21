@@ -66,4 +66,4 @@ class OIDCAuthenticationBackend(MozillaOIDCAuthenticationBackend):
         return user
 
     def get_username(self, claims):
-        return default_username_algo(claims.get("proconnect_sub"))
+        return default_username_algo(claims.get("sub"))
