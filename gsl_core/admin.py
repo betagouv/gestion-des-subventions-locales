@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 
 from gsl_core.models import (
@@ -12,7 +13,8 @@ from gsl_core.models import (
 
 
 @admin.register(Collegue)
-class CollegueAdmin(admin.ModelAdmin):
+class CollegueAdmin(UserAdmin):
+    list_display = ("username", "email", "first_name", "last_name", "is_staff")
     fieldsets = (
         (None, {"fields": ("username", "password")}),
         ("Informations personnelles", {"fields": ("first_name", "last_name", "email")}),
