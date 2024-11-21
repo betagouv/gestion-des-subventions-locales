@@ -37,6 +37,11 @@ class Projet(models.Model):
     def __str__(self):
         return f"Projet {self.pk} — Dossier {self.dossier_ds.ds_number}"
 
+    def get_absolute_url(self):
+        from django.urls import reverse
+
+        return reverse("projet:get-projet", kwargs={"projet_id": self.id})
+
     @classmethod
     def get_or_create_from_ds_dossier(cls, ds_dossier: Dossier):
         try:
