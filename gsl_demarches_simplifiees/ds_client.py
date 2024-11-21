@@ -26,7 +26,7 @@ class DsClient:
         response = requests.post(self.url, json=data, headers=headers)
         if response.status_code == 200:
             results = response.json()
-            if "errors" in results.keys() and results["data"] is None:
+            if "errors" in results.keys() and results.get("data", None) is None:
                 print(results["errors"])  # @todo loguer ça bien
                 raise Exception(f"Query failed to run: {results['errors']}")
             return results

@@ -85,6 +85,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "gsl_oidc.middleware.LoginRequiredMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -187,6 +188,8 @@ DS_API_URL = os.getenv(
     "DS_API_URL", "https://www.demarches-simplifiees.fr/api/v2/graphql"
 )
 
+LOGIN_URL = "/comptes/login/"
+
 # Redirect after login/logout - used by OIDC backends
 
 LOGIN_REDIRECT_URL = "/"
@@ -213,4 +216,9 @@ ALLOW_LOGOUT_GET_METHOD = True
 # Celery configuration
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379")
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379")
+CELERY_ACCEPT_CONTENT = {"application/json"}
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TASK_SERIALIZER = "json"
+CELERY_TIMEZONE = "Europe/Paris"
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_RESULT_EXTENDED = True
