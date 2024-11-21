@@ -48,6 +48,10 @@ class OIDCAuthenticationBackend(MozillaOIDCAuthenticationBackend):
             "proconnect_chorusdt": claims.get("chorusdt", ""),
         }
 
+    def filter_users_by_claims(self, claims):
+        username = self.get_username(claims)
+        return self.UserModel.objects.filter(username=username)
+
     def create_user(self, claims):
         username = self.get_username(claims)
         return self.UserModel.objects.create_user(
