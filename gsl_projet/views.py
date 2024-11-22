@@ -10,5 +10,10 @@ def get_projet(request, projet_id):
     context = {
         "title": f"Projet {projet}",
         "projet": projet,
+        "dossier": projet.dossier_ds,
+        "breadcrumb_dict": {
+            "links": [{"url": "@todo", "title": "Liste des projets"}],
+            "current": f"Projet {projet}",
+        },
     }
     return render(request, "gsl_projet/projet.html", context)

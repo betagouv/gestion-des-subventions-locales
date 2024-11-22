@@ -1,0 +1,86 @@
+{% load dsfr_tags %}
+<div class="fr-callout fr-callout--blue-ecume">
+    <h2 class="fr-callout__title">
+        Informations sur le projet
+        {% dsfr_badge label=dossier.get_ds_state_display %}
+    </h2>
+    <div class="fr-callout__text">
+        <ul>
+            <li>Numéro de dossier DS : {{ dossier.ds_number }}</li>
+            <li>Département : 67 - Bas-Rhin {# todo #}</li>
+            <li>Arrondissement : Haguenau-Wissembourg {# todo #}</li>
+            <li>Date de dépôt : {{ dossier.ds_date_depot|date }}</li>
+            <li>Date de modification : {{ dossier.ds_date_derniere_modification|date }}</li>
+            <li>Coût total de l’opération : {{ dossier.finance_cout_total|floatformat:"2g" }}&nbsp;€</li>
+            <li>Assiette subventionnable : {{ projet.assiette|floatformat:"2g" }}&nbsp;€</li>
+            <li>Montant demandé : {{ dossier.demande_montant|floatformat:"2g" }}&nbsp;€</li>
+            <li>Taux demandé : 15&nbsp;% {# todo #}</li>
+        </ul>
+    </div>
+</div>
+
+<div class="fr-container fr-mt-4v">
+    <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--center">
+        <div class="fr-col-4">Menu</div>
+        <div class="fr-col">
+            <h3>Porteur de projet</h3>
+            <ul>
+                <li>Nature du porteur de projet : {# todo #}</li>
+                <li>Département et arrondissement : {# todo #}</li>
+                <li>La maîtrise d’ouvrage de l’opération sera-t-elle déléguée ? {# todo #}</li>
+            </ul>
+            <h3>Présentation de l’opération</h3>
+            <h4>Projet</h4>
+            <ul>
+                <li>Intitulé :</li>
+                <li>Adresse principale : {{ dossier.projet_adresse }}</li>
+                <li>Code INSEE : {{ dossier.projet_adresse.commune.insee_code }}</li>
+                <li>Département : {{ dossier.projet_adresse.commune.departement }}</li>
+                <li>Délibération du conseil municipal ou de l’organe délibérant de l’EPCI : {# todo #}</li>
+                <li>Document de présentation du projet : {# todo #}</li>
+            </ul>
+            <h4>Dates</h4>
+            <ul>
+                <li>Début :</li>
+                <li>Achèvement :</li>
+            </ul>
+            <h4>Détails du projet</h4>
+            <ul>
+                <li>Acquisitions immobilières au sein du projet :</li>
+                <li>Travaux au sein du projet :</li>
+            </ul>
+            <div class="fr-highlight fr-highlight--beige-gris-galet">
+                <h5>Zonage spécifique</h5>
+                <ul>
+                    <li>t</li>
+                    <li>t</li>
+                    <li>t</li>
+                </ul>
+            </div>
+            <div class="fr-highlight fr-highlight--beige-gris-galet">
+                <h5>Contractualisation avec l’État</h5>
+                <ul>
+                    <li>t</li>
+                    <li>t</li>
+                    <li>t</li>
+                </ul>
+            </div>
+            <h4>Transition écologique</h4>
+            <dl>
+                <dt>Le projet concourt-il aux enjeux de la transition écologique ?</dt>
+                <dd>Oui</dd>
+                <dt>Objectifs environnementaux impactés favorablement</dt>
+                <dd>todo</dd>
+                <dd>todo</dd>
+                <dt>Justification</dt>
+                <dd>Lorem ipsum dolor sit amet, consectetur adipisicing elit. At blanditiis deleniti distinctio eos est
+                    fugiat iusto nihil numquam optio quaerat repellendus tempora, temporibus totam vero voluptatibus!
+                    Adipisci eveniet modi repellendus.
+                </dd>
+                <dt>Artificialisation des sols</dt>
+                <dd>Non</dd>
+            </dl>
+
+        </div>
+    </div>
+</div>
