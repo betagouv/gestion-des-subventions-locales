@@ -1,6 +1,7 @@
 # Create your models here.
 from django.db import models
 
+import gsl_core.models
 from gsl_core.models import Adresse
 
 
@@ -51,6 +52,59 @@ class Demarche(DsModel):
 
     def __str__(self):
         return f"Démarche {self.ds_number}"
+
+
+class FormeJuridique(DsModel):
+    code = models.CharField("Code", primary_key=True)
+    libelle = models.CharField("Libellé")
+
+    class Meta:
+        verbose_name = "Forme Juridique"
+        verbose_name_plural = "Formes Juridiques"
+
+    def __str__(self):
+        return f"{self.code} — {self.libelle}"
+
+
+class Naf(DsModel):
+    code = models.CharField("Code", primary_key=True)
+    libelle = models.CharField("Libellé")
+
+    class Meta:
+        verbose_name = "Code NAF"
+        verbose_name_plural = "Codes NAF"
+
+    def __str__(self):
+        return f"{self.code} — {self.libelle}"
+
+
+class PersonneMorale(DsModel):
+    """
+    see https://www.demarches-simplifiees.fr/graphql/schema/index.html#definition-PersonneMorale
+    """
+
+    siret = models.CharField("SIRET", unique=True, primary_key=True)
+    raison_sociale = models.CharField("Raison Sociale", blank=True)
+    address = models.OneToOneField(
+        gsl_core.models.Adresse,
+        on_delete=models.PROTECT,
+        verbose_name="Adresse",
+        null=True,
+        blank=True,
+    )
+
+    siren = models.CharField("SIREN", blank=True)
+    naf = models.ForeignKey(Naf, on_delete=models.PROTECT, null=True)
+    forme_juridique = models.ForeignKey(
+        FormeJuridique, on_delete=models.PROTECT, null=True
+    )
+
+    class Meta:
+        verbose_name = "Personne morale"
+        verbose_name_plural = "Personnes morales"
+
+    def __str__(self):
+        return self.raison_sociale or self.siret
 
 
 class Dossier(DsModel):
