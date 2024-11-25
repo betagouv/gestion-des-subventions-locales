@@ -106,6 +106,26 @@ class PersonneMorale(DsModel):
     def __str__(self):
         return self.raison_sociale or self.siret
 
+    def update_from_raw_ds_data(self, ds_data):
+        self.siret = ds_data.get("siret")
+        self.naf, _ = Naf.objects.get_or_create(
+            code=ds_data.get("naf"), defaults={"libelle": ds_data.get("libelleNaf")}
+        )
+
+        adresse = self.address or Adresse()
+        adresse.update_from_raw_ds_data(ds_data.get("address"))
+        adresse.save()
+        self.address = adresse
+
+        entreprise_data = ds_data.get("entreprise")
+        self.raison_sociale = entreprise_data.get("raisonSociale")
+        self.forme_juridique, _ = FormeJuridique.objects.get_or_create(
+            code=entreprise_data.get("formeJuridiqueCode"),
+            defaults={"libelle": entreprise_data.get("formeJuridique")},
+        )
+
+        return self
+
 
 class Dossier(DsModel):
     """
