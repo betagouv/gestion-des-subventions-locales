@@ -27,12 +27,10 @@ class ProjetManager(models.Manager):
 
 
 class Projet(models.Model):
-    # demandeur = models.ForeignKey(Demandeur, on_delete=models.PROTECT)
     dossier_ds = models.OneToOneField(Dossier, on_delete=models.PROTECT)
 
-    address = models.OneToOneField(Adresse, on_delete=models.CASCADE)
-    # arrondissement = models.ForeignKey(Arrondissement, on_delete=models.PROTECT)
-    departement = models.ForeignKey(Departement, on_delete=models.PROTECT)
+    address = models.OneToOneField(Adresse, on_delete=models.CASCADE, null=True)
+    departement = models.ForeignKey(Departement, on_delete=models.PROTECT, null=True)
 
     objects = ProjetManager()
 
@@ -44,13 +42,17 @@ class Projet(models.Model):
         try:
             projet = cls.objects.get(dossier_ds=ds_dossier)
         except cls.DoesNotExist:
-            projet_adresse = ds_dossier.projet_adresse.clone()
-            projet_adresse.save()
             projet = cls(
                 dossier_ds=ds_dossier,
-                address=projet_adresse,
-                # arrondissement=ds_dossier.porteur_de_projet_arrondissement,
-                departement=ds_dossier.projet_adresse.commune.departement,
             )
+
+            if ds_dossier.projet_adresse is not None:
+                projet_adresse = ds_dossier.projet_adresse.clone()
+                projet_adresse.save()
+                projet.adresse = projet_adresse
+                if ds_dossier.projet_adresse.commune is not None:
+                    projet.departement = (
+                        ds_dossier.projet_adresse.commune.departement,
+                    )
             projet.save()
         return projet
