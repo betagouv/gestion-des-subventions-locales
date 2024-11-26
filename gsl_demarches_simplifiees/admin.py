@@ -22,6 +22,23 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 class PersonneMoraleAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("address",)
     list_display = ("__str__", "siret")
+    fieldsets = (
+        (
+            "Informations",
+            {
+                "fields": (
+                    "siret",
+                    "raison_sociale",
+                    "address",
+                    "siren",
+                    "naf",
+                    "forme_juridique",
+                )
+            },
+        ),
+        ("Dates", {"fields": ("created_at", "updated_at")}),
+    )
+    readonly_fields = ("created_at", "updated_at")
 
 
 @admin.register(Dossier)
