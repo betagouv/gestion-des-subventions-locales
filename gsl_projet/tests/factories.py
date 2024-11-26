@@ -26,9 +26,6 @@ class ProjetFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Projet
 
-    # demandeur = factory.SubFactory(DemandeurFactory)
     dossier_ds = factory.SubFactory(DossierFactory)
-
     address = factory.SubFactory(AdresseFactory)
-    # arrondissement = factory.SubFactory(ArrondissementFactory)
     departement = factory.SubFactory(DepartementFactory)
