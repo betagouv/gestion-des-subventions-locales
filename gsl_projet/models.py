@@ -51,8 +51,6 @@ class Projet(models.Model):
                 projet_adresse.save()
                 projet.adresse = projet_adresse
                 if ds_dossier.projet_adresse.commune is not None:
-                    projet.departement = (
-                        ds_dossier.projet_adresse.commune.departement,
-                    )
+                    projet.departement = ds_dossier.projet_adresse.commune.departement
             projet.save()
         return projet

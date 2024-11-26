@@ -54,7 +54,7 @@ class Demarche(DsModel):
         return f"Démarche {self.ds_number}"
 
 
-class FormeJuridique(DsModel):
+class FormeJuridique(models.Model):
     code = models.CharField("Code", primary_key=True)
     libelle = models.CharField("Libellé")
 
@@ -66,7 +66,7 @@ class FormeJuridique(DsModel):
         return f"{self.code} — {self.libelle}"
 
 
-class Naf(DsModel):
+class Naf(models.Model):
     code = models.CharField("Code", primary_key=True)
     libelle = models.CharField("Libellé")
 
@@ -78,7 +78,7 @@ class Naf(DsModel):
         return f"{self.code} — {self.libelle}"
 
 
-class PersonneMorale(DsModel):
+class PersonneMorale(models.Model):
     """
     see https://www.demarches-simplifiees.fr/graphql/schema/index.html#definition-PersonneMorale
     """
