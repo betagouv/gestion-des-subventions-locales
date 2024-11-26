@@ -8,6 +8,11 @@
         Ce tableau n’indique que les recherches de démarches qui ont échoué sur DS.
         Consultez-le si vous ne voyez pas certaines démarches dans la liste.
     </p>
+    {% if request.user.is_superuser %}
+        <div>
+            <a href="{% url "admin:django_celery_results_taskresult_changelist" %}" class="fr-button">Tout voir dans l’admin</a>
+        </div>
+    {% endif %}
     <div class="fr-table fr-table--bordered">
         <div class="fr-table__wrapper">
             <div class="fr-table__container">
