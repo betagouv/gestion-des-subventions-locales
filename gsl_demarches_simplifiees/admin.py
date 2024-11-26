@@ -39,6 +39,7 @@ class PersonneMoraleAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         ("Dates", {"fields": ("created_at", "updated_at")}),
     )
     readonly_fields = ("created_at", "updated_at")
+    search_fields = ("siret", "siren", "raison_sociale")
 
 
 @admin.register(Dossier)
