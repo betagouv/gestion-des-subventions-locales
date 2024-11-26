@@ -85,7 +85,7 @@ class PersonneMorale(models.Model):
 
     siret = models.CharField("SIRET", unique=True, primary_key=True)
     raison_sociale = models.CharField("Raison Sociale", blank=True)
-    address = models.OneToOneField(
+    address = models.ForeignKey(
         gsl_core.models.Adresse,
         on_delete=models.PROTECT,
         verbose_name="Adresse",
@@ -200,7 +200,7 @@ class Dossier(DsModel):
     )
     # ---
     projet_intitule = models.CharField("Intitulé du projet", blank=True)
-    projet_adresse = models.OneToOneField(
+    projet_adresse = models.ForeignKey(
         Adresse, on_delete=models.PROTECT, blank=True, null=True
     )
     projet_immo = models.BooleanField(

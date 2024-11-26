@@ -8,7 +8,7 @@ class Demandeur(models.Model):
     siret = models.CharField("Siret")
     name = models.CharField("Nom")
 
-    address = models.OneToOneField(Adresse, on_delete=models.CASCADE)
+    address = models.ForeignKey(Adresse, on_delete=models.PROTECT)
     arrondissement = models.ForeignKey(Arrondissement, on_delete=models.PROTECT)
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT)
 
@@ -29,7 +29,7 @@ class ProjetManager(models.Manager):
 class Projet(models.Model):
     dossier_ds = models.OneToOneField(Dossier, on_delete=models.PROTECT)
 
-    address = models.OneToOneField(Adresse, on_delete=models.CASCADE, null=True)
+    address = models.ForeignKey(Adresse, on_delete=models.PROTECT, null=True)
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT, null=True)
 
     objects = ProjetManager()
@@ -45,12 +45,10 @@ class Projet(models.Model):
             projet = cls(
                 dossier_ds=ds_dossier,
             )
+        projet.address = ds_dossier.projet_adresse
 
-            if ds_dossier.projet_adresse is not None:
-                projet_adresse = ds_dossier.projet_adresse.clone()
-                projet_adresse.save()
-                projet.adresse = projet_adresse
-                if ds_dossier.projet_adresse.commune is not None:
-                    projet.departement = ds_dossier.projet_adresse.commune.departement
-            projet.save()
+        if projet.address is not None and projet.address.commune is not None:
+            projet.departement = projet.address.commune.departement
+
+        projet.save()
         return projet
