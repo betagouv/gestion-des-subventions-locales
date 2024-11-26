@@ -165,6 +165,9 @@ class Dossier(DsModel):
     ds_date_derniere_modification_champs = models.DateTimeField(
         "Date de dernière modification des champs", null=True, blank=True
     )
+    ds_demandeur = models.ForeignKey(
+        PersonneMorale, on_delete=models.PROTECT, verbose_name="Demandeur", null=True
+    )
 
     porteur_de_projet_nature = models.ForeignKey(
         "gsl_demarches_simplifiees.NaturePorteurProjet",
