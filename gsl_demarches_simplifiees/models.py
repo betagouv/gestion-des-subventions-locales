@@ -397,6 +397,10 @@ class Profile(DsModel):
     ds_id = models.CharField("Identifiant DS", unique=True)
     ds_email = models.EmailField("E-mail")
 
+    class Meta:
+        verbose_name = "Profil DS"
+        verbose_name_plural = "Profils DS"
+
     def __str__(self):
         return f"Profil {self.ds_email}"
 

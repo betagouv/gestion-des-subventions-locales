@@ -8,6 +8,7 @@ from .models import (
     FieldMappingForComputer,
     FieldMappingForHuman,
     PersonneMorale,
+    Profile,
 )
 from .tasks import task_refresh_dossier_from_saved_data
 
@@ -107,3 +108,8 @@ class FieldMappingForComputerAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     ]
     list_display = ("ds_field_id", "ds_field_label", "django_field", "demarche")
     list_filter = ("demarche__ds_number", "ds_field_type")
+
+
+@admin.register(Profile)
+class ProfileAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    pass
