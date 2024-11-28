@@ -9,6 +9,7 @@ from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverte
 from gsl_demarches_simplifiees.models import (
     Demarche,
     Dossier,
+    PersonneMorale,
 )
 
 pytestmark = [
@@ -69,6 +70,11 @@ def dossier_converter(ds_dossier_data, dossier):
 def test_create_dossier_converter(ds_dossier_data, dossier):
     dossier_converter = DossierConverter(ds_dossier_data, dossier)
     assert dossier_converter.ds_field_ids
+
+
+def test_non_mapped_fields_are_imported(dossier_converter: DossierConverter):
+    dossier_converter.fill_unmapped_fields()
+    assert isinstance(dossier_converter.dossier.ds_demandeur, PersonneMorale)
 
 
 extract_field_test_data = (

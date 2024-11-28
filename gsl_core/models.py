@@ -87,9 +87,9 @@ class Adresse(BaseModel):
         if isinstance(raw_ds_data, str):
             self.label = raw_ds_data
             return self
-        self.label = raw_ds_data.get("label")
-        self.postal_code = raw_ds_data.get("postalCode")
-        self.street_address = raw_ds_data.get("streetAddress")
+        self.label = str(raw_ds_data.get("label", ""))
+        self.postal_code = str(raw_ds_data.get("postalCode", ""))
+        self.street_address = str(raw_ds_data.get("streetAddress", ""))
 
         if all(
             raw_ds_data.get(key)
@@ -118,9 +118,3 @@ class Adresse(BaseModel):
             )
             self.commune = commune
         return self
-
-    def clone(self):
-        cloned = self.__class__()
-        for field in "label postal_code commune street_address".split(" "):
-            cloned.__setattr__(field, self.__getattribute__(field))
-        return cloned

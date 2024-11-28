@@ -31,7 +31,7 @@ def test_create_projet_from_dossier():
     assert isinstance(projet, Projet)
     assert projet.address is not None
     assert projet.address.commune == dossier.projet_adresse.commune
-    assert projet.address != dossier.projet_adresse
+    assert projet.address == dossier.projet_adresse
 
     other_projet = Projet.get_or_create_from_ds_dossier(dossier)
     assert other_projet == projet

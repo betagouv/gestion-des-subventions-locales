@@ -12,4 +12,5 @@ class DemandeurAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
 @admin.register(Projet)
 class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    pass
+    raw_id_fields = ("address", "departement")
+    list_display = ("__str__", "address", "departement")

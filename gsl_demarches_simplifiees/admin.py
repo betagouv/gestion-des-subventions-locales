@@ -7,6 +7,8 @@ from .models import (
     Dossier,
     FieldMappingForComputer,
     FieldMappingForHuman,
+    PersonneMorale,
+    Profile,
 )
 from .tasks import task_refresh_dossier_from_saved_data
 
@@ -17,6 +19,28 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = ("ds_number", "ds_title", "ds_state")
 
 
+@admin.register(PersonneMorale)
+class PersonneMoraleAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    raw_id_fields = ("address",)
+    list_display = ("__str__", "siret")
+    fieldsets = (
+        (
+            "Informations",
+            {
+                "fields": (
+                    "siret",
+                    "raison_sociale",
+                    "address",
+                    "siren",
+                    "naf",
+                    "forme_juridique",
+                )
+            },
+        ),
+    )
+    search_fields = ("siret", "siren", "raison_sociale")
+
+
 @admin.register(Dossier)
 class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_filter = ("ds_demarche__ds_number", "ds_state")
@@ -24,7 +48,15 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     fieldsets = (
         (
             "Informations générales",
-            {"fields": ("ds_demarche", "ds_id", "ds_number", "ds_state")},
+            {
+                "fields": (
+                    "ds_demarche",
+                    "ds_id",
+                    "ds_number",
+                    "ds_state",
+                    "ds_demandeur",
+                )
+            },
         ),
         (
             "Champs DS",
@@ -52,7 +84,11 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         ),
     )
     actions = ("refresh_from_db",)
-    raw_id_fields = ("projet_adresse",)
+    raw_id_fields = (
+        "projet_adresse",
+        "ds_demandeur",
+    )
+    search_fields = ("ds_number",)
 
     @admin.action(description="Rafraîchir depuis la base de données")
     def refresh_from_db(self, request, queryset):
@@ -72,3 +108,8 @@ class FieldMappingForComputerAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     ]
     list_display = ("ds_field_id", "ds_field_label", "django_field", "demarche")
     list_filter = ("demarche__ds_number", "ds_field_type")
+
+
+@admin.register(Profile)
+class ProfileAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    pass

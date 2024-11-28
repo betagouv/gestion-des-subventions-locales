@@ -1,6 +1,7 @@
 # Create your models here.
 from django.db import models
 
+import gsl_core.models
 from gsl_core.models import Adresse
 
 
@@ -53,6 +54,79 @@ class Demarche(DsModel):
         return f"Démarche {self.ds_number}"
 
 
+class FormeJuridique(models.Model):
+    code = models.CharField("Code", primary_key=True)
+    libelle = models.CharField("Libellé")
+
+    class Meta:
+        verbose_name = "Forme Juridique"
+        verbose_name_plural = "Formes Juridiques"
+
+    def __str__(self):
+        return f"{self.code} — {self.libelle}"
+
+
+class Naf(models.Model):
+    code = models.CharField("Code", primary_key=True)
+    libelle = models.CharField("Libellé")
+
+    class Meta:
+        verbose_name = "Code NAF"
+        verbose_name_plural = "Codes NAF"
+
+    def __str__(self):
+        return f"{self.code} — {self.libelle}"
+
+
+class PersonneMorale(models.Model):
+    """
+    see https://www.demarches-simplifiees.fr/graphql/schema/index.html#definition-PersonneMorale
+    """
+
+    siret = models.CharField("SIRET", unique=True, primary_key=True)
+    raison_sociale = models.CharField("Raison Sociale", blank=True)
+    address = models.ForeignKey(
+        gsl_core.models.Adresse,
+        on_delete=models.PROTECT,
+        verbose_name="Adresse",
+        null=True,
+        blank=True,
+    )
+
+    siren = models.CharField("SIREN", blank=True)
+    naf = models.ForeignKey(Naf, on_delete=models.PROTECT, null=True)
+    forme_juridique = models.ForeignKey(
+        FormeJuridique, on_delete=models.PROTECT, null=True
+    )
+
+    class Meta:
+        verbose_name = "Personne morale"
+        verbose_name_plural = "Personnes morales"
+
+    def __str__(self):
+        return self.raison_sociale or self.siret
+
+    def update_from_raw_ds_data(self, ds_data):
+        self.siret = ds_data.get("siret")
+        self.naf, _ = Naf.objects.get_or_create(
+            code=ds_data.get("naf"), defaults={"libelle": ds_data.get("libelleNaf")}
+        )
+
+        adresse = self.address or Adresse()
+        adresse.update_from_raw_ds_data(ds_data.get("address"))
+        adresse.save()
+        self.address = adresse
+
+        entreprise_data = ds_data.get("entreprise")
+        self.raison_sociale = entreprise_data.get("raisonSociale")
+        self.forme_juridique, _ = FormeJuridique.objects.get_or_create(
+            code=entreprise_data.get("formeJuridiqueCode"),
+            defaults={"libelle": entreprise_data.get("formeJuridique")},
+        )
+
+        return self
+
+
 class Dossier(DsModel):
     """
     See https://www.demarches-simplifiees.fr/graphql/schema/index.html#definition-Dossier
@@ -91,6 +165,9 @@ class Dossier(DsModel):
     ds_date_derniere_modification_champs = models.DateTimeField(
         "Date de dernière modification des champs", null=True, blank=True
     )
+    ds_demandeur = models.ForeignKey(
+        PersonneMorale, on_delete=models.PROTECT, verbose_name="Demandeur", null=True
+    )
 
     porteur_de_projet_nature = models.ForeignKey(
         "gsl_demarches_simplifiees.NaturePorteurProjet",
@@ -123,7 +200,7 @@ class Dossier(DsModel):
     )
     # ---
     projet_intitule = models.CharField("Intitulé du projet", blank=True)
-    projet_adresse = models.OneToOneField(
+    projet_adresse = models.ForeignKey(
         Adresse, on_delete=models.PROTECT, blank=True, null=True
     )
     projet_immo = models.BooleanField(
@@ -319,6 +396,10 @@ class AutreAide(DsChoiceLibelle):
 class Profile(DsModel):
     ds_id = models.CharField("Identifiant DS", unique=True)
     ds_email = models.EmailField("E-mail")
+
+    class Meta:
+        verbose_name = "Profil DS"
+        verbose_name_plural = "Profils DS"
 
     def __str__(self):
         return f"Profil {self.ds_email}"
