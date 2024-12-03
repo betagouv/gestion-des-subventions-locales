@@ -1,5 +1,7 @@
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 from django.views.decorators.http import require_GET
+from django.views.generic import ListView
 
 from .models import Projet
 
@@ -12,7 +14,7 @@ def get_projet(request, projet_id):
         "projet": projet,
         "dossier": projet.dossier_ds,
         "breadcrumb_dict": {
-            "links": [{"url": "@todo", "title": "Liste des projets"}],
+            "links": [{"url": reverse("projet:list"), "title": "Liste des projets"}],
             "current": f"Projet {projet}",
         },
         "menu_dict": {
@@ -68,3 +70,8 @@ def get_projet(request, projet_id):
         },
     }
     return render(request, "gsl_projet/projet.html", context)
+
+
+class ProjectListView(ListView):
+    model = Projet
+    paginate_by = 100
