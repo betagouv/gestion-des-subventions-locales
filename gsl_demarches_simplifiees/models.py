@@ -350,6 +350,10 @@ class Dossier(DsModel):
     def __str__(self):
         return f"Dossier {self.ds_number}"
 
+    @property
+    def url_on_ds(self):
+        return f"https://www.demarches-simplifiees.fr/procedures/{self.ds_demarche.ds_number}/dossiers/{self.ds_number}"
+
 
 class DsChoiceLibelle(DsModel):
     label = models.CharField("Libellé", unique=True)

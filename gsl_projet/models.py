@@ -17,7 +17,9 @@ class Demandeur(models.Model):
 
 
 class ProjetManager(models.Manager):
-    def for_user(self, user: Collegue):
+    def for_user(
+        self, user: Collegue
+    ):  # utilisable seulement en début de chaîne => à passer sur un QuerySet custom
         return self.filter(
             dossier_ds__ds_demarche__ds_instructeurs__ds_email=user.email
         )
@@ -32,10 +34,22 @@ class Projet(models.Model):
     address = models.ForeignKey(Adresse, on_delete=models.PROTECT, null=True)
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT, null=True)
 
+    assiette = models.DecimalField(
+        "Assiette subventionnable",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+    )
+
     objects = ProjetManager()
 
     def __str__(self):
         return f"Projet {self.pk} — Dossier {self.dossier_ds.ds_number}"
+
+    def get_absolute_url(self):
+        from django.urls import reverse
+
+        return reverse("projet:get-projet", kwargs={"projet_id": self.id})
 
     @classmethod
     def get_or_create_from_ds_dossier(cls, ds_dossier: Dossier):
@@ -52,3 +66,16 @@ class Projet(models.Model):
 
         projet.save()
         return projet
+
+    def get_taux_de_subvention_sollicite(self):
+        if self.assiette is None:
+            return
+        if self.assiette > 0:
+            return self.dossier_ds.demande_montant / self.assiette
+
+    def get_taux_subventionnable(self):
+        if self.assiette is None:
+            return
+
+        if self.assiette > 0:
+            return int(100 * self.assiette / self.dossier_ds.finance_cout_total)

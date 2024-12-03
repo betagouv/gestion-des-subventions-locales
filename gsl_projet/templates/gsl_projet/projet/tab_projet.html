@@ -1,0 +1,156 @@
+{% load dsfr_tags %}
+<div class="fr-callout fr-background-alt--blue-france">
+    <h2 class="fr-callout__title">
+        Informations sur le projet
+    </h2>
+    <div class="fr-callout__text">
+        <ul class="no-list-style">
+            <li><b>Numéro de dossier <abbr title="Démarches Simplifiées">DS </abbr> :</b> {{ dossier.ds_number }}  </li>
+            <li><b>Département :</b> {{ projet.departement|default:"—" }}</li>
+            <li><b>Arrondissement :</b> {{ dossier.porteur_de_projet_arrondissement }}</li>
+            <li><b>Date de dépôt :</b> {{ dossier.ds_date_depot|date }}</li>
+            <li><b>Date de modification :</b> {{ dossier.ds_date_derniere_modification|date }}</li>
+            <li><b>Coût total de l’opération :</b> {{ dossier.finance_cout_total|floatformat:"2g" }}&nbsp;€</li>
+            <li><b>Assiette subventionnable :</b> {{ projet.assiette|floatformat:"2g"|default:"—" }}&nbsp;€</li>
+            <li><b>Montant demandé :</b> {{ dossier.demande_montant|floatformat:"2g" }}&nbsp;€</li>
+            <li><b>Taux de subvention sollicité : {{ projet.get_taux_de_subvention_sollicite|default:"—" }}</b></li>
+        </ul>
+    </div>
+</div>
+
+<div class="fr-container fr-mt-5w">
+    <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--center gsl-projet-container">
+        <div class="fr-col-4 gsl-projet-menu">{% dsfr_sidemenu menu_dict %}</div>
+        <div class="fr-col gsl-projet">
+            <section>
+                <h3 id="porteur_de_projet">
+                    <i class="fr-icon-user-fill blue-icon" aria-hidden="true"></i>
+                    1 - Porteur de projet
+                </h3>
+                <ul>
+                    <li><b>Nature du porteur de projet</b> : {{ dossier.porteur_de_projet_nature }}</li>
+                    <li><b>Département et arrondissement :</b> {{ dossier.porteur_de_projet_arrondissement }}</li>
+                    <li><b>La maîtrise d’ouvrage de l’opération sera-t-elle déléguée
+                        ?</b> {{ dossier.maitrise_douvrage_deleguee|yesno:"Oui,Non,Non renseigné" }}</li>
+                </ul>
+            </section>
+            <section>
+                <h3>
+                    <i class="fr-icon-article-fill blue-icon" aria-hidden="true"></i>
+                    2 - Présentation de l’opération
+                </h3>
+                <h4 id="presentation_projet">Projet</h4>
+                <ul>
+                    <li><b>Intitulé :</b> {{ dossier.projet_intitule }}</li>
+                    <li><b>Adresse principale :</b> {{ dossier.projet_adresse }}</li>
+                    <li><b>Code INSEE :</b> {{ dossier.projet_adresse.commune.insee_code|default:"—" }}</li>
+                    <li><b>Département :</b> {{ dossier.projet_adresse.commune.departement|default:"—" }}</li>
+                    {# <li><b>Délibération du conseil municipal ou de l’organe délibérant de l’EPCI :</b> todo </li>#}
+                    {# <li><b>Document de présentation du projet :</b> </li>#}
+                </ul>
+                <h4 id="presentation_dates">Dates</h4>
+                <ul>
+                    <li>Début des travaux : {{ dossier.date_debut }}</li>
+                    <li>Achèvement : {{ dossier.date_achevement }}</li>
+                </ul>
+                <h4 id="presentation_details_proj">Détails du projet</h4>
+                <ul>
+                    <li>Acquisitions immobilières au sein du projet
+                        : {{ dossier.projet_immo|yesno:"Oui,Non,Non renseigné" }}</li>
+                    <li>Travaux au sein du projet : {{ dossier.projet_travaux|yesno:"Oui,Non,Non renseigné" }}</li>
+                </ul>
+                {% if dossier.projet_zonage.count > 0 %}
+                    <div class="fr-highlight fr-highlight--beige-gris-galet fr-ml-0 fr-mb-4w">
+                        <h5 class="fr-text--md fr-mb-1v">Zonage spécifique :</h5>
+                        <ul>
+                            {% for zone in dossier.projet_zonage.all %}
+                                <li>{{ zone }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+                {% if dossier.projet_contractualisation.count > 0 %}
+                    <div class="fr-highlight fr-highlight--beige-gris-galet fr-ml-0">
+                        <h5 class="fr-text--md fr-mb-1v">Contractualisation avec l’État :</h5>
+                        <ul>
+                            {% for contrat in dossier.projet_contractualisation.all %}
+                                <li>{{ contrat }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                <h4 id="presentation_transition_eco">Transition écologique</h4>
+                <p>
+                    <b>Le projet concourt-il aux enjeux de la transition écologique ?</b>
+                    {{ dossier.environnement_transition_eco|yesno:"Oui,Non,Non renseigné" }}
+                </p>
+                {% if dossier.environnement_objectifs.count > 0 %}
+                    <p>Objectifs environnementaux impactés favorablement</p>
+                    <ul>
+                        {% for obj in dossier.environnement_objectifs.all %}
+                            <li>{{ obj }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {# todo : justification ? #}
+                <p>
+                    <b>Artificialisation des sols ?</b>
+                    {{ dossier.environnement_artif_sols|yesno:"Oui,Non,Non renseigné" }}
+                </p>
+            </section>
+            <section>
+                <h3>
+                    <i class="fr-icon-money-euro-circle-fill blue-icon" aria-hidden="true"></i>
+                    3 - Plan de financement prévisionnel
+                </h3>
+
+                <h4 id="couts_financement">Coûts de financement</h4>
+                <div class="fr-highlight fr-highlight--beige-gris-galet fr-ml-0 fr-mb-4w">
+                    <p>
+                        <b>Coût total de l’opération :</b>
+                        {{ dossier.finance_cout_total }}
+                    </p>
+                    <p>
+                        <b>Assiette subventionnable :</b>
+                        {{ projet.assiette|default:"—" }} ({{ projet.taux_subventionnable|default:"—" }}&nbsp;%)
+                    </p>
+                    <p>
+                        <b>Montant des dépenses éligibles demandées : {{ dossier.demande_montant }}&nbsp;€</b>
+                    </p>
+                </div>
+                <h4 id="detail_financement">Détail du financement</h4>
+                {# todo: justificatif des dépenses prévisionnelles #}
+                <p>Le projet va-t-il générer des recettes
+                    ? {{ dossier.finance_recettes|yesno:"Oui,Non,Non renseigné" }}</p>
+                {# todo: plan de financement détaillé #}
+                <h4 id="dispositifs_sollicites">Dispositifs de financement sollicités</h4>
+                <p>
+                    <b>Opération présentée dans la campagne DETR/DSIL précédente :</b>
+                    {{ dossier.demande_annee_precedente|yesno:"Oui,Non,Non renseigné" }}
+                </p>
+                <p>
+                    <b>Dispositif de financement sollicité :</b>
+                    {{ dossier.demande_dispositif_sollicite }}
+                </p>
+                {% if dossier.demande_dispositif_sollicite == "DSIL" %}
+                    <p><b>Éligibilité de l'opération à la DSIL :</b></p>
+                    <ul>
+                        {% for critere in dossier.demande_eligibilite_dsil.all %}
+                            <li>{{ critere }}</li>
+                        {% endfor %}
+                    </ul>
+                {% elif dossier.demande_dispositif_sollicite == "DETR" %}
+                    <p><b>Éligibilité de l'opération à la DETR :</b></p>
+                    <ul>
+                        {% for critere in dossier.demande_eligibilite_detr.all %}
+                            <li>{{ critere }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {# todo #}
+                {# <h4>Autres opérations en demande de subvention DETR/DSIL 2024</h4> #}
+            </section>
+        </div>
+    </div>
+</div>
