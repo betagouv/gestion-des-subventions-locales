@@ -74,4 +74,4 @@ def get_projet(request, projet_id):
 
 class ProjectListView(ListView):
     model = Projet
-    paginate_by = 100
+    paginate_by = 25

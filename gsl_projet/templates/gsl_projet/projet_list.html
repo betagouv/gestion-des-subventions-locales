@@ -8,12 +8,61 @@
 
 {% block content %}
     <h1>Liste des projets</h1>
-    <ul>
-        {% for projet in object_list %}
-            <li>
-                <a href="{{ projet.get_absolute_url }}">{{ projet }}</a>
-            </li>
-        {% endfor %}
-    </ul>
+    <div class="fr-table--lg fr-table fr-table--no-scroll" id="table-lg-component">
+        <div class="fr-table__wrapper">
+            <div class="fr-table__container">
+                <div class="fr-table__content">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Commune</th>
+                            <th>N° D.S.</th>
+                            <th>Dotation</th>
+                            <th>Coût total du projet {% dsfr_badge %}</th>
+                            <th>Montant sollicité {% dsfr_badge %}</th>
+                            <th>Montant retenu</th>
+                            <th>Catégorie</th>
+                            <th>Statut</th>
+                            <th><span class="fr-sr-only">Actions</span></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for projet in object_list %}
+                            <tr>
+                                <td></td>
+                                <td>{{ projet.address.commune.name }}</td>
+                                <td>{{ projet.dossier_ds.ds_number }}</td>
+                                <td>{{ projet.dossier_ds.demande_dispositif_sollicite }}</td>
+                                <td class="gsl-money">{{ projet.dossier_ds.finance_cout_total|floatformat:"2g"|default:"—" }}&nbsp;€</td>
+                                <td class="gsl-money">{{ projet.dossier_ds.demande_montant|floatformat:"2g"|default:"—" }}&nbsp;€</td>
+                                <td>{# todo montant retenu #}</td>
+                                <td>{# todo catégorie #}</td>
+                                <td>{{ projet.dossier_ds.get_ds_state_display }}</td>
+                                <td class="fr-cell--right">
+                                    <a class="fr-btn--tertiary-no-outline" href="{{ projet.get_absolute_url }}">
+                                        <span class="fr-sr-only">Voir le projet {{ projet.dossier_ds.ds_number }}</span>
+                                        <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="fr-table__footer">
+            <div class="fr-table__footer--start">
+
+            </div>
+            <div class="fr-table__footer--middle">
+                {% dsfr_pagination page_obj %}
+            </div>
+            <div class="fr-table__footer--end">
+                
+            </div>
+        </div>
+    </div>
 
 {% endblock %}

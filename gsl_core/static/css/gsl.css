@@ -22,12 +22,15 @@ html {
 ul.no-list-style {
     list-style-type: none;
     padding-inline-start: 0;
-
-
 }
 
 ul.no-list-style li {
     padding: 0;
+}
+
+.gsl-money {
+    font-variant-numeric: tabular-nums;
+    text-align: right !important;
 }
 
 /* Page un projet */
@@ -69,6 +72,7 @@ ul.no-list-style li {
 .gsl-projet > section {
     padding: 3em;
 }
+
 .gsl-projet > section + section {
     border-top: 1px solid #ddd;
 }
