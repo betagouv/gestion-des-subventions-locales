@@ -21,7 +21,6 @@ load_dotenv()  # take environment variables from .env.
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -57,6 +56,11 @@ if SENTRY_DSN:
 # Application definition
 
 INSTALLED_APPS = [
+    "unfold",  # before django.contrib.admin
+    # "unfold.contrib.filters",  # optional, if special filters are needed
+    # "unfold.contrib.forms",  # optional, if special form elements are needed
+    # "unfold.contrib.inlines",  # optional, if special inlines are needed
+    # "unfold.contrib.import_export",  # optional, if django-import-export package is used
     "django.contrib.admin",
     "django.contrib.auth",
     "mozilla_django_oidc",
@@ -124,7 +128,6 @@ STATIC_ROOT = os.getenv("STATIC_ROOT", BASE_DIR / "static")
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.getenv("MEDIA_ROOT", BASE_DIR / "media")
 
-
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
@@ -158,7 +161,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
@@ -170,12 +172,10 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = "static/"
-
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
@@ -222,3 +222,28 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_TIMEZONE = "Europe/Paris"
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_RESULT_EXTENDED = True
+
+
+UNFOLD = {
+    # see https://unfoldadmin.com/docs/configuration/settings/
+    "SITE_TITLE": "Admin Gestion des Subventions Locales",
+    "SITE_HEADER": "Gestion des Subventions Locales",
+    "SIDEBAR": {
+        "show_search": True,
+    },
+    "COLORS": {
+        "primary": {
+            "50": "245 245 254",  # blue-france-975
+            "100": "236 236 254",  # blue-france-950
+            "200": "227 227 253",  # blue-france-925
+            "300": "202 202 251",  # blue-france-850
+            "400": "198 198 251",  # blue-france-625-active
+            "500": "133 133 246",  # blue-france-625
+            "600": "106 106 244",  # blue-france-525
+            "700": "49 49 120",  # blue-france-200
+            "800": "39 39 71",  # blue-france-125
+            "900": "33 33 63",  # blue-france-100
+            "950": "27 27 53",  # blue-france-75
+        },
+    },
+}

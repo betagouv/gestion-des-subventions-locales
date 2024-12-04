@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
+from unfold.admin import ModelAdmin
 
 from gsl_core.models import (
     Adresse,
@@ -30,7 +31,7 @@ class AllPermsForStaffUser:
 
 
 @admin.register(Collegue)
-class CollegueAdmin(UserAdmin):
+class CollegueAdmin(UserAdmin, ModelAdmin):
     list_display = ("username", "email", "first_name", "last_name", "is_staff")
     fieldsets = (
         (None, {"fields": ("username", "password")}),
@@ -62,7 +63,7 @@ class CollegueAdmin(UserAdmin):
 
 
 @admin.register(Adresse)
-class AdresseAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+class AdresseAdmin(AllPermsForStaffUser, ModelAdmin):
     list_display = ("label", "postal_code", "commune")
 
     def get_queryset(self, request):
@@ -75,7 +76,7 @@ class AdresseAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 @admin.register(Arrondissement)
 @admin.register(Departement)
 @admin.register(Region)
-class CoreModelAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+class CoreModelAdmin(AllPermsForStaffUser, ModelAdmin):
     pass
 
 

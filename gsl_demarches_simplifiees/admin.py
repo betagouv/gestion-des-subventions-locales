@@ -1,4 +1,5 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 
 from gsl_core.admin import AllPermsForStaffUser
 
@@ -14,13 +15,13 @@ from .tasks import task_refresh_dossier_from_saved_data
 
 
 @admin.register(Demarche)
-class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+class DemarcheAdmin(AllPermsForStaffUser, ModelAdmin):
     readonly_fields = [field.name for field in Demarche._meta.get_fields()]
     list_display = ("ds_number", "ds_title", "ds_state")
 
 
 @admin.register(PersonneMorale)
-class PersonneMoraleAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+class PersonneMoraleAdmin(AllPermsForStaffUser, ModelAdmin):
     raw_id_fields = ("address",)
     list_display = ("__str__", "siret")
     fieldsets = (
@@ -42,7 +43,7 @@ class PersonneMoraleAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
 
 @admin.register(Dossier)
-class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+class DossierAdmin(AllPermsForStaffUser, ModelAdmin):
     list_filter = ("ds_demarche__ds_number", "ds_state")
     list_display = ("ds_number", "ds_demarche__ds_number", "ds_state")
     fieldsets = (
@@ -97,12 +98,12 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
 
 @admin.register(FieldMappingForHuman)
-class FieldMappingForHumanAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+class FieldMappingForHumanAdmin(AllPermsForStaffUser, ModelAdmin):
     list_display = ("label", "django_field")
 
 
 @admin.register(FieldMappingForComputer)
-class FieldMappingForComputerAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+class FieldMappingForComputerAdmin(AllPermsForStaffUser, ModelAdmin):
     readonly_fields = [
         field.name for field in FieldMappingForComputer._meta.get_fields()
     ]
@@ -111,5 +112,5 @@ class FieldMappingForComputerAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
 
 @admin.register(Profile)
-class ProfileAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+class ProfileAdmin(AllPermsForStaffUser, ModelAdmin):
     pass
