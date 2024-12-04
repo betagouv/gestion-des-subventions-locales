@@ -64,6 +64,7 @@ django==5.1.1
     #   django-dsfr
     #   django-referrer-policy
     #   django-timezone-field
+    #   django-unfold
     #   gsl (pyproject.toml)
     #   mozilla-django-oidc
 django-celery-beat==2.7.0
@@ -82,6 +83,8 @@ django-referrer-policy==1.0
     # via gsl (pyproject.toml)
 django-timezone-field==7.0
     # via django-celery-beat
+django-unfold==0.42.0
+    # via gsl (pyproject.toml)
 django-widget-tweaks==1.5.0
     # via django-dsfr
 execnet==2.1.1
