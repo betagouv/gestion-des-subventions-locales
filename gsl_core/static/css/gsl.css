@@ -22,12 +22,19 @@ html {
 ul.no-list-style {
     list-style-type: none;
     padding-inline-start: 0;
-
-
 }
 
 ul.no-list-style li {
     padding: 0;
+}
+
+.gsl-money {
+    font-variant-numeric: tabular-nums;
+    text-align: right !important;
+}
+
+.gsl-no-underline {
+    background-image: none;
 }
 
 /* Page un projet */
@@ -69,6 +76,46 @@ ul.no-list-style li {
 .gsl-projet > section {
     padding: 3em;
 }
+
 .gsl-projet > section + section {
     border-top: 1px solid #ddd;
+}
+
+/* Liste de projets */
+.gsl-project-table thead {
+    background-image: linear-gradient(0, #6a6af4, #6a6af4);
+    background-size: 100% 2px;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    background-color: #e3e2fd;
+    border-bottom: 1px solid #6a6af4;
+    text-transform: uppercase;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+.gsl-project-table thead th {
+    padding: 1em .75em;
+    text-align: left;
+    line-height: 1.3;
+}
+.gsl-project-table thead th:first-child {
+    padding-left: 1.5em;
+}
+.gsl-project-table {
+    font-size: .8em;
+}
+
+.gsl-project-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.gsl-project-table table tbody td {
+    border-bottom: 1px solid #929292;
+    padding: .75em;
+    line-height: 1.5;
+}
+.gsl-project-table table tbody td:first-child {
+    padding-left: 1.5em;
 }

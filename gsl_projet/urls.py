@@ -8,4 +8,5 @@ urlpatterns = [
         views.get_projet,
         name="get-projet",
     ),
+    path("liste", views.ProjectListView.as_view(), name="list"),
 ]

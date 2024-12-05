@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load static dsfr_tags gsl_filters %}
+
+{% block breadcrumb %}
+    {% dsfr_breadcrumb breadcrumb_dict %}
+{% endblock breadcrumb %}
+
+
+{% block content %}
+    <h1>Liste des projets</h1>
+    <div class="fr-table--lg gsl-project-table" id="table-lg-component">
+        <table>
+            <thead>
+            <tr>
+                <th>Date de dépôt</th>
+                <th>Intitulé du projet</th>
+                <th>Commune</th>
+                <th>N° D.S.</th>
+                <th>Dotation</th>
+                <th class="gsl-money">
+                    Coût total du projet<br>
+                    {% dsfr_badge label="123 000 €" extra_classes="fr-badge--blue-ecume" %}
+                </th>
+                <th class="gsl-money">
+                    Montant et taux sollicités<br>
+                    {% dsfr_badge label="23 000 €" extra_classes="fr-badge--yellow-tournesol" %}
+
+                </th>
+                <th class="gsl-money">
+                    Montant et taux retenus<br>
+                    {% dsfr_badge label="23 000 €" extra_classes="fr-badge--green-menthe" %}
+                </th>
+                <th>Catégorie d'opération</th>
+                <th>Statut</th>
+                <th><span class="fr-sr-only">Actions</span></th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for projet in object_list %}
+                <tr>
+                    <td>{{ projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}</td>
+                    <td>{{ projet.dossier_ds.projet_intitule }}</td>
+                    <td>{{ projet.address.commune.name }}</td>
+                    <td>{{ projet.dossier_ds.ds_number }}</td>
+                    <td>{{ projet.dossier_ds.demande_dispositif_sollicite }}</td>
+                    <td class="gsl-money">{{ projet.assiette_or_cout_total|floatformat:"2g"|default:"—" }}&nbsp;€</td>
+                    <td class="gsl-money">
+                        {{ projet.dossier_ds.demande_montant|floatformat:"2g"|default:"—" }}&nbsp;€<br>
+                        {{ projet.get_taux_de_subvention_sollicite|percent }}
+                    </td>
+                    <td class="gsl-money">25 000 €<br>20 %</td>
+                    <td>
+                        <ul class="no-list-style">
+                            {% for categorie in projet.categorie_doperation %}
+                                <li>{{ categorie }}</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td>{{ projet.dossier_ds.get_ds_state_display }}</td>
+                    <td class="fr-cell--right">
+                        <a class="fr-btn--tertiary-no-outline gsl-no-underline" href="{{ projet.get_absolute_url }}">
+                            <span class="fr-sr-only">Voir le projet {{ projet.dossier_ds.ds_number }}</span>
+                            <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="fr-table__footer">
+        <div class="fr-table__footer--start">
+
+        </div>
+        <div class="fr-table__footer--middle">
+            {% dsfr_pagination page_obj %}
+        </div>
+        <div class="fr-table__footer--end">
+
+        </div>
+    </div>
+    </div>
+
+{% endblock %}

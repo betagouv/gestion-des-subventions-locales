@@ -23,6 +23,13 @@
                        target="_self"
                        {% if request.path == home_url %}aria-current="true"{% endif %}>Accueil</a>
                 </li>
+                <li class="fr-nav__item">
+                    {% url 'projet:list' as projets_url %}
+                    <a class="fr-nav__link" href="{{ projets_url }}" target="_self"
+                    {% if request.path == projet_url %}aria-current="true"{% endif %}>
+                        Projets 2025 {# todo #}
+                    </a>
+                </li>
                 {% if request.user.is_staff %}
                     <li class="fr-nav__item">
                         <button class="fr-nav__btn"
