@@ -67,11 +67,17 @@ class Projet(models.Model):
         projet.save()
         return projet
 
+    @property
+    def assiette_or_cout_total(self):
+        if self.assiette:
+            return self.assiette
+        return self.dossier_ds.finance_cout_total
+
     def get_taux_de_subvention_sollicite(self):
-        if self.assiette is None:
+        if self.assiette_or_cout_total is None:
             return
-        if self.assiette > 0:
-            return self.dossier_ds.demande_montant / self.assiette
+        if self.assiette_or_cout_total > 0:
+            return self.dossier_ds.demande_montant / self.assiette_or_cout_total
 
     def get_taux_subventionnable(self):
         if self.assiette is None:
@@ -79,3 +85,10 @@ class Projet(models.Model):
 
         if self.assiette > 0:
             return int(100 * self.assiette / self.dossier_ds.finance_cout_total)
+
+    @property
+    def categorie_doperation(self):
+        if "DETR" in self.dossier_ds.demande_dispositif_sollicite:
+            yield from self.dossier_ds.demande_eligibilite_detr.all()
+        if "DSIL" in self.dossier_ds.demande_dispositif_sollicite:
+            yield from self.dossier_ds.demande_eligibilite_dsil.all()
