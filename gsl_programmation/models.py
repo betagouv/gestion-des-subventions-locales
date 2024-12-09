@@ -1,7 +1,8 @@
 from django.db import models
 from django.db.models import Q
 
-from gsl_core.models import Arrondissement, Departement, Region
+from gsl_core.models import Arrondissement, Collegue, Departement, Region
+from gsl_projet.models import Projet
 
 
 class Enveloppe(models.Model):
@@ -52,8 +53,8 @@ class Enveloppe(models.Model):
             models.UniqueConstraint(
                 name="unicity_by_perimeter_and_type",
                 fields=(
-                    "type",
                     "annee",
+                    "type",
                     "perimetre_region",
                     "perimetre_departement",
                     "perimetre_arrondissement",
@@ -106,3 +107,58 @@ class Enveloppe(models.Model):
             )
             if perimetre
         )
+
+
+class Scenario(models.Model):
+    title = models.CharField(verbose_name="Titre")
+    created_by = models.ForeignKey(Collegue, on_delete=models.SET_NULL, null=True)
+    enveloppe = models.ForeignKey(
+        Enveloppe, on_delete=models.PROTECT, verbose_name="Dotation associée"
+    )
+    slug = models.SlugField(verbose_name="Clé d’URL", unique=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Simulation de programmation"
+        verbose_name_plural = "Simulations de programmation"
+
+    def __str__(self):
+        return self.title
+
+
+class SimulationProjet(models.Model):
+    STATUS_DRAFT = "draft"
+    STATUS_VALID = "valid"
+    STATUS_CANCELLED = "cancelled"
+    STATUS_PROVISOIRE = "provisoire"
+    STATUS_CHOICES = (
+        (STATUS_DRAFT, "🔄 En traitement"),
+        (STATUS_VALID, "✅  Accepté"),
+        (STATUS_PROVISOIRE, "✔️ Accepté provisoirement"),
+        (STATUS_CANCELLED, "❌ Refusé"),
+    )
+    projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
+    enveloppe = models.ForeignKey(Enveloppe, on_delete=models.CASCADE)
+    scenario = models.ForeignKey(
+        Scenario, on_delete=models.CASCADE, null=True, blank=True
+    )
+
+    montant = models.DecimalField(
+        decimal_places=2, max_digits=14, verbose_name="Montant"
+    )
+    taux = models.DecimalField(decimal_places=2, max_digits=4, verbose_name="Taux")
+    status = models.CharField(
+        verbose_name="État", choices=STATUS_CHOICES, default=STATUS_DRAFT
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Simulation de programmation projet"
+        verbose_name_plural = "Simulations de programmation projet"
+
+    def __str__(self):
+        return f"Simulation projet {self.pk}"
