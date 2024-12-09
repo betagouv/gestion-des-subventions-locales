@@ -18,4 +18,8 @@ urlpatterns = [
     ),
     path("oidc/", include("mozilla_django_oidc.urls")),
     path("projets/", include(("gsl_projet.urls", "gsl_projet"), "projet")),
+    path(
+        "programmation/",
+        include(("gsl_programmation.urls", "gsl_programmation"), "programmation"),
+    ),
 ]

@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% load static dsfr_tags %}
+{% block content %}
+    <h1>{{ object.enveloppe.type }} {{ object.enveloppe.annee }} – {{ object.title }}</h1>
+    <h2>Simulation de programmation</h2>
+    <p>À faire sur cette page :</p>
+    <ul>
+        <li>Fil d'Ariane</li>
+        <li>Enveloppe - Titre du scénario : fait</li>
+        <li>Liste de badges sous le titre : 3 projets validés, 18 projets refusés, 5 projets notifiés</li>
+        <li>Synthèse de la simulation : hors scope pour l'instant</li>
+        <li>Bouton modifier</li>
+        <li>Bouton "ajouter des projets au tableau"</li>
+    <li>Rappel de la dotation/des dotations</li>
+    <li>Filtres et tri : reporté à Janvier / à mutualiser avec les filtres des projets ?</li>
+    <li>tableau : colonnes case à cocher pour sélectionner, date de dépôt, intitulé du projet, commune, dotation, coût total, montant sollicité, montant prévi accordé, taux de subvention, choix de la catégorie, statut, modifier ?, lien détail ?</li>
+    <li>pagination</li>
+    </ul>
+    {% dsfr_pagination page_obj %}
+
+
+{% endblock %}

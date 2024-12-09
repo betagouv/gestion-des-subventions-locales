@@ -127,6 +127,11 @@ class Scenario(models.Model):
     def __str__(self):
         return self.title
 
+    def get_absolute_url(self):
+        from django.urls import reverse
+
+        return reverse("programmation:scenario_detail", kwargs={"slug": self.slug})
+
 
 class SimulationProjet(models.Model):
     STATUS_DRAFT = "draft"
