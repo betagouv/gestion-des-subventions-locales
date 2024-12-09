@@ -49,6 +49,17 @@ class Enveloppe(models.Model):
 
     class Meta:
         constraints = (
+            models.UniqueConstraint(
+                name="unicity_by_perimeter_and_type",
+                fields=(
+                    "type",
+                    "annee",
+                    "perimetre_region",
+                    "perimetre_departement",
+                    "perimetre_arrondissement",
+                ),
+                nulls_distinct=False,  # important because "perimetre_*" fields are nullable
+            ),
             models.CheckConstraint(
                 name="only_one_perimeter",
                 violation_error_message="Un seul type de périmètre doit être renseigné parmi les trois possibles.",
