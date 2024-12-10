@@ -1,3 +1,4 @@
+from django.core.paginator import Paginator
 from django.urls import reverse
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
@@ -23,7 +24,11 @@ class ScenarioDetailView(DetailView):
     def get_context_data(self, **kwargs):
         scenario = self.get_object()
         context = super().get_context_data(**kwargs)
-        context["simulations"] = SimulationProjet.objects.filter(scenario=scenario)
+        paginator = Paginator(SimulationProjet.objects.filter(scenario=scenario), 25)
+        page = self.kwargs.get("page") or self.request.GET.get("page") or 1
+        current_page = paginator.page(page)
+        context["simulations_paginator"] = current_page
+        context["simulations_list"] = current_page.object_list
         context["title"] = (
             f"{scenario.enveloppe.type} {scenario.enveloppe.annee} – {scenario.title}"
         )
@@ -37,4 +42,5 @@ class ScenarioDetailView(DetailView):
             ],
             "current": scenario.title,
         }
+
         return context

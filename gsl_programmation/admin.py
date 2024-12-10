@@ -16,4 +16,4 @@ class SimulationProjetInline(TabularInline):
 
 @admin.register(Scenario)
 class ScenarioAdmin(ModelAdmin):
-    inlines = (SimulationProjetInline,)
+    pass
