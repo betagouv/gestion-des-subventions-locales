@@ -1,7 +1,12 @@
 {% extends 'base.html' %}
 {% load static dsfr_tags %}
+
+{% block breadcrumb %}
+    {% dsfr_breadcrumb breadcrumb_dict %}
+{% endblock breadcrumb %}
+
 {% block content %}
-    <h1>{{ object.enveloppe.type }} {{ object.enveloppe.annee }} – {{ object.title }}</h1>
+    <h1>{{ title }}</h1>
     <h2>Simulation de programmation</h2>
     <p>À faire sur cette page :</p>
     <ul>

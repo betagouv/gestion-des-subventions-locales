@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% load static dsfr_tags %}
+
+{% block breadcrumb %}
+    {% dsfr_breadcrumb breadcrumb_dict %}
+{% endblock breadcrumb %}
+
+{% block content %}
+    <h1>{{ title }}</h1>
+    <ul>
+    {% for scenario in object_list %}
+        <li><a href="{{ scenario.get_absolute_url }}">{{ scenario }}</a></li>
+        {% empty %}
+        <li>Aucune programmation n'est en cours ! Voulez-vous <a href="#todo">en commencer une</a> ?</li>
+    {% endfor %}
+    </ul>
+    {% dsfr_pagination page_obj %}
+
+
+{% endblock %}
