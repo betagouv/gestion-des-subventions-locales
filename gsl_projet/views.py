@@ -1,3 +1,5 @@
+import datetime
+
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET
@@ -75,3 +77,21 @@ def get_projet(request, projet_id):
 class ProjectListView(ListView):
     model = Projet
     paginate_by = 25
+
+    def get_ordering(self):
+        sorting = self.request.GET.get("tri")
+        available_sortings = {
+            "date_de_depot": "dossier_ds__ds_date_depot",
+            "cout_total": "dossier_ds__finance_cout_total",
+        }
+        if sorting in available_sortings:
+            return available_sortings.get(sorting)
+
+    def get_queryset(self):
+        qs = Projet.objects.filter(
+            dossier_ds__ds_date_depot__gte=datetime.date(2024, 9, 1)
+        )
+        ordering = self.get_ordering()
+        if ordering:
+            qs = qs.order_by(ordering)
+        return qs

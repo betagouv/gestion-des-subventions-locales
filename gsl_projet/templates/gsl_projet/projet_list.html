@@ -8,6 +8,32 @@
 
 {% block content %}
     <h1>Liste des projets</h1>
+
+    <form action="{{ request.path }}{% querystring %}">
+
+        <div class="filters">
+            <a href=""></a>
+        </div>
+
+        <div class="sort fr-select-group">
+            <label class="fr-label" for="dd">Tri</label>
+            <select name="tri" id="dd" class="fr-select">
+                <optgroup label="Date">
+                    <option value="date_desc">Les plus récentes en premier</option>
+                    <option value="date_asc">Les plus anciennes en premier</option>
+                </optgroup>
+                <optgroup label="Coût total">
+                    <option value="cout_asc">Croissant</option>
+                    <option value="cout_desc">Décroissant</option>
+                </optgroup>
+                <optgroup label="Commune">
+                    <option value="commune_asc">A → Z</option>
+                    <option value="commune_desc">Z → A</option>
+                </optgroup>
+            </select>
+        </div>
+        <button type="submit">Filtrer/trier</button>
+    </form>
     <div class="fr-table--lg gsl-project-table" id="table-lg-component">
         <table>
             <thead>
