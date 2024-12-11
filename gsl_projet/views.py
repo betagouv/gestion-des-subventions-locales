@@ -78,6 +78,10 @@ class ProjectListView(ListView):
     model = Projet
     paginate_by = 25
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = "Projets 2025"
+
     def get_ordering(self):
         sorting = self.request.GET.get("tri")
         available_sortings = {
