@@ -7,9 +7,19 @@
 
 {% block content %}
     <h1>{{ title }}</h1>
-    <ul>
+    <ul class="no-list-style">
     {% for scenario in object_list %}
-        <li><a href="{{ scenario.get_absolute_url }}">{{ scenario }}</a></li>
+        <li class="scenario-card">
+            {% dsfr_badge label=scenario.enveloppe.type %}
+            <h2>{{ scenario.title }}</h2>
+            <p>{{ scenario.enveloppe.perimetre }}</p>
+            <p>
+                {% dsfr_badge label='112 projets acceptés' extra_classes="fr-badge--green-menthe" %}
+                {% dsfr_badge label='18 projets refusés' extra_classes="fr-badge--pink-macaron" %}
+                {% dsfr_badge label='5 projets notifiés'  extra_classes="fr-badge--blue-cumulus" %}
+            </p>
+            <a href="{{ scenario.get_absolute_url }}">{{ scenario }}</a>
+        </li>
         {% empty %}
         <li>Aucune programmation n'est en cours ! Voulez-vous <a href="#todo">en commencer une</a> ?</li>
     {% endfor %}

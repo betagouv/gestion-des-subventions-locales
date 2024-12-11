@@ -140,3 +140,10 @@ ul.no-list-style li {
     color: #18753C;
     font-weight: bold;
 }
+
+/* liste simulations */
+
+.scenario-card {
+    border: 1px solid #ddd;
+    padding: 1em !important;
+}

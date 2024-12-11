@@ -27,7 +27,14 @@
                     {% url 'projet:list' as projets_url %}
                     <a class="fr-nav__link" href="{{ projets_url }}" target="_self"
                     {% if request.path == projet_url %}aria-current="true"{% endif %}>
-                        Projets 2025 {# todo #}
+                        Projets 2025
+                    </a>
+                </li>
+                <li class="fr-nav__item">
+                    {% url 'programmation:scenario_list' as scenarios_url %}
+                    <a class="fr-nav__link" href="{{ scenarios_url }}" target="_self"
+                    {% if request.path == scenarios_url %}aria-current="true"{% endif %}>
+                        Simulations
                     </a>
                 </li>
                 {% if request.user.is_staff %}
@@ -37,7 +44,7 @@
                                 aria-controls="menu-resources"
                                 {% if '/ds' in request.path %}aria-current="true"{% endif %}
                         >
-                            Administration DS
+                            ⚙️ Administration DS ⚙️
                         </button>
                         <div class="fr-collapse fr-menu" id="menu-resources">
                             <ul class="fr-menu__list">
