@@ -9,10 +9,10 @@
 {% block content %}
     <h1>Liste des projets</h1>
 
-    <form action="{{ request.path }}{% querystring %}">
+    <form action="{{ request.path }}{% querystring %}" class="ahr-todo">
 
         <div class="filters">
-            <a href=""></a>
+            Filtres
         </div>
 
         <div class="sort fr-select-group">
@@ -32,7 +32,7 @@
                 </optgroup>
             </select>
         </div>
-        <button type="submit">Filtrer/trier</button>
+        <button type="submit" class="fr-btn">Filtrer/trier</button>
     </form>
     <div class="fr-table--lg gsl-project-table" id="table-lg-component">
         <table>
