@@ -164,6 +164,18 @@ class SimulationProjet(models.Model):
     class Meta:
         verbose_name = "Simulation de programmation projet"
         verbose_name_plural = "Simulations de programmation projet"
+        constraints = (
+            models.UniqueConstraint(
+                fields=("projet", "scenario", "enveloppe"),
+                name="unique_projet_enveloppe_projet",
+                nulls_distinct=True,
+            ),
+            models.UniqueConstraint(
+                fields=("projet", "enveloppe"),
+                condition=Q(status="valid"),
+                name="unique_valid_simulation_per_project",
+            ),
+        )
 
     def __str__(self):
         return f"Simulation projet {self.pk}"
