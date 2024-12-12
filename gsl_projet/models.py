@@ -41,6 +41,13 @@ class Projet(models.Model):
         null=True,
     )
 
+    avis_commission_detr = models.BooleanField(
+        "Avis commission DETR",
+        help_text="Pour les projets de plus de 100 000 €",
+        null=True,
+    )
+    free_comment = models.TextField("Commentaires libres", blank=True, default="")
+
     objects = ProjetManager()
 
     def __str__(self):
