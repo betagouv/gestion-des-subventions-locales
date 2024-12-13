@@ -50,6 +50,8 @@ cryptography==43.0.3
     #   pyopenssl
 diff-cover==9.2.0
     # via gsl (pyproject.toml)
+diff-match-patch==20241021
+    # via django-import-export
 distlib==0.3.8
     # via virtualenv
 dj-database-url==2.2.0
@@ -62,6 +64,7 @@ django==5.1.4
     #   django-crispy-forms
     #   django-csp
     #   django-dsfr
+    #   django-import-export
     #   django-referrer-policy
     #   django-timezone-field
     #   django-unfold
@@ -76,6 +79,8 @@ django-crispy-forms==2.3
 django-csp==3.8
     # via gsl (pyproject.toml)
 django-dsfr==1.3.1
+    # via gsl (pyproject.toml)
+django-import-export==4.3.3
     # via gsl (pyproject.toml)
 django-query-counter==0.4.0
     # via gsl (pyproject.toml)
@@ -179,6 +184,8 @@ six==1.16.0
     # via python-dateutil
 sqlparse==0.5.1
     # via django
+tablib==3.7.0
+    # via django-import-export
 tabulate==0.9.0
     # via django-query-counter
 typing-extensions==4.12.2
