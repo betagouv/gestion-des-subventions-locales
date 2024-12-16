@@ -219,28 +219,3 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_TIMEZONE = "Europe/Paris"
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_RESULT_EXTENDED = True
-
-
-UNFOLD = {
-    # see https://unfoldadmin.com/docs/configuration/settings/
-    "SITE_TITLE": "Admin Gestion des Subventions Locales",
-    "SITE_HEADER": "Gestion des Subventions Locales",
-    "SIDEBAR": {
-        "show_search": True,
-    },
-    "COLORS": {
-        "primary": {
-            "50": "245 245 254",  # blue-france-975
-            "100": "236 236 254",  # blue-france-950
-            "200": "227 227 253",  # blue-france-925
-            "300": "202 202 251",  # blue-france-850
-            "400": "198 198 251",  # blue-france-625-active
-            "500": "133 133 246",  # blue-france-625
-            "600": "106 106 244",  # blue-france-525
-            "700": "49 49 120",  # blue-france-200
-            "800": "39 39 71",  # blue-france-125
-            "900": "33 33 63",  # blue-france-100
-            "950": "27 27 53",  # blue-france-75
-        },
-    },
-}

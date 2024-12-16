@@ -12,7 +12,6 @@ dependencies = [
     "django-csp",
     "django-dsfr",
     "django-referrer-policy",
-    "django-unfold",
     "django_celery_results",
     "django-import-export",
     "gunicorn",
