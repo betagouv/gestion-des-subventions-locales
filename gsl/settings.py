@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     "gsl_oidc",
 ]
 
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -90,6 +91,10 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+if DEBUG:
+    INSTALLED_APPS.append("query_counter")
+    MIDDLEWARE.append("query_counter.middleware.DjangoQueryCounterMiddleware")
 
 AUTHENTICATION_BACKENDS = [
     "gsl_oidc.backends.OIDCAuthenticationBackend",
