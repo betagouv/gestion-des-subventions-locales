@@ -56,11 +56,6 @@ if SENTRY_DSN:
 # Application definition
 
 INSTALLED_APPS = [
-    "unfold",  # before django.contrib.admin
-    # "unfold.contrib.filters",  # optional, if special filters are needed
-    # "unfold.contrib.forms",  # optional, if special form elements are needed
-    # "unfold.contrib.inlines",  # optional, if special inlines are needed
-    # "unfold.contrib.import_export",  # optional, if django-import-export package is used
     "django.contrib.admin",
     "django.contrib.auth",
     "mozilla_django_oidc",
@@ -73,6 +68,7 @@ INSTALLED_APPS = [
     # dependencies:
     "widget_tweaks",
     "dsfr",
+    "import_export",
     # gsl apps:
     "gsl_core",
     "gsl_demarches_simplifiees",
@@ -223,28 +219,3 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_TIMEZONE = "Europe/Paris"
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_RESULT_EXTENDED = True
-
-
-UNFOLD = {
-    # see https://unfoldadmin.com/docs/configuration/settings/
-    "SITE_TITLE": "Admin Gestion des Subventions Locales",
-    "SITE_HEADER": "Gestion des Subventions Locales",
-    "SIDEBAR": {
-        "show_search": True,
-    },
-    "COLORS": {
-        "primary": {
-            "50": "245 245 254",  # blue-france-975
-            "100": "236 236 254",  # blue-france-950
-            "200": "227 227 253",  # blue-france-925
-            "300": "202 202 251",  # blue-france-850
-            "400": "198 198 251",  # blue-france-625-active
-            "500": "133 133 246",  # blue-france-625
-            "600": "106 106 244",  # blue-france-525
-            "700": "49 49 120",  # blue-france-200
-            "800": "39 39 71",  # blue-france-125
-            "900": "33 33 63",  # blue-france-100
-            "950": "27 27 53",  # blue-france-75
-        },
-    },
-}
