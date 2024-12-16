@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
-from unfold.admin import ModelAdmin
+from import_export.admin import ImportMixin
 
 from gsl_core.models import (
     Adresse,
@@ -11,6 +11,8 @@ from gsl_core.models import (
     Departement,
     Region,
 )
+
+from .resources import ArrondissementResource, DepartementResource, RegionResource
 
 
 class AllPermsForStaffUser:
@@ -31,7 +33,7 @@ class AllPermsForStaffUser:
 
 
 @admin.register(Collegue)
-class CollegueAdmin(UserAdmin, ModelAdmin):
+class CollegueAdmin(UserAdmin, admin.ModelAdmin):
     list_display = ("username", "email", "first_name", "last_name", "is_staff")
     fieldsets = (
         (None, {"fields": ("username", "password")}),
@@ -63,7 +65,7 @@ class CollegueAdmin(UserAdmin, ModelAdmin):
 
 
 @admin.register(Adresse)
-class AdresseAdmin(AllPermsForStaffUser, ModelAdmin):
+class AdresseAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = ("label", "postal_code", "commune")
 
     def get_queryset(self, request):
@@ -72,11 +74,23 @@ class AdresseAdmin(AllPermsForStaffUser, ModelAdmin):
         return queryset
 
 
-@admin.register(Commune)
-@admin.register(Arrondissement)
-@admin.register(Departement)
 @admin.register(Region)
-class CoreModelAdmin(AllPermsForStaffUser, ModelAdmin):
+class RegionAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
+    resource_classes = (RegionResource,)
+
+
+@admin.register(Departement)
+class DepartementAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
+    resource_classes = (DepartementResource,)
+
+
+@admin.register(Arrondissement)
+class ArrondissementAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
+    resource_classes = (ArrondissementResource,)
+
+
+@admin.register(Commune)
+class CoreModelAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     pass
 
 

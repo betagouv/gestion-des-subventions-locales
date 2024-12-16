@@ -56,11 +56,6 @@ if SENTRY_DSN:
 # Application definition
 
 INSTALLED_APPS = [
-    "unfold",  # before django.contrib.admin
-    # "unfold.contrib.filters",  # optional, if special filters are needed
-    # "unfold.contrib.forms",  # optional, if special form elements are needed
-    # "unfold.contrib.inlines",  # optional, if special inlines are needed
-    "unfold.contrib.import_export",  # optional, if django-import-export package is used
     "django.contrib.admin",
     "django.contrib.auth",
     "mozilla_django_oidc",
@@ -73,6 +68,7 @@ INSTALLED_APPS = [
     # dependencies:
     "widget_tweaks",
     "dsfr",
+    "import_export",
     # gsl apps:
     "gsl_core",
     "gsl_demarches_simplifiees",
