@@ -9,6 +9,7 @@ from gsl_core.models import (
     Collegue,
     Commune,
     Departement,
+    Perimetre,
     Region,
 )
 
@@ -90,7 +91,12 @@ class ArrondissementAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
 
 
 @admin.register(Commune)
-class CoreModelAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+class CommuneAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    pass
+
+
+@admin.register(Perimetre)
+class PerimetreAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     pass
 
 

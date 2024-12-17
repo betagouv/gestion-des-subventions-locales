@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import UniqueConstraint
 
 
 class BaseModel(models.Model):
@@ -11,24 +13,6 @@ class BaseModel(models.Model):
 
     def __str__(self):
         return f"{self._meta.verbose_name} {self.pk}"
-
-
-class Collegue(AbstractUser):
-    proconnect_sub = models.UUIDField(
-        "Identifiant unique proconnect", null=True, blank=True
-    )
-    proconnect_uid = models.CharField("ID chez le FI", default="", blank=True)
-    proconnect_idp_id = models.UUIDField("Identifiant du FI", null=True, blank=True)
-    proconnect_siret = models.CharField(
-        "SIRET",
-        default="",
-        blank=True,
-    )
-    proconnect_chorusdt = models.CharField(
-        "Entité ministérielle / Matricule Agent",
-        default="",
-        blank=True,
-    )
 
 
 class Region(BaseModel):
@@ -123,23 +107,74 @@ class Adresse(BaseModel):
 class Perimetre(BaseModel):
     region = models.ForeignKey(
         Region,
-        verbose_name="Périmètre régional",
+        verbose_name="Région",
         on_delete=models.PROTECT,
     )
     departement = models.ForeignKey(
         Departement,
-        verbose_name="Périmètre départemental",
+        verbose_name="Département",
         null=True,
         on_delete=models.PROTECT,
         blank=True,
     )
     arrondissement = models.ForeignKey(
         Arrondissement,
-        verbose_name="Périmètre d’arrondissement",
+        verbose_name="Arrondissement",
         null=True,
         on_delete=models.PROTECT,
         blank=True,
     )
+
+    class Meta:
+        constraints = (
+            UniqueConstraint(
+                name="unicity_by_perimeter",
+                fields=(
+                    "region",
+                    "departement",  # nullable
+                    "arrondissement",  # nullable
+                ),
+                nulls_distinct=False,  # important because some fields are nullable
+            ),
+            # CheckConstraint(
+            #     name="departement_belongs_to_region",
+            #     violation_error_message="Le département sélectionné doit appartenir à sa région.",
+            #     condition=Q(departement__region=F('region'))^Q(departement__isnull=True)
+            # ),
+            # CheckConstraint(
+            #     name="arrondissement_belongs_to_departement",
+            #     violation_error_message="L'arrondissement sélectionné doit appartenir à son département.",
+            #     condition=Q(arrondissement__departement=F('departement'))^Q(arrondissement__isnull=True)
+            # ),
+        )
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        errors = {}
+
+        if self.departement and self.region and self.departement.region != self.region:
+            errors["departement"] = (
+                "Le département doit appartenir à la même région que le périmètre."
+            )
+
+        if self.arrondissement and not self.departement:
+            errors["arrondissement"] = (
+                "Un arrondissement ne peut être sélectionné sans département."
+            )
+        elif (
+            self.arrondissement
+            and self.departement
+            and self.arrondissement.departement != self.departement
+        ):
+            errors["arrondissement"] = (
+                "L'arrondissement sélectionné doit appartenir à son département."
+            )
+
+        if errors:
+            raise ValidationError(errors)
 
     # contraintes :
     # région obligatoire
@@ -147,12 +182,15 @@ class Perimetre(BaseModel):
     # si arrondissement : département obligatoire et arrondissement doit appartenir au département
 
     # classe :
-    # méthode de comparaison
+    # méthode de comparaison entre deux périmètres ?
 
     # utilisation de cette classe:
     # si utilisateur.perimetre inclut le projet.perimetre : utilisateur peut voir le projet
     # projet vs enveloppes
     # utilisateurs vs enveloppes
+
+    # sur un projet : pas forcément ajouter un périmètre, mais "juste" bien renseigner l'arrondissement
+    # projet__arrondissement__region == utilisateur.perimetre__region, etc.
 
     # projet.objects.filter(perimetre__region=utilisateur.perimetre__region)
     # si utilisateur.perimetre__departement is None : ok la condition suffit
@@ -161,3 +199,24 @@ class Perimetre(BaseModel):
     # idem pour l'arrondissemnt
 
     # enveloppes : droits en lecture différents des droits en écriture
+
+
+class Collegue(AbstractUser):
+    proconnect_sub = models.UUIDField(
+        "Identifiant unique proconnect", null=True, blank=True
+    )
+    proconnect_uid = models.CharField("ID chez le FI", default="", blank=True)
+    proconnect_idp_id = models.UUIDField("Identifiant du FI", null=True, blank=True)
+    proconnect_siret = models.CharField(
+        "SIRET",
+        default="",
+        blank=True,
+    )
+    proconnect_chorusdt = models.CharField(
+        "Entité ministérielle / Matricule Agent",
+        default="",
+        blank=True,
+    )
+    perimeter = models.ForeignKey(
+        Perimetre, on_delete=models.PROTECT, null=True, blank=True
+    )

@@ -369,8 +369,11 @@ class NaturePorteurProjet(DsChoiceLibelle):
     pass
 
 
-class Arrondissement(DsChoiceLibelle):
+class Arrondissement(DsChoiceLibelle):  # piegeux
     pass
+
+
+#    arrondissement = models.ForeignKey("gsl_core.arrondissement")
 
 
 class ProjetZonage(DsChoiceLibelle):
