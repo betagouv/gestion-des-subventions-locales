@@ -118,3 +118,46 @@ class Adresse(BaseModel):
             )
             self.commune = commune
         return self
+
+
+class Perimetre(BaseModel):
+    region = models.ForeignKey(
+        Region,
+        verbose_name="Périmètre régional",
+        on_delete=models.PROTECT,
+    )
+    departement = models.ForeignKey(
+        Departement,
+        verbose_name="Périmètre départemental",
+        null=True,
+        on_delete=models.PROTECT,
+        blank=True,
+    )
+    arrondissement = models.ForeignKey(
+        Arrondissement,
+        verbose_name="Périmètre d’arrondissement",
+        null=True,
+        on_delete=models.PROTECT,
+        blank=True,
+    )
+
+    # contraintes :
+    # région obligatoire
+    # si département : doit appartenir à la région
+    # si arrondissement : département obligatoire et arrondissement doit appartenir au département
+
+    # classe :
+    # méthode de comparaison
+
+    # utilisation de cette classe:
+    # si utilisateur.perimetre inclut le projet.perimetre : utilisateur peut voir le projet
+    # projet vs enveloppes
+    # utilisateurs vs enveloppes
+
+    # projet.objects.filter(perimetre__region=utilisateur.perimetre__region)
+    # si utilisateur.perimetre__departement is None : ok la condition suffit
+    # sinon on continue :
+    # projets.filter(perimetre__departement=user.perimetre__departement)
+    # idem pour l'arrondissemnt
+
+    # enveloppes : droits en lecture différents des droits en écriture
