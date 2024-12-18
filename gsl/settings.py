@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     "widget_tweaks",
     "dsfr",
     "import_export",
+    "django_extensions",
     # gsl apps:
     "gsl_core",
     "gsl_demarches_simplifiees",

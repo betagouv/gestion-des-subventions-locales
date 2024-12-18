@@ -78,3 +78,9 @@ planifiées ou cronées :
 ```bash
 python -m celery -A gsl worker --beat --scheduler django -l INFO
 ```
+
+## Interagir en shell
+
+```bash
+python manage.py shell_plus --ipython
+```
