@@ -2,44 +2,47 @@ import pytest
 from django.core.exceptions import ValidationError
 
 from gsl_core.models import Arrondissement, Departement, Perimetre, Region
+from gsl_core.tests.factories import (
+    ArrondissementFactory,
+    DepartementFactory,
+    RegionFactory,
+)
 
 pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
 def region_idf() -> Region:
-    return Region.objects.create(insee_code="11", name="Île-de-France")
+    return RegionFactory(name="Île-de-France", insee_code="11")
 
 
 @pytest.fixture
 def region_normandie() -> Region:
-    return Region.objects.create(insee_code="28", name="Normandie")
+    return RegionFactory(name="Normandie", insee_code="28")
 
 
 @pytest.fixture
 def dept_75(region_idf) -> Departement:
-    return Departement.objects.create(insee_code="75", name="Paris", region=region_idf)
+    return DepartementFactory(insee_code="75", name="Paris", region=region_idf)
 
 
 @pytest.fixture
 def dept_76(region_normandie) -> Departement:
-    return Departement.objects.create(
+    return DepartementFactory(
         insee_code="76", name="Seine-Maritime", region=region_normandie
     )
 
 
 @pytest.fixture
 def arr_paris_centre(dept_75) -> Arrondissement:
-    return Arrondissement.objects.create(
+    return ArrondissementFactory(
         insee_code="75101", name="Paris Centre", departement=dept_75
     )
 
 
 @pytest.fixture
 def arr_le_havre(dept_76) -> Arrondissement:
-    return Arrondissement.objects.create(
-        insee_code="762", name="Le Havre", departement=dept_76
-    )
+    return ArrondissementFactory(insee_code="762", name="Le Havre", departement=dept_76)
 
 
 def test_clean_valid_perimetre(region_idf, dept_75):
