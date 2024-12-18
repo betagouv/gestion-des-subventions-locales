@@ -1,6 +1,6 @@
 from django.db import models
 
-from gsl_core.models import Adresse, Arrondissement, Collegue, Departement
+from gsl_core.models import Adresse, Arrondissement, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
 
 
@@ -17,12 +17,18 @@ class Demandeur(models.Model):
 
 
 class ProjetManager(models.Manager):
-    def for_user(
-        self, user: Collegue
-    ):  # utilisable seulement en début de chaîne => à passer sur un QuerySet custom
-        return self.filter(
-            dossier_ds__ds_demarche__ds_instructeurs__ds_email=user.email
-        )
+    def for_user(self, user: Collegue):
+        return self.for_perimetre(user.perimetre)
+
+    def for_perimetre(self, perimetre: Perimetre):
+        if perimetre is None:
+            return self
+        if perimetre.arrondissement:
+            return self.filter(demandeur__arrondissement=perimetre.arrondissement)
+        if perimetre.departement:
+            return self.filter(demandeur__departement=perimetre.departement)
+        if perimetre.region:
+            return self.filter(demandeur__departement__region=perimetre.region)
 
     def get_queryset(self):
         return super().get_queryset().select_related("dossier_ds")
@@ -30,6 +36,7 @@ class ProjetManager(models.Manager):
 
 class Projet(models.Model):
     dossier_ds = models.OneToOneField(Dossier, on_delete=models.PROTECT)
+    demandeur = models.ForeignKey(Demandeur, on_delete=models.PROTECT, null=True)
 
     address = models.ForeignKey(Adresse, on_delete=models.PROTECT, null=True)
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT, null=True)

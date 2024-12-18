@@ -29,3 +29,4 @@ class ProjetFactory(factory.django.DjangoModelFactory):
     dossier_ds = factory.SubFactory(DossierFactory)
     address = factory.SubFactory(AdresseFactory)
     departement = factory.SubFactory(DepartementFactory)
+    demandeur = factory.SubFactory(DemandeurFactory)
