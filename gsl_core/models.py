@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import UniqueConstraint
 
 
 class BaseModel(models.Model):
@@ -13,30 +15,13 @@ class BaseModel(models.Model):
         return f"{self._meta.verbose_name} {self.pk}"
 
 
-class Collegue(AbstractUser):
-    proconnect_sub = models.UUIDField(
-        "Identifiant unique proconnect", null=True, blank=True
-    )
-    proconnect_uid = models.CharField("ID chez le FI", default="", blank=True)
-    proconnect_idp_id = models.UUIDField("Identifiant du FI", null=True, blank=True)
-    proconnect_siret = models.CharField(
-        "SIRET",
-        default="",
-        blank=True,
-    )
-    proconnect_chorusdt = models.CharField(
-        "Entité ministérielle / Matricule Agent",
-        default="",
-        blank=True,
-    )
-
-
 class Region(BaseModel):
     insee_code = models.CharField("Code INSEE", unique=True, primary_key=True)
     name = models.CharField("Nom")
 
     class Meta:
         verbose_name = "Région"
+        ordering = ["name"]
 
     def __str__(self):
         return f"Région {self.name}"
@@ -49,9 +34,10 @@ class Departement(BaseModel):
 
     class Meta:
         verbose_name = "Département"
+        ordering = ["insee_code"]
 
     def __str__(self):
-        return f"Département {self.name}"
+        return f"Département {self.insee_code} - {self.name}"
 
 
 class Commune(BaseModel):
@@ -118,3 +104,95 @@ class Adresse(BaseModel):
             )
             self.commune = commune
         return self
+
+
+class Perimetre(BaseModel):
+    region = models.ForeignKey(
+        Region,
+        verbose_name="Région",
+        on_delete=models.PROTECT,
+    )
+    departement = models.ForeignKey(
+        Departement,
+        verbose_name="Département",
+        null=True,
+        on_delete=models.PROTECT,
+        blank=True,
+    )
+    arrondissement = models.ForeignKey(
+        Arrondissement,
+        verbose_name="Arrondissement",
+        null=True,
+        on_delete=models.PROTECT,
+        blank=True,
+    )
+
+    class Meta:
+        constraints = (
+            UniqueConstraint(
+                name="unicity_by_perimeter",
+                fields=(
+                    "region",
+                    "departement",  # nullable
+                    "arrondissement",  # nullable
+                ),
+                nulls_distinct=False,  # important because some fields are nullable
+            ),
+        )
+
+    def __str__(self):
+        name = f"{self.region.name}"
+        if self.departement:
+            name += f" - {self.departement.name}"
+        if self.arrondissement:
+            name += f" - {self.arrondissement.name}"
+        return name
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        errors = {}
+
+        if self.departement and self.region and self.departement.region != self.region:
+            errors["departement"] = (
+                "Le département doit appartenir à la même région que le périmètre."
+            )
+
+        if self.arrondissement and not self.departement:
+            errors["arrondissement"] = (
+                "Un arrondissement ne peut être sélectionné sans département."
+            )
+        elif (
+            self.arrondissement
+            and self.departement
+            and self.arrondissement.departement != self.departement
+        ):
+            errors["arrondissement"] = (
+                "L'arrondissement sélectionné doit appartenir à son département."
+            )
+
+        if errors:
+            raise ValidationError(errors)
+
+
+class Collegue(AbstractUser):
+    proconnect_sub = models.UUIDField(
+        "Identifiant unique proconnect", null=True, blank=True
+    )
+    proconnect_uid = models.CharField("ID chez le FI", default="", blank=True)
+    proconnect_idp_id = models.UUIDField("Identifiant du FI", null=True, blank=True)
+    proconnect_siret = models.CharField(
+        "SIRET",
+        default="",
+        blank=True,
+    )
+    proconnect_chorusdt = models.CharField(
+        "Entité ministérielle / Matricule Agent",
+        default="",
+        blank=True,
+    )
+    perimetre = models.ForeignKey(
+        Perimetre, on_delete=models.PROTECT, null=True, blank=True
+    )
