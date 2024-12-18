@@ -1,8 +1,7 @@
 import pytest
 from django.core.exceptions import ValidationError
 
-from gsl_core.models import Region, Departement, Arrondissement, Perimetre
-
+from gsl_core.models import Arrondissement, Departement, Perimetre, Region
 
 pytestmark = pytest.mark.django_db
 
