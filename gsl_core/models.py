@@ -138,16 +138,6 @@ class Perimetre(BaseModel):
                 ),
                 nulls_distinct=False,  # important because some fields are nullable
             ),
-            # CheckConstraint(
-            #     name="departement_belongs_to_region",
-            #     violation_error_message="Le département sélectionné doit appartenir à sa région.",
-            #     condition=Q(departement__region=F('region'))^Q(departement__isnull=True)
-            # ),
-            # CheckConstraint(
-            #     name="arrondissement_belongs_to_departement",
-            #     violation_error_message="L'arrondissement sélectionné doit appartenir à son département.",
-            #     condition=Q(arrondissement__departement=F('departement'))^Q(arrondissement__isnull=True)
-            # ),
         )
 
     def __str__(self):
@@ -185,30 +175,6 @@ class Perimetre(BaseModel):
 
         if errors:
             raise ValidationError(errors)
-
-    # contraintes :
-    # région obligatoire
-    # si département : doit appartenir à la région
-    # si arrondissement : département obligatoire et arrondissement doit appartenir au département
-
-    # classe :
-    # méthode de comparaison entre deux périmètres ?
-
-    # utilisation de cette classe:
-    # si utilisateur.perimetre inclut le projet.perimetre : utilisateur peut voir le projet
-    # projet vs enveloppes
-    # utilisateurs vs enveloppes
-
-    # sur un projet : pas forcément ajouter un périmètre, mais "juste" bien renseigner l'arrondissement
-    # projet__arrondissement__region == utilisateur.perimetre__region, etc.
-
-    # projet.objects.filter(perimetre__region=utilisateur.perimetre__region)
-    # si utilisateur.perimetre__departement is None : ok la condition suffit
-    # sinon on continue :
-    # projets.filter(perimetre__departement=user.perimetre__departement)
-    # idem pour l'arrondissemnt
-
-    # enveloppes : droits en lecture différents des droits en écriture
 
 
 class Collegue(AbstractUser):
