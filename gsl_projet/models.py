@@ -74,7 +74,14 @@ class Projet(models.Model):
                 dossier_ds=ds_dossier,
             )
         projet.address = ds_dossier.projet_adresse
-
+        projet.demandeur, _ = Demandeur.objects.get_or_create(
+            siret=ds_dossier.ds_demandeur.siret,
+            defaults={
+                "name": ds_dossier.ds_demandeur.raison_sociale,
+                "address": ds_dossier.ds_demandeur.address,
+                "departement": ds_dossier.ds_demandeur.address.commune.departement,
+            },
+        )
         if projet.address is not None and projet.address.commune is not None:
             projet.departement = projet.address.commune.departement
 
