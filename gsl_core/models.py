@@ -21,6 +21,7 @@ class Region(BaseModel):
 
     class Meta:
         verbose_name = "Région"
+        ordering = ["name"]
 
     def __str__(self):
         return f"Région {self.name}"
@@ -33,9 +34,10 @@ class Departement(BaseModel):
 
     class Meta:
         verbose_name = "Département"
+        ordering = ["insee_code"]
 
     def __str__(self):
-        return f"Département {self.name}"
+        return f"Département {self.insee_code} - {self.name}"
 
 
 class Commune(BaseModel):
