@@ -150,6 +150,14 @@ class Perimetre(BaseModel):
             # ),
         )
 
+    def __str__(self):
+        name = f"{self.region.name}"
+        if self.departement:
+            name += f" - {self.departement.name}"
+        if self.arrondissement:
+            name += f" - {self.arrondissement.name}"
+        return name
+
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)

@@ -35,7 +35,14 @@ class AllPermsForStaffUser:
 
 @admin.register(Collegue)
 class CollegueAdmin(UserAdmin, admin.ModelAdmin):
-    list_display = ("username", "email", "first_name", "last_name", "is_staff")
+    list_display = (
+        "username",
+        "email",
+        "first_name",
+        "last_name",
+        "is_staff",
+        "perimetre",
+    )
     fieldsets = (
         (None, {"fields": ("username", "password")}),
         ("Informations personnelles", {"fields": ("first_name", "last_name", "email")}),
@@ -54,11 +61,7 @@ class CollegueAdmin(UserAdmin, admin.ModelAdmin):
         (
             "Gestion des droits",
             {
-                "fields": (
-                    "is_active",
-                    "is_staff",
-                    "is_superuser",
-                ),
+                "fields": ("is_active", "is_staff", "is_superuser", "perimetre"),
             },
         ),
         ("Dates", {"fields": ("last_login", "date_joined")}),
