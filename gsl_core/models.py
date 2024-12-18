@@ -217,6 +217,6 @@ class Collegue(AbstractUser):
         default="",
         blank=True,
     )
-    perimeter = models.ForeignKey(
+    perimetre = models.ForeignKey(
         Perimetre, on_delete=models.PROTECT, null=True, blank=True
     )
