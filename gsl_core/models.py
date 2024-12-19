@@ -40,15 +40,6 @@ class Departement(BaseModel):
         return f"Département {self.insee_code} - {self.name}"
 
 
-class Commune(BaseModel):
-    insee_code = models.CharField("Code INSEE", unique=True, primary_key=True)
-    name = models.CharField("Nom")
-    departement = models.ForeignKey(Departement, on_delete=models.PROTECT)
-
-    def __str__(self):
-        return f"Commune {self.insee_code} {self.name}"
-
-
 class Arrondissement(BaseModel):
     insee_code = models.CharField("Code INSEE", unique=True, primary_key=True)
     name = models.CharField("Nom")
@@ -56,6 +47,16 @@ class Arrondissement(BaseModel):
 
     def __str__(self):
         return f"Arrondissement {self.name}"
+
+
+class Commune(BaseModel):
+    insee_code = models.CharField("Code INSEE", unique=True, primary_key=True)
+    name = models.CharField("Nom")
+    departement = models.ForeignKey(Departement, on_delete=models.PROTECT)
+    arrondissement = models.ForeignKey(Arrondissement, on_delete=models.PROTECT)
+
+    def __str__(self):
+        return f"Commune {self.insee_code} {self.name}"
 
 
 class Adresse(BaseModel):
