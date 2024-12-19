@@ -17,7 +17,8 @@
             <li>Bouton "ajouter des projets au tableau"</li>
             <li>Rappel de la dotation/des dotations</li>
             <li>Filtres et tri : reporté à Janvier / à mutualiser avec les filtres des projets ?</li>
-            <li>tableau : colonnes case à cocher pour sélectionner, date de dépôt, intitulé du projet, commune,
+            <li>
+                tableau : colonnes case à cocher pour sélectionner, date de dépôt, intitulé du projet, commune,
                 dotation,
                 coût total, montant sollicité, montant prévi accordé, taux de subvention, choix de la catégorie, statut,
                 modifier ?, lien détail ?
@@ -27,93 +28,96 @@
     <div class="fr-table--lg gsl-project-table">
         <table>
             <thead>
-            <tr>
-                <th>
-                    <span class="fr-sr-only">Sélectionner</span>
-                </th>
-                <th>Date de dépôt</th>
-                <th>Intitulé du projet</th>
-                <th>Commune</th>
-                <th>Dotation</th>
-                <th>
-                    Coût total du projet <br>
-                    <span class="fr-badge">10&nbsp;834&nbsp;000&nbsp;€</span>
-                </th>
-                <th>
-                    Montant sollicité
-                    <span class="fr-badge">2&nbsp;830&nbsp;000&nbsp;€</span>
-                </th>
-                <th>
-                    Montant prévisionnel accordé
-                    <span class="fr-badge">930&nbsp;000&nbsp;€</span>
-                </th>
-                <th>
-                    Taux de subvention
-                </th>
-                <th>Choix de la catégorie d’opération</th>
-                <th>Statut</th>
-                <th><span class="fr-sr-only">Actions</span></th>
-            </tr>
+                <tr>
+                    <th>
+                        <span class="fr-sr-only">Sélectionner</span>
+                    </th>
+                    <th>Date de dépôt</th>
+                    <th>Intitulé du projet</th>
+                    <th>Commune</th>
+                    <th>Dotation</th>
+                    <th>
+                        Coût total du projet
+                        <br>
+                        <span class="fr-badge">10&nbsp;834&nbsp;000&nbsp;€</span>
+                    </th>
+                    <th>
+                        Montant sollicité
+                        <span class="fr-badge">2&nbsp;830&nbsp;000&nbsp;€</span>
+                    </th>
+                    <th>
+                        Montant prévisionnel accordé
+                        <span class="fr-badge">930&nbsp;000&nbsp;€</span>
+                    </th>
+                    <th>Taux de subvention</th>
+                    <th>Choix de la catégorie d’opération</th>
+                    <th>Statut</th>
+                    <th>
+                        <span class="fr-sr-only">Actions</span>
+                    </th>
+                </tr>
             </thead>
             <tbody>
-            {% for simu in simulations_list %}
-                <tr>
-                    <td>
-                        <input type="checkbox" name="simu[{{ simu.pk }}]"
-                               aria-label="Sélectionner le projet {{ simu.projet.dossier_ds.projet_intitule }}">
-                    </td>
-                    <td>
-                        {{ simu.projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}
-                    </td>
-                    <td>
-                        {{ simu.projet.dossier_ds.projet_intitule }}
-                    </td>
-                    <td>{{ simu.projet.address.commune.name }}</td>
-                    <td>
-                        <select>
-                            <option value="DETR">DETR</option>
-                            <option value="DSIL">DSIL</option>
-                        </select>
-                    </td>
-                    <td class="gsl-money">{{ simu.projet.assiette_or_cout_total|floatformat:"2g"|default:"—" }}&nbsp;€<br>&nbsp;</td>
-                    <td class="gsl-money">
-                        {{ simu.projet.dossier_ds.demande_montant|floatformat:"2g"|default:"—" }}&nbsp;€<br>
-                        {{ simu.projet.get_taux_de_subvention_sollicite|percent }}
-                    </td>
-                    <td class="gsl-money">
-                        <div class="fr-input-wrap fr-icon-money-euro-circle-line">
-                            <input type="number" class="fr-input">
-                        </div>
-                    </td>
-                    <td class="gsl-money">
-                        <input type="number" inputmode="numeric" class="fr-input">
-                    </td>
-                    <td>
-                        <select class="fr-select" name="" id="">
-                            <option value="">{{ simu.projet.categorie_doperation.first }}</option>
-                        </select>
-                    </td>
-                    <td>
-                        <span class="status-{{ simu.status }}">{{ simu.get_status_display }}</span>
-                    </td>
-                    <td class="fr-cell--right gsl-nowrap">
-                        <a class="fr-btn--tertiary-no-outline gsl-no-underline"
-                           href="{{ simu.projet.get_absolute_url }}">
-                            <span class="fr-sr-only">Modifier le projet {{ simu.projet.dossier_ds.ds_number }}</span>
-                            <span class="fr-icon-edit-fill" aria-hidden="true"></span>
-                        </a>
-                        <a class="fr-btn--tertiary-no-outline gsl-no-underline"
-                           href="{{ simu.projet.get_absolute_url }}">
-                            <span class="fr-sr-only">Voir le projet {{ simu.projet.dossier_ds.ds_number }}</span>
-                            <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
-                        </a>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="12">Liste vide.</td>
-                </tr>
-            {% endfor %}
+                {% for simu in simulations_list %}
+                    <tr>
+                        <td>
+                            <input type="checkbox"
+                                   name="simu[{{ simu.pk }}]"
+                                   aria-label="Sélectionner le projet {{ simu.projet.dossier_ds.projet_intitule }}">
+                        </td>
+                        <td>{{ simu.projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}</td>
+                        <td>{{ simu.projet.dossier_ds.projet_intitule }}</td>
+                        <td>{{ simu.projet.address.commune.name }}</td>
+                        <td>
+                            <select>
+                                <option value="DETR">DETR</option>
+                                <option value="DSIL">DSIL</option>
+                            </select>
+                        </td>
+                        <td class="gsl-money">
+                            {{ simu.projet.assiette_or_cout_total|floatformat:"2g"|default:"—" }}&nbsp;€
+                            <br>
+                            &nbsp;
+                        </td>
+                        <td class="gsl-money">
+                            {{ simu.projet.dossier_ds.demande_montant|floatformat:"2g"|default:"—" }}&nbsp;€
+                            <br>
+                            {{ simu.projet.get_taux_de_subvention_sollicite|percent }}
+                        </td>
+                        <td class="gsl-money">
+                            <div class="fr-input-wrap fr-icon-money-euro-circle-line">
+                                <input type="number" class="fr-input">
+                            </div>
+                        </td>
+                        <td class="gsl-money">
+                            <input type="number" inputmode="numeric" class="fr-input">
+                        </td>
+                        <td>
+                            <select class="fr-select" name="" id="">
+                                <option value="">{{ simu.projet.categorie_doperation.first }}</option>
+                            </select>
+                        </td>
+                        <td>
+                            <span class="status-{{ simu.status }}">{{ simu.get_status_display }}</span>
+                        </td>
+                        <td class="fr-cell--right gsl-nowrap">
+                            <a class="fr-btn--tertiary-no-outline gsl-no-underline"
+                               href="{{ simu.projet.get_absolute_url }}">
+                                <span class="fr-sr-only">Modifier le projet {{ simu.projet.dossier_ds.ds_number }}</span>
+                                <span class="fr-icon-edit-fill" aria-hidden="true"></span>
+                            </a>
+                            <a class="fr-btn--tertiary-no-outline gsl-no-underline"
+                               href="{{ simu.projet.get_absolute_url }}">
+                                <span class="fr-sr-only">Voir le projet {{ simu.projet.dossier_ds.ds_number }}</span>
+                                <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="12">Liste vide.</td>
+                    </tr>
+                {% endfor %}
             </tbody>
         </table>
     </div>

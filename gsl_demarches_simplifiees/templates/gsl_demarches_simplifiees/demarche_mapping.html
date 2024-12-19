@@ -15,12 +15,15 @@
                         {% for mapping in existing_mappings %}
                             <tr>
                                 <td>
-                                    {{ mapping.django_field }} <br>
-                                    {{ mapping.django_field_label }} <br>
+                                    {{ mapping.django_field }}
+                                    <br>
+                                    {{ mapping.django_field_label }}
+                                    <br>
                                     {{ mapping.django_field_type }}
                                 </td>
                                 <td>
-                                    {{ mapping.ds_field_label }}<br>
+                                    {{ mapping.ds_field_label }}
+                                    <br>
                                     {{ mapping.ds_field_type }}
                                 </td>
                             </tr>

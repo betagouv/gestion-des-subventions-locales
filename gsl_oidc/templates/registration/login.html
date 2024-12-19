@@ -10,8 +10,10 @@
                         <div class="fr-col-12 fr-col-md-9 fr-col-lg-8">
                             <h1>Gestion des Subventions Locales</h1>
                             <div class="fr-fieldset__element">
-                                <p>Cet outil est destiné aux agents publics. Utilisez le bouton
-                                    ProConnect ci-dessous.</p>
+                                <p>
+                                    Cet outil est destiné aux agents publics. Utilisez le bouton
+                                    ProConnect ci-dessous.
+                                </p>
                             </div>
                             <div class="fr-mb-6v">
                                 <h2>Se connecter avec ProConnect</h2>
@@ -21,7 +23,9 @@
                                         <span class="fr-connect__brand">ProConnect</span>
                                     </a>
                                     <p>
-                                        <a href="https://www.proconnect.gouv.fr/" target="_blank" rel="noopener"
+                                        <a href="https://www.proconnect.gouv.fr/"
+                                           target="_blank"
+                                           rel="noopener"
                                            title="Qu’est-ce que ProConnect ? - nouvelle fenêtre">
                                             Qu’est-ce que ProConnect ?
                                         </a>
@@ -33,8 +37,7 @@
                             <div>
                                 <form id="login-1760" action="{% url "login" %}" method="POST">
                                     {% csrf_token %}
-                                    <fieldset class="fr-fieldset" id="login-1760-fieldset"
-                                              aria-labelledby="login-1760-fieldset-legend">
+                                    <fieldset class="fr-fieldset" id="login-1760-fieldset" aria-labelledby="login-1760-fieldset-legend">
                                         <legend class="fr-fieldset__legend" id="login-1760-fieldset-legend">
                                             <h2>Se connecter avec son compte</h2>
                                         </legend>
@@ -42,8 +45,7 @@
                                             <p class="fr-text--sm"></p>
                                         </div>-->
                                         <div class="fr-fieldset__element">
-                                            <fieldset class="fr-fieldset" id="credentials"
-                                                      aria-labelledby="credentials-messages">
+                                            <fieldset class="fr-fieldset" id="credentials" aria-labelledby="credentials-messages">
                                                 <div class="fr-fieldset__element">
                                                     <span class="fr-hint-text">Sauf mention contraire, tous les champs sont obligatoires.</span>
                                                 </div>
@@ -53,12 +55,8 @@
                                                             Adresse e-mail
                                                             <span class="fr-hint-text">Format attendu : nom@domaine.fr</span>
                                                         </label>
-                                                        <input class="fr-input" autocomplete="username"
-                                                               aria-required="true"
-                                                               aria-describedby="username-1757-messages" name="username"
-                                                               id="username-1757" type="text">
-                                                        <div class="fr-messages-group" id="username-1757-messages"
-                                                             aria-live="assertive">
+                                                        <input class="fr-input" autocomplete="username" aria-required="true" aria-describedby="username-1757-messages" name="username" id="username-1757" type="text">
+                                                        <div class="fr-messages-group" id="username-1757-messages" aria-live="assertive">
                                                         </div>
                                                     </div>
                                                 </div>
@@ -68,47 +66,34 @@
                                                             Mot de passe
                                                         </label>
                                                         <div class="fr-input-wrap">
-                                                            <input class="fr-password__input fr-input"
-                                                                   aria-describedby="password-1758-input-messages"
-                                                                   aria-required="true" name="password"
-                                                                   autocomplete="current-password"
-                                                                   id="password-1758-input" type="password">
+                                                            <input class="fr-password__input fr-input" aria-describedby="password-1758-input-messages" aria-required="true" name="password" autocomplete="current-password" id="password-1758-input" type="password">
                                                         </div>
-                                                        <div class="fr-messages-group" id="password-1758-input-messages"
-                                                             aria-live="assertive">
+                                                        <div class="fr-messages-group" id="password-1758-input-messages" aria-live="assertive">
                                                         </div>
                                                         <div class="fr-password__checkbox fr-checkbox-group fr-checkbox-group--sm">
-                                                            <input aria-label="Afficher le mot de passe"
-                                                                   id="password-1758-show" type="checkbox"
-                                                                   aria-describedby="password-1758-show-messages">
-                                                            <label class="fr-password__checkbox fr-label"
-                                                                   for="password-1758-show">
+                                                            <input aria-label="Afficher le mot de passe" id="password-1758-show" type="checkbox" aria-describedby="password-1758-show-messages">
+                                                            <label class="fr-password__checkbox fr-label" for="password-1758-show">
                                                                 Afficher
                                                             </label>
-                                                            <div class="fr-messages-group"
-                                                                 id="password-1758-show-messages" aria-live="assertive">
+                                                            <div class="fr-messages-group" id="password-1758-show-messages" aria-live="assertive">
                                                             </div>
                                                         </div>
                                                         <p>
-                                                            <a href="{% url 'password_reset' %}"
-                                                               class="fr-link">Mot de passe oublié ?</a>
+                                                            <a href="{% url 'password_reset' %}" class="fr-link">Mot de passe oublié ?</a>
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div class="fr-messages-group" id="credentials-messages"
-                                                     aria-live="assertive">
+                                                <div class="fr-messages-group" id="credentials-messages" aria-live="assertive">
                                                 </div>
                                             </fieldset>
                                         </div>
                                         <div class="fr-fieldset__element">
                                             <div class="fr-checkbox-group fr-checkbox-group--sm">
-                                                <input name="remember" id="remember-1759" type="checkbox"
-                                                       aria-describedby="remember-1759-messages">
+                                                <input name="remember" id="remember-1759" type="checkbox" aria-describedby="remember-1759-messages">
                                                 <label class="fr-label" for="remember-1759">
                                                     Se souvenir de moi
                                                 </label>
-                                                <div class="fr-messages-group" id="remember-1759-messages"
-                                                     aria-live="assertive">
+                                                <div class="fr-messages-group" id="remember-1759-messages" aria-live="assertive">
                                                 </div>
                                             </div>
                                         </div>
@@ -121,8 +106,7 @@
                                                 </li>
                                             </ul>
                                         </div>
-                                        <div class="fr-messages-group" id="login-1760-fieldset-messages"
-                                             aria-live="assertive">
+                                        <div class="fr-messages-group" id="login-1760-fieldset-messages" aria-live="assertive">
                                         </div>
                                     </fieldset>
                                 </form>

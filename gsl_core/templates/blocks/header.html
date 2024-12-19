@@ -6,9 +6,7 @@
     <li>
         <button class="fr-btn--display fr-btn"
                 aria-controls="fr-theme-modal"
-                data-fr-opened="false">
-            {% translate "Display settings" %}
-        </button>
+                data-fr-opened="false">{% translate "Display settings" %}</button>
     </li>
     <li>
         {% if user.is_authenticated %}
@@ -18,19 +16,14 @@
                 <button class="fr-btn--display fr-btn fr-icon-lock-unlock-fill" type="submit">Déconnexion</button>
             </form>
         {% else %}
-            <a class="fr-btn fr-icon-lock-line" href="{% url "login" %}">
-                Se connecter
-            </a>
+            <a class="fr-btn fr-icon-lock-line" href="{% url "login" %}">Se connecter</a>
         {% endif %}
     </li>
 {% endblock header_tools %}
 
 {% block operator_logo %}
     <div class="fr-header__operator">
-        <img class="fr-responsive-img"
-             src="{% static "img/logo-collectivites-locales.png" %}"
-             alt="Direction Générale des Collectivités Locales"
-             style="max-width: 8rem;"/>
+        <img class="fr-responsive-img" src="{% static "img/logo-collectivites-locales.png" %}" alt="Direction Générale des Collectivités Locales" style="max-width: 8rem;" />
     </div>
 {% endblock operator_logo %}
 
@@ -42,17 +35,13 @@
                 data-fr-opened="false"
                 aria-controls="modal-search"
                 id="fr-btn-search-mobile"
-                title="{{ search_label }}">
-            {{ search_label }}
-        </button>
+                title="{{ search_label }}">{{ search_label }}</button>
         {% translate "Menu" as menu_label %}
         <button class="fr-btn--menu fr-btn"
                 data-fr-opened="false"
                 aria-controls="fr-menu-mobile"
                 id="fr-btn-menu-mobile"
-                title="{{ menu_label }}">
-            {{ menu_label }}
-        </button>
+                title="{{ menu_label }}">{{ menu_label }}</button>
     </div>
 {% endblock burger_menu %}
 

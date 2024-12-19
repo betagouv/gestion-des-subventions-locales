@@ -8,21 +8,21 @@
 
 {% block content %}
     <div class="fr-mb-4w">
-        <a href="{% url "projet:list" %}" class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+        <a href="{% url "projet:list" %}"
+           class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
             Retour à la liste des projets
         </a>
     </div>
 
     <h1>
-        <span class="fr-badge fr-text--xl gsl-pull-right fr-mt-2v fr-ml-5w">
-            {{ dossier.get_ds_state_display }}
-        </span>
+        <span class="fr-badge fr-text--xl gsl-pull-right fr-mt-2v fr-ml-5w">{{ dossier.get_ds_state_display }}</span>
         {{ dossier.projet_intitule|lower|capfirst }}
     </h1>
 
     <ul class="fr-btns-group--right fr-btns-group--inline fr-mt-6w fr-mb-5w">
         <li>
-            <a href="{{ dossier.url_on_ds }}" class="fr-btn fr-btn--icon-right fr-icon-external-link-line">
+            <a href="{{ dossier.url_on_ds }}"
+               class="fr-btn fr-btn--icon-right fr-icon-external-link-line">
                 Voir le dossier sur Démarches Simplifiées
             </a>
         </li>
@@ -38,42 +38,56 @@
     <div class="fr-tabs">
         <ul class="fr-tabs__list" role="tablist" aria-label="Sections de la page">
             <li role="presentation">
-                <button id="projet" class="fr-tabs__tab fr-icon-article-line fr-tabs__tab--icon-left"
-                        tabindex="0" role="tab" aria-selected="true" aria-controls="projet-panel">
-                    Projet
-                </button>
+                <button id="projet"
+                        class="fr-tabs__tab fr-icon-article-line fr-tabs__tab--icon-left"
+                        tabindex="0"
+                        role="tab"
+                        aria-selected="true"
+                        aria-controls="projet-panel">Projet</button>
             </li>
             <li role="presentation">
-                <button id="annotations" class="fr-tabs__tab fr-icon-edit-line fr-tabs__tab--icon-left"
-                        tabindex="-1" role="tab" aria-selected="false" aria-controls="annotations-panel">
-                    Annotations
-                </button>
+                <button id="annotations"
+                        class="fr-tabs__tab fr-icon-edit-line fr-tabs__tab--icon-left"
+                        tabindex="-1"
+                        role="tab"
+                        aria-selected="false"
+                        aria-controls="annotations-panel">Annotations</button>
             </li>
             <li role="presentation">
-                <button id="demandeur" class="fr-tabs__tab fr-icon-bank-line fr-tabs__tab--icon-left"
-                        tabindex="-1" role="tab" aria-selected="false" aria-controls="demandeur-panel">
-                    Demandeur
-                </button>
+                <button id="demandeur"
+                        class="fr-tabs__tab fr-icon-bank-line fr-tabs__tab--icon-left"
+                        tabindex="-1"
+                        role="tab"
+                        aria-selected="false"
+                        aria-controls="demandeur-panel">Demandeur</button>
             </li>
             <li role="presentation">
-                <button id="historique" class="fr-tabs__tab fr-icon-archive-line fr-tabs__tab--icon-left"
-                        tabindex="-1" role="tab" aria-selected="false" aria-controls="historique-panel">
-                    Historique du demandeur
-                </button>
+                <button id="historique"
+                        class="fr-tabs__tab fr-icon-archive-line fr-tabs__tab--icon-left"
+                        tabindex="-1"
+                        role="tab"
+                        aria-selected="false"
+                        aria-controls="historique-panel">Historique du demandeur</button>
             </li>
         </ul>
-        <div id="projet-panel" class="fr-tabs__panel fr-tabs__panel--selected  with-sticky-menu" role="tabpanel"
-             tabindex="0">
-            {% include "gsl_projet/projet/tab_projet.html" %}
-        </div>
-        <div id="annotations-panel" class="fr-tabs__panel" role="tabpanel" aria-labelledby="annotations" tabindex="0">
-            {% include "gsl_projet/projet/tab_annotations.html" %}
-        </div>
-        <div id="demandeur-panel" class="fr-tabs__panel" role="tabpanel" aria-labelledby="demandeur" tabindex="0">
-            {% include "gsl_projet/projet/tab_demandeur.html" %}
-        </div>
-        <div id="historique-panel" class="fr-tabs__panel" role="tabpanel" aria-labelledby="historique" tabindex="0">
-            {% include "gsl_projet/projet/tab_historique.html" %}
-        </div>
+        <div id="projet-panel"
+             class="fr-tabs__panel fr-tabs__panel--selected  with-sticky-menu"
+             role="tabpanel"
+             tabindex="0">{% include "gsl_projet/projet/tab_projet.html" %}</div>
+        <div id="annotations-panel"
+             class="fr-tabs__panel"
+             role="tabpanel"
+             aria-labelledby="annotations"
+             tabindex="0">{% include "gsl_projet/projet/tab_annotations.html" %}</div>
+        <div id="demandeur-panel"
+             class="fr-tabs__panel"
+             role="tabpanel"
+             aria-labelledby="demandeur"
+             tabindex="0">{% include "gsl_projet/projet/tab_demandeur.html" %}</div>
+        <div id="historique-panel"
+             class="fr-tabs__panel"
+             role="tabpanel"
+             aria-labelledby="historique"
+             tabindex="0">{% include "gsl_projet/projet/tab_historique.html" %}</div>
     </div>
 {% endblock %}
