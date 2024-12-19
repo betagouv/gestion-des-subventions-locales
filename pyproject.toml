@@ -34,6 +34,7 @@ build-backend = "setuptools.build_meta"
 dev = [
     "diff-cover",
     "django-query-counter",
+    "django-extensions",
     "factory_boy",
     "pre-commit",
     "pytest",
