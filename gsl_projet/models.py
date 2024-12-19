@@ -9,7 +9,9 @@ class Demandeur(models.Model):
     name = models.CharField("Nom")
 
     address = models.ForeignKey(Adresse, on_delete=models.PROTECT)
-    arrondissement = models.ForeignKey(Arrondissement, on_delete=models.PROTECT)
+    arrondissement = models.ForeignKey(
+        Arrondissement, on_delete=models.PROTECT, null=True
+    )
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT)
 
     def __str__(self):
