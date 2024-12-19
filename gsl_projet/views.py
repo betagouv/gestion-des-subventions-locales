@@ -93,7 +93,7 @@ class ProjectListView(ListView):
             return available_sortings.get(sorting)
 
     def get_queryset(self):
-        qs = Projet.objects.filter(
+        qs = Projet.objects.for_user(self.request.user).filter(
             dossier_ds__ds_date_depot__gte=datetime.date(2024, 9, 1)
         )
         ordering = self.get_ordering()

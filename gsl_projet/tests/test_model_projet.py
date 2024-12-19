@@ -1,28 +1,16 @@
 import pytest
 
-from gsl_core.tests.factories import AdresseFactory, CollegueFactory
-from gsl_demarches_simplifiees.models import Profile
+from gsl_core.models import Perimetre
+from gsl_core.tests.factories import (
+    AdresseFactory,
+    ArrondissementFactory,
+)
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
 from ..models import Projet
-from .factories import ProjetFactory
+from .factories import DemandeurFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db(transaction=True)
-
-
-def test_user_can_see_a_projet_if_they_are_explicit_instructeur():
-    user = CollegueFactory()
-    dossier = DossierFactory()
-    dossier.ds_demarche.ds_instructeurs.add(Profile.objects.create(ds_email=user.email))
-
-    unrelated_projet = ProjetFactory()
-    related_projet = ProjetFactory(dossier_ds=dossier)
-
-    assert Projet.objects.count() == 2
-    assert Projet.objects.for_user(user).count() == 1
-    projets_for_user = Projet.objects.for_user(user).all()
-    assert unrelated_projet not in projets_for_user
-    assert related_projet in projets_for_user
 
 
 def test_create_projet_from_dossier():
@@ -35,3 +23,31 @@ def test_create_projet_from_dossier():
 
     other_projet = Projet.get_or_create_from_ds_dossier(dossier)
     assert other_projet == projet
+
+
+def test_filter_perimetre():
+    arrondissement = ArrondissementFactory()
+    demandeur_1 = DemandeurFactory(
+        arrondissement=arrondissement, departement=arrondissement.departement
+    )
+    ProjetFactory(demandeur=demandeur_1)
+
+    demandeur_2 = DemandeurFactory()
+    ProjetFactory(demandeur=demandeur_2)
+
+    perimetre = Perimetre.objects.create(
+        region=demandeur_1.departement.region,
+        arrondissement=demandeur_1.arrondissement,
+        departement=demandeur_1.departement,
+    )
+
+    assert Projet.objects.for_perimetre(None).count() == 2
+    assert Projet.objects.for_perimetre(perimetre).count() == 1
+    assert (
+        Projet.objects.for_perimetre(perimetre).first().demandeur.arrondissement
+        == arrondissement
+    )
+    assert (
+        Projet.objects.for_perimetre(perimetre).first().demandeur.departement
+        == arrondissement.departement
+    )
