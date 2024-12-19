@@ -6,14 +6,18 @@
     <li>
         <button class="fr-btn--display fr-btn"
                 aria-controls="fr-theme-modal"
-                data-fr-opened="false">{% translate "Display settings" %}</button>
+                data-fr-opened="false">
+            {% translate "Display settings" %}
+        </button>
     </li>
     <li>
         {% if user.is_authenticated %}
             <span class="fr-btn--display fr-btn fr-icon-user-fill">{{ user.first_name }} {{ user.last_name }}</span>
             <form action="{% url 'oidc_logout' %}" method="post" class="sr-only">
                 {% csrf_token %}
-                <button class="fr-btn--display fr-btn fr-icon-lock-unlock-fill" type="submit">Déconnexion</button>
+                <button class="fr-btn--display fr-btn fr-icon-lock-unlock-fill" type="submit">
+                    Déconnexion
+                </button>
             </form>
         {% else %}
             <a class="fr-btn fr-icon-lock-line" href="{% url "login" %}">Se connecter</a>
@@ -35,13 +39,17 @@
                 data-fr-opened="false"
                 aria-controls="modal-search"
                 id="fr-btn-search-mobile"
-                title="{{ search_label }}">{{ search_label }}</button>
+                title="{{ search_label }}">
+            {{ search_label }}
+        </button>
         {% translate "Menu" as menu_label %}
         <button class="fr-btn--menu fr-btn"
                 data-fr-opened="false"
                 aria-controls="fr-menu-mobile"
                 id="fr-btn-menu-mobile"
-                title="{{ menu_label }}">{{ menu_label }}</button>
+                title="{{ menu_label }}">
+            {{ menu_label }}
+        </button>
     </div>
 {% endblock burger_menu %}
 

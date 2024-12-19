@@ -2,7 +2,9 @@
 {% load static dsfr_tags %}
 {% block content %}
 
-    <h1>Chercher des démarches sur Démarches Simplifiées</h1>
+    <h1>
+        Chercher des démarches sur Démarches Simplifiées
+    </h1>
     {% dsfr_django_messages %}
     <form action="{% url 'ds:post-add-demarches' %}" method="POST">
         {% csrf_token %}
@@ -19,7 +21,9 @@
         </div>
 
         <div class="fr-input-group">
-            <button type="submit" class="fr-btn">Chercher les démarches sur DS</button>
+            <button type="submit" class="fr-btn">
+                Chercher les démarches sur DS
+            </button>
         </div>
     </form>
 {% endblock content %}

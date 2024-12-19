@@ -1,14 +1,20 @@
 {% extends "base.html" %}
 {% load static dsfr_tags %}
 {% block content %}
-    <h1>Démarches DS</h1>
+    <h1>
+        Démarches DS
+    </h1>
     <ul>
         {% for demarche in object_list %}
             <li class="fr-tile fr-tile--sm fr-tile--horizontal fr-mb-3w">
                 <div class="fr-tile__body">
                     <div class="fr-tile__content">
-                        <h3 class="fr-tile__title">{{ demarche.ds_title }}</h3>
-                        <p class="fr-tile__desc">{{ demarche.ds_number }}</p>
+                        <h3 class="fr-tile__title">
+                            {{ demarche.ds_title }}
+                        </h3>
+                        <p class="fr-tile__desc">
+                            {{ demarche.ds_number }}
+                        </p>
                         <div class="fr-tile__detail">
                             <a href="{% url "ds:get-demarche-mapping" demarche_ds_number=demarche.ds_number %}"
                                class="fr-btn fr-btn--sm  fr-mr-3v">
@@ -37,7 +43,9 @@
                         </div>
 
                         <div class="fr-tile__start">
-                            <p class="fr-badge fr-badge--sm fr-badge--purple-glycine">{{ demarche.ds_state }}</p>
+                            <p class="fr-badge fr-badge--sm fr-badge--purple-glycine">
+                                {{ demarche.ds_state }}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -56,7 +64,9 @@
                 </div>
             </li>
         {% empty %}
-            <li>Aucune démarche à afficher.</li>
+            <li>
+                Aucune démarche à afficher.
+            </li>
         {% endfor %}
     </ul>
     {% dsfr_pagination page_obj %}

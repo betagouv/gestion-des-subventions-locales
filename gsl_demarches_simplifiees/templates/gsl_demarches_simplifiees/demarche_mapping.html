@@ -1,16 +1,24 @@
 {% extends "base.html" %}
 {% load static dsfr_tags %}
 {% block content %}
-    <h1>Correspondances de champs Django / DS pour la démarche {{ demarche.ds_number }}</h1>
-    <h2>{{ demarche.ds_title }}</h2>
+    <h1>
+        Correspondances de champs Django / DS pour la démarche {{ demarche.ds_number }}
+    </h1>
+    <h2>
+        {{ demarche.ds_title }}
+    </h2>
     <div class="fr-table fr-table--bordered" id="table-bordered-component">
         <div class="fr-table__wrapper">
             <div class="fr-table__container">
                 <div class="fr-table__content">
                     <table>
                         <tr>
-                            <th>Champ Django</th>
-                            <th>Champ DS</th>
+                            <th>
+                                Champ Django
+                            </th>
+                            <th>
+                                Champ DS
+                            </th>
                         </tr>
                         {% for mapping in existing_mappings %}
                             <tr>

@@ -6,17 +6,35 @@
 {% endblock breadcrumb %}
 
 {% block content %}
-    <h1>{{ title }}</h1>
-    <h2>Simulation de programmation</h2>
+    <h1>
+        {{ title }}
+    </h1>
+    <h2>
+        Simulation de programmation
+    </h2>
     <details class="ahr-todo">
-        <summary>À faire sur cette page :</summary>
+        <summary>
+            À faire sur cette page :
+        </summary>
         <ul>
-            <li>Liste de badges sous le titre : 3 projets validés, 18 projets refusés, 5 projets notifiés</li>
-            <li>Synthèse de la simulation : hors scope pour l'instant</li>
-            <li>Bouton modifier</li>
-            <li>Bouton "ajouter des projets au tableau"</li>
-            <li>Rappel de la dotation/des dotations</li>
-            <li>Filtres et tri : reporté à Janvier / à mutualiser avec les filtres des projets ?</li>
+            <li>
+                Liste de badges sous le titre : 3 projets validés, 18 projets refusés, 5 projets notifiés
+            </li>
+            <li>
+                Synthèse de la simulation : hors scope pour l'instant
+            </li>
+            <li>
+                Bouton modifier
+            </li>
+            <li>
+                Bouton "ajouter des projets au tableau"
+            </li>
+            <li>
+                Rappel de la dotation/des dotations
+            </li>
+            <li>
+                Filtres et tri : reporté à Janvier / à mutualiser avec les filtres des projets ?
+            </li>
             <li>
                 tableau : colonnes case à cocher pour sélectionner, date de dépôt, intitulé du projet, commune,
                 dotation,
@@ -32,10 +50,18 @@
                     <th>
                         <span class="fr-sr-only">Sélectionner</span>
                     </th>
-                    <th>Date de dépôt</th>
-                    <th>Intitulé du projet</th>
-                    <th>Commune</th>
-                    <th>Dotation</th>
+                    <th>
+                        Date de dépôt
+                    </th>
+                    <th>
+                        Intitulé du projet
+                    </th>
+                    <th>
+                        Commune
+                    </th>
+                    <th>
+                        Dotation
+                    </th>
                     <th>
                         Coût total du projet
                         <br>
@@ -49,9 +75,15 @@
                         Montant prévisionnel accordé
                         <span class="fr-badge">930&nbsp;000&nbsp;€</span>
                     </th>
-                    <th>Taux de subvention</th>
-                    <th>Choix de la catégorie d’opération</th>
-                    <th>Statut</th>
+                    <th>
+                        Taux de subvention
+                    </th>
+                    <th>
+                        Choix de la catégorie d’opération
+                    </th>
+                    <th>
+                        Statut
+                    </th>
                     <th>
                         <span class="fr-sr-only">Actions</span>
                     </th>
@@ -65,13 +97,23 @@
                                    name="simu[{{ simu.pk }}]"
                                    aria-label="Sélectionner le projet {{ simu.projet.dossier_ds.projet_intitule }}">
                         </td>
-                        <td>{{ simu.projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}</td>
-                        <td>{{ simu.projet.dossier_ds.projet_intitule }}</td>
-                        <td>{{ simu.projet.address.commune.name }}</td>
+                        <td>
+                            {{ simu.projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}
+                        </td>
+                        <td>
+                            {{ simu.projet.dossier_ds.projet_intitule }}
+                        </td>
+                        <td>
+                            {{ simu.projet.address.commune.name }}
+                        </td>
                         <td>
                             <select>
-                                <option value="DETR">DETR</option>
-                                <option value="DSIL">DSIL</option>
+                                <option value="DETR">
+                                    DETR
+                                </option>
+                                <option value="DSIL">
+                                    DSIL
+                                </option>
                             </select>
                         </td>
                         <td class="gsl-money">
@@ -94,7 +136,9 @@
                         </td>
                         <td>
                             <select class="fr-select" name="" id="">
-                                <option value="">{{ simu.projet.categorie_doperation.first }}</option>
+                                <option value="">
+                                    {{ simu.projet.categorie_doperation.first }}
+                                </option>
                             </select>
                         </td>
                         <td>
@@ -115,7 +159,9 @@
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="12">Liste vide.</td>
+                        <td colspan="12">
+                            Liste vide.
+                        </td>
                     </tr>
                 {% endfor %}
             </tbody>
