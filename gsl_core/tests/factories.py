@@ -46,6 +46,7 @@ class CommuneFactory(factory.django.DjangoModelFactory):
     insee_code = factory.Sequence(lambda n: f"{n}")
     name = factory.Faker("city", locale="fr_FR")
     departement = factory.SubFactory(DepartementFactory)
+    arrondissement = factory.SubFactory(ArrondissementFactory)
 
 
 class AdresseFactory(factory.django.DjangoModelFactory):

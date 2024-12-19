@@ -13,7 +13,12 @@ from gsl_core.models import (
     Region,
 )
 
-from .resources import ArrondissementResource, DepartementResource, RegionResource
+from .resources import (
+    ArrondissementResource,
+    CommuneResource,
+    DepartementResource,
+    RegionResource,
+)
 
 
 class AllPermsForStaffUser:
@@ -94,8 +99,8 @@ class ArrondissementAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
 
 
 @admin.register(Commune)
-class CommuneAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    pass
+class CommuneAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
+    resource_classes = (CommuneResource,)
 
 
 @admin.register(Perimetre)
