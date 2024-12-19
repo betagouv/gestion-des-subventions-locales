@@ -48,7 +48,7 @@ class ArrondissementResource(resources.ModelResource):
 
 
 class CommuneResource(resources.ModelResource):
-    insee_code = Field(attribute="insee_code", column_name="ARR")
+    insee_code = Field(attribute="insee_code", column_name="COM")
     name = Field(attribute="name", column_name="NCCENR")
     departement = Field(
         attribute="departement",
@@ -64,6 +64,8 @@ class CommuneResource(resources.ModelResource):
     def skip_row(self, instance, original, row, import_validation_errors=None):
         if row["TYPECOM"] != "COM":
             # avoid communes déléguées and communes associées
+            return True
+        if not row["ARR"]:
             return True
         return super().skip_row(instance, original, row, import_validation_errors)
 
