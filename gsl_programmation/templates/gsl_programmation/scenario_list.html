@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static dsfr_tags %}
 
 {% block breadcrumb %}
@@ -14,9 +14,9 @@
                 <h2>{{ scenario.title }}</h2>
                 <p>{{ scenario.enveloppe.perimetre }}</p>
                 <p>
-                    {% dsfr_badge label='112 projets acceptés' extra_classes="fr-badge--green-menthe" %}
-                    {% dsfr_badge label='18 projets refusés' extra_classes="fr-badge--pink-macaron" %}
-                    {% dsfr_badge label='5 projets notifiés'  extra_classes="fr-badge--blue-cumulus" %}
+                    {% dsfr_badge label="112 projets acceptés" extra_classes="fr-badge--green-menthe" %}
+                    {% dsfr_badge label="18 projets refusés" extra_classes="fr-badge--pink-macaron" %}
+                    {% dsfr_badge label="5 projets notifiés" extra_classes="fr-badge--blue-cumulus" %}
                 </p>
                 <a href="{{ scenario.get_absolute_url }}">{{ scenario }}</a>
             </li>
@@ -28,5 +28,4 @@
     </ul>
     {% dsfr_pagination page_obj %}
 
-
-{% endblock %}
+{% endblock content %}

@@ -1,10 +1,9 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static dsfr_tags %}
 
 {% block breadcrumb %}
     {% dsfr_breadcrumb breadcrumb_dict %}
 {% endblock breadcrumb %}
-
 
 {% block content %}
     <div class="fr-mb-4w">
@@ -90,4 +89,4 @@
              aria-labelledby="historique"
              tabindex="0">{% include "gsl_projet/projet/tab_historique.html" %}</div>
     </div>
-{% endblock %}
+{% endblock content %}

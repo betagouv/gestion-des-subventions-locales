@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static dsfr_tags gsl_filters %}
 
 {% block breadcrumb %}
@@ -123,5 +123,4 @@
     </div>
     {% dsfr_pagination simulations_paginator %}
 
-
-{% endblock %}
+{% endblock content %}
