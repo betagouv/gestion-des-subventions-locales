@@ -101,6 +101,8 @@ class ArrondissementAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
 @admin.register(Commune)
 class CommuneAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
     resource_classes = (CommuneResource,)
+    list_display = ("name", "insee_code", "departement", "arrondissement")
+    list_filter = ("departement__region", "departement", "arrondissement")
 
 
 @admin.register(Perimetre)
