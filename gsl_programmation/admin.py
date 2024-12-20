@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Enveloppe, Scenario, SimulationProjet
+from .models import Enveloppe, Simulation, SimulationProjet
 
 
 @admin.register(Enveloppe)
@@ -8,8 +8,8 @@ class EnveloppeAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(Scenario)
-class ScenarioAdmin(admin.ModelAdmin):
+@admin.register(Simulation)
+class SimulationAdmin(admin.ModelAdmin):
     pass
 
 

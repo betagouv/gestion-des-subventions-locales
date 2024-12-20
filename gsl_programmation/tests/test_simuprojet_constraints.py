@@ -9,7 +9,7 @@ from gsl_core.tests.factories import (
 )
 from gsl_projet.tests.factories import ProjetFactory
 
-from ..models import Enveloppe, Scenario, SimulationProjet
+from ..models import Enveloppe, Simulation, SimulationProjet
 
 pytestmark = pytest.mark.django_db
 
@@ -35,18 +35,18 @@ def enveloppe_detr():
 
 
 @pytest.fixture
-def scenario_detr(enveloppe_detr):
-    return Scenario.objects.create(
-        title="Scénario DETR", enveloppe=enveloppe_detr, slug="scenario-detr"
+def simulation_detr(enveloppe_detr):
+    return Simulation.objects.create(
+        title="Scénario DETR", enveloppe=enveloppe_detr, slug="simulation-detr"
     )
 
 
-def test_project_only_once_per_scenario_and_enveloppe(
-    enveloppe_detr, scenario_detr, enveloppe_dsil
+def test_project_only_once_per_simulation_and_enveloppe(
+    enveloppe_detr, simulation_detr, enveloppe_dsil
 ):
     projet_un = SimulationProjet.objects.create(
         enveloppe=enveloppe_detr,
-        scenario=scenario_detr,
+        simulation=simulation_detr,
         projet=ProjetFactory(),
         montant=Decimal("15000"),
         taux=Decimal("0.52"),
@@ -54,34 +54,34 @@ def test_project_only_once_per_scenario_and_enveloppe(
     with pytest.raises(IntegrityError):
         SimulationProjet.objects.create(
             enveloppe=enveloppe_detr,
-            scenario=scenario_detr,
+            simulation=simulation_detr,
             projet=projet_un.projet,
             montant=Decimal("15000"),
             taux=Decimal("0.52"),
         )
 
 
-def test_project_twice_per_scenario_with_different_enveloppe(
-    enveloppe_detr, scenario_detr, enveloppe_dsil
+def test_project_twice_per_simulation_with_different_enveloppe(
+    enveloppe_detr, simulation_detr, enveloppe_dsil
 ):
     projet_un = SimulationProjet.objects.create(
         enveloppe=enveloppe_detr,
-        scenario=scenario_detr,
+        simulation=simulation_detr,
         projet=ProjetFactory(),
         montant=Decimal("15000"),
         taux=Decimal("0.52"),
     )
     SimulationProjet.objects.create(
         enveloppe=enveloppe_dsil,
-        scenario=scenario_detr,
+        simulation=simulation_detr,
         projet=projet_un.projet,
         montant=Decimal("15000"),
         taux=Decimal("0.52"),
     )
 
 
-def test_project_validated_only_once_per_enveloppe(enveloppe_detr, scenario_detr):
-    projet_without_scenario = SimulationProjet.objects.create(
+def test_project_validated_only_once_per_enveloppe(enveloppe_detr, simulation_detr):
+    projet_without_simulation = SimulationProjet.objects.create(
         enveloppe=enveloppe_detr,
         projet=ProjetFactory(),
         montant=Decimal("15000"),
@@ -91,8 +91,8 @@ def test_project_validated_only_once_per_enveloppe(enveloppe_detr, scenario_detr
     with pytest.raises(IntegrityError):
         SimulationProjet.objects.create(
             enveloppe=enveloppe_detr,
-            scenario=scenario_detr,
-            projet=projet_without_scenario.projet,
+            simulation=simulation_detr,
+            projet=projet_without_simulation.projet,
             montant=Decimal("15000"),
             taux=Decimal("0.52"),
             status=SimulationProjet.STATUS_VALID,

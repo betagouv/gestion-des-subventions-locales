@@ -109,7 +109,7 @@ class Enveloppe(models.Model):
         )
 
 
-class Scenario(models.Model):
+class Simulation(models.Model):
     title = models.CharField(verbose_name="Titre")
     created_by = models.ForeignKey(Collegue, on_delete=models.SET_NULL, null=True)
     enveloppe = models.ForeignKey(
@@ -130,7 +130,7 @@ class Scenario(models.Model):
     def get_absolute_url(self):
         from django.urls import reverse
 
-        return reverse("programmation:scenario_detail", kwargs={"slug": self.slug})
+        return reverse("programmation:simulation_detail", kwargs={"slug": self.slug})
 
 
 class SimulationProjet(models.Model):
@@ -146,8 +146,8 @@ class SimulationProjet(models.Model):
     )
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
     enveloppe = models.ForeignKey(Enveloppe, on_delete=models.CASCADE)
-    scenario = models.ForeignKey(
-        Scenario, on_delete=models.CASCADE, null=True, blank=True
+    simulation = models.ForeignKey(
+        Simulation, on_delete=models.CASCADE, null=True, blank=True
     )
 
     montant = models.DecimalField(
@@ -166,7 +166,7 @@ class SimulationProjet(models.Model):
         verbose_name_plural = "Simulations de programmation projet"
         constraints = (
             models.UniqueConstraint(
-                fields=("projet", "scenario", "enveloppe"),
+                fields=("projet", "simulation", "enveloppe"),
                 name="unique_projet_enveloppe_projet",
                 nulls_distinct=True,
             ),

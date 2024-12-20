@@ -3,11 +3,11 @@ from django.urls import reverse
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 
-from .models import Scenario, SimulationProjet
+from .models import Simulation, SimulationProjet
 
 
-class ScenarioListView(ListView):
-    model = Scenario
+class SimulationListView(ListView):
+    model = Simulation
     paginate_by = 10
 
     def get_context_data(self, **kwargs):
@@ -18,29 +18,31 @@ class ScenarioListView(ListView):
         return context
 
 
-class ScenarioDetailView(DetailView):
-    model = Scenario
+class SimulationDetailView(DetailView):
+    model = Simulation
 
     def get_context_data(self, **kwargs):
-        scenario = self.get_object()
+        simulation = self.get_object()
         context = super().get_context_data(**kwargs)
-        paginator = Paginator(SimulationProjet.objects.filter(scenario=scenario), 25)
+        paginator = Paginator(
+            SimulationProjet.objects.filter(simulation=simulation), 25
+        )
         page = self.kwargs.get("page") or self.request.GET.get("page") or 1
         current_page = paginator.page(page)
         context["simulations_paginator"] = current_page
         context["simulations_list"] = current_page.object_list
         context["title"] = (
-            f"{scenario.enveloppe.type} {scenario.enveloppe.annee} – {scenario.title}"
+            f"{simulation.enveloppe.type} {simulation.enveloppe.annee} – {simulation.title}"
         )
 
         context["breadcrumb_dict"] = {
             "links": [
                 {
-                    "url": reverse("programmation:scenario_list"),
+                    "url": reverse("programmation:simulation_list"),
                     "title": "Mes simulations de programmation",
                 }
             ],
-            "current": scenario.title,
+            "current": simulation.title,
         }
 
         return context
