@@ -33,9 +33,11 @@ build-backend = "setuptools.build_meta"
 [project.optional-dependencies]
 dev = [
     "diff-cover",
+    "djlint",
     "django-query-counter",
     "factory_boy",
     "pre-commit",
+    "pip-tools",
     "pytest",
     "pytest-cov",
     "pytest-django",

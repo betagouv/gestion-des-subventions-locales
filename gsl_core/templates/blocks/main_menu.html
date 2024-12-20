@@ -25,25 +25,24 @@
                 </li>
                 <li class="fr-nav__item">
                     {% url 'projet:list' as projets_url %}
-                    <a class="fr-nav__link" href="{{ projets_url }}" target="_self"
-                    {% if request.path == projet_url %}aria-current="true"{% endif %}>
-                        Projets 2025
-                    </a>
+                    <a class="fr-nav__link"
+                       href="{{ projets_url }}"
+                       target="_self"
+                       {% if request.path == projet_url %}aria-current="true"{% endif %}>Projets 2025</a>
                 </li>
                 <li class="fr-nav__item">
                     {% url 'programmation:scenario_list' as scenarios_url %}
-                    <a class="fr-nav__link" href="{{ scenarios_url }}" target="_self"
-                    {% if request.path == scenarios_url %}aria-current="true"{% endif %}>
-                        Simulations
-                    </a>
+                    <a class="fr-nav__link"
+                       href="{{ scenarios_url }}"
+                       target="_self"
+                       {% if request.path == scenarios_url %}aria-current="true"{% endif %}>Simulations</a>
                 </li>
                 {% if request.user.is_staff %}
                     <li class="fr-nav__item">
                         <button class="fr-nav__btn"
                                 aria-expanded="false"
                                 aria-controls="menu-resources"
-                                {% if '/ds' in request.path %}aria-current="true"{% endif %}
-                        >
+                                {% if '/ds' in request.path %}aria-current="true"{% endif %}>
                             ⚙️ Administration DS ⚙️
                         </button>
                         <div class="fr-collapse fr-menu" id="menu-resources">

@@ -7,9 +7,7 @@
         <a class="fr-footer__bottom-link" href="#">{% translate "Sitemap" %}</a>
     </li>
     <li class="fr-footer__bottom-item">
-        <a class="fr-footer__bottom-link" href="{% url 'accessibilite' %}">
-            Accessibilité : non conforme
-        </a>
+        <a class="fr-footer__bottom-link" href="{% url 'accessibilite' %}">Accessibilité : non conforme</a>
     </li>
     <li class="fr-footer__bottom-item">
         <!-- @TODO -->
@@ -41,15 +39,12 @@
     <div class="fr-footer__brand fr-enlarge-link">
         <p class="fr-logo"
            title="{{ SITE_CONFIG.footer_brand|default:'république française' }}">
-            {{ SITE_CONFIG.footer_brand_html| default_if_none:'république<br/>française' | safe }}
+            {{ SITE_CONFIG.footer_brand_html| default_if_none:'république<br />française' | safe }}
         </p>
         <a class="fr-footer__brand-link"
            href="{{ home_url }}"
            title="{{ back_to_home_label }} - {{ SITE_CONFIG.operator_logo_alt }} - {{ SITE_CONFIG.footer_brand|default:'république française' }}">
-            <img class="fr-responsive-img"
-                 src="{% static "img/logo-collectivites-locales.png" %}"
-                 alt="Direction Générale des Collectivités Locales"
-                 style="max-width: 12rem;"/>
+            <img class="fr-responsive-img" src="{% static "img/logo-collectivites-locales.png" %}" alt="Direction Générale des Collectivités Locales" style="max-width: 12rem;" />
         </a>
     </div>
 
