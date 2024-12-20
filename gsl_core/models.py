@@ -102,8 +102,10 @@ class Adresse(BaseModel):
             )
             commune, _ = Commune.objects.get_or_create(
                 insee_code=raw_ds_data.get("cityCode"),
-                name=raw_ds_data.get("cityName"),
-                departement=departement,
+                defaults={
+                    "name": raw_ds_data.get("cityName"),
+                    "departement": departement,
+                },
             )
             self.commune = commune
         return self
