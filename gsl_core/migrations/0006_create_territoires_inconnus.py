@@ -19,9 +19,20 @@ def create_territoires_inconnus(apps, schema_editor):
     )
 
 
+def delete_territoires_inconnus(apps, schema_editor):
+    Arrondissement = apps.get_model("gsl_core", "Arrondissement")
+    Arrondissement.objects.filter(insee_code="xxx").delete()
+    Departement = apps.get_model("gsl_core", "Departement")
+    Departement.objects.filter(insee_code="xxx").delete()
+    Region = apps.get_model("gsl_core", "Region")
+    Region.objects.filter(insee_code="xxx").delete()
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("gsl_core", "0005_alter_departement_options_alter_region_options_and_more"),
     ]
 
-    operations = [migrations.RunPython(create_territoires_inconnus)]
+    operations = [
+        migrations.RunPython(create_territoires_inconnus, delete_territoires_inconnus)
+    ]

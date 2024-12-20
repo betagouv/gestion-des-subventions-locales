@@ -53,7 +53,9 @@ class Commune(BaseModel):
     insee_code = models.CharField("Code INSEE", unique=True, primary_key=True)
     name = models.CharField("Nom")
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT)
-    arrondissement = models.ForeignKey(Arrondissement, on_delete=models.PROTECT)
+    arrondissement = models.ForeignKey(
+        Arrondissement, on_delete=models.PROTECT, null=True
+    )
 
     def __str__(self):
         return f"Commune {self.insee_code} - {self.name}"
