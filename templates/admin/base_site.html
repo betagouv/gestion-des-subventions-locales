@@ -1,0 +1,51 @@
+{% extends "admin/base_site.html" %}
+
+{% block extrastyle %}
+    <style>
+html[data-theme="light"], :root {
+  --primary: #79aec8;
+  --secondary: #417690;
+  --accent: #f5dd5d;
+  --primary-fg: #fff;
+  --body-fg: #333;
+  --body-bg: #fff;
+  --body-quiet-color: #666;
+  --body-medium-color: #444;
+  --body-loud-color: #000;
+  --header-color: #ffc;
+  --header-branding-color: var(--accent);
+  --header-bg: var(--secondary);
+  --header-link-color: var(--primary-fg);
+  --breadcrumbs-fg: #c4dce8;
+  --breadcrumbs-link-fg: var(--body-bg);
+  --breadcrumbs-bg: #264b5d;
+  --link-fg: #417893;
+  --link-hover-color: #036;
+  --link-selected-fg: var(--secondary);
+  --hairline-color: #e8e8e8;
+  --border-color: #ccc;
+  --error-fg: #ba2121;
+  --message-success-bg: #dfd;
+  --message-warning-bg: #ffc;
+  --message-error-bg: #ffefef;
+  --darkened-bg: #f8f8f8;
+  --selected-bg: #e4e4e4;
+  --selected-row: #ffc;
+  --button-fg: #fff;
+  --button-bg: var(--secondary);
+  --button-hover-bg: #205067;
+  --default-button-bg: #205067;
+  --default-button-hover-bg: var(--secondary);
+  --close-button-bg: #747474;
+  --close-button-hover-bg: #333;
+  --delete-button-bg: #ba2121;
+  --delete-button-hover-bg: #a41515;
+  --object-tools-fg: var(--button-fg);
+  --object-tools-bg: var(--close-button-bg);
+  --object-tools-hover-bg: var(--close-button-hover-bg);
+  --font-family-primary: "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-family-monospace: ui-monospace, Menlo, Monaco, "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", "Oxygen Mono", "Ubuntu Monospace", "Source Code Pro", "Fira Mono", "Droid Sans Mono", "Courier New", monospace, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  color-scheme: light;
+}
+    </style>
+{% endblock extrastyle %}
