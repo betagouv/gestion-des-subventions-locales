@@ -35,6 +35,7 @@ dev = [
     "diff-cover",
     "djlint",
     "django-query-counter",
+    "django-extensions",
     "factory_boy",
     "pre-commit",
     "pip-tools",

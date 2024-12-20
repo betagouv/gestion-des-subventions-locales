@@ -94,6 +94,7 @@ MIDDLEWARE = [
 
 if DEBUG:
     INSTALLED_APPS.append("query_counter")
+    INSTALLED_APPS.append("django_extensions")
     MIDDLEWARE.append("query_counter.middleware.DjangoQueryCounterMiddleware")
 
 AUTHENTICATION_BACKENDS = [

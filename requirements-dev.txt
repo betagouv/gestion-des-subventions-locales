@@ -72,6 +72,7 @@ django==5.1.4
     #   django-crispy-forms
     #   django-csp
     #   django-dsfr
+    #   django-extensions
     #   django-import-export
     #   django-referrer-policy
     #   django-timezone-field
@@ -86,6 +87,8 @@ django-crispy-forms==2.3
 django-csp==3.8
     # via gsl (pyproject.toml)
 django-dsfr==1.3.1
+    # via gsl (pyproject.toml)
+django-extensions==3.2.3
     # via gsl (pyproject.toml)
 django-import-export==4.3.3
     # via gsl (pyproject.toml)
