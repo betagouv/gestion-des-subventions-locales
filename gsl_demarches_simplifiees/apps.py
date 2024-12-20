@@ -6,3 +6,6 @@ class GslDemarchesSimplifieesConfig(AppConfig):
     name = "gsl_demarches_simplifiees"
 
     verbose_name = "2. Démarches Simplifiées"
+
+    def ready(self):
+        import gsl_demarches_simplifiees.signals  # noqa F401
