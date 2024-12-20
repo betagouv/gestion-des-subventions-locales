@@ -69,7 +69,6 @@ INSTALLED_APPS = [
     "widget_tweaks",
     "dsfr",
     "import_export",
-    "django_extensions",
     # gsl apps:
     "gsl_core",
     "gsl_demarches_simplifiees",
@@ -95,6 +94,7 @@ MIDDLEWARE = [
 
 if DEBUG:
     INSTALLED_APPS.append("query_counter")
+    INSTALLED_APPS.append("django_extensions")
     MIDDLEWARE.append("query_counter.middleware.DjangoQueryCounterMiddleware")
 
 AUTHENTICATION_BACKENDS = [
