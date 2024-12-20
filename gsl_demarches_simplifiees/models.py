@@ -3,6 +3,7 @@ from django.db import models
 
 import gsl_core.models
 from gsl_core.models import Adresse
+from gsl_core.models import Arrondissement as CoreArrondissement
 
 
 class DsModel(models.Model):
@@ -370,7 +371,18 @@ class NaturePorteurProjet(DsChoiceLibelle):
 
 
 class Arrondissement(DsChoiceLibelle):
-    pass
+    core_arrondissement = models.ForeignKey(
+        CoreArrondissement,
+        related_name="ds_arrondissements",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        verbose_name="Arrondissement INSEE",
+    )
+
+    class Meta:
+        verbose_name = "Arrondissement DS"
+        verbose_name_plural = "Arrondissements DS"
 
 
 class ProjetZonage(DsChoiceLibelle):
