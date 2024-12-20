@@ -10,21 +10,21 @@
         {{ title }}
     </h1>
     <ul class="no-list-style">
-        {% for scenario in object_list %}
-            <li class="scenario-card">
-                {% dsfr_badge label=scenario.enveloppe.type %}
+        {% for simulation in object_list %}
+            <li class="simulation-card">
+                {% dsfr_badge label=simulation.enveloppe.type %}
                 <h2>
-                    {{ scenario.title }}
+                    {{ simulation.title }}
                 </h2>
                 <p>
-                    {{ scenario.enveloppe.perimetre }}
+                    {{ simulation.enveloppe.perimetre }}
                 </p>
                 <p>
                     {% dsfr_badge label="112 projets acceptés" extra_classes="fr-badge--green-menthe" %}
                     {% dsfr_badge label="18 projets refusés" extra_classes="fr-badge--pink-macaron" %}
                     {% dsfr_badge label="5 projets notifiés" extra_classes="fr-badge--blue-cumulus" %}
                 </p>
-                <a href="{{ scenario.get_absolute_url }}">{{ scenario }}</a>
+                <a href="{{ simulation.get_absolute_url }}">{{ simulation }}</a>
             </li>
         {% empty %}
             <li>

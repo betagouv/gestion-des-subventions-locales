@@ -5,12 +5,12 @@ from . import views
 urlpatterns = [
     path(
         "simulations/",
-        views.ScenarioListView.as_view(),
-        name="scenario_list",
+        views.SimulationListView.as_view(),
+        name="simulation_list",
     ),
     path(
         "simulation/<slug:slug>/",
-        views.ScenarioDetailView.as_view(),
-        name="scenario_detail",
+        views.SimulationDetailView.as_view(),
+        name="simulation_detail",
     ),
 ]
