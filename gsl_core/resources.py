@@ -2,7 +2,7 @@ from import_export import resources
 from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget
 
-from .models import Arrondissement, Departement, Region
+from .models import Arrondissement, Commune, Departement, Region
 
 
 class RegionResource(resources.ModelResource):
@@ -45,3 +45,32 @@ class ArrondissementResource(resources.ModelResource):
     class Meta:
         model = Arrondissement
         import_id_fields = ("insee_code",)
+
+
+class CommuneResource(resources.ModelResource):
+    insee_code = Field(attribute="insee_code", column_name="COM")
+    name = Field(attribute="name", column_name="NCCENR")
+    departement = Field(
+        attribute="departement",
+        column_name="DEP",
+        widget=ForeignKeyWidget(Departement, field="insee_code"),
+    )
+    arrondissement = Field(
+        attribute="arrondissement",
+        column_name="ARR",
+        widget=ForeignKeyWidget(Arrondissement, field="insee_code"),
+    )
+
+    def skip_row(self, instance, original, row, import_validation_errors=None):
+        if row["TYPECOM"] != "COM":
+            # avoid communes déléguées and communes associées
+            return True
+        if not row["ARR"]:
+            return True
+        return super().skip_row(instance, original, row, import_validation_errors)
+
+    class Meta:
+        model = Commune
+        import_id_fields = ("insee_code",)
+        use_bulk = True
+        skip_unchanged = True

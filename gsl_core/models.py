@@ -24,7 +24,7 @@ class Region(BaseModel):
         ordering = ["name"]
 
     def __str__(self):
-        return f"Région {self.name}"
+        return f"Région {self.insee_code} - {self.name}"
 
 
 class Departement(BaseModel):
@@ -37,16 +37,7 @@ class Departement(BaseModel):
         ordering = ["insee_code"]
 
     def __str__(self):
-        return f"Département {self.insee_code} - {self.name}"
-
-
-class Commune(BaseModel):
-    insee_code = models.CharField("Code INSEE", unique=True, primary_key=True)
-    name = models.CharField("Nom")
-    departement = models.ForeignKey(Departement, on_delete=models.PROTECT)
-
-    def __str__(self):
-        return f"Commune {self.insee_code} {self.name}"
+        return f"Dép. {self.insee_code} - {self.name}"
 
 
 class Arrondissement(BaseModel):
@@ -55,7 +46,19 @@ class Arrondissement(BaseModel):
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT)
 
     def __str__(self):
-        return f"Arrondissement {self.name}"
+        return f"Arr. {self.insee_code} - {self.name}"
+
+
+class Commune(BaseModel):
+    insee_code = models.CharField("Code INSEE", unique=True, primary_key=True)
+    name = models.CharField("Nom")
+    departement = models.ForeignKey(Departement, on_delete=models.PROTECT)
+    arrondissement = models.ForeignKey(
+        Arrondissement, on_delete=models.PROTECT, null=True
+    )
+
+    def __str__(self):
+        return f"Commune {self.insee_code} - {self.name}"
 
 
 class Adresse(BaseModel):
