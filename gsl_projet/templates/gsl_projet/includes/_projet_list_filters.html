@@ -1,0 +1,47 @@
+<form action="{{ request.path }}{% querystring %}"
+      class="fr-background-alt--blue-france projets-filters">
+
+    <div class="sort fr-select-group">
+        <select name="tri" id="dd" class="fr-select">
+            <option value=""
+                    {% if request.GET.tri == None %}selected{% endif %}
+                    disabled
+                    hidden>
+                Tri
+            </option>
+            <optgroup label="Date">
+                <option value="date_desc"
+                        {% if request.GET.tri == 'date_desc' %}selected{% endif %}>
+                    Les plus récentes en premier
+                </option>
+                <option value="date_asc"
+                        {% if request.GET.tri == 'date_asc' %}selected{% endif %}>
+                    Les plus anciennes en premier
+                </option>
+            </optgroup>
+            <optgroup label="Coût total">
+                <option value="cout_asc"
+                        {% if request.GET.tri == 'cout_asc' %}selected{% endif %}>
+                    Croissant
+                </option>
+                <option value="cout_desc"
+                        {% if request.GET.tri == 'cout_desc' %}selected{% endif %}>
+                    Décroissant
+                </option>
+            </optgroup>
+            <optgroup label="Commune">
+                <option value="commune_asc"
+                        {% if request.GET.tri == 'commune_asc' %}selected{% endif %}>
+                    A → Z
+                </option>
+                <option value="commune_desc"
+                        {% if request.GET.tri == 'commune_desc' %}selected{% endif %}>
+                    Z → A
+                </option>
+            </optgroup>
+        </select>
+    </div>
+    <button type="submit" class="fr-btn">
+        Filtrer/trier
+    </button>
+</form>
