@@ -7,7 +7,7 @@ from gsl_projet.views import ProjetListView
 @pytest.mark.django_db
 class TestProjetListView:
     def setup_method(self):
-        self.factory = RequestFactory()
+        self.request = RequestFactory()
         self.view = ProjetListView()
 
     @pytest.mark.parametrize(
@@ -25,9 +25,9 @@ class TestProjetListView:
     )
     def test_get_ordering(self, tri_param, expected_ordering):
         """Test que get_ordering retourne le bon ordre selon le paramètre 'tri'"""
-        request = self.factory.get("/")
+        request = self.request.get("/")
         if tri_param is not None:
-            request = self.factory.get(f"/?tri={tri_param}")
+            request = self.request.get(f"/?tri={tri_param}")
 
         self.view.request = request
 
@@ -35,7 +35,7 @@ class TestProjetListView:
 
     def test_get_ordering_with_multiple_params(self):
         """Test que get_ordering fonctionne avec d'autres paramètres dans l'URL"""
-        request = self.factory.get("/?tri=commune_asc&page=2&search=test")
+        request = self.request.get("/?tri=commune_asc&page=2&search=test")
         self.view.request = request
 
         assert self.view.get_ordering() == "address__commune__name"
