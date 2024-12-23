@@ -84,13 +84,16 @@ class ProjetListView(ListView):
         return context
 
     def get_ordering(self):
-        sorting = self.request.GET.get("tri")
-        available_sortings = {
-            "date_de_depot": "dossier_ds__ds_date_depot",
-            "cout_total": "dossier_ds__finance_cout_total",
+        ordering_map = {
+            "date_desc": "-dossier_ds__ds_date_depot",
+            "date_asc": "dossier_ds__ds_date_depot",
+            "cout_desc": "-assiette_or_cout_total",
+            "cout_asc": "assiette_or_cout_total",
+            "commune_desc": "-address__commune__name",
+            "commune_asc": "address__commune__name",
         }
-        if sorting in available_sortings:
-            return available_sortings.get(sorting)
+        tri = self.request.GET.get("tri")
+        return ordering_map.get(tri, None)
 
     def get_queryset(self):
         qs = Projet.objects.for_user(self.request.user).filter(
