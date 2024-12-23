@@ -8,6 +8,8 @@ amqp==5.2.0
     # via kombu
 asgiref==3.8.1
     # via django
+asttokens==3.0.0
+    # via stack-data
 billiard==4.2.1
     # via celery
 build==1.2.2.post1
@@ -56,6 +58,8 @@ cryptography==43.0.3
     #   pyopenssl
 cssbeautifier==1.15.1
     # via djlint
+decorator==5.1.1
+    # via ipython
 diff-cover==9.2.0
     # via gsl (pyproject.toml)
 diff-match-patch==20241021
@@ -108,6 +112,8 @@ editorconfig==0.17.0
     #   jsbeautifier
 execnet==2.1.1
     # via pytest-xdist
+executing==2.1.0
+    # via stack-data
 factory-boy==3.3.1
     # via gsl (pyproject.toml)
 faker==30.8.2
@@ -122,6 +128,10 @@ idna==3.10
     # via requests
 iniconfig==2.0.0
     # via pytest
+ipython==8.31.0
+    # via gsl (pyproject.toml)
+jedi==0.19.2
+    # via ipython
 jinja2==3.1.4
     # via diff-cover
 josepy==1.14.0
@@ -136,6 +146,8 @@ kombu==5.4.2
     # via celery
 markupsafe==2.1.5
     # via jinja2
+matplotlib-inline==0.1.7
+    # via ipython
 mozilla-django-oidc==4.0.1
     # via gsl (pyproject.toml)
 nodeenv==1.9.1
@@ -145,8 +157,12 @@ packaging==24.1
     #   build
     #   gunicorn
     #   pytest
+parso==0.8.4
+    # via jedi
 pathspec==0.12.1
     # via djlint
+pexpect==4.9.0
+    # via ipython
 pip-tools==7.4.1
     # via gsl (pyproject.toml)
 platformdirs==4.3.6
@@ -158,13 +174,21 @@ pluggy==1.5.0
 pre-commit==3.8.0
     # via gsl (pyproject.toml)
 prompt-toolkit==3.0.48
-    # via click-repl
+    # via
+    #   click-repl
+    #   ipython
 psycopg2-binary==2.9.9
     # via gsl (pyproject.toml)
+ptyprocess==0.7.0
+    # via pexpect
+pure-eval==0.2.3
+    # via stack-data
 pycparser==2.22
     # via cffi
 pygments==2.18.0
-    # via diff-cover
+    # via
+    #   diff-cover
+    #   ipython
 pyopenssl==24.2.1
     # via josepy
 pyproject-hooks==1.2.0
@@ -220,12 +244,18 @@ six==1.16.0
     #   python-dateutil
 sqlparse==0.5.1
     # via django
+stack-data==0.6.3
+    # via ipython
 tablib==3.7.0
     # via django-import-export
 tabulate==0.9.0
     # via django-query-counter
 tqdm==4.67.1
     # via djlint
+traitlets==5.14.3
+    # via
+    #   ipython
+    #   matplotlib-inline
 typing-extensions==4.12.2
     # via
     #   dj-database-url
