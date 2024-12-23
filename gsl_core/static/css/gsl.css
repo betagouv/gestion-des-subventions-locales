@@ -86,7 +86,7 @@ ul.no-list-style li {
 }
 
 /* Liste de projets */
-.gsl-project-table thead {
+.gsl-projet-table thead {
     background-image: linear-gradient(0, #6a6af4, #6a6af4);
     background-size: 100% 2px;
     background-repeat: no-repeat;
@@ -98,40 +98,44 @@ ul.no-list-style li {
     z-index: 1;
 }
 
-.gsl-project-table thead th {
+.gsl-projet-table thead th {
     padding: 1em .75em;
     text-align: left;
     line-height: 1.3;
 }
 
-.gsl-project-table thead th:first-child {
+.gsl-projet-table thead th:first-child {
     padding-left: 1.5em;
 }
 
-.gsl-project-table {
+.gsl-projet-table {
     font-size: .8em;
 }
 
-.gsl-project-table table {
+.gsl-projet-table table {
     width: 100%;
     border-collapse: collapse;
 }
 
-.gsl-project-table table tbody td {
+.gsl-projet-table table tbody td {
     border-bottom: 1px solid #929292;
     padding: .75em;
     line-height: 1.5;
 }
 
-.gsl-project-table table tbody td:first-child {
+.gsl-projet-table table tbody td:first-child {
     padding-left: 1.5em;
 }
 
-.ds_state__accepte{
+.projets-filters {
+    margin-bottom: 1em;
+}
+
+.ds_state__accepte {
     color: var(--text-default-success)
 }
 
-.ds_state__accepte::before{
+.ds_state__accepte::before {
     content: "✅" / "";
 }
 
@@ -139,7 +143,7 @@ ul.no-list-style li {
     color: var(--text-default-error)
 }
 
-.ds_state__refuse::before{
+.ds_state__refuse::before {
     content: "❌" / "";
 }
 

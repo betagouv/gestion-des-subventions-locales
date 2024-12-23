@@ -74,7 +74,7 @@ def get_projet(request, projet_id):
     return render(request, "gsl_projet/projet.html", context)
 
 
-class ProjectListView(ListView):
+class ProjetListView(ListView):
     model = Projet
     paginate_by = 25
 

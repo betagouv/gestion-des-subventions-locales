@@ -41,7 +41,7 @@ def simulation_detr(enveloppe_detr):
     )
 
 
-def test_project_only_once_per_simulation_and_enveloppe(
+def test_projet_only_once_per_simulation_and_enveloppe(
     enveloppe_detr, simulation_detr, enveloppe_dsil
 ):
     projet_un = SimulationProjet.objects.create(
@@ -61,7 +61,7 @@ def test_project_only_once_per_simulation_and_enveloppe(
         )
 
 
-def test_project_twice_per_simulation_with_different_enveloppe(
+def test_projet_twice_per_simulation_with_different_enveloppe(
     enveloppe_detr, simulation_detr, enveloppe_dsil
 ):
     projet_un = SimulationProjet.objects.create(
@@ -80,7 +80,7 @@ def test_project_twice_per_simulation_with_different_enveloppe(
     )
 
 
-def test_project_validated_only_once_per_enveloppe(enveloppe_detr, simulation_detr):
+def test_projet_validated_only_once_per_enveloppe(enveloppe_detr, simulation_detr):
     projet_without_simulation = SimulationProjet.objects.create(
         enveloppe=enveloppe_detr,
         projet=ProjetFactory(),
