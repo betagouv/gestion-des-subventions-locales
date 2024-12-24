@@ -132,14 +132,6 @@ ul.no-list-style li {
 }
 
 .projets-filters-layout {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 1rem;
-    padding-bottom: 1rem;
-}
-
-.full-width-background {
     background: var(--background-alt-blue-france);
     margin-left: calc(-50vw + 50%);
     margin-right: calc(-50vw + 50%);
@@ -148,7 +140,7 @@ ul.no-list-style li {
 
 /* TODO utilister des variables avec un préprocesseur ? */
 @media (max-width: 768px) {
-    .full-width-background {
+    .projets-filters-layout {
         padding: 1rem;
     }
 }
