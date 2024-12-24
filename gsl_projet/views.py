@@ -100,7 +100,15 @@ class ProjetListView(ListView):
         qs = Projet.objects.for_user(self.request.user).filter(
             dossier_ds__ds_date_depot__gte=datetime.date(2024, 9, 1)
         )
+
+        # Filtre par dispositif
+        dispositif = self.request.GET.get("dispositif")
+        if dispositif:
+            qs = qs.filter(dossier_ds__demande_dispositif_sollicite=dispositif)
+
+        # Tri
         ordering = self.get_ordering()
         if ordering:
             qs = qs.order_by(ordering)
+
         return qs

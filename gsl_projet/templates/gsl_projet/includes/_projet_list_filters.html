@@ -5,7 +5,10 @@
     <div class="projets-filters-layout fr-container--fluid">
         <div class="fr-grid-row fr-grid-row--gutters">
             <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
-                <select name="tri" id="dd" class="fr-select" onchange="this.form.submit()">
+                <label class="fr-label" for="tri">
+                    Trier par
+                </label>
+                <select name="tri" id="tri" class="fr-select" onchange="this.form.submit()">
                     <option value=""
                             {% if request.GET.tri == None %}selected{% endif %}
                             disabled
@@ -42,6 +45,27 @@
                             Z → A
                         </option>
                     </optgroup>
+                </select>
+            </div>
+            <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
+                <label class="fr-label" for="dispositif">
+                    Dispositif
+                </label>
+                <select name="dispositif"
+                        id="dispositif"
+                        class="fr-select"
+                        onchange="this.form.submit()">
+                    <option value="">
+                        Tous les dispositifs
+                    </option>
+                    <option value="DETR"
+                            {% if request.GET.dispositif == 'DETR' %}selected{% endif %}>
+                        DETR
+                    </option>
+                    <option value="DSIL"
+                            {% if request.GET.dispositif == 'DSIL' %}selected{% endif %}>
+                        DSIL
+                    </option>
                 </select>
             </div>
         </div>

@@ -15,8 +15,8 @@ class TestProjetListView:
         [
             ("date_desc", "-dossier_ds__ds_date_depot"),
             ("date_asc", "dossier_ds__ds_date_depot"),
-            ("cout_desc", "-assiette_or_cout_total"),
-            ("cout_asc", "assiette_or_cout_total"),
+            ("cout_desc", "-dossier_ds__finance_cout_total"),
+            ("cout_asc", "dossier_ds__finance_cout_total"),
             ("commune_desc", "-address__commune__name"),
             ("commune_asc", "address__commune__name"),
             (None, None),  # Test valeur par défaut
