@@ -3,6 +3,7 @@ from django.contrib import admin
 from gsl_core.admin import AllPermsForStaffUser
 
 from .models import (
+    Arrondissement,
     Demarche,
     Dossier,
     FieldMappingForComputer,
@@ -113,3 +114,8 @@ class FieldMappingForComputerAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 @admin.register(Profile)
 class ProfileAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     pass
+
+
+@admin.register(Arrondissement)
+class ArrondissementAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    list_display = ("__str__", "core_arrondissement")
