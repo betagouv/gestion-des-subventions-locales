@@ -1,16 +1,15 @@
 import factory
+from django.test import RequestFactory
 
-from ..models import Adresse, Arrondissement, Collegue, Commune, Departement, Region
-
-
-class CollegueFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = Collegue
-
-    username = factory.Faker("user_name")
-    email = factory.Faker("email")
-    is_staff = False
-    is_active = True
+from ..models import (
+    Adresse,
+    Arrondissement,
+    Collegue,
+    Commune,
+    Departement,
+    Perimetre,
+    Region,
+)
 
 
 class RegionFactory(factory.django.DjangoModelFactory):
@@ -57,3 +56,36 @@ class AdresseFactory(factory.django.DjangoModelFactory):
     postal_code = factory.Faker("postcode", locale="fr_FR")
     commune = factory.SubFactory(CommuneFactory)
     street_address = factory.Faker("street_address", locale="fr_FR")
+
+
+class PerimetreFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Perimetre
+
+    arrondissement = None
+    departement = factory.SubFactory(DepartementFactory)
+    region = factory.LazyAttribute(lambda obj: obj.departement.region)
+
+
+class CollegueFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Collegue
+
+    username = factory.Faker("user_name")
+    email = factory.Faker("email")
+    is_staff = False
+    is_active = True
+    perimetre = factory.SubFactory(PerimetreFactory)
+
+
+class RequestFactory(RequestFactory):
+    user = factory.SubFactory(CollegueFactory)
+
+    def __init__(self, user=user, **kwargs):
+        super().__init__(**kwargs)
+        self.user = user
+
+    def get(self, path: str, data: dict = None, **extra):
+        request = super().get(path, data, **extra)
+        request.user = self.user
+        return request
