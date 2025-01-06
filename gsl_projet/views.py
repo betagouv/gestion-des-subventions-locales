@@ -126,14 +126,14 @@ class ProjetListView(ListView):
                 | Q(assiette__isnull=True, dossier_ds__finance_cout_total__lte=cout_max)
             )
 
+        porteur_mappings = {
+            "EPCI": NaturePorteurProjet.EPCI_NATURES,
+            "Communes": NaturePorteurProjet.COMMUNE_NATURES,
+        }
         porteur = self.request.GET.get("porteur")
-        if porteur == "EPCI":
+        if porteur in porteur_mappings: # "in" vérifie la présence de la clé dans le dict
             qs = qs.filter(
-                dossier_ds__porteur_de_projet_nature__label__in=NaturePorteurProjet.EPCI_NATURES
-            )
-        elif porteur == "Communes":
-            qs = qs.filter(
-                dossier_ds__porteur_de_projet_nature__label__in=NaturePorteurProjet.COMMUNE_NATURES
+                dossier_ds__porteur_de_projet_nature__label__in=porteur_mappings.get(porteur)
             )
 
         # Tri
