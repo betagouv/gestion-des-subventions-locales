@@ -137,8 +137,8 @@
                                 {% endfor %}
                             </ul>
                         </td>
-                        <td>
-                            {{ projet.dossier_ds.get_ds_state_display }}
+                        <td class="ds_state__{{ projet.dossier_ds.ds_state }}">
+                            <b>{{ projet.dossier_ds.get_ds_state_display }}</b>
                         </td>
                         <td class="fr-cell--right">
                             <a class="fr-btn--tertiary-no-outline gsl-no-underline"
