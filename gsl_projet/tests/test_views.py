@@ -84,7 +84,6 @@ def test_get_ordering_with_multiple_params(req, view):
 
 @pytest.fixture
 def projets_detr(demandeur) -> list[Projet]:
-    """Crée 3 projets DETR"""
     return [
         ProjetFactory(
             dossier_ds__demande_dispositif_sollicite="DETR",
@@ -96,7 +95,6 @@ def projets_detr(demandeur) -> list[Projet]:
 
 @pytest.fixture
 def projets_dsil(demandeur) -> list[Projet]:
-    """Crée 2 projets DSIL"""
     return [
         ProjetFactory(
             dossier_ds__demande_dispositif_sollicite="DSIL",
@@ -108,7 +106,6 @@ def projets_dsil(demandeur) -> list[Projet]:
 
 @pytest.mark.django_db
 def test_filter_by_dispositif(req, view, projets_detr, projets_dsil):
-    """Test que le filtre par dispositif fonctionne"""
     request = req.get("/?dispositif=DETR")
     view.request = request
     qs = view.get_queryset()
@@ -121,7 +118,6 @@ def test_filter_by_dispositif(req, view, projets_detr, projets_dsil):
 
 @pytest.mark.django_db
 def test_filter_by_dispositif_dsil(req, view, projets_detr, projets_dsil):
-    """Test que le filtre DSIL ne retourne que les projets DSIL"""
     request = req.get("/?dispositif=DSIL")
     view.request = request
     qs = view.get_queryset()
@@ -134,7 +130,6 @@ def test_filter_by_dispositif_dsil(req, view, projets_detr, projets_dsil):
 
 @pytest.mark.django_db
 def test_no_dispositif_filter(req, view, projets_detr, projets_dsil):
-    """Test que sans filtre on obtient tous les projets"""
     request = req.get("/")
     view.request = request
     qs = view.get_queryset()
@@ -234,3 +229,76 @@ def test_wrong_porteur_filter(
     qs = view.get_queryset()
 
     assert qs.count() == 9
+
+
+### Test du filtre par coût
+
+
+@pytest.fixture
+def projets_with_assiette(demandeur) -> list[Projet]:
+    return [
+        ProjetFactory(
+            assiette=amount,
+            demandeur=demandeur,
+        )
+        for amount in [100000, 150000, 200000, 250000, 300000]
+    ]
+
+
+@pytest.fixture
+def projets_without_assiette_but_finance_cout_total_from_dossier_ds(
+    demandeur,
+) -> list[Projet]:
+    return [
+        ProjetFactory(
+            dossier_ds__finance_cout_total=amount,
+            assiette=None,
+            demandeur=demandeur,
+        )
+        for amount in [12000, 170000, 220000, 270000, 320000]
+    ]
+
+
+@pytest.mark.django_db
+def test_filter_by_min_cost(
+    req,
+    view,
+    projets_with_assiette,
+    projets_without_assiette_but_finance_cout_total_from_dossier_ds,
+):
+    request = req.get("/?cout_min=150000")
+    view.request = request
+    qs = view.get_queryset()
+
+    assert qs.count() == 8
+    assert all(150000 <= p.assiette_or_cout_total for p in qs)
+
+
+@pytest.mark.django_db
+def test_filter_by_max_cost(
+    req,
+    view,
+    projets_with_assiette,
+    projets_without_assiette_but_finance_cout_total_from_dossier_ds,
+):
+    request = req.get("/?cout_max=250000")
+    view.request = request
+    qs = view.get_queryset()
+
+    assert qs.count() == 7
+    assert all(p.assiette_or_cout_total <= 250000 for p in qs)
+
+
+@pytest.mark.django_db
+def test_filter_by_cost_range(
+    req,
+    view,
+    projets_with_assiette,
+    projets_without_assiette_but_finance_cout_total_from_dossier_ds,
+):
+    request = req.get("/?cout_min=150000&cout_max=250000")
+    view.request = request
+    qs = view.get_queryset()
+
+    assert qs.count() == 5
+    assert all(100000 <= p.assiette_or_cout_total <= 250000 for p in qs)

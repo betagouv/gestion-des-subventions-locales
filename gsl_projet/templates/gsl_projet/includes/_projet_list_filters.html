@@ -89,6 +89,30 @@
                     </option>
                 </select>
             </div>
+            <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
+                <label class="fr-label" for="cout_min">
+                    Coût total minimum
+                </label>
+                <input type="number"
+                       name="cout_min"
+                       id="cout_min"
+                       class="fr-input"
+                       placeholder="Montant minimum"
+                       onfocusout="this.form.submit()"
+                       value="{{ request.GET.cout_min }}">
+            </div>
+            <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
+                <label class="fr-label" for="cout_max">
+                    Coût total maximum
+                </label>
+                <input type="number"
+                       name="cout_max"
+                       id="cout_max"
+                       class="fr-input"
+                       placeholder="Montant maximum"
+                       onfocusout="this.form.submit()"
+                       value="{{ request.GET.cout_max }}">
+            </div>
         </div>
     </div>
 </form>

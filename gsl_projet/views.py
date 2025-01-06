@@ -1,5 +1,6 @@
 import datetime
 
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET
@@ -107,6 +108,23 @@ class ProjetListView(ListView):
         dispositif = self.request.GET.get("dispositif")
         if dispositif:
             qs = qs.filter(dossier_ds__demande_dispositif_sollicite=dispositif)
+
+        # Filtre par coût total minimum
+        cout_min = self.request.GET.get("cout_min")
+        if cout_min:
+            # qs = qs.filter(dossier_ds__finance_cout_total__gte=cout_min)
+            qs = qs.filter(
+                Q(assiette__isnull=False, assiette__gte=cout_min)
+                | Q(assiette__isnull=True, dossier_ds__finance_cout_total__gte=cout_min)
+            )
+
+        # Filtre par coût total maximum
+        cout_max = self.request.GET.get("cout_max")
+        if cout_max:
+            qs = qs.filter(
+                Q(assiette__isnull=False, assiette__lte=cout_max)
+                | Q(assiette__isnull=True, dossier_ds__finance_cout_total__lte=cout_max)
+            )
 
         porteur = self.request.GET.get("porteur")
         if porteur == "EPCI":
