@@ -21,7 +21,7 @@ ruff format && ruff check --fix
 ## Première installation
 
 Dépendances :
-- PostgreSQL
+- PostgreSQL ≥ 15
 - Python 3.12 (avec pip et venv)
 
 Tout d'abord, créez la base de données en lançant une invite de commande PostgreSQL :
