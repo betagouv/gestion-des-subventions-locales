@@ -5,6 +5,8 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET
 from django.views.generic import ListView
 
+from gsl_demarches_simplifiees.models import NaturePorteurProjet
+
 from .models import Projet
 
 
@@ -105,6 +107,16 @@ class ProjetListView(ListView):
         dispositif = self.request.GET.get("dispositif")
         if dispositif:
             qs = qs.filter(dossier_ds__demande_dispositif_sollicite=dispositif)
+
+        porteur = self.request.GET.get("porteur")
+        if porteur == "EPCI":
+            qs = qs.filter(
+                dossier_ds__porteur_de_projet_nature__label__in=NaturePorteurProjet.EPCI_NATURES
+            )
+        elif porteur == "Communes":
+            qs = qs.filter(
+                dossier_ds__porteur_de_projet_nature__label__in=NaturePorteurProjet.COMMUNE_NATURES
+            )
 
         # Tri
         ordering = self.get_ordering()

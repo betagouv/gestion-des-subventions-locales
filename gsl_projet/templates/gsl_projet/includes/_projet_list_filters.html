@@ -68,6 +68,27 @@
                     </option>
                 </select>
             </div>
+            <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
+                <label class="fr-label" for="porteur">
+                    Porteurs de projet
+                </label>
+                <select name="porteur"
+                        id="porteur"
+                        class="fr-select"
+                        onchange="this.form.submit()">
+                    <option value="">
+                        Tous les porteurs
+                    </option>
+                    <option value="EPCI"
+                            {% if request.GET.porteur == 'EPCI' %}selected{% endif %}>
+                        EPCI
+                    </option>
+                    <option value="Communes"
+                            {% if request.GET.porteur == 'Communes' %}selected{% endif %}>
+                        Communes
+                    </option>
+                </select>
+            </div>
         </div>
     </div>
 </form>

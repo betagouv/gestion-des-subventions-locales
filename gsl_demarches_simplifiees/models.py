@@ -367,6 +367,13 @@ class DsChoiceLibelle(DsModel):
 
 
 class NaturePorteurProjet(DsChoiceLibelle):
+    EPCI_NATURES = ["EPCI", "Pôle d'équilibre territorial et rural"]
+    COMMUNE_NATURES = [
+        "Commune",
+        "Syndicat de communes",
+        "Syndicat mixte fermé",
+        "Syndicat Mixte Fermé",
+    ]
     pass
 
 
