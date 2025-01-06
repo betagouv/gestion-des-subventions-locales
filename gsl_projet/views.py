@@ -80,10 +80,15 @@ def get_projet(request, projet_id):
 class ProjetListView(ListView):
     model = Projet
     paginate_by = 25
+    PORTEUR_MAPPINGS = {
+        "EPCI": NaturePorteurProjet.EPCI_NATURES,
+        "Communes": NaturePorteurProjet.COMMUNE_NATURES,
+    }
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["title"] = "Projets 2025"
+        context["porteur_mappings"] = self.PORTEUR_MAPPINGS
         return context
 
     def get_ordering(self):
@@ -126,14 +131,12 @@ class ProjetListView(ListView):
                 | Q(assiette__isnull=True, dossier_ds__finance_cout_total__lte=cout_max)
             )
 
-        porteur_mappings = {
-            "EPCI": NaturePorteurProjet.EPCI_NATURES,
-            "Communes": NaturePorteurProjet.COMMUNE_NATURES,
-        }
         porteur = self.request.GET.get("porteur")
-        if porteur in porteur_mappings: # "in" vérifie la présence de la clé dans le dict
+        if porteur in self.PORTEUR_MAPPINGS:
             qs = qs.filter(
-                dossier_ds__porteur_de_projet_nature__label__in=porteur_mappings.get(porteur)
+                dossier_ds__porteur_de_projet_nature__label__in=self.PORTEUR_MAPPINGS.get(
+                    porteur
+                )
             )
 
         # Tri

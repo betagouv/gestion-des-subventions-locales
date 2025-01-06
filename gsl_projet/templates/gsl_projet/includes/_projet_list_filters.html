@@ -79,14 +79,11 @@
                     <option value="">
                         Tous les porteurs
                     </option>
-                    <option value="EPCI"
-                            {% if request.GET.porteur == 'EPCI' %}selected{% endif %}>
-                        EPCI
-                    </option>
-                    <option value="Communes"
-                            {% if request.GET.porteur == 'Communes' %}selected{% endif %}>
-                        Communes
-                    </option>
+                    {% for value in porteur_mappings %}
+                        <option value={{ value }} {% if request.GET.porteur == value %}selected{% endif %}>
+                            {{ value }}
+                        </option>
+                    {% endfor %}
                 </select>
             </div>
             <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
