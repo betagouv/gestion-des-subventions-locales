@@ -7,6 +7,7 @@ from gsl_core.tests.factories import (
     PerimetreFactory,
     RequestFactory,
 )
+from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
 from gsl_projet.models import Demandeur, Projet
 from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
 from gsl_projet.views import ProjetListView
@@ -41,28 +42,7 @@ def view() -> ProjetListView:
     return ProjetListView()
 
 
-@pytest.fixture
-def projets_detr(demandeur) -> list[Projet]:
-    """Crée 3 projets DETR"""
-    return [
-        ProjetFactory(
-            dossier_ds__demande_dispositif_sollicite="DETR",
-            demandeur=demandeur,
-        )
-        for _ in range(3)
-    ]
-
-
-@pytest.fixture
-def projets_dsil(demandeur) -> list[Projet]:
-    """Crée 2 projets DSIL"""
-    return [
-        ProjetFactory(
-            dossier_ds__demande_dispositif_sollicite="DSIL",
-            demandeur=demandeur,
-        )
-        for _ in range(2)
-    ]
+### Test du tri
 
 
 @pytest.mark.django_db
@@ -99,6 +79,33 @@ def test_get_ordering_with_multiple_params(req, view):
     assert view.get_ordering() == "address__commune__name"
 
 
+### Test du filtre par dispositif
+
+
+@pytest.fixture
+def projets_detr(demandeur) -> list[Projet]:
+    """Crée 3 projets DETR"""
+    return [
+        ProjetFactory(
+            dossier_ds__demande_dispositif_sollicite="DETR",
+            demandeur=demandeur,
+        )
+        for _ in range(3)
+    ]
+
+
+@pytest.fixture
+def projets_dsil(demandeur) -> list[Projet]:
+    """Crée 2 projets DSIL"""
+    return [
+        ProjetFactory(
+            dossier_ds__demande_dispositif_sollicite="DSIL",
+            demandeur=demandeur,
+        )
+        for _ in range(2)
+    ]
+
+
 @pytest.mark.django_db
 def test_filter_by_dispositif(req, view, projets_detr, projets_dsil):
     """Test que le filtre par dispositif fonctionne"""
@@ -133,3 +140,97 @@ def test_no_dispositif_filter(req, view, projets_detr, projets_dsil):
     qs = view.get_queryset()
 
     assert qs.count() == 5
+
+
+### Test du filtre par porteur
+
+
+@pytest.fixture
+def projets_epci(demandeur) -> list[Projet]:
+    projets = []
+    for epci_label in ["EPCI", "Pôle d'équilibre territorial et rural"]:
+        nature_porteur_projet = NaturePorteurProjetFactory(label=epci_label)
+        projets.append(
+            ProjetFactory(
+                demandeur=demandeur,
+                dossier_ds__porteur_de_projet_nature=nature_porteur_projet,
+            )
+        )
+    return projets
+
+
+@pytest.fixture
+def projets_communes(demandeur) -> list[Projet]:
+    projets = []
+    for commune_label in [
+        "Commune",
+        "Syndicat de communes",
+        "Syndicat mixte fermé",
+        "Syndicat Mixte Fermé",
+    ]:
+        nature_porteur_projet = NaturePorteurProjetFactory(label=commune_label)
+        projets.append(
+            ProjetFactory(
+                demandeur=demandeur,
+                dossier_ds__porteur_de_projet_nature=nature_porteur_projet,
+            )
+        )
+    return projets
+
+
+@pytest.fixture
+def projets_unknown_projet(demandeur) -> list[Projet]:
+    projets = []
+    for porteur_label in ["Inconnu", "Fake", "Wrong"]:
+        nature_porteur_projet = NaturePorteurProjetFactory(label=porteur_label)
+        projets.append(
+            ProjetFactory(
+                demandeur=demandeur,
+                dossier_ds__porteur_de_projet_nature=nature_porteur_projet,
+            )
+        )
+    return projets
+
+
+@pytest.mark.django_db
+def test_filter_by_epci_porteur(
+    req, view, projets_epci, projets_unknown_projet, projets_communes
+):
+    request = req.get("/?porteur=EPCI")
+    view.request = request
+    qs = view.get_queryset()
+
+    assert qs.count() == 2
+
+
+@pytest.mark.django_db
+def test_filter_by_communes_porteur(
+    req, view, projets_epci, projets_unknown_projet, projets_communes
+):
+    request = req.get("/?porteur=Communes")
+    view.request = request
+    qs = view.get_queryset()
+
+    assert qs.count() == 4
+
+
+@pytest.mark.django_db
+def test_filter_by_epci(
+    req, view, projets_epci, projets_unknown_projet, projets_communes
+):
+    request = req.get("/")
+    view.request = request
+    qs = view.get_queryset()
+
+    assert qs.count() == 9
+
+
+@pytest.mark.django_db
+def test_wrong_porteur_filter(
+    req, view, projets_epci, projets_unknown_projet, projets_communes
+):
+    request = req.get("/?porteur='Fake'")
+    view.request = request
+    qs = view.get_queryset()
+
+    assert qs.count() == 9
