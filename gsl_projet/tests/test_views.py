@@ -302,3 +302,17 @@ def test_filter_by_cost_range(
 
     assert qs.count() == 5
     assert all(100000 <= p.assiette_or_cout_total <= 250000 for p in qs)
+
+
+@pytest.mark.django_db
+def test_filter_with_wrong_values(
+    req,
+    view,
+    projets_with_assiette,
+    projets_without_assiette_but_finance_cout_total_from_dossier_ds,
+):
+    request = req.get("/?cout_min=wrong")
+    view.request = request
+    qs = view.get_queryset()
+
+    assert qs.count() == 10

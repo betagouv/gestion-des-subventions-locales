@@ -111,7 +111,7 @@ class ProjetListView(ListView):
 
         # Filtre par coût total minimum
         cout_min = self.request.GET.get("cout_min")
-        if cout_min:
+        if cout_min and cout_min.isnumeric():
             # qs = qs.filter(dossier_ds__finance_cout_total__gte=cout_min)
             qs = qs.filter(
                 Q(assiette__isnull=False, assiette__gte=cout_min)
@@ -120,7 +120,7 @@ class ProjetListView(ListView):
 
         # Filtre par coût total maximum
         cout_max = self.request.GET.get("cout_max")
-        if cout_max:
+        if cout_max and cout_max.isnumeric():
             qs = qs.filter(
                 Q(assiette__isnull=False, assiette__lte=cout_max)
                 | Q(assiette__isnull=True, dossier_ds__finance_cout_total__lte=cout_max)
