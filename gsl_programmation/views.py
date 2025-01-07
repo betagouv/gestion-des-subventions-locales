@@ -5,6 +5,7 @@ from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 
 from gsl_projet.models import Projet
+from gsl_projet.views import FilterProjetsMixin
 
 from .models import Simulation, SimulationProjet
 
@@ -21,7 +22,7 @@ class SimulationListView(ListView):
         return context
 
 
-class SimulationDetailView(DetailView):
+class SimulationDetailView(DetailView, FilterProjetsMixin):
     model = Simulation
 
     def get_context_data(self, **kwargs):
@@ -54,6 +55,7 @@ class SimulationDetailView(DetailView):
     def get_projet_queryset(self):
         simulation = self.get_object()
         qs = Projet.objects.filter(simulationprojet__simulation=simulation)
+        qs = self.add_filters_to_projets_qs(qs)
         qs = qs.prefetch_related(
             Prefetch(
                 "simulationprojet_set",
