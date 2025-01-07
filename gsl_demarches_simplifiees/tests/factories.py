@@ -28,7 +28,7 @@ class NaturePorteurProjetFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = NaturePorteurProjet
 
-    label = factory.Faker("word", locale="fr_FR")
+    label = factory.Sequence(lambda n: f"nature-porteur-projet-{n}")
 
 
 class DossierFactory(factory.django.DjangoModelFactory):
