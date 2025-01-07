@@ -2,5 +2,7 @@
   "max_line_length": 120,
   "preserve_blank_lines": true,
   "line_break_after_multiline_tag": true,
-  "ignore": "H006,H008,H021,H026,H029"
+  "ignore": "H006,H008,H021,H026,H029",
+  "profile": "django",
+  "indent": 4
 }

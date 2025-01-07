@@ -1,9 +1,12 @@
 import datetime
 
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET
 from django.views.generic import ListView
+
+from gsl_demarches_simplifiees.models import NaturePorteurProjet
 
 from .models import Projet
 
@@ -74,29 +77,76 @@ def get_projet(request, projet_id):
     return render(request, "gsl_projet/projet.html", context)
 
 
-class ProjectListView(ListView):
+class FilterProjetsMixin:
+    def get_filtered_projets(self):
+        qs = Projet.objects.for_user(self.request.user).filter(
+            dossier_ds__ds_date_depot__gte=datetime.date(2024, 9, 1)
+        )
+        filters = self.request.GET
+
+        dispositif = filters.get("dispositif")
+        if dispositif:
+            qs = qs.filter(dossier_ds__demande_dispositif_sollicite=dispositif)
+
+        cout_min = filters.get("cout_min")
+        if cout_min and cout_min.isnumeric():
+            # qs = qs.filter(dossier_ds__finance_cout_total__gte=cout_min)
+            qs = qs.filter(
+                Q(assiette__isnull=False, assiette__gte=cout_min)
+                | Q(assiette__isnull=True, dossier_ds__finance_cout_total__gte=cout_min)
+            )
+
+        cout_max = filters.get("cout_max")
+        if cout_max and cout_max.isnumeric():
+            qs = qs.filter(
+                Q(assiette__isnull=False, assiette__lte=cout_max)
+                | Q(assiette__isnull=True, dossier_ds__finance_cout_total__lte=cout_max)
+            )
+
+        porteur = filters.get("porteur")
+        if porteur in self.PORTEUR_MAPPINGS:
+            qs = qs.filter(
+                dossier_ds__porteur_de_projet_nature__label__in=self.PORTEUR_MAPPINGS.get(
+                    porteur
+                )
+            )
+
+        return qs
+
+    def get_ordering(self):
+        ordering_map = {
+            "date_desc": "-dossier_ds__ds_date_depot",
+            "date_asc": "dossier_ds__ds_date_depot",
+            "cout_desc": "-dossier_ds__finance_cout_total",
+            "cout_asc": "dossier_ds__finance_cout_total",
+            "commune_desc": "-address__commune__name",
+            "commune_asc": "address__commune__name",
+        }
+
+        ordering = self.request.GET.get("tri")
+        return ordering_map.get(ordering, None)
+
+
+class ProjetListView(FilterProjetsMixin, ListView):
     model = Projet
     paginate_by = 25
+    PORTEUR_MAPPINGS = {
+        "EPCI": NaturePorteurProjet.EPCI_NATURES,
+        "Communes": NaturePorteurProjet.COMMUNE_NATURES,
+    }
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["title"] = "Projets 2025"
+        context["porteur_mappings"] = self.PORTEUR_MAPPINGS
         return context
 
-    def get_ordering(self):
-        sorting = self.request.GET.get("tri")
-        available_sortings = {
-            "date_de_depot": "dossier_ds__ds_date_depot",
-            "cout_total": "dossier_ds__finance_cout_total",
-        }
-        if sorting in available_sortings:
-            return available_sortings.get(sorting)
-
     def get_queryset(self):
-        qs = Projet.objects.for_user(self.request.user).filter(
-            dossier_ds__ds_date_depot__gte=datetime.date(2024, 9, 1)
-        )
+        qs = self.get_filtered_projets()
+
+        # Tri
         ordering = self.get_ordering()
         if ordering:
             qs = qs.order_by(ordering)
+
         return qs

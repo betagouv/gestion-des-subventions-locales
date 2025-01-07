@@ -1,12 +1,21 @@
 import pytest
 
-from ..models import Adresse, Arrondissement, Collegue, Commune, Departement, Region
+from ..models import (
+    Adresse,
+    Arrondissement,
+    Collegue,
+    Commune,
+    Departement,
+    Perimetre,
+    Region,
+)
 from .factories import (
     AdresseFactory,
     ArrondissementFactory,
     CollegueFactory,
     CommuneFactory,
     DepartementFactory,
+    PerimetreFactory,
     RegionFactory,
 )
 
@@ -19,6 +28,7 @@ test_data = (
     (ArrondissementFactory, Arrondissement),
     (CommuneFactory, Commune),
     (AdresseFactory, Adresse),
+    (PerimetreFactory, Perimetre),
 )
 
 

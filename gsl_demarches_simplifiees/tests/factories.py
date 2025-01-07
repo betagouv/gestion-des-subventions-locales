@@ -2,7 +2,7 @@ import factory
 
 from gsl_core.tests.factories import AdresseFactory
 
-from ..models import Demarche, Dossier, PersonneMorale
+from ..models import Demarche, Dossier, NaturePorteurProjet, PersonneMorale
 
 
 class DemarcheFactory(factory.django.DjangoModelFactory):
@@ -24,6 +24,13 @@ class PersonneMoraleFactory(factory.django.DjangoModelFactory):
     address = factory.SubFactory(AdresseFactory)
 
 
+class NaturePorteurProjetFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = NaturePorteurProjet
+
+    label = factory.Sequence(lambda n: f"nature-porteur-projet-{n}")
+
+
 class DossierFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Dossier
@@ -33,3 +40,5 @@ class DossierFactory(factory.django.DjangoModelFactory):
     ds_number = factory.Faker("random_int", min=1000000, max=9999999)
     ds_state = Dossier.STATE_ACCEPTE
     ds_demandeur = factory.SubFactory(PersonneMoraleFactory)
+    ds_date_depot = factory.Faker("date_this_year", before_today=True)
+    porteur_de_projet_nature = factory.SubFactory(NaturePorteurProjetFactory)
