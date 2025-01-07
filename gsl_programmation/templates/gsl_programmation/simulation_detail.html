@@ -128,12 +128,13 @@
                                 {{ projet.get_taux_de_subvention_sollicite|percent }}
                             </td>
                             <td class="gsl-money">
-                                <div class="fr-input-wrap fr-icon-money-euro-circle-line">
-                                    <input type="number" class="fr-input">
-                                </div>
+                                <input type="text" class="fr-input" value="{{ simu.montant }}">
                             </td>
                             <td class="gsl-money">
-                                <input type="number" inputmode="numeric" class="fr-input">
+                                <input type="text"
+                                       inputmode="numeric"
+                                       class="fr-input"
+                                       value="{{ simu.taux }}">
                             </td>
                             <td>
                                 <select class="fr-select" name="" id="">
