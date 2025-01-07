@@ -77,7 +77,7 @@ def get_projet(request, projet_id):
     return render(request, "gsl_projet/projet.html", context)
 
 
-class FilterProjectsMixin:
+class FilterProjetsMixin:
     def get_filtered_projets(self):
         qs = Projet.objects.for_user(self.request.user).filter(
             dossier_ds__ds_date_depot__gte=datetime.date(2024, 9, 1)
@@ -127,7 +127,7 @@ class FilterProjectsMixin:
         return ordering_map.get(ordering, None)
 
 
-class ProjetListView(FilterProjectsMixin, ListView):
+class ProjetListView(FilterProjetsMixin, ListView):
     model = Projet
     paginate_by = 25
     PORTEUR_MAPPINGS = {
