@@ -5,6 +5,11 @@
     {% dsfr_breadcrumb breadcrumb_dict %}
 {% endblock breadcrumb %}
 
+{% block extra_css %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/simulation_list.css' %}">
+{% endblock extra_css %}
+
 {% block content %}
     <h1>
         {{ title }}
@@ -29,7 +34,15 @@
                         </span>
                     </div>
                     <div class="simulation-card__creation-info">
-
+                        <p class="fr-text--sm fr-m-0">
+                            Créé par {{ simulation.created_by }}
+                            <br>
+                            Le {{ simulation.created_at|date:"j F Y" }}
+                            <br>
+                            <span class="fr-text--xs fr-m-0">
+                                Modifié le {{ simulation.updated_at|date:"j F Y" }} à {{ simulation.updated_at|date:"H\Hi" }}
+                            </span>
+                        </p>
                     </div>
                     <div class="simulation-card__badges">
                         {% dsfr_badge label="112 projets acceptés" extra_classes="fr-badge--green-menthe" %}
