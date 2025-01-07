@@ -78,10 +78,12 @@ def get_projet(request, projet_id):
 
 
 class FilterProjetsMixin:
-    def get_filtered_projets(self):
-        qs = Projet.objects.for_user(self.request.user).filter(
-            dossier_ds__ds_date_depot__gte=datetime.date(2024, 9, 1)
-        )
+    PORTEUR_MAPPINGS = {
+        "EPCI": NaturePorteurProjet.EPCI_NATURES,
+        "Communes": NaturePorteurProjet.COMMUNE_NATURES,
+    }
+
+    def add_filters_to_projets_qs(self, qs):
         filters = self.request.GET
 
         dispositif = filters.get("dispositif")
@@ -130,10 +132,6 @@ class FilterProjetsMixin:
 class ProjetListView(FilterProjetsMixin, ListView):
     model = Projet
     paginate_by = 25
-    PORTEUR_MAPPINGS = {
-        "EPCI": NaturePorteurProjet.EPCI_NATURES,
-        "Communes": NaturePorteurProjet.COMMUNE_NATURES,
-    }
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -142,7 +140,10 @@ class ProjetListView(FilterProjetsMixin, ListView):
         return context
 
     def get_queryset(self):
-        qs = self.get_filtered_projets()
+        qs = Projet.objects.for_user(self.request.user).filter(
+            dossier_ds__ds_date_depot__gte=datetime.date(2024, 9, 1)
+        )
+        qs = self.add_filters_to_projets_qs(qs)
 
         # Tri
         ordering = self.get_ordering()
