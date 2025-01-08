@@ -136,18 +136,23 @@
                                 {{ projet.get_taux_de_subvention_sollicite|percent }}
                             </td>
                             <td class="gsl-money gsl-projet-table__select">
-                                {% comment %} <form action="{% url 'simulation:patch_simulation_projet_taux' %}"> {% endcomment %}
-                                <div class="gsl-projet-table__select-wrap">
-                                    <input type="text"
-                                           inputmode="numeric"
-                                           class="fr-input"
-                                           value="{{ simu.montant }}">
-                                    <span class="gsl-projet-table__select-euro-symbol">€</span>
-                                </div>
-                                {% comment %} </form> {% endcomment %}
+                                <form action="{% url 'programmation:patch-simulation-projet' %}"
+                                      method="POST">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="simulation_projet_id" value="{{ simu.id }}">
+                                    <div div class="gsl-projet-table__select-wrap">
+                                        <input name="montant"
+                                               type="text"
+                                               inputmode="numeric"
+                                               class="fr-input"
+                                               onfocusout="this.form.submit()"
+                                               value="{{ simu.montant }}">
+                                        <span class="gsl-projet-table__select-euro-symbol">€</span>
+                                    </div>
+                                </form>
                             </td>
                             <td class="gsl-money">
-                                <form action="{% url 'programmation:patch-simulation-projet-taux' %}"
+                                <form action="{% url 'programmation:patch-simulation-projet' %}"
                                       method="POST">
                                     {% csrf_token %}
                                     <input type="hidden" name="simulation_projet_id" value="{{ simu.id }}">
