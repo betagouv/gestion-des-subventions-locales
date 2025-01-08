@@ -42,6 +42,7 @@ class SimulationDetailView(DetailView, FilterProjetsMixin):
             f"{simulation.enveloppe.type} {simulation.enveloppe.annee} – {simulation.title}"
         )
         context["porteur_mappings"] = self.PORTEUR_MAPPINGS
+        context["total_cost"] = simulation.get_total_cost()
 
         context["breadcrumb_dict"] = {
             "links": [

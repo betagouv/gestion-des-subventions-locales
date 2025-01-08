@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q
+from django.db.models import Case, F, Q, Sum, When
 
 from gsl_core.models import Collegue, Perimetre
 from gsl_projet.models import Projet
@@ -91,6 +91,17 @@ class Simulation(models.Model):
         from django.urls import reverse
 
         return reverse("programmation:simulation_detail", kwargs={"slug": self.slug})
+
+    def get_total_cost(self):
+        projets = Projet.objects.filter(simulationprojet__simulation=self).annotate(
+            cout_calcule=Case(
+                When(assiette__isnull=False, then=F("assiette")),
+                default=F("dossier_ds__finance_cout_total"),
+            )
+        )
+        projets.aggregate(Sum("cout_calcule"))["cout_calcule__sum"]
+        cout_total = projets.aggregate(total=Sum("cout_calcule"))["total"]
+        return cout_total
 
 
 class SimulationProjet(models.Model):
