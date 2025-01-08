@@ -66,3 +66,11 @@ def test_get_same_total_cost_even_if_there_is_other_projets(
     projets_with_assiette_but_not_in_simulation,
 ):
     assert simulation.get_total_cost() == 100_000
+
+
+@pytest.mark.django_db
+def test_get_total_amount_granted(simulation):
+    SimulationProjetFactory(simulation=simulation, montant=1000)
+    SimulationProjetFactory(simulation=simulation, montant=2000)
+    SimulationProjetFactory(montant=4000)
+    assert simulation.get_total_amount_granted() == 3000

@@ -71,7 +71,7 @@
                     <th>
                         Coût total du projet
                         <br>
-                        <span class="gsl_projet_table__total gsl-money gsl-projet-table__total-cost">{{ total_cost |floatformat:"0g" }}&nbsp;€</span>
+                        <span class="gsl_projet_table__total gsl-money gsl-projet-table__total-cost">{{ total_cost | floatformat:"0g" }}&nbsp;€</span>
                     </th>
                     <th>
                         Montant sollicité
@@ -81,7 +81,7 @@
                     <th>
                         Montant prévisionnel accordé
                         <br>
-                        <span class="gsl_projet_table__total gsl-projet-table__total-granted">930&nbsp;000&nbsp;€</span>
+                        <span class="gsl_projet_table__total gsl-projet-table__total-granted">{{ total_amount_granted | floatformat:"0g" }}&nbsp;€</span>
                     </th>
                     <th>
                         Taux de subvention
@@ -146,7 +146,7 @@
                                                inputmode="numeric"
                                                class="fr-input"
                                                onfocusout="this.form.submit()"
-                                               value="{{ simu.montant }}">
+                                               value="{{ simu.montant|floatformat:"2g" }}">
                                         <span class="gsl-projet-table__select-euro-symbol">€</span>
                                     </div>
                                 </form>
