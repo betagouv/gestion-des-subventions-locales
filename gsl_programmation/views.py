@@ -39,6 +39,7 @@ class SimulationDetailView(DetailView, FilterProjetsMixin):
         context["title"] = (
             f"{simulation.enveloppe.type} {simulation.enveloppe.annee} – {simulation.title}"
         )
+        context["porteur_mappings"] = self.PORTEUR_MAPPINGS
 
         context["breadcrumb_dict"] = {
             "links": [
