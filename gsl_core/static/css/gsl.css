@@ -100,16 +100,44 @@ ul.no-list-style li {
 
 .gsl-projet-table thead th {
     padding: 1em .75em;
-    text-align: left;
+    text-align: center;
     line-height: 1.3;
 }
+.gsl-projet-table thead th,
+.gsl-projet-table thead th .fr-badge {
+    font-size: calc(9rem / 16); /* = 9px */
+}
+
+.gsl_projet_table__total {
+    width: 100%;
+    justify-content: center;
+    color: var(--text-title-blue-france);
+    font-weight: 500;
+    line-height: calc(14rem / 16);
+    display: inline-flex;
+}
+
+.gsl-projet-table__total-cost {
+    background-color: var(--background-alt-blue-france);
+}
+
+.gsl-projet-table__total-asked {
+    background-color: var(--artwork-background-green-tilleul-verveine);
+}
+
+.gsl-projet-table__total-granted {
+    background-color: var(--background-contrast-success);
+}
+
 
 .gsl-projet-table thead th:first-child {
     padding-left: 1.5em;
 }
 
-.gsl-projet-table {
-    font-size: .8em;
+.gsl-projet-table,
+.gsl-projet-table table tbody td .fr-select,
+.gsl-projet-table table tbody td .fr-input {
+    font-size: .6rem; /* = 10px */
 }
 
 .gsl-projet-table table {
@@ -144,7 +172,6 @@ ul.no-list-style li {
         padding: 1rem;
     }
 }
-
 
 .ds_state__accepte {
     color: var(--text-default-success)
