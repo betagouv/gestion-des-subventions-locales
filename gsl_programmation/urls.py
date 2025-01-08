@@ -13,4 +13,9 @@ urlpatterns = [
         views.SimulationDetailView.as_view(),
         name="simulation_detail",
     ),
+    path(
+        "modifier-un-projet-de-simulation/",
+        views.patch_simulation_projet_taux,
+        name="patch-simulation-projet-taux",
+    ),
 ]

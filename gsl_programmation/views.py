@@ -1,6 +1,12 @@
+from decimal import Decimal
+
+from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
 from django.db.models import Prefetch
+from django.http import JsonResponse
+from django.shortcuts import redirect
 from django.urls import reverse
+from django.views.decorators.http import require_http_methods
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 
@@ -67,3 +73,37 @@ class SimulationDetailView(DetailView, FilterProjetsMixin):
         )
         qs.distinct()
         return qs
+
+
+@staff_member_required
+@require_http_methods(["POST", "PATCH"])
+def patch_simulation_projet_taux(request):
+    simulation_projet_id = request.POST.get("simulation_projet_id")
+    new_taux = request.POST.get("taux")
+
+    try:
+        simulation_projet = SimulationProjet.objects.get(id=simulation_projet_id)
+        new_montant = (
+            simulation_projet.projet.assiette_or_cout_total * Decimal(new_taux) / 100
+        )
+
+        simulation_projet.taux = new_taux
+        simulation_projet.montant = new_montant
+        simulation_projet.save()
+
+        if request.method == "POST":
+            return redirect(
+                reverse(
+                    "programmation:simulation_detail",
+                    kwargs={"slug": simulation_projet.simulation.slug},
+                )
+            )
+        elif request.method == "PATCH":
+            return JsonResponse({"success": True, "montant": new_montant})
+
+    except SimulationProjet.DoesNotExist:
+        return JsonResponse({"success": False, "error": "SimulationProjet not found"})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
+
+    return JsonResponse({"success": False, "error": "Invalid request method"})
