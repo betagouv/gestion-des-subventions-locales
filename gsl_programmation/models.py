@@ -134,14 +134,19 @@ class Simulation(models.Model):
 
     def get_total_cost(self):
         projets = Projet.objects.filter(simulationprojet__simulation=self).annotate(
-            cout_calcule=Case(
+            calculed_cost=Case(
                 When(assiette__isnull=False, then=F("assiette")),
                 default=F("dossier_ds__finance_cout_total"),
             )
         )
-        projets.aggregate(Sum("cout_calcule"))["cout_calcule__sum"]
-        cout_total = projets.aggregate(total=Sum("cout_calcule"))["total"]
-        return cout_total
+        projets.aggregate(Sum("calculed_cost"))["calculed_cost__sum"]
+        total_cost = projets.aggregate(total=Sum("calculed_cost"))["total"]
+        return total_cost
+
+    def get_total_amount_granted(self):
+        return SimulationProjet.objects.filter(simulation=self).aggregate(
+            Sum("montant")
+        )["montant__sum"]
 
 
 class SimulationProjet(models.Model):
@@ -164,7 +169,7 @@ class SimulationProjet(models.Model):
     montant = models.DecimalField(
         decimal_places=2, max_digits=14, verbose_name="Montant"
     )
-    taux = models.DecimalField(decimal_places=2, max_digits=4, verbose_name="Taux")
+    taux = models.DecimalField(decimal_places=2, max_digits=5, verbose_name="Taux")
     status = models.CharField(
         verbose_name="État", choices=STATUS_CHOICES, default=STATUS_DRAFT
     )

@@ -1,5 +1,6 @@
-from decimal import Decimal
 import logging
+from decimal import Decimal
+
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
 from django.db.models import Prefetch
@@ -48,6 +49,7 @@ class SimulationDetailView(DetailView, FilterProjetsMixin):
         )
         context["porteur_mappings"] = self.PORTEUR_MAPPINGS
         context["total_cost"] = simulation.get_total_cost()
+        context["total_amount_granted"] = simulation.get_total_amount_granted()
 
         context["breadcrumb_dict"] = {
             "links": [
@@ -87,7 +89,7 @@ def patch_simulation_projet(request):
 
     try:
         simulation_projet = SimulationProjet.objects.get(id=simulation_projet_id)
-        if new_taux:
+        if new_taux is not None:
             new_montant = (
                 simulation_projet.projet.assiette_or_cout_total
                 * Decimal(new_taux)
@@ -95,9 +97,10 @@ def patch_simulation_projet(request):
             )
         else:
             new_taux = (
-                simulation_projet.montant
+                Decimal(new_montant)
                 / Decimal(simulation_projet.projet.assiette_or_cout_total)
             ) * 100
+            new_taux = round(new_taux, 2)
 
         simulation_projet.taux = new_taux
         simulation_projet.montant = new_montant
@@ -118,6 +121,8 @@ def patch_simulation_projet(request):
         return JsonResponse({"success": False, "error": "SimulationProjet not found"})
     except Exception as e:
         logging.error("An error occurred: %s", str(e))
-        return JsonResponse({"success": False, "error": f"An internal error has occurred : {str(e)}"})
+        return JsonResponse(
+            {"success": False, "error": f"An internal error has occurred : {str(e)}"}
+        )
 
     return JsonResponse({"success": False, "error": "Invalid request method"})
