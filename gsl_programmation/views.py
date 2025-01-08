@@ -10,6 +10,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 
+from gsl_programmation.utils import replace_comma_by_dot
 from gsl_projet.models import Projet
 from gsl_projet.views import FilterProjetsMixin
 
@@ -80,15 +81,26 @@ class SimulationDetailView(DetailView, FilterProjetsMixin):
 
 @staff_member_required
 @require_http_methods(["POST", "PATCH"])
-def patch_simulation_projet_taux(request):
+def patch_simulation_projet(request):
     simulation_projet_id = request.POST.get("simulation_projet_id")
-    new_taux = request.POST.get("taux")
+    new_taux = replace_comma_by_dot(request.POST.get("taux"))
+    new_montant = replace_comma_by_dot(request.POST.get("montant"))
+    if new_taux is None and new_montant is None:
+        return JsonResponse({"success": False, "error": "Missing required parameters"})
 
     try:
         simulation_projet = SimulationProjet.objects.get(id=simulation_projet_id)
-        new_montant = (
-            simulation_projet.projet.assiette_or_cout_total * Decimal(new_taux) / 100
-        )
+        if new_taux:
+            new_montant = (
+                simulation_projet.projet.assiette_or_cout_total
+                * Decimal(new_taux)
+                / 100
+            )
+        else:
+            new_taux = (
+                simulation_projet.montant
+                / Decimal(simulation_projet.projet.assiette_or_cout_total)
+            ) * 100
 
         simulation_projet.taux = new_taux
         simulation_projet.montant = new_montant
@@ -101,6 +113,7 @@ def patch_simulation_projet_taux(request):
                     kwargs={"slug": simulation_projet.simulation.slug},
                 )
             )
+
         elif request.method == "PATCH":
             return JsonResponse({"success": True, "montant": new_montant})
 

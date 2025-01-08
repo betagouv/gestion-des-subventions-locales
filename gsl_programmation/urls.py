@@ -15,7 +15,7 @@ urlpatterns = [
     ),
     path(
         "modifier-un-projet-de-simulation/",
-        views.patch_simulation_projet_taux,
-        name="patch-simulation-projet-taux",
+        views.patch_simulation_projet,
+        name="patch-simulation-projet",
     ),
 ]
