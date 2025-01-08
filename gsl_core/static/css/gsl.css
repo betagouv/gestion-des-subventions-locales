@@ -155,15 +155,37 @@ ul.no-list-style li {
     padding-left: 1.5em;
 }
 
-.projets-filters {
-    margin-bottom: 1em;
-}
-
 .projets-filters-layout {
     background: var(--background-alt-blue-france);
     margin-left: calc(-50vw + 50%);
     margin-right: calc(-50vw + 50%);
     padding: 1rem max(calc((100vw - 1200px) / 2), 1.5rem);
+}
+
+.gsl-projet-table__dotation_select {
+    box-shadow: none;
+    border-radius: 0;
+    background-position: 100% 50%;
+    padding: 0 4px;
+}
+
+.gsl-projet-table__select-wrap {
+    position: relative;
+    display: inline-block;
+}
+.gsl-projet-table__select-wrap > input {
+    text-align: right;
+    padding: 4px;
+    padding-right: 20px;
+}
+
+.gsl-projet-table__select-euro-symbol {
+    position: absolute;
+    top: calc(50% - 1px);
+    right: 10px;
+    transform: translateY(-50%);
+    pointer-events: none; /* Ne pas interférer avec les clics */
+    color: #333;
 }
 
 /* TODO utilister des variables avec un préprocesseur ? */
@@ -225,4 +247,7 @@ ul.no-list-style li {
     margin: .75em 0;
     box-shadow: 0 0 0 1px inset, 0 0 0 1px;
     background: #ffffb3;
+}
+.ahr-todo__check{
+    text-decoration: line-through;
 }

@@ -9,15 +9,17 @@
     <h1>
         {{ title }}
     </h1>
-    <h2>
-        Simulation de programmation
-    </h2>
+    <div class="projet-states-count">
+        {% dsfr_badge label="112 projets acceptés" extra_classes="fr-badge--green-menthe" %}
+        {% dsfr_badge label="18 projets refusés" extra_classes="fr-badge--pink-macaron" %}
+        {% dsfr_badge label="5 projets notifiés" extra_classes="fr-badge--blue-cumulus" %}
+    </div>
     <details class="ahr-todo">
         <summary>
             À faire sur cette page :
         </summary>
         <ul>
-            <li>
+            <li class='ahr-todo__check'>
                 Liste de badges sous le titre : 3 projets validés, 18 projets refusés, 5 projets notifiés
             </li>
             <li>
@@ -108,7 +110,7 @@
                                 {{ projet.address.commune.name }}
                             </td>
                             <td>
-                                <select>
+                                <select class='fr-select gsl-projet-table__dotation_select'>
                                     <option value="DETR">
                                         DETR
                                     </option>
@@ -127,17 +129,26 @@
                                 <br>
                                 {{ projet.get_taux_de_subvention_sollicite|percent }}
                             </td>
-                            <td class="gsl-money">
-                                <input type="text" class="fr-input" value="{{ simu.montant }}">
+                            <td class="gsl-money gsl-projet-table__select">
+                                <div class="gsl-projet-table__select-wrap">
+                                    <input type="text"
+                                           inputmode="numeric"
+                                           class="fr-input"
+                                           value="{{ simu.montant }}">
+                                    <span class="gsl-projet-table__select-euro-symbol">€</span>
+                                </div>
                             </td>
                             <td class="gsl-money">
-                                <input type="text"
-                                       inputmode="numeric"
-                                       class="fr-input"
-                                       value="{{ simu.taux }}">
+                                <div class="gsl-projet-table__select-wrap">
+                                    <input type="text"
+                                           inputmode="numeric"
+                                           class="fr-input"
+                                           value="{{ simu.taux }}">
+                                    <span class="gsl-projet-table__select-euro-symbol">%</span>
+                                </div>
                             </td>
                             <td>
-                                <select class="fr-select" name="" id="">
+                                <select class="fr-select " name="" id="">
                                     <option value="">
                                         {{ projet.categorie_doperation.first }}
                                     </option>
