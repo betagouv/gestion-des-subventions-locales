@@ -1,8 +1,9 @@
-from factory import Faker, Sequence, SubFactory
+from factory import Faker, LazyAttribute, Sequence, SubFactory
 from factory.django import DjangoModelFactory
 
 from gsl_core.tests.factories import DepartementFactory, RegionFactory
-from gsl_programmation.models import Enveloppe, Simulation
+from gsl_programmation.models import Enveloppe, Simulation, SimulationProjet
+from gsl_projet.tests.factories import ProjetFactory
 
 
 class DsilEnveloppeFactory(DjangoModelFactory):
@@ -31,3 +32,14 @@ class SimulationFactory(DjangoModelFactory):
 
     slug = Sequence(lambda n: f"simulation-{n}")
     enveloppe = SubFactory(DetrEnveloppeFactory)
+
+
+class SimulationProjetFactory(DjangoModelFactory):
+    class Meta:
+        model = SimulationProjet
+
+    simulation = SubFactory(SimulationFactory)
+    enveloppe = LazyAttribute(lambda o: o.simulation.enveloppe)
+    projet = SubFactory(ProjetFactory)
+    montant = Faker("random_number", digits=5)
+    taux = Faker("random_number", digits=2)
