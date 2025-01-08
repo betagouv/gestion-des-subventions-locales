@@ -50,10 +50,6 @@ a.simulation-card:hover {
   justify-content: center
 }
 
-.simulation-card__tag {
-  display: flex;
-}
-
 .simulation-card__navigate {
   padding: 16px;
   display: grid;

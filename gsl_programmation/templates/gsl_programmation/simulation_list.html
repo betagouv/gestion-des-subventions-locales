@@ -22,10 +22,8 @@
                         <span class="fr-icon-more-fill" />
                     </div>
                     <div class="simulation-card__content">
-                        <p class="fr-tag simulation-card__tag">
-                            <span class="fr-icon-money-euro-box-fill fr-icon--sm fr-mr-1v "></span>
-                            {{ simulation.enveloppe.type }}
-                        </p>
+                        {% dsfr_tag label=simulation.enveloppe.type extra_classes="fr-icon-money-euro-box-fill fr-icon--sm fr-tag--icon-left fr-mr-1v" %}
+
                         <h2 class="simulation-card__title">
                             {{ simulation.title }}
                         </h2>
