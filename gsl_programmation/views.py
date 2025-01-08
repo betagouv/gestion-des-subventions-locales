@@ -1,5 +1,5 @@
 from decimal import Decimal
-
+import logging
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
 from django.db.models import Prefetch
@@ -120,6 +120,7 @@ def patch_simulation_projet(request):
     except SimulationProjet.DoesNotExist:
         return JsonResponse({"success": False, "error": "SimulationProjet not found"})
     except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)})
+        logging.error("An error occurred: %s", str(e))
+        return JsonResponse({"success": False, "error": f"An internal error has occurred : {str(e)}"})
 
     return JsonResponse({"success": False, "error": "Invalid request method"})
