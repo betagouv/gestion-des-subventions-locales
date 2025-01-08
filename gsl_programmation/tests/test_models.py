@@ -74,3 +74,33 @@ def test_get_total_amount_granted(simulation):
     SimulationProjetFactory(simulation=simulation, montant=2000)
     SimulationProjetFactory(montant=4000)
     assert simulation.get_total_amount_granted() == 3000
+
+
+@pytest.fixture
+def projets_with_dossier_ds__demande_montant_not_in_simulation() -> list[Projet]:
+    for amount in [10_000, 2_000]:
+        p = ProjetFactory(
+            dossier_ds__demande_montant=amount,
+        )
+        SimulationProjetFactory(projet=p)
+
+
+@pytest.fixture
+def projets_with_dossier_ds__demande_montant_in_simulation(
+    simulation,
+) -> list[Projet]:
+    for amount in [15_000, 25_000]:
+        p = ProjetFactory(
+            dossier_ds__demande_montant=amount,
+        )
+
+        SimulationProjetFactory(projet=p, simulation=simulation)
+
+
+@pytest.mark.django_db
+def test_get_total_amount_asked(
+    simulation,
+    projets_with_dossier_ds__demande_montant_in_simulation,
+    projets_with_dossier_ds__demande_montant_not_in_simulation,
+):
+    assert simulation.get_total_amount_asked() == 15_000 + 25_000
