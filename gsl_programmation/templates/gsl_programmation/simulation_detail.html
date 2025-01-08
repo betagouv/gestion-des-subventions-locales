@@ -34,11 +34,17 @@
             <li>
                 Rappel de la dotation/des dotations
             </li>
-            <li>
+            <li class='ahr-todo__check'>
                 tableau : colonnes case à cocher pour sélectionner, date de dépôt, intitulé du projet, commune,
                 dotation,
                 coût total, montant sollicité, montant prévi accordé, taux de subvention, choix de la catégorie, statut,
                 modifier ?, lien détail ?
+            </li>
+            <li>
+                Lorsqu'on modifie le champ montant prévisionnel accordé, l'info est enregistrée et le taux est bien recalculé
+            </li>
+            <li>
+                Lorsqu'on modifie le champ taux de subvention, l'info est enregistrée et le champ montant prévisionnel est bien recalculé
             </li>
         </ul>
     </details>
@@ -130,6 +136,7 @@
                                 {{ projet.get_taux_de_subvention_sollicite|percent }}
                             </td>
                             <td class="gsl-money gsl-projet-table__select">
+                                {% comment %} <form action="{% url 'simulation:patch_simulation_projet_taux' %}"> {% endcomment %}
                                 <div class="gsl-projet-table__select-wrap">
                                     <input type="text"
                                            inputmode="numeric"
@@ -137,15 +144,23 @@
                                            value="{{ simu.montant }}">
                                     <span class="gsl-projet-table__select-euro-symbol">€</span>
                                 </div>
+                                {% comment %} </form> {% endcomment %}
                             </td>
                             <td class="gsl-money">
-                                <div class="gsl-projet-table__select-wrap">
-                                    <input type="text"
-                                           inputmode="numeric"
-                                           class="fr-input"
-                                           value="{{ simu.taux }}">
-                                    <span class="gsl-projet-table__select-euro-symbol">%</span>
-                                </div>
+                                <form action="{% url 'programmation:patch-simulation-projet-taux' %}"
+                                      method="POST">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="simulation_projet_id" value="{{ simu.id }}">
+                                    <div class="gsl-projet-table__select-wrap">
+                                        <input name="taux"
+                                               type="text"
+                                               inputmode="numeric"
+                                               class="fr-input"
+                                               onfocusout="this.form.submit()"
+                                               value="{{ simu.taux }}">
+                                        <span class="gsl-projet-table__select-euro-symbol">%</span>
+                                    </div>
+                                </form>
                             </td>
                             <td>
                                 <select class="fr-select " name="" id="">
@@ -161,7 +176,7 @@
                                 <a class="fr-btn--tertiary-no-outline gsl-no-underline"
                                    href="{{ projet.get_absolute_url }}">
                                     <span class="fr-sr-only">Modifier le projet {{ projet.dossier_ds.ds_number }}</span>
-                                    <span class="fr-icon-edit-fill" aria-hidden="true"></span>
+                                    <span class="fr-icon-edit-fill fr-icon--sm" aria-hidden="true"></span>
                                 </a>
                                 <a class="fr-btn--tertiary-no-outline gsl-no-underline"
                                    href="{{ projet.get_absolute_url }}">
