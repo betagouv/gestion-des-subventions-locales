@@ -136,36 +136,10 @@
                                 {{ projet.get_taux_de_subvention_sollicite|percent }}
                             </td>
                             <td class="gsl-money">
-                                <form action="{% url 'programmation:patch-simulation-projet-montant' %}"
-                                      method="POST">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="simulation_projet_id" value="{{ simu.id }}">
-                                    <div div class="gsl-projet-table__input-wrap">
-                                        <input name="montant"
-                                               type="text"
-                                               inputmode="numeric"
-                                               class="fr-input"
-                                               onfocusout="this.form.submit()"
-                                               value="{{ simu.montant|floatformat:"2g" }}">
-                                        <span class="gsl-projet-table__input-symbol">€</span>
-                                    </div>
-                                </form>
+                                {% include "includes/_montant_form.html" with simu=simu %}
                             </td>
                             <td class="gsl-money">
-                                <form action="{% url 'programmation:patch-simulation-projet-taux' %}"
-                                      method="POST">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="simulation_projet_id" value="{{ simu.id }}">
-                                    <div class="gsl-projet-table__input-wrap gsl-projet-table__rate">
-                                        <input name="taux"
-                                               type="text"
-                                               inputmode="numeric"
-                                               class="fr-input"
-                                               onfocusout="this.form.submit()"
-                                               value="{{ simu.taux }}">
-                                        <span class="gsl-projet-table__input-symbol">%</span>
-                                    </div>
-                                </form>
+                                {% include "includes/_taux_form.html" with simu=simu %}
                             </td>
                             <td>
                                 <select class="fr-select gsl-projet-table__select" name="" id="">
@@ -175,20 +149,7 @@
                                 </select>
                             </td>
                             <td>
-                                <form action="{% url 'programmation:patch-simulation-projet-status' %}"
-                                      method="POST">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="simulation_projet_id" value="{{ simu.id }}">
-                                    <select class="fr-select gsl-projet-table__select"
-                                            name="status"
-                                            onchange="this.form.submit()">
-                                        {% for key, value in available_states %}
-                                            <option value={{ key }} {% if simu.status == key %} selected {% endif %}>
-                                                {{ value }}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
-                                </form>
+                                {% include "includes/_status_form.html" with simu=simu %}
                             </td>
                             <td class="fr-cell--right gsl-nowrap">
                                 <a class="fr-btn--tertiary-no-outline gsl-no-underline"
