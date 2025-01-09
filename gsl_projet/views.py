@@ -137,6 +137,8 @@ class ProjetListView(FilterProjetsMixin, ListView):
         context = super().get_context_data(**kwargs)
         context["title"] = "Projets 2025"
         context["porteur_mappings"] = self.PORTEUR_MAPPINGS
+        context["breadcrumb_dict"] = {"current": "Liste des projets"}
+
         return context
 
     def get_queryset(self):

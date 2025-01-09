@@ -19,6 +19,8 @@ class SimulationListView(ListView):
         context["title"] = (
             "Mes simulations"  # todo si filtre par année : rappeler l'année ici
         )
+        context["breadcrumb_dict"] = {"current": "Mes simulations de programmation"}
+
         return context
 
 
