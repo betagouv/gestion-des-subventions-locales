@@ -181,6 +181,19 @@ class Perimetre(BaseModel):
         if errors:
             raise ValidationError(errors)
 
+    def contains(self, other_perimetre):
+        return (
+            # scope "région"
+            (self.departement is None and self.region == other_perimetre.region)
+            or
+            # scope "département"
+            (
+                self.departement is not None
+                and self.departement == other_perimetre.departement
+            )
+            # scope "arrondissement": does not contain (strictly) other perimeters
+        )
+
 
 class Collegue(AbstractUser):
     proconnect_sub = models.UUIDField(

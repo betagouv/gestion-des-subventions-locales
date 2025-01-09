@@ -3,8 +3,10 @@ from decimal import Decimal
 import pytest
 from django.db.utils import IntegrityError
 
+from gsl_core.models import Perimetre
 from gsl_core.tests.factories import (
     DepartementFactory,
+    PerimetreFactory,
     RegionFactory,
 )
 from gsl_projet.tests.factories import ProjetFactory
@@ -18,17 +20,25 @@ pytestmark = pytest.mark.django_db
 def enveloppe_dsil():
     return Enveloppe.objects.create(
         type=Enveloppe.TYPE_DSIL,
-        perimetre_region=RegionFactory(),
+        perimetre=PerimetreFactory(
+            region=RegionFactory(), departement=None, arrondissement=None
+        ),
         montant=Decimal("20000000.00"),
         annee=2025,
     )
 
 
 @pytest.fixture
-def enveloppe_detr():
+def perimetre_departement() -> Perimetre:
+    departement = DepartementFactory()
+    return PerimetreFactory(departement=departement, region=departement.region)
+
+
+@pytest.fixture
+def enveloppe_detr(perimetre_departement):
     return Enveloppe.objects.create(
         type=Enveloppe.TYPE_DETR,
-        perimetre_departement=DepartementFactory(),
+        perimetre=perimetre_departement,
         montant=Decimal("2000000.00"),
         annee=2025,
     )

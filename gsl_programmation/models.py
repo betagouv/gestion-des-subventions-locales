@@ -1,7 +1,8 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 
-from gsl_core.models import Arrondissement, Collegue, Departement, Region
+from gsl_core.models import Collegue, Perimetre
 from gsl_projet.models import Projet
 
 
@@ -17,27 +18,8 @@ class Enveloppe(models.Model):
         decimal_places=2,
     )
     annee = models.IntegerField(verbose_name="Année")
-
-    perimetre_region = models.ForeignKey(
-        Region,
-        verbose_name="Périmètre régional",
-        null=True,
-        on_delete=models.PROTECT,
-        blank=True,
-    )
-    perimetre_departement = models.ForeignKey(
-        Departement,
-        verbose_name="Périmètre départemental",
-        null=True,
-        on_delete=models.PROTECT,
-        blank=True,
-    )
-    perimetre_arrondissement = models.ForeignKey(
-        Arrondissement,
-        verbose_name="Périmètre d’arrondissement",
-        null=True,
-        on_delete=models.PROTECT,
-        blank=True,
+    perimetre = models.ForeignKey(
+        Perimetre, on_delete=models.PROTECT, verbose_name="Périmètre", null=True
     )
 
     deleguee_by = models.ForeignKey(
@@ -55,41 +37,8 @@ class Enveloppe(models.Model):
                 fields=(
                     "annee",
                     "type",
-                    "perimetre_region",
-                    "perimetre_departement",
-                    "perimetre_arrondissement",
+                    "perimetre",
                 ),
-                nulls_distinct=False,  # important because "perimetre_*" fields are nullable
-            ),
-            models.CheckConstraint(
-                name="only_one_perimeter",
-                violation_error_message="Un seul type de périmètre doit être renseigné parmi les trois possibles.",
-                condition=Q(perimetre_region__isnull=False)
-                ^ Q(perimetre_departement__isnull=False)
-                ^ Q(perimetre_arrondissement__isnull=False),
-            ),
-            models.CheckConstraint(
-                condition=~Q(type="DSIL")
-                | (Q(deleguee_by__isnull=True) & Q(perimetre_region__isnull=False))
-                | (
-                    Q(deleguee_by__isnull=False)
-                    & (
-                        Q(perimetre_departement__isnull=False)
-                        ^ Q(perimetre_arrondissement__isnull=False)
-                    )
-                ),
-                name="dsil_regional_perimeter",
-                violation_error_message="Il faut préciser un périmètre régional pour une enveloppe de type DSIL non déléguée.",
-            ),
-            models.CheckConstraint(
-                condition=~Q(type="DETR")
-                | (Q(deleguee_by__isnull=True) & Q(perimetre_departement__isnull=False))
-                | (
-                    Q(deleguee_by__isnull=False)
-                    & Q(perimetre_arrondissement__isnull=False)
-                ),
-                name="detr_departemental_perimeter",
-                violation_error_message="Il faut préciser un périmètre départemental pour une enveloppe de type DETR non déléguée.",
             ),
         )
 
@@ -97,16 +46,27 @@ class Enveloppe(models.Model):
         return f"Enveloppe {self.type} {self.annee} {self.perimetre}"
 
     @property
-    def perimetre(self):
-        return next(
-            perimetre
-            for perimetre in (
-                self.perimetre_arrondissement,
-                self.perimetre_departement,
-                self.perimetre_region,
+    def is_deleguee(self):
+        return self.deleguee_by is not None
+
+    def clean(self):
+        if self.type == self.TYPE_DETR:  # scope "département"
+            if not self.is_deleguee and (
+                self.perimetre.arrondissement is not None
+                or self.perimetre.departement is None
+            ):
+                raise ValidationError(
+                    "Il faut préciser un périmètre départemental pour une enveloppe de type DETR non déléguée."
+                )
+        if self.type == self.TYPE_DSIL:
+            if not self.is_deleguee and self.perimetre.departement is not None:
+                raise ValidationError(
+                    "Il faut préciser un périmètre régional pour une enveloppe de type DSIL non déléguée."
+                )
+        if self.is_deleguee and not self.deleguee_by.perimetre.contains(self.perimetre):
+            raise ValidationError(
+                "Le périmètre de l'enveloppe délégante est incohérent avec celui de l'enveloppe déléguée."
             )
-            if perimetre
-        )
 
 
 class Simulation(models.Model):
