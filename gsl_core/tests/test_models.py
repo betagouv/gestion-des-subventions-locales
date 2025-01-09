@@ -1,5 +1,5 @@
 import pytest
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 
 from gsl_core.models import Arrondissement, Departement, Perimetre, Region
 from gsl_core.tests.factories import (
@@ -62,6 +62,13 @@ def test_clean_invalid_perimetre(region_idf, dept_76):
     assert exc_info.value.message_dict["departement"][0] == (
         "Le département doit appartenir à la même région que le périmètre."
     )
+
+
+def test_clean_perimetre_with_departement_but_without_region(dept_76):
+    """Test qu'un périmètre avec département mais sans région lève une erreur"""
+    perimetre = Perimetre(region=None, departement=dept_76)
+    with pytest.raises(ObjectDoesNotExist):
+        perimetre.clean()
 
 
 def test_save_invalid_perimetre(region_idf, dept_76):
