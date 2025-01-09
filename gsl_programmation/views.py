@@ -112,6 +112,7 @@ def exception_handler_decorator(func):
     return wrapper
 
 
+# TODO pour les fonctions ci-dessous : vérifier que l'utilisateur a les droits nécessaires
 @exception_handler_decorator
 @staff_member_required
 @require_http_methods(["POST", "PATCH"])

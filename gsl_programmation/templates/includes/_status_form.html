@@ -1,0 +1,14 @@
+<form action="{% url 'programmation:patch-simulation-projet-status' %}"
+      method="POST">
+    {% csrf_token %}
+    <input type="hidden" name="simulation_projet_id" value="{{ simu.id }}">
+    <select class="fr-select gsl-projet-table__select"
+            name="status"
+            onchange="this.form.submit()">
+        {% for key, value in available_states %}
+            <option value={{ key }} {% if simu.status == key %} selected {% endif %}>
+                {{ value }}
+            </option>
+        {% endfor %}
+    </select>
+</form>

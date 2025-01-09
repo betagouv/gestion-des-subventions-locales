@@ -8,6 +8,7 @@ from gsl_programmation.utils import replace_comma_by_dot
     [
         ("10 000 ,00", 10000.00),
         ("10 0   0 0 ,00", 10000.00),
+        ("0.5670", 0.57),
         ("10 0   0 0 ,5670", 10000.57),
         ("", 0.0),  # Test empty string
         ("invalid", 0.0),  # Test invalid string
