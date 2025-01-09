@@ -1,5 +1,4 @@
 import logging
-from decimal import Decimal
 
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
@@ -11,6 +10,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 
+from gsl_programmation.services import SimulationProjetService
 from gsl_programmation.utils import replace_comma_by_dot
 from gsl_projet.models import Projet
 from gsl_projet.views import FilterProjetsMixin
@@ -51,6 +51,7 @@ class SimulationDetailView(DetailView, FilterProjetsMixin):
         context["total_cost"] = simulation.get_total_cost()
         context["total_amount_asked"] = simulation.get_total_amount_asked()
         context["total_amount_granted"] = simulation.get_total_amount_granted()
+        context["available_states"] = SimulationProjet.STATUS_CHOICES
 
         context["breadcrumb_dict"] = {
             "links": [
@@ -82,30 +83,27 @@ class SimulationDetailView(DetailView, FilterProjetsMixin):
 @staff_member_required
 @require_http_methods(["POST", "PATCH"])
 def patch_simulation_projet(request):
-    simulation_projet_id = request.POST.get("simulation_projet_id")
-    new_taux = replace_comma_by_dot(request.POST.get("taux"))
-    new_montant = replace_comma_by_dot(request.POST.get("montant"))
-    if new_taux is None and new_montant is None:
-        return JsonResponse({"success": False, "error": "Missing required parameters"})
-
     try:
+        simulation_projet_id = request.POST.get("simulation_projet_id")
         simulation_projet = SimulationProjet.objects.get(id=simulation_projet_id)
-        if new_taux is not None:
-            new_montant = (
-                simulation_projet.projet.assiette_or_cout_total
-                * Decimal(new_taux)
-                / 100
+
+        new_status = request.POST.get("status")
+        new_taux = replace_comma_by_dot(request.POST.get("taux"))
+        new_montant = replace_comma_by_dot(request.POST.get("montant"))
+
+        if new_status is not None:
+            SimulationProjetService._update_simulation_projet_status(
+                simulation_projet, new_status
+            )
+
+        elif new_taux is not None or new_montant is not None:
+            SimulationProjetService._update_simulation_projet_taux_or_montant(
+                simulation_projet, new_taux, new_montant
             )
         else:
-            new_taux = (
-                Decimal(new_montant)
-                / Decimal(simulation_projet.projet.assiette_or_cout_total)
-            ) * 100
-            new_taux = round(new_taux, 2)
-
-        simulation_projet.taux = new_taux
-        simulation_projet.montant = new_montant
-        simulation_projet.save()
+            return JsonResponse(
+                {"success": False, "error": "Missing required parameters"}
+            )
 
         if request.method == "POST":
             return redirect(
@@ -120,6 +118,7 @@ def patch_simulation_projet(request):
 
     except SimulationProjet.DoesNotExist:
         return JsonResponse({"success": False, "error": "SimulationProjet not found"})
+
     except Exception as e:
         logging.error("An error occurred: %s", str(e))
         return JsonResponse(
