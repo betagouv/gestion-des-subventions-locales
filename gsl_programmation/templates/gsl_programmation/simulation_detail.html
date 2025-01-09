@@ -9,11 +9,8 @@
     <h1>
         {{ title }}
     </h1>
-    <div class="projet-states-count">
-        {% dsfr_badge label="112 projets acceptés" extra_classes="fr-badge--green-menthe" %}
-        {% dsfr_badge label="18 projets refusés" extra_classes="fr-badge--pink-macaron" %}
-        {% dsfr_badge label="5 projets notifiés" extra_classes="fr-badge--blue-cumulus" %}
-    </div>
+    {% include "includes/_status_summary.html" with status_summary=status_summary %}
+
     <details class="ahr-todo">
         <summary>
             À faire sur cette page :

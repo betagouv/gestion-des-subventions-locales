@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Case, F, Q, Sum, When
+from django.db.models import Case, Count, F, Q, Sum, When
 
 from gsl_core.models import Collegue, Perimetre
 from gsl_projet.models import Projet
@@ -91,6 +91,24 @@ class Simulation(models.Model):
         from django.urls import reverse
 
         return reverse("programmation:simulation_detail", kwargs={"slug": self.slug})
+
+    def get_projet_status_summary(self):
+        default_status_summary = {
+            SimulationProjet.STATUS_DRAFT: 0,
+            SimulationProjet.STATUS_VALID: 0,
+            SimulationProjet.STATUS_CANCELLED: 0,
+            SimulationProjet.STATUS_PROVISOIRE: 0,
+            "notified": 0,  # TODO : add notified count
+        }
+        status_count = (
+            SimulationProjet.objects.filter(simulation=self)
+            .values("status")
+            .annotate(count=Count("status"))
+        )
+
+        summary = {item["status"]: item["count"] for item in status_count}
+
+        return {**default_status_summary, **summary}
 
     def get_total_cost(self):
         projets = Projet.objects.filter(simulationprojet__simulation=self).annotate(

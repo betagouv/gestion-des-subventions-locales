@@ -15,6 +15,7 @@ class SimulationProjetService:
         new_montant = (
             simulation_projet.projet.assiette_or_cout_total * Decimal(new_taux) / 100
         )
+        new_montant = round(new_montant, 2)
 
         simulation_projet.taux = new_taux
         simulation_projet.montant = new_montant
