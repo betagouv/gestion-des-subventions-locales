@@ -136,7 +136,7 @@
                                 {{ projet.get_taux_de_subvention_sollicite|percent }}
                             </td>
                             <td class="gsl-money">
-                                <form action="{% url 'programmation:patch-simulation-projet' %}"
+                                <form action="{% url 'programmation:patch-simulation-projet-montant' %}"
                                       method="POST">
                                     {% csrf_token %}
                                     <input type="hidden" name="simulation_projet_id" value="{{ simu.id }}">
@@ -152,7 +152,7 @@
                                 </form>
                             </td>
                             <td class="gsl-money">
-                                <form action="{% url 'programmation:patch-simulation-projet' %}"
+                                <form action="{% url 'programmation:patch-simulation-projet-taux' %}"
                                       method="POST">
                                     {% csrf_token %}
                                     <input type="hidden" name="simulation_projet_id" value="{{ simu.id }}">
@@ -175,7 +175,7 @@
                                 </select>
                             </td>
                             <td>
-                                <form action="{% url 'programmation:patch-simulation-projet' %}"
+                                <form action="{% url 'programmation:patch-simulation-projet-status' %}"
                                       method="POST">
                                     {% csrf_token %}
                                     <input type="hidden" name="simulation_projet_id" value="{{ simu.id }}">
