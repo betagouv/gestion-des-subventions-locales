@@ -40,10 +40,10 @@
                 coût total, montant sollicité, montant prévi accordé, taux de subvention, choix de la catégorie, statut,
                 modifier ?, lien détail ?
             </li>
-            <li>
+            <li class='ahr-todo__check'>
                 Lorsqu'on modifie le champ montant prévisionnel accordé, l'info est enregistrée et le taux est bien recalculé
             </li>
-            <li>
+            <li class='ahr-todo__check'>
                 Lorsqu'on modifie le champ taux de subvention, l'info est enregistrée et le champ montant prévisionnel est bien recalculé
             </li>
         </ul>
@@ -168,14 +168,25 @@
                                 </form>
                             </td>
                             <td>
-                                <select class="fr-select " name="" id="">
+                                <select class="fr-select" name="" id="">
                                     <option value="">
                                         {{ projet.categorie_doperation.first }}
                                     </option>
                                 </select>
                             </td>
                             <td>
-                                <span class="status-{{ simu.status }}">{{ simu.get_status_display }}</span>
+                                <form action="{% url 'programmation:patch-simulation-projet' %}"
+                                      method="POST">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="simulation_projet_id" value="{{ simu.id }}">
+                                    <select class="fr-select" name="status" onchange="this.form.submit()">
+                                        {% for key, value in available_states %}
+                                            <option value={{ key }} {% if simu.status == key %} selected {% endif %}>
+                                                {{ value }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </form>
                             </td>
                             <td class="fr-cell--right gsl-nowrap">
                                 <a class="fr-btn--tertiary-no-outline gsl-no-underline"
