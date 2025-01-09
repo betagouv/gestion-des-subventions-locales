@@ -80,49 +80,69 @@ class SimulationDetailView(DetailView, FilterProjetsMixin):
         return qs
 
 
-@staff_member_required
-@require_http_methods(["POST", "PATCH"])
-def patch_simulation_projet(request):
-    try:
-        simulation_projet_id = request.POST.get("simulation_projet_id")
-        simulation_projet = SimulationProjet.objects.get(id=simulation_projet_id)
-
-        new_status = request.POST.get("status")
-        new_taux = replace_comma_by_dot(request.POST.get("taux"))
-        new_montant = replace_comma_by_dot(request.POST.get("montant"))
-
-        if new_status is not None:
-            SimulationProjetService._update_simulation_projet_status(
-                simulation_projet, new_status
+def redirect_to_simulation_projet(request, simulation_projet):
+    if request.method == "POST":
+        return redirect(
+            reverse(
+                "programmation:simulation_detail",
+                kwargs={"slug": simulation_projet.simulation.slug},
             )
-
-        elif new_taux is not None or new_montant is not None:
-            SimulationProjetService._update_simulation_projet_taux_or_montant(
-                simulation_projet, new_taux, new_montant
-            )
-        else:
-            return JsonResponse(
-                {"success": False, "error": "Missing required parameters"}
-            )
-
-        if request.method == "POST":
-            return redirect(
-                reverse(
-                    "programmation:simulation_detail",
-                    kwargs={"slug": simulation_projet.simulation.slug},
-                )
-            )
-
-        elif request.method == "PATCH":
-            return JsonResponse({"success": True, "montant": new_montant})
-
-    except SimulationProjet.DoesNotExist:
-        return JsonResponse({"success": False, "error": "SimulationProjet not found"})
-
-    except Exception as e:
-        logging.error("An error occurred: %s", str(e))
-        return JsonResponse(
-            {"success": False, "error": f"An internal error has occurred : {str(e)}"}
         )
 
-    return JsonResponse({"success": False, "error": "Invalid request method"})
+    elif request.method == "PATCH":
+        return JsonResponse({"success": True})
+
+    else:
+        return JsonResponse({"success": False, "error": "Invalid request method"})
+
+
+def exception_handler_decorator(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            logging.error("An error occurred: %s", str(e))
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": f"An internal error has occurred : {str(e)}",
+                }
+            )
+
+    return wrapper
+
+
+@exception_handler_decorator
+@staff_member_required
+@require_http_methods(["POST", "PATCH"])
+def patch_taux_simulation_projet(request):
+    simulation_projet_id = request.POST.get("simulation_projet_id")
+    simulation_projet = SimulationProjet.objects.get(id=simulation_projet_id)
+
+    new_taux = replace_comma_by_dot(request.POST.get("taux"))
+    SimulationProjetService.update_taux(simulation_projet, new_taux)
+    return redirect_to_simulation_projet(request, simulation_projet)
+
+
+@exception_handler_decorator
+@staff_member_required
+@require_http_methods(["POST", "PATCH"])
+def patch_montant_simulation_projet(request):
+    simulation_projet_id = request.POST.get("simulation_projet_id")
+    simulation_projet = SimulationProjet.objects.get(id=simulation_projet_id)
+
+    new_montant = replace_comma_by_dot(request.POST.get("montant"))
+    SimulationProjetService.update_montant(simulation_projet, new_montant)
+    return redirect_to_simulation_projet(request, simulation_projet)
+
+
+@exception_handler_decorator
+@staff_member_required
+@require_http_methods(["POST", "PATCH"])
+def patch_status_simulation_projet(request):
+    simulation_projet_id = request.POST.get("simulation_projet_id")
+    simulation_projet = SimulationProjet.objects.get(id=simulation_projet_id)
+
+    new_status = request.POST.get("status")
+    SimulationProjetService.update_status(simulation_projet, new_status)
+    return redirect_to_simulation_projet(request, simulation_projet)

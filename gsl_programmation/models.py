@@ -139,9 +139,8 @@ class Simulation(models.Model):
                 default=F("dossier_ds__finance_cout_total"),
             )
         )
-        projets.aggregate(Sum("calculed_cost"))["calculed_cost__sum"]
-        total_cost = projets.aggregate(total=Sum("calculed_cost"))["total"]
-        return total_cost
+
+        return projets.aggregate(total=Sum("calculed_cost"))["total"]
 
     def get_total_amount_asked(self):
         return Projet.objects.filter(simulationprojet__simulation=self).aggregate(
