@@ -41,8 +41,12 @@ def test_filter_perimetre():
         departement=demandeur_1.departement,
     )
 
-    assert Projet.objects.for_perimetre(None).count() == 2
-    assert Projet.objects.for_perimetre(perimetre).count() == 1
+    assert (
+        Projet.objects.for_perimetre(None).count() == 2
+    ), "Expect 2 projets for perimetre “None”"
+    assert (
+        Projet.objects.for_perimetre(perimetre).count() == 1
+    ), "Expect 2 projets for perimetre “arrondissement”"
     assert (
         Projet.objects.for_perimetre(perimetre).first().demandeur.arrondissement
         == arrondissement
