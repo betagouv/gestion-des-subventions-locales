@@ -51,10 +51,8 @@ def simulation_detr(enveloppe_detr):
     )
 
 
-def test_projet_only_once_per_simulation_and_enveloppe(
-    enveloppe_detr, simulation_detr, enveloppe_dsil
-):
-    projet_un = SimulationProjet.objects.create(
+def test_projet_only_once_per_simulation_and_enveloppe(enveloppe_detr, simulation_detr):
+    simulation_projet_un = SimulationProjet.objects.create(
         enveloppe=enveloppe_detr,
         simulation=simulation_detr,
         projet=ProjetFactory(),
@@ -65,7 +63,7 @@ def test_projet_only_once_per_simulation_and_enveloppe(
         SimulationProjet.objects.create(
             enveloppe=enveloppe_detr,
             simulation=simulation_detr,
-            projet=projet_un.projet,
+            projet=simulation_projet_un.projet,
             montant=Decimal("15000"),
             taux=Decimal("0.52"),
         )
