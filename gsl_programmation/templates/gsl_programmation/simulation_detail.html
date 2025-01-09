@@ -59,7 +59,7 @@
                     <th>
                         Date de dépôt
                     </th>
-                    <th>
+                    <th class="max_150_width">
                         Intitulé du projet
                     </th>
                     <th>
@@ -68,22 +68,22 @@
                     <th>
                         Dotation
                     </th>
-                    <th>
+                    <th class="max_80_width">
                         Coût total du projet
                         <br>
                         <span class="gsl_projet_table__total gsl-money gsl-projet-table__total-cost">{{ total_cost | floatformat:"0g" }}&nbsp;€</span>
                     </th>
-                    <th>
+                    <th class="max_80_width">
                         Montant sollicité
                         <br>
                         <span class="gsl_projet_table__total gsl-projet-table__total-asked">{{ total_amount_asked | floatformat:"0g" }}&nbsp;€</span>
                     </th>
-                    <th>
+                    <th class="max_80_width">
                         Montant prévisionnel accordé
                         <br>
                         <span class="gsl_projet_table__total gsl-projet-table__total-granted">{{ total_amount_granted | floatformat:"0g" }}&nbsp;€</span>
                     </th>
-                    <th>
+                    <th class="max_80_width">
                         Taux de subvention
                     </th>
                     <th>
@@ -116,7 +116,7 @@
                                 {{ projet.address.commune.name }}
                             </td>
                             <td>
-                                <select class='fr-select gsl-projet-table__dotation_select'>
+                                <select class='fr-select gsl-projet-table__select'>
                                     <option value="DETR">
                                         DETR
                                     </option>
@@ -135,19 +135,19 @@
                                 <br>
                                 {{ projet.get_taux_de_subvention_sollicite|percent }}
                             </td>
-                            <td class="gsl-money gsl-projet-table__select">
+                            <td class="gsl-money">
                                 <form action="{% url 'programmation:patch-simulation-projet' %}"
                                       method="POST">
                                     {% csrf_token %}
                                     <input type="hidden" name="simulation_projet_id" value="{{ simu.id }}">
-                                    <div div class="gsl-projet-table__select-wrap">
+                                    <div div class="gsl-projet-table__input-wrap">
                                         <input name="montant"
                                                type="text"
                                                inputmode="numeric"
                                                class="fr-input"
                                                onfocusout="this.form.submit()"
                                                value="{{ simu.montant|floatformat:"2g" }}">
-                                        <span class="gsl-projet-table__select-euro-symbol">€</span>
+                                        <span class="gsl-projet-table__input-symbol">€</span>
                                     </div>
                                 </form>
                             </td>
@@ -156,19 +156,19 @@
                                       method="POST">
                                     {% csrf_token %}
                                     <input type="hidden" name="simulation_projet_id" value="{{ simu.id }}">
-                                    <div class="gsl-projet-table__select-wrap">
+                                    <div class="gsl-projet-table__input-wrap gsl-projet-table__rate">
                                         <input name="taux"
                                                type="text"
                                                inputmode="numeric"
                                                class="fr-input"
                                                onfocusout="this.form.submit()"
                                                value="{{ simu.taux }}">
-                                        <span class="gsl-projet-table__select-euro-symbol">%</span>
+                                        <span class="gsl-projet-table__input-symbol">%</span>
                                     </div>
                                 </form>
                             </td>
                             <td>
-                                <select class="fr-select" name="" id="">
+                                <select class="fr-select gsl-projet-table__select" name="" id="">
                                     <option value="">
                                         {{ projet.categorie_doperation.first }}
                                     </option>
@@ -179,7 +179,9 @@
                                       method="POST">
                                     {% csrf_token %}
                                     <input type="hidden" name="simulation_projet_id" value="{{ simu.id }}">
-                                    <select class="fr-select" name="status" onchange="this.form.submit()">
+                                    <select class="fr-select gsl-projet-table__select"
+                                            name="status"
+                                            onchange="this.form.submit()">
                                         {% for key, value in available_states %}
                                             <option value={{ key }} {% if simu.status == key %} selected {% endif %}>
                                                 {{ value }}

@@ -108,6 +108,19 @@ ul.no-list-style li {
     font-size: calc(9rem / 16); /* = 9px */
 }
 
+.max_150_width {
+    max-width: 180px;
+    width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.max_80_width {
+    max-width: 80px;
+    width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .gsl_projet_table__total {
     width: 100%;
     justify-content: center;
@@ -162,31 +175,38 @@ ul.no-list-style li {
     padding: 1rem max(calc((100vw - 1200px) / 2), 1.5rem);
 }
 
-.gsl-projet-table__dotation_select {
-    box-shadow: none;
-    border-radius: 0;
-    background-position: 100% 50%;
-    padding: 0 4px;
-}
-
-.gsl-projet-table__select-wrap {
-    position: relative;
-    display: inline-block;
-}
-.gsl-projet-table__select-wrap > input {
+.gsl-projet-table__select {
     text-align: right;
     padding: 4px;
     padding-right: 20px;
+    background-position: calc(100% - 4px) 50%;
+    box-shadow: none
 }
 
-.gsl-projet-table__select-euro-symbol {
+.gsl-projet-table__input-wrap {
+    position: relative;
+    display: inline-block;
+}
+.gsl-projet-table__input-wrap > input {
+    text-align: right;
+    padding: 4px;
+    padding-right: 12px;
+    box-shadow: none
+}
+
+.gsl-projet-table__input-symbol {
     position: absolute;
-    top: calc(50% - 1px);
-    right: 10px;
+    top: 50%;
+    right: 4px;
     transform: translateY(-50%);
     pointer-events: none; /* Ne pas interférer avec les clics */
     color: #333;
 }
+
+.gsl-projet-table__rate > input {
+    padding-right: 16px;
+}
+
 
 /* TODO utilister des variables avec un préprocesseur ? */
 @media (max-width: 768px) {
