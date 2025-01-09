@@ -57,6 +57,7 @@ class SimulationDetailView(DetailView, FilterProjetsMixin):
         simulation = self.get_object()
         qs = Projet.objects.filter(simulationprojet__simulation=simulation)
         qs = self.add_filters_to_projets_qs(qs)
+        qs = qs.select_related("address").select_related("address__commune")
         qs = qs.prefetch_related(
             Prefetch(
                 "simulationprojet_set",
