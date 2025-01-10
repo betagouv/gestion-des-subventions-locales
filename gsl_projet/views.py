@@ -1,5 +1,3 @@
-import datetime
-
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
@@ -142,9 +140,7 @@ class ProjetListView(FilterProjetsMixin, ListView):
         return context
 
     def get_queryset(self):
-        qs = Projet.objects.for_user(self.request.user).filter(
-            dossier_ds__ds_date_depot__gte=datetime.date(2024, 9, 1)
-        )
+        qs = Projet.objects.for_user(self.request.user).all()
         qs = self.add_filters_to_projets_qs(qs)
 
         # Tri
