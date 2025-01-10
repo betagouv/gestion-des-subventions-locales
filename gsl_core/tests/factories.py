@@ -67,6 +67,21 @@ class PerimetreFactory(factory.django.DjangoModelFactory):
     region = factory.LazyAttribute(lambda obj: obj.departement.region)
 
 
+class PerimetreDepartementalFactory(PerimetreFactory):
+    pass
+
+
+class PerimetreRegionalFactory(PerimetreFactory):
+    departement = None
+    region = factory.SubFactory(RegionFactory)
+
+
+class PerimetreArrondissementFactory(PerimetreFactory):
+    arrondissement = factory.SubFactory(ArrondissementFactory)
+    departement = factory.LazyAttribute(lambda obj: obj.arrondissement.departement)
+    region = factory.LazyAttribute(lambda obj: obj.arrondissement.departement.region)
+
+
 class CollegueFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Collegue
