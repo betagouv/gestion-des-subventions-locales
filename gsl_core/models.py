@@ -133,6 +133,7 @@ class Perimetre(BaseModel):
     )
 
     class Meta:
+        verbose_name = ("Périmètre",)
         constraints = (
             UniqueConstraint(
                 name="unicity_by_perimeter",
@@ -180,6 +181,21 @@ class Perimetre(BaseModel):
 
         if errors:
             raise ValidationError(errors)
+
+    def contains(self, other_perimetre):
+        if self == other_perimetre:
+            return False  # strict comparison
+        if self.departement is None:  # self is a Region
+            return (
+                other_perimetre.departement is not None
+                and other_perimetre.region == self.region
+            )
+        if self.arrondissement is None:  # self is a Departement
+            return (
+                other_perimetre.arrondissement is not None
+                and other_perimetre.departement == self.departement
+            )
+        return False
 
 
 class Collegue(AbstractUser):
