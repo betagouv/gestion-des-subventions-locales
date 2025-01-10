@@ -182,17 +182,19 @@ class Perimetre(BaseModel):
             raise ValidationError(errors)
 
     def contains(self, other_perimetre):
-        return (
-            # scope "région"
-            (self.departement is None and self.region == other_perimetre.region)
-            or
-            # scope "département"
-            (
-                self.departement is not None
-                and self.departement == other_perimetre.departement
+        if self == other_perimetre:
+            return False  # strict comparison
+        if self.departement is None:  # self is a Region
+            return (
+                other_perimetre.departement is not None
+                and other_perimetre.region == self.region
             )
-            # scope "arrondissement": does not contain (strictly) other perimeters
-        )
+        if self.arrondissement is None:  # self is a Departement
+            return (
+                other_perimetre.arrondissement is not None
+                and other_perimetre.departement == self.departement
+            )
+        return False
 
 
 class Collegue(AbstractUser):
