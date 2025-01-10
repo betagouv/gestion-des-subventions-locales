@@ -184,6 +184,20 @@ class Perimetre(BaseModel):
         if errors:
             raise ValidationError(errors)
 
+    @classmethod
+    def from_division(cls, division):
+        match division:
+            case Region():
+                return cls(region=division)
+            case Departement():
+                return cls(region=division.region, departement=division)
+            case Arrondissement():
+                return cls(
+                    region=division.departement.region,
+                    departement=division.departement,
+                    arrondissement=division,
+                )
+
     def contains(self, other_perimetre):
         if self == other_perimetre:
             return False  # strict comparison

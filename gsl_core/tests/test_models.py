@@ -127,141 +127,153 @@ def test_clean_perimetre_with_arrondissement_without_departement(
     )
 
 
-@pytest.fixture
-def perimetre_region_idf(region_idf) -> Perimetre:
-    return Perimetre(region=region_idf, departement=None, arrondissement=None)
-
-
-@pytest.fixture
-def perimetre_departement_75(region_idf, dept_75) -> Perimetre:
-    return Perimetre(region=region_idf, departement=dept_75, arrondissement=None)
-
-
-@pytest.fixture
-def perimetre_arr_paris_centre(region_idf, dept_75, arr_paris_centre) -> Perimetre:
-    return Perimetre(
-        region=region_idf, departement=dept_75, arrondissement=arr_paris_centre
-    )
-
-
-@pytest.fixture
-def perimetre_region_normandie(region_normandie) -> Perimetre:
-    return Perimetre(region=region_normandie, departement=None, arrondissement=None)
-
-
-@pytest.fixture
-def perimetre_departement_76(region_normandie, dept_76) -> Perimetre:
-    return Perimetre(region=region_normandie, departement=dept_76, arrondissement=None)
-
-
-@pytest.fixture
-def perimetre_arrondissement_lehavre(
-    region_normandie, dept_76, arr_le_havre
-) -> Perimetre:
-    return Perimetre(
-        region=region_normandie, departement=dept_76, arrondissement=arr_le_havre
-    )
-
-
 contain_test_data = (
     # Region ---------------------------------------------------------------------------
     (
-        "perimetre_region_idf",
-        "perimetre_departement_75",
+        RegionFactory.build(insee_code="11"),
+        DepartementFactory.build(insee_code="75", region__insee_code="11"),
         True,
         "Region contains its Departements",
     ),
     (
-        "perimetre_region_idf",
-        "perimetre_region_idf",
+        RegionFactory.build(insee_code="11"),
+        RegionFactory.build(insee_code="11"),
         False,
         "Region does not contain itself",
     ),
     (
-        "perimetre_region_idf",
-        "perimetre_arr_paris_centre",
+        RegionFactory.build(insee_code="11"),
+        ArrondissementFactory.build(
+            insee_code="75101",
+            departement__insee_code="75",
+            departement__region__insee_code="11",
+        ),
         True,
         "Region contains its arrondissements",
     ),
     (
-        "perimetre_region_normandie",
-        "perimetre_departement_75",
+        RegionFactory.build(insee_code="28"),
+        DepartementFactory.build(insee_code="75", region__insee_code="11"),
         False,
         "Region does not contain a Departement from another Region",
     ),
     (
-        "perimetre_region_normandie",
-        "perimetre_region_idf",
+        RegionFactory.build(insee_code="28"),
+        RegionFactory.build(insee_code="11"),
         False,
         "Region does not contain another region",
     ),
     (
-        "perimetre_region_normandie",
-        "perimetre_arr_paris_centre",
+        RegionFactory.build(insee_code="28"),
+        ArrondissementFactory.build(
+            insee_code="75101",
+            departement__insee_code="75",
+            departement__region__insee_code="11",
+        ),
         False,
         "Region does not contain an arrondissement from another region",
     ),
     # Departement ----------------------------------------------------------------------
     (
-        "perimetre_departement_75",
-        "perimetre_region_idf",
+        DepartementFactory.build(insee_code="75", region__insee_code="11"),
+        RegionFactory.build(insee_code="11"),
         False,
         "Departement does not contain its region",
     ),
     (
-        "perimetre_departement_75",
-        "perimetre_departement_75",
+        DepartementFactory.build(insee_code="75", region__insee_code="11"),
+        DepartementFactory.build(insee_code="75", region__insee_code="11"),
         False,
         "Departement does not contain itself",
     ),
     (
-        "perimetre_departement_75",
-        "perimetre_departement_76",
+        DepartementFactory.build(insee_code="75", region__insee_code="11"),
+        DepartementFactory.build(insee_code="76", region__insee_code="28"),
         False,
         "Departement does not contain another departement",
     ),
+    ## ⚠️ Le test que j'ai rajouté
     (
-        "perimetre_departement_75",
-        "perimetre_arr_paris_centre",
+        DepartementFactory.build(insee_code="75", region__insee_code="11"),
+        DepartementFactory.build(insee_code="76", region__insee_code="11"),
+        False,
+        "Departement does not contain another departement in the same region",
+    ),
+    (
+        DepartementFactory.build(insee_code="75", region__insee_code="11"),
+        ArrondissementFactory.build(
+            insee_code="75101",
+            departement__insee_code="75",
+            departement__region__insee_code="11",
+        ),
         True,
         "Departement contains its Arrondissements",
     ),
     (
-        "perimetre_departement_76",
-        "perimetre_arr_paris_centre",
+        DepartementFactory.build(insee_code="76", region__insee_code="28"),
+        ArrondissementFactory.build(
+            insee_code="75101",
+            departement__insee_code="75",
+            departement__region__insee_code="11",
+        ),
         False,
         "Departement does not contain an arrondissement from another departement",
     ),
-    # Arrondissement -------------------------------------------------------------------
+    # # Arrondissement -------------------------------------------------------------------
     (
-        "perimetre_arr_paris_centre",
-        "perimetre_departement_75",
+        ArrondissementFactory.build(
+            insee_code="75101",
+            departement__insee_code="75",
+            departement__region__insee_code="11",
+        ),
+        DepartementFactory.build(insee_code="75", region__insee_code="11"),
         False,
         "Arrondissement does not contain its Departement",
     ),
     (
-        "perimetre_arr_paris_centre",
-        "perimetre_region_idf",
+        ArrondissementFactory.build(
+            insee_code="75101",
+            departement__insee_code="75",
+            departement__region__insee_code="11",
+        ),
+        RegionFactory.build(insee_code="11"),
         False,
         "Arrondissement does not contain its Region",
     ),
     (
-        "perimetre_arr_paris_centre",
-        "perimetre_arr_paris_centre",
+        ArrondissementFactory.build(
+            insee_code="75101",
+            departement__insee_code="75",
+            departement__region__insee_code="11",
+        ),
+        ArrondissementFactory.build(
+            insee_code="75101",
+            departement__insee_code="75",
+            departement__region__insee_code="11",
+        ),
         False,
         "Arrondissement does not contain itself",
     ),
     (
-        "perimetre_arr_paris_centre",
-        "perimetre_arrondissement_lehavre",
+        ArrondissementFactory.build(
+            insee_code="75101",
+            departement__insee_code="75",
+            departement__region__insee_code="11",
+        ),
+        ArrondissementFactory.build(
+            insee_code="762",
+            departement__insee_code="76",
+            departement__region__insee_code="28",
+        ),
         False,
         "Arrondissement does not contain another arrondissement",
     ),
 )
 
 
-@pytest.mark.parametrize("container,arg,expected,comment", contain_test_data)
-def test_perimetre_contains(container, arg, expected, comment, request):
-    container: Perimetre = request.getfixturevalue(container)
-    argument: Perimetre = request.getfixturevalue(arg)
-    assert container.contains(argument) == expected, comment
+@pytest.mark.parametrize("container,other,expected,comment", contain_test_data)
+def test_perimetre_contains(container, other, expected, comment):
+    assert (
+        Perimetre.from_division(container).contains(Perimetre.from_division(other))
+        == expected
+    ), comment
