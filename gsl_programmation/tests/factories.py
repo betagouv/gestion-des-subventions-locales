@@ -1,7 +1,10 @@
 from factory import Faker, LazyAttribute, Sequence, SubFactory
 from factory.django import DjangoModelFactory
 
-from gsl_core.tests.factories import DepartementFactory, RegionFactory
+from gsl_core.tests.factories import (
+    PerimetreDepartementalFactory,
+    PerimetreRegionalFactory,
+)
 from gsl_programmation.models import Enveloppe, Simulation, SimulationProjet
 from gsl_projet.tests.factories import ProjetFactory
 
@@ -13,7 +16,7 @@ class DsilEnveloppeFactory(DjangoModelFactory):
     type = Enveloppe.TYPE_DSIL
     montant = Faker("random_number", digits=5)
     annee = 2024
-    perimetre_region = SubFactory(RegionFactory)
+    perimetre = SubFactory(PerimetreRegionalFactory)
 
 
 class DetrEnveloppeFactory(DjangoModelFactory):
@@ -23,7 +26,7 @@ class DetrEnveloppeFactory(DjangoModelFactory):
     type = Enveloppe.TYPE_DETR
     montant = Faker("random_number", digits=5)
     annee = 2024
-    perimetre_departement = SubFactory(DepartementFactory)
+    perimetre = SubFactory(PerimetreDepartementalFactory)
 
 
 class SimulationFactory(DjangoModelFactory):
