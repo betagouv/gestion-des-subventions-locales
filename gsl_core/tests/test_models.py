@@ -8,41 +8,41 @@ from gsl_core.tests.factories import (
     RegionFactory,
 )
 
-pytestmark = pytest.mark.django_db
-
 
 @pytest.fixture
 def region_idf() -> Region:
-    return RegionFactory(name="Île-de-France", insee_code="11")
+    return RegionFactory.build(name="Île-de-France", insee_code="11")
 
 
 @pytest.fixture
 def region_normandie() -> Region:
-    return RegionFactory(name="Normandie", insee_code="28")
+    return RegionFactory.build(name="Normandie", insee_code="28")
 
 
 @pytest.fixture
 def dept_75(region_idf) -> Departement:
-    return DepartementFactory(insee_code="75", name="Paris", region=region_idf)
+    return DepartementFactory.build(insee_code="75", name="Paris", region=region_idf)
 
 
 @pytest.fixture
 def dept_76(region_normandie) -> Departement:
-    return DepartementFactory(
+    return DepartementFactory.build(
         insee_code="76", name="Seine-Maritime", region=region_normandie
     )
 
 
 @pytest.fixture
 def arr_paris_centre(dept_75) -> Arrondissement:
-    return ArrondissementFactory(
+    return ArrondissementFactory.build(
         insee_code="75101", name="Paris Centre", departement=dept_75
     )
 
 
 @pytest.fixture
 def arr_le_havre(dept_76) -> Arrondissement:
-    return ArrondissementFactory(insee_code="762", name="Le Havre", departement=dept_76)
+    return ArrondissementFactory.build(
+        insee_code="762", name="Le Havre", departement=dept_76
+    )
 
 
 def test_clean_valid_perimetre(region_idf, dept_75):
