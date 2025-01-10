@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q
+from django.db.models import Case, Count, F, Q, Sum, When
 
 from gsl_core.models import Collegue, Perimetre
 from gsl_projet.models import Projet
@@ -92,6 +92,44 @@ class Simulation(models.Model):
 
         return reverse("programmation:simulation_detail", kwargs={"slug": self.slug})
 
+    def get_projet_status_summary(self):
+        default_status_summary = {
+            SimulationProjet.STATUS_DRAFT: 0,
+            SimulationProjet.STATUS_VALID: 0,
+            SimulationProjet.STATUS_CANCELLED: 0,
+            SimulationProjet.STATUS_PROVISOIRE: 0,
+            "notified": 0,  # TODO : add notified count
+        }
+        status_count = (
+            SimulationProjet.objects.filter(simulation=self)
+            .values("status")
+            .annotate(count=Count("status"))
+        )
+
+        summary = {item["status"]: item["count"] for item in status_count}
+
+        return {**default_status_summary, **summary}
+
+    def get_total_cost(self):
+        projets = Projet.objects.filter(simulationprojet__simulation=self).annotate(
+            calculed_cost=Case(
+                When(assiette__isnull=False, then=F("assiette")),
+                default=F("dossier_ds__finance_cout_total"),
+            )
+        )
+
+        return projets.aggregate(total=Sum("calculed_cost"))["total"]
+
+    def get_total_amount_asked(self):
+        return Projet.objects.filter(simulationprojet__simulation=self).aggregate(
+            Sum("dossier_ds__demande_montant")
+        )["dossier_ds__demande_montant__sum"]
+
+    def get_total_amount_granted(self):
+        return SimulationProjet.objects.filter(simulation=self).aggregate(
+            Sum("montant")
+        )["montant__sum"]
+
 
 class SimulationProjet(models.Model):
     STATUS_DRAFT = "draft"
@@ -113,7 +151,7 @@ class SimulationProjet(models.Model):
     montant = models.DecimalField(
         decimal_places=2, max_digits=14, verbose_name="Montant"
     )
-    taux = models.DecimalField(decimal_places=2, max_digits=4, verbose_name="Taux")
+    taux = models.DecimalField(decimal_places=2, max_digits=5, verbose_name="Taux")
     status = models.CharField(
         verbose_name="État", choices=STATUS_CHOICES, default=STATUS_DRAFT
     )

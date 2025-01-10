@@ -1,0 +1,14 @@
+<form action="{% url 'programmation:patch-simulation-projet-taux' %}"
+      method="POST">
+    {% csrf_token %}
+    <input type="hidden" name="simulation_projet_id" value="{{ simu.id }}">
+    <div class="gsl-projet-table__input-wrap gsl-projet-table__rate">
+        <input name="taux"
+               type="text"
+               inputmode="numeric"
+               class="fr-input"
+               onfocusout="this.form.submit()"
+               value="{{ simu.taux }}">
+        <span class="gsl-projet-table__input-symbol">%</span>
+    </div>
+</form>

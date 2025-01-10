@@ -1,0 +1,12 @@
+{% load static addstr custom_pluralize %}
+<div class="projet-states-count">
+    <p class="fr-badge fr-badge--green-menthe">
+        {{ status_summary.valid }} projet{{ status_summary.valid|custom_pluralize }} validé{{ status_summary.valid|custom_pluralize }}
+    </p>
+    <p class="fr-badge fr-badge--pink-macaron">
+        {{ status_summary.cancelled }} projet{{ status_summary.cancelled|custom_pluralize }} refusé{{ status_summary.cancelled|custom_pluralize }}
+    </p>
+    <p class="fr-badge fr-badge--blue-cumulus">
+        {{ status_summary.notified }} projet{{ status_summary.notified|custom_pluralize }} notifié{{ status_summary.notified|custom_pluralize }}
+    </p>
+</div>
