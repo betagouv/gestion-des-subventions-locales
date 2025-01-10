@@ -118,3 +118,143 @@ def test_clean_perimetre_with_arrondissement_without_departement(
     assert exc_info.value.message_dict["arrondissement"][0] == (
         "Un arrondissement ne peut être sélectionné sans département."
     )
+
+
+@pytest.fixture
+def perimetre_region_idf(region_idf) -> Perimetre:
+    return Perimetre(region=region_idf, departement=None, arrondissement=None)
+
+
+@pytest.fixture
+def perimetre_departement_75(region_idf, dept_75) -> Perimetre:
+    return Perimetre(region=region_idf, departement=dept_75, arrondissement=None)
+
+
+@pytest.fixture
+def perimetre_arr_paris_centre(region_idf, dept_75, arr_paris_centre) -> Perimetre:
+    return Perimetre(
+        region=region_idf, departement=dept_75, arrondissement=arr_paris_centre
+    )
+
+
+@pytest.fixture
+def perimetre_region_normandie(region_normandie) -> Perimetre:
+    return Perimetre(region=region_normandie, departement=None, arrondissement=None)
+
+
+@pytest.fixture
+def perimetre_departement_76(region_normandie, dept_76) -> Perimetre:
+    return Perimetre(region=region_normandie, departement=dept_76, arrondissement=None)
+
+
+@pytest.fixture
+def perimetre_arrondissement_lehavre(
+    region_normandie, dept_76, arr_le_havre
+) -> Perimetre:
+    return Perimetre(
+        region=region_normandie, departement=dept_76, arrondissement=arr_le_havre
+    )
+
+
+contain_test_data = (
+    # Region ---------------------------------------------------------------------------
+    (
+        "perimetre_region_idf",
+        "perimetre_departement_75",
+        True,
+        "Region contains its Departements",
+    ),
+    (
+        "perimetre_region_idf",
+        "perimetre_region_idf",
+        False,
+        "Region does not contain itself",
+    ),
+    (
+        "perimetre_region_idf",
+        "perimetre_arr_paris_centre",
+        True,
+        "Region contains its arrondissements",
+    ),
+    (
+        "perimetre_region_normandie",
+        "perimetre_departement_75",
+        False,
+        "Region does not contain a Departement from another Region",
+    ),
+    (
+        "perimetre_region_normandie",
+        "perimetre_region_idf",
+        False,
+        "Region does not contain another region",
+    ),
+    (
+        "perimetre_region_normandie",
+        "perimetre_arr_paris_centre",
+        False,
+        "Region does not contain an arrondissement from another region",
+    ),
+    # Departement ----------------------------------------------------------------------
+    (
+        "perimetre_departement_75",
+        "perimetre_region_idf",
+        False,
+        "Departement does not contain its region",
+    ),
+    (
+        "perimetre_departement_75",
+        "perimetre_departement_75",
+        False,
+        "Departement does not contain itself",
+    ),
+    (
+        "perimetre_departement_75",
+        "perimetre_departement_76",
+        False,
+        "Departement does not contain another departement",
+    ),
+    (
+        "perimetre_departement_75",
+        "perimetre_arr_paris_centre",
+        True,
+        "Departement contains its Arrondissements",
+    ),
+    (
+        "perimetre_departement_76",
+        "perimetre_arr_paris_centre",
+        False,
+        "Departement does not contain an arrondissement from another departement",
+    ),
+    # Arrondissement -------------------------------------------------------------------
+    (
+        "perimetre_arr_paris_centre",
+        "perimetre_departement_75",
+        False,
+        "Arrondissement does not contain its Departement",
+    ),
+    (
+        "perimetre_arr_paris_centre",
+        "perimetre_region_idf",
+        False,
+        "Arrondissement does not contain its Region",
+    ),
+    (
+        "perimetre_arr_paris_centre",
+        "perimetre_arr_paris_centre",
+        False,
+        "Arrondissement does not contain itself",
+    ),
+    (
+        "perimetre_arr_paris_centre",
+        "perimetre_arrondissement_lehavre",
+        False,
+        "Arrondissement does not contain another arrondissement",
+    ),
+)
+
+
+@pytest.mark.parametrize("container,arg,expected,comment", contain_test_data)
+def test_perimetre_contains(container, arg, expected, comment, request):
+    container: Perimetre = request.getfixturevalue(container)
+    argument: Perimetre = request.getfixturevalue(arg)
+    assert container.contains(argument) == expected, comment
