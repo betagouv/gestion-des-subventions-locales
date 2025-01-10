@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from gsl_core.models import Perimetre
 from gsl_core.tests.factories import (
     ArrondissementFactory,
+    DepartementFactory,
     PerimetreFactory,
 )
 
@@ -53,25 +54,33 @@ def perimetre_arrondissement(arrondissement) -> Perimetre:
 
 
 def test_dsil_not_delegated_must_have_regional_perimeter(perimetre_departement):
-    with pytest.raises(ValidationError):
-        enveloppe = Enveloppe(
-            type=Enveloppe.TYPE_DSIL,
-            montant=Decimal("123.00"),
-            annee=2025,
-            perimetre=perimetre_departement,
-        )
+    enveloppe = Enveloppe(
+        type=Enveloppe.TYPE_DSIL,
+        montant=Decimal("123.00"),
+        annee=2025,
+        perimetre=perimetre_departement,
+    )
+    with pytest.raises(ValidationError) as exc_info:
         enveloppe.full_clean()
+
+    assert exc_info.value.message_dict["__all__"][0] == (
+        "Il faut préciser un périmètre régional pour une enveloppe de type DSIL non déléguée."
+    )
 
 
 def test_detr_not_delegated_must_have_departemental_perimeter(perimetre_arrondissement):
-    with pytest.raises(ValidationError):
-        enveloppe = Enveloppe(
-            type=Enveloppe.TYPE_DETR,
-            montant=Decimal("123.00"),
-            annee=2025,
-            perimetre=perimetre_arrondissement,
-        )
+    enveloppe = Enveloppe(
+        type=Enveloppe.TYPE_DETR,
+        montant=Decimal("123.00"),
+        annee=2025,
+        perimetre=perimetre_arrondissement,
+    )
+    with pytest.raises(ValidationError) as exc_info:
         enveloppe.full_clean()
+
+    assert exc_info.value.message_dict["__all__"][0] == (
+        "Il faut préciser un périmètre départemental pour une enveloppe de type DETR non déléguée."
+    )
 
 
 def test_correct_dsil_non_delegated(perimetre_region):
@@ -156,3 +165,37 @@ def test_correct_detr_delegated(detr_enveloppe, perimetre_arrondissement):
         deleguee_by=detr_enveloppe,
     )
     enveloppe.full_clean()
+
+
+@pytest.fixture
+def other_departement_detr_enveloppe():
+    other_departement = DepartementFactory()
+    perimetre_other_departement = PerimetreFactory(
+        region=other_departement.region,
+        departement=other_departement,
+        arrondissement=None,
+    )
+    return Enveloppe.objects.create(
+        type=Enveloppe.TYPE_DETR,
+        montant=Decimal("12345.00"),
+        annee=2032,
+        perimetre=perimetre_other_departement,
+    )
+
+
+def test_arrondissement_detr_enveloppe_must_be_delegated_by_its_departement(
+    perimetre_arrondissement, other_departement_detr_enveloppe
+):
+    enveloppe = Enveloppe(
+        type=Enveloppe.TYPE_DETR,
+        montant=Decimal("12345.00"),
+        annee=2032,
+        perimetre=perimetre_arrondissement,
+        deleguee_by=other_departement_detr_enveloppe,
+    )
+    with pytest.raises(ValidationError) as exc_info:
+        enveloppe.full_clean()
+
+    assert exc_info.value.message_dict["__all__"][0] == (
+        "Le périmètre de l'enveloppe délégante est incohérent avec celui de l'enveloppe déléguée."
+    )
