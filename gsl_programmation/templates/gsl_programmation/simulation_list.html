@@ -42,11 +42,8 @@
                             </span>
                         </p>
                     </div>
-                    <div class="simulation-card__badges">
-                        {% dsfr_badge label="112 projets acceptés" extra_classes="fr-badge--green-menthe" %}
-                        {% dsfr_badge label="18 projets refusés" extra_classes="fr-badge--pink-macaron" %}
-                        {% dsfr_badge label="5 projets notifiés" extra_classes="fr-badge--blue-cumulus" %}
-                    </div>
+
+                    {% include "includes/_status_summary.html" with status_summary=simulation.get_projet_status_summary %}
                     <div class="simulation-card__navigate">
                         <div class="fr-sr-only">
                             Voir la simulation {{ simulation.title }}
