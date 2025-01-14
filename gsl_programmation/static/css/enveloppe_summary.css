@@ -1,0 +1,34 @@
+.enveloppe-summary {
+  margin-top: 16px;
+  border-spacing: 0;
+}
+
+.enveloppe-summary table {
+  border-spacing: 0;
+  table-layout: auto;
+  text-align: center;
+}
+
+.enveloppe-summary thead {
+  background-color: var(--background-alt-grey);
+  color: var(--text-title-blue-france);
+}
+
+.enveloppe-summary th {
+  min-width: 120px;
+  width: 130px;
+}
+
+.enveloppe-summary .color-icon-success::before,
+.enveloppe-summary .color-success {
+  color: var(--background-flat-success);
+}
+
+.enveloppe-summary .color-icon-error::before,
+.enveloppe-summary .color-error {
+  color: var(--background-flat-error);
+}
+
+.enveloppe-summary .color-blue {
+  color: var(--text-label-blue-france);
+}
