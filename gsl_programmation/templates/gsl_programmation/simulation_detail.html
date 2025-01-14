@@ -56,7 +56,7 @@
                     <th>
                         Date de dépôt
                     </th>
-                    <th class="max_150_width">
+                    <th class="max_180_width">
                         Intitulé du projet
                     </th>
                     <th>
@@ -68,17 +68,17 @@
                     <th class="max_80_width">
                         Coût total du projet
                         <br>
-                        <span class="gsl_projet_table__total gsl-money gsl-projet-table__total-cost">{{ total_cost | floatformat:"0g" }}&nbsp;€</span>
+                        <span class="gsl_projet_table__total gsl-money gsl-projet-table__total-cost">{{ total_cost | floatformat:"0g" | default:"—" }}&nbsp;€</span>
                     </th>
                     <th class="max_80_width">
                         Montant sollicité
                         <br>
-                        <span class="gsl_projet_table__total gsl-projet-table__total-asked">{{ total_amount_asked | floatformat:"0g" }}&nbsp;€</span>
+                        <span class="gsl_projet_table__total gsl-projet-table__total-asked">{{ total_amount_asked | floatformat:"0g" | default:"—" }}&nbsp;€</span>
                     </th>
                     <th class="max_80_width">
                         Montant prévisionnel accordé
                         <br>
-                        <span class="gsl_projet_table__total gsl-projet-table__total-granted">{{ total_amount_granted | floatformat:"0g" }}&nbsp;€</span>
+                        <span class="gsl_projet_table__total gsl-projet-table__total-granted">{{ total_amount_granted | floatformat:"0g" | default:"—" }}&nbsp;€</span>
                     </th>
                     <th class="max_80_width">
                         Taux de subvention

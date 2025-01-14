@@ -2,6 +2,9 @@
       method="POST">
     {% csrf_token %}
     <input type="hidden" name="simulation_projet_id" value="{{ simu.id }}">
+    <input type="hidden"
+           name="filter_params"
+           value="{{ request.GET.urlencode }}">
     <select class="fr-select gsl-projet-table__select"
             name="status"
             onchange="this.form.submit()">

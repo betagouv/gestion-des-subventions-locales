@@ -84,12 +84,14 @@ class SimulationDetailView(DetailView, FilterProjetsMixin):
 
 def redirect_to_simulation_projet(request, simulation_projet):
     if request.method == "POST":
-        return redirect(
-            reverse(
-                "programmation:simulation_detail",
-                kwargs={"slug": simulation_projet.simulation.slug},
-            )
+        url = reverse(
+            "programmation:simulation_detail",
+            kwargs={"slug": simulation_projet.simulation.slug},
         )
+        if request.POST.get("filter_params"):
+            url += "?" + request.POST.get("filter_params")
+
+        return redirect(url)
 
     elif request.method == "PATCH":
         return JsonResponse({"success": True})
