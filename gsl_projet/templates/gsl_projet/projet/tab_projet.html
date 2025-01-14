@@ -1,4 +1,5 @@
 {% load dsfr_tags %}
+{% load static gsl_filters %}
 <div class="fr-callout fr-background-alt--blue-france">
     <h2 class="fr-callout__title">
         Informations sur le projet
@@ -30,7 +31,7 @@
                 <b>Montant demandé :</b> {{ dossier.demande_montant|floatformat:"2g" }}&nbsp;€
             </li>
             <li>
-                <b>Taux de subvention sollicité : {{ projet.get_taux_de_subvention_sollicite|default:"—" }}</b>
+                <b>Taux de subvention sollicité :</b> {{ projet.get_taux_de_subvention_sollicite|percent|default:"—" }}
             </li>
         </ul>
     </div>
@@ -172,14 +173,14 @@
                 <div class="fr-highlight fr-highlight--beige-gris-galet fr-ml-0 fr-mb-4w">
                     <p>
                         <b>Coût total de l’opération :</b>
-                        {{ dossier.finance_cout_total }}
+                        {{ dossier.finance_cout_total|floatformat:"2g" }}&nbsp;€
                     </p>
                     <p>
                         <b>Assiette subventionnable :</b>
-                        {{ projet.assiette|default:"—" }} ({{ projet.taux_subventionnable|default:"—" }}&nbsp;%)
+                        {{ projet.assiette|default:"—" }} ({{ projet.taux_subventionnable|percent|default:"—" }}&nbsp;%)
                     </p>
                     <p>
-                        <b>Montant des dépenses éligibles demandées : {{ dossier.demande_montant }}&nbsp;€</b>
+                        <b>Montant des dépenses éligibles demandées : {{ dossier.demande_montant|floatformat:"2g" }}&nbsp;€</b>
                     </p>
                 </div>
                 <h4 id="detail_financement">
