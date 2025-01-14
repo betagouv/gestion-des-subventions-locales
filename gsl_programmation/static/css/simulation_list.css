@@ -43,7 +43,7 @@ a.simulation-card:hover {
   align-items: center;
 }
 
-.simulation-card__badges {
+.simulation-card .projet-states-count {
   display: flex;
   flex-direction: column;
   gap: 8px;
