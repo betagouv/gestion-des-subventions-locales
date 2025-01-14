@@ -68,7 +68,9 @@ class SimulationDetailView(DetailView, FilterProjetsMixin):
 
     def get_projet_queryset(self):
         simulation = self.get_object()
-        qs = Projet.objects.filter(simulationprojet__simulation=simulation)
+        qs = Projet.objects.order_by("simulationprojet__created_at").filter(
+            simulationprojet__simulation=simulation
+        )
         qs = self.add_filters_to_projets_qs(qs)
         qs = self.add_ordering_to_projets_qs(qs)
         qs = qs.select_related("address").select_related("address__commune")
