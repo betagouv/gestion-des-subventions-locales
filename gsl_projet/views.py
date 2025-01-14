@@ -116,6 +116,12 @@ class FilterProjetsMixin:
 
         return qs
 
+    def add_ordering_to_projets_qs(self, qs):
+        ordering = self.get_ordering()
+        if ordering:
+            qs = qs.order_by(ordering)
+        return qs
+
     def get_ordering(self):
         ordering_map = {
             "date_desc": "-dossier_ds__ds_date_depot",
@@ -151,10 +157,5 @@ class ProjetListView(FilterProjetsMixin, ListView):
             dossier_ds__ds_date_depot__gte=datetime.date(2024, 9, 1)
         )
         qs = self.add_filters_to_projets_qs(qs)
-
-        # Tri
-        ordering = self.get_ordering()
-        if ordering:
-            qs = qs.order_by(ordering)
-
+        qs = self.add_ordering_to_projets_qs(qs)
         return qs
