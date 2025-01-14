@@ -7,6 +7,7 @@ from django.views.decorators.http import require_GET
 from django.views.generic import ListView
 
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
+from gsl_programmation.services import ProjetService
 
 from .models import Projet
 
@@ -135,9 +136,13 @@ class ProjetListView(FilterProjetsMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        qs = self.get_queryset()
         context["title"] = "Projets 2025"
         context["porteur_mappings"] = self.PORTEUR_MAPPINGS
         context["breadcrumb_dict"] = {"current": "Liste des projets"}
+        context["total_cost"] = ProjetService.get_total_cost(qs)
+        context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs)
+        context["total_amount_granted"] = 0  # TODO
 
         return context
 
