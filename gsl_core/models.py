@@ -133,7 +133,7 @@ class Perimetre(BaseModel):
     )
 
     class Meta:
-        verbose_name = ("Périmètre",)
+        verbose_name = "Périmètre"
         constraints = (
             UniqueConstraint(
                 name="unicity_by_perimeter",
