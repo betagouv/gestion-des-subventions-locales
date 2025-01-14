@@ -22,9 +22,15 @@ def add_enveloppe_projets_to_simulation(simulation_id):
         ).exists():
             continue
         # create new SimulationProjet:
+        asked_amount = projet.dossier_ds.demande_montant or 0
+        try:
+            taux = asked_amount / projet.assiette_or_cout_total
+        except ZeroDivisionError:
+            taux = 0
+
         simulation_projet, _ = SimulationProjet.objects.get_or_create(
             projet=projet,
             enveloppe=simulation.enveloppe,
             simulation=simulation,
-            defaults={"montant": 0, "taux": 0},
+            defaults={"montant": asked_amount, "taux": taux},
         )
