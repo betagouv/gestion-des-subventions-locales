@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Case, Count, F, Q, Sum, When
+from django.db.models import Count, Q
 
 from gsl_core.models import Collegue, Perimetre
 from gsl_projet.models import Projet
@@ -109,26 +109,6 @@ class Simulation(models.Model):
         summary = {item["status"]: item["count"] for item in status_count}
 
         return {**default_status_summary, **summary}
-
-    def get_total_cost(self):
-        projets = Projet.objects.filter(simulationprojet__simulation=self).annotate(
-            calculed_cost=Case(
-                When(assiette__isnull=False, then=F("assiette")),
-                default=F("dossier_ds__finance_cout_total"),
-            )
-        )
-
-        return projets.aggregate(total=Sum("calculed_cost"))["total"]
-
-    def get_total_amount_asked(self):
-        return Projet.objects.filter(simulationprojet__simulation=self).aggregate(
-            Sum("dossier_ds__demande_montant")
-        )["dossier_ds__demande_montant__sum"]
-
-    def get_total_amount_granted(self):
-        return SimulationProjet.objects.filter(simulation=self).aggregate(
-            Sum("montant")
-        )["montant__sum"]
 
 
 class SimulationProjet(models.Model):

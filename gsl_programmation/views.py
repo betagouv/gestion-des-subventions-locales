@@ -10,7 +10,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 
-from gsl_programmation.services import SimulationProjetService
+from gsl_programmation.services import ProjetService, SimulationProjetService
 from gsl_programmation.utils import replace_comma_by_dot
 from gsl_projet.models import Projet
 from gsl_projet.views import FilterProjetsMixin
@@ -37,11 +37,9 @@ class SimulationDetailView(DetailView, FilterProjetsMixin):
 
     def get_context_data(self, **kwargs):
         simulation = self.get_object()
+        qs = self.get_projet_queryset()
         context = super().get_context_data(**kwargs)
-        paginator = Paginator(
-            self.get_projet_queryset(),
-            25,
-        )
+        paginator = Paginator(qs, 25)
         page = self.kwargs.get("page") or self.request.GET.get("page") or 1
         current_page = paginator.page(page)
         context["simulations_paginator"] = current_page
@@ -51,9 +49,9 @@ class SimulationDetailView(DetailView, FilterProjetsMixin):
         )
         context["porteur_mappings"] = self.PORTEUR_MAPPINGS
         context["status_summary"] = simulation.get_projet_status_summary()
-        context["total_cost"] = simulation.get_total_cost()
-        context["total_amount_asked"] = simulation.get_total_amount_asked()
-        context["total_amount_granted"] = simulation.get_total_amount_granted()
+        context["total_cost"] = ProjetService.get_total_cost(qs)
+        context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs)
+        context["total_amount_granted"] = ProjetService.get_total_amount_granted(qs)
         context["available_states"] = SimulationProjet.STATUS_CHOICES
 
         context["breadcrumb_dict"] = {

@@ -1,5 +1,8 @@
 from decimal import Decimal
 
+from django.db.models import Case, F, Sum, When
+from django.db.models.query import QuerySet
+
 from gsl_programmation.models import SimulationProjet
 
 
@@ -31,3 +34,28 @@ class SimulationProjetService:
         simulation_projet.taux = new_taux
         simulation_projet.montant = new_montant
         simulation_projet.save()
+
+
+class ProjetService:
+    @classmethod
+    def get_total_cost(cls, projet_qs: QuerySet):
+        projets = projet_qs.annotate(
+            calculed_cost=Case(
+                When(assiette__isnull=False, then=F("assiette")),
+                default=F("dossier_ds__finance_cout_total"),
+            )
+        )
+
+        return projets.aggregate(total=Sum("calculed_cost"))["total"]
+
+    @classmethod
+    def get_total_amount_asked(cls, projet_qs: QuerySet):
+        return projet_qs.aggregate(Sum("dossier_ds__demande_montant"))[
+            "dossier_ds__demande_montant__sum"
+        ]
+
+    @classmethod
+    def get_total_amount_granted(cls, projet_qs: QuerySet):
+        return projet_qs.aggregate(Sum("simulationprojet__montant"))[
+            "simulationprojet__montant__sum"
+        ]
