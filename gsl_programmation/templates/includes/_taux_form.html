@@ -2,6 +2,9 @@
       method="POST">
     {% csrf_token %}
     <input type="hidden" name="simulation_projet_id" value="{{ simu.id }}">
+    <input type="hidden"
+           name="filter_params"
+           value="{{ request.GET.urlencode }}">
     <div class="gsl-projet-table__input-wrap gsl-projet-table__rate">
         <input name="taux"
                type="text"
