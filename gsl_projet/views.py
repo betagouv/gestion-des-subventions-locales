@@ -7,6 +7,7 @@ from django.views.decorators.http import require_GET
 from django.views.generic import ListView
 
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
+from gsl_programmation.services import ProjetService
 
 from .models import Projet
 
@@ -115,6 +116,12 @@ class FilterProjetsMixin:
 
         return qs
 
+    def add_ordering_to_projets_qs(self, qs):
+        ordering = self.get_ordering()
+        if ordering:
+            qs = qs.order_by(ordering)
+        return qs
+
     def get_ordering(self):
         ordering_map = {
             "date_desc": "-dossier_ds__ds_date_depot",
@@ -135,9 +142,13 @@ class ProjetListView(FilterProjetsMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        qs = self.get_queryset()
         context["title"] = "Projets 2025"
         context["porteur_mappings"] = self.PORTEUR_MAPPINGS
         context["breadcrumb_dict"] = {"current": "Liste des projets"}
+        context["total_cost"] = ProjetService.get_total_cost(qs)
+        context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs)
+        context["total_amount_granted"] = 0  # TODO
 
         return context
 
@@ -146,10 +157,5 @@ class ProjetListView(FilterProjetsMixin, ListView):
             dossier_ds__ds_date_depot__gte=datetime.date(2024, 9, 1)
         )
         qs = self.add_filters_to_projets_qs(qs)
-
-        # Tri
-        ordering = self.get_ordering()
-        if ordering:
-            qs = qs.order_by(ordering)
-
+        qs = self.add_ordering_to_projets_qs(qs)
         return qs

@@ -108,14 +108,14 @@ ul.no-list-style li {
     font-size: calc(9rem / 16); /* = 9px */
 }
 
-.max_150_width {
+.max_180_width {
     max-width: 180px;
     width: 180px;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 .max_80_width {
-    max-width: 80px;
+    max-width: 100px;
     width: 80px;
     overflow: hidden;
     text-overflow: ellipsis;

@@ -70,13 +70,43 @@ def test_get_ordering(req, view, tri_param, expected_ordering):
     assert view.get_ordering() == expected_ordering
 
 
-@pytest.mark.django_db
-def test_get_ordering_with_multiple_params(req, view):
-    """Test que get_ordering fonctionne avec d'autres paramètres dans l'URL"""
-    request = req.get("/?tri=commune_asc&page=2&search=test")
-    view.request = request
+@pytest.fixture
+def projets(demandeur) -> list[Projet]:
+    projet0 = ProjetFactory(
+        dossier_ds__ds_date_depot="2024-09-01",
+        dossier_ds__finance_cout_total=1000,
+        address__commune__name="Commune A",
+        demandeur=demandeur,
+    )
+    projet1 = ProjetFactory(
+        dossier_ds__ds_date_depot="2024-09-02",
+        dossier_ds__finance_cout_total=2000,
+        address__commune__name="Commune B",
+        demandeur=demandeur,
+    )
+    return [projet0, projet1]
 
-    assert view.get_ordering() == "address__commune__name"
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "tri_param,expected_ordering",
+    [
+        ("date_desc", "1-0"),
+        ("date_asc", "0-1"),
+        ("cout_desc", "1-0"),
+        ("cout_asc", "0-1"),
+        ("commune_desc", "1-0"),
+        ("commune_asc", "0-1"),
+        ("", "0-1"),
+        ("invalid_value", "0-1"),
+    ],
+)
+def test_projets_ordering(req, view, projets, tri_param, expected_ordering):
+    request = req.get("/?tri=" + tri_param)
+    view.request = request
+    qs = view.get_queryset()
+    projets_lis = [projets[1], projets[0]] if expected_ordering == "1-0" else projets
+    assert list(qs) == projets_lis
 
 
 ### Test du filtre par dispositif
@@ -241,7 +271,7 @@ def projets_with_assiette(demandeur) -> list[Projet]:
             assiette=amount,
             demandeur=demandeur,
         )
-        for amount in [100000, 150000, 200000, 250000, 300000]
+        for amount in (100000, 150000, 200000, 250000, 300000)
     ]
 
 
@@ -255,7 +285,7 @@ def projets_without_assiette_but_finance_cout_total_from_dossier_ds(
             assiette=None,
             demandeur=demandeur,
         )
-        for amount in [12000, 170000, 220000, 270000, 320000]
+        for amount in (12000, 170000, 220000, 270000, 320000)
     ]
 
 

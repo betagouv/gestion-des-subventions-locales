@@ -12,3 +12,10 @@ def percent(value, decimals=0):
         return value
     """Removes all values of arg from the given string"""
     return floatformat(value * Decimal("100.0"), decimals) + " %"
+
+
+@register.filter
+def euro(value, decimals=0):
+    if not isinstance(value, (float, int, Decimal)) or isinstance(value, bool):
+        return "—"
+    return floatformat(value, f"{decimals}g") + " €"
