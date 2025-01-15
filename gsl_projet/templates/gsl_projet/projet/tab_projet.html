@@ -22,13 +22,13 @@
                 <b>Date de modification Démarches Simplifiées : </b> {{ dossier.ds_date_derniere_modification|date }}
             </li>
             <li>
-                <b>Coût total de l’opération :</b> {{ dossier.finance_cout_total|floatformat:"2g" }}&nbsp;€
+                <b>Coût total de l’opération :</b> {{ dossier.finance_cout_total|euro:2 }}
             </li>
             <li>
-                <b>Assiette subventionnable :</b> {{ projet.assiette|floatformat:"2g"|default:"—" }}&nbsp;€
+                <b>Assiette subventionnable :</b> {{ projet.assiette|euro:2 }}
             </li>
             <li>
-                <b>Montant demandé :</b> {{ dossier.demande_montant|floatformat:"2g" }}&nbsp;€
+                <b>Montant demandé :</b> {{ dossier.demande_montant|euro:2 }}
             </li>
             <li>
                 <b>Taux de subvention sollicité :</b> {{ projet.get_taux_de_subvention_sollicite|percent|default:"—" }}
@@ -173,14 +173,14 @@
                 <div class="fr-highlight fr-highlight--beige-gris-galet fr-ml-0 fr-mb-4w">
                     <p>
                         <b>Coût total de l’opération :</b>
-                        {{ dossier.finance_cout_total|floatformat:"2g" }}&nbsp;€
+                        {{ dossier.finance_cout_total|euro:2 }}
                     </p>
                     <p>
                         <b>Assiette subventionnable :</b>
-                        {{ projet.assiette|default:"—" }} ({{ projet.taux_subventionnable|percent|default:"—" }}&nbsp;%)
+                        {{ projet.assiette|euro:2 }} ({{ projet.taux_subventionnable|percent|default:"— %" }})
                     </p>
                     <p>
-                        <b>Montant des dépenses éligibles demandées : {{ dossier.demande_montant|floatformat:"2g" }}&nbsp;€</b>
+                        <b>Montant des dépenses éligibles demandées : {{ dossier.demande_montant|euro:2 }}</b>
                     </p>
                 </div>
                 <h4 id="detail_financement">

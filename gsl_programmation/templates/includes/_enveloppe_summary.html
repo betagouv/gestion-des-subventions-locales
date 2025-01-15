@@ -1,0 +1,77 @@
+{% load static gsl_filters %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/enveloppe_summary.css' %}">
+{% endblock extra_css %}
+<div class="fr-table--lg enveloppe-summary">
+    <table>
+        <thead>
+            <tr>
+                <th class="fr-icon-money-euro-box-fill fr-icon--sm">
+                    Dotation
+                </th>
+                <th class="fr-icon-road-map-fill fr-icon--sm">
+                    Territoire
+                </th>
+                <th class="fr-icon-map-pin-2-fill fr-icon--sm">
+                    Nom territoire
+                </th>
+                <th class="fr-icon-mail-fill fr-icon--sm">
+                    Enveloppe de dotation
+                </th>
+                <th class="fr-icon-coin-fill fr-icon--sm">
+                    Montant total demandé
+                </th>
+                <th class="fr-icon-money-euro-circle-fill fr-icon--sm">
+                    Montant accepté
+                </th>
+                <th class="fr-icon-success-fill fr-icon--sm color-icon-success">
+                    Projets acceptés
+                </th>
+                <th class="fr-icon-close-circle-fill fr-icon--sm color-icon-error">
+                    Projets refusés
+                </th>
+                <th class="fr-icon-folder-2-fill fr-icon--sm">
+                    Collectivités demandeuses
+                </th>
+                <th class="fr-icon-folder-2-fill fr-icon--sm">
+                    Projets déposés
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    <b>DETR</b>
+                </td>
+                <td>
+                    Département
+                </td>
+                <td>
+                    Loire-Atlantique
+                </td>
+                <td>
+                    {{ 1000000 | euro }}
+                </td>
+                <td>
+                    {{ 1000 | euro }}
+                </td>
+                <td>
+                    {{ 2000 | euro }}
+                </td>
+                <td class="color-success">
+                    <b>19</b>
+                </td>
+                <td class="color-error">
+                    <b>14</b>
+                </td>
+                <td class="color-blue">
+                    <b>530</b>
+                </td>
+                <td class="color-blue">
+                    <b>734</b>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
