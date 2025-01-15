@@ -68,17 +68,17 @@
                     <th class="max_80_width">
                         Coût total du projet
                         <br>
-                        <span class="gsl_projet_table__total gsl-money gsl-projet-table__total-cost">{{ total_cost | floatformat:"0g" | default:"—" }}&nbsp;€</span>
+                        <span class="gsl_projet_table__total gsl-money gsl-projet-table__total-cost">{{ total_cost | euro }}</span>
                     </th>
                     <th class="max_80_width">
                         Montant sollicité
                         <br>
-                        <span class="gsl_projet_table__total gsl-projet-table__total-asked">{{ total_amount_asked | floatformat:"0g" | default:"—" }}&nbsp;€</span>
+                        <span class="gsl_projet_table__total gsl-projet-table__total-asked">{{ total_amount_asked | euro }}</span>
                     </th>
                     <th class="max_80_width">
                         Montant prévisionnel accordé
                         <br>
-                        <span class="gsl_projet_table__total gsl-projet-table__total-granted">{{ total_amount_granted | floatformat:"0g" | default:"—" }}&nbsp;€</span>
+                        <span class="gsl_projet_table__total gsl-projet-table__total-granted">{{ total_amount_granted | euro }}</span>
                     </th>
                     <th class="max_80_width">
                         Taux de subvention
@@ -123,12 +123,12 @@
                                 </select>
                             </td>
                             <td class="gsl-money">
-                                {{ projet.assiette_or_cout_total|floatformat:"2g"|default:"—" }}&nbsp;€
+                                {{ projet.assiette_or_cout_total|euro:2 }}
                                 <br>
                                 &nbsp;
                             </td>
                             <td class="gsl-money">
-                                {{ projet.dossier_ds.demande_montant|floatformat:"2g"|default:"—" }}&nbsp;€
+                                {{ projet.dossier_ds.demande_montant|euro:2 }}
                                 <br>
                                 {{ projet.get_taux_de_subvention_sollicite|percent }}
                             </td>
