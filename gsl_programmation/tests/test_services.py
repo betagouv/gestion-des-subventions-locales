@@ -56,7 +56,7 @@ def simulation() -> Simulation:
 
 @pytest.fixture
 def projets_with_assiette(simulation) -> list[Projet]:
-    for amount in [10_000, 20_000, 30_000]:
+    for amount in (10_000, 20_000, 30_000):
         p = ProjetFactory(assiette=amount)
         SimulationProjetFactory(projet=p, simulation=simulation)
 
@@ -65,7 +65,7 @@ def projets_with_assiette(simulation) -> list[Projet]:
 def projets_without_assiette_but_finance_cout_total_from_dossier_ds(
     simulation,
 ) -> list[Projet]:
-    for amount in [15_000, 25_000]:
+    for amount in (15_000, 25_000):
         p = ProjetFactory(
             dossier_ds__finance_cout_total=amount,
             assiette=None,
@@ -128,7 +128,7 @@ def test_get_total_amount_granted(simulation):
 
 @pytest.fixture
 def projets_with_dossier_ds__demande_montant_not_in_simulation() -> list[Projet]:
-    for amount in [10_000, 2_000]:
+    for amount in (10_000, 2_000):
         p = ProjetFactory(
             dossier_ds__demande_montant=amount,
         )
@@ -139,7 +139,7 @@ def projets_with_dossier_ds__demande_montant_not_in_simulation() -> list[Projet]
 def projets_with_dossier_ds__demande_montant_in_simulation(
     simulation,
 ) -> list[Projet]:
-    for amount in [15_000, 25_000]:
+    for amount in (15_000, 25_000):
         p = ProjetFactory(
             dossier_ds__demande_montant=amount,
         )

@@ -271,7 +271,7 @@ def projets_with_assiette(demandeur) -> list[Projet]:
             assiette=amount,
             demandeur=demandeur,
         )
-        for amount in [100000, 150000, 200000, 250000, 300000]
+        for amount in (100000, 150000, 200000, 250000, 300000)
     ]
 
 
@@ -285,7 +285,7 @@ def projets_without_assiette_but_finance_cout_total_from_dossier_ds(
             assiette=None,
             demandeur=demandeur,
         )
-        for amount in [12000, 170000, 220000, 270000, 320000]
+        for amount in (12000, 170000, 220000, 270000, 320000)
     ]
 
 
