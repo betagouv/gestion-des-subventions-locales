@@ -265,3 +265,29 @@ def test_perimetre_contains(container, arg, expected, comment, request):
     container: Perimetre = request.getfixturevalue(container)
     argument: Perimetre = request.getfixturevalue(arg)
     assert container.contains(argument) == expected, comment
+
+
+@pytest.mark.django_db
+def test_type_and_name_property_for_region(region_idf):
+    perimetre = Perimetre.objects.create(region=region_idf)
+    assert perimetre.type == "Région"
+    assert perimetre.entity_name == "Île-de-France"
+
+
+@pytest.mark.django_db
+def test_type_and_name_property_for_departement(region_idf, dept_75):
+    perimetre = Perimetre.objects.create(region=region_idf, departement=dept_75)
+    assert perimetre.type == "Département"
+    assert perimetre.entity_name == "Paris"
+
+
+def test_type_and_name_property_for_arrondissement(
+    region_idf, dept_75, arr_paris_centre
+):
+    perimetre = Perimetre.objects.create(
+        region=region_idf,
+        departement=dept_75,
+        arrondissement=arr_paris_centre,
+    )
+    assert perimetre.type == "Arrondissement"
+    assert perimetre.entity_name == "Paris Centre"
