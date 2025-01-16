@@ -1,6 +1,7 @@
 .enveloppe-summary {
   margin-top: 16px;
   border-spacing: 0;
+  font-size: calc(1rem * 13/16);
 }
 
 .enveloppe-summary table {
@@ -14,9 +15,17 @@
   color: var(--text-title-blue-france);
 }
 
+.enveloppe-summary tbody {
+  font-size: calc(1rem * 12/16);
+}
+
 .enveloppe-summary th {
   min-width: 120px;
   width: 130px;
+}
+
+.enveloppe-summary tbody tr td {
+  height: 30px;
 }
 
 .enveloppe-summary .color-icon-success::before,

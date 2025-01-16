@@ -46,3 +46,4 @@ class SimulationProjetFactory(DjangoModelFactory):
     projet = SubFactory(ProjetFactory)
     montant = Faker("random_number", digits=5)
     taux = Faker("random_number", digits=2)
+    status = SimulationProjet.STATUS_DRAFT
