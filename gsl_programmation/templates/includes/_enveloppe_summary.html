@@ -32,7 +32,7 @@
                     Projets refusés
                 </th>
                 <th class="fr-icon-folder-2-fill fr-icon--sm">
-                    Collectivités demandeuses
+                    Demandeurs
                 </th>
                 <th class="fr-icon-folder-2-fill fr-icon--sm">
                     Projets déposés
@@ -42,22 +42,22 @@
         <tbody>
             <tr>
                 <td>
-                    <b>DETR</b>
+                    <b>{{ enveloppe.type }}</b>
                 </td>
                 <td>
-                    Département
+                    {{ enveloppe.perimetre.type }}
                 </td>
                 <td>
-                    Loire-Atlantique
+                    {{ enveloppe.perimetre.entity_name }}
                 </td>
                 <td>
-                    {{ 1000000 | euro }}
+                    {{ enveloppe.montant | euro }}
                 </td>
                 <td>
-                    {{ 1000 | euro }}
+                    {{ enveloppe.montant_accepte | euro }}
                 </td>
                 <td>
-                    {{ 2000 | euro }}
+                    {{ enveloppe.montant_accepte | euro }}
                 </td>
                 <td class="color-success">
                     <b>19</b>
