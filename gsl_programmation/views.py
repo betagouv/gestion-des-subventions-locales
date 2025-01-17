@@ -10,7 +10,11 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 
-from gsl_programmation.services import ProjetService, SimulationProjetService
+from gsl_programmation.services import (
+    EnveloppeService,
+    ProjetService,
+    SimulationProjetService,
+)
 from gsl_programmation.utils import replace_comma_by_dot
 from gsl_projet.models import Projet
 from gsl_projet.views import FilterProjetsMixin
@@ -53,6 +57,17 @@ class SimulationDetailView(DetailView, FilterProjetsMixin):
         context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs)
         context["total_amount_granted"] = ProjetService.get_total_amount_granted(qs)
         context["available_states"] = SimulationProjet.STATUS_CHOICES
+        context["enveloppe"] = {
+            "type": simulation.enveloppe.type,
+            "montant": simulation.enveloppe.montant,
+            "perimetre": simulation.enveloppe.perimetre,
+            "total_amount_validated": EnveloppeService.get_total_amount_validated(
+                simulation.enveloppe
+            ),
+            "total_amount_asked": EnveloppeService.get_total_amount_asked(
+                simulation.enveloppe
+            ),
+        }
 
         context["breadcrumb_dict"] = {
             "links": [
