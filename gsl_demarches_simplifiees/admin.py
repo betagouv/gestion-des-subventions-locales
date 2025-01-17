@@ -80,6 +80,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
                     "ds_date_depot",
                     "ds_date_passage_en_construction",
                     "ds_date_passage_en_instruction",
+                    "ds_date_traitement",
                     "ds_date_derniere_modification",
                     "ds_date_derniere_modification_champs",
                 ),
