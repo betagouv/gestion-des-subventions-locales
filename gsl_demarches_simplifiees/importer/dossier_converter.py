@@ -25,6 +25,7 @@ class DossierConverter:
         "date_passage_en_construction",
         "date_passage_en_instruction",
         "date_derniere_modification_champs",
+        "date_traitement",
     )
 
     def __init__(self, ds_dossier_data: dict, dossier: Dossier):
