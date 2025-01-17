@@ -45,7 +45,13 @@ class PersonneMoraleAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 @admin.register(Dossier)
 class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_filter = ("ds_demarche__ds_number", "ds_state")
-    list_display = ("ds_number", "ds_demarche__ds_number", "ds_state")
+    list_display = (
+        "ds_number",
+        "ds_demarche__ds_number",
+        "ds_state",
+        "projet_intitule",
+    )
+
     fieldsets = (
         (
             "Informations générales",
@@ -89,7 +95,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "projet_adresse",
         "ds_demandeur",
     )
-    search_fields = ("ds_number",)
+    search_fields = ("ds_number", "projet_intitule")
 
     @admin.action(description="Rafraîchir depuis la base de données")
     def refresh_from_db(self, request, queryset):
