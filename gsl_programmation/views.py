@@ -1,10 +1,9 @@
 import logging
 
-from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
 from django.db.models import Prefetch
 from django.http import JsonResponse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.views.generic.detail import DetailView
@@ -86,6 +85,16 @@ class SimulationDetailView(DetailView, FilterProjetsMixin):
 
 
 def redirect_to_simulation_projet(request, simulation_projet):
+    if request.htmx:
+        return render(
+            request,
+            "includes/_simulation_detail_row.html",
+            {
+                "simu": simulation_projet,
+                "projet": simulation_projet.projet,
+                "available_states": SimulationProjet.STATUS_CHOICES,
+            },
+        )
     if request.method == "POST":
         url = reverse(
             "programmation:simulation_detail",
@@ -121,7 +130,6 @@ def exception_handler_decorator(func):
 
 # TODO pour les fonctions ci-dessous : vérifier que l'utilisateur a les droits nécessaires
 @exception_handler_decorator
-@staff_member_required
 @require_http_methods(["POST", "PATCH"])
 def patch_taux_simulation_projet(request):
     simulation_projet_id = request.POST.get("simulation_projet_id")
@@ -133,7 +141,6 @@ def patch_taux_simulation_projet(request):
 
 
 @exception_handler_decorator
-@staff_member_required
 @require_http_methods(["POST", "PATCH"])
 def patch_montant_simulation_projet(request):
     simulation_projet_id = request.POST.get("simulation_projet_id")
@@ -145,7 +152,6 @@ def patch_montant_simulation_projet(request):
 
 
 @exception_handler_decorator
-@staff_member_required
 @require_http_methods(["POST", "PATCH"])
 def patch_status_simulation_projet(request):
     simulation_projet_id = request.POST.get("simulation_projet_id")
