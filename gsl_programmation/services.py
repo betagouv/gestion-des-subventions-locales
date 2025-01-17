@@ -28,7 +28,7 @@ class EnveloppeService:
     def get_total_amount_asked(cls, enveloppe: Enveloppe):
         all_enveloppe_first_simulation_simulation_projets = (
             enveloppe.simulation_set.first()
-            .simulationprojet_set.prefetch_related("projet", "dossier_ds")
+            .simulationprojet_set.prefetch_related("projet", "projet__dossier_ds")
             .all()
         )
         return sum(
