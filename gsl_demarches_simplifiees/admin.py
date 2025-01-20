@@ -110,8 +110,9 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 class FieldMappingForHumanAdmin(
     AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin
 ):
-    list_display = ("label", "django_field")
+    list_display = ("label", "django_field", "demarche")
     resource_classes = (FieldMappingForHumanResource,)
+    list_filter = ("demarche",)
 
 
 @admin.register(FieldMappingForComputer)
