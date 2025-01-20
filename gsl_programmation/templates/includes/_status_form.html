@@ -1,19 +1,19 @@
 {% load gsl_filters %}
-<form hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-      hx-swap="outerHTML"
-      hx-patch="{% url 'programmation:patch-simulation-projet-status' simu.id %}"
-      hx-trigger="change"
-      hx-disabled-elt="find #status-select"
-      action="{% url 'programmation:patch-simulation-projet-status' simu.id %}"
+<form action="{% url 'programmation:patch-simulation-projet-status' simu.id %}"
       method="POST">
     {% csrf_token %}
     <select class="fr-select gsl-projet-table__select"
             id="status-select"
-            name="status">
+            name="status"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            hx-patch="{% url 'programmation:patch-simulation-projet-status' simu.id %}"
+            hx-disabled-elt="this"
+            onchange="this.form.submit()">
         {% for key, value in available_states %}
             <option value={{ key }} {% if simu.status == key %} selected {% endif %}>
                 {{ value }}
             </option>
         {% endfor %}
     </select>
+    <input type="submit" hidden />
 </form>

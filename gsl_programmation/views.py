@@ -154,7 +154,7 @@ def patch_montant_simulation_projet(request):
 
 
 @exception_handler_decorator
-@require_http_methods(["PATCH"])
+@require_http_methods(["POST", "PATCH"])
 def patch_status_simulation_projet(request, pk):
     simulation_projet = SimulationProjet.objects.get(id=pk)
     data = QueryDict(request.body)
