@@ -3,7 +3,9 @@
       hx-swap="outerHTML"
       hx-patch="{% url 'programmation:patch-simulation-projet-status' simu.id %}"
       hx-trigger="change"
-      hx-disabled-elt="find #status-select">
+      hx-disabled-elt="find #status-select"
+      action="{% url 'programmation:patch-simulation-projet-status' simu.id %}"
+      method="POST">
     {% csrf_token %}
     <select class="fr-select gsl-projet-table__select"
             id="status-select"
