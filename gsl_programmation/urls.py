@@ -19,7 +19,7 @@ urlpatterns = [
         name="patch-simulation-projet-taux",
     ),
     path(
-        "modifier-le-montant-un-projet-de-simulation/",
+        "modifier-le-montant-un-projet-de-simulation/<int:pk>/",
         views.patch_montant_simulation_projet,
         name="patch-simulation-projet-montant",
     ),

@@ -144,11 +144,11 @@ def patch_taux_simulation_projet(request):
 
 @exception_handler_decorator
 @require_http_methods(["POST", "PATCH"])
-def patch_montant_simulation_projet(request):
-    simulation_projet_id = request.POST.get("simulation_projet_id")
-    simulation_projet = SimulationProjet.objects.get(id=simulation_projet_id)
+def patch_montant_simulation_projet(request, pk):
+    simulation_projet = SimulationProjet.objects.get(id=pk)
+    data = QueryDict(request.body)
 
-    new_montant = replace_comma_by_dot(request.POST.get("montant"))
+    new_montant = replace_comma_by_dot(data.get("montant"))
     SimulationProjetService.update_montant(simulation_projet, new_montant)
     return redirect_to_simulation_projet(request, simulation_projet)
 
@@ -158,7 +158,7 @@ def patch_montant_simulation_projet(request):
 def patch_status_simulation_projet(request, pk):
     simulation_projet = SimulationProjet.objects.get(id=pk)
     data = QueryDict(request.body)
-
     new_status = data.get("status")
+
     SimulationProjetService.update_status(simulation_projet, new_status)
     return redirect_to_simulation_projet(request, simulation_projet)
