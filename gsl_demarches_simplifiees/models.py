@@ -52,7 +52,7 @@ class Demarche(DsModel):
         verbose_name = "Démarche"
 
     def __str__(self):
-        return f"Démarche {self.ds_number}"
+        return f"Démarche {self.ds_number} - {self.ds_title}"
 
 
 class FormeJuridique(models.Model):
