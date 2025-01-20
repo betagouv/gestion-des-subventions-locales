@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.db.models import JSONField
+from django_json_widget.widgets import JSONEditorWidget
 from import_export.admin import ImportExportMixin
 
 from gsl_core.admin import AllPermsForStaffUser
@@ -99,6 +101,9 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_demandeur",
     )
     search_fields = ("ds_number", "projet_intitule")
+    formfield_overrides = {
+        JSONField: {"widget": JSONEditorWidget},
+    }
 
     @admin.action(description="Rafraîchir depuis la base de données")
     def refresh_from_db(self, request, queryset):
