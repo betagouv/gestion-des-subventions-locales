@@ -1,6 +1,6 @@
 {% load gsl_filters %}
 
-<tr id="simulation-{{ simu.pk }}">
+<tr id="simulation-{{ simu.pk }}" hx-swap-oob="true">
     <td>
         <input type="checkbox"
                name="simu[{{ simu.pk }}]"

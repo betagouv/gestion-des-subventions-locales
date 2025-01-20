@@ -1,10 +1,8 @@
 {% load gsl_filters %}
 <form hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-      hx-target="#simulation-{{ simu.pk }}"
       hx-swap="outerHTML"
       hx-post="{% url 'programmation:patch-simulation-projet-status' %}"
-      hx-trigger="change"
-      hx-boost="true">
+      hx-trigger="change">
     {% csrf_token %}
     <select class="fr-select gsl-projet-table__select"
             id="status-select"

@@ -88,11 +88,12 @@ def redirect_to_simulation_projet(request, simulation_projet):
     if request.htmx:
         return render(
             request,
-            "includes/_simulation_detail_row.html",
+            "htmx/projet_status_update.html",
             {
                 "simu": simulation_projet,
                 "projet": simulation_projet.projet,
                 "available_states": SimulationProjet.STATUS_CHOICES,
+                "status_summary": simulation_projet.simulation.get_projet_status_summary(),
             },
         )
     if request.method == "POST":

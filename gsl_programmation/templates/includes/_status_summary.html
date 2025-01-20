@@ -1,5 +1,7 @@
 {% load static addstr custom_pluralize %}
-<div class="projet-states-count">
+<div class="projet-states-count"
+     id="projet-states-count"
+     hx-swap-oob="{{ hx_swap_oob }}">
     <p class="fr-badge fr-badge--green-menthe">
         {{ status_summary.valid }} projet{{ status_summary.valid|custom_pluralize }} validé{{ status_summary.valid|custom_pluralize }}
     </p>
