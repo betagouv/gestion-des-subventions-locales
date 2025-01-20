@@ -166,6 +166,15 @@ class Dossier(DsModel):
     ds_date_derniere_modification_champs = models.DateTimeField(
         "Date de dernière modification des champs", null=True, blank=True
     )
+    ds_date_traitement = models.DateTimeField(
+        "Date de traitement",
+        null=True,
+        blank=True,
+        help_text=(
+            "Date de passage à l’état « Accepté », « Refusé » ou "
+            "« Classé sans suite », le cas échéant."
+        ),
+    )
     ds_demandeur = models.ForeignKey(
         PersonneMorale, on_delete=models.PROTECT, verbose_name="Demandeur", null=True
     )
