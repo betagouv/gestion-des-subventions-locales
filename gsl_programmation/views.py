@@ -133,11 +133,11 @@ def exception_handler_decorator(func):
 # TODO pour les fonctions ci-dessous : vérifier que l'utilisateur a les droits nécessaires
 @exception_handler_decorator
 @require_http_methods(["POST", "PATCH"])
-def patch_taux_simulation_projet(request):
-    simulation_projet_id = request.POST.get("simulation_projet_id")
-    simulation_projet = SimulationProjet.objects.get(id=simulation_projet_id)
+def patch_taux_simulation_projet(request, pk):
+    simulation_projet = SimulationProjet.objects.get(id=pk)
+    data = QueryDict(request.body)
 
-    new_taux = replace_comma_by_dot(request.POST.get("taux"))
+    new_taux = replace_comma_by_dot(data.get("taux"))
     SimulationProjetService.update_taux(simulation_projet, new_taux)
     return redirect_to_simulation_projet(request, simulation_projet)
 

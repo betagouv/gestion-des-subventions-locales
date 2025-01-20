@@ -13,4 +13,7 @@
                value="{{ simu.montant|floatformat:"2g" }}">
         <span class="gsl-projet-table__input-symbol">€</span>
     </div>
+    <input type="hidden"
+           name="filter_params"
+           value="{{ request.GET.urlencode }}">
 </form>

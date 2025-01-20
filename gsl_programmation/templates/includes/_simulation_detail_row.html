@@ -16,14 +16,7 @@
         {{ projet.address.commune.name }}
     </td>
     <td>
-        <select class='fr-select gsl-projet-table__select'>
-            <option value="DETR">
-                DETR
-            </option>
-            <option value="DSIL">
-                DSIL
-            </option>
-        </select>
+        {{ projet.dossier_ds.demande_dispositif_sollicite }}
     </td>
     <td class="gsl-money">
         {{ projet.assiette_or_cout_total|euro:2 }}

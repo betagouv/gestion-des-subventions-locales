@@ -13,5 +13,9 @@
             </option>
         {% endfor %}
     </select>
+    <input type="hidden"
+           name="filter_params"
+           value="{{ request.GET.urlencode }}">
+
     <input type="submit" hidden />
 </form>

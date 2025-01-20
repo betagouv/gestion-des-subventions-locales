@@ -14,7 +14,7 @@ urlpatterns = [
         name="simulation_detail",
     ),
     path(
-        "modifier-le-taux-d-un-projet-de-simulation/",
+        "modifier-le-taux-d-un-projet-de-simulation/<int:pk>/",
         views.patch_taux_simulation_projet,
         name="patch-simulation-projet-taux",
     ),
