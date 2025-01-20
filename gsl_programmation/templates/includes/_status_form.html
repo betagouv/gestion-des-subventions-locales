@@ -2,7 +2,8 @@
 <form hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
       hx-swap="outerHTML"
       hx-post="{% url 'programmation:patch-simulation-projet-status' %}"
-      hx-trigger="change">
+      hx-trigger="change"
+      hx-disabled-elt="find #status-select">
     {% csrf_token %}
     <select class="fr-select gsl-projet-table__select"
             id="status-select"
