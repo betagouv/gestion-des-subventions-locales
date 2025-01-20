@@ -3,6 +3,7 @@ import logging
 from django.core.paginator import Paginator
 from django.db.models import Prefetch
 from django.http import JsonResponse
+from django.http.request import QueryDict
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
@@ -153,10 +154,11 @@ def patch_montant_simulation_projet(request):
 
 
 @exception_handler_decorator
-@require_http_methods(["POST", "PATCH"])
+@require_http_methods(["PATCH"])
 def patch_status_simulation_projet(request, pk):
     simulation_projet = SimulationProjet.objects.get(id=pk)
+    data = QueryDict(request.body)
 
-    new_status = request.POST.get("status")
+    new_status = data.get("status")
     SimulationProjetService.update_status(simulation_projet, new_status)
     return redirect_to_simulation_projet(request, simulation_projet)
