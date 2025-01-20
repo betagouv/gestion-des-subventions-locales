@@ -5,10 +5,8 @@
     <select class="fr-select gsl-projet-table__select"
             id="status-select"
             name="status"
-            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
             hx-patch="{% url 'programmation:patch-simulation-projet-status' simu.id %}"
-            hx-disabled-elt="this"
-            onchange="this.form.submit()">
+            hx-disabled-elt="this">
         {% for key, value in available_states %}
             <option value={{ key }} {% if simu.status == key %} selected {% endif %}>
                 {{ value }}
