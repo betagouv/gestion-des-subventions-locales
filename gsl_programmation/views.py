@@ -154,9 +154,8 @@ def patch_montant_simulation_projet(request):
 
 @exception_handler_decorator
 @require_http_methods(["POST", "PATCH"])
-def patch_status_simulation_projet(request):
-    simulation_projet_id = request.POST.get("simulation_projet_id")
-    simulation_projet = SimulationProjet.objects.get(id=simulation_projet_id)
+def patch_status_simulation_projet(request, pk):
+    simulation_projet = SimulationProjet.objects.get(id=pk)
 
     new_status = request.POST.get("status")
     SimulationProjetService.update_status(simulation_projet, new_status)

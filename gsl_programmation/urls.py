@@ -24,7 +24,7 @@ urlpatterns = [
         name="patch-simulation-projet-montant",
     ),
     path(
-        "modifier-le-statut-d-un-projet-de-simulation/",
+        "modifier-le-statut-d-un-projet-de-simulation/<int:pk>/",
         views.patch_status_simulation_projet,
         name="patch-simulation-projet-status",
     ),

@@ -1,7 +1,7 @@
 {% load gsl_filters %}
 <form hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
       hx-swap="outerHTML"
-      hx-post="{% url 'programmation:patch-simulation-projet-status' %}"
+      hx-post="{% url 'programmation:patch-simulation-projet-status' simu.id %}"
       hx-trigger="change"
       hx-disabled-elt="find #status-select">
     {% csrf_token %}
@@ -14,8 +14,4 @@
             </option>
         {% endfor %}
     </select>
-    <input type="hidden" name="simulation_projet_id" value="{{ simu.id }}">
-    <input type="hidden"
-           name="filter_params"
-           value="{{ request.GET.urlencode }}">
 </form>
