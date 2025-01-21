@@ -17,7 +17,7 @@ dependencies = [
     "django-json-widget",
     "gunicorn",
     "mozilla-django-oidc",
-    "psycopg2-binary",
+    "psycopg[binary]",
     "python-dotenv",
     "redis",
     "sentry-sdk",
