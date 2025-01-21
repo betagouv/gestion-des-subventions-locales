@@ -73,7 +73,6 @@ class ProjetService:
         "Communes": NaturePorteurProjet.COMMUNE_NATURES,
     }
 
-    # TODO add tests
     @classmethod
     def add_filters_to_projets_qs(cls, qs, filters: dict):
         dispositif = filters.get("dispositif")

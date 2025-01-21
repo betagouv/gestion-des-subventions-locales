@@ -1,5 +1,9 @@
 import pytest
 
+from gsl_demarches_simplifiees.tests.factories import (
+    DossierFactory,
+    NaturePorteurProjetFactory,
+)
 from gsl_programmation.models import Simulation
 from gsl_programmation.services import ProjetService
 from gsl_programmation.tests.factories import SimulationFactory, SimulationProjetFactory
@@ -113,3 +117,57 @@ def test_get_total_amount_asked(
 ):
     qs = Projet.objects.filter(simulationprojet__simulation=simulation).all()
     assert ProjetService.get_total_amount_asked(qs) == 15_000 + 25_000
+
+
+@pytest.fixture
+def create_projets():
+    epci_nature = NaturePorteurProjetFactory(label="EPCI")
+    commune_nature = NaturePorteurProjetFactory(label="Communes")
+    for i in (49, 50, 100, 150, 151):
+        ProjetFactory(
+            assiette=i,
+            dossier_ds=DossierFactory(
+                demande_dispositif_sollicite="DETR",
+                porteur_de_projet_nature=epci_nature,
+            ),
+        )
+        ProjetFactory(
+            assiette=i,
+            dossier_ds=DossierFactory(
+                demande_dispositif_sollicite="DETR",
+                porteur_de_projet_nature=commune_nature,
+            ),
+        )
+        ProjetFactory(
+            assiette=i, dossier_ds=DossierFactory(demande_dispositif_sollicite="DSIL")
+        )
+
+
+@pytest.mark.django_db
+def test_add_filters_to_projets_qs(create_projets):
+    filters = {
+        "dispositif": "DETR",
+        "cout_min": "50",
+        "cout_max": "150",
+        "porteur": "EPCI",
+    }
+
+    qs = Projet.objects.all()
+    filtered_qs = ProjetService.add_filters_to_projets_qs(qs, filters)
+
+    assert filtered_qs.count() == 3
+    assert filtered_qs.values_list("assiette", flat=True).distinct()[0] == 50
+    assert filtered_qs.values_list("assiette", flat=True).distinct()[1] == 100
+    assert filtered_qs.values_list("assiette", flat=True).distinct()[2] == 150
+    assert (
+        filtered_qs.values_list(
+            "dossier_ds__demande_dispositif_sollicite", flat=True
+        ).distinct()[0]
+        == "DETR"
+    )
+    assert (
+        filtered_qs.values_list(
+            "dossier_ds__porteur_de_projet_nature__label", flat=True
+        ).distinct()[0]
+        == "EPCI"
+    )
