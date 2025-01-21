@@ -1,6 +1,7 @@
 .enveloppe-summary {
   margin-top: 16px;
-  border-spacing: 0;
+  margin-bottom: 16px;
+  border-spacing: 0 2px;
   font-size: calc(1rem * 13/16);
 }
 
@@ -8,6 +9,7 @@
   border-spacing: 0;
   table-layout: auto;
   text-align: center;
+  border-collapse: collapse;
 }
 
 .enveloppe-summary thead {
@@ -22,6 +24,10 @@
 .enveloppe-summary th {
   min-width: 90px;
   width: 130px;
+  border-top: 1px solid var(--border-default-grey);
+}
+.enveloppe-summary tr {
+  border-bottom: 1px solid var(--border-default-grey);
 }
 
 .enveloppe-summary tbody tr td {
