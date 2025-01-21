@@ -1,9 +1,17 @@
 from decimal import Decimal
 
-from django.db.models import Case, F, Sum, When
+from django.db.models import Case, F, Q, Sum, When
 from django.db.models.query import QuerySet
 
-from gsl_programmation.models import SimulationProjet
+from gsl_demarches_simplifiees.models import NaturePorteurProjet
+from gsl_programmation.models import Simulation, SimulationProjet
+from gsl_projet.models import Projet
+
+
+class SimulationService:
+    @classmethod
+    def get_projets_from_simulation(cls, simulation: Simulation):
+        return Projet.objects.filter(simulationprojet__simulation=simulation)
 
 
 class SimulationProjetService:
@@ -59,3 +67,39 @@ class ProjetService:
         return projet_qs.aggregate(Sum("simulationprojet__montant"))[
             "simulationprojet__montant__sum"
         ]
+
+    PORTEUR_MAPPINGS = {
+        "EPCI": NaturePorteurProjet.EPCI_NATURES,
+        "Communes": NaturePorteurProjet.COMMUNE_NATURES,
+    }
+
+    # TODO add tests
+    @classmethod
+    def add_filters_to_projets_qs(cls, qs, filters: dict):
+        dispositif = filters.get("dispositif")
+        if dispositif:
+            qs = qs.filter(dossier_ds__demande_dispositif_sollicite=dispositif)
+
+        cout_min = filters.get("cout_min")
+        if cout_min and cout_min.isnumeric():
+            qs = qs.filter(
+                Q(assiette__isnull=False, assiette__gte=cout_min)
+                | Q(assiette__isnull=True, dossier_ds__finance_cout_total__gte=cout_min)
+            )
+
+        cout_max = filters.get("cout_max")
+        if cout_max and cout_max.isnumeric():
+            qs = qs.filter(
+                Q(assiette__isnull=False, assiette__lte=cout_max)
+                | Q(assiette__isnull=True, dossier_ds__finance_cout_total__lte=cout_max)
+            )
+
+        porteur = filters.get("porteur")
+        if porteur in cls.PORTEUR_MAPPINGS:
+            qs = qs.filter(
+                dossier_ds__porteur_de_projet_nature__label__in=cls.PORTEUR_MAPPINGS.get(
+                    porteur
+                )
+            )
+
+        return qs
