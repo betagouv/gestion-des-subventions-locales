@@ -52,7 +52,7 @@ class Demarche(DsModel):
         verbose_name = "Démarche"
 
     def __str__(self):
-        return f"Démarche {self.ds_number}"
+        return f"Démarche {self.ds_number} - {self.ds_title}"
 
 
 class FormeJuridique(models.Model):
@@ -119,11 +119,12 @@ class PersonneMorale(models.Model):
         self.address = adresse
 
         entreprise_data = ds_data.get("entreprise")
-        self.raison_sociale = entreprise_data.get("raisonSociale")
-        self.forme_juridique, _ = FormeJuridique.objects.get_or_create(
-            code=entreprise_data.get("formeJuridiqueCode"),
-            defaults={"libelle": entreprise_data.get("formeJuridique")},
-        )
+        if entreprise_data:
+            self.raison_sociale = entreprise_data.get("raisonSociale")
+            self.forme_juridique, _ = FormeJuridique.objects.get_or_create(
+                code=entreprise_data.get("formeJuridiqueCode"),
+                defaults={"libelle": entreprise_data.get("formeJuridique")},
+            )
 
         return self
 

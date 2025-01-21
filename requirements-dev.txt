@@ -96,6 +96,8 @@ django-extensions==3.2.3
     # via gsl (pyproject.toml)
 django-import-export==4.3.3
     # via gsl (pyproject.toml)
+django-json-widget==2.0.1
+    # via gsl (pyproject.toml)
 django-query-counter==0.4.0
     # via gsl (pyproject.toml)
 django-referrer-policy==1.0

@@ -1,4 +1,7 @@
 from django.contrib import admin
+from django.db.models import JSONField
+from django_json_widget.widgets import JSONEditorWidget
+from import_export.admin import ImportExportMixin
 
 from gsl_core.admin import AllPermsForStaffUser
 
@@ -11,6 +14,7 @@ from .models import (
     PersonneMorale,
     Profile,
 )
+from .resources import FieldMappingForComputerResource, FieldMappingForHumanResource
 from .tasks import task_refresh_dossier_from_saved_data
 
 
@@ -97,6 +101,9 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_demandeur",
     )
     search_fields = ("ds_number", "projet_intitule")
+    formfield_overrides = {
+        JSONField: {"widget": JSONEditorWidget},
+    }
 
     @admin.action(description="Rafraîchir depuis la base de données")
     def refresh_from_db(self, request, queryset):
@@ -105,17 +112,24 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
 
 @admin.register(FieldMappingForHuman)
-class FieldMappingForHumanAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    list_display = ("label", "django_field")
+class FieldMappingForHumanAdmin(
+    AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin
+):
+    list_display = ("label", "django_field", "demarche")
+    resource_classes = (FieldMappingForHumanResource,)
+    list_filter = ("demarche",)
 
 
 @admin.register(FieldMappingForComputer)
-class FieldMappingForComputerAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+class FieldMappingForComputerAdmin(
+    AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin
+):
     readonly_fields = [
         field.name for field in FieldMappingForComputer._meta.get_fields()
     ]
     list_display = ("ds_field_id", "ds_field_label", "django_field", "demarche")
     list_filter = ("demarche__ds_number", "ds_field_type")
+    resource_classes = (FieldMappingForComputerResource,)
 
 
 @admin.register(Profile)
