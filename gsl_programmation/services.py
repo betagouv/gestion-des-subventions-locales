@@ -102,3 +102,23 @@ class ProjetService:
             )
 
         return qs
+
+    @classmethod
+    def add_ordering_to_projets_qs(cls, qs, ordering):
+        ordering_arg = cls.get_ordering_arg(ordering)
+        if ordering_arg:
+            qs = qs.order_by(ordering_arg)
+        return qs
+
+    @classmethod
+    def get_ordering_arg(cls, ordering):
+        ordering_map = {
+            "date_desc": "-dossier_ds__ds_date_depot",
+            "date_asc": "dossier_ds__ds_date_depot",
+            "cout_desc": "-dossier_ds__finance_cout_total",
+            "cout_asc": "dossier_ds__finance_cout_total",
+            "commune_desc": "-address__commune__name",
+            "commune_asc": "address__commune__name",
+        }
+
+        return ordering_map.get(ordering, None)

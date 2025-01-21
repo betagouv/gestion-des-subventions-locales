@@ -17,7 +17,6 @@ from gsl_programmation.services import (
 )
 from gsl_programmation.utils import get_filters_dict_from_params, replace_comma_by_dot
 from gsl_projet.models import Projet
-from gsl_projet.views import FilterProjetsMixin
 
 from .models import Simulation, SimulationProjet
 
@@ -36,7 +35,7 @@ class SimulationListView(ListView):
         return context
 
 
-class SimulationDetailView(DetailView, FilterProjetsMixin):
+class SimulationDetailView(DetailView):
     model = Simulation
 
     def get_context_data(self, **kwargs):
@@ -76,7 +75,7 @@ class SimulationDetailView(DetailView, FilterProjetsMixin):
         qs = SimulationService.get_projets_from_simulation(simulation)
         qs = qs.order_by("simulationprojet__created_at")
         qs = ProjetService.add_filters_to_projets_qs(qs, self.request.GET)
-        qs = self.add_ordering_to_projets_qs(qs)
+        qs = ProjetService.add_ordering_to_projets_qs(qs, self.request.GET.get("tri"))
         qs = qs.select_related("address").select_related("address__commune")
         qs = qs.prefetch_related(
             Prefetch(

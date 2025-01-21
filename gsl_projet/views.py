@@ -76,28 +76,7 @@ def get_projet(request, projet_id):
     return render(request, "gsl_projet/projet.html", context)
 
 
-class FilterProjetsMixin:
-    def add_ordering_to_projets_qs(self, qs):
-        ordering = self.get_ordering()
-        if ordering:
-            qs = qs.order_by(ordering)
-        return qs
-
-    def get_ordering(self):
-        ordering_map = {
-            "date_desc": "-dossier_ds__ds_date_depot",
-            "date_asc": "dossier_ds__ds_date_depot",
-            "cout_desc": "-dossier_ds__finance_cout_total",
-            "cout_asc": "dossier_ds__finance_cout_total",
-            "commune_desc": "-address__commune__name",
-            "commune_asc": "address__commune__name",
-        }
-
-        ordering = self.request.GET.get("tri")
-        return ordering_map.get(ordering, None)
-
-
-class ProjetListView(FilterProjetsMixin, ListView):
+class ProjetListView(ListView):
     model = Projet
     paginate_by = 25
 
@@ -118,5 +97,5 @@ class ProjetListView(FilterProjetsMixin, ListView):
             dossier_ds__ds_date_depot__gte=datetime.date(2024, 9, 1)
         )
         qs = ProjetService.add_filters_to_projets_qs(qs, self.request.GET)
-        qs = self.add_ordering_to_projets_qs(qs)
+        qs = ProjetService.add_ordering_to_projets_qs(qs, self.request.GET.get("tri"))
         return qs
