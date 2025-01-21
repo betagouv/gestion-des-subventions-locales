@@ -10,6 +10,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 
+from gsl_programmation.forms import SimulationForm
 from gsl_programmation.services import (
     ProjetService,
     SimulationProjetService,
@@ -179,3 +180,31 @@ def patch_status_simulation_projet(request, pk):
 
     SimulationProjetService.update_status(simulation_projet, new_status)
     return redirect_to_simulation_projet(request, simulation_projet)
+
+
+def simulation_form(request):
+    if request.method == "POST":
+        form = SimulationForm(request.POST)
+        if form.is_valid():
+            # Process the form data
+            # For example, save it to the database or perform some action
+            # Redirect to a new URL or render a success message
+            return redirect(
+                "success_url"
+            )  # Replace 'success_url' with your actual success URL
+    else:
+        form = SimulationForm()
+        context = {
+            "breadcrumb_dict": {
+                "links": [
+                    {
+                        "url": reverse("gsl_projet:list"),
+                        "title": "Liste des projets",
+                    },
+                ],
+                "current": "Création d'une simulation de programmation",
+            }
+        }
+        context["form"] = form
+
+        return render(request, "gsl_programmation/simulation_form.html", context)

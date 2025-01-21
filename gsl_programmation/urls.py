@@ -28,4 +28,9 @@ urlpatterns = [
         views.patch_status_simulation_projet,
         name="patch-simulation-projet-status",
     ),
+    path(
+        "creation-simulation",
+        views.simulation_form,
+        name="simulation-form",
+    ),
 ]
