@@ -68,6 +68,9 @@ class DsClient:
         ]
         while has_next_page:
             end_cursor = result["data"]["demarche"]["dossiers"]["pageInfo"]["endCursor"]
+            has_next_page = result["data"]["demarche"]["dossiers"]["pageInfo"][
+                "hasNextPage"
+            ]
             variables["after"] = end_cursor
             result = self.launch_graphql_query("getDemarche", variables=variables)
             yield from result["data"]["demarche"]["dossiers"]["nodes"]
