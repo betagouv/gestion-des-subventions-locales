@@ -10,6 +10,8 @@ from .resources import EnveloppeDETRResource, EnveloppeDSILResource
 @admin.register(Enveloppe)
 class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
     resource_classes = (EnveloppeDETRResource, EnveloppeDSILResource)
+    list_display = ("__str__", "montant", "type", "annee")
+    list_filter = ("type", "annee")
 
 
 @admin.register(Simulation)
