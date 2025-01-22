@@ -49,14 +49,14 @@ def view() -> ProjetListView:
 @pytest.mark.parametrize(
     "tri_param,expected_ordering",
     [
-        ("date_desc", "-dossier_ds__ds_date_depot"),
-        ("date_asc", "dossier_ds__ds_date_depot"),
-        ("cout_desc", "-dossier_ds__finance_cout_total"),
-        ("cout_asc", "dossier_ds__finance_cout_total"),
-        ("commune_desc", "-address__commune__name"),
-        ("commune_asc", "address__commune__name"),
-        (None, None),  # Test valeur par défaut
-        ("invalid_value", None),  # Test valeur invalide
+        ("date_desc", ("-dossier_ds__ds_date_depot",)),
+        ("date_asc", ("dossier_ds__ds_date_depot",)),
+        ("cout_desc", ("-dossier_ds__finance_cout_total",)),
+        ("cout_asc", ("dossier_ds__finance_cout_total",)),
+        ("commune_desc", ("-address__commune__name",)),
+        ("commune_asc", ("address__commune__name",)),
+        (None, ()),  # Test valeur par défaut
+        ("invalid_value", ()),  # Test valeur invalide
     ],
 )
 def test_get_ordering(req, view, tri_param, expected_ordering):
@@ -67,7 +67,7 @@ def test_get_ordering(req, view, tri_param, expected_ordering):
 
     view.request = request
 
-    assert view.get_ordering() == expected_ordering
+    assert view.get_queryset().query.order_by == expected_ordering
 
 
 @pytest.fixture

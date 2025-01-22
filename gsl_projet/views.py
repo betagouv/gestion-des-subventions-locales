@@ -1,12 +1,10 @@
 import datetime
 
-from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET
 from django.views.generic import ListView
 
-from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_programmation.services import ProjetService
 
 from .models import Projet
@@ -78,65 +76,7 @@ def get_projet(request, projet_id):
     return render(request, "gsl_projet/projet.html", context)
 
 
-class FilterProjetsMixin:
-    PORTEUR_MAPPINGS = {
-        "EPCI": NaturePorteurProjet.EPCI_NATURES,
-        "Communes": NaturePorteurProjet.COMMUNE_NATURES,
-    }
-
-    def add_filters_to_projets_qs(self, qs):
-        filters = self.request.GET
-
-        dispositif = filters.get("dispositif")
-        if dispositif:
-            qs = qs.filter(dossier_ds__demande_dispositif_sollicite=dispositif)
-
-        cout_min = filters.get("cout_min")
-        if cout_min and cout_min.isnumeric():
-            # qs = qs.filter(dossier_ds__finance_cout_total__gte=cout_min)
-            qs = qs.filter(
-                Q(assiette__isnull=False, assiette__gte=cout_min)
-                | Q(assiette__isnull=True, dossier_ds__finance_cout_total__gte=cout_min)
-            )
-
-        cout_max = filters.get("cout_max")
-        if cout_max and cout_max.isnumeric():
-            qs = qs.filter(
-                Q(assiette__isnull=False, assiette__lte=cout_max)
-                | Q(assiette__isnull=True, dossier_ds__finance_cout_total__lte=cout_max)
-            )
-
-        porteur = filters.get("porteur")
-        if porteur in self.PORTEUR_MAPPINGS:
-            qs = qs.filter(
-                dossier_ds__porteur_de_projet_nature__label__in=self.PORTEUR_MAPPINGS.get(
-                    porteur
-                )
-            )
-
-        return qs
-
-    def add_ordering_to_projets_qs(self, qs):
-        ordering = self.get_ordering()
-        if ordering:
-            qs = qs.order_by(ordering)
-        return qs
-
-    def get_ordering(self):
-        ordering_map = {
-            "date_desc": "-dossier_ds__ds_date_depot",
-            "date_asc": "dossier_ds__ds_date_depot",
-            "cout_desc": "-dossier_ds__finance_cout_total",
-            "cout_asc": "dossier_ds__finance_cout_total",
-            "commune_desc": "-address__commune__name",
-            "commune_asc": "address__commune__name",
-        }
-
-        ordering = self.request.GET.get("tri")
-        return ordering_map.get(ordering, None)
-
-
-class ProjetListView(FilterProjetsMixin, ListView):
+class ProjetListView(ListView):
     model = Projet
     paginate_by = 25
 
@@ -144,7 +84,7 @@ class ProjetListView(FilterProjetsMixin, ListView):
         context = super().get_context_data(**kwargs)
         qs = self.get_queryset()
         context["title"] = "Projets 2025"
-        context["porteur_mappings"] = self.PORTEUR_MAPPINGS
+        context["porteur_mappings"] = ProjetService.PORTEUR_MAPPINGS
         context["breadcrumb_dict"] = {"current": "Liste des projets"}
         context["total_cost"] = ProjetService.get_total_cost(qs)
         context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs)
@@ -156,6 +96,6 @@ class ProjetListView(FilterProjetsMixin, ListView):
         qs = Projet.objects.for_user(self.request.user).filter(
             dossier_ds__ds_date_depot__gte=datetime.date(2024, 9, 1)
         )
-        qs = self.add_filters_to_projets_qs(qs)
-        qs = self.add_ordering_to_projets_qs(qs)
+        qs = ProjetService.add_filters_to_projets_qs(qs, self.request.GET)
+        qs = ProjetService.add_ordering_to_projets_qs(qs, self.request.GET.get("tri"))
         return qs

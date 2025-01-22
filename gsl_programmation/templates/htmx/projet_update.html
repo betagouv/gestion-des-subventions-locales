@@ -1,0 +1,7 @@
+{% load gsl_filters %}
+
+{% include "includes/_status_summary.html" with hx_swap_oob="true" %}
+<span hx-swap-oob="innerHTML" id="total-amount-granted">{{ total_amount_granted | euro }}</span>
+<table>
+    {% include "includes/_simulation_detail_row.html" %}
+</table>

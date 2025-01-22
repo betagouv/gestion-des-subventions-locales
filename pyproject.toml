@@ -15,6 +15,7 @@ dependencies = [
     "django_celery_results",
     "django-import-export",
     "django-json-widget",
+    "django-htmx",
     "gunicorn",
     "mozilla-django-oidc",
     "psycopg2-binary",
