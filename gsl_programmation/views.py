@@ -17,6 +17,7 @@ from gsl_programmation.services import (
     SimulationProjetService,
     SimulationService,
 )
+from gsl_programmation.tasks import add_enveloppe_projets_to_simulation
 from gsl_programmation.utils import get_filters_dict_from_params, replace_comma_by_dot
 from gsl_projet.models import Projet
 
@@ -193,10 +194,10 @@ def simulation_form(request):
     if request.method == "POST":
         form = SimulationForm(request.POST, user=request.user)
         if form.is_valid():
-            SimulationService.create_simulation(
+            simulation = SimulationService.create_simulation(
                 request.user, form.cleaned_data["title"], form.cleaned_data["dotation"]
             )
-
+            add_enveloppe_projets_to_simulation(simulation.id)
             return redirect("programmation:simulation_list")
         else:
             return render(
