@@ -27,8 +27,3 @@ def get_filters_dict_from_params(filter_params):
         key: value[0] if len(value) == 1 else value
         for key, value in parse_qs(filter_params).items()
     }
-
-
-def slugify(value: str) -> str:
-    slug = "-".join(re.findall(r"\b\w+\b", value)).lower()
-    return re.sub(r"[_\s]+", "-", slug)

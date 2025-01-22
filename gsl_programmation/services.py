@@ -3,14 +3,15 @@ from typing import Any
 
 from django.db.models import Case, F, Q, Sum, When
 from django.db.models.query import QuerySet
+from django.utils.text import slugify
 
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_programmation.models import Enveloppe, Simulation, SimulationProjet
-from gsl_programmation.utils import slugify
 from gsl_projet.models import Projet
 
 
+# TODO : split this file + add plural to service folder
 class SimulationService:
     @classmethod
     def create_simulation(cls, user: Any, title: str, dotation: str):
@@ -34,21 +35,26 @@ class SimulationService:
             )
 
         enveloppe = Enveloppe.objects.get(perimetre=perimetre_to_find, type=dotation)
-
-        slug = slugify(title)
-        # TODO : use a better slug generation method
-        if Simulation.objects.filter(slug=slug).exists():
-            slug = slugify(
-                slug
-                + f" {Simulation.objects.filter(slug__startswith=slug).count() + 1}"
-            )
-
+        slug = SimulationService.get_slug(title)
         simulation = Simulation.objects.create(
             title=title,
             enveloppe=enveloppe,
             slug=slug,
+            created_by=user,
         )
         return simulation
+
+    @classmethod
+    def get_slug(cls, title: str):
+        slug = slugify(title)
+        if Simulation.objects.filter(slug=slug).exists():
+            i = 1
+            incremented_slug = slugify(slug + f"-{i}")
+            while Simulation.objects.filter(slug=incremented_slug).exists():
+                i += 1
+                incremented_slug = slugify(slug + f"-{i}")
+            return incremented_slug
+        return slug
 
     @classmethod
     def get_projets_from_simulation(cls, simulation: Simulation):

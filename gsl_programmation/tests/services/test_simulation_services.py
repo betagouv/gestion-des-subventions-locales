@@ -73,11 +73,17 @@ def test_user_without_department_and_ask_for_dsil_simulation():
 def test_slug_generation():
     SimulationFactory(slug="test")
     SimulationFactory(slug="test-2")
-    perimetre_regional = PerimetreRegionalFactory()
-    user = CollegueFactory(perimetre=perimetre_regional)
-    enveloppe_dsil = DsilEnveloppeFactory(perimetre=perimetre_regional)
+    SimulationFactory(slug="other-test")
+    SimulationFactory(slug="other-test-1")
 
-    SimulationService.create_simulation(user, "test", "DSIL")
+    slug = SimulationService.get_slug("test")
+    assert slug == "test-1"
 
-    simulation = Simulation.objects.get(enveloppe=enveloppe_dsil)
-    assert simulation.slug == "test-3"
+    slug = SimulationService.get_slug("Test   2 !!")
+    assert slug == "test-2-1"
+
+    slug = SimulationService.get_slug("Other test")
+    assert slug == "other-test-2"
+
+    slug = SimulationService.get_slug("Other test 1")
+    assert slug == "other-test-1-1"

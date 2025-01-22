@@ -184,19 +184,19 @@ def patch_status_simulation_projet(request, pk):
 
 def simulation_form(request):
     if request.method == "POST":
-        form = SimulationForm(request.POST)
+        form = SimulationForm(request.POST, user=request.user)
         if form.is_valid():
-            print("CHIRAC")
-            print(request.user)
-            print(form)
-            print(form.cleaned_data)
-            SimulationService.create_simulation(request.user, form.cleaned_data)
+            SimulationService.create_simulation(
+                request.user, form.cleaned_data["title"], form.cleaned_data["dotation"]
+            )
 
-            return redirect(
-                "programmation:simulation_list"
-            )  # Replace 'success_url' with your actual success URL
+            return redirect("programmation:simulation_list")
+        else:
+            return render(
+                request, "gsl_programmation/simulation_form.html", {"form": form}
+            )
     else:
-        form = SimulationForm()
+        form = SimulationForm(user=request.user)
         context = {
             "breadcrumb_dict": {
                 "links": [

@@ -3,7 +3,6 @@ import pytest
 from gsl_programmation.utils import (
     get_filters_dict_from_params,
     replace_comma_by_dot,
-    slugify,
 )
 
 
@@ -35,19 +34,3 @@ def test_replace_comma_by_dot(input_str, expected_float):
 def test_get_filters_dict_from_params(filter_params, expected_result):
     result = get_filters_dict_from_params(filter_params)
     assert result == expected_result
-
-
-@pytest.mark.parametrize(
-    "input_str, expected_slug",
-    [
-        ("Hello World", "hello-world"),
-        ("Hello, World!", "hello-world"),
-        ("Hello 123 World", "hello-123-world"),
-        ("Hello    World", "hello-world"),
-        ("", ""),
-        ("Hello_World", "hello-world"),
-        ("HeLLo WoRLd", "hello-world"),
-    ],
-)
-def test_slugify(input_str, expected_slug):
-    assert slugify(input_str) == expected_slug
