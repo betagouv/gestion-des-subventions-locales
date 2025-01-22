@@ -98,8 +98,10 @@ packaging==24.1
     # via gunicorn
 prompt-toolkit==3.0.48
     # via click-repl
-psycopg2-binary==2.9.9
+psycopg[binary]==3.2.4
     # via gsl (pyproject.toml)
+psycopg-binary==3.2.4
+    # via psycopg
 pycparser==2.22
     # via cffi
 pyopenssl==24.2.1
@@ -127,7 +129,9 @@ sqlparse==0.5.1
 tablib==3.7.0
     # via django-import-export
 typing-extensions==4.12.2
-    # via dj-database-url
+    # via
+    #   dj-database-url
+    #   psycopg
 tzdata==2024.2
     # via
     #   celery
