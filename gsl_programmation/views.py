@@ -11,6 +11,7 @@ from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 
 from gsl_programmation.forms import SimulationForm
+from gsl_programmation.service.enveloppe_service import EnveloppeService
 from gsl_programmation.services import (
     ProjetService,
     SimulationProjetService,
@@ -34,6 +35,12 @@ class SimulationListView(ListView):
         context["breadcrumb_dict"] = {"current": "Mes simulations de programmation"}
 
         return context
+
+    def get_queryset(self):
+        visible_by_user_enveloppes = EnveloppeService.get_enveloppes_from_perimetre(
+            self.request.user.perimetre
+        )
+        return Simulation.objects.filter(enveloppe__in=visible_by_user_enveloppes)
 
 
 class SimulationDetailView(DetailView):
