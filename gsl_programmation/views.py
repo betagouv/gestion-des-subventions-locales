@@ -62,12 +62,6 @@ class SimulationDetailView(DetailView):
             "type": simulation.enveloppe.type,
             "montant": simulation.enveloppe.montant,
             "perimetre": simulation.enveloppe.perimetre,
-            "total_amount_validated": EnveloppeService.get_total_amount_validated(
-                simulation.enveloppe
-            ),
-            "total_amount_asked": EnveloppeService.get_total_amount_asked(
-                simulation.enveloppe
-            ),
         }
 
         context["breadcrumb_dict"] = {
