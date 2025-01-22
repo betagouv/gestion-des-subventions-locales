@@ -1,10 +1,8 @@
-import random
-
 from import_export import resources
 from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget
 
-from gsl_core.models import Departement, Perimetre
+from gsl_core.models import Departement, Perimetre, Region
 
 from .models import Enveloppe
 
@@ -54,7 +52,18 @@ class EnveloppeDETRResource(resources.ModelResource):
 
 class EnveloppeDSILResource(EnveloppeDETRResource):
     def before_import_row(self, row, **kwargs):
-        # author_name = row["author"]
-        # Author.objects.get_or_create(name=author_name, defaults={"name": author_name})
+        row["enveloppe_id"] = None
         row["type"] = Enveloppe.TYPE_DSIL
-        row["enveloppe_id"] = random.choice((1, 2, 2, 3, 4))
+        provided_region_number = row["perimetre"]
+        region = Region.objects.get(insee_code=provided_region_number)
+        perimetre, _ = Perimetre.objects.get_or_create(
+            region=region,
+            departement__isnull=True,
+        )
+        row["perimetre"] = perimetre.id
+
+        enveloppe_qs = Enveloppe.objects.filter(
+            perimetre=perimetre, type=row["type"], annee=row["annee"]
+        )
+        if enveloppe_qs.exists():
+            row["enveloppe_id"] = enveloppe_qs.get().id
