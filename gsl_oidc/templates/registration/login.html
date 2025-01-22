@@ -1,7 +1,18 @@
 {% extends "base.html" %}
 {% load static dsfr_tags %}
-{% block content %}
 
+{% block title %}
+    <title>
+        {% if form.errors %}
+            Erreur de connexion
+        {% else %}
+            Se connecter avec ProConnect ou une adresse e-mail
+        {% endif %}
+        — {{ SITE_CONFIG.site_title }}
+    </title>
+{% endblock title %}
+
+{% block content %}
     <div class="fr-container fr-container--fluid fr-mb-md-14v">
         <div class="fr-grid-row fr-grid-row-gutters fr-grid-row--center">
             <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
@@ -120,10 +131,12 @@
                                                                  aria-live="assertive">
                                                             </div>
                                                         </div>
+                                                        {% comment %}
                                                         <p>
                                                             <a href="{% url 'password_reset' %}" class="fr-link">Mot de
                                                             passe oublié ?</a>
                                                         </p>
+                                                        {% endcomment %}
                                                     </div>
                                                 </div>
                                                 <div class="fr-messages-group"
