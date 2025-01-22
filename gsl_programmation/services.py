@@ -1,14 +1,55 @@
 from decimal import Decimal
+from typing import Any
 
 from django.db.models import Case, F, Q, Sum, When
 from django.db.models.query import QuerySet
 
+from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
-from gsl_programmation.models import Simulation, SimulationProjet
+from gsl_programmation.models import Enveloppe, Simulation, SimulationProjet
+from gsl_programmation.utils import slugify
 from gsl_projet.models import Projet
 
 
 class SimulationService:
+    @classmethod
+    def create_simulation(cls, user: Any, title: str, dotation: str):
+        perimetre = user.perimetre
+        if perimetre is None:
+            raise ValueError("User has no perimetre")
+
+        if dotation == Enveloppe.TYPE_DETR:
+            if perimetre.type == Perimetre.TYPE_REGION:
+                raise ValueError("User has no departement")
+
+            perimetre_to_find = Perimetre.objects.get(
+                departement=perimetre.departement,
+                arrondissement=None,
+            )
+        else:
+            perimetre_to_find = Perimetre.objects.get(
+                region=perimetre.region,
+                departement=None,
+                arrondissement=None,
+            )
+
+        enveloppe = Enveloppe.objects.get(perimetre=perimetre_to_find, type=dotation)
+
+        slug = slugify(title)
+        # TODO : use a better slug generation method
+        if Simulation.objects.filter(slug=slug).exists():
+            slug = slugify(
+                slug
+                + f" {Simulation.objects.filter(slug__startswith=slug).count() + 1}"
+            )
+
+        simulation = Simulation.objects.create(
+            title=title,
+            enveloppe=enveloppe,
+            slug=slug,
+        )
+        return simulation
+
     @classmethod
     def get_projets_from_simulation(cls, simulation: Simulation):
         return Projet.objects.filter(simulationprojet__simulation=simulation)

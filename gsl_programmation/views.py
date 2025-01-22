@@ -186,11 +186,14 @@ def simulation_form(request):
     if request.method == "POST":
         form = SimulationForm(request.POST)
         if form.is_valid():
-            # Process the form data
-            # For example, save it to the database or perform some action
-            # Redirect to a new URL or render a success message
+            print("CHIRAC")
+            print(request.user)
+            print(form)
+            print(form.cleaned_data)
+            SimulationService.create_simulation(request.user, form.cleaned_data)
+
             return redirect(
-                "success_url"
+                "programmation:simulation_list"
             )  # Replace 'success_url' with your actual success URL
     else:
         form = SimulationForm()
