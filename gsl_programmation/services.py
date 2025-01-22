@@ -4,7 +4,7 @@ from django.db.models import Case, F, Q, Sum, When
 from django.db.models.query import QuerySet
 
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
-from gsl_programmation.models import Simulation, SimulationProjet, Enveloppe
+from gsl_programmation.models import Simulation, SimulationProjet
 from gsl_projet.models import Projet
 
 
@@ -12,31 +12,6 @@ class SimulationService:
     @classmethod
     def get_projets_from_simulation(cls, simulation: Simulation):
         return Projet.objects.filter(simulationprojet__simulation=simulation)
-
-
-class EnveloppeService:
-    @classmethod
-    def get_total_amount_validated(cls, enveloppe: Enveloppe):
-        return (
-            enveloppe.simulation_set.first()
-            .simulationprojet_set.filter(status=SimulationProjet.STATUS_VALID)
-            .aggregate(Sum("montant"))["montant__sum"]
-        )
-
-    @classmethod
-    # TODO optimize request
-    def get_total_amount_asked(cls, enveloppe: Enveloppe):
-        all_enveloppe_first_simulation_simulation_projets = (
-            enveloppe.simulation_set.first()
-            .simulationprojet_set.prefetch_related("projet", "projet__dossier_ds")
-            .all()
-        )
-        return sum(
-            [
-                simulation_projet.projet.assiette_or_cout_total
-                for simulation_projet in all_enveloppe_first_simulation_simulation_projets
-            ]
-        )
 
 
 class SimulationProjetService:
