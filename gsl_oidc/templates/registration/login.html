@@ -61,9 +61,6 @@
                                                 Se connecter avec son compte
                                             </h2>
                                         </legend>
-                                        <!--<div class="fr-fieldset__element">
-                                        <p class="fr-text--sm"></p>
-                                    </div>-->
                                         <div class="fr-fieldset__element">
                                             <fieldset class="fr-fieldset"
                                                       id="credentials"
@@ -91,13 +88,17 @@
                                                                name="username"
                                                                id="username-1757"
                                                                type="text">
-                                                        {% for err in form.errors.username %}
+                                                        {% if form.errors.username %}
                                                             <div class="fr-messages-group"
                                                                  id="username-1757-messages"
                                                                  aria-live="assertive">
-                                                                {{ err }}
+                                                                {% for err in form.errors.username %}
+                                                                    <p class="fr-message fr-message--error">
+                                                                        {{ err }}
+                                                                    </p>
+                                                                {% endfor %}
                                                             </div>
-                                                        {% endfor %}
+                                                        {% endif %}
                                                     </div>
                                                 </div>
                                                 <div class="fr-fieldset__element">
@@ -114,10 +115,17 @@
                                                                    id="password-1758-input"
                                                                    type="password">
                                                         </div>
-                                                        <div class="fr-messages-group"
-                                                             id="password-1758-input-messages"
-                                                             aria-live="assertive">
-                                                        </div>
+                                                        {% if form.errors.password %}
+                                                            <div class="fr-messages-group"
+                                                                 id="password-1757-messages"
+                                                                 aria-live="assertive">
+                                                                {% for err in form.errors.password %}
+                                                                    <p class="fr-message fr-message--error">
+                                                                        {{ err }}
+                                                                    </p>
+                                                                {% endfor %}
+                                                            </div>
+                                                        {% endif %}
                                                         <div class="fr-password__checkbox fr-checkbox-group fr-checkbox-group--sm">
                                                             <input aria-label="Afficher le mot de passe"
                                                                    id="password-1758-show"
