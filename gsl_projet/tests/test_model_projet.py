@@ -1,9 +1,9 @@
 import pytest
 
-from gsl_core.models import Perimetre
 from gsl_core.tests.factories import (
     AdresseFactory,
     ArrondissementFactory,
+    PerimetreArrondissementFactory,
 )
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
@@ -35,10 +35,8 @@ def test_filter_perimetre():
     demandeur_2 = DemandeurFactory()
     ProjetFactory(demandeur=demandeur_2)
 
-    perimetre = Perimetre.objects.create(
-        region=demandeur_1.departement.region,
-        arrondissement=demandeur_1.arrondissement,
-        departement=demandeur_1.departement,
+    perimetre = PerimetreArrondissementFactory(
+        arrondissement=arrondissement,
     )
 
     assert (

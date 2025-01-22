@@ -199,6 +199,22 @@ class Perimetre(BaseModel):
             )
         return False
 
+    @property
+    def type(self):
+        if self.departement is None:
+            return "Région"
+        if self.arrondissement is None:
+            return "Département"
+        return "Arrondissement"
+
+    @property
+    def entity_name(self):
+        if self.departement is None:
+            return self.region.name
+        if self.arrondissement is None:
+            return self.departement.name
+        return self.arrondissement.name
+
 
 class Collegue(AbstractUser):
     proconnect_sub = models.UUIDField(

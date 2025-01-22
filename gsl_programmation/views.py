@@ -57,6 +57,11 @@ class SimulationDetailView(DetailView):
         context["total_amount_granted"] = ProjetService.get_total_amount_granted(qs)
         context["available_states"] = SimulationProjet.STATUS_CHOICES
         context["filter_params"] = self.request.GET.urlencode()
+        context["enveloppe"] = {
+            "type": simulation.enveloppe.type,
+            "montant": simulation.enveloppe.montant,
+            "perimetre": simulation.enveloppe.perimetre,
+        }
 
         context["breadcrumb_dict"] = {
             "links": [

@@ -1,0 +1,49 @@
+.enveloppe-summary {
+  margin-top: 16px;
+  margin-bottom: 16px;
+  border-spacing: 0 2px;
+  font-size: calc(1rem * 13/16);
+}
+
+.enveloppe-summary table {
+  border-spacing: 0;
+  table-layout: auto;
+  text-align: center;
+  border-collapse: collapse;
+}
+
+.enveloppe-summary thead {
+  background-color: var(--background-alt-grey);
+  color: var(--text-title-blue-france);
+}
+
+.enveloppe-summary tbody {
+  font-size: calc(1rem * 12/16);
+}
+
+.enveloppe-summary th {
+  min-width: 90px;
+  width: 130px;
+  border-top: 1px solid var(--border-default-grey);
+}
+.enveloppe-summary tr {
+  border-bottom: 1px solid var(--border-default-grey);
+}
+
+.enveloppe-summary tbody tr td {
+  height: 30px;
+}
+
+.enveloppe-summary .color-icon-success::before,
+.enveloppe-summary .color-success {
+  color: var(--background-flat-success);
+}
+
+.enveloppe-summary .color-icon-error::before,
+.enveloppe-summary .color-error {
+  color: var(--background-flat-error);
+}
+
+.enveloppe-summary .color-blue {
+  color: var(--text-label-blue-france);
+}
