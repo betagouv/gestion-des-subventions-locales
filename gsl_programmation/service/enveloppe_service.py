@@ -7,6 +7,9 @@ from gsl_programmation.models import Enveloppe
 class EnveloppeService:
     @classmethod
     def get_enveloppes_from_perimetre(cls, perimetre: Perimetre):
+        if perimetre is None:
+            return Enveloppe.objects.all()
+
         if perimetre.type == Perimetre.TYPE_REGION:
             return Enveloppe.objects.filter(
                 perimetre__region=perimetre.region,
