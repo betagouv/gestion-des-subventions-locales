@@ -20,6 +20,11 @@ class Demandeur(models.Model):
 
 class ProjetManager(models.Manager):
     def for_user(self, user: Collegue):
+        if user.perimetre is None:
+            if user.is_staff or user.is_superuser:
+                return self
+            return self.none()
+
         return self.for_perimetre(user.perimetre)
 
     def for_perimetre(self, perimetre: Perimetre):

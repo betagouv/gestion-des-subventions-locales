@@ -1,9 +1,13 @@
 import pytest
 
+from gsl_core.models import Departement
 from gsl_core.tests.factories import (
     AdresseFactory,
     ArrondissementFactory,
+    CollegueFactory,
+    DepartementFactory,
     PerimetreArrondissementFactory,
+    PerimetreDepartementalFactory,
 )
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
@@ -53,3 +57,56 @@ def test_filter_perimetre():
         Projet.objects.for_perimetre(perimetre).first().demandeur.departement
         == arrondissement.departement
     )
+
+
+@pytest.fixture
+def departement() -> Departement:
+    return DepartementFactory()
+
+
+@pytest.fixture
+def projets(departement) -> list[Projet]:
+    projet_with_departement = ProjetFactory(demandeur__departement=departement)
+    projet_without_departement = ProjetFactory()
+
+    return [projet_with_departement, projet_without_departement]
+
+
+def test_for_staff_user_without_perimetre(projets):
+    staff_user = CollegueFactory(is_staff=True, perimetre=None)
+    assert Projet.objects.for_user(staff_user).count() == 2
+
+
+def test_for_super_user_without_perimetre(projets):
+    super_user = CollegueFactory(is_superuser=True, perimetre=None)
+    assert Projet.objects.for_user(super_user).count() == 2
+
+
+def test_for_normal_user_without_perimetre(projets):
+    user = CollegueFactory(perimetre=None)
+    assert Projet.objects.for_user(user).count() == 0
+
+
+def test_for_staff_user_with_perimetre(departement, projets):
+    staff_user_with_perimetre = CollegueFactory(
+        is_staff=True, perimetre=PerimetreDepartementalFactory(departement=departement)
+    )
+    assert Projet.objects.for_user(staff_user_with_perimetre).count() == 1
+    assert Projet.objects.for_user(staff_user_with_perimetre).get() == projets[0]
+
+
+def test_for_super_user_with_perimetre(departement, projets):
+    super_user_with_perimetre = CollegueFactory(
+        is_superuser=True,
+        perimetre=PerimetreDepartementalFactory(departement=departement),
+    )
+    assert Projet.objects.for_user(super_user_with_perimetre).count() == 1
+    assert Projet.objects.for_user(super_user_with_perimetre).get() == projets[0]
+
+
+def test_for_normal_user_with_perimetre(departement, projets):
+    user_with_perimetre = CollegueFactory(
+        perimetre=PerimetreDepartementalFactory(departement=departement)
+    )
+    assert Projet.objects.for_user(user_with_perimetre).count() == 1
+    assert Projet.objects.for_user(user_with_perimetre).get() == projets[0]
