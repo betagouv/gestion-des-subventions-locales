@@ -54,7 +54,7 @@
             </li>
         {% empty %}
             <li>
-                Aucune programmation n'est en cours ! Voulez-vous <a href="#todo">en commencer une</a> ?
+                Aucune programmation n'est en cours ! Voulez-vous <a href="{% url 'gsl_programmation:simulation-form' %}">en commencer une</a> ?
             </li>
         {% endfor %}
     </ul>
