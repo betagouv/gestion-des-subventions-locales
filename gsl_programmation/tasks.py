@@ -43,17 +43,17 @@ def add_enveloppe_projets_to_simulation(simulation_id):
         )
         .all()
     ):
-        # if any SimulationProjet exists for this projet with a "definitive" status,
-        # on this enveloppe, do not create a new SimulationProjet here:
-        if SimulationProjet.objects.filter(
-            projet=projet,
-            enveloppe=simulation.enveloppe,
-            status__in=(
-                SimulationProjet.STATUS_CANCELLED,
-                SimulationProjet.STATUS_VALID,
-            ),
-        ).exists():
-            continue
+        # # if any SimulationProjet exists for this projet with a "definitive" status,
+        # # on this enveloppe, do not create a new SimulationProjet here:
+        # if SimulationProjet.objects.filter(
+        #     projet=projet,
+        #     enveloppe=simulation.enveloppe,
+        #     status__in=(
+        #         SimulationProjet.STATUS_CANCELLED,
+        #         SimulationProjet.STATUS_VALID,
+        #     ),
+        # ).exists():
+        #     continue
 
         # create new SimulationProjet:
         asked_amount = projet.dossier_ds.demande_montant or 0
