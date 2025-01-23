@@ -8,6 +8,6 @@ from .tasks import update_projet_from_dossier
 
 @receiver(post_save, sender=Dossier, dispatch_uid="create_projet")
 def create_projet_from_valid_dossier(sender, instance: Dossier, *args, **kwargs):
-    if not instance.ds_state or instance.ds_state == Dossier.STATE_EN_CONSTRUCTION:
+    if not instance.ds_state:
         return
     update_projet_from_dossier.delay(instance.ds_number)
