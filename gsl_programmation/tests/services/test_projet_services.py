@@ -1,5 +1,8 @@
+from datetime import date
+
 import pytest
 
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     NaturePorteurProjetFactory,
@@ -219,3 +222,59 @@ def test_add_ordering_to_projets_qs():
     ordering = "commune_asc"
     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
     assert list(ordered_qs) == [projet3, projet1, projet2]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "state, ds_date_traitement",
+    (
+        (Dossier.STATE_EN_CONSTRUCTION, date(1999, 1, 1)),
+        (Dossier.STATE_EN_INSTRUCTION, date(2000, 1, 1)),
+        (Dossier.STATE_ACCEPTE, date(date.today().year, 1, 1)),
+        (Dossier.STATE_SANS_SUITE, date(date.today().year, 1, 1)),
+        (Dossier.STATE_REFUSE, date(date.today().year, 1, 1)),
+    ),
+)
+def test_filter_projet_qs_to_keep_only_projet_to_deal_with_this_year_with_projet_to_display(
+    state, ds_date_traitement
+):
+    ProjetFactory(
+        dossier_ds=DossierFactory(
+            ds_state=state,
+            ds_date_traitement=ds_date_traitement,
+        ),
+    )
+
+    qs = Projet.objects.all()
+    filtered_qs = (
+        ProjetService.filter_projet_qs_to_keep_only_projet_to_deal_with_this_year(qs)
+    )
+
+    assert filtered_qs.count() == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "state, ds_date_traitement",
+    (
+        (Dossier.STATE_ACCEPTE, date(date.today().year - 1, 12, 1)),
+        (Dossier.STATE_SANS_SUITE, date(date.today().year - 1, 12, 1)),
+        (Dossier.STATE_REFUSE, date(date.today().year - 1, 12, 1)),
+    ),
+)
+def test_filter_projet_qs_to_keep_only_projet_to_deal_with_this_year_with_projet_to_archive(
+    state, ds_date_traitement
+):
+    ProjetFactory(
+        dossier_ds=DossierFactory(
+            ds_state=state,
+            ds_date_traitement=ds_date_traitement,
+        ),
+    )
+
+    qs = Projet.objects.all()
+    filtered_qs = (
+        ProjetService.filter_projet_qs_to_keep_only_projet_to_deal_with_this_year(qs)
+    )
+
+    assert filtered_qs.count() == 0

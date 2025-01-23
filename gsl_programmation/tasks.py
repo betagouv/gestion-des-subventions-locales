@@ -1,10 +1,8 @@
-from datetime import date
-
 from celery import shared_task
-from django.db.models import Q
 
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import Simulation, SimulationProjet
+from gsl_programmation.services import ProjetService
 from gsl_projet.models import Projet
 
 STATUS_MAPPINGS = {
@@ -22,40 +20,16 @@ def add_enveloppe_projets_to_simulation(simulation_id):
     simulation_perimetre = simulation.enveloppe.perimetre
     simulation_dotation = simulation.enveloppe.type
     # todo later: "simulation par arrondissement"
-    for projet in (
-        Projet.objects.for_perimetre(simulation_perimetre)
-        .filter(dossier_ds__demande_dispositif_sollicite=simulation_dotation)
-        .filter(
-            Q(
-                dossier_ds__ds_state__in=[
-                    Dossier.STATE_EN_CONSTRUCTION,
-                    Dossier.STATE_EN_INSTRUCTION,
-                ]
-            )
-            | Q(
-                dossier_ds__ds_state__in=[
-                    Dossier.STATE_ACCEPTE,
-                    Dossier.STATE_SANS_SUITE,
-                    Dossier.STATE_REFUSE,
-                ],
-                dossier_ds__ds_date_traitement__gte=date(2025, 1, 1),
-            )
+    selected_projets = Projet.objects.for_perimetre(simulation_perimetre).filter(
+        dossier_ds__demande_dispositif_sollicite=simulation_dotation
+    )
+    selected_projets = (
+        ProjetService.filter_projet_qs_to_keep_only_projet_to_deal_with_this_year(
+            selected_projets
         )
-        .all()
-    ):
-        # # if any SimulationProjet exists for this projet with a "definitive" status,
-        # # on this enveloppe, do not create a new SimulationProjet here:
-        # if SimulationProjet.objects.filter(
-        #     projet=projet,
-        #     enveloppe=simulation.enveloppe,
-        #     status__in=(
-        #         SimulationProjet.STATUS_CANCELLED,
-        #         SimulationProjet.STATUS_VALID,
-        #     ),
-        # ).exists():
-        #     continue
+    )
 
-        # create new SimulationProjet:
+    for projet in selected_projets:
         asked_amount = projet.dossier_ds.demande_montant or 0
         try:
             taux = asked_amount / projet.assiette_or_cout_total

@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 from typing import Any
 
@@ -6,7 +7,7 @@ from django.db.models.query import QuerySet
 from django.utils.text import slugify
 
 from gsl_core.models import Perimetre
-from gsl_demarches_simplifiees.models import NaturePorteurProjet
+from gsl_demarches_simplifiees.models import Dossier, NaturePorteurProjet
 from gsl_programmation.models import Enveloppe, Simulation, SimulationProjet
 from gsl_projet.models import Projet
 
@@ -34,7 +35,9 @@ class SimulationService:
                 arrondissement=None,
             )
 
-        enveloppe = Enveloppe.objects.get(perimetre=perimetre_to_find, type=dotation)
+        enveloppe = Enveloppe.objects.get(
+            perimetre=perimetre_to_find, type=dotation, annee=date.today().year
+        )
         slug = SimulationService.get_slug(title)
         simulation = Simulation.objects.create(
             title=title,
@@ -91,7 +94,27 @@ class SimulationProjetService:
         simulation_projet.save()
 
 
+# TODO Move this to this service to gsl_project/services.py
 class ProjetService:
+    @classmethod
+    def filter_projet_qs_to_keep_only_projet_to_deal_with_this_year(cls, qs: QuerySet):
+        return qs.filter(
+            Q(
+                dossier_ds__ds_state__in=[
+                    Dossier.STATE_EN_CONSTRUCTION,
+                    Dossier.STATE_EN_INSTRUCTION,
+                ]
+            )
+            | Q(
+                dossier_ds__ds_state__in=[
+                    Dossier.STATE_ACCEPTE,
+                    Dossier.STATE_SANS_SUITE,
+                    Dossier.STATE_REFUSE,
+                ],
+                dossier_ds__ds_date_traitement__gte=date(date.today().year, 1, 1),
+            )
+        )
+
     @classmethod
     def get_total_cost(cls, projet_qs: QuerySet):
         projets = projet_qs.annotate(

@@ -6,7 +6,7 @@ from gsl_programmation.models import Enveloppe
 
 class EnveloppeService:
     @classmethod
-    def get_enveloppes_from_perimetre(cls, perimetre: Perimetre):
+    def get_enveloppes_from_perimetre(cls, perimetre: Perimetre | None):
         if perimetre is None:
             return Enveloppe.objects.all()
 

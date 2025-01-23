@@ -1,5 +1,3 @@
-import datetime
-
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET
@@ -93,8 +91,9 @@ class ProjetListView(ListView):
         return context
 
     def get_queryset(self):
-        qs = Projet.objects.for_user(self.request.user).filter(
-            dossier_ds__ds_date_depot__gte=datetime.date(2024, 9, 1)
+        qs = Projet.objects.for_user(self.request.user)
+        qs = ProjetService.filter_projet_qs_to_keep_only_projet_to_deal_with_this_year(
+            qs
         )
         qs = ProjetService.add_filters_to_projets_qs(qs, self.request.GET)
         qs = ProjetService.add_ordering_to_projets_qs(qs, self.request.GET.get("tri"))

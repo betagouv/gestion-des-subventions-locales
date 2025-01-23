@@ -1,3 +1,5 @@
+from datetime import date
+
 import pytest
 
 from gsl_core.tests.factories import (
@@ -21,7 +23,10 @@ def test_user_with_department_and_ask_for_dsil_simulation():
     perimetre_regional = PerimetreRegionalFactory(region=perimetre_departemental.region)
     user = CollegueFactory(perimetre=perimetre_departemental)
     DetrEnveloppeFactory(perimetre=perimetre_departemental)
-    enveloppe_dsil = DsilEnveloppeFactory(perimetre=perimetre_regional)
+    enveloppe_dsil = DsilEnveloppeFactory(
+        perimetre=perimetre_regional, annee=date.today().year
+    )
+    DsilEnveloppeFactory(perimetre=perimetre_regional, annee=2024)
 
     SimulationService.create_simulation(user, "Test", "DSIL")
 
