@@ -38,8 +38,8 @@ class SimulationListView(ListView):
         return context
 
     def get_queryset(self):
-        visible_by_user_enveloppes = EnveloppeService.get_enveloppes_from_perimetre(
-            self.request.user.perimetre
+        visible_by_user_enveloppes = EnveloppeService.get_enveloppes_visible_for_a_user(
+            self.request.user
         )
         return Simulation.objects.filter(enveloppe__in=visible_by_user_enveloppes)
 

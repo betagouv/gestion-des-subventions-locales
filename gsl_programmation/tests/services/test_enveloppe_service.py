@@ -1,13 +1,51 @@
 import pytest
 
 from gsl_core.tests.factories import (
+    CollegueFactory,
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
 from gsl_programmation.service.enveloppe_service import EnveloppeService
-from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
+from gsl_programmation.tests.factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
+    SimulationFactory,
+)
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture
+def enveloppes():
+    return DetrEnveloppeFactory.create_batch(10)
+
+
+@pytest.fixture
+def simulations(enveloppes):
+    return [SimulationFactory(enveloppe=enveloppe) for enveloppe in enveloppes]
+
+
+@pytest.mark.parametrize(
+    "is_staff, is_superuser, with_perimetre, expected_count",
+    [
+        (True, False, False, 10),
+        (False, True, True, 1),
+        (False, True, False, 10),
+        (False, True, True, 1),
+        (False, False, False, 0),
+        (False, False, True, 1),
+    ],
+)
+def test_get_enveloppes_visible_for_a_user(
+    is_staff, is_superuser, with_perimetre, expected_count, enveloppes
+):
+    super_user = CollegueFactory(
+        is_staff=is_staff,
+        is_superuser=is_superuser,
+        perimetre=None if not with_perimetre else enveloppes[0].perimetre,
+    )
+    visible_enveloppes = EnveloppeService.get_enveloppes_visible_for_a_user(super_user)
+    assert visible_enveloppes.count() == expected_count
 
 
 def test_get_enveloppes_from_departement_perimetre():
