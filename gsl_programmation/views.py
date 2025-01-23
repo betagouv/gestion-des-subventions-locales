@@ -10,11 +10,14 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 
+from gsl_programmation.forms import SimulationForm
+from gsl_programmation.service.enveloppe_service import EnveloppeService
 from gsl_programmation.services import (
     ProjetService,
     SimulationProjetService,
     SimulationService,
 )
+from gsl_programmation.tasks import add_enveloppe_projets_to_simulation
 from gsl_programmation.utils import get_filters_dict_from_params, replace_comma_by_dot
 from gsl_projet.models import Projet
 
@@ -33,6 +36,12 @@ class SimulationListView(ListView):
         context["breadcrumb_dict"] = {"current": "Mes simulations de programmation"}
 
         return context
+
+    def get_queryset(self):
+        visible_by_user_enveloppes = EnveloppeService.get_enveloppes_from_perimetre(
+            self.request.user.perimetre
+        )
+        return Simulation.objects.filter(enveloppe__in=visible_by_user_enveloppes)
 
 
 class SimulationDetailView(DetailView):
@@ -179,3 +188,35 @@ def patch_status_simulation_projet(request, pk):
 
     SimulationProjetService.update_status(simulation_projet, new_status)
     return redirect_to_simulation_projet(request, simulation_projet)
+
+
+def simulation_form(request):
+    if request.method == "POST":
+        form = SimulationForm(request.POST, user=request.user)
+        if form.is_valid():
+            simulation = SimulationService.create_simulation(
+                request.user, form.cleaned_data["title"], form.cleaned_data["dotation"]
+            )
+            add_enveloppe_projets_to_simulation(simulation.id)
+            return redirect("programmation:simulation_list")
+        else:
+            return render(
+                request, "gsl_programmation/simulation_form.html", {"form": form}
+            )
+    else:
+        form = SimulationForm(user=request.user)
+        context = {
+            "breadcrumb_dict": {
+                "links": [
+                    {
+                        "url": reverse("gsl_projet:list"),
+                        "title": "Liste des projets",
+                    },
+                ],
+                "current": "Création d'une simulation de programmation",
+            }
+        }
+        context["form"] = form
+        context["title"] = "Création d’une simulation de programmation"
+
+        return render(request, "gsl_programmation/simulation_form.html", context)

@@ -75,7 +75,7 @@ class Simulation(models.Model):
     enveloppe = models.ForeignKey(
         Enveloppe, on_delete=models.PROTECT, verbose_name="Dotation associée"
     )
-    slug = models.SlugField(verbose_name="Clé d’URL", unique=True)
+    slug = models.SlugField(verbose_name="Clé d’URL", unique=True, max_length=120)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -1,6 +1,9 @@
 import pytest
 
-from gsl_programmation.utils import get_filters_dict_from_params, replace_comma_by_dot
+from gsl_programmation.utils import (
+    get_filters_dict_from_params,
+    replace_comma_by_dot,
+)
 
 
 @pytest.mark.parametrize(

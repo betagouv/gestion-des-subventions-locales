@@ -255,7 +255,9 @@ ul.no-list-style li {
     font-weight: bold;
 }
 
-
+.blue-icon {
+    color: var(--blue-france-sun-113-625);
+}
 
 /* En travaux */
 

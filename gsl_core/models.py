@@ -114,6 +114,10 @@ class Adresse(BaseModel):
 
 
 class Perimetre(BaseModel):
+    TYPE_REGION = "Région"
+    TYPE_DEPARTEMENT = "Département"
+    TYPE_ARRONDISSEMENT = "Arrondissement"
+
     region = models.ForeignKey(
         Region,
         verbose_name="Région",
@@ -202,10 +206,10 @@ class Perimetre(BaseModel):
     @property
     def type(self):
         if self.departement is None:
-            return "Région"
+            return self.TYPE_REGION
         if self.arrondissement is None:
-            return "Département"
-        return "Arrondissement"
+            return self.TYPE_DEPARTEMENT
+        return self.TYPE_ARRONDISSEMENT
 
     @property
     def entity_name(self):
