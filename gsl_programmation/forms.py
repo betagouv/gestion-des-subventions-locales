@@ -29,6 +29,7 @@ class SimulationForm(DsfrBaseForm):
         dotation = cleaned_data.get("dotation")
         if self.user.perimetre is None:
             raise ValidationError("Vous n'avez pas de perimetre. Contactez l'équipe.")
+
         if dotation == "DETR":
             if self.user.perimetre.type == Perimetre.TYPE_REGION:
                 raise ValidationError(

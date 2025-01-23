@@ -217,5 +217,6 @@ def simulation_form(request):
             }
         }
         context["form"] = form
+        context["title"] = "Création d’une simulation de programmation"
 
         return render(request, "gsl_programmation/simulation_form.html", context)
