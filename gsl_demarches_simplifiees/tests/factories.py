@@ -1,6 +1,7 @@
 from datetime import timezone
 
 import factory
+from django.db.models.signals import post_save
 
 from gsl_core.tests.factories import AdresseFactory
 
@@ -33,6 +34,7 @@ class NaturePorteurProjetFactory(factory.django.DjangoModelFactory):
     label = factory.Sequence(lambda n: f"nature-porteur-projet-{n}")
 
 
+@factory.django.mute_signals(post_save)
 class DossierFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Dossier
