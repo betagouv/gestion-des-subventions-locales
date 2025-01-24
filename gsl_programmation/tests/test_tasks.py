@@ -112,7 +112,7 @@ def dsil_projets(departement_perimetre):
 
 @pytest.mark.django_db
 def test_add_enveloppe_projets_to_detr_simulation(
-    detr_simulation, detr_projets, dsil_projet
+    detr_simulation, detr_projets, dsil_projets
 ):
     add_enveloppe_projets_to_simulation(detr_simulation.id)
 

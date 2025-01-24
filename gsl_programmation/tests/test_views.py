@@ -6,7 +6,6 @@ from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
     RequestFactory,
 )
-from gsl_programmation.models import Simulation
 from gsl_programmation.tests.factories import DetrEnveloppeFactory, SimulationFactory
 from gsl_programmation.views import SimulationListView
 
@@ -28,7 +27,7 @@ def view() -> SimulationListView:
 
 
 @pytest.fixture
-def simulations(perimetre_departemental) -> list[Simulation]:
+def simulations(perimetre_departemental):
     enveloppe = DetrEnveloppeFactory(perimetre=perimetre_departemental)
     SimulationFactory(enveloppe=enveloppe)
     SimulationFactory(enveloppe=enveloppe)
