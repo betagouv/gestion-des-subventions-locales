@@ -1,4 +1,7 @@
+from datetime import date
+
 import pytest
+from django.db import connection
 
 from gsl_core.models import Departement
 from gsl_core.tests.factories import (
@@ -9,12 +12,35 @@ from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
 )
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
 from ..models import Projet
 from .factories import DemandeurFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db(transaction=True)
+
+
+def test_manager():
+    ProjetFactory.create_batch(10)
+    assert Projet.objects.all().count() == 10
+
+
+@pytest.mark.django_db
+def test_dossier_ds_join(django_assert_num_queries):
+    for _ in range(10):
+        dossier = DossierFactory()
+        ProjetFactory(dossier_ds=dossier)
+
+    with django_assert_num_queries(1):
+        projets = Projet.objects.all()
+        assert projets.query.select_related == {"dossier_ds": {}}
+        for projet in projets:
+            _ = projet.dossier_ds.ds_number
+
+    first_sql_query = connection.queries[0]["sql"]
+    assert "INNER JOIN" in first_sql_query
+    assert "dossier_ds" in first_sql_query
 
 
 def test_create_projet_from_dossier():
@@ -110,3 +136,54 @@ def test_for_normal_user_with_perimetre(departement, projets):
     )
     assert Projet.objects.for_user(user_with_perimetre).count() == 1
     assert Projet.objects.for_user(user_with_perimetre).get() == projets[0]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "state, ds_date_traitement",
+    (
+        (Dossier.STATE_EN_CONSTRUCTION, date(1999, 1, 1)),
+        (Dossier.STATE_EN_INSTRUCTION, date(2000, 1, 1)),
+        (Dossier.STATE_ACCEPTE, date(date.today().year, 1, 1)),
+        (Dossier.STATE_SANS_SUITE, date(date.today().year, 1, 1)),
+        (Dossier.STATE_REFUSE, date(date.today().year, 1, 1)),
+    ),
+)
+def test_keep_only_projet_to_deal_with_this_year_with_projet_to_display(
+    state, ds_date_traitement
+):
+    ProjetFactory(
+        dossier_ds=DossierFactory(
+            ds_state=state,
+            ds_date_traitement=ds_date_traitement,
+        ),
+    )
+
+    qs = Projet.objects.all()
+    qs = qs.keep_only_projet_to_deal_with_this_year()
+
+    assert qs.count() == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "state, ds_date_traitement",
+    (
+        (Dossier.STATE_ACCEPTE, date(date.today().year - 1, 12, 1)),
+        (Dossier.STATE_SANS_SUITE, date(date.today().year - 1, 12, 1)),
+        (Dossier.STATE_REFUSE, date(date.today().year - 1, 12, 1)),
+    ),
+)
+def test_keep_only_projet_to_deal_with_this_year_with_projet_to_archive(
+    state, ds_date_traitement
+):
+    ProjetFactory(
+        dossier_ds=DossierFactory(
+            ds_state=state,
+            ds_date_traitement=ds_date_traitement,
+        ),
+    )
+
+    qs = Projet.objects.keep_only_projet_to_deal_with_this_year()
+
+    assert qs.count() == 0

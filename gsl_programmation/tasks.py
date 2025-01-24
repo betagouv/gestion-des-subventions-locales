@@ -2,7 +2,6 @@ from celery import shared_task
 
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import Simulation, SimulationProjet
-from gsl_programmation.services import ProjetService
 from gsl_projet.models import Projet
 
 STATUS_MAPPINGS = {
@@ -23,11 +22,7 @@ def add_enveloppe_projets_to_simulation(simulation_id):
     selected_projets = Projet.objects.for_perimetre(simulation_perimetre).filter(
         dossier_ds__demande_dispositif_sollicite=simulation_dotation
     )
-    selected_projets = (
-        ProjetService.filter_projet_qs_to_keep_only_projet_to_deal_with_this_year(
-            selected_projets
-        )
-    )
+    selected_projets = selected_projets.keep_only_projet_to_deal_with_this_year()
 
     for projet in selected_projets:
         asked_amount = projet.dossier_ds.demande_montant or 0
