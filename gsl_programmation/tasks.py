@@ -1,7 +1,8 @@
-from datetime import date
+from datetime import UTC
 
 from celery import shared_task
 from django.db.models import Q
+from django.utils import timezone
 
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import Simulation, SimulationProjet
@@ -38,7 +39,9 @@ def add_enveloppe_projets_to_simulation(simulation_id):
                     Dossier.STATE_SANS_SUITE,
                     Dossier.STATE_REFUSE,
                 ],
-                dossier_ds__ds_date_traitement__gte=date(2025, 1, 1),
+                dossier_ds__ds_date_traitement__gte=timezone.datetime(
+                    2025, 1, 1, tzinfo=UTC
+                ),
             )
         )
         .all()

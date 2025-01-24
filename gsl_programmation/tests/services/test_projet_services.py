@@ -1,4 +1,7 @@
+from datetime import UTC
+
 import pytest
+from django.utils import timezone
 
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
@@ -17,7 +20,7 @@ def simulation() -> Simulation:
 
 
 @pytest.fixture
-def projets_with_assiette(simulation) -> list[Projet]:
+def projets_with_assiette(simulation):
     for amount in (10_000, 20_000, 30_000):
         p = ProjetFactory(assiette=amount)
         SimulationProjetFactory(projet=p, simulation=simulation)
@@ -26,7 +29,7 @@ def projets_with_assiette(simulation) -> list[Projet]:
 @pytest.fixture
 def projets_without_assiette_but_finance_cout_total_from_dossier_ds(
     simulation,
-) -> list[Projet]:
+):
     for amount in (15_000, 25_000):
         p = ProjetFactory(
             dossier_ds__finance_cout_total=amount,
@@ -37,7 +40,7 @@ def projets_without_assiette_but_finance_cout_total_from_dossier_ds(
 
 
 @pytest.fixture
-def projets_with_assiette_but_not_in_simulation() -> list[Projet]:
+def projets_with_assiette_but_not_in_simulation():
     p = ProjetFactory(assiette=50_000)
     SimulationProjetFactory(projet=p)
 
@@ -177,17 +180,17 @@ def test_add_filters_to_projets_qs(create_projets):
 def test_add_ordering_to_projets_qs():
     projet1 = ProjetFactory(
         dossier_ds__finance_cout_total=100,
-        dossier_ds__ds_date_depot="2023-01-01",
+        dossier_ds__ds_date_depot=timezone.datetime(2023, 1, 1, tzinfo=UTC),
         address__commune__name="Beaune",
     )
     projet2 = ProjetFactory(
         dossier_ds__finance_cout_total=200,
-        dossier_ds__ds_date_depot="2023-01-02",
+        dossier_ds__ds_date_depot=timezone.datetime(2023, 1, 2, tzinfo=UTC),
         address__commune__name="Dijon",
     )
     projet3 = ProjetFactory(
         dossier_ds__finance_cout_total=150,
-        dossier_ds__ds_date_depot="2023-01-03",
+        dossier_ds__ds_date_depot=timezone.datetime(2023, 1, 3, tzinfo=UTC),
         address__commune__name="Auxonne",
     )
 

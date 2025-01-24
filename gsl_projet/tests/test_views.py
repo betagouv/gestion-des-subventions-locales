@@ -1,4 +1,7 @@
+from datetime import UTC
+
 import pytest
+from django.utils import timezone
 
 from gsl_core.models import Collegue, Departement
 from gsl_core.tests.factories import (
@@ -73,13 +76,13 @@ def test_get_ordering(req, view, tri_param, expected_ordering):
 @pytest.fixture
 def projets(demandeur) -> list[Projet]:
     projet0 = ProjetFactory(
-        dossier_ds__ds_date_depot="2024-09-01",
+        dossier_ds__ds_date_depot=timezone.datetime(2024, 9, 1, tzinfo=UTC),
         dossier_ds__finance_cout_total=1000,
         address__commune__name="Commune A",
         demandeur=demandeur,
     )
     projet1 = ProjetFactory(
-        dossier_ds__ds_date_depot="2024-09-02",
+        dossier_ds__ds_date_depot=timezone.datetime(2024, 9, 2, tzinfo=UTC),
         dossier_ds__finance_cout_total=2000,
         address__commune__name="Commune B",
         demandeur=demandeur,
