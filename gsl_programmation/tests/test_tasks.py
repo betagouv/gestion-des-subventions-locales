@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -53,14 +53,14 @@ def dsil_simulation(region_perimetre):
 def detr_projets(departement_perimetre):
     projets = []
     for montant, assiette, state, date_traitement in [
-        (1_000, 2_000, Dossier.STATE_EN_CONSTRUCTION, datetime(2024, 1, 1)),
-        (600, None, Dossier.STATE_EN_INSTRUCTION, datetime(2023, 1, 1)),
-        (2_000, 3_000, Dossier.STATE_ACCEPTE, datetime(2024, 1, 1)),
-        (2_000, 4_000, Dossier.STATE_ACCEPTE, datetime(2025, 1, 1)),
-        (1_500, None, Dossier.STATE_REFUSE, datetime(2024, 1, 1)),
-        (1_500, None, Dossier.STATE_REFUSE, datetime(2025, 1, 1)),
-        (6_500, 0, Dossier.STATE_SANS_SUITE, datetime(2024, 1, 1)),
-        (2_500, 0, Dossier.STATE_SANS_SUITE, datetime(2025, 1, 1)),
+        (1_000, 2_000, Dossier.STATE_EN_CONSTRUCTION, datetime(2024, 1, 1, tzinfo=UTC)),
+        (600, None, Dossier.STATE_EN_INSTRUCTION, datetime(2023, 1, 1, tzinfo=UTC)),
+        (2_000, 3_000, Dossier.STATE_ACCEPTE, datetime(2024, 1, 1, tzinfo=UTC)),
+        (2_000, 4_000, Dossier.STATE_ACCEPTE, datetime(2025, 1, 1, tzinfo=UTC)),
+        (1_500, None, Dossier.STATE_REFUSE, datetime(2024, 1, 1, tzinfo=UTC)),
+        (1_500, None, Dossier.STATE_REFUSE, datetime(2025, 1, 1, tzinfo=UTC)),
+        (6_500, 0, Dossier.STATE_SANS_SUITE, datetime(2024, 1, 1, tzinfo=UTC)),
+        (2_500, 0, Dossier.STATE_SANS_SUITE, datetime(2025, 1, 1, tzinfo=UTC)),
     ]:
         projets.append(
             ProjetFactory(
@@ -84,14 +84,14 @@ def detr_projets(departement_perimetre):
 def dsil_projets(departement_perimetre):
     projets = []
     for montant, assiette, state, date_traitement in [
-        (1_000, 2_000, Dossier.STATE_EN_CONSTRUCTION, datetime(2024, 1, 1)),
-        (600, None, Dossier.STATE_EN_INSTRUCTION, datetime(2023, 1, 1)),
-        (2_000, 4_000, Dossier.STATE_ACCEPTE, datetime(2024, 12, 21)),
-        (5_000, 10_000, Dossier.STATE_ACCEPTE, datetime(2025, 1, 1)),
-        (3_500, None, Dossier.STATE_REFUSE, datetime(2024, 12, 31)),
-        (1_500, None, Dossier.STATE_REFUSE, datetime(2025, 1, 1)),
-        (2_500, 0, Dossier.STATE_SANS_SUITE, datetime(2024, 12, 13)),
-        (2_500, 0, Dossier.STATE_SANS_SUITE, datetime(2025, 1, 1)),
+        (1_000, 2_000, Dossier.STATE_EN_CONSTRUCTION, datetime(2024, 1, 1, tzinfo=UTC)),
+        (600, None, Dossier.STATE_EN_INSTRUCTION, datetime(2023, 1, 1, tzinfo=UTC)),
+        (2_000, 4_000, Dossier.STATE_ACCEPTE, datetime(2024, 12, 21, tzinfo=UTC)),
+        (5_000, 10_000, Dossier.STATE_ACCEPTE, datetime(2025, 1, 1, tzinfo=UTC)),
+        (3_500, None, Dossier.STATE_REFUSE, datetime(2024, 12, 31, tzinfo=UTC)),
+        (1_500, None, Dossier.STATE_REFUSE, datetime(2025, 1, 1, tzinfo=UTC)),
+        (2_500, 0, Dossier.STATE_SANS_SUITE, datetime(2024, 12, 13, tzinfo=UTC)),
+        (2_500, 0, Dossier.STATE_SANS_SUITE, datetime(2025, 1, 1, tzinfo=UTC)),
     ]:
         projets.append(
             ProjetFactory(
