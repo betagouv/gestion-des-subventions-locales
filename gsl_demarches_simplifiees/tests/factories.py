@@ -1,3 +1,5 @@
+from datetime import timezone
+
 import factory
 
 from gsl_core.tests.factories import AdresseFactory
@@ -40,5 +42,10 @@ class DossierFactory(factory.django.DjangoModelFactory):
     ds_number = factory.Faker("random_int", min=1000000, max=9999999)
     ds_state = Dossier.STATE_EN_INSTRUCTION
     ds_demandeur = factory.SubFactory(PersonneMoraleFactory)
-    ds_date_depot = factory.Faker("date_this_year", before_today=True)
+    ds_date_depot = factory.Faker(
+        "date_time_this_year", before_now=True, tzinfo=timezone.utc
+    )
+    ds_date_traitement = factory.Faker(
+        "date_time_this_year", before_now=True, tzinfo=timezone.utc
+    )
     porteur_de_projet_nature = factory.SubFactory(NaturePorteurProjetFactory)

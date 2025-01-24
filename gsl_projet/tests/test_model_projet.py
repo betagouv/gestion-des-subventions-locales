@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import date, datetime
+from datetime import timezone as tz
 
 import pytest
 from django.db import connection
@@ -92,8 +93,10 @@ def departement() -> Departement:
 
 @pytest.fixture
 def projets(departement) -> list[Projet]:
-    projet_with_departement = ProjetFactory(demandeur__departement=departement)
-    projet_without_departement = ProjetFactory()
+    projet_with_departement = ProjetFactory(
+        demandeur__departement=departement, dossier_ds=DossierFactory()
+    )
+    projet_without_departement = ProjetFactory(dossier_ds=DossierFactory())
 
     return [projet_with_departement, projet_without_departement]
 
@@ -142,11 +145,14 @@ def test_for_normal_user_with_perimetre(departement, projets):
 @pytest.mark.parametrize(
     "state, ds_date_traitement",
     (
-        (Dossier.STATE_EN_CONSTRUCTION, date(1999, 1, 1)),
-        (Dossier.STATE_EN_INSTRUCTION, date(2000, 1, 1)),
-        (Dossier.STATE_ACCEPTE, date(date.today().year, 1, 1)),
-        (Dossier.STATE_SANS_SUITE, date(date.today().year, 1, 1)),
-        (Dossier.STATE_REFUSE, date(date.today().year, 1, 1)),
+        (Dossier.STATE_EN_CONSTRUCTION, datetime(1999, 1, 1, tzinfo=tz.utc)),
+        (Dossier.STATE_EN_INSTRUCTION, datetime(2000, 1, 1, tzinfo=tz.utc)),
+        (Dossier.STATE_ACCEPTE, datetime(date.today().year, 1, 1, 0, 0, tzinfo=tz.utc)),
+        (
+            Dossier.STATE_SANS_SUITE,
+            datetime(date.today().year, 1, 1, 0, 0, tzinfo=tz.utc),
+        ),
+        (Dossier.STATE_REFUSE, datetime(date.today().year, 1, 1, 0, 0, tzinfo=tz.utc)),
     ),
 )
 def test_keep_only_projet_to_deal_with_this_year_with_projet_to_display(
@@ -169,9 +175,18 @@ def test_keep_only_projet_to_deal_with_this_year_with_projet_to_display(
 @pytest.mark.parametrize(
     "state, ds_date_traitement",
     (
-        (Dossier.STATE_ACCEPTE, date(date.today().year - 1, 12, 1)),
-        (Dossier.STATE_SANS_SUITE, date(date.today().year - 1, 12, 1)),
-        (Dossier.STATE_REFUSE, date(date.today().year - 1, 12, 1)),
+        (
+            Dossier.STATE_ACCEPTE,
+            datetime(date.today().year - 1, 12, 31, 23, 59, tzinfo=tz.utc),
+        ),
+        (
+            Dossier.STATE_SANS_SUITE,
+            datetime(date.today().year - 1, 12, 31, 23, 59, tzinfo=tz.utc),
+        ),
+        (
+            Dossier.STATE_REFUSE,
+            datetime(date.today().year - 1, 12, 31, 23, 59, tzinfo=tz.utc),
+        ),
     ),
 )
 def test_keep_only_projet_to_deal_with_this_year_with_projet_to_archive(

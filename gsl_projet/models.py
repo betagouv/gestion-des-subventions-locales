@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import date, datetime
+from datetime import timezone as tz
 
 from django.db import models
 from django.db.models import Q
@@ -54,7 +55,9 @@ class ProjetQuerySet(models.QuerySet):
                     Dossier.STATE_SANS_SUITE,
                     Dossier.STATE_REFUSE,
                 ],
-                dossier_ds__ds_date_traitement__gte=date(date.today().year, 1, 1),
+                dossier_ds__ds_date_traitement__gte=datetime(
+                    date.today().year, 1, 1, 0, 0, tzinfo=tz.utc
+                ),
             )
         )
 

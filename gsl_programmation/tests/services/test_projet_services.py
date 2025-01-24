@@ -1,3 +1,6 @@
+from datetime import datetime
+from datetime import timezone as tz
+
 import pytest
 
 from gsl_demarches_simplifiees.tests.factories import (
@@ -177,17 +180,17 @@ def test_add_filters_to_projets_qs(create_projets):
 def test_add_ordering_to_projets_qs():
     projet1 = ProjetFactory(
         dossier_ds__finance_cout_total=100,
-        dossier_ds__ds_date_depot="2023-01-01",
+        dossier_ds__ds_date_depot=datetime(2023, 1, 1, tzinfo=tz.utc),
         address__commune__name="Beaune",
     )
     projet2 = ProjetFactory(
         dossier_ds__finance_cout_total=200,
-        dossier_ds__ds_date_depot="2023-01-02",
+        dossier_ds__ds_date_depot=datetime(2023, 1, 2, tzinfo=tz.utc),
         address__commune__name="Dijon",
     )
     projet3 = ProjetFactory(
         dossier_ds__finance_cout_total=150,
-        dossier_ds__ds_date_depot="2023-01-03",
+        dossier_ds__ds_date_depot=datetime(2023, 1, 3, tzinfo=tz.utc),
         address__commune__name="Auxonne",
     )
 
