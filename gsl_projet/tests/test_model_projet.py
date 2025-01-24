@@ -93,10 +93,8 @@ def departement() -> Departement:
 
 @pytest.fixture
 def projets(departement) -> list[Projet]:
-    projet_with_departement = ProjetFactory(
-        demandeur__departement=departement, dossier_ds=DossierFactory()
-    )
-    projet_without_departement = ProjetFactory(dossier_ds=DossierFactory())
+    projet_with_departement = ProjetFactory(demandeur__departement=departement)
+    projet_without_departement = ProjetFactory()
 
     return [projet_with_departement, projet_without_departement]
 
