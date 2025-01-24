@@ -41,7 +41,7 @@ class ProjetQuerySet(models.QuerySet):
         if perimetre.region:
             return self.filter(demandeur__departement__region=perimetre.region)
 
-    def keep_only_projet_to_deal_with_this_year(self):
+    def to_deal_with_this_year(self):
         return self.filter(
             Q(
                 dossier_ds__ds_state__in=[

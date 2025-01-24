@@ -164,7 +164,7 @@ def test_keep_only_projet_to_deal_with_this_year_with_projet_to_display(
     )
 
     qs = Projet.objects.all()
-    qs = qs.keep_only_projet_to_deal_with_this_year()
+    qs = qs.to_deal_with_this_year()
 
     assert qs.count() == 1
 
@@ -197,6 +197,6 @@ def test_keep_only_projet_to_deal_with_this_year_with_projet_to_archive(
         ),
     )
 
-    qs = Projet.objects.keep_only_projet_to_deal_with_this_year()
+    qs = Projet.objects.to_deal_with_this_year()
 
     assert qs.count() == 0
