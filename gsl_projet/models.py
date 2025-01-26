@@ -1,4 +1,8 @@
+from datetime import date, datetime
+from datetime import timezone as tz
+
 from django.db import models
+from django.db.models import Q
 
 from gsl_core.models import Adresse, Arrondissement, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
@@ -18,11 +22,16 @@ class Demandeur(models.Model):
         return f"Demandeur {self.name}"
 
 
-class ProjetManager(models.Manager):
+class ProjetQuerySet(models.QuerySet):
     def for_user(self, user: Collegue):
+        if user.perimetre is None:
+            if user.is_staff or user.is_superuser:
+                return self
+            return self.none()
+
         return self.for_perimetre(user.perimetre)
 
-    def for_perimetre(self, perimetre: Perimetre):
+    def for_perimetre(self, perimetre: Perimetre | None):
         if perimetre is None:
             return self
         if perimetre.arrondissement:
@@ -32,6 +41,28 @@ class ProjetManager(models.Manager):
         if perimetre.region:
             return self.filter(demandeur__departement__region=perimetre.region)
 
+    def to_deal_with_this_year(self):
+        return self.filter(
+            Q(
+                dossier_ds__ds_state__in=[
+                    Dossier.STATE_EN_CONSTRUCTION,
+                    Dossier.STATE_EN_INSTRUCTION,
+                ]
+            )
+            | Q(
+                dossier_ds__ds_state__in=[
+                    Dossier.STATE_ACCEPTE,
+                    Dossier.STATE_SANS_SUITE,
+                    Dossier.STATE_REFUSE,
+                ],
+                dossier_ds__ds_date_traitement__gte=datetime(
+                    date.today().year, 1, 1, 0, 0, tzinfo=tz.utc
+                ),
+            )
+        )
+
+
+class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
     def get_queryset(self):
         return super().get_queryset().select_related("dossier_ds")
 

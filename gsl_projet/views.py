@@ -1,8 +1,5 @@
-from datetime import UTC
-
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
-from django.utils import timezone
 from django.views.decorators.http import require_GET
 from django.views.generic import ListView
 
@@ -94,9 +91,8 @@ class ProjetListView(ListView):
         return context
 
     def get_queryset(self):
-        qs = Projet.objects.for_user(self.request.user).filter(
-            dossier_ds__ds_date_depot__gte=timezone.datetime(2024, 9, 1, tzinfo=UTC)
-        )
+        qs = Projet.objects.for_user(self.request.user)
+        qs = qs.to_deal_with_this_year()
         qs = ProjetService.add_filters_to_projets_qs(qs, self.request.GET)
         qs = ProjetService.add_ordering_to_projets_qs(qs, self.request.GET.get("tri"))
         return qs

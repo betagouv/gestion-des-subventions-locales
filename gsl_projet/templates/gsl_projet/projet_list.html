@@ -111,6 +111,12 @@
                             </a>
                         </td>
                     </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="12">
+                            Liste vide.
+                        </td>
+                    </tr>
                 {% endfor %}
             </tbody>
         </table>

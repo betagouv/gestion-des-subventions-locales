@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 from typing import Any
 
@@ -34,7 +35,9 @@ class SimulationService:
                 arrondissement=None,
             )
 
-        enveloppe = Enveloppe.objects.get(perimetre=perimetre_to_find, type=dotation)
+        enveloppe = Enveloppe.objects.get(
+            perimetre=perimetre_to_find, type=dotation, annee=date.today().year
+        )
         slug = SimulationService.get_slug(title)
         simulation = Simulation.objects.create(
             title=title,
@@ -91,6 +94,7 @@ class SimulationProjetService:
         simulation_projet.save()
 
 
+# TODO Move this to this service to gsl_project/services.py
 class ProjetService:
     @classmethod
     def get_total_cost(cls, projet_qs: QuerySet):
