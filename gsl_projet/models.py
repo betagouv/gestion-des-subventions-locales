@@ -9,7 +9,7 @@ from gsl_demarches_simplifiees.models import Dossier
 
 
 class Demandeur(models.Model):
-    siret = models.CharField("Siret")  # should be unique
+    siret = models.CharField("Siret", unique=True)
     name = models.CharField("Nom")
 
     address = models.ForeignKey(Adresse, on_delete=models.PROTECT)
