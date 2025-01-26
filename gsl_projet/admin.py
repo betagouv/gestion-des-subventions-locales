@@ -7,7 +7,7 @@ from .models import Demandeur, Projet
 
 @admin.register(Demandeur)
 class DemandeurAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    pass
+    raw_id_fields = ("address", "arrondissement", "departement")
 
 
 @admin.register(Projet)
