@@ -53,8 +53,16 @@ class DossierConverter:
             ds_key = camelcase(field)
             self.dossier.__setattr__(django_field, self.ds_dossier_data[ds_key])
         # deal with "demandeur" differently
-        demandeur = self.dossier.ds_demandeur or PersonneMorale()
-        demandeur.update_from_raw_ds_data(self.ds_dossier_data.get("demandeur"))
+        demandeur_data = self.ds_dossier_data.get("demandeur")
+        if not demandeur_data:
+            return
+
+        demandeur = self.dossier.ds_demandeur
+        if not demandeur:
+            demandeur, _ = PersonneMorale.objects.get_or_create(
+                siret=demandeur_data.get("siret")
+            )
+        demandeur.update_from_raw_ds_data(demandeur_data)
         demandeur.save()
         self.dossier.ds_demandeur = demandeur
 

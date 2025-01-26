@@ -77,6 +77,22 @@ def test_non_mapped_fields_are_imported(dossier_converter: DossierConverter):
     assert isinstance(dossier_converter.dossier.ds_demandeur, PersonneMorale)
 
 
+def test_demandeur_is_properly_found_if_already_existing(
+    dossier_converter, ds_dossier_data
+):
+    existing_demandeur = PersonneMorale.objects.create(
+        siret=ds_dossier_data["demandeur"]["siret"]
+    )
+    assert PersonneMorale.objects.count() == 1
+    assert dossier_converter.dossier.ds_demandeur is None
+
+    dossier_converter.fill_unmapped_fields()
+
+    assert PersonneMorale.objects.count() == 1
+    assert isinstance(dossier_converter.dossier.ds_demandeur, PersonneMorale)
+    assert dossier_converter.dossier.ds_demandeur.siret == existing_demandeur.siret
+
+
 extract_field_test_data = (
     (
         {
