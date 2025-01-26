@@ -35,8 +35,11 @@ class SimulationService:
                 arrondissement=None,
             )
 
-        enveloppe = Enveloppe.objects.get(
-            perimetre=perimetre_to_find, type=dotation, annee=date.today().year
+        enveloppe, _ = Enveloppe.objects.get_or_create(
+            perimetre=perimetre_to_find,
+            type=dotation,
+            annee=date.today().year,
+            defaults={"montant": 0},
         )
         slug = SimulationService.get_slug(title)
         simulation = Simulation.objects.create(
