@@ -20,11 +20,12 @@ def create_user(email, first_name, last_name, department_number, password):
 
     user.save()
 
-    print(f"User created: {user.email} with password: {password}")
+    print(f"User created: {user.email}")
 
 
 def create_user_with_password_generator(
     email, first_name, last_name, department_number, generate_password
 ):
     password = generate_password(department_number)
+    print(f"Generated password: {password}")
     create_user(email, first_name, last_name, department_number, password)
