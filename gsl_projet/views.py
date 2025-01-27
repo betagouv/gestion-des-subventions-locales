@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET
 from django.views.generic import ListView
 
-from gsl_programmation.services import ProjetService
+from gsl_programmation.service.projet_service import ProjetService
 
 from .models import Projet
 

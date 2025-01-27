@@ -12,8 +12,8 @@ from django.views.generic.list import ListView
 
 from gsl_programmation.forms import SimulationForm
 from gsl_programmation.service.enveloppe_service import EnveloppeService
+from gsl_programmation.service.projet_service import ProjetService
 from gsl_programmation.services import (
-    ProjetService,
     SimulationProjetService,
     SimulationService,
 )
