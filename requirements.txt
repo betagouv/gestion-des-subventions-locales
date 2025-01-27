@@ -10,6 +10,8 @@ asgiref==3.8.1
     # via
     #   django
     #   django-htmx
+asttokens==3.0.0
+    # via stack-data
 billiard==4.2.1
     # via celery
 celery==5.4.0
@@ -44,6 +46,8 @@ cryptography==43.0.3
     #   josepy
     #   mozilla-django-oidc
     #   pyopenssl
+decorator==5.1.1
+    # via ipython
 diff-match-patch==20241021
     # via django-import-export
 dj-database-url==2.2.0
@@ -84,26 +88,46 @@ django-timezone-field==7.0
     # via django-celery-beat
 django-widget-tweaks==1.5.0
     # via django-dsfr
+executing==2.2.0
+    # via stack-data
 gunicorn==23.0.0
     # via gsl (pyproject.toml)
 idna==3.10
     # via requests
+ipython==8.31.0
+    # via gsl (pyproject.toml)
+jedi==0.19.2
+    # via ipython
 josepy==1.14.0
     # via mozilla-django-oidc
 kombu==5.4.2
     # via celery
+matplotlib-inline==0.1.7
+    # via ipython
 mozilla-django-oidc==4.0.1
     # via gsl (pyproject.toml)
 packaging==24.1
     # via gunicorn
+parso==0.8.4
+    # via jedi
+pexpect==4.9.0
+    # via ipython
 prompt-toolkit==3.0.48
-    # via click-repl
+    # via
+    #   click-repl
+    #   ipython
 psycopg[binary]==3.2.4
     # via gsl (pyproject.toml)
 psycopg-binary==3.2.4
     # via psycopg
+ptyprocess==0.7.0
+    # via pexpect
+pure-eval==0.2.3
+    # via stack-data
 pycparser==2.22
     # via cffi
+pygments==2.19.1
+    # via ipython
 pyopenssl==24.2.1
     # via josepy
 python-crontab==3.2.0
@@ -126,8 +150,14 @@ six==1.16.0
     # via python-dateutil
 sqlparse==0.5.1
     # via django
+stack-data==0.6.3
+    # via ipython
 tablib==3.7.0
     # via django-import-export
+traitlets==5.14.3
+    # via
+    #   ipython
+    #   matplotlib-inline
 typing-extensions==4.12.2
     # via
     #   dj-database-url
