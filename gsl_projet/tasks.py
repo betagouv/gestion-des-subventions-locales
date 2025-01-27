@@ -13,8 +13,6 @@ def update_projet_from_dossier(ds_dossier_number):
 
 @shared_task
 def create_all_projets_from_dossiers():
-    dossiers = Dossier.objects.exclude(ds_state=Dossier.STATE_EN_CONSTRUCTION).exclude(
-        ds_state=""
-    )
+    dossiers = Dossier.objects.exclude(ds_state="")
     for dossier in dossiers.all():
         update_projet_from_dossier.delay(dossier.ds_number)

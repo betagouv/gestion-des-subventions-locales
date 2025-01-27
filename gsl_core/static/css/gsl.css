@@ -111,6 +111,7 @@ ul.no-list-style li {
 .max_180_width {
     max-width: 180px;
     width: 180px;
+    min-width: 140px;
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -254,7 +255,9 @@ ul.no-list-style li {
     font-weight: bold;
 }
 
-
+.blue-icon {
+    color: var(--blue-france-sun-113-625);
+}
 
 /* En travaux */
 

@@ -9,42 +9,9 @@
     <h1>
         {{ title }}
     </h1>
-    {% include "includes/_status_summary.html" with status_summary=status_summary %}
+    {% include "includes/_status_summary.html" %}
+    {% include "includes/_enveloppe_summary.html" %}
 
-    <details class="ahr-todo">
-        <summary>
-            À faire sur cette page :
-        </summary>
-        <ul>
-            <li class='ahr-todo__check'>
-                Liste de badges sous le titre : 3 projets validés, 18 projets refusés, 5 projets notifiés
-            </li>
-            <li>
-                Synthèse de la simulation : hors scope pour l'instant
-            </li>
-            <li>
-                Bouton modifier
-            </li>
-            <li>
-                Bouton "ajouter des projets au tableau"
-            </li>
-            <li>
-                Rappel de la dotation/des dotations
-            </li>
-            <li class='ahr-todo__check'>
-                tableau : colonnes case à cocher pour sélectionner, date de dépôt, intitulé du projet, commune,
-                dotation,
-                coût total, montant sollicité, montant prévi accordé, taux de subvention, choix de la catégorie, statut,
-                modifier ?, lien détail ?
-            </li>
-            <li class='ahr-todo__check'>
-                Lorsqu'on modifie le champ montant prévisionnel accordé, l'info est enregistrée et le taux est bien recalculé
-            </li>
-            <li class='ahr-todo__check'>
-                Lorsqu'on modifie le champ taux de subvention, l'info est enregistrée et le champ montant prévisionnel est bien recalculé
-            </li>
-        </ul>
-    </details>
     {% include "gsl_projet/includes/_projet_list_filters.html" %}
     <div class="fr-table--lg gsl-projet-table">
         <table>
@@ -78,7 +45,8 @@
                     <th class="max_80_width">
                         Montant prévisionnel accordé
                         <br>
-                        <span class="gsl_projet_table__total gsl-projet-table__total-granted">{{ total_amount_granted | euro }}</span>
+                        <span class="gsl_projet_table__total gsl-projet-table__total-granted"
+                              id="total-amount-granted">{{ total_amount_granted | euro }}</span>
                     </th>
                     <th class="max_80_width">
                         Taux de subvention
@@ -86,7 +54,7 @@
                     <th>
                         Choix de la catégorie d’opération
                     </th>
-                    <th>
+                    <th class="max_180_width">
                         Statut
                     </th>
                     <th>
@@ -97,70 +65,7 @@
             <tbody>
                 {% for projet in simulations_list %}
                     {% with projet.simu.0 as simu %}
-                        <tr>
-                            <td>
-                                <input type="checkbox"
-                                       name="simu[{{ simu.pk }}]"
-                                       aria-label="Sélectionner le projet {{ projet.dossier_ds.projet_intitule }}">
-                            </td>
-                            <td>
-                                {{ projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}
-                            </td>
-                            <td>
-                                {{ projet.dossier_ds.projet_intitule }}
-                            </td>
-                            <td>
-                                {{ projet.address.commune.name }}
-                            </td>
-                            <td>
-                                <select class='fr-select gsl-projet-table__select'>
-                                    <option value="DETR">
-                                        DETR
-                                    </option>
-                                    <option value="DSIL">
-                                        DSIL
-                                    </option>
-                                </select>
-                            </td>
-                            <td class="gsl-money">
-                                {{ projet.assiette_or_cout_total|euro:2 }}
-                                <br>
-                                &nbsp;
-                            </td>
-                            <td class="gsl-money">
-                                {{ projet.dossier_ds.demande_montant|euro:2 }}
-                                <br>
-                                {{ projet.get_taux_de_subvention_sollicite|percent }}
-                            </td>
-                            <td class="gsl-money">
-                                {% include "includes/_montant_form.html" with simu=simu %}
-                            </td>
-                            <td class="gsl-money">
-                                {% include "includes/_taux_form.html" with simu=simu %}
-                            </td>
-                            <td>
-                                <select class="fr-select gsl-projet-table__select" name="" id="">
-                                    <option value="">
-                                        {{ projet.categorie_doperation.first }}
-                                    </option>
-                                </select>
-                            </td>
-                            <td>
-                                {% include "includes/_status_form.html" with simu=simu %}
-                            </td>
-                            <td class="fr-cell--right gsl-nowrap">
-                                <a class="fr-btn--tertiary-no-outline gsl-no-underline"
-                                   href="{{ projet.get_absolute_url }}">
-                                    <span class="fr-sr-only">Modifier le projet {{ projet.dossier_ds.ds_number }}</span>
-                                    <span class="fr-icon-edit-fill fr-icon--sm" aria-hidden="true"></span>
-                                </a>
-                                <a class="fr-btn--tertiary-no-outline gsl-no-underline"
-                                   href="{{ projet.get_absolute_url }}">
-                                    <span class="fr-sr-only">Voir le projet {{ projet.dossier_ds.ds_number }}</span>
-                                    <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
-                                </a>
-                            </td>
-                        </tr>
+                        {% include "includes/_simulation_detail_row.html" with simu=simu projet=projet %}
                     {% endwith %}
                 {% empty %}
                     <tr>

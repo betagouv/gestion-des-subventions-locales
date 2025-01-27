@@ -1,26 +1,79 @@
-{% extends "dsfr/base.html" %}
-{% load static i18n %}
+{% load static i18n dsfr_tags %}
+<!DOCTYPE html>
+<html lang="{% block lang %} {% get_current_language as LANGUAGE_CODE %}{{ LANGUAGE_CODE }} {% endblock lang %}"
+      data-fr-scheme="system"
+      {% if SITE_CONFIG.mourning %}data-fr-mourning{% endif %}>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport"
+              content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        {% dsfr_css %}
+        {% dsfr_favicon %}
 
-{% block header %}
-    {% include "blocks/header.html" %}
-{% endblock header %}
+        {% block extra_css %}
+            <link rel="stylesheet" href="{% static "css/gsl.css" %}">
+        {% endblock extra_css %}
 
-{% block breadcrumb %}
-    {# no dsfr_breadcrumb by default #}
-{% endblock breadcrumb %}
+        {% block title %}
+            <title>
+                {% if title %}
+                    {{ title }} — Gestion des Subventions Locales
+                {% else %}
+                    Gestion des Subventions Locales
+                {% endif %}
+            </title>
+        {% endblock title %}
+        {% block meta_description %}
+            <meta name="description"
+                  content="La plateforme Gestion des Subventions Locales (GSL) est un outil numérique qui permet aux services des préfectures françaises de gérer les subventions locales.">
+        {% endblock meta_description %}
+        {% block meta_keywords %}
+            <meta name="keywords"
+                  content="GSL, subventions, locales, préfectures, gestion, numérique">
+        {% endblock meta_keywords %}
 
-{% block footer %}
-    {% include "blocks/footer.html" %}
-{% endblock footer %}
+        <meta name="format-detection"
+              content="telephone=no,date=no,address=no,email=no,url=no">
 
-{% block extra_js %}
-    <script src="{% static 'js/common.js' %}"></script>
-{% endblock extra_js %}
+        {% block opengraph %}
+        {% endblock opengraph %}
+    </head>
+    <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+        {% block skiplinks %}
+            {% dsfr_skiplinks skiplinks %}
+        {% endblock skiplinks %}
 
-{% block lang %}
-    {% get_current_language as LANGUAGE_CODE %}{{ LANGUAGE_CODE }}
-{% endblock lang %}
+        {% block header %}
+            {% include "blocks/header.html" %}
+        {% endblock header %}
 
-{% block extra_css %}
-    <link rel="stylesheet" href="{% static "css/gsl.css" %}">
-{% endblock extra_css %}
+        {% dsfr_theme_modale %}
+
+        {% if SITE_CONFIG.notice_title or SITE_CONFIG.notice_description %}
+            {% dsfr_notice title=SITE_CONFIG.notice_title description=SITE_CONFIG.notice_description link=SITE_CONFIG.notice_link type=SITE_CONFIG.notice_type icon=SITE_CONFIG.notice_icon_class is_collapsible=SITE_CONFIG.notice_is_collapsible %}
+        {% endif %}
+
+        <div class="fr-container fr-mt-4w fr-mb-6w">
+            {% block breadcrumb %}
+                {# no dsfr_breadcrumb by default #}
+            {% endblock breadcrumb %}
+            <main id="content" role="main">
+                {% block content %}
+                {% endblock content %}
+            </main>
+        </div>
+
+        {% block follow_newsletter_social_media %}
+        {% endblock follow_newsletter_social_media %}
+
+        {% block footer %}
+            {% include "blocks/footer.html" %}
+        {% endblock footer %}
+
+        {% dsfr_js nonce=request.csp_nonce %}
+
+        {% block extra_js %}
+            <script src="{% static 'js/htmx.min.js' %}" defer></script>
+        {% endblock extra_js %}
+    </body>
+</html>

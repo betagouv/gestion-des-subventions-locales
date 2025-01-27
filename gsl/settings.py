@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     "widget_tweaks",
     "dsfr",
     "import_export",
+    "django_htmx",
     # gsl apps:
     "gsl_core",
     "gsl_demarches_simplifiees",
@@ -91,6 +92,7 @@ MIDDLEWARE = [
     "gsl_oidc.middleware.LoginRequiredMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
 ]
 
 if DEBUG:

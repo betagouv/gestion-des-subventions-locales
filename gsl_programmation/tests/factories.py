@@ -1,3 +1,5 @@
+from datetime import date
+
 from factory import Faker, LazyAttribute, Sequence, SubFactory
 from factory.django import DjangoModelFactory
 
@@ -15,7 +17,7 @@ class DsilEnveloppeFactory(DjangoModelFactory):
 
     type = Enveloppe.TYPE_DSIL
     montant = Faker("random_number", digits=5)
-    annee = 2024
+    annee = date.today().year
     perimetre = SubFactory(PerimetreRegionalFactory)
 
 
@@ -25,7 +27,7 @@ class DetrEnveloppeFactory(DjangoModelFactory):
 
     type = Enveloppe.TYPE_DETR
     montant = Faker("random_number", digits=5)
-    annee = 2024
+    annee = date.today().year
     perimetre = SubFactory(PerimetreDepartementalFactory)
 
 
@@ -46,3 +48,4 @@ class SimulationProjetFactory(DjangoModelFactory):
     projet = SubFactory(ProjetFactory)
     montant = Faker("random_number", digits=5)
     taux = Faker("random_number", digits=2)
+    status = SimulationProjet.STATUS_DRAFT

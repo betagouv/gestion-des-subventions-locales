@@ -1,0 +1,59 @@
+{% load gsl_filters %}
+
+<tr id="simulation-{{ simu.pk }}" hx-swap-oob="true">
+    <td>
+        <input type="checkbox"
+               name="simu[{{ simu.pk }}]"
+               aria-label="Sélectionner le projet {{ projet.dossier_ds.projet_intitule }}">
+    </td>
+    <td>
+        {{ projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}
+    </td>
+    <td>
+        {{ projet.dossier_ds.projet_intitule }}
+    </td>
+    <td>
+        {{ projet.address.commune.name }}
+    </td>
+    <td>
+        {{ projet.dossier_ds.demande_dispositif_sollicite }}
+    </td>
+    <td class="gsl-money">
+        {{ projet.assiette_or_cout_total|euro:2 }}
+        <br>
+        &nbsp;
+    </td>
+    <td class="gsl-money">
+        {{ projet.dossier_ds.demande_montant|euro:2 }}
+        <br>
+        {{ projet.get_taux_de_subvention_sollicite|percent }}
+    </td>
+    <td class="gsl-money">
+        {% include "includes/_montant_form.html" with simu=simu %}
+    </td>
+    <td class="gsl-money">
+        {% include "includes/_taux_form.html" with simu=simu %}
+    </td>
+    <td>
+        <select class="fr-select gsl-projet-table__select" name="" id="">
+            <option value="">
+                {{ projet.categorie_doperation.first }}
+            </option>
+        </select>
+    </td>
+    <td>
+        {% include "includes/_status_form.html" with simu=simu %}
+    </td>
+    <td class="fr-cell--right gsl-nowrap">
+        <a class="fr-btn--tertiary-no-outline gsl-no-underline"
+           href="{{ projet.get_absolute_url }}">
+            <span class="fr-sr-only">Modifier le projet {{ projet.dossier_ds.ds_number }}</span>
+            <span class="fr-icon-edit-fill fr-icon--sm" aria-hidden="true"></span>
+        </a>
+        <a class="fr-btn--tertiary-no-outline gsl-no-underline"
+           href="{{ projet.get_absolute_url }}">
+            <span class="fr-sr-only">Voir le projet {{ projet.dossier_ds.ds_number }}</span>
+            <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
+        </a>
+    </td>
+</tr>

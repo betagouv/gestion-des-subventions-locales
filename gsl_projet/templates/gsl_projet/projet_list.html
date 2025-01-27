@@ -10,6 +10,9 @@
         Liste des projets
     </h1>
 
+    <a href="{% url 'gsl_programmation:simulation-form' %}"
+       class="fr-btn fr-mb-4w">Effectuer une simulation</a>
+
     {% include "gsl_projet/includes/_projet_list_filters.html" %}
 
     <div class="fr-table--lg gsl-projet-table" id="table-lg-component">
@@ -106,6 +109,12 @@
                                 <span class="fr-sr-only">Voir le projet {{ projet.dossier_ds.ds_number }}</span>
                                 <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
                             </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="12">
+                            Liste vide.
                         </td>
                     </tr>
                 {% endfor %}

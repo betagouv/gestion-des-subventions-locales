@@ -114,6 +114,10 @@ class Adresse(BaseModel):
 
 
 class Perimetre(BaseModel):
+    TYPE_REGION = "Région"
+    TYPE_DEPARTEMENT = "Département"
+    TYPE_ARRONDISSEMENT = "Arrondissement"
+
     region = models.ForeignKey(
         Region,
         verbose_name="Région",
@@ -198,6 +202,22 @@ class Perimetre(BaseModel):
                 and other_perimetre.departement == self.departement
             )
         return False
+
+    @property
+    def type(self):
+        if self.departement is None:
+            return self.TYPE_REGION
+        if self.arrondissement is None:
+            return self.TYPE_DEPARTEMENT
+        return self.TYPE_ARRONDISSEMENT
+
+    @property
+    def entity_name(self):
+        if self.departement is None:
+            return self.region.name
+        if self.arrondissement is None:
+            return self.departement.name
+        return self.arrondissement.name
 
 
 class Collegue(AbstractUser):
