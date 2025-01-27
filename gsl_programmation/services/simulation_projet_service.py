@@ -3,7 +3,6 @@ from decimal import Decimal
 from gsl_programmation.models import SimulationProjet
 
 
-# TODO : split this file + add plural to service folder
 class SimulationProjetService:
     @classmethod
     def update_status(cls, simulation_projet: SimulationProjet, new_status: str):

@@ -8,9 +8,9 @@ from gsl_demarches_simplifiees.tests.factories import (
     NaturePorteurProjetFactory,
 )
 from gsl_programmation.models import Simulation
-from gsl_programmation.service.projet_service import ProjetService
 from gsl_programmation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_projet.models import Projet
+from gsl_projet.services import ProjetService
 from gsl_projet.tests.factories import ProjetFactory
 
 

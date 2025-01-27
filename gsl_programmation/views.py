@@ -11,15 +11,15 @@ from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 
 from gsl_programmation.forms import SimulationForm
-from gsl_programmation.service.enveloppe_service import EnveloppeService
-from gsl_programmation.service.projet_service import ProjetService
-from gsl_programmation.service.simulation_service import SimulationService
-from gsl_programmation.services import (
+from gsl_programmation.services.enveloppe_service import EnveloppeService
+from gsl_programmation.services.simulation_projet_service import (
     SimulationProjetService,
 )
+from gsl_programmation.services.simulation_service import SimulationService
 from gsl_programmation.tasks import add_enveloppe_projets_to_simulation
 from gsl_programmation.utils import get_filters_dict_from_params, replace_comma_by_dot
 from gsl_projet.models import Projet
+from gsl_projet.services import ProjetService
 
 from .models import Simulation, SimulationProjet
 
