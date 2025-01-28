@@ -49,6 +49,7 @@ def test_get_existing_demarche_updates_ds_fields(demarche_data_without_dossier):
     assert returned_demarche.ds_title == "Titre de la démarche"
     assert returned_demarche.ds_number == 123456
     assert returned_demarche.ds_state == "brouillon"
+    assert returned_demarche.raw_ds_data == demarche_data_without_dossier
 
 
 def test_get_new_demarche_prefills_ds_fields(demarche_data_without_dossier):
@@ -57,6 +58,7 @@ def test_get_new_demarche_prefills_ds_fields(demarche_data_without_dossier):
     assert demarche.ds_number == 123456
     assert demarche.ds_title == "Titre de la démarche"
     assert demarche.ds_state == "brouillon"
+    assert demarche.raw_ds_data == demarche_data_without_dossier
 
 
 def test_save_groupe_instructeurs(demarche, demarche_data_without_dossier):

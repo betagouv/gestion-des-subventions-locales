@@ -43,11 +43,12 @@ def get_or_create_demarche(demarche_data):
     }
     try:
         demarche = Demarche.objects.get(ds_id=demarche_data["id"])
+        demarche.raw_ds_data = demarche_data
         for field, value in django_data.items():
             demarche.__setattr__(field, value)
         demarche.save()
     except Demarche.DoesNotExist:
-        demarche = Demarche.objects.create(**django_data)
+        demarche = Demarche.objects.create(raw_ds_data=demarche_data, **django_data)
 
     return demarche
 

@@ -48,6 +48,8 @@ class Demarche(DsModel):
     )
     ds_instructeurs = models.ManyToManyField("gsl_demarches_simplifiees.Profile")
 
+    raw_ds_data = models.JSONField("Données DS brutes", null=True, blank=True)
+
     class Meta:
         verbose_name = "Démarche"
 
