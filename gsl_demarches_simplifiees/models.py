@@ -270,6 +270,7 @@ class Dossier(DsModel):
         "Précisez le numéro du dossier déposé antérieurement",
         blank=True,
     )
+
     DEMANDE_DISPOSITIF_SOLLICITE_VALUES = (
         ("DETR", "DETR"),
         ("DSIL", "DSIL"),
@@ -318,6 +319,43 @@ class Dossier(DsModel):
         "Si oui, précisez le niveau de priorité de ce dossier.",
         null=True,
         blank=True,
+    )
+    # -- annotations
+    annotations_contact = models.CharField(
+        "Contact de l'agent instructeur à indiquer au demandeur",
+        blank=True,
+    )
+    annotations_champ_libre = models.TextField(
+        "Champ libre pour le service instructeur",
+        blank=True,
+    )
+    annotations_dotation = models.CharField(
+        "Imputation budgétaire - Choix de la dotation",
+        choices=DEMANDE_DISPOSITIF_SOLLICITE_VALUES,
+        blank=True,
+    )
+    annotations_is_budget_vert = models.BooleanField(
+        "Projet concourant à la transition écologique au sens budget vert", null=True
+    )
+    annotations_is_qpv = models.BooleanField("Projet situé en QPV", null=True)
+    annotations_is_crte = models.BooleanField("Projet rattaché à un CRTE", null=True)
+    annotations_assiette = models.DecimalField(
+        "Montant des dépenses éligibles retenues (€)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+    )  # bon nombre de décimales
+    annotations_montant_accorde = models.DecimalField(
+        "Montant définitif de la subvention (€)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+    )
+    annotations_taux = models.DecimalField(
+        "Taux de subvention (%)",
+        max_digits=5,
+        decimal_places=2,
+        null=True,
     )
 
     MAPPED_FIELDS = (
