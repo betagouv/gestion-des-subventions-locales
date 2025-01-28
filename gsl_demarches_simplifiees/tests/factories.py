@@ -1,4 +1,5 @@
 from datetime import timezone
+from random import choice
 
 import factory
 from django.db.models.signals import post_save
@@ -51,3 +52,9 @@ class DossierFactory(factory.django.DjangoModelFactory):
         "date_time_this_year", before_now=True, tzinfo=timezone.utc
     )
     porteur_de_projet_nature = factory.SubFactory(NaturePorteurProjetFactory)
+    demande_dispositif_sollicite = choice(
+        [
+            Dossier.DEMANDE_DISPOSITIF_SOLLICITE_VALUES[0][0],
+            Dossier.DEMANDE_DISPOSITIF_SOLLICITE_VALUES[1][0],
+        ]
+    )

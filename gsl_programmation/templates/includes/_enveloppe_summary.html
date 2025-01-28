@@ -53,23 +53,23 @@
                 <td>
                     {{ enveloppe.montant | euro }}
                 </td>
-                <td>
+                <td class="color-green-archipel">
+                    {{ enveloppe.montant_asked | euro }}
+                </td>
+                <td class="color-green-bourgeon">
                     {{ enveloppe.montant_accepte | euro }}
                 </td>
-                <td>
-                    {{ enveloppe.montant_accepte | euro }}
+                <td class="color-success fr-text--sm">
+                    {{ enveloppe.validated_projets_count }}
                 </td>
-                <td class="color-success">
-                    <b>-</b>
+                <td class="color-error fr-text--sm">
+                    {{ enveloppe.refused_projets_count }}
                 </td>
-                <td class="color-error">
-                    <b>-</b>
+                <td class="color-blue fr-text--sm">
+                    {{ enveloppe.demandeurs }}
                 </td>
-                <td class="color-blue">
-                    <b>{{ enveloppe.demandeurs }}</b>
-                </td>
-                <td class="color-blue">
-                    <b>{{ enveloppe.projets_count }}</b>
+                <td class="color-blue fr-text--sm">
+                    {{ enveloppe.projets_count }}
                 </td>
             </tr>
         </tbody>

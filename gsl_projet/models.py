@@ -91,6 +91,32 @@ class ProjetQuerySet(models.QuerySet):
         )
         return projet_qs_not_processed_before_the_start_of_the_year
 
+    def processed_in_enveloppe(self, enveloppe: "Enveloppe"):
+        projet_qs = self.for_perimetre(enveloppe.perimetre)
+        projet_qs_with_the_right_type = projet_qs.filter(
+            dossier_ds__demande_dispositif_sollicite=enveloppe.type,
+        )
+        projet_qs_with_a_processed_state = projet_qs_with_the_right_type.filter(
+            dossier_ds__ds_state__in=[
+                Dossier.STATE_ACCEPTE,
+                Dossier.STATE_REFUSE,
+                Dossier.STATE_SANS_SUITE,
+            ]
+        )
+        projet_qs_processed_during_the_year = projet_qs_with_a_processed_state.filter(
+            Q(
+                dossier_ds__ds_date_traitement__gte=datetime(
+                    enveloppe.annee, 1, 1, tzinfo=UTC
+                )
+            )
+            & Q(
+                dossier_ds__ds_date_traitement__lt=datetime(
+                    enveloppe.annee + 1, 1, 1, tzinfo=UTC
+                )
+            )
+        )
+        return projet_qs_processed_during_the_year
+
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
     def get_queryset(self):

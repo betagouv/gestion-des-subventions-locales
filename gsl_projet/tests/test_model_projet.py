@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from datetime import timezone as tz
 
 import pytest
@@ -145,93 +145,7 @@ def test_for_normal_user_with_perimetre(departement, projets):
     assert Projet.objects.for_user(user_with_perimetre).get() == projets[0]
 
 
-# Test for_enveloppe
-
-
-## Type
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "projet_type, enveloppe_type, count",
-    [
-        ("DSIL", "DSIL", 1),
-        ("DSIL", "DETR", 0),
-        ("DETR", "DSIL", 0),
-        ("DETR", "DETR", 1),
-    ],
-)
-def test_for_enveloppe_with_projet_type_and_enveloppe_type(
-    projet_type, enveloppe_type, count
-):
-    enveloppe = (
-        DetrEnveloppeFactory if enveloppe_type == "DETR" else DsilEnveloppeFactory
-    )
-    ProjetFactory(
-        dossier_ds__demande_dispositif_sollicite=projet_type,
-    )
-
-    qs = Projet.objects.included_in_enveloppe(enveloppe=enveloppe)
-
-    assert qs.count() == count
-
-
-## Date
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "submitted_year, count",
-    [
-        (2023, 1),
-        (2024, 1),
-        (2025, 0),
-    ],
-)
-def test_for_year_2024_and_for_not_processed_states(year, count):
-    enveloppe = DetrEnveloppeFactory(annee=2024)
-    projet = SubmittedProjetFactory(
-        dossier_ds=DossierFactory(
-            dossier_ds__demande_dispositif_sollicite=enveloppe.type,
-            ds_date_depot=datetime(year, 12, 31, tzinfo=tz.utc),
-        ),
-    )
-    print(f"Test with {projet.dossier_ds.ds_state}")
-
-    qs = Projet.objects.for_enveloppe(enveloppe)
-
-    assert qs.count() == count
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "submitted_year, processed_year, count",
-    [
-        (2023, 2023, 0),
-        (2023, 2024, 1),
-        (2023, 2025, 1),
-        (2024, 2024, 1),
-        (2024, 2025, 1),
-        (2025, 2025, 0),
-    ],
-)
-def test_for_year_2024_and_for_processed_states(year, count):
-    enveloppe = DetrEnveloppeFactory(annee=2024)
-    projet = ProcessedProjetFactory(
-        dossier_ds=DossierFactory(
-            dossier_ds__demande_dispositif_sollicite=enveloppe.type,
-            ds_date_depot=datetime(year, 12, 31, tzinfo=tz.utc),
-            ds_date_traitement=datetime(year, 12, 31, tzinfo=tz.utc),
-        ),
-    )
-    print(f"Test with {projet.dossier_ds.ds_state}")
-
-    qs = Projet.objects.for_enveloppe(enveloppe)
-
-    assert qs.count() == count
-
-
-# Test for_current_year
+# Test included_in_enveloppe
 
 
 @pytest.mark.django_db
@@ -305,3 +219,123 @@ def for_year_with_projet_to_display(state, ds_date_traitement):
     qs = qs.for_year(date.today().year)
 
     assert qs.count() == 1
+
+
+# Test for_enveloppe
+
+
+## Type
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "projet_type, enveloppe_type, count",
+    [
+        ("DSIL", "DSIL", 1),
+        ("DSIL", "DETR", 0),
+        ("DETR", "DSIL", 0),
+        ("DETR", "DETR", 1),
+    ],
+)
+def test_for_enveloppe_with_projet_type_and_enveloppe_type(
+    projet_type, enveloppe_type, count
+):
+    perimetre = PerimetreDepartementalFactory()
+    enveloppe_factory = (
+        DetrEnveloppeFactory if enveloppe_type == "DETR" else DsilEnveloppeFactory
+    )
+    enveloppe = enveloppe_factory(annee=2024, perimetre=perimetre)
+    ProjetFactory(
+        demandeur__departement=perimetre.departement,
+        dossier_ds__ds_date_depot=datetime(2024, 3, 1, tzinfo=UTC),
+        dossier_ds__demande_dispositif_sollicite=projet_type,
+    )
+
+    qs = Projet.objects.included_in_enveloppe(enveloppe=enveloppe)
+
+    assert qs.count() == count
+
+
+## Date
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "submitted_year, count",
+    [
+        (2023, 1),
+        (2024, 1),
+        (2025, 0),
+    ],
+)
+def test_for_year_2024_and_for_not_processed_states(submitted_year, count):
+    perimetre = PerimetreDepartementalFactory()
+    enveloppe = DetrEnveloppeFactory(annee=2024, perimetre=perimetre)
+    projet = SubmittedProjetFactory(
+        dossier_ds__demande_dispositif_sollicite=enveloppe.type,
+        dossier_ds__ds_date_depot=datetime(submitted_year, 12, 31, tzinfo=tz.utc),
+        demandeur__departement=perimetre.departement,
+    )
+    print(f"Test with {projet.dossier_ds.ds_state}")
+
+    qs = Projet.objects.included_in_enveloppe(enveloppe)
+
+    assert qs.count() == count
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "submitted_year, processed_year, count",
+    [
+        (2023, 2023, 0),
+        (2023, 2024, 1),
+        (2023, 2025, 1),
+        (2024, 2024, 1),
+        (2024, 2025, 1),
+        (2025, 2025, 0),
+    ],
+)
+def test_for_year_2024_and_for_processed_states(submitted_year, processed_year, count):
+    perimetre = PerimetreDepartementalFactory()
+    enveloppe = DetrEnveloppeFactory(annee=2024, perimetre=perimetre)
+    projet = ProcessedProjetFactory(
+        dossier_ds__demande_dispositif_sollicite=enveloppe.type,
+        dossier_ds__ds_date_depot=datetime(submitted_year, 12, 31, tzinfo=tz.utc),
+        dossier_ds__ds_date_traitement=datetime(processed_year, 12, 31, tzinfo=tz.utc),
+        demandeur__departement=perimetre.departement,
+    )
+    print(f"Test with {projet.dossier_ds.ds_state}")
+
+    qs = Projet.objects.included_in_enveloppe(enveloppe)
+
+    assert qs.count() == count
+
+
+# Test processed_in_enveloppe
+
+## Date
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "processed_year, count",
+    [
+        (2023, 0),
+        (2024, 1),
+        (2025, 0),
+    ],
+)
+@pytest.mark.django_db
+def test_processed_in_enveloppe_with_different_processed_dates(processed_year, count):
+    perimetre = PerimetreDepartementalFactory()
+    enveloppe = DetrEnveloppeFactory(annee=2024, perimetre=perimetre)
+    projet = ProcessedProjetFactory(
+        dossier_ds__demande_dispositif_sollicite=enveloppe.type,
+        dossier_ds__ds_date_traitement=datetime(processed_year, 1, 1, tzinfo=tz.utc),
+        demandeur__departement=perimetre.departement,
+    )
+    print(f"Test with {projet.dossier_ds.ds_state}")
+
+    qs = Projet.objects.processed_in_enveloppe(enveloppe)
+
+    assert qs.count() == count
