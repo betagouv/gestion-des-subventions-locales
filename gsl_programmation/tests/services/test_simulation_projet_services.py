@@ -1,7 +1,7 @@
 import pytest
 
 from gsl_programmation.models import SimulationProjet
-from gsl_programmation.services import SimulationProjetService
+from gsl_programmation.services.simulation_projet_service import SimulationProjetService
 from gsl_programmation.tests.factories import SimulationProjetFactory
 from gsl_projet.tests.factories import ProjetFactory
 
