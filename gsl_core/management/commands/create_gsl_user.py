@@ -1,4 +1,4 @@
-from click import BaseCommand
+from django.core.management.base import BaseCommand
 
 from gsl_core.scripts import create_user
 
