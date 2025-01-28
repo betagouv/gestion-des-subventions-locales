@@ -15,9 +15,15 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
+from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 
 from ..models import Projet
-from .factories import DemandeurFactory, ProjetFactory
+from .factories import (
+    DemandeurFactory,
+    ProcessedProjetFactory,
+    ProjetFactory,
+    SubmittedProjetFactory,
+)
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -139,6 +145,95 @@ def test_for_normal_user_with_perimetre(departement, projets):
     assert Projet.objects.for_user(user_with_perimetre).get() == projets[0]
 
 
+# Test for_enveloppe
+
+
+## Type
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "projet_type, enveloppe_type, count",
+    [
+        ("DSIL", "DSIL", 1),
+        ("DSIL", "DETR", 0),
+        ("DETR", "DSIL", 0),
+        ("DETR", "DETR", 1),
+    ],
+)
+def test_for_enveloppe_with_projet_type_and_enveloppe_type(
+    projet_type, enveloppe_type, count
+):
+    enveloppe = (
+        DetrEnveloppeFactory if enveloppe_type == "DETR" else DsilEnveloppeFactory
+    )
+    ProjetFactory(
+        dossier_ds__demande_dispositif_sollicite=projet_type,
+    )
+
+    qs = Projet.objects.included_in_enveloppe(enveloppe=enveloppe)
+
+    assert qs.count() == count
+
+
+## Date
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "submitted_year, count",
+    [
+        (2023, 1),
+        (2024, 1),
+        (2025, 0),
+    ],
+)
+def test_for_year_2024_and_for_not_processed_states(year, count):
+    enveloppe = DetrEnveloppeFactory(annee=2024)
+    projet = SubmittedProjetFactory(
+        dossier_ds=DossierFactory(
+            dossier_ds__demande_dispositif_sollicite=enveloppe.type,
+            ds_date_depot=datetime(year, 12, 31, tzinfo=tz.utc),
+        ),
+    )
+    print(f"Test with {projet.dossier_ds.ds_state}")
+
+    qs = Projet.objects.for_enveloppe(enveloppe)
+
+    assert qs.count() == count
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "submitted_year, processed_year, count",
+    [
+        (2023, 2023, 0),
+        (2023, 2024, 1),
+        (2023, 2025, 1),
+        (2024, 2024, 1),
+        (2024, 2025, 1),
+        (2025, 2025, 0),
+    ],
+)
+def test_for_year_2024_and_for_processed_states(year, count):
+    enveloppe = DetrEnveloppeFactory(annee=2024)
+    projet = ProcessedProjetFactory(
+        dossier_ds=DossierFactory(
+            dossier_ds__demande_dispositif_sollicite=enveloppe.type,
+            ds_date_depot=datetime(year, 12, 31, tzinfo=tz.utc),
+            ds_date_traitement=datetime(year, 12, 31, tzinfo=tz.utc),
+        ),
+    )
+    print(f"Test with {projet.dossier_ds.ds_state}")
+
+    qs = Projet.objects.for_enveloppe(enveloppe)
+
+    assert qs.count() == count
+
+
+# Test for_current_year
+
+
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "state, ds_date_traitement",
@@ -153,9 +248,7 @@ def test_for_normal_user_with_perimetre(departement, projets):
         (Dossier.STATE_REFUSE, datetime(date.today().year, 1, 1, 0, 0, tzinfo=tz.utc)),
     ),
 )
-def test_keep_only_projet_to_deal_with_this_year_with_projet_to_display(
-    state, ds_date_traitement
-):
+def test_for_current_year_with_projet_to_display(state, ds_date_traitement):
     ProjetFactory(
         dossier_ds=DossierFactory(
             ds_state=state,
@@ -164,7 +257,7 @@ def test_keep_only_projet_to_deal_with_this_year_with_projet_to_display(
     )
 
     qs = Projet.objects.all()
-    qs = qs.to_deal_with_this_year()
+    qs = qs.for_current_year()
 
     assert qs.count() == 1
 
@@ -187,9 +280,7 @@ def test_keep_only_projet_to_deal_with_this_year_with_projet_to_display(
         ),
     ),
 )
-def test_keep_only_projet_to_deal_with_this_year_with_projet_to_archive(
-    state, ds_date_traitement
-):
+def test_for_current_year_with_projet_to_archive(state, ds_date_traitement):
     ProjetFactory(
         dossier_ds=DossierFactory(
             ds_state=state,
@@ -197,6 +288,20 @@ def test_keep_only_projet_to_deal_with_this_year_with_projet_to_archive(
         ),
     )
 
-    qs = Projet.objects.to_deal_with_this_year()
+    qs = Projet.objects.for_current_year()
 
     assert qs.count() == 0
+
+
+def for_year_with_projet_to_display(state, ds_date_traitement):
+    ProjetFactory(
+        dossier_ds=DossierFactory(
+            ds_state=state,
+            ds_date_traitement=ds_date_traitement,
+        ),
+    )
+
+    qs = Projet.objects.all()
+    qs = qs.for_year(date.today().year)
+
+    assert qs.count() == 1

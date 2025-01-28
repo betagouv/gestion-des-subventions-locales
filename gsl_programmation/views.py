@@ -66,11 +66,7 @@ class SimulationDetailView(DetailView):
         context["total_amount_granted"] = ProjetService.get_total_amount_granted(qs)
         context["available_states"] = SimulationProjet.STATUS_CHOICES
         context["filter_params"] = self.request.GET.urlencode()
-        context["enveloppe"] = {
-            "type": simulation.enveloppe.type,
-            "montant": simulation.enveloppe.montant,
-            "perimetre": simulation.enveloppe.perimetre,
-        }
+        context["enveloppe"] = self.get_enveloppe_data(simulation)
 
         context["breadcrumb_dict"] = {
             "links": [
@@ -100,6 +96,18 @@ class SimulationDetailView(DetailView):
         )
         qs.distinct()
         return qs
+
+    def get_enveloppe_data(self, simulation):
+        enveloppe = simulation.enveloppe
+        enveloppe_projets = Projet.objects.included_in_enveloppe(enveloppe)
+
+        return {
+            "type": simulation.enveloppe.type,
+            "montant": simulation.enveloppe.montant,
+            "perimetre": simulation.enveloppe.perimetre,
+            "demandeurs": enveloppe_projets.distinct("demandeur").count(),
+            "projets_count": enveloppe_projets.count(),
+        }
 
 
 def redirect_to_simulation_projet(request, simulation_projet):

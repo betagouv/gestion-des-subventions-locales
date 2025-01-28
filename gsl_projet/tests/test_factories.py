@@ -4,13 +4,20 @@ from ..models import (
     Demandeur,
     Projet,
 )
-from .factories import DemandeurFactory, ProjetFactory
+from .factories import (
+    DemandeurFactory,
+    ProcessedProjetFactory,
+    ProjetFactory,
+    SubmittedProjetFactory,
+)
 
 pytestmark = pytest.mark.django_db
 
 test_data = (
     (DemandeurFactory, Demandeur),
     (ProjetFactory, Projet),
+    (SubmittedProjetFactory, Projet),
+    (ProcessedProjetFactory, Projet),
 )
 
 

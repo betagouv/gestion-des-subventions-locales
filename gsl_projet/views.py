@@ -92,7 +92,7 @@ class ProjetListView(ListView):
 
     def get_queryset(self):
         qs = Projet.objects.for_user(self.request.user)
-        qs = qs.to_deal_with_this_year()
+        qs = qs.for_current_year()
         qs = ProjetService.add_filters_to_projets_qs(qs, self.request.GET)
         qs = ProjetService.add_ordering_to_projets_qs(qs, self.request.GET.get("tri"))
         return qs
