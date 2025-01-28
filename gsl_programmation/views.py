@@ -115,7 +115,9 @@ class SimulationDetailView(DetailView):
             "validated_projets_count": enveloppe_projets_processed.filter(
                 dossier_ds__ds_state=Dossier.STATE_ACCEPTE
             ).count(),
-            "montant_accepte": None,
+            "montant_accepte": enveloppe_projets_processed.aggregate(
+                Sum("dossier_ds__annotations_montant_accorde")
+            )["dossier_ds__annotations_montant_accorde__sum"],
             "refused_projets_count": enveloppe_projets_processed.filter(
                 dossier_ds__ds_state=Dossier.STATE_REFUSE
             ).count(),
