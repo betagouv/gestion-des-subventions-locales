@@ -107,6 +107,12 @@ class SimulationDetailView(DetailView):
             Sum("dossier_ds__demande_montant")
         )["dossier_ds__demande_montant__sum"]
 
+        montant_accepte = enveloppe_projets_processed.filter(
+            dossier_ds__ds_state=Dossier.STATE_ACCEPTE
+        ).aggregate(Sum("dossier_ds__annotations_montant_accorde"))[
+            "dossier_ds__annotations_montant_accorde__sum"
+        ]
+
         return {
             "type": simulation.enveloppe.type,
             "montant": simulation.enveloppe.montant,
@@ -115,9 +121,7 @@ class SimulationDetailView(DetailView):
             "validated_projets_count": enveloppe_projets_processed.filter(
                 dossier_ds__ds_state=Dossier.STATE_ACCEPTE
             ).count(),
-            "montant_accepte": enveloppe_projets_processed.aggregate(
-                Sum("dossier_ds__annotations_montant_accorde")
-            )["dossier_ds__annotations_montant_accorde__sum"],
+            "montant_accepte": montant_accepte,
             "refused_projets_count": enveloppe_projets_processed.filter(
                 dossier_ds__ds_state=Dossier.STATE_REFUSE
             ).count(),
