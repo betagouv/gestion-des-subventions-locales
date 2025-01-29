@@ -71,6 +71,11 @@ class CollegueAdmin(UserAdmin, admin.ModelAdmin):
         ),
         ("Dates", {"fields": ("last_login", "date_joined")}),
     )
+    autocomplete_fields = ["perimetre"]
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related("perimetre__departement", "perimetre__region")
 
 
 @admin.register(Adresse)
@@ -107,7 +112,12 @@ class CommuneAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
 
 @admin.register(Perimetre)
 class PerimetreAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    pass
+    search_fields = ["departement__name", "region__name"]
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        queryset = queryset.select_related("departement", "region")
+        return queryset
 
 
 admin.site.unregister(Group)
