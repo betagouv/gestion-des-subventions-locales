@@ -25,7 +25,30 @@
   min-width: 90px;
   width: 130px;
   border-top: 1px solid var(--border-default-grey);
+  line-height: calc(1rem * 15/16);;
+  height: 42px;
 }
+
+.enveloppe-summary th div {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: center;
+}
+
+.enveloppe-summary th .text {
+  width: min-content;
+}
+
+.enveloppe-summary th .text.min-width-90 {
+  min-width: 90px; /* Hack pour éviter que le texte ne se mette sur 3 lignes */
+}
+
+.enveloppe-summary th .icon {
+  flex-shrink: 0; /* Prevents icon from shrinking */
+}
+
+
 .enveloppe-summary tr {
   border-bottom: 1px solid var(--border-default-grey);
 }
