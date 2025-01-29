@@ -1,5 +1,3 @@
-from random import choice
-
 import factory
 
 from gsl_core.tests.factories import (
@@ -38,14 +36,16 @@ class ProjetFactory(factory.django.DjangoModelFactory):
 class SubmittedProjetFactory(ProjetFactory):
     dossier_ds = factory.SubFactory(
         DossierFactory,
-        ds_state=choice((Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION)),
+        ds_state=factory.fuzzy.FuzzyChoice(
+            (Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION)
+        ),
     )
 
 
 class ProcessedProjetFactory(ProjetFactory):
     dossier_ds = factory.SubFactory(
         DossierFactory,
-        ds_state=choice(
+        ds_state=factory.fuzzy.FuzzyChoice(
             (Dossier.STATE_ACCEPTE, Dossier.STATE_REFUSE, Dossier.STATE_SANS_SUITE)
         ),
     )
