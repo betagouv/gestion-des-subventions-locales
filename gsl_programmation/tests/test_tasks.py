@@ -53,7 +53,7 @@ def dsil_simulation(region_perimetre):
 def detr_projets(departement_perimetre):
     projets = []
     for montant, assiette, state, date_traitement in [
-        (1_000, 2_000, Dossier.STATE_EN_CONSTRUCTION, datetime(2024, 1, 1, tzinfo=UTC)),
+        (1_000, 3_000, Dossier.STATE_EN_CONSTRUCTION, datetime(2024, 1, 1, tzinfo=UTC)),
         (600, None, Dossier.STATE_EN_INSTRUCTION, datetime(2023, 1, 1, tzinfo=UTC)),
         (2_000, 3_000, Dossier.STATE_ACCEPTE, datetime(2024, 1, 1, tzinfo=UTC)),
         (2_000, 4_000, Dossier.STATE_ACCEPTE, datetime(2025, 1, 1, tzinfo=UTC)),
@@ -84,7 +84,7 @@ def detr_projets(departement_perimetre):
 def dsil_projets(departement_perimetre):
     projets = []
     for montant, assiette, state, date_traitement in [
-        (1_000, 2_000, Dossier.STATE_EN_CONSTRUCTION, datetime(2024, 1, 1, tzinfo=UTC)),
+        (1_000, 4_000, Dossier.STATE_EN_CONSTRUCTION, datetime(2024, 1, 1, tzinfo=UTC)),
         (600, None, Dossier.STATE_EN_INSTRUCTION, datetime(2023, 1, 1, tzinfo=UTC)),
         (2_000, 4_000, Dossier.STATE_ACCEPTE, datetime(2024, 12, 21, tzinfo=UTC)),
         (5_000, 10_000, Dossier.STATE_ACCEPTE, datetime(2025, 1, 1, tzinfo=UTC)),
@@ -123,8 +123,8 @@ def test_add_enveloppe_projets_to_detr_simulation(
         enveloppe=detr_simulation.enveloppe,
         simulation=detr_simulation,
     )
-    assert simulation_projet.montant == 1000
-    assert simulation_projet.taux == 0.5
+    assert simulation_projet.montant == 1_000
+    assert simulation_projet.taux == Decimal("33.33")
     assert simulation_projet.status == SimulationProjet.STATUS_DRAFT
     assert simulation_projet.enveloppe.type == "DETR"
 
@@ -144,7 +144,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
         simulation=detr_simulation,
     )
     assert simulation_projet.montant == 2_000
-    assert simulation_projet.taux == Decimal("0.5")
+    assert simulation_projet.taux == 50
     assert simulation_projet.status == SimulationProjet.STATUS_VALID
     assert simulation_projet.enveloppe.type == "DETR"
 
@@ -184,7 +184,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
     )
     assert simulation_projet.status == SimulationProjet.STATUS_DRAFT
     assert simulation_projet.montant == 1_000
-    assert simulation_projet.taux == 0.5
+    assert simulation_projet.taux == 25
     assert simulation_projet.enveloppe.type == "DSIL"
 
     simulation_projet = SimulationProjet.objects.get(
@@ -204,7 +204,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
     )
     assert simulation_projet.status == SimulationProjet.STATUS_VALID
     assert simulation_projet.montant == 5_000
-    assert simulation_projet.taux == Decimal("0.5")
+    assert simulation_projet.taux == 50
     assert simulation_projet.enveloppe.type == "DSIL"
 
     simulation_projet = SimulationProjet.objects.get(

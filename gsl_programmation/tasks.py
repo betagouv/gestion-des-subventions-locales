@@ -27,7 +27,7 @@ def add_enveloppe_projets_to_simulation(simulation_id):
     for projet in selected_projets:
         asked_amount = projet.dossier_ds.demande_montant or 0
         try:
-            taux = asked_amount / projet.assiette_or_cout_total
+            taux = asked_amount * 100 / projet.assiette_or_cout_total
         except (ZeroDivisionError, TypeError):
             taux = 0
 
