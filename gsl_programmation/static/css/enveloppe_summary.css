@@ -47,3 +47,11 @@
 .enveloppe-summary .color-blue {
   color: var(--text-label-blue-france);
 }
+
+.enveloppe-summary .color-green-archipel {
+  background-color: var(--artwork-background-green-archipel);
+}
+
+.enveloppe-summary .color-green-bourgeon {
+  background-color: var(--artwork-background-green-bourgeon);
+}

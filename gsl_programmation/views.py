@@ -1,7 +1,7 @@
 import logging
 
 from django.core.paginator import Paginator
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Sum
 from django.http import JsonResponse
 from django.http.request import QueryDict
 from django.shortcuts import redirect, render
@@ -10,6 +10,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.forms import SimulationForm
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_programmation.services.simulation_projet_service import (
@@ -66,11 +67,7 @@ class SimulationDetailView(DetailView):
         context["total_amount_granted"] = ProjetService.get_total_amount_granted(qs)
         context["available_states"] = SimulationProjet.STATUS_CHOICES
         context["filter_params"] = self.request.GET.urlencode()
-        context["enveloppe"] = {
-            "type": simulation.enveloppe.type,
-            "montant": simulation.enveloppe.montant,
-            "perimetre": simulation.enveloppe.perimetre,
-        }
+        context["enveloppe"] = self.get_enveloppe_data(simulation)
 
         context["breadcrumb_dict"] = {
             "links": [
@@ -100,6 +97,37 @@ class SimulationDetailView(DetailView):
         )
         qs.distinct()
         return qs
+
+    def get_enveloppe_data(self, simulation):
+        enveloppe = simulation.enveloppe
+        enveloppe_projets_included = Projet.objects.included_in_enveloppe(enveloppe)
+        enveloppe_projets_processed = Projet.objects.processed_in_enveloppe(enveloppe)
+
+        montant_asked = enveloppe_projets_included.aggregate(
+            Sum("dossier_ds__demande_montant")
+        )["dossier_ds__demande_montant__sum"]
+
+        montant_accepte = enveloppe_projets_processed.filter(
+            dossier_ds__ds_state=Dossier.STATE_ACCEPTE
+        ).aggregate(Sum("dossier_ds__annotations_montant_accorde"))[
+            "dossier_ds__annotations_montant_accorde__sum"
+        ]
+
+        return {
+            "type": simulation.enveloppe.type,
+            "montant": simulation.enveloppe.montant,
+            "perimetre": simulation.enveloppe.perimetre,
+            "montant_asked": montant_asked,
+            "validated_projets_count": enveloppe_projets_processed.filter(
+                dossier_ds__ds_state=Dossier.STATE_ACCEPTE
+            ).count(),
+            "montant_accepte": montant_accepte,
+            "refused_projets_count": enveloppe_projets_processed.filter(
+                dossier_ds__ds_state=Dossier.STATE_REFUSE
+            ).count(),
+            "demandeurs": enveloppe_projets_included.distinct("demandeur").count(),
+            "projets_count": enveloppe_projets_included.count(),
+        }
 
 
 def redirect_to_simulation_projet(request, simulation_projet):

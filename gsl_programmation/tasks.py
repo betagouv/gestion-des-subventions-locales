@@ -22,7 +22,7 @@ def add_enveloppe_projets_to_simulation(simulation_id):
     selected_projets = Projet.objects.for_perimetre(simulation_perimetre).filter(
         dossier_ds__demande_dispositif_sollicite=simulation_dotation
     )
-    selected_projets = selected_projets.to_deal_with_this_year()
+    selected_projets = selected_projets.for_current_year()
 
     for projet in selected_projets:
         asked_amount = projet.dossier_ds.demande_montant or 0
