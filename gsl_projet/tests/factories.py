@@ -46,6 +46,6 @@ class ProcessedProjetFactory(ProjetFactory):
     dossier_ds = factory.SubFactory(
         DossierFactory,
         ds_state=choice(
-            [Dossier.STATE_ACCEPTE, Dossier.STATE_REFUSE, Dossier.STATE_SANS_SUITE]
+            (Dossier.STATE_ACCEPTE, Dossier.STATE_REFUSE, Dossier.STATE_SANS_SUITE)
         ),
     )

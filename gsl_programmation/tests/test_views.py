@@ -56,13 +56,13 @@ def simulation(perimetre_departemental):
 def projets(simulation, perimetre_departemental):
     projets = []
     for perimetre in [perimetre_departemental, PerimetreDepartementalFactory()]:
-        for type in ["DETR", "DSIL"]:
+        for type in ("DETR", "DSIL"):
             demandeur = DemandeurFactory(departement=perimetre.departement)
-            for state in [
+            for state in (
                 Dossier.STATE_ACCEPTE,
                 Dossier.STATE_REFUSE,
                 Dossier.STATE_SANS_SUITE,
-            ]:
+            ):
                 dossier_2024 = DossierFactory(
                     ds_state=state,
                     ds_date_depot=datetime(2023, 10, 1, tzinfo=UTC),
@@ -89,7 +89,7 @@ def projets(simulation, perimetre_departemental):
                 projets.append(projet_2025)
 
             demandeur = DemandeurFactory(departement=perimetre.departement)
-            for state in [Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION]:
+            for state in (Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION):
                 dossier_2024 = DossierFactory(
                     ds_state=state,
                     ds_date_depot=datetime(2024, 2, 12, tzinfo=UTC),
