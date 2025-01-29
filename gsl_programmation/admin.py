@@ -12,11 +12,20 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
     resource_classes = (EnveloppeDETRResource, EnveloppeDSILResource)
     list_display = ("__str__", "montant", "type", "annee")
     list_filter = ("type", "annee")
+    search_fields = (
+        "type",
+        "annee",
+        "perimetre__region__name",
+        "perimetre__departement__name",
+        "perimetre__arrondissement__name",
+    )
 
 
 @admin.register(Simulation)
 class SimulationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    pass
+    readonly_fields = ("created_at", "updated_at")
+    raw_id_fields = ("created_by",)
+    autocomplete_fields = ("enveloppe", "created_by")
 
 
 @admin.register(SimulationProjet)
