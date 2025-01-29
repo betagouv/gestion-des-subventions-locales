@@ -54,8 +54,9 @@ def simulation(perimetre_departemental):
 
 @pytest.fixture
 def projets(simulation, perimetre_departemental):
+    other_perimeter = PerimetreDepartementalFactory()
     projets = []
-    for perimetre in [perimetre_departemental, PerimetreDepartementalFactory()]:
+    for perimetre in [perimetre_departemental, other_perimeter]:
         for type in ("DETR", "DSIL"):
             demandeur = DemandeurFactory(departement=perimetre.departement)
             for state in (
