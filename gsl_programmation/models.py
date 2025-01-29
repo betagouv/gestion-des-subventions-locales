@@ -90,7 +90,7 @@ class Simulation(models.Model):
     def get_absolute_url(self):
         from django.urls import reverse
 
-        return reverse("programmation:simulation_detail", kwargs={"slug": self.slug})
+        return reverse("programmation:simulation-detail", kwargs={"slug": self.slug})
 
     def get_projet_status_summary(self):
         default_status_summary = {
