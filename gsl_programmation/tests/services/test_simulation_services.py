@@ -37,6 +37,17 @@ def test_user_with_department_and_ask_for_dsil_simulation():
     assert simulation.slug == "test"
 
 
+def test_empty_enveloppe_is_created_if_needed():
+    perimetre_departemental = PerimetreDepartementalFactory()
+    user = CollegueFactory(perimetre=perimetre_departemental)
+    assert Enveloppe.objects.count() == 0
+
+    simulation = SimulationService.create_simulation(user, "Test", Enveloppe.TYPE_DETR)
+
+    assert Enveloppe.objects.count() == 1
+    assert simulation.enveloppe.type == Enveloppe.TYPE_DETR
+
+
 def test_user_with_department_and_ask_for_detr_simulation():
     perimetre_departemental = PerimetreDepartementalFactory()
     user = CollegueFactory(perimetre=perimetre_departemental)
