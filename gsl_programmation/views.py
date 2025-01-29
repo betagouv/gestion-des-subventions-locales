@@ -42,7 +42,9 @@ class SimulationListView(ListView):
         visible_by_user_enveloppes = EnveloppeService.get_enveloppes_visible_for_a_user(
             self.request.user
         )
-        return Simulation.objects.filter(enveloppe__in=visible_by_user_enveloppes)
+        return Simulation.objects.filter(
+            enveloppe__in=visible_by_user_enveloppes
+        ).order_by("-created_at")
 
 
 class SimulationDetailView(DetailView):
