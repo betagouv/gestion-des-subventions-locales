@@ -23,9 +23,33 @@ from .tasks import (
 
 @admin.register(Demarche)
 class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    readonly_fields = [field.name for field in Demarche._meta.get_fields()]
+    readonly_fields = tuple(
+        field.name
+        for field in Demarche._meta.get_fields()
+        if field.name != "raw_ds_data"
+    )
     list_display = ("ds_number", "ds_title", "ds_state")
     actions = ("refresh_field_mappings",)
+    formfield_overrides = {
+        JSONField: {"widget": JSONEditorWidget},
+    }
+    fieldsets = (
+        (None, {"fields": ("ds_number", "ds_id", "ds_title", "ds_state")}),
+        ("Dates", {"fields": ("ds_date_creation", "ds_date_fermeture")}),
+        (
+            "Instructeurs",
+            {
+                "fields": ("ds_instructeurs",),
+            },
+        ),
+        (
+            "Données brutes",
+            {
+                "fields": ("raw_ds_data",),
+                "classes": ("collapse", "open"),
+            },
+        ),
+    )
 
     @admin.action(description="Rafraîchir les correspondances de champs")
     def refresh_field_mappings(self, request, queryset):
