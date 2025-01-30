@@ -239,3 +239,8 @@ class Collegue(AbstractUser):
     perimetre = models.ForeignKey(
         Perimetre, on_delete=models.PROTECT, null=True, blank=True
     )
+
+    def __str__(self) -> str:
+        if self.first_name or self.last_name:
+            return f"{self.first_name} {self.last_name}".strip()
+        return self.username
