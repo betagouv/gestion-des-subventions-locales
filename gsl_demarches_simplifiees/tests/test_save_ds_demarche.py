@@ -96,11 +96,47 @@ def test_new_human_mapping_is_created_if_ds_label_is_unknown(
     ).exists()
 
     assert (
-        FieldMappingForComputer.objects.count() == 7
-    ), "7 technical mappings should be created."
+        FieldMappingForComputer.objects.filter(
+            ds_field_type="DecimalNumberChampDescriptor"
+        ).count()
+        == 4
+    )
     assert (
-        FieldMappingForComputer.objects.exclude(django_field="").count() == 5
-    ), "Only 5 mappings should be associated with an existing field."
+        FieldMappingForComputer.objects.filter(
+            ds_field_type="DropDownListChampDescriptor"
+        ).count()
+        == 2
+    )
+    assert (
+        FieldMappingForComputer.objects.filter(
+            ds_field_type="SiretChampDescriptor"
+        ).count()
+        == 1
+    )
+    assert (
+        FieldMappingForComputer.objects.filter(
+            ds_field_type="TextChampDescriptor"
+        ).count()
+        == 2
+    )
+    assert (
+        FieldMappingForComputer.objects.filter(
+            ds_field_type="YesNoChampDescriptor"
+        ).count()
+        == 1
+    )
+    assert (
+        FieldMappingForComputer.objects.filter(
+            ds_field_type="MultipleDropDownListChampDescriptor"
+        ).count()
+        == 1
+    )
+    assert (
+        FieldMappingForComputer.objects.count() == 13
+    ), "13 computer mappings should have been created."
+    assert (
+        FieldMappingForComputer.objects.exclude(django_field="").count() == 11
+    ), "Only 11 mappings should be associated with an existing field."
 
 
 def test_existing_human_mapping_is_used_if_possible(

@@ -74,7 +74,10 @@ def save_field_mappings(demarche_data, demarche):
     reversed_mapping = {
         field.verbose_name: field.name for field in Dossier.MAPPED_FIELDS
     }
-    for champ_descriptor in demarche_data["activeRevision"]["champDescriptors"]:
+    for champ_descriptor in (
+        demarche_data["activeRevision"]["champDescriptors"]
+        + demarche_data["activeRevision"]["annotationDescriptors"]
+    ):
         ds_type = champ_descriptor["__typename"]
         if ds_type not in IMPORTED_DS_FIELDS:
             continue

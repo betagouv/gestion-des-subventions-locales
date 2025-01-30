@@ -214,7 +214,11 @@ class Dossier(DsModel):
     # ---
     projet_intitule = models.CharField("Intitulé du projet", blank=True)
     projet_adresse = models.ForeignKey(
-        Adresse, on_delete=models.PROTECT, blank=True, null=True
+        Adresse,
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True,
+        verbose_name="Adresse principale du projet",
     )
     projet_immo = models.BooleanField(
         "Le projet d'investissement comprend-il des acquisitions immobilières ?",
@@ -346,7 +350,7 @@ class Dossier(DsModel):
         max_digits=12,
         decimal_places=2,
         null=True,
-    )  # bon nombre de décimales
+    )
     annotations_montant_accorde = models.DecimalField(
         "Montant définitif de la subvention (€)",
         max_digits=12,
@@ -393,6 +397,15 @@ class Dossier(DsModel):
         demande_autre_numero_dossier,
         demande_autre_dsil_detr,
         demande_priorite_dsil_detr,
+        annotations_contact,
+        annotations_champ_libre,
+        annotations_dotation,
+        annotations_is_budget_vert,
+        annotations_is_qpv,
+        annotations_is_crte,
+        annotations_assiette,
+        annotations_montant_accorde,
+        annotations_taux,
     )
 
     class Meta:
