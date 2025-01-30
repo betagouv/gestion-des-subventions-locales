@@ -15,13 +15,22 @@ from .models import (
     Profile,
 )
 from .resources import FieldMappingForComputerResource, FieldMappingForHumanResource
-from .tasks import task_refresh_dossier_from_saved_data
+from .tasks import (
+    task_refresh_dossier_from_saved_data,
+    task_refresh_field_mappings_on_demarche,
+)
 
 
 @admin.register(Demarche)
 class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     readonly_fields = [field.name for field in Demarche._meta.get_fields()]
     list_display = ("ds_number", "ds_title", "ds_state")
+    actions = ("refresh_field_mappings",)
+
+    @admin.action(description="Rafraîchir les correspondances de champs")
+    def refresh_field_mappings(self, request, queryset):
+        for demarche in queryset:
+            task_refresh_field_mappings_on_demarche(demarche.ds_number)
 
 
 @admin.register(PersonneMorale)

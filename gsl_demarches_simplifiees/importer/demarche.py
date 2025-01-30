@@ -36,6 +36,14 @@ def save_demarche_from_ds(demarche_number):
     save_field_mappings(demarche_data, demarche)
 
 
+def refresh_field_mappings_on_demarche(demarche_number):
+    demarche = Demarche.objects.get(ds_number=demarche_number)
+    if demarche.raw_ds_data:
+        save_field_mappings(demarche.raw_ds_data, demarche)
+    else:
+        save_demarche_from_ds(demarche_number)
+
+
 def get_or_create_demarche(demarche_data):
     ds_fields = ("id", "number", "title", "state", "date_creation", "date_fermeture")
     django_data = {
