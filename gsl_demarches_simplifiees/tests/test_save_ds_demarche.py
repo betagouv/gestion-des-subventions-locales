@@ -87,12 +87,20 @@ def test_new_human_mapping_is_created_if_ds_label_is_unknown(
 
     save_field_mappings(demarche_data_without_dossier, demarche)
 
-    assert FieldMappingForHuman.objects.count() == 2
+    assert (
+        FieldMappingForHuman.objects.count() == 2
+    ), "Two human mappings should be created."
     assert FieldMappingForHuman.objects.filter(label="Commentaire libre").exists()
     assert FieldMappingForHuman.objects.filter(
         label="Un champ qui ne porte pas ce nom-là dans Django"
     ).exists()
-    assert FieldMappingForComputer.objects.count() == 5
+
+    assert (
+        FieldMappingForComputer.objects.count() == 7
+    ), "7 technical mappings should be created."
+    assert (
+        FieldMappingForComputer.objects.exclude(django_field="").count() == 5
+    ), "Only 5 mappings should be associated with an existing field."
 
 
 def test_existing_human_mapping_is_used_if_possible(

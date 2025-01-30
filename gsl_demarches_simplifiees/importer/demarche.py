@@ -73,31 +73,26 @@ def save_field_mappings(demarche_data, demarche):
         ds_label = champ_descriptor["label"]
         ds_id = champ_descriptor["id"]
         qs_human_mapping = FieldMappingForHuman.objects.filter(label=ds_label)
-        qs_computer_mapping = FieldMappingForComputer.objects.filter(
-            ds_field_id=ds_id, demarche=demarche
+        computer_mapping, _ = FieldMappingForComputer.objects.get_or_create(
+            ds_field_id=ds_id,
+            demarche=demarche,
+            defaults={
+                "ds_field_label": ds_label,
+                "ds_field_type": ds_type,
+            },
         )
-        if qs_computer_mapping.exists():
+        if computer_mapping.django_field:  # field is already mapped, continue
             continue
-        if qs_human_mapping.exists():
+        if qs_human_mapping.exists():  # we have a label which is known
             human_mapping = qs_human_mapping.get()
             if human_mapping.django_field:
-                FieldMappingForComputer.objects.create(
-                    ds_field_id=ds_id,
-                    demarche=demarche,
-                    ds_field_label=ds_label,
-                    ds_field_type=ds_type,
-                    django_field=human_mapping.django_field,
-                    field_mapping_for_human=human_mapping,
-                )
+                computer_mapping.django_field = human_mapping.django_field
+                computer_mapping.field_mapping_for_human = human_mapping
+                computer_mapping.save()
                 continue
         if ds_label in reversed_mapping:
-            FieldMappingForComputer.objects.create(
-                ds_field_id=ds_id,
-                demarche=demarche,
-                ds_field_label=ds_label,
-                ds_field_type=ds_type,
-                django_field=reversed_mapping.get(ds_label),
-            )
+            computer_mapping.django_field = reversed_mapping.get(ds_label)
+            computer_mapping.save()
             continue
         if not qs_human_mapping.exists():
             FieldMappingForHuman.objects.create(
