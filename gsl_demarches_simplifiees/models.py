@@ -364,7 +364,7 @@ class Dossier(DsModel):
         null=True,
     )
 
-    MAPPED_FIELDS = (
+    _MAPPED_CHAMPS_FIELDS = (
         porteur_de_projet_nature,
         porteur_de_projet_arrondissement,
         porteur_de_projet_fonction,
@@ -397,6 +397,8 @@ class Dossier(DsModel):
         demande_autre_numero_dossier,
         demande_autre_dsil_detr,
         demande_priorite_dsil_detr,
+    )
+    _MAPPED_ANNOTATIONS_FIELDS = (
         annotations_contact,
         annotations_champ_libre,
         annotations_dotation,
@@ -407,6 +409,7 @@ class Dossier(DsModel):
         annotations_montant_accorde,
         annotations_taux,
     )
+    MAPPED_FIELDS = _MAPPED_ANNOTATIONS_FIELDS + _MAPPED_CHAMPS_FIELDS
 
     class Meta:
         verbose_name = "Dossier"
