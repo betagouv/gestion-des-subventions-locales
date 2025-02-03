@@ -1,9 +1,10 @@
-from django.forms import Select
+from django.db.models import Q
+from django.forms import NumberInput, Select
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET
 from django.views.generic import ListView
-from django_filters import ChoiceFilter, FilterSet
+from django_filters import ChoiceFilter, FilterSet, NumberFilter
 from django_filters.views import FilterView
 
 from gsl_demarches_simplifiees.models import Dossier
@@ -114,9 +115,35 @@ class ProjetFilters(FilterSet):
             )
         )
 
+    cout_min = NumberFilter(
+        method="filter_cout_min",
+        widget=NumberInput(
+            attrs={"class": "fr-input"},
+        ),
+    )
+
+    def filter_cout_min(self, queryset, _name, value):
+        return queryset.filter(
+            Q(assiette__isnull=False, assiette__gte=value)
+            | Q(assiette__isnull=True, dossier_ds__finance_cout_total__gte=value)
+        )
+
+    cout_max = NumberFilter(
+        method="filter_cout_max",
+        widget=NumberInput(
+            attrs={"class": "fr-input"},
+        ),
+    )
+
+    def filter_cout_max(self, queryset, _name, value):
+        return queryset.filter(
+            Q(assiette__isnull=False, assiette__lte=value)
+            | Q(assiette__isnull=True, dossier_ds__finance_cout_total__lte=value)
+        )
+
     class Meta:
         model = Projet
-        fields = ["dotation", "porteur"]
+        fields = ["dotation", "porteur", "cout_min", "cout_max"]
 
     @property
     def qs(self):

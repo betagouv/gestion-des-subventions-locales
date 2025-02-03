@@ -1,0 +1,20 @@
+
+.filter-dropdown {
+  margin-top: 44px;
+}
+
+.filter-content {
+  display: none;
+  position: absolute;
+  background-color: white;
+  min-width: 200px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  border-radius: 8px;
+  z-index: 1000;
+}
+.filter-content > button {
+  margin-top: 1rem;
+  width: 100%;
+  justify-content: center;
+}

@@ -1,3 +1,9 @@
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/projet_list_filters.css' %}">
+{% endblock extra_css %}
+
 <form method="get"
       action="{{ request.path }}{% querystring %}"
       class="fr-background-alt--blue-france">
@@ -59,6 +65,29 @@
                 {{ filter.form.porteur }}
             </div>
 
+            <div class="filter-dropdown">
+                <button type="button" class="fr-select" id="filter-total-cost-button">
+                    Coût total
+                </button>
+                <div class="filter-content">
+                    <div>
+                        <label class="fr-label" for="id_cost_min">
+                            Coût minimum
+                        </label>
+                        {{ filter.form.cout_min }}
+                    </div>
+                    <div>
+                        <label class="fr-label" for="id_cost_max">
+                            Coût maximum
+                        </label>
+                        {{ filter.form.cout_max }}
+                    </div>
+                    <button type="submit" class="fr-btn fr-btn--sm">
+                        Filtrer
+                    </button>
+                </div>
+            </div>
+
             {% comment %} <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
                 <label class="fr-label" for="cout_min">
                     Coût total minimum
@@ -74,3 +103,21 @@
         </div>
     </div>
 </form>
+
+
+<script>
+        // Permet de fermer le dropdown quand on clique à l'extérieur
+        document.addEventListener('click', function(event) {
+            let dropdown = document.querySelector('.filter-dropdown');
+            if (!dropdown.contains(event.target)) {
+                document.querySelector('.filter-content').style.display = 'none';
+            }
+        });
+    
+        document.querySelector('#filter-total-cost-button').addEventListener('click', function(event) {
+            console.log('click');
+            event.stopPropagation();
+            let content = document.querySelector('.filter-content');
+            content.style.display = content.style.display === 'block' ? 'none' : 'block';
+        });
+</script>
