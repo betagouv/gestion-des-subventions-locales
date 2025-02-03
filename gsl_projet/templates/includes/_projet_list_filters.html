@@ -9,10 +9,7 @@
                     Trier par
                 </label>
                 <select name="tri" id="tri" class="fr-select" onchange="this.form.submit()">
-                    <option value=""
-                            {% if request.GET.tri == None %}selected{% endif %}
-                            disabled
-                            hidden>
+                    <option value="" selected disabled hidden>
                         Tri
                     </option>
                     <optgroup label="Date">
@@ -48,22 +45,22 @@
                 </select>
             </div>
             <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
-                <label class="fr-label" for="dispositif">
-                    Dispositif
+                <label class="fr-label" for="dotation">
+                    Dotation
                 </label>
-                <select name="dispositif"
-                        id="dispositif"
+                <select name="dotation"
+                        id="dotation"
                         class="fr-select"
                         onchange="this.form.submit()">
-                    <option value="">
-                        Tous les dispositifs
+                    <option value="" selected disabled hidden>
+                        Toutes les dotation
                     </option>
                     <option value="DETR"
-                            {% if request.GET.dispositif == 'DETR' %}selected{% endif %}>
+                            {% if request.GET.dotation == 'DETR' %}selected{% endif %}>
                         DETR
                     </option>
                     <option value="DSIL"
-                            {% if request.GET.dispositif == 'DSIL' %}selected{% endif %}>
+                            {% if request.GET.dotation == 'DSIL' %}selected{% endif %}>
                         DSIL
                     </option>
                 </select>
@@ -76,7 +73,7 @@
                         id="porteur"
                         class="fr-select"
                         onchange="this.form.submit()">
-                    <option value="">
+                    <option value="" selected disabled hidden>
                         Tous les porteurs
                     </option>
                     {% for value in porteur_mappings %}

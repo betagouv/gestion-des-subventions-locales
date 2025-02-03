@@ -35,9 +35,9 @@ class ProjetService:
 
     @classmethod
     def add_filters_to_projets_qs(cls, qs, filters: dict):
-        dispositif = filters.get("dispositif")
-        if dispositif:
-            qs = qs.filter(dossier_ds__demande_dispositif_sollicite=dispositif)
+        dotation = filters.get("dotation")
+        if dotation:
+            qs = qs.filter(dossier_ds__demande_dispositif_sollicite=dotation)
 
         cout_min = filters.get("cout_min")
         if cout_min and cout_min.isnumeric():
