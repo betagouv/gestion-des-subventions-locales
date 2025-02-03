@@ -110,6 +110,11 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         for dossier in queryset:
             task_refresh_dossier_from_saved_data.delay(dossier.ds_number)
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.select_related("ds_demarche")
+        return qs
+
 
 @admin.register(FieldMappingForHuman)
 class FieldMappingForHumanAdmin(
@@ -118,6 +123,11 @@ class FieldMappingForHumanAdmin(
     list_display = ("label", "django_field", "demarche")
     resource_classes = (FieldMappingForHumanResource,)
     list_filter = ("demarche",)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.select_related("demarche")
+        return qs
 
 
 @admin.register(FieldMappingForComputer)
@@ -140,3 +150,8 @@ class ProfileAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 @admin.register(Arrondissement)
 class ArrondissementAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = ("__str__", "core_arrondissement")
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.select_related("core_arrondissement")
+        return qs

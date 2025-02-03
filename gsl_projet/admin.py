@@ -15,3 +15,8 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("address", "departement")
     list_display = ("__str__", "dossier_ds__ds_state", "address", "departement")
     list_filter = ("departement", "dossier_ds__ds_state")
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.select_related("address").select_related("departement")
+        return qs

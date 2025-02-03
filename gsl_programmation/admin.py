@@ -21,6 +21,16 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
         "perimetre__arrondissement__name",
     )
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = (
+            qs.select_related("perimetre")
+            .select_related("perimetre__region")
+            .select_related("perimetre__departement")
+            .select_related("perimetre__arrondissement")
+        )
+        return qs
+
 
 class SimulationRegionFilter(admin.SimpleListFilter):
     # Human-readable title which will be displayed in the
@@ -79,7 +89,7 @@ class SimulationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
     raw_id_fields = ("created_by",)
     autocomplete_fields = ("enveloppe", "created_by")
-    list_display = ("__str__", "enveloppe", "created_at")
+    list_display = ("__str__", "enveloppe", "created_at", "slug")
     list_filter = (
         "enveloppe__annee",
         "enveloppe__type",
@@ -89,12 +99,32 @@ class SimulationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = qs.select_related("enveloppe")
+        qs = (
+            qs.select_related("enveloppe")
+            .select_related("enveloppe__perimetre")
+            .select_related("enveloppe__perimetre__region")
+            .select_related("enveloppe__perimetre__departement")
+            .select_related("enveloppe__perimetre__arrondissement")
+        )
         return qs
 
 
 @admin.register(SimulationProjet)
 class SimulationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    list_display = ("__str__", "projet__dossier_ds__projet_intitule")
+    list_display = (
+        "__str__",
+        "projet__dossier_ds__projet_intitule",
+        "simulation__slug",
+        "status",
+    )
     search_fields = ("projet__dossier_ds__projet_intitule",)
     raw_id_fields = ("projet",)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = (
+            qs.select_related("projet")
+            .select_related("projet__dossier_ds")
+            .select_related("simulation")
+        )
+        return qs
