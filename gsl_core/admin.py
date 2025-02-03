@@ -39,7 +39,7 @@ class AllPermsForStaffUser:
 
 
 @admin.register(Collegue)
-class CollegueAdmin(UserAdmin, admin.ModelAdmin):
+class CollegueAdmin(AllPermsForStaffUser, UserAdmin, admin.ModelAdmin):
     list_display = (
         "username",
         "email",
