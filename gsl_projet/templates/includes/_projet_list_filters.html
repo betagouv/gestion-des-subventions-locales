@@ -44,27 +44,14 @@
                     </optgroup>
                 </select>
             </div>
+
             <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
                 <label class="fr-label" for="dotation">
                     Dotation
                 </label>
-                <select name="dotation"
-                        id="dotation"
-                        class="fr-select"
-                        onchange="this.form.submit()">
-                    <option value="" selected disabled hidden>
-                        Toutes les dotation
-                    </option>
-                    <option value="DETR"
-                            {% if request.GET.dotation == 'DETR' %}selected{% endif %}>
-                        DETR
-                    </option>
-                    <option value="DSIL"
-                            {% if request.GET.dotation == 'DSIL' %}selected{% endif %}>
-                        DSIL
-                    </option>
-                </select>
+                {{ filter.form.dotation }}
             </div>
+
             <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
                 <label class="fr-label" for="porteur">
                     Porteurs de projet

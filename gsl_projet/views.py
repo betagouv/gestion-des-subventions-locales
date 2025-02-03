@@ -1,8 +1,12 @@
+from django.forms import Select
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET
 from django.views.generic import ListView
+from django_filters import ChoiceFilter, FilterSet
+from django_filters.views import FilterView
 
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.services import ProjetService
 
 from .models import Projet
@@ -74,9 +78,39 @@ def get_projet(request, projet_id):
     return render(request, "gsl_projet/projet.html", context)
 
 
-class ProjetListView(ListView):
+class ProjetFilters(FilterSet):
+    dotation = ChoiceFilter(
+        field_name="dossier_ds__demande_dispositif_sollicite",
+        choices=Dossier.DEMANDE_DISPOSITIF_SOLLICITE_VALUES,
+        label="Dotation",
+        widget=Select(
+            attrs={
+                "class": "fr-select",
+                "onchange": "this.form.submit()",
+                "placeholder": "Toutes les dotations",
+            }
+        ),
+    )
+
+    class Meta:
+        model = Projet
+        fields = ["dotation"]
+
+    @property
+    def qs(self):
+        qs = super().qs
+        qs = qs.for_user(self.request.user)
+        # qs = qs.for_current_year()
+        # qs = ProjetService.add_filters_to_projets_qs(qs, self.request.GET)
+        qs = ProjetService.add_ordering_to_projets_qs(qs, self.request.GET.get("tri"))
+        return qs
+
+
+class ProjetListView(FilterView, ListView):
     model = Projet
     paginate_by = 25
+    filterset_class = ProjetFilters
+    template_name = "gsl_projet/projet_list.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -89,10 +123,3 @@ class ProjetListView(ListView):
         context["total_amount_granted"] = 0  # TODO
 
         return context
-
-    def get_queryset(self):
-        qs = Projet.objects.for_user(self.request.user)
-        qs = qs.for_current_year()
-        qs = ProjetService.add_filters_to_projets_qs(qs, self.request.GET)
-        qs = ProjetService.add_ordering_to_projets_qs(qs, self.request.GET.get("tri"))
-        return qs
