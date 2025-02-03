@@ -82,7 +82,6 @@ class ProjetFilters(FilterSet):
     dotation = ChoiceFilter(
         field_name="dossier_ds__demande_dispositif_sollicite",
         choices=Dossier.DEMANDE_DISPOSITIF_SOLLICITE_VALUES,
-        label="Dotation",
         widget=Select(
             attrs={
                 "class": "fr-select",
@@ -92,9 +91,32 @@ class ProjetFilters(FilterSet):
         ),
     )
 
+    porteur = ChoiceFilter(
+        field_name="dossier_ds__porteur_de_projet_nature__label__in",
+        choices=(
+            ("EPCI", "EPCI"),
+            ("Communes", "Communes"),
+        ),
+        method="filter_porteur",
+        widget=Select(
+            attrs={
+                "class": "fr-select",
+                "onchange": "this.form.submit()",
+                "placeholder": "Tous les porteurs",
+            },
+        ),
+    )
+
+    def filter_porteur(self, queryset, _name, value):
+        return queryset.filter(
+            dossier_ds__porteur_de_projet_nature__label__in=ProjetService.PORTEUR_MAPPINGS.get(
+                value
+            )
+        )
+
     class Meta:
         model = Projet
-        fields = ["dotation"]
+        fields = ["dotation", "porteur"]
 
     @property
     def qs(self):
