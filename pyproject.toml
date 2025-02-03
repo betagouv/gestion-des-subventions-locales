@@ -13,6 +13,7 @@ dependencies = [
     "django-dsfr",
     "django-referrer-policy",
     "django_celery_results",
+    "django-filter",
     "django-import-export",
     "django-json-widget",
     "django-htmx",

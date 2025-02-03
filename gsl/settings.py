@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     "dsfr",
     "import_export",
     "django_htmx",
+    "django_filters",
     # gsl apps:
     "gsl_core",
     "gsl_demarches_simplifiees",

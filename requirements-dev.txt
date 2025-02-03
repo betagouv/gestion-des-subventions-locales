@@ -79,6 +79,7 @@ django==5.1.4
     #   django-csp
     #   django-dsfr
     #   django-extensions
+    #   django-filter
     #   django-htmx
     #   django-import-export
     #   django-referrer-policy
@@ -96,6 +97,8 @@ django-csp==3.8
 django-dsfr==2.0.0
     # via gsl (pyproject.toml)
 django-extensions==3.2.3
+    # via gsl (pyproject.toml)
+django-filter==24.3
     # via gsl (pyproject.toml)
 django-htmx==1.21.0
     # via gsl (pyproject.toml)
@@ -119,7 +122,7 @@ editorconfig==0.17.0
     #   jsbeautifier
 execnet==2.1.1
     # via pytest-xdist
-executing==2.1.0
+executing==2.2.0
     # via stack-data
 factory-boy==3.3.1
     # via gsl (pyproject.toml)
@@ -194,7 +197,7 @@ pure-eval==0.2.3
     # via stack-data
 pycparser==2.22
     # via cffi
-pygments==2.18.0
+pygments==2.19.1
     # via
     #   diff-cover
     #   ipython
