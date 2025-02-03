@@ -8,15 +8,7 @@
                 <label class="fr-label" for="tri">
                     Trier par
                 </label>
-                <select name="tri"
-                        id="tri"
-                        class="fr-select"
-                        hx-get="{% url 'projet:list' %}"
-                        hx-target="#projet-table"
-                        hx-replace-url="true"
-                        {% comment %}
-                        onchange="this.form.submit()"
-                        {% endcomment %}>
+                <select name="tri" id="tri" class="fr-select" onchange="this.form.submit()">
                     <option value=""
                             {% if request.GET.tri == None %}selected{% endif %}
                             disabled
@@ -55,18 +47,23 @@
                     </optgroup>
                 </select>
             </div>
-            {% comment %} <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
+            <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
                 <label class="fr-label" for="dispositif">
                     Dispositif
                 </label>
-                <select name="dispositif" id="dispositif" class="fr-select" onchange="this.form.submit()">
+                <select name="dispositif"
+                        id="dispositif"
+                        class="fr-select"
+                        onchange="this.form.submit()">
                     <option value="">
                         Tous les dispositifs
                     </option>
-                    <option value="DETR" {% if request.GET.dispositif == 'DETR' %}selected{% endif %}>
+                    <option value="DETR"
+                            {% if request.GET.dispositif == 'DETR' %}selected{% endif %}>
                         DETR
                     </option>
-                    <option value="DSIL" {% if request.GET.dispositif == 'DSIL' %}selected{% endif %}>
+                    <option value="DSIL"
+                            {% if request.GET.dispositif == 'DSIL' %}selected{% endif %}>
                         DSIL
                     </option>
                 </select>
@@ -75,7 +72,10 @@
                 <label class="fr-label" for="porteur">
                     Porteurs de projet
                 </label>
-                <select name="porteur" id="porteur" class="fr-select" onchange="this.form.submit()">
+                <select name="porteur"
+                        id="porteur"
+                        class="fr-select"
+                        onchange="this.form.submit()">
                     <option value="">
                         Tous les porteurs
                     </option>
@@ -86,7 +86,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
+            {% comment %} <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
                 <label class="fr-label" for="cout_min">
                     Coût total minimum
                 </label>
@@ -97,7 +97,7 @@
                     Coût total maximum
                 </label>
                 <input type="number" name="cout_max" id="cout_max" class="fr-input" placeholder="Montant maximum" onfocusout="this.form.submit()" value="{{ request.GET.cout_max }}">
-            </div>{% endcomment %}
+            </div> {% endcomment %}
         </div>
     </div>
 </form>
