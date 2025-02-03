@@ -25,11 +25,11 @@
   min-width: 90px;
   width: 130px;
   border-top: 1px solid var(--border-default-grey);
-  line-height: calc(1rem * 15/16);;
+  line-height: 1rem;
   height: 42px;
 }
 
-.enveloppe-summary th div {
+.enveloppe-summary th > div {
   display: flex;
   align-items: center;
   gap: 4px;
