@@ -192,5 +192,17 @@ class ProjetListView(FilterView, ListView):
         context["total_cost"] = ProjetService.get_total_cost(qs)
         context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs)
         context["total_amount_granted"] = 0  # TODO
+        context["is_cout_total_active"] = self._get_is_one_field_active(
+            ["cout_min", "cout_max"]
+        )
+        context["is_montant_demande_active"] = self._get_is_one_field_active(
+            ["montant_demande_min", "montant_demande_max"]
+        )
 
         return context
+
+    def _get_is_one_field_active(self, field_names):
+        for field_name in field_names:
+            if self.request.GET.get(field_name) not in (None, ""):
+                return True
+        return False

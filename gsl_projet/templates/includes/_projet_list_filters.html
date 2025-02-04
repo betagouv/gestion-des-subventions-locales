@@ -68,7 +68,9 @@
             <div class="fr-col-12 fr-col-md-4 fr-col-lg-2">
 
                 <div class="filter-dropdown fr-mt-4w">
-                    <button type="button" class="fr-input" id="filter-total-cost-button">
+                    <button type="button"
+                            class="fr-input {% if is_cout_total_active %}filter-dropdown-button-active{% endif %}"
+                            id="filter-total-cost-button">
                         Coût total
                         <span class="fr-icon-coin-fill fr-icon--sm blue-icon fr-ml-1w" />
                     </button>
@@ -100,7 +102,9 @@
 
             <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
                 <div class="filter-dropdown fr-mt-4w">
-                    <button type="button" class="fr-input" id="filter-montant-demande-button">
+                    <button type="button"
+                            class="fr-input {% if is_montant_demande_active %}filter-dropdown-button-active{% endif %}"
+                            id="filter-montant-demande-button">
                         Montant demandé
                         <span class="fr-icon-coin-fill fr-icon--sm blue-icon fr-ml-1w" />
                     </button>
@@ -159,27 +163,6 @@
 
 
 <script>
-    function addButtonBorderIfInputsHaveValue() {
-        document.querySelectorAll('.filter-dropdown').forEach(dropdown => {
-            const button = dropdown.querySelector('button');
-            const inputs = dropdown.querySelectorAll('input[type="number"]');
-            let hasValue = false;
-
-            inputs.forEach(input => {
-                if (input.value.trim() !== '') {
-                    hasValue = true;
-                }
-            });
-
-            if (hasValue) {
-                button.classList.add('filter-dropdown-button-active');
-            }
-        });
-    }
-
-    addButtonBorderIfInputsHaveValue();
-
-
     // Close dropdowns when clicking outside
     document.addEventListener('click', function(event) {
         document.querySelectorAll('.filter-dropdown').forEach(dropdown => {
@@ -198,7 +181,7 @@
         });
     });
 
-    // Check if the montant_demande_sup_100k checkbox is checked
+    // If the montant_demande_sup_100k checkbox is checked or unchecked, update the montant_demande_min and montant_demande_max inputs
     document.getElementById('montant_demande_sup_100k').addEventListener('change', function() {
         if (this.checked) {
             document.getElementById('id_montant_demande_min').value = '100000';
@@ -210,12 +193,15 @@
         }
     });
 
+    // Uncheck the montant_demande_sup_100k if id_montant_demande_min is not 100000
     document.getElementById('id_montant_demande_min').addEventListener('change', function() {
         if (this.value != 100000) {
             document.getElementById('montant_demande_sup_100k').checked = false;
         }
     });
 
+
+    // If the montant_demande_inf_100k checkbox is checked or unchecked, update the montant_demande_min and montant_demande_max inputs
     document.getElementById('montant_demande_inf_100k').addEventListener('change', function() {
         if (this.checked) {
             document.getElementById('id_montant_demande_min').value = '';
@@ -227,6 +213,7 @@
         }
     });
 
+    // Uncheck the montant_demande_inf_100k if id_montant_demande_max is not 100000
     document.getElementById('id_montant_demande_max').addEventListener('change', function() {
         if (this.value != 100000) {
             document.getElementById('montant_demande_inf_100k').checked = false;
