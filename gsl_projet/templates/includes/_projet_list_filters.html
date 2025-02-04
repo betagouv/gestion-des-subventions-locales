@@ -140,6 +140,16 @@
                                 Montant &lt; Supérieur à 100 000 €
                             </label>
                         </div>
+
+                        <div class="montant-demande-checkbox-container">
+                            <input type="checkbox"
+                                   id="montant_demande_inf_100k"
+                                   class="fr-checkbox"
+                                   {% if request.GET.montant_demande_max == "100000" %}checked{% endif %}>
+                            <label for="montant_demande_inf_100k">
+                                Montant &gt; Inférieur à 100 000 €
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -172,6 +182,7 @@
         if (this.checked) {
             document.getElementById('id_montant_demande_min').value = '100000';
             document.getElementById('id_montant_demande_max').value = '';
+            document.getElementById('montant_demande_inf_100k').checked = false;
         } else {
             document.getElementById('id_montant_demande_min').value = '';
             document.getElementById('id_montant_demande_max').value = '';
@@ -181,6 +192,23 @@
     document.getElementById('id_montant_demande_min').addEventListener('change', function() {
         if (this.value != 100000) {
             document.getElementById('montant_demande_sup_100k').checked = false;
+        }
+    });
+
+    document.getElementById('montant_demande_inf_100k').addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('id_montant_demande_min').value = '';
+            document.getElementById('id_montant_demande_max').value = '100000';
+            document.getElementById('montant_demande_sup_100k').checked = false;
+        } else {
+            document.getElementById('id_montant_demande_min').value = '';
+            document.getElementById('id_montant_demande_max').value = '';
+        }
+    });
+
+    document.getElementById('id_montant_demande_max').addEventListener('change', function() {
+        if (this.value != 100000) {
+            document.getElementById('montant_demande_inf_100k').checked = false;
         }
     });
 
