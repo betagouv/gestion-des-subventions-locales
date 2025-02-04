@@ -137,7 +137,7 @@
                                    class="fr-checkbox"
                                    {% if request.GET.montant_demande_min == "100000" %}checked{% endif %}>
                             <label for="montant_demande_sup_100k">
-                                Montant &lt; Supérieur à 100 000 €
+                                Montant <b>&gt; Supérieur</b> à 100 000 €
                             </label>
                         </div>
 
@@ -147,7 +147,7 @@
                                    class="fr-checkbox"
                                    {% if request.GET.montant_demande_max == "100000" %}checked{% endif %}>
                             <label for="montant_demande_inf_100k">
-                                Montant &gt; Inférieur à 100 000 €
+                                Montant <b>&lt; Inférieur</b> à 100 000 €
                             </label>
                         </div>
                     </div>
@@ -159,6 +159,27 @@
 
 
 <script>
+    function addButtonBorderIfInputsHaveValue() {
+        document.querySelectorAll('.filter-dropdown').forEach(dropdown => {
+            const button = dropdown.querySelector('button');
+            const inputs = dropdown.querySelectorAll('input[type="number"]');
+            let hasValue = false;
+
+            inputs.forEach(input => {
+                if (input.value.trim() !== '') {
+                    hasValue = true;
+                }
+            });
+
+            if (hasValue) {
+                button.classList.add('filter-dropdown-button-active');
+            }
+        });
+    }
+
+    addButtonBorderIfInputsHaveValue();
+
+
     // Close dropdowns when clicking outside
     document.addEventListener('click', function(event) {
         document.querySelectorAll('.filter-dropdown').forEach(dropdown => {

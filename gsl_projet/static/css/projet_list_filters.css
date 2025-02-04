@@ -80,3 +80,7 @@
   gap: 10px;
   font-size: small;
 }
+
+.filter-dropdown-button-active {
+    border: 2px solid var(--artwork-major-blue-cumulus-active);
+}
