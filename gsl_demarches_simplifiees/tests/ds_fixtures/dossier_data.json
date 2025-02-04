@@ -117,7 +117,7 @@
   ],
   "champs": [
     {
-      "id": "TEST_ID_Mjk5Njg5OA==",
+      "id": "TEST_ID_un_champ_hors_annotation",
       "champDescriptorId": "TEST_ID_Mjk5Njg5OA==",
       "__typename": "TextChamp",
       "label": "Votre demande dématérialisée de DETR/DSIL pour l'année 2024",
@@ -699,7 +699,7 @@
   ],
   "annotations": [
     {
-      "id": "TEST_ID_Mjk4MjQ3OQ==",
+      "id": "TEST_ID_un_champ_annotation",
       "champDescriptorId": "TEST_ID_Mjk4MjQ3OQ==",
       "__typename": "TextChamp",
       "label": "Partie réservée au service responsable de l’instruction de la DETR et/ou DSIL",

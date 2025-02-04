@@ -15,13 +15,46 @@ from .models import (
     Profile,
 )
 from .resources import FieldMappingForComputerResource, FieldMappingForHumanResource
-from .tasks import task_refresh_dossier_from_saved_data
+from .tasks import (
+    task_refresh_dossier_from_saved_data,
+    task_refresh_field_mappings_on_demarche,
+)
 
 
 @admin.register(Demarche)
 class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    readonly_fields = [field.name for field in Demarche._meta.get_fields()]
+    readonly_fields = tuple(
+        field.name
+        for field in Demarche._meta.get_fields()
+        if field.name != "raw_ds_data"
+    )
     list_display = ("ds_number", "ds_title", "ds_state")
+    actions = ("refresh_field_mappings",)
+    formfield_overrides = {
+        JSONField: {"widget": JSONEditorWidget},
+    }
+    fieldsets = (
+        (None, {"fields": ("ds_number", "ds_id", "ds_title", "ds_state")}),
+        ("Dates", {"fields": ("ds_date_creation", "ds_date_fermeture")}),
+        (
+            "Instructeurs",
+            {
+                "fields": ("ds_instructeurs",),
+            },
+        ),
+        (
+            "Données brutes",
+            {
+                "fields": ("raw_ds_data",),
+                "classes": ("collapse", "open"),
+            },
+        ),
+    )
+
+    @admin.action(description="Rafraîchir les correspondances de champs")
+    def refresh_field_mappings(self, request, queryset):
+        for demarche in queryset:
+            task_refresh_field_mappings_on_demarche(demarche.ds_number)
 
 
 @admin.register(PersonneMorale)
@@ -73,7 +106,16 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             "Champs DS",
             {
                 "classes": ("collapse", "open"),
-                "fields": tuple(field.name for field in Dossier.MAPPED_FIELDS),
+                "fields": tuple(field.name for field in Dossier._MAPPED_CHAMPS_FIELDS),
+            },
+        ),
+        (
+            "Annotations DS",
+            {
+                "classes": ("collapse", "open"),
+                "fields": tuple(
+                    field.name for field in Dossier._MAPPED_ANNOTATIONS_FIELDS
+                ),
             },
         ),
         (
@@ -123,6 +165,7 @@ class FieldMappingForHumanAdmin(
     list_display = ("label", "django_field", "demarche")
     resource_classes = (FieldMappingForHumanResource,)
     list_filter = ("demarche",)
+    readonly_fields = ("demarche",)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -135,7 +178,9 @@ class FieldMappingForComputerAdmin(
     AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin
 ):
     readonly_fields = [
-        field.name for field in FieldMappingForComputer._meta.get_fields()
+        field.name
+        for field in FieldMappingForComputer._meta.get_fields()
+        if field.name != "django_field"
     ]
     list_display = ("ds_field_id", "ds_field_label", "django_field", "demarche")
     list_filter = ("demarche__ds_number", "ds_field_type")

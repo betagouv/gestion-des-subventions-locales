@@ -48,6 +48,8 @@ class Demarche(DsModel):
     )
     ds_instructeurs = models.ManyToManyField("gsl_demarches_simplifiees.Profile")
 
+    raw_ds_data = models.JSONField("Données DS brutes", null=True, blank=True)
+
     class Meta:
         verbose_name = "Démarche"
 
@@ -212,7 +214,11 @@ class Dossier(DsModel):
     # ---
     projet_intitule = models.CharField("Intitulé du projet", blank=True)
     projet_adresse = models.ForeignKey(
-        Adresse, on_delete=models.PROTECT, blank=True, null=True
+        Adresse,
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True,
+        verbose_name="Adresse principale du projet",
     )
     projet_immo = models.BooleanField(
         "Le projet d'investissement comprend-il des acquisitions immobilières ?",
@@ -224,10 +230,12 @@ class Dossier(DsModel):
     projet_zonage = models.ManyToManyField(
         "gsl_demarches_simplifiees.ProjetZonage",
         verbose_name="Zonage spécifique : le projet est il situé dans l'une des zones suivantes ?",
+        blank=True,
     )
     projet_contractualisation = models.ManyToManyField(
         "gsl_demarches_simplifiees.ProjetContractualisation",
         verbose_name="Contractualisation : le projet est-il inscrit dans un ou plusieurs contrats avec l'Etat ?",
+        blank=True,
     )
     projet_contractualisation_autre = models.CharField(
         "Autre contrat : précisez le contrat concerné", blank=True
@@ -240,6 +248,7 @@ class Dossier(DsModel):
     environnement_objectifs = models.ManyToManyField(
         "gsl_demarches_simplifiees.ObjectifEnvironnemental",
         verbose_name="Si oui, indiquer quels sont les objectifs environnementaux impactés favorablement.",
+        blank=True,
     )
     environnement_artif_sols = models.BooleanField(
         "Le projet implique-t-il une artificialisation des sols ?", null=True
@@ -249,7 +258,7 @@ class Dossier(DsModel):
         "Date de commencement de l'opération", null=True, blank=True
     )
     date_achevement = models.DateField(
-        "Date prévisionnelle d'achèvement de l'opération", null=True
+        "Date prévisionnelle d'achèvement de l'opération", null=True, blank=True
     )
     # ---
     finance_cout_total = models.DecimalField(
@@ -257,6 +266,7 @@ class Dossier(DsModel):
         max_digits=12,
         decimal_places=2,
         null=True,
+        blank=True,
     )
     finance_recettes = models.BooleanField(
         "Le projet va-t-il générer des recettes ?", null=True
@@ -296,6 +306,7 @@ class Dossier(DsModel):
         max_digits=12,
         decimal_places=2,
         null=True,
+        blank=True,
     )
     demande_autres_aides = models.ManyToManyField(
         "gsl_demarches_simplifiees.AutreAide",
@@ -344,21 +355,24 @@ class Dossier(DsModel):
         max_digits=12,
         decimal_places=2,
         null=True,
-    )  # bon nombre de décimales
+        blank=True,
+    )
     annotations_montant_accorde = models.DecimalField(
         "Montant définitif de la subvention (€)",
         max_digits=12,
         decimal_places=2,
         null=True,
+        blank=True,
     )
     annotations_taux = models.DecimalField(
         "Taux de subvention (%)",
         max_digits=5,
         decimal_places=2,
         null=True,
+        blank=True,
     )
 
-    MAPPED_FIELDS = (
+    _MAPPED_CHAMPS_FIELDS = (
         porteur_de_projet_nature,
         porteur_de_projet_arrondissement,
         porteur_de_projet_fonction,
@@ -392,6 +406,18 @@ class Dossier(DsModel):
         demande_autre_dsil_detr,
         demande_priorite_dsil_detr,
     )
+    _MAPPED_ANNOTATIONS_FIELDS = (
+        annotations_contact,
+        annotations_champ_libre,
+        annotations_dotation,
+        annotations_is_budget_vert,
+        annotations_is_qpv,
+        annotations_is_crte,
+        annotations_assiette,
+        annotations_montant_accorde,
+        annotations_taux,
+    )
+    MAPPED_FIELDS = _MAPPED_ANNOTATIONS_FIELDS + _MAPPED_CHAMPS_FIELDS
 
     class Meta:
         verbose_name = "Dossier"

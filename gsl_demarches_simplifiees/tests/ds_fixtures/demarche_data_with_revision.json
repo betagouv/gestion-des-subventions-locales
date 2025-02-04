@@ -107,7 +107,120 @@
         "required": true
       }
     ],
-    "annotationDescriptors": []
+    "annotationDescriptors": [
+      {
+        "id": "ANNOT_TEST_IDjk4MjQ3OQ==",
+        "label": "Partie réservée au service responsable de l’instruction de la DETR et/ou DSIL",
+        "required": false,
+        "__typename": "ExplicationChampDescriptor",
+        "description": "",
+        "collapsibleExplanationText": null,
+        "collapsibleExplanationEnabled": false
+      },
+      {
+        "id": "ANNOT_TEST_IDzM1NDYzNA==",
+        "label": "Contact de l'agent instructeur à indiquer au demandeur",
+        "required": false,
+        "__typename": "TextChampDescriptor",
+        "description": "S'il est renseigné, ce champ sera ajouté aux courriels de notification envoyés lors du passage en instruction du dossier puis lors de son acceptation, de son classement sans suite ou de son refus. Ex : Prénom NOM, tel : 01 xx xx xx xx"
+      },
+      {
+        "id": "ANNOT_TEST_IDjk3NjEzMA==",
+        "label": "Champ libre pour le service instructeur",
+        "required": false,
+        "__typename": "TextareaChampDescriptor",
+        "description": ""
+      },
+      {
+        "id": "ANNOT_TEST_IDzEzNjg0Nw==",
+        "label": "Autres documents utiles à l'instruction",
+        "required": false,
+        "__typename": "RepetitionChampDescriptor",
+        "description": "",
+        "champDescriptors": [
+          {
+            "id": "ANNOT_TEST_IDzI4ODg1NA==",
+            "label": "Pièce-jointe complémentaire",
+            "required": false,
+            "__typename": "PieceJustificativeChampDescriptor",
+            "description": "",
+            "fileTemplate": null
+          }
+        ]
+      },
+      {
+        "id": "ANNOT_TEST_IDzM3MDQ3OA==",
+        "label": "Partie à compléter en cas de programmation du dossier",
+        "required": false,
+        "__typename": "ExplicationChampDescriptor",
+        "description": "",
+        "collapsibleExplanationText": null,
+        "collapsibleExplanationEnabled": false
+      },
+      {
+        "id": "ANNOT_TEST_IDzAyMDUxMw==",
+        "label": "Imputation budgétaire - Choix de la dotation",
+        "options": [
+          "DETR",
+          "DSIL"
+        ],
+        "required": false,
+        "__typename": "DropDownListChampDescriptor",
+        "description": "Préciser la ligne budgétaire vers laquelle le projet doit être orienté.",
+        "otherOption": true
+      },
+      {
+        "id": "ANNOT_TEST_IDzMzNjEwMA==",
+        "label": "Projet concourant à la transition écologique au sens budget vert",
+        "required": false,
+        "__typename": "CheckboxChampDescriptor",
+        "description": ""
+      },
+      {
+        "id": "ANNOT_TEST_IDzM3MDcwMg==",
+        "label": "Projet situé en QPV",
+        "required": false,
+        "__typename": "CheckboxChampDescriptor",
+        "description": ""
+      },
+      {
+        "id": "ANNOT_TEST_IDzM3MDY5MQ==",
+        "label": "Projet rattaché à un CRTE",
+        "required": false,
+        "__typename": "CheckboxChampDescriptor",
+        "description": ""
+      },
+      {
+        "id": "ANNOT_TEST_IDTk5MDI2Ng==",
+        "label": "Montant des dépenses éligibles retenues (€)",
+        "required": false,
+        "__typename": "DecimalNumberChampDescriptor",
+        "description": "Montant total des dépenses éligibles retenues à faire figurer sur l'arrêté préfectoral notifiant la décision de financement."
+      },
+      {
+        "id": "ANNOT_TEST_IDjk4MjUwMA==",
+        "label": "Montant définitif de la subvention (€)",
+        "required": false,
+        "__typename": "DecimalNumberChampDescriptor",
+        "description": "Montant de la subvention à faire figurer sur l'arrêté préfectoral notifiant la décision de financement."
+      },
+      {
+        "id": "ANNOT_TEST_IDzI4ODg1Mw==",
+        "label": "Taux de subvention (%)",
+        "required": false,
+        "__typename": "DecimalNumberChampDescriptor",
+        "description": "Le taux de subvention à faire figurer sur l'arrêté préfectoral notifiant la décision de financement. \r\nSources juridiques : articles [L. 1111-10](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000041411642/) et [R.2334-27](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044166963) CGCT."
+      },
+      {
+        "id": "ANNOT_TEST_IDzQ2NDA1OQ==",
+        "label": "Pour plus d'information sur les annotations privées",
+        "required": false,
+        "__typename": "ExplicationChampDescriptor",
+        "description": "Contactez le bureau des concours financiers de l'Etat à l'adresse dgc-gestion-dotations@dgcl.gouv.fr",
+        "collapsibleExplanationText": null,
+        "collapsibleExplanationEnabled": false
+      }
+    ]
   },
   "groupeInstructeurs": [
     {
