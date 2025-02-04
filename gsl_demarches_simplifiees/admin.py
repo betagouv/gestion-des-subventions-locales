@@ -165,6 +165,7 @@ class FieldMappingForHumanAdmin(
     list_display = ("label", "django_field", "demarche")
     resource_classes = (FieldMappingForHumanResource,)
     list_filter = ("demarche",)
+    readonly_fields = ("demarche",)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -177,7 +178,9 @@ class FieldMappingForComputerAdmin(
     AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin
 ):
     readonly_fields = [
-        field.name for field in FieldMappingForComputer._meta.get_fields()
+        field.name
+        for field in FieldMappingForComputer._meta.get_fields()
+        if field.name != "django_field"
     ]
     list_display = ("ds_field_id", "ds_field_label", "django_field", "demarche")
     list_filter = ("demarche__ds_number", "ds_field_type")
