@@ -51,47 +51,82 @@
                 </select>
             </div>
 
-            <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
+            <div class="fr-col-12 fr-col-md-4 fr-col-lg-2">
                 <label class="fr-label" for="dotation">
                     Dotation
                 </label>
                 {{ filter.form.dotation }}
             </div>
 
-            <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
+            <div class="fr-col-12 fr-col-md-4 fr-col-lg-2">
                 <label class="fr-label" for="porteur">
                     Porteur de projet
                 </label>
                 {{ filter.form.porteur }}
             </div>
 
-            <div class="filter-dropdown">
-                <button type="button" class="fr-input" id="filter-total-cost-button">
-                    Coût total
-                    <span class="fr-icon-coin-fill fr-icon--sm blue-icon fr-ml-1w" />
-                </button>
-                <div class="filter-content">
-                    <div class="amount-filter-group">
-                        <label class="fr-label" for="id_cost_min">
-                            Coût minimum
-                        </label>
-                        <div div class="euro-input-wrap">
-                            {{ filter.form.cout_min }}
-                            <span class="euro-input-symbol">€</span>
-                        </div>
-                    </div>
-                    <div class="amount-filter-group">
-                        <label class="fr-label" for="id_cost_max">
-                            Coût maximum
-                        </label>
-                        <div div class="euro-input-wrap">
-                            {{ filter.form.cout_max }}
-                            <span class="euro-input-symbol">€</span>
-                        </div>
-                    </div>
-                    <button type="submit" class="fr-btn fr-btn--sm">
-                        Filtrer
+            <div class="fr-col-12 fr-col-md-4 fr-col-lg-2">
+
+                <div class="filter-dropdown fr-mt-4w">
+                    <button type="button" class="fr-input" id="filter-total-cost-button">
+                        Coût total
+                        <span class="fr-icon-coin-fill fr-icon--sm blue-icon fr-ml-1w" />
                     </button>
+                    <div class="filter-content">
+                        <div class="amount-filter-group">
+                            <label class="fr-label" for="id_cost_min">
+                                Coût minimum
+                            </label>
+                            <div div class="euro-input-wrap">
+                                {{ filter.form.cout_min }}
+                                <span class="euro-input-symbol">€</span>
+                            </div>
+                        </div>
+                        <div class="amount-filter-group">
+                            <label class="fr-label" for="id_cost_max">
+                                Coût maximum
+                            </label>
+                            <div div class="euro-input-wrap">
+                                {{ filter.form.cout_max }}
+                                <span class="euro-input-symbol">€</span>
+                            </div>
+                        </div>
+                        <button type="submit" class="fr-btn fr-btn--sm">
+                            Filtrer
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
+                <div class="filter-dropdown fr-mt-4w">
+                    <button type="button" class="fr-input" id="filter-montant-demande-button">
+                        Montant demandé
+                        <span class="fr-icon-coin-fill fr-icon--sm blue-icon fr-ml-1w" />
+                    </button>
+                    <div class="filter-content">
+                        <div class="amount-filter-group">
+                            <label class="fr-label" for="id_montant_demande_min">
+                                Montant minimum
+                            </label>
+                            <div div class="euro-input-wrap">
+                                {{ filter.form.montant_demande_min }}
+                                <span class="euro-input-symbol">€</span>
+                            </div>
+                        </div>
+                        <div class="amount-filter-group">
+                            <label class="fr-label" for="id_montant_demande_max">
+                                Montant maximum
+                            </label>
+                            <div div class="euro-input-wrap">
+                                {{ filter.form.montant_demande_max }}
+                                <span class="euro-input-symbol">€</span>
+                            </div>
+                        </div>
+                        <button type="submit" class="fr-btn fr-btn--sm">
+                            Filtrer
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -113,24 +148,21 @@
 
 
 <script>
-        // Permet de fermer le dropdown quand on clique à l'extérieur
-        document.addEventListener('click', function(event) {
-            let dropdown = document.querySelector('.filter-dropdown');
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(event) {
+        document.querySelectorAll('.filter-dropdown').forEach(dropdown => {
             if (!dropdown.contains(event.target)) {
-                document.querySelector('.filter-content').style.display = 'none';
+                dropdown.querySelector('.filter-content').style.display = 'none';
             }
         });
-    
-        document.querySelector('#filter-total-cost-button').addEventListener('click', function(event) {
-            console.log('click');
+    });
+
+    // Toggle dropdowns
+    document.querySelectorAll('.filter-dropdown button').forEach(button => {
+        button.addEventListener('click', function(event) {
             event.stopPropagation();
-            let content = document.querySelector('.filter-content');
+            let content = this.nextElementSibling;
             content.style.display = content.style.display === 'grid' ? 'none' : 'grid';
         });
-
-        document.querySelectorAll('.euro-input-wrap > input').forEach(input => {
-            input.addEventListener('input', function() {
-                formatMoney(this);
-            });
-        });
+    });
 </script>

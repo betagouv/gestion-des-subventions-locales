@@ -141,9 +141,30 @@ class ProjetFilters(FilterSet):
             | Q(assiette__isnull=True, dossier_ds__finance_cout_total__lte=value)
         )
 
+    montant_demande_max = NumberFilter(
+        field_name="dossier_ds__demande_montant",
+        widget=NumberInput(
+            attrs={"class": "fr-input", "step": "1000", "min": "0"},
+        ),
+    )
+
+    montant_demande_min = NumberFilter(
+        field_name="dossier_ds__demande_montant",
+        widget=NumberInput(
+            attrs={"class": "fr-input", "step": "1000", "min": "0"},
+        ),
+    )
+
     class Meta:
         model = Projet
-        fields = ["dotation", "porteur", "cout_min", "cout_max"]
+        fields = [
+            "dotation",
+            "porteur",
+            "cout_min",
+            "cout_max",
+            "montant_demande_min",
+            "montant_demande_max",
+        ]
 
     @property
     def qs(self):
