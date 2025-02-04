@@ -73,9 +73,9 @@
                         {{ projet.get_taux_de_subvention_sollicite|percent }}
                     </td>
                     <td class="gsl-money">
-                        {{ 25000|euro:2 }}
+                        {{ projet.dossier_ds.annotations_montant_accorde|euro:2 }}
                         <br>
-                        {{ 20|percent }}
+                        {{ projet.dossier_ds.annotations_taux|percent }}
                     </td>
                     <td>
                         <ul class="no-list-style">

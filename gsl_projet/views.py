@@ -157,6 +157,22 @@ class ProjetFilters(FilterSet):
         ),
     )
 
+    montant_retenu_min = NumberFilter(
+        field_name="dossier_ds__annotations_montant_accorde",
+        lookup_expr="gte",
+        widget=NumberInput(
+            attrs={"class": "fr-input", "min": "0"},
+        ),
+    )
+
+    montant_retenu_max = NumberFilter(
+        field_name="dossier_ds__annotations_montant_accorde",
+        lookup_expr="lte",
+        widget=NumberInput(
+            attrs={"class": "fr-input", "min": "0"},
+        ),
+    )
+
     class Meta:
         model = Projet
         fields = [
@@ -166,6 +182,8 @@ class ProjetFilters(FilterSet):
             "cout_max",
             "montant_demande_min",
             "montant_demande_max",
+            "montant_retenu_min",
+            "montant_retenu_max",
         ]
 
     @property
@@ -197,6 +215,9 @@ class ProjetListView(FilterView, ListView):
         )
         context["is_montant_demande_active"] = self._get_is_one_field_active(
             ["montant_demande_min", "montant_demande_max"]
+        )
+        context["is_montant_retenu_active"] = self._get_is_one_field_active(
+            ["montant_retenu_min", "montant_retenu_max"]
         )
 
         return context

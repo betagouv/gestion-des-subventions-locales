@@ -66,7 +66,6 @@
             </div>
 
             <div class="fr-col-12 fr-col-md-4 fr-col-lg-2">
-
                 <div class="filter-dropdown fr-mt-4w">
                     <button type="button"
                             class="fr-input {% if is_cout_total_active %}filter-dropdown-button-active{% endif %}"
@@ -106,7 +105,7 @@
                             class="fr-input {% if is_montant_demande_active %}filter-dropdown-button-active{% endif %}"
                             id="filter-montant-demande-button">
                         Montant demandé
-                        <span class="fr-icon-coin-fill fr-icon--sm blue-icon fr-ml-1w" />
+                        <span class="fr-icon-money-euro-circle-fill fr-icon--sm blue-icon fr-ml-1w" />
                     </button>
                     <div class="filter-content">
                         <div class="amount-filter-group">
@@ -157,6 +156,40 @@
                     </div>
                 </div>
             </div>
+            <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
+                <div class="filter-dropdown fr-mt-4w">
+                    <button type="button"
+                            class="fr-input {% if is_montant_retenu_active %}filter-dropdown-button-active{% endif %}"
+                            id="filter-montant-retenu-button">
+                        Montant retenu
+                        <span class="fr-icon-money-euro-box-fill fr-icon--sm blue-icon fr-ml-1w" />
+                    </button>
+                    <div class="filter-content">
+                        <div class="amount-filter-group">
+                            <label class="fr-label" for="id_montant_retenu_min">
+                                Montant retenu minimum
+                            </label>
+                            <div div class="euro-input-wrap">
+                                {{ filter.form.montant_retenu_min }}
+                                <span class="euro-input-symbol">€</span>
+                            </div>
+                        </div>
+                        <div class="amount-filter-group">
+                            <label class="fr-label" for="id_montant_retenu_max">
+                                Montant retenu maximum
+                            </label>
+                            <div div class="euro-input-wrap">
+                                {{ filter.form.montant_retenu_max }}
+                                <span class="euro-input-symbol">€</span>
+                            </div>
+                        </div>
+                        <button type="submit" class="fr-btn fr-btn--sm">
+                            Filtrer
+                        </button>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </form>
