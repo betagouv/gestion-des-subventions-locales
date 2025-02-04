@@ -118,7 +118,7 @@ class ProjetFilters(FilterSet):
     cout_min = NumberFilter(
         method="filter_cout_min",
         widget=NumberInput(
-            attrs={"class": "fr-input", "step": "1000", "min": "0"},
+            attrs={"class": "fr-input", "min": "0"},
         ),
     )
 
@@ -131,7 +131,7 @@ class ProjetFilters(FilterSet):
     cout_max = NumberFilter(
         method="filter_cout_max",
         widget=NumberInput(
-            attrs={"class": "fr-input", "step": "1000", "min": "0"},
+            attrs={"class": "fr-input", "min": "0"},
         ),
     )
 
@@ -143,15 +143,17 @@ class ProjetFilters(FilterSet):
 
     montant_demande_max = NumberFilter(
         field_name="dossier_ds__demande_montant",
+        lookup_expr="lte",
         widget=NumberInput(
-            attrs={"class": "fr-input", "step": "1000", "min": "0"},
+            attrs={"class": "fr-input", "min": "0"},
         ),
     )
 
     montant_demande_min = NumberFilter(
         field_name="dossier_ds__demande_montant",
+        lookup_expr="gte",
         widget=NumberInput(
-            attrs={"class": "fr-input", "step": "1000", "min": "0"},
+            attrs={"class": "fr-input", "min": "0"},
         ),
     )
 

@@ -126,22 +126,23 @@
                         <button type="submit" class="fr-btn fr-btn--sm">
                             Filtrer
                         </button>
+                        <div class="separator">
+                            <hr />
+                            <span>ou</span>
+                            <hr />
+                        </div>
+                        <div class="montant-demande-checkbox-container">
+                            <input type="checkbox"
+                                   id="montant_demande_sup_100k"
+                                   class="fr-checkbox"
+                                   {% if request.GET.montant_demande_min == "100000" %}checked{% endif %}>
+                            <label for="montant_demande_sup_100k">
+                                Montant &lt; Supérieur à 100 000 €
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            {% comment %} <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
-                <label class="fr-label" for="cout_min">
-                    Coût total minimum
-                </label>
-                <input type="number" name="cout_min" id="cout_min" class="fr-input" placeholder="Montant minimum" onfocusout="this.form.submit()" value="{{ request.GET.cout_min }}">
-            </div>
-            <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
-                <label class="fr-label" for="cout_max">
-                    Coût total maximum
-                </label>
-                <input type="number" name="cout_max" id="cout_max" class="fr-input" placeholder="Montant maximum" onfocusout="this.form.submit()" value="{{ request.GET.cout_max }}">
-            </div> {% endcomment %}
         </div>
     </div>
 </form>
@@ -165,4 +166,22 @@
             content.style.display = content.style.display === 'grid' ? 'none' : 'grid';
         });
     });
+
+    // Check if the montant_demande_sup_100k checkbox is checked
+    document.getElementById('montant_demande_sup_100k').addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('id_montant_demande_min').value = '100000';
+            document.getElementById('id_montant_demande_max').value = '';
+        } else {
+            document.getElementById('id_montant_demande_min').value = '';
+            document.getElementById('id_montant_demande_max').value = '';
+        }
+    });
+
+    document.getElementById('id_montant_demande_min').addEventListener('change', function() {
+        if (this.value != 100000) {
+            document.getElementById('montant_demande_sup_100k').checked = false;
+        }
+    });
+
 </script>

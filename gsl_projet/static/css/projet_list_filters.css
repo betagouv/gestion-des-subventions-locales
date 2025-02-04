@@ -53,3 +53,30 @@
   pointer-events: none; /* Ne pas interférer avec les clics */
   color: #333;
 }
+
+
+.separator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.separator hr {
+  flex-grow: 1;
+  border: none;
+  height: 1px;
+  background-color: lightgray;
+  padding: 0;
+}
+
+.separator span {
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--text-disabled-grey)
+}
+
+.montant-demande-checkbox-container {
+  display: flex;
+  gap: 10px;
+  font-size: small;
+}
