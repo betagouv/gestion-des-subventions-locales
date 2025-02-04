@@ -230,10 +230,12 @@ class Dossier(DsModel):
     projet_zonage = models.ManyToManyField(
         "gsl_demarches_simplifiees.ProjetZonage",
         verbose_name="Zonage spécifique : le projet est il situé dans l'une des zones suivantes ?",
+        blank=True,
     )
     projet_contractualisation = models.ManyToManyField(
         "gsl_demarches_simplifiees.ProjetContractualisation",
         verbose_name="Contractualisation : le projet est-il inscrit dans un ou plusieurs contrats avec l'Etat ?",
+        blank=True,
     )
     projet_contractualisation_autre = models.CharField(
         "Autre contrat : précisez le contrat concerné", blank=True
@@ -246,6 +248,7 @@ class Dossier(DsModel):
     environnement_objectifs = models.ManyToManyField(
         "gsl_demarches_simplifiees.ObjectifEnvironnemental",
         verbose_name="Si oui, indiquer quels sont les objectifs environnementaux impactés favorablement.",
+        blank=True,
     )
     environnement_artif_sols = models.BooleanField(
         "Le projet implique-t-il une artificialisation des sols ?", null=True
@@ -255,7 +258,7 @@ class Dossier(DsModel):
         "Date de commencement de l'opération", null=True, blank=True
     )
     date_achevement = models.DateField(
-        "Date prévisionnelle d'achèvement de l'opération", null=True
+        "Date prévisionnelle d'achèvement de l'opération", null=True, blank=True
     )
     # ---
     finance_cout_total = models.DecimalField(
@@ -263,6 +266,7 @@ class Dossier(DsModel):
         max_digits=12,
         decimal_places=2,
         null=True,
+        blank=True,
     )
     finance_recettes = models.BooleanField(
         "Le projet va-t-il générer des recettes ?", null=True
@@ -302,6 +306,7 @@ class Dossier(DsModel):
         max_digits=12,
         decimal_places=2,
         null=True,
+        blank=True,
     )
     demande_autres_aides = models.ManyToManyField(
         "gsl_demarches_simplifiees.AutreAide",
@@ -350,18 +355,21 @@ class Dossier(DsModel):
         max_digits=12,
         decimal_places=2,
         null=True,
+        blank=True,
     )
     annotations_montant_accorde = models.DecimalField(
         "Montant définitif de la subvention (€)",
         max_digits=12,
         decimal_places=2,
         null=True,
+        blank=True,
     )
     annotations_taux = models.DecimalField(
         "Taux de subvention (%)",
         max_digits=5,
         decimal_places=2,
         null=True,
+        blank=True,
     )
 
     _MAPPED_CHAMPS_FIELDS = (
