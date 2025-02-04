@@ -51,7 +51,6 @@
   right: 4px;
   transform: translateY(-50%);
   pointer-events: none; /* Ne pas interférer avec les clics */
-  color: #333;
 }
 
 
