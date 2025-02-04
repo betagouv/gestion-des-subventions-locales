@@ -66,21 +66,28 @@
             </div>
 
             <div class="filter-dropdown">
-                <button type="button" class="fr-select" id="filter-total-cost-button">
+                <button type="button" class="fr-input" id="filter-total-cost-button">
                     Coût total
+                    <span class="fr-icon-coin-fill fr-icon--sm blue-icon fr-ml-1w" />
                 </button>
                 <div class="filter-content">
-                    <div>
+                    <div class="amount-filter-group">
                         <label class="fr-label" for="id_cost_min">
                             Coût minimum
                         </label>
-                        {{ filter.form.cout_min }}
+                        <div div class="euro-input-wrap">
+                            {{ filter.form.cout_min }}
+                            <span class="euro-input-symbol">€</span>
+                        </div>
                     </div>
-                    <div>
+                    <div class="amount-filter-group">
                         <label class="fr-label" for="id_cost_max">
                             Coût maximum
                         </label>
-                        {{ filter.form.cout_max }}
+                        <div div class="euro-input-wrap">
+                            {{ filter.form.cout_max }}
+                            <span class="euro-input-symbol">€</span>
+                        </div>
                     </div>
                     <button type="submit" class="fr-btn fr-btn--sm">
                         Filtrer
@@ -118,6 +125,12 @@
             console.log('click');
             event.stopPropagation();
             let content = document.querySelector('.filter-content');
-            content.style.display = content.style.display === 'block' ? 'none' : 'block';
+            content.style.display = content.style.display === 'grid' ? 'none' : 'grid';
+        });
+
+        document.querySelectorAll('.euro-input-wrap > input').forEach(input => {
+            input.addEventListener('input', function() {
+                formatMoney(this);
+            });
         });
 </script>

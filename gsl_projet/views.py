@@ -118,7 +118,7 @@ class ProjetFilters(FilterSet):
     cout_min = NumberFilter(
         method="filter_cout_min",
         widget=NumberInput(
-            attrs={"class": "fr-input"},
+            attrs={"class": "fr-input", "step": "1000", "min": "0"},
         ),
     )
 
@@ -131,7 +131,7 @@ class ProjetFilters(FilterSet):
     cout_max = NumberFilter(
         method="filter_cout_max",
         widget=NumberInput(
-            attrs={"class": "fr-input"},
+            attrs={"class": "fr-input", "step": "1000", "min": "0"},
         ),
     )
 
@@ -149,8 +149,7 @@ class ProjetFilters(FilterSet):
     def qs(self):
         qs = super().qs
         qs = qs.for_user(self.request.user)
-        # qs = qs.for_current_year()
-        # qs = ProjetService.add_filters_to_projets_qs(qs, self.request.GET)
+        qs = qs.for_current_year()
         qs = ProjetService.add_ordering_to_projets_qs(qs, self.request.GET.get("tri"))
         return qs
 
