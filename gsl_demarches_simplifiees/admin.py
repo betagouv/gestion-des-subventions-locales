@@ -106,7 +106,16 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             "Champs DS",
             {
                 "classes": ("collapse", "open"),
-                "fields": tuple(field.name for field in Dossier.MAPPED_FIELDS),
+                "fields": tuple(field.name for field in Dossier._MAPPED_CHAMPS_FIELDS),
+            },
+        ),
+        (
+            "Annotations DS",
+            {
+                "classes": ("collapse", "open"),
+                "fields": tuple(
+                    field.name for field in Dossier._MAPPED_ANNOTATIONS_FIELDS
+                ),
             },
         ),
         (
