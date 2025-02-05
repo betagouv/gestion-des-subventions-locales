@@ -175,7 +175,7 @@ class ProjetFilters(FilterSet):
 
     class Meta:
         model = Projet
-        fields = [
+        fields = (
             "dotation",
             "porteur",
             "cout_min",
@@ -184,7 +184,7 @@ class ProjetFilters(FilterSet):
             "montant_demande_max",
             "montant_retenu_min",
             "montant_retenu_max",
-        ]
+        )
 
     @property
     def qs(self):

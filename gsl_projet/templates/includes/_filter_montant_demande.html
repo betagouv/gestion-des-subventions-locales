@@ -29,9 +29,9 @@
                 Filtrer
             </button>
             <div class="separator">
-                <hr />
+                <hr aria-hidden="true" />
                 <span>ou</span>
-                <hr />
+                <hr aria-hidden="true" />
             </div>
             <div class="montant-demande-checkbox-container">
                 <input type="checkbox"
@@ -39,7 +39,7 @@
                        class="fr-checkbox"
                        {% if request.GET.montant_demande_min == "100000" %}checked{% endif %}>
                 <label for="montant_demande_sup_100k">
-                    Montant <b>&gt; Supérieur</b> à 100 000 €
+                    Montant <b><span aria-hidden="true">&gt;</span> Supérieur</b> à 100 000 €
                 </label>
             </div>
 
@@ -49,7 +49,7 @@
                        class="fr-checkbox"
                        {% if request.GET.montant_demande_max == "100000" %}checked{% endif %}>
                 <label for="montant_demande_inf_100k">
-                    Montant <b>&lt; Inférieur</b> à 100 000 €
+                    Montant <b><span aria-hidden="true">&lt;</span> Inférieur</b> à 100 000 €
                 </label>
             </div>
         </div>
