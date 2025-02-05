@@ -119,7 +119,7 @@ def projets(simulation, perimetre_departemental):
 
 @pytest.mark.django_db
 def test_simulation_view_status_code(req, view, simulations):
-    url = reverse("programmation:simulation_list")
+    url = reverse("programmation:simulation-list")
     view.object_list = simulations
     view.request = req.get(url)
 
@@ -130,7 +130,7 @@ def test_simulation_view_status_code(req, view, simulations):
 def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
     view = SimulationDetailView()
     view.request = req.get(
-        reverse("programmation:simulation_detail", kwargs={"slug": simulation.slug})
+        reverse("programmation:simulation-detail", kwargs={"slug": simulation.slug})
     )
     view.object = simulation
     enveloppe_data = view.get_enveloppe_data(simulation)

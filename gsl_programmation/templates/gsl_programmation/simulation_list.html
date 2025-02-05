@@ -19,6 +19,10 @@
             Aucune programmation n'est en cours ! Voulez-vous <a href="{% url 'gsl_programmation:simulation-form' %}">en commencer une</a> ?
         </p>
     {% else %}
+        <div class="add-simulation-button-container">
+            <a href="{% url 'gsl_programmation:simulation-form' %}"
+               class="fr-btn fr-mr-1w fr-pl-3v"><span class="fr-icon-add-line" /> Nouvelle simulation</a>
+        </div>
         <ul class="simulation-cards-list no-list-style">
             {% for simulation in object_list %}
                 <li class="">

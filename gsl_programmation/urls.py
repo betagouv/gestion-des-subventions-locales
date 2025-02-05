@@ -6,12 +6,12 @@ urlpatterns = [
     path(
         "simulations/",
         views.SimulationListView.as_view(),
-        name="simulation_list",
+        name="simulation-list",
     ),
     path(
         "simulation/<slug:slug>/",
         views.SimulationDetailView.as_view(),
-        name="simulation_detail",
+        name="simulation-detail",
     ),
     path(
         "modifier-le-taux-d-un-projet-de-simulation/<int:pk>/",
