@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     "gsl_demarches_simplifiees",
     "gsl_projet",
     "gsl_programmation",
+    "gsl_simulation",
     "gsl_pages",
     "gsl_oidc",
 ]

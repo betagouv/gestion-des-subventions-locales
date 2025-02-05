@@ -3,8 +3,9 @@ from import_export.admin import ImportExportMixin
 
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_core.models import Perimetre
+from gsl_simulation.models import Simulation, SimulationProjet
 
-from .models import Enveloppe, Simulation, SimulationProjet
+from .models import Enveloppe
 from .resources import EnveloppeDETRResource, EnveloppeDSILResource
 
 
@@ -84,6 +85,7 @@ class SimulationDepartementFilter(admin.SimpleListFilter):
         return queryset
 
 
+# TODO move
 @admin.register(Simulation)
 class SimulationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
