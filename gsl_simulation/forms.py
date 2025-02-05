@@ -34,7 +34,7 @@ class SimulationForm(DsfrBaseForm):
         if dotation == "DETR":
             if self.user.perimetre.type == Perimetre.TYPE_REGION:
                 raise ValidationError(
-                    f"Votre compte n’est pas associé à un périmètre départemental ({self.user.perimetre}). Contactez l’équipe."
+                    f"Votre compte est associé à un périmètre régional ({self.user.perimetre}), vous ne pouvez pas créer une simulation de programmation pour un fonds de dotation DETR."
                 )
 
         return cleaned_data

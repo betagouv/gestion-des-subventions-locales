@@ -1,5 +1,6 @@
 import pytest
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.db import IntegrityError
 
 from gsl_core.models import Arrondissement, Departement, Perimetre, Region
 from gsl_core.tests.factories import (
@@ -75,8 +76,12 @@ def test_save_invalid_perimetre(region_idf, dept_76):
     """Test que save() appelle clean() et empêche la sauvegarde d'un périmètre invalide"""
     perimetre = Perimetre(region=region_idf, departement=dept_76)
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         perimetre.save()
+
+    assert exc_info.value.message_dict["departement"][0] == (
+        "Le département doit appartenir à la même région que le périmètre."
+    )
 
 
 def test_clean_perimetre_without_departement(region_idf):
@@ -125,6 +130,17 @@ def test_clean_perimetre_with_arrondissement_without_departement(
     assert exc_info.value.message_dict["arrondissement"][0] == (
         "Un arrondissement ne peut être sélectionné sans département."
     )
+
+
+def test_unicity_by_perimeter(region_idf, dept_75):
+    perimetre = Perimetre(region=region_idf, departement=dept_75)
+    perimetre_bis = Perimetre(region=region_idf, departement=dept_75)
+    perimetre.save()
+
+    with pytest.raises(IntegrityError) as exc_info:
+        perimetre_bis.save()
+
+    assert "unicity_by_perimeter" in exc_info.value.args[0]
 
 
 @pytest.fixture

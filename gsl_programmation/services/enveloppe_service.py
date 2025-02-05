@@ -1,5 +1,3 @@
-from django.db.models import Q
-
 from gsl_core.models import Collegue, Perimetre
 from gsl_programmation.models import Enveloppe
 
@@ -22,22 +20,17 @@ class EnveloppeService:
         if perimetre.type == Perimetre.TYPE_REGION:
             return Enveloppe.objects.filter(
                 perimetre__region=perimetre.region,
-                perimetre__departement=None,
-                perimetre__arrondissement=None,
                 type=Enveloppe.TYPE_DSIL,
             )
 
+        if perimetre.type == Perimetre.TYPE_DEPARTEMENT:
+            return Enveloppe.objects.filter(
+                perimetre__region=perimetre.region,
+                perimetre__departement=perimetre.departement,
+            )
+
         return Enveloppe.objects.filter(
-            Q(
-                perimetre__region=perimetre.region,
-                perimetre__departement=perimetre.departement,
-                perimetre__arrondissement=None,
-                type=Enveloppe.TYPE_DETR,
-            )
-            | Q(
-                perimetre__region=perimetre.region,
-                perimetre__departement=perimetre.departement,
-                perimetre__arrondissement=None,
-                type=Enveloppe.TYPE_DSIL,
-            )
+            perimetre__region=perimetre.region,
+            perimetre__departement=perimetre.departement,
+            perimetre__arrondissement=perimetre.arrondissement,
         )
