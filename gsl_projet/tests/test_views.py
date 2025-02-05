@@ -13,7 +13,7 @@ from gsl_core.tests.factories import (
 from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
 from gsl_projet.models import Demandeur, Projet
 from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
-from gsl_projet.views import ProjetListView
+from gsl_projet.views import ProjetFilters, ProjetListView
 
 
 @pytest.fixture
@@ -69,8 +69,9 @@ def test_get_ordering(req, view, tri_param, expected_ordering):
         request = req.get(f"/?tri={tri_param}")
 
     view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
 
-    assert view.get_queryset().query.order_by == expected_ordering
+    assert qs.query.order_by == expected_ordering
 
 
 @pytest.fixture
@@ -107,7 +108,7 @@ def projets(demandeur) -> list[Projet]:
 def test_projets_ordering(req, view, projets, tri_param, expected_ordering):
     request = req.get("/?tri=" + tri_param)
     view.request = request
-    qs = view.get_queryset()
+    qs = view.get_filterset(ProjetFilters).qs
     projets_lis = [projets[1], projets[0]] if expected_ordering == "1-0" else projets
     assert list(qs) == projets_lis
 
@@ -138,10 +139,10 @@ def projets_dsil(demandeur) -> list[Projet]:
 
 
 @pytest.mark.django_db
-def test_filter_by_dispositif(req, view, projets_detr, projets_dsil):
-    request = req.get("/?dispositif=DETR")
+def test_filter_by_dotation(req, view, projets_detr, projets_dsil):
+    request = req.get("/?dotation=DETR")
     view.request = request
-    qs = view.get_queryset()
+    qs = view.get_filterset(ProjetFilters).qs
 
     assert Projet.objects.count() == 5
 
@@ -150,10 +151,10 @@ def test_filter_by_dispositif(req, view, projets_detr, projets_dsil):
 
 
 @pytest.mark.django_db
-def test_filter_by_dispositif_dsil(req, view, projets_detr, projets_dsil):
-    request = req.get("/?dispositif=DSIL")
+def test_filter_by_dotation_dsil(req, view, projets_detr, projets_dsil):
+    request = req.get("/?dotation=DSIL")
     view.request = request
-    qs = view.get_queryset()
+    qs = view.get_filterset(ProjetFilters).qs
 
     assert Projet.objects.count() == 5
 
@@ -165,7 +166,7 @@ def test_filter_by_dispositif_dsil(req, view, projets_detr, projets_dsil):
 def test_no_dispositif_filter(req, view, projets_detr, projets_dsil):
     request = req.get("/")
     view.request = request
-    qs = view.get_queryset()
+    qs = view.get_filterset(ProjetFilters).qs
 
     assert qs.count() == 5
 
@@ -226,7 +227,7 @@ def test_filter_by_epci_porteur(
 ):
     request = req.get("/?porteur=EPCI")
     view.request = request
-    qs = view.get_queryset()
+    qs = view.get_filterset(ProjetFilters).qs
 
     assert qs.count() == 2
 
@@ -237,7 +238,7 @@ def test_filter_by_communes_porteur(
 ):
     request = req.get("/?porteur=Communes")
     view.request = request
-    qs = view.get_queryset()
+    qs = view.get_filterset(ProjetFilters).qs
 
     assert qs.count() == 4
 
@@ -248,7 +249,7 @@ def test_filter_by_epci(
 ):
     request = req.get("/")
     view.request = request
-    qs = view.get_queryset()
+    qs = view.get_filterset(ProjetFilters).qs
 
     assert qs.count() == 9
 
@@ -259,7 +260,7 @@ def test_wrong_porteur_filter(
 ):
     request = req.get("/?porteur='Fake'")
     view.request = request
-    qs = view.get_queryset()
+    qs = view.get_filterset(ProjetFilters).qs
 
     assert qs.count() == 9
 
@@ -301,7 +302,7 @@ def test_filter_by_min_cost(
 ):
     request = req.get("/?cout_min=150000")
     view.request = request
-    qs = view.get_queryset()
+    qs = view.get_filterset(ProjetFilters).qs
 
     assert qs.count() == 8
     assert all(150000 <= p.assiette_or_cout_total for p in qs)
@@ -316,7 +317,7 @@ def test_filter_by_max_cost(
 ):
     request = req.get("/?cout_max=250000")
     view.request = request
-    qs = view.get_queryset()
+    qs = view.get_filterset(ProjetFilters).qs
 
     assert qs.count() == 7
     assert all(p.assiette_or_cout_total <= 250000 for p in qs)
@@ -331,7 +332,7 @@ def test_filter_by_cost_range(
 ):
     request = req.get("/?cout_min=150000&cout_max=250000")
     view.request = request
-    qs = view.get_queryset()
+    qs = view.get_filterset(ProjetFilters).qs
 
     assert qs.count() == 5
     assert all(100000 <= p.assiette_or_cout_total <= 250000 for p in qs)
@@ -346,6 +347,146 @@ def test_filter_with_wrong_values(
 ):
     request = req.get("/?cout_min=wrong")
     view.request = request
-    qs = view.get_queryset()
+    qs = view.get_filterset(ProjetFilters).qs
 
     assert qs.count() == 10
+
+
+### Test du filtre par montant retenu
+
+
+@pytest.fixture
+def projets_with_montant_retenu(demandeur) -> list[Projet]:
+    return [
+        ProjetFactory(
+            dossier_ds__annotations_montant_accorde=amount,
+            demandeur=demandeur,
+        )
+        for amount in (None, 50_000, 100_000, 150_000, 200_000, 250_000)
+    ]
+
+
+@pytest.mark.django_db
+def test_filter_by_min_montant_retenu(
+    req,
+    view,
+    projets_with_montant_retenu,
+):
+    request = req.get("/?montant_retenu_min=100000")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 4
+    assert all(100_000 <= p.dossier_ds.annotations_montant_accorde for p in qs)
+
+
+@pytest.mark.django_db
+def test_filter_by_max_montant_retenu(
+    req,
+    view,
+    projets_with_montant_retenu,
+):
+    request = req.get("/?montant_retenu_max=200000")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 4
+    assert all(p.dossier_ds.annotations_montant_accorde <= 200_000 for p in qs)
+
+
+@pytest.mark.django_db
+def test_filter_by_montant_retenu_range(
+    req,
+    view,
+    projets_with_montant_retenu,
+):
+    request = req.get("/?montant_retenu_min=100000&montant_retenu_max=200000")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 3
+    assert all(
+        100_000 <= p.dossier_ds.annotations_montant_accorde <= 200_000 for p in qs
+    )
+
+
+@pytest.mark.django_db
+def test_filter_with_wrong_montant_retenu_values(
+    req,
+    view,
+    projets_with_montant_retenu,
+):
+    request = req.get("/?montant_retenu_min=wrong")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 6
+
+
+### Test du filtre par montant demandé
+
+
+@pytest.fixture
+def projets_with_montant_demande(demandeur) -> list[Projet]:
+    return [
+        ProjetFactory(
+            dossier_ds__demande_montant=amount,
+            demandeur=demandeur,
+        )
+        for amount in (None, 30_000, 60_000, 90_000, 120_000, 150_000)
+    ]
+
+
+@pytest.mark.django_db
+def test_filter_by_min_montant_demande(
+    req,
+    view,
+    projets_with_montant_demande,
+):
+    request = req.get("/?montant_demande_min=60000")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 4
+    assert all(60_000 <= p.dossier_ds.demande_montant for p in qs)
+
+
+@pytest.mark.django_db
+def test_filter_by_max_montant_demande(
+    req,
+    view,
+    projets_with_montant_demande,
+):
+    request = req.get("/?montant_demande_max=120000")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 4
+    assert all(p.dossier_ds.demande_montant <= 120_000 for p in qs)
+
+
+@pytest.mark.django_db
+def test_filter_by_montant_demande_range(
+    req,
+    view,
+    projets_with_montant_demande,
+):
+    request = req.get("/?montant_demande_min=60000&montant_demande_max=120000")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 3
+    assert all(60_000 <= p.dossier_ds.demande_montant <= 120_000 for p in qs)
+
+
+@pytest.mark.django_db
+def test_filter_with_wrong_montant_demande_values(
+    req,
+    view,
+    projets_with_montant_demande,
+):
+    request = req.get("/?montant_demande_min=wrong")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 6

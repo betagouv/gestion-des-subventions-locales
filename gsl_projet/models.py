@@ -187,7 +187,7 @@ class Projet(models.Model):
         if self.assiette_or_cout_total is None:
             return
         if self.assiette_or_cout_total > 0:
-            return self.dossier_ds.demande_montant / self.assiette_or_cout_total
+            return self.dossier_ds.demande_montant * 100 / self.assiette_or_cout_total
 
     def get_taux_subventionnable(self):
         if self.assiette is None:

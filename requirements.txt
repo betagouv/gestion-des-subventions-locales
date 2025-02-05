@@ -60,6 +60,7 @@ django==5.1.4
     #   django-crispy-forms
     #   django-csp
     #   django-dsfr
+    #   django-filter
     #   django-htmx
     #   django-import-export
     #   django-referrer-policy
@@ -75,6 +76,8 @@ django-crispy-forms==2.3
 django-csp==3.8
     # via gsl (pyproject.toml)
 django-dsfr==2.0.0
+    # via gsl (pyproject.toml)
+django-filter==24.3
     # via gsl (pyproject.toml)
 django-htmx==1.21.0
     # via gsl (pyproject.toml)

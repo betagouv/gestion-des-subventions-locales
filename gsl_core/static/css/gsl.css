@@ -208,6 +208,10 @@ ul.no-list-style li {
     padding-right: 16px;
 }
 
+.fr-table__footer {
+    justify-content: center;
+}
+
 
 /* TODO utilister des variables avec un préprocesseur ? */
 @media (max-width: 768px) {
