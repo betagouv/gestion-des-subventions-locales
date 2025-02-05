@@ -228,7 +228,7 @@ def simulation_form(request):
             return redirect("simulation:simulation_list")
         else:
             return render(
-                request, "gsl_programmation/simulation_form.html", {"form": form}
+                request, "gsl_simulation/simulation_form.html", {"form": form}
             )
     else:
         form = SimulationForm(user=request.user)
@@ -246,4 +246,4 @@ def simulation_form(request):
         context["form"] = form
         context["title"] = "Création d’une simulation de programmation"
 
-        return render(request, "gsl_programmation/simulation_form.html", context)
+        return render(request, "gsl_simulation/simulation_form.html", context)
