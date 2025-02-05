@@ -1,17 +1,17 @@
-<form action="{% url 'programmation:patch-simulation-projet-montant' simu.id %}"
+<form action="{% url 'simulation:patch-simulation-projet-taux' simu.id %}"
       method="POST"
       hx-on="submit: event.preventDefault()">
     {% csrf_token %}
-    <div div class="gsl-projet-table__input-wrap">
-        <input name="montant"
+    <div class="gsl-projet-table__input-wrap gsl-projet-table__rate">
+        <input name="taux"
                type="text"
                inputmode="numeric"
                class="fr-input input-simulation-projet-{{ simu.pk }}"
-               hx-patch="{% url 'programmation:patch-simulation-projet-montant' simu.id %}"
+               hx-patch="{% url 'simulation:patch-simulation-projet-taux' simu.id %}"
                hx-disabled-elt=".input-simulation-projet-{{ simu.pk }}"
                hx-trigger="change, keyup[key=='Enter']"
-               value="{{ simu.montant|floatformat:"2g" }}">
-        <span class="gsl-projet-table__input-symbol">€</span>
+               value="{{ simu.taux }}">
+        <span class="gsl-projet-table__input-symbol">%</span>
     </div>
     <input type="hidden" name="filter_params" value="{{ filter_params }}">
 </form>

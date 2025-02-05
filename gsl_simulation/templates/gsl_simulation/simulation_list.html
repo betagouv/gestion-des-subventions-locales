@@ -16,7 +16,7 @@
     </h1>
     {% if object_list|length == 0 %}
         <p>
-            Aucune programmation n'est en cours ! Voulez-vous <a href="{% url 'gsl_programmation:simulation-form' %}">en commencer une</a> ?
+            Aucune programmation n'est en cours ! Voulez-vous <a href="{% url 'gsl_simulation:simulation-form' %}">en commencer une</a> ?
         </p>
     {% else %}
         <div class="add-simulation-button-container">

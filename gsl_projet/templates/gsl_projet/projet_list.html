@@ -10,9 +10,9 @@
         Liste des projets
     </h1>
 
-    <a href="{% url 'gsl_programmation:simulation-form' %}"
-       class="fr-btn fr-mb-4w fr-mr-1w">Effectuer une simulation</a>
-    <a href="{% url 'gsl_programmation:simulation-list' %}"
+    <a href="{% url 'gsl_simulation:simulation-form' %}"
+       class="fr-btn fr-mb-4w">Effectuer une simulation</a>
+    <a href="{% url 'gsl_simulation:simulation-list' %}"
        class="fr-btn fr-btn--secondary fr-mb-4w">Voir les simulations</a>
 
     {% include "includes/_projet_list_filters.html" %}

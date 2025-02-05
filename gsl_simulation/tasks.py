@@ -13,6 +13,7 @@ STATUS_MAPPINGS = {
 }
 
 
+# TODO move
 @shared_task
 def add_enveloppe_projets_to_simulation(simulation_id):
     simulation = Simulation.objects.get(id=simulation_id)

@@ -10,14 +10,14 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
-from gsl_programmation.models import SimulationProjet
-from gsl_programmation.tasks import add_enveloppe_projets_to_simulation
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
     SimulationFactory,
 )
 from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
+from gsl_simulation.models import SimulationProjet
+from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
 
 
 @pytest.fixture
