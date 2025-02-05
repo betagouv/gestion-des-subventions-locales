@@ -3,7 +3,7 @@ from import_export.admin import ImportExportMixin
 
 from gsl_core.admin import AllPermsForStaffUser
 
-from .models import Enveloppe
+from .models import Enveloppe, ProgrammationProjet
 from .resources import EnveloppeDETRResource, EnveloppeDSILResource
 
 
@@ -29,3 +29,11 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
             .select_related("perimetre__arrondissement")
         )
         return qs
+
+
+@admin.register(ProgrammationProjet)
+class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    list_display = ("__str__", "enveloppe", "status", "montant", "taux", "notified_at")
+    autocomplete_fields = ("enveloppe",)
+    raw_id_fields = ("projet",)
+    readonly_fields = ("created_at", "updated_at")
