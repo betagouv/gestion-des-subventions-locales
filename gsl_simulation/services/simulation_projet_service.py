@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from gsl_programmation.models import SimulationProjet
+from gsl_simulation.models import SimulationProjet
 
 
 class SimulationProjetService:

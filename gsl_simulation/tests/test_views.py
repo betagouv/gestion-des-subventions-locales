@@ -12,12 +12,11 @@ from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
-    ProjetFactory,
-    SimulationFactory,
 )
-from gsl_programmation.views import SimulationDetailView, SimulationListView
 from gsl_projet.models import Projet
-from gsl_projet.tests.factories import DemandeurFactory
+from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
+from gsl_simulation.tests.factories import SimulationFactory
+from gsl_simulation.views import SimulationDetailView, SimulationListView
 
 
 @pytest.fixture
@@ -119,7 +118,7 @@ def projets(simulation, perimetre_departemental):
 
 @pytest.mark.django_db
 def test_simulation_view_status_code(req, view, simulations):
-    url = reverse("programmation:simulation-list")
+    url = reverse("simulation:simulation-list")
     view.object_list = simulations
     view.request = req.get(url)
 
@@ -130,7 +129,7 @@ def test_simulation_view_status_code(req, view, simulations):
 def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
     view = SimulationDetailView()
     view.request = req.get(
-        reverse("programmation:simulation-detail", kwargs={"slug": simulation.slug})
+        reverse("simulation:simulation-detail", kwargs={"slug": simulation.slug})
     )
     view.object = simulation
     enveloppe_data = view.get_enveloppe_data(simulation)

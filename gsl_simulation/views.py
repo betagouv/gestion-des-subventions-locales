@@ -11,18 +11,17 @@ from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 
 from gsl_demarches_simplifiees.models import Dossier
-from gsl_programmation.forms import SimulationForm
 from gsl_programmation.services.enveloppe_service import EnveloppeService
-from gsl_programmation.services.simulation_projet_service import (
-    SimulationProjetService,
-)
-from gsl_programmation.services.simulation_service import SimulationService
-from gsl_programmation.tasks import add_enveloppe_projets_to_simulation
-from gsl_programmation.utils import get_filters_dict_from_params, replace_comma_by_dot
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
-
-from .models import Simulation, SimulationProjet
+from gsl_simulation.forms import SimulationForm
+from gsl_simulation.models import Simulation, SimulationProjet
+from gsl_simulation.services.simulation_projet_service import (
+    SimulationProjetService,
+)
+from gsl_simulation.services.simulation_service import SimulationService
+from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
+from gsl_simulation.utils import get_filters_dict_from_params, replace_comma_by_dot
 
 
 class SimulationListView(ListView):
@@ -42,9 +41,7 @@ class SimulationListView(ListView):
         visible_by_user_enveloppes = EnveloppeService.get_enveloppes_visible_for_a_user(
             self.request.user
         )
-        return Simulation.objects.filter(
-            enveloppe__in=visible_by_user_enveloppes
-        ).order_by("-created_at")
+        return Simulation.objects.filter(enveloppe__in=visible_by_user_enveloppes)
 
 
 class SimulationDetailView(DetailView):
@@ -74,7 +71,7 @@ class SimulationDetailView(DetailView):
         context["breadcrumb_dict"] = {
             "links": [
                 {
-                    "url": reverse("programmation:simulation-list"),
+                    "url": reverse("simulation:simulation-list"),
                     "title": "Mes simulations de programmation",
                 }
             ],
@@ -161,7 +158,7 @@ def redirect_to_simulation_projet(request, simulation_projet):
         )
 
     url = reverse(
-        "programmation:simulation-detail",
+        "simulation:simulation-detail",
         kwargs={"slug": simulation_projet.simulation.slug},
     )
     if request.POST.get("filter_params"):
@@ -228,10 +225,10 @@ def simulation_form(request):
                 request.user, form.cleaned_data["title"], form.cleaned_data["dotation"]
             )
             add_enveloppe_projets_to_simulation(simulation.id)
-            return redirect("programmation:simulation-list")
+            return redirect("simulation:simulation-list")
         else:
             return render(
-                request, "gsl_programmation/simulation_form.html", {"form": form}
+                request, "gsl_simulation/simulation_form.html", {"form": form}
             )
     else:
         form = SimulationForm(user=request.user)
@@ -249,4 +246,4 @@ def simulation_form(request):
         context["form"] = form
         context["title"] = "Création d’une simulation de programmation"
 
-        return render(request, "gsl_programmation/simulation_form.html", context)
+        return render(request, "gsl_simulation/simulation_form.html", context)

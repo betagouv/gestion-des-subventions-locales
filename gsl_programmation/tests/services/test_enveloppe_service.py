@@ -9,8 +9,8 @@ from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
-    SimulationFactory,
 )
+from gsl_simulation.tests.factories import SimulationFactory
 
 pytestmark = pytest.mark.django_db
 

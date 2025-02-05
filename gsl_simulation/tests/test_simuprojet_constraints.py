@@ -9,9 +9,9 @@ from gsl_core.tests.factories import (
     PerimetreFactory,
     RegionFactory,
 )
+from gsl_programmation.models import Enveloppe
 from gsl_projet.tests.factories import ProjetFactory
-
-from ..models import Enveloppe, Simulation, SimulationProjet
+from gsl_simulation.models import Simulation, SimulationProjet
 
 pytestmark = pytest.mark.django_db
 
