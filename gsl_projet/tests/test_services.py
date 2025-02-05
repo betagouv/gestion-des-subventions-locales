@@ -7,11 +7,11 @@ from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     NaturePorteurProjetFactory,
 )
-from gsl_programmation.models import Simulation
-from gsl_programmation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
 from gsl_projet.tests.factories import ProjetFactory
+from gsl_simulation.models import Simulation
+from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
 
 @pytest.fixture

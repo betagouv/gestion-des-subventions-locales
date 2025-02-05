@@ -12,11 +12,10 @@ from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
-    ProjetFactory,
-    SimulationFactory,
 )
 from gsl_projet.models import Projet
-from gsl_projet.tests.factories import DemandeurFactory
+from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
+from gsl_simulation.tests.factories import SimulationFactory
 from gsl_simulation.views import SimulationDetailView, SimulationListView
 
 

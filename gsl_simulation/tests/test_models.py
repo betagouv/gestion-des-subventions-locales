@@ -1,7 +1,7 @@
 import pytest
 
-from gsl_programmation.models import Simulation, SimulationProjet
-from gsl_programmation.tests.factories import SimulationFactory, SimulationProjetFactory
+from gsl_simulation.models import Simulation, SimulationProjet
+from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
 
 @pytest.fixture

@@ -12,7 +12,6 @@ from django.views.generic.list import ListView
 
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.services.enveloppe_service import EnveloppeService
-from gsl_programmation.utils import get_filters_dict_from_params, replace_comma_by_dot
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
 from gsl_simulation.forms import SimulationForm
@@ -22,6 +21,7 @@ from gsl_simulation.services.simulation_projet_service import (
 )
 from gsl_simulation.services.simulation_service import SimulationService
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
+from gsl_simulation.utils import get_filters_dict_from_params, replace_comma_by_dot
 
 
 class SimulationListView(ListView):

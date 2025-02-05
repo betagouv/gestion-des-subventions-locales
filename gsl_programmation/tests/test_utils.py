@@ -1,6 +1,6 @@
 import pytest
 
-from gsl_programmation.utils import (
+from gsl_simulation.utils import (
     get_filters_dict_from_params,
     replace_comma_by_dot,
 )

@@ -7,13 +7,14 @@ from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
-from gsl_programmation.models import Enveloppe, Simulation
+from gsl_programmation.models import Enveloppe
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
-    SimulationFactory,
 )
+from gsl_simulation.models import Simulation
 from gsl_simulation.services.simulation_service import SimulationService
+from gsl_simulation.tests.factories import SimulationFactory
 
 pytestmark = pytest.mark.django_db
 
