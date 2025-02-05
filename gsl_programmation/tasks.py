@@ -1,8 +1,8 @@
 from celery import shared_task
 
 from gsl_demarches_simplifiees.models import Dossier
-from gsl_programmation.models import Simulation, SimulationProjet
 from gsl_projet.models import Projet
+from gsl_simulation.models import Simulation, SimulationProjet
 
 STATUS_MAPPINGS = {
     Dossier.STATE_ACCEPTE: SimulationProjet.STATUS_VALID,

@@ -21,8 +21,7 @@ from gsl_programmation.tasks import add_enveloppe_projets_to_simulation
 from gsl_programmation.utils import get_filters_dict_from_params, replace_comma_by_dot
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
-
-from .models import Simulation, SimulationProjet
+from gsl_simulation.models import Simulation, SimulationProjet
 
 
 class SimulationListView(ListView):

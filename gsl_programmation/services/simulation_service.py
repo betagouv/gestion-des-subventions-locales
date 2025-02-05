@@ -4,8 +4,9 @@ from typing import Any
 from django.utils.text import slugify
 
 from gsl_core.models import Perimetre
-from gsl_programmation.models import Enveloppe, Simulation
+from gsl_programmation.models import Enveloppe
 from gsl_projet.models import Projet
+from gsl_simulation.models import Simulation
 
 
 class SimulationService:
