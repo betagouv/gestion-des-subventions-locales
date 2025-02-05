@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from gsl_core.models import Perimetre
+from gsl_projet.models import Projet
 
 
 class Enveloppe(models.Model):
@@ -81,3 +82,57 @@ class Enveloppe(models.Model):
             raise ValidationError(
                 "Le périmètre de l'enveloppe délégante est incohérent avec celui de l'enveloppe déléguée."
             )
+
+
+class ProgrammationProjet(models.Model):
+    """
+    Class used to store information about a Projet that is
+    definitely accepted or refused on a given Enveloppe.
+    """
+
+    STATUS_ACCEPTED = "accepted"
+    STATUS_REFUSED = "refused"
+    STATUS_CHOICES = (
+        (STATUS_ACCEPTED, "✅  Accepté"),
+        (STATUS_REFUSED, "❌ Refusé"),
+    )
+
+    projet = models.ForeignKey(Projet, on_delete=models.CASCADE, verbose_name="Projet")
+    enveloppe = models.ForeignKey(
+        Enveloppe, on_delete=models.CASCADE, verbose_name="Enveloppe"
+    )
+    status = models.CharField(
+        verbose_name="État", choices=STATUS_CHOICES, default=STATUS_ACCEPTED
+    )
+    montant = models.DecimalField(
+        decimal_places=2, max_digits=14, verbose_name="Montant"
+    )
+    taux = models.DecimalField(decimal_places=2, max_digits=5, verbose_name="Taux")
+
+    justification = models.TextField(
+        verbose_name="Justification", blank=True, null=False, default=""
+    )
+
+    notified_at = models.DateTimeField(
+        verbose_name="Date de notification", null=True, blank=True
+    )
+    created_at = models.DateTimeField(
+        verbose_name="Date de création", auto_now_add=True
+    )
+    updated_at = models.DateTimeField(
+        verbose_name="Date de dernière modification", auto_now=True
+    )
+
+    class Meta:
+        verbose_name = "Programmation projet"
+        verbose_name_plural = "Programmations projet"
+        constraints = (
+            models.UniqueConstraint(
+                fields=("enveloppe", "projet"),
+                name="unique_projet_enveloppe",
+                nulls_distinct=True,
+            ),
+        )
+
+    def __str__(self):
+        return f"Projet programmé {self.pk}"
