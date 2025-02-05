@@ -2,7 +2,6 @@ import re
 from urllib.parse import parse_qs
 
 
-# TODO move some functions ?
 def replace_comma_by_dot(value: str | None) -> float | None:
     """
     Convert a string with spaces and commas to a float.
