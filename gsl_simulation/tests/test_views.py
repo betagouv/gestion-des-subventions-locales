@@ -123,6 +123,9 @@ def test_simulation_view_status_code(req, view, simulations):
     view.request = req.get(url)
 
     assert view.get_queryset().count() == 2
+    assert (
+        view.get_queryset().first().created_at > view.get_queryset().last().created_at
+    )
 
 
 @pytest.mark.django_db

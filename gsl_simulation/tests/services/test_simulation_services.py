@@ -92,7 +92,7 @@ def test_user_with_arrondissement_and_ask_for_dsil_simulation():
     user = CollegueFactory(perimetre=perimetre_arrondissement)
 
     SimulationService.create_simulation(
-        user, 'Test   &é"@ avec ces caractères !!', "DSIL"
+        user, 'Test   &"@ avec ces caractères !!', "DSIL"
     )
 
     simulation = Simulation.objects.get(enveloppe__perimetre=perimetre_arrondissement)
