@@ -53,18 +53,73 @@ def perimetre_arrondissement(arrondissement) -> Perimetre:
     )
 
 
-def test_dsil_not_delegated_must_have_regional_perimeter(perimetre_departement):
+def test_dsil_delegated_must_not_have_regional_perimeter(
+    perimetre_region, dsil_enveloppe
+):
     enveloppe = Enveloppe(
         type=Enveloppe.TYPE_DSIL,
         montant=Decimal("123.00"),
         annee=2025,
-        perimetre=perimetre_departement,
+        perimetre=perimetre_region,
+        deleguee_by=dsil_enveloppe,
     )
     with pytest.raises(ValidationError) as exc_info:
         enveloppe.full_clean()
 
     assert exc_info.value.message_dict["__all__"][0] == (
-        "Il faut préciser un périmètre régional pour une enveloppe de type DSIL non déléguée."
+        "Une enveloppe DSIL déléguée ne peut pas être une enveloppe régionale."
+    )
+
+
+def test_dsil_not_delegated_must_have_regional_perimeter(
+    perimetre_departement, perimetre_arrondissement
+):
+    for perimetre_not_regional in (perimetre_departement, perimetre_arrondissement):
+        enveloppe = Enveloppe(
+            type=Enveloppe.TYPE_DSIL,
+            montant=Decimal("123.00"),
+            annee=2025,
+            perimetre=perimetre_not_regional,
+            deleguee_by=None,
+        )
+        with pytest.raises(ValidationError) as exc_info:
+            enveloppe.full_clean()
+
+        assert exc_info.value.message_dict["__all__"][0] == (
+            "Il faut préciser un périmètre régional pour une enveloppe de type DSIL non déléguée."
+        )
+
+
+def test_detr_must_not_have_regional_perimeter(perimetre_region):
+    enveloppe = Enveloppe(
+        type=Enveloppe.TYPE_DETR,
+        montant=Decimal("123.00"),
+        annee=2025,
+        perimetre=perimetre_region,
+    )
+    with pytest.raises(ValidationError) as exc_info:
+        enveloppe.full_clean()
+
+    assert exc_info.value.message_dict["__all__"][0] == (
+        "Une enveloppe de type DETR ne peut pas avoir un périmètre régional."
+    )
+
+
+def test_departemental_detr_must_not_be_delegated(
+    perimetre_departement, detr_enveloppe
+):
+    enveloppe = Enveloppe(
+        type=Enveloppe.TYPE_DETR,
+        montant=Decimal("123.00"),
+        annee=2025,
+        perimetre=perimetre_departement,
+        deleguee_by=detr_enveloppe,
+    )
+    with pytest.raises(ValidationError) as exc_info:
+        enveloppe.full_clean()
+
+    assert exc_info.value.message_dict["__all__"][0] == (
+        "Une enveloppe de type DETR déléguée ne peut pas être une enveloppe départementale."
     )
 
 
@@ -79,7 +134,7 @@ def test_detr_not_delegated_must_have_departemental_perimeter(perimetre_arrondis
         enveloppe.full_clean()
 
     assert exc_info.value.message_dict["__all__"][0] == (
-        "Il faut préciser un périmètre départemental pour une enveloppe de type DETR non déléguée."
+        "Une enveloppe de type DETR et de périmètre arrondissement doit obligatoirement être déléguée."
     )
 
 

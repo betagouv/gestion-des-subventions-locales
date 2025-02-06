@@ -49,18 +49,34 @@ class Enveloppe(models.Model):
 
     def clean(self):
         if self.type == self.TYPE_DETR:  # scope "département"
-            if not self.is_deleguee and (
-                self.perimetre.arrondissement is not None
-                or self.perimetre.departement is None
+            if self.perimetre.type == Perimetre.TYPE_REGION:
+                raise ValidationError(
+                    "Une enveloppe de type DETR ne peut pas avoir un périmètre régional."
+                )
+
+            if self.perimetre.type == Perimetre.TYPE_DEPARTEMENT and self.is_deleguee:
+                raise ValidationError(
+                    "Une enveloppe de type DETR déléguée ne peut pas être une enveloppe départementale."
+                )
+
+            if (
+                self.perimetre.type == Perimetre.TYPE_ARRONDISSEMENT
+                and not self.is_deleguee
             ):
                 raise ValidationError(
-                    "Il faut préciser un périmètre départemental pour une enveloppe de type DETR non déléguée."
+                    "Une enveloppe de type DETR et de périmètre arrondissement doit obligatoirement être déléguée."
                 )
+
         if self.type == self.TYPE_DSIL:
-            if not self.is_deleguee and self.perimetre.departement is not None:
+            if self.is_deleguee and self.perimetre.type == Perimetre.TYPE_REGION:
+                raise ValidationError(
+                    "Une enveloppe DSIL déléguée ne peut pas être une enveloppe régionale."
+                )
+            if not self.is_deleguee and self.perimetre.type != Perimetre.TYPE_REGION:
                 raise ValidationError(
                     "Il faut préciser un périmètre régional pour une enveloppe de type DSIL non déléguée."
                 )
+
         if self.is_deleguee and not self.deleguee_by.perimetre.contains(self.perimetre):
             raise ValidationError(
                 "Le périmètre de l'enveloppe délégante est incohérent avec celui de l'enveloppe déléguée."
