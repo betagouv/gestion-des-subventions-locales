@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Any
 
+from django.db.models import QuerySet
 from django.utils.text import slugify
 
 from gsl_core.models import Perimetre
@@ -47,6 +48,14 @@ class SimulationService:
             return incremented_slug
         return slug
 
+    # TODO : remove ??
     @classmethod
     def get_projets_from_simulation(cls, simulation: Simulation):
         return Projet.objects.filter(simulationprojet__simulation=simulation)
+
+    # TODO : remove ??
+    @classmethod
+    def filter_projets_from_simulation(
+        cls, qs: QuerySet[Projet], simulation: Simulation
+    ) -> QuerySet[Projet]:
+        return qs.filter(simulationprojet__simulation=simulation)

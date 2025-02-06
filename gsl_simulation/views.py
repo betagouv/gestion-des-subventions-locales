@@ -9,11 +9,14 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
+from django_filters.views import FilterView
 
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
+from gsl_projet.utils.filter_utils import FilterUtils
+from gsl_projet.views import ProjetFilters
 from gsl_simulation.forms import SimulationForm
 from gsl_simulation.models import Simulation, SimulationProjet
 from gsl_simulation.services.simulation_projet_service import (
@@ -46,29 +49,38 @@ class SimulationListView(ListView):
         ).order_by("-created_at")
 
 
-class SimulationDetailView(DetailView):
+class SimulationDetailView(FilterView, DetailView, FilterUtils):
     model = Simulation
+    filterset_class = ProjetFilters
+    template_name = "gsl_simulation/simulation_detail.html"
+
+    def get(self, request, *args, **kwargs):
+        # Ensure the object is retrieved
+        self.simulation = self.get_object()
+        self.object = self.simulation
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        simulation = self.get_object()
+        # Use self.object instead of calling get_object() again
         qs = self.get_projet_queryset()
         context = super().get_context_data(**kwargs)
-        paginator = Paginator(qs, 25)
+        paginator = Paginator(qs, 25)  # TODO try with paginate_by
         page = self.kwargs.get("page") or self.request.GET.get("page") or 1
         current_page = paginator.page(page)
         context["simulations_paginator"] = current_page
         context["simulations_list"] = current_page.object_list
         context["title"] = (
-            f"{simulation.enveloppe.type} {simulation.enveloppe.annee} – {simulation.title}"
+            f"{self.simulation.enveloppe.type} {self.simulation.enveloppe.annee} – {self.simulation.title}"
         )
         context["porteur_mappings"] = ProjetService.PORTEUR_MAPPINGS
-        context["status_summary"] = simulation.get_projet_status_summary()
+        context["status_summary"] = self.simulation.get_projet_status_summary()
         context["total_cost"] = ProjetService.get_total_cost(qs)
         context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs)
         context["total_amount_granted"] = ProjetService.get_total_amount_granted(qs)
         context["available_states"] = SimulationProjet.STATUS_CHOICES
         context["filter_params"] = self.request.GET.urlencode()
-        context["enveloppe"] = self.get_enveloppe_data(simulation)
+        context["enveloppe"] = self.get_enveloppe_data(self.simulation)
+        self.enrich_context_with_filter_utils(context)
 
         context["breadcrumb_dict"] = {
             "links": [
@@ -77,18 +89,15 @@ class SimulationDetailView(DetailView):
                     "title": "Mes simulations de programmation",
                 }
             ],
-            "current": simulation.title,
+            "current": self.simulation.title,
         }
 
         return context
 
     def get_projet_queryset(self):
         simulation = self.get_object()
-        qs = SimulationService.get_projets_from_simulation(simulation)
-        qs = qs.order_by("simulationprojet__created_at")
-        qs = ProjetService.add_filters_to_projets_qs(qs, self.request.GET)
-        qs = ProjetService.add_ordering_to_projets_qs(qs, self.request.GET.get("tri"))
-        qs = qs.select_related("address").select_related("address__commune")
+        qs = self.get_filterset(self.filterset_class).qs
+        qs = SimulationService.filter_projets_from_simulation(qs, simulation)
         qs = qs.prefetch_related(
             Prefetch(
                 "simulationprojet_set",

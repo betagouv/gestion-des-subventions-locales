@@ -169,13 +169,6 @@ ul.no-list-style li {
     padding-left: 1.5em;
 }
 
-.projets-filters-layout {
-    background: var(--background-alt-blue-france);
-    margin-left: calc(-50vw + 50%);
-    margin-right: calc(-50vw + 50%);
-    padding: 1rem max(calc((100vw - 1200px) / 2), 1.5rem);
-}
-
 .gsl-projet-table__select {
     text-align: right;
     padding: 4px;
@@ -212,13 +205,6 @@ ul.no-list-style li {
     justify-content: center;
 }
 
-
-/* TODO utilister des variables avec un préprocesseur ? */
-@media (max-width: 768px) {
-    .projets-filters-layout {
-        padding: 1rem;
-    }
-}
 
 .ds_state__accepte {
     color: var(--text-default-success)
@@ -261,20 +247,4 @@ ul.no-list-style li {
 
 .blue-icon {
     color: var(--blue-france-sun-113-625);
-}
-
-/* En travaux */
-
-.ahr-todo {
-    border-image: repeating-linear-gradient(-45deg, black, black 10px, yellow 10px, yellow 20px, black 10px);
-    border-image-slice: 9;
-    border-style: solid;
-    border-width: 6px;
-    padding: .75em;
-    margin: .75em 0;
-    box-shadow: 0 0 0 1px inset, 0 0 0 1px;
-    background: #ffffb3;
-}
-.ahr-todo__check{
-    text-decoration: line-through;
 }

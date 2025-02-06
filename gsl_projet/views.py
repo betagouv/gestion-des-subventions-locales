@@ -15,6 +15,7 @@ from django_filters.views import FilterView
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
+from gsl_projet.utils.filter_utils import FilterUtils
 
 from .models import Projet
 
@@ -201,10 +202,19 @@ class ProjetFilters(FilterSet):
 
     @property
     def qs(self):
+        self.queryset = Projet.objects.all()
+        qs = super().qs
+        qs = ProjetService.add_ordering_to_projets_qs(qs, self.request.GET.get("tri"))
+        return qs
+
+
+# TODO : rename this class
+class ProjetFiltersFils(ProjetFilters):
+    @property
+    def qs(self):
         qs = super().qs
         qs = qs.for_user(self.request.user)
         qs = qs.for_current_year()
-        qs = ProjetService.add_ordering_to_projets_qs(qs, self.request.GET.get("tri"))
         qs = qs.select_related(
             "address",
             "address__commune",
@@ -215,49 +225,21 @@ class ProjetFilters(FilterSet):
         return qs
 
 
-class ProjetListView(FilterView, ListView):
+class ProjetListView(FilterView, ListView, FilterUtils):
     model = Projet
     paginate_by = 25
-    filterset_class = ProjetFilters
+    filterset_class = ProjetFiltersFils
     template_name = "gsl_projet/projet_list.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        qs = self.get_queryset()
+        qs = self.get_queryset()  # TODO => is this linked to the filterset_class ???
         context["title"] = "Projets 2025"
         context["porteur_mappings"] = ProjetService.PORTEUR_MAPPINGS
         context["breadcrumb_dict"] = {"current": "Liste des projets"}
         context["total_cost"] = ProjetService.get_total_cost(qs)
         context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs)
         context["total_amount_granted"] = 0  # TODO
-        context["is_status_active"] = self._get_is_one_field_active(["status"])
-        context["is_status_placeholder"] = self._get_status_placeholder()
-        context["is_cout_total_active"] = self._get_is_one_field_active(
-            ["cout_min", "cout_max"]
-        )
-        context["is_montant_demande_active"] = self._get_is_one_field_active(
-            ["montant_demande_min", "montant_demande_max"]
-        )
-        context["is_montant_retenu_active"] = self._get_is_one_field_active(
-            ["montant_retenu_min", "montant_retenu_max"]
-        )
+        self.enrich_context_with_filter_utils(context)
 
         return context
-
-    def _get_is_one_field_active(self, field_names):
-        for field_name in field_names:
-            if self.request.GET.get(field_name) not in (None, ""):
-                return True
-        return False
-
-    DS_STATE_MAPPINGS = {key: value for key, value in Dossier.DS_STATE_VALUES}
-
-    def _get_status_placeholder(self):
-        if self.request.GET.get("status") in (None, "", []):
-            return "Tous"
-        return ", ".join(
-            [
-                self.DS_STATE_MAPPINGS[status]
-                for status in self.request.GET.getlist("status")
-            ]
-        )
