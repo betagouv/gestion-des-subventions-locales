@@ -24,7 +24,6 @@ class ProjetFilters(FilterSet):
                 "placeholder": "Toutes les dotations",
             }
         ),
-        template_name="includes/_filter_dotation.html",
     )
 
     porteur = ChoiceFilter(
@@ -41,7 +40,6 @@ class ProjetFilters(FilterSet):
                 "placeholder": "Tous les porteurs",
             },
         ),
-        template_name="includes/_filter_porteur.html",
     )
 
     def filter_porteur(self, queryset, _name, value):
@@ -56,7 +54,6 @@ class ProjetFilters(FilterSet):
         widget=NumberInput(
             attrs={"class": "fr-input", "min": "0"},
         ),
-        template_name="includes/_filter_cout_total.html",
     )
 
     def filter_cout_min(self, queryset, _name, value):
@@ -70,7 +67,6 @@ class ProjetFilters(FilterSet):
         widget=NumberInput(
             attrs={"class": "fr-input", "min": "0"},
         ),
-        template_name="includes/_filter_cout_total.html",
     )
 
     def filter_cout_max(self, queryset, _name, value):
@@ -85,7 +81,6 @@ class ProjetFilters(FilterSet):
         widget=NumberInput(
             attrs={"class": "fr-input", "min": "0"},
         ),
-        template_name="includes/_filter_montant_demande.html",
     )
 
     montant_demande_min = NumberFilter(
@@ -102,7 +97,6 @@ class ProjetFilters(FilterSet):
         widget=NumberInput(
             attrs={"class": "fr-input", "min": "0"},
         ),
-        template_name="includes/_filter_montant_retenu.html",
     )
 
     montant_retenu_max = NumberFilter(
@@ -111,14 +105,12 @@ class ProjetFilters(FilterSet):
         widget=NumberInput(
             attrs={"class": "fr-input", "min": "0"},
         ),
-        template_name="includes/_filter_montant_retenu.html",
     )
 
     status = MultipleChoiceFilter(
         field_name="dossier_ds__ds_state",
         choices=Dossier.DS_STATE_VALUES,
         widget=CustomCheckboxSelectMultiple(),
-        template_name="includes/_filter_status.html",
     )
 
     class Meta:

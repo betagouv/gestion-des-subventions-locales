@@ -9,13 +9,16 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
+from django_filters import MultipleChoiceFilter
 from django_filters.views import FilterView
 
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
+from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
 from gsl_projet.utils.filter_utils import FilterUtils
+from gsl_projet.utils.utils import get_status_choices
 from gsl_projet.views import ProjetFilters
 from gsl_simulation.forms import SimulationForm
 from gsl_simulation.models import Simulation, SimulationProjet
@@ -69,6 +72,19 @@ class SimulationProjetListViewFilters(ProjetFilters):
             "montant_retenu_max",
             "status",
         )
+
+    ordered_status = (
+        SimulationProjet.STATUS_DRAFT,
+        SimulationProjet.STATUS_PROVISOIRE,
+        SimulationProjet.STATUS_CANCELLED,
+        SimulationProjet.STATUS_VALID,
+    )
+
+    status = MultipleChoiceFilter(
+        field_name="status",
+        choices=get_status_choices(SimulationProjet.STATUS_CHOICES, ordered_status),
+        widget=CustomCheckboxSelectMultiple(),
+    )
 
 
 class SimulationDetailView(FilterView, DetailView, FilterUtils):
