@@ -78,6 +78,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
 
     def get(self, request, *args, **kwargs):
         # Ensure the object is retrieved
+        # TODO simplify this ??
         self.simulation = self.get_object()
         self.object = self.simulation
         return super().get(request, *args, **kwargs)

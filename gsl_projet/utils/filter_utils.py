@@ -6,10 +6,10 @@ class FilterUtils:
     FILTER_TEMPLATE_MAPPINGS = {
         "dotation": "includes/_filter_dotation.html",
         "porteur": "includes/_filter_porteur.html",
+        "status": "includes/_filter_status.html",
         "cout_total": "includes/_filter_cout_total.html",
         "montant_demande": "includes/_filter_montant_demande.html",
         "montant_retenu": "includes/_filter_montant_retenu.html",
-        "status": "includes/_filter_status.html",
     }
 
     def enrich_context_with_filter_utils(self, context):
@@ -25,11 +25,16 @@ class FilterUtils:
             ["montant_retenu_min", "montant_retenu_max"]
         )
 
-        filters = self.get_filterset(self.filterset_class).filterset
-        context["filter_templates"] = (
-            self.FILTER_TEMPLATE_MAPPINGS[filter] for filter in filters
-        )
+        context["filter_templates"] = self._get_filter_templates()
+
         return context
+
+    def _get_filter_templates(self):
+        try:
+            filters = self.get_filterset(self.filterset_class).filterset
+            return (self.FILTER_TEMPLATE_MAPPINGS[filter] for filter in filters)
+        except AttributeError:  # no filterset => we display all filters
+            return self.FILTER_TEMPLATE_MAPPINGS.values()
 
     def _get_status_placeholder(self):
         if self.request.GET.get("status") in (None, "", []):
