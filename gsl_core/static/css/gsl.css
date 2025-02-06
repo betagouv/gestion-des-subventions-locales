@@ -169,6 +169,13 @@ ul.no-list-style li {
     padding-left: 1.5em;
 }
 
+.projets-filters-layout {
+    background: var(--background-alt-blue-france);
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+    padding: 1rem max(calc((100vw - 1200px) / 2), 1.5rem);
+}
+
 .gsl-projet-table__select {
     text-align: right;
     padding: 4px;
@@ -205,6 +212,13 @@ ul.no-list-style li {
     justify-content: center;
 }
 
+
+/* TODO utilister des variables avec un préprocesseur ? */
+@media (max-width: 768px) {
+    .projets-filters-layout {
+        padding: 1rem;
+    }
+}
 
 .ds_state__accepte {
     color: var(--text-default-success)

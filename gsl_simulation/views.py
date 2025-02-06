@@ -49,9 +49,31 @@ class SimulationListView(ListView):
         ).order_by("-created_at")
 
 
+class SimulationProjetListViewFilters(ProjetFilters):
+    filterset = (
+        "porteur",
+        "status",
+        "cout_total",
+        "montant_demande",
+        "montant_retenu",
+    )
+
+    class Meta(ProjetFilters.Meta):
+        fields = (
+            "porteur",
+            "cout_min",
+            "cout_max",
+            "montant_demande_min",
+            "montant_demande_max",
+            "montant_retenu_min",
+            "montant_retenu_max",
+            "status",
+        )
+
+
 class SimulationDetailView(FilterView, DetailView, FilterUtils):
     model = Simulation
-    filterset_class = ProjetFilters
+    filterset_class = SimulationProjetListViewFilters
     template_name = "gsl_simulation/simulation_detail.html"
 
     def get(self, request, *args, **kwargs):
@@ -61,7 +83,6 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        # Use self.object instead of calling get_object() again
         qs = self.get_projet_queryset()
         context = super().get_context_data(**kwargs)
         paginator = Paginator(qs, 25)  # TODO try with paginate_by

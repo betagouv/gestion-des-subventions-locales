@@ -3,6 +3,14 @@ from gsl_demarches_simplifiees.models import Dossier
 
 class FilterUtils:
     DS_STATE_MAPPINGS = {key: value for key, value in Dossier.DS_STATE_VALUES}
+    FILTER_TEMPLATE_MAPPINGS = {
+        "dotation": "includes/_filter_dotation.html",
+        "porteur": "includes/_filter_porteur.html",
+        "cout_total": "includes/_filter_cout_total.html",
+        "montant_demande": "includes/_filter_montant_demande.html",
+        "montant_retenu": "includes/_filter_montant_retenu.html",
+        "status": "includes/_filter_status.html",
+    }
 
     def enrich_context_with_filter_utils(self, context):
         context["is_status_active"] = self._get_is_one_field_active(["status"])
@@ -17,6 +25,10 @@ class FilterUtils:
             ["montant_retenu_min", "montant_retenu_max"]
         )
 
+        filters = self.get_filterset(self.filterset_class).filterset
+        context["filter_templates"] = (
+            self.FILTER_TEMPLATE_MAPPINGS[filter] for filter in filters
+        )
         return context
 
     def _get_status_placeholder(self):
