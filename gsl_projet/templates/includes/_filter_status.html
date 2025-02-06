@@ -1,0 +1,18 @@
+<div class="fr-col-12 fr-col-md-4 fr-col-lg-2">
+    <div class="filter-dropdown" id="filter-status-button">
+        <label class="fr-label" for="id_status">
+            Statut
+        </label>
+        <button type="button"
+                class="fr-select {% if is_status_active %}filter-dropdown-button-active{% endif %}"
+                id="filter-total-cost-button">
+            {{ is_status_placeholder }}
+        </button>
+        <div class="filter-content">
+            {{ filter.form.status }}
+            <button type="submit" class="fr-btn fr-btn--sm">
+                Filtrer
+            </button>
+        </div>
+    </div>
+</div>

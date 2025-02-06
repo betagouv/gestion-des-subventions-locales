@@ -4,11 +4,17 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET
 from django.views.generic import ListView
-from django_filters import ChoiceFilter, FilterSet, NumberFilter
+from django_filters import (
+    ChoiceFilter,
+    FilterSet,
+    MultipleChoiceFilter,
+    NumberFilter,
+)
 from django_filters.views import FilterView
 
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.services import ProjetService
+from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
 
 from .models import Projet
 
@@ -173,6 +179,12 @@ class ProjetFilters(FilterSet):
         ),
     )
 
+    status = MultipleChoiceFilter(
+        field_name="dossier_ds__ds_state",
+        choices=Dossier.DS_STATE_VALUES,
+        widget=CustomCheckboxSelectMultiple(),
+    )
+
     class Meta:
         model = Projet
         fields = (
@@ -184,6 +196,7 @@ class ProjetFilters(FilterSet):
             "montant_demande_max",
             "montant_retenu_min",
             "montant_retenu_max",
+            "status",
         )
 
     @property
@@ -210,6 +223,8 @@ class ProjetListView(FilterView, ListView):
         context["total_cost"] = ProjetService.get_total_cost(qs)
         context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs)
         context["total_amount_granted"] = 0  # TODO
+        context["is_status_active"] = self._get_is_one_field_active(["status"])
+        context["is_status_placeholder"] = self._get_status_placeholder()
         context["is_cout_total_active"] = self._get_is_one_field_active(
             ["cout_min", "cout_max"]
         )
@@ -227,3 +242,15 @@ class ProjetListView(FilterView, ListView):
             if self.request.GET.get(field_name) not in (None, ""):
                 return True
         return False
+
+    DS_STATE_MAPPINGS = {key: value for key, value in Dossier.DS_STATE_VALUES}
+
+    def _get_status_placeholder(self):
+        if self.request.GET.get("status") in (None, "", []):
+            return "Tous"
+        return ", ".join(
+            [
+                self.DS_STATE_MAPPINGS[status]
+                for status in self.request.GET.getlist("status")
+            ]
+        )

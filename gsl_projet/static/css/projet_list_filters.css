@@ -1,3 +1,11 @@
+.projets-filters-layout,
+.projets-filters-layout,
+.projets-filters-layout .fr-select,
+.projets-filters-layout .fr-input,
+.projets-filters-layout .fr-label {
+  font-size: calc(1rem * 14 / 16);
+}
+
 .filter-content {
   display: none;
   position: absolute;
@@ -22,8 +30,8 @@
 }
 
 .amount-filter-group > label {
-  font-size: calc(1rem * 14/16);
-  flex:1
+  font-size: calc(1rem * 14 / 16);
+  flex: 1;
 }
 
 .euro-input-wrap {
@@ -37,8 +45,8 @@
 
 .euro-input-wrap > input::-webkit-outer-spin-button,
 .euro-input-wrap > input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .euro-input-wrap > input[type="number"] {
@@ -52,7 +60,6 @@
   transform: translateY(-50%);
   pointer-events: none; /* Ne pas interférer avec les clics */
 }
-
 
 .separator {
   display: flex;
@@ -71,7 +78,7 @@
 .separator span {
   font-size: 12px;
   font-weight: bold;
-  color: var(--text-disabled-grey)
+  color: var(--text-disabled-grey);
 }
 
 .montant-demande-checkbox-container {
@@ -81,6 +88,34 @@
 }
 
 .filter-dropdown-button-active {
-    border: 2px solid var(--artwork-major-blue-cumulus-active);
-    padding-top: 6px;
+  border: 2px solid var(--artwork-major-blue-cumulus-active);
+  padding-top: 6px;
+}
+
+#filter-status-button > button {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#filter-status-button .filter-content {
+  min-width: auto;
+  gap: 6px;
+}
+
+#filter-status-button label[for="id_status_0"] {
+  color: var(--text-default-success);
+}
+
+#filter-status-button label[for="id_status_1"],
+#filter-status-button label[for="id_status_2"] {
+  color: var(--text-default-info);
+}
+
+#filter-status-button label[for="id_status_3"] {
+  color: var(--text-default-error);
+}
+
+#filter-status-button label[for="id_status_4"] {
+  color: var(--text-default-warning);
 }

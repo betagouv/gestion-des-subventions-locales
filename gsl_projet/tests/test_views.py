@@ -15,6 +15,8 @@ from gsl_projet.models import Demandeur, Projet
 from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
 from gsl_projet.views import ProjetFilters, ProjetListView
 
+pytestmark = pytest.mark.django_db
+
 
 @pytest.fixture
 def dep_finistere() -> Departement:
@@ -48,7 +50,6 @@ def view() -> ProjetListView:
 ### Test du tri
 
 
-@pytest.mark.django_db
 @pytest.mark.parametrize(
     "tri_param,expected_ordering",
     [
@@ -91,7 +92,6 @@ def projets(demandeur) -> list[Projet]:
     return [projet0, projet1]
 
 
-@pytest.mark.django_db
 @pytest.mark.parametrize(
     "tri_param,expected_ordering",
     [
@@ -138,7 +138,6 @@ def projets_dsil(demandeur) -> list[Projet]:
     ]
 
 
-@pytest.mark.django_db
 def test_filter_by_dotation(req, view, projets_detr, projets_dsil):
     request = req.get("/?dotation=DETR")
     view.request = request
@@ -150,7 +149,6 @@ def test_filter_by_dotation(req, view, projets_detr, projets_dsil):
     assert all(p.dossier_ds.demande_dispositif_sollicite == "DETR" for p in qs)
 
 
-@pytest.mark.django_db
 def test_filter_by_dotation_dsil(req, view, projets_detr, projets_dsil):
     request = req.get("/?dotation=DSIL")
     view.request = request
@@ -162,7 +160,6 @@ def test_filter_by_dotation_dsil(req, view, projets_detr, projets_dsil):
     assert all(p.dossier_ds.demande_dispositif_sollicite == "DSIL" for p in qs)
 
 
-@pytest.mark.django_db
 def test_no_dispositif_filter(req, view, projets_detr, projets_dsil):
     request = req.get("/")
     view.request = request
@@ -221,7 +218,6 @@ def projets_unknown_projet(demandeur) -> list[Projet]:
     return projets
 
 
-@pytest.mark.django_db
 def test_filter_by_epci_porteur(
     req, view, projets_epci, projets_unknown_projet, projets_communes
 ):
@@ -232,7 +228,6 @@ def test_filter_by_epci_porteur(
     assert qs.count() == 2
 
 
-@pytest.mark.django_db
 def test_filter_by_communes_porteur(
     req, view, projets_epci, projets_unknown_projet, projets_communes
 ):
@@ -243,7 +238,6 @@ def test_filter_by_communes_porteur(
     assert qs.count() == 4
 
 
-@pytest.mark.django_db
 def test_filter_by_epci(
     req, view, projets_epci, projets_unknown_projet, projets_communes
 ):
@@ -254,7 +248,6 @@ def test_filter_by_epci(
     assert qs.count() == 9
 
 
-@pytest.mark.django_db
 def test_wrong_porteur_filter(
     req, view, projets_epci, projets_unknown_projet, projets_communes
 ):
@@ -293,7 +286,6 @@ def projets_without_assiette_but_finance_cout_total_from_dossier_ds(
     ]
 
 
-@pytest.mark.django_db
 def test_filter_by_min_cost(
     req,
     view,
@@ -308,7 +300,6 @@ def test_filter_by_min_cost(
     assert all(150000 <= p.assiette_or_cout_total for p in qs)
 
 
-@pytest.mark.django_db
 def test_filter_by_max_cost(
     req,
     view,
@@ -323,7 +314,6 @@ def test_filter_by_max_cost(
     assert all(p.assiette_or_cout_total <= 250000 for p in qs)
 
 
-@pytest.mark.django_db
 def test_filter_by_cost_range(
     req,
     view,
@@ -338,7 +328,6 @@ def test_filter_by_cost_range(
     assert all(100000 <= p.assiette_or_cout_total <= 250000 for p in qs)
 
 
-@pytest.mark.django_db
 def test_filter_with_wrong_values(
     req,
     view,
@@ -366,7 +355,6 @@ def projets_with_montant_retenu(demandeur) -> list[Projet]:
     ]
 
 
-@pytest.mark.django_db
 def test_filter_by_min_montant_retenu(
     req,
     view,
@@ -380,7 +368,6 @@ def test_filter_by_min_montant_retenu(
     assert all(100_000 <= p.dossier_ds.annotations_montant_accorde for p in qs)
 
 
-@pytest.mark.django_db
 def test_filter_by_max_montant_retenu(
     req,
     view,
@@ -394,7 +381,6 @@ def test_filter_by_max_montant_retenu(
     assert all(p.dossier_ds.annotations_montant_accorde <= 200_000 for p in qs)
 
 
-@pytest.mark.django_db
 def test_filter_by_montant_retenu_range(
     req,
     view,
@@ -410,7 +396,6 @@ def test_filter_by_montant_retenu_range(
     )
 
 
-@pytest.mark.django_db
 def test_filter_with_wrong_montant_retenu_values(
     req,
     view,
@@ -437,7 +422,6 @@ def projets_with_montant_demande(demandeur) -> list[Projet]:
     ]
 
 
-@pytest.mark.django_db
 def test_filter_by_min_montant_demande(
     req,
     view,
@@ -451,7 +435,6 @@ def test_filter_by_min_montant_demande(
     assert all(60_000 <= p.dossier_ds.demande_montant for p in qs)
 
 
-@pytest.mark.django_db
 def test_filter_by_max_montant_demande(
     req,
     view,
@@ -465,7 +448,6 @@ def test_filter_by_max_montant_demande(
     assert all(p.dossier_ds.demande_montant <= 120_000 for p in qs)
 
 
-@pytest.mark.django_db
 def test_filter_by_montant_demande_range(
     req,
     view,
@@ -479,7 +461,6 @@ def test_filter_by_montant_demande_range(
     assert all(60_000 <= p.dossier_ds.demande_montant <= 120_000 for p in qs)
 
 
-@pytest.mark.django_db
 def test_filter_with_wrong_montant_demande_values(
     req,
     view,
@@ -490,3 +471,57 @@ def test_filter_with_wrong_montant_demande_values(
     qs = view.get_filterset(ProjetFilters).qs
 
     assert qs.count() == 6
+
+
+### Test du filtre par statut
+
+
+@pytest.fixture
+def projets_with_status(demandeur) -> list[Projet]:
+    projets = []
+    for status, count in (
+        ("accepte", 1),
+        ("en_construction", 2),
+        ("en_instruction", 3),
+        ("refuse", 4),
+        ("sans_suite", 5),
+    ):
+        for _ in range(count):
+            projets.append(
+                ProjetFactory(
+                    dossier_ds__ds_state=status,
+                    demandeur=demandeur,
+                )
+            )
+    return projets
+
+
+@pytest.mark.parametrize(
+    "status,expected_count",
+    [
+        ("accepte", 1),
+        ("en_construction", 2),
+        ("en_instruction", 3),
+        ("refuse", 4),
+        ("sans_suite", 5),
+    ],
+)
+def test_filter_by_status(req, view, projets_with_status, status, expected_count):
+    request = req.get(f"/?status={status}")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == expected_count
+    assert qs.first().dossier_ds.ds_state == status
+
+
+def test_get_status_placeholder(req, view, projets_with_status):
+    request = req.get("/")
+    view.request = request
+    assert view._get_status_placeholder() == "Tous"
+
+
+def test_get_status_placeholder_with_status(req, view, projets_with_status):
+    request = req.get("/?status=accepte&status=en_construction")
+    view.request = request
+    assert view._get_status_placeholder() == "Accepté, En construction"
