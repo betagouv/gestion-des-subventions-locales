@@ -205,6 +205,13 @@ class ProjetFilters(FilterSet):
         qs = qs.for_user(self.request.user)
         qs = qs.for_current_year()
         qs = ProjetService.add_ordering_to_projets_qs(qs, self.request.GET.get("tri"))
+        qs = qs.select_related(
+            "address",
+            "address__commune",
+        ).prefetch_related(
+            "dossier_ds__demande_eligibilite_detr",
+            "dossier_ds__demande_eligibilite_dsil",
+        )
         return qs
 
 
