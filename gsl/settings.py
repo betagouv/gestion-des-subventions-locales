@@ -56,7 +56,7 @@ if SENTRY_DSN:
 # Application definition
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
+    "gsl.apps.GslAdminConfig",
     "django.contrib.auth",
     "mozilla_django_oidc",
     "django.contrib.contenttypes",
@@ -114,7 +114,7 @@ LANGUAGE_CODE = "fr"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -230,3 +230,9 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_TIMEZONE = "Europe/Paris"
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_RESULT_EXTENDED = True
+
+# Visual management
+
+VIMA_ENV_NAME = os.getenv("VIMA_ENV_NAME", "")
+VIMA_ENV_BG_COLOR = os.getenv("VIMA_ENV_BG_COLOR", "#fff")
+VIMA_ENV_FG_COLOR = os.getenv("VIMA_ENV_FG_COLOR", "#000")
