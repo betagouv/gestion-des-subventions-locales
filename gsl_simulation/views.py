@@ -150,7 +150,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
     def get_projet_queryset(self):
         simulation = self.get_object()
         qs = self.get_filterset(self.filterset_class).qs
-        qs = SimulationService.filter_projets_from_simulation(qs, simulation)
+        qs = qs.filter(simulationprojet__simulation=simulation)
         qs = qs.select_related("address", "address__commune")
         qs = qs.prefetch_related(
             Prefetch(
@@ -201,6 +201,7 @@ def redirect_to_simulation_projet(request, simulation_projet):
         )
         filter_params = QueryDict(request.body).get("filter_params")
         filters_dict = get_filters_dict_from_params(filter_params)
+        # TODO : add filters to projets_of_simulation
         filtered_projets_of_simulation = ProjetService.add_filters_to_projets_qs(
             projets_of_simulation,
             filters_dict,
