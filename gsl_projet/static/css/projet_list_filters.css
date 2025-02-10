@@ -1,5 +1,4 @@
 .projets-filters-layout,
-.projets-filters-layout,
 .projets-filters-layout .fr-select,
 .projets-filters-layout .fr-input,
 .projets-filters-layout .fr-label {
@@ -15,7 +14,12 @@
   padding: 10px;
   z-index: 1000;
   gap: 1rem;
+  --status-color-green: var(--text-default-success);
+  --status-color-blue: var(--text-default-info);
+  --status-color-orange: var(--text-default-warning);
+  --status-color-red: var(--text-default-error);
 }
+
 
 .filter-content > button {
   width: 100%;
@@ -103,19 +107,3 @@
   gap: 6px;
 }
 
-#filter-status-button label[for="id_status_0"] {
-  color: var(--text-default-success);
-}
-
-#filter-status-button label[for="id_status_1"],
-#filter-status-button label[for="id_status_2"] {
-  color: var(--text-default-info);
-}
-
-#filter-status-button label[for="id_status_3"] {
-  color: var(--text-default-error);
-}
-
-#filter-status-button label[for="id_status_4"] {
-  color: var(--text-default-warning);
-}

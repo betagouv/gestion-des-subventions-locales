@@ -18,7 +18,7 @@ from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
 from gsl_projet.utils.filter_utils import FilterUtils
-from gsl_projet.utils.utils import get_status_choices
+from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 from gsl_projet.views import ProjetFilters
 from gsl_simulation.forms import SimulationForm
 from gsl_simulation.models import Simulation, SimulationProjet
@@ -81,8 +81,10 @@ class SimulationProjetListViewFilters(ProjetFilters):
     )
 
     status = MultipleChoiceFilter(
-        field_name="status",
-        choices=get_status_choices(SimulationProjet.STATUS_CHOICES, ordered_status),
+        field_name="simulationprojet__status",
+        choices=order_couples_tuple_by_first_value(
+            SimulationProjet.STATUS_CHOICES, ordered_status
+        ),
         widget=CustomCheckboxSelectMultiple(),
     )
 
@@ -91,6 +93,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
     model = Simulation
     filterset_class = SimulationProjetListViewFilters
     template_name = "gsl_simulation/simulation_detail.html"
+    STATE_MAPPINGS = {key: value for key, value in SimulationProjet.STATUS_CHOICES}
 
     def get(self, request, *args, **kwargs):
         # Ensure the object is retrieved
@@ -118,7 +121,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         context["available_states"] = SimulationProjet.STATUS_CHOICES
         context["filter_params"] = self.request.GET.urlencode()
         context["enveloppe"] = self.get_enveloppe_data(self.simulation)
-        self.enrich_context_with_filter_utils(context)
+        self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
 
         context["breadcrumb_dict"] = {
             "links": [
@@ -293,6 +296,6 @@ def simulation_form(request):
             }
         }
         context["form"] = form
-        context["title"] = "Création d’une simulation de programmation"
+        context["title"] = "Création d'une simulation de programmation"
 
         return render(request, "gsl_simulation/simulation_form.html", context)

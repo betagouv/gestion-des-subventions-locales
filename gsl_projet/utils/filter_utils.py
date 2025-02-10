@@ -1,8 +1,4 @@
-from gsl_demarches_simplifiees.models import Dossier
-
-
 class FilterUtils:
-    DS_STATE_MAPPINGS = {key: value for key, value in Dossier.DS_STATE_VALUES}
     FILTER_TEMPLATE_MAPPINGS = {
         "dotation": "includes/_filter_dotation.html",
         "porteur": "includes/_filter_porteur.html",
@@ -12,9 +8,9 @@ class FilterUtils:
         "montant_retenu": "includes/_filter_montant_retenu.html",
     }
 
-    def enrich_context_with_filter_utils(self, context):
+    def enrich_context_with_filter_utils(self, context, state_mappings):
         context["is_status_active"] = self._get_is_one_field_active(["status"])
-        context["is_status_placeholder"] = self._get_status_placeholder()
+        context["is_status_placeholder"] = self._get_status_placeholder(state_mappings)
         context["is_cout_total_active"] = self._get_is_one_field_active(
             ["cout_min", "cout_max"]
         )
@@ -36,14 +32,11 @@ class FilterUtils:
         except AttributeError:  # no filterset => we display all filters
             return self.FILTER_TEMPLATE_MAPPINGS.values()
 
-    def _get_status_placeholder(self):
+    def _get_status_placeholder(self, state_mappings):
         if self.request.GET.get("status") in (None, "", []):
             return "Tous"
         return ", ".join(
-            [
-                self.DS_STATE_MAPPINGS[status]
-                for status in self.request.GET.getlist("status")
-            ]
+            [state_mappings[status] for status in self.request.GET.getlist("status")]
         )
 
     def _get_is_one_field_active(self, field_names):
