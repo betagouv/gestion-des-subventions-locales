@@ -248,6 +248,7 @@ def test_for_enveloppe_with_projet_type_and_enveloppe_type(
     ProjetFactory(
         demandeur__departement=perimetre.departement,
         dossier_ds__ds_date_depot=datetime(2024, 3, 1, tzinfo=UTC),
+        dossier_ds__ds_date_traitement=datetime(2024, 5, 1, tzinfo=UTC),
         dossier_ds__demande_dispositif_sollicite=projet_type,
     )
 
@@ -274,6 +275,7 @@ def test_for_year_2024_and_for_not_processed_states(submitted_year, count):
     projet = SubmittedProjetFactory(
         dossier_ds__demande_dispositif_sollicite=enveloppe.type,
         dossier_ds__ds_date_depot=datetime(submitted_year, 12, 31, tzinfo=tz.utc),
+        dossier_ds__ds_date_traitement=datetime(submitted_year + 1, 5, 1, tzinfo=UTC),
         demandeur__departement=perimetre.departement,
     )
     print(f"Test with {projet.dossier_ds.ds_state}")
