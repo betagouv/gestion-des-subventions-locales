@@ -103,7 +103,7 @@ class ProjetListView(FilterView, ListView, FilterUtils):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        qs = self.get_queryset()  # TODO => is this linked to the filterset_class ???
+        qs = context["object_list"]
         context["title"] = "Projets 2025"
         context["porteur_mappings"] = ProjetService.PORTEUR_MAPPINGS
         context["breadcrumb_dict"] = {"current": "Liste des projets"}

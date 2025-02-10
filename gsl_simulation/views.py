@@ -1,5 +1,6 @@
 import logging
 
+from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db.models import Prefetch, Sum
 from django.http import JsonResponse
@@ -91,8 +92,12 @@ class SimulationProjetListViewFilters(ProjetFilters):
 
     def filter_status(self, queryset, name, value):
         return queryset.filter(
-            simulationprojet__simulation=Simulation.objects.get(
-                slug=self.request.resolver_match.kwargs.get("slug")
+            # Cette ligne est utile pour qu'on ait un "ET", cad, on filtre les projets de la simulation en cours ET sur les statuts sélectionnés.
+            # Sans ça, on aurait dans l'ordre :
+            # - les projets dont IL EXISTE UN SIMULATION_PROJET (pas forcément celui de la simulation en question) qui a un des statuts sélectionnés
+            # - les simulation_projets de la simulation associés aux projets filtrés
+            simulationprojet__simulation__slug=self.request.resolver_match.kwargs.get(
+                "slug"
             ),
             simulationprojet__status__in=value,
         )
@@ -105,16 +110,14 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
     STATE_MAPPINGS = {key: value for key, value in SimulationProjet.STATUS_CHOICES}
 
     def get(self, request, *args, **kwargs):
-        # Ensure the object is retrieved
-        # TODO simplify this ??
-        self.simulation = self.get_object()
-        self.object = self.simulation
+        self.object = self.get_object()
+        self.simulation = self.object
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         qs = self.get_projet_queryset()
         context = super().get_context_data(**kwargs)
-        paginator = Paginator(qs, 25)  # TODO try with paginate_by
+        paginator = Paginator(qs, 25)
         page = self.kwargs.get("page") or self.request.GET.get("page") or 1
         current_page = paginator.page(page)
         context["simulations_paginator"] = current_page
@@ -148,6 +151,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         simulation = self.get_object()
         qs = self.get_filterset(self.filterset_class).qs
         qs = SimulationService.filter_projets_from_simulation(qs, simulation)
+        qs = qs.select_related("address", "address__commune")
         qs = qs.prefetch_related(
             Prefetch(
                 "simulationprojet_set",
@@ -218,6 +222,7 @@ def redirect_to_simulation_projet(request, simulation_projet):
             },
         )
 
+    cache.clear()
     url = reverse(
         "simulation:simulation-detail",
         kwargs={"slug": simulation_projet.simulation.slug},
