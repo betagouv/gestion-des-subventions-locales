@@ -12,7 +12,7 @@ class DemandeurAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
 @admin.register(Projet)
 class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    raw_id_fields = ("address", "departement")
+    raw_id_fields = ("address", "departement", "demandeur", "dossier_ds")
     list_display = ("__str__", "dossier_ds__ds_state", "address", "departement")
     list_filter = ("departement", "dossier_ds__ds_state")
 

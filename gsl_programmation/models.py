@@ -1,3 +1,5 @@
+from math import isclose
+
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -136,3 +138,13 @@ class ProgrammationProjet(models.Model):
 
     def __str__(self):
         return f"Projet programmé {self.pk}"
+
+    def clean(self):
+        if self.projet.assiette is not None and self.projet.assiette > 0:
+            if not isclose(
+                self.taux, self.montant * 100 / self.projet.assiette, abs_tol=0.009
+            ):
+                raise ValidationError(
+                    "Le taux et le montant de la programmation ne sont pas cohérents. "
+                    f"Taux attendu : {str(self.montant * 100 / self.projet.assiette)}"
+                )
