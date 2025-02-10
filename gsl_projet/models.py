@@ -46,6 +46,9 @@ class ProjetQuerySet(models.QuerySet):
             return self.filter(demandeur__departement__region=perimetre.region)
 
     def for_current_year(self):
+        return self.not_processed_before_the_start_of_the_year(date.today().year)
+
+    def not_processed_before_the_start_of_the_year(self, year: int):
         return self.filter(
             Q(
                 dossier_ds__ds_state__in=[
@@ -60,7 +63,7 @@ class ProjetQuerySet(models.QuerySet):
                     Dossier.STATE_REFUSE,
                 ],
                 dossier_ds__ds_date_traitement__gte=datetime(
-                    date.today().year, 1, 1, 0, 0, tzinfo=tz.utc
+                    year, 1, 1, 0, 0, tzinfo=tz.utc
                 ),
             )
         )
@@ -77,17 +80,8 @@ class ProjetQuerySet(models.QuerySet):
                 ),
             )
         )
-        projet_qs_not_processed_before_the_start_of_the_year = (
-            projet_qs_submitted_before_the_end_of_the_year.filter(
-                Q(
-                    dossier_ds__ds_date_traitement__gte=datetime(
-                        enveloppe.annee, 1, 1, tzinfo=UTC
-                    )
-                )
-                | Q(
-                    dossier_ds__ds_date_traitement__isnull=True,
-                )
-            )
+        projet_qs_not_processed_before_the_start_of_the_year = projet_qs_submitted_before_the_end_of_the_year.not_processed_before_the_start_of_the_year(
+            enveloppe.annee
         )
         return projet_qs_not_processed_before_the_start_of_the_year
 
