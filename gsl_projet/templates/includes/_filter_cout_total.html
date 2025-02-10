@@ -1,0 +1,33 @@
+<div class="fr-col-12 fr-col-md-4 fr-col-lg-2">
+    <div class="filter-dropdown fr-mt-4w">
+        <button type="button"
+                class="fr-input {% if is_cout_total_active %}filter-dropdown-button-active{% endif %}"
+                id="filter-total-cost-button">
+            Coût total
+            <span class="fr-icon-coin-fill fr-icon--sm blue-icon fr-ml-1w" />
+        </button>
+        <div class="filter-content">
+            <div class="amount-filter-group">
+                <label class="fr-label" for="id_cost_min">
+                    Coût minimum
+                </label>
+                <div class="euro-input-wrap">
+                    {{ filter.form.cout_min }}
+                    <span class="euro-input-symbol">€</span>
+                </div>
+            </div>
+            <div class="amount-filter-group">
+                <label class="fr-label" for="id_cost_max">
+                    Coût maximum
+                </label>
+                <div class="euro-input-wrap">
+                    {{ filter.form.cout_max }}
+                    <span class="euro-input-symbol">€</span>
+                </div>
+            </div>
+            <button type="submit" class="fr-btn fr-btn--sm">
+                Filtrer
+            </button>
+        </div>
+    </div>
+</div>

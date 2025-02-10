@@ -1,11 +1,15 @@
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from datetime import timezone as tz
+from typing import TYPE_CHECKING
 
 from django.db import models
 from django.db.models import Q
 
 from gsl_core.models import Adresse, Arrondissement, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
+
+if TYPE_CHECKING:
+    from gsl_programmation.models import Enveloppe
 
 
 class Demandeur(models.Model):
@@ -41,7 +45,10 @@ class ProjetQuerySet(models.QuerySet):
         if perimetre.region:
             return self.filter(demandeur__departement__region=perimetre.region)
 
-    def to_deal_with_this_year(self):
+    def for_current_year(self):
+        return self.not_processed_before_the_start_of_the_year(date.today().year)
+
+    def not_processed_before_the_start_of_the_year(self, year: int):
         return self.filter(
             Q(
                 dossier_ds__ds_state__in=[
@@ -56,10 +63,53 @@ class ProjetQuerySet(models.QuerySet):
                     Dossier.STATE_REFUSE,
                 ],
                 dossier_ds__ds_date_traitement__gte=datetime(
-                    date.today().year, 1, 1, 0, 0, tzinfo=tz.utc
+                    year, 1, 1, 0, 0, tzinfo=tz.utc
                 ),
             )
         )
+
+    def included_in_enveloppe(self, enveloppe: "Enveloppe"):
+        projet_qs = self.for_perimetre(enveloppe.perimetre)
+        projet_qs_with_the_right_type = projet_qs.filter(
+            dossier_ds__demande_dispositif_sollicite=enveloppe.type,
+        )
+        projet_qs_submitted_before_the_end_of_the_year = (
+            projet_qs_with_the_right_type.filter(
+                dossier_ds__ds_date_depot__lt=datetime(
+                    enveloppe.annee + 1, 1, 1, tzinfo=UTC
+                ),
+            )
+        )
+        projet_qs_not_processed_before_the_start_of_the_year = projet_qs_submitted_before_the_end_of_the_year.not_processed_before_the_start_of_the_year(
+            enveloppe.annee
+        )
+        return projet_qs_not_processed_before_the_start_of_the_year
+
+    def processed_in_enveloppe(self, enveloppe: "Enveloppe"):
+        projet_qs = self.for_perimetre(enveloppe.perimetre)
+        projet_qs_with_the_right_type = projet_qs.filter(
+            dossier_ds__demande_dispositif_sollicite=enveloppe.type,
+        )
+        projet_qs_with_a_processed_state = projet_qs_with_the_right_type.filter(
+            dossier_ds__ds_state__in=[
+                Dossier.STATE_ACCEPTE,
+                Dossier.STATE_REFUSE,
+                Dossier.STATE_SANS_SUITE,
+            ]
+        )
+        projet_qs_processed_during_the_year = projet_qs_with_a_processed_state.filter(
+            Q(
+                dossier_ds__ds_date_traitement__gte=datetime(
+                    enveloppe.annee, 1, 1, tzinfo=UTC
+                )
+            )
+            & Q(
+                dossier_ds__ds_date_traitement__lt=datetime(
+                    enveloppe.annee + 1, 1, 1, tzinfo=UTC
+                )
+            )
+        )
+        return projet_qs_processed_during_the_year
 
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
@@ -131,7 +181,7 @@ class Projet(models.Model):
         if self.assiette_or_cout_total is None:
             return
         if self.assiette_or_cout_total > 0:
-            return self.dossier_ds.demande_montant / self.assiette_or_cout_total
+            return self.dossier_ds.demande_montant * 100 / self.assiette_or_cout_total
 
     def get_taux_subventionnable(self):
         if self.assiette is None:

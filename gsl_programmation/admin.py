@@ -3,7 +3,7 @@ from import_export.admin import ImportExportMixin
 
 from gsl_core.admin import AllPermsForStaffUser
 
-from .models import Enveloppe, Simulation, SimulationProjet
+from .models import Enveloppe
 from .resources import EnveloppeDETRResource, EnveloppeDSILResource
 
 
@@ -12,15 +12,20 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
     resource_classes = (EnveloppeDETRResource, EnveloppeDSILResource)
     list_display = ("__str__", "montant", "type", "annee")
     list_filter = ("type", "annee")
+    search_fields = (
+        "type",
+        "annee",
+        "perimetre__region__name",
+        "perimetre__departement__name",
+        "perimetre__arrondissement__name",
+    )
 
-
-@admin.register(Simulation)
-class SimulationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    pass
-
-
-@admin.register(SimulationProjet)
-class SimulationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    list_display = ("__str__", "projet__dossier_ds__projet_intitule")
-    search_fields = ("projet__dossier_ds__projet_intitule",)
-    raw_id_fields = ("projet",)
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = (
+            qs.select_related("perimetre")
+            .select_related("perimetre__region")
+            .select_related("perimetre__departement")
+            .select_related("perimetre__arrondissement")
+        )
+        return qs

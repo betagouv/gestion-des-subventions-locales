@@ -1,9 +1,14 @@
 /* liste simulations */
 
+.add-simulation-button-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 24px;
+}
+
 .simulation-cards-list {
   display: grid;
   gap: 16px;
-  margin-bottom: 16px;
 }
 
 .simulation-card {
@@ -47,7 +52,8 @@ a.simulation-card:hover {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  justify-content: center
+  justify-content: center;
+  width:15%
 }
 
 .simulation-card__navigate {

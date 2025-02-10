@@ -1,5 +1,6 @@
 import datetime
 from collections.abc import Iterable
+from itertools import chain
 
 from django.db import models
 
@@ -29,19 +30,21 @@ class DossierConverter:
     )
 
     def __init__(self, ds_dossier_data: dict, dossier: Dossier):
-        self.ds_field_ids = tuple(champ["id"] for champ in ds_dossier_data["champs"])
         self.ds_fields_by_id = {
-            champ["id"]: champ for champ in ds_dossier_data["champs"]
+            champ["id"]: champ
+            for champ in chain(
+                ds_dossier_data["champs"], ds_dossier_data["annotations"]
+            )
         }
-        self.computed_mappings = FieldMappingForComputer.objects.filter(
-            ds_field_id__in=self.ds_field_ids
+        computed_mappings = FieldMappingForComputer.objects.filter(
+            ds_field_id__in=self.ds_fields_by_id.keys()
         ).exclude(django_field="")
 
         self.ds_dossier_data = ds_dossier_data
 
         self.ds_id_to_django_field = {
             mapping.ds_field_id: Dossier._meta.get_field(mapping.django_field)
-            for mapping in self.computed_mappings.all()
+            for mapping in computed_mappings.all()
         }
 
         self.dossier = dossier

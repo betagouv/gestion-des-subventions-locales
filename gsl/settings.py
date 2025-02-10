@@ -71,11 +71,13 @@ INSTALLED_APPS = [
     "dsfr",
     "import_export",
     "django_htmx",
+    "django_filters",
     # gsl apps:
     "gsl_core",
     "gsl_demarches_simplifiees",
     "gsl_projet",
     "gsl_programmation",
+    "gsl_simulation",
     "gsl_pages",
     "gsl_oidc",
 ]
@@ -172,7 +174,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "fr-fr"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Paris"
 
 USE_I18N = True
 

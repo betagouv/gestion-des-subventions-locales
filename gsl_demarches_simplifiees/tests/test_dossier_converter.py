@@ -9,6 +9,7 @@ from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverte
 from gsl_demarches_simplifiees.models import (
     Demarche,
     Dossier,
+    FieldMappingForComputer,
     PersonneMorale,
 )
 
@@ -67,9 +68,32 @@ def dossier_converter(ds_dossier_data, dossier):
     return DossierConverter(ds_dossier_data, dossier)
 
 
-def test_create_dossier_converter(ds_dossier_data, dossier):
+def test_init_dossier_converter(ds_dossier_data, dossier):
+    FieldMappingForComputer.objects.create(
+        ds_field_id="TEST_ID_un_champ_hors_annotation",
+        django_field=Dossier._MAPPED_CHAMPS_FIELDS[0].name,
+        demarche=dossier.ds_demarche,
+    )
+    FieldMappingForComputer.objects.create(
+        ds_field_id="TEST_ID_un_champ_annotation",
+        django_field=Dossier._MAPPED_ANNOTATIONS_FIELDS[0].name,
+        demarche=dossier.ds_demarche,
+    )
     dossier_converter = DossierConverter(ds_dossier_data, dossier)
-    assert dossier_converter.ds_field_ids
+
+    assert "TEST_ID_un_champ_hors_annotation" in dossier_converter.ds_fields_by_id
+    assert "TEST_ID_un_champ_annotation" in dossier_converter.ds_fields_by_id
+    assert len(dossier_converter.ds_fields_by_id) == (
+        len(ds_dossier_data["champs"]) + len(ds_dossier_data["annotations"])
+    )
+    assert (
+        dossier_converter.ds_id_to_django_field["TEST_ID_un_champ_hors_annotation"]
+        == Dossier._MAPPED_CHAMPS_FIELDS[0]
+    )
+    assert (
+        dossier_converter.ds_id_to_django_field["TEST_ID_un_champ_annotation"]
+        == Dossier._MAPPED_ANNOTATIONS_FIELDS[0]
+    )
 
 
 def test_non_mapped_fields_are_imported(dossier_converter: DossierConverter):

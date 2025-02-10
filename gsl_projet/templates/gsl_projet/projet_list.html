@@ -10,124 +10,18 @@
         Liste des projets
     </h1>
 
-    <a href="{% url 'gsl_programmation:simulation-form' %}"
+    <a href="{% url 'gsl_simulation:simulation-form' %}"
        class="fr-btn fr-mb-4w">Effectuer une simulation</a>
+    <a href="{% url 'gsl_simulation:simulation-list' %}"
+       class="fr-btn fr-btn--secondary fr-mb-4w">Voir les simulations</a>
 
-    {% include "gsl_projet/includes/_projet_list_filters.html" %}
+    {% include "includes/_projet_list_filters.html" %}
 
-    <div class="fr-table--lg gsl-projet-table" id="table-lg-component">
-        <table>
-            <thead>
-                <tr>
-                    <th>
-                        Date de dépôt
-                    </th>
-                    <th>
-                        Intitulé du projet
-                    </th>
-                    <th>
-                        Commune
-                    </th>
-                    <th>
-                        N° D.S.
-                    </th>
-                    <th>
-                        Dotation
-                    </th>
-                    <th>
-                        Coût total du projet
-                        <br>
-                        <span class="gsl-money gsl_projet_table__total gsl-money gsl-projet-table__total-cost">{{ total_cost | floatformat:"0g" | default:"—" }}&nbsp;€</span>
-                    </th>
-                    <th>
-                        Montant et taux sollicités
-                        <br>
-                        <span class="gsl-money gsl_projet_table__total gsl-projet-table__total-asked">{{ total_amount_asked | floatformat:"0g" | default:"—" }}&nbsp;€</span>
-                    </th>
-                    <th>
-                        Montant et taux retenus
-                        <br>
-                        <span class="gsl-money gsl_projet_table__total gsl-projet-table__total-granted">{{ total_amount_granted | floatformat:"0g" | default:"—" }}&nbsp;€</span>
-                    </th>
-                    <th>
-                        Catégorie d'opération
-                    </th>
-                    <th>
-                        Statut
-                    </th>
-                    <th>
-                        <span class="fr-sr-only">Actions</span>
-                    </th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for projet in object_list %}
-                    <tr>
-                        <td>
-                            {{ projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}
-                        </td>
-                        <td>
-                            {{ projet.dossier_ds.projet_intitule }}
-                        </td>
-                        <td>
-                            {{ projet.address.commune.name }}
-                        </td>
-                        <td>
-                            {{ projet.dossier_ds.ds_number }}
-                        </td>
-                        <td>
-                            {{ projet.dossier_ds.demande_dispositif_sollicite }}
-                        </td>
-                        <td class="gsl-money">
-                            {{ projet.assiette_or_cout_total|euro:2 }}
-                        </td>
-                        <td class="gsl-money">
-                            {{ projet.dossier_ds.demande_montant|euro:2 }}
-                            <br>
-                            {{ projet.get_taux_de_subvention_sollicite|percent }}
-                        </td>
-                        <td class="gsl-money">
-                            {{ 25000|euro:2 }}
-                            <br>
-                            {{ 20|percent }}
-                        </td>
-                        <td>
-                            <ul class="no-list-style">
-                                {% for categorie in projet.categorie_doperation %}
-                                    <li>
-                                        {{ categorie }}
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        </td>
-                        <td class="ds_state__{{ projet.dossier_ds.ds_state }}">
-                            <b>{{ projet.dossier_ds.get_ds_state_display }}</b>
-                        </td>
-                        <td class="fr-cell--right">
-                            <a class="fr-btn--tertiary-no-outline gsl-no-underline"
-                               href="{{ projet.get_absolute_url }}">
-                                <span class="fr-sr-only">Voir le projet {{ projet.dossier_ds.ds_number }}</span>
-                                <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
-                            </a>
-                        </td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="12">
-                            Liste vide.
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    {% include "includes/_projets_table.html" %}
+
     <div class="fr-table__footer">
-        <div class="fr-table__footer--start">
-        </div>
         <div class="fr-table__footer--middle">
             {% dsfr_pagination page_obj %}
-        </div>
-        <div class="fr-table__footer--end">
         </div>
     </div>
 

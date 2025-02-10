@@ -13,6 +13,7 @@ dependencies = [
     "django-dsfr",
     "django-referrer-policy",
     "django_celery_results",
+    "django-filter",
     "django-import-export",
     "django-json-widget",
     "django-htmx",
@@ -52,8 +53,7 @@ dev = [
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "gsl.settings"
-addopts = "--ruff --create-db --cov-report xml --cov-report term-missing --cov=. -p no:warnings"
-
+addopts = "--ruff --reuse-db"
 
 [tool.ruff.lint]
 exclude = ["**/migrations/*.py"]

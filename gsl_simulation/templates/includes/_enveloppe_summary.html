@@ -1,0 +1,145 @@
+{% load static gsl_filters %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/enveloppe_summary.css' %}">
+{% endblock extra_css %}
+<div class="fr-table--lg enveloppe-summary">
+    <table>
+        <thead>
+            <tr>
+                <th>
+                    <div>
+                        <div class="icon">
+                            <span class="fr-icon-mail-fill fr-icon--sm icon" />
+                        </div>
+                        <div class="text">
+                            Dotation
+                        </div>
+                    </div>
+                </th>
+                <th>
+                    <div>
+                        <div class="icon">
+                            <span class="fr-icon-road-map-fill fr-icon--sm" />
+                        </div>
+                        <div class="text">
+                            Territoire
+                        </div>
+                    </div>
+                </th>
+                <th>
+                    <div>
+                        <div class="icon">
+                            <span class="fr-icon-map-pin-2-fill fr-icon--sm" />
+                        </div>
+                        <div class="text">
+                            Nom territoire
+                        </div>
+                    </div>
+                </th>
+                <th>
+                    <div>
+                        <div class="icon">
+                            <span class="fr-icon-coin-fill fr-icon--sm" />
+                        </div>
+                        <div class="text min-width-90">
+                            Enveloppe de dotation
+                        </div>
+                    </div>
+                </th>
+                <th>
+                    <div>
+                        <div class="icon">
+                            <span class="fr-icon-coin-fill fr-icon--sm" />
+                        </div>
+                        Montant total demandé
+                    </div>
+                </th>
+                <th>
+                    <div>
+                        <div class="icon">
+                            <span class="fr-icon-money-euro-circle-fill fr-icon--sm" />
+                        </div>
+                        <div class="text">
+                            Montant accepté
+                        </div>
+                    </div>
+                </th>
+                <th>
+                    <div>
+                        <div class="icon">
+                            <span class="fr-icon-success-fill fr-icon--sm color-icon-success" />
+                        </div>
+                        <div class="text">
+                            Projets acceptés
+                        </div>
+                    </div>
+                </th>
+                <th>
+                    <div>
+                        <div class="icon">
+                            <span class="fr-icon-close-circle-fill fr-icon--sm color-icon-error" />
+                        </div>
+                        <div class="text">
+                            Projets refusés
+                        </div>
+                    </div>
+                </th>
+                <th>
+                    <div>
+                        <div class="icon">
+                            <span class="fr-icon-folder-2-fill fr-icon--sm" />
+                        </div>
+                        <div class="text">
+                            Demandeurs
+                        </div>
+                    </div>
+                </th>
+                <th>
+                    <div>
+                        <div class="icon">
+                            <span class="fr-icon-folder-2-fill fr-icon--sm" />
+                        </div>
+                        <div class="text">
+                            Projets déposés
+                        </div>
+                    </div>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    <b>{{ enveloppe.type }}</b>
+                </td>
+                <td>
+                    {{ enveloppe.perimetre.type }}
+                </td>
+                <td>
+                    {{ enveloppe.perimetre.entity_name }}
+                </td>
+                <td>
+                    {{ enveloppe.montant | euro }}
+                </td>
+                <td class="color-green-archipel">
+                    {{ enveloppe.montant_asked | euro }}
+                </td>
+                <td class="color-green-bourgeon">
+                    {{ enveloppe.montant_accepte | euro }}
+                </td>
+                <td class="color-success fr-text--sm">
+                    {{ enveloppe.validated_projets_count }}
+                </td>
+                <td class="color-error fr-text--sm">
+                    {{ enveloppe.refused_projets_count }}
+                </td>
+                <td class="color-blue fr-text--sm">
+                    {{ enveloppe.demandeurs }}
+                </td>
+                <td class="color-blue fr-text--sm">
+                    {{ enveloppe.projets_count }}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>

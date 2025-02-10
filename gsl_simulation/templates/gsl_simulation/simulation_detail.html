@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load static dsfr_tags gsl_filters %}
+
+{% block breadcrumb %}
+    {% dsfr_breadcrumb breadcrumb_dict %}
+{% endblock breadcrumb %}
+
+{% block content %}
+    <h1>
+        {{ title }}
+    </h1>
+    {% include "includes/_status_summary.html" %}
+    {% include "includes/_enveloppe_summary.html" %}
+
+    {% include "includes/_simulation_projet_list_filters.html" %}
+    <div class="fr-table--lg gsl-projet-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>
+                        <span class="fr-sr-only">Sélectionner</span>
+                    </th>
+                    <th>
+                        Date de dépôt
+                    </th>
+                    <th class="max_180_width">
+                        Intitulé du projet
+                    </th>
+                    <th>
+                        Commune
+                    </th>
+                    <th>
+                        Dotation
+                    </th>
+                    <th class="max_80_width">
+                        Coût total du projet
+                        <br>
+                        <span class="gsl_projet_table__total gsl-money gsl-projet-table__total-cost">{{ total_cost | euro }}</span>
+                    </th>
+                    <th class="max_80_width">
+                        Montant sollicité
+                        <br>
+                        <span class="gsl_projet_table__total gsl-projet-table__total-asked">{{ total_amount_asked | euro }}</span>
+                    </th>
+                    <th class="max_80_width">
+                        Montant prévisionnel accordé
+                        <br>
+                        <span class="gsl_projet_table__total gsl-projet-table__total-granted"
+                              id="total-amount-granted">{{ total_amount_granted | euro }}</span>
+                    </th>
+                    <th class="max_80_width">
+                        Taux de subvention
+                    </th>
+                    <th>
+                        Choix de la catégorie d’opération
+                    </th>
+                    <th class="max_180_width">
+                        Statut
+                    </th>
+                    <th>
+                        <span class="fr-sr-only">Actions</span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for projet in simulations_list %}
+                    {% with projet.simu.0 as simu %}
+                        {% include "includes/_simulation_detail_row.html" with simu=simu projet=projet %}
+                    {% endwith %}
+                {% empty %}
+                    <tr>
+                        <td colspan="12">
+                            Liste vide.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% dsfr_pagination simulations_paginator %}
+
+{% endblock content %}
