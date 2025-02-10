@@ -65,6 +65,9 @@ class ProjetService:
 
     @classmethod
     def add_ordering_to_projets_qs(cls, qs, ordering):
+        default_ordering = "-dossier_ds__ds_date_depot"
+        qs = qs.order_by(default_ordering)
+
         ordering_arg = cls.get_ordering_arg(ordering)
         if ordering_arg:
             qs = qs.order_by(ordering_arg)

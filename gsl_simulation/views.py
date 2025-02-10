@@ -61,7 +61,7 @@ class SimulationProjetListViewFilters(ProjetFilters):
         "montant_retenu",
     )
 
-    class Meta(ProjetFilters.Meta):
+    class Meta(ProjetFilters.Meta):  # TODO utile ?
         fields = (
             "porteur",
             "cout_min",
@@ -86,7 +86,16 @@ class SimulationProjetListViewFilters(ProjetFilters):
             SimulationProjet.STATUS_CHOICES, ordered_status
         ),
         widget=CustomCheckboxSelectMultiple(),
+        method="filter_status",
     )
+
+    def filter_status(self, queryset, name, value):
+        return queryset.filter(
+            simulationprojet__simulation=Simulation.objects.get(
+                slug=self.request.resolver_match.kwargs.get("slug")
+            ),
+            simulationprojet__status__in=value,
+        )
 
 
 class SimulationDetailView(FilterView, DetailView, FilterUtils):
