@@ -6,6 +6,7 @@ class FilterUtils:
         "cout_total": "includes/_filter_cout_total.html",
         "montant_demande": "includes/_filter_montant_demande.html",
         "montant_retenu": "includes/_filter_montant_retenu.html",
+        "montant_previsionnel": "includes/_filter_montant_previsionnel.html",
     }
 
     def enrich_context_with_filter_utils(self, context, state_mappings):
@@ -19,6 +20,9 @@ class FilterUtils:
         )
         context["is_montant_retenu_active"] = self._get_is_one_field_active(
             ["montant_retenu_min", "montant_retenu_max"]
+        )
+        context["is_montant_previsionnel_active"] = self._get_is_one_field_active(
+            ["montant_previsionnel_min", "montant_previsionnel_max"]
         )
 
         context["filter_templates"] = self._get_filter_templates()

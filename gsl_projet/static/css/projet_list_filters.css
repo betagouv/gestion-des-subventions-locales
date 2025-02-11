@@ -107,3 +107,8 @@
   gap: 6px;
 }
 
+#filter-montant-previsionnel-button {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

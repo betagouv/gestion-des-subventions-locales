@@ -53,6 +53,22 @@ class ProjetService:
                 | Q(assiette__isnull=True, dossier_ds__finance_cout_total__lte=cout_max)
             )
 
+        montant_demande_min = filters.get("montant_demande_min")
+        if montant_demande_min and montant_demande_min.isnumeric():
+            qs = qs.filter(dossier_ds__demande_montant__gte=montant_demande_min)
+
+        montant_demande_max = filters.get("montant_demande_max")
+        if montant_demande_max and montant_demande_max.isnumeric():
+            qs = qs.filter(dossier_ds__demande_montant__lte=montant_demande_max)
+
+        montant_previsionnel_min = filters.get("montant_previsionnel_min")
+        if montant_previsionnel_min and montant_previsionnel_min.isnumeric():
+            qs = qs.filter(simulationprojet__montant__gte=montant_previsionnel_min)
+
+        montant_previsionnel_max = filters.get("montant_previsionnel_max")
+        if montant_previsionnel_max and montant_previsionnel_max.isnumeric():
+            qs = qs.filter(simulationprojet__montant__lte=montant_previsionnel_max)
+
         porteur = filters.get("porteur")
         if porteur in cls.PORTEUR_MAPPINGS:
             qs = qs.filter(

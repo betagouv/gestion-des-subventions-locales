@@ -3,6 +3,7 @@ import logging
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db.models import Prefetch, Sum
+from django.forms import NumberInput
 from django.http import JsonResponse
 from django.http.request import QueryDict
 from django.shortcuts import redirect, render
@@ -10,7 +11,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
-from django_filters import MultipleChoiceFilter
+from django_filters import MultipleChoiceFilter, NumberFilter
 from django_filters.views import FilterView
 
 from gsl_demarches_simplifiees.models import Dossier
@@ -28,7 +29,7 @@ from gsl_simulation.services.simulation_projet_service import (
 )
 from gsl_simulation.services.simulation_service import SimulationService
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
-from gsl_simulation.utils import get_filters_dict_from_params, replace_comma_by_dot
+from gsl_simulation.utils import replace_comma_by_dot
 
 
 class SimulationListView(ListView):
@@ -48,9 +49,17 @@ class SimulationListView(ListView):
         visible_by_user_enveloppes = EnveloppeService.get_enveloppes_visible_for_a_user(
             self.request.user
         )
-        return Simulation.objects.filter(
+        qs = Simulation.objects.filter(
             enveloppe__in=visible_by_user_enveloppes
         ).order_by("-created_at")
+        qs = qs.select_related(
+            "enveloppe",
+            "enveloppe__perimetre",
+            "enveloppe__perimetre__region",
+            "enveloppe__perimetre__departement",
+        )
+
+        return qs
 
 
 class SimulationProjetListViewFilters(ProjetFilters):
@@ -59,7 +68,7 @@ class SimulationProjetListViewFilters(ProjetFilters):
         "status",
         "cout_total",
         "montant_demande",
-        "montant_retenu",
+        "montant_previsionnel",
     )
 
     class Meta(ProjetFilters.Meta):  # TODO utile ?
@@ -69,8 +78,8 @@ class SimulationProjetListViewFilters(ProjetFilters):
             "cout_max",
             "montant_demande_min",
             "montant_demande_max",
-            "montant_retenu_min",
-            "montant_retenu_max",
+            "montant_previsionnel_min",
+            "montant_previsionnel_max",
             "status",
         )
 
@@ -88,6 +97,22 @@ class SimulationProjetListViewFilters(ProjetFilters):
         ),
         widget=CustomCheckboxSelectMultiple(),
         method="filter_status",
+    )
+
+    montant_previsionnel_min = NumberFilter(
+        field_name="simulationprojet__montant",
+        lookup_expr="gte",
+        widget=NumberInput(
+            attrs={"class": "fr-input", "min": "0"},
+        ),
+    )
+
+    montant_previsionnel_max = NumberFilter(
+        field_name="simulationprojet__montant",
+        lookup_expr="lte",
+        widget=NumberInput(
+            attrs={"class": "fr-input", "min": "0"},
+        ),
     )
 
     def filter_status(self, queryset, name, value):
@@ -196,19 +221,24 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
 
 def redirect_to_simulation_projet(request, simulation_projet):
     if request.htmx:
-        projets_of_simulation = Projet.objects.filter(
-            simulationprojet__simulation=simulation_projet.simulation
-        )
-        filter_params = QueryDict(request.body).get("filter_params")
-        filters_dict = get_filters_dict_from_params(filter_params)
-        # TODO : add filters to projets_of_simulation
-        filtered_projets_of_simulation = ProjetService.add_filters_to_projets_qs(
-            projets_of_simulation,
-            filters_dict,
-        )
-        total_amount_granted = ProjetService.get_total_amount_granted(
-            filtered_projets_of_simulation
-        )
+        filter_params = QueryDict(QueryDict(request.body).get("filter_params"))
+        # filters_dict = get_filters_dict_from_params(filter_params)
+        # new_request = request  # TODO copy ?
+        # new_request.GET = filter_params
+
+        # filters_view = SimulationProjetListViewFilters(request=new_request)
+        # filters_view.data = filter_params
+        # filtered_projets = filters_view.queryset
+        # qs = filtered_projets.filter(
+        #     simulationprojet__simulation=simulation_projet.simulation
+        # )
+        # filtered_projets_of_simulation = ProjetService.add_filters_to_projets_qs(
+        #     qs,
+        #     filters_dict,
+        # )
+        # total_amount_granted = ProjetService.get_total_amount_granted(
+        #     filtered_projets_of_simulation
+        # )
 
         return render(
             request,
@@ -218,7 +248,7 @@ def redirect_to_simulation_projet(request, simulation_projet):
                 "projet": simulation_projet.projet,
                 "available_states": SimulationProjet.STATUS_CHOICES,
                 "status_summary": simulation_projet.simulation.get_projet_status_summary(),
-                "total_amount_granted": total_amount_granted,
+                # "total_amount_granted": total_amount_granted,
                 "filter_params": filter_params,
             },
         )
