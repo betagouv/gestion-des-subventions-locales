@@ -19,6 +19,10 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
         "perimetre__departement__name",
         "perimetre__arrondissement__name",
     )
+    autocomplete_fields = (
+        "deleguee_by",
+        "perimetre",
+    )
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
