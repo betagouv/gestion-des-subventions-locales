@@ -1,6 +1,5 @@
 import logging
 
-from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db.models import Prefetch, Sum
 from django.forms import NumberInput
@@ -70,18 +69,6 @@ class SimulationProjetListViewFilters(ProjetFilters):
         "montant_demande",
         "montant_previsionnel",
     )
-
-    class Meta(ProjetFilters.Meta):  # TODO utile ?
-        fields = (
-            "porteur",
-            "cout_min",
-            "cout_max",
-            "montant_demande_min",
-            "montant_demande_max",
-            "montant_previsionnel_min",
-            "montant_previsionnel_max",
-            "status",
-        )
 
     ordered_status = (
         SimulationProjet.STATUS_DRAFT,
@@ -271,7 +258,6 @@ def redirect_to_simulation_projet(request, simulation_projet):
             },
         )
 
-    cache.clear()
     url = reverse(
         "simulation:simulation-detail",
         kwargs={"slug": simulation_projet.simulation.slug},
