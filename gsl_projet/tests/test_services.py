@@ -11,6 +11,7 @@ from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
 from gsl_projet.tests.factories import ProjetFactory
 from gsl_simulation.models import Simulation
+from gsl_simulation.services.simulation_service import SimulationService
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
 
@@ -156,7 +157,7 @@ def test_add_filters_to_projets_qs(create_projets):
     }
 
     qs = Projet.objects.all()
-    filtered_qs = ProjetService.add_filters_to_projets_qs(qs, filters)
+    filtered_qs = SimulationService.add_filters_to_projets_qs(qs, filters)
 
     assert filtered_qs.count() == 3
     assert filtered_qs.values_list("assiette", flat=True).distinct()[0] == 50

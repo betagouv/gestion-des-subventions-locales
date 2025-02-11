@@ -28,7 +28,7 @@ from gsl_simulation.services.simulation_projet_service import (
 )
 from gsl_simulation.services.simulation_service import SimulationService
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
-from gsl_simulation.utils import replace_comma_by_dot
+from gsl_simulation.utils import get_filters_dict_from_params, replace_comma_by_dot
 
 
 class SimulationListView(ListView):
@@ -226,24 +226,20 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
 
 def redirect_to_simulation_projet(request, simulation_projet):
     if request.htmx:
-        filter_params = QueryDict(QueryDict(request.body).get("filter_params"))
-        # filters_dict = get_filters_dict_from_params(filter_params)
-        # new_request = request  # TODO copy ?
-        # new_request.GET = filter_params
+        filter_params = QueryDict(request.body).get("filter_params")
+        filters_dict = get_filters_dict_from_params(filter_params)
 
-        # filters_view = SimulationProjetListViewFilters(request=new_request)
-        # filters_view.data = filter_params
-        # filtered_projets = filters_view.queryset
-        # qs = filtered_projets.filter(
-        #     simulationprojet__simulation=simulation_projet.simulation
-        # )
-        # filtered_projets_of_simulation = ProjetService.add_filters_to_projets_qs(
-        #     qs,
-        #     filters_dict,
-        # )
-        # total_amount_granted = ProjetService.get_total_amount_granted(
-        #     filtered_projets_of_simulation
-        # )
+        qs = Projet.objects.filter(
+            simulationprojet__simulation=simulation_projet.simulation
+        )
+        filtered_projets_of_simulation = SimulationService.add_filters_to_projets_qs(
+            qs,
+            filters_dict,
+            simulation_projet.simulation,
+        )
+        total_amount_granted = ProjetService.get_total_amount_granted(
+            filtered_projets_of_simulation
+        )
 
         return render(
             request,
@@ -253,7 +249,7 @@ def redirect_to_simulation_projet(request, simulation_projet):
                 "projet": simulation_projet.projet,
                 "available_states": SimulationProjet.STATUS_CHOICES,
                 "status_summary": simulation_projet.simulation.get_projet_status_summary(),
-                # "total_amount_granted": total_amount_granted,
+                "total_amount_granted": total_amount_granted,
                 "filter_params": filter_params,
             },
         )
