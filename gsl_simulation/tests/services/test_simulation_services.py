@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 import pytest
 
@@ -8,14 +9,19 @@ from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
+from gsl_demarches_simplifiees.tests.factories import (
+    DossierFactory,
+    NaturePorteurProjetFactory,
+)
 from gsl_programmation.models import Enveloppe
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
+from gsl_projet.models import Projet
 from gsl_simulation.models import Simulation
 from gsl_simulation.services.simulation_service import SimulationService
-from gsl_simulation.tests.factories import SimulationFactory
+from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -118,3 +124,90 @@ def test_slug_generation():
 
     slug = SimulationService.get_slug("Other test 1")
     assert slug == "other-test-1-1"
+
+
+@pytest.fixture
+def simulation():
+    return SimulationFactory(enveloppe=DetrEnveloppeFactory())
+
+
+@pytest.fixture
+def create_projets(simulation):
+    epci_nature = NaturePorteurProjetFactory(label="EPCI")
+    commune_nature = NaturePorteurProjetFactory(label="Communes")
+
+    for status in ("valid", "draft", "cancelled"):
+        for cout in (49, 50, 100, 150, 151):
+            for montant_previsionnel in (100, 150, 151):
+                SimulationProjetFactory(
+                    simulation=simulation,
+                    status=status,
+                    montant=montant_previsionnel,
+                    projet__assiette=cout,
+                    projet__dossier_ds=DossierFactory(
+                        demande_dispositif_sollicite="DETR",
+                        porteur_de_projet_nature=epci_nature,
+                    ),
+                )
+                SimulationProjetFactory(
+                    simulation=simulation,
+                    status=status,
+                    montant=montant_previsionnel,
+                    projet__assiette=cout,
+                    projet__dossier_ds=DossierFactory(
+                        demande_dispositif_sollicite="DETR",
+                        porteur_de_projet_nature=commune_nature,
+                    ),
+                )
+
+
+@pytest.mark.django_db
+def test_add_filters_to_projets_qs(simulation, create_projets):
+    filters = {
+        "cout_min": "50",
+        "cout_max": "150",
+        "porteur": "EPCI",
+        "montant_previsionnel_min": "100",
+        "montant_previsionnel_max": "150",
+        "status": ["valid"],
+    }
+
+    qs = Projet.objects.all()
+    filtered_qs = SimulationService.add_filters_to_projets_qs(qs, filters, simulation)
+
+    assert filtered_qs.count() == 6
+    cout_distinct = filtered_qs.values_list("assiette", flat=True).distinct()
+    assert len(cout_distinct) == 3
+    assert cout_distinct[0] == Decimal("50.0")
+    assert cout_distinct[1] == Decimal("100.0")
+    assert cout_distinct[2] == Decimal("150.0")
+
+    montants = filtered_qs.values_list(
+        "simulationprojet__montant", flat=True
+    ).distinct()
+    assert len(montants) == 2
+    assert montants[0] == Decimal("100.0")
+    assert montants[1] == Decimal("150.0")
+
+    dotations = filtered_qs.values_list(
+        "dossier_ds__demande_dispositif_sollicite", flat=True
+    ).distinct()
+    assert len(dotations) == 1
+    assert dotations[0] == "DETR"
+
+    porteur = filtered_qs.values_list(
+        "dossier_ds__porteur_de_projet_nature__label", flat=True
+    ).distinct()
+    assert len(porteur) == 1
+    assert porteur[0] == "EPCI"
+
+    assert (
+        filtered_qs.values_list(
+            "dossier_ds__porteur_de_projet_nature__label", flat=True
+        ).distinct()[0]
+        == "EPCI"
+    )
+
+    status = filtered_qs.values_list("simulationprojet__status", flat=True).distinct()
+    assert len(status) == 1
+    assert status[0] == "valid"

@@ -148,36 +148,6 @@ def create_projets():
 
 
 @pytest.mark.django_db
-def test_add_filters_to_projets_qs(create_projets):
-    filters = {
-        "dispositif": "DETR",
-        "cout_min": "50",
-        "cout_max": "150",
-        "porteur": "EPCI",
-    }
-
-    qs = Projet.objects.all()
-    filtered_qs = SimulationService.add_filters_to_projets_qs(qs, filters)
-
-    assert filtered_qs.count() == 3
-    assert filtered_qs.values_list("assiette", flat=True).distinct()[0] == 50
-    assert filtered_qs.values_list("assiette", flat=True).distinct()[1] == 100
-    assert filtered_qs.values_list("assiette", flat=True).distinct()[2] == 150
-    assert (
-        filtered_qs.values_list(
-            "dossier_ds__demande_dispositif_sollicite", flat=True
-        ).distinct()[0]
-        == "DETR"
-    )
-    assert (
-        filtered_qs.values_list(
-            "dossier_ds__porteur_de_projet_nature__label", flat=True
-        ).distinct()[0]
-        == "EPCI"
-    )
-
-
-@pytest.mark.django_db
 def test_add_ordering_to_projets_qs():
     projet1 = ProjetFactory(
         dossier_ds__finance_cout_total=100,
