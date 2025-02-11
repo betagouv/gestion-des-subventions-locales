@@ -99,22 +99,6 @@ class SimulationProjetListViewFilters(ProjetFilters):
         method="filter_status",
     )
 
-    montant_previsionnel_min = NumberFilter(
-        field_name="simulationprojet__montant",
-        lookup_expr="gte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
-    montant_previsionnel_max = NumberFilter(
-        field_name="simulationprojet__montant",
-        lookup_expr="lte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
     def filter_status(self, queryset, name, value):
         return queryset.filter(
             # Cette ligne est utile pour qu'on ait un "ET", cad, on filtre les projets de la simulation en cours ET sur les statuts sélectionnés.
@@ -125,6 +109,40 @@ class SimulationProjetListViewFilters(ProjetFilters):
                 "slug"
             ),
             simulationprojet__status__in=value,
+        )
+
+    montant_previsionnel_min = NumberFilter(
+        field_name="simulationprojet__montant",
+        lookup_expr="gte",
+        widget=NumberInput(
+            attrs={"class": "fr-input", "min": "0"},
+        ),
+        method="filter_montant_previsionnel_min",
+    )
+
+    montant_previsionnel_max = NumberFilter(
+        field_name="simulationprojet__montant",
+        lookup_expr="lte",
+        widget=NumberInput(
+            attrs={"class": "fr-input", "min": "0"},
+        ),
+        method="filter_montant_previsionnel_max",
+    )
+
+    def filter_montant_previsionnel_min(self, queryset, name, value):
+        return queryset.filter(
+            simulationprojet__simulation__slug=self.request.resolver_match.kwargs.get(
+                "slug"
+            ),
+            simulationprojet__montant__gte=value,
+        )
+
+    def filter_montant_previsionnel_max(self, queryset, name, value):
+        return queryset.filter(
+            simulationprojet__simulation__slug=self.request.resolver_match.kwargs.get(
+                "slug"
+            ),
+            simulationprojet__montant__lte=value,
         )
 
 
