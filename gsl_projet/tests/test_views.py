@@ -518,10 +518,13 @@ def test_filter_by_status(req, view, projets_with_status, status, expected_count
 def test_get_status_placeholder(req, view, projets_with_status):
     request = req.get("/")
     view.request = request
-    assert view._get_status_placeholder() == "Tous"
+    assert view._get_status_placeholder(ProjetListView.STATE_MAPPINGS) == "Tous"
 
 
 def test_get_status_placeholder_with_status(req, view, projets_with_status):
     request = req.get("/?status=accepte&status=en_construction")
     view.request = request
-    assert view._get_status_placeholder() == "Accepté, En construction"
+    assert (
+        view._get_status_placeholder(ProjetListView.STATE_MAPPINGS)
+        == "Accepté, En construction"
+    )
