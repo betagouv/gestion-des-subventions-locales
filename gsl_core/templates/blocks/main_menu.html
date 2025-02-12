@@ -31,11 +31,11 @@
                        {% if request.path == simulations_url %}aria-current="true"{% endif %}>Simulations</a>
                 </li>
                 <li class="fr-nav__item">
-                    {% url 'simulation:simulation-list' as simulations_url %}
+                    {% url 'coming-features' as coming_features_url %}
                     <a class="fr-nav__link"
-                       href="{{ simulations_url }}"
+                       href="{{ coming_features_url }}"
                        target="_self"
-                       {% if request.path == simulations_url %}aria-current="true"{% endif %}>Simulations</a>
+                       {% if request.path == coming_features_url %}aria-current="true"{% endif %}>Fonctionnalités à venir</a>
                 </li>
                 {% if request.user.is_staff %}
                     <li class="fr-nav__item">

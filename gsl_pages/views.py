@@ -19,3 +19,12 @@ def accessibility_view(request):
         "gsl_pages/accessibilite.html",
         {"title": "Déclaration d’accessibilité"},
     )
+
+
+@login_not_required
+def coming_features_view(request):
+    return render(
+        request,
+        "gsl_pages/coming_features.html",
+        {"title": "Fonctionnalités à venir"},
+    )
