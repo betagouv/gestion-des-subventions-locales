@@ -81,6 +81,7 @@ class CollegueAdmin(AllPermsForStaffUser, UserAdmin, admin.ModelAdmin):
 @admin.register(Adresse)
 class AdresseAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = ("label", "postal_code", "commune")
+    autocomplete_fields = ("commune",)
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
@@ -108,6 +109,10 @@ class CommuneAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
     resource_classes = (CommuneResource,)
     list_display = ("name", "insee_code", "departement", "arrondissement")
     list_filter = ("departement__region", "departement", "arrondissement")
+    search_fields = (
+        "name",
+        "insee_code",
+    )
 
 
 @admin.register(Perimetre)
