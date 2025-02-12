@@ -59,8 +59,8 @@ def view() -> ProjetListView:
         ("cout_asc", ("dossier_ds__finance_cout_total",)),
         ("commune_desc", ("-address__commune__name",)),
         ("commune_asc", ("address__commune__name",)),
-        (None, ()),  # Test valeur par défaut
-        ("invalid_value", ()),  # Test valeur invalide
+        (None, ("-dossier_ds__ds_date_depot",)),  # Test valeur par défaut
+        ("invalid_value", ("-dossier_ds__ds_date_depot",)),  # Test valeur invalide
     ],
 )
 def test_get_ordering(req, view, tri_param, expected_ordering):
@@ -101,8 +101,8 @@ def projets(demandeur) -> list[Projet]:
         ("cout_asc", "0-1"),
         ("commune_desc", "1-0"),
         ("commune_asc", "0-1"),
-        ("", "0-1"),
-        ("invalid_value", "0-1"),
+        ("", "1-0"),
+        ("invalid_value", "1-0"),
     ],
 )
 def test_projets_ordering(req, view, projets, tri_param, expected_ordering):
