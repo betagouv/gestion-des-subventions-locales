@@ -96,18 +96,14 @@
   padding-top: 6px;
 }
 
-#filter-status-button > button {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 #filter-status-button .filter-content {
   min-width: auto;
   gap: 6px;
 }
 
-#filter-montant-previsionnel-button {
+.filter-field > select,
+.filter-field > button,
+.filter-dropdown > button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

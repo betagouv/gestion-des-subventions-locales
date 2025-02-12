@@ -21,9 +21,9 @@ class ProjetFilters(FilterSet):
             attrs={
                 "class": "fr-select",
                 "onchange": "this.form.submit()",
-                "placeholder": "Toutes les dotations",
             }
         ),
+        empty_label="Toutes les dotations",
     )
 
     porteur = ChoiceFilter(
@@ -37,9 +37,9 @@ class ProjetFilters(FilterSet):
             attrs={
                 "class": "fr-select",
                 "onchange": "this.form.submit()",
-                "placeholder": "Tous les porteurs",
             },
         ),
+        empty_label="Tous les porteurs",
     )
 
     def filter_porteur(self, queryset, _name, value):
