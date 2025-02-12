@@ -17,18 +17,18 @@
              aria-label="{{ main_menu_label }}">
             <ul class="fr-nav__list">
                 <li class="fr-nav__item">
-                    {% url 'index' as home_url %}
-                    <a class="fr-nav__link"
-                       href="{{ home_url }}"
-                       target="_self"
-                       {% if request.path == home_url %}aria-current="true"{% endif %}>Accueil</a>
-                </li>
-                <li class="fr-nav__item">
                     {% url 'projet:list' as projets_url %}
                     <a class="fr-nav__link"
                        href="{{ projets_url }}"
                        target="_self"
                        {% if request.path == projet_url %}aria-current="true"{% endif %}>Projets 2025</a>
+                </li>
+                <li class="fr-nav__item">
+                    {% url 'simulation:simulation-list' as simulations_url %}
+                    <a class="fr-nav__link"
+                       href="{{ simulations_url }}"
+                       target="_self"
+                       {% if request.path == simulations_url %}aria-current="true"{% endif %}>Simulations</a>
                 </li>
                 <li class="fr-nav__item">
                     {% url 'simulation:simulation-list' as simulations_url %}
