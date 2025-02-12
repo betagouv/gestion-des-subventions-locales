@@ -141,10 +141,10 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        self.simulation = self.object
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
+        simulation = self.get_object()
         qs = self.get_projet_queryset()
         context = super().get_context_data(**kwargs)
         paginator = Paginator(qs, 25)
@@ -153,16 +153,16 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         context["simulations_paginator"] = current_page
         context["simulations_list"] = current_page.object_list
         context["title"] = (
-            f"{self.simulation.enveloppe.type} {self.simulation.enveloppe.annee} – {self.simulation.title}"
+            f"{simulation.enveloppe.type} {simulation.enveloppe.annee} – {simulation.title}"
         )
         context["porteur_mappings"] = ProjetService.PORTEUR_MAPPINGS
-        context["status_summary"] = self.simulation.get_projet_status_summary()
+        context["status_summary"] = simulation.get_projet_status_summary()
         context["total_cost"] = ProjetService.get_total_cost(qs)
         context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs)
         context["total_amount_granted"] = ProjetService.get_total_amount_granted(qs)
         context["available_states"] = SimulationProjet.STATUS_CHOICES
         context["filter_params"] = self.request.GET.urlencode()
-        context["enveloppe"] = self.get_enveloppe_data(self.simulation)
+        context["enveloppe"] = self.get_enveloppe_data(simulation)
         self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
 
         context["breadcrumb_dict"] = {
@@ -172,7 +172,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                     "title": "Mes simulations de programmation",
                 }
             ],
-            "current": self.simulation.title,
+            "current": simulation.title,
         }
 
         return context

@@ -48,6 +48,8 @@ class SimulationService:
             return incremented_slug
         return slug
 
+    # C'est une duplication de la logique instanciée par ProjetFilters.
+    # L'idée serait de ne plus se servir de cette méthode en instanciant ProjetFilters avec les bons filtres.
     @classmethod
     def add_filters_to_projets_qs(cls, qs, filters: dict, simulation: Simulation):
         cout_min = filters.get("cout_min")

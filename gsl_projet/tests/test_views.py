@@ -13,7 +13,8 @@ from gsl_core.tests.factories import (
 from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
 from gsl_projet.models import Demandeur, Projet
 from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
-from gsl_projet.views import ProjetFilters, ProjetListView
+from gsl_projet.utils.projet_filters import ProjetFilters
+from gsl_projet.views import ProjetListView
 
 pytestmark = pytest.mark.django_db
 

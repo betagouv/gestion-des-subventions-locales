@@ -15,8 +15,11 @@ from gsl_programmation.tests.factories import (
 )
 from gsl_projet.models import Projet
 from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
+from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
 from gsl_simulation.tests.factories import SimulationFactory
 from gsl_simulation.views import SimulationDetailView, SimulationListView
+
+pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
@@ -131,6 +134,7 @@ def test_simulation_view_status_code(req, view, simulations):
 @pytest.mark.django_db
 def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
     view = SimulationDetailView()
+    view.kwargs = {"slug": simulation.slug}
     view.request = req.get(
         reverse("simulation:simulation-detail", kwargs={"slug": simulation.slug})
     )
@@ -165,3 +169,24 @@ def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
     assert enveloppe_data["demandeurs"] == 2
     assert enveloppe_data["montant_asked"] == 200_000 * 3 + 400_000 * 2
     assert enveloppe_data["montant_accepte"] == 150_000
+
+
+@pytest.fixture
+def create_simulation_projets(simulation, projets):
+    add_enveloppe_projets_to_simulation(simulation.id)
+
+
+@pytest.fixture
+def simulation_view(req, simulation):
+    view = SimulationDetailView()
+    view.object = simulation
+    view.request = req.get(
+        reverse("simulation:simulation-detail", kwargs={"slug": simulation.slug})
+    )
+    view.kwargs = {"slug": simulation.slug}
+    return view
+
+
+def test_view_without_filter(simulation_view, create_simulation_projets):
+    projets = simulation_view.get_projet_queryset()
+    assert projets.count() == 7
