@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import Count, Q
+from django.db.models import Count
 
 from gsl_core.models import Collegue
 from gsl_programmation.models import Enveloppe
@@ -84,11 +84,6 @@ class SimulationProjet(models.Model):
                 fields=("projet", "simulation", "enveloppe"),
                 name="unique_projet_enveloppe_projet",
                 nulls_distinct=True,
-            ),
-            models.UniqueConstraint(
-                fields=("projet", "enveloppe"),
-                condition=Q(status="valid"),
-                name="unique_valid_simulation_per_project",
             ),
         )
 
