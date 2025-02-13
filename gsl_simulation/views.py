@@ -92,9 +92,7 @@ class SimulationProjetListViewFilters(ProjetFilters):
             # Sans ça, on aurait dans l'ordre :
             # - les projets dont IL EXISTE UN SIMULATION_PROJET (pas forcément celui de la simulation en question) qui a un des statuts sélectionnés
             # - les simulation_projets de la simulation associés aux projets filtrés
-            simulationprojet__simulation__slug=self.request.resolver_match.kwargs.get(
-                "slug"
-            ),
+            **self._simulation_slug_filter_kwarg(),
             simulationprojet__status__in=value,
         )
 
@@ -118,19 +116,22 @@ class SimulationProjetListViewFilters(ProjetFilters):
 
     def filter_montant_previsionnel_min(self, queryset, name, value):
         return queryset.filter(
-            simulationprojet__simulation__slug=self.request.resolver_match.kwargs.get(
-                "slug"
-            ),
+            **self._simulation_slug_filter_kwarg(),
             simulationprojet__montant__gte=value,
         )
 
     def filter_montant_previsionnel_max(self, queryset, name, value):
         return queryset.filter(
-            simulationprojet__simulation__slug=self.request.resolver_match.kwargs.get(
-                "slug"
-            ),
+            **self._simulation_slug_filter_kwarg(),
             simulationprojet__montant__lte=value,
         )
+
+    def _simulation_slug_filter_kwarg(self):
+        return {
+            "simulationprojet__simulation__slug": self.request.resolver_match.kwargs.get(
+                "slug"
+            )
+        }
 
 
 class SimulationDetailView(FilterView, DetailView, FilterUtils):
@@ -162,7 +163,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         context["total_amount_granted"] = ProjetService.get_total_amount_granted(qs)
         context["available_states"] = SimulationProjet.STATUS_CHOICES
         context["filter_params"] = self.request.GET.urlencode()
-        context["enveloppe"] = self.get_enveloppe_data(simulation)
+        context["enveloppe"] = self._get_enveloppe_data(simulation)
         self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
 
         context["breadcrumb_dict"] = {
@@ -192,7 +193,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         qs.distinct()
         return qs
 
-    def get_enveloppe_data(self, simulation):
+    def _get_enveloppe_data(self, simulation):
         enveloppe = simulation.enveloppe
         enveloppe_projets_included = Projet.objects.included_in_enveloppe(enveloppe)
         enveloppe_projets_processed = Projet.objects.processed_in_enveloppe(enveloppe)

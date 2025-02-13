@@ -90,6 +90,7 @@ class SimulationService:
 
         status = filters.get("status")
         if status:
+            status = status if isinstance(status, list) else [status]
             qs = qs.filter(
                 simulationprojet__simulation=simulation,
                 simulationprojet__status__in=status,
