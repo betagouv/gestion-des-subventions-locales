@@ -11,7 +11,6 @@ from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
 from gsl_projet.tests.factories import ProjetFactory
 from gsl_simulation.models import Simulation
-from gsl_simulation.services.simulation_service import SimulationService
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
 
