@@ -8,10 +8,6 @@ from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
-from gsl_demarches_simplifiees.tests.factories import (
-    DossierFactory,
-    NaturePorteurProjetFactory,
-)
 from gsl_programmation.models import Enveloppe
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
@@ -19,7 +15,7 @@ from gsl_programmation.tests.factories import (
 )
 from gsl_simulation.models import Simulation
 from gsl_simulation.services.simulation_service import SimulationService
-from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
+from gsl_simulation.tests.factories import SimulationFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -122,38 +118,3 @@ def test_slug_generation():
 
     slug = SimulationService.get_slug("Other test 1")
     assert slug == "other-test-1-1"
-
-
-@pytest.fixture
-def simulation():
-    return SimulationFactory(enveloppe=DetrEnveloppeFactory())
-
-
-@pytest.fixture
-def create_projets(simulation):
-    epci_nature = NaturePorteurProjetFactory(label="EPCI")
-    commune_nature = NaturePorteurProjetFactory(label="Communes")
-
-    for status in ("valid", "draft", "cancelled"):
-        for cout in (49, 50, 100, 150, 151):
-            for montant_previsionnel in (100, 150, 151):
-                SimulationProjetFactory(
-                    simulation=simulation,
-                    status=status,
-                    montant=montant_previsionnel,
-                    projet__assiette=cout,
-                    projet__dossier_ds=DossierFactory(
-                        demande_dispositif_sollicite="DETR",
-                        porteur_de_projet_nature=epci_nature,
-                    ),
-                )
-                SimulationProjetFactory(
-                    simulation=simulation,
-                    status=status,
-                    montant=montant_previsionnel,
-                    projet__assiette=cout,
-                    projet__dossier_ds=DossierFactory(
-                        demande_dispositif_sollicite="DETR",
-                        porteur_de_projet_nature=commune_nature,
-                    ),
-                )
