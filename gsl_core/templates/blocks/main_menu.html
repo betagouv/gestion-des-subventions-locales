@@ -17,13 +17,6 @@
              aria-label="{{ main_menu_label }}">
             <ul class="fr-nav__list">
                 <li class="fr-nav__item">
-                    {% url 'index' as home_url %}
-                    <a class="fr-nav__link"
-                       href="{{ home_url }}"
-                       target="_self"
-                       {% if request.path == home_url %}aria-current="true"{% endif %}>Accueil</a>
-                </li>
-                <li class="fr-nav__item">
                     {% url 'projet:list' as projets_url %}
                     <a class="fr-nav__link"
                        href="{{ projets_url }}"
@@ -36,6 +29,13 @@
                        href="{{ simulations_url }}"
                        target="_self"
                        {% if request.path == simulations_url %}aria-current="true"{% endif %}>Simulations</a>
+                </li>
+                <li class="fr-nav__item">
+                    {% url 'coming-features' as coming_features_url %}
+                    <a class="fr-nav__link"
+                       href="{{ coming_features_url }}"
+                       target="_self"
+                       {% if request.path == coming_features_url %}aria-current="true"{% endif %}>Fonctionnalités à venir</a>
                 </li>
                 {% if request.user.is_staff %}
                     <li class="fr-nav__item">
