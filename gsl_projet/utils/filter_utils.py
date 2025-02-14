@@ -46,7 +46,7 @@ class FilterUtils:
         )
 
     def _get_is_one_field_active(self, field_names):
-        for field_name in field_names:
-            if self.request.GET.get(field_name) not in (None, ""):
-                return True
-        return False
+        return any(
+            self.request.GET.get(field_name) not in (None, "")
+            for field_name in field_names
+        )
