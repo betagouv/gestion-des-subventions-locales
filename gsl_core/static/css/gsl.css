@@ -262,19 +262,3 @@ ul.no-list-style li {
 .blue-icon {
     color: var(--blue-france-sun-113-625);
 }
-
-/* En travaux */
-
-.ahr-todo {
-    border-image: repeating-linear-gradient(-45deg, black, black 10px, yellow 10px, yellow 20px, black 10px);
-    border-image-slice: 9;
-    border-style: solid;
-    border-width: 6px;
-    padding: .75em;
-    margin: .75em 0;
-    box-shadow: 0 0 0 1px inset, 0 0 0 1px;
-    background: #ffffb3;
-}
-.ahr-todo__check{
-    text-decoration: line-through;
-}

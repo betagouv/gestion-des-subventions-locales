@@ -11,11 +11,9 @@
     <div class="projets-filters-layout fr-container--fluid">
         <div class="fr-grid-row fr-grid-row--gutters">
             {% include "includes/_filter_trier_par.html" %}
-            {% include "includes/_filter_dotation.html" %}
-            {% include "includes/_filter_porteur.html" %}
-            {% include "includes/_filter_cout_total.html" %}
-            {% include "includes/_filter_montant_demande.html" %}
-            {% include "includes/_filter_montant_retenu.html" %}
+            {% for filter_name in filter_templates %}
+                {% include filter_name %}
+            {% endfor %}
         </div>
     </div>
 </form>

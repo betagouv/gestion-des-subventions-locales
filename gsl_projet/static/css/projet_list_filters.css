@@ -1,3 +1,10 @@
+.projets-filters-layout,
+.projets-filters-layout .fr-select,
+.projets-filters-layout .fr-input,
+.projets-filters-layout .fr-label {
+  font-size: calc(1rem * 14 / 16);
+}
+
 .filter-content {
   display: none;
   position: absolute;
@@ -7,7 +14,12 @@
   padding: 10px;
   z-index: 1000;
   gap: 1rem;
+  --status-color-green: var(--text-default-success);
+  --status-color-blue: var(--text-default-info);
+  --status-color-orange: var(--text-default-warning);
+  --status-color-red: var(--text-default-error);
 }
+
 
 .filter-content > button {
   width: 100%;
@@ -22,8 +34,8 @@
 }
 
 .amount-filter-group > label {
-  font-size: calc(1rem * 14/16);
-  flex:1
+  font-size: calc(1rem * 14 / 16);
+  flex: 1;
 }
 
 .euro-input-wrap {
@@ -37,8 +49,8 @@
 
 .euro-input-wrap > input::-webkit-outer-spin-button,
 .euro-input-wrap > input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .euro-input-wrap > input[type="number"] {
@@ -52,7 +64,6 @@
   transform: translateY(-50%);
   pointer-events: none; /* Ne pas interférer avec les clics */
 }
-
 
 .separator {
   display: flex;
@@ -71,7 +82,7 @@
 .separator span {
   font-size: 12px;
   font-weight: bold;
-  color: var(--text-disabled-grey)
+  color: var(--text-disabled-grey);
 }
 
 .montant-demande-checkbox-container {
@@ -81,6 +92,19 @@
 }
 
 .filter-dropdown-button-active {
-    border: 2px solid var(--artwork-major-blue-cumulus-active);
-    padding-top: 6px;
+  border: 2px solid var(--artwork-major-blue-cumulus-active);
+  padding-top: 6px;
+}
+
+#filter-status-button .filter-content {
+  min-width: auto;
+  gap: 6px;
+}
+
+.filter-field > select,
+.filter-field > button,
+.filter-dropdown > button {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
