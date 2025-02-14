@@ -40,7 +40,9 @@ class FilterUtils:
         if self.request.GET.get("status") in (None, "", []):
             return "Tous"
         return ", ".join(
-            [state_mappings[status] for status in self.request.GET.getlist("status")]
+            state_mappings[status]
+            for status in self.request.GET.getlist("status")
+            if status in state_mappings
         )
 
     def _get_is_one_field_active(self, field_names):
