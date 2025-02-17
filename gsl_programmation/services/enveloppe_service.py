@@ -34,3 +34,10 @@ class EnveloppeService:
             perimetre__departement=perimetre.departement,
             perimetre__arrondissement=perimetre.arrondissement,
         )
+
+    @classmethod
+    def get_mother_enveloppe(cls, enveloppe: Enveloppe):
+        if not enveloppe.is_deleguee:
+            return enveloppe
+        else:
+            return cls.get_mother_enveloppe(enveloppe.deleguee_by)
