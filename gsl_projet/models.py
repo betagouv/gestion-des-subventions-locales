@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from django.db import models
 from django.db.models import Q
-from django_fsm import FSMField
+from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, Arrondissement, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
@@ -226,3 +226,34 @@ class Projet(models.Model):
             yield from self.dossier_ds.demande_eligibilite_detr.all()
         if "DSIL" in self.dossier_ds.demande_dispositif_sollicite:
             yield from self.dossier_ds.demande_eligibilite_dsil.all()
+
+    @transition(field=status, source="*", target=STATUS_ACCEPTED)
+    def accept(self, montant: float, enveloppe: "Enveloppe"):
+        from gsl_programmation.models import ProgrammationProjet
+        from gsl_simulation.models import SimulationProjet
+
+        taux = (
+            montant * 100 / self.assiette_or_cout_total
+            if self.assiette_or_cout_total
+            else 0
+        )
+        SimulationProjet.objects.filter(projet=self).update(
+            status=SimulationProjet.STATUS_ACCEPTED,
+            montant=montant,
+            taux=taux,
+        )
+
+        programmation_projet, is_created = ProgrammationProjet.objects.get_or_create(
+            projet=self,
+            enveloppe=enveloppe,
+            defaults={
+                "montant": montant,
+                "taux": taux,
+                "status": ProgrammationProjet.STATUS_ACCEPTED,
+            },
+        )
+        if not is_created:
+            programmation_projet.montant = montant
+            programmation_projet.taux = taux
+            programmation_projet.status = ProgrammationProjet.STATUS_ACCEPTED
+            programmation_projet.save()
