@@ -238,27 +238,6 @@ ul.no-list-style li {
 
 /* simulation */
 
-.status-draft {
-    white-space: nowrap;
-    color: #3A3A3A;
-}
-
-.status-cancelled {
-    white-space: nowrap;
-    color: #cd0500;
-    font-weight: bold;
-}
-
-.status-provisoire {
-    color: #0063CB;
-    font-weight: bold;
-}
-
-.status-valid {
-    color: #18753C;
-    font-weight: bold;
-}
-
 .blue-icon {
     color: var(--blue-france-sun-113-625);
 }
