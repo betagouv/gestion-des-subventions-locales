@@ -8,10 +8,10 @@ from gsl_simulation.models import SimulationProjet
 class CustomCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
     def _get_color(self, option_value):
         return {
-            SimulationProjet.STATUS_DRAFT: "",
+            SimulationProjet.STATUS_PROCESSING: "",
             SimulationProjet.STATUS_PROVISOIRE: "blue",
-            SimulationProjet.STATUS_CANCELLED: "red",
-            SimulationProjet.STATUS_VALID: "green",
+            SimulationProjet.STATUS_REFUSED: "red",
+            SimulationProjet.STATUS_ACCEPTED: "green",
             Dossier.STATE_ACCEPTE: "green",
             Dossier.STATE_EN_CONSTRUCTION: "blue",
             Dossier.STATE_EN_INSTRUCTION: "blue",

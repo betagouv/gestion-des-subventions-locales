@@ -13,8 +13,10 @@ from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     NaturePorteurProjetFactory,
 )
+from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
+    ProgrammationProjetFactory,
 )
 from gsl_projet.models import Projet
 from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
@@ -178,12 +180,39 @@ def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
     assert enveloppe_data["type"] == "DETR"
     assert enveloppe_data["montant"] == 1_000_000
     assert enveloppe_data["perimetre"] == perimetre_departemental
-    assert enveloppe_data["validated_projets_count"] == 1
-    assert enveloppe_data["refused_projets_count"] == 1
+    assert (
+        enveloppe_data["validated_projets_count"] == 0
+    )  # TODO tester quand on aura implémenter l'initialisation des projets programmés depuis les dossiers DS
+    assert enveloppe_data["refused_projets_count"] == 0
     assert enveloppe_data["projets_count"] == 5
     assert enveloppe_data["demandeurs"] == 2
     assert enveloppe_data["montant_asked"] == 200_000 * 3 + 400_000 * 2
-    assert enveloppe_data["montant_accepte"] == 150_000
+    assert enveloppe_data["montant_accepte"] == 0
+
+
+@pytest.mark.django_db
+def test_get_validated_and_refused_projets_count_enveloppe_data(req, simulation):
+    for montant in [100_000, 200_000, 300_000]:
+        ProgrammationProjetFactory.create(
+            enveloppe=simulation.enveloppe,
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            montant=montant,
+        )
+
+    ProgrammationProjetFactory.create_batch(
+        2, enveloppe=simulation.enveloppe, status=ProgrammationProjet.STATUS_REFUSED
+    )
+
+    view = SimulationDetailView()
+    view.request = req.get(
+        reverse("simulation:simulation-detail", kwargs={"slug": simulation.slug})
+    )
+    view.object = simulation
+    enveloppe_data = view._get_enveloppe_data(simulation)
+
+    assert enveloppe_data["validated_projets_count"] == 3
+    assert enveloppe_data["montant_accepte"] == 600_000
+    assert enveloppe_data["refused_projets_count"] == 2
 
 
 @pytest.fixture
@@ -209,17 +238,19 @@ def test_view_without_filter(req, simulation, create_simulation_projets):
     projets = view.get_projet_queryset()
     assert projets.count() == 7
     assert (
-        projets.filter(simulationprojet__status=SimulationProjet.STATUS_VALID).count()
+        projets.filter(
+            simulationprojet__status=SimulationProjet.STATUS_ACCEPTED
+        ).count()
         == 1
     )
     assert (
-        projets.filter(simulationprojet__status=SimulationProjet.STATUS_DRAFT).count()
+        projets.filter(
+            simulationprojet__status=SimulationProjet.STATUS_PROCESSING
+        ).count()
         == 4
     )
     assert (
-        projets.filter(
-            simulationprojet__status=SimulationProjet.STATUS_CANCELLED
-        ).count()
+        projets.filter(simulationprojet__status=SimulationProjet.STATUS_REFUSED).count()
         == 2
     )
 
@@ -227,7 +258,7 @@ def test_view_without_filter(req, simulation, create_simulation_projets):
 @pytest.mark.django_db
 def test_view_with_one_status_filter(req, simulation, create_simulation_projets):
     filter_params = {
-        "status": SimulationProjet.STATUS_DRAFT,
+        "status": SimulationProjet.STATUS_PROCESSING,
     }
     view = _get_view_with_filter(req, simulation, filter_params)
 
@@ -235,7 +266,9 @@ def test_view_with_one_status_filter(req, simulation, create_simulation_projets)
 
     assert projets.count() == 4
     assert (
-        projets.filter(simulationprojet__status=SimulationProjet.STATUS_DRAFT).count()
+        projets.filter(
+            simulationprojet__status=SimulationProjet.STATUS_PROCESSING
+        ).count()
         == 4
     )
 
@@ -243,7 +276,10 @@ def test_view_with_one_status_filter(req, simulation, create_simulation_projets)
 @pytest.mark.django_db
 def test_view_with_filters(req, simulation, create_simulation_projets):
     filter_params = {
-        "status": [SimulationProjet.STATUS_VALID, SimulationProjet.STATUS_DRAFT],
+        "status": [
+            SimulationProjet.STATUS_ACCEPTED,
+            SimulationProjet.STATUS_PROCESSING,
+        ],
         "montant_previsionnel_min": 300_000,
         "montant_previsionnel_max": 400_000,
     }
@@ -253,11 +289,15 @@ def test_view_with_filters(req, simulation, create_simulation_projets):
     assert projets.count() == 3
 
     assert (
-        projets.filter(simulationprojet__status=SimulationProjet.STATUS_VALID).count()
+        projets.filter(
+            simulationprojet__status=SimulationProjet.STATUS_ACCEPTED
+        ).count()
         == 1
     )
     assert (
-        projets.filter(simulationprojet__status=SimulationProjet.STATUS_DRAFT).count()
+        projets.filter(
+            simulationprojet__status=SimulationProjet.STATUS_PROCESSING
+        ).count()
         == 2
     )
     for projet in projets:
@@ -293,7 +333,7 @@ def test_view_with_multiple_simulations(req, perimetre_departemental):
         req,
         simulation_1,
         {
-            "status": SimulationProjet.STATUS_DRAFT,
+            "status": SimulationProjet.STATUS_PROCESSING,
         },
     )
     projets = view.get_projet_queryset()
@@ -312,12 +352,14 @@ def test_view_with_multiple_simulations(req, perimetre_departemental):
 
     # When we modify one SimulationProjet, Filter works and is not influenced by the other Simulation
     ## Status
-    simulation_1.simulationprojet_set.all().update(status=SimulationProjet.STATUS_VALID)
+    simulation_1.simulationprojet_set.all().update(
+        status=SimulationProjet.STATUS_ACCEPTED
+    )
     view = _get_view_with_filter(
         req,
         simulation_1,
         {
-            "status": SimulationProjet.STATUS_DRAFT,
+            "status": SimulationProjet.STATUS_PROCESSING,
         },
     )
     projets = view.get_projet_queryset()
@@ -350,9 +392,9 @@ def test_view_with_cout_total_filter(req, simulation, create_simulation_projets)
     assert projets.count() == 5
 
     for status, count in [
-        (SimulationProjet.STATUS_DRAFT, 2),
-        (SimulationProjet.STATUS_VALID, 1),
-        (SimulationProjet.STATUS_CANCELLED, 2),
+        (SimulationProjet.STATUS_PROCESSING, 2),
+        (SimulationProjet.STATUS_ACCEPTED, 1),
+        (SimulationProjet.STATUS_REFUSED, 2),
     ]:
         assert projets.filter(simulationprojet__status=status).count() == count
 
@@ -373,9 +415,9 @@ def test_view_with_montant_demande_filter(req, simulation, create_simulation_pro
     assert projets.count() == 5
 
     for status, count in [
-        (SimulationProjet.STATUS_DRAFT, 2),
-        (SimulationProjet.STATUS_VALID, 1),
-        (SimulationProjet.STATUS_CANCELLED, 2),
+        (SimulationProjet.STATUS_PROCESSING, 2),
+        (SimulationProjet.STATUS_ACCEPTED, 1),
+        (SimulationProjet.STATUS_REFUSED, 2),
     ]:
         assert projets.filter(simulationprojet__status=status).count() == count
 
@@ -395,9 +437,9 @@ def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
     assert projets.count() == 2
 
     for status, count in [
-        (SimulationProjet.STATUS_DRAFT, 2),
-        (SimulationProjet.STATUS_VALID, 0),
-        (SimulationProjet.STATUS_CANCELLED, 0),
+        (SimulationProjet.STATUS_PROCESSING, 2),
+        (SimulationProjet.STATUS_ACCEPTED, 0),
+        (SimulationProjet.STATUS_REFUSED, 0),
     ]:
         assert projets.filter(simulationprojet__status=status).count() == count
 
@@ -414,9 +456,9 @@ def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
     assert projets.count() == 5
 
     for status, count in [
-        (SimulationProjet.STATUS_DRAFT, 2),
-        (SimulationProjet.STATUS_VALID, 1),
-        (SimulationProjet.STATUS_CANCELLED, 2),
+        (SimulationProjet.STATUS_PROCESSING, 2),
+        (SimulationProjet.STATUS_ACCEPTED, 1),
+        (SimulationProjet.STATUS_REFUSED, 2),
     ]:
         assert projets.filter(simulationprojet__status=status).count() == count
 

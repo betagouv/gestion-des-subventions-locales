@@ -13,7 +13,7 @@ from django.views.generic.list import ListView
 from django_filters import MultipleChoiceFilter, NumberFilter
 from django_filters.views import FilterView
 
-from gsl_demarches_simplifiees.models import Dossier
+from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
@@ -71,10 +71,10 @@ class SimulationProjetListViewFilters(ProjetFilters):
     )
 
     ordered_status = (
-        SimulationProjet.STATUS_DRAFT,
+        SimulationProjet.STATUS_PROCESSING,
         SimulationProjet.STATUS_PROVISOIRE,
-        SimulationProjet.STATUS_CANCELLED,
-        SimulationProjet.STATUS_VALID,
+        SimulationProjet.STATUS_REFUSED,
+        SimulationProjet.STATUS_ACCEPTED,
     )
 
     status = MultipleChoiceFilter(
@@ -196,17 +196,19 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
     def _get_enveloppe_data(self, simulation):
         enveloppe = simulation.enveloppe
         enveloppe_projets_included = Projet.objects.included_in_enveloppe(enveloppe)
-        enveloppe_projets_processed = Projet.objects.processed_in_enveloppe(enveloppe)
-
         montant_asked = enveloppe_projets_included.aggregate(
             Sum("dossier_ds__demande_montant")
         )["dossier_ds__demande_montant__sum"]
 
-        montant_accepte = enveloppe_projets_processed.filter(
-            dossier_ds__ds_state=Dossier.STATE_ACCEPTE
-        ).aggregate(Sum("dossier_ds__annotations_montant_accorde"))[
-            "dossier_ds__annotations_montant_accorde__sum"
-        ]
+        enveloppe_projets_processed = ProgrammationProjet.objects.filter(
+            enveloppe=enveloppe
+        )
+        montant_accepte = (
+            enveloppe_projets_processed.filter(
+                status=ProgrammationProjet.STATUS_ACCEPTED
+            ).aggregate(Sum("montant"))["montant__sum"]
+            or 0
+        )
 
         return {
             "type": simulation.enveloppe.type,
@@ -214,11 +216,11 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             "perimetre": simulation.enveloppe.perimetre,
             "montant_asked": montant_asked,
             "validated_projets_count": enveloppe_projets_processed.filter(
-                dossier_ds__ds_state=Dossier.STATE_ACCEPTE
+                status=ProgrammationProjet.STATUS_ACCEPTED
             ).count(),
             "montant_accepte": montant_accepte,
             "refused_projets_count": enveloppe_projets_processed.filter(
-                dossier_ds__ds_state=Dossier.STATE_REFUSE
+                status=ProgrammationProjet.STATUS_REFUSED
             ).count(),
             "demandeurs": enveloppe_projets_included.distinct("demandeur").count(),
             "projets_count": enveloppe_projets_included.count(),
