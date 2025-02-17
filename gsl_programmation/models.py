@@ -95,7 +95,7 @@ class ProgrammationProjet(models.Model):
     STATUS_ACCEPTED = "accepted"
     STATUS_REFUSED = "refused"
     STATUS_CHOICES = (
-        (STATUS_ACCEPTED, "✅  Accepté"),
+        (STATUS_ACCEPTED, "✅ Accepté"),
         (STATUS_REFUSED, "❌ Refusé"),
     )
 

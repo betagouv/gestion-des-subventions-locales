@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from django.db import models
 from django.db.models import Q
+from django_fsm import FSMField
 
 from gsl_core.models import Adresse, Arrondissement, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
@@ -123,6 +124,20 @@ class Projet(models.Model):
 
     address = models.ForeignKey(Adresse, on_delete=models.PROTECT, null=True)
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT, null=True)
+
+    STATUS_ACCEPTED = "accepted"
+    STATUS_REFUSED = "refused"
+    STATUS_PROCESSING = "processing"
+    STATUS_UNANSWERED = "unanswered"
+    STATUS_CHOICES = (
+        (STATUS_ACCEPTED, "✅ Accepté"),
+        (STATUS_REFUSED, "❌ Refusé"),
+        (STATUS_PROCESSING, "🔄 En traitement"),
+        (STATUS_UNANSWERED, "⛔️ Classé sans suite"),
+    )
+    status = FSMField(
+        "Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING, protected=True
+    )
 
     assiette = models.DecimalField(
         "Assiette subventionnable",

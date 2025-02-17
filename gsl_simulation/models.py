@@ -55,7 +55,7 @@ class SimulationProjet(models.Model):
     STATUS_PROVISOIRE = "provisoire"
     STATUS_CHOICES = (
         (STATUS_DRAFT, "🔄 En traitement"),
-        (STATUS_VALID, "✅  Accepté"),
+        (STATUS_VALID, "✅ Accepté"),
         (STATUS_PROVISOIRE, "✔️ Accepté provisoirement"),
         (STATUS_CANCELLED, "❌ Refusé"),
     )
