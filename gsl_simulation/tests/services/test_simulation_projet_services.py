@@ -13,8 +13,10 @@ def projet():
 
 @pytest.mark.django_db
 def test_update_status():
-    simulation_projet = SimulationProjetFactory(status=SimulationProjet.STATUS_DRAFT)
-    new_status = SimulationProjet.STATUS_VALID
+    simulation_projet = SimulationProjetFactory(
+        status=SimulationProjet.STATUS_PROCESSING
+    )
+    new_status = SimulationProjet.STATUS_ACCEPTED
 
     SimulationProjetService.update_status(simulation_projet, new_status)
 

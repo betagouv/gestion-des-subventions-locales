@@ -5,11 +5,11 @@ from gsl_projet.models import Projet
 from gsl_simulation.models import Simulation, SimulationProjet
 
 STATUS_MAPPINGS = {
-    Dossier.STATE_ACCEPTE: SimulationProjet.STATUS_VALID,
-    Dossier.STATE_SANS_SUITE: SimulationProjet.STATUS_CANCELLED,
-    Dossier.STATE_REFUSE: SimulationProjet.STATUS_CANCELLED,
-    Dossier.STATE_EN_CONSTRUCTION: SimulationProjet.STATUS_DRAFT,
-    Dossier.STATE_EN_INSTRUCTION: SimulationProjet.STATUS_DRAFT,
+    Dossier.STATE_ACCEPTE: SimulationProjet.STATUS_ACCEPTED,
+    Dossier.STATE_SANS_SUITE: SimulationProjet.STATUS_REFUSED,
+    Dossier.STATE_REFUSE: SimulationProjet.STATUS_REFUSED,
+    Dossier.STATE_EN_CONSTRUCTION: SimulationProjet.STATUS_PROCESSING,
+    Dossier.STATE_EN_INSTRUCTION: SimulationProjet.STATUS_PROCESSING,
 }
 
 
