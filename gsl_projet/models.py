@@ -122,7 +122,6 @@ class Projet(models.Model):
     demandeur = models.ForeignKey(Demandeur, on_delete=models.PROTECT, null=True)
 
     address = models.ForeignKey(Adresse, on_delete=models.PROTECT, null=True)
-    departement = models.ForeignKey(Departement, on_delete=models.PROTECT, null=True)
 
     assiette = models.DecimalField(
         "Assiette subventionnable",
