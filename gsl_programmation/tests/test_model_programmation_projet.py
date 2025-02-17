@@ -101,3 +101,18 @@ def test_clean_valid_programmation(projet, enveloppe):
         taux=Decimal("8.10"),
     )
     programmation.clean()
+
+
+def test_clean_programmation_with_refused_status(projet, enveloppe):
+    programmation = ProgrammationProjet(
+        projet=projet,
+        enveloppe=enveloppe,
+        montant=Decimal("100.00"),
+        taux=Decimal("8.10"),
+        status=ProgrammationProjet.STATUS_REFUSED,
+    )
+    with pytest.raises(ValidationError) as exc_info:
+        programmation.clean()
+    errors = exc_info.value.message_dict
+    assert "Un projet refusé doit avoir un montant nul." in str(errors["montant"])
+    assert "Un projet refusé doit avoir un taux nul." in str(errors["taux"])

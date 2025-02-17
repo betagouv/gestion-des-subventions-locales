@@ -10,8 +10,10 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
+from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
+    ProgrammationProjetFactory,
 )
 from gsl_projet.models import Projet
 from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
@@ -159,9 +161,36 @@ def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
     assert enveloppe_data["type"] == "DETR"
     assert enveloppe_data["montant"] == 1_000_000
     assert enveloppe_data["perimetre"] == perimetre_departemental
-    assert enveloppe_data["validated_projets_count"] == 1
-    assert enveloppe_data["refused_projets_count"] == 1
+    assert (
+        enveloppe_data["validated_projets_count"] == 0
+    )  # TODO tester quand on aura implémenter l'initialisation des projets programmés depuis les dossiers DS
+    assert enveloppe_data["refused_projets_count"] == 0
     assert enveloppe_data["projets_count"] == 5
     assert enveloppe_data["demandeurs"] == 2
     assert enveloppe_data["montant_asked"] == 200_000 * 3 + 400_000 * 2
-    assert enveloppe_data["montant_accepte"] == 150_000
+    assert enveloppe_data["montant_accepte"] == 0
+
+
+@pytest.mark.django_db
+def test_get_validated_and_refused_projets_count_enveloppe_data(req, simulation):
+    for montant in [100_000, 200_000, 300_000]:
+        ProgrammationProjetFactory.create(
+            enveloppe=simulation.enveloppe,
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            montant=montant,
+        )
+
+    ProgrammationProjetFactory.create_batch(
+        2, enveloppe=simulation.enveloppe, status=ProgrammationProjet.STATUS_REFUSED
+    )
+
+    view = SimulationDetailView()
+    view.request = req.get(
+        reverse("simulation:simulation-detail", kwargs={"slug": simulation.slug})
+    )
+    view.object = simulation
+    enveloppe_data = view.get_enveloppe_data(simulation)
+
+    assert enveloppe_data["validated_projets_count"] == 3
+    assert enveloppe_data["montant_accepte"] == 600_000
+    assert enveloppe_data["refused_projets_count"] == 2
