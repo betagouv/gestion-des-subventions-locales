@@ -163,6 +163,7 @@ class Projet(models.Model):
                 "name": ds_dossier.ds_demandeur.raison_sociale,
                 "address": ds_dossier.ds_demandeur.address,
                 "departement": ds_dossier.ds_demandeur.address.commune.departement,
+                "arrondissement": ds_dossier.porteur_de_projet_arrondissement.core_arrondissement,
             },
         )
         if projet.address is not None and projet.address.commune is not None:

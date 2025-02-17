@@ -58,6 +58,11 @@ def test_create_projet_from_dossier():
     assert projet.address.commune == dossier.projet_adresse.commune
     assert projet.address == dossier.projet_adresse
 
+    assert projet.demandeur is not None
+    assert (
+        projet.demandeur.arrondissement
+        == dossier.porteur_de_projet_arrondissement.core_arrondissement
+    )
     other_projet = Projet.get_or_create_from_ds_dossier(dossier)
     assert other_projet == projet
 
