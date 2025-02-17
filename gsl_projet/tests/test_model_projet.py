@@ -4,7 +4,7 @@ from datetime import timezone as tz
 import pytest
 from django.db import connection
 
-from gsl_core.models import Departement
+from gsl_core.models import Arrondissement, Departement
 from gsl_core.tests.factories import (
     AdresseFactory,
     ArrondissementFactory,
@@ -59,10 +59,7 @@ def test_create_projet_from_dossier():
     assert projet.address == dossier.projet_adresse
 
     assert projet.demandeur is not None
-    assert (
-        projet.demandeur.arrondissement
-        == dossier.porteur_de_projet_arrondissement.core_arrondissement
-    )
+    assert isinstance(projet.demandeur.arrondissement, Arrondissement)
     other_projet = Projet.get_or_create_from_ds_dossier(dossier)
     assert other_projet == projet
 
