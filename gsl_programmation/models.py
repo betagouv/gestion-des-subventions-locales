@@ -145,6 +145,16 @@ class ProgrammationProjet(models.Model):
                 self.taux, self.montant * 100 / self.projet.assiette, abs_tol=0.009
             ):
                 raise ValidationError(
-                    "Le taux et le montant de la programmation ne sont pas cohérents. "
-                    f"Taux attendu : {str(self.montant * 100 / self.projet.assiette)}"
+                    {
+                        "taux": "Le taux et le montant de la programmation ne sont pas cohérents. "
+                        f"Taux attendu : {str(round(self.montant * 100 / self.projet.assiette, 2))}"
+                    }
                 )
+
+        if self.enveloppe.is_deleguee:
+            raise ValidationError(
+                {
+                    "enveloppe": "Une programmation ne peut pas être faite sur une enveloppe déléguée."
+                    "Il faut programmer sur l'enveloppe mère."
+                }
+            )
