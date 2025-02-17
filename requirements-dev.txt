@@ -80,6 +80,7 @@ django==5.1.4
     #   django-dsfr
     #   django-extensions
     #   django-filter
+    #   django-fsm-2
     #   django-htmx
     #   django-import-export
     #   django-referrer-policy
@@ -99,6 +100,8 @@ django-dsfr==2.0.0
 django-extensions==3.2.3
     # via gsl (pyproject.toml)
 django-filter==24.3
+    # via gsl (pyproject.toml)
+django-fsm-2==4.0.0
     # via gsl (pyproject.toml)
 django-htmx==1.21.0
     # via gsl (pyproject.toml)
