@@ -162,10 +162,21 @@ class Projet(models.Model):
             defaults={
                 "name": ds_dossier.ds_demandeur.raison_sociale,
                 "address": ds_dossier.ds_demandeur.address,
-                "departement": ds_dossier.ds_demandeur.address.commune.departement,
-                "arrondissement": ds_dossier.porteur_de_projet_arrondissement.core_arrondissement,
+                "departement": ds_dossier.ds_demandeur.address.commune.departement
+                or ds_dossier.porteur_de_projet_arrondissement.core_arrondissement.departement,
             },
         )
+
+        projet.demandeur.departement = (
+            ds_dossier.ds_demandeur.address.commune.departement
+            or ds_dossier.porteur_de_projet_arrondissement.core_arrondissement.departement
+        )
+        projet.demandeur.arrondissement = (
+            ds_dossier.ds_demandeur.address.commune.arrondissement
+            or ds_dossier.porteur_de_projet_arrondissement.core_arrondissement
+        )
+        projet.demandeur.save()
+
         if projet.address is not None and projet.address.commune is not None:
             projet.departement = projet.address.commune.departement
 
