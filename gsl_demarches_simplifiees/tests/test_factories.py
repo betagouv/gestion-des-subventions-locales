@@ -1,12 +1,18 @@
 import pytest
 
 from gsl_demarches_simplifiees.models import (
+    Arrondissement,
     Demarche,
     Dossier,
     NaturePorteurProjet,
 )
 
-from .factories import DemarcheFactory, DossierFactory, NaturePorteurProjetFactory
+from .factories import (
+    DemarcheFactory,
+    DossierFactory,
+    DsArrondissementFactory,
+    NaturePorteurProjetFactory,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -14,6 +20,7 @@ test_data = (
     (DemarcheFactory, Demarche),
     (DossierFactory, Dossier),
     (NaturePorteurProjetFactory, NaturePorteurProjet),
+    (DsArrondissementFactory, Arrondissement),
 )
 
 
