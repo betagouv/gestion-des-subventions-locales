@@ -20,7 +20,7 @@ def add_enveloppe_projets_to_simulation(simulation_id):
     simulation_dotation = simulation.enveloppe.type
     # todo later: "simulation par arrondissement"
     selected_projets = Projet.objects.for_perimetre(simulation_perimetre).filter(
-        dossier_ds__demande_dispositif_sollicite=simulation_dotation
+        dossier_ds__demande_dispositif_sollicite__contains=simulation_dotation
     )
     selected_projets = selected_projets.for_current_year()
 

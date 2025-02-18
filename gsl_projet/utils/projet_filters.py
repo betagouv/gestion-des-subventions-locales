@@ -24,6 +24,7 @@ class ProjetFilters(FilterSet):
             }
         ),
         empty_label="Toutes les dotations",
+        lookup_expr="contains",
     )
 
     porteur = ChoiceFilter(
