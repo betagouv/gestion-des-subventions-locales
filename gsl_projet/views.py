@@ -79,6 +79,15 @@ def get_projet(request, projet_id):
 
 
 class ProjetListViewFilters(ProjetFilters):
+    filterset = (
+        "dotation",
+        "porteur",
+        "status",
+        "cout_total",
+        "montant_demande",
+        "montant_retenu",
+    )
+
     @property
     def qs(self):
         qs = super().qs

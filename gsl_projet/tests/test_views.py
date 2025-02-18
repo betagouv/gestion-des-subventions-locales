@@ -139,26 +139,48 @@ def projets_dsil(demandeur) -> list[Projet]:
     ]
 
 
-def test_filter_by_dotation(req, view, projets_detr, projets_dsil):
+@pytest.fixture
+def projets_with_other_dotations_values(demandeur) -> list[Projet]:
+    projets = []
+    for dotation in (
+        "['DETR']",
+        "['DETR et DSIL']",
+        "DETR et DSIL",
+        "['DSIL']",
+        "['DETR', 'DSIL', 'DETR et DSIL']",
+    ):
+        projets.append(
+            ProjetFactory(
+                dossier_ds__demande_dispositif_sollicite=dotation, demandeur=demandeur
+            )
+        )
+    return projets
+
+
+def test_filter_by_dotation(
+    req, view, projets_detr, projets_dsil, projets_with_other_dotations_values
+):
     request = req.get("/?dotation=DETR")
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
-    assert Projet.objects.count() == 5
+    assert Projet.objects.count() == 10
 
-    assert qs.count() == 3
-    assert all(p.dossier_ds.demande_dispositif_sollicite == "DETR" for p in qs)
+    assert qs.count() == 3 + 4
+    assert all("DETR" in p.dossier_ds.demande_dispositif_sollicite for p in qs)
 
 
-def test_filter_by_dotation_dsil(req, view, projets_detr, projets_dsil):
+def test_filter_by_dotation_dsil(
+    req, view, projets_detr, projets_dsil, projets_with_other_dotations_values
+):
     request = req.get("/?dotation=DSIL")
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
-    assert Projet.objects.count() == 5
+    assert Projet.objects.count() == 10
 
-    assert qs.count() == 2
-    assert all(p.dossier_ds.demande_dispositif_sollicite == "DSIL" for p in qs)
+    assert qs.count() == 2 + 4
+    assert all("DSIL" in p.dossier_ds.demande_dispositif_sollicite for p in qs)
 
 
 def test_no_dispositif_filter(req, view, projets_detr, projets_dsil):

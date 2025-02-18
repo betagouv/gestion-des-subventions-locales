@@ -226,3 +226,69 @@ def test_add_enveloppe_projets_to_dsil_simulation(
     assert simulation_projet.montant == 2_500
     assert simulation_projet.taux == 0
     assert simulation_projet.enveloppe.type == "DSIL"
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "demande_dispositif_sollicite, count",
+    (
+        ("DETR", 1),
+        ("['DETR']", 1),
+        ("['DETR', 'DSIL']", 1),
+        ("['DETR et DSIL']", 1),
+        ("DETR et DSIL", 1),
+        ("['DETR', 'DSIL', 'DETR et DSIL']", 1),
+        ("['DETR', 'DETR et DSIL']", 1),
+        ("['', 'DETR', '', 'DETR et DSIL']", 1),
+        ("['DSIL', 'DETR et DSIL']", 1),
+        ("DSIL", 0),
+        ("['DSIL']", 0),
+    ),
+)
+def test_add_enveloppe_projets_to_DETR_simulation_containing_DETR_in_demande_dispositif_sollicite(
+    detr_simulation, departement_perimetre, demande_dispositif_sollicite, count
+):
+    demandeur = DemandeurFactory(
+        departement=departement_perimetre.departement,
+    )
+    ProjetFactory(
+        dossier_ds__demande_dispositif_sollicite=demande_dispositif_sollicite,
+        demandeur=demandeur,
+    )
+
+    add_enveloppe_projets_to_simulation(detr_simulation.id)
+
+    assert SimulationProjet.objects.count() == count
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "demande_dispositif_sollicite, count",
+    (
+        ("DETR", 0),
+        ("['DETR']", 0),
+        ("['DETR', 'DSIL']", 1),
+        ("['DETR et DSIL']", 1),
+        ("DETR et DSIL", 1),
+        ("['DETR', 'DSIL', 'DETR et DSIL']", 1),
+        ("['DETR', 'DETR et DSIL']", 1),
+        ("['', 'DETR', '', 'DETR et DSIL']", 1),
+        ("['DSIL', 'DETR et DSIL']", 1),
+        ("DSIL", 1),
+        ("['DSIL']", 1),
+    ),
+)
+def test_add_enveloppe_projets_to_DSIL_simulation_containing_DSIL_in_demande_dispositif_sollicite(
+    dsil_simulation, departement_perimetre, demande_dispositif_sollicite, count
+):
+    demandeur = DemandeurFactory(
+        departement=departement_perimetre.departement,
+    )
+    ProjetFactory(
+        dossier_ds__demande_dispositif_sollicite=demande_dispositif_sollicite,
+        demandeur=demandeur,
+    )
+
+    add_enveloppe_projets_to_simulation(dsil_simulation.id)
+
+    assert SimulationProjet.objects.count() == count
