@@ -5,8 +5,16 @@ import factory.fuzzy
 from django.db.models.signals import post_save
 
 from gsl_core.tests.factories import AdresseFactory
+from gsl_core.tests.factories import ArrondissementFactory as CoreArrondissementFactory
 
-from ..models import Demarche, Dossier, NaturePorteurProjet, PersonneMorale
+from ..models import Arrondissement as DsArrondissement
+from ..models import (
+    Demarche,
+    Dossier,
+    DsChoiceLibelle,
+    NaturePorteurProjet,
+    PersonneMorale,
+)
 
 
 class DemarcheFactory(factory.django.DjangoModelFactory):
@@ -28,6 +36,20 @@ class PersonneMoraleFactory(factory.django.DjangoModelFactory):
     address = factory.SubFactory(AdresseFactory)
 
 
+class DsLibelleFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = DsChoiceLibelle
+
+    label = factory.Sequence(lambda n: f"dslibelle-{n}")
+
+
+class DsArrondissementFactory(DsLibelleFactory):
+    class Meta:
+        model = DsArrondissement
+
+    core_arrondissement = factory.SubFactory(CoreArrondissementFactory)
+
+
 class NaturePorteurProjetFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = NaturePorteurProjet
@@ -45,6 +67,7 @@ class DossierFactory(factory.django.DjangoModelFactory):
     ds_number = factory.Faker("random_int", min=1000000, max=9999999)
     ds_state = Dossier.STATE_EN_INSTRUCTION
     ds_demandeur = factory.SubFactory(PersonneMoraleFactory)
+    porteur_de_projet_arrondissement = factory.SubFactory(DsArrondissementFactory)
     ds_date_depot = factory.Faker(
         "date_time_this_year", before_now=True, tzinfo=timezone.utc
     )
