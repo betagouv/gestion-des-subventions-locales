@@ -305,7 +305,7 @@ def exception_handler_decorator(func):
 @exception_handler_decorator
 @require_http_methods(["POST", "PATCH"])
 def patch_taux_simulation_projet(request, pk):
-    simulation_projet = SimulationProjet.objects.get(id=pk)
+    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     data = QueryDict(request.body)
 
     new_taux = replace_comma_by_dot(data.get("taux"))
@@ -316,7 +316,7 @@ def patch_taux_simulation_projet(request, pk):
 @exception_handler_decorator
 @require_http_methods(["POST", "PATCH"])
 def patch_montant_simulation_projet(request, pk):
-    simulation_projet = SimulationProjet.objects.get(id=pk)
+    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     data = QueryDict(request.body)
 
     new_montant = replace_comma_by_dot(data.get("montant"))
@@ -324,7 +324,6 @@ def patch_montant_simulation_projet(request, pk):
     return redirect_to_simulation_projet(request, simulation_projet)
 
 
-# TODO test
 @exception_handler_decorator
 @require_http_methods(["POST", "PATCH"])
 def patch_status_simulation_projet(request, pk):

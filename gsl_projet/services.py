@@ -1,7 +1,10 @@
+from decimal import Decimal
+
 from django.db.models import Case, F, Sum, When
 from django.db.models.query import QuerySet
 
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
+from gsl_projet.models import Projet
 
 
 class ProjetService:
@@ -55,3 +58,12 @@ class ProjetService:
         }
 
         return ordering_map.get(ordering, None)
+
+    @classmethod
+    def compute_taux_from_montant(cls, projet: Projet, new_montant: float):
+        new_taux = (
+            round((Decimal(new_montant) / Decimal(projet.assiette_or_cout_total)) * 100)
+            if projet.assiette_or_cout_total
+            else 0
+        )
+        return new_taux

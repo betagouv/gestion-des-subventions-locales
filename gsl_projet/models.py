@@ -208,7 +208,10 @@ class Projet(models.Model):
         return self.dossier_ds.finance_cout_total
 
     def get_taux_de_subvention_sollicite(self):
-        if self.assiette_or_cout_total is None:
+        if (
+            self.assiette_or_cout_total is None
+            or self.dossier_ds.demande_montant is None
+        ):
             return
         if self.assiette_or_cout_total > 0:
             return self.dossier_ds.demande_montant * 100 / self.assiette_or_cout_total
@@ -230,13 +233,11 @@ class Projet(models.Model):
     @transition(field=status, source="*", target=STATUS_ACCEPTED)
     def accept(self, montant: float, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
+        from gsl_projet.services import ProjetService
         from gsl_simulation.models import SimulationProjet
 
-        taux = (
-            montant * 100 / self.assiette_or_cout_total
-            if self.assiette_or_cout_total
-            else 0
-        )
+        taux = ProjetService.compute_taux_from_montant(self, montant)
+
         SimulationProjet.objects.filter(projet=self).update(
             status=SimulationProjet.STATUS_ACCEPTED,
             montant=montant,

@@ -134,6 +134,39 @@ def test_update_taux(projet):
 
 
 @pytest.mark.django_db
+def test_update_taux_of_accepted_montat(projet):
+    simulation_projet = SimulationProjetFactory(
+        projet=projet, status=SimulationProjet.STATUS_ACCEPTED, taux=20.0
+    )
+    other_simulation_projet = SimulationProjetFactory(
+        enveloppe=simulation_projet.enveloppe,
+        projet=projet,
+        status=SimulationProjet.STATUS_ACCEPTED,
+        taux=20.0,
+    )
+    programmation_projet = ProgrammationProjetFactory(
+        enveloppe=simulation_projet.enveloppe,
+        projet=projet,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        taux=20.0,
+    )
+
+    new_taux = 15.0
+    SimulationProjetService.update_taux(simulation_projet, new_taux)
+
+    assert simulation_projet.taux == new_taux
+    assert simulation_projet.montant == 150.0
+
+    other_simulation_projet.refresh_from_db()
+    assert other_simulation_projet.taux == new_taux
+    assert other_simulation_projet.montant == 150.0
+
+    programmation_projet.refresh_from_db()
+    assert programmation_projet.taux == new_taux
+    assert programmation_projet.montant == 150.0
+
+
+@pytest.mark.django_db
 def test_update_montant(projet):
     simulation_projet = SimulationProjetFactory(projet=projet, montant=1000.0)
     new_montant = 500.0
@@ -142,3 +175,37 @@ def test_update_montant(projet):
 
     assert simulation_projet.montant == new_montant
     assert simulation_projet.taux == 50.0
+
+
+@pytest.mark.django_db
+def test_update_montant_of_accepted_montat(projet):
+    simulation_projet = SimulationProjetFactory(
+        projet=projet, status=SimulationProjet.STATUS_ACCEPTED, montant=1_000
+    )
+    other_simulation_projet = SimulationProjetFactory(
+        enveloppe=simulation_projet.enveloppe,
+        projet=projet,
+        status=SimulationProjet.STATUS_ACCEPTED,
+        montant=1_000,
+    )
+    programmation_projet = ProgrammationProjetFactory(
+        enveloppe=simulation_projet.enveloppe,
+        projet=projet,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        montant=1_000,
+    )
+
+    new_montant = 500.0
+
+    SimulationProjetService.update_montant(simulation_projet, new_montant)
+
+    assert simulation_projet.montant == new_montant
+    assert simulation_projet.taux == 50.0
+
+    other_simulation_projet.refresh_from_db()
+    assert other_simulation_projet.montant == 500.0
+    assert other_simulation_projet.taux == 50.0
+
+    programmation_projet.refresh_from_db()
+    assert programmation_projet.montant == 500.0
+    assert programmation_projet.taux == 50.0

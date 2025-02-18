@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from decimal import Decimal
 
 import pytest
 from django.urls import resolve, reverse
@@ -26,7 +27,9 @@ from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFa
 from gsl_simulation.views import (
     SimulationDetailView,
     SimulationListView,
+    patch_montant_simulation_projet,
     patch_status_simulation_projet,
+    patch_taux_simulation_projet,
 )
 
 pytestmark = pytest.mark.django_db
@@ -475,6 +478,7 @@ def simulation_projet() -> SimulationProjet:
     return SimulationProjetFactory(
         projet=ProjetFactory(status=Projet.STATUS_PROCESSING),
         status=SimulationProjet.STATUS_PROCESSING,
+        montant=1000,
     )
 
 
@@ -495,6 +499,10 @@ def test_patch_status_simulation_projet(req, simulation_projet):
     assert "1 projet validé" in response.content.decode()
     assert "0 projet refusé" in response.content.decode()
     assert "0 projet notifié" in response.content.decode()
+    assert (
+        '<span hx-swap-oob="innerHTML" id="total-amount-granted">1\xa0000\xa0€</span>'
+        in response.content.decode()
+    )
 
 
 @pytest.mark.django_db
@@ -506,3 +514,51 @@ def test_patch_status_simulation_projet_invalid_status(req, simulation_projet, d
     updated_simulation_projet = SimulationProjet.objects.get(id=simulation_projet.id)
     assert response.status_code == 400
     assert updated_simulation_projet.status == SimulationProjet.STATUS_PROCESSING
+
+
+@pytest.fixture
+def accepted_simulation_projet() -> SimulationProjet:
+    return SimulationProjetFactory(
+        projet=ProjetFactory(status=Projet.STATUS_PROCESSING, assiette=10_000),
+        status=SimulationProjet.STATUS_ACCEPTED,
+        montant=1000,
+        taux=0.5,
+    )
+
+
+@pytest.mark.django_db
+def test_patch_taux_simulation_projet(req, accepted_simulation_projet):
+    request = req.patch("/", data="taux=75.0")
+    request.htmx = True
+    response = patch_taux_simulation_projet(request, accepted_simulation_projet.id)
+
+    updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
+        id=accepted_simulation_projet.id
+    )
+
+    assert response.status_code == 200
+    assert updated_simulation_projet.taux == 75.0
+    assert updated_simulation_projet.montant == 7_500
+    assert (
+        '<span hx-swap-oob="innerHTML" id="total-amount-granted">7\xa0500\xa0€</span>'
+        in response.content.decode()
+    )
+
+
+@pytest.mark.django_db
+def test_patch_montant_simulation_projet(req, accepted_simulation_projet):
+    request = req.patch("/", data="montant=1267.32")
+    request.htmx = True
+    response = patch_montant_simulation_projet(request, accepted_simulation_projet.id)
+
+    updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
+        id=accepted_simulation_projet.id
+    )
+
+    assert response.status_code == 200
+    assert updated_simulation_projet.montant == Decimal("1267.32")
+    assert updated_simulation_projet.taux == 13.0
+    assert (
+        '<span hx-swap-oob="innerHTML" id="total-amount-granted">1\xa0267\xa0€</span>'
+        in response.content.decode()
+    )
