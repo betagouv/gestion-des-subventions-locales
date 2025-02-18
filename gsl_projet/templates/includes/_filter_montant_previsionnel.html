@@ -1,27 +1,26 @@
 <div class="filter-field fr-col-12 fr-col-md-6 fr-col-lg-3">
     <div class="filter-dropdown fr-mt-4w">
         <button type="button"
-                class="fr-input {% if is_montant_retenu_active %}filter-dropdown-button-active{% endif %}"
-                id="filter-montant-retenu-button">
-            Montant retenu
+                class="fr-input {% if is_montant_previsionnel_active %}filter-dropdown-button-active{% endif %}">
+            Montant prévisionnel accordé
             <span class="fr-icon-money-euro-box-fill fr-icon--sm blue-icon fr-ml-1w" />
         </button>
         <div class="filter-content">
             <div class="amount-filter-group">
-                <label class="fr-label" for="id_montant_retenu_min">
-                    Montant retenu minimum
+                <label class="fr-label" for="id_montant_previsionnel_min">
+                    Montant minimum
                 </label>
                 <div class="euro-input-wrap">
-                    {{ filter.form.montant_retenu_min }}
+                    {{ filter.form.montant_previsionnel_min }}
                     <span class="euro-input-symbol">€</span>
                 </div>
             </div>
             <div class="amount-filter-group">
-                <label class="fr-label" for="id_montant_retenu_max">
-                    Montant retenu maximum
+                <label class="fr-label" for="id_montant_previsionnel_max">
+                    Montant maximum
                 </label>
                 <div class="euro-input-wrap">
-                    {{ filter.form.montant_retenu_max }}
+                    {{ filter.form.montant_previsionnel_max }}
                     <span class="euro-input-symbol">€</span>
                 </div>
             </div>

@@ -182,9 +182,17 @@ class FieldMappingForComputerAdmin(
         for field in FieldMappingForComputer._meta.get_fields()
         if field.name != "django_field"
     ]
-    list_display = ("ds_field_id", "ds_field_label", "django_field", "demarche")
+    list_display = (
+        "ds_field_id",
+        "ds_field_label",
+        "ds_field_type",
+        "django_field",
+        "demarche",
+    )
     list_filter = ("demarche__ds_number", "ds_field_type")
     resource_classes = (FieldMappingForComputerResource,)
+    search_fields = ("ds_field_label", "django_field", "ds_field_id")
+    search_help_text = "Chercher par ID ou intitulé DS, ou par champ Django"
 
 
 @admin.register(Profile)

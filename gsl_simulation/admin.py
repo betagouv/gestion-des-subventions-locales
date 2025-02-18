@@ -92,7 +92,7 @@ class SimulationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "status",
     )
     search_fields = ("projet__dossier_ds__projet_intitule",)
-    raw_id_fields = ("projet",)
+    raw_id_fields = ("projet", "enveloppe", "simulation")
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

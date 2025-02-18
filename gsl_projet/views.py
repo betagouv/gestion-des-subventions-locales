@@ -1,14 +1,13 @@
-from django.db.models import Q
-from django.forms import NumberInput, Select
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET
 from django.views.generic import ListView
-from django_filters import ChoiceFilter, FilterSet, NumberFilter
 from django_filters.views import FilterView
 
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.services import ProjetService
+from gsl_projet.utils.filter_utils import FilterUtils
+from gsl_projet.utils.projet_filters import ProjetFilters
 
 from .models import Projet
 
@@ -79,151 +78,47 @@ def get_projet(request, projet_id):
     return render(request, "gsl_projet/projet.html", context)
 
 
-class ProjetFilters(FilterSet):
-    dotation = ChoiceFilter(
-        field_name="dossier_ds__demande_dispositif_sollicite",
-        choices=Dossier.DEMANDE_DISPOSITIF_SOLLICITE_VALUES,
-        widget=Select(
-            attrs={
-                "class": "fr-select",
-                "onchange": "this.form.submit()",
-                "placeholder": "Toutes les dotations",
-            }
-        ),
+class ProjetListViewFilters(ProjetFilters):
+    filterset = (
+        "dotation",
+        "porteur",
+        "status",
+        "cout_total",
+        "montant_demande",
+        "montant_retenu",
     )
-
-    porteur = ChoiceFilter(
-        field_name="dossier_ds__porteur_de_projet_nature__label__in",
-        choices=(
-            ("EPCI", "EPCI"),
-            ("Communes", "Communes"),
-        ),
-        method="filter_porteur",
-        widget=Select(
-            attrs={
-                "class": "fr-select",
-                "onchange": "this.form.submit()",
-                "placeholder": "Tous les porteurs",
-            },
-        ),
-    )
-
-    def filter_porteur(self, queryset, _name, value):
-        return queryset.filter(
-            dossier_ds__porteur_de_projet_nature__label__in=ProjetService.PORTEUR_MAPPINGS.get(
-                value
-            )
-        )
-
-    cout_min = NumberFilter(
-        method="filter_cout_min",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
-    def filter_cout_min(self, queryset, _name, value):
-        return queryset.filter(
-            Q(assiette__isnull=False, assiette__gte=value)
-            | Q(assiette__isnull=True, dossier_ds__finance_cout_total__gte=value)
-        )
-
-    cout_max = NumberFilter(
-        method="filter_cout_max",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
-    def filter_cout_max(self, queryset, _name, value):
-        return queryset.filter(
-            Q(assiette__isnull=False, assiette__lte=value)
-            | Q(assiette__isnull=True, dossier_ds__finance_cout_total__lte=value)
-        )
-
-    montant_demande_max = NumberFilter(
-        field_name="dossier_ds__demande_montant",
-        lookup_expr="lte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
-    montant_demande_min = NumberFilter(
-        field_name="dossier_ds__demande_montant",
-        lookup_expr="gte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
-    montant_retenu_min = NumberFilter(
-        field_name="dossier_ds__annotations_montant_accorde",
-        lookup_expr="gte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
-    montant_retenu_max = NumberFilter(
-        field_name="dossier_ds__annotations_montant_accorde",
-        lookup_expr="lte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
-    class Meta:
-        model = Projet
-        fields = (
-            "dotation",
-            "porteur",
-            "cout_min",
-            "cout_max",
-            "montant_demande_min",
-            "montant_demande_max",
-            "montant_retenu_min",
-            "montant_retenu_max",
-        )
 
     @property
     def qs(self):
         qs = super().qs
         qs = qs.for_user(self.request.user)
         qs = qs.for_current_year()
-        qs = ProjetService.add_ordering_to_projets_qs(qs, self.request.GET.get("tri"))
+        qs = qs.select_related(
+            "address",
+            "address__commune",
+        ).prefetch_related(
+            "dossier_ds__demande_eligibilite_detr",
+            "dossier_ds__demande_eligibilite_dsil",
+        )
         return qs
 
 
-class ProjetListView(FilterView, ListView):
+class ProjetListView(FilterView, ListView, FilterUtils):
     model = Projet
     paginate_by = 25
-    filterset_class = ProjetFilters
+    filterset_class = ProjetListViewFilters
     template_name = "gsl_projet/projet_list.html"
+    STATE_MAPPINGS = {key: value for key, value in Dossier.DS_STATE_VALUES}
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        qs = self.get_queryset()
+        qs = context["object_list"]
         context["title"] = "Projets 2025"
         context["porteur_mappings"] = ProjetService.PORTEUR_MAPPINGS
         context["breadcrumb_dict"] = {"current": "Liste des projets"}
         context["total_cost"] = ProjetService.get_total_cost(qs)
         context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs)
         context["total_amount_granted"] = 0  # TODO
-        context["is_cout_total_active"] = self._get_is_one_field_active(
-            ["cout_min", "cout_max"]
-        )
-        context["is_montant_demande_active"] = self._get_is_one_field_active(
-            ["montant_demande_min", "montant_demande_max"]
-        )
-        context["is_montant_retenu_active"] = self._get_is_one_field_active(
-            ["montant_retenu_min", "montant_retenu_max"]
-        )
+        self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
 
         return context
-
-    def _get_is_one_field_active(self, field_names):
-        for field_name in field_names:
-            if self.request.GET.get(field_name) not in (None, ""):
-                return True
-        return False

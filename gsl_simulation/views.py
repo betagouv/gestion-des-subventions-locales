@@ -2,18 +2,25 @@ import logging
 
 from django.core.paginator import Paginator
 from django.db.models import Prefetch, Sum
-from django.http import JsonResponse
+from django.forms import NumberInput
+from django.http import HttpRequest, JsonResponse
 from django.http.request import QueryDict
 from django.shortcuts import redirect, render
-from django.urls import reverse
+from django.urls import resolve, reverse
 from django.views.decorators.http import require_http_methods
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
+from django_filters import MultipleChoiceFilter, NumberFilter
+from django_filters.views import FilterView
 
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
+from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
+from gsl_projet.utils.filter_utils import FilterUtils
+from gsl_projet.utils.utils import order_couples_tuple_by_first_value
+from gsl_projet.views import ProjetFilters
 from gsl_simulation.forms import SimulationForm
 from gsl_simulation.models import Simulation, SimulationProjet
 from gsl_simulation.services.simulation_projet_service import (
@@ -21,7 +28,7 @@ from gsl_simulation.services.simulation_projet_service import (
 )
 from gsl_simulation.services.simulation_service import SimulationService
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
-from gsl_simulation.utils import get_filters_dict_from_params, replace_comma_by_dot
+from gsl_simulation.utils import replace_comma_by_dot
 
 
 class SimulationListView(ListView):
@@ -41,13 +48,101 @@ class SimulationListView(ListView):
         visible_by_user_enveloppes = EnveloppeService.get_enveloppes_visible_for_a_user(
             self.request.user
         )
-        return Simulation.objects.filter(
+        qs = Simulation.objects.filter(
             enveloppe__in=visible_by_user_enveloppes
         ).order_by("-created_at")
+        qs = qs.select_related(
+            "enveloppe",
+            "enveloppe__perimetre",
+            "enveloppe__perimetre__region",
+            "enveloppe__perimetre__departement",
+        )
+
+        return qs
 
 
-class SimulationDetailView(DetailView):
+class SimulationProjetListViewFilters(ProjetFilters):
+    filterset = (
+        "porteur",
+        "status",
+        "cout_total",
+        "montant_demande",
+        "montant_previsionnel",
+    )
+
+    ordered_status = (
+        SimulationProjet.STATUS_DRAFT,
+        SimulationProjet.STATUS_PROVISOIRE,
+        SimulationProjet.STATUS_CANCELLED,
+        SimulationProjet.STATUS_VALID,
+    )
+
+    status = MultipleChoiceFilter(
+        field_name="simulationprojet__status",
+        choices=order_couples_tuple_by_first_value(
+            SimulationProjet.STATUS_CHOICES, ordered_status
+        ),
+        widget=CustomCheckboxSelectMultiple(),
+        method="filter_status",
+    )
+
+    def filter_status(self, queryset, name, value):
+        return queryset.filter(
+            # Cette ligne est utile pour qu'on ait un "ET", cad, on filtre les projets de la simulation en cours ET sur les statuts sélectionnés.
+            # Sans ça, on aurait dans l'ordre :
+            # - les projets dont IL EXISTE UN SIMULATION_PROJET (pas forcément celui de la simulation en question) qui a un des statuts sélectionnés
+            # - les simulation_projets de la simulation associés aux projets filtrés
+            **self._simulation_slug_filter_kwarg(),
+            simulationprojet__status__in=value,
+        )
+
+    montant_previsionnel_min = NumberFilter(
+        field_name="simulationprojet__montant",
+        lookup_expr="gte",
+        widget=NumberInput(
+            attrs={"class": "fr-input", "min": "0"},
+        ),
+        method="filter_montant_previsionnel_min",
+    )
+
+    montant_previsionnel_max = NumberFilter(
+        field_name="simulationprojet__montant",
+        lookup_expr="lte",
+        widget=NumberInput(
+            attrs={"class": "fr-input", "min": "0"},
+        ),
+        method="filter_montant_previsionnel_max",
+    )
+
+    def filter_montant_previsionnel_min(self, queryset, name, value):
+        return queryset.filter(
+            **self._simulation_slug_filter_kwarg(),
+            simulationprojet__montant__gte=value,
+        )
+
+    def filter_montant_previsionnel_max(self, queryset, name, value):
+        return queryset.filter(
+            **self._simulation_slug_filter_kwarg(),
+            simulationprojet__montant__lte=value,
+        )
+
+    def _simulation_slug_filter_kwarg(self):
+        return {
+            "simulationprojet__simulation__slug": self.request.resolver_match.kwargs.get(
+                "slug"
+            )
+        }
+
+
+class SimulationDetailView(FilterView, DetailView, FilterUtils):
     model = Simulation
+    filterset_class = SimulationProjetListViewFilters
+    template_name = "gsl_simulation/simulation_detail.html"
+    STATE_MAPPINGS = {key: value for key, value in SimulationProjet.STATUS_CHOICES}
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         simulation = self.get_object()
@@ -68,7 +163,8 @@ class SimulationDetailView(DetailView):
         context["total_amount_granted"] = ProjetService.get_total_amount_granted(qs)
         context["available_states"] = SimulationProjet.STATUS_CHOICES
         context["filter_params"] = self.request.GET.urlencode()
-        context["enveloppe"] = self.get_enveloppe_data(simulation)
+        context["enveloppe"] = self._get_enveloppe_data(simulation)
+        self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
 
         context["breadcrumb_dict"] = {
             "links": [
@@ -84,11 +180,9 @@ class SimulationDetailView(DetailView):
 
     def get_projet_queryset(self):
         simulation = self.get_object()
-        qs = SimulationService.get_projets_from_simulation(simulation)
-        qs = qs.order_by("simulationprojet__created_at")
-        qs = ProjetService.add_filters_to_projets_qs(qs, self.request.GET)
-        qs = ProjetService.add_ordering_to_projets_qs(qs, self.request.GET.get("tri"))
-        qs = qs.select_related("address").select_related("address__commune")
+        qs = self.get_filterset(self.filterset_class).qs
+        qs = qs.filter(simulationprojet__simulation=simulation)
+        qs = qs.select_related("address", "address__commune")
         qs = qs.prefetch_related(
             Prefetch(
                 "simulationprojet_set",
@@ -99,7 +193,7 @@ class SimulationDetailView(DetailView):
         qs.distinct()
         return qs
 
-    def get_enveloppe_data(self, simulation):
+    def _get_enveloppe_data(self, simulation):
         enveloppe = simulation.enveloppe
         enveloppe_projets_included = Projet.objects.included_in_enveloppe(enveloppe)
         enveloppe_projets_processed = Projet.objects.processed_in_enveloppe(enveloppe)
@@ -131,20 +225,33 @@ class SimulationDetailView(DetailView):
         }
 
 
+def _get_projets_queryset_with_filters(simulation, filter_params):
+    url = reverse(
+        "simulation:simulation-detail",
+        kwargs={"slug": simulation.slug},
+    )
+    new_request = HttpRequest()
+    new_request.GET = QueryDict(filter_params)
+    new_request.resolver_match = resolve(url)
+
+    view = SimulationDetailView()
+    view.object = simulation
+    view.request = new_request
+    view.kwargs = {"slug": simulation.slug}
+
+    projets = view.get_projet_queryset()
+    return projets
+
+
 def redirect_to_simulation_projet(request, simulation_projet):
     if request.htmx:
-        projets_of_simulation = Projet.objects.filter(
-            simulationprojet__simulation=simulation_projet.simulation
-        )
         filter_params = QueryDict(request.body).get("filter_params")
-        filters_dict = get_filters_dict_from_params(filter_params)
-        filtered_projets_of_simulation = ProjetService.add_filters_to_projets_qs(
-            projets_of_simulation,
-            filters_dict,
+        filtered_projets = _get_projets_queryset_with_filters(
+            simulation_projet.simulation,
+            filter_params,
         )
-        total_amount_granted = ProjetService.get_total_amount_granted(
-            filtered_projets_of_simulation
-        )
+
+        total_amount_granted = ProjetService.get_total_amount_granted(filtered_projets)
 
         return render(
             request,
@@ -246,6 +353,6 @@ def simulation_form(request):
             }
         }
         context["form"] = form
-        context["title"] = "Création d’une simulation de programmation"
+        context["title"] = "Création d'une simulation de programmation"
 
         return render(request, "gsl_simulation/simulation_form.html", context)

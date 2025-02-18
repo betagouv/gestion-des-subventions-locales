@@ -5,7 +5,6 @@ from django.utils.text import slugify
 
 from gsl_core.models import Perimetre
 from gsl_programmation.models import Enveloppe
-from gsl_projet.models import Projet
 from gsl_simulation.models import Simulation
 
 
@@ -46,7 +45,3 @@ class SimulationService:
                 incremented_slug = slugify(slug + f"-{i}")
             return incremented_slug
         return slug
-
-    @classmethod
-    def get_projets_from_simulation(cls, simulation: Simulation):
-        return Projet.objects.filter(simulationprojet__simulation=simulation)

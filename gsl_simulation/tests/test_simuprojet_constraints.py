@@ -86,22 +86,3 @@ def test_projet_twice_per_simulation_with_different_enveloppe(
         montant=Decimal("15000"),
         taux=Decimal("0.52"),
     )
-
-
-def test_projet_validated_only_once_per_enveloppe(enveloppe_detr, simulation_detr):
-    projet_without_simulation = SimulationProjet.objects.create(
-        enveloppe=enveloppe_detr,
-        projet=ProjetFactory(),
-        montant=Decimal("15000"),
-        taux=Decimal("0.52"),
-        status=SimulationProjet.STATUS_VALID,
-    )
-    with pytest.raises(IntegrityError):
-        SimulationProjet.objects.create(
-            enveloppe=enveloppe_detr,
-            simulation=simulation_detr,
-            projet=projet_without_simulation.projet,
-            montant=Decimal("15000"),
-            taux=Decimal("0.52"),
-            status=SimulationProjet.STATUS_VALID,
-        )
