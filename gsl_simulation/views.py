@@ -226,6 +226,13 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             "projets_count": enveloppe_projets_included.count(),
         }
 
+    def render_to_response(self, context, **response_kwargs):
+        response = super().render_to_response(context, **response_kwargs)
+        response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response["Pragma"] = "no-cache"
+        response["Expires"] = "0"
+        return response
+
 
 def _get_projets_queryset_with_filters(simulation, filter_params):
     url = reverse(
