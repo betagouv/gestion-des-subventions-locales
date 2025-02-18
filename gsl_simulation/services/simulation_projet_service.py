@@ -10,6 +10,7 @@ class SimulationProjetService:
         projet = simulation_projet.projet
         enveloppe = EnveloppeService.get_mother_enveloppe(simulation_projet.enveloppe)
         projet.accept(montant=simulation_projet.montant, enveloppe=enveloppe)
+        projet.save()
 
         updated_simulation_projet = SimulationProjet.objects.get(
             pk=simulation_projet.pk

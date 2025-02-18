@@ -5,7 +5,7 @@ from django.db.models import Prefetch, Sum
 from django.forms import NumberInput
 from django.http import HttpRequest, JsonResponse
 from django.http.request import QueryDict
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import resolve, reverse
 from django.views.decorators.http import require_http_methods
 from django.views.generic.detail import DetailView
@@ -286,9 +286,9 @@ def exception_handler_decorator(func):
             logging.error("An error occurred: %s", str(e))
             return JsonResponse(
                 {
-                    "success": False,
                     "error": f"An internal error has occurred : {str(e)}",
-                }
+                },
+                status=400,
             )
 
     return wrapper
@@ -317,15 +317,21 @@ def patch_montant_simulation_projet(request, pk):
     return redirect_to_simulation_projet(request, simulation_projet)
 
 
+# TODO test
 @exception_handler_decorator
 @require_http_methods(["POST", "PATCH"])
 def patch_status_simulation_projet(request, pk):
-    simulation_projet = SimulationProjet.objects.get(id=pk)
+    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     data = QueryDict(request.body)
-    new_status = data.get("status")
+    status = data.get("status")
 
-    SimulationProjetService.update_status(simulation_projet, new_status)
-    return redirect_to_simulation_projet(request, simulation_projet)
+    if status not in dict(SimulationProjet.STATUS_CHOICES).keys():
+        raise ValueError("Invalid status")
+
+    updated_simulation_projet = SimulationProjetService.update_status(
+        simulation_projet, status
+    )
+    return redirect_to_simulation_projet(request, updated_simulation_projet)
 
 
 def simulation_form(request):

@@ -22,8 +22,12 @@ from gsl_projet.models import Projet
 from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
-from gsl_simulation.tests.factories import SimulationFactory
-from gsl_simulation.views import SimulationDetailView, SimulationListView
+from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
+from gsl_simulation.views import (
+    SimulationDetailView,
+    SimulationListView,
+    patch_status_simulation_projet,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -464,3 +468,41 @@ def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
 
     for projet in projets:
         assert projet.dossier_ds.porteur_de_projet_nature.label == "Commune"
+
+
+@pytest.fixture
+def simulation_projet() -> SimulationProjet:
+    return SimulationProjetFactory(
+        projet=ProjetFactory(status=Projet.STATUS_PROCESSING),
+        status=SimulationProjet.STATUS_PROCESSING,
+    )
+
+
+@pytest.mark.django_db
+def test_patch_status_simulation_projet(req, simulation_projet):
+    request = req.patch("/", data=f"status={SimulationProjet.STATUS_ACCEPTED}")
+    request.htmx = True
+    response = patch_status_simulation_projet(request, simulation_projet.id)
+
+    updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
+        id=simulation_projet.id
+    )
+    projet = Projet.objects.get(id=updated_simulation_projet.projet.id)
+
+    assert response.status_code == 200
+    assert updated_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
+    assert projet.status == Projet.STATUS_ACCEPTED
+    assert "1 projet validé" in response.content.decode()
+    assert "0 projet refusé" in response.content.decode()
+    assert "0 projet notifié" in response.content.decode()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("data", ({"status": "invalid_status"}, {}))
+def test_patch_status_simulation_projet_invalid_status(req, simulation_projet, data):
+    request = req.patch("/", data=data)
+    response = patch_status_simulation_projet(request, simulation_projet.id)
+
+    updated_simulation_projet = SimulationProjet.objects.get(id=simulation_projet.id)
+    assert response.status_code == 400
+    assert updated_simulation_projet.status == SimulationProjet.STATUS_PROCESSING
