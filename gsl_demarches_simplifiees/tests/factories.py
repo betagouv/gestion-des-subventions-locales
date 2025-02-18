@@ -14,7 +14,7 @@ class DemarcheFactory(factory.django.DjangoModelFactory):
         model = Demarche
 
     ds_id = factory.Sequence(lambda n: f"demarche-{n}")
-    ds_number = factory.Faker("random_int", min=1000000, max=9999999)
+    ds_number = factory.Sequence(lambda n: 1_000_000 + n)
     ds_title = "Titre de la démarche"
     ds_state = Demarche.STATE_PUBLIEE
 
