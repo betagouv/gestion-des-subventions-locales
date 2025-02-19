@@ -3,6 +3,8 @@ from datetime import UTC
 import pytest
 from django.utils import timezone
 
+from gsl_core.models import Arrondissement
+from gsl_core.tests.factories import AdresseFactory
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     NaturePorteurProjetFactory,
@@ -12,6 +14,21 @@ from gsl_projet.services import ProjetService
 from gsl_projet.tests.factories import ProjetFactory
 from gsl_simulation.models import Simulation
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
+
+
+@pytest.mark.django_db
+def test_create_projet_from_dossier():
+    dossier = DossierFactory(projet_adresse=AdresseFactory())
+    projet = ProjetService.get_or_create_from_ds_dossier(dossier)
+    assert isinstance(projet, Projet)
+    assert projet.address is not None
+    assert projet.address.commune == dossier.projet_adresse.commune
+    assert projet.address == dossier.projet_adresse
+
+    assert projet.demandeur is not None
+    assert isinstance(projet.demandeur.arrondissement, Arrondissement)
+    other_projet = ProjetService.get_or_create_from_ds_dossier(dossier)
+    assert other_projet == projet
 
 
 @pytest.fixture
