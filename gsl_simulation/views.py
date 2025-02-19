@@ -301,7 +301,29 @@ def exception_handler_decorator(func):
     return wrapper
 
 
-# TODO pour les fonctions ci-dessous : vérifier que l'utilisateur a les droits nécessaires
+def can_the_user_edit_simulation_projet(func):
+    def wrapper(*args, **kwargs):
+        user = args[0].user
+        if not user.is_staff:
+            return func(*args, **kwargs)
+
+        simulation_projet = get_object_or_404(SimulationProjet, id=kwargs["pk"])
+        if not SimulationProjetService.is_simulation_projet_in_perimetre(
+            simulation_projet, user.perimetre
+        ):
+            return JsonResponse(
+                {
+                    "error": "You are not allowed to edit this project",
+                },
+                status=403,
+            )
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+@can_the_user_edit_simulation_projet
 @exception_handler_decorator
 @require_http_methods(["POST", "PATCH"])
 def patch_taux_simulation_projet(request, pk):
@@ -313,6 +335,7 @@ def patch_taux_simulation_projet(request, pk):
     return redirect_to_simulation_projet(request, simulation_projet)
 
 
+# @can_the_user_edit_simulation_projet
 @exception_handler_decorator
 @require_http_methods(["POST", "PATCH"])
 def patch_montant_simulation_projet(request, pk):
@@ -324,6 +347,7 @@ def patch_montant_simulation_projet(request, pk):
     return redirect_to_simulation_projet(request, simulation_projet)
 
 
+# @can_the_user_edit_simulation_projet
 @exception_handler_decorator
 @require_http_methods(["POST", "PATCH"])
 def patch_status_simulation_projet(request, pk):

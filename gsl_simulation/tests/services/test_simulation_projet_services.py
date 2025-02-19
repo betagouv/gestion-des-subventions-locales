@@ -2,6 +2,13 @@ from unittest import mock
 
 import pytest
 
+from gsl_core.tests.factories import (
+    ArrondissementFactory,
+    DepartementFactory,
+    PerimetreArrondissementFactory,
+    PerimetreDepartementalFactory,
+    PerimetreRegionalFactory,
+)
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
@@ -304,3 +311,101 @@ def test_update_montant_of_accepted_montat(projet):
     programmation_projet.refresh_from_db()
     assert programmation_projet.montant == 500.0
     assert programmation_projet.taux == 50.0
+
+
+@pytest.mark.django_db
+def test_is_simulation_projet_in_perimetre_regional():
+    perimetre_regional = PerimetreRegionalFactory()
+    departement = DepartementFactory(region=perimetre_regional.region)
+    arrondissement = ArrondissementFactory(departement=departement)
+    projet = ProjetFactory(
+        demandeur__departement=departement,
+        demandeur__arrondissement=arrondissement,
+    )
+    simulation_projet = SimulationProjetFactory(projet=projet)
+
+    assert (
+        SimulationProjetService.is_simulation_projet_in_perimetre(
+            simulation_projet, perimetre_regional
+        )
+        is True
+    )
+
+    other_arrondissement = ArrondissementFactory()
+    other_projet = ProjetFactory(
+        demandeur__departement=other_arrondissement.departement,
+        demandeur__arrondissement=other_arrondissement,
+    )
+    other_simulation_projet = SimulationProjetFactory(projet=other_projet)
+
+    assert (
+        SimulationProjetService.is_simulation_projet_in_perimetre(
+            other_simulation_projet, perimetre_regional
+        )
+        is False
+    )
+
+
+@pytest.mark.django_db
+def test_is_simulation_projet_in_perimetre_departemental():
+    perimetre_departemental = PerimetreDepartementalFactory()
+    arrondissement = ArrondissementFactory(
+        departement=perimetre_departemental.departement
+    )
+    projet = ProjetFactory(
+        demandeur__departement=perimetre_departemental.departement,
+        demandeur__arrondissement=arrondissement,
+    )
+    simulation_projet = SimulationProjetFactory(projet=projet)
+
+    assert (
+        SimulationProjetService.is_simulation_projet_in_perimetre(
+            simulation_projet, perimetre_departemental
+        )
+        is True
+    )
+
+    other_arrondissement = ArrondissementFactory()
+    other_projet = ProjetFactory(
+        demandeur__departement=other_arrondissement.departement,
+        demandeur__arrondissement=other_arrondissement,
+    )
+    other_simulation_projet = SimulationProjetFactory(projet=other_projet)
+
+    assert (
+        SimulationProjetService.is_simulation_projet_in_perimetre(
+            other_simulation_projet, perimetre_departemental
+        )
+        is False
+    )
+
+
+@pytest.mark.django_db
+def test_is_simulation_projet_in_perimetre_arrondissement():
+    perimetre_arrondissement = PerimetreArrondissementFactory()
+    projet = ProjetFactory(
+        demandeur__departement=perimetre_arrondissement.departement,
+        demandeur__arrondissement=perimetre_arrondissement.arrondissement,
+    )
+    simulation_projet = SimulationProjetFactory(projet=projet)
+
+    assert (
+        SimulationProjetService.is_simulation_projet_in_perimetre(
+            simulation_projet, perimetre_arrondissement
+        )
+        is True
+    )
+
+    other_arrondissement = ArrondissementFactory()
+    other_projet = ProjetFactory(
+        demandeur__departement=other_arrondissement.departement,
+        demandeur__arrondissement=other_arrondissement,
+    )
+    other_simulation_projet = SimulationProjetFactory(projet=other_projet)
+
+    assert (
+        SimulationProjetService.is_simulation_projet_in_perimetre(
+            other_simulation_projet, perimetre_arrondissement
+        )
+        is False
+    )

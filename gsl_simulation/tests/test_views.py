@@ -530,6 +530,8 @@ def accepted_simulation_projet() -> SimulationProjet:
 def test_patch_taux_simulation_projet(req, accepted_simulation_projet):
     request = req.patch("/", data="taux=75.0")
     request.htmx = True
+    request.user = request.user
+
     response = patch_taux_simulation_projet(request, accepted_simulation_projet.id)
 
     updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
