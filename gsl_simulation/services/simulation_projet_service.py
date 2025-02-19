@@ -31,8 +31,9 @@ class SimulationProjetService:
                 simulation_id=simulation_id,
             )
         montant = cls.get_initial_montant_from_projet(projet)
-        simulation_projet.taux = ProjetService.compute_taux_from_montant(
-            projet, montant
+        simulation_projet.taux = (
+            projet.dossier_ds.annotations_taux
+            or ProjetService.compute_taux_from_montant(projet, montant)
         )
         simulation_projet.montant = montant
         simulation_projet.status = cls.get_simulation_projet_status(projet)
