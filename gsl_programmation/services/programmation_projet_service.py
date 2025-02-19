@@ -26,11 +26,10 @@ class ProgrammationProjetService:
             ProgrammationProjet.objects.filter(projet=projet).delete()
             return
 
-        if projet.dossier_ds.annotations_dotation is None:
+        dotation = projet.dossier_ds.annotations_dotation
+        if dotation is None:
             logging.error(f"Projet {projet} is missing annotation dotation")
             return
-
-        dotation = projet.dossier_ds.annotations_dotation
 
         if projet.status == Projet.STATUS_ACCEPTED:
             for field in [
@@ -38,7 +37,7 @@ class ProgrammationProjetService:
                 "annotations_taux",
                 "annotations_assiette",
             ]:
-                if not getattr(projet.dossier_ds, field):
+                if getattr(projet.dossier_ds, field) is None:
                     logging.error(f"Projet accepted {projet} is missing field {field}")
                     return
 
@@ -53,10 +52,15 @@ class ProgrammationProjetService:
                 departement=None,
                 arrondissement=None,
             )
+        else:
+            logging.error(
+                f"Projet {projet} is missing dotation (or dotation is unknown)"
+            )
+            return
 
         enveloppe = Enveloppe.objects.get(
             perimetre=perimetre,
-            annee=projet.dossier_ds.ds_date_passage_en_instruction.year,
+            annee=projet.dossier_ds.ds_date_traitement.year,
             type=dotation,
         )
 
@@ -64,9 +68,7 @@ class ProgrammationProjetService:
         # Idée : supprimer les autres PP de ce projet qui n'est pas dans cette enveloppe
         # tout en conservant les PP des années précédentes ???
         # Ou bien on s'en fout, il n'a pas pu être programmé les années précédentes...
-        ProgrammationProjet.objects.filter(
-            projet=projet, enveloppe__annee=enveloppe.annee
-        ).exclude(enveloppe=enveloppe).delete()
+        ProgrammationProjet.objects.exclude(enveloppe=enveloppe).delete()
 
         montant = (
             projet.dossier_ds.annotations_montant_accorde
