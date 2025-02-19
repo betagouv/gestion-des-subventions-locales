@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from gsl_core.models import Arrondissement
 from gsl_core.tests.factories import AdresseFactory
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     NaturePorteurProjetFactory,
@@ -223,3 +224,20 @@ def test_compute_taux_from_montant_with_projet_without_finance_cout_total():
     projet = ProjetFactory.build()
     taux = ProjetService.compute_taux_from_montant(projet, 10_000)
     assert taux == 0
+
+
+def test_get_projet_status():
+    accepted = Dossier(ds_state=Dossier.STATE_ACCEPTE)
+    en_construction = Dossier(ds_state=Dossier.STATE_EN_CONSTRUCTION)
+    en_instruction = Dossier(ds_state=Dossier.STATE_EN_INSTRUCTION)
+    refused = Dossier(ds_state=Dossier.STATE_REFUSE)
+    unanswered = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
+
+    assert ProjetService.get_projet_status(accepted) == Projet.STATUS_ACCEPTED
+    assert ProjetService.get_projet_status(en_construction) == Projet.STATUS_PROCESSING
+    assert ProjetService.get_projet_status(en_instruction) == Projet.STATUS_PROCESSING
+    assert ProjetService.get_projet_status(refused) == Projet.STATUS_REFUSED
+    assert ProjetService.get_projet_status(unanswered) == Projet.STATUS_UNANSWERED
+
+    dossier_unknown = Dossier(ds_state="unknown_state")
+    assert ProjetService.get_projet_status(dossier_unknown) is None

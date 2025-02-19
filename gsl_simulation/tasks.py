@@ -25,6 +25,7 @@ def add_enveloppe_projets_to_simulation(simulation_id):
     selected_projets = selected_projets.for_current_year()
 
     for projet in selected_projets:
+        # TODO use create_or_update_simulation_projet_from_projet
         asked_amount = projet.dossier_ds.demande_montant or 0
         try:
             taux = asked_amount * 100 / projet.assiette_or_cout_total

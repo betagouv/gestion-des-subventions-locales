@@ -135,9 +135,8 @@ class Projet(models.Model):
         (STATUS_PROCESSING, "🔄 En traitement"),
         (STATUS_UNANSWERED, "⛔️ Classé sans suite"),
     )
-    status = FSMField(
-        "Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING, protected=True
-    )
+    # TODO put back protected=True, once every status transition is handled
+    status = FSMField("Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING)
 
     assiette = models.DecimalField(
         "Assiette subventionnable",

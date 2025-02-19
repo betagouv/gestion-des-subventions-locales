@@ -392,7 +392,8 @@ def test_accept_projet_update_programmation_projet():
     )
 
     projet.accept(montant=5_000, enveloppe=enveloppe)
-
+    projet.save()
+    projet.refresh_from_db()
     assert projet.status == Projet.STATUS_ACCEPTED
 
     programmation_projets = ProgrammationProjet.objects.filter(

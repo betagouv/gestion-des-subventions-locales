@@ -1,22 +1,52 @@
 from decimal import Decimal
 
 from gsl_programmation.services.enveloppe_service import EnveloppeService
+from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
-from gsl_simulation.models import SimulationProjet
+from gsl_simulation.models import Simulation, SimulationProjet
 
 
 class SimulationProjetService:
     @classmethod
-    def _accept_a_simulation_projet(cls, simulation_projet: SimulationProjet):
-        projet = simulation_projet.projet
-        enveloppe = EnveloppeService.get_mother_enveloppe(simulation_projet.enveloppe)
-        projet.accept(montant=simulation_projet.montant, enveloppe=enveloppe)
-        projet.save()
+    def create_or_update_simulation_projets_from_projet(cls, projet: Projet):
+        simulation_projets = SimulationProjet.objects.filter(projet=projet)
+        for simulation_projet in simulation_projets:
+            cls.create_or_update_simulation_projet_from_projet(
+                projet, simulation_projet.simulation_id
+            )
 
-        updated_simulation_projet = SimulationProjet.objects.get(
-            pk=simulation_projet.pk
+    @classmethod
+    def create_or_update_simulation_projet_from_projet(
+        cls, projet: Projet, simulation_id: int
+    ):
+        try:
+            simulation_projet = SimulationProjet.objects.get(
+                projet=projet, simulation_id=simulation_id
+            )
+        except SimulationProjet.DoesNotExist:
+            simulation = Simulation.objects.get(id=simulation_id)
+            simulation_projet = SimulationProjet(
+                projet=projet,
+                enveloppe_id=simulation.enveloppe_id,
+                simulation_id=simulation_id,
+            )
+        montant = cls.get_initial_montant_from_projet(projet)
+        simulation_projet.taux = ProjetService.compute_taux_from_montant(
+            projet, montant
         )
-        return updated_simulation_projet
+        simulation_projet.montant = montant
+        simulation_projet.status = cls.get_simulation_projet_status(projet)
+        simulation_projet.save()
+
+        return simulation_projet
+
+    @classmethod
+    def get_initial_montant_from_projet(cls, projet: Projet):
+        if projet.dossier_ds.annotations_montant_accorde:
+            return projet.dossier_ds.annotations_montant_accorde
+        if projet.dossier_ds.demande_montant:
+            return projet.dossier_ds.demande_montant
+        return 0
 
     @classmethod
     def update_status(cls, simulation_projet: SimulationProjet, new_status: str):
@@ -59,3 +89,27 @@ class SimulationProjetService:
             return cls._accept_a_simulation_projet(simulation_projet)
 
         return simulation_projet
+
+    PROJET_STATUS_TO_SIMULATION_PROJET_STATUS = {
+        Projet.STATUS_ACCEPTED: SimulationProjet.STATUS_ACCEPTED,
+        Projet.STATUS_UNANSWERED: SimulationProjet.STATUS_REFUSED,
+        Projet.STATUS_REFUSED: SimulationProjet.STATUS_REFUSED,
+        Projet.STATUS_PROCESSING: SimulationProjet.STATUS_PROCESSING,
+    }
+
+    # TODO: Tests
+    @classmethod
+    def get_simulation_projet_status(cls, projet: Projet):
+        return cls.PROJET_STATUS_TO_SIMULATION_PROJET_STATUS.get(projet.status)
+
+    @classmethod
+    def _accept_a_simulation_projet(cls, simulation_projet: SimulationProjet):
+        projet = simulation_projet.projet
+        enveloppe = EnveloppeService.get_mother_enveloppe(simulation_projet.enveloppe)
+        projet.accept(montant=simulation_projet.montant, enveloppe=enveloppe)
+        projet.save()
+
+        updated_simulation_projet = SimulationProjet.objects.get(
+            pk=simulation_projet.pk
+        )
+        return updated_simulation_projet

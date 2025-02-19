@@ -281,9 +281,11 @@ class Dossier(DsModel):
         blank=True,
     )
 
+    DOTATION_DETR = "DETR"
+    DOTATION_DSIL = "DSIL"
     DEMANDE_DISPOSITIF_SOLLICITE_VALUES = (
-        ("DETR", "DETR"),
-        ("DSIL", "DSIL"),
+        (DOTATION_DETR, "DETR"),
+        (DOTATION_DSIL, "DSIL"),
     )
     demande_dispositif_sollicite = models.CharField(
         "Dispositif de financement sollicité",
