@@ -124,7 +124,7 @@ def test_create_or_update_from_projet_with_no_existing_one_and_without_annotatio
 
     assert ProgrammationProjet.objects.filter(projet=accepted_projet).count() == 1
     assert programmation_projet is None
-    assert "is missing field annotations_montant_accorde" in caplog.text
+    assert "annotation dotation is unkown" in caplog.text
 
 
 # STATUS REFUSED
@@ -244,7 +244,7 @@ def test_create_or_update_from_refused_projet_with_existing_one_and_without_anno
 
     assert ProgrammationProjet.objects.filter(projet=refused_projet).count() == 1
     assert programmation_projet is None
-    assert "is missing dotation (or dotation is unknown)" in caplog.text
+    assert "annotation dotation is unkown" in caplog.text
 
 
 @pytest.mark.django_db
@@ -258,7 +258,7 @@ def test_create_or_update_from_refused_projet_with_no_existing_one_and_without_a
 
     assert ProgrammationProjet.objects.filter(projet=refused_projet).count() == 0
     assert programmation_projet is None
-    assert "is missing dotation (or dotation is unknown)" in caplog.text
+    assert "annotation dotation is unkown" in caplog.text
 
 
 # OTHER STATUS

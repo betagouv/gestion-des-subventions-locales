@@ -31,6 +31,10 @@ class ProgrammationProjetService:
             logging.error(f"Projet {projet} is missing annotation dotation")
             return
 
+        if dotation not in [Dossier.DOTATION_DETR, Dossier.DOTATION_DSIL]:
+            logging.error(f"Projet {projet} annotation dotation is unkown")
+            return
+
         if projet.status == Projet.STATUS_ACCEPTED:
             for field in [
                 "annotations_montant_accorde",
@@ -41,21 +45,9 @@ class ProgrammationProjetService:
                     logging.error(f"Projet accepted {projet} is missing field {field}")
                     return
 
-        # TODO extract in function
-        if dotation == Dossier.DOTATION_DETR:
-            perimetre = Perimetre.objects.get(
-                departement=projet.demandeur.departement, arrondissement=None
-            )
-        elif dotation == Dossier.DOTATION_DSIL:
-            perimetre = Perimetre.objects.get(
-                region=projet.demandeur.departement.region,
-                departement=None,
-                arrondissement=None,
-            )
-        else:
-            logging.error(
-                f"Projet {projet} is missing dotation (or dotation is unknown)"
-            )
+        perimetre = cls.get_perimetre_from_dotation(projet, dotation)
+        if perimetre is None:
+            logging.error(f"Projet {projet} is missing perimetre")
             return
 
         enveloppe = Enveloppe.objects.get(
@@ -64,10 +56,6 @@ class ProgrammationProjetService:
             type=dotation,
         )
 
-        # TODO, extract in function + test
-        # Idée : supprimer les autres PP de ce projet qui n'est pas dans cette enveloppe
-        # tout en conservant les PP des années précédentes ???
-        # Ou bien on s'en fout, il n'a pas pu être programmé les années précédentes...
         ProgrammationProjet.objects.exclude(enveloppe=enveloppe).delete()
 
         montant = (
@@ -80,16 +68,37 @@ class ProgrammationProjetService:
             if projet.status == Projet.STATUS_ACCEPTED
             else 0
         )
+        programmation_projet_status = (
+            ProgrammationProjet.STATUS_ACCEPTED
+            if projet.status == Projet.STATUS_ACCEPTED
+            else ProgrammationProjet.STATUS_REFUSED
+        )
 
         programmation_projet, _ = ProgrammationProjet.objects.update_or_create(
             projet=projet,
             enveloppe=enveloppe,
             defaults={
-                "status": ProgrammationProjet.STATUS_ACCEPTED
-                if projet.status == Projet.STATUS_ACCEPTED
-                else ProgrammationProjet.STATUS_REFUSED,
+                "status": programmation_projet_status,
                 "montant": montant,
                 "taux": taux,
             },
         )
         return programmation_projet
+
+    @classmethod
+    def get_perimetre_from_dotation(
+        cls, projet: Projet, dotation: str
+    ) -> Perimetre | None:
+        if dotation == Dossier.DOTATION_DETR:
+            return Perimetre.objects.get(
+                departement=projet.demandeur.departement, arrondissement=None
+            )
+
+        elif dotation == Dossier.DOTATION_DSIL:
+            return Perimetre.objects.get(
+                region=projet.demandeur.departement.region,
+                departement=None,
+                arrondissement=None,
+            )
+
+        return None
