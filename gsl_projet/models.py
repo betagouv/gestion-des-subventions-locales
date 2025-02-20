@@ -158,15 +158,22 @@ class Projet(models.Model):
             )
         projet.address = ds_dossier.projet_adresse
 
-        projet_departement = (
-            ds_dossier.ds_demandeur.address.commune.departement
-            or ds_dossier.porteur_de_projet_arrondissement.core_arrondissement.departement
-        )
-        projet_arrondissement = (
-            ds_dossier.ds_demandeur.address.commune.arrondissement
-            or ds_dossier.porteur_de_projet_arrondissement.core_arrondissement
-        )
-        projet.demandeur, _ = Demandeur.objects.get_or_create(
+        projet_departement, projet_arrondissement = None, None
+        if ds_dossier.porteur_de_projet_arrondissement:
+            projet_departement = ds_dossier.porteur_de_projet_arrondissement.core_arrondissement.departement
+            projet_arrondissement = (
+                ds_dossier.porteur_de_projet_arrondissement.core_arrondissement
+            )
+        if ds_dossier.ds_demandeur.address.commune:
+            projet_departement = (
+                ds_dossier.ds_demandeur.address.commune.departement
+                or projet_departement
+            )
+            projet_arrondissement = (
+                ds_dossier.ds_demandeur.address.commune.arrondissement
+                or projet_arrondissement
+            )
+        projet.demandeur, created = Demandeur.objects.get_or_create(
             siret=ds_dossier.ds_demandeur.siret,
             defaults={
                 "name": ds_dossier.ds_demandeur.raison_sociale,
@@ -175,13 +182,10 @@ class Projet(models.Model):
                 "arrondissement": projet_arrondissement,
             },
         )
-
-        projet.demandeur.arrondissement = projet_arrondissement
-        projet.demandeur.departement = projet_departement
-        projet.demandeur.save()
-
-        if projet.address is not None and projet.address.commune is not None:
-            projet.departement = projet.address.commune.departement
+        if not created:
+            projet.demandeur.arrondissement = projet_arrondissement
+            projet.demandeur.departement = projet_departement
+            projet.demandeur.save()
 
         projet.save()
         return projet
