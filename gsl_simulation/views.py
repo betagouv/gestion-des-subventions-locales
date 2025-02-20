@@ -304,7 +304,7 @@ def exception_handler_decorator(func):
 def can_the_user_edit_simulation_projet(func):
     def wrapper(*args, **kwargs):
         user = args[0].user
-        if not user.is_staff:
+        if user.is_staff:
             return func(*args, **kwargs)
 
         simulation_projet = get_object_or_404(SimulationProjet, id=kwargs["pk"])
@@ -315,7 +315,7 @@ def can_the_user_edit_simulation_projet(func):
                 {
                     "error": "You are not allowed to edit this project",
                 },
-                status=403,
+                status=404,
             )
 
         return func(*args, **kwargs)
@@ -335,7 +335,7 @@ def patch_taux_simulation_projet(request, pk):
     return redirect_to_simulation_projet(request, simulation_projet)
 
 
-# @can_the_user_edit_simulation_projet
+@can_the_user_edit_simulation_projet
 @exception_handler_decorator
 @require_http_methods(["POST", "PATCH"])
 def patch_montant_simulation_projet(request, pk):
@@ -347,7 +347,7 @@ def patch_montant_simulation_projet(request, pk):
     return redirect_to_simulation_projet(request, simulation_projet)
 
 
-# @can_the_user_edit_simulation_projet
+@can_the_user_edit_simulation_projet
 @exception_handler_decorator
 @require_http_methods(["POST", "PATCH"])
 def patch_status_simulation_projet(request, pk):
