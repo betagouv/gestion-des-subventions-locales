@@ -357,9 +357,10 @@ def test_accept_projet():
     enveloppe = DetrEnveloppeFactory(annee=2025)
 
     projet.accept(montant=5_000, enveloppe=enveloppe)
+    projet.save()
+    projet.refresh_from_db()
 
     assert projet.status == Projet.STATUS_ACCEPTED
-
     simulation_projets = SimulationProjet.objects.filter(
         projet=projet, status=SimulationProjet.STATUS_ACCEPTED
     )
@@ -380,14 +381,13 @@ def test_accept_projet():
 
 @pytest.mark.django_db
 def test_accept_projet_update_programmation_projet():
-    projet = ProjetFactory(assiette=9_000)
-    assert projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
+    projet = ProjetFactory(assiette=9_000, status=Projet.STATUS_REFUSED)
 
     enveloppe = DetrEnveloppeFactory(annee=2025)
     ProgrammationProjetFactory(
         projet=projet,
         enveloppe=enveloppe,
-        montant=1_000,
+        montant=0,
         status=ProgrammationProjet.STATUS_REFUSED,
     )
 
