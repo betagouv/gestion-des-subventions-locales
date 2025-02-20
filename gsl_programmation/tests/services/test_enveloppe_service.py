@@ -169,19 +169,19 @@ def enveloppes_hierarchy():
     return mother_enveloppe, child_enveloppe, grandchild_enveloppe
 
 
-def test_get_mother_enveloppe_not_delegated(enveloppes_hierarchy):
+def test_get_parent_enveloppe_not_delegated(enveloppes_hierarchy):
     mother_enveloppe, _, _ = enveloppes_hierarchy
-    result = EnveloppeService.get_mother_enveloppe(mother_enveloppe)
+    result = EnveloppeService.get_parent_enveloppe(mother_enveloppe)
     assert result == mother_enveloppe
 
 
-def test_get_mother_enveloppe_delegated_once(enveloppes_hierarchy):
+def test_get_parent_enveloppe_delegated_once(enveloppes_hierarchy):
     mother_enveloppe, child_enveloppe, _ = enveloppes_hierarchy
-    result = EnveloppeService.get_mother_enveloppe(child_enveloppe)
+    result = EnveloppeService.get_parent_enveloppe(child_enveloppe)
     assert result == mother_enveloppe
 
 
-def test_get_mother_enveloppe_delegated_multiple_times(enveloppes_hierarchy):
+def test_get_parent_enveloppe_delegated_multiple_times(enveloppes_hierarchy):
     mother_enveloppe, _, grandchild_enveloppe = enveloppes_hierarchy
-    result = EnveloppeService.get_mother_enveloppe(grandchild_enveloppe)
+    result = EnveloppeService.get_parent_enveloppe(grandchild_enveloppe)
     assert result == mother_enveloppe

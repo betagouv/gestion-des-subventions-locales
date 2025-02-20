@@ -36,8 +36,8 @@ class EnveloppeService:
         )
 
     @classmethod
-    def get_mother_enveloppe(cls, enveloppe: Enveloppe):
+    def get_parent_enveloppe(cls, enveloppe: Enveloppe):
         if not enveloppe.is_deleguee:
             return enveloppe
         else:
-            return cls.get_mother_enveloppe(enveloppe.deleguee_by)
+            return cls.get_parent_enveloppe(enveloppe.deleguee_by)

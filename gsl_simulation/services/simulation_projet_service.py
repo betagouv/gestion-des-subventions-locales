@@ -107,7 +107,7 @@ class SimulationProjetService:
     @classmethod
     def _accept_a_simulation_projet(cls, simulation_projet: SimulationProjet):
         projet = simulation_projet.projet
-        enveloppe = EnveloppeService.get_mother_enveloppe(simulation_projet.enveloppe)
+        enveloppe = EnveloppeService.get_parent_enveloppe(simulation_projet.enveloppe)
         projet.accept(montant=simulation_projet.montant, enveloppe=enveloppe)
         projet.save()
 
