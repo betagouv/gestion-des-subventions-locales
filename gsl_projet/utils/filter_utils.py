@@ -10,19 +10,19 @@ class FilterUtils:
     }
 
     def enrich_context_with_filter_utils(self, context, state_mappings):
-        context["is_status_active"] = self._get_is_one_field_active(["status"])
+        context["is_status_active"] = self._get_is_one_field_active("status")
         context["is_status_placeholder"] = self._get_status_placeholder(state_mappings)
         context["is_cout_total_active"] = self._get_is_one_field_active(
-            ["cout_min", "cout_max"]
+            "cout_min", "cout_max"
         )
         context["is_montant_demande_active"] = self._get_is_one_field_active(
-            ["montant_demande_min", "montant_demande_max"]
+            "montant_demande_min", "montant_demande_max"
         )
         context["is_montant_retenu_active"] = self._get_is_one_field_active(
-            ["montant_retenu_min", "montant_retenu_max"]
+            "montant_retenu_min", "montant_retenu_max"
         )
         context["is_montant_previsionnel_active"] = self._get_is_one_field_active(
-            ["montant_previsionnel_min", "montant_previsionnel_max"]
+            "montant_previsionnel_min", "montant_previsionnel_max"
         )
 
         context["filter_templates"] = self._get_filter_templates()
@@ -45,7 +45,7 @@ class FilterUtils:
             if status in state_mappings
         )
 
-    def _get_is_one_field_active(self, field_names):
+    def _get_is_one_field_active(self, *field_names):
         return any(
             self.request.GET.get(field_name) not in (None, "")
             for field_name in field_names
