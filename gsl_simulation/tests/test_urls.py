@@ -1,10 +1,10 @@
 from decimal import Decimal
 
 import pytest
-from django.test import Client
 from django.urls import reverse
 
 from gsl_core.tests.factories import (
+    ClientWithLoggedUserFactory,
     CollegueFactory,
     DepartementFactory,
     PerimetreDepartementalFactory,
@@ -15,33 +15,9 @@ from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFa
 
 
 @pytest.fixture
-def cote_d_or():
-    return DepartementFactory()
-
-
-@pytest.fixture
-def cote_d_or_perimetre(cote_d_or):
-    return PerimetreDepartementalFactory(departement=cote_d_or)
-
-
-@pytest.fixture
-def cote_dorien_collegue(cote_d_or_perimetre):
-    return CollegueFactory(perimetre=cote_d_or_perimetre)
-
-
-@pytest.fixture
-def client_with_cote_d_or_user_logged(cote_dorien_collegue):
-    client = Client()
-    client.force_login(cote_dorien_collegue)
-    return client
-
-
-@pytest.fixture
 def client_with_user_logged():
-    client = Client()
     user = CollegueFactory()
-    client.force_login(user)
-    return client
+    return ClientWithLoggedUserFactory(user)
 
 
 @pytest.mark.django_db
@@ -60,11 +36,16 @@ def test_simulation_detail_url(client_with_user_logged):
     assert response.status_code == 200
 
 
-# @pytest.fixture
-# def simulation_projet():
-#     return SimulationProjetFactory(
-#         status=SimulationProjet.STATUS_PROVISOIRE, taux=0, montant=0
-#     )
+@pytest.fixture
+def cote_d_or():
+    return DepartementFactory()
+
+
+@pytest.fixture
+def client_with_cote_d_or_user_logged(cote_d_or):
+    cote_d_or_perimetre = PerimetreDepartementalFactory(departement=cote_d_or)
+    cote_dorien_collegue = CollegueFactory(perimetre=cote_d_or_perimetre)
+    return ClientWithLoggedUserFactory(cote_dorien_collegue)
 
 
 @pytest.fixture
@@ -239,13 +220,6 @@ def test_simulation_form_url(client_with_user_logged):
     assert response.status_code == 200
 
 
-@pytest.fixture
-def icaunais_collegue():
-    yonne = DepartementFactory()
-    yonne_perimetre = PerimetreDepartementalFactory(departement=yonne)
-    return CollegueFactory(perimetre=yonne_perimetre)
-
-
 @pytest.mark.django_db
 def test_patch_projet_only_if_projet_is_included_in_user_perimetre(
     client_with_cote_d_or_user_logged, cote_dorien_simulation_projet
@@ -279,10 +253,11 @@ def test_patch_projet_only_if_projet_is_included_in_user_perimetre(
 
 
 @pytest.fixture
-def client_with_iconnais_user_logged(icaunais_collegue):
-    client = Client()
-    client.force_login(icaunais_collegue)
-    return client
+def client_with_iconnais_user_logged():
+    yonne = DepartementFactory()
+    yonne_perimetre = PerimetreDepartementalFactory(departement=yonne)
+    icaunais_collegue = CollegueFactory(perimetre=yonne_perimetre)
+    return ClientWithLoggedUserFactory(icaunais_collegue)
 
 
 @pytest.mark.django_db
@@ -309,3 +284,37 @@ def test_cant_patch_projet_only_if_projet_is_not_included_in_user_perimetre(
     )
     response = client_with_iconnais_user_logged.patch(url, data="status=valid")
     assert response.status_code == 404
+
+
+@pytest.fixture
+def client_with_staff_user_logged():
+    staff_user = CollegueFactory(is_staff=True)
+    return ClientWithLoggedUserFactory(staff_user)
+
+
+@pytest.mark.django_db
+def test_patch_projet_allowed_for_staff_user(
+    client_with_staff_user_logged, cote_dorien_simulation_projet
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-taux",
+        kwargs={"pk": cote_dorien_simulation_projet.pk},
+    )
+    response = client_with_staff_user_logged.patch(url, data="taux=0.5", follow=True)
+    assert response.status_code == 200
+
+    url = reverse(
+        "simulation:patch-simulation-projet-montant",
+        kwargs={"pk": cote_dorien_simulation_projet.pk},
+    )
+    response = client_with_staff_user_logged.patch(url, data="montant=400", follow=True)
+    assert response.status_code == 200
+
+    url = reverse(
+        "simulation:patch-simulation-projet-status",
+        kwargs={"pk": cote_dorien_simulation_projet.pk},
+    )
+    response = client_with_staff_user_logged.patch(
+        url, data="status=valid", follow=True
+    )
+    assert response.status_code == 200

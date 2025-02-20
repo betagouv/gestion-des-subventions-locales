@@ -1,5 +1,5 @@
 import factory
-from django.test import RequestFactory
+from django.test import Client, RequestFactory
 
 from ..models import (
     Adresse,
@@ -104,3 +104,9 @@ class RequestFactory(RequestFactory):
         request = super().get(path, data, **extra)
         request.user = self.user
         return request
+
+
+class ClientWithLoggedUserFactory(Client):
+    def __init__(self, user, **kwargs):
+        super().__init__(**kwargs)
+        self.force_login(user)

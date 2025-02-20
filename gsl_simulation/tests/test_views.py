@@ -5,6 +5,7 @@ import pytest
 from django.urls import resolve, reverse
 
 from gsl_core.tests.factories import (
+    ClientWithLoggedUserFactory,
     CollegueFactory,
     PerimetreDepartementalFactory,
     RequestFactory,
@@ -27,9 +28,6 @@ from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFa
 from gsl_simulation.views import (
     SimulationDetailView,
     SimulationListView,
-    patch_montant_simulation_projet,
-    patch_status_simulation_projet,
-    patch_taux_simulation_projet,
 )
 
 pytestmark = pytest.mark.django_db
@@ -474,19 +472,38 @@ def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
 
 
 @pytest.fixture
-def simulation_projet() -> SimulationProjet:
+def collegue(perimetre_departemental):
+    return CollegueFactory(perimetre=perimetre_departemental)
+
+
+@pytest.fixture
+def client_with_user_logged(collegue):
+    return ClientWithLoggedUserFactory(collegue)
+
+
+@pytest.fixture
+def simulation_projet(collegue) -> SimulationProjet:
     return SimulationProjetFactory(
-        projet=ProjetFactory(status=Projet.STATUS_PROCESSING),
+        projet=ProjetFactory(
+            status=Projet.STATUS_PROCESSING,
+            demandeur__arrondissement__departement=collegue.perimetre.departement,
+        ),
         status=SimulationProjet.STATUS_PROCESSING,
         montant=1000,
     )
 
 
 @pytest.mark.django_db
-def test_patch_status_simulation_projet(req, simulation_projet):
-    request = req.patch("/", data=f"status={SimulationProjet.STATUS_ACCEPTED}")
-    request.htmx = True
-    response = patch_status_simulation_projet(request, simulation_projet.id)
+def test_patch_status_simulation_projet(client_with_user_logged, simulation_projet):
+    url = reverse(
+        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+    )
+    response = client_with_user_logged.patch(
+        url,
+        data=f"status={SimulationProjet.STATUS_ACCEPTED}",
+        follow=True,
+        headers={"HX-Request": "true"},
+    )
 
     updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
         id=simulation_projet.id
@@ -507,9 +524,18 @@ def test_patch_status_simulation_projet(req, simulation_projet):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("data", ({"status": "invalid_status"}, {}))
-def test_patch_status_simulation_projet_invalid_status(req, simulation_projet, data):
-    request = req.patch("/", data=data)
-    response = patch_status_simulation_projet(request, simulation_projet.id)
+def test_patch_status_simulation_projet_invalid_status(
+    client_with_user_logged, simulation_projet, data
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+    )
+    response = client_with_user_logged.patch(
+        url,
+        data="status=invalid",
+        follow=True,
+        headers={"HX-Request": "true"},
+    )
 
     updated_simulation_projet = SimulationProjet.objects.get(id=simulation_projet.id)
     assert response.status_code == 400
@@ -517,9 +543,13 @@ def test_patch_status_simulation_projet_invalid_status(req, simulation_projet, d
 
 
 @pytest.fixture
-def accepted_simulation_projet() -> SimulationProjet:
+def accepted_simulation_projet(collegue) -> SimulationProjet:
     return SimulationProjetFactory(
-        projet=ProjetFactory(status=Projet.STATUS_PROCESSING, assiette=10_000),
+        projet=ProjetFactory(
+            status=Projet.STATUS_PROCESSING,
+            assiette=10_000,
+            demandeur__arrondissement__departement=collegue.perimetre.departement,
+        ),
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=1000,
         taux=0.5,
@@ -527,12 +557,18 @@ def accepted_simulation_projet() -> SimulationProjet:
 
 
 @pytest.mark.django_db
-def test_patch_taux_simulation_projet(req, accepted_simulation_projet):
-    request = req.patch("/", data="taux=75.0")
-    request.htmx = True
-    request.user = request.user
-
-    response = patch_taux_simulation_projet(request, accepted_simulation_projet.id)
+def test_patch_taux_simulation_projet(
+    client_with_user_logged, accepted_simulation_projet
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-taux", args=[accepted_simulation_projet.id]
+    )
+    response = client_with_user_logged.patch(
+        url,
+        data="taux=75.0",
+        follow=True,
+        headers={"HX-Request": "true"},
+    )
 
     updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
         id=accepted_simulation_projet.id
@@ -548,10 +584,19 @@ def test_patch_taux_simulation_projet(req, accepted_simulation_projet):
 
 
 @pytest.mark.django_db
-def test_patch_montant_simulation_projet(req, accepted_simulation_projet):
-    request = req.patch("/", data="montant=1267.32")
-    request.htmx = True
-    response = patch_montant_simulation_projet(request, accepted_simulation_projet.id)
+def test_patch_montant_simulation_projet(
+    client_with_user_logged, accepted_simulation_projet
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-montant",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.patch(
+        url,
+        data="montant=1267,32",
+        follow=True,
+        headers={"HX-Request": "true"},
+    )
 
     updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
         id=accepted_simulation_projet.id

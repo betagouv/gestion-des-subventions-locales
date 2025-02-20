@@ -301,7 +301,7 @@ def exception_handler_decorator(func):
     return wrapper
 
 
-def can_the_user_edit_simulation_projet(func):
+def projet_must_be_in_user_perimetre(func):
     def wrapper(*args, **kwargs):
         user = args[0].user
         if user.is_staff:
@@ -323,7 +323,7 @@ def can_the_user_edit_simulation_projet(func):
     return wrapper
 
 
-@can_the_user_edit_simulation_projet
+@projet_must_be_in_user_perimetre
 @exception_handler_decorator
 @require_http_methods(["POST", "PATCH"])
 def patch_taux_simulation_projet(request, pk):
@@ -335,7 +335,7 @@ def patch_taux_simulation_projet(request, pk):
     return redirect_to_simulation_projet(request, simulation_projet)
 
 
-@can_the_user_edit_simulation_projet
+@projet_must_be_in_user_perimetre
 @exception_handler_decorator
 @require_http_methods(["POST", "PATCH"])
 def patch_montant_simulation_projet(request, pk):
@@ -347,7 +347,7 @@ def patch_montant_simulation_projet(request, pk):
     return redirect_to_simulation_projet(request, simulation_projet)
 
 
-@can_the_user_edit_simulation_projet
+@projet_must_be_in_user_perimetre
 @exception_handler_decorator
 @require_http_methods(["POST", "PATCH"])
 def patch_status_simulation_projet(request, pk):
