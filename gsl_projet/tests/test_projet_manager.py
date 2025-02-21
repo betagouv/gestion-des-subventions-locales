@@ -18,7 +18,6 @@ from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnvelopp
 
 from ..models import Projet
 from .factories import (
-    DemandeurFactory,
     ProcessedProjetFactory,
     ProjetFactory,
     SubmittedProjetFactory,
@@ -40,7 +39,7 @@ def test_dossier_ds_join(django_assert_num_queries):
 
     with django_assert_num_queries(1):
         projets = Projet.objects.all()
-        assert projets.query.select_related == {"dossier_ds": {}}
+        assert "dossier_ds" in projets.query.select_related
         for projet in projets:
             _ = projet.dossier_ds.ds_number
 
@@ -49,34 +48,22 @@ def test_dossier_ds_join(django_assert_num_queries):
     assert "dossier_ds" in first_sql_query
 
 
-def test_filter_perimetre():
+def test_filter_perimetre_arrondissement():
+    # Arrange
     arrondissement = ArrondissementFactory()
-    demandeur_1 = DemandeurFactory(
-        arrondissement=arrondissement, departement=arrondissement.departement
-    )
-    ProjetFactory(demandeur=demandeur_1)
+    perimetre = PerimetreArrondissementFactory(arrondissement=arrondissement)
+    arrondissement_projet = ProjetFactory(perimetre=perimetre)
+    unrelated_projet = ProjetFactory(perimetre=PerimetreArrondissementFactory())
 
-    demandeur_2 = DemandeurFactory()
-    ProjetFactory(demandeur=demandeur_2)
+    # Act
+    unfiltered_projets = set(Projet.objects.for_perimetre(None).all())
+    arrondissement_projets = set(Projet.objects.for_perimetre(perimetre).all())
 
-    perimetre = PerimetreArrondissementFactory(
-        arrondissement=arrondissement,
-    )
-
-    assert (
-        Projet.objects.for_perimetre(None).count() == 2
-    ), "Expect 2 projets for perimetre “None”"
-    assert (
-        Projet.objects.for_perimetre(perimetre).count() == 1
-    ), "Expect 1 projet for perimetre “arrondissement”"
-    assert (
-        Projet.objects.for_perimetre(perimetre).first().demandeur.arrondissement
-        == arrondissement
-    )
-    assert (
-        Projet.objects.for_perimetre(perimetre).first().demandeur.departement
-        == arrondissement.departement
-    )
+    # Assert
+    assert len(unfiltered_projets) == 2
+    assert len(arrondissement_projets) == 1
+    assert arrondissement_projet in arrondissement_projets
+    assert unrelated_projet not in arrondissement_projets
 
 
 # --------
