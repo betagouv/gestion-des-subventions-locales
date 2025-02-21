@@ -14,7 +14,7 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
-from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
+from gsl_projet.tests.factories import ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
 from gsl_simulation.tests.factories import SimulationFactory
@@ -50,9 +50,9 @@ def dsil_simulation(region_perimetre):
 
 
 @pytest.fixture
-def detr_projets(departement_perimetre):
+def detr_projets(departement_perimetre, arrondissement_perimetre):
     projets = []
-    for montant, assiette, state, date_traitement in [
+    for montant, assiette, state, date_traitement in (
         (1_000, 3_000, Dossier.STATE_EN_CONSTRUCTION, datetime(2024, 1, 1, tzinfo=UTC)),
         (600, None, Dossier.STATE_EN_INSTRUCTION, datetime(2023, 1, 1, tzinfo=UTC)),
         (2_000, 3_000, Dossier.STATE_ACCEPTE, datetime(2024, 1, 1, tzinfo=UTC)),
@@ -61,7 +61,7 @@ def detr_projets(departement_perimetre):
         (1_500, None, Dossier.STATE_REFUSE, datetime(2025, 1, 1, tzinfo=UTC)),
         (6_500, 0, Dossier.STATE_SANS_SUITE, datetime(2024, 1, 1, tzinfo=UTC)),
         (2_500, 0, Dossier.STATE_SANS_SUITE, datetime(2025, 1, 1, tzinfo=UTC)),
-    ]:
+    ):
         projets.append(
             ProjetFactory(
                 dossier_ds=DossierFactory(
@@ -70,9 +70,7 @@ def detr_projets(departement_perimetre):
                     ds_state=state,
                     ds_date_traitement=date_traitement,
                 ),
-                demandeur=DemandeurFactory(
-                    departement=departement_perimetre.departement,
-                ),
+                perimetre=arrondissement_perimetre,
                 assiette=assiette,
             )
         )
@@ -81,9 +79,9 @@ def detr_projets(departement_perimetre):
 
 
 @pytest.fixture
-def dsil_projets(departement_perimetre):
+def dsil_projets(departement_perimetre, arrondissement_perimetre):
     projets = []
-    for montant, assiette, state, date_traitement in [
+    for montant, assiette, state, date_traitement in (
         (1_000, 4_000, Dossier.STATE_EN_CONSTRUCTION, datetime(2024, 1, 1, tzinfo=UTC)),
         (600, None, Dossier.STATE_EN_INSTRUCTION, datetime(2023, 1, 1, tzinfo=UTC)),
         (2_000, 4_000, Dossier.STATE_ACCEPTE, datetime(2024, 12, 21, tzinfo=UTC)),
@@ -92,7 +90,7 @@ def dsil_projets(departement_perimetre):
         (1_500, None, Dossier.STATE_REFUSE, datetime(2025, 1, 1, tzinfo=UTC)),
         (2_500, 0, Dossier.STATE_SANS_SUITE, datetime(2024, 12, 13, tzinfo=UTC)),
         (2_500, 0, Dossier.STATE_SANS_SUITE, datetime(2025, 1, 1, tzinfo=UTC)),
-    ]:
+    ):
         projets.append(
             ProjetFactory(
                 dossier_ds=DossierFactory(
@@ -101,9 +99,7 @@ def dsil_projets(departement_perimetre):
                     ds_state=state,
                     ds_date_traitement=date_traitement,
                 ),
-                demandeur=DemandeurFactory(
-                    departement=departement_perimetre.departement,
-                ),
+                perimetre=arrondissement_perimetre,
                 assiette=assiette,
             )
         )
@@ -246,14 +242,15 @@ def test_add_enveloppe_projets_to_dsil_simulation(
     ),
 )
 def test_add_enveloppe_projets_to_DETR_simulation_containing_DETR_in_demande_dispositif_sollicite(
-    detr_simulation, departement_perimetre, demande_dispositif_sollicite, count
+    detr_simulation,
+    departement_perimetre,
+    arrondissement_perimetre,
+    demande_dispositif_sollicite,
+    count,
 ):
-    demandeur = DemandeurFactory(
-        departement=departement_perimetre.departement,
-    )
     ProjetFactory(
         dossier_ds__demande_dispositif_sollicite=demande_dispositif_sollicite,
-        demandeur=demandeur,
+        perimetre=arrondissement_perimetre,
     )
 
     add_enveloppe_projets_to_simulation(detr_simulation.id)
@@ -279,14 +276,15 @@ def test_add_enveloppe_projets_to_DETR_simulation_containing_DETR_in_demande_dis
     ),
 )
 def test_add_enveloppe_projets_to_DSIL_simulation_containing_DSIL_in_demande_dispositif_sollicite(
-    dsil_simulation, departement_perimetre, demande_dispositif_sollicite, count
+    dsil_simulation,
+    departement_perimetre,
+    arrondissement_perimetre,
+    demande_dispositif_sollicite,
+    count,
 ):
-    demandeur = DemandeurFactory(
-        departement=departement_perimetre.departement,
-    )
     ProjetFactory(
         dossier_ds__demande_dispositif_sollicite=demande_dispositif_sollicite,
-        demandeur=demandeur,
+        perimetre=arrondissement_perimetre,
     )
 
     add_enveloppe_projets_to_simulation(dsil_simulation.id)

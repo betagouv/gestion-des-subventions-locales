@@ -17,7 +17,7 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
 )
 from gsl_projet.models import Projet
-from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
+from gsl_projet.tests.factories import ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
 from gsl_simulation.tests.factories import SimulationFactory
@@ -65,9 +65,8 @@ def projets(simulation, perimetre_departemental):
     epci = NaturePorteurProjetFactory(label="EPCI")
     commune = NaturePorteurProjetFactory(label="Commune")
 
-    for perimetre in [perimetre_departemental, other_perimeter]:
+    for perimetre in (perimetre_departemental, other_perimeter):
         for type in ("DETR", "DSIL"):
-            demandeur = DemandeurFactory(departement=perimetre.departement)
             for state in (
                 Dossier.STATE_ACCEPTE,
                 Dossier.STATE_REFUSE,
@@ -84,7 +83,7 @@ def projets(simulation, perimetre_departemental):
                     porteur_de_projet_nature=epci,
                 )
                 projet_2024 = ProjetFactory(
-                    dossier_ds=dossier_2024, demandeur=demandeur
+                    dossier_ds=dossier_2024, perimetre=perimetre
                 )
                 projets.append(projet_2024)
 
@@ -98,11 +97,11 @@ def projets(simulation, perimetre_departemental):
                     porteur_de_projet_nature=commune,
                 )
                 projet_2025 = ProjetFactory(
-                    dossier_ds=dossier_2025, demandeur=demandeur
+                    dossier_ds=dossier_2025,
+                    perimetre=perimetre,
                 )
                 projets.append(projet_2025)
 
-            demandeur = DemandeurFactory(departement=perimetre.departement)
             for state in (Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION):
                 dossier_2024 = DossierFactory(
                     ds_state=state,
@@ -114,7 +113,7 @@ def projets(simulation, perimetre_departemental):
                     porteur_de_projet_nature=commune,
                 )
                 projet_2024 = ProjetFactory(
-                    dossier_ds=dossier_2024, demandeur=demandeur
+                    dossier_ds=dossier_2024, perimetre=perimetre
                 )
                 projets.append(projet_2024)
 
@@ -128,7 +127,7 @@ def projets(simulation, perimetre_departemental):
                     porteur_de_projet_nature=epci,
                 )
                 projet_2025 = ProjetFactory(
-                    dossier_ds=dossier_2025, demandeur=demandeur
+                    dossier_ds=dossier_2025, perimetre=perimetre
                 )
                 projets.append(projet_2025)
     return projets
@@ -154,6 +153,7 @@ def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
         reverse("simulation:simulation-detail", kwargs={"slug": simulation.slug})
     )
     view.object = simulation
+
     enveloppe_data = view._get_enveloppe_data(simulation)
 
     assert Projet.objects.count() == 40
@@ -181,7 +181,7 @@ def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
     assert enveloppe_data["validated_projets_count"] == 1
     assert enveloppe_data["refused_projets_count"] == 1
     assert enveloppe_data["projets_count"] == 5
-    assert enveloppe_data["demandeurs"] == 2
+    assert enveloppe_data["demandeurs"] == 5
     assert enveloppe_data["montant_asked"] == 200_000 * 3 + 400_000 * 2
     assert enveloppe_data["montant_accepte"] == 150_000
 
@@ -268,8 +268,6 @@ def test_view_with_filters(req, simulation, create_simulation_projets):
 
 
 def test_view_with_multiple_simulations(req, perimetre_departemental):
-    demandeur = DemandeurFactory(departement=perimetre_departemental.departement)
-
     dossier_2024 = DossierFactory(
         ds_state=Dossier.STATE_EN_INSTRUCTION,
         ds_date_depot=datetime(2023, 10, 1, tzinfo=UTC),
@@ -278,7 +276,7 @@ def test_view_with_multiple_simulations(req, perimetre_departemental):
         demande_montant=200_000,
         demande_dispositif_sollicite="DETR",
     )
-    ProjetFactory(dossier_ds=dossier_2024, demandeur=demandeur)
+    ProjetFactory(dossier_ds=dossier_2024, perimetre=perimetre_departemental)
 
     enveloppe = DetrEnveloppeFactory(
         perimetre=perimetre_departemental, annee=2024, montant=1_000_000

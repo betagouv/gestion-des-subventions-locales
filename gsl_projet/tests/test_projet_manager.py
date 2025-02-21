@@ -4,7 +4,7 @@ from datetime import timezone as tz
 import pytest
 from django.db import connection
 
-from gsl_core.models import Departement
+from gsl_core.models import Departement, Perimetre
 from gsl_core.tests.factories import (
     ArrondissementFactory,
     CollegueFactory,
@@ -76,20 +76,32 @@ def departement() -> Departement:
 
 @pytest.fixture
 def projets(departement) -> list[Projet]:
-    projet_with_departement = ProjetFactory(demandeur__departement=departement)
-    projet_without_departement = ProjetFactory()
+    arrondissement = ArrondissementFactory(departement=departement)
+    projet_with_arrondissement = ProjetFactory(
+        perimetre=PerimetreArrondissementFactory(
+            departement=departement, arrondissement=arrondissement
+        )
+    )
+    projet_with_departement = ProjetFactory(
+        perimetre=PerimetreDepartementalFactory(departement=departement)
+    )
+    projet_without_perimetre = ProjetFactory()
 
-    return [projet_with_departement, projet_without_departement]
+    return [
+        projet_with_arrondissement,
+        projet_with_departement,
+        projet_without_perimetre,
+    ]
 
 
 def test_for_staff_user_without_perimetre(projets):
     staff_user = CollegueFactory(is_staff=True, perimetre=None)
-    assert Projet.objects.for_user(staff_user).count() == 2
+    assert Projet.objects.for_user(staff_user).count() == len(projets)
 
 
 def test_for_super_user_without_perimetre(projets):
     super_user = CollegueFactory(is_superuser=True, perimetre=None)
-    assert Projet.objects.for_user(super_user).count() == 2
+    assert Projet.objects.for_user(super_user).count() == len(projets)
 
 
 def test_for_normal_user_without_perimetre(projets):
@@ -98,28 +110,46 @@ def test_for_normal_user_without_perimetre(projets):
 
 
 def test_for_staff_user_with_perimetre(departement, projets):
-    staff_user_with_perimetre = CollegueFactory(
-        is_staff=True, perimetre=PerimetreDepartementalFactory(departement=departement)
-    )
-    assert Projet.objects.for_user(staff_user_with_perimetre).count() == 1
-    assert Projet.objects.for_user(staff_user_with_perimetre).get() == projets[0]
+    perimetre = Perimetre.objects.get(arrondissement=None, departement=departement)
+    staff_user_with_perimetre = CollegueFactory(is_staff=True, perimetre=perimetre)
+
+    staff_user_projects = list(Projet.objects.for_user(staff_user_with_perimetre).all())
+
+    assert (
+        len(staff_user_projects) == 2
+    ), "We should only get projects within user’s perimeter, even staff"
+    assert projets[0] in staff_user_projects
+    assert projets[1] in staff_user_projects
 
 
 def test_for_super_user_with_perimetre(departement, projets):
-    super_user_with_perimetre = CollegueFactory(
-        is_superuser=True,
-        perimetre=PerimetreDepartementalFactory(departement=departement),
+    perimetre = Perimetre.objects.get(arrondissement=None, departement=departement)
+    superuser_user_with_perimetre = CollegueFactory(
+        is_superuser=True, perimetre=perimetre
     )
-    assert Projet.objects.for_user(super_user_with_perimetre).count() == 1
-    assert Projet.objects.for_user(super_user_with_perimetre).get() == projets[0]
+
+    superuser_projects = list(
+        Projet.objects.for_user(superuser_user_with_perimetre).all()
+    )
+
+    assert (
+        len(superuser_projects) == 2
+    ), "We should only get projects within user’s perimeter, even superuser"
+    assert projets[0] in superuser_projects
+    assert projets[1] in superuser_projects
 
 
 def test_for_normal_user_with_perimetre(departement, projets):
-    user_with_perimetre = CollegueFactory(
-        perimetre=PerimetreDepartementalFactory(departement=departement)
-    )
-    assert Projet.objects.for_user(user_with_perimetre).count() == 1
-    assert Projet.objects.for_user(user_with_perimetre).get() == projets[0]
+    perimetre = Perimetre.objects.get(arrondissement=None, departement=departement)
+    user_with_perimetre = CollegueFactory(is_staff=True, perimetre=perimetre)
+
+    user_projects = list(Projet.objects.for_user(user_with_perimetre).all())
+
+    assert (
+        len(user_projects) == 2
+    ), "We should only get projects within user’s perimeter"
+    assert projets[0] in user_projects
+    assert projets[1] in user_projects
 
 
 # ----
@@ -217,7 +247,7 @@ def test_for_enveloppe_with_projet_type_and_enveloppe_type(
     )
     enveloppe = enveloppe_factory(annee=2024, perimetre=perimetre)
     ProjetFactory(
-        demandeur__departement=perimetre.departement,
+        perimetre=perimetre,
         dossier_ds__ds_date_depot=datetime(2024, 3, 1, tzinfo=UTC),
         dossier_ds__ds_date_traitement=datetime(2024, 5, 1, tzinfo=UTC),
         dossier_ds__demande_dispositif_sollicite=projet_type,
@@ -247,7 +277,7 @@ def test_for_year_2024_and_for_not_processed_states(submitted_year, count):
         dossier_ds__demande_dispositif_sollicite=enveloppe.type,
         dossier_ds__ds_date_depot=datetime(submitted_year, 12, 31, tzinfo=tz.utc),
         dossier_ds__ds_date_traitement=datetime(submitted_year + 1, 5, 1, tzinfo=UTC),
-        demandeur__departement=perimetre.departement,
+        perimetre=perimetre,
     )
     print(f"Test with {projet.dossier_ds.ds_state}")
 
@@ -275,7 +305,7 @@ def test_for_year_2024_and_for_processed_states(submitted_year, processed_year, 
         dossier_ds__demande_dispositif_sollicite=enveloppe.type,
         dossier_ds__ds_date_depot=datetime(submitted_year, 12, 31, tzinfo=tz.utc),
         dossier_ds__ds_date_traitement=datetime(processed_year, 12, 31, tzinfo=tz.utc),
-        demandeur__departement=perimetre.departement,
+        perimetre=perimetre,
     )
     print(f"Test with {projet.dossier_ds.ds_state}")
 
@@ -305,7 +335,7 @@ def test_processed_in_enveloppe_with_different_processed_dates(processed_year, c
     projet = ProcessedProjetFactory(
         dossier_ds__demande_dispositif_sollicite=enveloppe.type,
         dossier_ds__ds_date_traitement=datetime(processed_year, 1, 1, tzinfo=tz.utc),
-        demandeur__departement=perimetre.departement,
+        perimetre=perimetre,
     )
     print(f"Test with {projet.dossier_ds.ds_state}")
 
