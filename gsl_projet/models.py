@@ -165,10 +165,7 @@ class Projet(models.Model):
                 ds_dossier.porteur_de_projet_arrondissement.core_arrondissement
             )
         if ds_dossier.ds_demandeur.address.commune:
-            projet_departement = (
-                ds_dossier.ds_demandeur.address.commune.departement
-                or projet_departement
-            )
+            projet_departement = ds_dossier.ds_demandeur.address.commune.departement
             projet_arrondissement = (
                 ds_dossier.ds_demandeur.address.commune.arrondissement
                 or projet_arrondissement
