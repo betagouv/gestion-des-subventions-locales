@@ -72,6 +72,9 @@
 
         {% dsfr_js nonce=request.csp_nonce %}
 
+        {% block modal %}
+        {% endblock modal %}
+
         {% block extra_js %}
             <script src="{% static 'js/htmx.min.js' %}" defer></script>
         {% endblock extra_js %}

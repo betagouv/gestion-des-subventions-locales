@@ -5,8 +5,9 @@
     <select class="fr-select gsl-projet-table__select input-simulation-projet-{{ simu.pk }}"
             id="status-select"
             name="status"
-            hx-patch="{% url 'simulation:patch-simulation-projet-status' simu.id %}"
-            hx-disabled-elt="this">
+            onchange="showConfirmationModal(this)">
+        {% comment %} hx-patch="{% url 'simulation:patch-simulation-projet-status' simu.id %}"
+        hx-disabled-elt="this"> {% endcomment %}
         {% for key, value in available_states %}
             <option value={{ key }} {% if simu.status == key %} selected {% endif %}>
                 {{ value }}

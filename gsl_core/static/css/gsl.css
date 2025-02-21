@@ -43,10 +43,6 @@ ul.no-list-style li {
 
 /* Page un projet */
 
-.blue-icon {
-    color: #000091;
-}
-
 .gsl-projet-container {
     border-top: 1px solid #ddd;
 }
@@ -240,4 +236,19 @@ ul.no-list-style li {
 
 .blue-icon {
     color: var(--blue-france-sun-113-625);
+}
+
+.success-color {
+    color: var(--text-default-success);
+}
+
+.confirmation-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1em;
+}
+
+.cancel-button{
+    box-shadow: inset 0 0 0 1px var(--border-action-high-error);
+    color: var(--text-default-error);
 }

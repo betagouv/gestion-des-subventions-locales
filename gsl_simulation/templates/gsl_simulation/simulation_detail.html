@@ -80,3 +80,41 @@
     {% dsfr_pagination simulations_paginator %}
 
 {% endblock content %}
+
+{% block modal %}
+    {% include "includes/_accept_confirmation_modal.html" %}
+{% endblock modal %}
+
+{%comment %}
+put it in js file
+{% endcomment %}
+{% block extra_js %}
+    <script>
+        let selectedElement = null;
+        let previousValue = null;
+
+        function showConfirmationModal(select) {
+            selectedElement = select;
+            previousValue = select.value;
+            modal = document.getElementById('accept-confimation-modal')
+            dsfr(modal).modal.disclose()
+        }
+
+        function closeModal() {
+            modal = document.getElementById('accept-confimation-modal')
+            selectedElement.form.reset()
+            dsfr(modal).modal.conceal()
+            selectedElement.focus()
+            selectedElement = null;
+        }
+
+        document.getElementById('confirmChange').addEventListener('click', function () {
+            if (selectedElement) {
+                selectedElement.form.submit();
+            }
+            else {
+                closeModal();
+            }
+        });
+    </script>
+{% endblock extra_js %}
