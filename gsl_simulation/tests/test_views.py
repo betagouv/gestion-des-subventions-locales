@@ -17,7 +17,7 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
 )
 from gsl_projet.models import Projet
-from gsl_projet.tests.factories import ProjetFactory
+from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
 from gsl_simulation.tests.factories import SimulationFactory
@@ -66,6 +66,9 @@ def projets(simulation, perimetre_departemental):
     commune = NaturePorteurProjetFactory(label="Commune")
 
     for perimetre in (perimetre_departemental, other_perimeter):
+        demandeur = DemandeurFactory(
+            arrondissement=perimetre.arrondissement, departement=perimetre.departement
+        )
         for type in ("DETR", "DSIL"):
             for state in (
                 Dossier.STATE_ACCEPTE,
@@ -83,7 +86,7 @@ def projets(simulation, perimetre_departemental):
                     porteur_de_projet_nature=epci,
                 )
                 projet_2024 = ProjetFactory(
-                    dossier_ds=dossier_2024, perimetre=perimetre
+                    dossier_ds=dossier_2024, perimetre=perimetre, demandeur=demandeur
                 )
                 projets.append(projet_2024)
 
@@ -99,9 +102,13 @@ def projets(simulation, perimetre_departemental):
                 projet_2025 = ProjetFactory(
                     dossier_ds=dossier_2025,
                     perimetre=perimetre,
+                    demandeur=demandeur,
                 )
                 projets.append(projet_2025)
-
+            demandeur = DemandeurFactory(
+                arrondissement=perimetre.arrondissement,
+                departement=perimetre.departement,
+            )
             for state in (Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION):
                 dossier_2024 = DossierFactory(
                     ds_state=state,
@@ -113,7 +120,9 @@ def projets(simulation, perimetre_departemental):
                     porteur_de_projet_nature=commune,
                 )
                 projet_2024 = ProjetFactory(
-                    dossier_ds=dossier_2024, perimetre=perimetre
+                    dossier_ds=dossier_2024,
+                    perimetre=perimetre,
+                    demandeur=demandeur,
                 )
                 projets.append(projet_2024)
 
@@ -127,7 +136,7 @@ def projets(simulation, perimetre_departemental):
                     porteur_de_projet_nature=epci,
                 )
                 projet_2025 = ProjetFactory(
-                    dossier_ds=dossier_2025, perimetre=perimetre
+                    dossier_ds=dossier_2025, perimetre=perimetre, demandeur=demandeur
                 )
                 projets.append(projet_2025)
     return projets
@@ -181,7 +190,7 @@ def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
     assert enveloppe_data["validated_projets_count"] == 1
     assert enveloppe_data["refused_projets_count"] == 1
     assert enveloppe_data["projets_count"] == 5
-    assert enveloppe_data["demandeurs"] == 5
+    assert enveloppe_data["demandeurs"] == 2
     assert enveloppe_data["montant_asked"] == 200_000 * 3 + 400_000 * 2
     assert enveloppe_data["montant_accepte"] == 150_000
 
