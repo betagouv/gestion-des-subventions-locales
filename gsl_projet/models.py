@@ -39,11 +39,11 @@ class ProjetQuerySet(models.QuerySet):
         if perimetre is None:
             return self
         if perimetre.arrondissement:
-            return self.filter(demandeur__arrondissement=perimetre.arrondissement)
+            return self.filter(perimetre__arrondissement=perimetre.arrondissement)
         if perimetre.departement:
-            return self.filter(demandeur__departement=perimetre.departement)
+            return self.filter(perimetre__departement=perimetre.departement)
         if perimetre.region:
-            return self.filter(demandeur__departement__region=perimetre.region)
+            return self.filter(perimetre__region=perimetre.region)
 
     def for_current_year(self):
         return self.not_processed_before_the_start_of_the_year(date.today().year)
@@ -123,6 +123,7 @@ class Projet(models.Model):
 
     address = models.ForeignKey(Adresse, on_delete=models.PROTECT, null=True)
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT, null=True)
+    perimetre = models.ForeignKey(Perimetre, on_delete=models.PROTECT, null=True)
 
     assiette = models.DecimalField(
         "Assiette subventionnable",
