@@ -37,8 +37,7 @@ def simulation(detr_enveloppe):
 def submitted_projets(perimetre_departemental):
     return SubmittedProjetFactory.create_batch(
         4,
-        # perimetre=perimetre_departemental,
-        demandeur__departement=perimetre_departemental.departement,
+        perimetre=perimetre_departemental,
         dossier_ds__demande_montant=20_000,
         dossier_ds__ds_date_depot=datetime(2021, 12, 1, tzinfo=UTC),
         dossier_ds__demande_dispositif_sollicite="DETR",
@@ -51,8 +50,7 @@ def programmation_projets(perimetre_departemental, detr_enveloppe):
         3,
         enveloppe=detr_enveloppe,
         status=ProgrammationProjet.STATUS_REFUSED,
-        # projet__perimetre=perimetre_departemental,
-        projet__demandeur__departement=perimetre_departemental.departement,
+        projet__perimetre=perimetre_departemental,
         projet__dossier_ds__demande_montant=30_000,
         projet__dossier_ds__ds_date_depot=datetime(2020, 12, 1, tzinfo=UTC),
         projet__dossier_ds__ds_date_traitement=datetime(2021, 10, 1, tzinfo=UTC),
@@ -64,8 +62,7 @@ def programmation_projets(perimetre_departemental, detr_enveloppe):
             enveloppe=detr_enveloppe,
             status=ProgrammationProjet.STATUS_ACCEPTED,
             montant=montant,
-            # perimetre=perimetre_departemental
-            projet__demandeur__departement=perimetre_departemental.departement,
+            projet__perimetre=perimetre_departemental,
             projet__dossier_ds__demande_montant=40_000,
             projet__dossier_ds__ds_date_depot=datetime(2020, 12, 1, tzinfo=UTC),
             projet__dossier_ds__ds_date_traitement=datetime(2021, 7, 1, tzinfo=UTC),

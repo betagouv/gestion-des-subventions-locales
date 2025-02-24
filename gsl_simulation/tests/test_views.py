@@ -73,9 +73,11 @@ def projets(simulation, perimetre_departemental):
     epci = NaturePorteurProjetFactory(label="EPCI")
     commune = NaturePorteurProjetFactory(label="Commune")
 
-    for perimetre in [perimetre_departemental, other_perimeter]:
+    for perimetre in (perimetre_departemental, other_perimeter):
+        demandeur = DemandeurFactory(
+            arrondissement=perimetre.arrondissement, departement=perimetre.departement
+        )
         for type in ("DETR", "DSIL"):
-            demandeur = DemandeurFactory(departement=perimetre.departement)
             for state in (
                 Dossier.STATE_ACCEPTE,
                 Dossier.STATE_REFUSE,
@@ -93,6 +95,7 @@ def projets(simulation, perimetre_departemental):
                 )
                 projet_2024 = ProjetFactory(
                     dossier_ds=dossier_2024,
+                    perimetre=perimetre,
                     demandeur=demandeur,
                     status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 )
@@ -110,11 +113,14 @@ def projets(simulation, perimetre_departemental):
                 projet_2025 = ProjetFactory(
                     dossier_ds=dossier_2025,
                     demandeur=demandeur,
+                    perimetre=perimetre,
                     status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 )
                 projets.append(projet_2025)
-
-            demandeur = DemandeurFactory(departement=perimetre.departement)
+            demandeur = DemandeurFactory(
+                arrondissement=perimetre.arrondissement,
+                departement=perimetre.departement,
+            )
             for state in (Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION):
                 dossier_2024 = DossierFactory(
                     ds_state=state,
@@ -128,6 +134,7 @@ def projets(simulation, perimetre_departemental):
                 projet_2024 = ProjetFactory(
                     dossier_ds=dossier_2024,
                     demandeur=demandeur,
+                    perimetre=perimetre,
                     status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 )
                 projets.append(projet_2024)
@@ -144,6 +151,7 @@ def projets(simulation, perimetre_departemental):
                 projet_2025 = ProjetFactory(
                     dossier_ds=dossier_2025,
                     demandeur=demandeur,
+                    perimetre=perimetre,
                     status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 )
                 projets.append(projet_2025)
@@ -170,6 +178,7 @@ def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
         reverse("simulation:simulation-detail", kwargs={"slug": simulation.slug})
     )
     view.object = simulation
+
     enveloppe_data = view._get_enveloppe_data(simulation)
 
     assert Projet.objects.count() == 40
@@ -320,8 +329,6 @@ def test_view_with_filters(req, simulation, create_simulation_projets):
 
 
 def test_view_with_multiple_simulations(req, perimetre_departemental):
-    demandeur = DemandeurFactory(departement=perimetre_departemental.departement)
-
     state = Dossier.STATE_EN_INSTRUCTION
     dossier_2024 = DossierFactory(
         ds_state=state,
@@ -333,7 +340,7 @@ def test_view_with_multiple_simulations(req, perimetre_departemental):
     )
     ProjetFactory(
         dossier_ds=dossier_2024,
-        demandeur=demandeur,
+        perimetre=perimetre_departemental,
         status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
     )
 
