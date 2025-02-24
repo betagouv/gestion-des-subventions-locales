@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from django.db import models
 from django.db.models import Q
 
-from gsl_core.models import Adresse, Arrondissement, Collegue, Departement, Perimetre
+from gsl_core.models import Adresse, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
 
 if TYPE_CHECKING:
@@ -17,10 +17,6 @@ class Demandeur(models.Model):
     name = models.CharField("Nom")
 
     address = models.ForeignKey(Adresse, on_delete=models.PROTECT)
-    arrondissement = models.ForeignKey(
-        Arrondissement, on_delete=models.PROTECT, null=True
-    )
-    departement = models.ForeignKey(Departement, on_delete=models.PROTECT)
 
     def __str__(self):
         return f"Demandeur {self.name}"
@@ -158,31 +154,15 @@ class Projet(models.Model):
                 dossier_ds=ds_dossier,
             )
         projet.address = ds_dossier.projet_adresse
+        projet.perimetre = ds_dossier.perimetre
 
-        projet_departement = (
-            ds_dossier.ds_demandeur.address.commune.departement
-            or ds_dossier.porteur_de_projet_arrondissement.core_arrondissement.departement
-        )
-        projet_arrondissement = (
-            ds_dossier.ds_demandeur.address.commune.arrondissement
-            or ds_dossier.porteur_de_projet_arrondissement.core_arrondissement
-        )
         projet.demandeur, _ = Demandeur.objects.get_or_create(
             siret=ds_dossier.ds_demandeur.siret,
             defaults={
                 "name": ds_dossier.ds_demandeur.raison_sociale,
                 "address": ds_dossier.ds_demandeur.address,
-                "departement": projet_departement,
-                "arrondissement": projet_arrondissement,
             },
         )
-
-        projet.demandeur.arrondissement = projet_arrondissement
-        projet.demandeur.departement = projet_departement
-        projet.demandeur.save()
-
-        if projet.address is not None and projet.address.commune is not None:
-            projet.departement = projet.address.commune.departement
 
         projet.save()
         return projet

@@ -7,8 +7,9 @@ from .models import Demandeur, Projet
 
 @admin.register(Demandeur)
 class DemandeurAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    raw_id_fields = ("address", "arrondissement", "departement")
-    list_display = ("name", "departement", "arrondissement")
+    raw_id_fields = ("address",)
+    list_display = ("name", "address__commune__departement")
+    search_fields = ("name", "siret", "address__commune__name")
 
 
 @admin.register(Projet)
