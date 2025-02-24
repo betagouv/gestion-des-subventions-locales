@@ -113,7 +113,9 @@ class ProjetService:
     @classmethod
     def compute_taux_from_montant(cls, projet: Projet, new_montant: float):
         new_taux = (
-            round((Decimal(new_montant) / Decimal(projet.assiette_or_cout_total)) * 100)
+            round(
+                (Decimal(new_montant) / Decimal(projet.assiette_or_cout_total)) * 100, 2
+            )
             if projet.assiette_or_cout_total
             else 0
         )

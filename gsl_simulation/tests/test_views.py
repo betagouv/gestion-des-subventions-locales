@@ -21,6 +21,7 @@ from gsl_programmation.tests.factories import (
     ProgrammationProjetFactory,
 )
 from gsl_projet.models import Projet
+from gsl_projet.services import ProjetService
 from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
@@ -91,7 +92,9 @@ def projets(simulation, perimetre_departemental):
                     porteur_de_projet_nature=epci,
                 )
                 projet_2024 = ProjetFactory(
-                    dossier_ds=dossier_2024, demandeur=demandeur
+                    dossier_ds=dossier_2024,
+                    demandeur=demandeur,
+                    status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 )
                 projets.append(projet_2024)
 
@@ -105,7 +108,9 @@ def projets(simulation, perimetre_departemental):
                     porteur_de_projet_nature=commune,
                 )
                 projet_2025 = ProjetFactory(
-                    dossier_ds=dossier_2025, demandeur=demandeur
+                    dossier_ds=dossier_2025,
+                    demandeur=demandeur,
+                    status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 )
                 projets.append(projet_2025)
 
@@ -121,7 +126,9 @@ def projets(simulation, perimetre_departemental):
                     porteur_de_projet_nature=commune,
                 )
                 projet_2024 = ProjetFactory(
-                    dossier_ds=dossier_2024, demandeur=demandeur
+                    dossier_ds=dossier_2024,
+                    demandeur=demandeur,
+                    status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 )
                 projets.append(projet_2024)
 
@@ -135,7 +142,9 @@ def projets(simulation, perimetre_departemental):
                     porteur_de_projet_nature=epci,
                 )
                 projet_2025 = ProjetFactory(
-                    dossier_ds=dossier_2025, demandeur=demandeur
+                    dossier_ds=dossier_2025,
+                    demandeur=demandeur,
+                    status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 )
                 projets.append(projet_2025)
     return projets
@@ -285,7 +294,7 @@ def test_view_with_filters(req, simulation, create_simulation_projets):
             SimulationProjet.STATUS_ACCEPTED,
             SimulationProjet.STATUS_PROCESSING,
         ],
-        "montant_previsionnel_min": 300_000,
+        "montant_previsionnel_min": 120_000,
         "montant_previsionnel_max": 400_000,
     }
     view = _get_view_with_filter(req, simulation, filter_params)
@@ -306,7 +315,7 @@ def test_view_with_filters(req, simulation, create_simulation_projets):
         == 2
     )
     for projet in projets:
-        assert 300_000 <= projet.simulationprojet_set.first().montant <= 400_000
+        assert 120_000 <= projet.simulationprojet_set.first().montant <= 400_000
 
 
 ## Test with multiple simulations
@@ -315,15 +324,20 @@ def test_view_with_filters(req, simulation, create_simulation_projets):
 def test_view_with_multiple_simulations(req, perimetre_departemental):
     demandeur = DemandeurFactory(departement=perimetre_departemental.departement)
 
+    state = Dossier.STATE_EN_INSTRUCTION
     dossier_2024 = DossierFactory(
-        ds_state=Dossier.STATE_EN_INSTRUCTION,
+        ds_state=state,
         ds_date_depot=datetime(2023, 10, 1, tzinfo=UTC),
         ds_date_traitement=datetime(2024, 1, 1, tzinfo=UTC),
         annotations_montant_accorde=150_000,
         demande_montant=200_000,
         demande_dispositif_sollicite="DETR",
     )
-    ProjetFactory(dossier_ds=dossier_2024, demandeur=demandeur)
+    ProjetFactory(
+        dossier_ds=dossier_2024,
+        demandeur=demandeur,
+        status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
+    )
 
     enveloppe = DetrEnveloppeFactory(
         perimetre=perimetre_departemental, annee=2024, montant=1_000_000
@@ -348,8 +362,8 @@ def test_view_with_multiple_simulations(req, perimetre_departemental):
         req,
         simulation_1,
         {
-            "montant_previsionnel_min": 180_000,
-            "montant_previsionnel_max": 220_000,
+            "montant_previsionnel_min": 130_000,
+            "montant_previsionnel_max": 180_000,
         },
     )
     projets = view.get_projet_queryset()
@@ -604,7 +618,7 @@ def test_patch_montant_simulation_projet(
 
     assert response.status_code == 200
     assert updated_simulation_projet.montant == Decimal("1267.32")
-    assert updated_simulation_projet.taux == 13.0
+    assert updated_simulation_projet.taux == Decimal("12.67")
     assert (
         '<span hx-swap-oob="innerHTML" id="total-amount-granted">1\xa0267\xa0€</span>'
         in response.content.decode()

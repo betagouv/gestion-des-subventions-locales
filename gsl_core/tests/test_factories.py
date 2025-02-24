@@ -1,6 +1,5 @@
 import pytest
 from django.test import Client
-from requests import Request
 
 from ..models import (
     Adresse,
@@ -20,7 +19,6 @@ from .factories import (
     DepartementFactory,
     PerimetreFactory,
     RegionFactory,
-    RequestFactory,
 )
 
 pytestmark = pytest.mark.django_db
@@ -33,7 +31,6 @@ test_data = (
     (CommuneFactory, Commune),
     (AdresseFactory, Adresse),
     (PerimetreFactory, Perimetre),
-    (RequestFactory, Request),
 )
 
 

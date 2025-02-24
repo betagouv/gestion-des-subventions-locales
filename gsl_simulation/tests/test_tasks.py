@@ -14,6 +14,7 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
+from gsl_projet.services import ProjetService
 from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
@@ -64,6 +65,7 @@ def detr_projets(departement_perimetre):
     ]:
         projets.append(
             ProjetFactory(
+                status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 dossier_ds=DossierFactory(
                     demande_montant=montant,
                     demande_dispositif_sollicite="DETR",
@@ -95,6 +97,7 @@ def dsil_projets(departement_perimetre):
     ]:
         projets.append(
             ProjetFactory(
+                status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 dossier_ds=DossierFactory(
                     demande_montant=montant,
                     demande_dispositif_sollicite="DSIL",

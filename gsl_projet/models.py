@@ -194,6 +194,7 @@ class Projet(models.Model):
     @transition(field=status, source="*", target=STATUS_ACCEPTED)
     def accept(self, montant: float, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
+        from gsl_programmation.services.enveloppe_service import EnveloppeService
         from gsl_projet.services import ProjetService
         from gsl_simulation.models import SimulationProjet
 
@@ -205,9 +206,12 @@ class Projet(models.Model):
             taux=taux,
         )
 
+        # TODO test this ?
+        parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
+
         programmation_projet, is_created = ProgrammationProjet.objects.get_or_create(
             projet=self,
-            enveloppe=enveloppe,
+            enveloppe=parent_enveloppe,
             defaults={
                 "montant": montant,
                 "taux": taux,

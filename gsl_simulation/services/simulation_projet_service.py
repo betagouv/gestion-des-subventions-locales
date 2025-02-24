@@ -1,7 +1,6 @@
 from decimal import Decimal
 
 from gsl_core.models import Perimetre
-from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
 from gsl_simulation.models import Simulation, SimulationProjet
@@ -107,8 +106,9 @@ class SimulationProjetService:
     @classmethod
     def _accept_a_simulation_projet(cls, simulation_projet: SimulationProjet):
         projet = simulation_projet.projet
-        enveloppe = EnveloppeService.get_parent_enveloppe(simulation_projet.enveloppe)
-        projet.accept(montant=simulation_projet.montant, enveloppe=enveloppe)
+        projet.accept(
+            montant=simulation_projet.montant, enveloppe=simulation_projet.enveloppe
+        )
         projet.save()
 
         updated_simulation_projet = SimulationProjet.objects.get(

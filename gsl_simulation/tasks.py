@@ -3,6 +3,7 @@ from celery import shared_task
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.models import Projet
 from gsl_simulation.models import Simulation, SimulationProjet
+from gsl_simulation.services.simulation_projet_service import SimulationProjetService
 
 STATUS_MAPPINGS = {
     Dossier.STATE_ACCEPTE: SimulationProjet.STATUS_ACCEPTED,
@@ -25,20 +26,6 @@ def add_enveloppe_projets_to_simulation(simulation_id):
     selected_projets = selected_projets.for_current_year()
 
     for projet in selected_projets:
-        # TODO use create_or_update_simulation_projet_from_projet
-        asked_amount = projet.dossier_ds.demande_montant or 0
-        try:
-            taux = asked_amount * 100 / projet.assiette_or_cout_total
-        except (ZeroDivisionError, TypeError):
-            taux = 0
-
-        simulation_projet, _ = SimulationProjet.objects.get_or_create(
-            projet=projet,
-            enveloppe=simulation.enveloppe,
-            simulation=simulation,
-            defaults={
-                "montant": asked_amount,
-                "taux": taux,
-                "status": STATUS_MAPPINGS[projet.dossier_ds.ds_state],
-            },
+        SimulationProjetService.create_or_update_simulation_projet_from_projet(
+            projet, simulation_id
         )
