@@ -15,15 +15,10 @@ def update_projet_from_dossier(ds_dossier_number):
     ProjetService.get_or_create_from_ds_dossier(ds_dossier)
 
 
-# TODO test
 @shared_task
 def update_projet_and_its_simulation_and_programmation_projets_from_dossier(
     ds_dossier_number,
 ):
-    # doit trouver la bonne enveloppe.
-    # envoyer le montant adéquat
-    # gère la suppression si un ProgrammationProjet existe mais avec la mauvaise enveloppe (dotation != annotation_dotation)
-    # dans les transitions, gérer le reste ?
     ds_dossier = Dossier.objects.get(ds_number=ds_dossier_number)
     projet = ProjetService.get_or_create_from_ds_dossier(ds_dossier)
     SimulationProjetService.create_or_update_simulation_projets_from_projet(projet)

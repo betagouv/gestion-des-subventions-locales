@@ -83,3 +83,16 @@ def test_accept_projet_update_programmation_projet():
     assert programmation_projet.montant == 5_000
     assert programmation_projet.taux == Decimal("55.56")
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
+
+
+@pytest.mark.django_db
+def test_accept_projet_select_parent_enveloppe():
+    projet = ProjetFactory(assiette=9_000, status=Projet.STATUS_PROCESSING)
+    parent_enveloppe = DetrEnveloppeFactory()
+    child_enveloppe = DetrEnveloppeFactory(deleguee_by=parent_enveloppe)
+    projet.accept(montant=5_000, enveloppe=child_enveloppe)
+
+    programmation_projets = ProgrammationProjet.objects.filter(projet=projet)
+
+    assert programmation_projets.count() == 1
+    assert programmation_projets.first().enveloppe == parent_enveloppe

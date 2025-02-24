@@ -16,7 +16,6 @@ class ProgrammationProjetService:
     ]
 
     @classmethod
-    # TODO put maximum of this logic in projet transitions
     def create_or_update_from_projet(cls, projet: Projet):
         if projet.status is None:
             logging.error(f"Projet {projet} is missing status")

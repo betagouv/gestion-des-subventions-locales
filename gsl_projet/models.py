@@ -207,7 +207,6 @@ class Projet(models.Model):
             taux=taux,
         )
 
-        # TODO test this ?
         parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
 
         programmation_projet, is_created = ProgrammationProjet.objects.get_or_create(
