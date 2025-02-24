@@ -151,7 +151,7 @@ def projets(simulation, perimetre_departemental):
 
 
 @pytest.mark.django_db
-def test_simulation_view_status_code(req, view, simulations):
+def test_simulation_list_view(req, view, simulations):
     url = reverse("simulation:simulation-list")
     view.object_list = simulations
     view.request = req.get(url)
@@ -194,9 +194,7 @@ def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
     assert enveloppe_data["type"] == "DETR"
     assert enveloppe_data["montant"] == 1_000_000
     assert enveloppe_data["perimetre"] == perimetre_departemental
-    assert (
-        enveloppe_data["validated_projets_count"] == 0
-    )  # TODO tester quand on aura implémenter l'initialisation des projets programmés depuis les dossiers DS
+    assert enveloppe_data["validated_projets_count"] == 0
     assert enveloppe_data["refused_projets_count"] == 0
     assert enveloppe_data["projets_count"] == 5
     assert enveloppe_data["demandeurs"] == 2
