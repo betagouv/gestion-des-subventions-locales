@@ -409,3 +409,18 @@ def test_is_simulation_projet_in_perimetre_arrondissement():
         )
         is False
     )
+
+
+@pytest.mark.parametrize(
+    "projet_status, simulation_projet_status_expected",
+    (
+        (Projet.STATUS_ACCEPTED, SimulationProjet.STATUS_ACCEPTED),
+        (Projet.STATUS_REFUSED, SimulationProjet.STATUS_REFUSED),
+        (Projet.STATUS_PROCESSING, SimulationProjet.STATUS_PROCESSING),
+        (Projet.STATUS_UNANSWERED, SimulationProjet.STATUS_REFUSED),
+    ),
+)
+def test_get_simulation_projet_status(projet_status, simulation_projet_status_expected):
+    projet = ProjetFactory.build(status=projet_status)
+    status = SimulationProjetService.get_simulation_projet_status(projet)
+    assert status == simulation_projet_status_expected

@@ -98,7 +98,6 @@ class SimulationProjetService:
         Projet.STATUS_PROCESSING: SimulationProjet.STATUS_PROCESSING,
     }
 
-    # TODO: Tests
     @classmethod
     def get_simulation_projet_status(cls, projet: Projet):
         return cls.PROJET_STATUS_TO_SIMULATION_PROJET_STATUS.get(projet.status)
