@@ -1,4 +1,5 @@
 from decimal import Decimal
+from urllib.parse import urlencode
 
 import pytest
 from django.urls import reverse
@@ -300,7 +301,11 @@ def test_patch_projet_allowed_for_staff_user(
         "simulation:patch-simulation-projet-taux",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_staff_user_logged.patch(url, data="taux=0.5", follow=True)
+    response = client_with_staff_user_logged.patch(
+        url,
+        data=urlencode({"taux": "0.5"}),
+        follow=True,
+    )
     assert response.status_code == 200
 
     url = reverse(
