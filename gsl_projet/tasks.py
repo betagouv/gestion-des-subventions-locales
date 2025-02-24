@@ -16,7 +16,14 @@ def update_projet_from_dossier(ds_dossier_number):
 
 
 @shared_task
-def update_projet_and_its_simulation_and_programmation_projets_from_dossier(
+def create_all_projets_from_dossiers():
+    dossiers = Dossier.objects.exclude(ds_state="")
+    for dossier in dossiers.all():
+        update_projet_from_dossier.delay(dossier.ds_number)
+
+
+@shared_task
+def create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(
     ds_dossier_number,
 ):
     ds_dossier = Dossier.objects.get(ds_number=ds_dossier_number)
@@ -26,7 +33,9 @@ def update_projet_and_its_simulation_and_programmation_projets_from_dossier(
 
 
 @shared_task
-def create_all_projets_from_dossiers():
+def create_or_update_projets_and_its_simulation_and_programmation_projets_from_all_dossiers():
     dossiers = Dossier.objects.exclude(ds_state="")
     for dossier in dossiers.all():
-        update_projet_from_dossier.delay(dossier.ds_number)
+        create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier.delay(
+            dossier.ds_number
+        )

@@ -13,7 +13,7 @@ from gsl_programmation.tests.factories import (
 from gsl_projet.models import Projet
 from gsl_projet.tasks import (
     create_all_projets_from_dossiers,
-    update_projet_and_its_simulation_and_programmation_projets_from_dossier,
+    create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier,
 )
 from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
@@ -30,7 +30,7 @@ def test_create_all_projets():
 
 
 @pytest.mark.django_db
-def test_update_projet_and_its_simulation_and_programmation_projets_from_dossier_with_construction_one():
+def test_create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier_with_construction_one():
     dossier = DossierFactory(
         ds_state=Dossier.STATE_EN_CONSTRUCTION,
         annotations_dotation=Dossier.DOTATION_DETR,
@@ -45,7 +45,7 @@ def test_update_projet_and_its_simulation_and_programmation_projets_from_dossier
         projet=projet, status=ProgrammationProjet.STATUS_ACCEPTED
     )
 
-    update_projet_and_its_simulation_and_programmation_projets_from_dossier(
+    create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(
         dossier.ds_number
     )
 
@@ -60,7 +60,7 @@ def test_update_projet_and_its_simulation_and_programmation_projets_from_dossier
 
 
 @pytest.mark.django_db
-def test_update_projet_and_its_simulation_and_programmation_projets_from_dossier_with_accepted():
+def test_create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier_with_accepted():
     perimetre = PerimetreDepartementalFactory(arrondissement=None)
     enveloppe = DetrEnveloppeFactory(perimetre=perimetre)
     demandeur = DemandeurFactory(departement=perimetre.departement)
@@ -81,7 +81,7 @@ def test_update_projet_and_its_simulation_and_programmation_projets_from_dossier
     ProgrammationProjetFactory(
         projet=projet, status=ProgrammationProjet.STATUS_REFUSED, enveloppe=enveloppe
     )
-    update_projet_and_its_simulation_and_programmation_projets_from_dossier(
+    create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(
         dossier.ds_number
     )
 
@@ -99,7 +99,7 @@ def test_update_projet_and_its_simulation_and_programmation_projets_from_dossier
 
 
 @pytest.mark.django_db
-def test_update_projet_and_its_simulation_and_programmation_projets_from_dossier_with_refused():
+def test_create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier_with_refused():
     perimetre = PerimetreDepartementalFactory(arrondissement=None)
     enveloppe = DetrEnveloppeFactory(perimetre=perimetre)
     demandeur = DemandeurFactory(departement=perimetre.departement)
@@ -121,7 +121,7 @@ def test_update_projet_and_its_simulation_and_programmation_projets_from_dossier
         montant=500,
         taux=10,
     )
-    update_projet_and_its_simulation_and_programmation_projets_from_dossier(
+    create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(
         dossier.ds_number
     )
 
