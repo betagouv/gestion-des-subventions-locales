@@ -8,7 +8,8 @@
     <select class="fr-select gsl-projet-table__select input-simulation-projet-{{ simu.pk }}"
             id="status-select"
             name="status"
-            onchange="handleStatusChange(this)">
+            onchange="handleStatusChange(this)"
+            {% if simu.status == 'valid' %}disabled{% endif %}>
         {% for key, value in available_states %}
             <option value={{ key }} {% if simu.status == key %} selected {% endif %}>
                 {{ value }}
