@@ -89,13 +89,20 @@
 put it in js file
 {% endcomment %}
 {% block extra_js %}
+    <script src="{% static 'js/htmx.min.js' %}" defer></script>
     <script>
         let selectedElement = null;
-        let previousValue = null;
+
+        function handleStatusChange(select) {
+            if (select.value === "valid") {
+                showConfirmationModal(select);
+            } else {
+                htmx.trigger(select.form, 'status-confirmed');  // Déclenche le PATCH HTMX
+            }
+        }
 
         function showConfirmationModal(select) {
             selectedElement = select;
-            previousValue = select.value;
             modal = document.getElementById('accept-confimation-modal')
             dsfr(modal).modal.disclose()
         }
