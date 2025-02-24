@@ -26,6 +26,9 @@ from .factories import (
 pytestmark = pytest.mark.django_db(transaction=True)
 
 
+# General tests ========================================================================
+
+
 def test_manager():
     ProjetFactory.create_batch(10)
     assert Projet.objects.all().count() == 10
@@ -48,6 +51,9 @@ def test_dossier_ds_join(django_assert_num_queries):
     assert "dossier_ds" in first_sql_query
 
 
+# Filter on perimetre ==================================================================
+
+
 def test_filter_perimetre_arrondissement():
     # Arrange
     arrondissement = ArrondissementFactory()
@@ -66,7 +72,7 @@ def test_filter_perimetre_arrondissement():
     assert unrelated_projet not in arrondissement_projets
 
 
-# --------
+# Filter on user =======================================================================
 
 
 @pytest.fixture
@@ -152,7 +158,7 @@ def test_for_normal_user_with_perimetre(departement, projets):
     assert projets[1] in user_projects
 
 
-# ----
+# Filter included_in_enveloppe =========================================================
 
 
 @pytest.mark.django_db
@@ -228,6 +234,11 @@ def for_year_with_projet_to_display(state, ds_date_traitement):
     assert qs.count() == 1
 
 
+# Filter for_enveloppe =================================================================
+
+# Type ---------------------------------------------------------------------------------
+
+
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "projet_type, enveloppe_type, count",
@@ -258,7 +269,7 @@ def test_for_enveloppe_with_projet_type_and_enveloppe_type(
     assert qs.count() == count
 
 
-## Date
+# Date ---------------------------------------------------------------------------------
 
 
 @pytest.mark.django_db
@@ -284,6 +295,11 @@ def test_for_year_2024_and_for_not_processed_states(submitted_year, count):
     qs = Projet.objects.included_in_enveloppe(enveloppe)
 
     assert qs.count() == count
+
+
+# Filter processed_in_enveloppe ========================================================
+
+# Date ---------------------------------------------------------------------------------
 
 
 @pytest.mark.django_db
