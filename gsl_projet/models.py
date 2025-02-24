@@ -43,7 +43,7 @@ class ProjetQuerySet(models.QuerySet):
         if perimetre.departement:
             return self.filter(perimetre__departement=perimetre.departement)
         if perimetre.region:
-            return self.filter(perimetre__departement__region=perimetre.region)
+            return self.filter(perimetre__region=perimetre.region)
 
     def for_current_year(self):
         return self.not_processed_before_the_start_of_the_year(date.today().year)
