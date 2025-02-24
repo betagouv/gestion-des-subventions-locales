@@ -3,7 +3,7 @@ import logging
 from django.core.paginator import Paginator
 from django.db.models import Prefetch, Sum
 from django.forms import NumberInput
-from django.http import HttpRequest, JsonResponse
+from django.http import Http404, HttpRequest, JsonResponse
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import resolve, reverse
@@ -311,11 +311,8 @@ def projet_must_be_in_user_perimetre(func):
         if not SimulationProjetService.is_simulation_projet_in_perimetre(
             simulation_projet, user.perimetre
         ):
-            return JsonResponse(
-                {
-                    "error": "You are not allowed to edit this project",
-                },
-                status=404,
+            raise Http404(
+                "No %s matches the given query." % SimulationProjet._meta.object_name
             )
 
         return func(*args, **kwargs)

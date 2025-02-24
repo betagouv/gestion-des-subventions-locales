@@ -121,7 +121,7 @@ class SimulationProjetService:
     ):
         projet_arrondissement = simulation_projet.projet.demandeur.arrondissement
         if perimetre.arrondissement is not None:
-            return perimetre.arrondissement.pk == projet_arrondissement.pk
+            return perimetre.arrondissement_id == projet_arrondissement.pk
         if perimetre.departement is not None:
-            return perimetre.departement.pk == projet_arrondissement.departement.pk
-        return perimetre.region.pk == projet_arrondissement.departement.region.pk
+            return perimetre.departement_id == projet_arrondissement.departement_id
+        return perimetre.region_id == projet_arrondissement.departement.region_id
