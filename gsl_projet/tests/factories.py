@@ -28,14 +28,7 @@ class ProjetFactory(factory.django.DjangoModelFactory):
     address = factory.SubFactory(AdresseFactory)
     departement = factory.SubFactory(DepartementFactory)
     demandeur = factory.SubFactory(DemandeurFactory)
-    status = factory.fuzzy.FuzzyChoice(
-        [
-            Projet.STATUS_ACCEPTED,
-            Projet.STATUS_PROCESSING,
-            Projet.STATUS_REFUSED,
-            Projet.STATUS_UNANSWERED,
-        ]
-    )
+    status = factory.fuzzy.FuzzyChoice(choice[0] for choice in Projet.STATUS_CHOICES)
 
 
 class SubmittedProjetFactory(ProjetFactory):
