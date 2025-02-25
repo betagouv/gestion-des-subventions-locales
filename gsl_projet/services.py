@@ -95,12 +95,14 @@ class ProjetService:
         return ordering_map.get(ordering, None)
 
     @classmethod
-    def compute_taux_from_montant(cls, projet: Projet, new_montant: float):
+    def compute_taux_from_montant(
+        cls, projet: Projet, new_montant: float | Decimal
+    ) -> Decimal:
         new_taux = (
             round(
                 (Decimal(new_montant) / Decimal(projet.assiette_or_cout_total)) * 100, 2
             )
             if projet.assiette_or_cout_total
-            else 0
+            else Decimal(0)
         )
         return new_taux

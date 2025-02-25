@@ -19,35 +19,34 @@ class SimulationProjetService:
     def create_or_update_simulation_projet_from_projet(
         cls, projet: Projet, simulation_id: int
     ):
-        try:
-            simulation_projet = SimulationProjet.objects.get(
-                projet=projet, simulation_id=simulation_id
-            )
-        except SimulationProjet.DoesNotExist:
-            simulation = Simulation.objects.get(id=simulation_id)
-            simulation_projet = SimulationProjet(
-                projet=projet,
-                enveloppe_id=simulation.enveloppe_id,
-                simulation_id=simulation_id,
-            )
+        """
+        Create or update a SimulationProjet from a Projet.
+        """
+        simulation = Simulation.objects.get(id=simulation_id)
         montant = cls.get_initial_montant_from_projet(projet)
-        simulation_projet.taux = (
-            projet.dossier_ds.annotations_taux
-            or ProjetService.compute_taux_from_montant(projet, montant)
+        simulation_projet, _ = SimulationProjet.objects.update_or_create(
+            projet=projet,
+            simulation_id=simulation_id,
+            defaults={
+                "enveloppe_id": simulation.enveloppe_id,
+                "montant": montant,
+                "taux": (
+                    projet.dossier_ds.annotations_taux
+                    or ProjetService.compute_taux_from_montant(projet, montant)
+                ),
+                "status": cls.get_simulation_projet_status(projet),
+            },
         )
-        simulation_projet.montant = montant
-        simulation_projet.status = cls.get_simulation_projet_status(projet)
-        simulation_projet.save()
 
         return simulation_projet
 
     @classmethod
-    def get_initial_montant_from_projet(cls, projet: Projet):
+    def get_initial_montant_from_projet(cls, projet: Projet) -> Decimal:
         if projet.dossier_ds.annotations_montant_accorde:
             return projet.dossier_ds.annotations_montant_accorde
         if projet.dossier_ds.demande_montant:
             return projet.dossier_ds.demande_montant
-        return 0
+        return Decimal(0)
 
     @classmethod
     def update_status(cls, simulation_projet: SimulationProjet, new_status: str):
