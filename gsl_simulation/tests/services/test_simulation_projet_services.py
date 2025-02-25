@@ -3,8 +3,6 @@ from unittest import mock
 import pytest
 
 from gsl_core.tests.factories import (
-    ArrondissementFactory,
-    DepartementFactory,
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
@@ -197,7 +195,7 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
 def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_mother_enveloppe():
     mother_enveloppe = DetrEnveloppeFactory()
     child_enveloppe = DetrEnveloppeFactory(deleguee_by=mother_enveloppe)
-    projet = ProjetFactory(demandeur__departement=child_enveloppe.perimetre.departement)
+    projet = ProjetFactory(perimetre=child_enveloppe.perimetre)
     simulation_projet = SimulationProjetFactory(
         projet=projet,
         status=SimulationProjet.STATUS_PROCESSING,
@@ -315,13 +313,11 @@ def test_update_montant_of_accepted_montat(projet):
 
 @pytest.mark.django_db
 def test_is_simulation_projet_in_perimetre_regional():
-    perimetre_regional = PerimetreRegionalFactory()
-    departement = DepartementFactory(region=perimetre_regional.region)
-    arrondissement = ArrondissementFactory(departement=departement)
-    projet = ProjetFactory(
-        demandeur__departement=departement,
-        demandeur__arrondissement=arrondissement,
+    perimetre_arrondissement = PerimetreArrondissementFactory()
+    perimetre_regional = PerimetreRegionalFactory(
+        region=perimetre_arrondissement.region
     )
+    projet = ProjetFactory(perimetre=perimetre_arrondissement)
     simulation_projet = SimulationProjetFactory(projet=projet)
 
     assert (
@@ -331,11 +327,8 @@ def test_is_simulation_projet_in_perimetre_regional():
         is True
     )
 
-    other_arrondissement = ArrondissementFactory()
-    other_projet = ProjetFactory(
-        demandeur__departement=other_arrondissement.departement,
-        demandeur__arrondissement=other_arrondissement,
-    )
+    other_arrondissement_perimetre = PerimetreArrondissementFactory()
+    other_projet = ProjetFactory(perimetre=other_arrondissement_perimetre)
     other_simulation_projet = SimulationProjetFactory(projet=other_projet)
 
     assert (
@@ -348,14 +341,11 @@ def test_is_simulation_projet_in_perimetre_regional():
 
 @pytest.mark.django_db
 def test_is_simulation_projet_in_perimetre_departemental():
-    perimetre_departemental = PerimetreDepartementalFactory()
-    arrondissement = ArrondissementFactory(
-        departement=perimetre_departemental.departement
+    perimetre_arrondissement = PerimetreArrondissementFactory()
+    perimetre_departemental = PerimetreDepartementalFactory(
+        departement=perimetre_arrondissement.departement
     )
-    projet = ProjetFactory(
-        demandeur__departement=perimetre_departemental.departement,
-        demandeur__arrondissement=arrondissement,
-    )
+    projet = ProjetFactory(perimetre=perimetre_arrondissement)
     simulation_projet = SimulationProjetFactory(projet=projet)
 
     assert (
@@ -365,11 +355,8 @@ def test_is_simulation_projet_in_perimetre_departemental():
         is True
     )
 
-    other_arrondissement = ArrondissementFactory()
-    other_projet = ProjetFactory(
-        demandeur__departement=other_arrondissement.departement,
-        demandeur__arrondissement=other_arrondissement,
-    )
+    other_arrondissement = PerimetreArrondissementFactory()
+    other_projet = ProjetFactory(perimetre=other_arrondissement)
     other_simulation_projet = SimulationProjetFactory(projet=other_projet)
 
     assert (
@@ -383,10 +370,7 @@ def test_is_simulation_projet_in_perimetre_departemental():
 @pytest.mark.django_db
 def test_is_simulation_projet_in_perimetre_arrondissement():
     perimetre_arrondissement = PerimetreArrondissementFactory()
-    projet = ProjetFactory(
-        demandeur__departement=perimetre_arrondissement.departement,
-        demandeur__arrondissement=perimetre_arrondissement.arrondissement,
-    )
+    projet = ProjetFactory(perimetre=perimetre_arrondissement)
     simulation_projet = SimulationProjetFactory(projet=projet)
 
     assert (
@@ -396,11 +380,8 @@ def test_is_simulation_projet_in_perimetre_arrondissement():
         is True
     )
 
-    other_arrondissement = ArrondissementFactory()
-    other_projet = ProjetFactory(
-        demandeur__departement=other_arrondissement.departement,
-        demandeur__arrondissement=other_arrondissement,
-    )
+    other_arrondissement_perimetre = PerimetreArrondissementFactory()
+    other_projet = ProjetFactory(perimetre=other_arrondissement_perimetre)
     other_simulation_projet = SimulationProjetFactory(projet=other_projet)
 
     assert (

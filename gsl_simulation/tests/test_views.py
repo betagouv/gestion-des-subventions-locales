@@ -74,9 +74,7 @@ def projets(simulation, perimetre_departemental):
     commune = NaturePorteurProjetFactory(label="Commune")
 
     for perimetre in (perimetre_departemental, other_perimeter):
-        demandeur = DemandeurFactory(
-            arrondissement=perimetre.arrondissement, departement=perimetre.departement
-        )
+        demandeur = DemandeurFactory()
         for type in ("DETR", "DSIL"):
             for state in (
                 Dossier.STATE_ACCEPTE,
@@ -117,10 +115,7 @@ def projets(simulation, perimetre_departemental):
                     status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 )
                 projets.append(projet_2025)
-            demandeur = DemandeurFactory(
-                arrondissement=perimetre.arrondissement,
-                departement=perimetre.departement,
-            )
+            demandeur = DemandeurFactory()
             for state in (Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION):
                 dossier_2024 = DossierFactory(
                     ds_state=state,
@@ -505,7 +500,7 @@ def simulation_projet(collegue) -> SimulationProjet:
     return SimulationProjetFactory(
         projet=ProjetFactory(
             status=Projet.STATUS_PROCESSING,
-            demandeur__arrondissement__departement=collegue.perimetre.departement,
+            perimetre=collegue.perimetre,
         ),
         status=SimulationProjet.STATUS_PROCESSING,
         montant=1000,
@@ -567,7 +562,7 @@ def accepted_simulation_projet(collegue) -> SimulationProjet:
         projet=ProjetFactory(
             status=Projet.STATUS_PROCESSING,
             assiette=10_000,
-            demandeur__arrondissement__departement=collegue.perimetre.departement,
+            perimetre=collegue.perimetre,
         ),
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=1000,

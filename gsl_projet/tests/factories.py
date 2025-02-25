@@ -2,7 +2,6 @@ import factory
 
 from gsl_core.tests.factories import (
     AdresseFactory,
-    ArrondissementFactory,
     DepartementFactory,
 )
 from gsl_demarches_simplifiees.models import Dossier
@@ -19,8 +18,6 @@ class DemandeurFactory(factory.django.DjangoModelFactory):
     name = factory.Faker("city", locale="fr_FR")
 
     address = factory.SubFactory(AdresseFactory)
-    arrondissement = factory.SubFactory(ArrondissementFactory)
-    departement = factory.SubFactory(DepartementFactory)
 
 
 class ProjetFactory(factory.django.DjangoModelFactory):

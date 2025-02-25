@@ -2,7 +2,11 @@ from unittest import mock
 
 import pytest
 
-from gsl_core.tests.factories import PerimetreDepartementalFactory
+from gsl_core.tests.factories import (
+    CommuneFactory,
+    PerimetreArrondissementFactory,
+    PerimetreDepartementalFactory,
+)
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 from gsl_programmation.models import ProgrammationProjet
@@ -15,7 +19,7 @@ from gsl_projet.tasks import (
     create_all_projets_from_dossiers,
     create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier,
 )
-from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
+from gsl_projet.tests.factories import ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationProjetFactory
 
@@ -29,13 +33,38 @@ def test_create_all_projets():
         task_mock.assert_called_once_with(dossier_en_construction.ds_number)
 
 
+@pytest.fixture
+def commune():
+    return CommuneFactory()
+
+
+@pytest.fixture
+def perimetre_arrondissement(commune):
+    return PerimetreArrondissementFactory(arrondissement=commune.arrondissement)
+
+
+@pytest.fixture
+def perimetre_departement(perimetre_arrondissement):
+    return PerimetreDepartementalFactory(
+        departement=perimetre_arrondissement.departement
+    )
+
+
+@pytest.fixture
+def detr_enveloppe(perimetre_departement):
+    return DetrEnveloppeFactory(perimetre=perimetre_departement)
+
+
 @pytest.mark.django_db
-def test_create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier_with_construction_one():
+def test_create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier_with_construction_one(
+    commune, perimetre_departement
+):
     dossier = DossierFactory(
         ds_state=Dossier.STATE_EN_CONSTRUCTION,
         annotations_dotation=Dossier.DOTATION_DETR,
         demande_montant=400,
         finance_cout_total=4_000,
+        ds_demandeur__address__commune=commune,
     )
     projet = ProjetFactory(dossier_ds=dossier, status=Projet.STATUS_ACCEPTED)
     SimulationProjetFactory.create_batch(
@@ -60,26 +89,25 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
 
 
 @pytest.mark.django_db
-def test_create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier_with_accepted():
-    perimetre = PerimetreDepartementalFactory(arrondissement=None)
-    enveloppe = DetrEnveloppeFactory(perimetre=perimetre)
-    demandeur = DemandeurFactory(departement=perimetre.departement)
+def test_create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier_with_accepted(
+    commune, detr_enveloppe
+):
     dossier = DossierFactory(
         ds_state=Dossier.STATE_ACCEPTE,
+        ds_demandeur__address__commune=commune,
         annotations_dotation=Dossier.DOTATION_DETR,
         annotations_montant_accorde=5_000,
         annotations_taux=10,
         annotations_assiette=50_000,
-        ds_demandeur__address__commune__departement=demandeur.departement,
     )
-    projet = ProjetFactory(
-        dossier_ds=dossier, status=Projet.STATUS_REFUSED, demandeur=demandeur
-    )
+    projet = ProjetFactory(dossier_ds=dossier, status=Projet.STATUS_REFUSED)
     SimulationProjetFactory.create_batch(
         2, projet=projet, status=SimulationProjet.STATUS_REFUSED, montant=0, taux=0
     )
     ProgrammationProjetFactory(
-        projet=projet, status=ProgrammationProjet.STATUS_REFUSED, enveloppe=enveloppe
+        projet=projet,
+        status=ProgrammationProjet.STATUS_REFUSED,
+        enveloppe=detr_enveloppe,
     )
     create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(
         dossier.ds_number
@@ -99,25 +127,22 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
 
 
 @pytest.mark.django_db
-def test_create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier_with_refused():
-    perimetre = PerimetreDepartementalFactory(arrondissement=None)
-    enveloppe = DetrEnveloppeFactory(perimetre=perimetre)
-    demandeur = DemandeurFactory(departement=perimetre.departement)
+def test_create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier_with_refused(
+    commune, detr_enveloppe
+):
     dossier = DossierFactory(
         ds_state=Dossier.STATE_REFUSE,
         annotations_dotation=Dossier.DOTATION_DETR,
-        ds_demandeur__address__commune__departement=demandeur.departement,
+        ds_demandeur__address__commune=commune,
     )
-    projet = ProjetFactory(
-        dossier_ds=dossier, status=Projet.STATUS_ACCEPTED, demandeur=demandeur
-    )
+    projet = ProjetFactory(dossier_ds=dossier, status=Projet.STATUS_ACCEPTED)
     SimulationProjetFactory.create_batch(
         2, projet=projet, status=SimulationProjet.STATUS_ACCEPTED, montant=500, taux=10
     )
     ProgrammationProjetFactory(
         projet=projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
-        enveloppe=enveloppe,
+        enveloppe=detr_enveloppe,
         montant=500,
         taux=10,
     )

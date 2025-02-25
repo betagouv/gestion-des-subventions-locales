@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import pytest
 
-from gsl_core.tests.factories import PerimetreFactory
+from gsl_core.tests.factories import PerimetreDepartementalFactory, PerimetreFactory
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.services.programmation_projet_service import (
     ProgrammationProjetService,
@@ -15,26 +15,26 @@ from gsl_programmation.tests.factories import (
     ProgrammationProjetFactory,
 )
 from gsl_projet.models import Projet
-from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
+from gsl_projet.tests.factories import ProjetFactory
 
 
 @pytest.fixture
-def enveloppe():
-    return DetrEnveloppeFactory(annee=date.today().year)
+def perimetre():
+    return PerimetreDepartementalFactory()
 
 
 @pytest.fixture
-def demandeur(enveloppe):
-    return DemandeurFactory(departement=enveloppe.perimetre.departement)
+def enveloppe(perimetre):
+    return DetrEnveloppeFactory(annee=date.today().year, perimetre=perimetre)
 
 
 # STATUS ACCEPTED
 @pytest.fixture
-def accepted_projet(demandeur):
+def accepted_projet(perimetre):
     return ProjetFactory(
         status=Projet.STATUS_ACCEPTED,
         assiette=3_000,
-        demandeur=demandeur,
+        perimetre=perimetre,
     )
 
 
@@ -90,10 +90,10 @@ def test_create_or_update_from_projet_with_an_existing_one_and_complete_annotati
 
 @pytest.mark.django_db
 def test_create_or_update_from_projet_with_an_existing_one_with_only_dotation_in_annotations(
-    accepted_projet, enveloppe, caplog
+    perimetre, accepted_projet, enveloppe, caplog
 ):
     PerimetreFactory(
-        region=accepted_projet.demandeur.departement.region,
+        region=perimetre.departement.region,
         departement=None,
         arrondissement=None,
     )
@@ -134,11 +134,11 @@ def test_create_or_update_from_projet_with_no_existing_one_and_without_annotatio
 
 
 @pytest.fixture
-def refused_projet(demandeur):
+def refused_projet(perimetre):
     return ProjetFactory(
         status=Projet.STATUS_REFUSED,
         dossier_ds__annotations_assiette=3_000,
-        demandeur=demandeur,
+        perimetre=perimetre,
     )
 
 
@@ -189,12 +189,12 @@ def test_create_or_update_from_refused_projet_with_an_existing_one_and_complete_
 
 @pytest.mark.django_db
 def test_create_or_update_from_refused_projet_with_existing_one_with_only_dotation_in_annotations(
-    refused_projet, enveloppe
+    perimetre, refused_projet, enveloppe
 ):
     refused_projet.dossier_ds.annotations_dotation = "DSIL"
     ProgrammationProjetFactory(projet=refused_projet, enveloppe=enveloppe)
     dsil_enveloppe = DsilEnveloppeFactory(
-        perimetre__region=refused_projet.demandeur.departement.region,
+        perimetre__region=perimetre.departement.region,
         annee=date.today().year,
     )
 
@@ -288,9 +288,9 @@ def test_create_or_update_from_projet_with_other_status_without_existing_one(
 )
 @pytest.mark.django_db
 def test_create_or_update_from_projet_with_other_status_with_existing_one(
-    demandeur, enveloppe, other_status
+    perimetre, enveloppe, other_status
 ):
-    projet = ProjetFactory(status=other_status, demandeur=demandeur)
+    projet = ProjetFactory(status=other_status, perimetre=perimetre)
     ProgrammationProjetFactory(projet=projet, enveloppe=enveloppe)
 
     programmation_projet = ProgrammationProjetService.create_or_update_from_projet(

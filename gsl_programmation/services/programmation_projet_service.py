@@ -92,12 +92,12 @@ class ProgrammationProjetService:
     ) -> Perimetre | None:
         if dotation == Dossier.DOTATION_DETR:
             return Perimetre.objects.get(
-                departement=projet.demandeur.departement, arrondissement=None
+                departement=projet.perimetre.departement, arrondissement=None
             )
 
         elif dotation == Dossier.DOTATION_DSIL:
             return Perimetre.objects.get(
-                region=projet.demandeur.departement.region,
+                region=projet.perimetre.departement.region,
                 departement=None,
                 arrondissement=None,
             )

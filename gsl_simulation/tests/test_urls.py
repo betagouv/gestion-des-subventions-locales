@@ -43,15 +43,19 @@ def cote_d_or():
 
 
 @pytest.fixture
-def client_with_cote_d_or_user_logged(cote_d_or):
-    cote_d_or_perimetre = PerimetreDepartementalFactory(departement=cote_d_or)
+def cote_d_or_perimetre(cote_d_or):
+    return PerimetreDepartementalFactory(departement=cote_d_or)
+
+
+@pytest.fixture
+def client_with_cote_d_or_user_logged(cote_d_or_perimetre):
     cote_dorien_collegue = CollegueFactory(perimetre=cote_d_or_perimetre)
     return ClientWithLoggedUserFactory(cote_dorien_collegue)
 
 
 @pytest.fixture
-def cote_dorien_simulation_projet(cote_d_or):
-    projet = ProjetFactory(demandeur__arrondissement__departement=cote_d_or)
+def cote_dorien_simulation_projet(cote_d_or_perimetre):
+    projet = ProjetFactory(perimetre=cote_d_or_perimetre)
     return SimulationProjetFactory(
         projet=projet, status=SimulationProjet.STATUS_PROVISOIRE, taux=0, montant=0
     )

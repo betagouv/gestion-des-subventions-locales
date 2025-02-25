@@ -6,7 +6,7 @@ from django.db import models
 from django.db.models import Q
 from django_fsm import FSMField, transition
 
-from gsl_core.models import Adresse, Arrondissement, Collegue, Departement, Perimetre
+from gsl_core.models import Adresse, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
 
 if TYPE_CHECKING:
@@ -18,10 +18,6 @@ class Demandeur(models.Model):
     name = models.CharField("Nom")
 
     address = models.ForeignKey(Adresse, on_delete=models.PROTECT)
-    arrondissement = models.ForeignKey(
-        Arrondissement, on_delete=models.PROTECT, null=True
-    )
-    departement = models.ForeignKey(Departement, on_delete=models.PROTECT)
 
     def __str__(self):
         return f"Demandeur {self.name}"

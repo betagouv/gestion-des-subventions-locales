@@ -119,9 +119,14 @@ class SimulationProjetService:
     def is_simulation_projet_in_perimetre(
         cls, simulation_projet: SimulationProjet, perimetre: Perimetre
     ):
-        projet_arrondissement = simulation_projet.projet.demandeur.arrondissement
+        simulation_projet_perimetre = simulation_projet.projet.perimetre
         if perimetre.arrondissement is not None:
-            return perimetre.arrondissement_id == projet_arrondissement.pk
+            return (
+                perimetre.arrondissement_id
+                == simulation_projet_perimetre.arrondissement_id
+            )
         if perimetre.departement is not None:
-            return perimetre.departement_id == projet_arrondissement.departement_id
-        return perimetre.region_id == projet_arrondissement.departement.region_id
+            return (
+                perimetre.departement_id == simulation_projet_perimetre.departement_id
+            )
+        return perimetre.region_id == simulation_projet_perimetre.departement.region_id
