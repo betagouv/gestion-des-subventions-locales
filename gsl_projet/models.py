@@ -205,7 +205,7 @@ class Projet(models.Model):
 
         parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
 
-        programmation_projet, is_created = ProgrammationProjet.objects.get_or_create(
+        programmation_projet, _ = ProgrammationProjet.objects.update_or_create(
             projet=self,
             enveloppe=parent_enveloppe,
             defaults={
@@ -214,8 +214,3 @@ class Projet(models.Model):
                 "status": ProgrammationProjet.STATUS_ACCEPTED,
             },
         )
-        if not is_created:
-            programmation_projet.montant = montant
-            programmation_projet.taux = taux
-            programmation_projet.status = ProgrammationProjet.STATUS_ACCEPTED
-            programmation_projet.save()
