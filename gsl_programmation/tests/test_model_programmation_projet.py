@@ -4,12 +4,13 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
-from gsl_programmation.models import ProgrammationProjet
+from gsl_programmation.models import Enveloppe, ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
     ProgrammationProjetFactory,
 )
+from gsl_projet.models import Projet
 from gsl_projet.tests.factories import ProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -38,13 +39,80 @@ def test_i_can_accept_a_project_on_two_different_enveloppes():
     )
 
 
-def test_taux_consistency_is_checked():
-    projet = ProjetFactory(assiette=Decimal("1234.00"))
-    prog_projet = ProgrammationProjetFactory(
-        projet=projet, montant=Decimal("42"), taux=Decimal("10.00")
-    )
-    with pytest.raises(ValidationError) as exc_info:
+@pytest.fixture
+def projet() -> Projet:
+    return ProjetFactory(assiette=Decimal("1234.00"))
+
+
+def test_taux_consistency_is_valid_with_a_difference_of_more_than_a_tenth(projet):
+    for taux in [Decimal("3.39"), Decimal("3.42")]:
+        prog_projet = ProgrammationProjetFactory(
+            projet=projet, montant=Decimal("42"), taux=taux
+        )
+        with pytest.raises(ValidationError) as exc_info:
+            prog_projet.full_clean()
+
+        exception_message = exc_info.value.message_dict["taux"][0]
+        assert (
+            "Le taux et le montant de la programmation ne sont pas cohérents."
+            in str(exc_info.value)
+        )
+        assert "Taux attendu : 3.40" in exception_message
+
+
+def test_taux_consistency_is_valid_with_a_difference_of_less_than_a_tenth(projet):
+    for taux in [Decimal("3.40"), Decimal("3.41")]:
+        prog_projet = ProgrammationProjetFactory(
+            projet=projet, montant=Decimal("42"), taux=taux
+        )
         prog_projet.full_clean()
 
-    exception_message = exc_info.value.message_dict["__all__"][0]
-    assert "Taux attendu : 3.4" in exception_message
+
+@pytest.fixture
+def enveloppe() -> Enveloppe:
+    return DsilEnveloppeFactory()
+
+
+@pytest.fixture
+def enveloppe_deleguee(enveloppe) -> Enveloppe:
+    return DsilEnveloppeFactory(deleguee_by=enveloppe)
+
+
+def test_clean_programmation_on_deleguee_enveloppe(projet, enveloppe_deleguee):
+    programmation = ProgrammationProjet(
+        projet=projet,
+        enveloppe=enveloppe_deleguee,
+        montant=Decimal("100.00"),
+        taux=Decimal("8.10"),
+    )
+    with pytest.raises(ValidationError) as exc_info:
+        programmation.clean()
+    assert (
+        "Une programmation ne peut pas être faite sur une enveloppe déléguée."
+        in str(exc_info.value.message_dict["enveloppe"])
+    )
+
+
+def test_clean_valid_programmation(projet, enveloppe):
+    programmation = ProgrammationProjet(
+        projet=projet,
+        enveloppe=enveloppe,
+        montant=Decimal("100.00"),
+        taux=Decimal("8.10"),
+    )
+    programmation.clean()
+
+
+def test_clean_programmation_with_refused_status(projet, enveloppe):
+    programmation = ProgrammationProjet(
+        projet=projet,
+        enveloppe=enveloppe,
+        montant=Decimal("100.00"),
+        taux=Decimal("8.10"),
+        status=ProgrammationProjet.STATUS_REFUSED,
+    )
+    with pytest.raises(ValidationError) as exc_info:
+        programmation.clean()
+    errors = exc_info.value.message_dict
+    assert "Un projet refusé doit avoir un montant nul." in str(errors["montant"])
+    assert "Un projet refusé doit avoir un taux nul." in str(errors["taux"])

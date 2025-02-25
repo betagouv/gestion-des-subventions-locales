@@ -3,9 +3,9 @@ import logging
 from django.core.paginator import Paginator
 from django.db.models import Prefetch, Sum
 from django.forms import NumberInput
-from django.http import HttpRequest, JsonResponse
+from django.http import Http404, HttpRequest, JsonResponse
 from django.http.request import QueryDict
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import resolve, reverse
 from django.views.decorators.http import require_http_methods
 from django.views.generic.detail import DetailView
@@ -13,7 +13,7 @@ from django.views.generic.list import ListView
 from django_filters import MultipleChoiceFilter, NumberFilter
 from django_filters.views import FilterView
 
-from gsl_demarches_simplifiees.models import Dossier
+from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
@@ -71,10 +71,10 @@ class SimulationProjetListViewFilters(ProjetFilters):
     )
 
     ordered_status = (
-        SimulationProjet.STATUS_DRAFT,
+        SimulationProjet.STATUS_PROCESSING,
         SimulationProjet.STATUS_PROVISOIRE,
-        SimulationProjet.STATUS_CANCELLED,
-        SimulationProjet.STATUS_VALID,
+        SimulationProjet.STATUS_REFUSED,
+        SimulationProjet.STATUS_ACCEPTED,
     )
 
     status = MultipleChoiceFilter(
@@ -153,6 +153,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         current_page = paginator.page(page)
         context["simulations_paginator"] = current_page
         context["simulations_list"] = current_page.object_list
+        context["simulation_year"] = simulation.enveloppe.annee
         context["title"] = (
             f"{simulation.enveloppe.type} {simulation.enveloppe.annee} – {simulation.title}"
         )
@@ -196,17 +197,19 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
     def _get_enveloppe_data(self, simulation):
         enveloppe = simulation.enveloppe
         enveloppe_projets_included = Projet.objects.included_in_enveloppe(enveloppe)
-        enveloppe_projets_processed = Projet.objects.processed_in_enveloppe(enveloppe)
-
         montant_asked = enveloppe_projets_included.aggregate(
             Sum("dossier_ds__demande_montant")
         )["dossier_ds__demande_montant__sum"]
 
-        montant_accepte = enveloppe_projets_processed.filter(
-            dossier_ds__ds_state=Dossier.STATE_ACCEPTE
-        ).aggregate(Sum("dossier_ds__annotations_montant_accorde"))[
-            "dossier_ds__annotations_montant_accorde__sum"
-        ]
+        enveloppe_projets_processed = ProgrammationProjet.objects.filter(
+            enveloppe=enveloppe
+        )
+        montant_accepte = (
+            enveloppe_projets_processed.filter(
+                status=ProgrammationProjet.STATUS_ACCEPTED
+            ).aggregate(Sum("montant"))["montant__sum"]
+            or 0
+        )
 
         return {
             "type": simulation.enveloppe.type,
@@ -214,15 +217,22 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             "perimetre": simulation.enveloppe.perimetre,
             "montant_asked": montant_asked,
             "validated_projets_count": enveloppe_projets_processed.filter(
-                dossier_ds__ds_state=Dossier.STATE_ACCEPTE
+                status=ProgrammationProjet.STATUS_ACCEPTED
             ).count(),
             "montant_accepte": montant_accepte,
             "refused_projets_count": enveloppe_projets_processed.filter(
-                dossier_ds__ds_state=Dossier.STATE_REFUSE
+                status=ProgrammationProjet.STATUS_REFUSED
             ).count(),
             "demandeurs": enveloppe_projets_included.distinct("demandeur").count(),
             "projets_count": enveloppe_projets_included.count(),
         }
+
+    def render_to_response(self, context, **response_kwargs):
+        response = super().render_to_response(context, **response_kwargs)
+        response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response["Pragma"] = "no-cache"
+        response["Expires"] = "0"
+        return response
 
 
 def _get_projets_queryset_with_filters(simulation, filter_params):
@@ -284,19 +294,38 @@ def exception_handler_decorator(func):
             logging.error("An error occurred: %s", str(e))
             return JsonResponse(
                 {
-                    "success": False,
                     "error": f"An internal error has occurred : {str(e)}",
-                }
+                },
+                status=400,
             )
 
     return wrapper
 
 
-# TODO pour les fonctions ci-dessous : vérifier que l'utilisateur a les droits nécessaires
+def projet_must_be_in_user_perimetre(func):
+    def wrapper(*args, **kwargs):
+        user = args[0].user
+        if user.is_staff:
+            return func(*args, **kwargs)
+
+        simulation_projet = get_object_or_404(SimulationProjet, id=kwargs["pk"])
+        if not SimulationProjetService.is_simulation_projet_in_perimetre(
+            simulation_projet, user.perimetre
+        ):
+            raise Http404(
+                "No %s matches the given query." % SimulationProjet._meta.object_name
+            )
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+@projet_must_be_in_user_perimetre
 @exception_handler_decorator
 @require_http_methods(["POST", "PATCH"])
 def patch_taux_simulation_projet(request, pk):
-    simulation_projet = SimulationProjet.objects.get(id=pk)
+    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     data = QueryDict(request.body)
 
     new_taux = replace_comma_by_dot(data.get("taux"))
@@ -304,10 +333,11 @@ def patch_taux_simulation_projet(request, pk):
     return redirect_to_simulation_projet(request, simulation_projet)
 
 
+@projet_must_be_in_user_perimetre
 @exception_handler_decorator
 @require_http_methods(["POST", "PATCH"])
 def patch_montant_simulation_projet(request, pk):
-    simulation_projet = SimulationProjet.objects.get(id=pk)
+    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     data = QueryDict(request.body)
 
     new_montant = replace_comma_by_dot(data.get("montant"))
@@ -315,15 +345,21 @@ def patch_montant_simulation_projet(request, pk):
     return redirect_to_simulation_projet(request, simulation_projet)
 
 
+@projet_must_be_in_user_perimetre
 @exception_handler_decorator
 @require_http_methods(["POST", "PATCH"])
 def patch_status_simulation_projet(request, pk):
-    simulation_projet = SimulationProjet.objects.get(id=pk)
+    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     data = QueryDict(request.body)
-    new_status = data.get("status")
+    status = data.get("status")
 
-    SimulationProjetService.update_status(simulation_projet, new_status)
-    return redirect_to_simulation_projet(request, simulation_projet)
+    if status not in dict(SimulationProjet.STATUS_CHOICES).keys():
+        raise ValueError("Invalid status")
+
+    updated_simulation_projet = SimulationProjetService.update_status(
+        simulation_projet, status
+    )
+    return redirect_to_simulation_projet(request, updated_simulation_projet)
 
 
 def simulation_form(request):

@@ -31,9 +31,9 @@ class Simulation(models.Model):
 
     def get_projet_status_summary(self):
         default_status_summary = {
-            SimulationProjet.STATUS_DRAFT: 0,
-            SimulationProjet.STATUS_VALID: 0,
-            SimulationProjet.STATUS_CANCELLED: 0,
+            SimulationProjet.STATUS_PROCESSING: 0,
+            SimulationProjet.STATUS_ACCEPTED: 0,
+            SimulationProjet.STATUS_REFUSED: 0,
             SimulationProjet.STATUS_PROVISOIRE: 0,
             "notified": 0,  # TODO : add notified count
         }
@@ -49,15 +49,15 @@ class Simulation(models.Model):
 
 
 class SimulationProjet(models.Model):
-    STATUS_DRAFT = "draft"
-    STATUS_VALID = "valid"
-    STATUS_CANCELLED = "cancelled"
+    STATUS_PROCESSING = "draft"
+    STATUS_ACCEPTED = "valid"
+    STATUS_REFUSED = "cancelled"
     STATUS_PROVISOIRE = "provisoire"
     STATUS_CHOICES = (
-        (STATUS_DRAFT, "🔄 En traitement"),
-        (STATUS_VALID, "✅  Accepté"),
+        (STATUS_PROCESSING, "🔄 En traitement"),
+        (STATUS_ACCEPTED, "✅ Accepté"),
         (STATUS_PROVISOIRE, "✔️ Accepté provisoirement"),
-        (STATUS_CANCELLED, "❌ Refusé"),
+        (STATUS_REFUSED, "❌ Refusé"),
     )
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
     enveloppe = models.ForeignKey(Enveloppe, on_delete=models.CASCADE)
@@ -70,7 +70,7 @@ class SimulationProjet(models.Model):
     )
     taux = models.DecimalField(decimal_places=2, max_digits=5, verbose_name="Taux")
     status = models.CharField(
-        verbose_name="État", choices=STATUS_CHOICES, default=STATUS_DRAFT
+        verbose_name="État", choices=STATUS_CHOICES, default=STATUS_PROCESSING
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

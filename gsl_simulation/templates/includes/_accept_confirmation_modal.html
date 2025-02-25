@@ -1,0 +1,40 @@
+<dialog id="accept-confimation-modal" class="fr-modal">
+    <div class="fr-container fr-container--fluid fr-container-md">
+        <div class="fr-grid-row fr-grid-row--center">
+            <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
+                <div class="fr-modal__body">
+                    <div class="fr-modal__header">
+                        <button aria-controls="modal"
+                                title="Fermer"
+                                type="button"
+                                id="button-5"
+                                class="fr-btn--close fr-btn"
+                                onClick="closeModal()">
+                            Fermer
+                        </button>
+                    </div>
+                    <div class="fr-modal__content">
+                        <h1 id="modal-title" class="fr-modal__title success-color">
+                            <span class="fr-icon-checkbox-fill fr-icon--lg" aria-hidden="true"></span> Accepter le financement du projet
+                        </h1>
+                        <p>
+                            Ce projet va être accepté dans toutes les simulations dans lesquelles il a été ajouté.
+                            Il apparaîtra dans la programmation officielle DETR {{ simulation_year }}.
+                        </p>
+                        <p>
+                            Êtes-vous sûr(e) d'accepter ce projet ?
+                        </p>
+                    </div>
+                    <div class="fr-modal__footer confirmation-modal-footer">
+                        <button class="fr-btn fr-btn--secondary cancel-button" onclick="closeModal()">
+                            Annuler
+                        </button>
+                        <button class="fr-btn fr-btn--primary" id="confirmChange">
+                            Confirmer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</dialog>

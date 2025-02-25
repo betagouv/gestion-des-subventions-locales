@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from django.db import models
 from django.db.models import Q
+from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
@@ -121,6 +122,19 @@ class Projet(models.Model):
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT, null=True)
     perimetre = models.ForeignKey(Perimetre, on_delete=models.PROTECT, null=True)
 
+    STATUS_ACCEPTED = "accepted"
+    STATUS_REFUSED = "refused"
+    STATUS_PROCESSING = "processing"
+    STATUS_UNANSWERED = "unanswered"
+    STATUS_CHOICES = (
+        (STATUS_ACCEPTED, "✅ Accepté"),
+        (STATUS_REFUSED, "❌ Refusé"),
+        (STATUS_PROCESSING, "🔄 En traitement"),
+        (STATUS_UNANSWERED, "⛔️ Classé sans suite"),
+    )
+    # TODO put back protected=True, once every status transition is handled
+    status = FSMField("Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING)
+
     assiette = models.DecimalField(
         "Assiette subventionnable",
         max_digits=12,
@@ -145,28 +159,6 @@ class Projet(models.Model):
 
         return reverse("projet:get-projet", kwargs={"projet_id": self.id})
 
-    @classmethod
-    def get_or_create_from_ds_dossier(cls, ds_dossier: Dossier):
-        try:
-            projet = cls.objects.get(dossier_ds=ds_dossier)
-        except cls.DoesNotExist:
-            projet = cls(
-                dossier_ds=ds_dossier,
-            )
-        projet.address = ds_dossier.projet_adresse
-        projet.perimetre = ds_dossier.perimetre
-
-        projet.demandeur, _ = Demandeur.objects.get_or_create(
-            siret=ds_dossier.ds_demandeur.siret,
-            defaults={
-                "name": ds_dossier.ds_demandeur.raison_sociale,
-                "address": ds_dossier.ds_demandeur.address,
-            },
-        )
-
-        projet.save()
-        return projet
-
     @property
     def assiette_or_cout_total(self):
         if self.assiette:
@@ -174,7 +166,10 @@ class Projet(models.Model):
         return self.dossier_ds.finance_cout_total
 
     def get_taux_de_subvention_sollicite(self):
-        if self.assiette_or_cout_total is None:
+        if (
+            self.assiette_or_cout_total is None
+            or self.dossier_ds.demande_montant is None
+        ):
             return
         if self.assiette_or_cout_total > 0:
             return self.dossier_ds.demande_montant * 100 / self.assiette_or_cout_total
@@ -192,3 +187,30 @@ class Projet(models.Model):
             yield from self.dossier_ds.demande_eligibilite_detr.all()
         if "DSIL" in self.dossier_ds.demande_dispositif_sollicite:
             yield from self.dossier_ds.demande_eligibilite_dsil.all()
+
+    @transition(field=status, source="*", target=STATUS_ACCEPTED)
+    def accept(self, montant: float, enveloppe: "Enveloppe"):
+        from gsl_programmation.models import ProgrammationProjet
+        from gsl_programmation.services.enveloppe_service import EnveloppeService
+        from gsl_projet.services import ProjetService
+        from gsl_simulation.models import SimulationProjet
+
+        taux = ProjetService.compute_taux_from_montant(self, montant)
+
+        SimulationProjet.objects.filter(projet=self).update(
+            status=SimulationProjet.STATUS_ACCEPTED,
+            montant=montant,
+            taux=taux,
+        )
+
+        parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
+
+        programmation_projet, _ = ProgrammationProjet.objects.update_or_create(
+            projet=self,
+            enveloppe=parent_enveloppe,
+            defaults={
+                "montant": montant,
+                "taux": taux,
+                "status": ProgrammationProjet.STATUS_ACCEPTED,
+            },
+        )

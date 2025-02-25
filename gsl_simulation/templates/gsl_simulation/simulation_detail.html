@@ -80,3 +80,12 @@
     {% dsfr_pagination simulations_paginator %}
 
 {% endblock content %}
+
+{% block modal %}
+    {% include "includes/_accept_confirmation_modal.html" %}
+{% endblock modal %}
+
+{% block extra_js %}
+    <script src="{% static 'js/htmx.min.js' %}" defer></script>
+    <script src="{% static 'js/simulationProjetAcceptConfirmation.js' %}" defer></script>
+{% endblock extra_js %}

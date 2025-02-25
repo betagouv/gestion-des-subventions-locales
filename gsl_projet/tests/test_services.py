@@ -3,6 +3,8 @@ from datetime import UTC
 import pytest
 from django.utils import timezone
 
+from gsl_core.tests.factories import AdresseFactory, PerimetreArrondissementFactory
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     NaturePorteurProjetFactory,
@@ -12,6 +14,30 @@ from gsl_projet.services import ProjetService
 from gsl_projet.tests.factories import ProjetFactory
 from gsl_simulation.models import Simulation
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
+
+
+@pytest.mark.django_db
+def test_create_projet_from_dossier():
+    dossier = DossierFactory(projet_adresse=AdresseFactory())
+    demandeur_commune = dossier.ds_demandeur.address.commune
+    perimetre = PerimetreArrondissementFactory(
+        arrondissement=demandeur_commune.arrondissement,
+    )
+    assert (
+        dossier.ds_demandeur.address.commune.arrondissement == perimetre.arrondissement
+    )
+    assert dossier.ds_demandeur.address.commune.departement == perimetre.departement
+
+    projet = ProjetService.get_or_create_from_ds_dossier(dossier)
+
+    assert isinstance(projet, Projet)
+    assert projet.address is not None
+    assert projet.address.commune == dossier.projet_adresse.commune
+    assert projet.address == dossier.projet_adresse
+    assert projet.perimetre == perimetre
+
+    other_projet = ProjetService.get_or_create_from_ds_dossier(dossier)
+    assert other_projet == projet
 
 
 @pytest.fixture
@@ -92,7 +118,7 @@ def test_get_total_amount_granted(simulation):
 
 
 @pytest.fixture
-def projets_with_dossier_ds__demande_montant_not_in_simulation() -> list[Projet]:
+def projets_with_dossier_ds__demande_montant_not_in_simulation() -> None:
     for amount in (10_000, 2_000):
         p = ProjetFactory(
             dossier_ds__demande_montant=amount,
@@ -103,7 +129,7 @@ def projets_with_dossier_ds__demande_montant_not_in_simulation() -> list[Projet]
 @pytest.fixture
 def projets_with_dossier_ds__demande_montant_in_simulation(
     simulation,
-) -> list[Projet]:
+) -> None:
     for amount in (15_000, 25_000):
         p = ProjetFactory(
             dossier_ds__demande_montant=amount,
@@ -192,3 +218,34 @@ def test_add_ordering_to_projets_qs():
     ordering = "commune_asc"
     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
     assert list(ordered_qs) == [projet3, projet1, projet2]
+
+
+def test_compute_taux_from_montant():
+    projet = ProjetFactory.build(
+        dossier_ds__finance_cout_total=100_000,
+    )
+    taux = ProjetService.compute_taux_from_montant(projet, 10_000)
+    assert taux == 10
+
+
+def test_compute_taux_from_montant_with_projet_without_finance_cout_total():
+    projet = ProjetFactory.build()
+    taux = ProjetService.compute_taux_from_montant(projet, 10_000)
+    assert taux == 0
+
+
+def test_get_projet_status():
+    accepted = Dossier(ds_state=Dossier.STATE_ACCEPTE)
+    en_construction = Dossier(ds_state=Dossier.STATE_EN_CONSTRUCTION)
+    en_instruction = Dossier(ds_state=Dossier.STATE_EN_INSTRUCTION)
+    refused = Dossier(ds_state=Dossier.STATE_REFUSE)
+    unanswered = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
+
+    assert ProjetService.get_projet_status(accepted) == Projet.STATUS_ACCEPTED
+    assert ProjetService.get_projet_status(en_construction) == Projet.STATUS_PROCESSING
+    assert ProjetService.get_projet_status(en_instruction) == Projet.STATUS_PROCESSING
+    assert ProjetService.get_projet_status(refused) == Projet.STATUS_REFUSED
+    assert ProjetService.get_projet_status(unanswered) == Projet.STATUS_UNANSWERED
+
+    dossier_unknown = Dossier(ds_state="unknown_state")
+    assert ProjetService.get_projet_status(dossier_unknown) is None

@@ -95,7 +95,7 @@ class ProgrammationProjet(models.Model):
     STATUS_ACCEPTED = "accepted"
     STATUS_REFUSED = "refused"
     STATUS_CHOICES = (
-        (STATUS_ACCEPTED, "✅  Accepté"),
+        (STATUS_ACCEPTED, "✅ Accepté"),
         (STATUS_REFUSED, "❌ Refusé"),
     )
 
@@ -140,11 +140,28 @@ class ProgrammationProjet(models.Model):
         return f"Projet programmé {self.pk}"
 
     def clean(self):
+        errors = {}
         if self.projet.assiette is not None and self.projet.assiette > 0:
             if not isclose(
                 self.taux, self.montant * 100 / self.projet.assiette, abs_tol=0.009
             ):
-                raise ValidationError(
+                errors["taux"] = {
                     "Le taux et le montant de la programmation ne sont pas cohérents. "
-                    f"Taux attendu : {str(self.montant * 100 / self.projet.assiette)}"
-                )
+                    f"Taux attendu : {str(round(self.montant * 100 / self.projet.assiette, 2))}"
+                }
+
+        if self.enveloppe.is_deleguee:
+            errors["enveloppe"] = {
+                "Une programmation ne peut pas être faite sur une enveloppe déléguée."
+                "Il faut programmer sur l'enveloppe mère."
+            }
+
+        if self.status == self.STATUS_REFUSED:
+            if self.montant != 0:
+                errors["montant"] = {"Un projet refusé doit avoir un montant nul."}
+
+            if self.taux != 0:
+                errors["taux"] = {"Un projet refusé doit avoir un taux nul."}
+
+        if errors:
+            raise ValidationError(errors)

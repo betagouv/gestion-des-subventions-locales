@@ -14,6 +14,7 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
+from gsl_projet.services import ProjetService
 from gsl_projet.tests.factories import ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
@@ -64,6 +65,7 @@ def detr_projets(departement_perimetre, arrondissement_perimetre):
     ):
         projets.append(
             ProjetFactory(
+                status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 dossier_ds=DossierFactory(
                     demande_montant=montant,
                     demande_dispositif_sollicite="DETR",
@@ -93,6 +95,7 @@ def dsil_projets(departement_perimetre, arrondissement_perimetre):
     ):
         projets.append(
             ProjetFactory(
+                status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 dossier_ds=DossierFactory(
                     demande_montant=montant,
                     demande_dispositif_sollicite="DSIL",
@@ -121,7 +124,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     )
     assert simulation_projet.montant == 1_000
     assert simulation_projet.taux == Decimal("33.33")
-    assert simulation_projet.status == SimulationProjet.STATUS_DRAFT
+    assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
     assert simulation_projet.enveloppe.type == "DETR"
 
     simulation_projet = SimulationProjet.objects.get(
@@ -131,7 +134,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     )
     assert simulation_projet.montant == 600
     assert simulation_projet.taux == 0
-    assert simulation_projet.status == SimulationProjet.STATUS_DRAFT
+    assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
     assert simulation_projet.enveloppe.type == "DETR"
 
     simulation_projet = SimulationProjet.objects.get(
@@ -141,7 +144,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     )
     assert simulation_projet.montant == 2_000
     assert simulation_projet.taux == 50
-    assert simulation_projet.status == SimulationProjet.STATUS_VALID
+    assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
     assert simulation_projet.enveloppe.type == "DETR"
 
     simulation_projet = SimulationProjet.objects.get(
@@ -151,7 +154,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     )
     assert simulation_projet.montant == 1_500
     assert simulation_projet.taux == 0
-    assert simulation_projet.status == SimulationProjet.STATUS_CANCELLED
+    assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
     assert simulation_projet.enveloppe.type == "DETR"
 
     simulation_projet = SimulationProjet.objects.get(
@@ -161,7 +164,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     )
     assert simulation_projet.montant == 2_500
     assert simulation_projet.taux == 0
-    assert simulation_projet.status == SimulationProjet.STATUS_CANCELLED
+    assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
     assert simulation_projet.enveloppe.type == "DETR"
 
 
@@ -178,7 +181,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
         enveloppe=dsil_simulation.enveloppe,
         simulation=dsil_simulation,
     )
-    assert simulation_projet.status == SimulationProjet.STATUS_DRAFT
+    assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
     assert simulation_projet.montant == 1_000
     assert simulation_projet.taux == 25
     assert simulation_projet.enveloppe.type == "DSIL"
@@ -188,7 +191,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
         enveloppe=dsil_simulation.enveloppe,
         simulation=dsil_simulation,
     )
-    assert simulation_projet.status == SimulationProjet.STATUS_DRAFT
+    assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
     assert simulation_projet.montant == 600
     assert simulation_projet.taux == 0
     assert simulation_projet.enveloppe.type == "DSIL"
@@ -198,7 +201,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
         enveloppe=dsil_simulation.enveloppe,
         simulation=dsil_simulation,
     )
-    assert simulation_projet.status == SimulationProjet.STATUS_VALID
+    assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
     assert simulation_projet.montant == 5_000
     assert simulation_projet.taux == 50
     assert simulation_projet.enveloppe.type == "DSIL"
@@ -208,7 +211,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
         enveloppe=dsil_simulation.enveloppe,
         simulation=dsil_simulation,
     )
-    assert simulation_projet.status == SimulationProjet.STATUS_CANCELLED
+    assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
     assert simulation_projet.montant == 1_500
     assert simulation_projet.taux == 0
     assert simulation_projet.enveloppe.type == "DSIL"
@@ -218,7 +221,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
         enveloppe=dsil_simulation.enveloppe,
         simulation=dsil_simulation,
     )
-    assert simulation_projet.status == SimulationProjet.STATUS_CANCELLED
+    assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
     assert simulation_projet.montant == 2_500
     assert simulation_projet.taux == 0
     assert simulation_projet.enveloppe.type == "DSIL"

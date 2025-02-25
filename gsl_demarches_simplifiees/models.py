@@ -279,9 +279,11 @@ class Dossier(DsModel):
         blank=True,
     )
 
+    DOTATION_DETR = "DETR"
+    DOTATION_DSIL = "DSIL"
     DEMANDE_DISPOSITIF_SOLLICITE_VALUES = (
-        ("DETR", "DETR"),
-        ("DSIL", "DSIL"),
+        (DOTATION_DETR, "DETR"),
+        (DOTATION_DSIL, "DSIL"),
     )
     demande_dispositif_sollicite = models.CharField(
         "Dispositif de financement sollicité",
@@ -428,7 +430,7 @@ class Dossier(DsModel):
         return f"https://www.demarches-simplifiees.fr/procedures/{self.ds_demarche.ds_number}/dossiers/{self.ds_number}"
 
     @property
-    def perimetre(self) -> Perimetre:
+    def perimetre(self) -> Perimetre | None:
         """
         Retourne le périmètre du projet, le + précis possible (niveau arrondissement).
         En premier lieu, on essaie de déterminer le périmètre du projet d'après la
@@ -455,6 +457,7 @@ class Dossier(DsModel):
             return Perimetre.objects.get(
                 departement=projet_departement, arrondissement=projet_arrondissement
             )
+        return None
 
 
 class DsChoiceLibelle(DsModel):
