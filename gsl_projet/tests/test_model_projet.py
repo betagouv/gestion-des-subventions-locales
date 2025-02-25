@@ -18,6 +18,33 @@ pytestmark = pytest.mark.django_db(transaction=True)
 
 
 @pytest.mark.django_db
+def test_accept_projet_without_simulation_projet():
+    projet = ProjetFactory(assiette=10_000)
+    assert projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
+
+    enveloppe = DetrEnveloppeFactory(annee=2025)
+
+    projet.accept(montant=5_000, enveloppe=enveloppe)
+    projet.save()
+    projet.refresh_from_db()
+
+    assert projet.status == Projet.STATUS_ACCEPTED
+    simulation_projets = SimulationProjet.objects.filter(
+        projet=projet, status=SimulationProjet.STATUS_ACCEPTED
+    )
+    assert simulation_projets.count() == 0
+
+    programmation_projets = ProgrammationProjet.objects.filter(
+        projet=projet, enveloppe=enveloppe
+    )
+    assert programmation_projets.count() == 1
+    programmation_projet = programmation_projets.first()
+    assert programmation_projet.montant == 5_000
+    assert programmation_projet.taux == 50
+    assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
+
+
+@pytest.mark.django_db
 def test_accept_projet():
     projet = ProjetFactory(assiette=10_000)
     assert projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
