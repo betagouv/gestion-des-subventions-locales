@@ -27,5 +27,5 @@ def add_enveloppe_projets_to_simulation(simulation_id):
 
     for projet in selected_projets:
         SimulationProjetService.create_or_update_simulation_projet_from_projet(
-            projet, simulation_id
+            projet, simulation
         )

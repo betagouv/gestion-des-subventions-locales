@@ -8,25 +8,27 @@ from gsl_simulation.models import Simulation, SimulationProjet
 
 class SimulationProjetService:
     @classmethod
-    def create_or_update_simulation_projets_from_projet(cls, projet: Projet):
-        simulation_projets = SimulationProjet.objects.filter(projet=projet)
+    def update_simulation_projets_from_projet(cls, projet: Projet):
+        simulation_projets = SimulationProjet.objects.filter(
+            projet=projet
+        ).select_related("simulation")
+
         for simulation_projet in simulation_projets:
             cls.create_or_update_simulation_projet_from_projet(
-                projet, simulation_projet.simulation_id
+                projet, simulation_projet.simulation
             )
 
     @classmethod
     def create_or_update_simulation_projet_from_projet(
-        cls, projet: Projet, simulation_id: int
+        cls, projet: Projet, simulation: Simulation
     ):
         """
-        Create or update a SimulationProjet from a Projet.
+        Create or update a SimulationProjet from a Projet and a Simulation.
         """
-        simulation = Simulation.objects.get(id=simulation_id)
         montant = cls.get_initial_montant_from_projet(projet)
         simulation_projet, _ = SimulationProjet.objects.update_or_create(
             projet=projet,
-            simulation_id=simulation_id,
+            simulation_id=simulation.id,
             defaults={
                 "enveloppe_id": simulation.enveloppe_id,
                 "montant": montant,

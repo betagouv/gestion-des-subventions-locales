@@ -23,17 +23,17 @@ from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFa
 @mock.patch.object(
     SimulationProjetService, "create_or_update_simulation_projet_from_projet"
 )
-def test_create_or_update_simulation_projets_from_projet_calls_create_or_update(
+def test_update_simulation_projets_from_projet_calls_create_or_update(
     mock_create_or_update,
 ):
     projet = ProjetFactory()
     simulation_projets = SimulationProjetFactory.create_batch(3, projet=projet)
 
-    SimulationProjetService.create_or_update_simulation_projets_from_projet(projet)
+    SimulationProjetService.update_simulation_projets_from_projet(projet)
 
     assert mock_create_or_update.call_count == 3
     for simulation_projet in simulation_projets:
-        mock_create_or_update.assert_any_call(projet, simulation_projet.simulation_id)
+        mock_create_or_update.assert_any_call(projet, simulation_projet.simulation)
 
 
 @pytest.mark.django_db
@@ -47,7 +47,7 @@ def test_create_or_update_simulation_projet_from_projet_when_no_simulation_proje
 
     simulation_projet = (
         SimulationProjetService.create_or_update_simulation_projet_from_projet(
-            projet, simulation.id
+            projet, simulation
         )
     )
 
@@ -77,7 +77,7 @@ def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_e
 
     simulation_projet = (
         SimulationProjetService.create_or_update_simulation_projet_from_projet(
-            projet, simulation.id
+            projet, simulation
         )
     )
 
