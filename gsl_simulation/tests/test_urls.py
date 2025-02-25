@@ -9,8 +9,9 @@ from gsl_core.tests.factories import (
     CollegueFactory,
     DepartementFactory,
     PerimetreDepartementalFactory,
+    PerimetreRegionalFactory,
 )
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
+from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 from gsl_projet.tests.factories import ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
@@ -321,6 +322,87 @@ def test_cant_patch_projet_only_if_projet_is_not_included_in_user_perimetre(
     )
     response = client_with_iconnais_user_logged.patch(url, data="status=valid")
     assert response.status_code == 404
+
+
+@pytest.fixture
+def perimetre_bourgogne(cote_d_or):
+    return PerimetreRegionalFactory(region=cote_d_or.region)
+
+
+@pytest.fixture
+def client_with_bourguignon_user_logged(perimetre_bourgogne):
+    bourguignon_collegue = CollegueFactory(perimetre=perimetre_bourgogne)
+    return ClientWithLoggedUserFactory(bourguignon_collegue)
+
+
+@pytest.mark.django_db
+def test_regional_user_cant_patch_projet_if_simulation_projet_is_associated_to_detr_enveloppe(
+    client_with_bourguignon_user_logged, cote_dorien_simulation_projet
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-taux",
+        kwargs={"pk": cote_dorien_simulation_projet.pk},
+    )
+    response = client_with_bourguignon_user_logged.patch(url, data="taux=0.5")
+    assert response.status_code == 404
+
+    url = reverse(
+        "simulation:patch-simulation-projet-montant",
+        kwargs={"pk": cote_dorien_simulation_projet.pk},
+    )
+    response = client_with_bourguignon_user_logged.patch(url, data="montant=400")
+    assert response.status_code == 404
+
+    url = reverse(
+        "simulation:patch-simulation-projet-status",
+        kwargs={"pk": cote_dorien_simulation_projet.pk},
+    )
+    response = client_with_bourguignon_user_logged.patch(url, data="status=valid")
+    assert response.status_code == 404
+
+
+@pytest.fixture
+def cote_dorien_dsil_simulation_projet(cote_d_or_perimetre):
+    projet = ProjetFactory(perimetre=cote_d_or_perimetre)
+    simulation = SimulationFactory(
+        enveloppe=DsilEnveloppeFactory(perimetre=cote_d_or_perimetre)
+    )
+    return SimulationProjetFactory(
+        projet=projet,
+        simulation=simulation,
+    )
+
+
+@pytest.mark.django_db
+def test_regional_user_can_patch_projet_if_simulation_projet_is_associated_to_dsil_enveloppe_and_in_its_perimetre(
+    client_with_bourguignon_user_logged, cote_dorien_dsil_simulation_projet
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-taux",
+        kwargs={"pk": cote_dorien_dsil_simulation_projet.pk},
+    )
+    response = client_with_bourguignon_user_logged.patch(
+        url, data="taux=0.5", follow=True
+    )
+    assert response.status_code == 200
+
+    url = reverse(
+        "simulation:patch-simulation-projet-montant",
+        kwargs={"pk": cote_dorien_dsil_simulation_projet.pk},
+    )
+    response = client_with_bourguignon_user_logged.patch(
+        url, data="montant=400", follow=True
+    )
+    assert response.status_code == 200
+
+    url = reverse(
+        "simulation:patch-simulation-projet-status",
+        kwargs={"pk": cote_dorien_dsil_simulation_projet.pk},
+    )
+    response = client_with_bourguignon_user_logged.patch(
+        url, data="status=valid", follow=True
+    )
+    assert response.status_code == 200
 
 
 @pytest.fixture
