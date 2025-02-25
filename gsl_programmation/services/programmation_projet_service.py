@@ -21,7 +21,7 @@ class ProgrammationProjetService:
             logging.error(f"Projet {projet} is missing status")
             return
 
-        if projet.status not in [Projet.STATUS_ACCEPTED, Projet.STATUS_REFUSED]:
+        if projet.status not in (Projet.STATUS_ACCEPTED, Projet.STATUS_REFUSED):
             ProgrammationProjet.objects.filter(projet=projet).delete()
             return
 
@@ -30,16 +30,16 @@ class ProgrammationProjetService:
             logging.error(f"Projet {projet} is missing annotation dotation")
             return
 
-        if dotation not in [Dossier.DOTATION_DETR, Dossier.DOTATION_DSIL]:
+        if dotation not in (Dossier.DOTATION_DETR, Dossier.DOTATION_DSIL):
             logging.error(f"Projet {projet} annotation dotation is unkown")
             return
 
         if projet.status == Projet.STATUS_ACCEPTED:
-            for field in [
+            for field in (
                 "annotations_montant_accorde",
                 "annotations_taux",
                 "annotations_assiette",
-            ]:
+            ):
                 if getattr(projet.dossier_ds, field) is None:
                     logging.error(f"Projet accepted {projet} is missing field {field}")
                     return

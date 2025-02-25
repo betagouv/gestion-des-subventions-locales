@@ -46,7 +46,9 @@ def test_create_or_update_from_projet_with_no_existing_one_and_complete_annotati
     accepted_projet.dossier_ds.annotations_taux = 0.33
     accepted_projet.dossier_ds.annotations_dotation = "DETR"
     accepted_projet.dossier_ds.annotations_assiette = 3_000
+    ProgrammationProjetFactory.create_batch(10)
     assert ProgrammationProjet.objects.filter(projet=accepted_projet).count() == 0
+    assert ProgrammationProjet.objects.count() == 10
 
     ProgrammationProjetService.create_or_update_from_projet(accepted_projet)
 
@@ -56,6 +58,7 @@ def test_create_or_update_from_projet_with_no_existing_one_and_complete_annotati
     assert programmation_projet.taux == Decimal("0.33")
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
     assert programmation_projet.enveloppe == enveloppe
+    assert ProgrammationProjet.objects.count() == 11
 
 
 @pytest.mark.django_db
