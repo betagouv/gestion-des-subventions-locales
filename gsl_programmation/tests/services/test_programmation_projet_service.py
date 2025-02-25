@@ -24,7 +24,7 @@ def perimetre():
 
 
 @pytest.fixture
-def enveloppe(perimetre):
+def detr_enveloppe(perimetre):
     return DetrEnveloppeFactory(annee=date.today().year, perimetre=perimetre)
 
 
@@ -40,7 +40,7 @@ def accepted_projet(perimetre):
 
 @pytest.mark.django_db
 def test_create_or_update_from_projet_with_no_existing_one_and_complete_annotations(
-    accepted_projet, enveloppe
+    accepted_projet, detr_enveloppe
 ):
     accepted_projet.dossier_ds.annotations_montant_accorde = 1_000
     accepted_projet.dossier_ds.annotations_taux = 0.33
@@ -57,13 +57,13 @@ def test_create_or_update_from_projet_with_no_existing_one_and_complete_annotati
     assert programmation_projet.montant == 1_000
     assert programmation_projet.taux == Decimal("0.33")
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
-    assert programmation_projet.enveloppe == enveloppe
+    assert programmation_projet.enveloppe == detr_enveloppe
     assert ProgrammationProjet.objects.count() == 11
 
 
 @pytest.mark.django_db
 def test_create_or_update_from_projet_with_an_existing_one_and_complete_annotations(
-    accepted_projet, enveloppe
+    accepted_projet, detr_enveloppe
 ):
     accepted_projet.dossier_ds.annotations_dotation = "DETR"
     accepted_projet.dossier_ds.annotations_montant_accorde = 1_000
@@ -75,7 +75,7 @@ def test_create_or_update_from_projet_with_an_existing_one_and_complete_annotati
         montant=0,
         taux=0,
         status=ProgrammationProjet.STATUS_REFUSED,
-        enveloppe=enveloppe,
+        enveloppe=detr_enveloppe,
     )
 
     ProgrammationProjetService.create_or_update_from_projet(accepted_projet)
@@ -85,12 +85,12 @@ def test_create_or_update_from_projet_with_an_existing_one_and_complete_annotati
     assert programmation_projet.montant == 1_000
     assert programmation_projet.taux == 0.25
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
-    assert programmation_projet.enveloppe == enveloppe
+    assert programmation_projet.enveloppe == detr_enveloppe
 
 
 @pytest.mark.django_db
 def test_create_or_update_from_projet_with_an_existing_one_with_only_dotation_in_annotations(
-    perimetre, accepted_projet, enveloppe, caplog
+    perimetre, accepted_projet, detr_enveloppe, caplog
 ):
     PerimetreFactory(
         region=perimetre.departement.region,
@@ -98,7 +98,7 @@ def test_create_or_update_from_projet_with_an_existing_one_with_only_dotation_in
         arrondissement=None,
     )
     accepted_projet.dossier_ds.annotations_dotation = "DSIL"
-    ProgrammationProjetFactory(projet=accepted_projet, enveloppe=enveloppe)
+    ProgrammationProjetFactory(projet=accepted_projet, enveloppe=detr_enveloppe)
 
     assert ProgrammationProjet.objects.filter(projet=accepted_projet).count() == 1
 
@@ -114,9 +114,9 @@ def test_create_or_update_from_projet_with_an_existing_one_with_only_dotation_in
 
 @pytest.mark.django_db
 def test_create_or_update_from_projet_with_no_existing_one_and_without_annotations(
-    accepted_projet, enveloppe, caplog
+    accepted_projet, detr_enveloppe, caplog
 ):
-    ProgrammationProjetFactory(projet=accepted_projet, enveloppe=enveloppe)
+    ProgrammationProjetFactory(projet=accepted_projet, enveloppe=detr_enveloppe)
 
     assert ProgrammationProjet.objects.filter(projet=accepted_projet).count() == 1
 
@@ -144,7 +144,7 @@ def refused_projet(perimetre):
 
 @pytest.mark.django_db
 def test_create_or_update_from_refused_projet_with_no_existing_one_and_complete_annotations(
-    refused_projet, enveloppe
+    refused_projet, detr_enveloppe
 ):
     refused_projet.dossier_ds.annotations_montant_accorde = 0
     refused_projet.dossier_ds.annotations_taux = 0
@@ -158,12 +158,12 @@ def test_create_or_update_from_refused_projet_with_no_existing_one_and_complete_
     assert programmation_projet.montant == 0
     assert programmation_projet.taux == 0
     assert programmation_projet.status == ProgrammationProjet.STATUS_REFUSED
-    assert programmation_projet.enveloppe == enveloppe
+    assert programmation_projet.enveloppe == detr_enveloppe
 
 
 @pytest.mark.django_db
 def test_create_or_update_from_refused_projet_with_an_existing_one_and_complete_annotations(
-    refused_projet, enveloppe
+    refused_projet, detr_enveloppe
 ):
     refused_projet.dossier_ds.annotations_dotation = "DETR"
     refused_projet.dossier_ds.annotations_montant_accorde = 0
@@ -174,7 +174,7 @@ def test_create_or_update_from_refused_projet_with_an_existing_one_and_complete_
         montant=10,
         taux=2,
         status=ProgrammationProjet.STATUS_ACCEPTED,
-        enveloppe=enveloppe,
+        enveloppe=detr_enveloppe,
     )
 
     ProgrammationProjetService.create_or_update_from_projet(refused_projet)
@@ -184,15 +184,15 @@ def test_create_or_update_from_refused_projet_with_an_existing_one_and_complete_
     assert programmation_projet.montant == 0
     assert programmation_projet.taux == 0
     assert programmation_projet.status == ProgrammationProjet.STATUS_REFUSED
-    assert programmation_projet.enveloppe == enveloppe
+    assert programmation_projet.enveloppe == detr_enveloppe
 
 
 @pytest.mark.django_db
 def test_create_or_update_from_refused_projet_with_existing_one_with_only_dotation_in_annotations(
-    perimetre, refused_projet, enveloppe
+    perimetre, refused_projet, detr_enveloppe
 ):
     refused_projet.dossier_ds.annotations_dotation = "DSIL"
-    ProgrammationProjetFactory(projet=refused_projet, enveloppe=enveloppe)
+    ProgrammationProjetFactory(projet=refused_projet, enveloppe=detr_enveloppe)
     dsil_enveloppe = DsilEnveloppeFactory(
         perimetre__region=perimetre.departement.region,
         annee=date.today().year,
@@ -214,7 +214,7 @@ def test_create_or_update_from_refused_projet_with_existing_one_with_only_dotati
 
 @pytest.mark.django_db
 def test_create_or_update_from_refused_projet_with_no_existing_one_with_only_dotation_in_annotations(
-    refused_projet, enveloppe
+    refused_projet, detr_enveloppe
 ):
     refused_projet.dossier_ds.annotations_dotation = "DETR"
 
@@ -226,7 +226,7 @@ def test_create_or_update_from_refused_projet_with_no_existing_one_with_only_dot
 
     programmation_projet = ProgrammationProjet.objects.get(projet=refused_projet)
     assert ProgrammationProjet.objects.filter(projet=refused_projet).count() == 1
-    assert programmation_projet.enveloppe == enveloppe
+    assert programmation_projet.enveloppe == detr_enveloppe
     assert programmation_projet.status == ProgrammationProjet.STATUS_REFUSED
     assert programmation_projet.montant == 0
     assert programmation_projet.taux == 0
@@ -234,9 +234,9 @@ def test_create_or_update_from_refused_projet_with_no_existing_one_with_only_dot
 
 @pytest.mark.django_db
 def test_create_or_update_from_refused_projet_with_existing_one_and_without_annotations(
-    refused_projet, enveloppe, caplog
+    refused_projet, detr_enveloppe, caplog
 ):
-    ProgrammationProjetFactory(projet=refused_projet, enveloppe=enveloppe)
+    ProgrammationProjetFactory(projet=refused_projet, enveloppe=detr_enveloppe)
 
     assert ProgrammationProjet.objects.filter(projet=refused_projet).count() == 1
 
@@ -252,7 +252,7 @@ def test_create_or_update_from_refused_projet_with_existing_one_and_without_anno
 
 @pytest.mark.django_db
 def test_create_or_update_from_refused_projet_with_no_existing_one_and_without_annotations(
-    refused_projet, enveloppe, caplog
+    refused_projet, detr_enveloppe, caplog
 ):
     with caplog.at_level(logging.ERROR):
         programmation_projet = ProgrammationProjetService.create_or_update_from_projet(
@@ -288,10 +288,10 @@ def test_create_or_update_from_projet_with_other_status_without_existing_one(
 )
 @pytest.mark.django_db
 def test_create_or_update_from_projet_with_other_status_with_existing_one(
-    perimetre, enveloppe, other_status
+    perimetre, detr_enveloppe, other_status
 ):
     projet = ProjetFactory(status=other_status, perimetre=perimetre)
-    ProgrammationProjetFactory(projet=projet, enveloppe=enveloppe)
+    ProgrammationProjetFactory(projet=projet, enveloppe=detr_enveloppe)
 
     programmation_projet = ProgrammationProjetService.create_or_update_from_projet(
         projet
