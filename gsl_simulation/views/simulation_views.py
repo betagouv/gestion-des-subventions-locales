@@ -1,13 +1,8 @@
-import logging
-
 from django.core.paginator import Paginator
 from django.db.models import Prefetch, Sum
 from django.forms import NumberInput
-from django.http import Http404, HttpRequest, JsonResponse
-from django.http.request import QueryDict
-from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import resolve, reverse
-from django.views.decorators.http import require_http_methods
+from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 from django_filters import MultipleChoiceFilter, NumberFilter
@@ -23,12 +18,8 @@ from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 from gsl_projet.views import ProjetFilters
 from gsl_simulation.forms import SimulationForm
 from gsl_simulation.models import Simulation, SimulationProjet
-from gsl_simulation.services.simulation_projet_service import (
-    SimulationProjetService,
-)
 from gsl_simulation.services.simulation_service import SimulationService
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
-from gsl_simulation.utils import replace_comma_by_dot
 
 
 class SimulationListView(ListView):
@@ -59,26 +50,6 @@ class SimulationListView(ListView):
         )
 
         return qs
-
-
-def simulation_must_be_visible_by_user(func):
-    def wrapper(*args, **kwargs):
-        user = args[0].user
-        if user.is_staff:
-            return func(*args, **kwargs)
-
-        simulation = get_object_or_404(Simulation, slug=kwargs["slug"])
-        enveloppes_visible_by_user = EnveloppeService.get_enveloppes_visible_for_a_user(
-            user
-        )
-        if simulation.enveloppe not in enveloppes_visible_by_user:
-            raise Http404(
-                "No %s matches the given query." % Simulation._meta.object_name
-            )
-
-        return func(*args, **kwargs)
-
-    return wrapper
 
 
 class SimulationProjetListViewFilters(ProjetFilters):
@@ -255,133 +226,6 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         response["Pragma"] = "no-cache"
         response["Expires"] = "0"
         return response
-
-
-def _get_projets_queryset_with_filters(simulation, filter_params):
-    url = reverse(
-        "simulation:simulation-detail",
-        kwargs={"slug": simulation.slug},
-    )
-    new_request = HttpRequest()
-    new_request.GET = QueryDict(filter_params)
-    new_request.resolver_match = resolve(url)
-
-    view = SimulationDetailView()
-    view.object = simulation
-    view.request = new_request
-    view.kwargs = {"slug": simulation.slug}
-
-    projets = view.get_projet_queryset()
-    return projets
-
-
-def redirect_to_simulation_projet(request, simulation_projet):
-    if request.htmx:
-        filter_params = QueryDict(request.body).get("filter_params")
-        filtered_projets = _get_projets_queryset_with_filters(
-            simulation_projet.simulation,
-            filter_params,
-        )
-
-        total_amount_granted = ProjetService.get_total_amount_granted(filtered_projets)
-
-        return render(
-            request,
-            "htmx/projet_update.html",
-            {
-                "simu": simulation_projet,
-                "projet": simulation_projet.projet,
-                "available_states": SimulationProjet.STATUS_CHOICES,
-                "status_summary": simulation_projet.simulation.get_projet_status_summary(),
-                "total_amount_granted": total_amount_granted,
-                "filter_params": filter_params,
-            },
-        )
-
-    url = reverse(
-        "simulation:simulation-detail",
-        kwargs={"slug": simulation_projet.simulation.slug},
-    )
-    if request.POST.get("filter_params"):
-        url += "?" + request.POST.get("filter_params")
-
-    return redirect(url)
-
-
-def exception_handler_decorator(func):
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception as e:
-            logging.error("An error occurred: %s", str(e))
-            return JsonResponse(
-                {
-                    "error": f"An internal error has occurred : {str(e)}",
-                },
-                status=400,
-            )
-
-    return wrapper
-
-
-def projet_must_be_in_user_perimetre(func):
-    def wrapper(*args, **kwargs):
-        user = args[0].user
-        if user.is_staff:
-            return func(*args, **kwargs)
-
-        simulation_projet = get_object_or_404(SimulationProjet, id=kwargs["pk"])
-        if not SimulationProjetService.is_simulation_projet_in_perimetre(
-            simulation_projet, user.perimetre
-        ):
-            raise Http404(
-                "No %s matches the given query." % SimulationProjet._meta.object_name
-            )
-
-        return func(*args, **kwargs)
-
-    return wrapper
-
-
-@projet_must_be_in_user_perimetre
-@exception_handler_decorator
-@require_http_methods(["POST", "PATCH"])
-def patch_taux_simulation_projet(request, pk):
-    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
-    data = QueryDict(request.body)
-
-    new_taux = replace_comma_by_dot(data.get("taux"))
-    SimulationProjetService.update_taux(simulation_projet, new_taux)
-    return redirect_to_simulation_projet(request, simulation_projet)
-
-
-@projet_must_be_in_user_perimetre
-@exception_handler_decorator
-@require_http_methods(["POST", "PATCH"])
-def patch_montant_simulation_projet(request, pk):
-    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
-    data = QueryDict(request.body)
-
-    new_montant = replace_comma_by_dot(data.get("montant"))
-    SimulationProjetService.update_montant(simulation_projet, new_montant)
-    return redirect_to_simulation_projet(request, simulation_projet)
-
-
-@projet_must_be_in_user_perimetre
-@exception_handler_decorator
-@require_http_methods(["POST", "PATCH"])
-def patch_status_simulation_projet(request, pk):
-    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
-    data = QueryDict(request.body)
-    status = data.get("status")
-
-    if status not in dict(SimulationProjet.STATUS_CHOICES).keys():
-        raise ValueError("Invalid status")
-
-    updated_simulation_projet = SimulationProjetService.update_status(
-        simulation_projet, status
-    )
-    return redirect_to_simulation_projet(request, updated_simulation_projet)
 
 
 def simulation_form(request):

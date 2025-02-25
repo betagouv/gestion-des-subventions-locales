@@ -26,7 +26,7 @@ from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
-from gsl_simulation.views import (
+from gsl_simulation.views.simulation_views import (
     SimulationDetailView,
     SimulationListView,
 )
