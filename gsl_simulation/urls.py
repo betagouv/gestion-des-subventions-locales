@@ -10,7 +10,7 @@ urlpatterns = [
     ),
     path(
         "simulation/<slug:slug>/",
-        views.SimulationDetailView.as_view(),
+        views.simulation_must_be_visible_by_user(views.SimulationDetailView.as_view()),
         name="simulation-detail",
     ),
     path(

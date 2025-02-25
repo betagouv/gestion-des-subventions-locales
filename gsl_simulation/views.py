@@ -61,6 +61,26 @@ class SimulationListView(ListView):
         return qs
 
 
+def simulation_must_be_visible_by_user(func):
+    def wrapper(*args, **kwargs):
+        user = args[0].user
+        if user.is_staff:
+            return func(*args, **kwargs)
+
+        simulation = get_object_or_404(Simulation, slug=kwargs["slug"])
+        enveloppes_visible_by_user = EnveloppeService.get_enveloppes_visible_for_a_user(
+            user
+        )
+        if simulation.enveloppe not in enveloppes_visible_by_user:
+            raise Http404(
+                "No %s matches the given query." % Simulation._meta.object_name
+            )
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 class SimulationProjetListViewFilters(ProjetFilters):
     filterset = (
         "porteur",
@@ -227,6 +247,8 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             "projets_count": enveloppe_projets_included.count(),
         }
 
+    # This method is used to prevent caching of the page
+    # This is useful for the row update with htmx
     def render_to_response(self, context, **response_kwargs):
         response = super().render_to_response(context, **response_kwargs)
         response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
