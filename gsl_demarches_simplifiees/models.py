@@ -1,8 +1,6 @@
-# Create your models here.
 from django.db import models
 
-import gsl_core.models
-from gsl_core.models import Adresse
+from gsl_core.models import Adresse, Perimetre
 from gsl_core.models import Arrondissement as CoreArrondissement
 
 
@@ -89,7 +87,7 @@ class PersonneMorale(models.Model):
     siret = models.CharField("SIRET", unique=True, primary_key=True)
     raison_sociale = models.CharField("Raison Sociale", blank=True)
     address = models.ForeignKey(
-        gsl_core.models.Adresse,
+        Adresse,
         on_delete=models.PROTECT,
         verbose_name="Adresse",
         null=True,
@@ -428,6 +426,35 @@ class Dossier(DsModel):
     @property
     def url_on_ds(self):
         return f"https://www.demarches-simplifiees.fr/procedures/{self.ds_demarche.ds_number}/dossiers/{self.ds_number}"
+
+    @property
+    def perimetre(self) -> Perimetre:
+        """
+        Retourne le périmètre du projet, le + précis possible (niveau arrondissement).
+        En premier lieu, on essaie de déterminer le périmètre du projet d'après la
+        commune du siège social du demandeur (ds_demandeur.address.commune).
+        Si on n'a pas l'information, ou si elle n'est pas assez précise, alors on prend
+        l'arrondissement déclaré par le demandeur dans le formulaire DS
+        (champ DS porteur_de_projet_arrondissement).
+
+        :return: Perimetre
+        """
+        projet_departement, projet_arrondissement = None, None
+        commune = self.ds_demandeur.address.commune
+        if commune.departement:
+            projet_departement = commune.departement
+            if commune.arrondissement:
+                projet_arrondissement = commune.arrondissement
+        if not projet_arrondissement:
+            ds_arrondissement_declaratif = self.porteur_de_projet_arrondissement
+            if ds_arrondissement_declaratif is not None:
+                projet_arrondissement = ds_arrondissement_declaratif.core_arrondissement
+                if projet_arrondissement:
+                    projet_departement = projet_arrondissement.departement
+        if projet_arrondissement or projet_departement:
+            return Perimetre.objects.get(
+                departement=projet_departement, arrondissement=projet_arrondissement
+            )
 
 
 class DsChoiceLibelle(DsModel):

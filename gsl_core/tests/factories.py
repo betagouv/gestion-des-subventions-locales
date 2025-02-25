@@ -44,8 +44,8 @@ class CommuneFactory(factory.django.DjangoModelFactory):
 
     insee_code = factory.Sequence(lambda n: f"{n}")
     name = factory.Faker("city", locale="fr_FR")
-    departement = factory.SubFactory(DepartementFactory)
     arrondissement = factory.SubFactory(ArrondissementFactory)
+    departement = factory.LazyAttribute(lambda obj: obj.arrondissement.departement)
 
 
 class AdresseFactory(factory.django.DjangoModelFactory):

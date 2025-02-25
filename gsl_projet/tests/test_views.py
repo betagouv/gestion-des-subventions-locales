@@ -34,8 +34,8 @@ def finisterien(dep_finistere) -> Collegue:
 
 
 @pytest.fixture
-def demandeur(dep_finistere) -> Demandeur:
-    return DemandeurFactory(departement=dep_finistere)
+def demandeur() -> Demandeur:
+    return DemandeurFactory()
 
 
 @pytest.fixture
