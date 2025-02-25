@@ -55,7 +55,9 @@ class ProgrammationProjetService:
             type=dotation,
         )
 
-        ProgrammationProjet.objects.exclude(enveloppe=enveloppe).delete()
+        ProgrammationProjet.objects.filter(projet=projet).exclude(
+            enveloppe=enveloppe
+        ).delete()
 
         montant = (
             projet.dossier_ds.annotations_montant_accorde
