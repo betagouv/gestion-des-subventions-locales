@@ -59,11 +59,15 @@ def simulations(perimetre_departemental):
 
 
 @pytest.fixture
-def simulation(perimetre_departemental):
-    enveloppe = DetrEnveloppeFactory(
+def detr_enveloppe(perimetre_departemental):
+    return DetrEnveloppeFactory(
         perimetre=perimetre_departemental, annee=2024, montant=1_000_000
     )
-    return SimulationFactory(enveloppe=enveloppe)
+
+
+@pytest.fixture
+def simulation(detr_enveloppe):
+    return SimulationFactory(enveloppe=detr_enveloppe)
 
 
 @pytest.fixture
@@ -496,7 +500,7 @@ def client_with_user_logged(collegue):
 
 
 @pytest.fixture
-def simulation_projet(collegue) -> SimulationProjet:
+def simulation_projet(collegue, detr_enveloppe) -> SimulationProjet:
     return SimulationProjetFactory(
         projet=ProjetFactory(
             status=Projet.STATUS_PROCESSING,
@@ -504,6 +508,7 @@ def simulation_projet(collegue) -> SimulationProjet:
         ),
         status=SimulationProjet.STATUS_PROCESSING,
         montant=1000,
+        simulation__enveloppe=detr_enveloppe,
     )
 
 
@@ -557,7 +562,7 @@ def test_patch_status_simulation_projet_invalid_status(
 
 
 @pytest.fixture
-def accepted_simulation_projet(collegue) -> SimulationProjet:
+def accepted_simulation_projet(collegue, detr_enveloppe) -> SimulationProjet:
     return SimulationProjetFactory(
         projet=ProjetFactory(
             status=Projet.STATUS_PROCESSING,
@@ -567,6 +572,7 @@ def accepted_simulation_projet(collegue) -> SimulationProjet:
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=1000,
         taux=0.5,
+        simulation__enveloppe=detr_enveloppe,
     )
 
 
