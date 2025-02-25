@@ -55,43 +55,45 @@
         </div>
     </div>
 </div>
-<script>
-  // If the montant_demande_sup_100k checkbox is checked or unchecked, update the montant_demande_min and montant_demande_max inputs
-  document.getElementById('montant_demande_sup_100k').addEventListener('change', function() {
-      if (this.checked) {
-          document.getElementById('id_montant_demande_min').value = '100000';
-          document.getElementById('id_montant_demande_max').value = '';
-          document.getElementById('montant_demande_inf_100k').checked = false;
-      } else {
-          document.getElementById('id_montant_demande_min').value = '';
-          document.getElementById('id_montant_demande_max').value = '';
-      }
-  });
+{% block extra_js %}
+    <script>
+    // If the montant_demande_sup_100k checkbox is checked or unchecked, update the montant_demande_min and montant_demande_max inputs
+    document.getElementById('montant_demande_sup_100k').addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('id_montant_demande_min').value = '100000';
+            document.getElementById('id_montant_demande_max').value = '';
+            document.getElementById('montant_demande_inf_100k').checked = false;
+        } else {
+            document.getElementById('id_montant_demande_min').value = '';
+            document.getElementById('id_montant_demande_max').value = '';
+        }
+    });
 
-  // Uncheck the montant_demande_sup_100k if id_montant_demande_min is not 100000
-  document.getElementById('id_montant_demande_min').addEventListener('change', function() {
-      if (this.value != 100000) {
-          document.getElementById('montant_demande_sup_100k').checked = false;
-      }
-  });
+    // Uncheck the montant_demande_sup_100k if id_montant_demande_min is not 100000
+    document.getElementById('id_montant_demande_min').addEventListener('change', function() {
+        if (this.value != 100000) {
+            document.getElementById('montant_demande_sup_100k').checked = false;
+        }
+    });
 
 
-  // If the montant_demande_inf_100k checkbox is checked or unchecked, update the montant_demande_min and montant_demande_max inputs
-  document.getElementById('montant_demande_inf_100k').addEventListener('change', function() {
-      if (this.checked) {
-          document.getElementById('id_montant_demande_min').value = '';
-          document.getElementById('id_montant_demande_max').value = '100000';
-          document.getElementById('montant_demande_sup_100k').checked = false;
-      } else {
-          document.getElementById('id_montant_demande_min').value = '';
-          document.getElementById('id_montant_demande_max').value = '';
-      }
-  });
+    // If the montant_demande_inf_100k checkbox is checked or unchecked, update the montant_demande_min and montant_demande_max inputs
+    document.getElementById('montant_demande_inf_100k').addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('id_montant_demande_min').value = '';
+            document.getElementById('id_montant_demande_max').value = '100000';
+            document.getElementById('montant_demande_sup_100k').checked = false;
+        } else {
+            document.getElementById('id_montant_demande_min').value = '';
+            document.getElementById('id_montant_demande_max').value = '';
+        }
+    });
 
-  // Uncheck the montant_demande_inf_100k if id_montant_demande_max is not 100000
-  document.getElementById('id_montant_demande_max').addEventListener('change', function() {
-      if (this.value != 100000) {
-          document.getElementById('montant_demande_inf_100k').checked = false;
-      }
-});
-</script>
+    // Uncheck the montant_demande_inf_100k if id_montant_demande_max is not 100000
+    document.getElementById('id_montant_demande_max').addEventListener('change', function() {
+        if (this.value != 100000) {
+            document.getElementById('montant_demande_inf_100k').checked = false;
+        }
+    });
+    </script>
+{% endblock extra_js %}
