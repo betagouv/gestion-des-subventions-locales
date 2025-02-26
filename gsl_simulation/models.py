@@ -82,7 +82,7 @@ class SimulationProjet(models.Model):
         constraints = (
             models.UniqueConstraint(
                 fields=("projet", "simulation", "enveloppe"),
-                name="unique_projet_enveloppe_projet",
+                name="unique_projet_enveloppe_simulation",
                 nulls_distinct=True,
             ),
         )
