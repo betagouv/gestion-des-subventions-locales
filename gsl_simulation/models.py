@@ -81,8 +81,8 @@ class SimulationProjet(models.Model):
         verbose_name_plural = "Simulations de programmation projet"
         constraints = (
             models.UniqueConstraint(
-                fields=("projet", "simulation", "enveloppe"),
-                name="unique_projet_enveloppe_simulation",
+                fields=("projet", "simulation"),
+                name="unique_projet_simulation",
                 nulls_distinct=True,
             ),
         )
