@@ -1,6 +1,7 @@
 from import_export import resources
 from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget
+from import_export_extensions.resources import CeleryModelResource
 
 from .models import Arrondissement, Commune, Departement, Region
 
@@ -47,7 +48,7 @@ class ArrondissementResource(resources.ModelResource):
         import_id_fields = ("insee_code",)
 
 
-class CommuneResource(resources.ModelResource):
+class CommuneResource(CeleryModelResource):
     insee_code = Field(attribute="insee_code", column_name="COM")
     name = Field(attribute="name", column_name="NCCENR")
     departement = Field(
@@ -72,5 +73,4 @@ class CommuneResource(resources.ModelResource):
     class Meta:
         model = Commune
         import_id_fields = ("insee_code",)
-        use_bulk = True
         skip_unchanged = True
