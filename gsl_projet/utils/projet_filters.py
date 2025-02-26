@@ -16,7 +16,10 @@ from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMu
 class ProjetFilters(FilterSet):
     dotation = ChoiceFilter(
         field_name="dossier_ds__demande_dispositif_sollicite",
-        choices=Dossier.DEMANDE_DISPOSITIF_SOLLICITE_VALUES,
+        choices=(
+            (Dossier.DOTATION_DETR, Dossier.DOTATION_DETR),
+            (Dossier.DOTATION_DSIL, Dossier.DOTATION_DSIL),
+        ),
         widget=Select(
             attrs={
                 "class": "fr-select",
