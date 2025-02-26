@@ -77,7 +77,7 @@ class DossierFactory(factory.django.DjangoModelFactory):
     porteur_de_projet_nature = factory.SubFactory(NaturePorteurProjetFactory)
     demande_dispositif_sollicite = factory.fuzzy.FuzzyChoice(
         [
-            Dossier.DEMANDE_DISPOSITIF_SOLLICITE_VALUES[0][0],
-            Dossier.DEMANDE_DISPOSITIF_SOLLICITE_VALUES[1][0],
+            Dossier.DOTATION_DETR,
+            Dossier.DOTATION_DSIL,
         ]
     )

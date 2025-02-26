@@ -281,13 +281,8 @@ class Dossier(DsModel):
 
     DOTATION_DETR = "DETR"
     DOTATION_DSIL = "DSIL"
-    DEMANDE_DISPOSITIF_SOLLICITE_VALUES = (
-        (DOTATION_DETR, "DETR"),
-        (DOTATION_DSIL, "DSIL"),
-    )
     demande_dispositif_sollicite = models.CharField(
         "Dispositif de financement sollicité",
-        choices=DEMANDE_DISPOSITIF_SOLLICITE_VALUES,
         blank=True,
     )
     demande_eligibilite_detr = models.ManyToManyField(
@@ -342,7 +337,6 @@ class Dossier(DsModel):
     )
     annotations_dotation = models.CharField(
         "Imputation budgétaire - Choix de la dotation",
-        choices=DEMANDE_DISPOSITIF_SOLLICITE_VALUES,
         blank=True,
     )
     annotations_is_budget_vert = models.BooleanField(
