@@ -69,7 +69,6 @@ def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_e
     original_simulation_projet = SimulationProjetFactory(
         projet=projet,
         simulation=simulation,
-        enveloppe=simulation.enveloppe,
         montant=500,
         taux=5.0,
         status=SimulationProjet.STATUS_PROCESSING,
@@ -177,7 +176,7 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
     mother_enveloppe = DetrEnveloppeFactory()
     child_enveloppe = DetrEnveloppeFactory(deleguee_by=mother_enveloppe)
     simulation_projet = SimulationProjetFactory(
-        status=SimulationProjet.STATUS_PROCESSING, enveloppe=child_enveloppe
+        status=SimulationProjet.STATUS_PROCESSING, simulation__enveloppe=child_enveloppe
     )
     new_status = SimulationProjet.STATUS_ACCEPTED
 
@@ -199,7 +198,7 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
     simulation_projet = SimulationProjetFactory(
         projet=projet,
         status=SimulationProjet.STATUS_PROCESSING,
-        enveloppe=child_enveloppe,
+        simulation__enveloppe=child_enveloppe,
     )
     ProgrammationProjetFactory(
         projet=simulation_projet.projet,
@@ -239,7 +238,7 @@ def test_update_taux_of_accepted_montat(projet):
         projet=projet, status=SimulationProjet.STATUS_ACCEPTED, taux=20.0
     )
     other_simulation_projet = SimulationProjetFactory(
-        enveloppe=simulation_projet.enveloppe,
+        simulation__enveloppe=simulation_projet.enveloppe,
         projet=projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         taux=20.0,
@@ -283,7 +282,7 @@ def test_update_montant_of_accepted_montat(projet):
         projet=projet, status=SimulationProjet.STATUS_ACCEPTED, montant=1_000
     )
     other_simulation_projet = SimulationProjetFactory(
-        enveloppe=simulation_projet.enveloppe,
+        simulation__enveloppe=simulation_projet.enveloppe,
         projet=projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=1_000,

@@ -60,7 +60,6 @@ class SimulationProjet(models.Model):
         (STATUS_REFUSED, "❌ Refusé"),
     )
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
-    enveloppe = models.ForeignKey(Enveloppe, on_delete=models.CASCADE)
     simulation = models.ForeignKey(
         Simulation, on_delete=models.CASCADE, null=True, blank=True
     )
@@ -89,3 +88,7 @@ class SimulationProjet(models.Model):
 
     def __str__(self):
         return f"Simulation projet {self.pk}"
+
+    @property
+    def enveloppe(self):
+        return self.simulation.enveloppe

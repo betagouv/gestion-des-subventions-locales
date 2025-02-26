@@ -30,7 +30,6 @@ class SimulationProjetService:
             projet=projet,
             simulation_id=simulation.id,
             defaults={
-                "enveloppe_id": simulation.enveloppe_id,
                 "montant": montant,
                 "taux": (
                     projet.dossier_ds.annotations_taux
