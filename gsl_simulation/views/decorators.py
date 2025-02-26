@@ -53,10 +53,10 @@ def exception_handler_decorator(func):
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            logging.error("An error occurred: %s", str(e))
+            logging.error("An error occurred: %s", str(e), exc_info=True)
             return JsonResponse(
                 {
-                    "error": f"An internal error has occurred : {str(e)}",
+                    "error": "An internal error has occurred.",
                 },
                 status=400,
             )
