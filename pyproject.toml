@@ -11,6 +11,7 @@ dependencies = [
     "django-celery-beat",
     "django-csp",
     "django-dsfr",
+    "django-extensions",
     "django-filter",
     "django-fsm-2",
     "django-htmx",
@@ -38,7 +39,6 @@ build-backend = "setuptools.build_meta"
 [project.optional-dependencies]
 dev = [
     "diff-cover",
-    "django-extensions",
     "django-query-counter",
     "djlint",
     "factory_boy",
