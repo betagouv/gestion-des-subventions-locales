@@ -123,3 +123,58 @@ def test_accept_projet_select_parent_enveloppe():
 
     assert programmation_projets.count() == 1
     assert programmation_projets.first().enveloppe == parent_enveloppe
+
+
+@pytest.mark.django_db
+def test_refusing_a_projet_creates_one_programmation_projet():
+    projet = ProjetFactory(status=Projet.STATUS_PROCESSING)
+    assert projet.status == Projet.STATUS_PROCESSING
+    assert projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
+
+    enveloppe = DetrEnveloppeFactory(annee=2024)
+
+    projet.refuse(enveloppe=enveloppe)
+    projet.save()
+    projet.refresh_from_db()
+
+    assert projet.status == Projet.STATUS_REFUSED
+
+    programmation_projets = ProgrammationProjet.objects.filter(
+        projet=projet, enveloppe=enveloppe
+    )
+    assert programmation_projets.count() == 1
+    programmation_projet = programmation_projets.first()
+    assert programmation_projet.montant == 0
+    assert programmation_projet.taux == 0
+    assert programmation_projet.status == ProgrammationProjet.STATUS_REFUSED
+
+
+@pytest.mark.django_db
+def test_refusing_a_projet_updates_all_simulation_projet():
+    projet = ProjetFactory(status=Projet.STATUS_PROCESSING)
+    assert projet.status == Projet.STATUS_PROCESSING
+    assert projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
+
+    enveloppe = DetrEnveloppeFactory(annee=2024)
+
+    SimulationProjetFactory(
+        projet=projet, status=SimulationProjet.STATUS_PROVISOIRE, montant=1_000
+    )
+    SimulationProjetFactory(
+        projet=projet, status=SimulationProjet.STATUS_ACCEPTED, montant=2_000
+    )
+    SimulationProjetFactory(
+        projet=projet, status=SimulationProjet.STATUS_PROCESSING, montant=5_000
+    )
+    assert SimulationProjet.objects.filter(projet=projet).count() == 3
+
+    projet.refuse(enveloppe=enveloppe)
+    projet.save()
+    projet.refresh_from_db()
+
+    assert SimulationProjet.objects.filter(projet=projet).count() == 3
+    simulation_projets = SimulationProjet.objects.filter(projet=projet)
+    for simulation_projet in simulation_projets:
+        assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
+        assert simulation_projet.montant == 0
+        assert simulation_projet.taux == 0

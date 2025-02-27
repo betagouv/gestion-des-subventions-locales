@@ -205,12 +205,36 @@ class Projet(models.Model):
 
         parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
 
-        programmation_projet, _ = ProgrammationProjet.objects.update_or_create(
+        ProgrammationProjet.objects.update_or_create(
             projet=self,
             enveloppe=parent_enveloppe,
             defaults={
                 "montant": montant,
                 "taux": taux,
                 "status": ProgrammationProjet.STATUS_ACCEPTED,
+            },
+        )
+
+    @transition(field=status, source="*", target=STATUS_REFUSED)
+    def refuse(self, enveloppe: "Enveloppe"):
+        from gsl_programmation.models import ProgrammationProjet
+        from gsl_programmation.services.enveloppe_service import EnveloppeService
+        from gsl_simulation.models import SimulationProjet
+
+        SimulationProjet.objects.filter(projet=self).update(
+            status=SimulationProjet.STATUS_REFUSED,
+            montant=0,
+            taux=0,
+        )
+
+        parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
+
+        ProgrammationProjet.objects.update_or_create(
+            projet=self,
+            enveloppe=parent_enveloppe,
+            defaults={
+                "montant": 0,
+                "taux": 0,
+                "status": ProgrammationProjet.STATUS_REFUSED,
             },
         )
