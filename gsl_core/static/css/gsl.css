@@ -242,6 +242,10 @@ ul.no-list-style li {
     color: var(--text-default-success);
 }
 
+.refuse-color {
+    color: var(--text-default-error);
+}
+
 .confirmation-modal-footer {
     display: flex;
     justify-content: flex-end;
@@ -251,4 +255,13 @@ ul.no-list-style li {
 .cancel-button{
     box-shadow: inset 0 0 0 1px var(--border-action-high-error);
     color: var(--text-default-error);
+}
+
+.refuse-button{
+    background-color: var(--background-action-high-error);
+    color: var(--background-alt-blue-france)
+}
+
+.refuse-button:hover{
+    background-color: var(--background-action-high-error-hover) !important;
 }
