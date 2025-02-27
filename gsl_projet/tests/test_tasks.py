@@ -18,6 +18,8 @@ from gsl_projet.models import Projet
 from gsl_projet.tasks import (
     create_all_projets_from_dossiers,
     create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier,
+    create_or_update_projets_and_its_simulation_and_programmation_projets_from_all_dossiers,
+    create_or_update_projets_batch,
 )
 from gsl_projet.tests.factories import ProjetFactory
 from gsl_simulation.models import SimulationProjet
@@ -161,3 +163,46 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     assert programmation_projet.status == ProgrammationProjet.STATUS_REFUSED
     assert programmation_projet.montant == 0
     assert programmation_projet.taux == 0
+
+
+@pytest.mark.django_db
+def test_create_or_update_projets_and_its_simulation_and_programmation_projets_from_all_dossiers():
+    for i in range(10):
+        DossierFactory(ds_number=i, ds_state="state")
+
+    with mock.patch(
+        "gsl_projet.tasks.create_or_update_projets_batch.delay"
+    ) as mock_create_or_update_projets_batch:
+        create_or_update_projets_and_its_simulation_and_programmation_projets_from_all_dossiers(
+            batch_size=5
+        )
+
+        assert mock_create_or_update_projets_batch.call_count == 2
+
+        mock_create_or_update_projets_batch.assert_any_call([0, 1, 2, 3, 4])
+        mock_create_or_update_projets_batch.assert_any_call([5, 6, 7, 8, 9])
+
+
+@pytest.mark.django_db
+def test_create_or_update_projets_and_its_simulation_and_programmation_projets_from_all_dossiers_with_no_dossiers():
+    with mock.patch(
+        "gsl_projet.tasks.create_or_update_projets_batch.delay"
+    ) as mock_delay:
+        create_or_update_projets_and_its_simulation_and_programmation_projets_from_all_dossiers(
+            batch_size=5
+        )
+
+        mock_delay.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_create_or_update_projets_batch():
+    with mock.patch(
+        "gsl_projet.tasks.create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier.delay"
+    ) as mock_delay:
+        create_or_update_projets_batch((1, 2, 3))
+        assert mock_delay.call_count == 3
+
+        mock_delay.assert_any_call(1)
+        mock_delay.assert_any_call(2)
+        mock_delay.assert_any_call(3)
