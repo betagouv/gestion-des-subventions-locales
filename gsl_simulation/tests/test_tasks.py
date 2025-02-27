@@ -119,7 +119,6 @@ def test_add_enveloppe_projets_to_detr_simulation(
 
     simulation_projet = SimulationProjet.objects.get(
         projet=detr_projets[0],
-        enveloppe=detr_simulation.enveloppe,
         simulation=detr_simulation,
     )
     assert simulation_projet.montant == 1_000
@@ -129,7 +128,6 @@ def test_add_enveloppe_projets_to_detr_simulation(
 
     simulation_projet = SimulationProjet.objects.get(
         projet=detr_projets[1],
-        enveloppe=detr_simulation.enveloppe,
         simulation=detr_simulation,
     )
     assert simulation_projet.montant == 600
@@ -139,7 +137,6 @@ def test_add_enveloppe_projets_to_detr_simulation(
 
     simulation_projet = SimulationProjet.objects.get(
         projet=detr_projets[3],
-        enveloppe=detr_simulation.enveloppe,
         simulation=detr_simulation,
     )
     assert simulation_projet.montant == 2_000
@@ -149,7 +146,6 @@ def test_add_enveloppe_projets_to_detr_simulation(
 
     simulation_projet = SimulationProjet.objects.get(
         projet=detr_projets[5],
-        enveloppe=detr_simulation.enveloppe,
         simulation=detr_simulation,
     )
     assert simulation_projet.montant == 1_500
@@ -159,7 +155,6 @@ def test_add_enveloppe_projets_to_detr_simulation(
 
     simulation_projet = SimulationProjet.objects.get(
         projet=detr_projets[7],
-        enveloppe=detr_simulation.enveloppe,
         simulation=detr_simulation,
     )
     assert simulation_projet.montant == 2_500
@@ -178,7 +173,6 @@ def test_add_enveloppe_projets_to_dsil_simulation(
 
     simulation_projet = SimulationProjet.objects.get(
         projet=dsil_projets[0],
-        enveloppe=dsil_simulation.enveloppe,
         simulation=dsil_simulation,
     )
     assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
@@ -188,7 +182,6 @@ def test_add_enveloppe_projets_to_dsil_simulation(
 
     simulation_projet = SimulationProjet.objects.get(
         projet=dsil_projets[1],
-        enveloppe=dsil_simulation.enveloppe,
         simulation=dsil_simulation,
     )
     assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
@@ -198,7 +191,6 @@ def test_add_enveloppe_projets_to_dsil_simulation(
 
     simulation_projet = SimulationProjet.objects.get(
         projet=dsil_projets[3],
-        enveloppe=dsil_simulation.enveloppe,
         simulation=dsil_simulation,
     )
     assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
@@ -208,7 +200,6 @@ def test_add_enveloppe_projets_to_dsil_simulation(
 
     simulation_projet = SimulationProjet.objects.get(
         projet=dsil_projets[5],
-        enveloppe=dsil_simulation.enveloppe,
         simulation=dsil_simulation,
     )
     assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
@@ -218,7 +209,6 @@ def test_add_enveloppe_projets_to_dsil_simulation(
 
     simulation_projet = SimulationProjet.objects.get(
         projet=dsil_projets[7],
-        enveloppe=dsil_simulation.enveloppe,
         simulation=dsil_simulation,
     )
     assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
