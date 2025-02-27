@@ -76,8 +76,8 @@ class SimulationProjet(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = "Simulation de programmation projet"
-        verbose_name_plural = "Simulations de programmation projet"
+        verbose_name = "Projet de simulation"
+        verbose_name_plural = "Projets de simulation"
         constraints = (
             models.UniqueConstraint(
                 fields=("projet", "simulation"),
