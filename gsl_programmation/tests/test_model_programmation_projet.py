@@ -15,7 +15,7 @@ from gsl_projet.tests.factories import ProjetFactory
 
 
 def test_programmation_projet_cant_have_a_montant_higher_than_projet_assiette():
-    projet = ProjetFactory.build(assiette=100)
+    projet = ProjetFactory.build(assiette=100, dossier_ds__finance_cout_total=200)
     with pytest.raises(ValidationError) as exc_info:
         pp = ProgrammationProjetFactory.build(projet=projet, montant=101)
         pp.full_clean()
