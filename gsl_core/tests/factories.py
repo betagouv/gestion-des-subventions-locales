@@ -110,3 +110,10 @@ class ClientWithLoggedUserFactory(Client):
     def __init__(self, user, **kwargs):
         super().__init__(**kwargs)
         self.force_login(user)
+
+
+class ClientWithLoggedStaffUserFactory(Client):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        user = CollegueFactory(is_staff=True)
+        self.force_login(user)

@@ -17,9 +17,8 @@ from gsl_simulation.models import Simulation
 from gsl_simulation.services.simulation_service import SimulationService
 from gsl_simulation.tests.factories import SimulationFactory
 
-pytestmark = pytest.mark.django_db
 
-
+@pytest.mark.django_db
 def test_user_with_department_and_ask_for_dsil_simulation():
     perimetre_departemental = PerimetreDepartementalFactory()
     perimetre_regional = PerimetreRegionalFactory(region=perimetre_departemental.region)
@@ -41,6 +40,7 @@ def test_user_with_department_and_ask_for_dsil_simulation():
     assert simulation.slug == "test"
 
 
+@pytest.mark.django_db
 def test_empty_enveloppe_is_created_if_needed():
     perimetre_departemental = PerimetreDepartementalFactory()
     user = CollegueFactory(perimetre=perimetre_departemental)
@@ -52,6 +52,7 @@ def test_empty_enveloppe_is_created_if_needed():
     assert simulation.enveloppe.type == Enveloppe.TYPE_DETR
 
 
+@pytest.mark.django_db
 def test_user_with_department_and_ask_for_detr_simulation():
     perimetre_departemental = PerimetreDepartementalFactory()
     user = CollegueFactory(perimetre=perimetre_departemental)
@@ -67,6 +68,7 @@ def test_user_with_department_and_ask_for_detr_simulation():
     assert simulation.slug == "test-aussi-le-slug"
 
 
+@pytest.mark.django_db
 def test_user_without_department_and_ask_for_detr_simulation():
     perimetre_regional = PerimetreRegionalFactory()
     user = CollegueFactory(perimetre=perimetre_regional)
@@ -76,6 +78,7 @@ def test_user_without_department_and_ask_for_detr_simulation():
         SimulationService.create_simulation(user, "test", "DETR")
 
 
+@pytest.mark.django_db
 def test_user_with_region_and_ask_for_dsil_simulation():
     perimetre_regional = PerimetreRegionalFactory()
     user = CollegueFactory(perimetre=perimetre_regional)
@@ -87,6 +90,7 @@ def test_user_with_region_and_ask_for_dsil_simulation():
     assert simulation.slug == "test-avec-ce-titre"
 
 
+@pytest.mark.django_db
 def test_user_with_arrondissement_and_ask_for_dsil_simulation():
     perimetre_arrondissement = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre_arrondissement)
@@ -101,6 +105,7 @@ def test_user_with_arrondissement_and_ask_for_dsil_simulation():
     assert simulation.slug == "test-avec-ces-caracteres"
 
 
+@pytest.mark.django_db
 def test_slug_generation():
     SimulationFactory(slug="test")
     SimulationFactory(slug="test-2")

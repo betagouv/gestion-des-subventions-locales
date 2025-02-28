@@ -1,6 +1,5 @@
 from decimal import Decimal
 
-from gsl_core.models import Perimetre
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
 from gsl_simulation.models import Simulation, SimulationProjet
@@ -114,19 +113,3 @@ class SimulationProjetService:
             pk=simulation_projet.pk
         )
         return updated_simulation_projet
-
-    @classmethod
-    def is_simulation_projet_in_perimetre(
-        cls, simulation_projet: SimulationProjet, perimetre: Perimetre
-    ):
-        simulation_projet_perimetre = simulation_projet.projet.perimetre
-        if perimetre.arrondissement is not None:
-            return (
-                perimetre.arrondissement_id
-                == simulation_projet_perimetre.arrondissement_id
-            )
-        if perimetre.departement is not None:
-            return (
-                perimetre.departement_id == simulation_projet_perimetre.departement_id
-            )
-        return perimetre.region_id == simulation_projet_perimetre.departement.region_id

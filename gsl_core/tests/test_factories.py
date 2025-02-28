@@ -13,6 +13,7 @@ from ..models import (
 from .factories import (
     AdresseFactory,
     ArrondissementFactory,
+    ClientWithLoggedStaffUserFactory,
     ClientWithLoggedUserFactory,
     CollegueFactory,
     CommuneFactory,
@@ -45,4 +46,10 @@ def test_client_factory():
     user = CollegueFactory()
     for _ in range(2):
         obj = ClientWithLoggedUserFactory(user)
+        assert isinstance(obj, Client)
+
+
+def test_staff_client_factory():
+    for _ in range(2):
+        obj = ClientWithLoggedStaffUserFactory()
         assert isinstance(obj, Client)
