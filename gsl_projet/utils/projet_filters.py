@@ -11,6 +11,7 @@ from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
+from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 
 
 class ProjetFilters(FilterSet):
@@ -111,9 +112,18 @@ class ProjetFilters(FilterSet):
         ),
     )
 
+    ordered_status = (
+        Projet.STATUS_PROCESSING,
+        Projet.STATUS_REFUSED,
+        Projet.STATUS_ACCEPTED,
+        Projet.STATUS_UNANSWERED,
+    )
+
     status = MultipleChoiceFilter(
-        field_name="dossier_ds__ds_state",
-        choices=Dossier.DS_STATE_VALUES,
+        field_name="status",
+        choices=order_couples_tuple_by_first_value(
+            Projet.STATUS_CHOICES, ordered_status
+        ),
         widget=CustomCheckboxSelectMultiple(),
     )
 

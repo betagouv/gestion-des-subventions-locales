@@ -1,7 +1,7 @@
 from django import forms
 from django.utils.safestring import mark_safe
 
-from gsl_demarches_simplifiees.models import Dossier
+from gsl_projet.models import Projet
 from gsl_simulation.models import SimulationProjet
 
 
@@ -12,11 +12,10 @@ class CustomCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
             SimulationProjet.STATUS_PROVISOIRE: "blue",
             SimulationProjet.STATUS_REFUSED: "red",
             SimulationProjet.STATUS_ACCEPTED: "green",
-            Dossier.STATE_ACCEPTE: "green",
-            Dossier.STATE_EN_CONSTRUCTION: "blue",
-            Dossier.STATE_EN_INSTRUCTION: "blue",
-            Dossier.STATE_REFUSE: "red",
-            Dossier.STATE_SANS_SUITE: "orange",
+            Projet.STATUS_ACCEPTED: "green",
+            Projet.STATUS_PROCESSING: "",
+            Projet.STATUS_REFUSED: "red",
+            Projet.STATUS_UNANSWERED: "",
         }.get(option_value, "")
 
     def render(self, name, value, attrs=None, renderer=None):

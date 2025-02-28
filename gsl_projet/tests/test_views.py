@@ -503,30 +503,23 @@ def test_filter_with_wrong_montant_demande_values(
 def projets_with_status(demandeur) -> list[Projet]:
     projets = []
     for status, count in (
-        ("accepte", 1),
-        ("en_construction", 2),
-        ("en_instruction", 3),
-        ("refuse", 4),
-        ("sans_suite", 5),
+        ("accepted", 1),
+        ("processing", 2),
+        ("refused", 4),
+        ("unanswered", 5),
     ):
         for _ in range(count):
-            projets.append(
-                ProjetFactory(
-                    dossier_ds__ds_state=status,
-                    demandeur=demandeur,
-                )
-            )
+            projets.append(ProjetFactory(status=status, demandeur=demandeur))
     return projets
 
 
 @pytest.mark.parametrize(
     "status,expected_count",
     [
-        ("accepte", 1),
-        ("en_construction", 2),
-        ("en_instruction", 3),
-        ("refuse", 4),
-        ("sans_suite", 5),
+        ("accepted", 1),
+        ("processing", 2),
+        ("refused", 4),
+        ("unanswered", 5),
     ],
 )
 def test_filter_by_status(req, view, projets_with_status, status, expected_count):
@@ -535,7 +528,7 @@ def test_filter_by_status(req, view, projets_with_status, status, expected_count
     qs = view.get_filterset(ProjetFilters).qs
 
     assert qs.count() == expected_count
-    assert qs.first().dossier_ds.ds_state == status
+    assert qs.first().status == status
 
 
 def test_get_status_placeholder(req, view, projets_with_status):
@@ -545,9 +538,9 @@ def test_get_status_placeholder(req, view, projets_with_status):
 
 
 def test_get_status_placeholder_with_status(req, view, projets_with_status):
-    request = req.get("/?status=accepte&status=en_construction")
+    request = req.get("/?status=accepted&status=processing")
     view.request = request
     assert (
         view._get_status_placeholder(ProjetListView.STATE_MAPPINGS)
-        == "Accepté, En construction"
+        == "✅ Accepté, 🔄 En traitement"
     )

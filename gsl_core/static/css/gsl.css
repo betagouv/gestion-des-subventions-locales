@@ -118,6 +118,13 @@ ul.no-list-style li {
     text-overflow: ellipsis;
 }
 
+.max_120_width {
+    max-width: 140px;
+    width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .gsl_projet_table__total {
     width: 100%;
     justify-content: center;
@@ -216,20 +223,31 @@ ul.no-list-style li {
     }
 }
 
-.ds_state__accepte {
+.projet_status__accepted {
     color: var(--text-default-success)
 }
 
-.ds_state__accepte::before {
-    content: "✅" / "";
-}
-
-.ds_state__refuse{
+.projet_status__refused {
     color: var(--text-default-error)
 }
 
-.ds_state__refuse::before {
-    content: "❌" / "";
+/* projet detail */
+.badge-projet-status__accepted {
+    background-color: var(--background-contrast-success);
+    color: var(--text-default-success);
+}
+
+.badge-projet-status__refused {
+    background-color: var(--background-contrast-error);
+    color: var(--text-default-error);
+}
+/* .badge-projet-status__processing {
+    background-color: var(--background-contrast-info);
+    color: var(--text-default-info);
+} */
+.badge-projet-status__unanswered {
+    background-color: var(--background-contrast-warning);
+    color: var(--text-default-warning);
 }
 
 /* simulation */

@@ -21,3 +21,8 @@ def euro(value, decimals=0):
     if not isinstance(value, (float, int, Decimal)) or isinstance(value, bool):
         return "—"
     return floatformat(value, f"{decimals}g") + " €"
+
+
+@register.filter
+def remove_first_word(value):
+    return value.split(" ", 1)[1]

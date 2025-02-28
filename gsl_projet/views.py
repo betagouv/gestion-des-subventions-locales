@@ -5,7 +5,6 @@ from django.views.decorators.http import require_GET
 from django.views.generic import ListView
 from django_filters.views import FilterView
 
-from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.services import ProjetService
 from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_filters import ProjetFilters
@@ -128,7 +127,7 @@ class ProjetListView(FilterView, ListView, FilterUtils):
     paginate_by = 25
     filterset_class = ProjetListViewFilters
     template_name = "gsl_projet/projet_list.html"
-    STATE_MAPPINGS = {key: value for key, value in Dossier.DS_STATE_VALUES}
+    STATE_MAPPINGS = {key: value for key, value in Projet.STATUS_CHOICES}
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
