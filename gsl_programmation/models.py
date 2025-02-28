@@ -1,9 +1,8 @@
-from math import isclose
-
 from django.core.exceptions import ValidationError
 from django.db import models
 
 from gsl_core.models import Perimetre
+from gsl_programmation.utils import is_there_less_or_equal_than_0_009_of_difference
 from gsl_projet.models import Projet
 
 
@@ -151,14 +150,14 @@ class ProgrammationProjet(models.Model):
     def _validate_taux(self, errors):
         if self.taux and self.taux > 100:
             errors["taux"] = {
-                "Le taux de la programmation ne peut pas être supérieur à 100"
+                "Le taux de la programmation ne peut pas être supérieur à 100."
             }
 
     def _validate_montant(self, errors):
         if self.projet.assiette is not None:
             if self.projet.assiette > 0:
-                if not isclose(
-                    self.taux, self.montant * 100 / self.projet.assiette, abs_tol=0.009
+                if not is_there_less_or_equal_than_0_009_of_difference(
+                    self.taux, self.montant * 100 / self.projet.assiette
                 ):
                     errors["taux"] = {
                         "Le taux et le montant de la programmation ne sont pas cohérents. "

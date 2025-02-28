@@ -21,7 +21,7 @@ def test_programmation_projet_cant_have_a_montant_higher_than_projet_assiette():
         pp.full_clean()
     assert (
         "Le montant de la programmation ne peut pas être supérieur à l'assiette du projet."
-        in str(exc_info.value.message_dict.get("montant")[0])
+        in exc_info.value.message_dict.get("montant")[0]
     )
 
 
@@ -32,7 +32,7 @@ def test_programmation_projet_cant_have_a_montant_higher_than_projet_cout_total(
         pp.full_clean()
     assert (
         "Le montant de la programmation ne peut pas être supérieur au coût total du projet."
-        in str(exc_info.value.message_dict.get("montant")[0])
+        in exc_info.value.message_dict.get("montant")[0]
     )
 
 
@@ -40,8 +40,9 @@ def test_programmation_projet_cant_have_a_taux_higher_than_100():
     with pytest.raises(ValidationError) as exc_info:
         pp = ProgrammationProjetFactory.build(taux=101)
         pp.full_clean()
-    assert "Le taux de la programmation ne peut pas être supérieur à 100" in str(
-        exc_info.value.message_dict.get("taux")[0]
+    assert (
+        "Le taux de la programmation ne peut pas être supérieur à 100."
+        in exc_info.value.message_dict.get("taux")[0]
     )
 
 
@@ -87,7 +88,7 @@ def test_taux_consistency_is_valid_with_a_difference_of_more_than_a_tenth(projet
         exception_message = exc_info.value.message_dict["taux"][0]
         assert (
             "Le taux et le montant de la programmation ne sont pas cohérents."
-            in str(exc_info.value)
+            in exception_message
         )
         assert "Taux attendu : 3.40" in exception_message
 
@@ -123,7 +124,7 @@ def test_clean_programmation_on_deleguee_enveloppe(projet, enveloppe_deleguee):
         programmation.clean()
     assert (
         "Une programmation ne peut pas être faite sur une enveloppe déléguée."
-        in str(exc_info.value.message_dict["enveloppe"])
+        in exc_info.value.message_dict["enveloppe"][0]
     )
 
 

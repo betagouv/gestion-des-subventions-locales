@@ -1,8 +1,6 @@
 import pytest
 
-from gsl_simulation.utils import (
-    replace_comma_by_dot,
-)
+from gsl_simulation.utils import replace_comma_by_dot
 
 
 @pytest.mark.parametrize(
