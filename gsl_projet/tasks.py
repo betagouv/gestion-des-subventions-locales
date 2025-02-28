@@ -33,9 +33,22 @@ def create_or_update_projet_and_its_simulation_and_programmation_projets_from_do
 
 
 @shared_task
-def create_or_update_projets_and_its_simulation_and_programmation_projets_from_all_dossiers():
-    dossiers = Dossier.objects.exclude(ds_state="")
-    for dossier in dossiers.all():
+def create_or_update_projets_and_its_simulation_and_programmation_projets_from_all_dossiers(
+    batch_size=500,
+):
+    dossiers = Dossier.objects.exclude(ds_state="").values_list("ds_number", flat=True)
+
+    dossier_batches = [
+        dossiers[i : i + batch_size] for i in range(0, len(dossiers), batch_size)
+    ]
+
+    for batch in dossier_batches:
+        create_or_update_projets_batch.delay(list(batch))
+
+
+@shared_task
+def create_or_update_projets_batch(dossier_numbers: list[int]):
+    for ds_number in dossier_numbers:
         create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier.delay(
-            dossier.ds_number
+            ds_number
         )
