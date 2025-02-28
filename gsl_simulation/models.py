@@ -1,5 +1,6 @@
 from django.db import models
 from django.db.models import Count
+from django.forms import ValidationError
 
 from gsl_core.models import Collegue
 from gsl_programmation.models import Enveloppe
@@ -92,3 +93,32 @@ class SimulationProjet(models.Model):
     @property
     def enveloppe(self):
         return self.simulation.enveloppe
+
+    def clean(self):
+        errors = {}
+        self._validate_taux(errors)
+        self._validate_montant(errors)
+        if errors:
+            raise ValidationError(errors)
+
+    def _validate_taux(self, errors):
+        if self.taux and self.taux > 100:
+            errors["taux"] = {
+                "Le taux de la simulation ne peut pas être supérieur à 100."
+            }
+
+    def _validate_montant(self, errors):
+        if self.projet.assiette is not None:
+            if self.montant and self.montant > self.projet.assiette:
+                errors["montant"] = {
+                    "Le montant de la simulation ne peut pas être supérieur à l'assiette du projet."
+                }
+        else:
+            if (
+                self.montant
+                and self.projet.dossier_ds.finance_cout_total
+                and self.montant > self.projet.dossier_ds.finance_cout_total
+            ):
+                errors["montant"] = {
+                    "Le montant de la simulation ne peut pas être supérieur au coût total du projet."
+                }
