@@ -118,6 +118,13 @@ ul.no-list-style li {
     text-overflow: ellipsis;
 }
 
+.max_120_width {
+    max-width: 140px;
+    width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .gsl_projet_table__total {
     width: 100%;
     justify-content: center;
@@ -216,20 +223,12 @@ ul.no-list-style li {
     }
 }
 
-.ds_state__accepte {
+.projet_status__accepted {
     color: var(--text-default-success)
 }
 
-.ds_state__accepte::before {
-    content: "✅" / "";
-}
-
-.ds_state__refuse{
+.projet_status__refused {
     color: var(--text-default-error)
-}
-
-.ds_state__refuse::before {
-    content: "❌" / "";
 }
 
 /* simulation */

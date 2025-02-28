@@ -38,7 +38,7 @@
                 <th>
                     Catégorie d'opération
                 </th>
-                <th>
+                <th class="max_120_width">
                     Statut
                 </th>
                 <th>
@@ -86,8 +86,8 @@
                             {% endfor %}
                         </ul>
                     </td>
-                    <td class="ds_state__{{ projet.dossier_ds.ds_state }}">
-                        <b>{{ projet.dossier_ds.get_ds_state_display }}</b>
+                    <td class="projet_status__{{ projet.status }}">
+                        <b>{{ projet.get_status_display }}</b>
                     </td>
                     <td class="fr-cell--right">
                         <a class="fr-btn--tertiary-no-outline gsl-no-underline"
