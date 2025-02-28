@@ -133,6 +133,21 @@ def test_update_status_with_accepted(mock_accept_a_simulation_projet):
 
 
 @pytest.mark.django_db
+@mock.patch(
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._refuse_a_simulation_projet"
+)
+def test_update_status_with_refused(mock_refuse_a_simulation_projet):
+    simulation_projet = SimulationProjetFactory(
+        status=SimulationProjet.STATUS_PROCESSING
+    )
+    new_status = SimulationProjet.STATUS_REFUSED
+
+    SimulationProjetService.update_status(simulation_projet, new_status)
+
+    mock_refuse_a_simulation_projet.assert_called_once_with(simulation_projet)
+
+
+@pytest.mark.django_db
 def test_update_status_with_other_status_than_accepted():
     simulation_projet = SimulationProjetFactory(status=SimulationProjet.STATUS_REFUSED)
     new_status = SimulationProjet.STATUS_PROCESSING
@@ -190,8 +205,27 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
     assert programmation_projet.enveloppe == mother_enveloppe
 
 
+@pytest.mark.parametrize(
+    "initial_progrogrammation_status, new_projet_status, programmation_status_expected",
+    (
+        (
+            ProgrammationProjet.STATUS_REFUSED,
+            SimulationProjet.STATUS_ACCEPTED,
+            ProgrammationProjet.STATUS_ACCEPTED,
+        ),
+        (
+            ProgrammationProjet.STATUS_ACCEPTED,
+            SimulationProjet.STATUS_REFUSED,
+            ProgrammationProjet.STATUS_REFUSED,
+        ),
+    ),
+)
 @pytest.mark.django_db
-def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_mother_enveloppe():
+def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_mother_enveloppe(
+    initial_progrogrammation_status,
+    new_projet_status,
+    programmation_status_expected,
+):
     mother_enveloppe = DetrEnveloppeFactory()
     child_enveloppe = DetrEnveloppeFactory(deleguee_by=mother_enveloppe)
     projet = ProjetFactory(perimetre=child_enveloppe.perimetre)
@@ -203,22 +237,23 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
     ProgrammationProjetFactory(
         projet=simulation_projet.projet,
         enveloppe=mother_enveloppe,
-        status=ProgrammationProjet.STATUS_REFUSED,
+        status=initial_progrogrammation_status,
     )
     programmation_projets_qs = ProgrammationProjet.objects.filter(
         projet=simulation_projet.projet
     )
     assert programmation_projets_qs.count() == 1
 
-    new_status = SimulationProjet.STATUS_ACCEPTED
-    SimulationProjetService.update_status(simulation_projet, new_status)
+    SimulationProjetService.update_status(simulation_projet, new_projet_status)
 
     programmation_projets_qs = ProgrammationProjet.objects.filter(
         projet=simulation_projet.projet
     )
     assert programmation_projets_qs.count() == 1
+
     programmation_projet = programmation_projets_qs.first()
     assert programmation_projet.enveloppe == mother_enveloppe
+    assert programmation_projet.status == programmation_status_expected
 
 
 @pytest.mark.django_db

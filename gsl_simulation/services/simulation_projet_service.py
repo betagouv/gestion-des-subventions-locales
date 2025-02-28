@@ -53,6 +53,8 @@ class SimulationProjetService:
     def update_status(cls, simulation_projet: SimulationProjet, new_status: str):
         if new_status == SimulationProjet.STATUS_ACCEPTED:
             return cls._accept_a_simulation_projet(simulation_projet)
+        elif new_status == SimulationProjet.STATUS_REFUSED:
+            return cls._refuse_a_simulation_projet(simulation_projet)
 
         simulation_projet.status = new_status
         simulation_projet.save()
@@ -108,6 +110,17 @@ class SimulationProjetService:
         projet.accept(
             montant=simulation_projet.montant, enveloppe=simulation_projet.enveloppe
         )
+        projet.save()
+
+        updated_simulation_projet = SimulationProjet.objects.get(
+            pk=simulation_projet.pk
+        )
+        return updated_simulation_projet
+
+    @classmethod
+    def _refuse_a_simulation_projet(cls, simulation_projet: SimulationProjet):
+        projet = simulation_projet.projet
+        projet.refuse(enveloppe=simulation_projet.enveloppe)
         projet.save()
 
         updated_simulation_projet = SimulationProjet.objects.get(
