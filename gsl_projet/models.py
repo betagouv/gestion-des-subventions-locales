@@ -240,7 +240,9 @@ class Projet(models.Model):
         )
 
     @transition(
-        field=status, source=[STATUS_ACCEPTED, STATUS_REFUSED], target=STATUS_PROCESSING
+        field=status,
+        source=[STATUS_ACCEPTED, STATUS_REFUSED, STATUS_UNANSWERED],
+        target=STATUS_PROCESSING,
     )
     def set_back_status_to_processing(self):
         from gsl_programmation.models import ProgrammationProjet

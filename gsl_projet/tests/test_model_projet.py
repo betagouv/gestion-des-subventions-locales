@@ -237,9 +237,31 @@ def test_set_back_status_to_processing_from_refused():
         assert simulation_projet.taux == 0
 
 
-@pytest.mark.parametrize(
-    ("status"), [Projet.STATUS_UNANSWERED, Projet.STATUS_PROCESSING]
-)
+def test_set_back_status_to_processing_from_unanswered():
+    projet = ProjetFactory(status=Projet.STATUS_REFUSED)
+    ProgrammationProjetFactory(
+        projet=projet,
+        status=ProgrammationProjet.STATUS_REFUSED,
+    )
+    SimulationProjetFactory.create_batch(
+        3, projet=projet, status=SimulationProjet.STATUS_REFUSED, montant=0, taux=0
+    )
+
+    projet.set_unanswered()
+    projet.save()
+    projet.refresh_from_db()
+
+    assert projet.status == Projet.STATUS_UNANSWERED
+    assert ProgrammationProjet.objects.filter(projet=projet).count() == 0
+    simulation_projets = SimulationProjet.objects.filter(projet=projet)
+    assert simulation_projets.count() == 3
+    for simulation_projet in simulation_projets:
+        assert simulation_projet.status == SimulationProjet.STATUS_UNANSWERED
+        assert simulation_projet.montant == 0
+        assert simulation_projet.taux == 0
+
+
+@pytest.mark.parametrize(("status"), [Projet.STATUS_PROCESSING])
 def test_set_back_status_to_processing_from_other_status_than_accepted_or_refused(
     status,
 ):
