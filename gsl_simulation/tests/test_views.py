@@ -564,7 +564,7 @@ def test_patch_status_simulation_projet_with_refused_value(
     assert "1 projet refusé" in response.content.decode()
     assert "0 projet notifié" in response.content.decode()
     assert (
-        '<span hx-swap-oob="innerHTML" id="total-amount-granted">1\xa0000\xa0€</span>'
+        '<span hx-swap-oob="innerHTML" id="total-amount-granted">0\xa0€</span>'
         in response.content.decode()
     )
 

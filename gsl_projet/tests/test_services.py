@@ -18,7 +18,7 @@ from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFa
 
 @pytest.mark.django_db
 def test_get_or_create_projet_from_dossier_with_existing_projet():
-    dossier = DossierFactory()
+    dossier = DossierFactory(projet_adresse=AdresseFactory())
     projet = ProjetFactory(dossier_ds=dossier)
 
     assert ProjetService.get_or_create_from_ds_dossier(dossier) == projet
@@ -228,16 +228,18 @@ def test_add_ordering_to_projets_qs():
     assert list(ordered_qs) == [projet3, projet1, projet2]
 
 
+@pytest.mark.django_db
 def test_compute_taux_from_montant():
-    projet = ProjetFactory.build(
+    projet = ProjetFactory(
         dossier_ds__finance_cout_total=100_000,
     )
     taux = ProjetService.compute_taux_from_montant(projet, 10_000)
     assert taux == 10
 
 
+@pytest.mark.django_db
 def test_compute_taux_from_montant_with_projet_without_finance_cout_total():
-    projet = ProjetFactory.build()
+    projet = ProjetFactory()
     taux = ProjetService.compute_taux_from_montant(projet, 10_000)
     assert taux == 0
 

@@ -61,6 +61,7 @@ class AdresseFactory(factory.django.DjangoModelFactory):
 class PerimetreFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Perimetre
+        django_get_or_create = ("arrondissement", "departement", "region")
 
     arrondissement = None
     departement = factory.SubFactory(DepartementFactory)

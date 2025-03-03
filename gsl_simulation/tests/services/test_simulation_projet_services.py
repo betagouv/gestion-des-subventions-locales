@@ -435,7 +435,8 @@ def test_is_simulation_projet_in_perimetre_arrondissement():
         (Projet.STATUS_UNANSWERED, SimulationProjet.STATUS_REFUSED),
     ),
 )
+@pytest.mark.django_db
 def test_get_simulation_projet_status(projet_status, simulation_projet_status_expected):
-    projet = ProjetFactory.build(status=projet_status)
+    projet = ProjetFactory(status=projet_status)
     status = SimulationProjetService.get_simulation_projet_status(projet)
     assert status == simulation_projet_status_expected

@@ -301,8 +301,9 @@ def test_create_or_update_from_projet_with_other_status_with_existing_one(
         (None, "Error"),
     ],
 )
+@pytest.mark.django_db
 def test_compute_from_annotation(dotation_annotation, dotation_expected):
-    projet = ProjetFactory.build()
+    projet = ProjetFactory()
     projet.dossier_ds.annotations_dotation = dotation_annotation
 
     if dotation_expected == "Error":
