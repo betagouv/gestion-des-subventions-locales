@@ -467,7 +467,7 @@ def test_is_simulation_projet_in_perimetre_arrondissement():
         (Projet.STATUS_ACCEPTED, SimulationProjet.STATUS_ACCEPTED),
         (Projet.STATUS_REFUSED, SimulationProjet.STATUS_REFUSED),
         (Projet.STATUS_PROCESSING, SimulationProjet.STATUS_PROCESSING),
-        (Projet.STATUS_UNANSWERED, SimulationProjet.STATUS_REFUSED),
+        (Projet.STATUS_UNANSWERED, SimulationProjet.STATUS_UNANSWERED),
     ),
 )
 @pytest.mark.django_db

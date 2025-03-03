@@ -66,6 +66,7 @@ class SimulationProjetListViewFilters(ProjetFilters):
         SimulationProjet.STATUS_PROVISOIRE,
         SimulationProjet.STATUS_REFUSED,
         SimulationProjet.STATUS_ACCEPTED,
+        SimulationProjet.STATUS_UNANSWERED,
     )
 
     status = MultipleChoiceFilter(

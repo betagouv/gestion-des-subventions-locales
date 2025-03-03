@@ -106,7 +106,7 @@ class SimulationProjetService:
 
     PROJET_STATUS_TO_SIMULATION_PROJET_STATUS = {
         Projet.STATUS_ACCEPTED: SimulationProjet.STATUS_ACCEPTED,
-        Projet.STATUS_UNANSWERED: SimulationProjet.STATUS_REFUSED,
+        Projet.STATUS_UNANSWERED: SimulationProjet.STATUS_UNANSWERED,
         Projet.STATUS_REFUSED: SimulationProjet.STATUS_REFUSED,
         Projet.STATUS_PROCESSING: SimulationProjet.STATUS_PROCESSING,
     }
