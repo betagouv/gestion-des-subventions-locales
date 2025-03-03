@@ -179,8 +179,8 @@ def test_create_or_update_projets_and_its_simulation_and_programmation_projets_f
 
         assert mock_create_or_update_projets_batch.call_count == 2
 
-        mock_create_or_update_projets_batch.assert_any_call([0, 1, 2, 3, 4])
-        mock_create_or_update_projets_batch.assert_any_call([5, 6, 7, 8, 9])
+        mock_create_or_update_projets_batch.assert_any_call((0, 1, 2, 3, 4))
+        mock_create_or_update_projets_batch.assert_any_call((5, 6, 7, 8, 9))
 
 
 @pytest.mark.django_db

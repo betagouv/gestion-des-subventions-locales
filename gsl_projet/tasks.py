@@ -1,3 +1,5 @@
+from itertools import batched
+
 from celery import shared_task
 
 from gsl_demarches_simplifiees.models import Dossier
@@ -38,16 +40,12 @@ def create_or_update_projets_and_its_simulation_and_programmation_projets_from_a
 ):
     dossiers = Dossier.objects.exclude(ds_state="").values_list("ds_number", flat=True)
 
-    dossier_batches = [
-        dossiers[i : i + batch_size] for i in range(0, len(dossiers), batch_size)
-    ]
-
-    for batch in dossier_batches:
-        create_or_update_projets_batch.delay(list(batch))
+    for batch in batched(dossiers, batch_size):
+        create_or_update_projets_batch.delay(batch)
 
 
 @shared_task
-def create_or_update_projets_batch(dossier_numbers: list[int]):
+def create_or_update_projets_batch(dossier_numbers: tuple[int]):
     for ds_number in dossier_numbers:
         create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier.delay(
             ds_number
