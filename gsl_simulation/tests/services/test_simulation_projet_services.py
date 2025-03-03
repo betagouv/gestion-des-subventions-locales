@@ -133,24 +133,45 @@ def test_update_status_with_accepted(mock_accept_a_simulation_projet):
 
 
 @pytest.mark.django_db
-@mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._refuse_a_simulation_projet"
-)
-def test_update_status_with_refused(mock_refuse_a_simulation_projet):
+def test_update_status_with_refused():
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROCESSING
     )
     new_status = SimulationProjet.STATUS_REFUSED
 
-    SimulationProjetService.update_status(simulation_projet, new_status)
+    with mock.patch.object(
+        SimulationProjetService, "_refuse_a_simulation_projet"
+    ) as mock_refuse_a_simulation_projet:
+        SimulationProjetService.update_status(simulation_projet, new_status)
 
-    mock_refuse_a_simulation_projet.assert_called_once_with(simulation_projet)
+        mock_refuse_a_simulation_projet.assert_called_once_with(simulation_projet)
+
+
+@pytest.mark.django_db
+def test_update_status_with_unanswered():
+    simulation_projet = SimulationProjetFactory(
+        status=SimulationProjet.STATUS_PROCESSING
+    )
+    new_status = SimulationProjet.STATUS_UNANSWERED
+
+    with mock.patch.object(
+        SimulationProjetService, "_set_unanswered_a_simulation_projet"
+    ) as mock_set_unanswered_a_simulation_projet:
+        SimulationProjetService.update_status(simulation_projet, new_status)
+
+        mock_set_unanswered_a_simulation_projet.assert_called_once_with(
+            simulation_projet
+        )
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     ("initial_status"),
-    (SimulationProjet.STATUS_ACCEPTED, SimulationProjet.STATUS_REFUSED),
+    (
+        SimulationProjet.STATUS_ACCEPTED,
+        SimulationProjet.STATUS_REFUSED,
+        SimulationProjet.STATUS_UNANSWERED,
+    ),
 )
 def test_update_status_with_processing_from_accepted_or_refused(initial_status):
     simulation_projet = SimulationProjetFactory(status=initial_status)
