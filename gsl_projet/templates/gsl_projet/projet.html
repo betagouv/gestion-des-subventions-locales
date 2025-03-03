@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static dsfr_tags %}
+{% load static dsfr_tags gsl_filters %}
 
 {% block breadcrumb %}
     {% dsfr_breadcrumb breadcrumb_dict %}
@@ -14,7 +14,7 @@
     </div>
 
     <h1>
-        <span class="fr-badge fr-text--xl gsl-pull-right fr-mt-2v fr-ml-5w">{{ dossier.get_ds_state_display }}</span>
+        <span class="fr-badge fr-text--xl gsl-pull-right fr-mt-2v fr-ml-5w badge-projet-status__{{ projet.status }}">{{ projet.get_status_display|remove_first_word }}</span>
         {{ dossier.projet_intitule|lower|capfirst }}
     </h1>
 
