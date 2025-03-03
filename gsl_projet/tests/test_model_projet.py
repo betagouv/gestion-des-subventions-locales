@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 import pytest
+from django_fsm import TransitionNotAllowed
 
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import ProgrammationProjet
@@ -178,3 +179,72 @@ def test_refusing_a_projet_updates_all_simulation_projet():
         assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
         assert simulation_projet.montant == 0
         assert simulation_projet.taux == 0
+
+
+@pytest.mark.django_db
+def test_set_back_status_to_processing_from_accepted():
+    projet = ProjetFactory(status=Projet.STATUS_ACCEPTED)
+    ProgrammationProjetFactory(
+        projet=projet,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        montant=10_000,
+        taux=20,
+    )
+    SimulationProjetFactory.create_batch(
+        3,
+        projet=projet,
+        status=SimulationProjet.STATUS_ACCEPTED,
+        montant=10_000,
+        taux=20,
+    )
+
+    projet.set_back_status_to_processing()
+    projet.save()
+    projet.refresh_from_db()
+
+    assert projet.status == Projet.STATUS_PROCESSING
+    assert ProgrammationProjet.objects.filter(projet=projet).count() == 0
+    simulation_projets = SimulationProjet.objects.filter(projet=projet)
+    assert simulation_projets.count() == 3
+    for simulation_projet in simulation_projets:
+        assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
+        assert simulation_projet.montant == 10_000
+        assert simulation_projet.taux == 20
+
+
+@pytest.mark.django_db
+def test_set_back_status_to_processing_from_refused():
+    projet = ProjetFactory(status=Projet.STATUS_REFUSED)
+    ProgrammationProjetFactory(
+        projet=projet,
+        status=ProgrammationProjet.STATUS_REFUSED,
+    )
+    SimulationProjetFactory.create_batch(
+        3, projet=projet, status=SimulationProjet.STATUS_REFUSED, montant=0, taux=0
+    )
+
+    projet.set_back_status_to_processing()
+    projet.save()
+    projet.refresh_from_db()
+
+    assert projet.status == Projet.STATUS_PROCESSING
+    assert ProgrammationProjet.objects.filter(projet=projet).count() == 0
+    simulation_projets = SimulationProjet.objects.filter(projet=projet)
+    assert simulation_projets.count() == 3
+    for simulation_projet in simulation_projets:
+        assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
+        assert simulation_projet.montant == 0
+        assert simulation_projet.taux == 0
+
+
+@pytest.mark.parametrize(
+    ("status"), [Projet.STATUS_UNANSWERED, Projet.STATUS_PROCESSING]
+)
+@pytest.mark.django_db
+def test_set_back_status_to_processing_from_other_status_than_accepted_or_refused(
+    status,
+):
+    projet = ProjetFactory(status=status)
+
+    with pytest.raises(TransitionNotAllowed):
+        projet.set_back_status_to_processing()

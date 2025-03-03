@@ -148,12 +148,47 @@ def test_update_status_with_refused(mock_refuse_a_simulation_projet):
 
 
 @pytest.mark.django_db
-def test_update_status_with_other_status_than_accepted():
-    simulation_projet = SimulationProjetFactory(status=SimulationProjet.STATUS_REFUSED)
+@pytest.mark.parametrize(
+    ("initial_status"),
+    (SimulationProjet.STATUS_ACCEPTED, SimulationProjet.STATUS_REFUSED),
+)
+def test_update_status_with_processing_from_accepted_or_refused(initial_status):
+    simulation_projet = SimulationProjetFactory(status=initial_status)
+    new_status = SimulationProjet.STATUS_PROCESSING
+
+    with mock.patch.object(
+        SimulationProjetService, "_set_back_to_processing"
+    ) as mock_set_back_a_simulation_projet_to_processing:
+        SimulationProjetService.update_status(simulation_projet, new_status)
+
+        mock_set_back_a_simulation_projet_to_processing.assert_called_once_with(
+            simulation_projet
+        )
+
+
+@pytest.mark.django_db
+def test_update_status_with_processing():
+    simulation_projet = SimulationProjetFactory(
+        status=SimulationProjet.STATUS_PROVISOIRE
+    )
     new_status = SimulationProjet.STATUS_PROCESSING
 
     SimulationProjetService.update_status(simulation_projet, new_status)
 
+    simulation_projet.refresh_from_db()
+    assert simulation_projet.status == new_status
+
+
+@pytest.mark.django_db
+def test_update_status_with_provisoire():
+    simulation_projet = SimulationProjetFactory(
+        status=SimulationProjet.STATUS_REFUSED, projet__status=Projet.STATUS_REFUSED
+    )
+    new_status = SimulationProjet.STATUS_PROVISOIRE
+
+    SimulationProjetService.update_status(simulation_projet, new_status)
+
+    simulation_projet.refresh_from_db()
     assert simulation_projet.status == new_status
 
 
