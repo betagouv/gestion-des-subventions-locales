@@ -17,6 +17,14 @@ from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFa
 
 
 @pytest.mark.django_db
+def test_get_or_create_projet_from_dossier_with_existing_projet():
+    dossier = DossierFactory()
+    projet = ProjetFactory(dossier_ds=dossier)
+
+    assert ProjetService.get_or_create_from_ds_dossier(dossier) == projet
+
+
+@pytest.mark.django_db
 def test_create_projet_from_dossier():
     dossier = DossierFactory(projet_adresse=AdresseFactory())
     demandeur_commune = dossier.ds_demandeur.address.commune

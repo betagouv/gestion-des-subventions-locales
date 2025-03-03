@@ -25,14 +25,7 @@ class ProgrammationProjetService:
             ProgrammationProjet.objects.filter(projet=projet).delete()
             return
 
-        dotation = projet.dossier_ds.annotations_dotation
-        if dotation is None:
-            logging.error(f"Projet {projet} is missing annotation dotation")
-            return
-
-        if dotation not in (Dossier.DOTATION_DETR, Dossier.DOTATION_DSIL):
-            logging.error(f"Projet {projet} annotation dotation is unkown")
-            return
+        dotation = cls.compute_from_annotation(projet)
 
         if projet.status == Projet.STATUS_ACCEPTED:
             for field in (
@@ -103,3 +96,25 @@ class ProgrammationProjetService:
             )
 
         return None
+
+    @classmethod
+    def compute_from_annotation(cls, projet):
+        dotation_annotation = projet.dossier_ds.annotations_dotation
+        if dotation_annotation is None:
+            logging.error(f"Projet {projet} is missing annotation dotation")
+            raise ValueError(f"Projet {projet} is missing annotation dotation")
+
+        if "DETR" in dotation_annotation and "DSIL" in dotation_annotation:
+            raise ValueError(
+                f"Projet {projet} annotation dotation contains both DETR and DSIL"
+            )
+
+        if "DETR" in dotation_annotation:
+            return Dossier.DOTATION_DETR
+
+        if "DSIL" in dotation_annotation:
+            return Dossier.DOTATION_DSIL
+
+        raise ValueError(
+            f"Projet {projet} annotation dotation {dotation_annotation} is unkown"
+        )
