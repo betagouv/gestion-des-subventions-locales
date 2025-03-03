@@ -1,5 +1,10 @@
 let selectedElement = null;
 
+STATUS_TO_MODAL_ID = {
+    "valid": "accept-confirmation-modal",
+    "cancelled": "refuse-confirmation-modal"
+}
+
 function handleStatusChange(select) {
     if (["valid", "cancelled"].includes(select.value)) {
         showConfirmationModal(select, select.value);
@@ -9,13 +14,9 @@ function handleStatusChange(select) {
 }
 
 function showConfirmationModal(select, status) {
-    switch (status) {
-        case "valid":
-            modalId = 'accept-confirmation-modal';
-            break;
-        case "cancelled":
-            modalId = 'refuse-confirmation-modal';
-            break;
+    const modalId = STATUS_TO_MODAL_ID[status];
+    if (modalId === undefined) {
+        return
     }
     selectedElement = select;
     modal = document.getElementById(modalId)
