@@ -1,5 +1,6 @@
 from datetime import date
 
+import factory
 from factory import Faker, SubFactory
 from factory.django import DjangoModelFactory
 
@@ -36,6 +37,14 @@ class ProgrammationProjetFactory(DjangoModelFactory):
         model = ProgrammationProjet
 
     projet = SubFactory(ProjetFactory)
-    enveloppe = SubFactory(DetrEnveloppeFactory)
+    enveloppe = factory.LazyAttribute(
+        lambda obj: DetrEnveloppeFactory(
+            perimetre=PerimetreDepartementalFactory(
+                departement=obj.projet.perimetre.departement,
+                region=obj.projet.perimetre.region,
+            )
+        )
+    )
+
     montant = Faker("random_number", digits=5)
     taux = Faker("random_number", digits=2)

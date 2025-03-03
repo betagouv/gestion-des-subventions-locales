@@ -203,6 +203,9 @@ class Perimetre(BaseModel):
             )
         return False
 
+    def contains_or_equal(self, other_perimetre):
+        return self == other_perimetre or self.contains(other_perimetre)
+
     @property
     def type(self):
         if self.departement is None:

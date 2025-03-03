@@ -184,6 +184,11 @@ class ProgrammationProjet(models.Model):
                 "Il faut programmer sur l'enveloppe mère."
             }
 
+        if not self.enveloppe.perimetre.contains_or_equal(self.projet.perimetre):
+            errors["enveloppe"] = {
+                "Le périmètre de l'enveloppe ne contient pas le périmètre du projet."
+            }
+
     def _validate_for_refused_status(self, errors):
         if self.status == self.STATUS_REFUSED:
             if self.montant != 0:
