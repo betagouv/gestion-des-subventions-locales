@@ -53,8 +53,19 @@ class SimulationProjetService:
     def update_status(cls, simulation_projet: SimulationProjet, new_status: str):
         if new_status == SimulationProjet.STATUS_ACCEPTED:
             return cls._accept_a_simulation_projet(simulation_projet)
-        elif new_status == SimulationProjet.STATUS_REFUSED:
+
+        if new_status == SimulationProjet.STATUS_REFUSED:
             return cls._refuse_a_simulation_projet(simulation_projet)
+
+        if (
+            new_status == SimulationProjet.STATUS_PROCESSING
+            and simulation_projet.status
+            in [
+                SimulationProjet.STATUS_ACCEPTED,
+                SimulationProjet.STATUS_REFUSED,
+            ]
+        ):
+            return cls._set_back_to_processing(simulation_projet)
 
         simulation_projet.status = new_status
         simulation_projet.save()
@@ -121,6 +132,17 @@ class SimulationProjetService:
     def _refuse_a_simulation_projet(cls, simulation_projet: SimulationProjet):
         projet = simulation_projet.projet
         projet.refuse(enveloppe=simulation_projet.enveloppe)
+        projet.save()
+
+        updated_simulation_projet = SimulationProjet.objects.get(
+            pk=simulation_projet.pk
+        )
+        return updated_simulation_projet
+
+    @classmethod
+    def _set_back_to_processing(cls, simulation_projet: SimulationProjet):
+        projet = simulation_projet.projet
+        projet.set_back_status_to_processing()
         projet.save()
 
         updated_simulation_projet = SimulationProjet.objects.get(
