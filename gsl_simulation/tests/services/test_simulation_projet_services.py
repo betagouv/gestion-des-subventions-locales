@@ -2,6 +2,11 @@ from unittest import mock
 
 import pytest
 
+from gsl_core.tests.factories import (
+    PerimetreArrondissementFactory,
+    PerimetreDepartementalFactory,
+    PerimetreRegionalFactory,
+)
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
@@ -128,6 +133,21 @@ def test_update_status_with_accepted(mock_accept_a_simulation_projet):
 
 
 @pytest.mark.django_db
+@mock.patch(
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._refuse_a_simulation_projet"
+)
+def test_update_status_with_refused(mock_refuse_a_simulation_projet):
+    simulation_projet = SimulationProjetFactory(
+        status=SimulationProjet.STATUS_PROCESSING
+    )
+    new_status = SimulationProjet.STATUS_REFUSED
+
+    SimulationProjetService.update_status(simulation_projet, new_status)
+
+    mock_refuse_a_simulation_projet.assert_called_once_with(simulation_projet)
+
+
+@pytest.mark.django_db
 def test_update_status_with_other_status_than_accepted():
     simulation_projet = SimulationProjetFactory(status=SimulationProjet.STATUS_REFUSED)
     new_status = SimulationProjet.STATUS_PROCESSING
@@ -185,8 +205,27 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
     assert programmation_projet.enveloppe == mother_enveloppe
 
 
+@pytest.mark.parametrize(
+    "initial_progrogrammation_status, new_projet_status, programmation_status_expected",
+    (
+        (
+            ProgrammationProjet.STATUS_REFUSED,
+            SimulationProjet.STATUS_ACCEPTED,
+            ProgrammationProjet.STATUS_ACCEPTED,
+        ),
+        (
+            ProgrammationProjet.STATUS_ACCEPTED,
+            SimulationProjet.STATUS_REFUSED,
+            ProgrammationProjet.STATUS_REFUSED,
+        ),
+    ),
+)
 @pytest.mark.django_db
-def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_mother_enveloppe():
+def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_mother_enveloppe(
+    initial_progrogrammation_status,
+    new_projet_status,
+    programmation_status_expected,
+):
     mother_enveloppe = DetrEnveloppeFactory()
     child_enveloppe = DetrEnveloppeFactory(deleguee_by=mother_enveloppe)
     projet = ProjetFactory(perimetre=child_enveloppe.perimetre)
@@ -198,22 +237,23 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
     ProgrammationProjetFactory(
         projet=simulation_projet.projet,
         enveloppe=mother_enveloppe,
-        status=ProgrammationProjet.STATUS_REFUSED,
+        status=initial_progrogrammation_status,
     )
     programmation_projets_qs = ProgrammationProjet.objects.filter(
         projet=simulation_projet.projet
     )
     assert programmation_projets_qs.count() == 1
 
-    new_status = SimulationProjet.STATUS_ACCEPTED
-    SimulationProjetService.update_status(simulation_projet, new_status)
+    SimulationProjetService.update_status(simulation_projet, new_projet_status)
 
     programmation_projets_qs = ProgrammationProjet.objects.filter(
         projet=simulation_projet.projet
     )
     assert programmation_projets_qs.count() == 1
+
     programmation_projet = programmation_projets_qs.first()
     assert programmation_projet.enveloppe == mother_enveloppe
+    assert programmation_projet.status == programmation_status_expected
 
 
 @pytest.mark.django_db
@@ -303,3 +343,100 @@ def test_update_montant_of_accepted_montant(projet):
     programmation_projet.refresh_from_db()
     assert programmation_projet.montant == 500.0
     assert programmation_projet.taux == 50.0
+
+
+@pytest.mark.django_db
+def test_is_simulation_projet_in_perimetre_regional():
+    perimetre_arrondissement = PerimetreArrondissementFactory()
+    perimetre_regional = PerimetreRegionalFactory(
+        region=perimetre_arrondissement.region
+    )
+    projet = ProjetFactory(perimetre=perimetre_arrondissement)
+    simulation_projet = SimulationProjetFactory(projet=projet)
+
+    assert (
+        SimulationProjetService.is_simulation_projet_in_perimetre(
+            simulation_projet, perimetre_regional
+        )
+        is True
+    )
+
+    other_arrondissement_perimetre = PerimetreArrondissementFactory()
+    other_projet = ProjetFactory(perimetre=other_arrondissement_perimetre)
+    other_simulation_projet = SimulationProjetFactory(projet=other_projet)
+
+    assert (
+        SimulationProjetService.is_simulation_projet_in_perimetre(
+            other_simulation_projet, perimetre_regional
+        )
+        is False
+    )
+
+
+@pytest.mark.django_db
+def test_is_simulation_projet_in_perimetre_departemental():
+    perimetre_arrondissement = PerimetreArrondissementFactory()
+    perimetre_departemental = PerimetreDepartementalFactory(
+        departement=perimetre_arrondissement.departement
+    )
+    projet = ProjetFactory(perimetre=perimetre_arrondissement)
+    simulation_projet = SimulationProjetFactory(projet=projet)
+
+    assert (
+        SimulationProjetService.is_simulation_projet_in_perimetre(
+            simulation_projet, perimetre_departemental
+        )
+        is True
+    )
+
+    other_arrondissement = PerimetreArrondissementFactory()
+    other_projet = ProjetFactory(perimetre=other_arrondissement)
+    other_simulation_projet = SimulationProjetFactory(projet=other_projet)
+
+    assert (
+        SimulationProjetService.is_simulation_projet_in_perimetre(
+            other_simulation_projet, perimetre_departemental
+        )
+        is False
+    )
+
+
+@pytest.mark.django_db
+def test_is_simulation_projet_in_perimetre_arrondissement():
+    perimetre_arrondissement = PerimetreArrondissementFactory()
+    projet = ProjetFactory(perimetre=perimetre_arrondissement)
+    simulation_projet = SimulationProjetFactory(projet=projet)
+
+    assert (
+        SimulationProjetService.is_simulation_projet_in_perimetre(
+            simulation_projet, perimetre_arrondissement
+        )
+        is True
+    )
+
+    other_arrondissement_perimetre = PerimetreArrondissementFactory()
+    other_projet = ProjetFactory(perimetre=other_arrondissement_perimetre)
+    other_simulation_projet = SimulationProjetFactory(projet=other_projet)
+
+    assert (
+        SimulationProjetService.is_simulation_projet_in_perimetre(
+            other_simulation_projet, perimetre_arrondissement
+        )
+        is False
+    )
+
+
+@pytest.mark.parametrize(
+    "projet_status, simulation_projet_status_expected",
+    (
+        (Projet.STATUS_ACCEPTED, SimulationProjet.STATUS_ACCEPTED),
+        (Projet.STATUS_REFUSED, SimulationProjet.STATUS_REFUSED),
+        (Projet.STATUS_PROCESSING, SimulationProjet.STATUS_PROCESSING),
+        (Projet.STATUS_UNANSWERED, SimulationProjet.STATUS_REFUSED),
+    ),
+)
+@pytest.mark.django_db
+def test_get_simulation_projet_status(projet_status, simulation_projet_status_expected):
+    projet = ProjetFactory(status=projet_status)
+    status = SimulationProjetService.get_simulation_projet_status(projet)
+    assert status == simulation_projet_status_expected

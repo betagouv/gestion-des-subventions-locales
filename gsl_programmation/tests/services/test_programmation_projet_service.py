@@ -120,14 +120,10 @@ def test_create_or_update_from_projet_with_no_existing_one_and_without_annotatio
 
     assert ProgrammationProjet.objects.filter(projet=accepted_projet).count() == 1
 
-    with caplog.at_level(logging.ERROR):
-        programmation_projet = ProgrammationProjetService.create_or_update_from_projet(
-            accepted_projet
-        )
+    with pytest.raises(ValueError):
+        ProgrammationProjetService.create_or_update_from_projet(accepted_projet)
 
     assert ProgrammationProjet.objects.filter(projet=accepted_projet).count() == 1
-    assert programmation_projet is None
-    assert "annotation dotation is unkown" in caplog.text
 
 
 # STATUS REFUSED
@@ -148,7 +144,7 @@ def test_create_or_update_from_refused_projet_with_no_existing_one_and_complete_
 ):
     refused_projet.dossier_ds.annotations_montant_accorde = 0
     refused_projet.dossier_ds.annotations_taux = 0
-    refused_projet.dossier_ds.annotations_dotation = "DETR"
+    refused_projet.dossier_ds.annotations_dotation = "['DETR']"
     assert ProgrammationProjet.objects.filter(projet=refused_projet).count() == 0
 
     ProgrammationProjetService.create_or_update_from_projet(refused_projet)
@@ -240,28 +236,20 @@ def test_create_or_update_from_refused_projet_with_existing_one_and_without_anno
 
     assert ProgrammationProjet.objects.filter(projet=refused_projet).count() == 1
 
-    with caplog.at_level(logging.ERROR):
-        programmation_projet = ProgrammationProjetService.create_or_update_from_projet(
-            refused_projet
-        )
+    with pytest.raises(ValueError):
+        ProgrammationProjetService.create_or_update_from_projet(refused_projet)
 
     assert ProgrammationProjet.objects.filter(projet=refused_projet).count() == 1
-    assert programmation_projet is None
-    assert "annotation dotation is unkown" in caplog.text
 
 
 @pytest.mark.django_db
 def test_create_or_update_from_refused_projet_with_no_existing_one_and_without_annotations(
     refused_projet, detr_enveloppe, caplog
 ):
-    with caplog.at_level(logging.ERROR):
-        programmation_projet = ProgrammationProjetService.create_or_update_from_projet(
-            refused_projet
-        )
+    with pytest.raises(ValueError):
+        ProgrammationProjetService.create_or_update_from_projet(refused_projet)
 
     assert ProgrammationProjet.objects.filter(projet=refused_projet).count() == 0
-    assert programmation_projet is None
-    assert "annotation dotation is unkown" in caplog.text
 
 
 # OTHER STATUS
@@ -299,3 +287,30 @@ def test_create_or_update_from_projet_with_other_status_with_existing_one(
 
     assert programmation_projet is None
     assert ProgrammationProjet.objects.count() == 0
+
+
+@pytest.mark.parametrize(
+    "dotation_annotation, dotation_expected",
+    [
+        ("DETR", "DETR"),
+        ("['DETR']", "DETR"),
+        ("['DSIL']", "DSIL"),
+        ("DSIL", "DSIL"),
+        ("DETR et DSIL", "Error"),
+        ("Fond vert", "Error"),
+        (None, "Error"),
+    ],
+)
+@pytest.mark.django_db
+def test_compute_from_annotation(dotation_annotation, dotation_expected):
+    projet = ProjetFactory()
+    projet.dossier_ds.annotations_dotation = dotation_annotation
+
+    if dotation_expected == "Error":
+        with pytest.raises(ValueError):
+            ProgrammationProjetService.compute_from_annotation(projet)
+    else:
+        assert (
+            ProgrammationProjetService.compute_from_annotation(projet)
+            == dotation_expected
+        )

@@ -513,7 +513,9 @@ def simulation_projet(collegue, detr_enveloppe) -> SimulationProjet:
 
 
 @pytest.mark.django_db
-def test_patch_status_simulation_projet(client_with_user_logged, simulation_projet):
+def test_patch_status_simulation_projet_with_accepted_value(
+    client_with_user_logged, simulation_projet
+):
     url = reverse(
         "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
     )
@@ -537,6 +539,37 @@ def test_patch_status_simulation_projet(client_with_user_logged, simulation_proj
     assert "0 projet notifié" in response.content.decode()
     assert (
         '<span hx-swap-oob="innerHTML" id="total-amount-granted">1\xa0000\xa0€</span>'
+        in response.content.decode()
+    )
+
+
+@pytest.mark.django_db
+def test_patch_status_simulation_projet_with_refused_value(
+    client_with_user_logged, simulation_projet
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+    )
+    response = client_with_user_logged.patch(
+        url,
+        data=f"status={SimulationProjet.STATUS_REFUSED}",
+        follow=True,
+        headers={"HX-Request": "true"},
+    )
+
+    updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
+        id=simulation_projet.id
+    )
+    projet = Projet.objects.get(id=updated_simulation_projet.projet.id)
+
+    assert response.status_code == 200
+    assert updated_simulation_projet.status == SimulationProjet.STATUS_REFUSED
+    assert projet.status == Projet.STATUS_REFUSED
+    assert "0 projet validé" in response.content.decode()
+    assert "1 projet refusé" in response.content.decode()
+    assert "0 projet notifié" in response.content.decode()
+    assert (
+        '<span hx-swap-oob="innerHTML" id="total-amount-granted">0\xa0€</span>'
         in response.content.decode()
     )
 

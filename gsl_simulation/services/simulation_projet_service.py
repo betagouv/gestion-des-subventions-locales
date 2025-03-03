@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from gsl_core.models import Perimetre
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
 from gsl_simulation.models import Simulation, SimulationProjet
@@ -52,6 +53,8 @@ class SimulationProjetService:
     def update_status(cls, simulation_projet: SimulationProjet, new_status: str):
         if new_status == SimulationProjet.STATUS_ACCEPTED:
             return cls._accept_a_simulation_projet(simulation_projet)
+        elif new_status == SimulationProjet.STATUS_REFUSED:
+            return cls._refuse_a_simulation_projet(simulation_projet)
 
         simulation_projet.status = new_status
         simulation_projet.save()
@@ -113,3 +116,30 @@ class SimulationProjetService:
             pk=simulation_projet.pk
         )
         return updated_simulation_projet
+
+    @classmethod
+    def _refuse_a_simulation_projet(cls, simulation_projet: SimulationProjet):
+        projet = simulation_projet.projet
+        projet.refuse(enveloppe=simulation_projet.enveloppe)
+        projet.save()
+
+        updated_simulation_projet = SimulationProjet.objects.get(
+            pk=simulation_projet.pk
+        )
+        return updated_simulation_projet
+
+    @classmethod
+    def is_simulation_projet_in_perimetre(
+        cls, simulation_projet: SimulationProjet, perimetre: Perimetre
+    ):
+        simulation_projet_perimetre = simulation_projet.projet.perimetre
+        if perimetre.arrondissement is not None:
+            return (
+                perimetre.arrondissement_id
+                == simulation_projet_perimetre.arrondissement_id
+            )
+        if perimetre.departement is not None:
+            return (
+                perimetre.departement_id == simulation_projet_perimetre.departement_id
+            )
+        return perimetre.region_id == simulation_projet_perimetre.departement.region_id

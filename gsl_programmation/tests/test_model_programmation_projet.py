@@ -14,10 +14,11 @@ from gsl_projet.models import Projet
 from gsl_projet.tests.factories import ProjetFactory
 
 
+@pytest.mark.django_db
 def test_programmation_projet_cant_have_a_montant_higher_than_projet_assiette():
-    projet = ProjetFactory.build(assiette=100, dossier_ds__finance_cout_total=200)
+    projet = ProjetFactory(assiette=100, dossier_ds__finance_cout_total=200)
     with pytest.raises(ValidationError) as exc_info:
-        pp = ProgrammationProjetFactory.build(projet=projet, montant=101)
+        pp = ProgrammationProjetFactory(projet=projet, montant=101)
         pp.full_clean()
     assert (
         "Le montant de la programmation ne peut pas être supérieur à l'assiette du projet."
@@ -25,10 +26,11 @@ def test_programmation_projet_cant_have_a_montant_higher_than_projet_assiette():
     )
 
 
+@pytest.mark.django_db
 def test_programmation_projet_cant_have_a_montant_higher_than_projet_cout_total():
-    projet = ProjetFactory.build(dossier_ds__finance_cout_total=100)
+    projet = ProjetFactory(dossier_ds__finance_cout_total=100)
     with pytest.raises(ValidationError) as exc_info:
-        pp = ProgrammationProjetFactory.build(projet=projet, montant=101)
+        pp = ProgrammationProjetFactory(projet=projet, montant=101)
         pp.full_clean()
     assert (
         "Le montant de la programmation ne peut pas être supérieur au coût total du projet."
@@ -36,9 +38,10 @@ def test_programmation_projet_cant_have_a_montant_higher_than_projet_cout_total(
     )
 
 
+@pytest.mark.django_db
 def test_programmation_projet_cant_have_a_taux_higher_than_100():
     with pytest.raises(ValidationError) as exc_info:
-        pp = ProgrammationProjetFactory.build(taux=101)
+        pp = ProgrammationProjetFactory(taux=101)
         pp.full_clean()
     assert (
         "Le taux de la programmation ne peut pas être supérieur à 100."
