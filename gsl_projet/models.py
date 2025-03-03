@@ -251,3 +251,14 @@ class Projet(models.Model):
         )
 
         ProgrammationProjet.objects.filter(projet=self).delete()
+
+    @transition(field=status, source="*", target=STATUS_UNANSWERED)
+    def set_unanswered(self):
+        from gsl_programmation.models import ProgrammationProjet
+        from gsl_simulation.models import SimulationProjet
+
+        SimulationProjet.objects.filter(projet=self).update(
+            status=SimulationProjet.STATUS_UNANSWERED, montant=0, taux=0
+        )
+
+        ProgrammationProjet.objects.filter(projet=self).delete()
