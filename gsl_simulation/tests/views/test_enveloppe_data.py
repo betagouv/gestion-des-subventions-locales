@@ -13,7 +13,7 @@ from gsl_programmation.tests.factories import (
 from gsl_projet.models import Projet
 from gsl_projet.tests.factories import SubmittedProjetFactory
 from gsl_simulation.tests.factories import SimulationFactory
-from gsl_simulation.views import SimulationDetailView
+from gsl_simulation.views.simulation_views import SimulationDetailView
 
 
 @pytest.fixture

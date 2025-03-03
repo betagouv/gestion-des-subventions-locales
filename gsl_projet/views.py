@@ -1,3 +1,4 @@
+from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET
@@ -12,6 +13,25 @@ from gsl_projet.utils.projet_filters import ProjetFilters
 from .models import Projet
 
 
+def visible_by_user(func):
+    def wrapper(*args, **kwargs):
+        user = args[0].user
+        if user.is_staff:
+            return func(*args, **kwargs)
+
+        projet = get_object_or_404(Projet, id=kwargs["projet_id"])
+        is_projet_visible_by_user = (
+            Projet.objects.for_user(user).filter(id=projet.id).exists()
+        )
+        if not is_projet_visible_by_user:
+            raise Http404("No %s matches the given query." % Projet._meta.object_name)
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+@visible_by_user
 @require_GET
 def get_projet(request, projet_id):
     projet = get_object_or_404(Projet, id=projet_id)

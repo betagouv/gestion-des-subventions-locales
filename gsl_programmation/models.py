@@ -1,9 +1,8 @@
-from math import isclose
-
 from django.core.exceptions import ValidationError
 from django.db import models
 
 from gsl_core.models import Perimetre
+from gsl_programmation.utils import is_there_less_or_equal_than_0_009_of_difference
 from gsl_projet.models import Projet
 
 
@@ -141,27 +140,53 @@ class ProgrammationProjet(models.Model):
 
     def clean(self):
         errors = {}
-        if self.projet.assiette is not None and self.projet.assiette > 0:
-            if not isclose(
-                self.taux, self.montant * 100 / self.projet.assiette, abs_tol=0.009
+        self._validate_taux(errors)
+        self._validate_montant(errors)
+        self._validate_enveloppe(errors)
+        self._validate_for_refused_status(errors)
+        if errors:
+            raise ValidationError(errors)
+
+    def _validate_taux(self, errors):
+        if self.taux and self.taux > 100:
+            errors["taux"] = {
+                "Le taux de la programmation ne peut pas être supérieur à 100."
+            }
+
+    def _validate_montant(self, errors):
+        if self.projet.assiette is not None:
+            if self.projet.assiette > 0:
+                if not is_there_less_or_equal_than_0_009_of_difference(
+                    self.taux, self.montant * 100 / self.projet.assiette
+                ):
+                    errors["taux"] = {
+                        "Le taux et le montant de la programmation ne sont pas cohérents. "
+                        f"Taux attendu : {str(round(self.montant * 100 / self.projet.assiette, 2))}"
+                    }
+            if self.montant and self.montant > self.projet.assiette:
+                errors["montant"] = {
+                    "Le montant de la programmation ne peut pas être supérieur à l'assiette du projet."
+                }
+        else:
+            if (
+                self.montant
+                and self.projet.dossier_ds.finance_cout_total
+                and self.montant > self.projet.dossier_ds.finance_cout_total
             ):
-                errors["taux"] = {
-                    "Le taux et le montant de la programmation ne sont pas cohérents. "
-                    f"Taux attendu : {str(round(self.montant * 100 / self.projet.assiette, 2))}"
+                errors["montant"] = {
+                    "Le montant de la programmation ne peut pas être supérieur au coût total du projet."
                 }
 
+    def _validate_enveloppe(self, errors):
         if self.enveloppe.is_deleguee:
             errors["enveloppe"] = {
                 "Une programmation ne peut pas être faite sur une enveloppe déléguée."
                 "Il faut programmer sur l'enveloppe mère."
             }
 
+    def _validate_for_refused_status(self, errors):
         if self.status == self.STATUS_REFUSED:
             if self.montant != 0:
                 errors["montant"] = {"Un projet refusé doit avoir un montant nul."}
-
             if self.taux != 0:
                 errors["taux"] = {"Un projet refusé doit avoir un taux nul."}
-
-        if errors:
-            raise ValidationError(errors)

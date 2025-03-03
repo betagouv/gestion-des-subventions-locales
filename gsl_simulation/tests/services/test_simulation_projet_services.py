@@ -312,7 +312,7 @@ def test_update_montant(projet):
 
 
 @pytest.mark.django_db
-def test_update_montant_of_accepted_montat(projet):
+def test_update_montant_of_accepted_montant(projet):
     simulation_projet = SimulationProjetFactory(
         projet=projet, status=SimulationProjet.STATUS_ACCEPTED, montant=1_000
     )
