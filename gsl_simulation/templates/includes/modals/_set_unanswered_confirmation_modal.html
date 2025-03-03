@@ -1,0 +1,41 @@
+<dialog id="set-unanswered-confirmation-modal" class="fr-modal">
+    <div class="fr-container fr-container--fluid fr-container-md">
+        <div class="fr-grid-row fr-grid-row--center">
+            <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
+                <div class="fr-modal__body">
+                    <div class="fr-modal__header">
+                        <button aria-controls="modal"
+                                title="Fermer"
+                                type="button"
+                                class="fr-btn--close fr-btn"
+                                onClick="closeModal('set-unanswered-confirmation-modal')">
+                            Fermer
+                        </button>
+                    </div>
+                    <div class="fr-modal__content">
+                        <h1 id="modal-title" class="fr-modal__title set-unanswered-color">
+                            <span class="fr-icon-checkbox-fill fr-icon--lg" aria-hidden="true"></span> Classer sans suite la demande de financement
+                        </h1>
+                        <p>
+                            Ce projet va être classé sans suite dans toutes les simulations dans lesquelles il a été ajouté.
+                            Le demandeur va être notifié et vous ne pourrez plus revenir en arrière.
+                        </p>
+                        <p>
+                            Êtes-vous sûr(e) de classer sans suite ce projet ?
+                        </p>
+                    </div>
+                    <div class="fr-modal__footer confirmation-modal-footer">
+                        <button class="fr-btn fr-btn--secondary"
+                                onclick="closeModal('set-unanswered-confirmation-modal')">
+                            Annuler
+                        </button>
+                        <button class="fr-btn fr-btn--primary set-unanswered-button"
+                                id="confirmChange">
+                            Classer sans suite
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</dialog>

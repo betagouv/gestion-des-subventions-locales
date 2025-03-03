@@ -268,6 +268,10 @@ ul.no-list-style li {
     color: var(--text-mention-grey);
 }
 
+.set-unanswered-color {
+    color: var(--text-default-warning);
+}
+
 .confirmation-modal-footer {
     display: flex;
     justify-content: flex-end;
@@ -291,4 +295,13 @@ ul.no-list-style li {
 
 .refuse-button:hover{
     background-color: var(--background-action-high-error-hover) !important;
+}
+
+.set-unanswered-button{
+    background-color: var(--background-action-high-warning);
+    color: var(--background-alt-blue-france)
+}
+
+.set-unanswered-button:hover{
+    background-color: var(--background-action-high-warning-hover) !important;
 }
