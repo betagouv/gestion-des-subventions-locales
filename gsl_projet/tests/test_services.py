@@ -249,13 +249,13 @@ def test_get_projet_status():
     en_construction = Dossier(ds_state=Dossier.STATE_EN_CONSTRUCTION)
     en_instruction = Dossier(ds_state=Dossier.STATE_EN_INSTRUCTION)
     refused = Dossier(ds_state=Dossier.STATE_REFUSE)
-    unanswered = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
+    dismissed = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
 
     assert ProjetService.get_projet_status(accepted) == Projet.STATUS_ACCEPTED
     assert ProjetService.get_projet_status(en_construction) == Projet.STATUS_PROCESSING
     assert ProjetService.get_projet_status(en_instruction) == Projet.STATUS_PROCESSING
     assert ProjetService.get_projet_status(refused) == Projet.STATUS_REFUSED
-    assert ProjetService.get_projet_status(unanswered) == Projet.STATUS_UNANSWERED
+    assert ProjetService.get_projet_status(dismissed) == Projet.STATUS_DISMISSED
 
     dossier_unknown = Dossier(ds_state="unknown_state")
     assert ProjetService.get_projet_status(dossier_unknown) is None

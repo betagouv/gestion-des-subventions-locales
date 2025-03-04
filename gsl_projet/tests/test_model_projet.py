@@ -247,14 +247,14 @@ def test_set_back_status_to_processing_from_other_status_than_accepted_or_refuse
         projet.set_back_status_to_processing()
 
 
-# Set unanswered
+# Dismiss
 
 
 @pytest.mark.parametrize(
     ("status, montant, taux"),
     ((Projet.STATUS_REFUSED, 0, 0), (Projet.STATUS_ACCEPTED, 10_000, 20)),
 )
-def test_set_unanswered(status, montant, taux):
+def test_dismiss(status, montant, taux):
     projet = ProjetFactory(status=status)
     ProgrammationProjetFactory(
         projet=projet,
@@ -272,21 +272,21 @@ def test_set_unanswered(status, montant, taux):
         taux=taux,
     )
 
-    projet.set_unanswered()
+    projet.dismiss()
     projet.save()
     projet.refresh_from_db()
 
-    assert projet.status == Projet.STATUS_UNANSWERED
+    assert projet.status == Projet.STATUS_DISMISSED
     assert ProgrammationProjet.objects.filter(projet=projet).count() == 0
     simulation_projets = SimulationProjet.objects.filter(projet=projet)
     assert simulation_projets.count() == 3
     for simulation_projet in simulation_projets:
-        assert simulation_projet.status == SimulationProjet.STATUS_UNANSWERED
+        assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED
         assert simulation_projet.montant == 0
         assert simulation_projet.taux == 0
 
 
-def test_set_unanswered_from_processing():
+def test_dismiss_from_processing():
     projet = ProjetFactory(status=Projet.STATUS_PROCESSING)
     SimulationProjetFactory.create_batch(
         3,
@@ -296,15 +296,15 @@ def test_set_unanswered_from_processing():
         taux=0.4,
     )
 
-    projet.set_unanswered()
+    projet.dismiss()
     projet.save()
     projet.refresh_from_db()
 
-    assert projet.status == Projet.STATUS_UNANSWERED
+    assert projet.status == Projet.STATUS_DISMISSED
     assert ProgrammationProjet.objects.filter(projet=projet).count() == 0
     simulation_projets = SimulationProjet.objects.filter(projet=projet)
     assert simulation_projets.count() == 3
     for simulation_projet in simulation_projets:
-        assert simulation_projet.status == SimulationProjet.STATUS_UNANSWERED
+        assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED
         assert simulation_projet.montant == 0
         assert simulation_projet.taux == 0

@@ -2,22 +2,22 @@ let selectedElement = null;
 
 const VALID = "valid";
 const CANCELLED = "cancelled";
-const UNANSWERED = "unanswered";
+const DISMISSED = "dismissed";
 const PROCESSING = "draft";
 
-const STATUSES_WITH_OTHER_SIMULATION_IMPACT = [VALID, CANCELLED, UNANSWERED];
+const STATUSES_WITH_OTHER_SIMULATION_IMPACT = [VALID, CANCELLED, DISMISSED];
 
 STATUS_TO_MODAL_ID = {
     "valid": "accept-confirmation-modal",
     "cancelled": "refuse-confirmation-modal",
     "draft": "processing-confirmation-modal",
-    "unanswered": "set-unanswered-confirmation-modal",
+    "dismissed": "dismiss-confirmation-modal",
 }
 
 STATUS_TO_FRENCH_WORD = {
     "valid": "validé",
     "cancelled": "annulé",
-    "unanswered": "classé sans suite",
+    "dismissed": "classé sans suite",
 }
 
 function mustOpenConfirmationModal(newValue, originalValue) {

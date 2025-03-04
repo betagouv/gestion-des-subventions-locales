@@ -11,7 +11,7 @@
   color: var(--text-mention-grey);
 }
 
-.set-unanswered-color {
+.dismiss-color {
   color: var(--text-default-warning);
 }
 
@@ -41,11 +41,11 @@
   background-color: var(--background-action-high-error-hover) !important;
 }
 
-.set-unanswered-button{
+.dismiss-button-button{
   background-color: var(--background-action-high-warning);
   color: var(--background-alt-blue-france)
 }
 
-.set-unanswered-button:hover{
+.dismiss-button-button:hover{
   background-color: var(--background-action-high-warning-hover) !important;
 }

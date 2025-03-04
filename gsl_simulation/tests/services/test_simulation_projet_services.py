@@ -148,20 +148,18 @@ def test_update_status_with_refused():
 
 
 @pytest.mark.django_db
-def test_update_status_with_unanswered():
+def test_update_status_with_dismissed():
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROCESSING
     )
-    new_status = SimulationProjet.STATUS_UNANSWERED
+    new_status = SimulationProjet.STATUS_DISMISSED
 
     with mock.patch.object(
-        SimulationProjetService, "_set_unanswered_a_simulation_projet"
-    ) as mock_set_unanswered_a_simulation_projet:
+        SimulationProjetService, "_dismiss_a_simulation_projet"
+    ) as mock_dismiss_a_simulation_projet:
         SimulationProjetService.update_status(simulation_projet, new_status)
 
-        mock_set_unanswered_a_simulation_projet.assert_called_once_with(
-            simulation_projet
-        )
+        mock_dismiss_a_simulation_projet.assert_called_once_with(simulation_projet)
 
 
 @pytest.mark.django_db
@@ -170,7 +168,7 @@ def test_update_status_with_unanswered():
     (
         SimulationProjet.STATUS_ACCEPTED,
         SimulationProjet.STATUS_REFUSED,
-        SimulationProjet.STATUS_UNANSWERED,
+        SimulationProjet.STATUS_DISMISSED,
     ),
 )
 def test_update_status_with_processing_from_accepted_or_refused(initial_status):
@@ -488,7 +486,7 @@ def test_is_simulation_projet_in_perimetre_arrondissement():
         (Projet.STATUS_ACCEPTED, SimulationProjet.STATUS_ACCEPTED),
         (Projet.STATUS_REFUSED, SimulationProjet.STATUS_REFUSED),
         (Projet.STATUS_PROCESSING, SimulationProjet.STATUS_PROCESSING),
-        (Projet.STATUS_UNANSWERED, SimulationProjet.STATUS_UNANSWERED),
+        (Projet.STATUS_DISMISSED, SimulationProjet.STATUS_DISMISSED),
     ),
 )
 @pytest.mark.django_db

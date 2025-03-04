@@ -36,7 +36,7 @@ class ProjetService:
         Dossier.STATE_EN_CONSTRUCTION: Projet.STATUS_PROCESSING,
         Dossier.STATE_EN_INSTRUCTION: Projet.STATUS_PROCESSING,
         Dossier.STATE_REFUSE: Projet.STATUS_REFUSED,
-        Dossier.STATE_SANS_SUITE: Projet.STATUS_UNANSWERED,
+        Dossier.STATE_SANS_SUITE: Projet.STATUS_DISMISSED,
     }
 
     @classmethod

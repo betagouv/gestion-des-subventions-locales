@@ -245,7 +245,7 @@ ul.no-list-style li {
     background-color: var(--background-contrast-info);
     color: var(--text-default-info);
 } */
-.badge-projet-status__unanswered {
+.badge-projet-status__dismissed {
     background-color: var(--background-contrast-warning);
     color: var(--text-default-warning);
 }

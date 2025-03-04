@@ -254,7 +254,7 @@ def test_create_or_update_from_refused_projet_with_no_existing_one_and_without_a
 
 # OTHER STATUS
 @pytest.mark.parametrize(
-    "other_status", (Projet.STATUS_UNANSWERED, Projet.STATUS_PROCESSING)
+    "other_status", (Projet.STATUS_DISMISSED, Projet.STATUS_PROCESSING)
 )
 @pytest.mark.django_db
 def test_create_or_update_from_projet_with_other_status_without_existing_one(
@@ -272,7 +272,7 @@ def test_create_or_update_from_projet_with_other_status_without_existing_one(
 
 
 @pytest.mark.parametrize(
-    "other_status", (Projet.STATUS_UNANSWERED, Projet.STATUS_PROCESSING)
+    "other_status", (Projet.STATUS_DISMISSED, Projet.STATUS_PROCESSING)
 )
 @pytest.mark.django_db
 def test_create_or_update_from_projet_with_other_status_with_existing_one(

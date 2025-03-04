@@ -54,13 +54,13 @@ class SimulationProjet(models.Model):
     STATUS_ACCEPTED = "valid"
     STATUS_REFUSED = "cancelled"
     STATUS_PROVISOIRE = "provisoire"
-    STATUS_UNANSWERED = "unanswered"
+    STATUS_DISMISSED = "dismissed"
     STATUS_CHOICES = (
         (STATUS_PROCESSING, "🔄 En traitement"),
         (STATUS_ACCEPTED, "✅ Accepté"),
         (STATUS_PROVISOIRE, "✔️ Accepté provisoirement"),
         (STATUS_REFUSED, "❌ Refusé"),
-        (STATUS_UNANSWERED, "⛔️ Classé sans suite"),
+        (STATUS_DISMISSED, "⛔️ Classé sans suite"),
     )
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
     simulation = models.ForeignKey(
