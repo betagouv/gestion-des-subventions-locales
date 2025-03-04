@@ -5,6 +5,10 @@
     {% dsfr_breadcrumb breadcrumb_dict %}
 {% endblock breadcrumb %}
 
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/simulation_detail.css' %}">
+{% endblock extra_css %}
+
 {% block content %}
     <h1>
         {{ title }}
