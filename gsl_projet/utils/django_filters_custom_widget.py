@@ -15,7 +15,7 @@ class CustomCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
             Projet.STATUS_ACCEPTED: "green",
             Projet.STATUS_PROCESSING: "",
             Projet.STATUS_REFUSED: "red",
-            Projet.STATUS_UNANSWERED: "",
+            Projet.STATUS_DISMISSED: "",
         }.get(option_value, "")
 
     def render(self, name, value, attrs=None, renderer=None):

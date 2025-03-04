@@ -116,7 +116,7 @@ class ProjetFilters(FilterSet):
         Projet.STATUS_PROCESSING,
         Projet.STATUS_REFUSED,
         Projet.STATUS_ACCEPTED,
-        Projet.STATUS_UNANSWERED,
+        Projet.STATUS_DISMISSED,
     )
 
     status = MultipleChoiceFilter(

@@ -271,7 +271,13 @@ def test_view_without_filter(req, simulation, create_simulation_projets):
     )
     assert (
         projets.filter(simulationprojet__status=SimulationProjet.STATUS_REFUSED).count()
-        == 2
+        == 1
+    )
+    assert (
+        projets.filter(
+            simulationprojet__status=SimulationProjet.STATUS_DISMISSED
+        ).count()
+        == 1
     )
 
 
@@ -417,7 +423,8 @@ def test_view_with_cout_total_filter(req, simulation, create_simulation_projets)
     for status, count in [
         (SimulationProjet.STATUS_PROCESSING, 2),
         (SimulationProjet.STATUS_ACCEPTED, 1),
-        (SimulationProjet.STATUS_REFUSED, 2),
+        (SimulationProjet.STATUS_REFUSED, 1),
+        (SimulationProjet.STATUS_DISMISSED, 1),
     ]:
         assert projets.filter(simulationprojet__status=status).count() == count
 
@@ -440,7 +447,8 @@ def test_view_with_montant_demande_filter(req, simulation, create_simulation_pro
     for status, count in [
         (SimulationProjet.STATUS_PROCESSING, 2),
         (SimulationProjet.STATUS_ACCEPTED, 1),
-        (SimulationProjet.STATUS_REFUSED, 2),
+        (SimulationProjet.STATUS_REFUSED, 1),
+        (SimulationProjet.STATUS_DISMISSED, 1),
     ]:
         assert projets.filter(simulationprojet__status=status).count() == count
 
@@ -463,6 +471,7 @@ def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
         (SimulationProjet.STATUS_PROCESSING, 2),
         (SimulationProjet.STATUS_ACCEPTED, 0),
         (SimulationProjet.STATUS_REFUSED, 0),
+        (SimulationProjet.STATUS_DISMISSED, 0),
     ]:
         assert projets.filter(simulationprojet__status=status).count() == count
 
@@ -481,7 +490,8 @@ def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
     for status, count in [
         (SimulationProjet.STATUS_PROCESSING, 2),
         (SimulationProjet.STATUS_ACCEPTED, 1),
-        (SimulationProjet.STATUS_REFUSED, 2),
+        (SimulationProjet.STATUS_REFUSED, 1),
+        (SimulationProjet.STATUS_DISMISSED, 1),
     ]:
         assert projets.filter(simulationprojet__status=status).count() == count
 
