@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 from import_export.admin import ImportMixin
-from import_export_extensions.admin import CeleryImportExportMixin
 
 from gsl_core.models import (
     Adresse,
@@ -106,7 +105,7 @@ class ArrondissementAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
 
 
 @admin.register(Commune)
-class CommuneAdmin(AllPermsForStaffUser, CeleryImportExportMixin, admin.ModelAdmin):
+class CommuneAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
     resource_classes = (CommuneResource,)
     list_display = ("name", "insee_code", "departement", "arrondissement")
     list_filter = ("departement__region", "departement", "arrondissement")
