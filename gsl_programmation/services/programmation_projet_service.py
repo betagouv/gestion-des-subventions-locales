@@ -24,8 +24,11 @@ class ProgrammationProjetService:
         if projet.status not in (Projet.STATUS_ACCEPTED, Projet.STATUS_REFUSED):
             ProgrammationProjet.objects.filter(projet=projet).delete()
             return
-
-        dotation = cls.compute_from_annotation(projet)
+        try:
+            dotation = cls.compute_from_annotation(projet)
+        except ValueError as e:
+            logging.error(e)
+            return
 
         if projet.status == Projet.STATUS_ACCEPTED:
             for field in (
