@@ -237,14 +237,39 @@ def test_set_back_status_to_processing_from_refused():
         assert simulation_projet.taux == 0
 
 
-def test_set_back_status_to_processing_from_unanswered():
-    projet = ProjetFactory(status=Projet.STATUS_REFUSED)
+@pytest.mark.parametrize(("status"), [Projet.STATUS_PROCESSING])
+def test_set_back_status_to_processing_from_other_status_than_accepted_or_refused(
+    status,
+):
+    projet = ProjetFactory(status=status)
+
+    with pytest.raises(TransitionNotAllowed):
+        projet.set_back_status_to_processing()
+
+
+# Set unanswered
+
+
+@pytest.mark.parametrize(
+    ("status, montant, taux"),
+    ((Projet.STATUS_REFUSED, 0, 0), (Projet.STATUS_ACCEPTED, 10_000, 20)),
+)
+def test_set_unanswered(status, montant, taux):
+    projet = ProjetFactory(status=status)
     ProgrammationProjetFactory(
         projet=projet,
-        status=ProgrammationProjet.STATUS_REFUSED,
+        status=ProgrammationProjet.STATUS_REFUSED
+        if projet.status == Projet.STATUS_REFUSED
+        else ProgrammationProjet.STATUS_ACCEPTED,
     )
     SimulationProjetFactory.create_batch(
-        3, projet=projet, status=SimulationProjet.STATUS_REFUSED, montant=0, taux=0
+        3,
+        projet=projet,
+        status=SimulationProjet.STATUS_REFUSED
+        if projet.status == Projet.STATUS_REFUSED
+        else ProgrammationProjet.STATUS_ACCEPTED,
+        montant=montant,
+        taux=taux,
     )
 
     projet.set_unanswered()
@@ -261,33 +286,14 @@ def test_set_back_status_to_processing_from_unanswered():
         assert simulation_projet.taux == 0
 
 
-@pytest.mark.parametrize(("status"), [Projet.STATUS_PROCESSING])
-def test_set_back_status_to_processing_from_other_status_than_accepted_or_refused(
-    status,
-):
-    projet = ProjetFactory(status=status)
-
-    with pytest.raises(TransitionNotAllowed):
-        projet.set_back_status_to_processing()
-
-
-# Set unanswered
-
-
-def test_set_unanswered():
-    projet = ProjetFactory(status=Projet.STATUS_ACCEPTED)
-    ProgrammationProjetFactory(
-        projet=projet,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-        montant=10_000,
-        taux=20,
-    )
+def test_set_unanswered_from_processing():
+    projet = ProjetFactory(status=Projet.STATUS_PROCESSING)
     SimulationProjetFactory.create_batch(
         3,
         projet=projet,
-        status=SimulationProjet.STATUS_ACCEPTED,
-        montant=10_000,
-        taux=20,
+        status=SimulationProjet.STATUS_PROCESSING,
+        montant=500,
+        taux=0.4,
     )
 
     projet.set_unanswered()
