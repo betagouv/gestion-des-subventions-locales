@@ -60,10 +60,10 @@ class SimulationProjetService:
         if (
             new_status == SimulationProjet.STATUS_PROCESSING
             and simulation_projet.status
-            in [
+            in (
                 SimulationProjet.STATUS_ACCEPTED,
                 SimulationProjet.STATUS_REFUSED,
-            ]
+            )
         ):
             return cls._set_back_to_processing(simulation_projet)
 
