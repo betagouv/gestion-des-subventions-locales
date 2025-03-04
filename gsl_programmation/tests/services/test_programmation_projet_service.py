@@ -113,16 +113,17 @@ def test_create_or_update_from_projet_with_an_existing_one_with_only_dotation_in
 
 
 @pytest.mark.django_db
-def test_create_or_update_from_projet_with_no_existing_one_and_without_annotations(
-    accepted_projet, detr_enveloppe, caplog
+def test_create_or_update_from_projet_with_an_existing_one_and_without_annotations(
+    accepted_projet, detr_enveloppe
 ):
     ProgrammationProjetFactory(projet=accepted_projet, enveloppe=detr_enveloppe)
 
     assert ProgrammationProjet.objects.filter(projet=accepted_projet).count() == 1
 
-    with pytest.raises(ValueError):
-        ProgrammationProjetService.create_or_update_from_projet(accepted_projet)
-
+    programmation_projet = ProgrammationProjetService.create_or_update_from_projet(
+        accepted_projet
+    )
+    assert programmation_projet is None
     assert ProgrammationProjet.objects.filter(projet=accepted_projet).count() == 1
 
 
@@ -230,25 +231,27 @@ def test_create_or_update_from_refused_projet_with_no_existing_one_with_only_dot
 
 @pytest.mark.django_db
 def test_create_or_update_from_refused_projet_with_existing_one_and_without_annotations(
-    refused_projet, detr_enveloppe, caplog
+    refused_projet, detr_enveloppe
 ):
     ProgrammationProjetFactory(projet=refused_projet, enveloppe=detr_enveloppe)
 
     assert ProgrammationProjet.objects.filter(projet=refused_projet).count() == 1
 
-    with pytest.raises(ValueError):
-        ProgrammationProjetService.create_or_update_from_projet(refused_projet)
-
+    programmation_projet = ProgrammationProjetService.create_or_update_from_projet(
+        refused_projet
+    )
+    assert programmation_projet is None
     assert ProgrammationProjet.objects.filter(projet=refused_projet).count() == 1
 
 
 @pytest.mark.django_db
 def test_create_or_update_from_refused_projet_with_no_existing_one_and_without_annotations(
-    refused_projet, detr_enveloppe, caplog
+    refused_projet, detr_enveloppe
 ):
-    with pytest.raises(ValueError):
-        ProgrammationProjetService.create_or_update_from_projet(refused_projet)
-
+    programmation_projet = ProgrammationProjetService.create_or_update_from_projet(
+        refused_projet
+    )
+    assert programmation_projet is None
     assert ProgrammationProjet.objects.filter(projet=refused_projet).count() == 0
 
 
