@@ -99,8 +99,9 @@ def get_projet(request, projet_id):
 
 class ProjetListViewFilters(ProjetFilters):
     filterset = (
-        "dotation",
+        "territoire",
         "porteur",
+        "dotation",
         "status",
         "cout_total",
         "montant_demande",

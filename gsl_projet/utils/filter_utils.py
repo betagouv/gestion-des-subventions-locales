@@ -7,6 +7,7 @@ class FilterUtils:
         "montant_demande": "includes/_filter_montant_demande.html",
         "montant_retenu": "includes/_filter_montant_retenu.html",
         "montant_previsionnel": "includes/_filter_montant_previsionnel.html",
+        "territoire": "includes/_filter_territoire.html",
     }
 
     def enrich_context_with_filter_utils(self, context, state_mappings):
@@ -24,7 +25,7 @@ class FilterUtils:
         context["is_montant_previsionnel_active"] = self._get_is_one_field_active(
             "montant_previsionnel_min", "montant_previsionnel_max"
         )
-
+        context["territoire_choices"] = (("tata", "tata"), ("toto", "toto"))
         context["filter_templates"] = self._get_filter_templates()
 
         return context

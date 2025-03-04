@@ -15,6 +15,14 @@ from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 
 
 class ProjetFilters(FilterSet):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.get_filters()
+        self.filters["territoire"].extra["choices"] = (
+            ("3", "tutu"),
+            ("4", self.request.user.username),
+        )
+
     dotation = ChoiceFilter(
         field_name="dossier_ds__demande_dispositif_sollicite",
         choices=(
@@ -127,6 +135,15 @@ class ProjetFilters(FilterSet):
         widget=CustomCheckboxSelectMultiple(),
     )
 
+    territoire = MultipleChoiceFilter(
+        method="filter_territoire",
+        choices=((1, "tata"), (2, "toto")),  # todo
+        widget=CustomCheckboxSelectMultiple(),
+    )
+
+    def filter_territoire(self, queryset, _name, value):
+        return queryset  # todo: filtrer par périmètre directement?
+
     class Meta:
         model = Projet
         fields = (
@@ -139,6 +156,7 @@ class ProjetFilters(FilterSet):
             "montant_retenu_min",
             "montant_retenu_max",
             "status",
+            "territoire",
         )
 
     @property

@@ -1,0 +1,17 @@
+<div class="filter-field fr-col-12 fr-col-md-4 fr-col-lg-2">
+    <div class="filter-dropdown" id="filter-territoire-button">
+        <label class="fr-label" for="id_territoire">
+            Territoire
+        </label>
+        <button type="button"
+                class="fr-select {% if is_territoire_active %}filter-dropdown-button-active{% endif %}">
+            {{ is_territoire_placeholder }}
+        </button>
+        <div class="filter-content">
+            {{ filter.form.territoire }}
+            <button type="submit" class="fr-btn fr-btn--sm">
+                Filtrer
+            </button>
+        </div>
+    </div>
+</div>
