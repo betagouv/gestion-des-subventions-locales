@@ -73,3 +73,4 @@ class CommuneResource(CeleryModelResource):
     class Meta:
         model = Commune
         import_id_fields = ("insee_code",)
+        skip_unchanged = True
