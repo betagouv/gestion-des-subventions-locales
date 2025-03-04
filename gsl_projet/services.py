@@ -98,11 +98,18 @@ class ProjetService:
     def compute_taux_from_montant(
         cls, projet: Projet, new_montant: float | Decimal
     ) -> Decimal:
-        new_taux = (
-            round(
-                (Decimal(new_montant) / Decimal(projet.assiette_or_cout_total)) * 100, 2
+        try:
+            new_taux = round(
+                (Decimal(new_montant) / Decimal(projet.assiette_or_cout_total)) * 100,
+                2,
             )
-            if projet.assiette_or_cout_total
-            else Decimal(0)
-        )
-        return new_taux
+            return max(min(new_taux, Decimal(100)), Decimal(0))
+        except TypeError:
+            return Decimal(0)
+        except ZeroDivisionError:
+            return Decimal(0)
+
+    @classmethod
+    def validate_taux(cls, taux: float | Decimal) -> None:
+        if type(taux) not in [float, Decimal, int] or taux < 0 or taux > 100:
+            raise ValueError(f"Taux {taux} must be between 0 and 100")

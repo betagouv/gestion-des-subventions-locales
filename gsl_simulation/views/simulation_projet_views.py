@@ -76,6 +76,7 @@ def patch_taux_simulation_projet(request, pk):
     data = QueryDict(request.body)
 
     new_taux = replace_comma_by_dot(data.get("taux"))
+    ProjetService.validate_taux(new_taux)
     SimulationProjetService.update_taux(simulation_projet, new_taux)
     return redirect_to_simulation_projet(request, simulation_projet)
 
