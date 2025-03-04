@@ -133,24 +133,43 @@ def test_update_status_with_accepted(mock_accept_a_simulation_projet):
 
 
 @pytest.mark.django_db
-@mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._refuse_a_simulation_projet"
-)
-def test_update_status_with_refused(mock_refuse_a_simulation_projet):
+def test_update_status_with_refused():
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROCESSING
     )
     new_status = SimulationProjet.STATUS_REFUSED
 
-    SimulationProjetService.update_status(simulation_projet, new_status)
+    with mock.patch.object(
+        SimulationProjetService, "_refuse_a_simulation_projet"
+    ) as mock_refuse_a_simulation_projet:
+        SimulationProjetService.update_status(simulation_projet, new_status)
 
-    mock_refuse_a_simulation_projet.assert_called_once_with(simulation_projet)
+        mock_refuse_a_simulation_projet.assert_called_once_with(simulation_projet)
+
+
+@pytest.mark.django_db
+def test_update_status_with_dismissed():
+    simulation_projet = SimulationProjetFactory(
+        status=SimulationProjet.STATUS_PROCESSING
+    )
+    new_status = SimulationProjet.STATUS_DISMISSED
+
+    with mock.patch.object(
+        SimulationProjetService, "_dismiss_a_simulation_projet"
+    ) as mock_dismiss_a_simulation_projet:
+        SimulationProjetService.update_status(simulation_projet, new_status)
+
+        mock_dismiss_a_simulation_projet.assert_called_once_with(simulation_projet)
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     ("initial_status"),
-    (SimulationProjet.STATUS_ACCEPTED, SimulationProjet.STATUS_REFUSED),
+    (
+        SimulationProjet.STATUS_ACCEPTED,
+        SimulationProjet.STATUS_REFUSED,
+        SimulationProjet.STATUS_DISMISSED,
+    ),
 )
 def test_update_status_with_processing_from_accepted_or_refused(initial_status):
     simulation_projet = SimulationProjetFactory(status=initial_status)
@@ -467,7 +486,7 @@ def test_is_simulation_projet_in_perimetre_arrondissement():
         (Projet.STATUS_ACCEPTED, SimulationProjet.STATUS_ACCEPTED),
         (Projet.STATUS_REFUSED, SimulationProjet.STATUS_REFUSED),
         (Projet.STATUS_PROCESSING, SimulationProjet.STATUS_PROCESSING),
-        (Projet.STATUS_UNANSWERED, SimulationProjet.STATUS_REFUSED),
+        (Projet.STATUS_DISMISSED, SimulationProjet.STATUS_DISMISSED),
     ),
 )
 @pytest.mark.django_db

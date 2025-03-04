@@ -159,7 +159,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     )
     assert simulation_projet.montant == 2_500
     assert simulation_projet.taux == 0
-    assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
+    assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED
     assert simulation_projet.enveloppe.type == "DETR"
 
 
@@ -211,7 +211,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
         projet=dsil_projets[7],
         simulation=dsil_simulation,
     )
-    assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
+    assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED
     assert simulation_projet.montant == 2_500
     assert simulation_projet.taux == 0
     assert simulation_projet.enveloppe.type == "DSIL"

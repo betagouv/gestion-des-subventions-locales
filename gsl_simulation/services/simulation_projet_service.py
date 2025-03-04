@@ -57,12 +57,16 @@ class SimulationProjetService:
         if new_status == SimulationProjet.STATUS_REFUSED:
             return cls._refuse_a_simulation_projet(simulation_projet)
 
+        if new_status == SimulationProjet.STATUS_DISMISSED:
+            return cls._dismiss_a_simulation_projet(simulation_projet)
+
         if (
             new_status == SimulationProjet.STATUS_PROCESSING
             and simulation_projet.status
             in (
                 SimulationProjet.STATUS_ACCEPTED,
                 SimulationProjet.STATUS_REFUSED,
+                SimulationProjet.STATUS_DISMISSED,
             )
         ):
             return cls._set_back_to_processing(simulation_projet)
@@ -106,7 +110,7 @@ class SimulationProjetService:
 
     PROJET_STATUS_TO_SIMULATION_PROJET_STATUS = {
         Projet.STATUS_ACCEPTED: SimulationProjet.STATUS_ACCEPTED,
-        Projet.STATUS_UNANSWERED: SimulationProjet.STATUS_REFUSED,
+        Projet.STATUS_DISMISSED: SimulationProjet.STATUS_DISMISSED,
         Projet.STATUS_REFUSED: SimulationProjet.STATUS_REFUSED,
         Projet.STATUS_PROCESSING: SimulationProjet.STATUS_PROCESSING,
     }
@@ -132,6 +136,17 @@ class SimulationProjetService:
     def _refuse_a_simulation_projet(cls, simulation_projet: SimulationProjet):
         projet = simulation_projet.projet
         projet.refuse(enveloppe=simulation_projet.enveloppe)
+        projet.save()
+
+        updated_simulation_projet = SimulationProjet.objects.get(
+            pk=simulation_projet.pk
+        )
+        return updated_simulation_projet
+
+    @classmethod
+    def _dismiss_a_simulation_projet(cls, simulation_projet: SimulationProjet):
+        projet = simulation_projet.projet
+        projet.dismiss()
         projet.save()
 
         updated_simulation_projet = SimulationProjet.objects.get(

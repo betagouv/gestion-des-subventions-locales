@@ -112,11 +112,11 @@ class ProjetFilters(FilterSet):
         ),
     )
 
-    ordered_status = (
+    ordered_status: tuple[str, ...] = (
         Projet.STATUS_PROCESSING,
         Projet.STATUS_REFUSED,
         Projet.STATUS_ACCEPTED,
-        Projet.STATUS_UNANSWERED,
+        Projet.STATUS_DISMISSED,
     )
 
     status = MultipleChoiceFilter(

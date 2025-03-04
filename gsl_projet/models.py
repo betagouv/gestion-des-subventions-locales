@@ -125,12 +125,12 @@ class Projet(models.Model):
     STATUS_ACCEPTED = "accepted"
     STATUS_REFUSED = "refused"
     STATUS_PROCESSING = "processing"
-    STATUS_UNANSWERED = "unanswered"
+    STATUS_DISMISSED = "dismissed"
     STATUS_CHOICES = (
         (STATUS_ACCEPTED, "✅ Accepté"),
         (STATUS_REFUSED, "❌ Refusé"),
         (STATUS_PROCESSING, "🔄 En traitement"),
-        (STATUS_UNANSWERED, "⛔️ Classé sans suite"),
+        (STATUS_DISMISSED, "⛔️ Classé sans suite"),
     )
     # TODO put back protected=True, once every status transition is handled
     status = FSMField("Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING)
@@ -240,7 +240,9 @@ class Projet(models.Model):
         )
 
     @transition(
-        field=status, source=[STATUS_ACCEPTED, STATUS_REFUSED], target=STATUS_PROCESSING
+        field=status,
+        source=[STATUS_ACCEPTED, STATUS_REFUSED, STATUS_DISMISSED],
+        target=STATUS_PROCESSING,
     )
     def set_back_status_to_processing(self):
         from gsl_programmation.models import ProgrammationProjet
@@ -248,6 +250,17 @@ class Projet(models.Model):
 
         SimulationProjet.objects.filter(projet=self).update(
             status=SimulationProjet.STATUS_PROCESSING,
+        )
+
+        ProgrammationProjet.objects.filter(projet=self).delete()
+
+    @transition(field=status, source="*", target=STATUS_DISMISSED)
+    def dismiss(self):
+        from gsl_programmation.models import ProgrammationProjet
+        from gsl_simulation.models import SimulationProjet
+
+        SimulationProjet.objects.filter(projet=self).update(
+            status=SimulationProjet.STATUS_DISMISSED, montant=0, taux=0
         )
 
         ProgrammationProjet.objects.filter(projet=self).delete()

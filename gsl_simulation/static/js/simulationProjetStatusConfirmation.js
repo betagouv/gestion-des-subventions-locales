@@ -2,22 +2,27 @@ let selectedElement = null;
 
 const VALID = "valid";
 const CANCELLED = "cancelled";
+const DISMISSED = "dismissed";
 const PROCESSING = "draft";
+
+const STATUSES_WITH_OTHER_SIMULATION_IMPACT = [VALID, CANCELLED, DISMISSED];
 
 STATUS_TO_MODAL_ID = {
     "valid": "accept-confirmation-modal",
     "cancelled": "refuse-confirmation-modal",
     "draft": "processing-confirmation-modal",
+    "dismissed": "dismiss-confirmation-modal",
 }
 
 STATUS_TO_FRENCH_WORD = {
     "valid": "validé",
     "cancelled": "annulé",
+    "dismissed": "classé sans suite",
 }
 
 function mustOpenConfirmationModal(newValue, originalValue) {
-    if ([VALID, CANCELLED].includes(newValue)) return true;
-    if (newValue === PROCESSING && (originalValue === VALID || originalValue === CANCELLED)) return true;
+    if (STATUSES_WITH_OTHER_SIMULATION_IMPACT.includes(newValue)) return true;
+    if (newValue === PROCESSING && STATUSES_WITH_OTHER_SIMULATION_IMPACT.includes(originalValue)) return true;
     return false;
 }
 

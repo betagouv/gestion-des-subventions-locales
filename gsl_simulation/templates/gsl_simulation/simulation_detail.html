@@ -5,6 +5,10 @@
     {% dsfr_breadcrumb breadcrumb_dict %}
 {% endblock breadcrumb %}
 
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/simulation_detail.css' %}">
+{% endblock extra_css %}
+
 {% block content %}
     <h1>
         {{ title }}
@@ -84,6 +88,7 @@
 {% block modal %}
     {% include "includes/modals/_accept_confirmation_modal.html" %}
     {% include "includes/modals/_refuse_confirmation_modal.html" %}
+    {% include "includes/modals/_dismiss_confirmation_modal.html" %}
     {% include "includes/modals/_go_back_to_processing_modal.html" %}
 {% endblock modal %}
 

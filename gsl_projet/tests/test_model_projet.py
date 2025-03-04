@@ -17,8 +17,9 @@ from ..models import Projet
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
+# Accept
 
-@pytest.mark.django_db
+
 def test_accept_projet_without_simulation_projet():
     projet = ProjetFactory(assiette=10_000)
     assert projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
@@ -45,7 +46,6 @@ def test_accept_projet_without_simulation_projet():
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
 
 
-@pytest.mark.django_db
 def test_accept_projet():
     projet = ProjetFactory(assiette=10_000)
     assert projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
@@ -86,7 +86,6 @@ def test_accept_projet():
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
 
 
-@pytest.mark.django_db
 def test_accept_projet_update_programmation_projet():
     projet = ProjetFactory(assiette=9_000, status=Projet.STATUS_REFUSED)
 
@@ -113,7 +112,6 @@ def test_accept_projet_update_programmation_projet():
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
 
 
-@pytest.mark.django_db
 def test_accept_projet_select_parent_enveloppe():
     projet = ProjetFactory(assiette=9_000, status=Projet.STATUS_PROCESSING)
     parent_enveloppe = DetrEnveloppeFactory()
@@ -126,7 +124,9 @@ def test_accept_projet_select_parent_enveloppe():
     assert programmation_projets.first().enveloppe == parent_enveloppe
 
 
-@pytest.mark.django_db
+# Refuse
+
+
 def test_refusing_a_projet_creates_one_programmation_projet():
     projet = ProjetFactory(status=Projet.STATUS_PROCESSING)
     assert projet.status == Projet.STATUS_PROCESSING
@@ -150,7 +150,6 @@ def test_refusing_a_projet_creates_one_programmation_projet():
     assert programmation_projet.status == ProgrammationProjet.STATUS_REFUSED
 
 
-@pytest.mark.django_db
 def test_refusing_a_projet_updates_all_simulation_projet():
     projet = ProjetFactory(status=Projet.STATUS_PROCESSING)
     assert projet.status == Projet.STATUS_PROCESSING
@@ -181,7 +180,9 @@ def test_refusing_a_projet_updates_all_simulation_projet():
         assert simulation_projet.taux == 0
 
 
-@pytest.mark.django_db
+# Set back status to processing
+
+
 def test_set_back_status_to_processing_from_accepted():
     projet = ProjetFactory(status=Projet.STATUS_ACCEPTED)
     ProgrammationProjetFactory(
@@ -212,7 +213,6 @@ def test_set_back_status_to_processing_from_accepted():
         assert simulation_projet.taux == 20
 
 
-@pytest.mark.django_db
 def test_set_back_status_to_processing_from_refused():
     projet = ProjetFactory(status=Projet.STATUS_REFUSED)
     ProgrammationProjetFactory(
@@ -237,10 +237,7 @@ def test_set_back_status_to_processing_from_refused():
         assert simulation_projet.taux == 0
 
 
-@pytest.mark.parametrize(
-    ("status"), [Projet.STATUS_UNANSWERED, Projet.STATUS_PROCESSING]
-)
-@pytest.mark.django_db
+@pytest.mark.parametrize(("status"), [Projet.STATUS_PROCESSING])
 def test_set_back_status_to_processing_from_other_status_than_accepted_or_refused(
     status,
 ):
@@ -248,3 +245,66 @@ def test_set_back_status_to_processing_from_other_status_than_accepted_or_refuse
 
     with pytest.raises(TransitionNotAllowed):
         projet.set_back_status_to_processing()
+
+
+# Dismiss
+
+
+@pytest.mark.parametrize(
+    ("status, montant, taux"),
+    ((Projet.STATUS_REFUSED, 0, 0), (Projet.STATUS_ACCEPTED, 10_000, 20)),
+)
+def test_dismiss(status, montant, taux):
+    projet = ProjetFactory(status=status)
+    ProgrammationProjetFactory(
+        projet=projet,
+        status=ProgrammationProjet.STATUS_REFUSED
+        if projet.status == Projet.STATUS_REFUSED
+        else ProgrammationProjet.STATUS_ACCEPTED,
+    )
+    SimulationProjetFactory.create_batch(
+        3,
+        projet=projet,
+        status=SimulationProjet.STATUS_REFUSED
+        if projet.status == Projet.STATUS_REFUSED
+        else ProgrammationProjet.STATUS_ACCEPTED,
+        montant=montant,
+        taux=taux,
+    )
+
+    projet.dismiss()
+    projet.save()
+    projet.refresh_from_db()
+
+    assert projet.status == Projet.STATUS_DISMISSED
+    assert ProgrammationProjet.objects.filter(projet=projet).count() == 0
+    simulation_projets = SimulationProjet.objects.filter(projet=projet)
+    assert simulation_projets.count() == 3
+    for simulation_projet in simulation_projets:
+        assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED
+        assert simulation_projet.montant == 0
+        assert simulation_projet.taux == 0
+
+
+def test_dismiss_from_processing():
+    projet = ProjetFactory(status=Projet.STATUS_PROCESSING)
+    SimulationProjetFactory.create_batch(
+        3,
+        projet=projet,
+        status=SimulationProjet.STATUS_PROCESSING,
+        montant=500,
+        taux=0.4,
+    )
+
+    projet.dismiss()
+    projet.save()
+    projet.refresh_from_db()
+
+    assert projet.status == Projet.STATUS_DISMISSED
+    assert ProgrammationProjet.objects.filter(projet=projet).count() == 0
+    simulation_projets = SimulationProjet.objects.filter(projet=projet)
+    assert simulation_projets.count() == 3
+    for simulation_projet in simulation_projets:
+        assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED
+        assert simulation_projet.montant == 0
+        assert simulation_projet.taux == 0

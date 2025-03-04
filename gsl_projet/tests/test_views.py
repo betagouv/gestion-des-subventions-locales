@@ -506,7 +506,7 @@ def projets_with_status(demandeur) -> list[Projet]:
         ("accepted", 1),
         ("processing", 2),
         ("refused", 4),
-        ("unanswered", 5),
+        ("dismissed", 5),
     ):
         for _ in range(count):
             projets.append(ProjetFactory(status=status, demandeur=demandeur))
@@ -519,7 +519,7 @@ def projets_with_status(demandeur) -> list[Projet]:
         ("accepted", 1),
         ("processing", 2),
         ("refused", 4),
-        ("unanswered", 5),
+        ("dismissed", 5),
     ],
 )
 def test_filter_by_status(req, view, projets_with_status, status, expected_count):
