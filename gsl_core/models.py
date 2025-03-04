@@ -222,6 +222,15 @@ class Perimetre(BaseModel):
             return self.departement.name
         return self.arrondissement.name
 
+    def children(self):
+        # ça marche pas, il faut faire des __isnull
+        kwargs = {"region_id": self.region_id}
+        if self.departement_id:
+            kwargs["departement_id"] = self.departement_id
+        if self.arrondissement_id:
+            kwargs["arrondissement_id"] = self.arrondissement_id
+        return Perimetre.objects.filter(**kwargs).exclude(id=self.id)
+
 
 class Collegue(AbstractUser):
     proconnect_sub = models.UUIDField(
