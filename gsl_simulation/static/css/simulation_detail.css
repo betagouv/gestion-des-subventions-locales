@@ -1,0 +1,51 @@
+
+.success-color {
+  color: var(--text-default-success);
+}
+
+.refuse-color {
+  color: var(--text-default-error);
+}
+
+.processing-color {
+  color: var(--text-mention-grey);
+}
+
+.set-unanswered-color {
+  color: var(--text-default-warning);
+}
+
+.confirmation-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1em;
+}
+
+/* buttons */
+
+.accept-button{
+  background-color: var(--background-action-high-success);
+  color: var(--background-alt-blue-france)
+}
+
+.accept-button:hover{
+  background-color: var(--background-action-high-success-hover) !important;
+}
+
+.refuse-button{
+  background-color: var(--background-action-high-error);
+  color: var(--background-alt-blue-france)
+}
+
+.refuse-button:hover{
+  background-color: var(--background-action-high-error-hover) !important;
+}
+
+.set-unanswered-button{
+  background-color: var(--background-action-high-warning);
+  color: var(--background-alt-blue-france)
+}
+
+.set-unanswered-button:hover{
+  background-color: var(--background-action-high-warning-hover) !important;
+}
