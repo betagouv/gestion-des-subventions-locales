@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime
 from decimal import Decimal
 
@@ -634,6 +635,30 @@ def test_patch_taux_simulation_projet(
         '<span hx-swap-oob="innerHTML" id="total-amount-granted">7\xa0500\xa0€</span>'
         in response.content.decode()
     )
+
+
+@pytest.mark.parametrize("taux", ("-3", "100.1"))
+@pytest.mark.django_db
+def test_patch_taux_simulation_projet_with_wrong_value(
+    client_with_user_logged, accepted_simulation_projet, taux, caplog
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-taux", args=[accepted_simulation_projet.id]
+    )
+    response = client_with_user_logged.patch(
+        url,
+        data=f"taux={taux}",
+        follow=True,
+    )
+
+    with caplog.at_level(logging.ERROR):
+        accepted_simulation_projet.refresh_from_db()
+
+    assert response.status_code == 400
+    assert response.content == b'{"error": "An internal error has occurred."}'
+    assert "must be between 0 and 100" in caplog.text
+    assert accepted_simulation_projet.taux == 0.5
+    assert accepted_simulation_projet.montant == 1_000
 
 
 @pytest.mark.django_db

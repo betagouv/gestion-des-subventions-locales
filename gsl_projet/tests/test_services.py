@@ -282,3 +282,23 @@ def test_get_projet_status():
 
     dossier_unknown = Dossier(ds_state="unknown_state")
     assert ProjetService.get_projet_status(dossier_unknown) is None
+
+
+@pytest.mark.parametrize(
+    "taux, should_raise_exception",
+    [
+        (50, False),
+        (0, False),
+        (100, False),
+        (-1, True),
+        (101, True),
+        (None, True),
+        ("invalid", True),
+    ],
+)
+def test_validate_taux(taux, should_raise_exception):
+    if should_raise_exception:
+        with pytest.raises(ValueError, match=f"Taux {taux} must be between 0 and 100"):
+            ProjetService.validate_taux(taux)
+    else:
+        ProjetService.validate_taux(taux)

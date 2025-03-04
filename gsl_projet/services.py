@@ -108,3 +108,8 @@ class ProjetService:
             return Decimal(0)
         except ZeroDivisionError:
             return Decimal(0)
+
+    @classmethod
+    def validate_taux(cls, taux: float | Decimal) -> None:
+        if type(taux) not in [float, Decimal, int] or taux < 0 or taux > 100:
+            raise ValueError(f"Taux {taux} must be between 0 and 100")
