@@ -238,3 +238,16 @@ class Projet(models.Model):
                 "status": ProgrammationProjet.STATUS_REFUSED,
             },
         )
+
+    @transition(
+        field=status, source=[STATUS_ACCEPTED, STATUS_REFUSED], target=STATUS_PROCESSING
+    )
+    def set_back_status_to_processing(self):
+        from gsl_programmation.models import ProgrammationProjet
+        from gsl_simulation.models import SimulationProjet
+
+        SimulationProjet.objects.filter(projet=self).update(
+            status=SimulationProjet.STATUS_PROCESSING,
+        )
+
+        ProgrammationProjet.objects.filter(projet=self).delete()
