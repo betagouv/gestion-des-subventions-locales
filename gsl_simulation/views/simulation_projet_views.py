@@ -3,6 +3,7 @@ from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import resolve, reverse
 from django.views.decorators.http import require_http_methods
+from django.views.generic import DetailView
 
 from gsl_projet.services import ProjetService
 from gsl_simulation.models import SimulationProjet
@@ -108,3 +109,83 @@ def patch_status_simulation_projet(request, pk):
         simulation_projet, status
     )
     return redirect_to_simulation_projet(request, updated_simulation_projet)
+
+
+class SimulationProjetDetailView(DetailView):
+    model = SimulationProjet
+    template_name = "gsl_simulation/simulation_projet_detail.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = "Projet modifiable"
+        context["breadcrumb_dict"] = {
+            "links": [
+                {
+                    "url": reverse("simulation:simulation-list"),
+                    "title": "Mes simulations de programmation",
+                },
+                {
+                    "url": reverse(
+                        "simulation:simulation-detail",
+                        kwargs={"slug": self.object.simulation.slug},
+                    ),
+                    "title": self.object.simulation.title,
+                },
+            ],
+            "current": self.object.projet,
+        }
+        context["projet"] = self.object.projet
+        context["simu"] = self.object
+        context["menu_dict"] = {
+            "title": "Menu",
+            "items": (
+                {
+                    "label": "1 – Porteur de projet",
+                    "link": "#porteur_de_projet",
+                },
+                {
+                    "label": "2 – Présentation de l’opération",
+                    "items": (
+                        {
+                            "label": "Projet",
+                            "link": "#presentation_projet",
+                        },
+                        {
+                            "label": "Dates",
+                            "link": "#presentation_dates",
+                        },
+                        {
+                            "label": "Détails du projet",
+                            "link": "#presentation_details_proj",
+                        },
+                        {
+                            "label": "Transition écologique",
+                            "link": "#presentation_transition_eco",
+                        },
+                    ),
+                },
+                {
+                    "label": "3 – Plan de financement prévisionnel",
+                    "items": (
+                        {
+                            "label": "Coûts de financement",
+                            "link": "#couts_financement",
+                        },
+                        {
+                            "label": "Détails  du financement",
+                            "link": "#detail_financement",
+                        },
+                        {
+                            "label": "Dispositifs de financement sollicités",
+                            "link": "#dispositifs_sollicites",
+                        },
+                        # {
+                        #    "label": "Autres opérations en demande de subvention DETR/DSIL 2024",
+                        #    "link": "(OR) the link (fragment) of the menu item",
+                        # },
+                    ),
+                },
+            ),
+        }
+
+        return context

@@ -441,3 +441,30 @@ def test_patch_projet_allowed_for_staff_user(
         url, data="status=valid", follow=True
     )
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_simulation_projet_detail_url(
+    client_with_cote_d_or_user_logged, cote_dorien_simulation_projet
+):
+    url = reverse(
+        "simulation:simulation-projet-detail",
+        kwargs={"pk": cote_dorien_simulation_projet.pk},
+    )
+    response = client_with_cote_d_or_user_logged.get(url)
+    assert response.status_code == 200
+    assert response.templates[0].name == "gsl_simulation/simulation_projet_detail.html"
+    assert response.context["simu"] == cote_dorien_simulation_projet
+    assert response.context["projet"] == cote_dorien_simulation_projet.projet
+
+
+@pytest.mark.django_db
+def test_simulation_projet_detail_url_with_perimetre_not_in_user_one(
+    client_with_iconnais_user_logged, cote_dorien_simulation_projet
+):
+    url = reverse(
+        "simulation:simulation-projet-detail",
+        kwargs={"pk": cote_dorien_simulation_projet.pk},
+    )
+    response = client_with_iconnais_user_logged.get(url)
+    assert response.status_code == 404
