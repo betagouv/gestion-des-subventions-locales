@@ -7,6 +7,7 @@ from django_filters import (
     NumberFilter,
 )
 
+from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
@@ -138,12 +139,17 @@ class ProjetFilters(FilterSet):
 
     territoire = MultipleChoiceFilter(
         method="filter_territoire",
-        choices=((1, "tata"), (2, "toto")),  # todo
+        choices=[],
         widget=CustomCheckboxSelectMultiple(),
     )
 
     def filter_territoire(self, queryset, _name, value):
-        return queryset  # todo: filtrer par périmètre directement?
+        perimetres = set()
+        for perimetre in Perimetre.objects.filter(id__in=value):
+            perimetres.add(perimetre)
+            for child in perimetre.children():
+                perimetres.add(child)
+        return queryset.filter(perimetre__in=perimetres)
 
     class Meta:
         model = Projet
