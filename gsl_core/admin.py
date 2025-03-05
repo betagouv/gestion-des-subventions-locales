@@ -117,7 +117,14 @@ class CommuneAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
 
 @admin.register(Perimetre)
 class PerimetreAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    search_fields = ["departement__name", "region__name"]
+    search_fields = ("departement__name", "region__name", "arrondissement__name")
+    list_display = (
+        "__str__",
+        "type",
+        "region_id",
+        "departement_id",
+        "arrondissement_id",
+    )
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)

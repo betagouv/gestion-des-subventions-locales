@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import UniqueConstraint
+from django.db.models import F, UniqueConstraint
 
 
 class BaseModel(models.Model):
@@ -113,6 +113,20 @@ class Adresse(BaseModel):
         return self
 
 
+class PerimetreManager(models.Manager):
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .select_related("arrondissement", "departement", "region")
+            .order_by(
+                F("region_id").asc(nulls_first=True),
+                F("departement_id").asc(nulls_first=True),
+                F("arrondissement_id").asc(nulls_first=True),
+            )
+        )
+
+
 class Perimetre(BaseModel):
     TYPE_REGION = "Région"
     TYPE_DEPARTEMENT = "Département"
@@ -137,6 +151,8 @@ class Perimetre(BaseModel):
         on_delete=models.PROTECT,
         blank=True,
     )
+
+    objects = PerimetreManager()
 
     class Meta:
         verbose_name = "Périmètre"
