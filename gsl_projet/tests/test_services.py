@@ -1,4 +1,5 @@
 from datetime import UTC
+from decimal import Decimal
 
 import pytest
 from django.utils import timezone
@@ -244,6 +245,28 @@ def test_compute_taux_from_montant_with_projet_without_finance_cout_total():
     assert taux == 0
 
 
+@pytest.mark.parametrize(
+    "montant, assiette, expected_taux",
+    (
+        (10_000, 30_000, 33.33),
+        (10_000, 0, 0),
+        (10_000, 10_000, 100),
+        (100_000, 10_000, 100),
+        (10_000, -3_000, 0),
+        (0, 0, 0),
+        (1_000, None, 0),
+        (None, 4_000, 0),
+    ),
+)
+@pytest.mark.django_db
+def test_compute_taux_from_montant_with_various_assiettes(
+    assiette, montant, expected_taux
+):
+    projet = ProjetFactory(assiette=assiette)
+    taux = ProjetService.compute_taux_from_montant(projet, montant)
+    assert taux == round(Decimal(expected_taux), 2)
+
+
 def test_get_projet_status():
     accepted = Dossier(ds_state=Dossier.STATE_ACCEPTE)
     en_construction = Dossier(ds_state=Dossier.STATE_EN_CONSTRUCTION)
@@ -259,3 +282,23 @@ def test_get_projet_status():
 
     dossier_unknown = Dossier(ds_state="unknown_state")
     assert ProjetService.get_projet_status(dossier_unknown) is None
+
+
+@pytest.mark.parametrize(
+    "taux, should_raise_exception",
+    [
+        (50, False),
+        (0, False),
+        (100, False),
+        (-1, True),
+        (101, True),
+        (None, True),
+        ("invalid", True),
+    ],
+)
+def test_validate_taux(taux, should_raise_exception):
+    if should_raise_exception:
+        with pytest.raises(ValueError, match=f"Taux {taux} must be between 0 and 100"):
+            ProjetService.validate_taux(taux)
+    else:
+        ProjetService.validate_taux(taux)
