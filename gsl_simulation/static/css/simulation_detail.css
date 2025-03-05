@@ -1,3 +1,39 @@
+/* table */
+.gsl-projet-table__select {
+  text-align: right;
+  padding: 4px;
+  padding-right: 20px;
+  background-position: calc(100% - 4px) 50%;
+  box-shadow: none
+}
+
+.gsl-projet-table__input-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.gsl-projet-table__input-wrap > input {
+  text-align: right;
+  padding: 4px;
+  padding-right: 12px;
+  /* box-shadow: none */
+}
+
+.gsl-projet-table__input-symbol {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  pointer-events: none; /* Ne pas interférer avec les clics */
+  color: #333;
+}
+
+.gsl-projet-table__rate > input {
+  padding-right: 16px;
+}
+
+
+/* colors */
 
 .success-color {
   color: var(--text-default-success);
@@ -14,6 +50,8 @@
 .dismiss-color {
   color: var(--text-default-warning);
 }
+
+/* modal */
 
 .confirmation-modal-footer {
   display: flex;
@@ -66,4 +104,21 @@
 
 #status-select:has(> option[value="provisoire"]:checked){
   color: var(--text-default-info)
+}
+
+/* inputs */
+
+.input-status-color-valid{
+  background-color: var(--background-alt-green-emeraude);
+  box-shadow: inset 0 -2px 0 0 var(--background-action-high-success)
+}
+
+.input-status-color-provisoire{
+  background-color: var(--text-inverted-blue-ecume);
+  box-shadow: inset 0 -2px 0 0 var(--border-action-high-info)
+}
+
+.fr-input:disabled.input-status-color-cancelled {
+  background-color: var(--background-alt-orange-terre-battue);
+  box-shadow: inset 0 -2px 0 0 var(--border-plain-error)
 }
