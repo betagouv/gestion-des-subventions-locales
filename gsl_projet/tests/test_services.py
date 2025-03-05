@@ -116,16 +116,6 @@ def test_get_same_total_cost_even_if_there_is_other_projets(
     assert ProjetService.get_total_cost(qs) == 100_000
 
 
-@pytest.mark.django_db
-def test_get_total_amount_granted(simulation):
-    SimulationProjetFactory(simulation=simulation, montant=1000)
-    SimulationProjetFactory(simulation=simulation, montant=2000)
-    SimulationProjetFactory(montant=4000)
-
-    qs = Projet.objects.filter(simulationprojet__simulation=simulation).all()
-    assert ProjetService.get_total_amount_granted(qs) == 3000
-
-
 @pytest.fixture
 def projets_with_dossier_ds__demande_montant_not_in_simulation() -> None:
     for amount in (10_000, 2_000):

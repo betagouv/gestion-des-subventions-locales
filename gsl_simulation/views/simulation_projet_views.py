@@ -9,6 +9,7 @@ from gsl_simulation.models import SimulationProjet
 from gsl_simulation.services.simulation_projet_service import (
     SimulationProjetService,
 )
+from gsl_simulation.services.simulation_service import SimulationService
 from gsl_simulation.utils import replace_comma_by_dot
 from gsl_simulation.views.decorators import (
     exception_handler_decorator,
@@ -43,7 +44,9 @@ def redirect_to_simulation_projet(request, simulation_projet):
             filter_params,
         )
 
-        total_amount_granted = ProjetService.get_total_amount_granted(filtered_projets)
+        total_amount_granted = SimulationService.get_total_amount_granted(
+            filtered_projets, simulation_projet.simulation
+        )
 
         return render(
             request,
