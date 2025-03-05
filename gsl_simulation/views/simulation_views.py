@@ -153,7 +153,9 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         context["status_summary"] = simulation.get_projet_status_summary()
         context["total_cost"] = ProjetService.get_total_cost(qs)
         context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs)
-        context["total_amount_granted"] = ProjetService.get_total_amount_granted(qs)
+        context["total_amount_granted"] = SimulationService.get_total_amount_granted(
+            qs, simulation
+        )
         context["available_states"] = SimulationProjet.STATUS_CHOICES
         context["filter_params"] = self.request.GET.urlencode()
         context["enveloppe"] = self._get_enveloppe_data(simulation)

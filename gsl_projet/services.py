@@ -60,12 +60,6 @@ class ProjetService:
             "dossier_ds__demande_montant__sum"
         ]
 
-    @classmethod
-    def get_total_amount_granted(cls, projet_qs: QuerySet):
-        return projet_qs.aggregate(Sum("simulationprojet__montant"))[
-            "simulationprojet__montant__sum"
-        ]
-
     PORTEUR_MAPPINGS = {
         "EPCI": NaturePorteurProjet.EPCI_NATURES,
         "Communes": NaturePorteurProjet.COMMUNE_NATURES,
