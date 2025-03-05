@@ -116,6 +116,7 @@ class ProjetListViewFilters(ProjetFilters):
         qs = qs.select_related(
             "address",
             "address__commune",
+            "perimetre",
         ).prefetch_related(
             "dossier_ds__demande_eligibilite_detr",
             "dossier_ds__demande_eligibilite_dsil",

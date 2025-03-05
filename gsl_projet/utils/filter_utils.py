@@ -1,3 +1,6 @@
+from gsl_core.models import Perimetre
+
+
 class FilterUtils:
     FILTER_TEMPLATE_MAPPINGS = {
         "dotation": "includes/_filter_dotation.html",
@@ -25,7 +28,9 @@ class FilterUtils:
         context["is_montant_previsionnel_active"] = self._get_is_one_field_active(
             "montant_previsionnel_min", "montant_previsionnel_max"
         )
-        context["territoire_choices"] = (("tata", "tata"), ("toto", "toto"))
+        context["is_territoire_active"] = self._get_is_one_field_active("territoire")
+        context["is_territoire_placeholder"] = self._get_territoire_placeholder()
+
         context["filter_templates"] = self._get_filter_templates()
 
         return context
@@ -45,6 +50,20 @@ class FilterUtils:
             for status in self.request.GET.getlist("status")
             if status in state_mappings
         )
+
+    def _get_territoire_placeholder(self):
+        if self.request.GET.get("territoire") in (None, "", []):
+            if self.request.user and self.request.user.perimetre:
+                return self.request.user.perimetre.entity_name
+            return "Tous"
+
+        territoire_ids = (
+            int(perimetre) for perimetre in self.request.GET.getlist("territoire")
+        )
+        perimetres = Perimetre.objects.filter(id__in=territoire_ids).select_related(
+            "departement", "region", "arrondissement"
+        )
+        return ", ".join(p.entity_name for p in perimetres)
 
     def _get_is_one_field_active(self, *field_names):
         return any(

@@ -19,7 +19,7 @@ class ProjetFilters(FilterSet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.get_filters()
-        if self.request.user and self.request.user.perimetre:
+        if hasattr(self.request, "user") and self.request.user.perimetre:
             perimetre = self.request.user.perimetre
             self.filters["territoire"].extra["choices"] = tuple(
                 (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
