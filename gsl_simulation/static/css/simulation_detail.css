@@ -41,11 +41,29 @@
   background-color: var(--background-action-high-error-hover) !important;
 }
 
-.dismiss-button-button{
+.dismiss-button{
   background-color: var(--background-action-high-warning);
   color: var(--background-alt-blue-france)
 }
 
-.dismiss-button-button:hover{
+.dismiss-button:hover{
   background-color: var(--background-action-high-warning-hover) !important;
+}
+
+/* status select */
+
+#status-select {
+  font-weight: bold;
+}
+
+#status-select:has(> option[value="valid"]:checked){
+  color: var(--text-default-success)
+}
+
+#status-select:has(> option[value="cancelled"]:checked){
+  color: var(--text-default-error)
+}
+
+#status-select:has(> option[value="provisoire"]:checked){
+  color: var(--text-default-info)
 }
