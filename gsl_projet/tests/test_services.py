@@ -259,7 +259,7 @@ def test_compute_taux_from_montant_with_projet_without_finance_cout_total():
     ),
 )
 @pytest.mark.django_db
-def test_compute_taux_from_montant_with_projet_without_assiette(
+def test_compute_taux_from_montant_with_various_assiettes(
     assiette, montant, expected_taux
 ):
     projet = ProjetFactory(assiette=assiette)
