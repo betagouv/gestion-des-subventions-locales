@@ -18,10 +18,11 @@ class ProjetFilters(FilterSet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.get_filters()
-        self.filters["territoire"].extra["choices"] = (
-            ("3", "tutu"),
-            ("4", self.request.user.username),
-        )
+        if self.request.user and self.request.user.perimetre:
+            perimetre = self.request.user.perimetre
+            self.filters["territoire"].extra["choices"] = tuple(
+                (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
+            )
 
     dotation = ChoiceFilter(
         field_name="dossier_ds__demande_dispositif_sollicite",
