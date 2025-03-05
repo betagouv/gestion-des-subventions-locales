@@ -1,0 +1,40 @@
+<dialog id="provisoire-confirmation-modal" class="fr-modal">
+    <div class="fr-container fr-container--fluid fr-container-md">
+        <div class="fr-grid-row fr-grid-row--center">
+            <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
+                <div class="fr-modal__body">
+                    <div class="fr-modal__header">
+                        <button aria-controls="modal"
+                                title="Fermer"
+                                type="button"
+                                class="fr-btn--close fr-btn"
+                                onClick="closeModal('provisoire-confirmation-modal')">
+                            Fermer
+                        </button>
+                    </div>
+                    <div class="fr-modal__content">
+                        <h1 id="modal-title" class="fr-modal__title processing-color">
+                            <span class="fr-icon-draft-fill fr-icon--lg" aria-hidden="true"></span> Revenir au statut “Accepté provisoirement”
+                        </h1>
+                        <p id="provisoire-confirmation-modal-content">
+                            Ce projet TO_REPLACE va être remis en traitement dans toutes les autres simulations dans lesquelles il a été ajouté.
+                            Il n'apparaîtra plus dans la programmation officielle {{ enveloppe.type }} {{ simulation_year }}.
+                        </p>
+                        <p>
+                            Êtes-vous sûr(e) d'accepter provisoirement le projet ?
+                        </p>
+                    </div>
+                    <div class="fr-modal__footer confirmation-modal-footer">
+                        <button class="fr-btn fr-btn--secondary"
+                                onclick="closeModal('provisoire-confirmation-modal')">
+                            Annuler
+                        </button>
+                        <button class="fr-btn fr-btn--primary" id="confirmChange">
+                            Oui
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</dialog>

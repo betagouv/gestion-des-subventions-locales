@@ -4,6 +4,7 @@ const VALID = "valid";
 const CANCELLED = "cancelled";
 const DISMISSED = "dismissed";
 const PROCESSING = "draft";
+const PROVISOIRE = "provisoire";
 
 const STATUSES_WITH_OTHER_SIMULATION_IMPACT = [VALID, CANCELLED, DISMISSED];
 
@@ -12,6 +13,7 @@ STATUS_TO_MODAL_ID = {
     "cancelled": "refuse-confirmation-modal",
     "draft": "processing-confirmation-modal",
     "dismissed": "dismiss-confirmation-modal",
+    "provisoire": "provisoire-confirmation-modal",
 }
 
 STATUS_TO_FRENCH_WORD = {
@@ -23,11 +25,12 @@ STATUS_TO_FRENCH_WORD = {
 function mustOpenConfirmationModal(newValue, originalValue) {
     if (STATUSES_WITH_OTHER_SIMULATION_IMPACT.includes(newValue)) return true;
     if (newValue === PROCESSING && STATUSES_WITH_OTHER_SIMULATION_IMPACT.includes(originalValue)) return true;
+    if (newValue === PROVISOIRE && STATUSES_WITH_OTHER_SIMULATION_IMPACT.includes(originalValue)) return true;
     return false;
 }
 
-function replaceProcessingModalContentText(originalValue) {
-    processingConfirmationModalContent = document.getElementById("processing-confirmation-modal-content")
+function replaceProcessingModalContentText(originalValue, modalContentId) {
+    processingConfirmationModalContent = document.getElementById(modalContentId)
     const newText = processingConfirmationModalContent.innerHTML.replace("TO_REPLACE", STATUS_TO_FRENCH_WORD[originalValue])
     processingConfirmationModalContent.innerHTML = newText
 }
@@ -47,8 +50,8 @@ function showConfirmationModal(select, originalValue) {
         return
     }
     selectedElement = select;
-    if (status === PROCESSING) {
-        replaceProcessingModalContentText(originalValue)
+    if ([PROCESSING, PROVISOIRE].includes(status)) {
+        replaceProcessingModalContentText(originalValue, `${status}-confirmation-modal-content`)
     }
 
     modal = document.getElementById(modalId)
