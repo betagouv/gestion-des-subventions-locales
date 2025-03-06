@@ -6,6 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic import DetailView
 
 from gsl_projet.services import ProjetService
+from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.services.simulation_projet_service import (
     SimulationProjetService,
@@ -136,56 +137,7 @@ class SimulationProjetDetailView(DetailView):
         }
         context["projet"] = self.object.projet
         context["simu"] = self.object
-        context["menu_dict"] = {
-            "title": "Menu",
-            "items": (
-                {
-                    "label": "1 – Porteur de projet",
-                    "link": "#porteur_de_projet",
-                },
-                {
-                    "label": "2 – Présentation de l’opération",
-                    "items": (
-                        {
-                            "label": "Projet",
-                            "link": "#presentation_projet",
-                        },
-                        {
-                            "label": "Dates",
-                            "link": "#presentation_dates",
-                        },
-                        {
-                            "label": "Détails du projet",
-                            "link": "#presentation_details_proj",
-                        },
-                        {
-                            "label": "Transition écologique",
-                            "link": "#presentation_transition_eco",
-                        },
-                    ),
-                },
-                {
-                    "label": "3 – Plan de financement prévisionnel",
-                    "items": (
-                        {
-                            "label": "Coûts de financement",
-                            "link": "#couts_financement",
-                        },
-                        {
-                            "label": "Détails  du financement",
-                            "link": "#detail_financement",
-                        },
-                        {
-                            "label": "Dispositifs de financement sollicités",
-                            "link": "#dispositifs_sollicites",
-                        },
-                        # {
-                        #    "label": "Autres opérations en demande de subvention DETR/DSIL 2024",
-                        #    "link": "(OR) the link (fragment) of the menu item",
-                        # },
-                    ),
-                },
-            ),
-        }
+        context["dossier"] = self.object.projet.dossier_ds
+        context["menu_dict"] = PROJET_MENU
 
         return context

@@ -1,108 +1,15 @@
-{% extends "base.html" %}
-{% load static dsfr_tags gsl_filters %}
+{% extends "projet_base.html" %}
 
-{% block breadcrumb %}
-    {% dsfr_breadcrumb breadcrumb_dict %}
-{% endblock breadcrumb %}
-
-{% block content %}
+{% block go_back_button %}
     <div class="fr-mb-4w">
-        <a href="{% url "projet:list" %}"
+
+        <a href="{% url "simulation:simulation-detail" slug=simu.simulation.slug %}"
            class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
-            Retour à la liste des projets
+            Retour à la simulation
         </a>
     </div>
+{% endblock go_back_button %}
 
-    <h1>
-        <span class="fr-badge fr-text--xl gsl-pull-right fr-mt-2v fr-ml-5w badge-projet-status__{{ projet.status }}">{{ projet.get_status_display|remove_first_word }}</span>
-        {{ dossier.projet_intitule|lower|capfirst }}
-    </h1>
-
-    <ul class="fr-btns-group--right fr-btns-group--inline fr-mt-6w fr-mb-5w">
-        <li>
-            <a href="{{ dossier.url_on_ds }}"
-               class="fr-btn fr-btn--icon-right fr-icon-external-link-line">
-                Voir le dossier sur Démarches Simplifiées
-            </a>
-        </li>
-        {% comment %}
-        <li>
-            <a href="@todo" class="fr-btn fr-btn--icon-right fr-icon-article-line fr-btn--secondary">
-                Exporter une synthèse du projet PDF
-            </a>
-        </li>
-        {% endcomment %}
-    </ul>
-
-    <div class="fr-tabs">
-        <ul class="fr-tabs__list" role="tablist" aria-label="Sections de la page">
-            <li role="presentation">
-                <button id="projet"
-                        class="fr-tabs__tab fr-icon-article-line fr-tabs__tab--icon-left"
-                        tabindex="0"
-                        role="tab"
-                        aria-selected="true"
-                        aria-controls="projet-panel">
-                    Projet
-                </button>
-            </li>
-            <li role="presentation">
-                <button id="annotations"
-                        class="fr-tabs__tab fr-icon-edit-line fr-tabs__tab--icon-left"
-                        tabindex="-1"
-                        role="tab"
-                        aria-selected="false"
-                        aria-controls="annotations-panel">
-                    Annotations
-                </button>
-            </li>
-            <li role="presentation">
-                <button id="demandeur"
-                        class="fr-tabs__tab fr-icon-bank-line fr-tabs__tab--icon-left"
-                        tabindex="-1"
-                        role="tab"
-                        aria-selected="false"
-                        aria-controls="demandeur-panel">
-                    Demandeur
-                </button>
-            </li>
-            <li role="presentation">
-                <button id="historique"
-                        class="fr-tabs__tab fr-icon-archive-line fr-tabs__tab--icon-left"
-                        tabindex="-1"
-                        role="tab"
-                        aria-selected="false"
-                        aria-controls="historique-panel">
-                    Historique du demandeur
-                </button>
-            </li>
-        </ul>
-        <div id="projet-panel"
-             class="fr-tabs__panel fr-tabs__panel--selected  with-sticky-menu"
-             role="tabpanel"
-             tabindex="0">
-            {% include "gsl_projet/projet/tab_projet.html" %}
-        </div>
-        <div id="annotations-panel"
-             class="fr-tabs__panel"
-             role="tabpanel"
-             aria-labelledby="annotations"
-             tabindex="0">
-            {% include "gsl_projet/projet/tab_annotations.html" %}
-        </div>
-        <div id="demandeur-panel"
-             class="fr-tabs__panel"
-             role="tabpanel"
-             aria-labelledby="demandeur"
-             tabindex="0">
-            {% include "gsl_projet/projet/tab_demandeur.html" %}
-        </div>
-        <div id="historique-panel"
-             class="fr-tabs__panel"
-             role="tabpanel"
-             aria-labelledby="historique"
-             tabindex="0">
-            {% include "gsl_projet/projet/tab_historique.html" %}
-        </div>
-    </div>
-{% endblock content %}
+{% block tab_projet %}
+    {% include "gsl_simulation/tab_simulation_projet/tab_projet.html" %}
+{% endblock tab_projet %}
