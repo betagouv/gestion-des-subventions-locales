@@ -12,82 +12,15 @@
                   id="radio-rich-no-pictogram-inline"
                   aria-labelledby="todo => radio-rich-no-pictogram-inline-legend radio-r ich-no-pictogram-inline-messages">
 
-            <!--factorize this-->
-            <div class="fr-fieldset__element fr-fieldset__element--inline">
-                <div class="fr-radio-group fr-radio-rich radio-input-provisoire">
-                    <input value="provisoire"
-                           type="radio"
-                           id="provisoire"
-                           name="status-update"
-                           {% if simu.status == "provisoire" %}checked{% endif %}>
-                    <label class="fr-label" for="provisoire">
-                        Accepter provisoirement
-                        <i class="fr-icon-check-line" aria-hidden="true"></i>
-                    </label>
-                </div>
-            </div>
-
+            {% include "includes/_status_radio_button.html" with status_value="provisoire" status_label="Accepter provisoirement" disabled=1 icon="fr-icon-check-line" %}
             <div class="separator">
             </div>
-
-            <div class="fr-fieldset__element fr-fieldset__element--inline">
-                <div class="fr-radio-group fr-radio-rich radio-input-valid">
-                    <input value="valid"
-                           type="radio"
-                           id="valid"
-                           name="status-update"
-                           {% if simu.status == "valid" %}checked{% endif %}>
-                    <label class="fr-label" for="valid">
-                        Accepter
-                        <i class="fr-icon-checkbox-circle-line" aria-hidden="true"></i>
-                    </label>
-                </div>
-            </div>
-
-            <div class="fr-fieldset__element fr-fieldset__element--inline">
-                <div class="fr-radio-group fr-radio-rich radio-input-cancelled">
-                    <input value="cancelled"
-                           type="radio"
-                           id="cancelled"
-                           name="status-update"
-                           {% if simu.status == "cancelled" %}checked{% endif %}>
-                    <label class="fr-label" for="cancelled">
-                        Refuser
-                        <i class="fr-icon-close-line" aria-hidden="true"></i>
-                    </label>
-                </div>
-            </div>
-
-            <div class="fr-fieldset__element fr-fieldset__element--inline">
-                <div class="fr-radio-group fr-radio-rich radio-input-dismissed">
-                    <input value="dismissed"
-                           type="radio"
-                           id="dismissed"
-                           name="status-update"
-                           {% if simu.status == "dismissed" %}checked{% endif %}>
-                    <label class="fr-label" for="dismissed">
-                        Classer sans suite
-                        <i class="fr-icon-subtract-line" aria-hidden="true"></i>
-                    </label>
-                </div>
-            </div>
-
+            {% include "includes/_status_radio_button.html" with status_value="valid" status_label="Accepter" disabled=1 icon="fr-icon-checkbox-circle-line" %}
+            {% include "includes/_status_radio_button.html" with status_value="cancelled" status_label="Refuser" icon="fr-icon-close-line" %}
+            {% include "includes/_status_radio_button.html" with status_value="dismissed" status_label="Classer sans suite" disabled=1 icon="fr-icon-subtract-line" %}
             <div class="separator">
             </div>
-
-            <div class="fr-fieldset__element fr-fieldset__element--inline">
-                <div class="fr-radio-group fr-radio-rich radio-input-draft">
-                    <input value="draft"
-                           type="radio"
-                           id="draft"
-                           name="status-update"
-                           {% if simu.status == "draft" %}checked{% endif %}>
-                    <label class="fr-label" for="draft">
-                        En traitement
-                        <i class="fr-icon-draft-fill" aria-hidden="true"></i>
-                    </label>
-                </div>
-            </div>
+            {% include "includes/_status_radio_button.html" with status_value="draft" status_label="En traitement" disabled=1 icon="fr-icon-draft-fill" %}
         </fieldset>
     </div>
 {% endblock status_action %}
