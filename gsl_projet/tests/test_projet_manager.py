@@ -121,9 +121,9 @@ def test_for_staff_user_with_perimetre(departement, projets):
 
     staff_user_projects = list(Projet.objects.for_user(staff_user_with_perimetre).all())
 
-    assert (
-        len(staff_user_projects) == 2
-    ), "We should only get projects within user’s perimeter, even staff"
+    assert len(staff_user_projects) == 2, (
+        "We should only get projects within user’s perimeter, even staff"
+    )
     assert projets[0] in staff_user_projects
     assert projets[1] in staff_user_projects
 
@@ -138,9 +138,9 @@ def test_for_super_user_with_perimetre(departement, projets):
         Projet.objects.for_user(superuser_user_with_perimetre).all()
     )
 
-    assert (
-        len(superuser_projects) == 2
-    ), "We should only get projects within user’s perimeter, even superuser"
+    assert len(superuser_projects) == 2, (
+        "We should only get projects within user’s perimeter, even superuser"
+    )
     assert projets[0] in superuser_projects
     assert projets[1] in superuser_projects
 
@@ -151,9 +151,9 @@ def test_for_normal_user_with_perimetre(departement, projets):
 
     user_projects = list(Projet.objects.for_user(user_with_perimetre).all())
 
-    assert (
-        len(user_projects) == 2
-    ), "We should only get projects within user’s perimeter"
+    assert len(user_projects) == 2, (
+        "We should only get projects within user’s perimeter"
+    )
     assert projets[0] in user_projects
     assert projets[1] in user_projects
 
