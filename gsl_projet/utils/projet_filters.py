@@ -18,7 +18,6 @@ from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 class ProjetFilters(FilterSet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.get_filters()
         if hasattr(self.request, "user") and self.request.user.perimetre:
             perimetre = self.request.user.perimetre
             self.filters["territoire"].extra["choices"] = tuple(

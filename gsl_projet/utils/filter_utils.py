@@ -30,6 +30,7 @@ class FilterUtils:
         )
         context["is_territoire_active"] = self._get_is_one_field_active("territoire")
         context["is_territoire_placeholder"] = self._get_territoire_placeholder()
+        context["territoire_choices"] = self._get_territoire_choices()
 
         context["filter_templates"] = self._get_filter_templates()
 
@@ -64,6 +65,11 @@ class FilterUtils:
             "departement", "region", "arrondissement"
         )
         return ", ".join(p.entity_name for p in perimetres)
+
+    def _get_territoire_choices(self):
+        if hasattr(self.request, "user") and self.request.user.perimetre:
+            perimetre = self.request.user.perimetre
+            return (perimetre, *perimetre.children())
 
     def _get_is_one_field_active(self, *field_names):
         return any(
