@@ -19,7 +19,7 @@ urlpatterns = [
         name="simulation-list",
     ),
     path(
-        "<slug:slug>/",
+        "voir/<slug:slug>/",
         simulation_must_be_visible_by_user(
             simulation_views.SimulationDetailView.as_view()
         ),
