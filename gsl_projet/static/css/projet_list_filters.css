@@ -108,3 +108,12 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.territoire-type-d ~ .territoire-type-a,
+.territoire-type-r ~ .territoire-type-d {
+  transform: translateX(1em);
+}
+
+.territoire-type-r ~ .territoire-type-a {
+  transform: translateX(2em);
+}

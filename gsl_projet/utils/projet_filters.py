@@ -7,6 +7,7 @@ from django_filters import (
     NumberFilter,
 )
 
+from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
@@ -15,6 +16,14 @@ from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 
 
 class ProjetFilters(FilterSet):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if hasattr(self.request, "user") and self.request.user.perimetre:
+            perimetre = self.request.user.perimetre
+            self.filters["territoire"].extra["choices"] = tuple(
+                (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
+            )
+
     dotation = ChoiceFilter(
         field_name="dossier_ds__demande_dispositif_sollicite",
         choices=(
@@ -127,6 +136,20 @@ class ProjetFilters(FilterSet):
         widget=CustomCheckboxSelectMultiple(),
     )
 
+    territoire = MultipleChoiceFilter(
+        method="filter_territoire",
+        choices=[],
+        widget=CustomCheckboxSelectMultiple(),
+    )
+
+    def filter_territoire(self, queryset, _name, value):
+        perimetres = set()
+        for perimetre in Perimetre.objects.filter(id__in=value):
+            perimetres.add(perimetre)
+            for child in perimetre.children():
+                perimetres.add(child)
+        return queryset.filter(perimetre__in=perimetres)
+
     class Meta:
         model = Projet
         fields = (
@@ -139,6 +162,7 @@ class ProjetFilters(FilterSet):
             "montant_retenu_min",
             "montant_retenu_max",
             "status",
+            "territoire",
         )
 
     @property
