@@ -34,24 +34,3 @@
 .radio-input-draft label {
   color: var(--text-disabled-grey);
 }
-
-/* .radio-input-provisoire input {
-  color: var(--text-default-info);
-  /* background-image: linear-gradient(0deg,var(--text-default-info),var(--text-default-info)),linear-gradient(0deg,var(--text-default-info),var(--text-default-info)),linear-gradient(0deg,var(--text-default-info),var(--text-default-info)),linear-gradient(0deg,var(--text-default-info),var(--text-default-info)),radial-gradient(transparent 6px,var(--text-default-info) 7px,transparent 8px);
-  border-color:aqua
-} */
-
-
-
-
-/* .radio-input-provisoire > .fr-fieldset__element .fr-radio-rich input[type="radio"] ~ label{
-  background-image: linear-gradient(0deg,var(--border-default-grey),var(--border-default-grey)),linear-gradient(0deg,var(--border-default-grey),var(--border-default-grey)),linear-gradient(0deg,var(--border-default-grey),var(--border-default-grey)),linear-gradient(0deg,var(--border-default-grey),var(--border-default-grey)),radial-gradient(transparent 6px,pink 7px,transparent 8px); 
-} */
-
-
-/* #id-provisoire{
-  background-image: linear-gradient(0deg,var(--border-default-grey),var(--border-default-grey)),linear-gradient(0deg,var(--border-default-grey),var(--border-default-grey)),linear-gradient(0deg,var(--border-default-grey),var(--border-default-grey)),linear-gradient(0deg,var(--border-default-grey),var(--border-default-grey)),radial-gradient(transparent 6px,pink 7px,transparent 8px);
-}
-#id-provisoire:checked{
-  background-image: linear-gradient(0deg,pink,pink),linear-gradient(0deg,pink,pink),linear-gradient(0deg,pink,pink),linear-gradient(0deg,pink,pink),radial-gradient(transparent 6px,pink 7px,transparent 8px),radial-gradient(red 3px,transparent 4px);
-} */

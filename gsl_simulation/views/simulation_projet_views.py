@@ -60,14 +60,7 @@ def redirect_to_simulation_projet(request, simulation_projet):
             },
         )
 
-    url = reverse(
-        "simulation:simulation-detail",
-        kwargs={"slug": simulation_projet.simulation.slug},
-    )
-    if request.POST.get("filter_params"):
-        url += "?" + request.POST.get("filter_params")
-
-    return redirect(url)
+    return redirect(request.headers.get("Referer"))
 
 
 @projet_must_be_in_user_perimetre
