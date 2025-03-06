@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.http import HttpRequest
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
@@ -37,7 +38,9 @@ def _get_projets_queryset_with_filters(simulation, filter_params):
     return projets
 
 
-def redirect_to_simulation_projet(request, simulation_projet):
+def redirect_to_simulation_projet(
+    request, simulation_projet, message_type: str = "info"
+):
     if request.htmx:
         filter_params = QueryDict(request.body).get("filter_params")
         filtered_projets = _get_projets_queryset_with_filters(
@@ -60,6 +63,11 @@ def redirect_to_simulation_projet(request, simulation_projet):
             },
         )
 
+    messages.info(
+        request,
+        f"Le projet {simulation_projet.projet} a été mis à jour avec succès",
+        extra_tags=message_type,
+    )
     return redirect(request.headers.get("Referer"))
 
 
@@ -102,7 +110,7 @@ def patch_status_simulation_projet(request, pk):
     updated_simulation_projet = SimulationProjetService.update_status(
         simulation_projet, status
     )
-    return redirect_to_simulation_projet(request, updated_simulation_projet)
+    return redirect_to_simulation_projet(request, updated_simulation_projet, status)
 
 
 class SimulationProjetDetailView(DetailView):

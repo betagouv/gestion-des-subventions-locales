@@ -1,4 +1,4 @@
-{% load static i18n dsfr_tags %}
+{% load static i18n dsfr_tags gsl_filters %}
 <!DOCTYPE html>
 <html lang="{% block lang %} {% get_current_language as LANGUAGE_CODE %}{{ LANGUAGE_CODE }} {% endblock lang %}"
       data-fr-scheme="system"
@@ -52,6 +52,21 @@
         {% if SITE_CONFIG.notice_title or SITE_CONFIG.notice_description %}
             {% dsfr_notice title=SITE_CONFIG.notice_title description=SITE_CONFIG.notice_description link=SITE_CONFIG.notice_link type=SITE_CONFIG.notice_type icon=SITE_CONFIG.notice_icon_class is_collapsible=SITE_CONFIG.notice_is_collapsible %}
         {% endif %}
+
+        {% block messages %}
+            <!-- todo put this logic in simulation projet detail-->
+            {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                        <div class="message--{{ message.extra_tags }}">
+                            {% with message.extra_tags|create_alert_data_from_dict:message.message as data_dict %}
+                                {% dsfr_notice data_dict %}
+                            {% endwith %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endblock messages %}
 
         <div class="fr-container fr-mt-4w fr-mb-6w">
             {% block breadcrumb %}

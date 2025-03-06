@@ -26,3 +26,20 @@ def euro(value, decimals=0):
 @register.filter
 def remove_first_word(value):
     return value.split(" ", 1)[1]
+
+
+@register.filter
+def create_alert_data_from_dict(value, arg):
+    data_dict = {"is_collapsible": True}
+    if value is None:
+        data_dict["title"] = arg
+        return data_dict
+
+    data_dict["description"] = arg
+
+    if value == "valid":
+        data_dict["title"] = "Projet accepté"
+    elif value == "cancelled":
+        data_dict["title"] = "Projet refusé"
+
+    return data_dict
