@@ -1,19 +1,23 @@
 <div class="filter-field fr-col-12 fr-col-md-4 fr-col-lg-2">
     <div class="filter-dropdown" id="filter-territoire-button">
-        <label class="fr-label" for="id_territoire">
+        <label class="fr-label" id="filter_territoire_label">
+            <span class="fr-sr-only">Filtrer par</span>
             Territoire
         </label>
         <button type="button"
                 class="fr-select {% if is_territoire_active %}filter-dropdown-button-active{% endif %}">
             {{ is_territoire_placeholder }}
         </button>
-        <div class="filter-content">
+        <div class="filter-content"
+             role="group"
+             aria-describedby="filter_territoire_label">
             {% for perimetre in territoire_choices %}
                 <div class="fr-checkbox-group fr-checkbox-group--sm territoire-type-{{ perimetre.type.0|lower }}">
                     <input type="checkbox"
                            name="territoire"
                            value="{{ perimetre.id }}"
                            id="id_territoire_{{ forloop.counter }}"
+                           {% if perimetre.id in territoire_selected %}checked{% endif %}
                            data-fr-js-checkbox-input="true">
                     <label for="id_territoire_{{ forloop.counter }}" class="fr-label">
                         {{ perimetre.entity_name }}

@@ -29,7 +29,9 @@ class FilterUtils:
             "montant_previsionnel_min", "montant_previsionnel_max"
         )
         context["is_territoire_active"] = self._get_is_one_field_active("territoire")
-        context["is_territoire_placeholder"] = self._get_territoire_placeholder()
+        context["is_territoire_placeholder"], context["territoire_selected"] = (
+            self._get_selected_territoires()
+        )
         context["territoire_choices"] = self._get_territoire_choices()
 
         context["filter_templates"] = self._get_filter_templates()
@@ -52,19 +54,19 @@ class FilterUtils:
             if status in state_mappings
         )
 
-    def _get_territoire_placeholder(self):
+    def _get_selected_territoires(self):
         if self.request.GET.get("territoire") in (None, "", []):
             if self.request.user and self.request.user.perimetre:
-                return self.request.user.perimetre.entity_name
-            return "Tous"
+                return self.request.user.perimetre.entity_name, set()
+            return "Tous", set()
 
-        territoire_ids = (
+        territoire_ids = set(
             int(perimetre) for perimetre in self.request.GET.getlist("territoire")
         )
         perimetres = Perimetre.objects.filter(id__in=territoire_ids).select_related(
             "departement", "region", "arrondissement"
         )
-        return ", ".join(p.entity_name for p in perimetres)
+        return ", ".join(p.entity_name for p in perimetres), territoire_ids
 
     def _get_territoire_choices(self):
         if hasattr(self.request, "user") and self.request.user.perimetre:
