@@ -1,4 +1,9 @@
 {% extends "gsl_projet/projet.html" %}
+{% load static %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="{% static 'css/simulation_projet_detail.css' %}">
+{% endblock extra_css %}
 
 {% block go_back_button %}
     <div class="fr-mb-4w">
