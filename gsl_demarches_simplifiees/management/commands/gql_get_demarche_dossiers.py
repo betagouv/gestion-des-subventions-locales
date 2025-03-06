@@ -17,7 +17,7 @@ class Command(BaseCommand):
             print(f"----- #{index} -----")
             print(dossier)
 
-        message = f"Total: {index+1} dossier(s)"
+        message = f"Total: {index + 1} dossier(s)"
         print("=" * len(message))
         print(message)
         print("=" * len(message))

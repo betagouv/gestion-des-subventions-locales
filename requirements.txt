@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file=requirements.txt pyproject.toml
 #
-amqp==5.2.0
+amqp==5.3.1
     # via kombu
 asgiref==3.8.1
     # via
@@ -19,15 +19,15 @@ celery==5.4.0
     #   django-celery-beat
     #   django-celery-results
     #   gsl (pyproject.toml)
-certifi==2024.8.30
+certifi==2025.1.31
     # via
     #   requests
     #   sentry-sdk
 cffi==1.17.1
     # via cryptography
-charset-normalizer==3.3.2
+charset-normalizer==3.4.1
     # via requests
-click==8.1.7
+click==8.1.8
     # via
     #   celery
     #   click-didyoumean
@@ -41,18 +41,17 @@ click-repl==0.3.0
     # via celery
 cron-descriptor==1.4.5
     # via django-celery-beat
-cryptography==43.0.3
+cryptography==44.0.2
     # via
     #   josepy
     #   mozilla-django-oidc
-    #   pyopenssl
-decorator==5.1.1
+decorator==5.2.1
     # via ipython
 diff-match-patch==20241021
     # via django-import-export
-dj-database-url==2.2.0
+dj-database-url==2.3.0
     # via gsl (pyproject.toml)
-django==5.1.4
+django==5.1.7
     # via
     #   dj-database-url
     #   django-celery-beat
@@ -77,23 +76,23 @@ django-crispy-forms==2.3
     # via django-dsfr
 django-csp==3.8
     # via gsl (pyproject.toml)
-django-dsfr==2.0.0
+django-dsfr==2.2.0
     # via gsl (pyproject.toml)
 django-extensions==3.2.3
     # via gsl (pyproject.toml)
-django-filter==24.3
+django-filter==25.1
     # via gsl (pyproject.toml)
 django-fsm-2==4.0.0
     # via gsl (pyproject.toml)
-django-htmx==1.21.0
+django-htmx==1.22.0
     # via gsl (pyproject.toml)
-django-import-export==4.3.3
+django-import-export==4.3.7
     # via gsl (pyproject.toml)
 django-json-widget==2.0.1
     # via gsl (pyproject.toml)
 django-referrer-policy==1.0
     # via gsl (pyproject.toml)
-django-timezone-field==7.0
+django-timezone-field==7.1
     # via django-celery-beat
 django-widget-tweaks==1.5.0
     # via django-dsfr
@@ -103,11 +102,13 @@ gunicorn==23.0.0
     # via gsl (pyproject.toml)
 idna==3.10
     # via requests
-ipython==8.31.0
+ipython==9.0.1
     # via gsl (pyproject.toml)
+ipython-pygments-lexers==1.1.1
+    # via ipython
 jedi==0.19.2
     # via ipython
-josepy==1.14.0
+josepy==2.0.0
     # via mozilla-django-oidc
 kombu==5.4.2
     # via celery
@@ -115,19 +116,19 @@ matplotlib-inline==0.1.7
     # via ipython
 mozilla-django-oidc==4.0.1
     # via gsl (pyproject.toml)
-packaging==24.1
+packaging==24.2
     # via gunicorn
 parso==0.8.4
     # via jedi
 pexpect==4.9.0
     # via ipython
-prompt-toolkit==3.0.48
+prompt-toolkit==3.0.50
     # via
     #   click-repl
     #   ipython
-psycopg[binary]==3.2.4
+psycopg[binary]==3.2.5
     # via gsl (pyproject.toml)
-psycopg-binary==3.2.4
+psycopg-binary==3.2.5
     # via psycopg
 ptyprocess==0.7.0
     # via pexpect
@@ -136,9 +137,9 @@ pure-eval==0.2.3
 pycparser==2.22
     # via cffi
 pygments==2.19.1
-    # via ipython
-pyopenssl==24.2.1
-    # via josepy
+    # via
+    #   ipython
+    #   ipython-pygments-lexers
 python-crontab==3.2.0
     # via django-celery-beat
 python-dateutil==2.9.0.post0
@@ -147,21 +148,21 @@ python-dateutil==2.9.0.post0
     #   python-crontab
 python-dotenv==1.0.1
     # via gsl (pyproject.toml)
-redis==5.1.0
+redis==5.2.1
     # via gsl (pyproject.toml)
 requests==2.32.3
     # via
     #   django-dsfr
     #   mozilla-django-oidc
-sentry-sdk==2.15.0
+sentry-sdk==2.22.0
     # via gsl (pyproject.toml)
-six==1.16.0
+six==1.17.0
     # via python-dateutil
-sqlparse==0.5.1
+sqlparse==0.5.3
     # via django
 stack-data==0.6.3
     # via ipython
-tablib==3.7.0
+tablib==3.8.0
     # via django-import-export
 traitlets==5.14.3
     # via
@@ -171,12 +172,12 @@ typing-extensions==4.12.2
     # via
     #   dj-database-url
     #   psycopg
-tzdata==2024.2
+tzdata==2025.1
     # via
     #   celery
     #   django-celery-beat
     #   kombu
-urllib3==2.2.3
+urllib3==2.3.0
     # via
     #   requests
     #   sentry-sdk
@@ -187,5 +188,5 @@ vine==5.1.0
     #   kombu
 wcwidth==0.2.13
     # via prompt-toolkit
-whitenoise==6.8.2
+whitenoise==6.9.0
     # via gsl (pyproject.toml)
