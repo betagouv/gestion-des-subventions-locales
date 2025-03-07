@@ -3,6 +3,7 @@ from django.http import HttpRequest
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import resolve, reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods
 from django.views.generic import DetailView
 
@@ -70,8 +71,12 @@ def redirect_to_simulation_projet(
             "Le financement de ce projet vient d’être refusé.",
             extra_tags=message_type,
         )
-
-    return redirect(request.headers.get("Referer"))
+    referer = request.headers.get("Referer")
+    if referer and url_has_allowed_host_and_scheme(referer, allowed_hosts=None):
+        return redirect(referer)
+    return redirect(
+        "simulation:simulation-detail", slug=simulation_projet.simulation.slug
+    )
 
 
 @projet_must_be_in_user_perimetre
