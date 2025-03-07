@@ -28,6 +28,7 @@ def remove_first_word(value):
     return value.split(" ", 1)[1]
 
 
+# TODO test
 @register.filter
 def create_alert_data_from_dict(value, arg):
     data_dict = {"is_collapsible": True}

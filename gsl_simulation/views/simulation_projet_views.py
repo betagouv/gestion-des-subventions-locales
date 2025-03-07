@@ -39,7 +39,7 @@ def _get_projets_queryset_with_filters(simulation, filter_params):
 
 
 def redirect_to_simulation_projet(
-    request, simulation_projet, message_type: str = "info"
+    request, simulation_projet, message_type: str | None = None
 ):
     if request.htmx:
         filter_params = QueryDict(request.body).get("filter_params")
@@ -63,11 +63,14 @@ def redirect_to_simulation_projet(
             },
         )
 
-    messages.info(
-        request,
-        f"Le projet {simulation_projet.projet} a été mis à jour avec succès",
-        extra_tags=message_type,
-    )
+    # TODO test + extract ?
+    if message_type == SimulationProjet.STATUS_REFUSED:
+        messages.info(
+            request,
+            "Le financement de ce projet vient d’être refusé.",
+            extra_tags=message_type,
+        )
+
     return redirect(request.headers.get("Referer"))
 
 

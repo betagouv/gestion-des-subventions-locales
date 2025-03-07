@@ -54,18 +54,6 @@
         {% endif %}
 
         {% block messages %}
-            <!-- todo put this logic in simulation projet detail-->
-            {% if messages %}
-                <div class="messages">
-                    {% for message in messages %}
-                        <div class="message--{{ message.extra_tags }}">
-                            {% with message.extra_tags|create_alert_data_from_dict:message.message as data_dict %}
-                                {% dsfr_notice data_dict %}
-                            {% endwith %}
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
         {% endblock messages %}
 
         <div class="fr-container fr-mt-4w fr-mb-6w">
