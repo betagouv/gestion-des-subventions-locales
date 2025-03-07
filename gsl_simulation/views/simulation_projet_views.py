@@ -44,7 +44,6 @@ def _get_projets_queryset_with_filters(simulation, filter_params):
 def _add_message(
     request, message_type: str | None, simulation_projet: SimulationProjet
 ):
-    list(messages.get_messages(request))
     if message_type == SimulationProjet.STATUS_REFUSED:
         messages.info(
             request,
