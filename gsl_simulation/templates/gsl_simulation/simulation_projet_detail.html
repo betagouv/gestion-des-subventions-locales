@@ -6,20 +6,6 @@
           href="{% static 'css/simulation_projet_detail.css' %}">
 {% endblock extra_css %}
 
-{% block messages %}
-    {% if messages %}
-        <div class="messages">
-            {% for message in messages %}
-                <div class="message--{{ message.extra_tags }}">
-                    {% with message.extra_tags|create_alert_data:message.message as data_dict %}
-                        {% dsfr_notice data_dict %}
-                    {% endwith %}
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
-{% endblock messages %}
-
 {% block go_back_button %}
     <div class="fr-mb-4w">
 

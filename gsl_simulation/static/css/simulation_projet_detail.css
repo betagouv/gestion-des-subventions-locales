@@ -34,8 +34,3 @@
 .radio-input-draft label {
   color: var(--text-disabled-grey);
 }
-
-.message--cancelled > .fr-notice {
-  background-color: var(--background-alt-orange-terre-battue);
-  color: var(--text-default-error);
-}

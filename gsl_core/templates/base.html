@@ -1,4 +1,4 @@
-{% load static i18n dsfr_tags %}
+{% load static i18n dsfr_tags gsl_filters %}
 <!DOCTYPE html>
 <html lang="{% block lang %} {% get_current_language as LANGUAGE_CODE %}{{ LANGUAGE_CODE }} {% endblock lang %}"
       data-fr-scheme="system"
@@ -11,6 +11,7 @@
         {% dsfr_favicon %}
 
         <link rel="stylesheet" href="{% static "css/gsl.css" %}">
+        <link rel="stylesheet" href="{% static "css/messages.css" %}">
         {% block extra_css %}
         {% endblock extra_css %}
 
@@ -54,6 +55,17 @@
         {% endif %}
 
         {% block messages %}
+            {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                        <div class="message--{{ message.extra_tags }}">
+                            {% with message.extra_tags|create_alert_data:message.message as data_dict %}
+                                {% dsfr_notice data_dict %}
+                            {% endwith %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
         {% endblock messages %}
 
         <div class="fr-container fr-mt-4w fr-mb-6w">

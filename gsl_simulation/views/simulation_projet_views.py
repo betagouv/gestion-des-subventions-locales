@@ -7,6 +7,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods
 from django.views.generic import DetailView
 
+from gsl.settings import ALLOWED_HOSTS
 from gsl_projet.services import ProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.models import SimulationProjet
@@ -40,6 +41,7 @@ def _get_projets_queryset_with_filters(simulation, filter_params):
 
 
 def _add_message(request, message_type: str | None):
+    list(messages.get_messages(request))
     if message_type == SimulationProjet.STATUS_REFUSED:
         messages.info(
             request,
@@ -76,7 +78,9 @@ def redirect_to_simulation_projet(
     _add_message(request, message_type)
 
     referer = request.headers.get("Referer")
-    if referer and url_has_allowed_host_and_scheme(referer, allowed_hosts=None):
+    if referer and url_has_allowed_host_and_scheme(
+        referer, allowed_hosts=ALLOWED_HOSTS
+    ):
         return redirect(referer)
     return redirect(
         "simulation:simulation-detail", slug=simulation_projet.simulation.slug
