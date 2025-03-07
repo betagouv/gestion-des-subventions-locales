@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
+from django.contrib.messages import get_messages
 from django.urls import resolve, reverse
 
 from gsl_core.tests.factories import (
@@ -524,7 +525,7 @@ def simulation_projet(collegue, detr_enveloppe) -> SimulationProjet:
 
 
 @pytest.mark.django_db
-def test_patch_status_simulation_projet_with_accepted_value(
+def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
     client_with_user_logged, simulation_projet
 ):
     url = reverse(
@@ -555,7 +556,7 @@ def test_patch_status_simulation_projet_with_accepted_value(
 
 
 @pytest.mark.django_db
-def test_patch_status_simulation_projet_with_refused_value(
+def test_patch_status_simulation_projet_with_refused_value_with_htmx(
     client_with_user_logged, simulation_projet
 ):
     url = reverse(
@@ -583,6 +584,62 @@ def test_patch_status_simulation_projet_with_refused_value(
         '<span hx-swap-oob="innerHTML" id="total-amount-granted">0\xa0€</span>'
         in response.content.decode()
     )
+
+
+@pytest.mark.parametrize(
+    "status",
+    (
+        SimulationProjet.STATUS_ACCEPTED,
+        SimulationProjet.STATUS_DISMISSED,
+        SimulationProjet.STATUS_PROCESSING,
+        SimulationProjet.STATUS_PROVISOIRE,
+    ),
+)
+@pytest.mark.django_db
+def test_patch_status_simulation_projet_without_htmx_and_giving_no_message(
+    client_with_user_logged, simulation_projet, status
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+    )
+    response = client_with_user_logged.patch(url, data=f"status={status}", follow=True)
+
+    assert response.status_code == 200
+    assert list(response.context["messages"]) == []
+
+    simulation_projet.refresh_from_db()
+    assert simulation_projet.status == status
+
+
+@pytest.mark.django_db
+def test_patch_status_simulation_projet_with_refused_value_giving_message(
+    client_with_user_logged, simulation_projet
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+    )
+    response = client_with_user_logged.patch(
+        url,
+        data=f"status={SimulationProjet.STATUS_REFUSED}",
+        follow=True,
+    )
+
+    updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
+        id=simulation_projet.id
+    )
+    projet = Projet.objects.get(id=updated_simulation_projet.projet.id)
+
+    assert response.status_code == 200
+    assert updated_simulation_projet.status == SimulationProjet.STATUS_REFUSED
+    assert projet.status == Projet.STATUS_REFUSED
+
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+
+    message = list(messages)[0]
+    assert message.level == 20
+    assert message.message == "Le financement de ce projet vient d’être refusé."
+    assert message.extra_tags == "cancelled"
 
 
 @pytest.mark.django_db

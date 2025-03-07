@@ -39,6 +39,15 @@ def _get_projets_queryset_with_filters(simulation, filter_params):
     return projets
 
 
+def _add_message(request, message_type: str | None):
+    if message_type == SimulationProjet.STATUS_REFUSED:
+        messages.info(
+            request,
+            "Le financement de ce projet vient d’être refusé.",
+            extra_tags=message_type,
+        )
+
+
 def redirect_to_simulation_projet(
     request, simulation_projet, message_type: str | None = None
 ):
@@ -64,13 +73,8 @@ def redirect_to_simulation_projet(
             },
         )
 
-    # TODO test + extract ?
-    if message_type == SimulationProjet.STATUS_REFUSED:
-        messages.info(
-            request,
-            "Le financement de ce projet vient d’être refusé.",
-            extra_tags=message_type,
-        )
+    _add_message(request, message_type)
+
     referer = request.headers.get("Referer")
     if referer and url_has_allowed_host_and_scheme(referer, allowed_hosts=None):
         return redirect(referer)
