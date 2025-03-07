@@ -25,22 +25,22 @@ def euro(value, decimals=0):
 
 @register.filter
 def remove_first_word(value):
-    return value.split(" ", 1)[1]
+    parts = value.split(" ", 1)
+    return parts[1] if len(parts) > 1 else ""
 
 
-# TODO test
 @register.filter
-def create_alert_data_from_dict(value, arg):
-    data_dict = {"is_collapsible": True}
-    if value is None:
+def create_alert_data(status: str | None, arg: str) -> dict[str, str | bool]:
+    data_dict: dict[str, str | bool] = {"is_collapsible": True}
+    if status is None:
         data_dict["title"] = arg
         return data_dict
 
     data_dict["description"] = arg
 
-    if value == "valid":
+    if status == "valid":
         data_dict["title"] = "Projet accepté"
-    elif value == "cancelled":
+    elif status == "cancelled":
         data_dict["title"] = "Projet refusé"
 
     return data_dict
