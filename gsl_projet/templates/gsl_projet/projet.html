@@ -6,13 +6,14 @@
 {% endblock breadcrumb %}
 
 {% block content %}
-    <div class="fr-mb-4w">
-        <a href="{% url "projet:list" %}"
-           class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
-            Retour à la liste des projets
-        </a>
-    </div>
-
+    {% block go_back_button %}
+        <div class="fr-mb-4w">
+            <a href="{% url "projet:list" %}"
+               class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+                Retour à la liste des projets
+            </a>
+        </div>
+    {% endblock go_back_button %}
     <h1>
         <span class="fr-badge fr-text--xl gsl-pull-right fr-mt-2v fr-ml-5w badge-projet-status__{{ projet.status }}">{{ projet.get_status_display|remove_first_word }}</span>
         {{ dossier.projet_intitule|lower|capfirst }}
@@ -81,7 +82,9 @@
              class="fr-tabs__panel fr-tabs__panel--selected  with-sticky-menu"
              role="tabpanel"
              tabindex="0">
-            {% include "gsl_projet/projet/tab_projet.html" %}
+            {% block tab_projet %}
+                {% include "gsl_projet/projet/tab_projet.html" %}
+            {% endblock tab_projet %}
         </div>
         <div id="annotations-panel"
              class="fr-tabs__panel"

@@ -1,10 +1,15 @@
+from django.contrib import messages
 from django.http import HttpRequest
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import resolve, reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods
+from django.views.generic import DetailView
 
+from gsl.settings import ALLOWED_HOSTS
 from gsl_projet.services import ProjetService
+from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.services.simulation_projet_service import (
     SimulationProjetService,
@@ -35,7 +40,19 @@ def _get_projets_queryset_with_filters(simulation, filter_params):
     return projets
 
 
-def redirect_to_simulation_projet(request, simulation_projet):
+def _add_message(request, message_type: str | None):
+    list(messages.get_messages(request))
+    if message_type == SimulationProjet.STATUS_REFUSED:
+        messages.info(
+            request,
+            "Le financement de ce projet vient d’être refusé.",
+            extra_tags=message_type,
+        )
+
+
+def redirect_to_simulation_projet(
+    request, simulation_projet, message_type: str | None = None
+):
     if request.htmx:
         filter_params = QueryDict(request.body).get("filter_params")
         filtered_projets = _get_projets_queryset_with_filters(
@@ -58,14 +75,16 @@ def redirect_to_simulation_projet(request, simulation_projet):
             },
         )
 
-    url = reverse(
-        "simulation:simulation-detail",
-        kwargs={"slug": simulation_projet.simulation.slug},
-    )
-    if request.POST.get("filter_params"):
-        url += "?" + request.POST.get("filter_params")
+    _add_message(request, message_type)
 
-    return redirect(url)
+    referer = request.headers.get("Referer")
+    if referer and url_has_allowed_host_and_scheme(
+        referer, allowed_hosts=ALLOWED_HOSTS
+    ):
+        return redirect(referer)
+    return redirect(
+        "simulation:simulation-detail", slug=simulation_projet.simulation.slug
+    )
 
 
 @projet_must_be_in_user_perimetre
@@ -107,4 +126,35 @@ def patch_status_simulation_projet(request, pk):
     updated_simulation_projet = SimulationProjetService.update_status(
         simulation_projet, status
     )
-    return redirect_to_simulation_projet(request, updated_simulation_projet)
+    return redirect_to_simulation_projet(request, updated_simulation_projet, status)
+
+
+class SimulationProjetDetailView(DetailView):
+    model = SimulationProjet
+    template_name = "gsl_simulation/simulation_projet_detail.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = "Projet modifiable"
+        context["breadcrumb_dict"] = {
+            "links": [
+                {
+                    "url": reverse("simulation:simulation-list"),
+                    "title": "Mes simulations de programmation",
+                },
+                {
+                    "url": reverse(
+                        "simulation:simulation-detail",
+                        kwargs={"slug": self.object.simulation.slug},
+                    ),
+                    "title": self.object.simulation.title,
+                },
+            ],
+            "current": self.object.projet,
+        }
+        context["projet"] = self.object.projet
+        context["simu"] = self.object
+        context["dossier"] = self.object.projet.dossier_ds
+        context["menu_dict"] = PROJET_MENU
+
+        return context

@@ -8,6 +8,7 @@ from django_filters.views import FilterView
 from gsl_projet.services import ProjetService
 from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_filters import ProjetFilters
+from gsl_projet.utils.projet_page import PROJET_MENU
 
 from .models import Projet
 
@@ -42,57 +43,7 @@ def get_projet(request, projet_id):
             "links": [{"url": reverse("projet:list"), "title": "Liste des projets"}],
             "current": f"Projet {projet}",
         },
-        "menu_dict": {
-            "title": "Menu",
-            "items": (
-                {
-                    "label": "1 – Porteur de projet",
-                    "link": "#porteur_de_projet",
-                },
-                {
-                    "label": "2 – Présentation de l’opération",
-                    "items": (
-                        {
-                            "label": "Projet",
-                            "link": "#presentation_projet",
-                        },
-                        {
-                            "label": "Dates",
-                            "link": "#presentation_dates",
-                        },
-                        {
-                            "label": "Détails du projet",
-                            "link": "#presentation_details_proj",
-                        },
-                        {
-                            "label": "Transition écologique",
-                            "link": "#presentation_transition_eco",
-                        },
-                    ),
-                },
-                {
-                    "label": "3 – Plan de financement prévisionnel",
-                    "items": (
-                        {
-                            "label": "Coûts de financement",
-                            "link": "#couts_financement",
-                        },
-                        {
-                            "label": "Détails  du financement",
-                            "link": "#detail_financement",
-                        },
-                        {
-                            "label": "Dispositifs de financement sollicités",
-                            "link": "#dispositifs_sollicites",
-                        },
-                        # {
-                        #    "label": "Autres opérations en demande de subvention DETR/DSIL 2024",
-                        #    "link": "(OR) the link (fragment) of the menu item",
-                        # },
-                    ),
-                },
-            ),
-        },
+        "menu_dict": PROJET_MENU,
     }
     return render(request, "gsl_projet/projet.html", context)
 
