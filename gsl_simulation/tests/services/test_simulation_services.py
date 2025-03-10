@@ -142,6 +142,7 @@ def test_get_total_amount_granted(simulation):
     )
 
     # must not be included
+    ## other statuses
     SimulationProjetFactory(
         simulation=simulation, status=SimulationProjet.STATUS_REFUSED, montant=3_000
     )
@@ -151,6 +152,7 @@ def test_get_total_amount_granted(simulation):
     SimulationProjetFactory(
         simulation=simulation, status=SimulationProjet.STATUS_PROCESSING, montant=5_000
     )
+    ## not in simulation
     SimulationProjetFactory(
         projet=accepted_projet.projet,
         status=SimulationProjet.STATUS_ACCEPTED,
@@ -163,7 +165,7 @@ def test_get_total_amount_granted(simulation):
     )
 
     qs = Projet.objects.filter(simulationprojet__simulation=simulation)
-    assert SimulationService.get_total_amount_granted(qs, simulation) == 3_500
+    assert SimulationService.get_total_amount_granted(qs, simulation) == 1_200 + 2_300
 
 
 @pytest.mark.django_db
