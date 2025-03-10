@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     "django_celery_beat",
     "django_json_widget",
     # dependencies:
+    "csp",
     "widget_tweaks",
     "dsfr",
     "import_export",
@@ -85,6 +86,7 @@ INSTALLED_APPS = [
 
 
 MIDDLEWARE = [
+    "csp.middleware.CSPMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
