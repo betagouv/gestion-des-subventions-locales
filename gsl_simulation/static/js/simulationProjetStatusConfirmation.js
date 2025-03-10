@@ -4,6 +4,7 @@ const VALID = "valid";
 const CANCELLED = "cancelled";
 const DISMISSED = "dismissed";
 const PROCESSING = "draft";
+const PROVISOIRE = "provisoire";
 
 const STATUSES_WITH_OTHER_SIMULATION_IMPACT = [VALID, CANCELLED, DISMISSED];
 
@@ -12,24 +13,26 @@ STATUS_TO_MODAL_ID = {
     "cancelled": "refuse-confirmation-modal",
     "draft": "processing-confirmation-modal",
     "dismissed": "dismiss-confirmation-modal",
+    "provisoire": "provisoire-confirmation-modal",
 }
 
 STATUS_TO_FRENCH_WORD = {
     "valid": "validé",
-    "cancelled": "annulé",
+    "cancelled": "refusé",
     "dismissed": "classé sans suite",
 }
 
 function mustOpenConfirmationModal(newValue, originalValue) {
     if (STATUSES_WITH_OTHER_SIMULATION_IMPACT.includes(newValue)) return true;
     if (newValue === PROCESSING && STATUSES_WITH_OTHER_SIMULATION_IMPACT.includes(originalValue)) return true;
+    if (newValue === PROVISOIRE && STATUSES_WITH_OTHER_SIMULATION_IMPACT.includes(originalValue)) return true;
     return false;
 }
 
-function replaceProcessingModalContentText(originalValue) {
-    processingConfirmationModalContent = document.getElementById("processing-confirmation-modal-content")
-    const newText = processingConfirmationModalContent.innerHTML.replace("TO_REPLACE", STATUS_TO_FRENCH_WORD[originalValue])
-    processingConfirmationModalContent.innerHTML = newText
+function replaceInitialStatusModalContentText(originalValue, modalContentId) {
+    confirmationModalContent = document.getElementById(modalContentId)
+    const newText = STATUS_TO_FRENCH_WORD[originalValue]
+    confirmationModalContent.querySelector(".initial-status").innerHTML= newText
 }
 
 function handleStatusChange(select, originalValue) {
@@ -47,8 +50,8 @@ function showConfirmationModal(select, originalValue) {
         return
     }
     selectedElement = select;
-    if (status === PROCESSING) {
-        replaceProcessingModalContentText(originalValue)
+    if ([PROCESSING, PROVISOIRE].includes(status)) {
+        replaceInitialStatusModalContentText(originalValue, `${status}-confirmation-modal-content`)
     }
 
     modal = document.getElementById(modalId)

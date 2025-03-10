@@ -569,13 +569,11 @@ def test_patch_status_simulation_projet_with_refused_value_with_htmx(
         headers={"HX-Request": "true"},
     )
 
-    updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
-        id=simulation_projet.id
-    )
-    projet = Projet.objects.get(id=updated_simulation_projet.projet.id)
+    simulation_projet.refresh_from_db()
+    projet = Projet.objects.get(id=simulation_projet.projet.id)
 
     assert response.status_code == 200
-    assert updated_simulation_projet.status == SimulationProjet.STATUS_REFUSED
+    assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
     assert projet.status == Projet.STATUS_REFUSED
     assert "0 projet validé" in response.content.decode()
     assert "1 projet refusé" in response.content.decode()

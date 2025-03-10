@@ -1,11 +1,14 @@
 from datetime import date
 from typing import Any
 
+from django.db.models import Sum
+from django.db.models.query import QuerySet
 from django.utils.text import slugify
 
 from gsl_core.models import Perimetre
 from gsl_programmation.models import Enveloppe
-from gsl_simulation.models import Simulation
+from gsl_projet.models import Projet
+from gsl_simulation.models import Simulation, SimulationProjet
 
 
 class SimulationService:
@@ -45,3 +48,19 @@ class SimulationService:
                 incremented_slug = slugify(slug + f"-{i}")
             return incremented_slug
         return slug
+
+    @classmethod
+    def get_total_amount_granted(cls, qs: QuerySet[Projet], simulation: Simulation):
+        statuses_to_include = (
+            SimulationProjet.STATUS_ACCEPTED,
+            SimulationProjet.STATUS_PROVISOIRE,
+        )
+        return (
+            qs.filter(
+                simulationprojet__simulation=simulation,
+                simulationprojet__status__in=statuses_to_include,
+            ).aggregate(Sum("simulationprojet__montant"))[
+                "simulationprojet__montant__sum"
+            ]
+            or 0.0
+        )
