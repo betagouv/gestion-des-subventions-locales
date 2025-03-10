@@ -5,8 +5,11 @@ from django.utils import timezone
 
 from gsl_core.models import Collegue, Departement
 from gsl_core.tests.factories import (
+    ArrondissementFactory,
     CollegueFactory,
     DepartementFactory,
+    PerimetreArrondissementFactory,
+    PerimetreDepartementalFactory,
     PerimetreFactory,
     RequestFactory,
 )
@@ -544,3 +547,65 @@ def test_get_status_placeholder_with_status(req, view, projets_with_status):
         view._get_status_placeholder(ProjetListView.STATE_MAPPINGS)
         == "✅ Accepté, 🔄 En traitement"
     )
+
+
+### Test du filtre par territoire
+@pytest.fixture
+def perimetre_29(dep_finistere):
+    return PerimetreDepartementalFactory(departement=dep_finistere)
+
+
+@pytest.fixture
+def perimetre_quimper(perimetre_29):
+    arrondissement = ArrondissementFactory(departement=perimetre_29.departement)
+    return PerimetreArrondissementFactory(arrondissement=arrondissement)
+
+
+@pytest.fixture
+def perimetre_brest(perimetre_29):
+    arrondissement = ArrondissementFactory(departement=perimetre_29.departement)
+    return PerimetreArrondissementFactory(arrondissement=arrondissement)
+
+
+@pytest.fixture
+def projets_29(perimetre_29, perimetre_quimper, perimetre_brest):
+    return [
+        ProjetFactory(perimetre=perimetre_29),
+        ProjetFactory(perimetre=perimetre_quimper),
+        ProjetFactory(perimetre=perimetre_brest),
+    ]
+
+
+def test_filter_territoire_with_a_departement_gives_all_departement_projets(
+    req, view, projets_29, perimetre_29
+):
+    request = req.get(f"/?territoire={perimetre_29.id}")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 3
+    assert all(perimetre_29.contains_or_equal(p.perimetre) for p in qs)
+
+
+def test_filter_territoire_with_an_arrondissement_gives_only_arrondissement_projets(
+    req, view, projets_29, perimetre_quimper
+):
+    request = req.get(f"/?territoire={perimetre_quimper.id}")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 1
+    assert qs.first().perimetre == perimetre_quimper
+
+
+def test_filter_territoire_with_two_arrondissements_gives_only_these_arrondissement_projets(
+    req, view, projets_29, perimetre_quimper, perimetre_brest
+):
+    request = req.get(
+        f"/?territoire={perimetre_quimper.id}&territoire={perimetre_brest.id}"
+    )
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 2
+    assert qs.first().perimetre in [perimetre_quimper, perimetre_brest]

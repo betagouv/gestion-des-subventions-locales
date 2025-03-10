@@ -35,6 +35,11 @@ def dept_76(region_normandie) -> Departement:
 
 
 @pytest.fixture
+def dept_14(region_normandie) -> Departement:
+    return DepartementFactory(insee_code="14", name="Calvados", region=region_normandie)
+
+
+@pytest.fixture
 def arr_paris_centre(dept_75) -> Arrondissement:
     return ArrondissementFactory(
         insee_code="75101", name="Paris Centre", departement=dept_75
@@ -44,6 +49,16 @@ def arr_paris_centre(dept_75) -> Arrondissement:
 @pytest.fixture
 def arr_le_havre(dept_76) -> Arrondissement:
     return ArrondissementFactory(insee_code="762", name="Le Havre", departement=dept_76)
+
+
+@pytest.fixture
+def arr_rouen(dept_76) -> Arrondissement:
+    return ArrondissementFactory(insee_code="763", name="Rouen", departement=dept_76)
+
+
+@pytest.fixture
+def arr_bayeux(dept_14) -> Arrondissement:
+    return ArrondissementFactory(insee_code="141", name="Bayeux", departement=dept_14)
 
 
 def test_clean_valid_perimetre(region_idf, dept_75):
@@ -307,3 +322,53 @@ def test_type_and_name_property_for_arrondissement(
     )
     assert perimetre.type == "Arrondissement"
     assert perimetre.entity_name == "Paris Centre"
+
+
+@pytest.mark.django_db
+def test_get_perimetre_children(
+    region_normandie,
+    dept_76,
+    dept_14,
+    arr_le_havre,
+    arr_rouen,
+    arr_bayeux,
+    region_idf,
+    dept_75,
+    arr_paris_centre,
+):
+    perimetre_region_normandie = Perimetre.objects.create(region=region_normandie)
+    perimetre_departement_76 = Perimetre.objects.create(
+        region=region_normandie, departement=dept_76
+    )
+    perimetre_departement_14 = Perimetre.objects.create(
+        region=region_normandie, departement=dept_14
+    )
+    perimetre_arr_lehavre = Perimetre.objects.create(
+        region=region_normandie, departement=dept_76, arrondissement=arr_le_havre
+    )
+    Perimetre.objects.create(
+        region=region_normandie, departement=dept_76, arrondissement=arr_rouen
+    )
+    Perimetre.objects.create(
+        region=region_normandie, departement=dept_14, arrondissement=arr_bayeux
+    )
+    Perimetre.objects.create(
+        region=region_idf,
+        departement=dept_75,
+        arrondissement=arr_paris_centre,
+    )
+
+    children_of_dept_76 = perimetre_departement_76.children()
+    assert len(children_of_dept_76) == 2  # 2 arrondissements in 76
+    assert perimetre_departement_76 not in children_of_dept_76
+    assert perimetre_departement_14 not in children_of_dept_76
+    assert perimetre_arr_lehavre in children_of_dept_76
+
+    children_of_region_normandie = perimetre_region_normandie.children()
+    assert (
+        len(children_of_region_normandie) == 2 + 2 + 1
+    )  # 2 departements (14 76), 2 arr in 76, 1 arr in 14
+    assert perimetre_departement_75 not in children_of_region_normandie
+    assert perimetre_departement_76 in children_of_region_normandie
+    assert perimetre_departement_14 in children_of_region_normandie
+    assert perimetre_arr_lehavre in children_of_region_normandie
