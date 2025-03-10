@@ -8,6 +8,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic import DetailView
 
 from gsl.settings import ALLOWED_HOSTS
+from gsl_core.templatetags.gsl_filters import euro
 from gsl_projet.services import ProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.models import SimulationProjet
@@ -41,12 +42,19 @@ def _get_projets_queryset_with_filters(simulation, filter_params):
     return projets
 
 
-def _add_message(request, message_type: str | None):
-    list(messages.get_messages(request))
+def _add_message(
+    request, message_type: str | None, simulation_projet: SimulationProjet
+):
     if message_type == SimulationProjet.STATUS_REFUSED:
         messages.info(
             request,
             "Le financement de ce projet vient d’être refusé.",
+            extra_tags=message_type,
+        )
+    if message_type == SimulationProjet.STATUS_ACCEPTED:
+        messages.info(
+            request,
+            f"Le financement de ce projet vient d’être accepté avec la dotation {simulation_projet.enveloppe.type} pour {euro(simulation_projet.montant,2)}.",
             extra_tags=message_type,
         )
 
@@ -78,7 +86,7 @@ def redirect_to_simulation_projet(
             },
         )
 
-    _add_message(request, message_type)
+    _add_message(request, message_type, simulation_projet)
 
     referer = request.headers.get("Referer")
     if referer and url_has_allowed_host_and_scheme(

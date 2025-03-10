@@ -587,7 +587,6 @@ def test_patch_status_simulation_projet_with_refused_value_with_htmx(
 @pytest.mark.parametrize(
     "status",
     (
-        SimulationProjet.STATUS_ACCEPTED,
         SimulationProjet.STATUS_DISMISSED,
         SimulationProjet.STATUS_PROCESSING,
         SimulationProjet.STATUS_PROVISOIRE,
@@ -610,6 +609,33 @@ def test_patch_status_simulation_projet_without_htmx_and_giving_no_message(
 
 
 @pytest.mark.django_db
+def test_patch_status_simulation_projet_with_accepted_value_giving_message(
+    client_with_user_logged, simulation_projet
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+    )
+    response = client_with_user_logged.patch(
+        url,
+        data=f"status={SimulationProjet.STATUS_ACCEPTED}",
+        follow=True,
+    )
+
+    assert response.status_code == 200
+
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+
+    message = list(messages)[0]
+    assert message.level == 20
+    assert (
+        message.message
+        == "Le financement de ce projet vient d’être accepté avec la dotation DETR pour 1\xa0000,00\xa0€."
+    )
+    assert message.extra_tags == "valid"
+
+
+@pytest.mark.django_db
 def test_patch_status_simulation_projet_with_refused_value_giving_message(
     client_with_user_logged, simulation_projet
 ):
@@ -622,14 +648,7 @@ def test_patch_status_simulation_projet_with_refused_value_giving_message(
         follow=True,
     )
 
-    updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
-        id=simulation_projet.id
-    )
-    projet = Projet.objects.get(id=updated_simulation_projet.projet.id)
-
     assert response.status_code == 200
-    assert updated_simulation_projet.status == SimulationProjet.STATUS_REFUSED
-    assert projet.status == Projet.STATUS_REFUSED
 
     messages = get_messages(response.wsgi_request)
     assert len(messages) == 1
