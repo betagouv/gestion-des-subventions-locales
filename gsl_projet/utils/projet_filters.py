@@ -142,9 +142,9 @@ class ProjetFilters(FilterSet):
         widget=CustomCheckboxSelectMultiple(),
     )
 
-    def filter_territoire(self, queryset, _name, value):
+    def filter_territoire(self, queryset, _name, values: list[int]):
         perimetres = set()
-        for perimetre in Perimetre.objects.filter(id__in=value):
+        for perimetre in Perimetre.objects.filter(id__in=values):
             perimetres.add(perimetre)
             for child in perimetre.children():
                 perimetres.add(child)
