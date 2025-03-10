@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.db.models import Case, F, Sum, When
 from django.db.models.query import QuerySet
@@ -107,6 +107,8 @@ class ProjetService:
         except TypeError:
             return Decimal(0)
         except ZeroDivisionError:
+            return Decimal(0)
+        except InvalidOperation:
             return Decimal(0)
 
     @classmethod

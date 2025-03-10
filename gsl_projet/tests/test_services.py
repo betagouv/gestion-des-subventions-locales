@@ -245,24 +245,37 @@ def test_compute_taux_from_montant_with_projet_without_finance_cout_total():
     assert taux == 0
 
 
-@pytest.mark.parametrize(
-    "montant, assiette, expected_taux",
-    (
-        (10_000, 30_000, 33.33),
-        (10_000, 0, 0),
-        (10_000, 10_000, 100),
-        (100_000, 10_000, 100),
-        (10_000, -3_000, 0),
-        (0, 0, 0),
-        (1_000, None, 0),
-        (None, 4_000, 0),
-    ),
+test_data = (
+    (10_000, 30_000, 33.33),
+    (10_000, 0, 0),
+    (10_000, 10_000, 100),
+    (100_000, 10_000, 100),
+    (10_000, -3_000, 0),
+    (0, 0, 0),
+    (Decimal(0), Decimal(0), 0),
+    (0, None, 0),
+    (None, 0, 0),
+    (1_000, None, 0),
+    (None, 4_000, 0),
 )
+
+
+@pytest.mark.parametrize("montant, assiette, expected_taux", test_data)
 @pytest.mark.django_db
 def test_compute_taux_from_montant_with_various_assiettes(
     assiette, montant, expected_taux
 ):
     projet = ProjetFactory(assiette=assiette)
+    taux = ProjetService.compute_taux_from_montant(projet, montant)
+    assert taux == round(Decimal(expected_taux), 2)
+
+
+@pytest.mark.parametrize("montant, cout_total, expected_taux", test_data)
+@pytest.mark.django_db
+def test_compute_taux_from_montant_with_various_cout_total(
+    cout_total, montant, expected_taux
+):
+    projet = ProjetFactory(dossier_ds__finance_cout_total=cout_total)
     taux = ProjetService.compute_taux_from_montant(projet, montant)
     assert taux == round(Decimal(expected_taux), 2)
 
