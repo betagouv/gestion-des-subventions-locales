@@ -8,7 +8,8 @@
                 class="fr-select {% if is_territoire_active %}filter-dropdown-button-active{% endif %}">
             {{ is_territoire_placeholder }}
         </button>
-        <div class="filter-content"
+        <div id="filter-territoire"
+             class="filter-content"
              role="group"
              aria-describedby="filter_territoire_label">
             {% for perimetre in territoire_choices %}
