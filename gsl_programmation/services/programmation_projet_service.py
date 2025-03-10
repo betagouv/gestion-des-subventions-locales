@@ -45,10 +45,13 @@ class ProgrammationProjetService:
             logging.error(f"Projet {projet} is missing perimetre")
             return
 
-        enveloppe = Enveloppe.objects.get(
+        enveloppe, _ = Enveloppe.objects.get_or_create(
             perimetre=perimetre,
             annee=projet.dossier_ds.ds_date_traitement.year,
             type=dotation,
+            defaults={
+                "montant": 0,
+            },
         )
 
         ProgrammationProjet.objects.filter(projet=projet).exclude(
