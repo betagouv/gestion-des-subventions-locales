@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from csp.constants import NONCE, SELF
 from dotenv import load_dotenv
 
 load_dotenv()  # take environment variables from .env.
@@ -233,3 +234,16 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_TIMEZONE = "Europe/Paris"
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_RESULT_EXTENDED = True
+
+# CSP Configuration
+
+CONTENT_SECURITY_POLICY = {
+    "DIRECTIVES": {
+        "default-src": [SELF],
+        "img-src": [SELF, "data:"],
+        "style-src": [SELF, NONCE],
+        "script-src": [SELF, NONCE],
+    },
+}
+
+CONTENT_SECURITY_POLICY_REPORT_ONLY = {}
