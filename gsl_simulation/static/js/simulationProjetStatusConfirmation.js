@@ -18,7 +18,7 @@ STATUS_TO_MODAL_ID = {
 
 STATUS_TO_FRENCH_WORD = {
     "valid": "validé",
-    "cancelled": "annulé",
+    "cancelled": "refusé",
     "dismissed": "classé sans suite",
 }
 
@@ -29,10 +29,10 @@ function mustOpenConfirmationModal(newValue, originalValue) {
     return false;
 }
 
-function replaceProcessingModalContentText(originalValue, modalContentId) {
-    processingConfirmationModalContent = document.getElementById(modalContentId)
-    const newText = processingConfirmationModalContent.innerHTML.replace("TO_REPLACE", STATUS_TO_FRENCH_WORD[originalValue])
-    processingConfirmationModalContent.innerHTML = newText
+function replaceInitialStatusModalContentText(originalValue, modalContentId) {
+    confirmationModalContent = document.getElementById(modalContentId)
+    const newText = STATUS_TO_FRENCH_WORD[originalValue]
+    confirmationModalContent.querySelector(".initial-status").innerHTML= newText
 }
 
 function handleStatusChange(select, originalValue) {
@@ -51,7 +51,7 @@ function showConfirmationModal(select, originalValue) {
     }
     selectedElement = select;
     if ([PROCESSING, PROVISOIRE].includes(status)) {
-        replaceProcessingModalContentText(originalValue, `${status}-confirmation-modal-content`)
+        replaceInitialStatusModalContentText(originalValue, `${status}-confirmation-modal-content`)
     }
 
     modal = document.getElementById(modalId)
