@@ -1,0 +1,29 @@
+{% extends "gsl_projet/projet.html" %}
+{% load static gsl_filters dsfr_tags %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/simulation_detail.css' %}">
+    <link rel="stylesheet"
+          href="{% static 'css/simulation_projet_detail.css' %}">
+{% endblock extra_css %}
+
+{% block go_back_button %}
+    <div class="fr-mb-4w">
+
+        <a href="{% url "simulation:simulation-detail" slug=simu.simulation.slug %}"
+           class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+            Retour à la simulation
+        </a>
+    </div>
+{% endblock go_back_button %}
+
+{% block tab_projet %}
+    {% include "gsl_simulation/tab_simulation_projet/tab_projet.html" %}
+{% endblock tab_projet %}
+
+{% block modal %}
+    {% include "includes/modals/_refuse_confirmation_modal.html" %}
+{% endblock modal %}
+
+{% block extra_js %}
+    <script src="{% static 'js/simulationProjetStatusConfirmation.js' %}" defer></script>
+{% endblock extra_js %}

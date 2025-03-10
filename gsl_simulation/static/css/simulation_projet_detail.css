@@ -1,0 +1,36 @@
+.separator {
+  width: 2px;
+  align-self: stretch;
+  background-color: var(--border-default-blue-france); /* Couleur de la barre */
+  margin-bottom: 1rem;
+  margin-right: 4px;
+  margin-left: 4px;
+
+}
+
+.fr-fieldset__element .fr-radio-rich input[type="radio"] ~ label {
+  flex-direction: row;
+  gap: 8px;
+  font-size: calc(14rem /16);
+  font-weight: 500;
+}
+
+.radio-input-provisoire label{
+  color:var(--text-default-info);
+}
+
+.radio-input-valid label {
+  color: var(--text-default-success);
+}
+
+.radio-input-cancelled label {
+  color: var(--text-default-error);
+}
+
+.radio-input-dismissed label {
+  color: var(--text-default-grey);
+}
+
+.radio-input-draft label {
+  color: var(--text-disabled-grey);
+}

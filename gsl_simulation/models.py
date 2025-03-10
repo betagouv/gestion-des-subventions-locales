@@ -92,6 +92,11 @@ class SimulationProjet(models.Model):
     def __str__(self):
         return f"Simulation projet {self.pk}"
 
+    def get_absolute_url(self):
+        from django.urls import reverse
+
+        return reverse("simulation:simulation-projet-detail", kwargs={"pk": self.pk})
+
     @property
     def enveloppe(self):
         return self.simulation.enveloppe

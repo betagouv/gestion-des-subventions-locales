@@ -1,8 +1,12 @@
 from django.urls import path
 
 from gsl_simulation.views import simulation_views
-from gsl_simulation.views.decorators import simulation_must_be_visible_by_user
+from gsl_simulation.views.decorators import (
+    simulation_must_be_visible_by_user,
+    simulation_projet_must_be_visible_by_user,
+)
 from gsl_simulation.views.simulation_projet_views import (
+    SimulationProjetDetailView,
     patch_montant_simulation_projet,
     patch_status_simulation_projet,
     patch_taux_simulation_projet,
@@ -10,16 +14,21 @@ from gsl_simulation.views.simulation_projet_views import (
 
 urlpatterns = [
     path(
-        "simulations/",
+        "liste/",
         simulation_views.SimulationListView.as_view(),
         name="simulation-list",
     ),
     path(
-        "simulation/<slug:slug>/",
+        "voir/<slug:slug>/",
         simulation_must_be_visible_by_user(
             simulation_views.SimulationDetailView.as_view()
         ),
         name="simulation-detail",
+    ),
+    path(
+        "projet-detail/<int:pk>/",
+        simulation_projet_must_be_visible_by_user(SimulationProjetDetailView.as_view()),
+        name="simulation-projet-detail",
     ),
     path(
         "modifier-le-taux-d-un-projet-de-simulation/<int:pk>/",
