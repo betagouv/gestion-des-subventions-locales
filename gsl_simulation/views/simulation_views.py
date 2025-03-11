@@ -56,10 +56,14 @@ class SimulationListView(ListView):
 class SimulationProjetListViewFilters(ProjetFilters):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        slug = self.request.resolver_match.kwargs.get(
-            "slug"
-        )  # TODO use it in functions ?
-        simulation = Simulation.objects.get(slug=slug)
+        self.slug = self.request.resolver_match.kwargs.get("slug")
+        simulation = Simulation.objects.select_related(
+            "enveloppe",
+            "enveloppe__perimetre",
+            "enveloppe__perimetre__region",
+            "enveloppe__perimetre__departement",
+            "enveloppe__perimetre__arrondissement",
+        ).get(slug=self.slug)
         enveloppe = simulation.enveloppe
         perimetre = enveloppe.perimetre
 
@@ -135,11 +139,7 @@ class SimulationProjetListViewFilters(ProjetFilters):
         )
 
     def _simulation_slug_filter_kwarg(self):
-        return {
-            "simulationprojet__simulation__slug": self.request.resolver_match.kwargs.get(
-                "slug"
-            )
-        }
+        return {"simulationprojet__simulation__slug": self.slug}
 
 
 class SimulationDetailView(FilterView, DetailView, FilterUtils):
@@ -150,10 +150,18 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
+        self.simulation = Simulation.objects.select_related(
+            "enveloppe",
+            "enveloppe__perimetre",
+            "enveloppe__perimetre__region",
+            "enveloppe__perimetre__departement",
+            "enveloppe__perimetre__arrondissement",
+        ).get(slug=self.object.slug)
+        self.perimetre = self.simulation.enveloppe.perimetre
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        simulation = self.get_object()
+        simulation = self.simulation
         qs = self.get_projet_queryset()
         context = super().get_context_data(**kwargs)
         paginator = Paginator(qs, 25)
@@ -238,11 +246,10 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         }
 
     def _get_perimetre(self) -> Perimetre:
-        simulation: Simulation = self.get_object()
-        return simulation.enveloppe.perimetre
+        return self.perimetre
 
     def _get_territoire_choices(self):
-        perimetre = self._get_perimetre()
+        perimetre = self.perimetre
         return (perimetre, *perimetre.children())
 
     # This method is used to prevent caching of the page
