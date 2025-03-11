@@ -1,25 +1,25 @@
-
-document.querySelectorAll('.territoire-type-r input[type="checkbox"], .territoire-type-d input[type="checkbox"], .territoire-type-a input[type="checkbox"]').forEach(checkbox => {
-  checkbox.addEventListener('change', function() { console.log("changed !", this)});
-});
-
+// Gestion des impacts des enfants sur les parents
 document.querySelectorAll('.territoire-type-a input[type="checkbox"]').forEach(checkbox => {
-  checkbox.addEventListener('change', updateDepartementalCheckboxStates);
+  checkbox.addEventListener('change', updateDepartementalCheckboxStatesFromItsArrondissements);
 });
 document.querySelectorAll('.territoire-type-d input[type="checkbox"]').forEach(checkbox => {
-  checkbox.addEventListener('change', updateRegionalCheckboxStates);
+  checkbox.addEventListener('change', updateRegionalCheckboxFromDepartement);
 });
 
-function updateRegionalCheckboxStates() {
-  document.querySelectorAll('.territoire-type-r input[type="checkbox"]').forEach(parentCheckbox => updateCheckboxState(parentCheckbox));
+function updateRegionalCheckboxFromDepartement() {
+  document.querySelectorAll('.territoire-type-r input[type="checkbox"]').forEach(parentCheckbox => updateCheckboxStateDependingOnChild(parentCheckbox));
 }
 
-function updateDepartementalCheckboxStates() {
+function updateDepartementalCheckboxStatesFromItsArrondissements() {
   document.querySelectorAll('.territoire-type-d input[type="checkbox"]').forEach(parentCheckbox => updateDepartementalCheckboxState(parentCheckbox));
 }
 
+function updateDepartementalCheckboxState(checkbox){
+  updateCheckboxStateDependingOnChild(checkbox);
+  updateRegionalCheckboxFromDepartement()
+}
 
-function updateCheckboxState(checkbox) {
+function updateCheckboxStateDependingOnChild(checkbox) {
   const parentName = checkbox.dataset.region || checkbox.dataset.departement;
   if (!parentName) return;
 
@@ -32,10 +32,6 @@ function updateCheckboxState(checkbox) {
   checkbox.indeterminate = someChecked;
 }
 
-function updateDepartementalCheckboxState(checkbox){
-  updateCheckboxState(checkbox);
-  updateRegionalCheckboxStates()
-}
 
 // Gestion du clic sur un parent pour cocher/décocher ses enfants
 document.querySelectorAll('.territoire-type-r input[type="checkbox"], .territoire-type-d input[type="checkbox"]').forEach(parentCheckbox => {
@@ -44,6 +40,17 @@ document.querySelectorAll('.territoire-type-r input[type="checkbox"], .territoir
 document.querySelectorAll('.territoire-type-r input[type="checkbox"]').forEach(parentCheckbox => {
   parentCheckbox.addEventListener('change', function () {updateAllRegionalChildCheckboxes(this)});
 });
+
+function updateDepartementalChildCheckboxes(target) {
+  const parentName = target.dataset.departement;
+  if (!parentName) return;
+
+  const childCheckboxes = document.querySelectorAll(`input[data-parent='${parentName}']`);
+  childCheckboxes.forEach(child => {
+      child.checked = target.checked;
+  })
+  
+}
 
 function updateAllRegionalChildCheckboxes(target) {
   const parentName = target.dataset.region || target.dataset.departement;
@@ -66,17 +73,6 @@ function updateAllRegionalChildCheckboxes(target) {
   })
 }
 
-function updateDepartementalChildCheckboxes(target) {
-  const parentName = target.dataset.departement;
-  if (!parentName) return;
-
-  const childCheckboxes = document.querySelectorAll(`input[data-parent='${parentName}']`);
-  childCheckboxes.forEach(child => {
-      child.checked = target.checked;
-  })
-  
-}
-
 // Initialisation de l'état des parents au chargement
-updateDepartementalCheckboxStates()
-updateRegionalCheckboxStates();
+updateDepartementalCheckboxStatesFromItsArrondissements()
+updateRegionalCheckboxFromDepartement();
