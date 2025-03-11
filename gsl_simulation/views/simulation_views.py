@@ -8,6 +8,7 @@ from django.views.generic.list import ListView
 from django_filters import MultipleChoiceFilter, NumberFilter
 from django_filters.views import FilterView
 
+from gsl_core.models import Perimetre
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.models import Projet
@@ -53,7 +54,22 @@ class SimulationListView(ListView):
 
 
 class SimulationProjetListViewFilters(ProjetFilters):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        slug = self.request.resolver_match.kwargs.get(
+            "slug"
+        )  # TODO use it in functions ?
+        simulation = Simulation.objects.get(slug=slug)
+        enveloppe = simulation.enveloppe
+        perimetre = enveloppe.perimetre
+
+        if perimetre:
+            self.filters["territoire"].extra["choices"] = tuple(
+                (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
+            )
+
     filterset = (
+        "territoire",
         "porteur",
         "status",
         "cout_total",
@@ -220,6 +236,14 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             "demandeurs": enveloppe_projets_included.distinct("demandeur").count(),
             "projets_count": enveloppe_projets_included.count(),
         }
+
+    def _get_perimetre(self) -> Perimetre:
+        simulation: Simulation = self.get_object()
+        return simulation.enveloppe.perimetre
+
+    def _get_territoire_choices(self):
+        perimetre = self._get_perimetre()
+        return (perimetre, *perimetre.children())
 
     # This method is used to prevent caching of the page
     # This is useful for the row update with htmx

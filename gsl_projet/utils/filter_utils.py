@@ -55,10 +55,10 @@ class FilterUtils:
         )
 
     def _get_selected_territoires(self):
+        view_perimetre = self._get_perimetre()
         if self.request.GET.get("territoire") in (None, "", []):
-            if self.request.user and self.request.user.perimetre:
-                return self.request.user.perimetre.entity_name, set()
-            return "Tous", set()
+            label = view_perimetre.entity_name if view_perimetre else "Tous"
+            return label, set()
 
         territoire_ids = set(
             int(perimetre) for perimetre in self.request.GET.getlist("territoire")
@@ -68,10 +68,11 @@ class FilterUtils:
         )
         return ", ".join(p.entity_name for p in perimetres), territoire_ids
 
+    def _get_perimetre(self) -> Perimetre:
+        raise NotImplementedError
+
     def _get_territoire_choices(self):
-        if hasattr(self.request, "user") and self.request.user.perimetre:
-            perimetre = self.request.user.perimetre
-            return (perimetre, *perimetre.children())
+        raise NotImplementedError
 
     def _get_is_one_field_active(self, *field_names):
         return any(
