@@ -35,11 +35,19 @@ function replaceInitialStatusModalContentText(originalValue, modalContentId) {
     confirmationModalContent.querySelector(".initial-status").innerHTML= newText
 }
 
-function handleStatusChange(select, originalValue) {
+function handleStatusChangeWithHtmx(select, originalValue) {
     if (mustOpenConfirmationModal(select.value, originalValue)) {
         showConfirmationModal(select, originalValue);
     } else {
         htmx.trigger(select.form, 'status-confirmed');  // Déclenche le PATCH HTMX
+    }
+}
+
+function handleStatusChange(select, originalValue) {
+    if (mustOpenConfirmationModal(select.value, originalValue)) {
+        showConfirmationModal(select, originalValue);
+    } else {
+        select.form.submit();
     }
 }
 
