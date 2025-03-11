@@ -4,7 +4,7 @@ from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import resolve, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 from django.views.generic import DetailView
 
 from gsl.settings import ALLOWED_HOSTS
@@ -63,7 +63,7 @@ def redirect_to_simulation_projet(
     request, simulation_projet, message_type: str | None = None
 ):
     if request.htmx:
-        filter_params = QueryDict(request.body).get("filter_params")
+        filter_params = request.POST.get("filter_params")
         filtered_projets = _get_projets_queryset_with_filters(
             simulation_projet.simulation,
             filter_params,
@@ -113,23 +113,20 @@ def patch_taux_simulation_projet(request, pk):
 
 @projet_must_be_in_user_perimetre
 @exception_handler_decorator
-@require_http_methods(["POST", "PATCH"])
+@require_POST
 def patch_montant_simulation_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
-    data = QueryDict(request.body)
-
-    new_montant = replace_comma_by_dot(data.get("montant"))
+    new_montant = replace_comma_by_dot(request.POST.get("montant"))
     SimulationProjetService.update_montant(simulation_projet, new_montant)
     return redirect_to_simulation_projet(request, simulation_projet)
 
 
 @projet_must_be_in_user_perimetre
 @exception_handler_decorator
-@require_http_methods(["POST", "PATCH"])
+@require_POST
 def patch_status_simulation_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
-    data = QueryDict(request.body)
-    status = data.get("status")
+    status = request.POST.get("status")
 
     if status not in dict(SimulationProjet.STATUS_CHOICES).keys():
         raise ValueError("Invalid status")
