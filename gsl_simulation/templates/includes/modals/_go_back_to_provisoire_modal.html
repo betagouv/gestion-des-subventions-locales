@@ -1,4 +1,4 @@
-<dialog id="refuse-confirmation-modal" class="fr-modal">
+<dialog id="provisoire-confirmation-modal" class="fr-modal">
     <div class="fr-container fr-container--fluid fr-container-md">
         <div class="fr-grid-row fr-grid-row--center">
             <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
@@ -8,29 +8,29 @@
                                 title="Fermer"
                                 type="button"
                                 class="fr-btn--close fr-btn"
-                                onClick="closeModal('refuse-confirmation-modal')">
+                                onClick="closeModal('provisoire-confirmation-modal')">
                             Fermer
                         </button>
                     </div>
                     <div class="fr-modal__content">
-                        <h1 class="fr-modal__title refuse-color">
-                            <span class="fr-icon-checkbox-fill fr-icon--lg" aria-hidden="true"></span> Refuser le financement du projet
+                        <h1 class="fr-modal__title processing-color">
+                            <span class="fr-icon-draft-fill fr-icon--lg" aria-hidden="true"></span> Revenir au statut “Accepté provisoirement”
                         </h1>
-                        <p>
-                            Ce projet va être refusé dans toutes les simulations dans lesquelles il a été ajouté.
-                            Il n'apparaîtra pas dans la programmation officielle {{ enveloppe.type }} {{ simulation_year }}.
+                        <p id="provisoire-confirmation-modal-content">
+                            Ce projet <span class="initial-status"></span> va être remis en traitement dans toutes les autres simulations dans lesquelles il a été ajouté.
+                            Il n'apparaîtra plus dans la programmation officielle {{ enveloppe.type }} {{ simulation_year }}.
                         </p>
                         <p>
-                            Êtes-vous sûr(e) de refuser ce projet ?
+                            Êtes-vous sûr(e) d'accepter provisoirement le projet ?
                         </p>
                     </div>
                     <div class="fr-modal__footer confirmation-modal-footer">
                         <button class="fr-btn fr-btn--secondary"
-                                onclick="closeModal('refuse-confirmation-modal')">
+                                onclick="closeModal('provisoire-confirmation-modal')">
                             Annuler
                         </button>
-                        <button class="fr-btn fr-btn--primary refuse-button" id="confirmChange">
-                            Refuser
+                        <button class="fr-btn fr-btn--primary" id="confirmChange">
+                            Oui
                         </button>
                     </div>
                 </div>

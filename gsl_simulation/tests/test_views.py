@@ -1,7 +1,9 @@
+import logging
 from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
+from django.contrib.messages import get_messages
 from django.urls import resolve, reverse
 
 from gsl_core.tests.factories import (
@@ -523,7 +525,7 @@ def simulation_projet(collegue, detr_enveloppe) -> SimulationProjet:
 
 
 @pytest.mark.django_db
-def test_patch_status_simulation_projet_with_accepted_value(
+def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
     client_with_user_logged, simulation_projet
 ):
     url = reverse(
@@ -554,7 +556,7 @@ def test_patch_status_simulation_projet_with_accepted_value(
 
 
 @pytest.mark.django_db
-def test_patch_status_simulation_projet_with_refused_value(
+def test_patch_status_simulation_projet_with_refused_value_with_htmx(
     client_with_user_logged, simulation_projet
 ):
     url = reverse(
@@ -567,13 +569,11 @@ def test_patch_status_simulation_projet_with_refused_value(
         headers={"HX-Request": "true"},
     )
 
-    updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
-        id=simulation_projet.id
-    )
-    projet = Projet.objects.get(id=updated_simulation_projet.projet.id)
+    simulation_projet.refresh_from_db()
+    projet = Projet.objects.get(id=simulation_projet.projet.id)
 
     assert response.status_code == 200
-    assert updated_simulation_projet.status == SimulationProjet.STATUS_REFUSED
+    assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
     assert projet.status == Projet.STATUS_REFUSED
     assert "0 projet validé" in response.content.decode()
     assert "1 projet refusé" in response.content.decode()
@@ -582,6 +582,81 @@ def test_patch_status_simulation_projet_with_refused_value(
         '<span hx-swap-oob="innerHTML" id="total-amount-granted">0\xa0€</span>'
         in response.content.decode()
     )
+
+
+@pytest.mark.parametrize(
+    "status",
+    (
+        SimulationProjet.STATUS_DISMISSED,
+        SimulationProjet.STATUS_PROCESSING,
+        SimulationProjet.STATUS_PROVISOIRE,
+    ),
+)
+@pytest.mark.django_db
+def test_patch_status_simulation_projet_without_htmx_and_giving_no_message(
+    client_with_user_logged, simulation_projet, status
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+    )
+    response = client_with_user_logged.patch(url, data=f"status={status}", follow=True)
+
+    assert response.status_code == 200
+    assert list(response.context["messages"]) == []
+
+    simulation_projet.refresh_from_db()
+    assert simulation_projet.status == status
+
+
+@pytest.mark.django_db
+def test_patch_status_simulation_projet_with_accepted_value_giving_message(
+    client_with_user_logged, simulation_projet
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+    )
+    response = client_with_user_logged.patch(
+        url,
+        data=f"status={SimulationProjet.STATUS_ACCEPTED}",
+        follow=True,
+    )
+
+    assert response.status_code == 200
+
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+
+    message = list(messages)[0]
+    assert message.level == 20
+    assert (
+        message.message
+        == "Le financement de ce projet vient d’être accepté avec la dotation DETR pour 1\xa0000,00\xa0€."
+    )
+    assert message.extra_tags == "valid"
+
+
+@pytest.mark.django_db
+def test_patch_status_simulation_projet_with_refused_value_giving_message(
+    client_with_user_logged, simulation_projet
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+    )
+    response = client_with_user_logged.patch(
+        url,
+        data=f"status={SimulationProjet.STATUS_REFUSED}",
+        follow=True,
+    )
+
+    assert response.status_code == 200
+
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+
+    message = list(messages)[0]
+    assert message.level == 20
+    assert message.message == "Le financement de ce projet vient d’être refusé."
+    assert message.extra_tags == "cancelled"
 
 
 @pytest.mark.django_db
@@ -644,6 +719,30 @@ def test_patch_taux_simulation_projet(
         '<span hx-swap-oob="innerHTML" id="total-amount-granted">7\xa0500\xa0€</span>'
         in response.content.decode()
     )
+
+
+@pytest.mark.parametrize("taux", ("-3", "100.1"))
+@pytest.mark.django_db
+def test_patch_taux_simulation_projet_with_wrong_value(
+    client_with_user_logged, accepted_simulation_projet, taux, caplog
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-taux", args=[accepted_simulation_projet.id]
+    )
+    response = client_with_user_logged.patch(
+        url,
+        data=f"taux={taux}",
+        follow=True,
+    )
+
+    with caplog.at_level(logging.ERROR):
+        accepted_simulation_projet.refresh_from_db()
+
+    assert response.status_code == 400
+    assert response.content == b'{"error": "An internal error has occurred."}'
+    assert "must be between 0 and 100" in caplog.text
+    assert accepted_simulation_projet.taux == 0.5
+    assert accepted_simulation_projet.montant == 1_000
 
 
 @pytest.mark.django_db

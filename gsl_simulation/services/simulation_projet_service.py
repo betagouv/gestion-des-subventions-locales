@@ -71,6 +71,17 @@ class SimulationProjetService:
         ):
             return cls._set_back_to_processing(simulation_projet)
 
+        if (
+            new_status == SimulationProjet.STATUS_PROVISOIRE
+            and simulation_projet.status
+            in (
+                SimulationProjet.STATUS_ACCEPTED,
+                SimulationProjet.STATUS_REFUSED,
+                SimulationProjet.STATUS_DISMISSED,
+            )
+        ):
+            cls._set_back_to_processing(simulation_projet)
+
         simulation_projet.status = new_status
         simulation_projet.save()
         return simulation_projet

@@ -1,0 +1,9 @@
+.message--cancelled > .fr-notice {
+  background-color: var(--background-alt-orange-terre-battue);
+  color: var(--text-default-error);
+}
+
+.message--valid > .fr-notice {
+  background-color: var(--background-alt-green-emeraude);
+  color: var(--text-default-success);
+}

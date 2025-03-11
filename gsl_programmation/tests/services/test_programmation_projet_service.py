@@ -5,7 +5,7 @@ from decimal import Decimal
 import pytest
 
 from gsl_core.tests.factories import PerimetreDepartementalFactory, PerimetreFactory
-from gsl_programmation.models import ProgrammationProjet
+from gsl_programmation.models import Enveloppe, ProgrammationProjet
 from gsl_programmation.services.programmation_projet_service import (
     ProgrammationProjetService,
 )
@@ -290,6 +290,33 @@ def test_create_or_update_from_projet_with_other_status_with_existing_one(
 
     assert programmation_projet is None
     assert ProgrammationProjet.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_create_or_update_from_projet_with_no_corresponding_enveloppe_creating_one(
+    perimetre,
+):
+    assert Enveloppe.objects.count() == 0
+    projet = ProjetFactory(
+        status=Projet.STATUS_REFUSED,
+        perimetre=perimetre,
+        dossier_ds__annotations_dotation="DETR",
+        dossier_ds__ds_date_traitement=date(2021, 1, 1),
+    )
+
+    programmation_projet = ProgrammationProjetService.create_or_update_from_projet(
+        projet
+    )
+
+    assert programmation_projet is not None
+    assert ProgrammationProjet.objects.count() == 1
+    assert Enveloppe.objects.count() == 1
+
+    enveloppe = Enveloppe.objects.first()
+    assert enveloppe.perimetre == perimetre
+    assert enveloppe.annee == 2021
+    assert enveloppe.type == "DETR"
+    assert enveloppe.montant == 0
 
 
 @pytest.mark.parametrize(
