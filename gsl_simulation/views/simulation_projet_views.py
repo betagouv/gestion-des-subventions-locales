@@ -54,7 +54,7 @@ def _add_message(
     if message_type == SimulationProjet.STATUS_ACCEPTED:
         messages.info(
             request,
-            f"Le financement de ce projet vient d’être accepté avec la dotation {simulation_projet.enveloppe.type} pour {euro(simulation_projet.montant,2)}.",
+            f"Le financement de ce projet vient d’être accepté avec la dotation {simulation_projet.enveloppe.type} pour {euro(simulation_projet.montant, 2)}.",
             extra_tags=message_type,
         )
 
