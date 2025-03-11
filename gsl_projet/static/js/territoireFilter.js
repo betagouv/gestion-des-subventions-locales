@@ -25,11 +25,13 @@ function updateCheckboxStateDependingOnChild(checkbox) {
 
   const childCheckboxes = document.querySelectorAll(`input[data-parent='${parentName}']`);
   const checkedChildren = [...childCheckboxes].filter(cb => cb.checked);
+  const indeterminatedChildren = [...childCheckboxes].filter(cb => cb.indeterminate);
   const allChecked = checkedChildren.length === childCheckboxes.length;
   const someChecked = checkedChildren.length > 0 && !allChecked;
+  const someIndeterminated = indeterminatedChildren.length > 0;
 
   checkbox.checked = allChecked;
-  checkbox.indeterminate = someChecked;
+  checkbox.indeterminate = someChecked || someIndeterminated;
 }
 
 
