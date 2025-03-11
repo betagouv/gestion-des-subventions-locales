@@ -4,7 +4,7 @@ from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import resolve, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.http import require_POST
 from django.views.generic import DetailView
 
 from gsl.settings import ALLOWED_HOSTS
@@ -100,12 +100,10 @@ def redirect_to_simulation_projet(
 
 @projet_must_be_in_user_perimetre
 @exception_handler_decorator
-@require_http_methods(["POST", "PATCH"])
+@require_POST
 def patch_taux_simulation_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
-    data = QueryDict(request.body)
-
-    new_taux = replace_comma_by_dot(data.get("taux"))
+    new_taux = replace_comma_by_dot(request.POST.get("taux"))
     ProjetService.validate_taux(new_taux)
     SimulationProjetService.update_taux(simulation_projet, new_taux)
     return redirect_to_simulation_projet(request, simulation_projet)

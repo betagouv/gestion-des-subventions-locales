@@ -1,15 +1,13 @@
 <form action="{% url 'simulation:patch-simulation-projet-montant' simu.id %}"
-      method="POST"
-      hx-on="submit: event.preventDefault()">
+      method="POST">
     {% csrf_token %}
     <div class="gsl-projet-table__input-wrap">
         <input name="montant"
                type="text"
                inputmode="numeric"
                class="fr-input input-simulation-projet-{{ simu.pk }} input-status-color-{{ simu.status }}"
-               hx-patch="{% url 'simulation:patch-simulation-projet-montant' simu.id %}"
+               hx-post="{% url 'simulation:patch-simulation-projet-montant' simu.id %}"
                hx-disabled-elt=".input-simulation-projet-{{ simu.pk }}"
-               hx-trigger="change, keyup[key=='Enter']"
                value="{{ simu.montant|floatformat:"2g" }}"
                {% if simu.status == 'cancelled' or simu.status == 'dismissed' %}disabled{% endif %}>
         <span class="gsl-projet-table__input-symbol">€</span>
