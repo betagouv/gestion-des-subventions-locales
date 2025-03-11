@@ -13,6 +13,14 @@ html {
     scroll-behavior: smooth;
 }
 
+.fr-header__operator .fr-responsive-img {
+    max-width: 8rem;
+}
+
+.dgcl-logo-footer {
+    max-width: 12rem;
+}
+
 /* Utils */
 
 .gsl-pull-right {
@@ -39,6 +47,18 @@ ul.no-list-style li {
 
 .gsl-no-underline {
     background-image: none;
+}
+
+/* Colors */
+
+.color-red {
+    color: var(--status-color-red);
+}
+.color-green {
+    color: var(--status-color-green);
+}
+.color-blue {
+    color: var(--status-color-blue);
 }
 
 /* Page un projet */
@@ -99,6 +119,7 @@ ul.no-list-style li {
     text-align: center;
     line-height: 1.3;
 }
+
 .gsl-projet-table thead th,
 .gsl-projet-table thead th .fr-badge {
     font-size: calc(9rem / 16); /* = 9px */
@@ -111,6 +132,7 @@ ul.no-list-style li {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
 .max_80_width {
     max-width: 100px;
     width: 80px;
@@ -209,6 +231,7 @@ ul.no-list-style li {
     background-color: var(--background-contrast-error);
     color: var(--text-default-error);
 }
+
 /* .badge-projet-status__processing {
     background-color: var(--background-contrast-info);
     color: var(--text-default-info);
@@ -221,5 +244,5 @@ ul.no-list-style li {
 /* common */
 .blue-icon {
     color: var(--blue-france-sun-113-625);
-  }
+}
   

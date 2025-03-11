@@ -23,10 +23,10 @@ class CustomCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
         output = []
         for i, (option_value, option_label) in enumerate(self.choices):
             color = self._get_color(option_value)
-            style = f'style="color: var(--status-color-{color});"' if color else ""
+            color_class = f"color-{color}" if color else ""
             checked = "checked" if value and option_value in value else ""
             checkbox = f'<input type="checkbox" name="{name}" value="{option_value}" id="id_{name}_{i}" {checked}>'
-            label = f'<label for="id_{name}_{i}" class="fr-label" {style}>{option_label}</label>'
+            label = f'<label for="id_{name}_{i}" class="fr-label {color_class}">{option_label}</label>'
             output.append(
                 f'<div class="fr-checkbox-group fr-checkbox-group--sm">{checkbox} {label}</div>'
             )
