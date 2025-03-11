@@ -146,7 +146,7 @@ class SimulationProjetDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["title"] = "Projet modifiable"
+        context["title"] = self.object.projet.dossier_ds.projet_intitule
         context["breadcrumb_dict"] = {
             "links": [
                 {
@@ -161,7 +161,7 @@ class SimulationProjetDetailView(DetailView):
                     "title": self.object.simulation.title,
                 },
             ],
-            "current": self.object.projet,
+            "current": context["title"],
         }
         context["projet"] = self.object.projet
         context["simu"] = self.object

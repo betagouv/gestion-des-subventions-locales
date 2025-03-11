@@ -35,13 +35,14 @@ def visible_by_user(func):
 @require_GET
 def get_projet(request, projet_id):
     projet = get_object_or_404(Projet, id=projet_id)
+    title = projet.dossier_ds.projet_intitule
     context = {
-        "title": f"Projet {projet}",
+        "title": title,
         "projet": projet,
         "dossier": projet.dossier_ds,
         "breadcrumb_dict": {
             "links": [{"url": reverse("projet:list"), "title": "Liste des projets"}],
-            "current": f"Projet {projet}",
+            "current": title,
         },
         "menu_dict": PROJET_MENU,
     }
