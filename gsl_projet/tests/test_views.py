@@ -17,7 +17,7 @@ from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
 from gsl_projet.models import Demandeur, Projet
 from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
 from gsl_projet.utils.projet_filters import ProjetFilters
-from gsl_projet.views import ProjetListView
+from gsl_projet.views import ProjetListView, ProjetListViewFilters
 
 pytestmark = pytest.mark.django_db
 
@@ -592,7 +592,7 @@ def test_filter_territoire_with_an_arrondissement_gives_only_arrondissement_proj
 ):
     request = req.get(f"/?territoire={perimetre_quimper.id}")
     view.request = request
-    qs = view.get_filterset(ProjetFilters).qs
+    qs = view.get_filterset(ProjetListViewFilters).qs
 
     assert qs.count() == 1
     assert qs.first().perimetre == perimetre_quimper
@@ -605,7 +605,7 @@ def test_filter_territoire_with_two_arrondissements_gives_only_these_arrondissem
         f"/?territoire={perimetre_quimper.id}&territoire={perimetre_brest.id}"
     )
     view.request = request
-    qs = view.get_filterset(ProjetFilters).qs
+    qs = view.get_filterset(ProjetListViewFilters).qs
 
     assert qs.count() == 2
     assert qs.first().perimetre in [perimetre_quimper, perimetre_brest]
