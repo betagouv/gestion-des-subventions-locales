@@ -1,4 +1,5 @@
-let selectedElement = null;
+let selectedElement = undefined;
+let modalId = undefined
 
 const VALID = "valid";
 const CANCELLED = "cancelled";
@@ -47,8 +48,9 @@ function handleStatusChange(select, originalValue) {
 
 function showConfirmationModal(select, originalValue) {
     const status = select.value;
-    const modalId = STATUS_TO_MODAL_ID[status];
+    modalId = STATUS_TO_MODAL_ID[status];
     if (modalId === undefined) {
+        console.log("No modal for this status", status)
         return
     }
     selectedElement = select;
@@ -74,12 +76,17 @@ function _removeFromProgrammationText(modalContentId) {
     confirmationModalContent.querySelector(".remove-from-programmation").remove()
 }
 
-function closeModal(modalId) {
+function closeModal() {
+    if (modalId === undefined) {
+        return
+    }
+
     modal = document.getElementById(modalId)
     selectedElement.form.reset()
     dsfr(modal).modal.conceal()
     selectedElement.focus()
-    selectedElement = null;
+    selectedElement = undefined;
+    modalId = undefined;
 }
 
 document.querySelectorAll('#confirmChange').forEach((e) => {
@@ -91,4 +98,13 @@ document.querySelectorAll('#confirmChange').forEach((e) => {
             closeModal();
         }
     })
+});
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter' && selectedElement) {
+        selectedElement.form.submit();
+    }
+    if (event.key === "Escape" && selectedElement) {
+        closeModal()
+    }
 });
