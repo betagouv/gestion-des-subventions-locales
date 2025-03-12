@@ -661,10 +661,7 @@ def test_patch_status_simulation_projet_with_refused_value_with_htmx(
 
 @pytest.mark.parametrize(
     "status",
-    (
-        SimulationProjet.STATUS_DISMISSED,
-        SimulationProjet.STATUS_PROCESSING,
-    ),
+    (SimulationProjet.STATUS_PROCESSING,),
 )
 @pytest.mark.django_db
 def test_patch_status_simulation_projet_without_htmx_and_giving_no_message(
@@ -692,6 +689,11 @@ data_test = (
         SimulationProjet.STATUS_REFUSED,
         "Le financement de ce projet vient d’être refusé.",
         "cancelled",
+    ),
+    (
+        SimulationProjet.STATUS_DISMISSED,
+        "Le projet est classé sans suite.",
+        "dismissed",
     ),
     (
         SimulationProjet.STATUS_PROVISOIRE,

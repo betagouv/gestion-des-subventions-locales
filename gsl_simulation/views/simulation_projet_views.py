@@ -1,4 +1,3 @@
-from django.contrib import messages
 from django.http import HttpRequest
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
@@ -8,7 +7,6 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic import DetailView
 
 from gsl.settings import ALLOWED_HOSTS
-from gsl_core.templatetags.gsl_filters import euro
 from gsl_projet.services import ProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.models import SimulationProjet
@@ -16,7 +14,7 @@ from gsl_simulation.services.simulation_projet_service import (
     SimulationProjetService,
 )
 from gsl_simulation.services.simulation_service import SimulationService
-from gsl_simulation.utils import replace_comma_by_dot
+from gsl_simulation.utils import add_success_message, replace_comma_by_dot
 from gsl_simulation.views.decorators import (
     exception_handler_decorator,
     projet_must_be_in_user_perimetre,
@@ -40,29 +38,6 @@ def _get_projets_queryset_with_filters(simulation, filter_params):
 
     projets = view.get_projet_queryset()
     return projets
-
-
-def _add_message(
-    request, message_type: str | None, simulation_projet: SimulationProjet
-):
-    if message_type == SimulationProjet.STATUS_REFUSED:
-        messages.info(
-            request,
-            "Le financement de ce projet vient d’être refusé.",
-            extra_tags=message_type,
-        )
-    if message_type == SimulationProjet.STATUS_ACCEPTED:
-        messages.info(
-            request,
-            f"Le financement de ce projet vient d’être accepté avec la dotation {simulation_projet.enveloppe.type} pour {euro(simulation_projet.montant, 2)}.",
-            extra_tags=message_type,
-        )
-    if message_type == SimulationProjet.STATUS_PROVISOIRE:
-        messages.info(
-            request,
-            "Le projet est accepté provisoirement dans cette simulation.",
-            extra_tags=message_type,
-        )
 
 
 def redirect_to_simulation_projet(
@@ -92,7 +67,7 @@ def redirect_to_simulation_projet(
             },
         )
 
-    _add_message(request, message_type, simulation_projet)
+    add_success_message(request, message_type, simulation_projet)
 
     referer = request.headers.get("Referer")
     if referer and url_has_allowed_host_and_scheme(
@@ -171,6 +146,7 @@ class SimulationProjetDetailView(DetailView):
         }
         context["projet"] = self.object.projet
         context["simu"] = self.object
+        context["enveloppe"] = self.object.simulation.enveloppe
         context["dossier"] = self.object.projet.dossier_ds
         context["menu_dict"] = PROJET_MENU
 
