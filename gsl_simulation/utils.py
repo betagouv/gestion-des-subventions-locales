@@ -41,15 +41,21 @@ def add_success_message(
             f"Le financement de ce projet vient d’être accepté avec la dotation {simulation_projet.enveloppe.type} pour {euro(simulation_projet.montant, 2)}.",
             extra_tags=message_type,
         )
+    if message_type == SimulationProjet.STATUS_DISMISSED:
+        messages.info(
+            request,
+            "Le projet est classé sans suite.",
+            extra_tags=message_type,
+        )
     if message_type == SimulationProjet.STATUS_PROVISOIRE:
         messages.info(
             request,
             "Le projet est accepté provisoirement dans cette simulation.",
             extra_tags=message_type,
         )
-    if message_type == SimulationProjet.STATUS_DISMISSED:
+    if message_type == SimulationProjet.STATUS_PROCESSING:
         messages.info(
             request,
-            "Le projet est classé sans suite.",
+            "Le projet est revenu en traitement.",
             extra_tags=message_type,
         )

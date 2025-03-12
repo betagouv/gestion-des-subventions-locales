@@ -659,26 +659,6 @@ def test_patch_status_simulation_projet_with_refused_value_with_htmx(
     )
 
 
-@pytest.mark.parametrize(
-    "status",
-    (SimulationProjet.STATUS_PROCESSING,),
-)
-@pytest.mark.django_db
-def test_patch_status_simulation_projet_without_htmx_and_giving_no_message(
-    client_with_user_logged, simulation_projet, status
-):
-    url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
-    )
-    response = client_with_user_logged.patch(url, data=f"status={status}", follow=True)
-
-    assert response.status_code == 200
-    assert list(response.context["messages"]) == []
-
-    simulation_projet.refresh_from_db()
-    assert simulation_projet.status == status
-
-
 data_test = (
     (
         SimulationProjet.STATUS_ACCEPTED,
@@ -700,6 +680,11 @@ data_test = (
         "Le projet est accepté provisoirement dans cette simulation.",
         "provisoire",
     ),
+    (
+        SimulationProjet.STATUS_PROCESSING,
+        "Le projet est revenu en traitement.",
+        "draft",
+    ),
 )
 
 
@@ -708,6 +693,12 @@ data_test = (
 def test_patch_status_simulation_projet_with_refused_value_giving_message(
     client_with_user_logged, simulation_projet, status, expected_message, expected_tag
 ):
+    if status == SimulationProjet.STATUS_PROCESSING:
+        simulation_projet.status = SimulationProjet.STATUS_ACCEPTED
+        simulation_projet.projet.status = Projet.STATUS_ACCEPTED
+        simulation_projet.projet.save()
+        simulation_projet.save()
+
     url = reverse(
         "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
     )
