@@ -125,6 +125,15 @@ class SimulationProjetDetailView(DetailView):
     model = SimulationProjet
     template_name = "gsl_simulation/simulation_projet_detail.html"
 
+    def get(self, request, *args, **kwargs):
+        self.simulation_projet = SimulationProjet.objects.select_related(
+            "simulation",
+            "simulation__enveloppe",
+            "projet",
+            "projet__dossier_ds",
+        ).get(id=request.resolver_match.kwargs.get("pk"))
+        return super().get(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["title"] = self.object.projet.dossier_ds.projet_intitule
@@ -137,17 +146,17 @@ class SimulationProjetDetailView(DetailView):
                 {
                     "url": reverse(
                         "simulation:simulation-detail",
-                        kwargs={"slug": self.object.simulation.slug},
+                        kwargs={"slug": self.simulation_projet.simulation.slug},
                     ),
-                    "title": self.object.simulation.title,
+                    "title": self.simulation_projet.simulation.title,
                 },
             ],
             "current": context["title"],
         }
-        context["projet"] = self.object.projet
-        context["simu"] = self.object
-        context["enveloppe"] = self.object.simulation.enveloppe
-        context["dossier"] = self.object.projet.dossier_ds
+        context["projet"] = self.simulation_projet.projet
+        context["simu"] = self.simulation_projet
+        context["enveloppe"] = self.simulation_projet.simulation.enveloppe
+        context["dossier"] = self.simulation_projet.projet.dossier_ds
         context["menu_dict"] = PROJET_MENU
 
         return context
