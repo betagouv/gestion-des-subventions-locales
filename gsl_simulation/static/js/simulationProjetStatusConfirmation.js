@@ -29,12 +29,6 @@ function mustOpenConfirmationModal(newValue, originalValue) {
     return false;
 }
 
-function replaceInitialStatusModalContentText(originalValue, modalContentId) {
-    confirmationModalContent = document.getElementById(modalContentId)
-    const newText = STATUS_TO_FRENCH_WORD[originalValue]
-    confirmationModalContent.querySelector(".initial-status").innerHTML= newText
-}
-
 function handleStatusChangeWithHtmx(select, originalValue) {
     if (mustOpenConfirmationModal(select.value, originalValue)) {
         showConfirmationModal(select, originalValue);
@@ -59,11 +53,25 @@ function showConfirmationModal(select, originalValue) {
     }
     selectedElement = select;
     if ([PROCESSING, PROVISOIRE].includes(status)) {
-        replaceInitialStatusModalContentText(originalValue, `${status}-confirmation-modal-content`)
+        const modalContentId = `${status}-confirmation-modal-content`
+        _replaceInitialStatusModalContentText(originalValue, modalContentId)
+        if (originalValue === DISMISSED) _removeFromProgrammationText(modalContentId)
     }
 
     modal = document.getElementById(modalId)
     dsfr(modal).modal.disclose()
+}
+
+
+function _replaceInitialStatusModalContentText(originalValue, modalContentId) {
+    confirmationModalContent = document.getElementById(modalContentId)
+    const newText = STATUS_TO_FRENCH_WORD[originalValue]
+    confirmationModalContent.querySelector(".initial-status").innerHTML= newText
+}
+
+function _removeFromProgrammationText(modalContentId) {
+    confirmationModalContent = document.getElementById(modalContentId)
+    confirmationModalContent.querySelector(".remove-from-programmation").remove()
 }
 
 function closeModal(modalId) {

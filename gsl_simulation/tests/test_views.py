@@ -664,7 +664,6 @@ def test_patch_status_simulation_projet_with_refused_value_with_htmx(
     (
         SimulationProjet.STATUS_DISMISSED,
         SimulationProjet.STATUS_PROCESSING,
-        SimulationProjet.STATUS_PROVISOIRE,
     ),
 )
 @pytest.mark.django_db
@@ -683,43 +682,36 @@ def test_patch_status_simulation_projet_without_htmx_and_giving_no_message(
     assert simulation_projet.status == status
 
 
-@pytest.mark.django_db
-def test_patch_status_simulation_projet_with_accepted_value_giving_message(
-    client_with_user_logged, simulation_projet
-):
-    url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
-    )
-    response = client_with_user_logged.patch(
-        url,
-        data=f"status={SimulationProjet.STATUS_ACCEPTED}",
-        follow=True,
-    )
-
-    assert response.status_code == 200
-
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-
-    message = list(messages)[0]
-    assert message.level == 20
-    assert (
-        message.message
-        == "Le financement de ce projet vient d’être accepté avec la dotation DETR pour 1\xa0000,00\xa0€."
-    )
-    assert message.extra_tags == "valid"
+data_test = (
+    (
+        SimulationProjet.STATUS_ACCEPTED,
+        "Le financement de ce projet vient d’être accepté avec la dotation DETR pour 1\xa0000,00\xa0€.",
+        "valid",
+    ),
+    (
+        SimulationProjet.STATUS_REFUSED,
+        "Le financement de ce projet vient d’être refusé.",
+        "cancelled",
+    ),
+    (
+        SimulationProjet.STATUS_PROVISOIRE,
+        "Le projet est accepté provisoirement dans cette simulation.",
+        "provisoire",
+    ),
+)
 
 
+@pytest.mark.parametrize("status, expected_message, expected_tag", data_test)
 @pytest.mark.django_db
 def test_patch_status_simulation_projet_with_refused_value_giving_message(
-    client_with_user_logged, simulation_projet
+    client_with_user_logged, simulation_projet, status, expected_message, expected_tag
 ):
     url = reverse(
         "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
     )
     response = client_with_user_logged.patch(
         url,
-        data=f"status={SimulationProjet.STATUS_REFUSED}",
+        data=f"status={status}",
         follow=True,
     )
 
@@ -730,8 +722,8 @@ def test_patch_status_simulation_projet_with_refused_value_giving_message(
 
     message = list(messages)[0]
     assert message.level == 20
-    assert message.message == "Le financement de ce projet vient d’être refusé."
-    assert message.extra_tags == "cancelled"
+    assert message.message == expected_message
+    assert message.extra_tags == expected_tag
 
 
 @pytest.mark.django_db
