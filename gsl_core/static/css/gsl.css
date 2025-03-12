@@ -228,5 +228,9 @@ ul.no-list-style li {
 /* common */
 .blue-color {
     color: var(--blue-france-sun-113-625);
-  }
+}
+
+.success-color {
+    color: var(--text-default-success);
+}
   

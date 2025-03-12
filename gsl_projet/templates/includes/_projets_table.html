@@ -75,7 +75,7 @@
                         <br>
                         {{ projet.get_taux_de_subvention_sollicite|percent }}
                     </td>
-                    <td class="gsl-money">
+                    <td class="gsl-money {% if projet.montant_retenu is not None %} success-color {% endif %}">
                         {{ projet.montant_retenu|euro:2 }}
                         <br>
                     </td>
