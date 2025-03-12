@@ -57,6 +57,12 @@ def _add_message(
             f"Le financement de ce projet vient d’être accepté avec la dotation {simulation_projet.enveloppe.type} pour {euro(simulation_projet.montant, 2)}.",
             extra_tags=message_type,
         )
+    if message_type == SimulationProjet.STATUS_PROVISOIRE:
+        messages.info(
+            request,
+            "Le projet est accepté provisoirement dans cette simulation.",
+            extra_tags=message_type,
+        )
 
 
 def redirect_to_simulation_projet(

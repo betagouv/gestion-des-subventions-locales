@@ -42,5 +42,7 @@ def create_alert_data(status: str | None, arg: str) -> dict[str, str | bool]:
         data_dict["title"] = "Projet accepté"
     elif status == "cancelled":
         data_dict["title"] = "Projet refusé"
+    elif status == "provisoire":
+        data_dict["title"] = "Projet accepté provisoirement"
 
     return data_dict
