@@ -93,13 +93,17 @@ class ProjetListView(FilterView, ListView, FilterUtils):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        qs = context["object_list"]
+        qs_global = (
+            self.filterset.qs
+        )  # utile pour ne pas avoir la pagination de context["object_list"]
         context["title"] = "Projets 2025"
         context["porteur_mappings"] = ProjetService.PORTEUR_MAPPINGS
         context["breadcrumb_dict"] = {"current": "Liste des projets"}
-        context["total_cost"] = ProjetService.get_total_cost(qs)
-        context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs)
-        context["total_amount_granted"] = 0  # TODO
+        context["total_cost"] = ProjetService.get_total_cost(qs_global)
+        context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs_global)
+        context["total_amount_granted"] = ProjetService.get_total_amount_granted(
+            qs_global
+        )
         self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
 
         return context

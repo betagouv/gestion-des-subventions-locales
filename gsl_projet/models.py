@@ -1,6 +1,5 @@
 from datetime import UTC, date, datetime
 from datetime import timezone as tz
-from functools import cached_property
 from typing import TYPE_CHECKING
 
 from django.db import models
@@ -166,7 +165,7 @@ class Projet(models.Model):
             return self.assiette
         return self.dossier_ds.finance_cout_total
 
-    @cached_property
+    @property
     def accepted_programmation_projet(self):
         from gsl_programmation.models import ProgrammationProjet
 

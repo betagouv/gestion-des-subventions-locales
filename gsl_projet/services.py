@@ -60,6 +60,15 @@ class ProjetService:
             "dossier_ds__demande_montant__sum"
         ]
 
+    @classmethod
+    def get_total_amount_granted(cls, projet_qs: QuerySet):
+        from gsl_programmation.models import ProgrammationProjet
+
+        projet_ids = projet_qs.values_list("pk", flat=True)
+        return ProgrammationProjet.objects.filter(
+            projet__in=projet_ids, status=ProgrammationProjet.STATUS_ACCEPTED
+        ).aggregate(total=Sum("montant"))["total"]
+
     PORTEUR_MAPPINGS = {
         "EPCI": NaturePorteurProjet.EPCI_NATURES,
         "Communes": NaturePorteurProjet.COMMUNE_NATURES,
