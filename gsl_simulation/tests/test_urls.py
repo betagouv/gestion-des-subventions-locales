@@ -1,5 +1,4 @@
 from decimal import Decimal
-from urllib.parse import urlencode
 
 import pytest
 from django.urls import reverse
@@ -111,9 +110,7 @@ def test_patch_taux_simulation_projet_url(
         "simulation:patch-simulation-projet-taux",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_cote_d_or_user_logged.patch(
-        url, data="taux=0.5", follow=True
-    )
+    response = client_with_cote_d_or_user_logged.post(url, {"taux": "0.5"}, follow=True)
     assert response.status_code == 200
     assert response.templates[0].name == "gsl_simulation/simulation_detail.html"
     assert response.context["simu"] == cote_dorien_simulation_projet
@@ -135,8 +132,8 @@ def test_patch_taux_simulation_projet_url_with_htmx(
         "simulation:patch-simulation-projet-taux",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_cote_d_or_user_logged.patch(
-        url, data="taux=0.5", headers={"HX-Request": "true"}, follow=True
+    response = client_with_cote_d_or_user_logged.post(
+        url, {"taux": "0.5"}, headers={"HX-Request": "true"}, follow=True
     )
     assert response.status_code == 200
     assert response.templates[0].name == "htmx/projet_update.html"
@@ -158,8 +155,8 @@ def test_patch_montant_simulation_projet_url(
         "simulation:patch-simulation-projet-montant",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_cote_d_or_user_logged.patch(
-        url, data="montant=100", follow=True
+    response = client_with_cote_d_or_user_logged.post(
+        url, {"montant": "100"}, follow=True
     )
     assert response.status_code == 200
     assert response.templates[0].name == "gsl_simulation/simulation_detail.html"
@@ -181,8 +178,8 @@ def test_patch_montant_simulation_projet_url_with_htmx(
         "simulation:patch-simulation-projet-montant",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_cote_d_or_user_logged.patch(
-        url, data="montant=100", headers={"HX-Request": "true"}, follow=True
+    response = client_with_cote_d_or_user_logged.post(
+        url, {"montant": "100"}, headers={"HX-Request": "true"}, follow=True
     )
     assert response.status_code == 200
     assert response.templates[0].name == "htmx/projet_update.html"
@@ -213,8 +210,8 @@ def test_patch_status_simulation_projet_url(
         "simulation:patch-simulation-projet-status",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_cote_d_or_user_logged.patch(
-        url, data="status=valid", follow=True
+    response = client_with_cote_d_or_user_logged.post(
+        url, {"status": "valid"}, follow=True
     )
     assert response.status_code == 200
     assert response.templates[0].name == "gsl_simulation/simulation_detail.html"
@@ -236,8 +233,8 @@ def test_patch_status_simulation_projet_url_with_htmx(
         "simulation:patch-simulation-projet-status",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_cote_d_or_user_logged.patch(
-        url, data="status=valid", headers={"HX-Request": "true"}, follow=True
+    response = client_with_cote_d_or_user_logged.post(
+        url, {"status": "valid"}, headers={"HX-Request": "true"}, follow=True
     )
     assert response.status_code == 200
     assert response.templates[0].name == "htmx/projet_update.html"
@@ -266,17 +263,15 @@ def test_patch_projet_only_if_projet_is_included_in_user_perimetre(
         "simulation:patch-simulation-projet-taux",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_cote_d_or_user_logged.patch(
-        url, data="taux=0.5", follow=True
-    )
+    response = client_with_cote_d_or_user_logged.post(url, {"taux": "0.5"}, follow=True)
     assert response.status_code == 200
 
     url = reverse(
         "simulation:patch-simulation-projet-montant",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_cote_d_or_user_logged.patch(
-        url, data="montant=400", follow=True
+    response = client_with_cote_d_or_user_logged.post(
+        url, {"montant": "400"}, follow=True
     )
     assert response.status_code == 200
 
@@ -284,8 +279,8 @@ def test_patch_projet_only_if_projet_is_included_in_user_perimetre(
         "simulation:patch-simulation-projet-status",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_cote_d_or_user_logged.patch(
-        url, data="status=valid", follow=True
+    response = client_with_cote_d_or_user_logged.post(
+        url, {"status": "valid"}, follow=True
     )
     assert response.status_code == 200
 
@@ -306,21 +301,21 @@ def test_cant_patch_projet_only_if_projet_is_not_included_in_user_perimetre(
         "simulation:patch-simulation-projet-taux",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_iconnais_user_logged.patch(url, data="taux=0.5")
+    response = client_with_iconnais_user_logged.post(url, {"taux": "0.5"})
     assert response.status_code == 404
 
     url = reverse(
         "simulation:patch-simulation-projet-montant",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_iconnais_user_logged.patch(url, data="montant=400")
+    response = client_with_iconnais_user_logged.post(url, {"montant": "400"})
     assert response.status_code == 404
 
     url = reverse(
         "simulation:patch-simulation-projet-status",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_iconnais_user_logged.patch(url, data="status=valid")
+    response = client_with_iconnais_user_logged.post(url, {"status": "valid"})
     assert response.status_code == 404
 
 
@@ -343,21 +338,21 @@ def test_regional_user_cant_patch_projet_if_simulation_projet_is_associated_to_d
         "simulation:patch-simulation-projet-taux",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_bourguignon_user_logged.patch(url, data="taux=0.5")
+    response = client_with_bourguignon_user_logged.post(url, {"taux": "0.5"})
     assert response.status_code == 404
 
     url = reverse(
         "simulation:patch-simulation-projet-montant",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_bourguignon_user_logged.patch(url, data="montant=400")
+    response = client_with_bourguignon_user_logged.post(url, {"montant": "400"})
     assert response.status_code == 404
 
     url = reverse(
         "simulation:patch-simulation-projet-status",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_bourguignon_user_logged.patch(url, data="status=valid")
+    response = client_with_bourguignon_user_logged.post(url, {"status": "valid"})
     assert response.status_code == 404
 
 
@@ -381,8 +376,8 @@ def test_regional_user_can_patch_projet_if_simulation_projet_is_associated_to_ds
         "simulation:patch-simulation-projet-taux",
         kwargs={"pk": cote_dorien_dsil_simulation_projet.pk},
     )
-    response = client_with_bourguignon_user_logged.patch(
-        url, data="taux=0.5", follow=True
+    response = client_with_bourguignon_user_logged.post(
+        url, {"taux": "0.5"}, follow=True
     )
     assert response.status_code == 200
 
@@ -390,8 +385,8 @@ def test_regional_user_can_patch_projet_if_simulation_projet_is_associated_to_ds
         "simulation:patch-simulation-projet-montant",
         kwargs={"pk": cote_dorien_dsil_simulation_projet.pk},
     )
-    response = client_with_bourguignon_user_logged.patch(
-        url, data="montant=400", follow=True
+    response = client_with_bourguignon_user_logged.post(
+        url, {"montant": "400"}, follow=True
     )
     assert response.status_code == 200
 
@@ -399,8 +394,8 @@ def test_regional_user_can_patch_projet_if_simulation_projet_is_associated_to_ds
         "simulation:patch-simulation-projet-status",
         kwargs={"pk": cote_dorien_dsil_simulation_projet.pk},
     )
-    response = client_with_bourguignon_user_logged.patch(
-        url, data="status=valid", follow=True
+    response = client_with_bourguignon_user_logged.post(
+        url, {"status": "valid"}, follow=True
     )
     assert response.status_code == 200
 
@@ -419,9 +414,9 @@ def test_patch_projet_allowed_for_staff_user(
         "simulation:patch-simulation-projet-taux",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_staff_user_logged.patch(
+    response = client_with_staff_user_logged.post(
         url,
-        data=urlencode({"taux": "0.5"}),
+        {"taux": "0.5"},
         follow=True,
     )
     assert response.status_code == 200
@@ -430,16 +425,14 @@ def test_patch_projet_allowed_for_staff_user(
         "simulation:patch-simulation-projet-montant",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_staff_user_logged.patch(url, data="montant=400", follow=True)
+    response = client_with_staff_user_logged.post(url, {"montant": "400"}, follow=True)
     assert response.status_code == 200
 
     url = reverse(
         "simulation:patch-simulation-projet-status",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_staff_user_logged.patch(
-        url, data="status=valid", follow=True
-    )
+    response = client_with_staff_user_logged.post(url, {"status": "valid"}, follow=True)
     assert response.status_code == 200
 
 
@@ -496,7 +489,7 @@ def test_redirection_with_referer_allowed(
         "simulation:patch-simulation-projet-status",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client.patch(url, data="status=valid", follow=True)
+    response = client.post(url, {"status": "valid"}, follow=True)
     assert response.status_code == 200
     assert response.templates[0].name == "gsl_simulation/simulation_projet_detail.html"
 
@@ -510,6 +503,6 @@ def test_redirection_with_referer_not_allowed(
         "simulation:patch-simulation-projet-status",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client.patch(url, data="status=valid", follow=True)
+    response = client.post(url, {"status": "valid"}, follow=True)
     assert response.status_code == 200
     assert response.templates[0].name == "gsl_simulation/simulation_detail.html"
