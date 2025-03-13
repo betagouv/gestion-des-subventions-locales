@@ -19,12 +19,11 @@ pytestmark = pytest.mark.django_db(transaction=True)
 
 
 def test_montant_retenu_with_accepted_programmation_projet():
-    projet = ProjetFactory()
-    assert projet.montant_retenu is None
-
-    ProgrammationProjetFactory(
-        projet=projet, status=ProgrammationProjet.STATUS_ACCEPTED, montant=10_000
+    programmation_projet = ProgrammationProjetFactory(
+        status=ProgrammationProjet.STATUS_ACCEPTED, montant=10_000
     )
+    projet = programmation_projet.projet
+    projet.accepted_programmation_projets = [programmation_projet]
     assert projet.montant_retenu == 10_000
 
 
@@ -39,12 +38,11 @@ def test_montant_retenu_with_refused_programmation_projet():
 
 
 def test_taux_retenu_with_accepted_programmation_projet():
-    projet = ProjetFactory()
-    assert projet.taux_retenu is None
-
-    ProgrammationProjetFactory(
-        projet=projet, status=ProgrammationProjet.STATUS_ACCEPTED, taux=10
+    programmation_projet = ProgrammationProjetFactory(
+        status=ProgrammationProjet.STATUS_ACCEPTED, taux=10
     )
+    projet = programmation_projet.projet
+    projet.accepted_programmation_projets = [programmation_projet]
     assert projet.taux_retenu == 10
 
 
