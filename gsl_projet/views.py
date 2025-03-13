@@ -1,3 +1,4 @@
+from django.db.models import Prefetch
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
@@ -70,6 +71,8 @@ class ProjetListViewFilters(ProjetFilters):
 
     @property
     def qs(self):
+        from gsl_programmation.models import ProgrammationProjet
+
         qs = super().qs
         qs = qs.for_user(self.request.user)
         qs = qs.for_current_year()
@@ -80,6 +83,13 @@ class ProjetListViewFilters(ProjetFilters):
         ).prefetch_related(
             "dossier_ds__demande_eligibilite_detr",
             "dossier_ds__demande_eligibilite_dsil",
+            Prefetch(
+                "programmationprojet_set",
+                queryset=ProgrammationProjet.objects.filter(
+                    status=ProgrammationProjet.STATUS_ACCEPTED
+                ),
+                to_attr="accepted_programmation_projets",
+            ),
         )
         return qs
 
