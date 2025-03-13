@@ -54,7 +54,7 @@ def _add_message(
     if message_type == SimulationProjet.STATUS_ACCEPTED:
         messages.info(
             request,
-            f"Le financement de ce projet vient d’être accepté avec la dotation {simulation_projet.enveloppe.type} pour {euro(simulation_projet.montant,2)}.",
+            f"Le financement de ce projet vient d’être accepté avec la dotation {simulation_projet.enveloppe.type} pour {euro(simulation_projet.montant, 2)}.",
             extra_tags=message_type,
         )
 
@@ -146,7 +146,7 @@ class SimulationProjetDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["title"] = "Projet modifiable"
+        context["title"] = self.object.projet.dossier_ds.projet_intitule
         context["breadcrumb_dict"] = {
             "links": [
                 {
@@ -161,7 +161,7 @@ class SimulationProjetDetailView(DetailView):
                     "title": self.object.simulation.title,
                 },
             ],
-            "current": self.object.projet,
+            "current": context["title"],
         }
         context["projet"] = self.object.projet
         context["simu"] = self.object
