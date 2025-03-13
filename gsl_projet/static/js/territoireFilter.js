@@ -36,7 +36,7 @@ function updateCheckboxStateDependingOnChild(checkbox) {
 
 
 // Gestion du clic sur un parent pour cocher/décocher ses enfants
-document.querySelectorAll('.territoire-type-r input[type="checkbox"], .territoire-type-d input[type="checkbox"]').forEach(parentCheckbox => {
+document.querySelectorAll('.territoire-type-d input[type="checkbox"]').forEach(parentCheckbox => {
   parentCheckbox.addEventListener('change', function () {updateDepartementalChildCheckboxes(this)});
 });
 document.querySelectorAll('.territoire-type-r input[type="checkbox"]').forEach(parentCheckbox => {
@@ -55,7 +55,7 @@ function updateDepartementalChildCheckboxes(target) {
 }
 
 function updateAllRegionalChildCheckboxes(target) {
-  const parentName = target.dataset.region || target.dataset.departement;
+  const parentName = target.dataset.region;
   if (!parentName) return;
 
   const childCheckboxes = document.querySelectorAll(`input[data-parent='${parentName}']`);
