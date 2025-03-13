@@ -37,6 +37,15 @@
             </li>
             <li>
                 <span aria-hidden="true">🧾</span> Taux de subvention sollicité : {{ projet.get_taux_de_subvention_sollicite|percent|default:"—" }}
+                <button class="fr-btn--tooltip fr-btn fr-m-0 fr-pv-0-5v gsl-tooltip"
+                        type="button"
+                        aria-describedby="tooltip-taux">
+                    en % de l'assiette subventionnable
+                </button>
+                <span class="fr-tooltip fr-placement"
+                      id="tooltip-taux"
+                      role="tooltip"
+                      aria-hidden="true">en % de l'assiette subventionnable</span>
             </li>
         </ul>
     </div>
