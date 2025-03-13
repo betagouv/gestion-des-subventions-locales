@@ -24,7 +24,6 @@ class ProjetFilters(FilterSet):
         widget=Select(
             attrs={
                 "class": "fr-select",
-                "onchange": "this.form.submit()",
             }
         ),
         empty_label="Toutes les dotations",
@@ -41,7 +40,6 @@ class ProjetFilters(FilterSet):
         widget=Select(
             attrs={
                 "class": "fr-select",
-                "onchange": "this.form.submit()",
             },
         ),
         empty_label="Tous les porteurs",
