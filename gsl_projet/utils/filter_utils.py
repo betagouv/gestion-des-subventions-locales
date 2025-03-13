@@ -1,3 +1,6 @@
+from gsl_core.models import Perimetre
+
+
 class FilterUtils:
     FILTER_TEMPLATE_MAPPINGS = {
         "dotation": "includes/_filter_dotation.html",
@@ -7,6 +10,7 @@ class FilterUtils:
         "montant_demande": "includes/_filter_montant_demande.html",
         "montant_retenu": "includes/_filter_montant_retenu.html",
         "montant_previsionnel": "includes/_filter_montant_previsionnel.html",
+        "territoire": "includes/_filter_territoire.html",
     }
 
     def enrich_context_with_filter_utils(self, context, state_mappings):
@@ -24,6 +28,11 @@ class FilterUtils:
         context["is_montant_previsionnel_active"] = self._get_is_one_field_active(
             "montant_previsionnel_min", "montant_previsionnel_max"
         )
+        context["is_territoire_active"] = self._get_is_one_field_active("territoire")
+        context["is_territoire_placeholder"], context["territoire_selected"] = (
+            self._get_selected_territoires()
+        )
+        context["territoire_choices"] = self._get_territoire_choices()
 
         context["filter_templates"] = self._get_filter_templates()
 
@@ -44,6 +53,26 @@ class FilterUtils:
             for status in self.request.GET.getlist("status")
             if status in state_mappings
         )
+
+    def _get_selected_territoires(self):
+        view_perimetre = self._get_perimetre()
+        if self.request.GET.get("territoire") in (None, "", []):
+            label = view_perimetre.entity_name if view_perimetre else "Tous"
+            return label, set()
+
+        territoire_ids = set(
+            int(perimetre) for perimetre in self.request.GET.getlist("territoire")
+        )
+        perimetres = Perimetre.objects.filter(id__in=territoire_ids).select_related(
+            "departement", "region", "arrondissement"
+        )
+        return ", ".join(p.entity_name for p in perimetres), territoire_ids
+
+    def _get_perimetre(self) -> Perimetre:
+        raise NotImplementedError
+
+    def _get_territoire_choices(self):
+        raise NotImplementedError
 
     def _get_is_one_field_active(self, *field_names):
         return any(

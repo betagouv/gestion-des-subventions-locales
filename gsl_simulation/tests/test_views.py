@@ -7,9 +7,12 @@ from django.contrib.messages import get_messages
 from django.urls import resolve, reverse
 
 from gsl_core.tests.factories import (
+    ArrondissementFactory,
     ClientWithLoggedUserFactory,
     CollegueFactory,
+    PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
+    PerimetreRegionalFactory,
     RequestFactory,
 )
 from gsl_demarches_simplifiees.models import Dossier
@@ -20,6 +23,7 @@ from gsl_demarches_simplifiees.tests.factories import (
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
     ProgrammationProjetFactory,
 )
 from gsl_projet.models import Projet
@@ -240,6 +244,9 @@ def test_get_validated_and_refused_projets_count_enveloppe_data(req, simulation)
 @pytest.fixture
 def create_simulation_projets(simulation, projets):
     add_enveloppe_projets_to_simulation(simulation.id)
+
+
+# Test filters
 
 
 def _get_view_with_filter(req, simulation, filter_params):
@@ -499,6 +506,74 @@ def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
 
     for projet in projets:
         assert projet.dossier_ds.porteur_de_projet_nature.label == "Commune"
+
+
+def test_simulation_has_correct_territoire_choices():
+    perimetre_arrondissement_A = PerimetreArrondissementFactory()
+    perimetre_arrondissement_B = PerimetreArrondissementFactory()
+
+    perimetre_departement_A = PerimetreDepartementalFactory(
+        departement=perimetre_arrondissement_A.departement,
+    )
+    _perimetre_departement_B = PerimetreDepartementalFactory(
+        departement=perimetre_arrondissement_B.departement,
+    )
+    perimetre_region_A = PerimetreRegionalFactory(
+        region=perimetre_departement_A.region,
+    )
+
+    enveloppe = DsilEnveloppeFactory(perimetre=perimetre_departement_A)
+    simulation = SimulationFactory(enveloppe=enveloppe)
+
+    user = CollegueFactory(perimetre=perimetre_region_A)
+    client = ClientWithLoggedUserFactory(user)
+    url = reverse("simulation:simulation-detail", kwargs={"slug": simulation.slug})
+
+    response = client.get(url)
+    assert response.status_code == 200
+    assert len(response.context["territoire_choices"]) == 2
+    assert response.context["territoire_choices"] == (
+        perimetre_departement_A,
+        perimetre_arrondissement_A,
+    )
+
+
+def test_view_with_territory_filter():
+    perimetre_arrondissement_A = PerimetreArrondissementFactory()
+    perimetre_arrondissement_B = PerimetreArrondissementFactory(
+        arrondissement=ArrondissementFactory(
+            departement=perimetre_arrondissement_A.departement
+        )
+    )
+
+    perimetre_departement_A = PerimetreDepartementalFactory(
+        departement=perimetre_arrondissement_A.departement,
+    )
+
+    enveloppe = DetrEnveloppeFactory(perimetre=perimetre_departement_A)
+    simulation = SimulationFactory(enveloppe=enveloppe)
+
+    SimulationProjetFactory.create_batch(
+        2,
+        simulation=simulation,
+        projet__perimetre=perimetre_arrondissement_A,
+    )
+
+    SimulationProjetFactory.create_batch(
+        3, simulation=simulation, projet__perimetre=perimetre_arrondissement_B
+    )
+
+    user = CollegueFactory(perimetre=perimetre_departement_A)
+    req = RequestFactory(user=user)
+    filter_params = {
+        "territoire": [perimetre_arrondissement_A.id],
+    }
+    view = _get_view_with_filter(req, simulation, filter_params)
+
+    projets = view.get_projet_queryset()
+
+    assert projets.count() == 2
+    assert all(projet.perimetre == perimetre_arrondissement_A for projet in projets)
 
 
 @pytest.fixture

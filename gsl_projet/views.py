@@ -50,9 +50,18 @@ def get_projet(request, projet_id):
 
 
 class ProjetListViewFilters(ProjetFilters):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if hasattr(self.request, "user") and self.request.user.perimetre:
+            perimetre = self.request.user.perimetre
+            self.filters["territoire"].extra["choices"] = tuple(
+                (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
+            )
+
     filterset = (
-        "dotation",
+        "territoire",
         "porteur",
+        "dotation",
         "status",
         "cout_total",
         "montant_demande",
@@ -67,6 +76,7 @@ class ProjetListViewFilters(ProjetFilters):
         qs = qs.select_related(
             "address",
             "address__commune",
+            "perimetre",
         ).prefetch_related(
             "dossier_ds__demande_eligibilite_detr",
             "dossier_ds__demande_eligibilite_dsil",
@@ -93,3 +103,14 @@ class ProjetListView(FilterView, ListView, FilterUtils):
         self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
 
         return context
+
+    def _get_perimetre(self):
+        if hasattr(self.request, "user") and self.request.user.perimetre:
+            return self.request.user.perimetre
+
+    def _get_territoire_choices(self):
+        perimetre = self._get_perimetre()
+        if not perimetre:
+            return ()
+
+        return (perimetre, *perimetre.children())

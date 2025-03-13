@@ -108,3 +108,21 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.territoire-type-d ~ .territoire-type-a,
+.territoire-type-r ~ .territoire-type-d {
+  transform: translateX(1em);
+}
+
+.territoire-type-r ~ .territoire-type-a {
+  transform: translateX(2em);
+}
+
+#filter-territoire input[type="checkbox"]:indeterminate  ~ label::before {
+  background-color: var(--background-alt-blue-france-active);
+  --data-uri-svg: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23f5f5fe' d='m10 15.17 9.2-9.2 1.4 1.42L10 18l-6.36-6.36 1.4-1.42z'/%3E%3C/svg%3E");
+}
+
+#filter-territoire {
+  gap: 6px;
+}

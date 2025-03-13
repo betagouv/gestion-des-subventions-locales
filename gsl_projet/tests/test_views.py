@@ -1,20 +1,26 @@
 from datetime import UTC
 
 import pytest
+from django.urls import reverse
 from django.utils import timezone
 
 from gsl_core.models import Collegue, Departement
 from gsl_core.tests.factories import (
+    ArrondissementFactory,
+    ClientWithLoggedUserFactory,
     CollegueFactory,
     DepartementFactory,
+    PerimetreArrondissementFactory,
+    PerimetreDepartementalFactory,
     PerimetreFactory,
+    PerimetreRegionalFactory,
     RequestFactory,
 )
 from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
 from gsl_projet.models import Demandeur, Projet
 from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
 from gsl_projet.utils.projet_filters import ProjetFilters
-from gsl_projet.views import ProjetListView
+from gsl_projet.views import ProjetListView, ProjetListViewFilters
 
 pytestmark = pytest.mark.django_db
 
@@ -543,4 +549,94 @@ def test_get_status_placeholder_with_status(req, view, projets_with_status):
     assert (
         view._get_status_placeholder(ProjetListView.STATE_MAPPINGS)
         == "✅ Accepté, 🔄 En traitement"
+    )
+
+
+### Test du filtre par territoire
+@pytest.fixture
+def perimetre_29(dep_finistere):
+    return PerimetreDepartementalFactory(departement=dep_finistere)
+
+
+@pytest.fixture
+def perimetre_quimper(perimetre_29):
+    arrondissement = ArrondissementFactory(departement=perimetre_29.departement)
+    return PerimetreArrondissementFactory(arrondissement=arrondissement)
+
+
+@pytest.fixture
+def perimetre_brest(perimetre_29):
+    arrondissement = ArrondissementFactory(departement=perimetre_29.departement)
+    return PerimetreArrondissementFactory(arrondissement=arrondissement)
+
+
+@pytest.fixture
+def projets_29(perimetre_29, perimetre_quimper, perimetre_brest):
+    return [
+        ProjetFactory(perimetre=perimetre_29),
+        ProjetFactory(perimetre=perimetre_quimper),
+        ProjetFactory(perimetre=perimetre_brest),
+    ]
+
+
+def test_filter_territoire_with_a_departement_gives_all_departement_projets(
+    req, view, projets_29, perimetre_29
+):
+    request = req.get(f"/?territoire={perimetre_29.id}")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 3
+    assert all(perimetre_29.contains_or_equal(p.perimetre) for p in qs)
+
+
+def test_filter_territoire_with_an_arrondissement_gives_only_arrondissement_projets(
+    req, view, projets_29, perimetre_quimper
+):
+    request = req.get(f"/?territoire={perimetre_quimper.id}")
+    view.request = request
+    qs = view.get_filterset(ProjetListViewFilters).qs
+
+    assert qs.count() == 1
+    assert qs.first().perimetre == perimetre_quimper
+
+
+def test_filter_territoire_with_two_arrondissements_gives_only_these_arrondissement_projets(
+    req, view, projets_29, perimetre_quimper, perimetre_brest
+):
+    request = req.get(
+        f"/?territoire={perimetre_quimper.id}&territoire={perimetre_brest.id}"
+    )
+    view.request = request
+    qs = view.get_filterset(ProjetListViewFilters).qs
+
+    assert qs.count() == 2
+    assert qs.first().perimetre in [perimetre_quimper, perimetre_brest]
+
+
+def test_view_has_correct_territoire_choices():
+    perimetre_arrondissement_A = PerimetreArrondissementFactory()
+    perimetre_arrondissement_B = PerimetreArrondissementFactory()
+
+    perimetre_departement_A = PerimetreDepartementalFactory(
+        departement=perimetre_arrondissement_A.departement,
+    )
+    _perimetre_departement_B = PerimetreDepartementalFactory(
+        departement=perimetre_arrondissement_B.departement,
+    )
+    perimetre_region_A = PerimetreRegionalFactory(
+        region=perimetre_departement_A.region,
+    )
+
+    user = CollegueFactory(perimetre=perimetre_region_A)
+    client = ClientWithLoggedUserFactory(user)
+    url = reverse("projet:list")
+
+    response = client.get(url)
+    assert response.status_code == 200
+    assert len(response.context["territoire_choices"]) == 3
+    assert response.context["territoire_choices"] == (
+        perimetre_region_A,
+        perimetre_departement_A,
+        perimetre_arrondissement_A,
     )
