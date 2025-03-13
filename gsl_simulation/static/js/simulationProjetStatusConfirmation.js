@@ -87,5 +87,5 @@ document.querySelector(".gsl-projet-table").addEventListener("change", (ev) => {
     if (!target.classList.contains("status-select")) {
         return;
     }
-    return handleStatusChange(target, target.value);
+    return handleStatusChange(target, target.dataset.originalValue);
 })

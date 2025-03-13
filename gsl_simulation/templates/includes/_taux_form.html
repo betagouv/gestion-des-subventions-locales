@@ -6,6 +6,7 @@
                type="text"
                inputmode="numeric"
                class="fr-input input-simulation-projet-{{ simu.pk }}"
+               hx-post="{% url 'simulation:patch-simulation-projet-taux' simu.id %}"
                hx-disabled-elt=".input-simulation-projet-{{ simu.pk }}"
                value="{{ simu.taux }}"
                {% if simu.status == 'cancelled' or simu.status == 'dismissed' %}disabled{% endif %}>
