@@ -103,7 +103,8 @@ ul.no-list-style li {
 
 .block-avis-commission-detr {
     display: inline-flex;
-    gap: 16px
+    gap: 16px;
+    align-items: center;
 }
 
 /* Liste de projets */

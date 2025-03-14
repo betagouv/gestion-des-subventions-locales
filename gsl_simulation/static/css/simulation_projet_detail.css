@@ -32,3 +32,12 @@
   color: var(--text-default-grey);
 }
 
+#avis-commission-detr {
+  max-width: 150px;
+}
+
+.avis-commission-detr-select-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
