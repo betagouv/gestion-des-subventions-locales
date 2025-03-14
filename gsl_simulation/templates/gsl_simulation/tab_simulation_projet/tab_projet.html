@@ -2,38 +2,44 @@
 {% load static gsl_filters %}
 
 {% block avis_commission_detr %}
-    <div class="fr-callout fr-background-alt--blue-france block-avis-commission-detr">
-        <h2 class="fr-callout__title fr-text--lg">
-            <span class="fr-icon fr-icon-team-fill blue-color fr-mr-3v"
-                  aria-hidden="true"></span>Commission DETR (projet à + de 50k)
-        </h2>
-        <label class="fr-label" for="avis-commission-detr">
-            Sélectionner l'avis de la commission d'élus DETR :
-        </label>
-        <div class="avis-commission-detr-select-group">
-            {% if projet.avis_commission_detr %}
-                <span class="fr-icon-chat-check-fill green-color" aria-hidden="true"></span>
-            {% elif projet.avis_commission_detr is False %}
-                <span class="fr-icon-chat-delete-fill red-color" aria-hidden="true"></span>
-            {% else %}
-                <span class="fr-icon-message-2-fill grey-color" aria-hidden="true"></span>
-            {% endif %}
-            <select name="avis_commission_detr"
-                    id="avis-commission-detr"
-                    class="fr-select"
-                    onchange="this.form.submit()">
-                <option value='None'
-                        {% if projet.avis_commission_detr is None %}selected{% endif %}>
-                    En cours
-                </option>
-                <option value='True' {% if projet.avis_commission_detr %}selected{% endif %}>
-                    Oui
-                </option>
-                <option value='False'
-                        {% if projet.avis_commission_detr is False %}selected{% endif %}>
-                    Non
-                </option>
-            </select>
+    <div class="fr-callout fr-background-alt--blue-france fr-container--fluid">
+        <div class="fr-grid-row fr-grid-row--gutters avis-commission-detr-block">
+            <h2 class="fr-callout__title fr-text--lg">
+                <span class="fr-icon fr-icon-team-fill blue-color fr-mr-3v"
+                      aria-hidden="true"></span>Commission DETR (projet à + de 50k)
+            </h2>
+
+            <div class="avis-commission-detr-select-and-label">
+                <label class="fr-label" for="avis-commission-detr">
+                    Sélectionner l'avis de la commission d'élus DETR :
+                </label>
+
+                <div class="avis-commission-detr-select-group">
+                    {% if projet.avis_commission_detr %}
+                        <span class="fr-icon-chat-check-fill green-color" aria-hidden="true"></span>
+                    {% elif projet.avis_commission_detr is False %}
+                        <span class="fr-icon-chat-delete-fill red-color" aria-hidden="true"></span>
+                    {% else %}
+                        <span class="fr-icon-message-2-fill grey-color" aria-hidden="true"></span>
+                    {% endif %}
+                    <select name="avis_commission_detr"
+                            id="avis-commission-detr"
+                            class="fr-select"
+                            onchange="this.form.submit()">
+                        <option value='None'
+                                {% if projet.avis_commission_detr is None %}selected{% endif %}>
+                            En cours
+                        </option>
+                        <option value='True' {% if projet.avis_commission_detr %}selected{% endif %}>
+                            Oui
+                        </option>
+                        <option value='False'
+                                {% if projet.avis_commission_detr is False %}selected{% endif %}>
+                            Non
+                        </option>
+                    </select>
+                </div>
+            </div>
         </div>
     </div>
 {% endblock avis_commission_detr %}
