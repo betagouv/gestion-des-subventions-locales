@@ -14,7 +14,9 @@
                     Sélectionner l'avis de la commission d'élus DETR :
                 </label>
 
-                <div class="avis-commission-detr-select-group">
+                <form action="{% url 'simulation:patch-avis-commission-detr-simulation-projet' simu.id %}"
+                      method="POST"
+                      class="avis-commission-detr-select-group">
                     {% if projet.avis_commission_detr %}
                         <span class="fr-icon-chat-check-fill green-color" aria-hidden="true"></span>
                     {% elif projet.avis_commission_detr is False %}
@@ -22,8 +24,9 @@
                     {% else %}
                         <span class="fr-icon-message-2-fill grey-color" aria-hidden="true"></span>
                     {% endif %}
+                    {% csrf_token %}
                     <select name="avis_commission_detr"
-                            id="avis-commission-detr"
+                            id="avis_commission_detr"
                             class="fr-select"
                             onchange="this.form.submit()">
                         <option value='None'
@@ -38,7 +41,7 @@
                             Non
                         </option>
                     </select>
-                </div>
+                </form>
             </div>
         </div>
     </div>

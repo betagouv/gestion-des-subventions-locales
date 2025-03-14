@@ -116,6 +116,29 @@ def patch_status_simulation_projet(request, pk):
     return redirect_to_simulation_projet(request, updated_simulation_projet, status)
 
 
+@projet_must_be_in_user_perimetre
+@exception_handler_decorator
+@require_http_methods(["POST", "PATCH"])
+def patch_avis_commission_detr_simulation_projet(request, pk):
+    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
+    data = QueryDict(request.body)
+    avis_commission_detr = data.get("avis_commission_detr")
+
+    if avis_commission_detr not in ("None", "True", "False"):
+        raise ValueError("Invalid avis_commission_detr")
+
+    if avis_commission_detr == "None":
+        new_value = None
+    elif avis_commission_detr == "True":
+        new_value = True
+    else:
+        new_value = False
+
+    simulation_projet.projet.avis_commission_detr = new_value
+    simulation_projet.projet.save()
+    return redirect_to_simulation_projet(request, simulation_projet)
+
+
 class SimulationProjetDetailView(DetailView):
     model = SimulationProjet
     template_name = "gsl_simulation/simulation_projet_detail.html"
