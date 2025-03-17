@@ -23,17 +23,17 @@
                 <th>
                     Coût total du projet
                     <br>
-                    <span class="gsl-money gsl_projet_table__total gsl-money gsl-projet-table__total-cost">{{ total_cost | floatformat:"0g" | default:"—" }}&nbsp;€</span>
+                    <span class="gsl-money gsl_projet_table__total gsl-money gsl-projet-table__total-cost">{{ total_cost | euro:0 }}</span>
                 </th>
                 <th>
                     Montant et taux sollicités
                     <br>
-                    <span class="gsl-money gsl_projet_table__total gsl-projet-table__total-asked">{{ total_amount_asked | floatformat:"0g" | default:"—" }}&nbsp;€</span>
+                    <span class="gsl-money gsl_projet_table__total gsl-projet-table__total-asked">{{ total_amount_asked | euro:0 }}</span>
                 </th>
                 <th>
                     Montant retenu
                     <br>
-                    <span class="gsl-money gsl_projet_table__total gsl-projet-table__total-granted">{{ total_amount_granted | floatformat:"0g" | default:"—" }}&nbsp;€</span>
+                    <span class="gsl-money gsl_projet_table__total gsl-projet-table__total-granted">{{ total_amount_granted | euro:0 }}</span>
                 </th>
                 <th>
                     Taux de subvention
