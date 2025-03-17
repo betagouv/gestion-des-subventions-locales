@@ -1,10 +1,6 @@
 {% extends "base.html" %}
 {% load static dsfr_tags gsl_filters %}
 
-{% block breadcrumb %}
-    {% dsfr_breadcrumb breadcrumb_dict %}
-{% endblock breadcrumb %}
-
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/simulation_detail.css' %}">
 {% endblock extra_css %}
