@@ -29,33 +29,16 @@ def replace_comma_by_dot(value: str | None) -> float | None:
 def add_success_message(
     request, message_type: str | None, simulation_projet: SimulationProjet
 ):
-    if message_type == SimulationProjet.STATUS_REFUSED:
+    STATUS_TO_MESSAGE = {
+        SimulationProjet.STATUS_REFUSED: "Le financement de ce projet vient d’être refusé.",
+        SimulationProjet.STATUS_ACCEPTED: f"Le financement de ce projet vient d’être accepté avec la dotation {simulation_projet.enveloppe.type} pour {euro(simulation_projet.montant, 2)}.",
+        SimulationProjet.STATUS_DISMISSED: "Le projet est classé sans suite.",
+        SimulationProjet.STATUS_PROVISOIRE: "Le projet est accepté provisoirement dans cette simulation.",
+        SimulationProjet.STATUS_PROCESSING: "Le projet est revenu en traitement.",
+    }
+    if message_type in STATUS_TO_MESSAGE:
         messages.info(
             request,
-            "Le financement de ce projet vient d’être refusé.",
-            extra_tags=message_type,
-        )
-    if message_type == SimulationProjet.STATUS_ACCEPTED:
-        messages.info(
-            request,
-            f"Le financement de ce projet vient d’être accepté avec la dotation {simulation_projet.enveloppe.type} pour {euro(simulation_projet.montant, 2)}.",
-            extra_tags=message_type,
-        )
-    if message_type == SimulationProjet.STATUS_DISMISSED:
-        messages.info(
-            request,
-            "Le projet est classé sans suite.",
-            extra_tags=message_type,
-        )
-    if message_type == SimulationProjet.STATUS_PROVISOIRE:
-        messages.info(
-            request,
-            "Le projet est accepté provisoirement dans cette simulation.",
-            extra_tags=message_type,
-        )
-    if message_type == SimulationProjet.STATUS_PROCESSING:
-        messages.info(
-            request,
-            "Le projet est revenu en traitement.",
+            STATUS_TO_MESSAGE[message_type],
             extra_tags=message_type,
         )

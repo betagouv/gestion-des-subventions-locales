@@ -29,6 +29,15 @@ def remove_first_word(value):
     return parts[1] if len(parts) > 1 else ""
 
 
+STATUS_TO_ALERT_TITLE = {
+    "valid": "Projet accepté",
+    "cancelled": "Projet refusé",
+    "provisoire": "Projet accepté provisoirement",
+    "dismissed": "Projet classé sans suite",
+    "draft": "Projet en traitement",
+}
+
+
 @register.filter
 def create_alert_data(status: str | None, arg: str) -> dict[str, str | bool]:
     data_dict: dict[str, str | bool] = {"is_collapsible": True}
@@ -38,15 +47,7 @@ def create_alert_data(status: str | None, arg: str) -> dict[str, str | bool]:
 
     data_dict["description"] = arg
 
-    if status == "valid":
-        data_dict["title"] = "Projet accepté"
-    elif status == "cancelled":
-        data_dict["title"] = "Projet refusé"
-    elif status == "provisoire":
-        data_dict["title"] = "Projet accepté provisoirement"
-    elif status == "dismissed":
-        data_dict["title"] = "Projet classé sans suite"
-    elif status == "draft":
-        data_dict["title"] = "Projet en traitement"
+    if status in STATUS_TO_ALERT_TITLE:
+        data_dict["title"] = STATUS_TO_ALERT_TITLE[status]
 
     return data_dict
