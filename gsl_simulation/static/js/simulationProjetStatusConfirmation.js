@@ -130,14 +130,12 @@ document.addEventListener('keydown', function(event) {
 
 document.querySelectorAll(".confirmation-modal").forEach((elt)=>{
     elt.addEventListener("click", (ev) => {
-        console.log("confirmation-modal clicked")
         closeModal();
     })
 })
 
 document.querySelectorAll(".confirmation-modal-container").forEach((elt) => {
     elt.addEventListener("click", (ev) => {
-        console.log("confirmation-modal-container clicked")
         ev.stopPropagation();
     })
 })

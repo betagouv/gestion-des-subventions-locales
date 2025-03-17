@@ -1,4 +1,4 @@
-{% extends "includes/modals/_modal_base.html" %}
+{% extends "includes/modals/modal_base.html" %}
 {% block modal_id %}
     accept-confirmation-modal
 {% endblock modal_id %}
@@ -16,11 +16,8 @@
     </p>
 {% endblock content %}
 
-{% block buttons %}
-    <button class="fr-btn fr-btn--secondary close-modal">
-        Annuler
-    </button>
+{% block confirmation_button %}
     <button class="fr-btn fr-btn--primary accept-button" id="confirmChange">
         Confirmer
     </button>
-{% endblock buttons %}
+{% endblock confirmation_button %}
