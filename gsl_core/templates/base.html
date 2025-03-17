@@ -73,7 +73,7 @@
 
         <div class="fr-container fr-mt-4w fr-mb-6w">
             {% block breadcrumb %}
-                {# no dsfr_breadcrumb by default #}
+                {% include "blocks/breadcrumb.html" %}
             {% endblock breadcrumb %}
             <main id="content" role="main">
                 {% block content %}

@@ -8,6 +8,7 @@ from django.views.generic.list import ListView
 from django_filters import MultipleChoiceFilter, NumberFilter
 from django_filters.views import FilterView
 
+from gsl_core.models import Perimetre
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.models import Projet
@@ -53,7 +54,26 @@ class SimulationListView(ListView):
 
 
 class SimulationProjetListViewFilters(ProjetFilters):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.slug = self.request.resolver_match.kwargs.get("slug")
+        simulation = Simulation.objects.select_related(
+            "enveloppe",
+            "enveloppe__perimetre",
+            "enveloppe__perimetre__region",
+            "enveloppe__perimetre__departement",
+            "enveloppe__perimetre__arrondissement",
+        ).get(slug=self.slug)
+        enveloppe = simulation.enveloppe
+        perimetre = enveloppe.perimetre
+
+        if perimetre:
+            self.filters["territoire"].extra["choices"] = tuple(
+                (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
+            )
+
     filterset = (
+        "territoire",
         "porteur",
         "status",
         "cout_total",
@@ -119,11 +139,7 @@ class SimulationProjetListViewFilters(ProjetFilters):
         )
 
     def _simulation_slug_filter_kwarg(self):
-        return {
-            "simulationprojet__simulation__slug": self.request.resolver_match.kwargs.get(
-                "slug"
-            )
-        }
+        return {"simulationprojet__simulation__slug": self.slug}
 
 
 class SimulationDetailView(FilterView, DetailView, FilterUtils):
@@ -134,10 +150,18 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
+        self.simulation = Simulation.objects.select_related(
+            "enveloppe",
+            "enveloppe__perimetre",
+            "enveloppe__perimetre__region",
+            "enveloppe__perimetre__departement",
+            "enveloppe__perimetre__arrondissement",
+        ).get(slug=self.object.slug)
+        self.perimetre = self.simulation.enveloppe.perimetre
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        simulation = self.get_object()
+        simulation = self.simulation
         qs = self.get_projet_queryset()
         context = super().get_context_data(**kwargs)
         paginator = Paginator(qs, 25)
@@ -220,6 +244,13 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             "demandeurs": enveloppe_projets_included.distinct("demandeur").count(),
             "projets_count": enveloppe_projets_included.count(),
         }
+
+    def _get_perimetre(self) -> Perimetre:
+        return self.perimetre
+
+    def _get_territoire_choices(self):
+        perimetre = self.perimetre
+        return (perimetre, *perimetre.children())
 
     # This method is used to prevent caching of the page
     # This is useful for the row update with htmx

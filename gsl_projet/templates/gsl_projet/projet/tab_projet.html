@@ -7,31 +7,45 @@
     <div class="fr-callout__text">
         <ul class="no-list-style">
             <li>
-                <b>Numéro de dossier <abbr title="Démarches Simplifiées">DS </abbr> :</b> {{ dossier.ds_number }}
+                <b><span class="blue-color">Numéro de dossier (Démarches Simplifiées)</span> : {{ dossier.ds_number }}</b>
             </li>
             <li>
-                <b>Département :</b> {{ projet.departement|default:"—" }}
+                <span aria-hidden="true">📍</span> Département : {{ projet.perimetre.departement.name|default:"-" }}
             </li>
             <li>
-                <b>Arrondissement :</b> {{ dossier.porteur_de_projet_arrondissement }}
+                <span aria-hidden="true">📍</span> Arrondissement : {{ projet.perimetre.arrondissement.name|default:"-" }}
             </li>
             <li>
-                <b>Date de dépôt :</b> {{ dossier.ds_date_depot|date }}
+                <span aria-hidden="true">📆</span> Date de dépôt : {{ dossier.ds_date_depot|date }}
             </li>
             <li>
-                <b>Date de modification Démarches Simplifiées : </b> {{ dossier.ds_date_derniere_modification|date }}
+                <span aria-hidden="true">📆</span> Date de modification Démarches Simplifiées : {{ dossier.ds_date_derniere_modification|date }}
+            </li>
+        </ul>
+        <h6>
+            Financements :
+        </h6>
+        <ul class="no-list-style">
+            <li>
+                <span aria-hidden="true">💶</span> Coût total de l’opération : {{ dossier.finance_cout_total|euro }}
             </li>
             <li>
-                <b>Coût total de l’opération :</b> {{ dossier.finance_cout_total|euro:2 }}
+                <span aria-hidden="true">💶</span> Assiette subventionnable : {{ projet.assiette|euro }}
             </li>
             <li>
-                <b>Assiette subventionnable :</b> {{ projet.assiette|euro:2 }}
+                <span aria-hidden="true">🧾</span> Montant demandé : {{ dossier.demande_montant|euro }}
             </li>
             <li>
-                <b>Montant demandé :</b> {{ dossier.demande_montant|euro:2 }}
-            </li>
-            <li>
-                <b>Taux de subvention sollicité :</b> {{ projet.get_taux_de_subvention_sollicite|percent|default:"—" }}
+                <span aria-hidden="true">🧾</span> Taux de subvention sollicité : {{ projet.get_taux_de_subvention_sollicite|percent|default:"—" }}
+                <button class="fr-btn--tooltip fr-btn fr-m-0 fr-pv-0-5v gsl-tooltip"
+                        type="button"
+                        aria-describedby="tooltip-taux">
+                    en % de l'assiette subventionnable
+                </button>
+                <span class="fr-tooltip fr-placement"
+                      id="tooltip-taux"
+                      role="tooltip"
+                      aria-hidden="true">en % de l'assiette subventionnable</span>
             </li>
         </ul>
     </div>
@@ -48,7 +62,7 @@
         <div class="fr-col gsl-projet">
             <section>
                 <h3 id="porteur_de_projet">
-                    <i class="fr-icon-user-fill blue-icon" aria-hidden="true"></i>
+                    <i class="fr-icon-user-fill blue-color" aria-hidden="true"></i>
                     1 - Porteur de projet
                 </h3>
                 <ul>
@@ -65,7 +79,7 @@
             </section>
             <section>
                 <h3>
-                    <i class="fr-icon-article-fill blue-icon" aria-hidden="true"></i>
+                    <i class="fr-icon-article-fill blue-color" aria-hidden="true"></i>
                     2 - Présentation de l’opération
                 </h3>
                 <h4 id="presentation_projet">
@@ -166,7 +180,7 @@
             </section>
             <section>
                 <h3>
-                    <i class="fr-icon-money-euro-circle-fill blue-icon" aria-hidden="true"></i>
+                    <i class="fr-icon-money-euro-circle-fill blue-color" aria-hidden="true"></i>
                     3 - Plan de financement prévisionnel
                 </h3>
 

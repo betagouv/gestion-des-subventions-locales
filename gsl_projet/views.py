@@ -1,6 +1,5 @@
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
-from django.urls import reverse
 from django.views.decorators.http import require_GET
 from django.views.generic import ListView
 from django_filters.views import FilterView
@@ -35,13 +34,13 @@ def visible_by_user(func):
 @require_GET
 def get_projet(request, projet_id):
     projet = get_object_or_404(Projet, id=projet_id)
+    title = projet.dossier_ds.projet_intitule
     context = {
-        "title": f"Projet {projet}",
+        "title": title,
         "projet": projet,
         "dossier": projet.dossier_ds,
         "breadcrumb_dict": {
-            "links": [{"url": reverse("projet:list"), "title": "Liste des projets"}],
-            "current": f"Projet {projet}",
+            "current": title,
         },
         "menu_dict": PROJET_MENU,
     }
@@ -49,9 +48,18 @@ def get_projet(request, projet_id):
 
 
 class ProjetListViewFilters(ProjetFilters):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if hasattr(self.request, "user") and self.request.user.perimetre:
+            perimetre = self.request.user.perimetre
+            self.filters["territoire"].extra["choices"] = tuple(
+                (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
+            )
+
     filterset = (
-        "dotation",
+        "territoire",
         "porteur",
+        "dotation",
         "status",
         "cout_total",
         "montant_demande",
@@ -66,6 +74,7 @@ class ProjetListViewFilters(ProjetFilters):
         qs = qs.select_related(
             "address",
             "address__commune",
+            "perimetre",
         ).prefetch_related(
             "dossier_ds__demande_eligibilite_detr",
             "dossier_ds__demande_eligibilite_dsil",
@@ -85,10 +94,21 @@ class ProjetListView(FilterView, ListView, FilterUtils):
         qs = context["object_list"]
         context["title"] = "Projets 2025"
         context["porteur_mappings"] = ProjetService.PORTEUR_MAPPINGS
-        context["breadcrumb_dict"] = {"current": "Liste des projets"}
+        context["breadcrumb_dict"] = {}
         context["total_cost"] = ProjetService.get_total_cost(qs)
         context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs)
         context["total_amount_granted"] = 0  # TODO
         self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
 
         return context
+
+    def _get_perimetre(self):
+        if hasattr(self.request, "user") and self.request.user.perimetre:
+            return self.request.user.perimetre
+
+    def _get_territoire_choices(self):
+        perimetre = self._get_perimetre()
+        if not perimetre:
+            return ()
+
+        return (perimetre, *perimetre.children())
