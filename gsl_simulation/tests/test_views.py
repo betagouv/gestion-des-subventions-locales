@@ -606,9 +606,9 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
     url = reverse(
         "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
     )
-    response = client_with_user_logged.patch(
+    response = client_with_user_logged.post(
         url,
-        data=f"status={SimulationProjet.STATUS_ACCEPTED}",
+        {"status": f"{SimulationProjet.STATUS_ACCEPTED}"},
         follow=True,
         headers={"HX-Request": "true"},
     )
@@ -637,9 +637,9 @@ def test_patch_status_simulation_projet_with_refused_value_with_htmx(
     url = reverse(
         "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
     )
-    response = client_with_user_logged.patch(
+    response = client_with_user_logged.post(
         url,
-        data=f"status={SimulationProjet.STATUS_REFUSED}",
+        {"status": f"{SimulationProjet.STATUS_REFUSED}"},
         follow=True,
         headers={"HX-Request": "true"},
     )
@@ -659,67 +659,52 @@ def test_patch_status_simulation_projet_with_refused_value_with_htmx(
     )
 
 
-@pytest.mark.parametrize(
-    "status",
+data_test = (
+    (
+        SimulationProjet.STATUS_ACCEPTED,
+        "Le financement de ce projet vient d’être accepté avec la dotation DETR pour 1\xa0000,00\xa0€.",
+        "valid",
+    ),
+    (
+        SimulationProjet.STATUS_REFUSED,
+        "Le financement de ce projet vient d’être refusé.",
+        "cancelled",
+    ),
     (
         SimulationProjet.STATUS_DISMISSED,
-        SimulationProjet.STATUS_PROCESSING,
+        "Le projet est classé sans suite.",
+        "dismissed",
+    ),
+    (
         SimulationProjet.STATUS_PROVISOIRE,
+        "Le projet est accepté provisoirement dans cette simulation.",
+        "provisoire",
+    ),
+    (
+        SimulationProjet.STATUS_PROCESSING,
+        "Le projet est revenu en traitement.",
+        "draft",
     ),
 )
-@pytest.mark.django_db
-def test_patch_status_simulation_projet_without_htmx_and_giving_no_message(
-    client_with_user_logged, simulation_projet, status
-):
-    url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
-    )
-    response = client_with_user_logged.patch(url, data=f"status={status}", follow=True)
-
-    assert response.status_code == 200
-    assert list(response.context["messages"]) == []
-
-    simulation_projet.refresh_from_db()
-    assert simulation_projet.status == status
 
 
-@pytest.mark.django_db
-def test_patch_status_simulation_projet_with_accepted_value_giving_message(
-    client_with_user_logged, simulation_projet
-):
-    url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
-    )
-    response = client_with_user_logged.patch(
-        url,
-        data=f"status={SimulationProjet.STATUS_ACCEPTED}",
-        follow=True,
-    )
-
-    assert response.status_code == 200
-
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-
-    message = list(messages)[0]
-    assert message.level == 20
-    assert (
-        message.message
-        == "Le financement de ce projet vient d’être accepté avec la dotation DETR pour 1\xa0000,00\xa0€."
-    )
-    assert message.extra_tags == "valid"
-
-
+@pytest.mark.parametrize("status, expected_message, expected_tag", data_test)
 @pytest.mark.django_db
 def test_patch_status_simulation_projet_with_refused_value_giving_message(
-    client_with_user_logged, simulation_projet
+    client_with_user_logged, simulation_projet, status, expected_message, expected_tag
 ):
+    if status == SimulationProjet.STATUS_PROCESSING:
+        simulation_projet.status = SimulationProjet.STATUS_ACCEPTED
+        simulation_projet.projet.status = Projet.STATUS_ACCEPTED
+        simulation_projet.projet.save()
+        simulation_projet.save()
+
     url = reverse(
         "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
     )
-    response = client_with_user_logged.patch(
+    response = client_with_user_logged.post(
         url,
-        data=f"status={SimulationProjet.STATUS_REFUSED}",
+        {"status": status},
         follow=True,
     )
 
@@ -730,8 +715,8 @@ def test_patch_status_simulation_projet_with_refused_value_giving_message(
 
     message = list(messages)[0]
     assert message.level == 20
-    assert message.message == "Le financement de ce projet vient d’être refusé."
-    assert message.extra_tags == "cancelled"
+    assert message.message == expected_message
+    assert message.extra_tags == expected_tag
 
 
 @pytest.mark.django_db
@@ -742,9 +727,9 @@ def test_patch_status_simulation_projet_invalid_status(
     url = reverse(
         "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
     )
-    response = client_with_user_logged.patch(
+    response = client_with_user_logged.post(
         url,
-        data="status=invalid",
+        {"status": "invalid"},
         follow=True,
         headers={"HX-Request": "true"},
     )
@@ -776,9 +761,9 @@ def test_patch_taux_simulation_projet(
     url = reverse(
         "simulation:patch-simulation-projet-taux", args=[accepted_simulation_projet.id]
     )
-    response = client_with_user_logged.patch(
+    response = client_with_user_logged.post(
         url,
-        data="taux=75.0",
+        {"taux": "75.0"},
         follow=True,
         headers={"HX-Request": "true"},
     )
@@ -804,9 +789,9 @@ def test_patch_taux_simulation_projet_with_wrong_value(
     url = reverse(
         "simulation:patch-simulation-projet-taux", args=[accepted_simulation_projet.id]
     )
-    response = client_with_user_logged.patch(
+    response = client_with_user_logged.post(
         url,
-        data=f"taux={taux}",
+        {"taux": f"{taux}"},
         follow=True,
     )
 
@@ -828,9 +813,9 @@ def test_patch_montant_simulation_projet(
         "simulation:patch-simulation-projet-montant",
         args=[accepted_simulation_projet.id],
     )
-    response = client_with_user_logged.patch(
+    response = client_with_user_logged.post(
         url,
-        data="montant=1267,32",
+        {"montant": "1267,32"},
         follow=True,
         headers={"HX-Request": "true"},
     )

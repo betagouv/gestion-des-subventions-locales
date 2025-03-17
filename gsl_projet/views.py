@@ -1,7 +1,6 @@
 from django.db.models import Prefetch
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
-from django.urls import reverse
 from django.views.decorators.http import require_GET
 from django.views.generic import ListView
 from django_filters.views import FilterView
@@ -42,7 +41,6 @@ def get_projet(request, projet_id):
         "projet": projet,
         "dossier": projet.dossier_ds,
         "breadcrumb_dict": {
-            "links": [{"url": reverse("projet:list"), "title": "Liste des projets"}],
             "current": title,
         },
         "menu_dict": PROJET_MENU,
@@ -108,7 +106,7 @@ class ProjetListView(FilterView, ListView, FilterUtils):
         )  # utile pour ne pas avoir la pagination de context["object_list"]
         context["title"] = "Projets 2025"
         context["porteur_mappings"] = ProjetService.PORTEUR_MAPPINGS
-        context["breadcrumb_dict"] = {"current": "Liste des projets"}
+        context["breadcrumb_dict"] = {}
         context["total_cost"] = ProjetService.get_total_cost(qs_global)
         context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs_global)
         context["total_amount_granted"] = ProjetService.get_total_amount_granted(

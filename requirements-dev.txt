@@ -61,7 +61,7 @@ cssbeautifier==1.15.4
     # via djlint
 decorator==5.2.1
     # via ipython
-diff-cover==9.2.3
+diff-cover==9.2.4
     # via gsl (pyproject.toml)
 diff-match-patch==20241021
     # via django-import-export
@@ -92,7 +92,7 @@ django-celery-results==2.5.1
     # via gsl (pyproject.toml)
 django-crispy-forms==2.3
     # via django-dsfr
-django-csp==3.8
+django-csp==4.0b5
     # via gsl (pyproject.toml)
 django-dsfr==2.2.0
     # via gsl (pyproject.toml)
@@ -128,19 +128,19 @@ executing==2.2.0
     # via stack-data
 factory-boy==3.3.3
     # via gsl (pyproject.toml)
-faker==36.2.2
+faker==37.0.0
     # via factory-boy
 filelock==3.17.0
     # via virtualenv
 gunicorn==23.0.0
     # via gsl (pyproject.toml)
-identify==2.6.8
+identify==2.6.9
     # via pre-commit
 idna==3.10
     # via requests
 iniconfig==2.0.0
     # via pytest
-ipython==9.0.1
+ipython==9.0.2
     # via gsl (pyproject.toml)
 ipython-pygments-lexers==1.1.1
     # via ipython
@@ -169,6 +169,7 @@ nodeenv==1.9.1
 packaging==24.2
     # via
     #   build
+    #   django-csp
     #   gunicorn
     #   pytest
 parso==0.8.4
@@ -245,7 +246,7 @@ requests==2.32.3
     # via
     #   django-dsfr
     #   mozilla-django-oidc
-ruff==0.9.9
+ruff==0.9.10
     # via
     #   gsl (pyproject.toml)
     #   pytest-ruff
@@ -289,7 +290,7 @@ vine==5.1.0
     #   amqp
     #   celery
     #   kombu
-virtualenv==20.29.2
+virtualenv==20.29.3
     # via pre-commit
 wcwidth==0.2.13
     # via prompt-toolkit

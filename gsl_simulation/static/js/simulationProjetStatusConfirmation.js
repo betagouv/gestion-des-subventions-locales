@@ -1,4 +1,7 @@
-let selectedElement = null;
+'use strict';
+
+let selectedElement = undefined;
+let modalId = undefined
 
 const VALID = "valid";
 const CANCELLED = "cancelled";
@@ -8,7 +11,7 @@ const PROVISOIRE = "provisoire";
 
 const STATUSES_WITH_OTHER_SIMULATION_IMPACT = [VALID, CANCELLED, DISMISSED];
 
-STATUS_TO_MODAL_ID = {
+const STATUS_TO_MODAL_ID = {
     "valid": "accept-confirmation-modal",
     "cancelled": "refuse-confirmation-modal",
     "draft": "processing-confirmation-modal",
@@ -16,7 +19,7 @@ STATUS_TO_MODAL_ID = {
     "provisoire": "provisoire-confirmation-modal",
 }
 
-STATUS_TO_FRENCH_WORD = {
+const STATUS_TO_FRENCH_WORD = {
     "valid": "validé",
     "cancelled": "refusé",
     "dismissed": "classé sans suite",
@@ -30,41 +33,80 @@ function mustOpenConfirmationModal(newValue, originalValue) {
 }
 
 function replaceInitialStatusModalContentText(originalValue, modalContentId) {
-    confirmationModalContent = document.getElementById(modalContentId)
-    const newText = STATUS_TO_FRENCH_WORD[originalValue]
-    confirmationModalContent.querySelector(".initial-status").innerHTML= newText
+    const confirmationModalContent = document.getElementById(modalContentId)
+    confirmationModalContent.querySelector(".initial-status").innerHTML= STATUS_TO_FRENCH_WORD[originalValue]
+}
+
+function handleStatusChangeWithHtmx(select, originalValue) {
+    if (mustOpenConfirmationModal(select.value, originalValue)) {
+        showConfirmationModal(select, originalValue);
+    } else {
+        if (typeof htmx !== 'undefined') htmx.trigger(select.form, 'status-confirmed');  // Déclenche le PATCH HTMX
+        else select.form.submit();
+    }
 }
 
 function handleStatusChange(select, originalValue) {
     if (mustOpenConfirmationModal(select.value, originalValue)) {
         showConfirmationModal(select, originalValue);
     } else {
-        htmx.trigger(select.form, 'status-confirmed');  // Déclenche le PATCH HTMX
+        select.form.submit();
     }
 }
 
 function showConfirmationModal(select, originalValue) {
     const status = select.value;
-    const modalId = STATUS_TO_MODAL_ID[status];
+    modalId = STATUS_TO_MODAL_ID[status];
     if (modalId === undefined) {
+        console.log("No modal for this status", status)
         return
     }
     selectedElement = select;
     if ([PROCESSING, PROVISOIRE].includes(status)) {
-        replaceInitialStatusModalContentText(originalValue, `${status}-confirmation-modal-content`)
+        const modalContentId = `${status}-confirmation-modal-content`
+        _replaceInitialStatusModalContentText(originalValue, modalContentId)
+        if (originalValue === DISMISSED) _removeFromProgrammationText(modalContentId)
     }
 
-    modal = document.getElementById(modalId)
+    const modal = document.getElementById(modalId)
     dsfr(modal).modal.disclose()
 }
 
-function closeModal(modalId) {
-    modal = document.getElementById(modalId)
+
+function _replaceInitialStatusModalContentText(originalValue, modalContentId) {
+    const confirmationModalContent = document.getElementById(modalContentId)
+    const newText = STATUS_TO_FRENCH_WORD[originalValue]
+    confirmationModalContent.querySelector(".initial-status").innerHTML= newText
+}
+
+function _removeFromProgrammationText(modalContentId) {
+    const confirmationModalContent = document.getElementById(modalContentId)
+    try {
+        confirmationModalContent.querySelector(".remove-from-programmation").remove()
+    }
+    catch (e) {
+        console.log("No element to remove")
+    }
+}
+
+function closeModal() {
+    if (modalId === undefined) {
+        return
+    }
+
+    const modal = document.getElementById(modalId)
     selectedElement.form.reset()
     dsfr(modal).modal.conceal()
     selectedElement.focus()
-    selectedElement = null;
+    selectedElement = undefined;
+    modalId = undefined;
 }
+
+document.querySelectorAll(".close-modal").forEach((el) => {
+    el.addEventListener('click', () => {
+        closeModal();
+    });
+})
 
 document.querySelectorAll('#confirmChange').forEach((e) => {
     e.addEventListener('click', function () {
@@ -75,4 +117,13 @@ document.querySelectorAll('#confirmChange').forEach((e) => {
             closeModal();
         }
     })
+});
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter' && selectedElement) {
+        selectedElement.form.submit();
+    }
+    if (event.key === "Escape" && selectedElement) {
+        closeModal()
+    }
 });

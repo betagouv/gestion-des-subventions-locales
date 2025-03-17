@@ -7,8 +7,7 @@
                         <button aria-controls="modal"
                                 title="Fermer"
                                 type="button"
-                                class="fr-btn--close fr-btn"
-                                onClick="closeModal('accept-confirmation-modal')">
+                                class="fr-btn--close fr-btn close-modal">
                             Fermer
                         </button>
                     </div>
@@ -18,15 +17,14 @@
                         </h1>
                         <p>
                             Ce projet va être accepté dans toutes les simulations dans lesquelles il a été ajouté.
-                            Il apparaîtra dans la programmation officielle {{ enveloppe.type }} {{ simulation_year }}.
+                            Il apparaîtra dans la programmation officielle {{ enveloppe.type }} {{ enveloppe.annee }}.
                         </p>
                         <p>
                             Êtes-vous sûr(e) d'accepter ce projet ?
                         </p>
                     </div>
                     <div class="fr-modal__footer confirmation-modal-footer">
-                        <button class="fr-btn fr-btn--secondary"
-                                onclick="closeModal('accept-confirmation-modal')">
+                        <button class="fr-btn fr-btn--secondary close-modal">
                             Annuler
                         </button>
                         <button class="fr-btn fr-btn--primary accept-button" id="confirmChange">

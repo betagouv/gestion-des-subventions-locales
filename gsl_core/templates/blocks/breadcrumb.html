@@ -1,0 +1,25 @@
+<nav role="navigation" class="fr-breadcrumb" aria-label="Vous êtes ici :">
+    <button type="button"
+            class="fr-breadcrumb__button"
+            aria-expanded="false"
+            aria-controls="breadcrumb-1">
+        Voir le fil d’Ariane
+    </button>
+    <div class="fr-collapse" id="breadcrumb-1">
+        <ol class="fr-breadcrumb__list">
+            <li>
+                <a class="fr-breadcrumb__link" href="{{ self.root_dir | default:'/' }}">Accueil - Liste des projets</a>
+            </li>
+            {% for link in breadcrumb_dict.links %}
+                <li>
+                    <a class="fr-breadcrumb__link" href="{{ link.url }}">{{ link.title }}</a>
+                </li>
+            {% endfor %}
+            {% if breadcrumb_dict.current %}
+                <li>
+                    <a class="fr-breadcrumb__link" aria-current="page">{{ breadcrumb_dict.current }}</a>
+                </li>
+            {% endif %}
+        </ol>
+    </div>
+</nav>

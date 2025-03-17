@@ -74,7 +74,7 @@ django-celery-results==2.5.1
     # via gsl (pyproject.toml)
 django-crispy-forms==2.3
     # via django-dsfr
-django-csp==3.8
+django-csp==4.0b5
     # via gsl (pyproject.toml)
 django-dsfr==2.2.0
     # via gsl (pyproject.toml)
@@ -102,7 +102,7 @@ gunicorn==23.0.0
     # via gsl (pyproject.toml)
 idna==3.10
     # via requests
-ipython==9.0.1
+ipython==9.0.2
     # via gsl (pyproject.toml)
 ipython-pygments-lexers==1.1.1
     # via ipython
@@ -117,7 +117,9 @@ matplotlib-inline==0.1.7
 mozilla-django-oidc==4.0.1
     # via gsl (pyproject.toml)
 packaging==24.2
-    # via gunicorn
+    # via
+    #   django-csp
+    #   gunicorn
 parso==0.8.4
     # via jedi
 pexpect==4.9.0
