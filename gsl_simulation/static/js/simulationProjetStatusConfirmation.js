@@ -128,10 +128,16 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
-document.querySelector(".confirmation-modal").addEventListener("click", (ev) => {
-    closeModal();
+document.querySelectorAll(".confirmation-modal").forEach((elt)=>{
+    elt.addEventListener("click", (ev) => {
+        console.log("confirmation-modal clicked")
+        closeModal();
+    })
 })
 
-document.querySelector(".confirmation-modal-container").addEventListener("click", (ev) => {
-    ev.stopPropagation();
+document.querySelectorAll(".confirmation-modal-container").forEach((elt) => {
+    elt.addEventListener("click", (ev) => {
+        console.log("confirmation-modal-container clicked")
+        ev.stopPropagation();
+    })
 })
