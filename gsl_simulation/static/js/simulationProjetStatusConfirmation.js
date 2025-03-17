@@ -1,3 +1,5 @@
+'use strict';
+
 let selectedElement = undefined;
 let modalId = undefined
 
@@ -9,7 +11,7 @@ const PROVISOIRE = "provisoire";
 
 const STATUSES_WITH_OTHER_SIMULATION_IMPACT = [VALID, CANCELLED, DISMISSED];
 
-STATUS_TO_MODAL_ID = {
+const STATUS_TO_MODAL_ID = {
     "valid": "accept-confirmation-modal",
     "cancelled": "refuse-confirmation-modal",
     "draft": "processing-confirmation-modal",
@@ -17,7 +19,7 @@ STATUS_TO_MODAL_ID = {
     "provisoire": "provisoire-confirmation-modal",
 }
 
-STATUS_TO_FRENCH_WORD = {
+const STATUS_TO_FRENCH_WORD = {
     "valid": "validé",
     "cancelled": "refusé",
     "dismissed": "classé sans suite",
@@ -28,6 +30,11 @@ function mustOpenConfirmationModal(newValue, originalValue) {
     if (newValue === PROCESSING && STATUSES_WITH_OTHER_SIMULATION_IMPACT.includes(originalValue)) return true;
     if (newValue === PROVISOIRE && STATUSES_WITH_OTHER_SIMULATION_IMPACT.includes(originalValue)) return true;
     return false;
+}
+
+function replaceInitialStatusModalContentText(originalValue, modalContentId) {
+    const confirmationModalContent = document.getElementById(modalContentId)
+    confirmationModalContent.querySelector(".initial-status").innerHTML= STATUS_TO_FRENCH_WORD[originalValue]
 }
 
 function handleStatusChangeWithHtmx(select, originalValue) {
@@ -60,19 +67,19 @@ function showConfirmationModal(select, originalValue) {
         if (originalValue === DISMISSED) _removeFromProgrammationText(modalContentId)
     }
 
-    modal = document.getElementById(modalId)
+    const modal = document.getElementById(modalId)
     dsfr(modal).modal.disclose()
 }
 
 
 function _replaceInitialStatusModalContentText(originalValue, modalContentId) {
-    confirmationModalContent = document.getElementById(modalContentId)
+    const confirmationModalContent = document.getElementById(modalContentId)
     const newText = STATUS_TO_FRENCH_WORD[originalValue]
     confirmationModalContent.querySelector(".initial-status").innerHTML= newText
 }
 
 function _removeFromProgrammationText(modalContentId) {
-    confirmationModalContent = document.getElementById(modalContentId)
+    const confirmationModalContent = document.getElementById(modalContentId)
     confirmationModalContent.querySelector(".remove-from-programmation").remove()
 }
 
@@ -81,13 +88,19 @@ function closeModal() {
         return
     }
 
-    modal = document.getElementById(modalId)
+    const modal = document.getElementById(modalId)
     selectedElement.form.reset()
     dsfr(modal).modal.conceal()
     selectedElement.focus()
     selectedElement = undefined;
     modalId = undefined;
 }
+
+document.querySelectorAll(".close-modal").forEach((el) => {
+    el.addEventListener('click', () => {
+        closeModal();
+    });
+})
 
 document.querySelectorAll('#confirmChange').forEach((e) => {
     e.addEventListener('click', function () {
@@ -108,3 +121,11 @@ document.addEventListener('keydown', function(event) {
         closeModal()
     }
 });
+
+document.querySelector(".gsl-projet-table").addEventListener("change", (ev) => {
+    let target = ev.target;
+    if (!target.classList.contains("status-select")) {
+        return;
+    }
+    return handleStatusChange(target, target.dataset.originalValue);
+})

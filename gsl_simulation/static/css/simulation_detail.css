@@ -90,19 +90,19 @@
 
 /* status select */
 
-#status-select {
+.status-select {
   font-weight: bold;
 }
 
-#status-select:has(> option[value="valid"]:checked){
+.status-select:has(> option[value="valid"]:checked){
   color: var(--text-default-success)
 }
 
-#status-select:has(> option[value="cancelled"]:checked){
+.status-select:has(> option[value="cancelled"]:checked){
   color: var(--text-default-error)
 }
 
-#status-select:has(> option[value="provisoire"]:checked){
+.status-select:has(> option[value="provisoire"]:checked){
   color: var(--text-default-info)
 }
 

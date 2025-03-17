@@ -606,9 +606,9 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
     url = reverse(
         "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
     )
-    response = client_with_user_logged.patch(
+    response = client_with_user_logged.post(
         url,
-        data=f"status={SimulationProjet.STATUS_ACCEPTED}",
+        {"status": f"{SimulationProjet.STATUS_ACCEPTED}"},
         follow=True,
         headers={"HX-Request": "true"},
     )
@@ -637,9 +637,9 @@ def test_patch_status_simulation_projet_with_refused_value_with_htmx(
     url = reverse(
         "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
     )
-    response = client_with_user_logged.patch(
+    response = client_with_user_logged.post(
         url,
-        data=f"status={SimulationProjet.STATUS_REFUSED}",
+        {"status": f"{SimulationProjet.STATUS_REFUSED}"},
         follow=True,
         headers={"HX-Request": "true"},
     )
@@ -702,9 +702,9 @@ def test_patch_status_simulation_projet_with_refused_value_giving_message(
     url = reverse(
         "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
     )
-    response = client_with_user_logged.patch(
+    response = client_with_user_logged.post(
         url,
-        data=f"status={status}",
+        {"status": status},
         follow=True,
     )
 
@@ -727,9 +727,9 @@ def test_patch_status_simulation_projet_invalid_status(
     url = reverse(
         "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
     )
-    response = client_with_user_logged.patch(
+    response = client_with_user_logged.post(
         url,
-        data="status=invalid",
+        {"status": "invalid"},
         follow=True,
         headers={"HX-Request": "true"},
     )
@@ -761,9 +761,9 @@ def test_patch_taux_simulation_projet(
     url = reverse(
         "simulation:patch-simulation-projet-taux", args=[accepted_simulation_projet.id]
     )
-    response = client_with_user_logged.patch(
+    response = client_with_user_logged.post(
         url,
-        data="taux=75.0",
+        {"taux": "75.0"},
         follow=True,
         headers={"HX-Request": "true"},
     )
@@ -789,9 +789,9 @@ def test_patch_taux_simulation_projet_with_wrong_value(
     url = reverse(
         "simulation:patch-simulation-projet-taux", args=[accepted_simulation_projet.id]
     )
-    response = client_with_user_logged.patch(
+    response = client_with_user_logged.post(
         url,
-        data=f"taux={taux}",
+        {"taux": f"{taux}"},
         follow=True,
     )
 
@@ -813,9 +813,9 @@ def test_patch_montant_simulation_projet(
         "simulation:patch-simulation-projet-montant",
         args=[accepted_simulation_projet.id],
     )
-    response = client_with_user_logged.patch(
+    response = client_with_user_logged.post(
         url,
-        data="montant=1267,32",
+        {"montant": "1267,32"},
         follow=True,
         headers={"HX-Request": "true"},
     )

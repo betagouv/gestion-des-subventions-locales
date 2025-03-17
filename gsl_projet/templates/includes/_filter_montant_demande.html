@@ -4,7 +4,7 @@
                 class="fr-input {% if is_montant_demande_active %}filter-dropdown-button-active{% endif %}"
                 id="filter-montant-demande-button">
             Montant demandé
-            <span class="fr-icon-money-euro-circle-fill fr-icon--sm blue-color fr-ml-1w" />
+            <span class="fr-icon-money-euro-circle-fill fr-icon--sm blue-color fr-ml-1w"></span>
         </button>
         <div class="filter-content">
             <div class="amount-filter-group">
@@ -56,7 +56,7 @@
     </div>
 </div>
 {% block extra_js %}
-    <script>
+    <script nonce="{{request.csp_nonce}}">
     // If the montant_demande_sup_100k checkbox is checked or unchecked, update the montant_demande_min and montant_demande_max inputs
     document.getElementById('montant_demande_sup_100k').addEventListener('change', function() {
         if (this.checked) {

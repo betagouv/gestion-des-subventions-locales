@@ -7,6 +7,9 @@
         <meta charset="utf-8" />
         <meta name="viewport"
               content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="htmx-config"
+              content='{"includeIndicatorStyles":false,"allowScriptTags":false,"allowEval":false}'>
+
         {% dsfr_css %}
         {% dsfr_favicon %}
 
@@ -70,7 +73,7 @@
 
         <div class="fr-container fr-mt-4w fr-mb-6w">
             {% block breadcrumb %}
-                {# no dsfr_breadcrumb by default #}
+                {% include "blocks/breadcrumb.html" %}
             {% endblock breadcrumb %}
             <main id="content" role="main">
                 {% block content %}

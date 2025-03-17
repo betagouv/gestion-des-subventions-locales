@@ -1,14 +1,14 @@
 {% load gsl_filters %}
 <form action="{% url 'simulation:patch-simulation-projet-status' simu.id %}"
       method="POST"
-      hx-patch="{% url 'simulation:patch-simulation-projet-status' simu.id %}"
+      hx-post="{% url 'simulation:patch-simulation-projet-status' simu.id %}"
       hx-trigger="status-confirmed"
       hx-disabled-elt="find .input-simulation-projet-{{ simu.pk }}">
     {% csrf_token %}
-    <select class="fr-select gsl-projet-table__select input-simulation-projet-{{ simu.pk }} input-status-select-{{ simu.status }}"
-            id="status-select"
+    <select class="fr-select gsl-projet-table__select input-simulation-projet-{{ simu.pk }} input-status-select-{{ simu.status }} status-select"
             name="status"
-            onchange="handleStatusChangeWithHtmx(this, '{{ simu.status }}')">
+            onchange="handleStatusChangeWithHtmx(this, '{{ simu.status }}')"
+            data-original-value="{{ simu.status }}">
         {% for key, value in available_states %}
             <option value={{ key }} {% if simu.status == key %} selected {% endif %}>
                 {{ value }}
