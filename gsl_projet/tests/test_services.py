@@ -10,6 +10,8 @@ from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     NaturePorteurProjetFactory,
 )
+from gsl_programmation.models import ProgrammationProjet
+from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
 from gsl_projet.tests.factories import ProjetFactory
@@ -114,6 +116,27 @@ def test_get_same_total_cost_even_if_there_is_other_projets(
 ):
     qs = Projet.objects.filter(simulationprojet__simulation=simulation).all()
     assert ProjetService.get_total_cost(qs) == 100_000
+
+
+@pytest.mark.django_db
+def test_get_total_amount_granted():
+    projet_1 = ProjetFactory()
+    projet_2 = ProjetFactory()
+    projet_3 = ProjetFactory()
+    _projet_4 = ProjetFactory()
+
+    ProgrammationProjetFactory(
+        projet=projet_1, status=ProgrammationProjet.STATUS_ACCEPTED, montant=10_000
+    )
+    ProgrammationProjetFactory(
+        projet=projet_2, status=ProgrammationProjet.STATUS_ACCEPTED, montant=20_000
+    )
+    ProgrammationProjetFactory(
+        projet=projet_3, status=ProgrammationProjet.STATUS_REFUSED, montant=0
+    )
+
+    qs = Projet.objects.all()
+    assert ProjetService.get_total_amount_granted(qs) == 30_000
 
 
 @pytest.fixture

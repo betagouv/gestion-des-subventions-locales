@@ -23,17 +23,20 @@
                 <th>
                     Coût total du projet
                     <br>
-                    <span class="gsl-money gsl_projet_table__total gsl-money gsl-projet-table__total-cost">{{ total_cost | floatformat:"0g" | default:"—" }}&nbsp;€</span>
+                    <span class="gsl-money gsl_projet_table__total gsl-money gsl-projet-table__total-cost">{{ total_cost | euro:0 }}</span>
                 </th>
                 <th>
                     Montant et taux sollicités
                     <br>
-                    <span class="gsl-money gsl_projet_table__total gsl-projet-table__total-asked">{{ total_amount_asked | floatformat:"0g" | default:"—" }}&nbsp;€</span>
+                    <span class="gsl-money gsl_projet_table__total gsl-projet-table__total-asked">{{ total_amount_asked | euro:0 }}</span>
                 </th>
                 <th>
-                    Montant et taux retenus
+                    Montant retenu
                     <br>
-                    <span class="gsl-money gsl_projet_table__total gsl-projet-table__total-granted">{{ total_amount_granted | floatformat:"0g" | default:"—" }}&nbsp;€</span>
+                    <span class="gsl-money gsl_projet_table__total gsl-projet-table__total-granted">{{ total_amount_granted | euro:0 }}</span>
+                </th>
+                <th>
+                    Taux de subvention
                 </th>
                 <th>
                     Catégorie d'opération
@@ -72,10 +75,12 @@
                         <br>
                         {{ projet.get_taux_de_subvention_sollicite|percent }}
                     </td>
-                    <td class="gsl-money">
-                        {{ projet.dossier_ds.annotations_montant_accorde|euro:2 }}
+                    <td class="gsl-money {% if projet.montant_retenu is not None %} success-color {% endif %}">
+                        {{ projet.montant_retenu|euro:2 }}
                         <br>
-                        {{ projet.dossier_ds.annotations_taux|percent }}
+                    </td>
+                    <td class="gsl-money">
+                        {{ projet.taux_retenu|percent }}
                     </td>
                     <td>
                         <ul class="no-list-style">

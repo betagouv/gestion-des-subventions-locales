@@ -1,3 +1,4 @@
+from django.db.models import Prefetch
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET
@@ -68,6 +69,8 @@ class ProjetListViewFilters(ProjetFilters):
 
     @property
     def qs(self):
+        from gsl_programmation.models import ProgrammationProjet
+
         qs = super().qs
         qs = qs.for_user(self.request.user)
         qs = qs.for_current_year()
@@ -78,6 +81,13 @@ class ProjetListViewFilters(ProjetFilters):
         ).prefetch_related(
             "dossier_ds__demande_eligibilite_detr",
             "dossier_ds__demande_eligibilite_dsil",
+            Prefetch(
+                "programmationprojet_set",
+                queryset=ProgrammationProjet.objects.filter(
+                    status=ProgrammationProjet.STATUS_ACCEPTED
+                ),
+                to_attr="accepted_programmation_projets",
+            ),
         )
         return qs
 
@@ -91,13 +101,17 @@ class ProjetListView(FilterView, ListView, FilterUtils):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        qs = context["object_list"]
+        qs_global = (
+            self.filterset.qs
+        )  # utile pour ne pas avoir la pagination de context["object_list"]
         context["title"] = "Projets 2025"
         context["porteur_mappings"] = ProjetService.PORTEUR_MAPPINGS
         context["breadcrumb_dict"] = {}
-        context["total_cost"] = ProjetService.get_total_cost(qs)
-        context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs)
-        context["total_amount_granted"] = 0  # TODO
+        context["total_cost"] = ProjetService.get_total_cost(qs_global)
+        context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs_global)
+        context["total_amount_granted"] = ProjetService.get_total_amount_granted(
+            qs_global
+        )
         self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
 
         return context

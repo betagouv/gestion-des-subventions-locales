@@ -1,5 +1,6 @@
 from datetime import UTC, date, datetime
 from datetime import timezone as tz
+from functools import cached_property
 from typing import TYPE_CHECKING
 
 from django.db import models
@@ -164,6 +165,26 @@ class Projet(models.Model):
         if self.assiette:
             return self.assiette
         return self.dossier_ds.finance_cout_total
+
+    @cached_property
+    def accepted_programmation_projet(self):
+        if (
+            hasattr(self, "accepted_programmation_projets")
+            and len(self.accepted_programmation_projets) > 0
+        ):
+            return self.accepted_programmation_projets[0]
+
+    @property
+    def montant_retenu(self) -> float | None:
+        if self.accepted_programmation_projet:
+            return self.accepted_programmation_projet.montant
+        return None
+
+    @property
+    def taux_retenu(self) -> float | None:
+        if self.accepted_programmation_projet:
+            return self.accepted_programmation_projet.taux
+        return None
 
     def get_taux_de_subvention_sollicite(self):
         if (
