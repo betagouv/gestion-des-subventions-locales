@@ -169,7 +169,6 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         current_page = paginator.page(page)
         context["simulations_paginator"] = current_page
         context["simulations_list"] = current_page.object_list
-        context["simulation_year"] = simulation.enveloppe.annee
         context["title"] = (
             f"{simulation.enveloppe.type} {simulation.enveloppe.annee} – {simulation.title}"
         )
