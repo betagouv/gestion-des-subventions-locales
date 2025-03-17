@@ -1,3 +1,5 @@
+'use strict';
+
 let selectedElement = null;
 
 const VALID = "valid";
@@ -8,7 +10,7 @@ const PROVISOIRE = "provisoire";
 
 const STATUSES_WITH_OTHER_SIMULATION_IMPACT = [VALID, CANCELLED, DISMISSED];
 
-STATUS_TO_MODAL_ID = {
+const STATUS_TO_MODAL_ID = {
     "valid": "accept-confirmation-modal",
     "cancelled": "refuse-confirmation-modal",
     "draft": "processing-confirmation-modal",
@@ -16,7 +18,7 @@ STATUS_TO_MODAL_ID = {
     "provisoire": "provisoire-confirmation-modal",
 }
 
-STATUS_TO_FRENCH_WORD = {
+const STATUS_TO_FRENCH_WORD = {
     "valid": "validé",
     "cancelled": "refusé",
     "dismissed": "classé sans suite",
@@ -30,9 +32,8 @@ function mustOpenConfirmationModal(newValue, originalValue) {
 }
 
 function replaceInitialStatusModalContentText(originalValue, modalContentId) {
-    confirmationModalContent = document.getElementById(modalContentId)
-    const newText = STATUS_TO_FRENCH_WORD[originalValue]
-    confirmationModalContent.querySelector(".initial-status").innerHTML= newText
+    const confirmationModalContent = document.getElementById(modalContentId)
+    confirmationModalContent.querySelector(".initial-status").innerHTML= STATUS_TO_FRENCH_WORD[originalValue]
 }
 
 function handleStatusChange(select, originalValue) {
@@ -54,18 +55,22 @@ function showConfirmationModal(select, originalValue) {
         replaceInitialStatusModalContentText(originalValue, `${status}-confirmation-modal-content`)
     }
 
-    modal = document.getElementById(modalId)
+    const modal = document.getElementById(modalId)
     dsfr(modal).modal.disclose()
 }
 
 function closeModal(modalId) {
-    modal = document.getElementById(modalId)
+    const modal = document.getElementById(modalId)
     selectedElement.form.reset()
     dsfr(modal).modal.conceal()
     selectedElement.focus()
     selectedElement = null;
 }
-
+document.querySelectorAll("[data-close-modal]").forEach((el) => {
+    el.addEventListener('click', () => {
+        closeModal(el.dataset.closeModal);
+    });
+})
 document.querySelectorAll('#confirmChange').forEach((e) => {
     e.addEventListener('click', function () {
         if (selectedElement) {
@@ -76,3 +81,11 @@ document.querySelectorAll('#confirmChange').forEach((e) => {
         }
     })
 });
+
+document.querySelector(".gsl-projet-table").addEventListener("change", (ev) => {
+    let target = ev.target;
+    if (!target.classList.contains("status-select")) {
+        return;
+    }
+    return handleStatusChange(target, target.dataset.originalValue);
+})

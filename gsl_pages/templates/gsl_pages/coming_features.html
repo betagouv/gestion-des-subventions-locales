@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_css %}
-    <style>
+    <style nonce="{{ request.csp_nonce }}">
     {% comment %} /* cspell:disable-file */
     /* webkit printing magic: print all background colors */
     html {
