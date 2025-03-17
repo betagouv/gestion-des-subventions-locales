@@ -118,7 +118,7 @@ def patch_status_simulation_projet(request, pk):
 
 @projet_must_be_in_user_perimetre
 @exception_handler_decorator
-@require_http_methods(["POST", "PATCH"])
+@require_POST
 def patch_avis_commission_detr_simulation_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     data = QueryDict(request.body)
