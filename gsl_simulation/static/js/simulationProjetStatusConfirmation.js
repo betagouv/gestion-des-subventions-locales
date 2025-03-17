@@ -127,3 +127,11 @@ document.addEventListener('keydown', function(event) {
         closeModal()
     }
 });
+
+document.querySelector(".confirmation-modal").addEventListener("click", (ev) => {
+    closeModal();
+})
+
+document.querySelector(".confirmation-modal-container").addEventListener("click", (ev) => {
+    ev.stopPropagation();
+})
