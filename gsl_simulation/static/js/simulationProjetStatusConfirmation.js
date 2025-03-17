@@ -41,7 +41,8 @@ function handleStatusChangeWithHtmx(select, originalValue) {
     if (mustOpenConfirmationModal(select.value, originalValue)) {
         showConfirmationModal(select, originalValue);
     } else {
-        htmx.trigger(select.form, 'status-confirmed');  // Déclenche le PATCH HTMX
+        if (typeof htmx !== 'undefined') htmx.trigger(select.form, 'status-confirmed');  // Déclenche le PATCH HTMX
+        else select.form.submit();
     }
 }
 
@@ -80,7 +81,12 @@ function _replaceInitialStatusModalContentText(originalValue, modalContentId) {
 
 function _removeFromProgrammationText(modalContentId) {
     const confirmationModalContent = document.getElementById(modalContentId)
-    confirmationModalContent.querySelector(".remove-from-programmation").remove()
+    try {
+        confirmationModalContent.querySelector(".remove-from-programmation").remove()
+    }
+    catch (e) {
+        console.log("No element to remove")
+    }
 }
 
 function closeModal() {
@@ -121,11 +127,3 @@ document.addEventListener('keydown', function(event) {
         closeModal()
     }
 });
-
-document.querySelector(".gsl-projet-table").addEventListener("change", (ev) => {
-    let target = ev.target;
-    if (!target.classList.contains("status-select")) {
-        return;
-    }
-    return handleStatusChange(target, target.dataset.originalValue);
-})

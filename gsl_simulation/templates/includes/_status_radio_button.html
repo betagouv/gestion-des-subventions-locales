@@ -4,10 +4,11 @@
                type="radio"
                id="{{ status_value }}"
                name="status"
+               class="status-radio-button"
                {% if simu.status == status_value %}checked{% endif %}
                {% if disabled %}disabled{% endif %}
-               onChange="handleStatusChange(this, '{{ simu.status }}')">
-        <label class="fr-label" for={{ status_value }}>
+               data-original-value="{{ simu.status }}">
+        <label class="fr-label" for="{{ status_value }}">
             {{ status_label }}
             <i class="{{ icon }}" aria-hidden="true"></i>
         </label>
