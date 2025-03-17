@@ -229,12 +229,14 @@ ul.no-list-style li {
 }
 
 /* projet detail */
-.badge-projet-status__accepted {
+.badge-projet-status__accepted,
+.badge-projet-status__valid {
     background-color: var(--background-contrast-success);
     color: var(--text-default-success);
 }
 
-.badge-projet-status__refused {
+.badge-projet-status__refused,
+.badge-projet-status__cancelled {
     background-color: var(--background-contrast-error);
     color: var(--text-default-error);
 }
@@ -243,9 +245,15 @@ ul.no-list-style li {
     background-color: var(--background-contrast-info);
     color: var(--text-default-info);
 } */
+
 .badge-projet-status__dismissed {
     background-color: var(--background-contrast-warning);
     color: var(--text-default-warning);
+}
+
+.badge-projet-status__provisoire {
+    background-color: var(--background-contrast-info);
+    color: var(--text-default-info);
 }
 
 /* common */

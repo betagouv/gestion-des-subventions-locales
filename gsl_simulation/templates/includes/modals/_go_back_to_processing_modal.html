@@ -7,8 +7,7 @@
                         <button aria-controls="modal"
                                 title="Fermer"
                                 type="button"
-                                class="fr-btn--close fr-btn"
-                                data-close-modal="processing-confirmation-modal">
+                                class="fr-btn--close fr-btn close-modal">
                             Fermer
                         </button>
                     </div>
@@ -18,15 +17,14 @@
                         </h1>
                         <p id="draft-confirmation-modal-content">
                             Ce projet <span class="initial-status"></span> va être remis en traitement dans toutes les simulations dans lesquelles il a été ajouté.
-                            Il n'apparaîtra plus dans la programmation officielle {{ enveloppe.type }} {{ simulation_year }}.
+                            <span class="remove-from-programmation">Il n'apparaîtra plus dans la programmation officielle {{ enveloppe.type }} {{ enveloppe.annee }}.</span>
                         </p>
                         <p>
                             Êtes-vous sûr(e) de remettre le projet en traitement ?
                         </p>
                     </div>
                     <div class="fr-modal__footer confirmation-modal-footer">
-                        <button class="fr-btn fr-btn--secondary"
-                                data-close-modal="processing-confirmation-modal">
+                        <button class="fr-btn fr-btn--secondary close-modal">
                             Annuler
                         </button>
                         <button class="fr-btn fr-btn--primary" id="confirmChange">
