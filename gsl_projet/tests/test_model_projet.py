@@ -56,6 +56,23 @@ def test_taux_retenu_with_refused_programmation_projet():
     assert projet.taux_retenu is None
 
 
+@pytest.mark.parametrize(
+    ("demande_dispositif_sollicite", "expected_is_asking_for_detr"),
+    (
+        ("", False),
+        ("DETR", True),
+        ("DSIL", False),
+        ("DETR DSIL", True),
+        ("['DSIL', 'DETR']", True),
+    ),
+)
+def test_is_asking_for_detr(demande_dispositif_sollicite, expected_is_asking_for_detr):
+    projet = ProjetFactory(
+        dossier_ds__demande_dispositif_sollicite=demande_dispositif_sollicite
+    )
+    assert projet.is_asking_for_detr is expected_is_asking_for_detr
+
+
 # Accept
 
 
