@@ -1,5 +1,8 @@
-{% load gsl_filters %}
-{% load dsfr_tags %}
+{% load static gsl_filters dsfr_tags %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static "css/projet_list.css" %}">
+{% endblock extra_css %}
 
 <div class="fr-table--lg gsl-projet-table" id="projet-table">
     <table>
@@ -75,7 +78,7 @@
                         <br>
                         {{ projet.get_taux_de_subvention_sollicite|percent }}
                     </td>
-                    <td class="gsl-money {% if projet.montant_retenu is not None %} success-color {% endif %}">
+                    <td class="gsl-money {% if projet.montant_retenu is not None %} gsl_projet_table__montant_retenu {% endif %}">
                         {{ projet.montant_retenu|euro:2 }}
                         <br>
                     </td>
