@@ -127,3 +127,15 @@ document.addEventListener('keydown', function(event) {
         closeModal()
     }
 });
+
+document.querySelectorAll(".confirmation-modal").forEach((elt)=>{
+    elt.addEventListener("click", (ev) => {
+        closeModal();
+    })
+})
+
+document.querySelectorAll(".confirmation-modal-container").forEach((elt) => {
+    elt.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+    })
+})

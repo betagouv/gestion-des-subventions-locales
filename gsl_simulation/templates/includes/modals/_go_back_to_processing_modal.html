@@ -1,38 +1,23 @@
-<dialog id="processing-confirmation-modal" class="fr-modal">
-    <div class="fr-container fr-container--fluid fr-container-md">
-        <div class="fr-grid-row fr-grid-row--center">
-            <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
-                <div class="fr-modal__body">
-                    <div class="fr-modal__header">
-                        <button aria-controls="modal"
-                                title="Fermer"
-                                type="button"
-                                class="fr-btn--close fr-btn close-modal">
-                            Fermer
-                        </button>
-                    </div>
-                    <div class="fr-modal__content">
-                        <h1 class="fr-modal__title processing-color">
-                            <span class="fr-icon-draft-fill fr-icon--lg" aria-hidden="true"></span> Revenir au statut “En traitement”
-                        </h1>
-                        <p id="draft-confirmation-modal-content">
-                            Ce projet <span class="initial-status"></span> va être remis en traitement dans toutes les simulations dans lesquelles il a été ajouté.
-                            <span class="remove-from-programmation">Il n'apparaîtra plus dans la programmation officielle {{ enveloppe.type }} {{ enveloppe.annee }}.</span>
-                        </p>
-                        <p>
-                            Êtes-vous sûr(e) de remettre le projet en traitement ?
-                        </p>
-                    </div>
-                    <div class="fr-modal__footer confirmation-modal-footer">
-                        <button class="fr-btn fr-btn--secondary close-modal">
-                            Annuler
-                        </button>
-                        <button class="fr-btn fr-btn--primary" id="confirmChange">
-                            Oui
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</dialog>
+{% extends "includes/modals/modal_base.html" %}
+{% block modal_id %}
+    processing-confirmation-modal
+{% endblock modal_id %}
+
+{% block content %}
+    <h1 class="fr-modal__title processing-color">
+        <span class="fr-icon-draft-fill fr-icon--lg" aria-hidden="true"></span> Revenir au statut “En traitement”
+    </h1>
+    <p id="draft-confirmation-modal-content">
+        Ce projet <span class="initial-status"></span> va être remis en traitement dans toutes les simulations dans lesquelles il a été ajouté.
+        <span class="remove-from-programmation">Il n'apparaîtra plus dans la programmation officielle {{ enveloppe.type }} {{ enveloppe.annee }}.</span>
+    </p>
+    <p>
+        Êtes-vous sûr(e) de remettre le projet en traitement ?
+    </p>
+{% endblock content %}
+
+{% block confirmation_button %}
+    <button class="fr-btn fr-btn--primary" id="confirmChange">
+        Oui
+    </button>
+{% endblock confirmation_button %}
