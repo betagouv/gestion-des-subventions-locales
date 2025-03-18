@@ -143,6 +143,8 @@ class Projet(models.Model):
         null=True,
     )
 
+    # TODO add a constraint to ensure that the projet is concerned by dotation DETR
+    # or put this in new model DotationProjet ?
     avis_commission_detr = models.BooleanField(
         "Avis commission DETR",
         help_text="Pour les projets de plus de 100 000 €",

@@ -121,8 +121,7 @@ def patch_status_simulation_projet(request, pk):
 @require_POST
 def patch_avis_commission_detr_simulation_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
-    data = QueryDict(request.body)
-    avis_commission_detr = data.get("avis_commission_detr")
+    avis_commission_detr = request.POST.get("avis_commission_detr")
 
     if avis_commission_detr not in ("None", "True", "False"):
         raise ValueError("Invalid avis_commission_detr")
