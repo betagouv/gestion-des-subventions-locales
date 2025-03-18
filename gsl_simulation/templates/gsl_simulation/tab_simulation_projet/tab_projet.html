@@ -2,7 +2,9 @@
 {% load static gsl_filters %}
 
 {% block avis_commission_detr %}
-    {% include "includes/_avis_commission_detr_form.html" %}
+    {% if enveloppe.type == 'DETR' %}
+        {% include "includes/_avis_commission_detr_form.html" %}
+    {% endif %}
 {% endblock avis_commission_detr %}
 
 {% block status_action %}
