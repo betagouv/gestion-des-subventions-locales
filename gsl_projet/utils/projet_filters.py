@@ -16,20 +16,75 @@ from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 
 
 class ProjetFilters(FilterSet):
-    dotation = ChoiceFilter(
-        field_name="dossier_ds__demande_dispositif_sollicite",
+    dotation = MultipleChoiceFilter(
         choices=(
             (Dossier.DOTATION_DETR, Dossier.DOTATION_DETR),
             (Dossier.DOTATION_DSIL, Dossier.DOTATION_DSIL),
+            (
+                "DETR_et_DSIL",
+                f"{Dossier.DOTATION_DETR} et {Dossier.DOTATION_DSIL}",
+            ),
         ),
-        widget=Select(
-            attrs={
-                "class": "fr-select",
-            }
-        ),
-        empty_label="Toutes les dotations",
-        lookup_expr="contains",
+        widget=CustomCheckboxSelectMultiple(),
+        method="filter_dotation",
     )
+
+    def filter_dotation(self, queryset, _name, values):
+        if not values:
+            return queryset
+
+        query = Q()
+
+        if "DETR" in values:
+            if "DSIL" in values:
+                if "DETR_et_DSIL" in values:
+                    # Inclure "DETR" ou "DSIL"
+                    query &= Q(
+                        Q(dossier_ds__demande_dispositif_sollicite__icontains="DETR")
+                        | Q(dossier_ds__demande_dispositif_sollicite__icontains="DSIL")
+                    )
+                else:
+                    # Inclure "DETR" seul ou "DSIL" seul mais pas "DETR" et "DSIL" ensemble
+                    query &= (
+                        Q(dossier_ds__demande_dispositif_sollicite__icontains="DETR")
+                        & ~Q(dossier_ds__demande_dispositif_sollicite__icontains="DSIL")
+                    ) | (
+                        Q(dossier_ds__demande_dispositif_sollicite__icontains="DSIL")
+                        & ~Q(dossier_ds__demande_dispositif_sollicite__icontains="DETR")
+                    )
+            else:
+                if "DETR_et_DSIL" in values:
+                    # Inclure "DETR" seul ou "DETR_et_DSIL", mais exclure "DSIL" seul
+                    query &= Q(
+                        dossier_ds__demande_dispositif_sollicite__icontains="DETR"
+                    )
+
+                if "DETR_et_DSIL" not in values:
+                    # Inclure "DETR" mais exclure ceux qui contiennent "DSIL"
+                    query &= Q(
+                        dossier_ds__demande_dispositif_sollicite__icontains="DETR"
+                    ) & ~Q(dossier_ds__demande_dispositif_sollicite__icontains="DSIL")
+
+        else:
+            if "DSIL" in values:
+                if "DETR_et_DSIL" in values:
+                    # Inclure "DSIL" seul ou "DETR_et_DSIL", mais exclure "DETR" seul
+                    query &= Q(
+                        dossier_ds__demande_dispositif_sollicite__icontains="DSIL"
+                    )
+                else:
+                    # Inclure uniquement "DSIL" et exclure "DETR"
+                    query &= Q(
+                        dossier_ds__demande_dispositif_sollicite__icontains="DSIL"
+                    ) & ~Q(dossier_ds__demande_dispositif_sollicite__icontains="DETR")
+            else:
+                # Inclure seulement les projets double dotations "DETR" et "DSIL"
+                query &= Q(
+                    Q(dossier_ds__demande_dispositif_sollicite__icontains="DETR")
+                    & Q(dossier_ds__demande_dispositif_sollicite__icontains="DSIL")
+                )
+
+        return queryset.filter(query)
 
     porteur = ChoiceFilter(
         field_name="dossier_ds__porteur_de_projet_nature__label__in",
