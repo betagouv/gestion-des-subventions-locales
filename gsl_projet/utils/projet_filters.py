@@ -16,15 +16,17 @@ from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 
 
 class ProjetFilters(FilterSet):
-    dotation = MultipleChoiceFilter(
-        choices=(
-            (Dossier.DOTATION_DETR, Dossier.DOTATION_DETR),
-            (Dossier.DOTATION_DSIL, Dossier.DOTATION_DSIL),
-            (
-                "DETR_et_DSIL",
-                f"{Dossier.DOTATION_DETR} et {Dossier.DOTATION_DSIL}",
-            ),
+    DOTATION_CHOICES = (
+        (Dossier.DOTATION_DETR, Dossier.DOTATION_DETR),
+        (Dossier.DOTATION_DSIL, Dossier.DOTATION_DSIL),
+        (
+            "DETR_et_DSIL",
+            f"{Dossier.DOTATION_DETR} et {Dossier.DOTATION_DSIL}",
         ),
+    )
+
+    dotation = MultipleChoiceFilter(
+        choices=DOTATION_CHOICES,
         widget=CustomCheckboxSelectMultiple(),
         method="filter_dotation",
     )

@@ -19,6 +19,8 @@ document.querySelectorAll('.filter-dropdown button').forEach(button => {
     button.addEventListener('click', function (event) {
         event.stopPropagation();
         let content = this.nextElementSibling;
-        content.style.display = content.style.display === 'grid' ? 'none' : 'grid';
+        if (content) {
+            content.style.display = content.style.display === 'grid' ? 'none' : 'grid';
+        }
     });
 });

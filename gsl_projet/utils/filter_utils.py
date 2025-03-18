@@ -1,4 +1,5 @@
 from gsl_core.models import Perimetre
+from gsl_projet.utils.projet_filters import ProjetFilters
 
 
 class FilterUtils:
@@ -14,8 +15,10 @@ class FilterUtils:
     }
 
     def enrich_context_with_filter_utils(self, context, state_mappings):
+        context["is_dotation_active"] = self._get_is_one_field_active("dotation")
+        context["dotation_placeholder"] = self._get_dotation_placeholder()
         context["is_status_active"] = self._get_is_one_field_active("status")
-        context["is_status_placeholder"] = self._get_status_placeholder(state_mappings)
+        context["status_placeholder"] = self._get_status_placeholder(state_mappings)
         context["is_cout_total_active"] = self._get_is_one_field_active(
             "cout_min", "cout_max"
         )
@@ -29,7 +32,7 @@ class FilterUtils:
             "montant_previsionnel_min", "montant_previsionnel_max"
         )
         context["is_territoire_active"] = self._get_is_one_field_active("territoire")
-        context["is_territoire_placeholder"], context["territoire_selected"] = (
+        context["territoire_placeholder"], context["territoire_selected"] = (
             self._get_selected_territoires()
         )
         context["territoire_choices"] = self._get_territoire_choices()
@@ -37,6 +40,17 @@ class FilterUtils:
         context["filter_templates"] = self._get_filter_templates()
 
         return context
+
+    def _get_dotation_placeholder(self):
+        if self.request.GET.get("dotation", "") in ("", None, []):
+            return "Toutes les dotations"
+
+        mapping = dict((x, y) for x, y in ProjetFilters.DOTATION_CHOICES)
+        return ", ".join(
+            mapping[dotation]
+            for dotation in self.request.GET.getlist("dotation")
+            if dotation in mapping
+        )
 
     def _get_filter_templates(self):
         try:
