@@ -36,77 +36,23 @@
         {% endcomment %}
     </ul>
 
-    <div class="fr-tabs">
-        <ul class="fr-tabs__list" role="tablist" aria-label="Sections de la page">
-            <li role="presentation">
-                <button id="projet"
-                        class="fr-tabs__tab fr-icon-article-line fr-tabs__tab--icon-left"
-                        tabindex="0"
-                        role="tab"
-                        aria-selected="true"
-                        aria-controls="projet-panel">
-                    Projet
-                </button>
-            </li>
-            <li role="presentation">
-                <button id="annotations"
-                        class="fr-tabs__tab fr-icon-edit-line fr-tabs__tab--icon-left"
-                        tabindex="-1"
-                        role="tab"
-                        aria-selected="false"
-                        aria-controls="annotations-panel">
-                    Annotations
-                </button>
-            </li>
-            <li role="presentation">
-                <button id="demandeur"
-                        class="fr-tabs__tab fr-icon-bank-line fr-tabs__tab--icon-left"
-                        tabindex="-1"
-                        role="tab"
-                        aria-selected="false"
-                        aria-controls="demandeur-panel">
-                    Demandeur
-                </button>
-            </li>
-            <li role="presentation">
-                <button id="historique"
-                        class="fr-tabs__tab fr-icon-archive-line fr-tabs__tab--icon-left"
-                        tabindex="-1"
-                        role="tab"
-                        aria-selected="false"
-                        aria-controls="historique-panel">
-                    Historique du demandeur
-                </button>
-            </li>
-        </ul>
-        <div id="projet-panel"
-             class="fr-tabs__panel fr-tabs__panel--selected  with-sticky-menu"
-             role="tabpanel"
-             tabindex="0">
-            {% block tab_projet %}
-                {% include "gsl_projet/projet/tab_projet.html" %}
-            {% endblock tab_projet %}
-        </div>
-        <div id="annotations-panel"
-             class="fr-tabs__panel"
-             role="tabpanel"
-             aria-labelledby="annotations"
-             tabindex="0">
+    {% block tabs_list %}
+        {% include "gsl_projet/projet/tabs.html" %}
+    {% endblock tabs_list %}
+    <div id="projet-panel" class="fake-tab-panel" role="tabpanel" tabindex="0">
+        {% block tab_projet %}
+            {% include "gsl_projet/projet/tab_projet.html" %}
+        {% endblock tab_projet %}
+    </div>
+    {% comment %}
+        <div id="annotations-panel" class="fr-tabs__panel" role="tabpanel" aria-labelledby="annotations" tabindex="0">
             {% include "gsl_projet/projet/tab_annotations.html" %}
         </div>
-        <div id="demandeur-panel"
-             class="fr-tabs__panel"
-             role="tabpanel"
-             aria-labelledby="demandeur"
-             tabindex="0">
+        <div id="demandeur-panel" class="fr-tabs__panel" role="tabpanel" aria-labelledby="demandeur" tabindex="0">
             {% include "gsl_projet/projet/tab_demandeur.html" %}
         </div>
-        <div id="historique-panel"
-             class="fr-tabs__panel"
-             role="tabpanel"
-             aria-labelledby="historique"
-             tabindex="0">
+        <div id="historique-panel" class="fr-tabs__panel" role="tabpanel" aria-labelledby="historique" tabindex="0">
             {% include "gsl_projet/projet/tab_historique.html" %}
         </div>
-    </div>
+    {% endcomment %}
 {% endblock content %}

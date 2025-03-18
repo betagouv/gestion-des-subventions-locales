@@ -1,5 +1,6 @@
 import pytest
 from django.urls import reverse
+from pytest_django.asserts import assertTemplateUsed
 
 from gsl_core.tests.factories import (
     ClientWithLoggedStaffUserFactory,
@@ -61,6 +62,27 @@ def test_projet_detail_visible_by_user_with_correct_perimetre(
     url = reverse("projet:get-projet", args=[projet.id])
     response = client_with_55_user_logged.get(url, follow=True)
     assert response.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "url_name,template",
+    (
+        ("", "gsl_projet/projet/tab_projet.html"),
+        ("-annotations", "gsl_projet/projet/tab_annotations.html"),
+        ("-historique", "gsl_projet/projet/tab_historique.html"),
+        ("-demandeur", "gsl_projet/projet/tab_demandeur.html"),
+    ),
+)
+@pytest.mark.django_db
+def test_projet_tabs_use_the_right_templates(
+    client_with_55_user_logged, projets_from_55, url_name, template
+):
+    projet = projets_from_55[0]
+    url = reverse(f"projet:get-projet{url_name}", args=[projet.id])
+    response = client_with_55_user_logged.get(url, follow=True)
+    assert response.status_code == 200
+    assertTemplateUsed(response, template)
+    assertTemplateUsed(response, "gsl_projet/projet.html")
 
 
 @pytest.mark.django_db
