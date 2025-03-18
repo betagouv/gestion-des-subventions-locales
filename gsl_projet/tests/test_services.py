@@ -328,3 +328,59 @@ def test_validate_taux(taux, should_raise_exception):
             ProjetService.validate_taux(taux)
     else:
         ProjetService.validate_taux(taux)
+
+
+@pytest.mark.django_db
+def test_get_avis_commission_detr_with_accepted_state_and_detr_dispositif():
+    dossier = DossierFactory(
+        ds_state=Dossier.STATE_ACCEPTE,
+        demande_dispositif_sollicite="DETR",
+    )
+    assert ProjetService.get_avis_commission_detr(dossier) is True
+
+
+@pytest.mark.django_db
+def test_get_avis_commission_detr_with_accepted_state_and_non_detr_dispositif():
+    dossier = DossierFactory(
+        ds_state=Dossier.STATE_ACCEPTE,
+        demande_dispositif_sollicite="DSIL",
+    )
+    assert ProjetService.get_avis_commission_detr(dossier) is None
+
+
+@pytest.mark.django_db
+def test_get_avis_commission_detr_with_non_accepted_state_and_detr_dispositif():
+    dossier = DossierFactory(
+        ds_state=Dossier.STATE_EN_INSTRUCTION,
+        demande_dispositif_sollicite="DETR",
+    )
+    assert ProjetService.get_avis_commission_detr(dossier) is None
+
+
+@pytest.mark.django_db
+def test_get_avis_commission_detr_with_non_accepted_state_and_non_detr_dispositif():
+    dossier = DossierFactory(
+        ds_state=Dossier.STATE_REFUSE,
+        demande_dispositif_sollicite="DSIL",
+    )
+    assert ProjetService.get_avis_commission_detr(dossier) is None
+
+
+@pytest.mark.parametrize(
+    "ds_state, dispositif, expected_result",
+    [
+        (Dossier.STATE_ACCEPTE, "DETR", True),
+        (Dossier.STATE_ACCEPTE, "['DSIL', 'DETR']", True),
+        (Dossier.STATE_ACCEPTE, "DSIL", None),
+        (Dossier.STATE_EN_INSTRUCTION, "DETR", None),
+        (Dossier.STATE_REFUSE, "DSIL", None),
+        (Dossier.STATE_SANS_SUITE, "DETR", None),
+    ],
+)
+@pytest.mark.django_db
+def test_get_avis_commission_detr(ds_state, dispositif, expected_result):
+    dossier = DossierFactory(
+        ds_state=ds_state,
+        demande_dispositif_sollicite=dispositif,
+    )
+    assert ProjetService.get_avis_commission_detr(dossier) == expected_result
