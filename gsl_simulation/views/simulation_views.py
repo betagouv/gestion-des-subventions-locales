@@ -230,6 +230,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
 
         return {
             "type": simulation.enveloppe.type,
+            "annee": simulation.enveloppe.annee,
             "montant": simulation.enveloppe.montant,
             "perimetre": simulation.enveloppe.perimetre,
             "montant_asked": montant_asked,

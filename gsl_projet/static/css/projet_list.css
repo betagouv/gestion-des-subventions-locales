@@ -1,0 +1,6 @@
+/* TODO: move all projet list class here */
+
+.gsl_projet_table__montant_retenu {
+  color: var(--text-default-success);
+  font-weight: 500;
+}
