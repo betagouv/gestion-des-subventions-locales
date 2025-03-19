@@ -54,21 +54,6 @@ def view() -> ProjetListView:
     return ProjetListView()
 
 
-### Tests templates
-
-
-@pytest.fixture
-def one_projet():
-    return ProjetFactory()
-
-
-def test_right_template_is_used_on_projet_tabs(client, one_projet):
-    resp = client.get(
-        reverse("projet:get-projet", kwargs={"projet_id": one_projet.id}),
-    )
-    assert resp.status_code == 200
-
-
 ### Test du tri
 
 

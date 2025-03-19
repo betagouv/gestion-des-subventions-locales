@@ -7,20 +7,20 @@
                class="fr-tabs__tab fr-icon-article-line fr-tabs__tab--icon-left">Projet</a>
         </li>
         <li>
-            {% url "projet:get-projet-annotations" projet_id=projet.id as annotations_url %}
+            {% url "projet:get-projet-tab" projet_id=projet.id tab="annotations" as annotations_url %}
             <a href="{{ annotations_url }}"
                {% if request.path == annotations_url %}aria-selected="true"{% endif %}
                class="fr-tabs__tab fr-icon-edit-line fr-tabs__tab--icon-left">Annotations</a>
         </li>
         <li>
-            {% url "projet:get-projet-demandeur" projet_id=projet.id as demandeur_url %}
+            {% url "projet:get-projet-tab" projet_id=projet.id tab="demandeur" as demandeur_url %}
             <a href="{{ demandeur_url }}"
                {% if request.path == demandeur_url %}aria-selected="true"{% endif %}
                class="fr-tabs__tab fr-icon-bank-line fr-tabs__tab--icon-left">Demandeur</a>
 
         </li>
         <li role="presentation">
-            {% url "projet:get-projet-historique" projet_id=projet.id as historique_url %}
+            {% url "projet:get-projet-tab" projet_id=projet.id tab="historique" as historique_url %}
 
             <a href="{{ historique_url }}"
                {% if request.path == historique_url %}aria-selected="true"{% endif %}

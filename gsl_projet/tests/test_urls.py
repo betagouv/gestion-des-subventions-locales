@@ -62,27 +62,37 @@ def test_projet_detail_visible_by_user_with_correct_perimetre(
     url = reverse("projet:get-projet", args=[projet.id])
     response = client_with_55_user_logged.get(url, follow=True)
     assert response.status_code == 200
+    assertTemplateUsed(response, "gsl_projet/projet.html")
 
 
 @pytest.mark.parametrize(
-    "url_name,template",
+    "tab_name,template",
     (
-        ("", "gsl_projet/projet/tab_projet.html"),
-        ("-annotations", "gsl_projet/projet/tab_annotations.html"),
-        ("-historique", "gsl_projet/projet/tab_historique.html"),
-        ("-demandeur", "gsl_projet/projet/tab_demandeur.html"),
+        ("annotations", "gsl_projet/projet/tab_annotations.html"),
+        ("historique", "gsl_projet/projet/tab_historique.html"),
+        ("demandeur", "gsl_projet/projet/tab_demandeur.html"),
     ),
 )
 @pytest.mark.django_db
 def test_projet_tabs_use_the_right_templates(
-    client_with_55_user_logged, projets_from_55, url_name, template
+    client_with_55_user_logged, projets_from_55, tab_name, template
 ):
     projet = projets_from_55[0]
-    url = reverse(f"projet:get-projet{url_name}", args=[projet.id])
+    url = reverse("projet:get-projet-tab", args=[projet.id, tab_name])
     response = client_with_55_user_logged.get(url, follow=True)
     assert response.status_code == 200
     assertTemplateUsed(response, template)
     assertTemplateUsed(response, "gsl_projet/projet.html")
+
+
+@pytest.mark.django_db
+def test_projet_tab_404_with_unknown_tab_name(
+    client_with_55_user_logged, projets_from_55
+):
+    projet = projets_from_55[0]
+    url = reverse("projet:get-projet-tab", args=[projet.id, "nothing"])
+    response = client_with_55_user_logged.get(url, follow=True)
+    assert response.status_code == 404
 
 
 @pytest.mark.django_db
