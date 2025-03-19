@@ -116,6 +116,17 @@ class ProjetService:
             raise ValueError(f"Taux {taux} must be between 0 and 100")
 
     @classmethod
+    def validate_montant(cls, montant: float | Decimal, projet: Projet) -> None:
+        if (
+            type(montant) not in [float, Decimal, int]
+            or montant < 0
+            or montant > projet.assiette_or_cout_total
+        ):
+            raise ValueError(
+                f"Montant {montant} must be greatear or equal to 0 and less than or equal to {projet.assiette_or_cout_total}"
+            )
+
+    @classmethod
     def get_avis_commission_detr(cls, ds_dossier: Dossier):
         if ds_dossier.ds_state == Dossier.STATE_ACCEPTE:
             if "DETR" in ds_dossier.demande_dispositif_sollicite:

@@ -23,3 +23,12 @@ document.querySelector(".gsl-projet-table").addEventListener("change", (ev) => {
     }
     return handleStatusChangeWithHtmx(target, target.dataset.originalValue);
 })
+
+document.addEventListener('htmx:responseError', evt => {
+    const xhr = evt.detail.xhr;
+  
+    if (xhr.status == 400) {
+        evt.detail.elt.form.reset()
+    }
+  });
+  

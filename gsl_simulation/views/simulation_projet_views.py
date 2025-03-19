@@ -96,6 +96,7 @@ def patch_taux_simulation_projet(request, pk):
 def patch_montant_simulation_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     new_montant = replace_comma_by_dot(request.POST.get("montant"))
+    ProjetService.validate_montant(new_montant, simulation_projet.projet)
     SimulationProjetService.update_montant(simulation_projet, new_montant)
     return redirect_to_simulation_projet(request, simulation_projet)
 
