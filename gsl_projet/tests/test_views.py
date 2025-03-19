@@ -343,11 +343,11 @@ def test_no_dispositif_filter(
 @pytest.fixture
 def projets_epci(demandeur) -> list[Projet]:
     projets = []
-    for epci_label in [
+    for epci_label in (
         "EPCI",
         "Pôle d'équilibre territorial et rural",
         "Syndicat de communes",
-    ]:
+    ):
         nature_porteur_projet = NaturePorteurProjetFactory(
             label=epci_label, type=NaturePorteurProjet.EPCI
         )
@@ -362,26 +362,21 @@ def projets_epci(demandeur) -> list[Projet]:
 
 @pytest.fixture
 def projets_communes(demandeur) -> list[Projet]:
-    projets = []
-    for commune_label in [
-        "Commune",
-    ]:
+    for commune_label in ("Commune",):
         nature_porteur_projet = NaturePorteurProjetFactory(
             label=commune_label, type=NaturePorteurProjet.COMMUNES
         )
-        projets.append(
-            ProjetFactory(
-                demandeur=demandeur,
-                dossier_ds__porteur_de_projet_nature=nature_porteur_projet,
-            )
+        projet = ProjetFactory(
+            demandeur=demandeur,
+            dossier_ds__porteur_de_projet_nature=nature_porteur_projet,
         )
-    return projets
+    return [projet]
 
 
 @pytest.fixture
 def projets_other(demandeur) -> list[Projet]:
     projets = []
-    for commune_label in ["test_gsl", "Departement"]:
+    for commune_label in ("test_gsl", "Departement"):
         nature_porteur_projet = NaturePorteurProjetFactory(
             label=commune_label, type=NaturePorteurProjet.AUTRE
         )
@@ -397,7 +392,7 @@ def projets_other(demandeur) -> list[Projet]:
 @pytest.fixture
 def projets_unknown_projet(demandeur) -> list[Projet]:
     projets = []
-    for porteur_label in ["Inconnu", "Fake", "Wrong"]:
+    for porteur_label in ("Inconnu", "Fake", "Wrong"):
         nature_porteur_projet = NaturePorteurProjetFactory(label=porteur_label)
         projets.append(
             ProjetFactory(
