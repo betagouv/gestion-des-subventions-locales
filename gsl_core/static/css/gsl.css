@@ -43,9 +43,11 @@ ul.no-list-style li {
 .color-red {
     color: var(--status-color-red);
 }
+
 .color-green {
     color: var(--status-color-green);
 }
+
 .color-blue {
     color: var(--status-color-blue);
 }
@@ -195,7 +197,7 @@ ul.no-list-style li {
 }
 
 
-.gsl-tooltip{
+.gsl-tooltip {
     padding-top: 0;
     padding-bottom: 4px;
     max-height: 28px;
@@ -253,4 +255,20 @@ ul.no-list-style li {
 .success-color {
     color: var(--text-default-success);
 }
-  
+
+/* detail projet */
+
+.fr-tabs__list.fake {
+    list-style-type: none;
+}
+
+.fake-tab-panel {
+    border: 1px solid #ddd;
+    padding: 2rem;
+    transform: translateY(-5px);
+}
+
+.sticky-menu {
+    position: sticky;
+    top: 1.5rem;
+}

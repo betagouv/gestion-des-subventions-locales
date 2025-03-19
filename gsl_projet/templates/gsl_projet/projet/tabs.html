@@ -1,0 +1,32 @@
+<nav aria-label="sections projet">
+    <ul class="fake fr-tabs__list ul-list">
+        <li>
+            {% url "projet:get-projet" projet_id=projet.id as projet_url %}
+            <a href="{{ projet_url }}"
+               {% if request.path == projet_url %}aria-selected="true"{% endif %}
+               class="fr-tabs__tab fr-icon-article-line fr-tabs__tab--icon-left">Projet</a>
+        </li>
+        <li>
+            {% url "projet:get-projet-tab" projet_id=projet.id tab="annotations" as annotations_url %}
+            <a href="{{ annotations_url }}"
+               {% if request.path == annotations_url %}aria-selected="true"{% endif %}
+               class="fr-tabs__tab fr-icon-edit-line fr-tabs__tab--icon-left">Annotations</a>
+        </li>
+        <li>
+            {% url "projet:get-projet-tab" projet_id=projet.id tab="demandeur" as demandeur_url %}
+            <a href="{{ demandeur_url }}"
+               {% if request.path == demandeur_url %}aria-selected="true"{% endif %}
+               class="fr-tabs__tab fr-icon-bank-line fr-tabs__tab--icon-left">Demandeur</a>
+
+        </li>
+        <li role="presentation">
+            {% url "projet:get-projet-tab" projet_id=projet.id tab="historique" as historique_url %}
+
+            <a href="{{ historique_url }}"
+               {% if request.path == historique_url %}aria-selected="true"{% endif %}
+               class="fr-tabs__tab fr-icon-archive-line fr-tabs__tab--icon-left">Historique du
+            demandeur</a>
+
+        </li>
+    </ul>
+</nav>

@@ -1,4 +1,4 @@
-from django.http import HttpRequest
+from django.http import Http404, HttpRequest
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import resolve, reverse
@@ -118,7 +118,16 @@ def patch_status_simulation_projet(request, pk):
 
 class SimulationProjetDetailView(DetailView):
     model = SimulationProjet
-    template_name = "gsl_simulation/simulation_projet_detail.html"
+
+    ALLOWED_TABS = {"annotations", "demandeur", "historique"}
+
+    def get_template_names(self):
+        if "tab" in self.kwargs:
+            tab = self.kwargs["tab"]
+            if tab not in self.ALLOWED_TABS:
+                raise Http404
+            return [f"gsl_simulation/tab_simulation_projet/tab_{tab}.html"]
+        return ["gsl_simulation/simulation_projet_detail.html"]
 
     def get(self, request, *args, **kwargs):
         self.simulation_projet = SimulationProjet.objects.select_related(
