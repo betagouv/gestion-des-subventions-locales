@@ -143,6 +143,8 @@ class Projet(models.Model):
         null=True,
     )
 
+    # TODO add a constraint to ensure that the projet is concerned by dotation DETR
+    # or put this in new model DotationProjet ?
     avis_commission_detr = models.BooleanField(
         "Avis commission DETR",
         help_text="Pour les projets de plus de 100 000 €",
@@ -186,6 +188,17 @@ class Projet(models.Model):
             return self.accepted_programmation_projet.taux
         return None
 
+    @property
+    def is_asking_for_detr(self) -> bool:
+        return "DETR" in self.dossier_ds.demande_dispositif_sollicite
+
+    @property
+    def categorie_doperation(self):
+        if "DETR" in self.dossier_ds.demande_dispositif_sollicite:
+            yield from self.dossier_ds.demande_eligibilite_detr.all()
+        if "DSIL" in self.dossier_ds.demande_dispositif_sollicite:
+            yield from self.dossier_ds.demande_eligibilite_dsil.all()
+
     def get_taux_de_subvention_sollicite(self):
         if (
             self.assiette_or_cout_total is None
@@ -201,13 +214,6 @@ class Projet(models.Model):
 
         if self.assiette > 0:
             return int(100 * self.assiette / self.dossier_ds.finance_cout_total)
-
-    @property
-    def categorie_doperation(self):
-        if "DETR" in self.dossier_ds.demande_dispositif_sollicite:
-            yield from self.dossier_ds.demande_eligibilite_detr.all()
-        if "DSIL" in self.dossier_ds.demande_dispositif_sollicite:
-            yield from self.dossier_ds.demande_eligibilite_dsil.all()
 
     @transition(field=status, source="*", target=STATUS_ACCEPTED)
     def accept(self, montant: float, enveloppe: "Enveloppe"):

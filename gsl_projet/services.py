@@ -18,6 +18,7 @@ class ProjetService:
             )
         projet.address = ds_dossier.projet_adresse
         projet.perimetre = ds_dossier.perimetre
+        projet.avis_commission_detr = cls.get_avis_commission_detr(ds_dossier)
 
         projet.demandeur, _ = Demandeur.objects.get_or_create(
             siret=ds_dossier.ds_demandeur.siret,
@@ -118,3 +119,10 @@ class ProjetService:
     def validate_taux(cls, taux: float | Decimal) -> None:
         if type(taux) not in [float, Decimal, int] or taux < 0 or taux > 100:
             raise ValueError(f"Taux {taux} must be between 0 and 100")
+
+    @classmethod
+    def get_avis_commission_detr(cls, ds_dossier: Dossier):
+        if ds_dossier.ds_state == Dossier.STATE_ACCEPTE:
+            if "DETR" in ds_dossier.demande_dispositif_sollicite:
+                return True
+        return None

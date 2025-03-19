@@ -1,6 +1,12 @@
 {% extends "gsl_projet/projet/tab_projet.html" %}
 {% load static gsl_filters %}
 
+{% block avis_commission_detr %}
+    {% if enveloppe.type == 'DETR' %}
+        {% include "includes/_avis_commission_detr_form.html" %}
+    {% endif %}
+{% endblock avis_commission_detr %}
+
 {% block status_action %}
     <div class="fr-callout fr-background-alt--blue-france">
         <h2 class="fr-callout__title">

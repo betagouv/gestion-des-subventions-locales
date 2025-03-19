@@ -32,3 +32,20 @@
   color: var(--text-default-grey);
 }
 
+.avis-commission-detr-block {
+  grid-gap: 16px;
+  align-items: baseline;
+}
+
+.avis-commission-detr-select-and-label {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.avis-commission-detr-select-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 150px;
+}

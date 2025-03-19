@@ -92,6 +92,12 @@ ul.no-list-style li {
     border-top: 1px solid #ddd;
 }
 
+.block-avis-commission-detr {
+    display: inline-flex;
+    gap: 16px;
+    align-items: center;
+}
+
 /* Liste de projets */
 .gsl-projet-table thead {
     background-image: linear-gradient(0, #6a6af4, #6a6af4);
@@ -252,10 +258,18 @@ ul.no-list-style li {
     color: var(--blue-france-sun-113-625);
 }
 
-.success-color {
+.success-color,
+.green-color {
     color: var(--text-default-success);
 }
 
+.red-color {
+    color: var(--text-default-error);
+}
+
+.grey-color {
+    color: var(--text-default-grey);
+  }
 /* detail projet */
 
 .fr-tabs__list.fake {

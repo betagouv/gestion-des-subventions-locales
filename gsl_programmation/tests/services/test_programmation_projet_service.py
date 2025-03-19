@@ -332,15 +332,15 @@ def test_create_or_update_from_projet_with_no_corresponding_enveloppe_creating_o
     ],
 )
 @pytest.mark.django_db
-def test_compute_from_annotation(dotation_annotation, dotation_expected):
+def test_compute_dotation_from_annotation(dotation_annotation, dotation_expected):
     projet = ProjetFactory()
     projet.dossier_ds.annotations_dotation = dotation_annotation
 
     if dotation_expected == "Error":
         with pytest.raises(ValueError):
-            ProgrammationProjetService.compute_from_annotation(projet)
+            ProgrammationProjetService.compute_dotation_from_annotation(projet)
     else:
         assert (
-            ProgrammationProjetService.compute_from_annotation(projet)
+            ProgrammationProjetService.compute_dotation_from_annotation(projet)
             == dotation_expected
         )

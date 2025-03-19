@@ -25,7 +25,7 @@ class ProgrammationProjetService:
             ProgrammationProjet.objects.filter(projet=projet).delete()
             return
         try:
-            dotation = cls.compute_from_annotation(projet)
+            dotation = cls.compute_dotation_from_annotation(projet)
         except ValueError as e:
             logging.error(e)
             return
@@ -104,7 +104,7 @@ class ProgrammationProjetService:
         return None
 
     @classmethod
-    def compute_from_annotation(cls, projet):
+    def compute_dotation_from_annotation(cls, projet):
         dotation_annotation = projet.dossier_ds.annotations_dotation
         if dotation_annotation is None:
             logging.error(f"Projet {projet} is missing annotation dotation")

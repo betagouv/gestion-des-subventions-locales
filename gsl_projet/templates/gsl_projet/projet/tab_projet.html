@@ -51,10 +51,30 @@
     </div>
 </div>
 
+{% block avis_commission_detr %}
+    {% if projet.is_asking_for_detr %}
+        <div class="fr-callout fr-background-alt--blue-france block-avis-commission-detr">
+            <h2 class="fr-callout__title fr-text--lg">
+                <span class="fr-icon fr-icon-team-fill blue-color fr-mr-3v"
+                      aria-hidden="true"></span>Avis de la commission DETR
+            </h2>
+            <p class="fr-callout__text">
+                {% if projet.avis_commission_detr %}
+                    <span class="fr-icon-chat-check-fill green-color" aria-hidden="true"></span> Oui
+                {% elif projet.avis_commission_detr is False %}
+                    <span class="fr-icon-chat-delete-fill red-color" aria-hidden="true"></span> Non
+                {% else %}
+                    <span class="fr-icon-message-2-fill grey-color" aria-hidden="true"></span> En cours
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+{% endblock avis_commission_detr %}
+
 {% block status_action %}
 {% endblock status_action %}
 
-<div class="fr-container fr-mt-5w">
+<div class="fr-container fr-mt-2w">
     <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--center gsl-projet-container">
         <div class="fr-col-4 gsl-projet-menu">
             <div class="sticky-menu">
