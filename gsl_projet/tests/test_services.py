@@ -384,3 +384,45 @@ def test_get_avis_commission_detr(ds_state, dispositif, expected_result):
         demande_dispositif_sollicite=dispositif,
     )
     assert ProjetService.get_avis_commission_detr(dossier) == expected_result
+
+
+@pytest.mark.parametrize(
+    "montant, assiette_or_cout_total, should_raise_exception",
+    [
+        (50, 100, False),  # Valid montant
+        (0, 100, False),  # Valid montant at lower bound
+        (100, 100, False),  # Valid montant at upper bound
+        (-1, 100, True),  # Invalid montant below lower bound
+        (101, 100, True),  # Invalid montant above upper bound
+        (None, 100, True),  # Invalid montant as None
+        ("invalid", 100, True),  # Invalid montant as string
+    ],
+)
+@pytest.mark.django_db
+def test_validate_montant(montant, assiette_or_cout_total, should_raise_exception):
+    projet_with_assiette = ProjetFactory(assiette=assiette_or_cout_total)
+    projet_without_assiette = ProjetFactory(
+        dossier_ds__finance_cout_total=assiette_or_cout_total
+    )
+
+    if should_raise_exception:
+        with pytest.raises(
+            ValueError,
+            match=(
+                f"Montant {montant} must be greatear or equal to 0 and less than or "
+                f"equal to {projet_with_assiette.assiette_or_cout_total}"
+            ),
+        ):
+            ProjetService.validate_montant(montant, projet_with_assiette)
+
+        with pytest.raises(
+            ValueError,
+            match=(
+                f"Montant {montant} must be greatear or equal to 0 and less than or "
+                f"equal to {projet_without_assiette.assiette_or_cout_total}"
+            ),
+        ):
+            ProjetService.validate_montant(montant, projet_with_assiette)
+    else:
+        ProjetService.validate_montant(montant, projet_with_assiette)
+        ProjetService.validate_montant(montant, projet_without_assiette)
