@@ -1,7 +1,5 @@
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
-from gsl_projet.utils.projet_filters import ProjetFilters
-from gsl_projet.utils.utils import transform_choices_to_map
 
 
 class FilterUtils:
@@ -16,7 +14,8 @@ class FilterUtils:
         "territoire": "includes/_filter_territoire.html",
     }
 
-    PORTEUR_MAPPING = transform_choices_to_map(NaturePorteurProjet.TYPE_CHOICES)
+    DOTATION_MAPPING = dict(NaturePorteurProjet.TYPE_CHOICES)
+    PORTEUR_MAPPING = dict(NaturePorteurProjet.TYPE_CHOICES)
 
     def enrich_context_with_filter_utils(self, context, state_mappings):
         context["is_dotation_active"] = self._get_is_one_field_active("dotation")
@@ -51,11 +50,10 @@ class FilterUtils:
         if self.request.GET.get("dotation", "") in ("", None, []):
             return "Toutes les dotations"
 
-        mapping = dict(ProjetFilters.DOTATION_CHOICES)
         return ", ".join(
-            mapping[dotation]
+            FilterUtils.DOTATION_MAPPING[dotation]
             for dotation in self.request.GET.getlist("dotation")
-            if dotation in mapping
+            if dotation in FilterUtils.DOTATION_MAPPING
         )
 
     def _get_filter_templates(self):

@@ -122,7 +122,6 @@ class ProjetListView(FilterView, ListView, FilterUtils):
             self.filterset.qs
         )  # utile pour ne pas avoir la pagination de context["object_list"]
         context["title"] = "Projets 2025"
-        context["porteur_mappings"] = ProjetService.PORTEUR_MAPPINGS
         context["breadcrumb_dict"] = {}
         context["total_cost"] = ProjetService.get_total_cost(qs_global)
         context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs_global)

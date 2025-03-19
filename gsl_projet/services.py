@@ -3,7 +3,7 @@ from decimal import Decimal, InvalidOperation
 from django.db.models import Case, F, Sum, When
 from django.db.models.query import QuerySet
 
-from gsl_demarches_simplifiees.models import Dossier, NaturePorteurProjet
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.models import Demandeur, Projet
 
 
@@ -68,11 +68,6 @@ class ProjetService:
         return ProgrammationProjet.objects.filter(
             projet__in=projet_ids, status=ProgrammationProjet.STATUS_ACCEPTED
         ).aggregate(total=Sum("montant"))["total"]
-
-    PORTEUR_MAPPINGS = {
-        "EPCI": NaturePorteurProjet.EPCI_NATURES,
-        "Communes": NaturePorteurProjet.COMMUNE_NATURES,
-    }
 
     @classmethod
     def add_ordering_to_projets_qs(cls, qs, ordering):

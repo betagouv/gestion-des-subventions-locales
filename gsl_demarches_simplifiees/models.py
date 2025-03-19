@@ -473,14 +473,6 @@ class NaturePorteurProjet(DsChoiceLibelle):
         (COMMUNES, "Communes"),
         (AUTRE, "Autre"),
     )
-    # TODO delete these consts !
-    EPCI_NATURES = ["EPCI", "Pôle d'équilibre territorial et rural"]
-    COMMUNE_NATURES = [
-        "Commune",
-        "Syndicat de communes",
-        "Syndicat mixte fermé",
-        "Syndicat Mixte Fermé",
-    ]
     type = models.CharField(max_length=8, choices=TYPE_CHOICES, blank=True)
 
     class Meta:
