@@ -212,7 +212,9 @@ class ArrondissementAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
 
 @admin.register(NaturePorteurProjet)
-class NaturePorteurProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+class NaturePorteurProjetAdmin(
+    AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin
+):
     list_display = ("__str__", "type")
     list_filter = ("type",)
     list_editable = ("type",)
