@@ -1,0 +1,124 @@
+/* table */
+.gsl-projet-table__select {
+  text-align: right;
+  padding: 4px;
+  padding-right: 20px;
+  background-position: calc(100% - 4px) 50%;
+  box-shadow: none
+}
+
+.gsl-projet-table__input-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.gsl-projet-table__input-wrap > input {
+  text-align: right;
+  padding: 4px;
+  padding-right: 12px;
+  /* box-shadow: none */
+}
+
+.gsl-projet-table__input-symbol {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  pointer-events: none; /* Ne pas interférer avec les clics */
+  color: #333;
+}
+
+.gsl-projet-table__rate > input {
+  padding-right: 16px;
+}
+
+
+/* colors */
+
+.success-color {
+  color: var(--text-default-success);
+}
+
+.refuse-color {
+  color: var(--text-default-error);
+}
+
+.processing-color {
+  color: var(--text-mention-grey);
+}
+
+.dismiss-color {
+  color: var(--text-default-warning);
+}
+
+/* modal */
+
+.confirmation-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1em;
+}
+
+/* buttons */
+
+.accept-button{
+  background-color: var(--background-action-high-success);
+  color: var(--background-alt-blue-france)
+}
+
+.accept-button:hover{
+  background-color: var(--background-action-high-success-hover) !important;
+}
+
+.refuse-button{
+  background-color: var(--background-action-high-error);
+  color: var(--background-alt-blue-france)
+}
+
+.refuse-button:hover{
+  background-color: var(--background-action-high-error-hover) !important;
+}
+
+.dismiss-button{
+  background-color: var(--background-action-high-warning);
+  color: var(--background-alt-blue-france)
+}
+
+.dismiss-button:hover{
+  background-color: var(--background-action-high-warning-hover) !important;
+}
+
+/* status select */
+
+.status-select {
+  font-weight: bold;
+}
+
+.status-select:has(> option[value="valid"]:checked){
+  color: var(--text-default-success)
+}
+
+.status-select:has(> option[value="cancelled"]:checked){
+  color: var(--text-default-error)
+}
+
+.status-select:has(> option[value="provisoire"]:checked){
+  color: var(--text-default-info)
+}
+
+/* inputs */
+
+.input-status-color-valid{
+  background-color: var(--background-alt-green-emeraude);
+  box-shadow: inset 0 -2px 0 0 var(--background-action-high-success)
+}
+
+.input-status-color-provisoire{
+  background-color: var(--text-inverted-blue-ecume);
+  box-shadow: inset 0 -2px 0 0 var(--border-action-high-info)
+}
+
+.fr-input:disabled.input-status-color-cancelled {
+  background-color: var(--background-alt-orange-terre-battue);
+  box-shadow: inset 0 -2px 0 0 var(--border-plain-error)
+}

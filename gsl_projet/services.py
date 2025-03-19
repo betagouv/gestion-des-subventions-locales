@@ -1,10 +1,48 @@
+from decimal import Decimal, InvalidOperation
+
 from django.db.models import Case, F, Sum, When
 from django.db.models.query import QuerySet
 
-from gsl_demarches_simplifiees.models import NaturePorteurProjet
+from gsl_demarches_simplifiees.models import Dossier, NaturePorteurProjet
+from gsl_projet.models import Demandeur, Projet
 
 
 class ProjetService:
+    @classmethod
+    def get_or_create_from_ds_dossier(cls, ds_dossier: Dossier):
+        try:
+            projet = Projet.objects.get(dossier_ds=ds_dossier)
+        except Projet.DoesNotExist:
+            projet = Projet(
+                dossier_ds=ds_dossier,
+            )
+        projet.address = ds_dossier.projet_adresse
+        projet.perimetre = ds_dossier.perimetre
+
+        projet.demandeur, _ = Demandeur.objects.get_or_create(
+            siret=ds_dossier.ds_demandeur.siret,
+            defaults={
+                "name": ds_dossier.ds_demandeur.raison_sociale,
+                "address": ds_dossier.ds_demandeur.address,
+            },
+        )
+
+        projet.status = cls.get_projet_status(ds_dossier)
+        projet.save()
+        return projet
+
+    DOSSIER_DS_STATUS_TO_PROJET_STATUS = {
+        Dossier.STATE_ACCEPTE: Projet.STATUS_ACCEPTED,
+        Dossier.STATE_EN_CONSTRUCTION: Projet.STATUS_PROCESSING,
+        Dossier.STATE_EN_INSTRUCTION: Projet.STATUS_PROCESSING,
+        Dossier.STATE_REFUSE: Projet.STATUS_REFUSED,
+        Dossier.STATE_SANS_SUITE: Projet.STATUS_DISMISSED,
+    }
+
+    @classmethod
+    def get_projet_status(cls, ds_dossier):
+        return cls.DOSSIER_DS_STATUS_TO_PROJET_STATUS.get(ds_dossier.ds_state)
+
     @classmethod
     def get_total_cost(cls, projet_qs: QuerySet):
         projets = projet_qs.annotate(
@@ -24,9 +62,12 @@ class ProjetService:
 
     @classmethod
     def get_total_amount_granted(cls, projet_qs: QuerySet):
-        return projet_qs.aggregate(Sum("simulationprojet__montant"))[
-            "simulationprojet__montant__sum"
-        ]
+        from gsl_programmation.models import ProgrammationProjet
+
+        projet_ids = projet_qs.values_list("pk", flat=True)
+        return ProgrammationProjet.objects.filter(
+            projet__in=projet_ids, status=ProgrammationProjet.STATUS_ACCEPTED
+        ).aggregate(total=Sum("montant"))["total"]
 
     PORTEUR_MAPPINGS = {
         "EPCI": NaturePorteurProjet.EPCI_NATURES,
@@ -55,3 +96,25 @@ class ProjetService:
         }
 
         return ordering_map.get(ordering, None)
+
+    @classmethod
+    def compute_taux_from_montant(
+        cls, projet: Projet, new_montant: float | Decimal
+    ) -> Decimal:
+        try:
+            new_taux = round(
+                (Decimal(new_montant) / Decimal(projet.assiette_or_cout_total)) * 100,
+                2,
+            )
+            return max(min(new_taux, Decimal(100)), Decimal(0))
+        except TypeError:
+            return Decimal(0)
+        except ZeroDivisionError:
+            return Decimal(0)
+        except InvalidOperation:
+            return Decimal(0)
+
+    @classmethod
+    def validate_taux(cls, taux: float | Decimal) -> None:
+        if type(taux) not in [float, Decimal, int] or taux < 0 or taux > 100:
+            raise ValueError(f"Taux {taux} must be between 0 and 100")

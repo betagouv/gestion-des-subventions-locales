@@ -1,0 +1,23 @@
+{% extends "includes/modals/modal_base.html" %}
+{% block modal_id %}
+    processing-confirmation-modal
+{% endblock modal_id %}
+
+{% block content %}
+    <h1 class="fr-modal__title processing-color">
+        <span class="fr-icon-draft-fill fr-icon--lg" aria-hidden="true"></span> Revenir au statut “En traitement”
+    </h1>
+    <p id="draft-confirmation-modal-content">
+        Ce projet <span class="initial-status"></span> va être remis en traitement dans toutes les simulations dans lesquelles il a été ajouté.
+        <span class="remove-from-programmation">Il n'apparaîtra plus dans la programmation officielle {{ enveloppe.type }} {{ enveloppe.annee }}.</span>
+    </p>
+    <p>
+        Êtes-vous sûr(e) de remettre le projet en traitement ?
+    </p>
+{% endblock content %}
+
+{% block confirmation_button %}
+    <button class="fr-btn fr-btn--primary" id="confirmChange">
+        Oui
+    </button>
+{% endblock confirmation_button %}

@@ -1,10 +1,1252 @@
 {% extends "base.html" %}
 {% load static %}
+
+{% block extra_css %}
+    <style nonce="{{ request.csp_nonce }}">
+    {% comment %} /* cspell:disable-file */
+    /* webkit printing magic: print all background colors */
+    html {
+        -webkit-print-color-adjust: exact;
+    }
+    * {
+        box-sizing: border-box;
+        -webkit-print-color-adjust: exact;
+    }
+    
+    html,
+    body {
+        margin: 0;
+        padding: 0;
+    }
+    @media only screen {
+        body {
+            margin: 2em auto;
+            max-width: 900px;
+            color: rgb(55, 53, 47);
+        }
+    }
+    
+    body {
+        line-height: 1.5;
+        white-space: pre-wrap;
+    }
+    
+    a,
+    a.visited {
+        color: inherit;
+        text-decoration: underline;
+    }
+    
+    .pdf-relative-link-path {
+        font-size: 80%;
+        color: #444;
+    }
+{% endcomment %}
+    
+    #18f765c7-b6a4-8092-8d97-d97dc20e2df8 h1,
+    #18f765c7-b6a4-8092-8d97-d97dc20e2df8 h2,
+    #18f765c7-b6a4-8092-8d97-d97dc20e2df8 h3 {
+        letter-spacing: -0.01em;
+        line-height: 1.2;
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+    
+    #18f765c7-b6a4-8092-8d97-d97dc20e2df8 .page-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-top: 0;
+        margin-bottom: 0.75em;
+    }
+    
+#18f765c7-b6a4-8092-8d97-d97dc20e2df8 h1 {
+        font-size: 1.875rem;
+        margin-top: 1.875rem;
+    }
+    
+#18f765c7-b6a4-8092-8d97-d97dc20e2df8 h2 {
+        font-size: 1.5rem;
+        margin-top: 1.5rem;
+        margin-top: 3rem;
+    }
+    
+    #18f765c7-b6a4-8092-8d97-d97dc20e2df8 h3 {
+        font-size: 1.25rem;
+        margin-top: 1.25rem;
+    }
+    
+    #18f765c7-b6a4-8092-8d97-d97dc20e2df8 .source {
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        padding: 1.5em;
+        word-break: break-all;
+    }
+    
+    #18f765c7-b6a4-8092-8d97-d97dc20e2df8 .callout {
+        border-radius: 3px;
+        padding: 1rem;
+    }
+    
+    #18f765c7-b6a4-8092-8d97-d97dc20e2df8    figure {
+            margin: 1.25em 0;
+            page-break-inside: avoid;
+        }
+    
+        #18f765c7-b6a4-8092-8d97-d97dc20e2df8    figcaption {
+            opacity: 0.5;
+            font-size: 85%;
+            margin-top: 0.5em;
+        }
+    
+        #18f765c7-b6a4-8092-8d97-d97dc20e2df8    mark {
+            background-color: transparent;
+        }
+    
+        .indented {
+            padding-left: 1.5em;
+        }
+    
+        #18f765c7-b6a4-8092-8d97-d97dc20e2df8    hr {
+            background: transparent;
+            display: block;
+            width: 100%;
+            height: 1px;
+            visibility: visible;
+            border: none;
+            border-bottom: 1px solid rgba(55, 53, 47, 0.09);
+        }
+
+        h2.block-color-default {
+            margin-top: 4rem;
+        }
+
+        nav {
+            margin: 1em 0;
+        }
+
+        nav > div {
+            margin-bottom: 1em;
+        }
+    
+        img {
+            max-width: 100%;
+        }
+    
+        @media only print {
+            img {
+                max-height: 100vh;
+                object-fit: contain;
+            }
+        }
+    
+        @page {
+            margin: 1in;
+        }
+    
+        .collection-content {
+            font-size: 0.875rem;
+        }
+    
+        .column-list {
+            display: flex;
+            justify-content: space-between;
+        }
+    
+        .column {
+            padding: 0 1em;
+        }
+    
+        .column:first-child {
+            padding-left: 0;
+        }
+    
+        .column:last-child {
+            padding-right: 0;
+        }
+    
+        .table_of_contents-item {
+            display: block;
+            font-size: 0.875rem;
+            line-height: 1.3;
+            padding: 0.125rem;
+        }
+    
+        .table_of_contents-indent-1 {
+            margin-left: 1.5rem;
+        }
+    
+        .table_of_contents-indent-2 {
+            margin-left: 3rem;
+        }
+    
+        .table_of_contents-indent-3 {
+            margin-left: 4.5rem;
+        }
+    
+        .table_of_contents-link {
+            text-decoration: none;
+            opacity: 0.7;
+            border-bottom: 1px solid rgba(55, 53, 47, 0.18);
+        }
+    
+        #18f765c7-b6a4-8092-8d97-d97dc20e2df8    table,
+        #18f765c7-b6a4-8092-8d97-d97dc20e2df8     th,
+        #18f765c7-b6a4-8092-8d97-d97dc20e2df8    td {
+            border: 1px solid rgba(55, 53, 47, 0.09);
+            border-collapse: collapse;
+        }
+    
+        #18f765c7-b6a4-8092-8d97-d97dc20e2df8    table {
+            border-left: none;
+            border-right: none;
+        }
+    
+        #18f765c7-b6a4-8092-8d97-d97dc20e2df8    th,
+        #18f765c7-b6a4-8092-8d97-d97dc20e2df8    td {
+            font-weight: normal;
+            padding: 0.25em 0.5em;
+            line-height: 1.5;
+            min-height: 1.5em;
+            text-align: left;
+        }
+    
+        th {
+            color: rgba(55, 53, 47, 0.6);
+        }
+    
+        ol,
+        ul {
+            margin: 0;
+            margin-block-start: 0.6em;
+            margin-block-end: 0.6em;
+        }
+    
+        li > ol:first-child,
+        li > ul:first-child {
+            margin-block-start: 0.6em;
+        }
+    
+        ul > li {
+            list-style: disc;
+        }
+    
+        ul.to-do-list {
+            padding-inline-start: 0;
+        }
+    
+        ul.to-do-list > li {
+            list-style: none;
+        }
+    
+        .to-do-children-checked {
+            text-decoration: line-through;
+            opacity: 0.375;
+        }
+    
+        ul.toggle > li {
+            list-style: none;
+        }
+    
+        ul {
+            padding-inline-start: 1.7em;
+        }
+    
+        ul > li {
+            padding-left: 0.1em;
+        }
+    
+        ol {
+            padding-inline-start: 1.6em;
+        }
+    
+        ol > li {
+            padding-left: 0.2em;
+        }
+    
+        .mono ol {
+            padding-inline-start: 2em;
+        }
+    
+        .mono ol > li {
+            text-indent: -0.4em;
+        }
+    
+        .toggle {
+            padding-inline-start: 0em;
+            list-style-type: none;
+        }
+    
+        /* Indent toggle children */
+        .toggle > li > details {
+            padding-left: 1.7em;
+        }
+    
+        .toggle > li > details > summary {
+            margin-left: -1.1em;
+        }
+    
+        .selected-value {
+            display: inline-block;
+            padding: 0 0.5em;
+            background: rgba(206, 205, 202, 0.5);
+            border-radius: 3px;
+            margin-right: 0.5em;
+            margin-top: 0.3em;
+            margin-bottom: 0.3em;
+            white-space: nowrap;
+        }
+    
+        .collection-title {
+            display: inline-block;
+            margin-right: 1em;
+        }
+    
+        .page-description {
+            margin-bottom: 2em;
+        }
+    
+        .simple-table {
+            margin-top: 1em;
+            font-size: 0.875rem;
+            empty-cells: show;
+        }
+        .simple-table td {
+            height: 29px;
+            min-width: 120px;
+        }
+    
+        .simple-table th {
+            height: 29px;
+            min-width: 120px;
+        }
+    
+        .simple-table-header-color {
+            background: rgb(247, 246, 243);
+            color: black;
+        }
+        .simple-table-header {
+            font-weight: 500;
+        }
+    
+        time {
+            opacity: 0.5;
+        }
+    
+        .icon {
+            display: inline-block;
+            max-width: 1.2em;
+            max-height: 1.2em;
+            text-decoration: none;
+            vertical-align: text-bottom;
+            margin-right: 0.5em;
+        }
+    
+        img.icon {
+            border-radius: 3px;
+        }
+    
+        .user-icon {
+            width: 1.5em;
+            height: 1.5em;
+            border-radius: 100%;
+            margin-right: 0.5rem;
+        }
+    
+        .user-icon-inner {
+            font-size: 0.8em;
+        }
+    
+        .text-icon {
+            border: 1px solid #000;
+            text-align: center;
+        }
+    
+        .page-cover-image {
+            display: block;
+            object-fit: cover;
+            width: 100%;
+            max-height: 30vh;
+        }
+    
+        .page-header-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+    
+        .page-header-icon-with-cover {
+            margin-top: -0.72em;
+            margin-left: 0.07em;
+        }
+    
+        .page-header-icon img {
+            border-radius: 3px;
+        }
+    
+        .link-to-page {
+            margin: 1em 0;
+            padding: 0;
+            border: none;
+            font-weight: 500;
+        }
+    
+        p > .user {
+            opacity: 0.5;
+        }
+    
+        td > .user,
+        td > time {
+            white-space: nowrap;
+        }
+    
+        input[type="checkbox"] {
+            transform: scale(1.5);
+            margin-right: 0.6em;
+            vertical-align: middle;
+        }
+    
+        p {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+    
+        .image {
+            border: none;
+            margin: 1.5em 0;
+            padding: 0;
+            border-radius: 0;
+            text-align: center;
+        }
+    
+        .code,
+        code {
+            background: rgba(135, 131, 120, 0.15);
+            border-radius: 3px;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-size: 85%;
+            tab-size: 2;
+        }
+    
+        code {
+            color: #eb5757;
+        }
+    
+        .code {
+            padding: 1.5em 1em;
+        }
+    
+        .code-wrap {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    
+        .code > code {
+            background: none;
+            padding: 0;
+            font-size: 100%;
+            color: inherit;
+        }
+    
+        blockquote {
+            font-size: 1.25em;
+            margin: 1em 0;
+            padding-left: 1em;
+            border-left: 3px solid rgb(55, 53, 47);
+        }
+    
+        .bookmark {
+            text-decoration: none;
+            max-height: 8em;
+            padding: 0;
+            display: flex;
+            width: 100%;
+            align-items: stretch;
+        }
+    
+        .bookmark-title {
+            font-size: 0.85em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            height: 1.75em;
+            white-space: nowrap;
+        }
+    
+        .bookmark-text {
+            display: flex;
+            flex-direction: column;
+        }
+    
+        .bookmark-info {
+            flex: 4 1 180px;
+            padding: 12px 14px 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+    
+        .bookmark-image {
+            width: 33%;
+            flex: 1 1 180px;
+            display: block;
+            position: relative;
+            object-fit: cover;
+            border-radius: 1px;
+        }
+    
+        .bookmark-description {
+            color: rgba(55, 53, 47, 0.6);
+            font-size: 0.75em;
+            overflow: hidden;
+            max-height: 4.5em;
+            word-break: break-word;
+        }
+    
+        .bookmark-href {
+            font-size: 0.75em;
+            margin-top: 0.25em;
+        }
+    
+        .sans { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+        .code { font-family: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace; }
+        .serif { font-family: Lyon-Text, Georgia, ui-serif, serif; }
+        .mono { font-family: iawriter-mono, Nitti, Menlo, Courier, monospace; }
+        .pdf .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK JP'; }
+        .pdf:lang(zh-CN) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC'; }
+        .pdf:lang(zh-TW) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK TC'; }
+        .pdf:lang(ko-KR) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK KR'; }
+        .pdf .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+        .pdf:lang(zh-CN) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+        .pdf:lang(zh-TW) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+        .pdf:lang(ko-KR) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+        .pdf .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK JP'; }
+        .pdf:lang(zh-CN) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK SC'; }
+        .pdf:lang(zh-TW) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK TC'; }
+        .pdf:lang(ko-KR) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK KR'; }
+        .pdf .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+        .pdf:lang(zh-CN) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+        .pdf:lang(zh-TW) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+        .pdf:lang(ko-KR) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+        .highlight-default {
+            color: rgba(55, 53, 47, 1);
+        }
+        .highlight-gray {
+            color: rgba(120, 119, 116, 1);
+            fill: rgba(120, 119, 116, 1);
+        }
+        .highlight-brown {
+            color: rgba(159, 107, 83, 1);
+            fill: rgba(159, 107, 83, 1);
+        }
+        .highlight-orange {
+            color: rgba(217, 115, 13, 1);
+            fill: rgba(217, 115, 13, 1);
+        }
+        .highlight-yellow {
+            color: rgba(203, 145, 47, 1);
+            fill: rgba(203, 145, 47, 1);
+        }
+        .highlight-teal {
+            color: rgba(68, 131, 97, 1);
+            fill: rgba(68, 131, 97, 1);
+        }
+        .highlight-blue {
+            color: rgba(51, 126, 169, 1);
+            fill: rgba(51, 126, 169, 1);
+        }
+        .highlight-purple {
+            color: rgba(144, 101, 176, 1);
+            fill: rgba(144, 101, 176, 1);
+        }
+        .highlight-pink {
+            color: rgba(193, 76, 138, 1);
+            fill: rgba(193, 76, 138, 1);
+        }
+        .highlight-red {
+            color: rgba(212, 76, 71, 1);
+            fill: rgba(212, 76, 71, 1);
+        }
+        .highlight-default_background {
+            color: rgba(55, 53, 47, 1);
+        }
+        .highlight-gray_background {
+            background: rgba(248, 248, 247, 1);
+        }
+        .highlight-brown_background {
+            background: rgba(244, 238, 238, 1);
+        }
+        .highlight-orange_background {
+            background: rgba(251, 236, 221, 1);
+        }
+        .highlight-yellow_background {
+            background: rgba(251, 243, 219, 1);
+        }
+        .highlight-teal_background {
+            background: rgba(237, 243, 236, 1);
+        }
+        .highlight-blue_background {
+            background: rgba(231, 243, 248, 1);
+        }
+        .highlight-purple_background {
+            background: rgba(248, 243, 252, 1);
+        }
+        .highlight-pink_background {
+            background: rgba(252, 241, 246, 1);
+        }
+        .highlight-red_background {
+            background: rgba(253, 235, 236, 1);
+        }
+        .block-color-default {
+            color: inherit;
+            fill: inherit;
+        }
+        .block-color-gray {
+            color: rgba(120, 119, 116, 1);
+            fill: rgba(120, 119, 116, 1);
+        }
+        .block-color-brown {
+            color: rgba(159, 107, 83, 1);
+            fill: rgba(159, 107, 83, 1);
+        }
+        .block-color-orange {
+            color: rgba(217, 115, 13, 1);
+            fill: rgba(217, 115, 13, 1);
+        }
+        .block-color-yellow {
+            color: rgba(203, 145, 47, 1);
+            fill: rgba(203, 145, 47, 1);
+        }
+        .block-color-teal {
+            color: rgba(68, 131, 97, 1);
+            fill: rgba(68, 131, 97, 1);
+        }
+        .block-color-blue {
+            color: rgba(51, 126, 169, 1);
+            fill: rgba(51, 126, 169, 1);
+        }
+        .block-color-purple {
+            color: rgba(144, 101, 176, 1);
+            fill: rgba(144, 101, 176, 1);
+        }
+        .block-color-pink {
+            color: rgba(193, 76, 138, 1);
+            fill: rgba(193, 76, 138, 1);
+        }
+        .block-color-red {
+            color: rgba(212, 76, 71, 1);
+            fill: rgba(212, 76, 71, 1);
+        }
+        .block-color-default_background {
+            color: inherit;
+            fill: inherit;
+        }
+        .block-color-gray_background {
+            background: rgba(248, 248, 247, 1);
+        }
+        .block-color-brown_background {
+            background: rgba(244, 238, 238, 1);
+        }
+        .block-color-orange_background {
+            background: rgba(251, 236, 221, 1);
+        }
+        .block-color-yellow_background {
+            background: rgba(251, 243, 219, 1);
+        }
+        .block-color-teal_background {
+            background: rgba(237, 243, 236, 1);
+        }
+        .block-color-blue_background {
+            background: rgba(231, 243, 248, 1);
+        }
+        .block-color-purple_background {
+            background: rgba(248, 243, 252, 1);
+        }
+        .block-color-pink_background {
+            background: rgba(252, 241, 246, 1);
+        }
+        .block-color-red_background {
+            background: rgba(253, 235, 236, 1);
+        }
+        .select-value-color-uiBlue { background-color: undefined; }
+        .select-value-color-pink { background-color: rgba(225, 136, 179, 0.27); }
+        .select-value-color-purple { background-color: rgba(168, 129, 197, 0.27); }
+        .select-value-color-green { background-color: rgba(123, 183, 129, 0.27); }
+        .select-value-color-gray { background-color: rgba(84, 72, 49, 0.15); }
+        .select-value-color-transparentGray { background-color: undefined; }
+        .select-value-color-translucentGray { background-color: undefined; }
+        .select-value-color-orange { background-color: rgba(224, 124, 57, 0.27); }
+        .select-value-color-brown { background-color: rgba(210, 162, 141, 0.35); }
+        .select-value-color-red { background-color: rgba(244, 171, 159, 0.4); }
+        .select-value-color-yellow { background-color: rgba(236, 191, 66, 0.39); }
+        .select-value-color-blue { background-color: rgba(93, 165, 206, 0.27); }
+        .select-value-color-pageGlass { background-color: undefined; }
+        .select-value-color-washGlass { background-color: undefined; }
+    
+        .checkbox {
+            display: inline-flex;
+            vertical-align: text-bottom;
+            width: 16;
+            height: 16;
+            background-size: 16px;
+            margin-left: 2px;
+            margin-right: 5px;
+        }
+    
+        .checkbox-on {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%2358A9D7%22%2F%3E%0A%3Cpath%20d%3D%22M6.71429%2012.2852L14%204.9995L12.7143%203.71436L6.71429%209.71378L3.28571%206.2831L2%207.57092L6.71429%2012.2852Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E");
+        }
+    
+        .checkbox-off {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20x%3D%220.75%22%20y%3D%220.75%22%20width%3D%2214.5%22%20height%3D%2214.5%22%20fill%3D%22white%22%20stroke%3D%22%2336352F%22%20stroke-width%3D%221.5%22%2F%3E%0A%3C%2Fsvg%3E");
+        }
+        
+    </style>
+{% endblock extra_css %}
 {% block content %}
-    <iframe src="https://lowly-energy-62c.notion.site/ebd/18f765c7b6a480928d97d97dc20e2df8"
-            title="Présentation des fonctionnalités à venir"
-            width="100%"
-            height="600"
-            frameborder="0"
-            allowfullscreen></iframe>
+    <article id="18f765c7-b6a4-8092-8d97-d97dc20e2df8" class="page sans">
+        <header>
+            <h1 class="page-title">
+                Fonctionnalités à venir ⏳
+            </h1>
+        </header>
+        <div class="page-body">
+            <p id="190765c7-b6a4-80e2-bd8c-db87874da28a" class="">
+                <strong>Menu</strong>
+            </p>
+            <nav id="18f765c7-b6a4-8095-b0e0-cdefdfc18455"
+                 class="block-color-gray table_of_contents">
+                <div class="table_of_contents-item table_of_contents-indent-0">
+                    <a class="table_of_contents-link"
+                       href="#18f765c7-b6a4-80f7-b3df-ef7755f32f0a">🖥️ Page de connexion 🖥️</a>
+                </div>
+                <div class="table_of_contents-item table_of_contents-indent-0">
+                    <a class="table_of_contents-link"
+                       href="#18f765c7-b6a4-80b5-92e9-eebca68089d8">🖥️ Page “Projets 2025” 🖥️</a>
+                </div>
+                <div class="table_of_contents-item table_of_contents-indent-0">
+                    <a class="table_of_contents-link"
+                       href="#18f765c7-b6a4-8068-8514-c7ddab34d92e">🖥️ Page d’une simulation 🖥️</a>
+                </div>
+                <div class="table_of_contents-item table_of_contents-indent-0">
+                    <a class="table_of_contents-link"
+                       href="#18f765c7-b6a4-801c-a921-e3323a46f45b">🖥️ Page d’un projet dans une simulation 🖥️</a>
+                </div>
+                <div class="table_of_contents-item table_of_contents-indent-1">
+                    <a class="table_of_contents-link"
+                       href="#18f765c7-b6a4-800a-b1c9-fcb7a909740c"><mark class="highlight-default_background">Onglet “Historique du demandeur”</mark></a>
+                </div>
+                <div class="table_of_contents-item table_of_contents-indent-0">
+                    <a class="table_of_contents-link"
+                       href="#18f765c7-b6a4-8018-9183-e9590f7af4f0">🖥️ Page des programmations 🖥️</a>
+                </div>
+                <div class="table_of_contents-item table_of_contents-indent-1">
+                    <a class="table_of_contents-link"
+                       href="#18f765c7-b6a4-80af-a2b8-fe728a90cd5d"><mark class="highlight-default_background">Onglet “En cours”</mark></a>
+                </div>
+                <div class="table_of_contents-item table_of_contents-indent-1">
+                    <a class="table_of_contents-link"
+                       href="#18f765c7-b6a4-8002-8a13-d5ad2ead06bc"><mark class="highlight-default_background">Onglet “À venir”</mark></a>
+                </div>
+                <div class="table_of_contents-item table_of_contents-indent-1">
+                    <a class="table_of_contents-link"
+                       href="#18f765c7-b6a4-80db-b734-c8e517f89581"><mark class="highlight-default_background">Onglet  “Passées”</mark></a>
+                </div>
+            </nav>
+            <h2 id="18f765c7-b6a4-80f7-b3df-ef7755f32f0a" class="block-color-default">
+                🖥️ Page de connexion 🖥️
+            </h2>
+            <hr id="18f765c7-b6a4-80b4-b94e-fc1e62f344dd" />
+            <div id="19d765c7-b6a4-8045-bf6e-f3d4ed830240" class="column-list">
+                <div id="19d765c7-b6a4-80e9-8a02-d0c682cc50a7"
+                     style="width:43.75%"
+                     class="column">
+                    <figure id="19d765c7-b6a4-805d-b504-daad01b778d6" class="image">
+                        <a href="{% static "img/coming_features/Capture_decran_2025-02-17_a_17.02.20.png" %}">
+                            <img style="width:2368px" src="{% static "img/coming_features/Capture_decran_2025-02-17_a_17.02.20.png" %}" alt="Page actuelle" />
+                        </a>
+                        <figcaption>
+                            Page actuelle
+                        </figcaption>
+                    </figure>
+                </div>
+                <div id="19d765c7-b6a4-8033-aac6-d968bc942ced"
+                     style="width:56.25%"
+                     class="column">
+                    <figure id="19d765c7-b6a4-8049-9ab1-ef8146f5d0ce" class="image">
+                        <a href="{% static "img/coming_features/Connexion.png" %}">
+                            <img style="width:288px" src="{% static "img/coming_features/Connexion.png" %}" alt="Page à venir" />
+                        </a>
+                        <figcaption>
+                            Page à venir
+                        </figcaption>
+                    </figure>
+                </div>
+            </div>
+            <p id="18f765c7-b6a4-8015-80af-d49f35ee350d" class="">
+                Aujourd’hui la connexion se fait avec un identifiant et mot de passe. À l’avenir elle se fera uniquement avec Pro Connect <a href="https://www.proconnect.gouv.fr/">https://www.proconnect.gouv.fr/</a>
+            </p>
+            <p id="18f765c7-b6a4-80a8-8ca2-c7440c2e796b" class="">
+            </p>
+            <h2 id="18f765c7-b6a4-80b5-92e9-eebca68089d8" class="block-color-default">
+                🖥️ Page “Projets 2025” 🖥️
+            </h2>
+            <hr id="18f765c7-b6a4-80b4-b94e-fc1e62f344dd" />
+            <div id="19d765c7-b6a4-8074-9a05-f4b69992da4a" class="column-list">
+                <div id="19d765c7-b6a4-80d0-b2b1-d6f323f4ded3"
+                     style="width:50%"
+                     class="column">
+                    <figure id="19d765c7-b6a4-8007-8913-dd67026973d2" class="image">
+                        <a href="{% static "img/coming_features/Capture_decran_2025-02-17_a_17.27.15.png" %}">
+                            <img style="width:240px" src="{% static "img/coming_features/Capture_decran_2025-02-17_a_17.27.15.png" %}" alt="Page actuelle" />
+                        </a>
+                        <figcaption>
+                            Page actuelle
+                        </figcaption>
+                    </figure>
+                </div>
+                <div id="19d765c7-b6a4-8025-9f6c-cb2befa05d37"
+                     style="width:50%"
+                     class="column">
+                    <figure id="19d765c7-b6a4-80d7-bbb6-f9d3656cdda6" class="image">
+                        <a href="{% static "img/coming_features/Projets_2025_--.png" %}">
+                            <img style="width:240px" src="{% static "img/coming_features/Projets_2025_--.png" %}" alt="Page à venir" />
+                        </a>
+                        <figcaption>
+                            Page à venir
+                        </figcaption>
+                    </figure>
+                </div>
+            </div>
+            <ul id="18f765c7-b6a4-80e6-926d-eface95c7394" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Nous allons ajouter le N° de la démarche en cours en haut à droite de la page. Ainsi qu’un bouton pour aller sur la page de liste des simulations.
+                </li>
+            </ul>
+            <ul id="18f765c7-b6a4-80af-8fea-f1d4c588e535" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Ajout d’un tableau de visualisation des enveloppes associées à la démarche et des chiffres clés
+                </li>
+            </ul>
+            <ul id="18f765c7-b6a4-809f-ad1e-c78a5bd0e873" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Ajout d’un bouton qui permet d’ajouter une sous-enveloppe (par exemple une enveloppe de l’arrondissement)
+                </li>
+            </ul>
+            <ul id="18f765c7-b6a4-802f-9ec0-c01f18591e80" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Ajout du choix de sélection “Autres” (à confirmer)
+                </li>
+            </ul>
+            <ul id="18f765c7-b6a4-8007-97c0-cf8387e802c7" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Un filtre statut va être ajouté pour filtrer sur le statut du projet
+                </li>
+            </ul>
+            <ul id="18f765c7-b6a4-8010-a192-fabfa20acd9b" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Amélioration visuel du filtre existant
+                </li>
+            </ul>
+            <ul id="18f765c7-b6a4-8049-b120-d6f5febb254c" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Un filtre “Montant demandé” va être ajouté. Il va permettre d’ajouter un montant demandé minimum et un montant demandé maximum à filtrer.
+                </li>
+            </ul>
+            <ul id="18f765c7-b6a4-8093-8f04-eee70b13d67b" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Un filtre “montant prévisionnel accordé” va être ajouté.
+                </li>
+            </ul>
+            <ul id="18f765c7-b6a4-804e-a289-f07536f5bef8" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Un filtre ”Catégorie d’opération DSIL” va être ajouté. ll va permettre de filtrer l’affichage des projets selon la catégorie choisie.
+                </li>
+            </ul>
+            <ul id="18f765c7-b6a4-8063-8fd9-c4101e59ff99" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Un filtre ”Catégorie d’opération DETR” va être ajouté. ll va permettre de filtrer l’affichage des projets selon la catégorie choisie.
+                </li>
+            </ul>
+            <ul id="18f765c7-b6a4-8003-bee5-d2fd595110a3" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Remplacement du titre de la colonne “Commune” par “Demandeur”
+                </li>
+            </ul>
+            <ul id="18f765c7-b6a4-80ce-bf7e-e60ced3b4b94" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Ajout d’un picto “Reporté” pour les projets reportés des années précédentes à l’année en cours
+                </li>
+            </ul>
+            <ul id="18f765c7-b6a4-800e-868a-c9a3c0f7927b" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Amélioration visuel du montant retenu : ajout de couleurs
+                </li>
+            </ul>
+            <ul id="18f765c7-b6a4-80c4-9c62-ea0ea977c0bd" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Amélioration visuel des statuts : Ajout d’un emoji
+                </li>
+            </ul>
+            <p id="18f765c7-b6a4-80c7-9f68-e9213c6a3eb8" class="">
+            </p>
+            <h2 id="18f765c7-b6a4-8068-8514-c7ddab34d92e" class="block-color-default">
+                🖥️ Page d’une simulation 🖥️
+            </h2>
+            <hr id="18f765c7-b6a4-80b3-84ec-ef931bfc6514" />
+            <div id="19d765c7-b6a4-8028-99eb-c7a434afb959" class="column-list">
+                <div id="19d765c7-b6a4-80a7-a42b-ed2c233359da"
+                     style="width:50%"
+                     class="column">
+                    <figure id="19d765c7-b6a4-80c5-a8b2-e5ae2d3a8acb" class="image">
+                        <a href="{% static "img/coming_features/Capture_decran_2025-02-17_a_16.54.51.png" %}">
+                            <img style="width:331.9921875px" src="{% static "img/coming_features/Capture_decran_2025-02-17_a_16.54.51.png" %}" alt="Page de connexion actuelle" alt="Capture d’écran de la page actuelle" />
+                        </a>
+                        <figcaption>
+                            Capture d’écran de la page actuelle
+                        </figcaption>
+                    </figure>
+                </div>
+                <div id="19d765c7-b6a4-8067-8b6a-df90c0e66f1b"
+                     style="width:50%"
+                     class="column">
+                    <figure id="19d765c7-b6a4-802a-81a9-fb8c98cb586e" class="image">
+                        <a href="{% static "img/coming_features/Simulation_de_programmation_DETR_-_Departement_-_-.png" %}">
+                            <img style="width:336px" src="{% static "img/coming_features/Simulation_de_programmation_DETR_-_Departement_-_-.png" %}" alt="Page de connexion à venir" alt="Image de projection de l’évolution de la page" />
+                        </a>
+                        <figcaption>
+                            Image de projection de l’évolution de la page
+                        </figcaption>
+                    </figure>
+                </div>
+            </div>
+            <ul id="190765c7-b6a4-8062-8921-ebc97e00a329" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Ajouter des projets qui étaient attribués à une autre dotation dans cette simulation et donc changer leurs dotation
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-8063-bd1c-e86232ffe4d6" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Ajout d’un bouton : Voir la synthèse : Exporter une synthèse de la simulation
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-803a-a275-fc940dbb7aa7" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Ajout d’un bouton : Exporter le tableau : Exporter le tableau en .csv ou PDF
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-801d-b8d6-f8278f974784" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Dans le tableau des enveloppes, ajout du montant total demandé, Montant accepté, Projets acceptés, Projets refusés, Demandeurs, Projets déposés
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-80d1-8b91-de02d80c47d6" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Ajout des filtres manquants : Tri, Territoires, Porteurs de projet, Dotation, Statut, Coût total, Montant demandé, Montant prévisionnel accordé, Catégorie d’opération
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-8066-b4c5-ec9264dee0e9" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Ajout d’une checkbox qui permettra de sélectionner tous les projet
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-80a3-bcb8-e8ab2b679138" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Une flèche sera ajouter à côté de la checkbox afin de pouvoir changer le statut de plusieurs projets en même temps
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-807f-8f76-c170f95c9afb" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Lorsque l’on clique sur le picto “crayon” d’un projet dans le tableau, un panneau latéral s’ouvre pour pouvoir modifier les informations rapidement.
+                </li>
+            </ul>
+            <p id="18f765c7-b6a4-80d4-bd56-c6f0e65e532e" class="">
+            </p>
+            <h2 id="18f765c7-b6a4-801c-a921-e3323a46f45b" class="block-color-default">
+                🖥️ Page d’un projet dans une simulation 🖥️
+            </h2>
+            <hr id="18f765c7-b6a4-807a-ba84-f793eb2b887c" />
+            <div id="19d765c7-b6a4-8055-ac4d-d5093f711750" class="column-list">
+                <div id="19d765c7-b6a4-8038-a204-cecfc863b369"
+                     style="width:43.75%"
+                     class="column">
+                    <figure id="19d765c7-b6a4-8001-b7cb-f7cfabfc2abe" class="image">
+                        <a href="{% static "img/coming_features/Capture_decran_2025-02-17_a_16.57.57.png" %}">
+                            <img style="width:288px" src="{% static "img/coming_features/Capture_decran_2025-02-17_a_16.57.57.png" %}" alt="Capture d’écran de la page actuellement en ligne " />
+                        </a>
+                        <figcaption>
+                            Capture d’écran de la page actuellement en ligne
+                        </figcaption>
+                    </figure>
+                </div>
+                <div id="19d765c7-b6a4-80ed-999f-e0190f2bfd38"
+                     style="width:56.25%"
+                     class="column">
+                    <figure id="19d765c7-b6a4-8060-9c53-cb2d34aa009c" class="image">
+                        <a href="{% static "img/coming_features/Projet_Detaille_modifiable_-_Projet.png" %}">
+                            <img style="width:144px" src="{% static "img/coming_features/Projet_Detaille_modifiable_-_Projet.png" %}" alt="Projection de la page à venir" />
+                        </a>
+                        <figcaption>
+                            Projection de la page à venir
+                        </figcaption>
+                    </figure>
+                </div>
+            </div>
+            <ul id="190765c7-b6a4-8013-ba0a-c8aca90aa4b4" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Ajout d’un bouton pour exporter une synthèse du projet
+                </li>
+            </ul>
+            <ul id="18f765c7-b6a4-8034-aeb5-ed00fafce7be" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    <strong>Informations sur le projet</strong>
+                    <ul id="190765c7-b6a4-80d4-ae6d-e9b67b54f361" class="bulleted-list">
+                        <li style="list-style-type:circle">
+                            Amélioration de la mise en forme - Ajout de pictos/émojis
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+            <ul id="18f765c7-b6a4-809b-a81c-eb54b985cb04" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    <strong>Pièces jointes</strong>
+                    <ul id="190765c7-b6a4-8083-9b22-e51b68f079b0" class="bulleted-list">
+                        <li style="list-style-type:circle">
+                            Ajout d’un encart “Pièce jointes”, où apparaitra les pièces jointes du projet
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+            <ul id="18f765c7-b6a4-80c8-b6c9-edd0712a30c6" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    <strong>Décision de financement du projet</strong>
+                    <ul id="190765c7-b6a4-80a3-9f26-eeb98ad1427d" class="bulleted-list">
+                        <li style="list-style-type:circle">
+                            Ajout d’un bloc de financement du projet avec des boutons qui permettrons d’accepter provisoirement le projet, le refuser provisoirement, l’accepter, le refuser, l’annuler ou le remettre en traitement
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+            <ul id="18f765c7-b6a4-806f-ae91-c274fd82ede9" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Amélioration de la mise en forme de la partie Porteurs de projets
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-8066-8100-ef9937389a29" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Partie projet : Amélioration de la mise en forme et ajout des documents de présentation du projet
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-80a4-a941-cc786263c29b" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Amélioration de la mise en forme des dates
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-803b-a8a1-e4d88469463e" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Ajout de “Projet situé en QVP” et modification possible par l’instructeur
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-805f-a367-d1ef14e75326" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Ajout de “Projet rattaché à un CRTE” et modification possible par l’instructeur
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-80d4-ae24-dd840134dc1f" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Possibilité de modifier la réponse donné pour la transition écologique
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-8097-ad8c-cd4bdd475b16" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Détail du financement : Ajout des pièces jointes
+                    <ul id="190765c7-b6a4-801a-868b-ed68d29c99ba" class="bulleted-list">
+                        <li style="list-style-type:circle">
+                            Justificatif des dépenses précisionnelles
+                        </li>
+                    </ul>
+                    <ul id="190765c7-b6a4-80b7-9e86-f3808b30e7d0" class="bulleted-list">
+                        <li style="list-style-type:circle">
+                            Plan de financement
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-8045-a808-c975899afe68" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Catégorie d’opération : modification possible
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-808b-86c0-ff254e0f1fce" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Dispositif de financement sollicité : modification possible
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-807d-b9f1-e77209a32d63" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Autres aides de financement
+                    <ul id="190765c7-b6a4-80b6-a5c0-c433191ccac6" class="bulleted-list">
+                        <li style="list-style-type:circle">
+                            Ajout des autres aides de financement ajoutés par le demandeur
+                        </li>
+                    </ul>
+                    <ul id="190765c7-b6a4-801f-9eec-ed2f5d44b74b" class="bulleted-list">
+                        <li style="list-style-type:circle">
+                            Ajout d’un bouton pour l’instructeur qui permet d’ajouter d’autres co-financeurs
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-80f1-94d8-faffe8c0e2f6" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Ajout des coûts de financement
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-8067-8630-f781f20e3895" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Ajout d’une quatrième section qui permet de visualiser les autres projets qui ont été ajoutés par le demandeur lors de la campagne en cours
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-809d-a0bb-c43dc01a19bc" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Ajout d’un champ de saisi pour les experts
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-80d7-b115-c11f2968d900" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Lorsqu’un projet est accepté, il sera possible de générer des arrêtés
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-80a8-8860-daa63eecc2fc" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Onglet Annotations : Visualisation des notes de DS
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-80e2-91d7-f2a58318990a" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Visualisation des notes créées sur l’outil
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-80ef-8bf3-c95563c68d19" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Possibilité de créer des annotation, de les modifier ou supprimer
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-800d-a777-e843e7379d68" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Autres documents utiles à l’impression Possibilité de visualiser les pièces jointes ajoutées dans le dossier. Il sera possible d’ajouter des pièces jointe en plus et de télécharger une pièce jointe
+                </li>
+            </ul>
+            <h3 id="18f765c7-b6a4-800a-b1c9-fcb7a909740c"
+                class="block-color-default_background">
+                <mark class="highlight-default_background">Onglet “Historique du demandeur”</mark>
+            </h3>
+            <figure id="18f765c7-b6a4-806c-9035-dcc4b44a1e63"
+                    class="image"
+                    style="text-align:left">
+                <a href="{% static "img/coming_features/Capture_decran_2025-02-03_a_8.51.54_PM.png" %}">
+                    <img style="width:132px" src="{% static "img/coming_features/Capture_decran_2025-02-03_a_8.51.54_PM.png" %}" alt="Image de projection (cliquer pour agrandir)" />
+                </a>
+                <figcaption>
+                    Image de projection (cliquer pour agrandir)
+                </figcaption>
+            </figure>
+            <ul id="190765c7-b6a4-8076-8401-c1771739ca78" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Ajout des chiffres clés générés à partir des données du tableau
+                    <ul id="190765c7-b6a4-8027-b0c2-e8187d546287" class="bulleted-list">
+                        <li style="list-style-type:circle">
+                            Nombre de projets financés
+                        </li>
+                    </ul>
+                    <ul id="190765c7-b6a4-8074-8dcd-e1f81946a0a5" class="bulleted-list">
+                        <li style="list-style-type:circle">
+                            Nombre de projets acceptés
+                        </li>
+                    </ul>
+                    <ul id="190765c7-b6a4-800f-a10c-e273fc4aea83" class="bulleted-list">
+                        <li style="list-style-type:circle">
+                            Nombre de projets refusés
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+            <ul id="190765c7-b6a4-8073-a901-ec8feb52c04b" class="bulleted-list">
+                <li style="list-style-type:disc">
+                    Ajout d’un onglet “Historique” avec l’historique du demandeur. Les projets du demandeurs des années précédentes s’affichent ici. Ils peuvent être filtrés et exportés.
+                </li>
+            </ul>
+            <p id="18f765c7-b6a4-8084-9598-ca9ac6c6de8d" class="">
+            </p>
+            <h2 id="18f765c7-b6a4-8018-9183-e9590f7af4f0" class="block-color-default">
+                🖥️ Page des programmations 🖥️
+            </h2>
+            <hr id="18f765c7-b6a4-800d-b591-e45b6a364fe3" />
+            <p id="18f765c7-b6a4-80a3-95cf-eeea2df25018" class="">
+                Un page “Programmation” va être ajoutée. Elle permettra de visualiser une programmation officielle de la campagne en cours. Lorsqu’un projet est accepté dans une simulation, il est ajouté dans cette partie.
+            </p>
+            <div id="18f765c7-b6a4-802b-a8de-e79267ee0932" class="column-list">
+                <div id="18f765c7-b6a4-8058-adec-f118e29b0392"
+                     style="width:50%"
+                     class="column">
+                    <h3 id="18f765c7-b6a4-80af-a2b8-fe728a90cd5d"
+                        class="block-color-default_background">
+                        <mark class="highlight-default_background">Onglet “En cours”</mark>
+                    </h3>
+                </div>
+                <div id="18f765c7-b6a4-8036-b2db-f1b78ce1bdd0"
+                     style="width:50%"
+                     class="column">
+                    <h3 id="18f765c7-b6a4-8002-8a13-d5ad2ead06bc"
+                        class="block-color-default_background">
+                        <mark class="highlight-default_background">Onglet “À venir”</mark>
+                    </h3>
+                </div>
+            </div>
+            <div id="18f765c7-b6a4-80d7-99f6-de26a57fd786" class="column-list">
+                <div id="18f765c7-b6a4-8071-a408-d6389ec03a35"
+                     style="width:50%"
+                     class="column">
+                    <figure id="18f765c7-b6a4-80db-bdbe-fba4defa067b" class="image">
+                        <a href="{% static "img/coming_features/Programmations_-_En_cours.png" %}">
+                            <img style="width:709.9921875px" src="{% static "img/coming_features/Programmations_-_En_cours.png" %}" alt="Programmations en cours" />
+                        </a>
+                    </figure>
+                </div>
+                <div id="18f765c7-b6a4-802a-acbf-ce2a10a6ee0b"
+                     style="width:50%"
+                     class="column">
+                    <figure id="18f765c7-b6a4-80c0-a3ad-e4e1a6fa71c4" class="image">
+                        <a href="{% static "img/coming_features/Programmations_-_A_venir.png" %}">
+                            <img style="width:709.9921875px" src="{% static "img/coming_features/Programmations_-_A_venir.png" %}" alt="Programmation à venir" />
+                        </a>
+                    </figure>
+                </div>
+            </div>
+            <h3 id="18f765c7-b6a4-80db-b734-c8e517f89581"
+                class="block-color-default_background">
+                <mark class="highlight-default_background">Onglet  “Passées”</mark>
+            </h3>
+            <div id="18f765c7-b6a4-80c9-83b3-d7aa2ef9a011" class="column-list">
+                <div id="18f765c7-b6a4-8019-b18c-eff59f1915cb"
+                     style="width:50%"
+                     class="column">
+                    <figure id="18f765c7-b6a4-80ec-8c3d-c1e7027aa71d" class="image">
+                        <a href="{% static "img/coming_features/Programmations_-_Passees_-_Vue_1.png" %}">
+                            <img style="width:709.9921875px" src="{% static "img/coming_features/Programmations_-_Passees_-_Vue_1.png" %}" alt="Programmations passées" />
+                        </a>
+                    </figure>
+                </div>
+                <div id="18f765c7-b6a4-8026-a369-cde4605c4fb4"
+                     style="width:50%"
+                     class="column">
+                    <figure id="18f765c7-b6a4-80cb-be35-deca8dcb8a0b" class="image">
+                        <a href="{% static "img/coming_features/Programmations_-_Passees_-_Vue_2-.png" %}">
+                            <img style="width:332px" src="{% static "img/coming_features/Programmations_-_Passees_-_Vue_2-.png" %}" alt="Programmations passées 2" />
+                        </a>
+                    </figure>
+                </div>
+            </div>
+            <p id="18f765c7-b6a4-8048-9abe-f2a9afb523ed" class="">
+            </p>
+        </div>
+    </article>
 {% endblock content %}

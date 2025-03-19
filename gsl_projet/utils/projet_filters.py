@@ -7,20 +7,24 @@ from django_filters import (
     NumberFilter,
 )
 
+from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
+from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 
 
 class ProjetFilters(FilterSet):
     dotation = ChoiceFilter(
         field_name="dossier_ds__demande_dispositif_sollicite",
-        choices=Dossier.DEMANDE_DISPOSITIF_SOLLICITE_VALUES,
+        choices=(
+            (Dossier.DOTATION_DETR, Dossier.DOTATION_DETR),
+            (Dossier.DOTATION_DSIL, Dossier.DOTATION_DSIL),
+        ),
         widget=Select(
             attrs={
                 "class": "fr-select",
-                "onchange": "this.form.submit()",
             }
         ),
         empty_label="Toutes les dotations",
@@ -37,7 +41,6 @@ class ProjetFilters(FilterSet):
         widget=Select(
             attrs={
                 "class": "fr-select",
-                "onchange": "this.form.submit()",
             },
         ),
         empty_label="Tous les porteurs",
@@ -108,11 +111,34 @@ class ProjetFilters(FilterSet):
         ),
     )
 
+    ordered_status: tuple[str, ...] = (
+        Projet.STATUS_PROCESSING,
+        Projet.STATUS_REFUSED,
+        Projet.STATUS_ACCEPTED,
+        Projet.STATUS_DISMISSED,
+    )
+
     status = MultipleChoiceFilter(
-        field_name="dossier_ds__ds_state",
-        choices=Dossier.DS_STATE_VALUES,
+        field_name="status",
+        choices=order_couples_tuple_by_first_value(
+            Projet.STATUS_CHOICES, ordered_status
+        ),
         widget=CustomCheckboxSelectMultiple(),
     )
+
+    territoire = MultipleChoiceFilter(
+        method="filter_territoire",
+        choices=[],
+        widget=CustomCheckboxSelectMultiple(),
+    )
+
+    def filter_territoire(self, queryset, _name, values: list[int]):
+        perimetres = set()
+        for perimetre in Perimetre.objects.filter(id__in=values):
+            perimetres.add(perimetre)
+            for child in perimetre.children():
+                perimetres.add(child)
+        return queryset.filter(perimetre__in=perimetres)
 
     class Meta:
         model = Projet
@@ -126,6 +152,7 @@ class ProjetFilters(FilterSet):
             "montant_retenu_min",
             "montant_retenu_max",
             "status",
+            "territoire",
         )
 
     @property

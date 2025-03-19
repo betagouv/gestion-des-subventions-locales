@@ -13,13 +13,13 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
-from gsl_simulation.models import Simulation
+from gsl_projet.models import Projet
+from gsl_simulation.models import Simulation, SimulationProjet
 from gsl_simulation.services.simulation_service import SimulationService
-from gsl_simulation.tests.factories import SimulationFactory
-
-pytestmark = pytest.mark.django_db
+from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
 
+@pytest.mark.django_db
 def test_user_with_department_and_ask_for_dsil_simulation():
     perimetre_departemental = PerimetreDepartementalFactory()
     perimetre_regional = PerimetreRegionalFactory(region=perimetre_departemental.region)
@@ -41,6 +41,7 @@ def test_user_with_department_and_ask_for_dsil_simulation():
     assert simulation.slug == "test"
 
 
+@pytest.mark.django_db
 def test_empty_enveloppe_is_created_if_needed():
     perimetre_departemental = PerimetreDepartementalFactory()
     user = CollegueFactory(perimetre=perimetre_departemental)
@@ -52,6 +53,7 @@ def test_empty_enveloppe_is_created_if_needed():
     assert simulation.enveloppe.type == Enveloppe.TYPE_DETR
 
 
+@pytest.mark.django_db
 def test_user_with_department_and_ask_for_detr_simulation():
     perimetre_departemental = PerimetreDepartementalFactory()
     user = CollegueFactory(perimetre=perimetre_departemental)
@@ -67,6 +69,7 @@ def test_user_with_department_and_ask_for_detr_simulation():
     assert simulation.slug == "test-aussi-le-slug"
 
 
+@pytest.mark.django_db
 def test_user_without_department_and_ask_for_detr_simulation():
     perimetre_regional = PerimetreRegionalFactory()
     user = CollegueFactory(perimetre=perimetre_regional)
@@ -76,6 +79,7 @@ def test_user_without_department_and_ask_for_detr_simulation():
         SimulationService.create_simulation(user, "test", "DETR")
 
 
+@pytest.mark.django_db
 def test_user_with_region_and_ask_for_dsil_simulation():
     perimetre_regional = PerimetreRegionalFactory()
     user = CollegueFactory(perimetre=perimetre_regional)
@@ -87,6 +91,7 @@ def test_user_with_region_and_ask_for_dsil_simulation():
     assert simulation.slug == "test-avec-ce-titre"
 
 
+@pytest.mark.django_db
 def test_user_with_arrondissement_and_ask_for_dsil_simulation():
     perimetre_arrondissement = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre_arrondissement)
@@ -101,6 +106,7 @@ def test_user_with_arrondissement_and_ask_for_dsil_simulation():
     assert simulation.slug == "test-avec-ces-caracteres"
 
 
+@pytest.mark.django_db
 def test_slug_generation():
     SimulationFactory(slug="test")
     SimulationFactory(slug="test-2")
@@ -118,3 +124,51 @@ def test_slug_generation():
 
     slug = SimulationService.get_slug("Other test 1")
     assert slug == "other-test-1-1"
+
+
+@pytest.fixture
+def simulation():
+    return SimulationFactory()
+
+
+@pytest.mark.django_db
+def test_get_total_amount_granted(simulation):
+    # must be included
+    accepted_projet = SimulationProjetFactory(
+        simulation=simulation, status=SimulationProjet.STATUS_ACCEPTED, montant=1_200
+    )
+    provisionally_accepted_projet = SimulationProjetFactory(
+        simulation=simulation, status=SimulationProjet.STATUS_PROVISOIRE, montant=2_300
+    )
+
+    # must not be included
+    ## other statuses
+    SimulationProjetFactory(
+        simulation=simulation, status=SimulationProjet.STATUS_REFUSED, montant=3_000
+    )
+    SimulationProjetFactory(
+        simulation=simulation, status=SimulationProjet.STATUS_DISMISSED, montant=4_000
+    )
+    SimulationProjetFactory(
+        simulation=simulation, status=SimulationProjet.STATUS_PROCESSING, montant=5_000
+    )
+    ## not in simulation
+    SimulationProjetFactory(
+        projet=accepted_projet.projet,
+        status=SimulationProjet.STATUS_ACCEPTED,
+        montant=6_000,
+    )
+    SimulationProjetFactory(
+        projet=provisionally_accepted_projet.projet,
+        status=SimulationProjet.STATUS_PROVISOIRE,
+        montant=8_000,
+    )
+
+    qs = Projet.objects.filter(simulationprojet__simulation=simulation)
+    assert SimulationService.get_total_amount_granted(qs, simulation) == 1_200 + 2_300
+
+
+@pytest.mark.django_db
+def test_get_total_amount_granted_with_empty_qs(simulation):
+    qs = Projet.objects.all()
+    assert SimulationService.get_total_amount_granted(qs, simulation) == 0

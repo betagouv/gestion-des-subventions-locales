@@ -1,17 +1,54 @@
 from datetime import UTC
+from decimal import Decimal
 
 import pytest
 from django.utils import timezone
 
+from gsl_core.tests.factories import AdresseFactory, PerimetreArrondissementFactory
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     NaturePorteurProjetFactory,
 )
+from gsl_programmation.models import ProgrammationProjet
+from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
 from gsl_projet.tests.factories import ProjetFactory
 from gsl_simulation.models import Simulation
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
+
+
+@pytest.mark.django_db
+def test_get_or_create_projet_from_dossier_with_existing_projet():
+    dossier = DossierFactory(projet_adresse=AdresseFactory())
+    projet = ProjetFactory(dossier_ds=dossier)
+
+    assert ProjetService.get_or_create_from_ds_dossier(dossier) == projet
+
+
+@pytest.mark.django_db
+def test_create_projet_from_dossier():
+    dossier = DossierFactory(projet_adresse=AdresseFactory())
+    demandeur_commune = dossier.ds_demandeur.address.commune
+    perimetre = PerimetreArrondissementFactory(
+        arrondissement=demandeur_commune.arrondissement,
+    )
+    assert (
+        dossier.ds_demandeur.address.commune.arrondissement == perimetre.arrondissement
+    )
+    assert dossier.ds_demandeur.address.commune.departement == perimetre.departement
+
+    projet = ProjetService.get_or_create_from_ds_dossier(dossier)
+
+    assert isinstance(projet, Projet)
+    assert projet.address is not None
+    assert projet.address.commune == dossier.projet_adresse.commune
+    assert projet.address == dossier.projet_adresse
+    assert projet.perimetre == perimetre
+
+    other_projet = ProjetService.get_or_create_from_ds_dossier(dossier)
+    assert other_projet == projet
 
 
 @pytest.fixture
@@ -82,17 +119,28 @@ def test_get_same_total_cost_even_if_there_is_other_projets(
 
 
 @pytest.mark.django_db
-def test_get_total_amount_granted(simulation):
-    SimulationProjetFactory(simulation=simulation, montant=1000)
-    SimulationProjetFactory(simulation=simulation, montant=2000)
-    SimulationProjetFactory(montant=4000)
+def test_get_total_amount_granted():
+    projet_1 = ProjetFactory()
+    projet_2 = ProjetFactory()
+    projet_3 = ProjetFactory()
+    _projet_4 = ProjetFactory()
 
-    qs = Projet.objects.filter(simulationprojet__simulation=simulation).all()
-    assert ProjetService.get_total_amount_granted(qs) == 3000
+    ProgrammationProjetFactory(
+        projet=projet_1, status=ProgrammationProjet.STATUS_ACCEPTED, montant=10_000
+    )
+    ProgrammationProjetFactory(
+        projet=projet_2, status=ProgrammationProjet.STATUS_ACCEPTED, montant=20_000
+    )
+    ProgrammationProjetFactory(
+        projet=projet_3, status=ProgrammationProjet.STATUS_REFUSED, montant=0
+    )
+
+    qs = Projet.objects.all()
+    assert ProjetService.get_total_amount_granted(qs) == 30_000
 
 
 @pytest.fixture
-def projets_with_dossier_ds__demande_montant_not_in_simulation() -> list[Projet]:
+def projets_with_dossier_ds__demande_montant_not_in_simulation() -> None:
     for amount in (10_000, 2_000):
         p = ProjetFactory(
             dossier_ds__demande_montant=amount,
@@ -103,7 +151,7 @@ def projets_with_dossier_ds__demande_montant_not_in_simulation() -> list[Projet]
 @pytest.fixture
 def projets_with_dossier_ds__demande_montant_in_simulation(
     simulation,
-) -> list[Projet]:
+) -> None:
     for amount in (15_000, 25_000):
         p = ProjetFactory(
             dossier_ds__demande_montant=amount,
@@ -192,3 +240,91 @@ def test_add_ordering_to_projets_qs():
     ordering = "commune_asc"
     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
     assert list(ordered_qs) == [projet3, projet1, projet2]
+
+
+@pytest.mark.django_db
+def test_compute_taux_from_montant():
+    projet = ProjetFactory(
+        dossier_ds__finance_cout_total=100_000,
+    )
+    taux = ProjetService.compute_taux_from_montant(projet, 10_000)
+    assert taux == 10
+
+
+@pytest.mark.django_db
+def test_compute_taux_from_montant_with_projet_without_finance_cout_total():
+    projet = ProjetFactory()
+    taux = ProjetService.compute_taux_from_montant(projet, 10_000)
+    assert taux == 0
+
+
+test_data = (
+    (10_000, 30_000, 33.33),
+    (10_000, 0, 0),
+    (10_000, 10_000, 100),
+    (100_000, 10_000, 100),
+    (10_000, -3_000, 0),
+    (0, 0, 0),
+    (Decimal(0), Decimal(0), 0),
+    (0, None, 0),
+    (None, 0, 0),
+    (1_000, None, 0),
+    (None, 4_000, 0),
+)
+
+
+@pytest.mark.parametrize("montant, assiette, expected_taux", test_data)
+@pytest.mark.django_db
+def test_compute_taux_from_montant_with_various_assiettes(
+    assiette, montant, expected_taux
+):
+    projet = ProjetFactory(assiette=assiette)
+    taux = ProjetService.compute_taux_from_montant(projet, montant)
+    assert taux == round(Decimal(expected_taux), 2)
+
+
+@pytest.mark.parametrize("montant, cout_total, expected_taux", test_data)
+@pytest.mark.django_db
+def test_compute_taux_from_montant_with_various_cout_total(
+    cout_total, montant, expected_taux
+):
+    projet = ProjetFactory(dossier_ds__finance_cout_total=cout_total)
+    taux = ProjetService.compute_taux_from_montant(projet, montant)
+    assert taux == round(Decimal(expected_taux), 2)
+
+
+def test_get_projet_status():
+    accepted = Dossier(ds_state=Dossier.STATE_ACCEPTE)
+    en_construction = Dossier(ds_state=Dossier.STATE_EN_CONSTRUCTION)
+    en_instruction = Dossier(ds_state=Dossier.STATE_EN_INSTRUCTION)
+    refused = Dossier(ds_state=Dossier.STATE_REFUSE)
+    dismissed = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
+
+    assert ProjetService.get_projet_status(accepted) == Projet.STATUS_ACCEPTED
+    assert ProjetService.get_projet_status(en_construction) == Projet.STATUS_PROCESSING
+    assert ProjetService.get_projet_status(en_instruction) == Projet.STATUS_PROCESSING
+    assert ProjetService.get_projet_status(refused) == Projet.STATUS_REFUSED
+    assert ProjetService.get_projet_status(dismissed) == Projet.STATUS_DISMISSED
+
+    dossier_unknown = Dossier(ds_state="unknown_state")
+    assert ProjetService.get_projet_status(dossier_unknown) is None
+
+
+@pytest.mark.parametrize(
+    "taux, should_raise_exception",
+    [
+        (50, False),
+        (0, False),
+        (100, False),
+        (-1, True),
+        (101, True),
+        (None, True),
+        ("invalid", True),
+    ],
+)
+def test_validate_taux(taux, should_raise_exception):
+    if should_raise_exception:
+        with pytest.raises(ValueError, match=f"Taux {taux} must be between 0 and 100"):
+            ProjetService.validate_taux(taux)
+    else:
+        ProjetService.validate_taux(taux)

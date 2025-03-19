@@ -1,28 +1,30 @@
 {% extends "base.html" %}
-{% load static dsfr_tags %}
-
-{% block breadcrumb %}
-    {% dsfr_breadcrumb breadcrumb_dict %}
-{% endblock breadcrumb %}
+{% load static gsl_filters %}
 
 {% block content %}
-    <div class="fr-mb-4w">
-        <a href="{% url "projet:list" %}"
-           class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
-            Retour à la liste des projets
-        </a>
-    </div>
-
+    {% block go_back_button %}
+        <div class="fr-mb-4w">
+            <a href="{% url "projet:list" %}"
+               class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+                Retour à la liste des projets
+            </a>
+        </div>
+    {% endblock go_back_button %}
     <h1>
-        <span class="fr-badge fr-text--xl gsl-pull-right fr-mt-2v fr-ml-5w">{{ dossier.get_ds_state_display }}</span>
+        {% block status_badge %}
+            <span class="fr-badge fr-text--xl gsl-pull-right fr-mt-2v fr-ml-5w badge-projet-status__{{ projet.status }}">{{ projet.get_status_display|remove_first_word }}</span>
+        {% endblock status_badge %}
         {{ dossier.projet_intitule|lower|capfirst }}
     </h1>
 
     <ul class="fr-btns-group--right fr-btns-group--inline fr-mt-6w fr-mb-5w">
         <li>
             <a href="{{ dossier.url_on_ds }}"
+               target="_blank"
+               rel="noreferrer noopener"
                class="fr-btn fr-btn--icon-right fr-icon-external-link-line">
                 Voir le dossier sur Démarches Simplifiées
+                <span class="fr-sr-only">(nouvelle fenêtre)</span>
             </a>
         </li>
         {% comment %}
@@ -81,7 +83,9 @@
              class="fr-tabs__panel fr-tabs__panel--selected  with-sticky-menu"
              role="tabpanel"
              tabindex="0">
-            {% include "gsl_projet/projet/tab_projet.html" %}
+            {% block tab_projet %}
+                {% include "gsl_projet/projet/tab_projet.html" %}
+            {% endblock tab_projet %}
         </div>
         <div id="annotations-panel"
              class="fr-tabs__panel"

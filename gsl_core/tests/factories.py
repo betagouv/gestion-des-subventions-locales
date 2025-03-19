@@ -1,5 +1,5 @@
 import factory
-from django.test import RequestFactory
+from django.test import Client, RequestFactory
 
 from ..models import (
     Adresse,
@@ -44,8 +44,8 @@ class CommuneFactory(factory.django.DjangoModelFactory):
 
     insee_code = factory.Sequence(lambda n: f"{n}")
     name = factory.Faker("city", locale="fr_FR")
-    departement = factory.SubFactory(DepartementFactory)
     arrondissement = factory.SubFactory(ArrondissementFactory)
+    departement = factory.LazyAttribute(lambda obj: obj.arrondissement.departement)
 
 
 class AdresseFactory(factory.django.DjangoModelFactory):
@@ -61,6 +61,7 @@ class AdresseFactory(factory.django.DjangoModelFactory):
 class PerimetreFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Perimetre
+        django_get_or_create = ("arrondissement", "departement", "region")
 
     arrondissement = None
     departement = factory.SubFactory(DepartementFactory)
@@ -104,3 +105,16 @@ class RequestFactory(RequestFactory):
         request = super().get(path, data, **extra)
         request.user = self.user
         return request
+
+
+class ClientWithLoggedUserFactory(Client):
+    def __init__(self, user, **kwargs):
+        super().__init__(**kwargs)
+        self.force_login(user)
+
+
+class ClientWithLoggedStaffUserFactory(Client):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        user = CollegueFactory(is_staff=True)
+        self.force_login(user)

@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from csp.constants import NONCE, SELF
 from dotenv import load_dotenv
 
 load_dotenv()  # take environment variables from .env.
@@ -67,11 +68,13 @@ INSTALLED_APPS = [
     "django_celery_beat",
     "django_json_widget",
     # dependencies:
+    "csp",
     "widget_tweaks",
     "dsfr",
     "import_export",
     "django_htmx",
     "django_filters",
+    "django_extensions",
     # gsl apps:
     "gsl_core",
     "gsl_demarches_simplifiees",
@@ -84,6 +87,7 @@ INSTALLED_APPS = [
 
 
 MIDDLEWARE = [
+    "csp.middleware.CSPMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -99,7 +103,6 @@ MIDDLEWARE = [
 
 if DEBUG:
     INSTALLED_APPS.append("query_counter")
-    INSTALLED_APPS.append("django_extensions")
     MIDDLEWARE.append("query_counter.middleware.DjangoQueryCounterMiddleware")
 
 AUTHENTICATION_BACKENDS = [
@@ -204,17 +207,18 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
 # Connection to "Pro Connect" (OIDC)
+PROCONNECT_DOMAIN = os.getenv("PROCONNECT_DOMAIN", "fca.integ01.dev-agentconnect.fr")
+PROCONNECT_ISSUER = os.getenv("PROCONNECT_ISSUER", f"{PROCONNECT_DOMAIN}/api/v2")
 
 OIDC_RP_SIGN_ALGO = "RS256"
-OIDC_OP_JWKS_ENDPOINT = os.getenv("PROCONNECT_JWKS_ENDPOINT")
 OIDC_RP_CLIENT_ID = os.getenv("PROCONNECT_CLIENT_ID")
 OIDC_RP_CLIENT_SECRET = os.getenv("PROCONNECT_CLIENT_SECRET")
 OIDC_RP_SCOPES = "openid email given_name usual_name uid siret idp_id"
-OIDC_OP_AUTHORIZATION_ENDPOINT = os.getenv("PROCONNECT_AUTHORIZATION_ENDPOINT")
-OIDC_OP_TOKEN_ENDPOINT = os.getenv("PROCONNECT_TOKEN_ENDPOINT")
-OIDC_OP_USER_ENDPOINT = os.getenv("PROCONNECT_USER_ENDPOINT")
-
-OIDC_OP_LOGOUT_ENDPOINT = os.getenv("PROCONNECT_SESSION_END")
+OIDC_OP_JWKS_ENDPOINT = f"https://{PROCONNECT_ISSUER}/jwks"
+OIDC_OP_AUTHORIZATION_ENDPOINT = f"https://{PROCONNECT_ISSUER}/authorize"
+OIDC_OP_TOKEN_ENDPOINT = f"https://{PROCONNECT_ISSUER}/token"
+OIDC_OP_USER_ENDPOINT = f"https://{PROCONNECT_ISSUER}/userinfo"
+OIDC_OP_LOGOUT_ENDPOINT = f"https://{PROCONNECT_ISSUER}/session/end"
 
 OIDC_AUTH_REQUEST_EXTRA_PARAMS = {"acr_values": "eidas1"}
 OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = 4 * 60 * 60
@@ -230,3 +234,16 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_TIMEZONE = "Europe/Paris"
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_RESULT_EXTENDED = True
+
+# CSP Configuration
+
+CONTENT_SECURITY_POLICY = {
+    "DIRECTIVES": {
+        "default-src": [SELF],
+        "img-src": [SELF, "data:"],
+        "style-src": [SELF, NONCE],
+        "script-src": [SELF, NONCE],
+    },
+}
+
+CONTENT_SECURITY_POLICY_REPORT_ONLY = {}

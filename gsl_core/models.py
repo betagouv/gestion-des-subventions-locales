@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import UniqueConstraint
+from django.db.models import F, UniqueConstraint
 
 
 class BaseModel(models.Model):
@@ -113,6 +113,20 @@ class Adresse(BaseModel):
         return self
 
 
+class PerimetreManager(models.Manager):
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .select_related("arrondissement", "departement", "region")
+            .order_by(
+                F("region_id").asc(nulls_first=True),
+                F("departement_id").asc(nulls_first=True),
+                F("arrondissement_id").asc(nulls_first=True),
+            )
+        )
+
+
 class Perimetre(BaseModel):
     TYPE_REGION = "Région"
     TYPE_DEPARTEMENT = "Département"
@@ -137,6 +151,8 @@ class Perimetre(BaseModel):
         on_delete=models.PROTECT,
         blank=True,
     )
+
+    objects = PerimetreManager()
 
     class Meta:
         verbose_name = "Périmètre"
@@ -203,6 +219,9 @@ class Perimetre(BaseModel):
             )
         return False
 
+    def contains_or_equal(self, other_perimetre):
+        return self == other_perimetre or self.contains(other_perimetre)
+
     @property
     def type(self):
         if self.departement is None:
@@ -218,6 +237,14 @@ class Perimetre(BaseModel):
         if self.arrondissement is None:
             return self.departement.name
         return self.arrondissement.name
+
+    def children(self):
+        kwargs = {"region_id": self.region_id}
+        if self.departement_id:
+            kwargs["departement_id"] = self.departement_id
+        if self.arrondissement_id:
+            kwargs["arrondissement_id"] = self.arrondissement_id
+        return Perimetre.objects.filter(**kwargs).exclude(id=self.id)
 
 
 class Collegue(AbstractUser):

@@ -8,6 +8,8 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 from django.contrib import admin
 from django.urls import include, path
 
+from gsl import settings
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("gsl_oidc.urls")),
@@ -23,3 +25,8 @@ urlpatterns = [
         include(("gsl_simulation.urls", "gsl_simulation"), "simulation"),
     ),
 ]
+
+if settings.DEBUG:
+    from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+
+    urlpatterns += staticfiles_urlpatterns()

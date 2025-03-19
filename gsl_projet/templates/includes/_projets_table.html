@@ -1,5 +1,8 @@
-{% load gsl_filters %}
-{% load dsfr_tags %}
+{% load static gsl_filters dsfr_tags %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static "css/projet_list.css" %}">
+{% endblock extra_css %}
 
 <div class="fr-table--lg gsl-projet-table" id="projet-table">
     <table>
@@ -23,22 +26,25 @@
                 <th>
                     Coût total du projet
                     <br>
-                    <span class="gsl-money gsl_projet_table__total gsl-money gsl-projet-table__total-cost">{{ total_cost | floatformat:"0g" | default:"—" }}&nbsp;€</span>
+                    <span class="gsl-money gsl_projet_table__total gsl-money gsl-projet-table__total-cost">{{ total_cost | euro:0 }}</span>
                 </th>
                 <th>
                     Montant et taux sollicités
                     <br>
-                    <span class="gsl-money gsl_projet_table__total gsl-projet-table__total-asked">{{ total_amount_asked | floatformat:"0g" | default:"—" }}&nbsp;€</span>
+                    <span class="gsl-money gsl_projet_table__total gsl-projet-table__total-asked">{{ total_amount_asked | euro:0 }}</span>
                 </th>
                 <th>
-                    Montant et taux retenus
+                    Montant retenu
                     <br>
-                    <span class="gsl-money gsl_projet_table__total gsl-projet-table__total-granted">{{ total_amount_granted | floatformat:"0g" | default:"—" }}&nbsp;€</span>
+                    <span class="gsl-money gsl_projet_table__total gsl-projet-table__total-granted">{{ total_amount_granted | euro:0 }}</span>
+                </th>
+                <th>
+                    Taux de subvention
                 </th>
                 <th>
                     Catégorie d'opération
                 </th>
-                <th>
+                <th class="max_120_width">
                     Statut
                 </th>
                 <th>
@@ -72,10 +78,12 @@
                         <br>
                         {{ projet.get_taux_de_subvention_sollicite|percent }}
                     </td>
-                    <td class="gsl-money">
-                        {{ projet.dossier_ds.annotations_montant_accorde|euro:2 }}
+                    <td class="gsl-money {% if projet.montant_retenu is not None %} gsl_projet_table__montant_retenu {% endif %}">
+                        {{ projet.montant_retenu|euro:2 }}
                         <br>
-                        {{ projet.dossier_ds.annotations_taux|percent }}
+                    </td>
+                    <td class="gsl-money">
+                        {{ projet.taux_retenu|percent }}
                     </td>
                     <td>
                         <ul class="no-list-style">
@@ -86,8 +94,8 @@
                             {% endfor %}
                         </ul>
                     </td>
-                    <td class="ds_state__{{ projet.dossier_ds.ds_state }}">
-                        <b>{{ projet.dossier_ds.get_ds_state_display }}</b>
+                    <td class="projet_status__{{ projet.status }}">
+                        <b>{{ projet.get_status_display }}</b>
                     </td>
                     <td class="fr-cell--right">
                         <a class="fr-btn--tertiary-no-outline gsl-no-underline"

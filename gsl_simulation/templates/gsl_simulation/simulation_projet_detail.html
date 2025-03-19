@@ -1,0 +1,38 @@
+{% extends "gsl_projet/projet.html" %}
+{% load static gsl_filters dsfr_tags %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/simulation_detail.css' %}">
+    <link rel="stylesheet"
+          href="{% static 'css/simulation_projet_detail.css' %}">
+{% endblock extra_css %}
+
+{% block go_back_button %}
+    <div class="fr-mb-4w">
+
+        <a href="{% url "simulation:simulation-detail" slug=simu.simulation.slug %}"
+           class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+            Retour à la simulation
+        </a>
+    </div>
+{% endblock go_back_button %}
+
+{% block status_badge %}
+    <span class="fr-badge fr-text--xl gsl-pull-right fr-mt-2v fr-ml-5w badge-projet-status__{{ simu.status }}">{{ simu.get_status_display|remove_first_word }}</span>
+{% endblock status_badge %}
+
+{% block tab_projet %}
+    {% include "gsl_simulation/tab_simulation_projet/tab_projet.html" %}
+{% endblock tab_projet %}
+
+{% block modal %}
+    {% include "includes/modals/_go_back_to_provisoire_modal.html" %}
+    {% include "includes/modals/_go_back_to_processing_modal.html" %}
+    {% include "includes/modals/_accept_confirmation_modal.html" %}
+    {% include "includes/modals/_refuse_confirmation_modal.html" %}
+    {% include "includes/modals/_dismiss_confirmation_modal.html" %}
+{% endblock modal %}
+
+{% block extra_js %}
+    <script src="{% static 'js/simulationProjetStatusConfirmation.js' %}" defer></script>
+    <script src="{% static 'js/handleInteractionInSimulationProjet.js' %}" defer></script>
+{% endblock extra_js %}

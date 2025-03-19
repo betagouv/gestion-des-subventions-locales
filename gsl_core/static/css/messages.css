@@ -1,0 +1,19 @@
+.message--cancelled > .fr-notice {
+  background-color: var(--background-alt-orange-terre-battue);
+  color: var(--text-default-error);
+}
+
+.message--valid > .fr-notice {
+  background-color: var(--background-alt-green-emeraude);
+  color: var(--text-default-success);
+}
+
+.message--dismissed > .fr-notice {
+  background-color: var(--brown-caramel-975-75);
+  color: var(--text-default-warning);
+}
+
+.message--draft > .fr-notice {
+  background-color: var(--background-alt-grey);
+  color: var(--text-default-grey);
+}

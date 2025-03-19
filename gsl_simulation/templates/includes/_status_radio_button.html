@@ -1,0 +1,16 @@
+<div class="fr-fieldset__element fr-fieldset__element--inline">
+    <div class="fr-radio-group fr-radio-rich radio-input-{{ status_value }}">
+        <input value="{{ status_value }}"
+               type="radio"
+               id="{{ status_value }}"
+               name="status"
+               class="status-radio-button"
+               {% if simu.status == status_value %}checked{% endif %}
+               {% if disabled %}disabled{% endif %}
+               data-original-value="{{ simu.status }}">
+        <label class="fr-label" for="{{ status_value }}">
+            {{ status_label }}
+            <i class="{{ icon }}" aria-hidden="true"></i>
+        </label>
+    </div>
+</div>

@@ -1,0 +1,23 @@
+{% extends "includes/modals/modal_base.html" %}
+{% block modal_id %}
+    accept-confirmation-modal
+{% endblock modal_id %}
+
+{% block content %}
+    <h1 class="fr-modal__title success-color">
+        <span class="fr-icon-checkbox-fill fr-icon--lg" aria-hidden="true"></span> Accepter le financement du projet
+    </h1>
+    <p>
+        Ce projet va être accepté dans toutes les simulations dans lesquelles il a été ajouté.
+        Il apparaîtra dans la programmation officielle {{ enveloppe.type }} {{ enveloppe.annee }}.
+    </p>
+    <p>
+        Êtes-vous sûr(e) d'accepter ce projet ?
+    </p>
+{% endblock content %}
+
+{% block confirmation_button %}
+    <button class="fr-btn fr-btn--primary accept-button" id="confirmChange">
+        Confirmer
+    </button>
+{% endblock confirmation_button %}

@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% load static dsfr_tags %}
 
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static "css/login.css" %}">
+{% endblock extra_css %}
+
 {% block title %}
     <title>
         {% if form.errors %}
