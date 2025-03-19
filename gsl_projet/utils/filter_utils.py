@@ -1,5 +1,9 @@
 from gsl_core.models import Perimetre
+<<<<<<< HEAD
 from gsl_projet.utils.projet_filters import ProjetFilters
+=======
+from gsl_demarches_simplifiees.models import NaturePorteurProjet
+>>>>>>> 7d30dd8 (feat: update filter porteur)
 
 
 class FilterUtils:
@@ -31,6 +35,8 @@ class FilterUtils:
         context["is_montant_previsionnel_active"] = self._get_is_one_field_active(
             "montant_previsionnel_min", "montant_previsionnel_max"
         )
+        context["is_porteur_active"] = self._get_is_one_field_active("porteur")
+        context["porteur_placeholder"] = self._get_porteur_placeholder()
         context["is_territoire_active"] = self._get_is_one_field_active("territoire")
         context["territoire_placeholder"], context["territoire_selected"] = (
             self._get_selected_territoires()
@@ -66,6 +72,14 @@ class FilterUtils:
             state_mappings[status]
             for status in self.request.GET.getlist("status")
             if status in state_mappings
+        )
+
+    def _get_porteur_placeholder(self):
+        MAPPING = dict((x, y) for x, y in NaturePorteurProjet.TYPE_CHOICES)
+        if self.request.GET.get("porteur") in (None, "", []):
+            return "Tous"
+        return ", ".join(
+            MAPPING[porteur] for porteur in self.request.GET.getlist("porteur")
         )
 
     def _get_selected_territoires(self):

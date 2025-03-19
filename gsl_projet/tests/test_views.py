@@ -16,6 +16,7 @@ from gsl_core.tests.factories import (
     PerimetreRegionalFactory,
     RequestFactory,
 )
+from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
 from gsl_projet.models import Demandeur, Projet
 from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
@@ -342,8 +343,14 @@ def test_no_dispositif_filter(
 @pytest.fixture
 def projets_epci(demandeur) -> list[Projet]:
     projets = []
-    for epci_label in ["EPCI", "Pôle d'équilibre territorial et rural"]:
-        nature_porteur_projet = NaturePorteurProjetFactory(label=epci_label)
+    for epci_label in [
+        "EPCI",
+        "Pôle d'équilibre territorial et rural",
+        "Syndicat de communes",
+    ]:
+        nature_porteur_projet = NaturePorteurProjetFactory(
+            label=epci_label, type=NaturePorteurProjet.EPCI
+        )
         projets.append(
             ProjetFactory(
                 demandeur=demandeur,
@@ -358,11 +365,26 @@ def projets_communes(demandeur) -> list[Projet]:
     projets = []
     for commune_label in [
         "Commune",
-        "Syndicat de communes",
-        "Syndicat mixte fermé",
-        "Syndicat Mixte Fermé",
     ]:
-        nature_porteur_projet = NaturePorteurProjetFactory(label=commune_label)
+        nature_porteur_projet = NaturePorteurProjetFactory(
+            label=commune_label, type=NaturePorteurProjet.COMMUNES
+        )
+        projets.append(
+            ProjetFactory(
+                demandeur=demandeur,
+                dossier_ds__porteur_de_projet_nature=nature_porteur_projet,
+            )
+        )
+    return projets
+
+
+@pytest.fixture
+def projets_other(demandeur) -> list[Projet]:
+    projets = []
+    for commune_label in ["test_gsl", "Departement"]:
+        nature_porteur_projet = NaturePorteurProjetFactory(
+            label=commune_label, type=NaturePorteurProjet.AUTRE
+        )
         projets.append(
             ProjetFactory(
                 demandeur=demandeur,
@@ -386,44 +408,31 @@ def projets_unknown_projet(demandeur) -> list[Projet]:
     return projets
 
 
+@pytest.mark.parametrize(
+    "porteur, expected_count",
+    (
+        ("epci", 3),
+        ("communes", 1),
+        ("autre", 2),
+        ("inconnu", 9),
+        ("", 9),
+    ),
+)
 def test_filter_by_epci_porteur(
-    req, view, projets_epci, projets_unknown_projet, projets_communes
+    req,
+    view,
+    projets_epci,
+    projets_unknown_projet,
+    projets_other,
+    projets_communes,
+    porteur,
+    expected_count,
 ):
-    request = req.get("/?porteur=EPCI")
+    request = req.get(f"/?porteur={porteur}")
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
-    assert qs.count() == 2
-
-
-def test_filter_by_communes_porteur(
-    req, view, projets_epci, projets_unknown_projet, projets_communes
-):
-    request = req.get("/?porteur=Communes")
-    view.request = request
-    qs = view.get_filterset(ProjetFilters).qs
-
-    assert qs.count() == 4
-
-
-def test_filter_by_epci(
-    req, view, projets_epci, projets_unknown_projet, projets_communes
-):
-    request = req.get("/")
-    view.request = request
-    qs = view.get_filterset(ProjetFilters).qs
-
-    assert qs.count() == 9
-
-
-def test_wrong_porteur_filter(
-    req, view, projets_epci, projets_unknown_projet, projets_communes
-):
-    request = req.get("/?porteur='Fake'")
-    view.request = request
-    qs = view.get_filterset(ProjetFilters).qs
-
-    assert qs.count() == 9
+    assert qs.count() == expected_count
 
 
 ### Test du filtre par coût
