@@ -465,6 +465,15 @@ class DsChoiceLibelle(DsModel):
 
 
 class NaturePorteurProjet(DsChoiceLibelle):
+    EPCI = "epci"
+    COMMUNES = "communes"
+    AUTRE = "autre"
+    TYPE_CHOICES = (
+        (EPCI, "EPCI"),
+        (COMMUNES, "Communes"),
+        (AUTRE, "Autre"),
+    )
+    # TODO delete these consts !
     EPCI_NATURES = ["EPCI", "Pôle d'équilibre territorial et rural"]
     COMMUNE_NATURES = [
         "Commune",
@@ -472,7 +481,11 @@ class NaturePorteurProjet(DsChoiceLibelle):
         "Syndicat mixte fermé",
         "Syndicat Mixte Fermé",
     ]
-    pass
+    type = models.CharField(max_length=8, choices=TYPE_CHOICES, blank=True)
+
+    class Meta:
+        verbose_name = "Nature du porteur de projet"
+        verbose_name_plural = "Natures de porteur de projet"
 
 
 class Arrondissement(DsChoiceLibelle):
