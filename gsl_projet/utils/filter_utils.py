@@ -1,5 +1,5 @@
 from gsl_core.models import Perimetre
-from gsl_projet.utils.projet_filters import ProjetFilters
+from gsl_demarches_simplifiees.models import NaturePorteurProjet
 
 
 class FilterUtils:
@@ -13,6 +13,9 @@ class FilterUtils:
         "montant_previsionnel": "includes/_filter_montant_previsionnel.html",
         "territoire": "includes/_filter_territoire.html",
     }
+
+    DOTATION_MAPPING = dict(NaturePorteurProjet.TYPE_CHOICES)
+    PORTEUR_MAPPING = dict(NaturePorteurProjet.TYPE_CHOICES)
 
     def enrich_context_with_filter_utils(self, context, state_mappings):
         context["is_dotation_active"] = self._get_is_one_field_active("dotation")
@@ -31,6 +34,8 @@ class FilterUtils:
         context["is_montant_previsionnel_active"] = self._get_is_one_field_active(
             "montant_previsionnel_min", "montant_previsionnel_max"
         )
+        context["is_porteur_active"] = self._get_is_one_field_active("porteur")
+        context["porteur_placeholder"] = self._get_porteur_placeholder()
         context["is_territoire_active"] = self._get_is_one_field_active("territoire")
         context["territoire_placeholder"], context["territoire_selected"] = (
             self._get_selected_territoires()
@@ -45,11 +50,10 @@ class FilterUtils:
         if self.request.GET.get("dotation", "") in ("", None, []):
             return "Toutes les dotations"
 
-        mapping = dict(ProjetFilters.DOTATION_CHOICES)
         return ", ".join(
-            mapping[dotation]
+            FilterUtils.DOTATION_MAPPING[dotation]
             for dotation in self.request.GET.getlist("dotation")
-            if dotation in mapping
+            if dotation in FilterUtils.DOTATION_MAPPING
         )
 
     def _get_filter_templates(self):
@@ -66,6 +70,14 @@ class FilterUtils:
             state_mappings[status]
             for status in self.request.GET.getlist("status")
             if status in state_mappings
+        )
+
+    def _get_porteur_placeholder(self):
+        if self.request.GET.get("porteur") in (None, "", []):
+            return "Tous"
+        return ", ".join(
+            FilterUtils.PORTEUR_MAPPING[porteur]
+            for porteur in self.request.GET.getlist("porteur")
         )
 
     def _get_selected_territoires(self):

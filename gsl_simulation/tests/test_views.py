@@ -15,7 +15,7 @@ from gsl_core.tests.factories import (
     PerimetreRegionalFactory,
     RequestFactory,
 )
-from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.models import Dossier, NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     NaturePorteurProjetFactory,
@@ -67,7 +67,7 @@ def simulations(perimetre_departemental):
 @pytest.fixture
 def detr_enveloppe(perimetre_departemental):
     return DetrEnveloppeFactory(
-        perimetre=perimetre_departemental, annee=2024, montant=1_000_000
+        perimetre=perimetre_departemental, annee=2025, montant=1_000_000
     )
 
 
@@ -80,8 +80,10 @@ def simulation(detr_enveloppe):
 def projets(simulation, perimetre_departemental):
     other_perimeter = PerimetreDepartementalFactory()
     projets = []
-    epci = NaturePorteurProjetFactory(label="EPCI")
-    commune = NaturePorteurProjetFactory(label="Commune")
+    epci = NaturePorteurProjetFactory(label="EPCI", type=NaturePorteurProjet.EPCI)
+    commune = NaturePorteurProjetFactory(
+        label="Commune", type=NaturePorteurProjet.COMMUNES
+    )
 
     for perimetre in (perimetre_departemental, other_perimeter):
         demandeur = DemandeurFactory()
@@ -177,14 +179,18 @@ def test_simulation_list_view(req, view, simulations):
 
 @pytest.mark.django_db
 def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
-    view = SimulationDetailView()
-    view.kwargs = {"slug": simulation.slug}
-    view.request = req.get(
-        reverse("simulation:simulation-detail", kwargs={"slug": simulation.slug})
+    detr_enveloppe_2024 = DetrEnveloppeFactory(
+        perimetre=perimetre_departemental, annee=2024, montant=1_000_000
     )
-    view.object = simulation
+    simulation_2024 = SimulationFactory(enveloppe=detr_enveloppe_2024)
+    view = SimulationDetailView()
+    view.kwargs = {"slug": simulation_2024.slug}
+    view.request = req.get(
+        reverse("simulation:simulation-detail", kwargs={"slug": simulation_2024.slug})
+    )
+    view.object = simulation_2024
 
-    enveloppe_data = view._get_enveloppe_data(simulation)
+    enveloppe_data = view._get_enveloppe_data(simulation_2024)
 
     assert Projet.objects.count() == 40
 
@@ -199,7 +205,7 @@ def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
     projet_qs_submitted_before_the_end_of_the_year = (
         projet_filter_by_perimetre_and_type.filter(
             dossier_ds__ds_date_depot__lt=datetime(
-                simulation.enveloppe.annee + 1, 1, 1, tzinfo=UTC
+                simulation_2024.enveloppe.annee + 1, 1, 1, tzinfo=UTC
             ),
         )
     )
@@ -468,7 +474,7 @@ def test_view_with_montant_demande_filter(req, simulation, create_simulation_pro
 @pytest.mark.django_db
 def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
     filter_params = {
-        "porteur": "EPCI",
+        "porteur": "epci",
     }
     view = _get_view_with_filter(req, simulation, filter_params)
 
@@ -485,10 +491,10 @@ def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
         assert projets.filter(simulationprojet__status=status).count() == count
 
     for projet in projets:
-        assert projet.dossier_ds.porteur_de_projet_nature.label == "EPCI"
+        assert projet.dossier_ds.porteur_de_projet_nature.type == "epci"
 
     filter_params = {
-        "porteur": "Communes",
+        "porteur": "communes",
     }
     view = _get_view_with_filter(req, simulation, filter_params)
 
@@ -505,7 +511,7 @@ def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
         assert projets.filter(simulationprojet__status=status).count() == count
 
     for projet in projets:
-        assert projet.dossier_ds.porteur_de_projet_nature.label == "Commune"
+        assert projet.dossier_ds.porteur_de_projet_nature.type == "communes"
 
 
 def test_simulation_has_correct_territoire_choices():

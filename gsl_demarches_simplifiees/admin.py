@@ -11,6 +11,7 @@ from .models import (
     Dossier,
     FieldMappingForComputer,
     FieldMappingForHuman,
+    NaturePorteurProjet,
     PersonneMorale,
     Profile,
 )
@@ -208,3 +209,12 @@ class ArrondissementAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         qs = super().get_queryset(request)
         qs = qs.select_related("core_arrondissement")
         return qs
+
+
+@admin.register(NaturePorteurProjet)
+class NaturePorteurProjetAdmin(
+    AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin
+):
+    list_display = ("__str__", "type")
+    list_filter = ("type",)
+    list_editable = ("type",)

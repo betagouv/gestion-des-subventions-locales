@@ -1,14 +1,13 @@
 from django.db.models import Q
-from django.forms import NumberInput, Select
+from django.forms import NumberInput
 from django_filters import (
-    ChoiceFilter,
     FilterSet,
     MultipleChoiceFilter,
     NumberFilter,
 )
 
 from gsl_core.models import Perimetre
-from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.models import Dossier, NaturePorteurProjet
 from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
@@ -88,27 +87,11 @@ class ProjetFilters(FilterSet):
 
         return queryset.filter(query)
 
-    porteur = ChoiceFilter(
-        field_name="dossier_ds__porteur_de_projet_nature__label__in",
-        choices=(
-            ("EPCI", "EPCI"),
-            ("Communes", "Communes"),
-        ),
-        method="filter_porteur",
-        widget=Select(
-            attrs={
-                "class": "fr-select",
-            },
-        ),
-        empty_label="Tous les porteurs",
+    porteur = MultipleChoiceFilter(
+        field_name="dossier_ds__porteur_de_projet_nature__type",
+        choices=NaturePorteurProjet.TYPE_CHOICES,
+        widget=CustomCheckboxSelectMultiple(),
     )
-
-    def filter_porteur(self, queryset, _name, value):
-        return queryset.filter(
-            dossier_ds__porteur_de_projet_nature__label__in=ProjetService.PORTEUR_MAPPINGS.get(
-                value
-            )
-        )
 
     cout_min = NumberFilter(
         method="filter_cout_min",

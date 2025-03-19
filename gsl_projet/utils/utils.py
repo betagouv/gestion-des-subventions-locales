@@ -6,3 +6,7 @@ def order_couples_tuple_by_first_value(
         choices,
         key=lambda x: order_dict[x[0]] if x[0] in order_dict else 1,
     )
+
+
+def transform_choices_to_map(choices: tuple[tuple[str, str], ...]) -> dict[str, str]:
+    return {key: value for key, value in choices}
