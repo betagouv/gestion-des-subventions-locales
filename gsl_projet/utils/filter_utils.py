@@ -45,7 +45,7 @@ class FilterUtils:
         if self.request.GET.get("dotation", "") in ("", None, []):
             return "Toutes les dotations"
 
-        mapping = dict((x, y) for x, y in ProjetFilters.DOTATION_CHOICES)
+        mapping = dict(ProjetFilters.DOTATION_CHOICES)
         return ", ".join(
             mapping[dotation]
             for dotation in self.request.GET.getlist("dotation")
