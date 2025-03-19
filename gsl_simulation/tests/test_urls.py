@@ -81,7 +81,9 @@ def client_with_cote_d_or_user_logged(cote_d_or_perimetre):
 
 @pytest.fixture
 def cote_dorien_simulation_projet(cote_d_or_perimetre):
-    projet = ProjetFactory(perimetre=cote_d_or_perimetre)
+    projet = ProjetFactory(
+        perimetre=cote_d_or_perimetre, dossier_ds__finance_cout_total=500_000
+    )
     simulation = SimulationFactory(
         enveloppe=DetrEnveloppeFactory(perimetre=cote_d_or_perimetre)
     )
@@ -118,7 +120,7 @@ def test_patch_taux_simulation_projet_url(
     assert response.context["projet"] == cote_dorien_simulation_projet.projet
     assert response.context["available_states"] == SimulationProjet.STATUS_CHOICES
     assert response.context["status_summary"] == expected_status_summary
-    assert response.context["total_amount_granted"] == Decimal("0.00")
+    assert response.context["total_amount_granted"] == Decimal("2500.00")
     assert response.context["filter_params"] == ""
 
     cote_dorien_simulation_projet.refresh_from_db()
@@ -142,7 +144,7 @@ def test_patch_taux_simulation_projet_url_with_htmx(
     assert response.context["projet"] == cote_dorien_simulation_projet.projet
     assert response.context["available_states"] == SimulationProjet.STATUS_CHOICES
     assert response.context["status_summary"] == expected_status_summary
-    assert response.context["total_amount_granted"] == Decimal("0.00")
+    assert response.context["total_amount_granted"] == Decimal("2500.00")
 
     cote_dorien_simulation_projet.refresh_from_db()
     assert cote_dorien_simulation_projet.taux == 0.5
@@ -359,7 +361,7 @@ def test_regional_user_cant_patch_projet_if_simulation_projet_is_associated_to_d
 
 @pytest.fixture
 def cote_dorien_dsil_simulation_projet(cote_d_or_perimetre):
-    projet = ProjetFactory(perimetre=cote_d_or_perimetre)
+    projet = ProjetFactory(perimetre=cote_d_or_perimetre, assiette=1_000)
     simulation = SimulationFactory(
         enveloppe=DsilEnveloppeFactory(perimetre=cote_d_or_perimetre)
     )

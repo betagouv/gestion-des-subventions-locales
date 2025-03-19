@@ -120,6 +120,7 @@ class ProjetService:
         if (
             type(montant) not in [float, Decimal, int]
             or montant < 0
+            or projet.assiette_or_cout_total is None
             or montant > projet.assiette_or_cout_total
         ):
             raise ValueError(
