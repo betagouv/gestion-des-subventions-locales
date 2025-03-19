@@ -32,6 +32,11 @@ urlpatterns = [
         name="simulation-projet-detail",
     ),
     path(
+        "projet-detail/<int:pk>/<str:tab>/",
+        simulation_projet_must_be_visible_by_user(SimulationProjetDetailView.as_view()),
+        name="simulation-projet-tab",
+    ),
+    path(
         "modifier-le-taux-d-un-projet-de-simulation/<int:pk>/",
         patch_taux_simulation_projet,
         name="patch-simulation-projet-taux",

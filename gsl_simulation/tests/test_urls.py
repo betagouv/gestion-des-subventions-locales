@@ -2,6 +2,7 @@ from decimal import Decimal
 
 import pytest
 from django.urls import reverse
+from pytest_django.asserts import assertTemplateUsed
 
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -449,6 +450,43 @@ def test_simulation_projet_detail_url(
     assert response.templates[0].name == "gsl_simulation/simulation_projet_detail.html"
     assert response.context["simu"] == cote_dorien_simulation_projet
     assert response.context["projet"] == cote_dorien_simulation_projet.projet
+
+
+@pytest.mark.parametrize(
+    "tab_name,expected_template",
+    (
+        ("historique", "gsl_simulation/tab_simulation_projet/tab_historique.html"),
+        ("demandeur", "gsl_simulation/tab_simulation_projet/tab_demandeur.html"),
+        ("annotations", "gsl_simulation/tab_simulation_projet/tab_annotations.html"),
+    ),
+)
+@pytest.mark.django_db
+def test_simulation_projet_detail_tabs_use_the_right_templates(
+    client_with_cote_d_or_user_logged,
+    cote_dorien_simulation_projet,
+    tab_name,
+    expected_template,
+):
+    url = reverse(
+        "simulation:simulation-projet-tab",
+        kwargs={"pk": cote_dorien_simulation_projet.pk, "tab": tab_name},
+    )
+    response = client_with_cote_d_or_user_logged.get(url)
+    assert response.status_code == 200
+    assertTemplateUsed("gsl_simulation/simulation_projet_detail.html")
+    assertTemplateUsed(expected_template)
+
+
+@pytest.mark.django_db
+def test_simulation_projet_detail_tabs_404_if_wrong_tab(
+    client_with_cote_d_or_user_logged, cote_dorien_simulation_projet
+):
+    url = reverse(
+        "simulation:simulation-projet-tab",
+        kwargs={"pk": cote_dorien_simulation_projet.pk, "tab": "toto"},
+    )
+    response = client_with_cote_d_or_user_logged.get(url)
+    assert response.status_code == 404
 
 
 @pytest.mark.django_db

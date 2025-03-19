@@ -31,9 +31,7 @@ def visible_by_user(func):
     return wrapper
 
 
-@visible_by_user
-@require_GET
-def get_projet(request, projet_id):
+def _get_projet_context_info(projet_id):
     projet = get_object_or_404(Projet, id=projet_id)
     title = projet.dossier_ds.projet_intitule
     context = {
@@ -45,7 +43,26 @@ def get_projet(request, projet_id):
         },
         "menu_dict": PROJET_MENU,
     }
+    return context
+
+
+@visible_by_user
+@require_GET
+def get_projet(request, projet_id):
+    context = _get_projet_context_info(projet_id)
     return render(request, "gsl_projet/projet.html", context)
+
+
+PROJET_TABS = {"annotations", "demandeur", "historique"}
+
+
+@visible_by_user
+@require_GET
+def get_projet_tab(request, projet_id, tab):
+    if tab not in PROJET_TABS:
+        raise Http404
+    context = _get_projet_context_info(projet_id)
+    return render(request, f"gsl_projet/projet/tab_{tab}.html", context)
 
 
 class ProjetListViewFilters(ProjetFilters):
