@@ -35,3 +35,45 @@
         </form>
     </div>
 {% endblock status_action %}
+
+{% block projet_detail_form %}
+    <form action="{% url 'simulation:patch-is-qpv-and-is-attached-to-a-crte-simulation-projet' simu.id %}"
+          method="POST"
+          id="is-in-qpv-and-is-attached-to-a-crte-form">
+        {% csrf_token %}
+        <div class="fr-callout fr-background-alt--blue-france fr-py-2w fr-px-2w">
+            <div class="fr-fieldset__element">
+                <div class="fr-checkbox-group">
+                    <input type="checkbox"
+                           class="fr-checkbox"
+                           id="is-in-qpv"
+                           name="is-in-qpv"
+                           {% if simu.projet.is_in_qpv %}checked{% endif %}>
+                    <label for="is-in-qpv">
+                        Projet situé en QPV
+                    </label>
+                </div>
+            </div>
+
+            <div class="fr-fieldset__element fr-mb-0">
+                <div class="fr-checkbox-group">
+                    <input type="checkbox"
+                           class="fr-checkbox"
+                           id="is-attached-to-a-crte"
+                           name="is-attached-to-a-crte"
+                           {% if simu.projet.is_attached_to_a_crte %}checked{% endif %}>
+                    <label for="is-attached-to-a-crte">
+                        Projet rattaché à un CRTE
+                    </label>
+                </div>
+            </div>
+        </div>
+        <button class="fr-btn"
+                id="submit-is-in-qpv-and-is-attached-to-a-crte"
+                type="submit"
+                data-is-in-qpv="{{ simu.projet.is_in_qpv }}"
+                data-is-attached-to-a-crte="{{ simu.projet.is_attached_to_a_crte }}">
+            Enregistrer
+        </button>
+    </form>
+{% endblock projet_detail_form %}
