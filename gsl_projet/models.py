@@ -150,6 +150,12 @@ class Projet(models.Model):
         help_text="Pour les projets de plus de 100 000 €",
         null=True,
     )
+    is_in_qpv = models.BooleanField("Projet situé en QPV", null=False, default=False)
+    is_attached_to_a_crte = models.BooleanField(
+        "Projet rattaché à un CRTE",
+        null=False,
+        default=False,
+    )
     free_comment = models.TextField("Commentaires libres", blank=True, default="")
 
     objects = ProjetManager()
