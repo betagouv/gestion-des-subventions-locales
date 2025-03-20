@@ -33,4 +33,14 @@ urlpatterns = [
         views.fetch_demarche_dossiers,
         name="fetch-demarche-dossiers",
     ),
+    path(
+        "demarche/<int:demarche_ds_number>/json/",
+        views.view_demarche_json,
+        name="view-demarche-json",
+    ),
+    path(
+        "dossier/<int:dossier_ds_number>/json/",
+        views.view_dossier_json,
+        name="view-dossier-json",
+    ),
 ]

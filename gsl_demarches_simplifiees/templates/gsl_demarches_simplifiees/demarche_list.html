@@ -17,10 +17,16 @@
                         </p>
                         <div class="fr-tile__detail">
                             <a href="{% url "ds:get-demarche-mapping" demarche_ds_number=demarche.ds_number %}"
-                               class="fr-btn fr-btn--sm  fr-mr-3v">
+                               class="fr-btn fr-btn--sm fr-mr-3v">
                                 <span class="fr-icon-git-pull-request-fill fr-icon--sm fr-mr-2v"
                                       aria-hidden="true"></span>
                                 Correspondances de champs
+                            </a>
+                            <a href="{% url "ds:view-demarche-json" demarche_ds_number=demarche.ds_number %}"
+                               class="fr-btn fr-btn--sm fr-mr-3v">
+                                <span class="fr-icon-code-s-slash-line fr-icon--sm fr-mr-2v"
+                                      aria-hidden="true"></span>
+                                Données brutes JSON
                             </a>
                             <form action="{% url "ds:fetch-demarche-dossiers" %}"
                                   method="POST"

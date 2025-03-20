@@ -1,6 +1,6 @@
 from django.contrib import admin
-from django.db.models import Count, JSONField
-from django_json_widget.widgets import JSONEditorWidget
+from django.db.models import Count
+from django.utils.safestring import mark_safe
 from import_export.admin import ImportExportMixin
 
 from gsl_core.admin import AllPermsForStaffUser
@@ -31,9 +31,6 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     )
     list_display = ("ds_number", "ds_title", "ds_state", "dossiers_count")
     actions = ("refresh_field_mappings",)
-    formfield_overrides = {
-        JSONField: {"widget": JSONEditorWidget},
-    }
     fieldsets = (
         (None, {"fields": ("ds_number", "ds_id", "ds_title", "ds_state")}),
         ("Dates", {"fields": ("ds_date_creation", "ds_date_fermeture")}),
@@ -98,6 +95,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_number",
         "ds_demarche__ds_number",
         "ds_state",
+        "link_to_json",
         "projet_intitule",
     )
 
@@ -155,9 +153,6 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_demandeur",
     )
     search_fields = ("ds_number", "projet_intitule")
-    formfield_overrides = {
-        JSONField: {"widget": JSONEditorWidget},
-    }
 
     @admin.action(description="Rafraîchir depuis la base de données")
     def refresh_from_db(self, request, queryset):
@@ -168,6 +163,9 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         qs = super().get_queryset(request)
         qs = qs.select_related("ds_demarche")
         return qs
+
+    def link_to_json(self, obj):
+        return mark_safe(f'<a href="{obj.json_url}">JSON brut</a>')
 
 
 @admin.register(FieldMappingForHuman)
