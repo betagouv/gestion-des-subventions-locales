@@ -73,3 +73,40 @@
         </button>
     </form>
 {% endblock projet_detail_form %}
+
+{% block transition_ecologique_content %}
+    <p>
+        <b>Le projet concourt-il aux enjeux de la transition écologique au sens budget vert :</b>
+    </p>
+    {% comment %}
+          action="{% url 'simulation:patch-is-budget-vert-simulation-projet' simu.id %}"
+    {% endcomment %}
+    <form method="POST" class="fr-mb-2w">
+        {% csrf_token %}
+        <div class="fr-callout fr-background-alt--blue-france fr-py-2w fr-pl-3w">
+            <label for="is_budget_vert" class="fr-label">
+                Transition écologique
+            </label>
+            <select name="is_budget_vert" id="is-budget-vert" class="fr-select">
+                <option value='None'
+                        {% if projet.projet.is_budget_vert is None %}selected{% endif %}>
+                    Non renseigné
+                </option>
+                <option value='True' {% if projet.projet.is_budget_vert %}selected{% endif %}>
+                    Oui
+                </option>
+                <option value='False'
+                        {% if projet.projet.is_budget_vert is False %}selected{% endif %}>
+                    Non
+                </option>
+            </select>
+        </div>
+        <button class="fr-btn"
+                id="submit-is-in-qpv-and-is-attached-to-a-crte"
+                type="submit"
+                data-is-in-qpv="{{ simu.projet.is_in_qpv }}"
+                data-is-attached-to-a-crte="{{ simu.projet.is_attached_to_a_crte }}">
+            Enregistrer
+        </button>
+    </form>
+{% endblock transition_ecologique_content %}
