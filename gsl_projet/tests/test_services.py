@@ -429,7 +429,7 @@ def test_validate_montant(montant, assiette_or_cout_total, should_raise_exceptio
 
 
 @pytest.mark.parametrize(
-    "is_qpv, expected_result",
+    "is_in_qpv, expected_result",
     [
         (True, True),
         (False, False),
@@ -437,8 +437,8 @@ def test_validate_montant(montant, assiette_or_cout_total, should_raise_exceptio
     ],
 )
 @pytest.mark.django_db
-def test_get_is_in_qpv_with_true_value(is_qpv, expected_result):
-    dossier = DossierFactory(annotations_is_qpv=is_qpv)
+def test_get_is_in_qpv_with_true_value(is_in_qpv, expected_result):
+    dossier = DossierFactory(annotations_is_qpv=is_in_qpv)
     assert ProjetService.get_is_in_qpv(dossier) == expected_result
 
 

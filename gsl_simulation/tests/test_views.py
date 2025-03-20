@@ -884,3 +884,30 @@ def test_patch_avis_commission_detr_simulation_projet_with_wrong_value(
 
     assert response.status_code == 400
     assert updated_simulation_projet.projet.avis_commission_detr is None
+
+
+@pytest.mark.django_db
+def test_patch_is_qpv_and_is_attached_to_a_crte_simulation_projet(
+    client_with_user_logged, accepted_simulation_projet
+):
+    accepted_simulation_projet.projet.is_in_qpv = False
+    accepted_simulation_projet.projet.is_attached_to_a_crte = False
+    accepted_simulation_projet.projet.save()
+
+    url = reverse(
+        "simulation:patch-is-qpv-and-is-attached-to-a-crte-simulation-projet",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.post(
+        url,
+        {"is_in_qpv": "on", "is_attached_to_a_crte": "on"},
+        follow=True,
+    )
+
+    updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
+        id=accepted_simulation_projet.id
+    )
+
+    assert response.status_code == 200
+    assert updated_simulation_projet.projet.is_in_qpv is True
+    assert updated_simulation_projet.projet.is_attached_to_a_crte is True
