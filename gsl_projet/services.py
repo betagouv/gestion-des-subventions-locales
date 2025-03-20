@@ -21,6 +21,7 @@ class ProjetService:
         projet.avis_commission_detr = cls.get_avis_commission_detr(ds_dossier)
         projet.is_in_qpv = cls.get_is_in_qpv(ds_dossier)
         projet.is_attached_to_a_crte = cls.get_is_attached_to_a_crte(ds_dossier)
+        projet.is_budget_vert = cls.get_is_budget_vert(ds_dossier)
 
         projet.demandeur, _ = Demandeur.objects.get_or_create(
             siret=ds_dossier.ds_demandeur.siret,
@@ -143,3 +144,9 @@ class ProjetService:
     @classmethod
     def get_is_attached_to_a_crte(cls, ds_dossier: Dossier) -> bool:
         return bool(ds_dossier.annotations_is_crte)
+
+    @classmethod
+    def get_is_budget_vert(cls, ds_dossier: Dossier) -> bool | None:
+        if ds_dossier.annotations_is_budget_vert is not None:
+            return ds_dossier.annotations_is_budget_vert
+        return ds_dossier.environnement_transition_eco
