@@ -20,11 +20,11 @@ from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFa
 
 
 @pytest.mark.django_db
-def test_get_or_create_projet_from_dossier_with_existing_projet():
+def test_create_or_update_projet_from_dossier_with_existing_projet():
     dossier = DossierFactory(projet_adresse=AdresseFactory())
     projet = ProjetFactory(dossier_ds=dossier)
 
-    assert ProjetService.get_or_create_from_ds_dossier(dossier) == projet
+    assert ProjetService.create_or_update_from_ds_dossier(dossier) == projet
 
 
 @pytest.mark.django_db
@@ -39,7 +39,7 @@ def test_create_projet_from_dossier():
     )
     assert dossier.ds_demandeur.address.commune.departement == perimetre.departement
 
-    projet = ProjetService.get_or_create_from_ds_dossier(dossier)
+    projet = ProjetService.create_or_update_from_ds_dossier(dossier)
 
     assert isinstance(projet, Projet)
     assert projet.address is not None
@@ -47,7 +47,7 @@ def test_create_projet_from_dossier():
     assert projet.address == dossier.projet_adresse
     assert projet.perimetre == perimetre
 
-    other_projet = ProjetService.get_or_create_from_ds_dossier(dossier)
+    other_projet = ProjetService.create_or_update_from_ds_dossier(dossier)
     assert other_projet == projet
 
 
@@ -426,3 +426,33 @@ def test_validate_montant(montant, assiette_or_cout_total, should_raise_exceptio
     else:
         ProjetService.validate_montant(montant, projet_with_assiette)
         ProjetService.validate_montant(montant, projet_without_assiette)
+
+
+@pytest.mark.parametrize(
+    "is_in_qpv, expected_result",
+    [
+        (True, True),
+        (False, False),
+        (None, False),
+    ],
+)
+@pytest.mark.django_db
+def test_get_is_in_qpv_with_true_value(is_in_qpv, expected_result):
+    dossier = DossierFactory(annotations_is_qpv=is_in_qpv)
+    assert ProjetService.get_is_in_qpv(dossier) == expected_result
+
+
+@pytest.mark.parametrize(
+    "is_attached_to_a_crte, expected_result",
+    [
+        (True, True),
+        (False, False),
+        (None, False),
+    ],
+)
+@pytest.mark.django_db
+def test_get_is_attached_to_a_crte_with_true_value(
+    is_attached_to_a_crte, expected_result
+):
+    dossier = DossierFactory(annotations_is_crte=is_attached_to_a_crte)
+    assert ProjetService.get_is_attached_to_a_crte(dossier) == expected_result

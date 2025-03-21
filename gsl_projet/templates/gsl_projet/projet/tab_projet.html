@@ -146,7 +146,7 @@
                         Travaux au sein du projet : {{ dossier.projet_travaux|yesno:"Oui,Non,Non renseigné" }}
                     </li>
                 </ul>
-                {% if dossier.projet_zonage.count > 0 %}
+                {% if dossier.projet_zonage.count > 0 or projet.is_in_qpv %}
                     <div class="fr-highlight fr-highlight--beige-gris-galet fr-ml-0 fr-mb-4w">
                         <h5 class="fr-text--md fr-mb-1v">
                             Zonage spécifique :
@@ -157,10 +157,15 @@
                                     {{ zone }}
                                 </li>
                             {% endfor %}
+                            {% if projet.is_in_qpv %}
+                                <li>
+                                    Projet situé en QPV
+                                </li>
+                            {% endif %}
                         </ul>
                     </div>
                 {% endif %}
-                {% if dossier.projet_contractualisation.count > 0 %}
+                {% if dossier.projet_contractualisation.count > 0 or projet.is_attached_to_a_crte %}
                     <div class="fr-highlight fr-highlight--beige-gris-galet fr-ml-0">
                         <h5 class="fr-text--md fr-mb-1v">
                             Contractualisation avec l’État :
@@ -171,9 +176,17 @@
                                     {{ contrat }}
                                 </li>
                             {% endfor %}
+                            {% if projet.is_attached_to_a_crte %}
+                                <li>
+                                    Projet rattaché à un CRTE
+                                </li>
+                            {% endif %}
                         </ul>
                     </div>
                 {% endif %}
+
+                {% block projet_detail_form %}
+                {% endblock projet_detail_form %}
 
                 <h4 id="presentation_transition_eco">
                     Transition écologique

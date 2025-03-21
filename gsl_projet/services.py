@@ -9,7 +9,7 @@ from gsl_projet.models import Demandeur, Projet
 
 class ProjetService:
     @classmethod
-    def get_or_create_from_ds_dossier(cls, ds_dossier: Dossier):
+    def create_or_update_from_ds_dossier(cls, ds_dossier: Dossier):
         try:
             projet = Projet.objects.get(dossier_ds=ds_dossier)
         except Projet.DoesNotExist:
@@ -19,6 +19,8 @@ class ProjetService:
         projet.address = ds_dossier.projet_adresse
         projet.perimetre = ds_dossier.perimetre
         projet.avis_commission_detr = cls.get_avis_commission_detr(ds_dossier)
+        projet.is_in_qpv = cls.get_is_in_qpv(ds_dossier)
+        projet.is_attached_to_a_crte = cls.get_is_attached_to_a_crte(ds_dossier)
 
         projet.demandeur, _ = Demandeur.objects.get_or_create(
             siret=ds_dossier.ds_demandeur.siret,
@@ -133,3 +135,11 @@ class ProjetService:
             if "DETR" in ds_dossier.demande_dispositif_sollicite:
                 return True
         return None
+
+    @classmethod
+    def get_is_in_qpv(cls, ds_dossier: Dossier) -> bool:
+        return bool(ds_dossier.annotations_is_qpv)
+
+    @classmethod
+    def get_is_attached_to_a_crte(cls, ds_dossier: Dossier) -> bool:
+        return bool(ds_dossier.annotations_is_crte)
