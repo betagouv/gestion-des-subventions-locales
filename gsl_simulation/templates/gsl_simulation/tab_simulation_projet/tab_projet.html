@@ -39,7 +39,7 @@
 {% block projet_detail_form %}
     <form action="{% url 'simulation:patch-is-qpv-and-is-attached-to-a-crte-simulation-projet' simu.id %}"
           method="POST"
-          id="is-in-qpv-and-is-attached-to-a-crte-form">
+          class="form-disabled-before-value-change">
         {% csrf_token %}
         <div class="fr-callout fr-background-alt--blue-france fr-py-2w fr-px-2w">
             <div class="fr-fieldset__element">
@@ -68,11 +68,7 @@
                 </div>
             </div>
         </div>
-        <button class="fr-btn"
-                id="submit-is-in-qpv-and-is-attached-to-a-crte"
-                type="submit"
-                data-is-in-qpv="{{ simu.projet.is_in_qpv }}"
-                data-is-attached-to-a-crte="{{ simu.projet.is_attached_to_a_crte }}">
+        <button class="fr-btn" type="submit" disabled>
             Enregistrer
         </button>
     </form>
