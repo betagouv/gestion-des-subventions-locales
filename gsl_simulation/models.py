@@ -19,8 +19,8 @@ class Simulation(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = "Simulation de programmation"
-        verbose_name_plural = "Simulations de programmation"
+        verbose_name = "Simulation"
+        verbose_name_plural = "Simulations"
 
     def __str__(self):
         return self.title
