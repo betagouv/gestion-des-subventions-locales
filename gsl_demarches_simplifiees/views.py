@@ -2,6 +2,7 @@
 from celery import states
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import ngettext
 from django.views.decorators.http import require_GET, require_POST
@@ -76,6 +77,18 @@ def get_demarche_mapping(request, demarche_ds_number):
         "existing_mappings": FieldMappingForComputer.objects.filter(demarche=demarche),
     }
     return render(request, "gsl_demarches_simplifiees/demarche_mapping.html", context)
+
+
+@staff_member_required
+def view_demarche_json(request, demarche_ds_number):
+    demarche = get_object_or_404(Demarche, ds_number=demarche_ds_number)
+    return JsonResponse(demarche.raw_ds_data or {})
+
+
+@staff_member_required
+def view_dossier_json(request, dossier_ds_number):
+    dossier = get_object_or_404(Dossier, ds_number=dossier_ds_number)
+    return JsonResponse(dossier.raw_ds_data or {})
 
 
 @staff_member_required
