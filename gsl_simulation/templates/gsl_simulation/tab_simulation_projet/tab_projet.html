@@ -14,25 +14,7 @@
             Décision de financement du projet
         </h2>
 
-        <form action="{% url 'simulation:patch-simulation-projet-status' simu.id %}"
-              method="POST">
-            {% csrf_token %}
-            <fieldset class="fr-fieldset fr-mb-0"
-                      id="radio-rich-no-pictogram-inline"
-                      aria-labelledby="todo => radio-rich-no-pictogram-inline-legend radio-r ich-no-pictogram-inline-messages">
-
-                {% include "includes/_status_radio_button.html" with status_value="provisoire" status_label="Accepté provisoirement" icon="fr-icon-check-line" %}
-                <div class="separator">
-                </div>
-                {% include "includes/_status_radio_button.html" with status_value="valid" status_label="Accepté" icon="fr-icon-checkbox-circle-line" %}
-                {% include "includes/_status_radio_button.html" with status_value="cancelled" status_label="Refusé" icon="fr-icon-close-line" %}
-                {% include "includes/_status_radio_button.html" with status_value="dismissed" status_label="Classé sans suite" icon="fr-icon-subtract-line" %}
-                <div class="separator">
-                </div>
-                {% include "includes/_status_radio_button.html" with status_value="draft" status_label="En traitement" icon="fr-icon-draft-fill" %}
-            </fieldset>
-            <input type="submit" hidden />
-        </form>
+        {% include "includes/forms/_status_form.html" %}
     </div>
 {% endblock status_action %}
 
