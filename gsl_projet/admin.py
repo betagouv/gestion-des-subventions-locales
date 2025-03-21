@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from gsl_core.admin import AllPermsForStaffUser
+from gsl_simulation.models import SimulationProjet
 
 from .models import Demandeur, Projet
 
@@ -12,12 +13,28 @@ class DemandeurAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     search_fields = ("name", "siret", "address__commune__name")
 
 
+class SimulationProjetInline(admin.TabularInline):
+    model = SimulationProjet
+    extra = 0
+    show_change_link = True
+    readonly_fields = [
+        "simulation",
+        "projet",
+        "montant",
+        "taux",
+        "status",
+    ]
+
+
 @admin.register(Projet)
 class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("address", "departement", "demandeur", "dossier_ds")
-    list_display = ("__str__", "dossier_ds__ds_state", "address", "departement")
-    list_filter = ("departement", "dossier_ds__ds_state")
+    list_display = ("__str__", "status", "address", "departement")
+    list_filter = ("status", "departement")
     actions = ("refresh_from_dossier",)
+    inlines = [
+        SimulationProjetInline,
+    ]
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
