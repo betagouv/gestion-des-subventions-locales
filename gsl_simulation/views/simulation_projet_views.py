@@ -117,26 +117,41 @@ def patch_status_simulation_projet(request, pk):
     return redirect_to_simulation_projet(request, updated_simulation_projet, status)
 
 
+def patch_a_true_false_or_none_projet_field(request, pk, field):
+    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
+
+    authorized_fields = ("avis_commission_detr", "is_budget_vert")
+    if field not in authorized_fields:
+        raise ValueError(f"Invalid field {field}")
+
+    value = request.POST.get(field)
+    if value not in ("None", "True", "False"):
+        raise ValueError(f"Invalid {field} value")
+
+    if value == "True":
+        value = True
+    elif value == "False":
+        value = False
+    else:
+        value = None
+
+    setattr(simulation_projet.projet, field, value)
+    simulation_projet.projet.save()
+    return redirect_to_simulation_projet(request, simulation_projet)
+
+
 @projet_must_be_in_user_perimetre
 @exception_handler_decorator
 @require_POST
 def patch_avis_commission_detr_simulation_projet(request, pk):
-    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
-    avis_commission_detr = request.POST.get("avis_commission_detr")
+    return patch_a_true_false_or_none_projet_field(request, pk, "avis_commission_detr")
 
-    if avis_commission_detr not in ("None", "True", "False"):
-        raise ValueError("Invalid avis_commission_detr")
 
-    if avis_commission_detr == "None":
-        new_value = None
-    elif avis_commission_detr == "True":
-        new_value = True
-    else:
-        new_value = False
-
-    simulation_projet.projet.avis_commission_detr = new_value
-    simulation_projet.projet.save()
-    return redirect_to_simulation_projet(request, simulation_projet)
+@projet_must_be_in_user_perimetre
+@exception_handler_decorator
+@require_POST
+def patch_is_budget_vert_simulation_projet(request, pk):
+    return patch_a_true_false_or_none_projet_field(request, pk, "is_budget_vert")
 
 
 @projet_must_be_in_user_perimetre
