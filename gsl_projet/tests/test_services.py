@@ -456,3 +456,28 @@ def test_get_is_attached_to_a_crte_with_true_value(
 ):
     dossier = DossierFactory(annotations_is_crte=is_attached_to_a_crte)
     assert ProjetService.get_is_attached_to_a_crte(dossier) == expected_result
+
+
+@pytest.mark.parametrize(
+    "annotations_is_budget_vert, environnement_transition_eco, expected_result",
+    [
+        (True, True, True),
+        (True, False, True),
+        (True, None, True),
+        (False, True, False),
+        (False, False, False),
+        (False, None, False),
+        (None, True, True),
+        (None, False, False),
+        (None, None, None),
+    ],
+)
+@pytest.mark.django_db
+def test_get_is_budget_vert(
+    annotations_is_budget_vert, environnement_transition_eco, expected_result
+):
+    dossier = DossierFactory(
+        annotations_is_budget_vert=annotations_is_budget_vert,
+        environnement_transition_eco=environnement_transition_eco,
+    )
+    assert ProjetService.get_is_budget_vert(dossier) == expected_result

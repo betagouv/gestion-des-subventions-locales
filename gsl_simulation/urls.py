@@ -8,6 +8,7 @@ from gsl_simulation.views.decorators import (
 from gsl_simulation.views.simulation_projet_views import (
     SimulationProjetDetailView,
     patch_avis_commission_detr_simulation_projet,
+    patch_is_budget_vert_simulation_projet,
     patch_is_qpv_and_is_attached_to_a_crte_simulation_projet,
     patch_montant_simulation_projet,
     patch_status_simulation_projet,
@@ -56,6 +57,11 @@ urlpatterns = [
         "modifier-l-avis-commission-detr-d-un-projet-de-simulation/<int:pk>/",
         patch_avis_commission_detr_simulation_projet,
         name="patch-avis-commission-detr-simulation-projet",
+    ),
+    path(
+        "modifier-budget-vert-d-un-projet-de-simulation/<int:pk>/",
+        patch_is_budget_vert_simulation_projet,
+        name="patch-is-budget-vert-simulation-projet",
     ),
     path(
         "modifier-qpv-et-crte-d-un-projet-de-simulation/<int:pk>/",

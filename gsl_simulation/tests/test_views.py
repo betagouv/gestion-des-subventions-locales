@@ -840,11 +840,19 @@ def test_patch_montant_simulation_projet(
 
 
 @pytest.mark.parametrize(
-    "value, expected_value", (("True", True), ("False", False), ("None", None))
+    "value, expected_value",
+    (
+        ("True", True),
+        ("False", False),
+        ("None", None),
+    ),
 )
 @pytest.mark.django_db
 def test_patch_avis_commission_detr_simulation_projet(
-    client_with_user_logged, accepted_simulation_projet, value, expected_value
+    client_with_user_logged,
+    accepted_simulation_projet,
+    value,
+    expected_value,
 ):
     url = reverse(
         "simulation:patch-avis-commission-detr-simulation-projet",
@@ -864,17 +872,51 @@ def test_patch_avis_commission_detr_simulation_projet(
     assert updated_simulation_projet.projet.avis_commission_detr is expected_value
 
 
-@pytest.mark.django_db
 def test_patch_avis_commission_detr_simulation_projet_with_wrong_value(
     client_with_user_logged, accepted_simulation_projet
 ):
+    for original_value in (True, False, None):
+        accepted_simulation_projet.projet.avis_commission_detr = original_value
+        accepted_simulation_projet.projet.save()
+        url = reverse(
+            "simulation:patch-avis-commission-detr-simulation-projet",
+            args=[accepted_simulation_projet.id],
+        )
+        response = client_with_user_logged.post(
+            url,
+            {"avis_commission_detr": "Wrong value"},
+            follow=True,
+        )
+
+        accepted_simulation_projet.refresh_from_db()
+
+        assert response.status_code == 400
+        assert response.content == b'{"error": "An internal error has occurred."}'
+        assert accepted_simulation_projet.projet.avis_commission_detr is original_value
+
+
+@pytest.mark.parametrize(
+    "value, expected_value",
+    (
+        ("True", True),
+        ("False", False),
+        ("None", None),
+    ),
+)
+@pytest.mark.django_db
+def test_patch_is_budget_vert_simulation_projet(
+    client_with_user_logged,
+    accepted_simulation_projet,
+    value,
+    expected_value,
+):
     url = reverse(
-        "simulation:patch-avis-commission-detr-simulation-projet",
+        "simulation:patch-is-budget-vert-simulation-projet",
         args=[accepted_simulation_projet.id],
     )
     response = client_with_user_logged.post(
         url,
-        {"avis_commission_detr": "Wrong value"},
+        {"is_budget_vert": value},
         follow=True,
     )
 
@@ -882,8 +924,31 @@ def test_patch_avis_commission_detr_simulation_projet_with_wrong_value(
         id=accepted_simulation_projet.id
     )
 
-    assert response.status_code == 400
-    assert updated_simulation_projet.projet.avis_commission_detr is None
+    assert response.status_code == 200
+    assert updated_simulation_projet.projet.is_budget_vert is expected_value
+
+
+def test_patch_is_budget_vert_simulation_projet_with_wrong_value(
+    client_with_user_logged, accepted_simulation_projet
+):
+    for original_value in (True, False, None):
+        accepted_simulation_projet.projet.is_budget_vert = original_value
+        accepted_simulation_projet.projet.save()
+        url = reverse(
+            "simulation:patch-is-budget-vert-simulation-projet",
+            args=[accepted_simulation_projet.id],
+        )
+        response = client_with_user_logged.post(
+            url,
+            {"is_budget_vert": "Wrong value"},
+            follow=True,
+        )
+
+        accepted_simulation_projet.refresh_from_db()
+
+        assert response.status_code == 400
+        assert response.content == b'{"error": "An internal error has occurred."}'
+        assert accepted_simulation_projet.projet.is_budget_vert is original_value
 
 
 @pytest.mark.django_db
