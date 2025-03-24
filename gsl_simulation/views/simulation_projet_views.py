@@ -7,12 +7,11 @@ from django.urls import resolve, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView
-from dsfr.forms import DsfrBaseForm
 
 from gsl.settings import ALLOWED_HOSTS
-from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
+from gsl_projet.views import ProjetForm
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.services.simulation_projet_service import (
     SimulationProjetService,
@@ -175,42 +174,11 @@ class SimulationProjetDetailView(DetailView):
         return update_simulation_projet(request, self.kwargs["pk"])
 
 
-# TODO à bouger dans gsl_projet
-# TODO à tester
-class ProjetForm(ModelForm, DsfrBaseForm):
-    AVIS_DETR_CHOICES = [
-        (None, "En cours"),  # Remplace "Inconnu" par "En cours"
-        (True, "Oui"),
-        (False, "Non"),
-    ]
-
-    avis_commission_detr = forms.ChoiceField(
-        label="Sélectionner l'avis de la commission d'élus DETR :",
-        choices=AVIS_DETR_CHOICES,
-        required=False,
-    )
-
-    BUDGET_VERT_CHOICES = [
-        (None, "Non Renseigné"),
-        (True, "Oui"),
-        (False, "Non"),
-    ]
-
-    is_budget_vert = forms.ChoiceField(
-        label="Transition écologique", choices=BUDGET_VERT_CHOICES, required=False
-    )
-
-    class Meta:
-        model = Projet
-        fields = [
-            "is_in_qpv",
-            "is_attached_to_a_crte",
-            "avis_commission_detr",
-            "is_budget_vert",
-        ]
-
-
 class SimulationProjetForm(ModelForm):
+    status = forms.RadioSelect(
+        choices=SimulationProjet.STATUS_CHOICES,
+    )
+
     class Meta:
         model = SimulationProjet
         fields = [
