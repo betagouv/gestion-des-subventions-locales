@@ -48,6 +48,7 @@ class CollegueAdmin(AllPermsForStaffUser, UserAdmin, admin.ModelAdmin):
         "last_name",
         "is_staff",
         "perimetre",
+        "last_login",
     )
     fieldsets = (
         (None, {"fields": ("username", "password")}),
