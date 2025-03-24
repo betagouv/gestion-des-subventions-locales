@@ -13,6 +13,7 @@ from gsl_simulation.views.simulation_projet_views import (
     patch_montant_simulation_projet,
     patch_status_simulation_projet,
     patch_taux_simulation_projet,
+    update_simulation_projet,
 )
 
 urlpatterns = [
@@ -67,6 +68,11 @@ urlpatterns = [
         "modifier-qpv-et-crte-d-un-projet-de-simulation/<int:pk>/",
         patch_is_qpv_and_is_attached_to_a_crte_simulation_projet,
         name="patch-is-qpv-and-is-attached-to-a-crte-simulation-projet",
+    ),
+    path(
+        "modifier-un-projet-de-simulation/<int:pk>/",
+        update_simulation_projet,
+        name="simulation-projet-update",
     ),
     path(
         "creation-simulation",

@@ -5,14 +5,11 @@
                   aria-hidden="true"></span>Commission DETR (projet à + de 50k)
         </h2>
 
-        <div class="avis-commission-detr-select-and-label">
-            <label class="fr-label" for="avis-commission-detr">
-                Sélectionner l'avis de la commission d'élus DETR :
-            </label>
+        <form class="avis-commission-detr-select-and-label" method="post">
+            {{ projet_form.avis_commission_detr.label }}
 
-            <form action="{% url 'simulation:patch-avis-commission-detr-simulation-projet' simu.id %}"
-                  method="POST"
-                  class="avis-commission-detr-select-group">
+            <div class="avis-commission-detr-select-group">
+                {% csrf_token %}
                 {% if projet.avis_commission_detr %}
                     <span class="fr-icon-chat-check-fill green-color" aria-hidden="true"></span>
                 {% elif projet.avis_commission_detr is False %}
@@ -20,23 +17,8 @@
                 {% else %}
                     <span class="fr-icon-message-2-fill grey-color" aria-hidden="true"></span>
                 {% endif %}
-                {% csrf_token %}
-                <select name="avis_commission_detr"
-                        id="avis_commission_detr"
-                        class="fr-select">
-                    <option value='None'
-                            {% if projet.avis_commission_detr is None %}selected{% endif %}>
-                        En cours
-                    </option>
-                    <option value='True' {% if projet.avis_commission_detr %}selected{% endif %}>
-                        Oui
-                    </option>
-                    <option value='False'
-                            {% if projet.avis_commission_detr is False %}selected{% endif %}>
-                        Non
-                    </option>
-                </select>
-            </form>
-        </div>
+                {{ projet_form.avis_commission_detr }}
+            </div>
+        </form>
     </div>
 </div>

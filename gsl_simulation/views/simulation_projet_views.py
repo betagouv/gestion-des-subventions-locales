@@ -1,3 +1,5 @@
+from django import forms
+from django.forms import ModelForm
 from django.http import Http404, HttpRequest
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
@@ -5,8 +7,10 @@ from django.urls import resolve, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView
+from dsfr.forms import DsfrBaseForm
 
 from gsl.settings import ALLOWED_HOSTS
+from gsl_projet.models import Projet
 from gsl_projet.services import ProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.models import SimulationProjet
@@ -214,5 +218,61 @@ class SimulationProjetDetailView(DetailView):
         context["enveloppe"] = self.simulation_projet.simulation.enveloppe
         context["dossier"] = self.simulation_projet.projet.dossier_ds
         context["menu_dict"] = PROJET_MENU
+        context["projet_form"] = ProjetForm(instance=self.object.projet)
 
         return context
+
+    def post(self, request, *args, **kwargs):
+        return update_simulation_projet(request, self.kwargs["pk"])
+
+
+# TODO à bouger dans gsl_projet
+# TODO à tester
+class ProjetForm(ModelForm, DsfrBaseForm):
+    AVIS_DETR_CHOICES = [
+        (None, "En cours"),  # Remplace "Inconnu" par "En cours"
+        (True, "Oui"),
+        (False, "Non"),
+    ]
+
+    avis_commission_detr = forms.ChoiceField(
+        label="Sélectionner l'avis de la commission d'élus DETR :",
+        choices=AVIS_DETR_CHOICES,
+        required=False,
+    )
+
+    class Meta:
+        model = Projet
+        fields = [
+            "is_in_qpv",
+            "is_attached_to_a_crte",
+            "avis_commission_detr",
+            "is_budget_vert",
+        ]
+
+
+class SimulationProjetForm(ModelForm):
+    class Meta:
+        model = SimulationProjet
+        fields = [
+            "status",
+        ]
+
+
+@projet_must_be_in_user_perimetre
+@exception_handler_decorator  # TODO voir comment le gérer
+@require_POST
+def update_simulation_projet(request, pk: int):
+    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
+    # simulation_form = SimulationProjetForm(request.POST, instance=simulation_projet)
+    projet_form = ProjetForm(request.POST, instance=simulation_projet.projet)
+
+    # if simulation_form.is_valid() and projet_form.is_valid():
+    if projet_form.is_valid():
+        # simulation_form.save()
+        projet_form.save()
+        return redirect_to_simulation_projet(request, simulation_projet)
+
+    return redirect_to_simulation_projet(
+        request, simulation_projet, message_type="error"
+    )  # TODO que faire ici ?
