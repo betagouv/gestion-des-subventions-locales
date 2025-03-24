@@ -252,7 +252,6 @@ def test_filter_by_dotation_only_detr_dsil(
     qs = view.get_filterset(ProjetFilters).qs
 
     assert Projet.objects.count() == 11
-    print(qs.query)
 
     assert qs.count() == 4
     for p in qs:
