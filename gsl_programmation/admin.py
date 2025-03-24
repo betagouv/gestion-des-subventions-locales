@@ -36,7 +36,7 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
         return obj.simulations_count
 
     simulations_count.admin_order_field = "simulations_count"
-    simulations_count.short_description = "# de simulations"
+    simulations_count.short_description = "Nb de simulations"
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

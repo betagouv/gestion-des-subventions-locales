@@ -82,7 +82,7 @@ class SimulationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         return obj.simulationprojets_count
 
     simulationprojets_count.admin_order_field = "simulationprojets_count"
-    simulationprojets_count.short_description = "# de projets"
+    simulationprojets_count.short_description = "Nb de projets"
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

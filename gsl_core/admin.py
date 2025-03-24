@@ -143,7 +143,7 @@ class PerimetreAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         return obj.user_count
 
     user_count.admin_order_field = "user_count"
-    user_count.short_description = "# d'utilisateurs"
+    user_count.short_description = "Nb d’utilisateurs"
 
 
 admin.site.unregister(Group)
