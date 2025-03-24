@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Count
 
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_core.models import Perimetre
@@ -63,13 +64,25 @@ class SimulationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
     raw_id_fields = ("created_by",)
     autocomplete_fields = ("enveloppe", "created_by")
-    list_display = ("__str__", "enveloppe", "created_at", "slug")
+    list_display = (
+        "__str__",
+        "enveloppe",
+        "created_at",
+        "slug",
+        "simulationprojets_count",
+    )
     list_filter = (
         "enveloppe__annee",
         "enveloppe__type",
         SimulationRegionFilter,
         SimulationDepartementFilter,
     )
+
+    def simulationprojets_count(self, obj) -> int:
+        return obj.simulationprojets_count
+
+    simulationprojets_count.admin_order_field = "simulationprojets_count"
+    simulationprojets_count.short_description = "Nb de projets"
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -80,6 +93,7 @@ class SimulationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             .select_related("enveloppe__perimetre__departement")
             .select_related("enveloppe__perimetre__arrondissement")
         )
+        qs = qs.annotate(simulationprojets_count=Count("simulationprojet"))
         return qs
 
 

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.db.models import JSONField
+from django.db.models import Count, JSONField
 from django_json_widget.widgets import JSONEditorWidget
 from import_export.admin import ImportExportMixin
 
@@ -29,7 +29,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         for field in Demarche._meta.get_fields()
         if field.name != "raw_ds_data"
     )
-    list_display = ("ds_number", "ds_title", "ds_state")
+    list_display = ("ds_number", "ds_title", "ds_state", "dossiers_count")
     actions = ("refresh_field_mappings",)
     formfield_overrides = {
         JSONField: {"widget": JSONEditorWidget},
@@ -51,6 +51,17 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             },
         ),
     )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs.prefetch_related("dossier_set")
+        return qs.annotate(dossier_count=Count("dossier"))
+
+    def dossiers_count(self, obj) -> int:
+        return obj.dossier_count
+
+    dossiers_count.admin_order_field = "dossier_count"
+    dossiers_count.short_description = "# de dossiers"
 
     @admin.action(description="Rafraîchir les correspondances de champs")
     def refresh_field_mappings(self, request, queryset):
@@ -215,6 +226,16 @@ class ArrondissementAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 class NaturePorteurProjetAdmin(
     AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin
 ):
-    list_display = ("__str__", "type")
+    list_display = ("__str__", "type", "dossiers_count")
     list_filter = ("type",)
     list_editable = ("type",)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.annotate(dossier_count=Count("dossier"))
+
+    def dossiers_count(self, obj) -> int:
+        return obj.dossier_count
+
+    dossiers_count.admin_order_field = "dossier_count"
+    dossiers_count.short_description = "# de dossiers"

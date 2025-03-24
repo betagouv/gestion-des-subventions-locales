@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
+from django.db.models import Count
 from import_export.admin import ImportMixin
 
 from gsl_core.models import (
@@ -114,6 +115,11 @@ class CommuneAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
         "insee_code",
     )
 
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        queryset = queryset.select_related("arrondissement", "departement")
+        return queryset
+
 
 @admin.register(Perimetre)
 class PerimetreAdmin(AllPermsForStaffUser, admin.ModelAdmin):
@@ -124,12 +130,20 @@ class PerimetreAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "region_id",
         "departement_id",
         "arrondissement_id",
+        "user_count",
     )
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         queryset = queryset.select_related("departement", "region")
+        queryset = queryset.annotate(user_count=Count("collegue"))
         return queryset
+
+    def user_count(self, obj):
+        return obj.user_count
+
+    user_count.admin_order_field = "user_count"
+    user_count.short_description = "Nb d’utilisateurs"
 
 
 admin.site.unregister(Group)
