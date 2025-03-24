@@ -1,4 +1,5 @@
 from django.db import models
+from django.urls import reverse
 
 from gsl_core.models import Adresse, Perimetre
 from gsl_core.models import Arrondissement as CoreArrondissement
@@ -422,6 +423,12 @@ class Dossier(DsModel):
     @property
     def url_on_ds(self):
         return f"https://www.demarches-simplifiees.fr/procedures/{self.ds_demarche.ds_number}/dossiers/{self.ds_number}"
+
+    @property
+    def json_url(self):
+        return reverse(
+            "ds:view-dossier-json", kwargs={"dossier_ds_number": self.ds_number}
+        )
 
     @property
     def perimetre(self) -> Perimetre | None:

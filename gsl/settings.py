@@ -66,7 +66,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_celery_results",
     "django_celery_beat",
-    "django_json_widget",
     # dependencies:
     "csp",
     "widget_tweaks",
