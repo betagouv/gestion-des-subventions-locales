@@ -1,12 +1,9 @@
-from django import forms
 from django.db.models import Prefetch
-from django.forms import ModelForm
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET
 from django.views.generic import ListView
 from django_filters.views import FilterView
-from dsfr.forms import DsfrBaseForm
 
 from gsl_projet.services import ProjetService
 from gsl_projet.utils.filter_utils import FilterUtils
@@ -145,36 +142,3 @@ class ProjetListView(FilterView, ListView, FilterUtils):
             return ()
 
         return (perimetre, *perimetre.children())
-
-
-class ProjetForm(ModelForm, DsfrBaseForm):
-    AVIS_DETR_CHOICES = [
-        (None, "En cours"),  # Remplace "Inconnu" par "En cours"
-        (True, "Oui"),
-        (False, "Non"),
-    ]
-
-    avis_commission_detr = forms.ChoiceField(
-        label="Sélectionner l'avis de la commission d'élus DETR :",
-        choices=AVIS_DETR_CHOICES,
-        required=False,
-    )
-
-    BUDGET_VERT_CHOICES = [
-        (None, "Non Renseigné"),
-        (True, "Oui"),
-        (False, "Non"),
-    ]
-
-    is_budget_vert = forms.ChoiceField(
-        label="Transition écologique", choices=BUDGET_VERT_CHOICES, required=False
-    )
-
-    class Meta:
-        model = Projet
-        fields = [
-            "is_in_qpv",
-            "is_attached_to_a_crte",
-            "avis_commission_detr",
-            "is_budget_vert",
-        ]
