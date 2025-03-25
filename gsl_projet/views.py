@@ -147,7 +147,6 @@ class ProjetListView(FilterView, ListView, FilterUtils):
         return (perimetre, *perimetre.children())
 
 
-# TODO à tester
 class ProjetForm(ModelForm, DsfrBaseForm):
     AVIS_DETR_CHOICES = [
         (None, "En cours"),  # Remplace "Inconnu" par "En cours"
