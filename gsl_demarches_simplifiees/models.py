@@ -515,11 +515,15 @@ class ObjectifEnvironnemental(DsChoiceLibelle):
 
 
 class CritereEligibiliteDetr(DsChoiceLibelle):
-    pass
+    class Meta:
+        verbose_name = "Catégorie DETR"
+        verbose_name_plural = "Catégories DETR"
 
 
 class CritereEligibiliteDsil(DsChoiceLibelle):
-    pass
+    class Meta:
+        verbose_name = "Catégorie DSIL"
+        verbose_name_plural = "Catégories DSIL"
 
 
 class AutreAide(DsChoiceLibelle):

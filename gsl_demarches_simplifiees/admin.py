@@ -7,6 +7,8 @@ from gsl_core.admin import AllPermsForStaffUser
 
 from .models import (
     Arrondissement,
+    CritereEligibiliteDetr,
+    CritereEligibiliteDsil,
     Demarche,
     Dossier,
     FieldMappingForComputer,
@@ -237,3 +239,9 @@ class NaturePorteurProjetAdmin(
 
     dossiers_count.admin_order_field = "dossier_count"
     dossiers_count.short_description = "# de dossiers"
+
+
+@admin.register(CritereEligibiliteDsil)
+@admin.register(CritereEligibiliteDetr)
+class CategorieDoperationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    list_display = ("id", "label")
