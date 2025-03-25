@@ -22,6 +22,7 @@ from gsl_simulation.views.decorators import (
     exception_handler_decorator,
     projet_must_be_in_user_perimetre,
 )
+from gsl_simulation.views.mixins import CorrectUserPerimeterRequiredMixin
 from gsl_simulation.views.simulation_views import SimulationDetailView
 
 
@@ -63,7 +64,7 @@ def patch_status_simulation_projet(request, pk):
     return redirect_to_simulation_projet(request, updated_simulation_projet, status)
 
 
-class SimulationProjetDetailView(DetailView):
+class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
     model = SimulationProjet
 
     ALLOWED_TABS = {"annotations", "demandeur", "historique"}
@@ -110,7 +111,6 @@ class SimulationProjetDetailView(DetailView):
         context["dossier"] = self.simulation_projet.projet.dossier_ds
         context["menu_dict"] = PROJET_MENU
         context["projet_form"] = ProjetForm(instance=self.object.projet)
-        context["simulation_projet_form"] = SimulationProjetForm(instance=self.object)
 
         return context
 
