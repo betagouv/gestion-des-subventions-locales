@@ -25,63 +25,6 @@ from gsl_simulation.views.decorators import (
 from gsl_simulation.views.simulation_views import SimulationDetailView
 
 
-def _get_projets_queryset_with_filters(simulation, filter_params):
-    url = reverse(
-        "simulation:simulation-detail",
-        kwargs={"slug": simulation.slug},
-    )
-    new_request = HttpRequest()
-    new_request.GET = QueryDict(filter_params)
-    new_request.resolver_match = resolve(url)
-
-    view = SimulationDetailView()
-    view.object = simulation
-    view.request = new_request
-    view.kwargs = {"slug": simulation.slug}
-
-    projets = view.get_projet_queryset()
-    return projets
-
-
-def redirect_to_simulation_projet(
-    request, simulation_projet, message_type: str | None = None
-):
-    if request.htmx:
-        filter_params = request.POST.get("filter_params")
-        filtered_projets = _get_projets_queryset_with_filters(
-            simulation_projet.simulation,
-            filter_params,
-        )
-
-        total_amount_granted = SimulationService.get_total_amount_granted(
-            filtered_projets, simulation_projet.simulation
-        )
-
-        return render(
-            request,
-            "htmx/projet_update.html",
-            {
-                "simu": simulation_projet,
-                "projet": simulation_projet.projet,
-                "available_states": SimulationProjet.STATUS_CHOICES,
-                "status_summary": simulation_projet.simulation.get_projet_status_summary(),
-                "total_amount_granted": total_amount_granted,
-                "filter_params": filter_params,
-            },
-        )
-
-    add_success_message(request, message_type, simulation_projet)
-
-    referer = request.headers.get("Referer")
-    if referer and url_has_allowed_host_and_scheme(
-        referer, allowed_hosts=ALLOWED_HOSTS
-    ):
-        return redirect(referer)
-    return redirect(
-        "simulation:simulation-detail", slug=simulation_projet.simulation.slug
-    )
-
-
 @projet_must_be_in_user_perimetre
 @exception_handler_decorator
 @require_POST
@@ -167,6 +110,7 @@ class SimulationProjetDetailView(DetailView):
         context["dossier"] = self.simulation_projet.projet.dossier_ds
         context["menu_dict"] = PROJET_MENU
         context["projet_form"] = ProjetForm(instance=self.object.projet)
+        context["simulation_projet_form"] = SimulationProjetForm(instance=self.object)
 
         return context
 
@@ -175,8 +119,10 @@ class SimulationProjetDetailView(DetailView):
 
 
 class SimulationProjetForm(ModelForm):
-    status = forms.RadioSelect(
+    status = forms.ChoiceField(
         choices=SimulationProjet.STATUS_CHOICES,
+        widget=forms.RadioSelect,
+        required=False,
     )
 
     class Meta:
@@ -191,15 +137,71 @@ class SimulationProjetForm(ModelForm):
 @require_POST
 def update_simulation_projet(request, pk: int):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
-    # simulation_form = SimulationProjetForm(request.POST, instance=simulation_projet)
+    simulation_form = SimulationProjetForm(request.POST, instance=simulation_projet)
     projet_form = ProjetForm(request.POST, instance=simulation_projet.projet)
 
-    # if simulation_form.is_valid() and projet_form.is_valid():
-    if projet_form.is_valid():
-        # simulation_form.save()
+    if simulation_form.is_valid() and projet_form.is_valid():
+        simulation_form.save()
         projet_form.save()
         return redirect_to_simulation_projet(request, simulation_projet)
 
     return redirect_to_simulation_projet(
         request, simulation_projet, message_type="error"
     )  # TODO que faire ici ?
+
+
+def redirect_to_simulation_projet(
+    request, simulation_projet, message_type: str | None = None
+):
+    if request.htmx:
+        filter_params = request.POST.get("filter_params")
+        filtered_projets = _get_projets_queryset_with_filters(
+            simulation_projet.simulation,
+            filter_params,
+        )
+
+        total_amount_granted = SimulationService.get_total_amount_granted(
+            filtered_projets, simulation_projet.simulation
+        )
+
+        return render(
+            request,
+            "htmx/projet_update.html",
+            {
+                "simu": simulation_projet,
+                "projet": simulation_projet.projet,
+                "available_states": SimulationProjet.STATUS_CHOICES,
+                "status_summary": simulation_projet.simulation.get_projet_status_summary(),
+                "total_amount_granted": total_amount_granted,
+                "filter_params": filter_params,
+            },
+        )
+
+    add_success_message(request, message_type, simulation_projet)
+
+    referer = request.headers.get("Referer")
+    if referer and url_has_allowed_host_and_scheme(
+        referer, allowed_hosts=ALLOWED_HOSTS
+    ):
+        return redirect(referer)
+    return redirect(
+        "simulation:simulation-detail", slug=simulation_projet.simulation.slug
+    )
+
+
+def _get_projets_queryset_with_filters(simulation, filter_params):
+    url = reverse(
+        "simulation:simulation-detail",
+        kwargs={"slug": simulation.slug},
+    )
+    new_request = HttpRequest()
+    new_request.GET = QueryDict(filter_params)
+    new_request.resolver_match = resolve(url)
+
+    view = SimulationDetailView()
+    view.object = simulation
+    view.request = new_request
+    view.kwargs = {"slug": simulation.slug}
+
+    projets = view.get_projet_queryset()
+    return projets

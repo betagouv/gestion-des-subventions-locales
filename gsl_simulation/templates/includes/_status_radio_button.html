@@ -6,7 +6,6 @@
                name="status"
                class="status-radio-button"
                {% if simu.status == status_value %}checked{% endif %}
-               {% if disabled %}disabled{% endif %}
                data-original-value="{{ simu.status }}">
         <label class="fr-label" for="{{ status_value }}">
             {{ status_label }}

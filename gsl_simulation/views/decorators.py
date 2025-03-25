@@ -72,13 +72,21 @@ def exception_handler_decorator(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
+        except Http404 as e:
+            logging.info("An error occurred: %s", str(e), exc_info=True)
+            return JsonResponse(
+                {
+                    "error": "Not found.",
+                },
+                status=404,
+            )
         except Exception as e:
             logging.error("An error occurred: %s", str(e), exc_info=True)
             return JsonResponse(
                 {
                     "error": "An internal error has occurred.",
                 },
-                status=400,
+                status=500,
             )
 
     return wrapper
