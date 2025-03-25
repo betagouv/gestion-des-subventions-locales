@@ -1,4 +1,4 @@
-<form method="POST" class="form-disabled-before-value-change fr-mb-2w">
+<div class="form-disabled-before-value-change fr-mb-2w">
     {% csrf_token %}
     <div class="fr-callout fr-background-alt--blue-france fr-py-2w fr-pl-3w">
         {{ projet_form.is_budget_vert.label_tag }}
@@ -7,7 +7,8 @@
     <button class="fr-btn"
             id="submit-is-in-qpv-and-is-attached-to-a-crte"
             type="submit"
-            disabled>
+            disabled
+            form="simulation_projet_form">
         Enregistrer
     </button>
-</form>
+</div>

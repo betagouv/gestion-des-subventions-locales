@@ -10,7 +10,6 @@ from gsl_simulation.views.simulation_projet_views import (
     patch_montant_simulation_projet,
     patch_status_simulation_projet,
     patch_taux_simulation_projet,
-    update_simulation_projet,
 )
 
 urlpatterns = [
@@ -50,11 +49,6 @@ urlpatterns = [
         "modifier-le-statut-d-un-projet-de-simulation/<int:pk>/",
         patch_status_simulation_projet,
         name="patch-simulation-projet-status",
-    ),
-    path(
-        "modifier-un-projet-de-simulation/<int:pk>/",
-        update_simulation_projet,
-        name="simulation-projet-update",
     ),
     path(
         "creation-simulation",

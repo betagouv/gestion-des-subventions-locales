@@ -1,6 +1,12 @@
 {% extends "gsl_projet/projet/tab_projet.html" %}
 {% load static gsl_filters %}
 
+{% block form_for_simulation_projet %}
+    <form method="post" id="simulation_projet_form">
+        {% csrf_token %}
+    </form>
+{% endblock form_for_simulation_projet %}
+
 {% block avis_commission_detr %}
     {% if enveloppe.type == 'DETR' %}
         {% include "includes/forms/_avis_commission_detr_form.html" %}

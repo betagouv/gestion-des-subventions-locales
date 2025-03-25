@@ -1,5 +1,3 @@
-from django import forms
-from django.forms import ModelForm
 from django.http import Http404, HttpRequest
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
@@ -118,30 +116,13 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
         return update_simulation_projet(request, self.kwargs["pk"])
 
 
-class SimulationProjetForm(ModelForm):
-    status = forms.ChoiceField(
-        choices=SimulationProjet.STATUS_CHOICES,
-        widget=forms.RadioSelect,
-        required=False,
-    )
-
-    class Meta:
-        model = SimulationProjet
-        fields = [
-            "status",
-        ]
-
-
-@projet_must_be_in_user_perimetre
 @exception_handler_decorator  # TODO voir comment le gérer
 @require_POST
 def update_simulation_projet(request, pk: int):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
-    simulation_form = SimulationProjetForm(request.POST, instance=simulation_projet)
     projet_form = ProjetForm(request.POST, instance=simulation_projet.projet)
 
-    if simulation_form.is_valid() and projet_form.is_valid():
-        simulation_form.save()
+    if projet_form.is_valid():
         projet_form.save()
         return redirect_to_simulation_projet(request, simulation_projet)
 

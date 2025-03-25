@@ -1,5 +1,5 @@
 
-<form method="POST" class="form-disabled-before-value-change">
+<div class="form-disabled-before-value-change">
     {% csrf_token %}
     <div class="fr-callout fr-background-alt--blue-france fr-py-2w fr-px-2w">
         <div class="fr-fieldset__element">
@@ -16,7 +16,7 @@
             </div>
         </div>
     </div>
-    <button class="fr-btn" type="submit" disabled>
+    <button class="fr-btn" type="submit" form="simulation_projet_form" disabled>
         Enregistrer
     </button>
-</form>
+</div>
