@@ -113,22 +113,16 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
         return context
 
     def post(self, request, *args, **kwargs):
-        return update_simulation_projet(request, self.kwargs["pk"])
+        simulation_projet = get_object_or_404(SimulationProjet, id=self.kwargs["pk"])
+        projet_form = ProjetForm(request.POST, instance=simulation_projet.projet)
 
+        if projet_form.is_valid():
+            projet_form.save()
+            return redirect_to_simulation_projet(request, simulation_projet)
 
-@exception_handler_decorator  # TODO voir comment le gérer
-@require_POST
-def update_simulation_projet(request, pk: int):
-    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
-    projet_form = ProjetForm(request.POST, instance=simulation_projet.projet)
-
-    if projet_form.is_valid():
-        projet_form.save()
-        return redirect_to_simulation_projet(request, simulation_projet)
-
-    return redirect_to_simulation_projet(
-        request, simulation_projet, message_type="error"
-    )  # TODO que faire ici ?
+        return redirect_to_simulation_projet(
+            request, simulation_projet, message_type="error"
+        )
 
 
 def redirect_to_simulation_projet(
