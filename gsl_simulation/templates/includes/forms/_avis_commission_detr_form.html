@@ -1,0 +1,24 @@
+<div class="fr-callout fr-background-alt--blue-france fr-container--fluid">
+    <div class="fr-grid-row fr-grid-row--gutters avis-commission-detr-block">
+        <h2 class="fr-callout__title fr-text--lg">
+            <span class="fr-icon fr-icon-team-fill blue-color fr-mr-3v"
+                  aria-hidden="true"></span>Commission DETR (projet à + de 50k)
+        </h2>
+
+        <div class="avis-commission-detr-select-and-label">
+            {{ projet_form.avis_commission_detr.label_tag }}
+
+            <div class="avis-commission-detr-select-group">
+                {% csrf_token %}
+                {% if projet.avis_commission_detr %}
+                    <span class="fr-icon-chat-check-fill green-color" aria-hidden="true"></span>
+                {% elif projet.avis_commission_detr is False %}
+                    <span class="fr-icon-chat-delete-fill red-color" aria-hidden="true"></span>
+                {% else %}
+                    <span class="fr-icon-message-2-fill grey-color" aria-hidden="true"></span>
+                {% endif %}
+                {{ projet_form.avis_commission_detr }}
+            </div>
+        </div>
+    </div>
+</div>

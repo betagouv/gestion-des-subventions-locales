@@ -51,6 +51,9 @@
     </div>
 </div>
 
+{% block form_for_simulation_projet %}
+{% endblock form_for_simulation_projet %}
+
 {% block avis_commission_detr %}
     {% if projet.is_asking_for_detr %}
         <div class="fr-callout fr-background-alt--blue-france block-avis-commission-detr">
@@ -191,10 +194,11 @@
                 <h4 id="presentation_transition_eco">
                     Transition écologique
                 </h4>
-                <p>
-                    <b>Le projet concourt-il aux enjeux de la transition écologique ?</b>
-                    {{ dossier.environnement_transition_eco|yesno:"Oui,Non,Non renseigné" }}
-                </p>
+                {% block transition_ecologique_content %}
+                    <p>
+                        <b>Le projet concourt-il aux enjeux de la transition écologique au sens budget vert : </b>{{ projet.is_budget_vert|yesno:"Oui,Non,Non renseigné" }}
+                    </p>
+                {% endblock transition_ecologique_content %}
                 {% if dossier.environnement_objectifs.count > 0 %}
                     <p>
                         Objectifs environnementaux impactés favorablement

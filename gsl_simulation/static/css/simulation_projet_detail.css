@@ -49,3 +49,7 @@
   gap: 4px;
   min-width: 150px;
 }
+
+#id_is_budget_vert {
+  width:180px
+}
