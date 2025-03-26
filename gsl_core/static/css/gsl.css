@@ -286,3 +286,7 @@ ul.no-list-style li {
     position: sticky;
     top: 1.5rem;
 }
+
+.callout-without-left-border {
+  background-image: none;
+}

@@ -9,6 +9,14 @@
   text-align: start;
 }
 
+.filter-dropdown > .fr-input {
+  display: flex;
+}
+
+.filter-dropdown > button > span {
+  margin-top: 1px; /* Alignement vertical de l'icône */
+}
+
 .filter-dropdown .filter-content {
   gap: 6px;
   min-width: auto;
