@@ -8,6 +8,10 @@
 
 }
 
+.callout-without-left-border {
+  background-image: none;
+}
+
 .fr-fieldset__element .fr-radio-rich input[type="radio"] ~ label {
   flex-direction: row;
   gap: 8px;
