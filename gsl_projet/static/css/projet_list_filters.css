@@ -137,3 +137,13 @@
 #filter-territoire {
   gap: 6px;
 }
+
+.reinit-filters {
+  place-content: end;
+}
+
+.reinit-filters > button {
+  width: 100%;
+  gap: 8px;
+  justify-content: center;
+}

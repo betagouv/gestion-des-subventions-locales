@@ -1,6 +1,6 @@
 from django.db.models import Prefetch
 from django.http import Http404
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET
 from django.views.generic import ListView
 from django_filters.views import FilterView
@@ -115,6 +115,11 @@ class ProjetListView(FilterView, ListView, FilterUtils):
     filterset_class = ProjetListViewFilters
     template_name = "gsl_projet/projet_list.html"
     STATE_MAPPINGS = {key: value for key, value in Projet.STATUS_CHOICES}
+
+    def get(self, request, *args, **kwargs):
+        if "reset_filters" in request.GET:
+            return redirect(request.path)
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
