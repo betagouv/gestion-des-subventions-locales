@@ -1,0 +1,17 @@
+<h2>
+    <span class="fr-icon-edit-box-fill fr-icon--lg blue-color"
+          aria-hidden="true"></span>
+    Notes pour l’instruction du projet
+</h2>
+<h3>
+    Annotation privée de démarche simplifiées
+</h3>
+{% if projet.dossier_ds.annotations_champ_libre %}
+    <p class="fr-background-alt--blue-france fr-p-2w">
+        {{ projet.dossier_ds.annotations_champ_libre }}
+    </p>
+{% else %}
+    <p>
+        <i>Aucune annotation privée n’a été renseignée.</i>
+    </p>
+{% endif %}
