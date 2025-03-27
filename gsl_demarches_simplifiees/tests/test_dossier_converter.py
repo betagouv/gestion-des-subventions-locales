@@ -340,6 +340,16 @@ def test_inject_manytomany_value(dossier_converter, dossier):
     assert len(dossier.projet_zonage.all()) == 3
 
 
+def test_inject_string_into_manytomany_value(dossier_converter, dossier):
+    dossier_converter.inject_into_field(
+        dossier,
+        Dossier._meta.get_field("projet_zonage"),
+        "Territoires d'industrie (TI)",
+    )
+    dossier.save()
+    assert len(dossier.projet_zonage.all()) == 1
+
+
 def test_inject_address_value(dossier_converter, dossier):
     dossier_converter.inject_into_field(
         dossier,
