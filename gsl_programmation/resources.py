@@ -3,6 +3,7 @@ from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget
 
 from gsl_core.models import Departement, Perimetre, Region
+from gsl_projet.models import Dotation
 
 from .models import Enveloppe
 
@@ -25,7 +26,7 @@ class EnveloppeDETRResource(resources.ModelResource):
 
     def before_import_row(self, row, **kwargs):
         row["enveloppe_id"] = None
-        row["type"] = Enveloppe.TYPE_DETR
+        row["dotation"] = Dotation.DETR
         provided_departement_number = row["perimetre"]
         departement = Departement.objects.get(insee_code=provided_departement_number)
         perimetre, _ = Perimetre.objects.get_or_create(
@@ -37,9 +38,8 @@ class EnveloppeDETRResource(resources.ModelResource):
             },
         )
         row["perimetre"] = perimetre.id
-
         enveloppe_qs = Enveloppe.objects.filter(
-            perimetre=perimetre, type=row["type"], annee=row["annee"]
+            perimetre=perimetre, dotation__label=Dotation.DETR, annee=row["annee"]
         )
         if enveloppe_qs.exists():
             row["enveloppe_id"] = enveloppe_qs.get().id
@@ -47,13 +47,13 @@ class EnveloppeDETRResource(resources.ModelResource):
     class Meta:
         model = Enveloppe
         import_id_fields = ("enveloppe_id",)
-        fields = ("enveloppe_id", "montant", "annee", "perimetre", "type")
+        fields = ("enveloppe_id", "montant", "annee", "perimetre", "dotation")
 
 
 class EnveloppeDSILResource(EnveloppeDETRResource):
     def before_import_row(self, row, **kwargs):
         row["enveloppe_id"] = None
-        row["type"] = Enveloppe.TYPE_DSIL
+        row["dotation"] = Dotation.DSIL
         provided_region_number = row["perimetre"]
         region = Region.objects.get(insee_code=provided_region_number)
         perimetre, _ = Perimetre.objects.get_or_create(
@@ -63,7 +63,7 @@ class EnveloppeDSILResource(EnveloppeDETRResource):
         row["perimetre"] = perimetre.id
 
         enveloppe_qs = Enveloppe.objects.filter(
-            perimetre=perimetre, type=row["type"], annee=row["annee"]
+            perimetre=perimetre, dotation__label=Dotation.DSIL, annee=row["annee"]
         )
         if enveloppe_qs.exists():
             row["enveloppe_id"] = enveloppe_qs.get().id

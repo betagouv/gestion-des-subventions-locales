@@ -8,7 +8,15 @@ from gsl_core.tests.factories import (
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
-from ..models import Demandeur, Projet
+from ..models import Demandeur, Dotation, Projet
+
+
+class DotationFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Dotation
+        django_get_or_create = ("label",)
+
+    label = (factory.fuzzy.FuzzyChoice((Dotation.DETR, Dotation.DSIL)),)
 
 
 class DemandeurFactory(factory.django.DjangoModelFactory):

@@ -6,6 +6,24 @@ from gsl_programmation.utils import is_there_less_or_equal_than_0_009_of_differe
 from gsl_projet.models import Dotation, Projet
 
 
+class DetrManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(dotation__label=Dotation.DETR)
+
+
+class DsilManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(dotation__label=Dotation.DSIL)
+
+
+class EnveloppeQuerySet(models.QuerySet):
+    def detr(self):
+        return self.filter(dotation__label=Dotation.DETR)
+
+    def dsil(self):
+        return self.filter(dotation__label=Dotation.DSIL)
+
+
 class Enveloppe(models.Model):
     TYPE_DETR = "DETR"
     TYPE_DSIL = "DSIL"
@@ -33,13 +51,17 @@ class Enveloppe(models.Model):
         blank=True,
     )
 
+    objects = models.Manager()
+    detr_objects = DetrManager()
+    dsil_objects = DsilManager()
+
     class Meta:
         constraints = (
             models.UniqueConstraint(
-                name="unicity_by_perimeter_and_type",
+                name="unicity_by_perimeter_and_dotation",
                 fields=(
                     "annee",
-                    "type",
+                    "dotation",
                     "perimetre",
                 ),
             ),

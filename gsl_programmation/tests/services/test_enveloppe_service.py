@@ -85,8 +85,8 @@ def enveloppes_from_perimetre(perimetres):
         enveloppes["departements"]["dsil"].append(
             DsilEnveloppeFactory(
                 perimetre=departement,
-                deleguee_by=Enveloppe.objects.get(
-                    type=Enveloppe.TYPE_DSIL, perimetre__region=departement.region
+                deleguee_by=Enveloppe.dsil_objects.get(
+                    perimetre__region=departement.region
                 ),
             )
         )
@@ -94,8 +94,7 @@ def enveloppes_from_perimetre(perimetres):
         enveloppes["arrondissements"]["detr"].append(
             DetrEnveloppeFactory(
                 perimetre=arrondissement,
-                deleguee_by=Enveloppe.objects.get(
-                    type=Enveloppe.TYPE_DETR,
+                deleguee_by=Enveloppe.detr_objects.get(
                     perimetre__departement=arrondissement.departement,
                 ),
             )
@@ -103,8 +102,7 @@ def enveloppes_from_perimetre(perimetres):
         enveloppes["arrondissements"]["dsil"].append(
             DsilEnveloppeFactory(
                 perimetre=arrondissement,
-                deleguee_by=Enveloppe.objects.get(
-                    type=Enveloppe.TYPE_DSIL,
+                deleguee_by=Enveloppe.dsil_objects.get(
                     perimetre__departement=arrondissement.departement,
                 ),
             )
@@ -117,8 +115,8 @@ def test_get_enveloppes_from_region_perimetre(perimetres, enveloppes_from_perime
         perimetres["regions"][0]
     )
     assert len(enveloppes) == 3
-    assert enveloppes.filter(type="DETR").count() == 0
-    assert enveloppes.filter(type="DSIL").count() == 3
+    assert enveloppes.filter(dotation__label="DETR").count() == 0
+    assert enveloppes.filter(dotation__label="DSIL").count() == 3
     assert enveloppes.filter(perimetre__arrondissement__isnull=True).count() == 2
     assert enveloppes.filter(perimetre__departement__isnull=True).count() == 1
     for enveloppe in enveloppes:
@@ -135,8 +133,8 @@ def test_get_enveloppes_from_departement_perimetre(
         perimetres["departements"][0]
     )
     assert len(enveloppes) == 4
-    assert enveloppes.filter(type="DETR").count() == 2
-    assert enveloppes.filter(type="DSIL").count() == 2
+    assert enveloppes.filter(dotation__label="DETR").count() == 2
+    assert enveloppes.filter(dotation__label="DSIL").count() == 2
     assert enveloppes.filter(perimetre__arrondissement__isnull=True).count() == 2
     assert enveloppes.filter(perimetre__arrondissement__isnull=False).count() == 2
     assert enveloppes.filter(perimetre__departement__isnull=True).count() == 0
@@ -154,8 +152,8 @@ def test_get_enveloppes_from_arrondissement_perimetre(
         perimetres["arrondissements"][0]
     )
     assert len(enveloppes) == 2
-    assert enveloppes.filter(type="DETR").count() == 1
-    assert enveloppes.filter(type="DSIL").count() == 1
+    assert enveloppes.filter(dotation__label="DETR").count() == 1
+    assert enveloppes.filter(dotation__label="DSIL").count() == 1
     assert enveloppes.filter(perimetre__arrondissement__isnull=True).count() == 0
     for enveloppe in enveloppes:
         assert perimetres["arrondissements"][0] == enveloppe.perimetre
