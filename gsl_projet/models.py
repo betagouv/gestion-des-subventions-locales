@@ -14,6 +14,19 @@ if TYPE_CHECKING:
     from gsl_programmation.models import Enveloppe
 
 
+class Dotation(models.Model):
+    label = models.CharField("Nom", max_length=255)
+
+    def __str__(self):
+        return f"Dotation {self.label}"
+
+    def is_dsil(self):
+        return self.label == "DSIL"
+
+    def is_detr(self):
+        return self.label == "DETR"
+
+
 class Demandeur(models.Model):
     siret = models.CharField("Siret", unique=True)
     name = models.CharField("Nom")
