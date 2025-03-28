@@ -15,16 +15,18 @@ if TYPE_CHECKING:
 
 
 class Dotation(models.Model):
+    DSIL = "DSIL"
+    DETR = "DETR"
     label = models.CharField("Nom", max_length=255)
 
     def __str__(self):
         return f"Dotation {self.label}"
 
     def is_dsil(self):
-        return self.label == "DSIL"
+        return self.label == self.DSIL
 
     def is_detr(self):
-        return self.label == "DETR"
+        return self.label == self.DETR
 
 
 class Demandeur(models.Model):
