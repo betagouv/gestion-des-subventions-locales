@@ -3,11 +3,13 @@ from django.db.models import Prefetch, Sum
 from django.forms import NumberInput
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 from django_filters import MultipleChoiceFilter, NumberFilter
 from django_filters.views import FilterView
-from django.utils.http import url_has_allowed_host_and_scheme
+
+from gsl.settings import ALLOWED_HOSTS
 from gsl_core.models import Perimetre
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.services.enveloppe_service import EnveloppeService
@@ -150,10 +152,12 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
 
     def get(self, request, *args, **kwargs):
         if "reset_filters" in request.GET:
-            if url_has_allowed_host_and_scheme(request.path, allowed_hosts=None):
+            if url_has_allowed_host_and_scheme(
+                request.path, allowed_hosts=ALLOWED_HOSTS
+            ):
                 return redirect(request.path)
             else:
-                return redirect('/')
+                return redirect("/")
 
         self.object = self.get_object()
         self.simulation = Simulation.objects.select_related(
