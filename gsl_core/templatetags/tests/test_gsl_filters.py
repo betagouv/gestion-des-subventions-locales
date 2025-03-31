@@ -1,8 +1,11 @@
 from decimal import Decimal
 
+import pytest
+
 from gsl_core.templatetags.gsl_filters import (
     create_alert_data,
     euro,
+    format_demandeur_nom,
     percent,
     remove_first_word,
 )
@@ -58,3 +61,40 @@ def test_create_alert_data():
         "is_collapsible": True,
         "description": "Test description",
     }
+
+
+@pytest.mark.parametrize(
+    "input,expected",
+    (
+        (
+            "CTE DE COMMUNES DE LA PLAINE DE L'AIN",
+            "CTE de Communes de la Plaine de l'Ain",
+        ),
+        ("MAISON DE RETRAITE LA MONTAGNE", "Maison de Retraite la Montagne"),
+        ("COMMUNE DE FAREINS", "Commune de Fareins"),
+        ("COMMUNE DE SAINT-BERNARD", "Commune de Saint-Bernard"),
+        ("CA DU BASSIN DE BOURG-EN-BRESSE", "CA du Bassin de Bourg-en-Bresse"),
+        ("COMMUNE DE SAINT-MARTIN-DE-BAVEL", "Commune de Saint-Martin-de-Bavel"),
+        ("CC BRESSE ET SAONE", "CC Bresse et Saone"),
+        ("COMMUNE DE MONTMERLE SUR SAONE", "Commune de Montmerle sur Saone"),
+        ("COMMUNE DE CHEVROUX", "Commune de Chevroux"),
+        ("COMMUNE DE DIVONNE-LES-BAINS", "Commune de Divonne-les-Bains"),
+        ("COMMUNE DES NEYROLLES", "Commune des Neyrolles"),
+        ("COMMUNE DE TOUSSIEUX", "Commune de Toussieux"),
+        ("COMMUNE DE NEUVILLE LES DAMES", "Commune de Neuville les Dames"),
+        ("COMMUNE DE MANZIAT", "Commune de Manziat"),
+        ("COMMUNE DE SAINTE EUPHEMIE", "Commune de Sainte Euphemie"),
+        ("COMMUNE DE BENY", "Commune de Beny"),
+        (
+            "COMMUNE DE SAINT-ETIENNE-SUR-CHALARONNE",
+            "Commune de Saint-Etienne-sur-Chalaronne",
+        ),
+        ("COMMUNE DE TREVOUX", "Commune de Trevoux"),
+        ("CC BUGEY SUD", "CC Bugey Sud"),
+        ("COMMUNE DE THOISSEY", "Commune de Thoissey"),
+        ("COMMUNE D ARGIS", "Commune d'Argis"),
+        ("COMMUNE DOUARD A MENEZ", "Commune Douard a Menez"),
+    ),
+)
+def test_format_demandeur_nom(input, expected):
+    assert format_demandeur_nom(input) == expected
