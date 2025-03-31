@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET
 from django.views.generic import ListView
 from django_filters.views import FilterView
-
+from django.utils.http import url_has_allowed_host_and_scheme
 from gsl_projet.services import ProjetService
 from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_filters import ProjetFilters
@@ -118,7 +118,10 @@ class ProjetListView(FilterView, ListView, FilterUtils):
 
     def get(self, request, *args, **kwargs):
         if "reset_filters" in request.GET:
-            return redirect(request.path)
+            if url_has_allowed_host_and_scheme(request.path, allowed_hosts=None):
+                return redirect(request.path)
+            else:
+                return redirect('/')
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
