@@ -3,15 +3,12 @@ from django.db import models
 
 from gsl_core.models import Perimetre
 from gsl_programmation.utils import is_there_less_or_equal_than_0_009_of_difference
+from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import Projet
 
 
 class Enveloppe(models.Model):
-    TYPE_DETR = "DETR"
-    TYPE_DSIL = "DSIL"
-    TYPE_CHOICES = ((TYPE_DETR, TYPE_DETR), (TYPE_DSIL, TYPE_DSIL))
-
-    type = models.CharField("Type", choices=TYPE_CHOICES)
+    type = models.CharField("Type", choices=DOTATION_CHOICES)
     montant = models.DecimalField(
         "Montant",
         max_digits=14,
@@ -50,7 +47,7 @@ class Enveloppe(models.Model):
         return self.deleguee_by is not None
 
     def clean(self):
-        if self.type == self.TYPE_DETR:  # scope "département"
+        if self.type == DOTATION_DETR:  # scope "département"
             if self.perimetre.type == Perimetre.TYPE_REGION:
                 raise ValidationError(
                     "Une enveloppe de type DETR ne peut pas avoir un périmètre régional."
@@ -69,7 +66,7 @@ class Enveloppe(models.Model):
                     "Une enveloppe de type DETR et de périmètre arrondissement doit obligatoirement être déléguée."
                 )
 
-        if self.type == self.TYPE_DSIL:
+        if self.type == DOTATION_DSIL:
             if self.is_deleguee and self.perimetre.type == Perimetre.TYPE_REGION:
                 raise ValidationError(
                     "Une enveloppe DSIL déléguée ne peut pas être une enveloppe régionale."

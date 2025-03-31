@@ -4,6 +4,7 @@ from django.db.models import Case, F, Sum, When
 from django.db.models.query import QuerySet
 
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_projet.constants import DOTATION_DETR
 from gsl_projet.models import Demandeur, Projet
 
 
@@ -133,7 +134,7 @@ class ProjetService:
     @classmethod
     def get_avis_commission_detr(cls, ds_dossier: Dossier):
         if ds_dossier.ds_state == Dossier.STATE_ACCEPTE:
-            if "DETR" in ds_dossier.demande_dispositif_sollicite:
+            if DOTATION_DETR in ds_dossier.demande_dispositif_sollicite:
                 return True
         return None
 

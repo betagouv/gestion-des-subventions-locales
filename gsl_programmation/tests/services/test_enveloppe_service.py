@@ -12,6 +12,7 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_simulation.tests.factories import SimulationFactory
 
 pytestmark = pytest.mark.django_db
@@ -86,7 +87,7 @@ def enveloppes_from_perimetre(perimetres):
             DsilEnveloppeFactory(
                 perimetre=departement,
                 deleguee_by=Enveloppe.objects.get(
-                    type=Enveloppe.TYPE_DSIL, perimetre__region=departement.region
+                    type=DOTATION_DSIL, perimetre__region=departement.region
                 ),
             )
         )
@@ -95,7 +96,7 @@ def enveloppes_from_perimetre(perimetres):
             DetrEnveloppeFactory(
                 perimetre=arrondissement,
                 deleguee_by=Enveloppe.objects.get(
-                    type=Enveloppe.TYPE_DETR,
+                    type=DOTATION_DETR,
                     perimetre__departement=arrondissement.departement,
                 ),
             )
@@ -104,7 +105,7 @@ def enveloppes_from_perimetre(perimetres):
             DsilEnveloppeFactory(
                 perimetre=arrondissement,
                 deleguee_by=Enveloppe.objects.get(
-                    type=Enveloppe.TYPE_DSIL,
+                    type=DOTATION_DSIL,
                     perimetre__departement=arrondissement.departement,
                 ),
             )

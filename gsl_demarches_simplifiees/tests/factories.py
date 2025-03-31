@@ -6,6 +6,7 @@ from django.db.models.signals import post_save
 
 from gsl_core.tests.factories import AdresseFactory
 from gsl_core.tests.factories import ArrondissementFactory as CoreArrondissementFactory
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 
 from ..models import Arrondissement as DsArrondissement
 from ..models import (
@@ -77,7 +78,7 @@ class DossierFactory(factory.django.DjangoModelFactory):
     porteur_de_projet_nature = factory.SubFactory(NaturePorteurProjetFactory)
     demande_dispositif_sollicite = factory.fuzzy.FuzzyChoice(
         [
-            Dossier.DOTATION_DETR,
-            Dossier.DOTATION_DSIL,
+            DOTATION_DETR,
+            DOTATION_DSIL,
         ]
     )

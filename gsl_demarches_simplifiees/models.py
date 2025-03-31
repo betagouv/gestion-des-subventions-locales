@@ -280,8 +280,6 @@ class Dossier(DsModel):
         blank=True,
     )
 
-    DOTATION_DETR = "DETR"
-    DOTATION_DSIL = "DSIL"
     demande_dispositif_sollicite = models.CharField(
         "Dispositif de financement sollicité",
         blank=True,

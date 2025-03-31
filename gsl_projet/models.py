@@ -9,6 +9,7 @@ from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 
 if TYPE_CHECKING:
     from gsl_programmation.models import Enveloppe
@@ -133,6 +134,7 @@ class Projet(models.Model):
         (STATUS_PROCESSING, "🔄 En traitement"),
         (STATUS_DISMISSED, "⛔️ Classé sans suite"),
     )
+    # TODO remove this
     # TODO put back protected=True, once every status transition is handled
     status = FSMField("Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING)
 
@@ -173,12 +175,14 @@ class Projet(models.Model):
 
         return reverse("projet:get-projet", kwargs={"projet_id": self.id})
 
+    # TODO move it to DotationProjet ??
     @property
     def assiette_or_cout_total(self):
         if self.assiette:
             return self.assiette
         return self.dossier_ds.finance_cout_total
 
+    # TODO move it to DotationProjet
     @cached_property
     def accepted_programmation_projet(self):
         if (
@@ -187,12 +191,14 @@ class Projet(models.Model):
         ):
             return self.accepted_programmation_projets[0]
 
+    # TODO move it to DotationProjet
     @property
     def montant_retenu(self) -> float | None:
         if self.accepted_programmation_projet:
             return self.accepted_programmation_projet.montant
         return None
 
+    # TODO move it to DotationProjet
     @property
     def taux_retenu(self) -> float | None:
         if self.accepted_programmation_projet:
@@ -201,13 +207,13 @@ class Projet(models.Model):
 
     @property
     def is_asking_for_detr(self) -> bool:
-        return "DETR" in self.dossier_ds.demande_dispositif_sollicite
+        return DOTATION_DETR in self.dossier_ds.demande_dispositif_sollicite
 
     @property
     def categorie_doperation(self):
-        if "DETR" in self.dossier_ds.demande_dispositif_sollicite:
+        if DOTATION_DETR in self.dossier_ds.demande_dispositif_sollicite:
             yield from self.dossier_ds.demande_eligibilite_detr.all()
-        if "DSIL" in self.dossier_ds.demande_dispositif_sollicite:
+        if DOTATION_DSIL in self.dossier_ds.demande_dispositif_sollicite:
             yield from self.dossier_ds.demande_eligibilite_dsil.all()
 
     def get_taux_de_subvention_sollicite(self):
