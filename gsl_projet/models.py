@@ -5,11 +5,12 @@ from typing import TYPE_CHECKING
 
 from django.db import models
 from django.db.models import Q
+from django.forms import ValidationError
 from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
 
 if TYPE_CHECKING:
     from gsl_programmation.models import Enveloppe
@@ -138,6 +139,7 @@ class Projet(models.Model):
     # TODO put back protected=True, once every status transition is handled
     status = FSMField("Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING)
 
+    # TODO remove this
     assiette = models.DecimalField(
         "Assiette subventionnable",
         max_digits=12,
@@ -308,3 +310,51 @@ class Projet(models.Model):
         )
 
         ProgrammationProjet.objects.filter(projet=self).delete()
+
+
+class DotationProjet(models.Model):
+    STATUS_ACCEPTED = "accepted"
+    STATUS_REFUSED = "refused"
+    STATUS_PROCESSING = "processing"
+    STATUS_DISMISSED = "dismissed"
+    STATUS_CHOICES = (
+        (STATUS_ACCEPTED, "✅ Accepté"),
+        (STATUS_REFUSED, "❌ Refusé"),
+        (STATUS_PROCESSING, "🔄 En traitement"),
+        (STATUS_DISMISSED, "⛔️ Classé sans suite"),
+    )
+
+    projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
+    dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
+    # TODO put back protected=True, once every status transition is handled
+    status = FSMField("Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING)
+    assiette = models.DecimalField(
+        "Assiette subventionnable",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+    )
+    avis_commission_detr = models.BooleanField(
+        "Avis commission DETR",
+        help_text="Pour les projets de plus de 100 000 €",
+        null=True,
+    )
+
+    class Meta:
+        unique_together = ("projet", "dotation")
+
+    def __str__(self):
+        return f"Projet {self.projet_id} - Dotation {self.dotation.label}"
+
+    def clean(self):
+        errors = {}
+        if (
+            self.dotation.type == DOTATION_DSIL
+            and self.avis_commission_detr is not None
+        ):
+            errors["avis_commission_detr"] = (
+                "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR"
+            )
+
+        if errors:
+            raise ValidationError(errors)
