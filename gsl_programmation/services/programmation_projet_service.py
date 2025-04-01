@@ -27,7 +27,7 @@ class ProgrammationProjetService:
         try:
             dotation = cls.compute_dotation_from_annotation(projet)
         except ValueError as e:
-            logging.error(e)
+            logging.warning(e)
             return
 
         if projet.status == Projet.STATUS_ACCEPTED:
@@ -107,7 +107,6 @@ class ProgrammationProjetService:
     def compute_dotation_from_annotation(cls, projet):
         dotation_annotation = projet.dossier_ds.annotations_dotation
         if dotation_annotation is None:
-            logging.error(f"Projet {projet} is missing annotation dotation")
             raise ValueError(f"Projet {projet} is missing annotation dotation")
 
         if "DETR" in dotation_annotation and "DSIL" in dotation_annotation:

@@ -5,10 +5,12 @@ from gsl_demarches_simplifiees.tests.factories import PersonneMoraleFactory
 
 from ..models import (
     Demandeur,
+    DotationProjet,
     Projet,
 )
 from .factories import (
     DemandeurFactory,
+    DotationProjetFactory,
     ProcessedProjetFactory,
     ProjetFactory,
     SubmittedProjetFactory,
@@ -21,6 +23,7 @@ test_data = (
     (ProjetFactory, Projet),
     (SubmittedProjetFactory, Projet),
     (ProcessedProjetFactory, Projet),
+    (DotationProjetFactory, DotationProjet),
 )
 
 

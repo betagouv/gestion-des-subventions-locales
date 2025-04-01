@@ -1,10 +1,12 @@
+import logging
 from decimal import Decimal, InvalidOperation
+from typing import Any, Literal
 
 from django.db.models import Case, F, Sum, When
 from django.db.models.query import QuerySet
 
 from gsl_demarches_simplifiees.models import Dossier
-from gsl_projet.constants import DOTATION_DETR
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import Demandeur, Projet
 
 
@@ -151,3 +153,29 @@ class ProjetService:
         if ds_dossier.annotations_is_budget_vert is not None:
             return ds_dossier.annotations_is_budget_vert
         return ds_dossier.environnement_transition_eco
+
+    @classmethod
+    def get_dotation_from_field(
+        cls,
+        projet: Projet,
+        field: Literal[
+            "annotations_dotation", "demande_dispositif_sollicite"
+        ] = "annotations_dotation",
+    ) -> list[Any]:
+        dotation_annotation = getattr(projet.dossier_ds, field)
+        dotations: list[Any] = []
+
+        if dotation_annotation is None:
+            logging.warning(f"Projet {projet} is missing annotation dotation")
+            return dotations
+
+        if DOTATION_DETR in dotation_annotation:
+            dotations.append(DOTATION_DETR)
+        if DOTATION_DSIL in dotation_annotation:
+            dotations.append(DOTATION_DSIL)
+
+        if not dotations:
+            logging.warning(
+                f"Projet {projet} annotation dotation {dotation_annotation} is unkown"
+            )
+        return dotations
