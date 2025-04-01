@@ -5,6 +5,7 @@ from import_export.admin import ImportExportMixin
 
 from gsl_core.admin import AllPermsForStaffUser
 
+from .importer.demarche import refresh_categories_operation_detr
 from .models import (
     Arrondissement,
     CritereEligibiliteDetr,
@@ -32,7 +33,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         if field.name != "raw_ds_data"
     )
     list_display = ("ds_number", "ds_title", "ds_state", "dossiers_count")
-    actions = ("refresh_field_mappings",)
+    actions = ("refresh_field_mappings", "extract_detr_categories")
     fieldsets = (
         (None, {"fields": ("ds_number", "ds_id", "ds_title", "ds_state")}),
         ("Dates", {"fields": ("ds_date_creation", "ds_date_fermeture")}),
@@ -66,6 +67,10 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def refresh_field_mappings(self, request, queryset):
         for demarche in queryset:
             task_refresh_field_mappings_on_demarche(demarche.ds_number)
+
+    def extract_detr_categories(self, request, queryset):
+        for demarche in queryset:
+            refresh_categories_operation_detr(demarche.ds_number)
 
 
 @admin.register(PersonneMorale)
@@ -155,6 +160,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_demandeur",
     )
     search_fields = ("ds_number", "projet_intitule")
+    readonly_fields = [field.name for field in Dossier._meta.fields]
 
     @admin.action(description="Rafraîchir depuis la base de données")
     def refresh_from_db(self, request, queryset):
@@ -242,6 +248,11 @@ class NaturePorteurProjetAdmin(
 
 
 @admin.register(CritereEligibiliteDsil)
-@admin.register(CritereEligibiliteDetr)
 class CategorieDoperationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = ("id", "label")
+
+
+@admin.register(CritereEligibiliteDetr)
+class CritereEligibiliteDetrAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    list_display = ("id", "label", "demarche")
+    readonly_fields = ("demarche", "demarche_revision", "detr_category", "label")
