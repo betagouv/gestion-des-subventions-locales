@@ -529,6 +529,19 @@ class ObjectifEnvironnemental(DsChoiceLibelle):
 
 
 class CritereEligibiliteDetr(DsChoiceLibelle):
+    demarche = models.ForeignKey(
+        Demarche, on_delete=models.PROTECT, null=True, verbose_name="Démarche"
+    )
+    demarche_revision = models.CharField(
+        blank=True, default="", verbose_name="Révision"
+    )
+    detr_category = models.ForeignKey(
+        "gsl_projet.CategorieDetr",
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name="Catégorie d’opération DETR",
+    )
+
     class Meta:
         verbose_name = "Catégorie DETR"
         verbose_name_plural = "Catégories DETR"

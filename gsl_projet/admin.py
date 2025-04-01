@@ -4,7 +4,7 @@ from django.db.models import Count
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_simulation.models import SimulationProjet
 
-from .models import Demandeur, DotationProjet, Projet
+from .models import CategorieDetr, Demandeur, DotationProjet, Projet
 
 
 @admin.register(Demandeur)
@@ -18,6 +18,12 @@ class DotationProjetInline(admin.TabularInline):
     model = DotationProjet
     extra = 0
     show_change_link = True
+
+
+@admin.register(CategorieDetr)
+class CategorieDetrAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    list_display = ("departement_id", "annee", "tri", "libelle")
+    list_filter = ("departement", "annee")
 
 
 class SimulationProjetInline(admin.TabularInline):
