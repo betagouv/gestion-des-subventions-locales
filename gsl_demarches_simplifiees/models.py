@@ -460,10 +460,23 @@ class Dossier(DsModel):
 
 
 class DsChoiceLibelle(DsModel):
+    demarche = models.ForeignKey(
+        Demarche, on_delete=models.PROTECT, null=True, verbose_name="Démarche"
+    )
+    demarche_revision = models.CharField(
+        blank=True, default="", verbose_name="Révision"
+    )
+    tri = models.IntegerField(verbose_name="Tri", default=0)
     label = models.CharField("Libellé", unique=True)
 
     class Meta:
         abstract = True
+        constraints = (
+            models.UniqueConstraint(
+                fields=["demarche", "demarche_revision", "label"],
+                name="unique_%(class)s_label_per_demarche_revision",
+            ),
+        )
 
     def __str__(self):
         return self.label
@@ -513,6 +526,13 @@ class ObjectifEnvironnemental(DsChoiceLibelle):
 
 
 class CritereEligibiliteDetr(DsChoiceLibelle):
+    detr_category = models.ForeignKey(
+        "gsl_projet.CategorieDetr",
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name="Catégorie d’opération DETR",
+    )
+
     class Meta:
         verbose_name = "Catégorie DETR"
         verbose_name_plural = "Catégories DETR"

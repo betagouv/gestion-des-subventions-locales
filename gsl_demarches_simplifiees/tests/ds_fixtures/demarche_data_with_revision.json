@@ -4,7 +4,7 @@
   "title": "Titre de la démarche",
   "state": "brouillon",
   "declarative": null,
-  "dateCreation": "2024-10-07T14:47:24+02:00",
+  "dateCreation": "2023-10-07T14:47:24+02:00",
   "dateFermeture": null,
   "chorusConfiguration": {
     "centreDeCout": "",
@@ -13,7 +13,7 @@
   },
   "activeRevision": {
     "id": "TEST_ID_MTYyNjE0",
-    "datePublication": null,
+    "datePublication": "2024-10-07T14:47:24+02:00",
     "champDescriptors": [
       {
         "__typename": "ExplicationChampDescriptor",
@@ -33,7 +33,7 @@
       },
       {
         "__typename": "DropDownListChampDescriptor",
-        "id": "TEST_ID_MTk3NzQ0NQ==",
+        "id": "ID_CHAMP_NATURE_PORTEUR_PROJET",
         "label": "Nature du porteur de projet",
         "description": "Champ qui porte le même nom dans Django",
         "required": true,
@@ -82,8 +82,28 @@
         "required": true
       },
       {
+        "id": "ID_CHAMP_ZONAGE_SPECIFIQUE",
+        "label": "Zonage spécifique : le projet est il situé dans l'une des zones suivantes ?",
+        "options": [
+          "Aucun zonage",
+          "Quartiers prioritaires de la politique de la Ville (QPV)",
+          "Nouveau programme de rénovation urbaine (NPNRU)",
+          "ÉcoQuartier",
+          "Territoires Engagées pour la Nature (TEN)",
+          "France Ruralités revitalisation (FRR)",
+          "Territoires d'industrie (TI)",
+          "Zone de protection du patrimoine architectural, urbain et paysager (ZPPAUP)",
+          "Aire de mise en valeur de l'architecture et du patrimoine (AVAP)",
+          "Site patrimonial remarquable (SPR)",
+          "Avenir montagne"
+        ],
+        "required": true,
         "__typename": "MultipleDropDownListChampDescriptor",
-        "id": "TEST_ID_MzUwOTY5OQ==",
+        "description": "Sélectionner un ou plusieurs zonages spécifiques."
+      },
+      {
+        "__typename": "MultipleDropDownListChampDescriptor",
+        "id": "ID_DU_CHAMP_ELIGIBILTIE_DETR",
         "label": "Eligibilité de l'opération à la DETR",
         "description": "Les catégories d'opérations prioritaires et, dans des limites fixées par décret en Conseil d'Etat, les taux minimaux et maximaux de subvention applicables à chacune d'elles sont fixées chaque année par la commission d'élus prévue par l'article [L2334-37 du CGCT](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000036433035).",
         "required": false,

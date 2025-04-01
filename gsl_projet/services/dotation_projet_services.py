@@ -51,6 +51,11 @@ class DotationProjetService:
                 "detr_avis_commission": detr_avis_commission,
             },
         )
+        if dotation == DOTATION_DETR:
+            for critere in projet.dossier_ds.demande_eligibilite_detr.filter(
+                detr_category__isnull=False
+            ):
+                dotation_projet.detr_categories.add(critere.detr_category)
         return dotation_projet
 
     DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS = {

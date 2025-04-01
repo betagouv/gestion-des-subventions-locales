@@ -14,7 +14,7 @@ from gsl_projet.constants import (
     PROJET_STATUS_CHOICES,
 )
 
-from ..models import Demandeur, DotationProjet, Projet
+from ..models import CategorieDetr, Demandeur, DotationProjet, Projet
 
 
 class DemandeurFactory(factory.django.DjangoModelFactory):
@@ -77,3 +77,14 @@ class DetrProjetFactory(DotationProjetFactory):
 
 class DsilProjetFactory(DotationProjetFactory):
     dotation = DOTATION_DSIL
+
+
+class CategorieDetrFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = CategorieDetr
+        django_get_or_create = ("departement", "annee", "tri")
+
+    departement = factory.SubFactory(DepartementFactory)
+    annee = factory.Faker("random_int", min=2024, max=2027)
+    tri = factory.Faker("random_int", min=0, max=20)
+    libelle = factory.Faker("sentence", locale="fr_FR")

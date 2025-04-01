@@ -10,6 +10,7 @@ from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 
 from ..models import Arrondissement as DsArrondissement
 from ..models import (
+    CritereEligibiliteDetr,
     Demarche,
     Dossier,
     DsChoiceLibelle,
@@ -49,6 +50,11 @@ class DsArrondissementFactory(DsLibelleFactory):
         model = DsArrondissement
 
     core_arrondissement = factory.SubFactory(CoreArrondissementFactory)
+
+
+class CritereEligibiliteDetrFactory(DsLibelleFactory):
+    class Meta:
+        model = CritereEligibiliteDetr
 
 
 class NaturePorteurProjetFactory(factory.django.DjangoModelFactory):

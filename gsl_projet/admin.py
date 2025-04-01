@@ -4,7 +4,7 @@ from django.db.models import Count
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_simulation.models import SimulationProjet
 
-from .models import Demandeur, DotationProjet, Projet
+from .models import CategorieDetr, Demandeur, DotationProjet, Projet
 
 
 @admin.register(Demandeur)
@@ -12,6 +12,12 @@ class DemandeurAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("address",)
     list_display = ("name", "address__commune__departement")
     search_fields = ("name", "siret", "address__commune__name")
+
+
+@admin.register(CategorieDetr)
+class CategorieDetrAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    list_display = ("departement_id", "annee", "tri", "libelle")
+    list_filter = ("departement", "annee")
 
 
 class DotationProjetInline(admin.TabularInline):
@@ -50,6 +56,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     actions = ("refresh_from_dossier",)
     inlines = [
         DotationProjetInline,
+        SimulationProjetInline,
     ]
 
     def get_queryset(self, request):
