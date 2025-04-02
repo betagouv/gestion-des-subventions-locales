@@ -315,7 +315,7 @@ def test_create_or_update_from_projet_with_no_corresponding_enveloppe_creating_o
     enveloppe = Enveloppe.objects.first()
     assert enveloppe.perimetre == perimetre
     assert enveloppe.annee == 2021
-    assert enveloppe.type == "DETR"
+    assert enveloppe.dotation == "DETR"
     assert enveloppe.montant == 0
 
 

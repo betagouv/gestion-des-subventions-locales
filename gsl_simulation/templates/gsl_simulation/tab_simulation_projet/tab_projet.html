@@ -8,7 +8,7 @@
 {% endblock form_for_simulation_projet %}
 
 {% block avis_commission_detr %}
-    {% if enveloppe.type == 'DETR' %}
+    {% if enveloppe.dotation == 'DETR' %}
         {% include "includes/forms/_avis_commission_detr_form.html" %}
     {% endif %}
 {% endblock avis_commission_detr %}

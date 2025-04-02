@@ -8,7 +8,7 @@ from gsl_projet.models import Projet
 
 
 class Enveloppe(models.Model):
-    type = models.CharField("Type", choices=DOTATION_CHOICES)
+    dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
     montant = models.DecimalField(
         "Montant",
         max_digits=14,
@@ -30,32 +30,32 @@ class Enveloppe(models.Model):
     class Meta:
         constraints = (
             models.UniqueConstraint(
-                name="unicity_by_perimeter_and_type",
+                name="unicity_by_perimeter_and_dotation",
                 fields=(
                     "annee",
-                    "type",
+                    "dotation",
                     "perimetre",
                 ),
             ),
         )
 
     def __str__(self):
-        return f"Enveloppe {self.type} {self.annee} {self.perimetre}"
+        return f"Enveloppe {self.dotation} {self.annee} {self.perimetre}"
 
     @property
     def is_deleguee(self):
         return self.deleguee_by is not None
 
     def clean(self):
-        if self.type == DOTATION_DETR:  # scope "département"
+        if self.dotation == DOTATION_DETR:  # scope "département"
             if self.perimetre.type == Perimetre.TYPE_REGION:
                 raise ValidationError(
-                    "Une enveloppe de type DETR ne peut pas avoir un périmètre régional."
+                    "Une enveloppe DETR ne peut pas avoir un périmètre régional."
                 )
 
             if self.perimetre.type == Perimetre.TYPE_DEPARTEMENT and self.is_deleguee:
                 raise ValidationError(
-                    "Une enveloppe de type DETR déléguée ne peut pas être une enveloppe départementale."
+                    "Une enveloppe DETR déléguée ne peut pas être une enveloppe départementale."
                 )
 
             if (
@@ -63,17 +63,17 @@ class Enveloppe(models.Model):
                 and not self.is_deleguee
             ):
                 raise ValidationError(
-                    "Une enveloppe de type DETR et de périmètre arrondissement doit obligatoirement être déléguée."
+                    "Une enveloppe DETR et de périmètre arrondissement doit obligatoirement être déléguée."
                 )
 
-        if self.type == DOTATION_DSIL:
+        if self.dotation == DOTATION_DSIL:
             if self.is_deleguee and self.perimetre.type == Perimetre.TYPE_REGION:
                 raise ValidationError(
                     "Une enveloppe DSIL déléguée ne peut pas être une enveloppe régionale."
                 )
             if not self.is_deleguee and self.perimetre.type != Perimetre.TYPE_REGION:
                 raise ValidationError(
-                    "Il faut préciser un périmètre régional pour une enveloppe de type DSIL non déléguée."
+                    "Il faut préciser un périmètre régional pour une enveloppe DSIL non déléguée."
                 )
 
         if self.is_deleguee and not self.deleguee_by.perimetre.contains(self.perimetre):

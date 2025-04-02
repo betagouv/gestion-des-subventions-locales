@@ -33,7 +33,7 @@ def test_user_with_department_and_ask_for_dsil_simulation():
 
     enveloppe_dsil_deleguee = Enveloppe.objects.get(
         perimetre=perimetre_departemental,
-        type=DOTATION_DSIL,
+        dotation=DOTATION_DSIL,
         annee=date.today().year,
     )
 
@@ -51,7 +51,7 @@ def test_empty_enveloppe_is_created_if_needed():
     simulation = SimulationService.create_simulation(user, "Test", DOTATION_DETR)
 
     assert Enveloppe.objects.count() == 1
-    assert simulation.enveloppe.type == DOTATION_DETR
+    assert simulation.enveloppe.dotation == DOTATION_DETR
 
 
 @pytest.mark.django_db
@@ -65,7 +65,7 @@ def test_user_with_department_and_ask_for_detr_simulation():
 
     simulation = Simulation.objects.get(enveloppe=enveloppe_detr)
     assert simulation.enveloppe == enveloppe_detr
-    assert simulation.enveloppe.type == DOTATION_DETR
+    assert simulation.enveloppe.dotation == DOTATION_DETR
     assert simulation.enveloppe.montant == enveloppe_detr.montant
     assert simulation.slug == "test-aussi-le-slug"
 
@@ -102,7 +102,7 @@ def test_user_with_arrondissement_and_ask_for_dsil_simulation():
     )
 
     simulation = Simulation.objects.get(enveloppe__perimetre=perimetre_arrondissement)
-    assert simulation.enveloppe.type == DOTATION_DSIL
+    assert simulation.enveloppe.dotation == DOTATION_DSIL
     assert simulation.enveloppe.montant == 0
     assert simulation.slug == "test-avec-ces-caracteres"
 

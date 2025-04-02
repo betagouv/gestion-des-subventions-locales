@@ -21,7 +21,7 @@ class EnveloppeService:
         if perimetre.type == Perimetre.TYPE_REGION:
             return Enveloppe.objects.filter(
                 perimetre__region=perimetre.region,
-                type=DOTATION_DSIL,
+                dotation=DOTATION_DSIL,
             )
 
         if perimetre.type == Perimetre.TYPE_DEPARTEMENT:

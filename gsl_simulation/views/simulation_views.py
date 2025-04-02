@@ -176,7 +176,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         context["simulations_paginator"] = current_page
         context["simulations_list"] = current_page.object_list
         context["title"] = (
-            f"{simulation.enveloppe.type} {simulation.enveloppe.annee} – {simulation.title}"
+            f"{simulation.enveloppe.dotation} {simulation.enveloppe.annee} – {simulation.title}"
         )
         context["status_summary"] = simulation.get_projet_status_summary()
         context["total_cost"] = ProjetService.get_total_cost(qs)
@@ -234,7 +234,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         )
 
         return {
-            "type": simulation.enveloppe.type,
+            "dotation": simulation.enveloppe.dotation,
             "annee": simulation.enveloppe.annee,
             "montant": simulation.enveloppe.montant,
             "perimetre": simulation.enveloppe.perimetre,

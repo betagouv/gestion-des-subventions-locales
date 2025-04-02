@@ -17,7 +17,7 @@ class DsilEnveloppeFactory(DjangoModelFactory):
     class Meta:
         model = Enveloppe
 
-    type = DOTATION_DSIL
+    dotation = DOTATION_DSIL
     montant = Faker("random_number", digits=5)
     annee = date.today().year
     perimetre = SubFactory(PerimetreRegionalFactory)
@@ -27,7 +27,7 @@ class DetrEnveloppeFactory(DjangoModelFactory):
     class Meta:
         model = Enveloppe
 
-    type = DOTATION_DETR
+    dotation = DOTATION_DETR
     montant = Faker("random_number", digits=5)
     annee = date.today().year
     perimetre = SubFactory(PerimetreDepartementalFactory)

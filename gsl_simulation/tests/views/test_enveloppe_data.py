@@ -88,13 +88,13 @@ def test_get_enveloppe_data(
     projet_filter_by_perimetre = Projet.objects.for_perimetre(detr_enveloppe.perimetre)
     assert projet_filter_by_perimetre.count() == 4 + 3 + 2
 
-    projet_filter_by_perimetre_and_type = projet_filter_by_perimetre.filter(
+    projet_filter_by_perimetre_and_dotation = projet_filter_by_perimetre.filter(
         dossier_ds__demande_dispositif_sollicite="DETR"
     )
-    assert projet_filter_by_perimetre_and_type.count() == 4 + 3 + 2
+    assert projet_filter_by_perimetre_and_dotation.count() == 4 + 3 + 2
 
     projet_qs_submitted_before_the_end_of_the_year = (
-        projet_filter_by_perimetre_and_type.filter(
+        projet_filter_by_perimetre_and_dotation.filter(
             dossier_ds__ds_date_depot__lt=datetime(
                 simulation.enveloppe.annee + 1, 1, 1, tzinfo=UTC
             ),
@@ -102,7 +102,7 @@ def test_get_enveloppe_data(
     )
     assert projet_qs_submitted_before_the_end_of_the_year.count() == 4 + 3 + 2
 
-    assert enveloppe_data["type"] == "DETR"
+    assert enveloppe_data["dotation"] == "DETR"
     assert enveloppe_data["montant"] == 1_000_000
     assert enveloppe_data["perimetre"] == detr_enveloppe.perimetre
     assert enveloppe_data["validated_projets_count"] == 2

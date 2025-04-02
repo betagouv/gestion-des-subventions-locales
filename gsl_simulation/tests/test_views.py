@@ -87,7 +87,7 @@ def projets(simulation, perimetre_departemental):
 
     for perimetre in (perimetre_departemental, other_perimeter):
         demandeur = DemandeurFactory()
-        for type in ("DETR", "DSIL"):
+        for dotation in ("DETR", "DSIL"):
             for state in (
                 Dossier.STATE_ACCEPTE,
                 Dossier.STATE_REFUSE,
@@ -99,7 +99,7 @@ def projets(simulation, perimetre_departemental):
                     ds_date_traitement=datetime(2024, 1, 1, tzinfo=UTC),
                     annotations_montant_accorde=150_000,
                     demande_montant=200_000,
-                    demande_dispositif_sollicite=type,
+                    demande_dispositif_sollicite=dotation,
                     finance_cout_total=1_000_000,
                     porteur_de_projet_nature=epci,
                 )
@@ -116,7 +116,7 @@ def projets(simulation, perimetre_departemental):
                     ds_date_traitement=datetime(2025, 1, 1, tzinfo=UTC),
                     demande_montant=300_000,
                     annotations_montant_accorde=120_000,
-                    demande_dispositif_sollicite=type,
+                    demande_dispositif_sollicite=dotation,
                     finance_cout_total=2_000_000,
                     porteur_de_projet_nature=commune,
                 )
@@ -133,7 +133,7 @@ def projets(simulation, perimetre_departemental):
                     ds_state=state,
                     ds_date_depot=datetime(2024, 2, 12, tzinfo=UTC),
                     ds_date_traitement=None,
-                    demande_dispositif_sollicite=type,
+                    demande_dispositif_sollicite=dotation,
                     demande_montant=400_000,
                     finance_cout_total=3_000_000,
                     porteur_de_projet_nature=commune,
@@ -150,7 +150,7 @@ def projets(simulation, perimetre_departemental):
                     ds_state=state,
                     ds_date_depot=datetime(2025, 2, 12, tzinfo=UTC),
                     ds_date_traitement=None,
-                    demande_dispositif_sollicite=type,
+                    demande_dispositif_sollicite=dotation,
                     demande_montant=500_000,
                     finance_cout_total=4_000_000,
                     porteur_de_projet_nature=epci,
@@ -197,13 +197,13 @@ def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
     projet_filter_by_perimetre = Projet.objects.for_perimetre(perimetre_departemental)
     assert projet_filter_by_perimetre.count() == 20
 
-    projet_filter_by_perimetre_and_type = projet_filter_by_perimetre.filter(
+    projet_filter_by_perimetre_and_dotation = projet_filter_by_perimetre.filter(
         dossier_ds__demande_dispositif_sollicite="DETR"
     )
-    assert projet_filter_by_perimetre_and_type.count() == 10
+    assert projet_filter_by_perimetre_and_dotation.count() == 10
 
     projet_qs_submitted_before_the_end_of_the_year = (
-        projet_filter_by_perimetre_and_type.filter(
+        projet_filter_by_perimetre_and_dotation.filter(
             dossier_ds__ds_date_depot__lt=datetime(
                 simulation_2024.enveloppe.annee + 1, 1, 1, tzinfo=UTC
             ),
@@ -211,7 +211,7 @@ def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
     )
     assert projet_qs_submitted_before_the_end_of_the_year.count() == 5
 
-    assert enveloppe_data["type"] == "DETR"
+    assert enveloppe_data["dotation"] == "DETR"
     assert enveloppe_data["montant"] == 1_000_000
     assert enveloppe_data["perimetre"] == perimetre_departemental
     assert enveloppe_data["validated_projets_count"] == 0

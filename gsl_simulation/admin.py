@@ -73,7 +73,7 @@ class SimulationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     )
     list_filter = (
         "enveloppe__annee",
-        "enveloppe__type",
+        "enveloppe__dotation",
         SimulationRegionFilter,
         SimulationDepartementFilter,
     )

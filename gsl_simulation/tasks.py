@@ -18,7 +18,7 @@ STATUS_MAPPINGS = {
 def add_enveloppe_projets_to_simulation(simulation_id):
     simulation = Simulation.objects.get(id=simulation_id)
     simulation_perimetre = simulation.enveloppe.perimetre
-    simulation_dotation = simulation.enveloppe.type
+    simulation_dotation = simulation.enveloppe.dotation
     # todo later: "simulation par arrondissement"
     selected_projets = Projet.objects.for_perimetre(simulation_perimetre).filter(
         dossier_ds__demande_dispositif_sollicite__contains=simulation_dotation
