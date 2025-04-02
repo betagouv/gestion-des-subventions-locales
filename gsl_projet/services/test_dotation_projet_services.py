@@ -41,9 +41,9 @@ def test_create_or_update_dotation_projet_from_projet(
         assert dotation_projet.status == DotationProjet.STATUS_ACCEPTED
         assert dotation_projet.assiette == 1_000
         if dotation_projet.dotation == DOTATION_DSIL:
-            assert dotation_projet.avis_commission_detr is None
+            assert dotation_projet.detr_avis_commission is None
         else:
-            assert dotation_projet.avis_commission_detr is True
+            assert dotation_projet.detr_avis_commission is True
 
 
 @pytest.mark.django_db
@@ -68,6 +68,6 @@ def test_create_or_update_dotation_projet(dotation):
     assert dotation_projet.status == DotationProjet.STATUS_DISMISSED
     assert dotation_projet.assiette == 2_000
     if dotation_projet.dotation == DOTATION_DSIL:
-        assert dotation_projet.avis_commission_detr is None
+        assert dotation_projet.detr_avis_commission is None
     else:
-        assert dotation_projet.avis_commission_detr is False
+        assert dotation_projet.detr_avis_commission is False

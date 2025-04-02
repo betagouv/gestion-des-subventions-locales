@@ -66,4 +66,4 @@ class DotationProjetFactory(factory.django.DjangoModelFactory):
         choice[0] for choice in DotationProjet.STATUS_CHOICES
     )
     assiette = factory.fuzzy.FuzzyDecimal(0, 100_000)
-    avis_commission_detr = factory.Faker("boolean")
+    detr_avis_commission = factory.Faker("boolean")

@@ -24,7 +24,7 @@ class DotationProjetService:
     def create_or_update_dotation_projet(
         cls, projet: Projet, dotation: POSSIBLE_DOTATIONS
     ):
-        avis_commission_detr = (
+        detr_avis_commission = (
             None if dotation == DOTATION_DSIL else projet.avis_commission_detr
         )
 
@@ -34,7 +34,7 @@ class DotationProjetService:
             defaults={
                 "status": projet.status,
                 "assiette": projet.assiette,
-                "avis_commission_detr": avis_commission_detr,
+                "detr_avis_commission": detr_avis_commission,
             },
         )
         return dotation_projet
