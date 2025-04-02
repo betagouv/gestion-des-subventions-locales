@@ -47,6 +47,23 @@ def test_create_or_update_dotation_projet_from_projet(
 
 
 @pytest.mark.django_db
+def test_create_or_update_dotation_projet_from_projet_remove_dotation_projet_not_in_dossier():
+    projet = ProjetFactory(dossier_ds__annotations_dotation="DETR")
+    projet_dotation_dsil = DotationProjet(projet=projet, dotation=DOTATION_DSIL)
+
+    DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
+
+    with pytest.raises(DotationProjet.DoesNotExist):
+        projet_dotation_dsil.refresh_from_db()
+
+    projet_dotation_projets = DotationProjet.objects.filter(projet_id=projet.id)
+    assert projet_dotation_projets.count() == 1
+
+    dotation_projet = projet_dotation_projets.first()
+    assert dotation_projet.dotation == DOTATION_DETR
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     "dotation",
     (DOTATION_DETR, DOTATION_DSIL),

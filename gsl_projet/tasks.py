@@ -26,13 +26,13 @@ def create_all_projets_from_dossiers():
         update_projet_from_dossier.delay(dossier.ds_number)
 
 
-# TODO update this task with dotation projet
 @shared_task
 def create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(
     ds_dossier_number,
 ):
     ds_dossier = Dossier.objects.get(ds_number=ds_dossier_number)
     projet = ProjetService.create_or_update_from_ds_dossier(ds_dossier)
+    DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
     SimulationProjetService.update_simulation_projets_from_projet(projet)
     ProgrammationProjetService.create_or_update_from_projet(projet)
 

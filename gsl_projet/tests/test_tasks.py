@@ -15,7 +15,7 @@ from gsl_programmation.tests.factories import (
     ProgrammationProjetFactory,
 )
 from gsl_projet.constants import DOTATION_DETR
-from gsl_projet.models import Projet
+from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.tasks import (
     create_all_projets_from_dossiers,
     create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier,
@@ -83,6 +83,14 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
 
     projet.refresh_from_db()
     assert projet.status == Projet.STATUS_PROCESSING
+
+    dotation_projets = DotationProjet.objects.filter(projet=projet)
+    dotation_projets.count() == 1
+    dotation_projet = dotation_projets.first()
+    assert dotation_projet.dotation == DOTATION_DETR
+    assert dotation_projet.assiette is None
+    assert dotation_projet.status == DotationProjet.STATUS_PROCESSING
+
     for simulation_projet in projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
         assert simulation_projet.montant == 400
@@ -118,6 +126,14 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
 
     projet.refresh_from_db()
     assert projet.status == Projet.STATUS_ACCEPTED
+
+    dotation_projets = DotationProjet.objects.filter(projet=projet)
+    dotation_projets.count() == 1
+    dotation_projet = dotation_projets.first()
+    assert dotation_projet.dotation == DOTATION_DETR
+    assert dotation_projet.assiette == 50_000
+    assert dotation_projet.status == DotationProjet.STATUS_ACCEPTED
+
     for simulation_projet in projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
         assert simulation_projet.montant == 5_000
@@ -155,6 +171,14 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
 
     projet.refresh_from_db()
     assert projet.status == Projet.STATUS_REFUSED
+
+    dotation_projets = DotationProjet.objects.filter(projet=projet)
+    dotation_projets.count() == 1
+    dotation_projet = dotation_projets.first()
+    assert dotation_projet.dotation == DOTATION_DETR
+    assert dotation_projet.assiette is None
+    assert dotation_projet.status == DotationProjet.STATUS_REFUSED
+
     for simulation_projet in projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
         assert simulation_projet.montant == 0

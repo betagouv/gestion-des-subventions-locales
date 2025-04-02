@@ -27,13 +27,14 @@ class DotationProjetService:
         detr_avis_commission = (
             None if dotation == DOTATION_DSIL else projet.avis_commission_detr
         )
+        assiette = projet.dossier_ds.annotations_assiette or projet.assiette
 
         dotation_projet, _ = DotationProjet.objects.update_or_create(
             projet=projet,
             dotation=dotation,
             defaults={
                 "status": projet.status,
-                "assiette": projet.assiette,
+                "assiette": assiette,
                 "detr_avis_commission": detr_avis_commission,
             },
         )
