@@ -334,7 +334,7 @@ class DotationProjet(models.Model):
         decimal_places=2,
         null=True,
     )
-    avis_commission_detr = models.BooleanField(
+    detr_avis_commission = models.BooleanField(
         "Avis commission DETR",
         help_text="Pour les projets de plus de 100 000 €",
         null=True,
@@ -344,15 +344,15 @@ class DotationProjet(models.Model):
         unique_together = ("projet", "dotation")
 
     def __str__(self):
-        return f"Projet {self.projet_id} - Dotation {self.dotation.label}"
+        return f"Projet {self.projet_id} - Dotation {self.dotation}"
 
     def clean(self):
         errors = {}
         if (
             self.dotation.type == DOTATION_DSIL
-            and self.avis_commission_detr is not None
+            and self.detr_avis_commission is not None
         ):
-            errors["avis_commission_detr"] = (
+            errors["detr_avis_commission"] = (
                 "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR"
             )
 
