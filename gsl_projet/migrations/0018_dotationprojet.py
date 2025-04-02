@@ -3,6 +3,11 @@
 import django.db.models.deletion
 import django_fsm
 from django.db import migrations, models
+from ..tasks import create_or_update_dotation_projets_from_all_projets
+
+
+def create_dotation_projet(apps, schema_editor):
+    create_or_update_dotation_projets_from_all_projets()
 
 
 class Migration(migrations.Migration):
@@ -73,4 +78,5 @@ class Migration(migrations.Migration):
                 "unique_together": {("projet", "dotation")},
             },
         ),
+        migrations.RunPython(create_dotation_projet),
     ]
