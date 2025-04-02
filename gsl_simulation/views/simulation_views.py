@@ -12,7 +12,7 @@ from gsl_core.models import Perimetre
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.models import Projet
-from gsl_projet.services import ProjetService
+from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
 from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value

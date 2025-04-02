@@ -5,7 +5,7 @@ from django.views.decorators.http import require_GET
 from django.views.generic import ListView
 from django_filters.views import FilterView
 
-from gsl_projet.services import ProjetService
+from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_filters import ProjetFilters
 from gsl_projet.utils.projet_page import PROJET_MENU

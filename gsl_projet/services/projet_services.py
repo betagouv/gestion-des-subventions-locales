@@ -155,7 +155,7 @@ class ProjetService:
         return ds_dossier.environnement_transition_eco
 
     @classmethod
-    def get_dotation_from_field(
+    def get_dotations_from_field(
         cls,
         projet: Projet,
         field: Literal[

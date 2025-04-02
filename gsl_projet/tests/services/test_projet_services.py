@@ -14,7 +14,7 @@ from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import Projet
-from gsl_projet.services import ProjetService
+from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.tests.factories import ProjetFactory
 from gsl_simulation.models import Simulation
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
@@ -484,7 +484,9 @@ def test_get_is_budget_vert(
     assert ProjetService.get_is_budget_vert(dossier) == expected_result
 
 
-@pytest.mark.parametrize("field", ("annotations_dotation", "finance_dotation"))
+@pytest.mark.parametrize(
+    "field", ("annotations_dotation", "demande_dispositif_sollicite")
+)
 @pytest.mark.parametrize(
     "value, expected_dotation",
     [
@@ -492,11 +494,12 @@ def test_get_is_budget_vert(
         ("DSIL", [DOTATION_DSIL]),
         ("[DETR, DSIL]", [DOTATION_DETR, DOTATION_DSIL]),
         ("DETR et DSIL", [DOTATION_DETR, DOTATION_DSIL]),
+        ("['DETR', 'DSIL', 'DETR et DSIL']", [DOTATION_DETR, DOTATION_DSIL]),
     ],
 )
 @pytest.mark.django_db
-def test_get_dotation_from_field(field, value, expected_dotation):
+def test_get_dotations_from_field(field, value, expected_dotation):
     projet = ProjetFactory()
     setattr(projet.dossier_ds, field, value)
-    dotation = ProjetService.get_dotation_from_field(projet, field)
+    dotation = ProjetService.get_dotations_from_field(projet, field)
     assert dotation == expected_dotation

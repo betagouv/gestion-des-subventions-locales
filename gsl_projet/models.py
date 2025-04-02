@@ -238,7 +238,7 @@ class Projet(models.Model):
     def accept(self, montant: float, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_programmation.services.enveloppe_service import EnveloppeService
-        from gsl_projet.services import ProjetService
+        from gsl_projet.services.projet_services import ProjetService
         from gsl_simulation.models import SimulationProjet
 
         taux = ProjetService.compute_taux_from_montant(self, montant)

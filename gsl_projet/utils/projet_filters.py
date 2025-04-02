@@ -10,7 +10,7 @@ from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import Projet
-from gsl_projet.services import ProjetService
+from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 
