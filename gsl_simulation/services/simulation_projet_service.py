@@ -41,7 +41,7 @@ class SimulationProjetService:
                         dotation_projet.projet, montant
                     )
                 ),
-                "status": cls.get_simulation_projet_status(dotation_projet.projet),
+                "status": cls.get_simulation_projet_status(dotation_projet),
             },
         )
 
