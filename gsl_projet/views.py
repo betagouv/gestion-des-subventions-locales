@@ -1,12 +1,11 @@
 from django.db.models import Prefetch
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils.http import url_has_allowed_host_and_scheme
+from django.urls import reverse
 from django.views.decorators.http import require_GET
 from django.views.generic import ListView
 from django_filters.views import FilterView
 
-from gsl.settings import ALLOWED_HOSTS
 from gsl_projet.services import ProjetService
 from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_filters import ProjetFilters
@@ -97,6 +96,7 @@ class ProjetListViewFilters(ProjetFilters):
             "address",
             "address__commune",
             "perimetre",
+            "demandeur",
         ).prefetch_related(
             "dossier_ds__demande_eligibilite_detr",
             "dossier_ds__demande_eligibilite_dsil",
@@ -120,9 +120,7 @@ class ProjetListView(FilterView, ListView, FilterUtils):
 
     def get(self, request, *args, **kwargs):
         if "reset_filters" in request.GET:
-            if url_has_allowed_host_and_scheme(
-                request.path, allowed_hosts=ALLOWED_HOSTS
-            ):
+            if request.path == reverse("gsl_projet:list"):
                 return redirect(request.path)
             else:
                 return redirect("/")
