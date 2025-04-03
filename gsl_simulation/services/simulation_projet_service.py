@@ -8,15 +8,14 @@ from gsl_simulation.models import Simulation, SimulationProjet
 
 class SimulationProjetService:
     @classmethod
-    def update_simulation_projets_from_projet(cls, projet: Projet):
+    def update_simulation_projets_from_dotation_projet(
+        cls, dotation_projet: DotationProjet
+    ):
         simulation_projets = SimulationProjet.objects.filter(
-            projet=projet
+            dotation_projet=dotation_projet
         ).select_related("simulation")
 
         for simulation_projet in simulation_projets:
-            dotation_projet = projet.dotationprojet_set.get(
-                dotation=simulation_projet.enveloppe.dotation
-            )
             cls.create_or_update_simulation_projet_from_dotation_projet(
                 dotation_projet, simulation_projet.simulation
             )

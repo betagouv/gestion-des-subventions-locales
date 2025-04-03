@@ -80,6 +80,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         montant=500,
         taux=0.5,
     )
+    # TODO update this when we add a link between programmation and dotation projet
     ProgrammationProjetFactory(
         projet=projet, status=ProgrammationProjet.STATUS_ACCEPTED
     )

@@ -105,6 +105,11 @@ class SimulationProjet(models.Model):
 
         return reverse("simulation:simulation-projet-detail", kwargs={"pk": self.pk})
 
+    # TODO add it after projet has been removed from simulation projet
+    # @property
+    # def projet(self):
+    #     return self.dotation_projet.projet
+
     @property
     def enveloppe(self):
         return self.simulation.enveloppe

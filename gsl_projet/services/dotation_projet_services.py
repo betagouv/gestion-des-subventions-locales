@@ -5,7 +5,9 @@ from gsl_projet.services.projet_services import ProjetService
 
 class DotationProjetService:
     @classmethod
-    def create_or_update_dotation_projet_from_projet(cls, projet: Projet):
+    def create_or_update_dotation_projet_from_projet(
+        cls, projet: Projet
+    ) -> list[DotationProjet]:
         dotations = ProjetService.get_dotations_from_field(
             projet, "annotations_dotation"
         )
@@ -13,8 +15,13 @@ class DotationProjetService:
             dotations = ProjetService.get_dotations_from_field(
                 projet, "demande_dispositif_sollicite"
             )
+
+        dotation_projets = []
         for dotation in dotations:
-            cls.create_or_update_dotation_projet(projet, dotation)
+            dotation_projets.append(
+                cls.create_or_update_dotation_projet(projet, dotation)
+            )
+        return dotation_projets
 
     @classmethod
     def create_or_update_dotation_projet(

@@ -24,7 +24,7 @@ from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFa
 @mock.patch.object(
     SimulationProjetService, "create_or_update_simulation_projet_from_dotation_projet"
 )
-def test_update_simulation_projets_from_projet_calls_create_or_update(
+def test_update_simulation_projets_from_dotation_projet_calls_create_or_update(
     mock_create_or_update,
 ):
     dotation_projet = DotationProjetFactory(dotation=DOTATION_DETR)
@@ -35,8 +35,8 @@ def test_update_simulation_projets_from_projet_calls_create_or_update(
         simulation__enveloppe__dotation=DOTATION_DETR,
     )
 
-    SimulationProjetService.update_simulation_projets_from_projet(
-        dotation_projet.projet
+    SimulationProjetService.update_simulation_projets_from_dotation_projet(
+        dotation_projet
     )
 
     assert mock_create_or_update.call_count == 3

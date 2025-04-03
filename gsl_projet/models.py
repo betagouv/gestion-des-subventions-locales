@@ -234,6 +234,7 @@ class Projet(models.Model):
         if self.assiette > 0:
             return int(100 * self.assiette / self.dossier_ds.finance_cout_total)
 
+    # TODO move transition to DotationProjet
     @transition(field=status, source="*", target=STATUS_ACCEPTED)
     def accept(self, montant: float, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
