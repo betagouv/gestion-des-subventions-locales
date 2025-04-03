@@ -13,7 +13,7 @@ from gsl_programmation.tests.factories import (
     ProgrammationProjetFactory,
 )
 from gsl_projet.constants import DOTATION_DETR
-from gsl_projet.models import Projet
+from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.services.simulation_projet_service import SimulationProjetService
@@ -52,6 +52,7 @@ def test_create_or_update_simulation_projet_from_dotation_projet_when_no_simulat
         projet__dossier_ds__annotations_montant_accorde=1_000,
         projet__dossier_ds__finance_cout_total=10_000,
         projet__status=Projet.STATUS_ACCEPTED,
+        status=Projet.STATUS_ACCEPTED,
         dotation=DOTATION_DETR,
     )
     simulation = SimulationFactory(enveloppe__dotation=DOTATION_DETR)
@@ -71,13 +72,13 @@ def test_create_or_update_simulation_projet_from_dotation_projet_when_no_simulat
 
 @pytest.mark.django_db
 def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_exists():
+    simulation = SimulationFactory()
     dotation_projet = DotationProjetFactory(
         projet__dossier_ds__annotations_montant_accorde=1_000,
         projet__dossier_ds__finance_cout_total=10_000,
-        projet__status=Projet.STATUS_ACCEPTED,
-        dotation=DOTATION_DETR,
+        status=DotationProjet.STATUS_ACCEPTED,
+        dotation=simulation.enveloppe.dotation,
     )
-    simulation = SimulationFactory()
     original_simulation_projet = SimulationProjetFactory(
         projet=dotation_projet.projet,
         dotation_projet=dotation_projet,
@@ -557,14 +558,14 @@ def test_is_simulation_projet_in_perimetre_arrondissement():
 @pytest.mark.parametrize(
     "projet_status, simulation_projet_status_expected",
     (
-        (Projet.STATUS_ACCEPTED, SimulationProjet.STATUS_ACCEPTED),
-        (Projet.STATUS_REFUSED, SimulationProjet.STATUS_REFUSED),
-        (Projet.STATUS_PROCESSING, SimulationProjet.STATUS_PROCESSING),
-        (Projet.STATUS_DISMISSED, SimulationProjet.STATUS_DISMISSED),
+        (DotationProjet.STATUS_ACCEPTED, SimulationProjet.STATUS_ACCEPTED),
+        (DotationProjet.STATUS_REFUSED, SimulationProjet.STATUS_REFUSED),
+        (DotationProjet.STATUS_PROCESSING, SimulationProjet.STATUS_PROCESSING),
+        (DotationProjet.STATUS_DISMISSED, SimulationProjet.STATUS_DISMISSED),
     ),
 )
 @pytest.mark.django_db
 def test_get_simulation_projet_status(projet_status, simulation_projet_status_expected):
-    projet = ProjetFactory(status=projet_status)
-    status = SimulationProjetService.get_simulation_projet_status(projet)
+    dotation_projet = DotationProjetFactory(status=projet_status)
+    status = SimulationProjetService.get_simulation_projet_status(dotation_projet)
     assert status == simulation_projet_status_expected

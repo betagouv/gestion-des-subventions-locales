@@ -126,15 +126,15 @@ class SimulationProjetService:
         return simulation_projet
 
     PROJET_STATUS_TO_SIMULATION_PROJET_STATUS = {
-        Projet.STATUS_ACCEPTED: SimulationProjet.STATUS_ACCEPTED,
-        Projet.STATUS_DISMISSED: SimulationProjet.STATUS_DISMISSED,
-        Projet.STATUS_REFUSED: SimulationProjet.STATUS_REFUSED,
-        Projet.STATUS_PROCESSING: SimulationProjet.STATUS_PROCESSING,
+        DotationProjet.STATUS_ACCEPTED: SimulationProjet.STATUS_ACCEPTED,
+        DotationProjet.STATUS_DISMISSED: SimulationProjet.STATUS_DISMISSED,
+        DotationProjet.STATUS_REFUSED: SimulationProjet.STATUS_REFUSED,
+        DotationProjet.STATUS_PROCESSING: SimulationProjet.STATUS_PROCESSING,
     }
 
     @classmethod
-    def get_simulation_projet_status(cls, projet: Projet):
-        return cls.PROJET_STATUS_TO_SIMULATION_PROJET_STATUS.get(projet.status)
+    def get_simulation_projet_status(cls, dotation_projet: DotationProjet):
+        return cls.PROJET_STATUS_TO_SIMULATION_PROJET_STATUS.get(dotation_projet.status)
 
     @classmethod
     def _accept_a_simulation_projet(cls, simulation_projet: SimulationProjet):
