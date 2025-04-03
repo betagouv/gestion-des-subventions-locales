@@ -16,10 +16,6 @@ class DotationProjetService:
         for dotation in dotations:
             cls.create_or_update_dotation_projet(projet, dotation)
 
-        DotationProjet.objects.filter(projet=projet).exclude(
-            dotation__in=dotations
-        ).delete()
-
     @classmethod
     def create_or_update_dotation_projet(
         cls, projet: Projet, dotation: POSSIBLE_DOTATIONS

@@ -3,7 +3,7 @@ import pytest
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
-from gsl_projet.tests.factories import ProjetFactory
+from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 
 @pytest.mark.django_db
@@ -47,19 +47,23 @@ def test_create_or_update_dotation_projet_from_projet(
 
 
 @pytest.mark.django_db
-def test_create_or_update_dotation_projet_from_projet_remove_dotation_projet_not_in_dossier():
+def test_create_or_update_dotation_projet_from_projet_do_not_remove_dotation_projet_not_in_dossier():
     projet = ProjetFactory(dossier_ds__annotations_dotation="DETR")
-    projet_dotation_dsil = DotationProjet(projet=projet, dotation=DOTATION_DSIL)
+    projet_dotation_dsil = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+    projet_dotation_projets = DotationProjet.objects.filter(projet=projet)
+    assert projet_dotation_projets.count() == 1
 
     DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
 
-    with pytest.raises(DotationProjet.DoesNotExist):
-        projet_dotation_dsil.refresh_from_db()
+    projet_dotation_dsil.refresh_from_db()  # always exists
 
     projet_dotation_projets = DotationProjet.objects.filter(projet_id=projet.id)
-    assert projet_dotation_projets.count() == 1
+    assert projet_dotation_projets.count() == 2
 
-    dotation_projet = projet_dotation_projets.first()
+    dotation_projet = projet_dotation_projets[0]
+    assert dotation_projet.dotation == DOTATION_DSIL
+
+    dotation_projet = projet_dotation_projets[1]
     assert dotation_projet.dotation == DOTATION_DETR
 
 

@@ -85,7 +85,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     assert projet.status == Projet.STATUS_PROCESSING
 
     dotation_projets = DotationProjet.objects.filter(projet=projet)
-    dotation_projets.count() == 1
+    assert dotation_projets.count() == 1
     dotation_projet = dotation_projets.first()
     assert dotation_projet.dotation == DOTATION_DETR
     assert dotation_projet.assiette is None
@@ -128,7 +128,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     assert projet.status == Projet.STATUS_ACCEPTED
 
     dotation_projets = DotationProjet.objects.filter(projet=projet)
-    dotation_projets.count() == 1
+    assert dotation_projets.count() == 1
     dotation_projet = dotation_projets.first()
     assert dotation_projet.dotation == DOTATION_DETR
     assert dotation_projet.assiette == 50_000
@@ -173,7 +173,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     assert projet.status == Projet.STATUS_REFUSED
 
     dotation_projets = DotationProjet.objects.filter(projet=projet)
-    dotation_projets.count() == 1
+    assert dotation_projets.count() == 1
     dotation_projet = dotation_projets.first()
     assert dotation_projet.dotation == DOTATION_DETR
     assert dotation_projet.assiette is None
