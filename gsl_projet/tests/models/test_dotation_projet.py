@@ -3,6 +3,7 @@ from django.db import IntegrityError
 from django.forms import ValidationError
 
 from gsl_projet.constants import DOTATION_DSIL, DOTATIONS
+from gsl_projet.models import DotationProjet
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 
@@ -10,8 +11,9 @@ from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 @pytest.mark.django_db
 def test_dotation_projet_unicity(dotation):
     projet = ProjetFactory()
+    DotationProjet(projet=projet, dotation=dotation).save()
     with pytest.raises(IntegrityError):
-        DotationProjetFactory.create_batch(2, projet=projet, dotation=dotation)
+        DotationProjet(projet=projet, dotation=dotation).save()
 
 
 @pytest.mark.django_db

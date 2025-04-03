@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from gsl_core.models import Perimetre
-from gsl_projet.models import Projet
+from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.projet_services import ProjetService
 from gsl_simulation.models import Simulation, SimulationProjet
 
@@ -14,28 +14,34 @@ class SimulationProjetService:
         ).select_related("simulation")
 
         for simulation_projet in simulation_projets:
-            cls.create_or_update_simulation_projet_from_projet(
-                projet, simulation_projet.simulation
+            dotation_projet = projet.dotationprojet_set.get(
+                dotation=simulation_projet.enveloppe.dotation
+            )
+            cls.create_or_update_simulation_projet_from_dotation_projet(
+                dotation_projet, simulation_projet.simulation
             )
 
     @classmethod
-    def create_or_update_simulation_projet_from_projet(
-        cls, projet: Projet, simulation: Simulation
+    def create_or_update_simulation_projet_from_dotation_projet(
+        cls, dotation_projet: DotationProjet, simulation: Simulation
     ):
         """
-        Create or update a SimulationProjet from a Projet and a Simulation.
+        Create or update a SimulationProjet from a Dotation Projet and a Simulation.
         """
-        montant = cls.get_initial_montant_from_projet(projet)
+        montant = cls.get_initial_montant_from_projet(dotation_projet.projet)
         simulation_projet, _ = SimulationProjet.objects.update_or_create(
-            projet=projet,
+            projet=dotation_projet.projet,  # TODO remove it
+            dotation_projet=dotation_projet,
             simulation_id=simulation.id,
             defaults={
                 "montant": montant,
                 "taux": (
-                    projet.dossier_ds.annotations_taux
-                    or ProjetService.compute_taux_from_montant(projet, montant)
+                    dotation_projet.projet.dossier_ds.annotations_taux
+                    or ProjetService.compute_taux_from_montant(
+                        dotation_projet.projet, montant
+                    )
                 ),
-                "status": cls.get_simulation_projet_status(projet),
+                "status": cls.get_simulation_projet_status(dotation_projet.projet),
             },
         )
 

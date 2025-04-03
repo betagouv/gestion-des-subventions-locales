@@ -26,9 +26,15 @@ from gsl_programmation.tests.factories import (
     DsilEnveloppeFactory,
     ProgrammationProjetFactory,
 )
-from gsl_projet.models import Projet
+from gsl_projet.constants import DOTATION_DETR
+from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.services.projet_services import ProjetService
-from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
+from gsl_projet.tests.factories import (
+    DemandeurFactory,
+    DotationProjetFactory,
+    ProjetFactory,
+)
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
@@ -162,6 +168,8 @@ def projets(simulation, perimetre_departemental):
                     status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 )
                 projets.append(projet_2025)
+    for projet in projets:
+        DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
     return projets
 
 
@@ -358,7 +366,7 @@ def test_view_with_multiple_simulations(req, perimetre_departemental):
         demande_montant=200_000,
         demande_dispositif_sollicite="DETR",
     )
-    ProjetFactory(
+    projet = ProjetFactory(
         dossier_ds=dossier_2024,
         perimetre=perimetre_departemental,
         status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
@@ -370,6 +378,7 @@ def test_view_with_multiple_simulations(req, perimetre_departemental):
     simulation_1 = SimulationFactory(enveloppe=enveloppe)
     simulation_2 = SimulationFactory(enveloppe=enveloppe)
 
+    DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
     add_enveloppe_projets_to_simulation(simulation_1.id)
     add_enveloppe_projets_to_simulation(simulation_2.id)
 
@@ -747,14 +756,19 @@ def test_patch_status_simulation_projet_invalid_status(
 
 @pytest.fixture
 def accepted_simulation_projet(collegue, detr_enveloppe) -> SimulationProjet:
+    dotation_projet = DotationProjetFactory(
+        status=DotationProjet.STATUS_PROCESSING,
+        assiette=10_000,
+        projet__assiette=10_000,
+        projet__perimetre=collegue.perimetre,
+        dotation=DOTATION_DETR,
+    )
+
     return SimulationProjetFactory(
-        projet=ProjetFactory(
-            status=Projet.STATUS_PROCESSING,
-            assiette=10_000,
-            perimetre=collegue.perimetre,
-        ),
+        dotation_projet=dotation_projet,
+        projet=dotation_projet.projet,
         status=SimulationProjet.STATUS_ACCEPTED,
-        montant=1000,
+        montant=1_000,
         taux=0.5,
         simulation__enveloppe=detr_enveloppe,
     )
