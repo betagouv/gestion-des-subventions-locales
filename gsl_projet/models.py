@@ -70,11 +70,11 @@ class ProjetQuerySet(models.QuerySet):
 
     def included_in_enveloppe(self, enveloppe: "Enveloppe"):
         projet_qs = self.for_perimetre(enveloppe.perimetre)
-        projet_qs_with_the_right_type = projet_qs.filter(
-            dossier_ds__demande_dispositif_sollicite=enveloppe.dotation,
+        projet_qs_with_the_correct_dotation = projet_qs.filter(
+            dotationprojet__dotation=enveloppe.dotation
         )
         projet_qs_submitted_before_the_end_of_the_year = (
-            projet_qs_with_the_right_type.filter(
+            projet_qs_with_the_correct_dotation.filter(
                 dossier_ds__ds_date_depot__lt=datetime(
                     enveloppe.annee + 1, 1, 1, tzinfo=UTC
                 ),

@@ -11,6 +11,7 @@ from gsl_programmation.tests.factories import (
     ProgrammationProjetFactory,
 )
 from gsl_projet.models import Projet
+from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.tests.factories import SubmittedProjetFactory
 from gsl_simulation.tests.factories import SimulationFactory
 from gsl_simulation.views.simulation_views import SimulationDetailView
@@ -35,18 +36,22 @@ def simulation(detr_enveloppe):
 
 @pytest.fixture
 def submitted_projets(perimetre_departemental):
-    return SubmittedProjetFactory.create_batch(
+    projets = SubmittedProjetFactory.create_batch(
         4,
         perimetre=perimetre_departemental,
         dossier_ds__demande_montant=20_000,
         dossier_ds__ds_date_depot=datetime(2021, 12, 1, tzinfo=UTC),
         dossier_ds__demande_dispositif_sollicite="DETR",
     )
+    # TODO remove this when we add a link between programmation tion and dotation projet ?
+    for projet in projets:
+        DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
+    return projets
 
 
 @pytest.fixture
 def programmation_projets(perimetre_departemental, detr_enveloppe):
-    ProgrammationProjetFactory.create_batch(
+    programmation_projets = ProgrammationProjetFactory.create_batch(
         3,
         enveloppe=detr_enveloppe,
         status=ProgrammationProjet.STATUS_REFUSED,
@@ -56,9 +61,12 @@ def programmation_projets(perimetre_departemental, detr_enveloppe):
         projet__dossier_ds__ds_date_traitement=datetime(2021, 10, 1, tzinfo=UTC),
         projet__dossier_ds__demande_dispositif_sollicite="DETR",
     )
+    # TODO remove this when we add a link between programmation tion and dotation projet ?
+    for pp in programmation_projets:
+        DotationProjetService.create_or_update_dotation_projet_from_projet(pp.projet)
 
     for montant in (200_000, 300_000):
-        ProgrammationProjetFactory(
+        pp = ProgrammationProjetFactory(
             enveloppe=detr_enveloppe,
             status=ProgrammationProjet.STATUS_ACCEPTED,
             montant=montant,
@@ -67,6 +75,10 @@ def programmation_projets(perimetre_departemental, detr_enveloppe):
             projet__dossier_ds__ds_date_depot=datetime(2020, 12, 1, tzinfo=UTC),
             projet__dossier_ds__ds_date_traitement=datetime(2021, 7, 1, tzinfo=UTC),
             projet__dossier_ds__demande_dispositif_sollicite="DETR",
+        )
+        # TODO remove this when we add a link between programmation tion and dotation projet ?
+        pp = DotationProjetService.create_or_update_dotation_projet_from_projet(
+            pp.projet
         )
 
 

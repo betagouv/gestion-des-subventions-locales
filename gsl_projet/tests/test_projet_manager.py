@@ -18,6 +18,7 @@ from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnvelopp
 
 from ..models import Projet
 from .factories import (
+    DotationProjetFactory,
     ProcessedProjetFactory,
     ProjetFactory,
     SubmittedProjetFactory,
@@ -241,7 +242,7 @@ def for_year_with_projet_to_display(state, ds_date_traitement):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "projet_type, enveloppe_dotation, count",
+    "projet_dotation, enveloppe_dotation, count",
     [
         ("DSIL", "DSIL", 1),
         ("DSIL", "DETR", 0),
@@ -250,19 +251,19 @@ def for_year_with_projet_to_display(state, ds_date_traitement):
     ],
 )
 def test_for_enveloppe_with_projet_type_and_enveloppe_dotation(
-    projet_type, enveloppe_dotation, count
+    projet_dotation, enveloppe_dotation, count
 ):
     perimetre = PerimetreDepartementalFactory()
     enveloppe_factory = (
         DetrEnveloppeFactory if enveloppe_dotation == "DETR" else DsilEnveloppeFactory
     )
     enveloppe = enveloppe_factory(annee=2024, perimetre=perimetre)
-    ProjetFactory(
+    projet = ProjetFactory(
         perimetre=perimetre,
         dossier_ds__ds_date_depot=datetime(2024, 3, 1, tzinfo=UTC),
         dossier_ds__ds_date_traitement=datetime(2024, 5, 1, tzinfo=UTC),
-        dossier_ds__demande_dispositif_sollicite=projet_type,
     )
+    DotationProjetFactory(projet=projet, dotation=projet_dotation)
 
     qs = Projet.objects.included_in_enveloppe(enveloppe=enveloppe)
 
@@ -290,6 +291,7 @@ def test_for_year_2024_and_for_not_processed_states(submitted_year, count):
         dossier_ds__ds_date_traitement=datetime(submitted_year + 1, 5, 1, tzinfo=UTC),
         perimetre=perimetre,
     )
+    DotationProjetFactory(projet=projet, dotation=enveloppe.dotation)
     print(f"Test with {projet.dossier_ds.ds_state}")
 
     qs = Projet.objects.included_in_enveloppe(enveloppe)
@@ -323,6 +325,7 @@ def test_for_year_2024_and_for_processed_states(submitted_year, processed_year, 
         dossier_ds__ds_date_traitement=datetime(processed_year, 12, 31, tzinfo=tz.utc),
         perimetre=perimetre,
     )
+    DotationProjetFactory(projet=projet, dotation=enveloppe.dotation)
     print(f"Test with {projet.dossier_ds.ds_state}")
 
     qs = Projet.objects.included_in_enveloppe(enveloppe)
