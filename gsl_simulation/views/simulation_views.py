@@ -149,6 +149,12 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
     STATE_MAPPINGS = {key: value for key, value in SimulationProjet.STATUS_CHOICES}
 
     def get(self, request, *args, **kwargs):
+        if "reset_filters" in request.GET:
+            if request.path.startswith("/simulation/voir/"):
+                return redirect(request.path)
+            else:
+                return redirect("/")
+
         self.object = self.get_object()
         self.simulation = Simulation.objects.select_related(
             "enveloppe",
