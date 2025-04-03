@@ -1,5 +1,6 @@
 from gsl_core.models import Collegue, Perimetre
 from gsl_programmation.models import Enveloppe
+from gsl_projet.constants import DOTATION_DSIL
 
 
 class EnveloppeService:
@@ -20,7 +21,7 @@ class EnveloppeService:
         if perimetre.type == Perimetre.TYPE_REGION:
             return Enveloppe.objects.filter(
                 perimetre__region=perimetre.region,
-                type=Enveloppe.TYPE_DSIL,
+                type=DOTATION_DSIL,
             )
 
         if perimetre.type == Perimetre.TYPE_DEPARTEMENT:

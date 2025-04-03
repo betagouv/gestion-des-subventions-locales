@@ -9,11 +9,10 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     ProgrammationProjetFactory,
 )
+from gsl_projet.models import Projet
 from gsl_projet.tests.factories import ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationProjetFactory
-
-from ..models import Projet
 
 pytestmark = pytest.mark.django_db(transaction=True)
 

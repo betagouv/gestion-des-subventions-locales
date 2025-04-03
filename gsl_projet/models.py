@@ -5,10 +5,12 @@ from typing import TYPE_CHECKING
 
 from django.db import models
 from django.db.models import Q
+from django.forms import ValidationError
 from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
 
 if TYPE_CHECKING:
     from gsl_programmation.models import Enveloppe
@@ -133,9 +135,11 @@ class Projet(models.Model):
         (STATUS_PROCESSING, "🔄 En traitement"),
         (STATUS_DISMISSED, "⛔️ Classé sans suite"),
     )
+    # TODO remove this
     # TODO put back protected=True, once every status transition is handled
     status = FSMField("Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING)
 
+    # TODO remove this
     assiette = models.DecimalField(
         "Assiette subventionnable",
         max_digits=12,
@@ -173,12 +177,14 @@ class Projet(models.Model):
 
         return reverse("projet:get-projet", kwargs={"projet_id": self.id})
 
+    # TODO move it to DotationProjet ??
     @property
     def assiette_or_cout_total(self):
         if self.assiette:
             return self.assiette
         return self.dossier_ds.finance_cout_total
 
+    # TODO move it to DotationProjet
     @cached_property
     def accepted_programmation_projet(self):
         if (
@@ -187,12 +193,14 @@ class Projet(models.Model):
         ):
             return self.accepted_programmation_projets[0]
 
+    # TODO move it to DotationProjet
     @property
     def montant_retenu(self) -> float | None:
         if self.accepted_programmation_projet:
             return self.accepted_programmation_projet.montant
         return None
 
+    # TODO move it to DotationProjet
     @property
     def taux_retenu(self) -> float | None:
         if self.accepted_programmation_projet:
@@ -201,13 +209,13 @@ class Projet(models.Model):
 
     @property
     def is_asking_for_detr(self) -> bool:
-        return "DETR" in self.dossier_ds.demande_dispositif_sollicite
+        return DOTATION_DETR in self.dossier_ds.demande_dispositif_sollicite
 
     @property
     def categorie_doperation(self):
-        if "DETR" in self.dossier_ds.demande_dispositif_sollicite:
+        if DOTATION_DETR in self.dossier_ds.demande_dispositif_sollicite:
             yield from self.dossier_ds.demande_eligibilite_detr.all()
-        if "DSIL" in self.dossier_ds.demande_dispositif_sollicite:
+        if DOTATION_DSIL in self.dossier_ds.demande_dispositif_sollicite:
             yield from self.dossier_ds.demande_eligibilite_dsil.all()
 
     def get_taux_de_subvention_sollicite(self):
@@ -230,7 +238,7 @@ class Projet(models.Model):
     def accept(self, montant: float, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_programmation.services.enveloppe_service import EnveloppeService
-        from gsl_projet.services import ProjetService
+        from gsl_projet.services.projet_services import ProjetService
         from gsl_simulation.models import SimulationProjet
 
         taux = ProjetService.compute_taux_from_montant(self, montant)
@@ -302,3 +310,48 @@ class Projet(models.Model):
         )
 
         ProgrammationProjet.objects.filter(projet=self).delete()
+
+
+class DotationProjet(models.Model):
+    STATUS_ACCEPTED = "accepted"
+    STATUS_REFUSED = "refused"
+    STATUS_PROCESSING = "processing"
+    STATUS_DISMISSED = "dismissed"
+    STATUS_CHOICES = (
+        (STATUS_ACCEPTED, "✅ Accepté"),
+        (STATUS_REFUSED, "❌ Refusé"),
+        (STATUS_PROCESSING, "🔄 En traitement"),
+        (STATUS_DISMISSED, "⛔️ Classé sans suite"),
+    )
+
+    projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
+    dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
+    # TODO put back protected=True, once every status transition is handled
+    status = FSMField("Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING)
+    assiette = models.DecimalField(
+        "Assiette subventionnable",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+    )
+    detr_avis_commission = models.BooleanField(
+        "Avis commission DETR",
+        help_text="Pour les projets de plus de 100 000 €",
+        null=True,
+    )
+
+    class Meta:
+        unique_together = ("projet", "dotation")
+
+    def __str__(self):
+        return f"Projet {self.projet_id} - Dotation {self.dotation}"
+
+    def clean(self):
+        errors = {}
+        if self.dotation == DOTATION_DSIL and self.detr_avis_commission is not None:
+            errors["detr_avis_commission"] = (
+                "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR."
+            )
+
+        if errors:
+            raise ValidationError(errors)

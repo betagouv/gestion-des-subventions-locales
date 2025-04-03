@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from gsl_core.models import Perimetre
 from gsl_projet.models import Projet
-from gsl_projet.services import ProjetService
+from gsl_projet.services.projet_services import ProjetService
 from gsl_simulation.models import Simulation, SimulationProjet
 
 

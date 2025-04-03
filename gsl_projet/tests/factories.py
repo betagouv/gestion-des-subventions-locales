@@ -7,8 +7,9 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
+from gsl_projet.constants import DOTATIONS
 
-from ..models import Demandeur, Projet
+from ..models import Demandeur, DotationProjet, Projet
 
 
 class DemandeurFactory(factory.django.DjangoModelFactory):
@@ -53,3 +54,16 @@ class ProcessedProjetFactory(ProjetFactory):
             (Dossier.STATE_ACCEPTE, Dossier.STATE_REFUSE, Dossier.STATE_SANS_SUITE)
         ),
     )
+
+
+class DotationProjetFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = DotationProjet
+
+    projet = factory.SubFactory(ProjetFactory)
+    dotation = factory.fuzzy.FuzzyChoice(DOTATIONS)
+    status = factory.fuzzy.FuzzyChoice(
+        choice[0] for choice in DotationProjet.STATUS_CHOICES
+    )
+    assiette = factory.fuzzy.FuzzyDecimal(0, 100_000)
+    detr_avis_commission = factory.Faker("boolean")

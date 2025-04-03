@@ -8,7 +8,7 @@ from django.views.generic import DetailView
 
 from gsl.settings import ALLOWED_HOSTS
 from gsl_projet.forms import ProjetForm
-from gsl_projet.services import ProjetService
+from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.services.simulation_projet_service import (

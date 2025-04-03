@@ -27,7 +27,7 @@ from gsl_programmation.tests.factories import (
     ProgrammationProjetFactory,
 )
 from gsl_projet.models import Projet
-from gsl_projet.services import ProjetService
+from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation

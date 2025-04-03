@@ -1,8 +1,8 @@
 import logging
 
 from gsl_core.models import Perimetre
-from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import Projet
 
 
@@ -27,7 +27,7 @@ class ProgrammationProjetService:
         try:
             dotation = cls.compute_dotation_from_annotation(projet)
         except ValueError as e:
-            logging.error(e)
+            logging.warning(e)
             return
 
         if projet.status == Projet.STATUS_ACCEPTED:
@@ -89,12 +89,12 @@ class ProgrammationProjetService:
     def get_perimetre_from_dotation(
         cls, projet: Projet, dotation: str
     ) -> Perimetre | None:
-        if dotation == Dossier.DOTATION_DETR:
+        if dotation == DOTATION_DETR:
             return Perimetre.objects.get(
                 departement=projet.perimetre.departement, arrondissement=None
             )
 
-        elif dotation == Dossier.DOTATION_DSIL:
+        elif dotation == DOTATION_DSIL:
             return Perimetre.objects.get(
                 region=projet.perimetre.departement.region,
                 departement=None,
@@ -107,7 +107,6 @@ class ProgrammationProjetService:
     def compute_dotation_from_annotation(cls, projet):
         dotation_annotation = projet.dossier_ds.annotations_dotation
         if dotation_annotation is None:
-            logging.error(f"Projet {projet} is missing annotation dotation")
             raise ValueError(f"Projet {projet} is missing annotation dotation")
 
         if "DETR" in dotation_annotation and "DSIL" in dotation_annotation:
@@ -116,10 +115,10 @@ class ProgrammationProjetService:
             )
 
         if "DETR" in dotation_annotation:
-            return Dossier.DOTATION_DETR
+            return DOTATION_DETR
 
         if "DSIL" in dotation_annotation:
-            return Dossier.DOTATION_DSIL
+            return DOTATION_DSIL
 
         raise ValueError(
             f"Projet {projet} annotation dotation {dotation_annotation} is unkown"

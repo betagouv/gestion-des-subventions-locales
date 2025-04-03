@@ -7,6 +7,7 @@ from django.utils.text import slugify
 
 from gsl_core.models import Perimetre
 from gsl_programmation.models import Enveloppe
+from gsl_projet.constants import DOTATION_DETR
 from gsl_projet.models import Projet
 from gsl_simulation.models import Simulation, SimulationProjet
 
@@ -18,7 +19,7 @@ class SimulationService:
         if user_perimetre is None:
             raise ValueError("User has no perimetre")
 
-        if dotation == Enveloppe.TYPE_DETR:
+        if dotation == DOTATION_DETR:
             if user_perimetre.type == Perimetre.TYPE_REGION:
                 raise ValueError("For a DETR simulation, user must have a departement")
 
