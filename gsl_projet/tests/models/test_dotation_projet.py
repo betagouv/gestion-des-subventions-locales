@@ -16,7 +16,7 @@ def test_dotation_projet_unicity(dotation):
 
 @pytest.mark.django_db
 def test_dsil_dotation_projet_must_have_a_detr_avis_commission_null():
-    dotation_projet = DotationProjetFactory.build(
+    dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DSIL, detr_avis_commission=True
     )
     with pytest.raises(ValidationError) as exc_info:
