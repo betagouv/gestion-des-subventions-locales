@@ -177,7 +177,7 @@ class Projet(models.Model):
 
         return reverse("projet:get-projet", kwargs={"projet_id": self.id})
 
-    # TODO move it to DotationProjet ??
+    # TODO pr_dotation remove it
     @property
     def assiette_or_cout_total(self):
         if self.assiette:
@@ -357,3 +357,40 @@ class DotationProjet(models.Model):
 
         if errors:
             raise ValidationError(errors)
+
+    @property
+    def dossier_ds(self):
+        return self.projet.dossier_ds
+
+    @property
+    def assiette_or_cout_total(self):
+        if self.assiette:
+            return self.assiette
+        return self.dossier_ds.finance_cout_total
+
+    @transition(field=status, source="*", target=STATUS_ACCEPTED)
+    def accept(self, montant: float, enveloppe: "Enveloppe"):
+        from gsl_programmation.models import ProgrammationProjet
+        from gsl_programmation.services.enveloppe_service import EnveloppeService
+        from gsl_projet.services.projet_services import ProjetService
+        from gsl_simulation.models import SimulationProjet
+
+        taux = ProjetService.compute_taux_from_montant(self, montant)
+
+        SimulationProjet.objects.filter(dotation_projet=self).update(
+            status=SimulationProjet.STATUS_ACCEPTED,
+            montant=montant,
+            taux=taux,
+        )
+
+        parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
+
+        ProgrammationProjet.objects.update_or_create(
+            projet=self,
+            enveloppe=parent_enveloppe,
+            defaults={
+                "montant": montant,
+                "taux": taux,
+                "status": ProgrammationProjet.STATUS_ACCEPTED,
+            },
+        )

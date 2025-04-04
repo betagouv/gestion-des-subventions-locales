@@ -99,6 +99,7 @@ class ProjetService:
 
         return ordering_map.get(ordering, None)
 
+    # TODO pr_dotation remove this
     @classmethod
     def compute_taux_from_montant(
         cls, projet: Projet, new_montant: float | Decimal

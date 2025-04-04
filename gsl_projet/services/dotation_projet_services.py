@@ -1,3 +1,5 @@
+from decimal import Decimal, InvalidOperation
+
 from gsl_projet.constants import DOTATION_DSIL, POSSIBLE_DOTATIONS
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.projet_services import ProjetService
@@ -42,3 +44,21 @@ class DotationProjetService:
             },
         )
         return dotation_projet
+
+    @classmethod
+    def compute_taux_from_montant(
+        cls, dotation_projet: DotationProjet, new_montant: float | Decimal
+    ) -> Decimal:
+        try:
+            new_taux = round(
+                (Decimal(new_montant) / Decimal(dotation_projet.assiette_or_cout_total))
+                * 100,
+                2,
+            )
+            return max(min(new_taux, Decimal(100)), Decimal(0))
+        except TypeError:
+            return Decimal(0)
+        except ZeroDivisionError:
+            return Decimal(0)
+        except InvalidOperation:
+            return Decimal(0)

@@ -27,3 +27,16 @@ def test_dsil_dotation_projet_must_have_a_detr_avis_commission_null():
     assert exc_info.value.message_dict["detr_avis_commission"][0] == (
         "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR."
     )
+
+
+@pytest.mark.django_db
+def test_assiette_or_cout_total():
+    dotation_projet = DotationProjetFactory(
+        assiette=1_000, projet__dossier_ds__finance_cout_total=2_000
+    )
+    assert dotation_projet.assiette_or_cout_total == 1_000
+
+    dotation_projet = DotationProjetFactory(
+        assiette=None, projet__dossier_ds__finance_cout_total=2_000
+    )
+    assert dotation_projet.assiette_or_cout_total == 2_000
