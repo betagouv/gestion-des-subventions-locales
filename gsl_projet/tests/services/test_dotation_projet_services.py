@@ -92,3 +92,18 @@ def test_create_or_update_dotation_projet(dotation):
         assert dotation_projet.detr_avis_commission is None
     else:
         assert dotation_projet.detr_avis_commission is False
+
+
+@pytest.mark.django_db
+def test_compute_taux_from_montant():
+    projet = DotationProjetFactory(
+        projet__dossier_ds__finance_cout_total=100_000,
+    )
+    taux = DotationProjetService.compute_taux_from_montant(projet, 10_000)
+    assert taux == 10
+
+    projet = DotationProjetFactory(
+        assiette=50_000,
+    )
+    taux = DotationProjetService.compute_taux_from_montant(projet, 10_000)
+    assert taux == 20
