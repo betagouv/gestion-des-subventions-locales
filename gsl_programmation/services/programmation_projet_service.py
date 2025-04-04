@@ -48,7 +48,7 @@ class ProgrammationProjetService:
         enveloppe, _ = Enveloppe.objects.get_or_create(
             perimetre=perimetre,
             annee=projet.dossier_ds.ds_date_traitement.year,
-            type=dotation,
+            dotation=dotation,
             defaults={
                 "montant": 0,
             },

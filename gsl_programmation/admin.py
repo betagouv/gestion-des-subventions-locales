@@ -12,10 +12,16 @@ from .resources import EnveloppeDETRResource, EnveloppeDSILResource
 @admin.register(Enveloppe)
 class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
     resource_classes = (EnveloppeDETRResource, EnveloppeDSILResource)
-    list_display = ("__str__", "formatted_amount", "type", "annee", "simulations_count")
-    list_filter = ("type", "annee")
+    list_display = (
+        "__str__",
+        "formatted_amount",
+        "dotation",
+        "annee",
+        "simulations_count",
+    )
+    list_filter = ("dotation", "annee")
     search_fields = (
-        "type",
+        "dotation",
         "annee",
         "perimetre__region__name",
         "perimetre__departement__name",

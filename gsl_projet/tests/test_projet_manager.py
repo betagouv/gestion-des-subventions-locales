@@ -241,7 +241,7 @@ def for_year_with_projet_to_display(state, ds_date_traitement):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "projet_type, enveloppe_type, count",
+    "projet_type, enveloppe_dotation, count",
     [
         ("DSIL", "DSIL", 1),
         ("DSIL", "DETR", 0),
@@ -249,12 +249,12 @@ def for_year_with_projet_to_display(state, ds_date_traitement):
         ("DETR", "DETR", 1),
     ],
 )
-def test_for_enveloppe_with_projet_type_and_enveloppe_type(
-    projet_type, enveloppe_type, count
+def test_for_enveloppe_with_projet_type_and_enveloppe_dotation(
+    projet_type, enveloppe_dotation, count
 ):
     perimetre = PerimetreDepartementalFactory()
     enveloppe_factory = (
-        DetrEnveloppeFactory if enveloppe_type == "DETR" else DsilEnveloppeFactory
+        DetrEnveloppeFactory if enveloppe_dotation == "DETR" else DsilEnveloppeFactory
     )
     enveloppe = enveloppe_factory(annee=2024, perimetre=perimetre)
     ProjetFactory(
@@ -285,7 +285,7 @@ def test_for_year_2024_and_for_not_processed_states(submitted_year, count):
     perimetre = PerimetreDepartementalFactory()
     enveloppe = DetrEnveloppeFactory(annee=2024, perimetre=perimetre)
     projet = SubmittedProjetFactory(
-        dossier_ds__demande_dispositif_sollicite=enveloppe.type,
+        dossier_ds__demande_dispositif_sollicite=enveloppe.dotation,
         dossier_ds__ds_date_depot=datetime(submitted_year, 12, 31, tzinfo=tz.utc),
         dossier_ds__ds_date_traitement=datetime(submitted_year + 1, 5, 1, tzinfo=UTC),
         perimetre=perimetre,
@@ -318,7 +318,7 @@ def test_for_year_2024_and_for_processed_states(submitted_year, processed_year, 
     perimetre = PerimetreDepartementalFactory()
     enveloppe = DetrEnveloppeFactory(annee=2024, perimetre=perimetre)
     projet = ProcessedProjetFactory(
-        dossier_ds__demande_dispositif_sollicite=enveloppe.type,
+        dossier_ds__demande_dispositif_sollicite=enveloppe.dotation,
         dossier_ds__ds_date_depot=datetime(submitted_year, 12, 31, tzinfo=tz.utc),
         dossier_ds__ds_date_traitement=datetime(processed_year, 12, 31, tzinfo=tz.utc),
         perimetre=perimetre,
@@ -349,7 +349,7 @@ def test_processed_in_enveloppe_with_different_processed_dates(processed_year, c
     perimetre = PerimetreDepartementalFactory()
     enveloppe = DetrEnveloppeFactory(annee=2024, perimetre=perimetre)
     projet = ProcessedProjetFactory(
-        dossier_ds__demande_dispositif_sollicite=enveloppe.type,
+        dossier_ds__demande_dispositif_sollicite=enveloppe.dotation,
         dossier_ds__ds_date_traitement=datetime(processed_year, 1, 1, tzinfo=tz.utc),
         perimetre=perimetre,
     )

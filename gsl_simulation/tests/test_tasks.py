@@ -124,7 +124,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     assert simulation_projet.montant == 1_000
     assert simulation_projet.taux == Decimal("33.33")
     assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
-    assert simulation_projet.enveloppe.type == "DETR"
+    assert simulation_projet.enveloppe.dotation == "DETR"
 
     simulation_projet = SimulationProjet.objects.get(
         projet=detr_projets[1],
@@ -133,7 +133,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     assert simulation_projet.montant == 600
     assert simulation_projet.taux == 0
     assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
-    assert simulation_projet.enveloppe.type == "DETR"
+    assert simulation_projet.enveloppe.dotation == "DETR"
 
     simulation_projet = SimulationProjet.objects.get(
         projet=detr_projets[3],
@@ -142,7 +142,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     assert simulation_projet.montant == 2_000
     assert simulation_projet.taux == 50
     assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
-    assert simulation_projet.enveloppe.type == "DETR"
+    assert simulation_projet.enveloppe.dotation == "DETR"
 
     simulation_projet = SimulationProjet.objects.get(
         projet=detr_projets[5],
@@ -151,7 +151,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     assert simulation_projet.montant == 1_500
     assert simulation_projet.taux == 0
     assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
-    assert simulation_projet.enveloppe.type == "DETR"
+    assert simulation_projet.enveloppe.dotation == "DETR"
 
     simulation_projet = SimulationProjet.objects.get(
         projet=detr_projets[7],
@@ -160,7 +160,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     assert simulation_projet.montant == 2_500
     assert simulation_projet.taux == 0
     assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED
-    assert simulation_projet.enveloppe.type == "DETR"
+    assert simulation_projet.enveloppe.dotation == "DETR"
 
 
 @pytest.mark.django_db
@@ -178,7 +178,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
     assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
     assert simulation_projet.montant == 1_000
     assert simulation_projet.taux == 25
-    assert simulation_projet.enveloppe.type == "DSIL"
+    assert simulation_projet.enveloppe.dotation == "DSIL"
 
     simulation_projet = SimulationProjet.objects.get(
         projet=dsil_projets[1],
@@ -187,7 +187,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
     assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
     assert simulation_projet.montant == 600
     assert simulation_projet.taux == 0
-    assert simulation_projet.enveloppe.type == "DSIL"
+    assert simulation_projet.enveloppe.dotation == "DSIL"
 
     simulation_projet = SimulationProjet.objects.get(
         projet=dsil_projets[3],
@@ -196,7 +196,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
     assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
     assert simulation_projet.montant == 5_000
     assert simulation_projet.taux == 50
-    assert simulation_projet.enveloppe.type == "DSIL"
+    assert simulation_projet.enveloppe.dotation == "DSIL"
 
     simulation_projet = SimulationProjet.objects.get(
         projet=dsil_projets[5],
@@ -205,7 +205,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
     assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
     assert simulation_projet.montant == 1_500
     assert simulation_projet.taux == 0
-    assert simulation_projet.enveloppe.type == "DSIL"
+    assert simulation_projet.enveloppe.dotation == "DSIL"
 
     simulation_projet = SimulationProjet.objects.get(
         projet=dsil_projets[7],
@@ -214,7 +214,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
     assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED
     assert simulation_projet.montant == 2_500
     assert simulation_projet.taux == 0
-    assert simulation_projet.enveloppe.type == "DSIL"
+    assert simulation_projet.enveloppe.dotation == "DSIL"
 
 
 @pytest.mark.django_db

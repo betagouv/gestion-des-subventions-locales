@@ -71,7 +71,7 @@ class ProjetQuerySet(models.QuerySet):
     def included_in_enveloppe(self, enveloppe: "Enveloppe"):
         projet_qs = self.for_perimetre(enveloppe.perimetre)
         projet_qs_with_the_right_type = projet_qs.filter(
-            dossier_ds__demande_dispositif_sollicite=enveloppe.type,
+            dossier_ds__demande_dispositif_sollicite=enveloppe.dotation,
         )
         projet_qs_submitted_before_the_end_of_the_year = (
             projet_qs_with_the_right_type.filter(
@@ -88,7 +88,7 @@ class ProjetQuerySet(models.QuerySet):
     def processed_in_enveloppe(self, enveloppe: "Enveloppe"):
         projet_qs = self.for_perimetre(enveloppe.perimetre)
         projet_qs_with_the_right_type = projet_qs.filter(
-            dossier_ds__demande_dispositif_sollicite=enveloppe.type,
+            dossier_ds__demande_dispositif_sollicite=enveloppe.dotation,
         )
         projet_qs_with_a_processed_state = projet_qs_with_the_right_type.filter(
             dossier_ds__ds_state__in=[
@@ -346,6 +346,7 @@ class DotationProjet(models.Model):
     def __str__(self):
         return f"Projet {self.projet_id} - Dotation {self.dotation}"
 
+    # TODO test it
     def clean(self):
         errors = {}
         if self.dotation == DOTATION_DSIL and self.detr_avis_commission is not None:

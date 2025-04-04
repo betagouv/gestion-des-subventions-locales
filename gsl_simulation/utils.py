@@ -31,7 +31,7 @@ def add_success_message(
 ):
     STATUS_TO_MESSAGE = {
         SimulationProjet.STATUS_REFUSED: "Le financement de ce projet vient d’être refusé.",
-        SimulationProjet.STATUS_ACCEPTED: f"Le financement de ce projet vient d’être accepté avec la dotation {simulation_projet.enveloppe.type} pour {euro(simulation_projet.montant, 2)}.",
+        SimulationProjet.STATUS_ACCEPTED: f"Le financement de ce projet vient d’être accepté avec la dotation {simulation_projet.enveloppe.dotation} pour {euro(simulation_projet.montant, 2)}.",
         SimulationProjet.STATUS_DISMISSED: "Le projet est classé sans suite.",
         SimulationProjet.STATUS_PROVISOIRE: "Le projet est accepté provisoirement dans cette simulation.",
         SimulationProjet.STATUS_PROCESSING: "Le projet est revenu en traitement.",

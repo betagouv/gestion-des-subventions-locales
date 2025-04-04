@@ -25,7 +25,7 @@ class SimulationService:
 
         enveloppe, _ = Enveloppe.objects.get_or_create(
             perimetre=user_perimetre,
-            type=dotation,
+            dotation=dotation,
             annee=date.today().year,
             defaults={"montant": 0},
         )  # TODO: handle deleguee_by if needed
