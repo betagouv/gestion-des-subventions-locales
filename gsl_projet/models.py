@@ -376,6 +376,8 @@ class DotationProjet(models.Model):
         from gsl_projet.services.projet_services import ProjetService
         from gsl_simulation.models import SimulationProjet
 
+        # TODO pr_dotation test enveloppe.dotation == self.dotation ??
+
         taux = ProjetService.compute_taux_from_montant(self, montant)
 
         SimulationProjet.objects.filter(dotation_projet=self).update(
@@ -387,7 +389,8 @@ class DotationProjet(models.Model):
         parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
 
         ProgrammationProjet.objects.update_or_create(
-            projet=self,
+            # TODO pr_dotation replace projet by dotation_projet
+            projet=self.projet,
             enveloppe=parent_enveloppe,
             defaults={
                 "montant": montant,

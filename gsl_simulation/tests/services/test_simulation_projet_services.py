@@ -127,9 +127,15 @@ def test_get_initial_montant_from_projet():
     assert montant == 0
 
 
+# TODO pr_dotation remove it ??
 @pytest.fixture
 def projet():
     return ProjetFactory(assiette=1000)
+
+
+@pytest.fixture
+def dotation_projet():
+    return DotationProjetFactory(assiette=1000)
 
 
 @pytest.mark.django_db
@@ -297,8 +303,9 @@ def test_accept_a_simulation_projet():
         status=SimulationProjet.STATUS_PROCESSING
     )
     other_projet_simulation_projet = SimulationProjetFactory(
-        projet=simulation_projet.projet
+        dotation_projet=simulation_projet.dotation_projet
     )
+    # TODO pr_dotation use dotation_projet instead of projet
     pp_qs = ProgrammationProjet.objects.filter(projet=simulation_projet.projet)
     assert pp_qs.count() == 0
 
@@ -340,7 +347,7 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
 
 
 @pytest.mark.parametrize(
-    "initial_progrogrammation_status, new_projet_status, programmation_status_expected",
+    "initial_programmation_status, new_projet_status, programmation_status_expected",
     (
         (
             ProgrammationProjet.STATUS_REFUSED,
@@ -356,22 +363,26 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
 )
 @pytest.mark.django_db
 def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_mother_enveloppe(
-    initial_progrogrammation_status,
+    initial_programmation_status,
     new_projet_status,
     programmation_status_expected,
 ):
     mother_enveloppe = DetrEnveloppeFactory()
     child_enveloppe = DetrEnveloppeFactory(deleguee_by=mother_enveloppe)
-    projet = ProjetFactory(perimetre=child_enveloppe.perimetre)
+    dotation_projet = DotationProjetFactory(
+        projet__perimetre=child_enveloppe.perimetre, dotation=DOTATION_DETR
+    )
+
     simulation_projet = SimulationProjetFactory(
-        projet=projet,
+        dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_PROCESSING,
         simulation__enveloppe=child_enveloppe,
     )
+    # TODO pr_dotation use dotation_projet instead of projet
     ProgrammationProjetFactory(
         projet=simulation_projet.projet,
         enveloppe=mother_enveloppe,
-        status=initial_progrogrammation_status,
+        status=initial_programmation_status,
     )
     programmation_projets_qs = ProgrammationProjet.objects.filter(
         projet=simulation_projet.projet
@@ -391,8 +402,13 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
 
 
 @pytest.mark.django_db
-def test_update_taux(projet):
-    simulation_projet = SimulationProjetFactory(projet=projet, taux=10.0)
+def test_update_taux(dotation_projet):
+    simulation_projet = SimulationProjetFactory(
+        # TODO PR dotation => make simulation__enveloppe__dotation=dotation_projet.dotation directly in factory ?
+        dotation_projet=dotation_projet,
+        taux=10.0,
+        simulation__enveloppe__dotation=dotation_projet.dotation,
+    )
     new_taux = 15.0
 
     SimulationProjetService.update_taux(simulation_projet, new_taux)
@@ -402,19 +418,23 @@ def test_update_taux(projet):
 
 
 @pytest.mark.django_db
-def test_update_taux_of_accepted_montat(projet):
+def test_update_taux_of_accepted_montat(dotation_projet):
     simulation_projet = SimulationProjetFactory(
-        projet=projet, status=SimulationProjet.STATUS_ACCEPTED, taux=20.0
-    )
-    other_simulation_projet = SimulationProjetFactory(
-        simulation__enveloppe=simulation_projet.enveloppe,
-        projet=projet,
+        dotation_projet=dotation_projet,
+        simulation__enveloppe__dotation=dotation_projet.dotation,
         status=SimulationProjet.STATUS_ACCEPTED,
         taux=20.0,
     )
+    other_simulation_projet = SimulationProjetFactory(
+        simulation__enveloppe=simulation_projet.enveloppe,
+        dotation_projet=dotation_projet,
+        status=SimulationProjet.STATUS_ACCEPTED,
+        taux=20.0,
+    )
+    # TODO pr_dotation use dotation_projet instead of projet
     programmation_projet = ProgrammationProjetFactory(
         enveloppe=simulation_projet.enveloppe,
-        projet=projet,
+        projet=dotation_projet.projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         taux=20.0,
     )
@@ -435,8 +455,12 @@ def test_update_taux_of_accepted_montat(projet):
 
 
 @pytest.mark.django_db
-def test_update_montant(projet):
-    simulation_projet = SimulationProjetFactory(projet=projet, montant=1000.0)
+def test_update_montant(dotation_projet):
+    simulation_projet = SimulationProjetFactory(
+        dotation_projet=dotation_projet,
+        simulation__enveloppe__dotation=dotation_projet.dotation,
+        montant=1000.0,
+    )
     new_montant = 500.0
 
     SimulationProjetService.update_montant(simulation_projet, new_montant)
@@ -446,19 +470,23 @@ def test_update_montant(projet):
 
 
 @pytest.mark.django_db
-def test_update_montant_of_accepted_montant(projet):
+def test_update_montant_of_accepted_montant(dotation_projet):
     simulation_projet = SimulationProjetFactory(
-        projet=projet, status=SimulationProjet.STATUS_ACCEPTED, montant=1_000
-    )
-    other_simulation_projet = SimulationProjetFactory(
-        simulation__enveloppe=simulation_projet.enveloppe,
-        projet=projet,
+        dotation_projet=dotation_projet,
+        simulation__enveloppe__dotation=dotation_projet.dotation,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=1_000,
     )
+    other_simulation_projet = SimulationProjetFactory(
+        simulation__enveloppe=simulation_projet.enveloppe,
+        dotation_projet=dotation_projet,
+        status=SimulationProjet.STATUS_ACCEPTED,
+        montant=1_000,
+    )
+    # TODO pr_dotation use dotation_projet instead of projet
     programmation_projet = ProgrammationProjetFactory(
         enveloppe=simulation_projet.enveloppe,
-        projet=projet,
+        projet=dotation_projet.projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         montant=1_000,
     )
