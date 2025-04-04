@@ -29,7 +29,7 @@ class SimulationProjetService:
         """
         montant = cls.get_initial_montant_from_projet(dotation_projet.projet)
         simulation_projet, _ = SimulationProjet.objects.update_or_create(
-            projet=dotation_projet.projet,  # TODO remove it
+            projet=dotation_projet.projet,  # TODO pr_dotation remove it
             dotation_projet=dotation_projet,
             simulation_id=simulation.id,
             defaults={

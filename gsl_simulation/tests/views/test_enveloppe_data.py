@@ -43,7 +43,7 @@ def submitted_projets(perimetre_departemental):
         dossier_ds__ds_date_depot=datetime(2021, 12, 1, tzinfo=UTC),
         dossier_ds__demande_dispositif_sollicite="DETR",
     )
-    # TODO remove this when we add a link between programmation tion and dotation projet ?
+    # TODO pr_dotationremove this when we add a link between programmation tion and dotation projet ?
     for projet in projets:
         DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
     return projets
@@ -61,7 +61,7 @@ def programmation_projets(perimetre_departemental, detr_enveloppe):
         projet__dossier_ds__ds_date_traitement=datetime(2021, 10, 1, tzinfo=UTC),
         projet__dossier_ds__demande_dispositif_sollicite="DETR",
     )
-    # TODO remove this when we add a link between programmation tion and dotation projet ?
+    # TODO pr_dotationremove this when we add a link between programmation tion and dotation projet ?
     for pp in programmation_projets:
         DotationProjetService.create_or_update_dotation_projet_from_projet(pp.projet)
 
@@ -76,7 +76,7 @@ def programmation_projets(perimetre_departemental, detr_enveloppe):
             projet__dossier_ds__ds_date_traitement=datetime(2021, 7, 1, tzinfo=UTC),
             projet__dossier_ds__demande_dispositif_sollicite="DETR",
         )
-        # TODO remove this when we add a link between programmation tion and dotation projet ?
+        # TODO pr_dotationremove this when we add a link between programmation tion and dotation projet ?
         pp = DotationProjetService.create_or_update_dotation_projet_from_projet(
             pp.projet
         )

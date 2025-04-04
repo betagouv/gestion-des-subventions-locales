@@ -135,11 +135,11 @@ class Projet(models.Model):
         (STATUS_PROCESSING, "🔄 En traitement"),
         (STATUS_DISMISSED, "⛔️ Classé sans suite"),
     )
-    # TODO remove this
+    # TODO pr_dotation remove this
     # TODO put back protected=True, once every status transition is handled
     status = FSMField("Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING)
 
-    # TODO remove this
+    # TODO pr_dotation remove this
     assiette = models.DecimalField(
         "Assiette subventionnable",
         max_digits=12,
@@ -147,6 +147,7 @@ class Projet(models.Model):
         null=True,
     )
 
+    # TODO pr_dotation remove this (and ensure that dotation field are copied its projet one ?)
     # TODO add a constraint to ensure that the projet is concerned by dotation DETR
     # or put this in new model DotationProjet ?
     avis_commission_detr = models.BooleanField(
@@ -184,7 +185,7 @@ class Projet(models.Model):
             return self.assiette
         return self.dossier_ds.finance_cout_total
 
-    # TODO move it to DotationProjet
+    # TODO pr_dotation move it to DotationProjet
     @cached_property
     def accepted_programmation_projet(self):
         if (
@@ -193,14 +194,14 @@ class Projet(models.Model):
         ):
             return self.accepted_programmation_projets[0]
 
-    # TODO move it to DotationProjet
+    # TODO pr_dotation move it to DotationProjet
     @property
     def montant_retenu(self) -> float | None:
         if self.accepted_programmation_projet:
             return self.accepted_programmation_projet.montant
         return None
 
-    # TODO move it to DotationProjet
+    # TODO pr_dotation move it to DotationProjet
     @property
     def taux_retenu(self) -> float | None:
         if self.accepted_programmation_projet:
@@ -234,7 +235,7 @@ class Projet(models.Model):
         if self.assiette > 0:
             return int(100 * self.assiette / self.dossier_ds.finance_cout_total)
 
-    # TODO move transition to DotationProjet
+    # TODO pr_dotation move transition to DotationProjet
     @transition(field=status, source="*", target=STATUS_ACCEPTED)
     def accept(self, montant: float, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
@@ -327,7 +328,7 @@ class DotationProjet(models.Model):
 
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
     dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
-    # TODO put back protected=True, once every status transition is handled
+    # TODO pr_dotation put back protected=True, once every status transition is handled
     status = FSMField("Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING)
     assiette = models.DecimalField(
         "Assiette subventionnable",
@@ -347,7 +348,7 @@ class DotationProjet(models.Model):
     def __str__(self):
         return f"Projet {self.projet_id} - Dotation {self.dotation}"
 
-    # TODO test it
+    # TODO pr_dotation test it
     def clean(self):
         errors = {}
         if self.dotation == DOTATION_DSIL and self.detr_avis_commission is not None:
