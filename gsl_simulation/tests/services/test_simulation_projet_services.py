@@ -12,8 +12,9 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     ProgrammationProjetFactory,
 )
+from gsl_projet.constants import DOTATION_DETR
 from gsl_projet.models import Projet
-from gsl_projet.tests.factories import ProjetFactory
+from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.services.simulation_projet_service import SimulationProjetService
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
@@ -21,37 +22,47 @@ from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFa
 
 @pytest.mark.django_db
 @mock.patch.object(
-    SimulationProjetService, "create_or_update_simulation_projet_from_projet"
+    SimulationProjetService, "create_or_update_simulation_projet_from_dotation_projet"
 )
 def test_update_simulation_projets_from_projet_calls_create_or_update(
     mock_create_or_update,
 ):
-    projet = ProjetFactory()
-    simulation_projets = SimulationProjetFactory.create_batch(3, projet=projet)
+    dotation_projet = DotationProjetFactory(dotation=DOTATION_DETR)
+    simulation_projets = SimulationProjetFactory.create_batch(
+        3,
+        dotation_projet=dotation_projet,
+        projet=dotation_projet.projet,
+        simulation__enveloppe__dotation=DOTATION_DETR,
+    )
 
-    SimulationProjetService.update_simulation_projets_from_projet(projet)
+    SimulationProjetService.update_simulation_projets_from_projet(
+        dotation_projet.projet
+    )
 
     assert mock_create_or_update.call_count == 3
     for simulation_projet in simulation_projets:
-        mock_create_or_update.assert_any_call(projet, simulation_projet.simulation)
+        mock_create_or_update.assert_any_call(
+            dotation_projet, simulation_projet.simulation
+        )
 
 
 @pytest.mark.django_db
-def test_create_or_update_simulation_projet_from_projet_when_no_simulation_projet_exists():
-    projet = ProjetFactory(
-        dossier_ds__annotations_montant_accorde=1_000,
-        dossier_ds__finance_cout_total=10_000,
-        status=Projet.STATUS_ACCEPTED,
+def test_create_or_update_simulation_projet_from_dotation_projet_when_no_simulation_projet_exists():
+    dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__annotations_montant_accorde=1_000,
+        projet__dossier_ds__finance_cout_total=10_000,
+        projet__status=Projet.STATUS_ACCEPTED,
+        dotation=DOTATION_DETR,
     )
-    simulation = SimulationFactory()
+    simulation = SimulationFactory(enveloppe__dotation=DOTATION_DETR)
 
     simulation_projet = (
-        SimulationProjetService.create_or_update_simulation_projet_from_projet(
-            projet, simulation
+        SimulationProjetService.create_or_update_simulation_projet_from_dotation_projet(
+            dotation_projet, simulation
         )
     )
 
-    assert simulation_projet.projet == projet
+    assert simulation_projet.projet == dotation_projet.projet
     assert simulation_projet.simulation == simulation
     assert simulation_projet.montant == 1_000
     assert simulation_projet.taux == 10.0
@@ -60,14 +71,16 @@ def test_create_or_update_simulation_projet_from_projet_when_no_simulation_proje
 
 @pytest.mark.django_db
 def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_exists():
-    projet = ProjetFactory(
-        dossier_ds__annotations_montant_accorde=1_000,
-        dossier_ds__finance_cout_total=10_000,
-        status=Projet.STATUS_ACCEPTED,
+    dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__annotations_montant_accorde=1_000,
+        projet__dossier_ds__finance_cout_total=10_000,
+        projet__status=Projet.STATUS_ACCEPTED,
+        dotation=DOTATION_DETR,
     )
     simulation = SimulationFactory()
     original_simulation_projet = SimulationProjetFactory(
-        projet=projet,
+        projet=dotation_projet.projet,
+        dotation_projet=dotation_projet,
         simulation=simulation,
         montant=500,
         taux=5.0,
@@ -75,13 +88,14 @@ def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_e
     )
 
     simulation_projet = (
-        SimulationProjetService.create_or_update_simulation_projet_from_projet(
-            projet, simulation
+        SimulationProjetService.create_or_update_simulation_projet_from_dotation_projet(
+            dotation_projet, simulation
         )
     )
 
     assert simulation_projet.id == original_simulation_projet.id
-    assert simulation_projet.projet == projet
+    assert simulation_projet.projet == dotation_projet.projet
+    assert simulation_projet.dotation_projet == dotation_projet
     assert simulation_projet.simulation == simulation
     assert simulation_projet.montant == 1_000
     assert simulation_projet.taux == 10.0

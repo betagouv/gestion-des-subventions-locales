@@ -4,7 +4,7 @@ from django.forms import ValidationError
 
 from gsl_core.models import Collegue
 from gsl_programmation.models import Enveloppe
-from gsl_projet.models import Projet
+from gsl_projet.models import DotationProjet, Projet
 
 
 class Simulation(models.Model):
@@ -62,7 +62,11 @@ class SimulationProjet(models.Model):
         (STATUS_REFUSED, "❌ Refusé"),
         (STATUS_DISMISSED, "⛔️ Classé sans suite"),
     )
+    # TODO remove it
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
+    dotation_projet = models.ForeignKey(
+        DotationProjet, on_delete=models.CASCADE, null=True
+    )
     simulation = models.ForeignKey(
         Simulation, on_delete=models.CASCADE, null=True, blank=True
     )
@@ -83,7 +87,7 @@ class SimulationProjet(models.Model):
         verbose_name_plural = "Projets de simulation"
         constraints = (
             models.UniqueConstraint(
-                fields=("projet", "simulation"),
+                fields=("dotation_projet", "simulation"),
                 name="unique_projet_simulation",
                 nulls_distinct=True,
             ),
@@ -91,6 +95,10 @@ class SimulationProjet(models.Model):
 
     def __str__(self):
         return f"Simulation projet {self.pk}"
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
     def get_absolute_url(self):
         from django.urls import reverse
@@ -105,6 +113,7 @@ class SimulationProjet(models.Model):
         errors = {}
         self._validate_taux(errors)
         self._validate_montant(errors)
+        self._validate_dotation(errors)
         if errors:
             raise ValidationError(errors)
 
@@ -115,8 +124,8 @@ class SimulationProjet(models.Model):
             }
 
     def _validate_montant(self, errors):
-        if self.projet.assiette is not None:
-            if self.montant and self.montant > self.projet.assiette:
+        if self.dotation_projet.assiette is not None:
+            if self.montant and self.montant > self.dotation_projet.assiette:
                 errors["montant"] = {
                     "Le montant de la simulation ne peut pas être supérieur à l'assiette du projet."
                 }
@@ -129,3 +138,9 @@ class SimulationProjet(models.Model):
                 errors["montant"] = {
                     "Le montant de la simulation ne peut pas être supérieur au coût total du projet."
                 }
+
+    def _validate_dotation(self, errors):
+        if self.dotation_projet.dotation != self.simulation.enveloppe.dotation:
+            errors["dotation_projet"] = {
+                "La dotation du projet doit être la même que la dotation de la simulation."
+            }

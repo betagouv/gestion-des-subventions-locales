@@ -59,11 +59,11 @@ class ProcessedProjetFactory(ProjetFactory):
 class DotationProjetFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = DotationProjet
+        django_get_or_create = ("projet", "dotation")
 
     projet = factory.SubFactory(ProjetFactory)
     dotation = factory.fuzzy.FuzzyChoice(DOTATIONS)
     status = factory.fuzzy.FuzzyChoice(
         choice[0] for choice in DotationProjet.STATUS_CHOICES
     )
-    assiette = factory.fuzzy.FuzzyDecimal(0, 100_000)
     detr_avis_commission = factory.Faker("boolean")
