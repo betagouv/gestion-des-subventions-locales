@@ -10,6 +10,10 @@ def create_dotation_projet(apps, schema_editor):
     create_or_update_dotation_projets_from_all_projets()
 
 
+def nothing(apps, schema_editor):
+    pass
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("gsl_projet", "0017_projet_is_budget_vert"),
@@ -78,5 +82,5 @@ class Migration(migrations.Migration):
                 "unique_together": {("projet", "dotation")},
             },
         ),
-        migrations.RunPython(create_dotation_projet),
+        migrations.RunPython(create_dotation_projet, reverse_code=nothing),
     ]
