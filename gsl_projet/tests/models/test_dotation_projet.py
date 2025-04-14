@@ -3,6 +3,7 @@ from decimal import Decimal
 import pytest
 from django.db import IntegrityError
 from django.forms import ValidationError
+from django_fsm import TransitionNotAllowed
 
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import ProgrammationProjet
@@ -17,9 +18,10 @@ from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationProjetFactory
 
+pytestmark = pytest.mark.django_db
+
 
 @pytest.mark.parametrize(("dotation"), DOTATIONS)
-@pytest.mark.django_db
 def test_dotation_projet_unicity(dotation):
     projet = ProjetFactory()
     DotationProjet(projet=projet, dotation=dotation).save()
@@ -27,7 +29,6 @@ def test_dotation_projet_unicity(dotation):
         DotationProjet(projet=projet, dotation=dotation).save()
 
 
-@pytest.mark.django_db
 def test_dsil_dotation_projet_must_have_a_detr_avis_commission_null():
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DSIL, detr_avis_commission=True
@@ -40,7 +41,6 @@ def test_dsil_dotation_projet_must_have_a_detr_avis_commission_null():
     )
 
 
-@pytest.mark.django_db
 def test_assiette_or_cout_total():
     dotation_projet = DotationProjetFactory(
         assiette=1_000, projet__dossier_ds__finance_cout_total=2_000
@@ -56,8 +56,7 @@ def test_assiette_or_cout_total():
 # Accept
 
 
-@pytest.mark.django_db
-def test_accept_projet_without_simulation_projet():
+def test_accept_dotation_projet_without_simulation_projet():
     dotation_projet = DotationProjetFactory(assiette=10_000, dotation=DOTATION_DETR)
     assert dotation_projet.projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
 
@@ -84,8 +83,7 @@ def test_accept_projet_without_simulation_projet():
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
 
 
-@pytest.mark.django_db
-def test_accept_projet():
+def test_accept_dotation_projet():
     dotation_projet = DotationProjetFactory(assiette=10_000, dotation=DOTATION_DETR)
     assert dotation_projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
 
@@ -132,8 +130,7 @@ def test_accept_projet():
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
 
 
-@pytest.mark.django_db
-def test_accept_projet_update_programmation_projet():
+def test_accept_dotation_projet_update_programmation_projet():
     dotation_projet = DotationProjetFactory(
         assiette=9_000, status=DotationProjet.STATUS_REFUSED, dotation=DOTATION_DETR
     )
@@ -151,6 +148,7 @@ def test_accept_projet_update_programmation_projet():
     dotation_projet.refresh_from_db()
     assert dotation_projet.status == DotationProjet.STATUS_ACCEPTED
 
+    # TODO pr_dotation replace projet by dotation_projet
     programmation_projets = ProgrammationProjet.objects.filter(
         projet=dotation_projet.projet, enveloppe=enveloppe
     )
@@ -161,8 +159,7 @@ def test_accept_projet_update_programmation_projet():
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
 
 
-@pytest.mark.django_db
-def test_accept_projet_select_parent_enveloppe():
+def test_accept_dotation_projet_select_parent_enveloppe():
     dotation_projet = DotationProjetFactory(
         assiette=9_000,
         status=DotationProjet.STATUS_PROCESSING,
@@ -172,9 +169,243 @@ def test_accept_projet_select_parent_enveloppe():
     child_enveloppe = DsilEnveloppeFactory(deleguee_by=parent_enveloppe)
     dotation_projet.accept(montant=5_000, enveloppe=child_enveloppe)
 
+    # TODO pr_dotation replace projet by dotation_projet
     programmation_projets = ProgrammationProjet.objects.filter(
         projet=dotation_projet.projet
     )
 
     assert programmation_projets.count() == 1
     assert programmation_projets.first().enveloppe == parent_enveloppe
+
+
+# Refuse
+
+
+def test_refusing_a_dotation_projet_creates_one_programmation_projet():
+    dotation_projet = DotationProjetFactory(status=DotationProjet.STATUS_PROCESSING)
+    assert dotation_projet.status == DotationProjet.STATUS_PROCESSING
+    assert dotation_projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
+
+    enveloppe = DetrEnveloppeFactory(annee=2024)
+
+    dotation_projet.refuse(enveloppe=enveloppe)
+    dotation_projet.save()
+    dotation_projet.refresh_from_db()
+
+    assert dotation_projet.status == DotationProjet.STATUS_REFUSED
+
+    # TODO pr_dotation replace projet by dotation_projet
+    programmation_projets = ProgrammationProjet.objects.filter(
+        projet=dotation_projet.projet, enveloppe=enveloppe
+    )
+    assert programmation_projets.count() == 1
+    programmation_projet = programmation_projets.first()
+    assert programmation_projet.montant == 0
+    assert programmation_projet.taux == 0
+    assert programmation_projet.status == ProgrammationProjet.STATUS_REFUSED
+
+
+def test_refusing_a_projet_updates_all_simulation_projet():
+    dotation_projet = DotationProjetFactory(
+        status=DotationProjet.STATUS_PROCESSING, dotation=DOTATION_DETR
+    )
+    assert dotation_projet.status == DotationProjet.STATUS_PROCESSING
+    assert dotation_projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
+
+    enveloppe = DetrEnveloppeFactory(annee=2024)
+
+    SimulationProjetFactory(
+        dotation_projet=dotation_projet,
+        status=SimulationProjet.STATUS_PROVISOIRE,
+        montant=1_000,
+    )
+    SimulationProjetFactory(
+        dotation_projet=dotation_projet,
+        status=SimulationProjet.STATUS_ACCEPTED,
+        montant=2_000,
+    )
+    SimulationProjetFactory(
+        dotation_projet=dotation_projet,
+        status=SimulationProjet.STATUS_PROCESSING,
+        montant=5_000,
+    )
+    assert SimulationProjet.objects.filter(dotation_projet=dotation_projet).count() == 3
+
+    dotation_projet.refuse(enveloppe=enveloppe)
+    dotation_projet.save()
+    dotation_projet.refresh_from_db()
+
+    assert SimulationProjet.objects.filter(dotation_projet=dotation_projet).count() == 3
+    simulation_projets = SimulationProjet.objects.filter(
+        dotation_projet=dotation_projet
+    )
+    for simulation_projet in simulation_projets:
+        assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
+        assert simulation_projet.montant == 0
+        assert simulation_projet.taux == 0
+
+
+# Dismiss
+
+
+@pytest.mark.parametrize(
+    ("status, montant, taux"),
+    (
+        (DotationProjet.STATUS_REFUSED, 0, 0),
+        (DotationProjet.STATUS_ACCEPTED, 10_000, 20),
+    ),
+)
+def test_dismiss(status, montant, taux):
+    dotation_projet = DotationProjetFactory(status=status, dotation=DOTATION_DETR)
+    ProgrammationProjetFactory(
+        # TODO pr_dotation replace projet by dotation_projet
+        projet=dotation_projet.projet,
+        status=ProgrammationProjet.STATUS_REFUSED
+        if dotation_projet.status == DotationProjet.STATUS_REFUSED
+        else ProgrammationProjet.STATUS_ACCEPTED,
+    )
+
+    simulation_projet_status = (
+        SimulationProjet.STATUS_REFUSED
+        if dotation_projet.status == DotationProjet.STATUS_REFUSED
+        else ProgrammationProjet.STATUS_ACCEPTED
+    )
+
+    SimulationProjetFactory.create_batch(
+        3,
+        dotation_projet=dotation_projet,
+        simulation__enveloppe__dotation=DOTATION_DETR,
+        status=simulation_projet_status,
+        montant=montant,
+        taux=taux,
+    )
+
+    dotation_projet.dismiss()
+    dotation_projet.save()
+    dotation_projet.refresh_from_db()
+
+    assert dotation_projet.status == DotationProjet.STATUS_DISMISSED
+    # TODO pr_dotation replace projet by dotation_projet
+    assert (
+        ProgrammationProjet.objects.filter(projet=dotation_projet.projet).count() == 0
+    )
+    simulation_projets = SimulationProjet.objects.filter(
+        dotation_projet=dotation_projet
+    )
+    assert simulation_projets.count() == 3
+    for simulation_projet in simulation_projets:
+        assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED
+        assert simulation_projet.montant == 0
+        assert simulation_projet.taux == 0
+
+
+def test_dismiss_from_processing():
+    dotation_projet = DotationProjetFactory(
+        status=DotationProjet.STATUS_PROCESSING, dotation=DOTATION_DETR
+    )
+    SimulationProjetFactory.create_batch(
+        3,
+        dotation_projet=dotation_projet,
+        simulation__enveloppe__dotation=DOTATION_DETR,
+        status=SimulationProjet.STATUS_PROCESSING,
+        montant=500,
+        taux=0.4,
+    )
+
+    dotation_projet.dismiss()
+    dotation_projet.save()
+    dotation_projet.refresh_from_db()
+
+    assert dotation_projet.status == DotationProjet.STATUS_DISMISSED
+    assert (
+        ProgrammationProjet.objects.filter(projet=dotation_projet.projet).count() == 0
+    )
+    simulation_projets = SimulationProjet.objects.filter(
+        dotation_projet=dotation_projet
+    )
+    assert simulation_projets.count() == 3
+    for simulation_projet in simulation_projets:
+        assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED
+        assert simulation_projet.montant == 0
+        assert simulation_projet.taux == 0
+
+
+# Set back status to processing
+
+
+def test_set_back_status_to_processing_from_accepted():
+    dotation_projet = DotationProjetFactory(status=DotationProjet.STATUS_ACCEPTED)
+    ProgrammationProjetFactory(
+        projet=dotation_projet.projet,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        montant=10_000,
+        taux=20,
+    )
+    SimulationProjetFactory.create_batch(
+        3,
+        dotation_projet=dotation_projet,
+        simulation__enveloppe__dotation=dotation_projet.dotation,
+        status=SimulationProjet.STATUS_ACCEPTED,
+        montant=10_000,
+        taux=20,
+    )
+
+    dotation_projet.set_back_status_to_processing()
+    dotation_projet.save()
+    dotation_projet.refresh_from_db()
+
+    assert dotation_projet.status == DotationProjet.STATUS_PROCESSING
+    assert (
+        ProgrammationProjet.objects.filter(projet=dotation_projet.projet).count() == 0
+    )
+    simulation_projets = SimulationProjet.objects.filter(
+        dotation_projet=dotation_projet
+    )
+    assert simulation_projets.count() == 3
+    for simulation_projet in simulation_projets:
+        assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
+        assert simulation_projet.montant == 10_000
+        assert simulation_projet.taux == 20
+
+
+def test_set_back_status_to_processing_from_refused():
+    dotation_projet = DotationProjetFactory(status=DotationProjet.STATUS_REFUSED)
+    ProgrammationProjetFactory(
+        projet=dotation_projet.projet,
+        status=ProgrammationProjet.STATUS_REFUSED,
+    )
+    SimulationProjetFactory.create_batch(
+        3,
+        dotation_projet=dotation_projet,
+        simulation__enveloppe__dotation=dotation_projet.dotation,
+        status=SimulationProjet.STATUS_REFUSED,
+        montant=0,
+        taux=0,
+    )
+
+    dotation_projet.set_back_status_to_processing()
+    dotation_projet.save()
+    dotation_projet.refresh_from_db()
+
+    assert dotation_projet.status == DotationProjet.STATUS_PROCESSING
+    assert (
+        ProgrammationProjet.objects.filter(projet=dotation_projet.projet).count() == 0
+    )
+    simulation_projets = SimulationProjet.objects.filter(
+        dotation_projet=dotation_projet
+    )
+    assert simulation_projets.count() == 3
+    for simulation_projet in simulation_projets:
+        assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
+        assert simulation_projet.montant == 0
+        assert simulation_projet.taux == 0
+
+
+@pytest.mark.parametrize(("status"), [DotationProjet.STATUS_PROCESSING])
+def test_set_back_status_to_processing_from_other_status_than_accepted_or_refused(
+    status,
+):
+    dotation_projet = DotationProjetFactory(status=status)
+
+    with pytest.raises(TransitionNotAllowed):
+        dotation_projet.set_back_status_to_processing()
