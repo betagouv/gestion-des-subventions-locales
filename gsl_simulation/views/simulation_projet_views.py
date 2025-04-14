@@ -79,6 +79,7 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
         self.simulation_projet = SimulationProjet.objects.select_related(
             "simulation",
             "simulation__enveloppe",
+            "dotation_projet",  # TODO pr_dotation add dotation_projet__projet ?
             "projet",
             "projet__dossier_ds",
         ).get(id=request.resolver_match.kwargs.get("pk"))
@@ -103,7 +104,9 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
             ],
             "current": context["title"],
         }
+        # TODO pr_dotation remove it ??
         context["projet"] = self.simulation_projet.projet
+        context["dotation_projet"] = self.simulation_projet.dotation_projet
         context["simu"] = self.simulation_projet
         context["enveloppe"] = self.simulation_projet.simulation.enveloppe
         context["dossier"] = self.simulation_projet.projet.dossier_ds
@@ -144,6 +147,8 @@ def redirect_to_simulation_projet(
             "htmx/projet_update.html",
             {
                 "simu": simulation_projet,
+                "dotation_projet": simulation_projet.dotation_projet,
+                # TODO pr_dotation remove it ??
                 "projet": simulation_projet.projet,
                 "available_states": SimulationProjet.STATUS_CHOICES,
                 "status_summary": simulation_projet.simulation.get_projet_status_summary(),

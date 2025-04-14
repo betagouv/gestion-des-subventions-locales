@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from gsl_core.models import Perimetre
 from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.services.projet_services import ProjetService
 from gsl_simulation.models import Simulation, SimulationProjet
 
@@ -91,13 +92,11 @@ class SimulationProjetService:
         simulation_projet.save()
         return simulation_projet
 
+    # TODO pr_dotation update test
     @classmethod
     def update_taux(cls, simulation_projet: SimulationProjet, new_taux: float):
-        new_montant = (
-            (simulation_projet.projet.assiette_or_cout_total * Decimal(new_taux) / 100)
-            if simulation_projet.projet.assiette_or_cout_total
-            else 0
-        )
+        assiette = simulation_projet.dotation_projet.assiette_or_cout_total
+        new_montant = (assiette * Decimal(new_taux) / 100) if assiette else 0
         new_montant = round(new_montant, 2)
 
         simulation_projet.taux = new_taux
@@ -110,9 +109,9 @@ class SimulationProjetService:
         return simulation_projet
 
     @classmethod
-    def update_montant(cls, simulation_projet, new_montant: float):
-        new_taux = ProjetService.compute_taux_from_montant(
-            simulation_projet.projet, new_montant
+    def update_montant(cls, simulation_projet: SimulationProjet, new_montant: float):
+        new_taux = DotationProjetService.compute_taux_from_montant(
+            simulation_projet.dotation_projet, new_montant
         )
 
         simulation_projet.taux = new_taux
@@ -137,11 +136,11 @@ class SimulationProjetService:
 
     @classmethod
     def _accept_a_simulation_projet(cls, simulation_projet: SimulationProjet):
-        projet = simulation_projet.projet
-        projet.accept(
+        dotation_projet = simulation_projet.dotation_projet
+        dotation_projet.accept(
             montant=simulation_projet.montant, enveloppe=simulation_projet.enveloppe
         )
-        projet.save()
+        dotation_projet.save()
 
         updated_simulation_projet = SimulationProjet.objects.get(
             pk=simulation_projet.pk
@@ -150,9 +149,9 @@ class SimulationProjetService:
 
     @classmethod
     def _refuse_a_simulation_projet(cls, simulation_projet: SimulationProjet):
-        projet = simulation_projet.projet
-        projet.refuse(enveloppe=simulation_projet.enveloppe)
-        projet.save()
+        dotation_projet = simulation_projet.dotation_projet
+        dotation_projet.refuse(enveloppe=simulation_projet.enveloppe)
+        dotation_projet.save()
 
         updated_simulation_projet = SimulationProjet.objects.get(
             pk=simulation_projet.pk
@@ -161,9 +160,9 @@ class SimulationProjetService:
 
     @classmethod
     def _dismiss_a_simulation_projet(cls, simulation_projet: SimulationProjet):
-        projet = simulation_projet.projet
-        projet.dismiss()
-        projet.save()
+        dotation_projet = simulation_projet.dotation_projet
+        dotation_projet.dismiss()
+        dotation_projet.save()
 
         updated_simulation_projet = SimulationProjet.objects.get(
             pk=simulation_projet.pk
@@ -172,9 +171,9 @@ class SimulationProjetService:
 
     @classmethod
     def _set_back_to_processing(cls, simulation_projet: SimulationProjet):
-        projet = simulation_projet.projet
-        projet.set_back_status_to_processing()
-        projet.save()
+        dotation_projet = simulation_projet.dotation_projet
+        dotation_projet.set_back_status_to_processing()
+        dotation_projet.save()
 
         updated_simulation_projet = SimulationProjet.objects.get(
             pk=simulation_projet.pk

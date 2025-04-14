@@ -12,7 +12,8 @@ from gsl_core.tests.factories import (
     PerimetreRegionalFactory,
 )
 from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
-from gsl_projet.tests.factories import ProjetFactory
+from gsl_projet.constants import DOTATION_DETR
+from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
@@ -81,14 +82,16 @@ def client_with_cote_d_or_user_logged(cote_d_or_perimetre):
 
 @pytest.fixture
 def cote_dorien_simulation_projet(cote_d_or_perimetre):
-    projet = ProjetFactory(
-        perimetre=cote_d_or_perimetre, dossier_ds__finance_cout_total=500_000
+    dotation_projet = DotationProjetFactory(
+        projet__perimetre=cote_d_or_perimetre,
+        projet__dossier_ds__finance_cout_total=500_000,
+        dotation=DOTATION_DETR,
     )
     simulation = SimulationFactory(
         enveloppe=DetrEnveloppeFactory(perimetre=cote_d_or_perimetre)
     )
     return SimulationProjetFactory(
-        projet=projet,
+        dotation_projet=dotation_projet,
         simulation=simulation,
         status=SimulationProjet.STATUS_PROVISOIRE,
         taux=0,
@@ -141,6 +144,10 @@ def test_patch_taux_simulation_projet_url_with_htmx(
     assert response.status_code == 200
     assert response.templates[0].name == "htmx/projet_update.html"
     assert response.context["simu"] == cote_dorien_simulation_projet
+    assert (
+        response.context["dotation_projet"]
+        == cote_dorien_simulation_projet.dotation_projet
+    )
     assert response.context["projet"] == cote_dorien_simulation_projet.projet
     assert response.context["available_states"] == SimulationProjet.STATUS_CHOICES
     assert response.context["status_summary"] == expected_status_summary

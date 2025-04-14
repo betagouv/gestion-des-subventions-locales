@@ -616,11 +616,13 @@ def client_with_user_logged(collegue):
 
 @pytest.fixture
 def simulation_projet(collegue, detr_enveloppe) -> SimulationProjet:
+    dotation_projet = DotationProjetFactory(
+        status=DotationProjet.STATUS_PROCESSING,
+        projet__perimetre=collegue.perimetre,
+        dotation=DOTATION_DETR,
+    )
     return SimulationProjetFactory(
-        projet=ProjetFactory(
-            status=Projet.STATUS_PROCESSING,
-            perimetre=collegue.perimetre,
-        ),
+        dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_PROCESSING,
         montant=1000,
         simulation__enveloppe=detr_enveloppe,
@@ -644,11 +646,13 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
     updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
         id=simulation_projet.id
     )
-    projet = Projet.objects.get(id=updated_simulation_projet.projet.id)
+    dotation_projet = DotationProjet.objects.get(
+        id=updated_simulation_projet.dotation_projet.id
+    )
 
     assert response.status_code == 200
     assert updated_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
-    assert projet.status == Projet.STATUS_ACCEPTED
+    assert dotation_projet.status == Projet.STATUS_ACCEPTED
     assert "1 projet validé" in response.content.decode()
     assert "0 projet refusé" in response.content.decode()
     assert "0 projet notifié" in response.content.decode()
@@ -673,11 +677,13 @@ def test_patch_status_simulation_projet_with_refused_value_with_htmx(
     )
 
     simulation_projet.refresh_from_db()
-    projet = Projet.objects.get(id=simulation_projet.projet.id)
+    dotation_projet = DotationProjet.objects.get(
+        id=simulation_projet.dotation_projet.id
+    )
 
     assert response.status_code == 200
     assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
-    assert projet.status == Projet.STATUS_REFUSED
+    assert dotation_projet.status == Projet.STATUS_REFUSED
     assert "0 projet validé" in response.content.decode()
     assert "1 projet refusé" in response.content.decode()
     assert "0 projet notifié" in response.content.decode()
@@ -723,8 +729,8 @@ def test_patch_status_simulation_projet_with_refused_value_giving_message(
 ):
     if status == SimulationProjet.STATUS_PROCESSING:
         simulation_projet.status = SimulationProjet.STATUS_ACCEPTED
-        simulation_projet.projet.status = Projet.STATUS_ACCEPTED
-        simulation_projet.projet.save()
+        simulation_projet.dotation_projet.status = Projet.STATUS_ACCEPTED
+        simulation_projet.dotation_projet.save()
         simulation_projet.save()
 
     url = reverse(

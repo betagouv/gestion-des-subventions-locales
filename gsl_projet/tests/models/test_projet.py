@@ -72,6 +72,7 @@ def test_is_asking_for_detr(demande_dispositif_sollicite, expected_is_asking_for
     assert projet.is_asking_for_detr is expected_is_asking_for_detr
 
 
+# TODO pr_dotation remove all tests above
 # Accept
 
 

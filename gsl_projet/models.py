@@ -376,6 +376,8 @@ class DotationProjet(models.Model):
         from gsl_projet.services.projet_services import ProjetService
         from gsl_simulation.models import SimulationProjet
 
+        # TODO pr_dotation test enveloppe.dotation == self.dotation ??
+
         taux = ProjetService.compute_taux_from_montant(self, montant)
 
         SimulationProjet.objects.filter(dotation_projet=self).update(
@@ -387,7 +389,8 @@ class DotationProjet(models.Model):
         parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
 
         ProgrammationProjet.objects.update_or_create(
-            projet=self,
+            # TODO pr_dotation replace projet by dotation_projet
+            projet=self.projet,
             enveloppe=parent_enveloppe,
             defaults={
                 "montant": montant,
@@ -395,3 +398,56 @@ class DotationProjet(models.Model):
                 "status": ProgrammationProjet.STATUS_ACCEPTED,
             },
         )
+
+    @transition(field=status, source="*", target=STATUS_REFUSED)
+    def refuse(self, enveloppe: "Enveloppe"):
+        from gsl_programmation.models import ProgrammationProjet
+        from gsl_programmation.services.enveloppe_service import EnveloppeService
+        from gsl_simulation.models import SimulationProjet
+
+        SimulationProjet.objects.filter(dotation_projet=self).update(
+            status=SimulationProjet.STATUS_REFUSED,
+            montant=0,
+            taux=0,
+        )
+
+        parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
+
+        ProgrammationProjet.objects.update_or_create(
+            # TODO pr_dotation replace projet by dotation_projet
+            projet=self.projet,
+            enveloppe=parent_enveloppe,
+            defaults={
+                "montant": 0,
+                "taux": 0,
+                "status": ProgrammationProjet.STATUS_REFUSED,
+            },
+        )
+
+    @transition(field=status, source="*", target=STATUS_DISMISSED)
+    def dismiss(self):
+        from gsl_programmation.models import ProgrammationProjet
+        from gsl_simulation.models import SimulationProjet
+
+        SimulationProjet.objects.filter(dotation_projet=self).update(
+            status=SimulationProjet.STATUS_DISMISSED, montant=0, taux=0
+        )
+
+        # TODO pr_dotation replace projet by dotation_projet
+        ProgrammationProjet.objects.filter(projet=self.projet).delete()
+
+    @transition(
+        field=status,
+        source=[STATUS_ACCEPTED, STATUS_REFUSED, STATUS_DISMISSED],
+        target=STATUS_PROCESSING,
+    )
+    def set_back_status_to_processing(self):
+        from gsl_programmation.models import ProgrammationProjet
+        from gsl_simulation.models import SimulationProjet
+
+        SimulationProjet.objects.filter(dotation_projet=self).update(
+            status=SimulationProjet.STATUS_PROCESSING,
+        )
+
+        # TODO pr_dotation replace projet by dotation_projet
+        ProgrammationProjet.objects.filter(projet=self.projet).delete()
