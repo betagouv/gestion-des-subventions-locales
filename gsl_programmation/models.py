@@ -4,7 +4,7 @@ from django.db import models
 from gsl_core.models import Perimetre
 from gsl_programmation.utils import is_there_less_or_equal_than_0_009_of_difference
 from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.models import Projet
+from gsl_projet.models import DotationProjet, Projet
 
 
 class Enveloppe(models.Model):
@@ -96,6 +96,9 @@ class ProgrammationProjet(models.Model):
     )
 
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE, verbose_name="Projet")
+    dotation_projet = models.ForeignKey(
+        DotationProjet, on_delete=models.CASCADE, verbose_name="Dotation projet"
+    )
     enveloppe = models.ForeignKey(
         Enveloppe, on_delete=models.CASCADE, verbose_name="Enveloppe"
     )
