@@ -149,9 +149,9 @@ class SimulationProjetService:
 
     @classmethod
     def _refuse_a_simulation_projet(cls, simulation_projet: SimulationProjet):
-        projet = simulation_projet.projet
-        projet.refuse(enveloppe=simulation_projet.enveloppe)
-        projet.save()
+        dotation_projet = simulation_projet.dotation_projet
+        dotation_projet.refuse(enveloppe=simulation_projet.enveloppe)
+        dotation_projet.save()
 
         updated_simulation_projet = SimulationProjet.objects.get(
             pk=simulation_projet.pk

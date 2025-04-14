@@ -229,72 +229,72 @@ SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS = {
     SimulationProjet.STATUS_PROVISOIRE: DotationProjet.STATUS_PROCESSING,
 }
 
-# TODO pr_dotation put back these tests
-# @pytest.mark.django_db
-# @pytest.mark.parametrize(
-#     ("initial_status"),
-#     (
-#         SimulationProjet.STATUS_ACCEPTED,
-#         SimulationProjet.STATUS_REFUSED,
-#         SimulationProjet.STATUS_DISMISSED,
-#     ),
-# )
-# def test_update_status_with_provisoire_from_refused_or_accepted_or_dismissed(
-#     initial_status,
-# ):
-#     simulation_projet = SimulationProjetFactory(
-#         status=initial_status,
-#         dotation_projet__status=SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS[
-#             initial_status
-#         ],
-#     )
-#     SimulationProjetFactory.create_batch(
-#         3, dotation_projet=simulation_projet.dotation_projet, status=initial_status
-#     )
 
-#     SimulationProjetService.update_status(
-#         simulation_projet, SimulationProjet.STATUS_PROVISOIRE
-#     )
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("initial_status"),
+    (
+        SimulationProjet.STATUS_ACCEPTED,
+        SimulationProjet.STATUS_REFUSED,
+        SimulationProjet.STATUS_DISMISSED,
+    ),
+)
+def test_update_status_with_provisoire_from_refused_or_accepted_or_dismissed(
+    initial_status,
+):
+    simulation_projet = SimulationProjetFactory(
+        status=initial_status,
+        dotation_projet__status=SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS[
+            initial_status
+        ],
+    )
+    SimulationProjetFactory.create_batch(
+        3, dotation_projet=simulation_projet.dotation_projet, status=initial_status
+    )
 
-#     simulation_projet.refresh_from_db()
-#     assert simulation_projet.status == SimulationProjet.STATUS_PROVISOIRE
-#     assert simulation_projet.dotation_projet.status == DotationProjet.STATUS_PROCESSING
+    SimulationProjetService.update_status(
+        simulation_projet, SimulationProjet.STATUS_PROVISOIRE
+    )
 
-#     other_simulation_projets = SimulationProjet.objects.exclude(pk=simulation_projet.pk)
-#     assert other_simulation_projets.count() == 3
-#     for other_simulation_projet in other_simulation_projets:
-#         assert other_simulation_projet.status == SimulationProjet.STATUS_PROCESSING
+    simulation_projet.refresh_from_db()
+    assert simulation_projet.status == SimulationProjet.STATUS_PROVISOIRE
+    assert simulation_projet.dotation_projet.status == DotationProjet.STATUS_PROCESSING
+
+    other_simulation_projets = SimulationProjet.objects.exclude(pk=simulation_projet.pk)
+    assert other_simulation_projets.count() == 3
+    for other_simulation_projet in other_simulation_projets:
+        assert other_simulation_projet.status == SimulationProjet.STATUS_PROCESSING
 
 
-# @pytest.mark.django_db
-# @pytest.mark.parametrize(
-#     ("initial_status"),
-#     (
-#         SimulationProjet.STATUS_ACCEPTED,
-#         SimulationProjet.STATUS_REFUSED,
-#     ),
-# )
-# def test_update_status_with_provisoire_remove_programmation_projet_from_accepted_or_refused(
-#     initial_status,
-# ):
-#     simulation_projet = SimulationProjetFactory(
-#         status=initial_status,
-#         dotation_projet__status=SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS[
-#             initial_status
-#         ],
-#     )
-#     # TODO pr_dotation use dotation_projet
-#     ProgrammationProjetFactory(projet=simulation_projet.projet)
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("initial_status"),
+    (
+        SimulationProjet.STATUS_ACCEPTED,
+        SimulationProjet.STATUS_REFUSED,
+    ),
+)
+def test_update_status_with_provisoire_remove_programmation_projet_from_accepted_or_refused(
+    initial_status,
+):
+    simulation_projet = SimulationProjetFactory(
+        status=initial_status,
+        dotation_projet__status=SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS[
+            initial_status
+        ],
+    )
+    # TODO pr_dotation use dotation_projet
+    ProgrammationProjetFactory(projet=simulation_projet.projet)
 
-#     SimulationProjetService.update_status(
-#         simulation_projet, SimulationProjet.STATUS_PROVISOIRE
-#     )
+    SimulationProjetService.update_status(
+        simulation_projet, SimulationProjet.STATUS_PROVISOIRE
+    )
 
-#     simulation_projet.refresh_from_db()
-#     assert simulation_projet.status == SimulationProjet.STATUS_PROVISOIRE
-#     assert (
-#         ProgrammationProjet.objects.filter(projet=simulation_projet.projet).count() == 0
-#     )
+    simulation_projet.refresh_from_db()
+    assert simulation_projet.status == SimulationProjet.STATUS_PROVISOIRE
+    assert (
+        ProgrammationProjet.objects.filter(projet=simulation_projet.projet).count() == 0
+    )
 
 
 @pytest.mark.django_db
@@ -602,3 +602,33 @@ def test_get_simulation_projet_status(projet_status, simulation_projet_status_ex
     dotation_projet = DotationProjetFactory(status=projet_status)
     status = SimulationProjetService.get_simulation_projet_status(dotation_projet)
     assert status == simulation_projet_status_expected
+
+
+@pytest.mark.parametrize(
+    ("dotation_projet_transition, method, with_montant"),
+    (
+        ("accept", SimulationProjetService._accept_a_simulation_projet, True),
+        ("refuse", SimulationProjetService._refuse_a_simulation_projet, False),
+        ("dismiss", SimulationProjetService._dismiss_a_simulation_projet, False),
+        (
+            "set_back_status_to_processing",
+            SimulationProjetService._set_back_to_processing,
+            False,
+        ),
+    ),
+)
+@pytest.mark.django_db
+def test_simulation_projet_transition_are_called(
+    dotation_projet_transition, method, with_montant
+):
+    with mock.patch(
+        f"gsl_projet.models.DotationProjet.{dotation_projet_transition}"
+    ) as mock_transition_dotation_projet:
+        simulation_projet = SimulationProjetFactory()
+        args = {"enveloppe": simulation_projet.enveloppe}
+        if with_montant:
+            args["montant"] = simulation_projet.montant
+
+        method(simulation_projet)
+
+        mock_transition_dotation_projet.assert_called_once_with(**args)
