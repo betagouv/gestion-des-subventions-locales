@@ -242,14 +242,23 @@ SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS = {
 def test_update_status_with_provisoire_from_refused_or_accepted_or_dismissed(
     initial_status,
 ):
+    dotation_projet = DotationProjetFactory(
+        status=SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS[initial_status]
+    )
     simulation_projet = SimulationProjetFactory(
         status=initial_status,
-        dotation_projet__status=SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS[
-            initial_status
-        ],
+        dotation_projet=dotation_projet,
+        simulation__enveloppe__dotation=dotation_projet.dotation,
+    )
+    assert (
+        dotation_projet.status
+        == SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS[initial_status]
     )
     SimulationProjetFactory.create_batch(
-        3, dotation_projet=simulation_projet.dotation_projet, status=initial_status
+        3,
+        dotation_projet=dotation_projet,
+        status=initial_status,
+        simulation__enveloppe__dotation=dotation_projet.dotation,
     )
 
     SimulationProjetService.update_status(
@@ -277,11 +286,13 @@ def test_update_status_with_provisoire_from_refused_or_accepted_or_dismissed(
 def test_update_status_with_provisoire_remove_programmation_projet_from_accepted_or_refused(
     initial_status,
 ):
+    dotation_projet = DotationProjetFactory(
+        status=SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS[initial_status]
+    )
     simulation_projet = SimulationProjetFactory(
         status=initial_status,
-        dotation_projet__status=SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS[
-            initial_status
-        ],
+        dotation_projet=dotation_projet,
+        simulation__enveloppe__dotation=dotation_projet.dotation,
     )
     # TODO pr_dotation use dotation_projet
     ProgrammationProjetFactory(projet=simulation_projet.projet)

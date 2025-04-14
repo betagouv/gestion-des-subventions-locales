@@ -171,9 +171,9 @@ class SimulationProjetService:
 
     @classmethod
     def _set_back_to_processing(cls, simulation_projet: SimulationProjet):
-        projet = simulation_projet.projet
-        projet.set_back_status_to_processing()
-        projet.save()
+        dotation_projet = simulation_projet.dotation_projet
+        dotation_projet.set_back_status_to_processing()
+        dotation_projet.save()
 
         updated_simulation_projet = SimulationProjet.objects.get(
             pk=simulation_projet.pk

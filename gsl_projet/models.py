@@ -429,8 +429,24 @@ class DotationProjet(models.Model):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
-        SimulationProjet.objects.filter(DOTATION_DSILprojet=self).update(
+        SimulationProjet.objects.filter(dotation_projet=self).update(
             status=SimulationProjet.STATUS_DISMISSED, montant=0, taux=0
+        )
+
+        # TODO pr_dotation replace projet by dotation_projet
+        ProgrammationProjet.objects.filter(projet=self.projet).delete()
+
+    @transition(
+        field=status,
+        source=[STATUS_ACCEPTED, STATUS_REFUSED, STATUS_DISMISSED],
+        target=STATUS_PROCESSING,
+    )
+    def set_back_status_to_processing(self):
+        from gsl_programmation.models import ProgrammationProjet
+        from gsl_simulation.models import SimulationProjet
+
+        SimulationProjet.objects.filter(dotation_projet=self).update(
+            status=SimulationProjet.STATUS_PROCESSING,
         )
 
         # TODO pr_dotation replace projet by dotation_projet
