@@ -414,6 +414,7 @@ class DotationProjet(models.Model):
         parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
 
         ProgrammationProjet.objects.update_or_create(
+            # TODO pr_dotation replace projet by dotation_projet
             projet=self.projet,
             enveloppe=parent_enveloppe,
             defaults={
@@ -422,3 +423,15 @@ class DotationProjet(models.Model):
                 "status": ProgrammationProjet.STATUS_REFUSED,
             },
         )
+
+    @transition(field=status, source="*", target=STATUS_DISMISSED)
+    def dismiss(self):
+        from gsl_programmation.models import ProgrammationProjet
+        from gsl_simulation.models import SimulationProjet
+
+        SimulationProjet.objects.filter(DOTATION_DSILprojet=self).update(
+            status=SimulationProjet.STATUS_DISMISSED, montant=0, taux=0
+        )
+
+        # TODO pr_dotation replace projet by dotation_projet
+        ProgrammationProjet.objects.filter(projet=self.projet).delete()

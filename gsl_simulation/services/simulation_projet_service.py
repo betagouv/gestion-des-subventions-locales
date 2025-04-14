@@ -160,9 +160,9 @@ class SimulationProjetService:
 
     @classmethod
     def _dismiss_a_simulation_projet(cls, simulation_projet: SimulationProjet):
-        projet = simulation_projet.projet
-        projet.dismiss()
-        projet.save()
+        dotation_projet = simulation_projet.dotation_projet
+        dotation_projet.dismiss()
+        dotation_projet.save()
 
         updated_simulation_projet = SimulationProjet.objects.get(
             pk=simulation_projet.pk

@@ -605,27 +605,30 @@ def test_get_simulation_projet_status(projet_status, simulation_projet_status_ex
 
 
 @pytest.mark.parametrize(
-    ("dotation_projet_transition, method, with_montant"),
+    ("dotation_projet_transition, method, with_enveloppe, with_montant"),
     (
-        ("accept", SimulationProjetService._accept_a_simulation_projet, True),
-        ("refuse", SimulationProjetService._refuse_a_simulation_projet, False),
-        ("dismiss", SimulationProjetService._dismiss_a_simulation_projet, False),
+        ("accept", SimulationProjetService._accept_a_simulation_projet, True, True),
+        ("refuse", SimulationProjetService._refuse_a_simulation_projet, True, False),
+        ("dismiss", SimulationProjetService._dismiss_a_simulation_projet, False, False),
         (
             "set_back_status_to_processing",
             SimulationProjetService._set_back_to_processing,
+            False,
             False,
         ),
     ),
 )
 @pytest.mark.django_db
 def test_simulation_projet_transition_are_called(
-    dotation_projet_transition, method, with_montant
+    dotation_projet_transition, method, with_enveloppe, with_montant
 ):
     with mock.patch(
         f"gsl_projet.models.DotationProjet.{dotation_projet_transition}"
     ) as mock_transition_dotation_projet:
         simulation_projet = SimulationProjetFactory()
-        args = {"enveloppe": simulation_projet.enveloppe}
+        args = {}
+        if with_enveloppe:
+            args["enveloppe"] = simulation_projet.enveloppe
         if with_montant:
             args["montant"] = simulation_projet.montant
 
