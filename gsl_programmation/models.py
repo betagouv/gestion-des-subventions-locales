@@ -95,8 +95,9 @@ class ProgrammationProjet(models.Model):
         (STATUS_REFUSED, "❌ Refusé"),
     )
 
+    # TODO pr_dotation remove this, and remplace it by a property ?
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE, verbose_name="Projet")
-    dotation_projet = models.ForeignKey(
+    dotation_projet = models.OneToOneField(
         DotationProjet, on_delete=models.CASCADE, verbose_name="Dotation projet"
     )
     enveloppe = models.ForeignKey(
@@ -127,13 +128,6 @@ class ProgrammationProjet(models.Model):
     class Meta:
         verbose_name = "Programmation projet"
         verbose_name_plural = "Programmations projet"
-        constraints = (
-            models.UniqueConstraint(
-                fields=("enveloppe", "projet"),
-                name="unique_projet_enveloppe",
-                nulls_distinct=True,
-            ),
-        )
 
     def __str__(self):
         return f"Projet programmé {self.pk}"
@@ -154,27 +148,29 @@ class ProgrammationProjet(models.Model):
             }
 
     def _validate_montant(self, errors):
-        if self.projet.assiette is not None:
-            if self.projet.assiette > 0:
+        if self.dotation_projet.assiette is not None:
+            if self.dotation_projet.assiette > 0:
                 if not is_there_less_or_equal_than_0_009_of_difference(
-                    self.taux, self.montant * 100 / self.projet.assiette
+                    self.taux, self.montant * 100 / self.dotation_projet.assiette
                 ):
                     errors["taux"] = {
                         "Le taux et le montant de la programmation ne sont pas cohérents. "
-                        f"Taux attendu : {str(round(self.montant * 100 / self.projet.assiette, 2))}"
+                        f"Taux attendu : {str(round(self.montant * 100 / self.dotation_projet.assiette, 2))}"
                     }
-            if self.montant and self.montant > self.projet.assiette:
+            if self.montant and self.montant > self.dotation_projet.assiette:
                 errors["montant"] = {
-                    "Le montant de la programmation ne peut pas être supérieur à l'assiette du projet."
+                    "Le montant de la programmation ne peut pas être supérieur à l'assiette du dotation projet."
                 }
         else:
             if (
                 self.montant
-                and self.projet.dossier_ds.finance_cout_total
-                and self.montant > self.projet.dossier_ds.finance_cout_total
+                # TODO pr_dotation use projet property instead of dotation_projet
+                and self.dotation_projet.projet.dossier_ds.finance_cout_total
+                and self.montant
+                > self.dotation_projet.projet.dossier_ds.finance_cout_total
             ):
                 errors["montant"] = {
-                    "Le montant de la programmation ne peut pas être supérieur au coût total du projet."
+                    "Le montant de la programmation ne peut pas être supérieur au coût total du dotation projet."
                 }
 
     def _validate_enveloppe(self, errors):
@@ -184,9 +180,17 @@ class ProgrammationProjet(models.Model):
                 "Il faut programmer sur l'enveloppe mère."
             }
 
-        if not self.enveloppe.perimetre.contains_or_equal(self.projet.perimetre):
+        # TODO pr_dotation use projet property instead of dotation_projet
+        if not self.enveloppe.perimetre.contains_or_equal(
+            self.dotation_projet.projet.perimetre
+        ):
             errors["enveloppe"] = {
                 "Le périmètre de l'enveloppe ne contient pas le périmètre du projet."
+            }
+
+        if self.enveloppe.dotation != self.dotation_projet.dotation:
+            errors["enveloppe"] = {
+                "La dotation de l'enveloppe ne correspond pas à celle du dotation projet."
             }
 
     def _validate_for_refused_status(self, errors):
