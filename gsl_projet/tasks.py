@@ -32,8 +32,13 @@ def create_or_update_projet_and_its_simulation_and_programmation_projets_from_do
 ):
     ds_dossier = Dossier.objects.get(ds_number=ds_dossier_number)
     projet = ProjetService.create_or_update_from_ds_dossier(ds_dossier)
-    DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
-    SimulationProjetService.update_simulation_projets_from_projet(projet)
+    dotation_projets = (
+        DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
+    )
+    for dotation_projet in dotation_projets:
+        SimulationProjetService.update_simulation_projets_from_dotation_projet(
+            dotation_projet
+        )
     ProgrammationProjetService.create_or_update_from_projet(projet)
 
 

@@ -21,13 +21,14 @@ class SimulationProjetFactory(DjangoModelFactory):
         model = SimulationProjet
 
     simulation = SubFactory(SimulationFactory)
-    # TODO to remove
-    projet = SubFactory(ProjetFactory)
     dotation_projet = LazyAttribute(
         lambda obj: DotationProjetFactory(
-            projet=obj.projet, dotation=obj.simulation.enveloppe.dotation
+            projet=ProjetFactory(), dotation=obj.simulation.enveloppe.dotation
         )
     )
+    # TODO pr_dotation to remove
+    projet = LazyAttribute(lambda obj: obj.dotation_projet.projet)
+    # TODO pr_dotation use dotation_projet
     montant = LazyAttribute(
         lambda obj: randint(
             0, obj.projet.assiette or obj.projet.dossier_ds.finance_cout_total or 1000

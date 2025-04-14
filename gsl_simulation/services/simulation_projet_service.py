@@ -8,15 +8,14 @@ from gsl_simulation.models import Simulation, SimulationProjet
 
 class SimulationProjetService:
     @classmethod
-    def update_simulation_projets_from_projet(cls, projet: Projet):
+    def update_simulation_projets_from_dotation_projet(
+        cls, dotation_projet: DotationProjet
+    ):
         simulation_projets = SimulationProjet.objects.filter(
-            projet=projet
+            dotation_projet=dotation_projet
         ).select_related("simulation")
 
         for simulation_projet in simulation_projets:
-            dotation_projet = projet.dotationprojet_set.get(
-                dotation=simulation_projet.enveloppe.dotation
-            )
             cls.create_or_update_simulation_projet_from_dotation_projet(
                 dotation_projet, simulation_projet.simulation
             )
@@ -30,7 +29,7 @@ class SimulationProjetService:
         """
         montant = cls.get_initial_montant_from_projet(dotation_projet.projet)
         simulation_projet, _ = SimulationProjet.objects.update_or_create(
-            projet=dotation_projet.projet,  # TODO remove it
+            projet=dotation_projet.projet,  # TODO pr_dotation remove it
             dotation_projet=dotation_projet,
             simulation_id=simulation.id,
             defaults={
@@ -41,7 +40,7 @@ class SimulationProjetService:
                         dotation_projet.projet, montant
                     )
                 ),
-                "status": cls.get_simulation_projet_status(dotation_projet.projet),
+                "status": cls.get_simulation_projet_status(dotation_projet),
             },
         )
 
@@ -126,15 +125,15 @@ class SimulationProjetService:
         return simulation_projet
 
     PROJET_STATUS_TO_SIMULATION_PROJET_STATUS = {
-        Projet.STATUS_ACCEPTED: SimulationProjet.STATUS_ACCEPTED,
-        Projet.STATUS_DISMISSED: SimulationProjet.STATUS_DISMISSED,
-        Projet.STATUS_REFUSED: SimulationProjet.STATUS_REFUSED,
-        Projet.STATUS_PROCESSING: SimulationProjet.STATUS_PROCESSING,
+        DotationProjet.STATUS_ACCEPTED: SimulationProjet.STATUS_ACCEPTED,
+        DotationProjet.STATUS_DISMISSED: SimulationProjet.STATUS_DISMISSED,
+        DotationProjet.STATUS_REFUSED: SimulationProjet.STATUS_REFUSED,
+        DotationProjet.STATUS_PROCESSING: SimulationProjet.STATUS_PROCESSING,
     }
 
     @classmethod
-    def get_simulation_projet_status(cls, projet: Projet):
-        return cls.PROJET_STATUS_TO_SIMULATION_PROJET_STATUS.get(projet.status)
+    def get_simulation_projet_status(cls, dotation_projet: DotationProjet):
+        return cls.PROJET_STATUS_TO_SIMULATION_PROJET_STATUS.get(dotation_projet.status)
 
     @classmethod
     def _accept_a_simulation_projet(cls, simulation_projet: SimulationProjet):

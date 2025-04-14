@@ -62,7 +62,7 @@ class SimulationProjet(models.Model):
         (STATUS_REFUSED, "❌ Refusé"),
         (STATUS_DISMISSED, "⛔️ Classé sans suite"),
     )
-    # TODO remove it
+    # TODO pr_dotation remove it
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
     dotation_projet = models.ForeignKey(
         DotationProjet, on_delete=models.CASCADE, null=True
@@ -104,6 +104,11 @@ class SimulationProjet(models.Model):
         from django.urls import reverse
 
         return reverse("simulation:simulation-projet-detail", kwargs={"pk": self.pk})
+
+    # TODO pr_dotation add it after projet has been removed from simulation projet
+    # @property
+    # def projet(self):
+    #     return self.dotation_projet.projet
 
     @property
     def enveloppe(self):

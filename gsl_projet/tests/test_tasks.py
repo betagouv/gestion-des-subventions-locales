@@ -22,7 +22,7 @@ from gsl_projet.tasks import (
     create_or_update_projets_and_its_simulation_and_programmation_projets_from_all_dossiers,
     create_or_update_projets_batch,
 )
-from gsl_projet.tests.factories import ProjetFactory
+from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationProjetFactory
 
@@ -70,9 +70,17 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         ds_demandeur__address__commune=commune,
     )
     projet = ProjetFactory(dossier_ds=dossier, status=Projet.STATUS_ACCEPTED)
-    SimulationProjetFactory.create_batch(
-        2, projet=projet, status=SimulationProjet.STATUS_ACCEPTED, montant=500, taux=0.5
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=DotationProjet.STATUS_ACCEPTED
     )
+    SimulationProjetFactory.create_batch(
+        2,
+        dotation_projet=dotation_projet,
+        status=SimulationProjet.STATUS_ACCEPTED,
+        montant=500,
+        taux=0.5,
+    )
+    # TODO pr_dotation update this when we add a link between programmation and dotation projet
     ProgrammationProjetFactory(
         projet=projet, status=ProgrammationProjet.STATUS_ACCEPTED
     )
@@ -112,11 +120,19 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         annotations_assiette=50_000,
     )
     projet = ProjetFactory(dossier_ds=dossier, status=Projet.STATUS_REFUSED)
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=DotationProjet.STATUS_REFUSED
+    )
     SimulationProjetFactory.create_batch(
-        2, projet=projet, status=SimulationProjet.STATUS_REFUSED, montant=0, taux=0
+        2,
+        dotation_projet=dotation_projet,
+        simulation__enveloppe__dotation=dotation_projet.dotation,
+        status=SimulationProjet.STATUS_REFUSED,
+        montant=0,
+        taux=0,
     )
     ProgrammationProjetFactory(
-        projet=projet,
+        projet=dotation_projet.projet,
         status=ProgrammationProjet.STATUS_REFUSED,
         enveloppe=detr_enveloppe,
     )
@@ -155,8 +171,15 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         ds_demandeur__address__commune=commune,
     )
     projet = ProjetFactory(dossier_ds=dossier, status=Projet.STATUS_ACCEPTED)
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=DotationProjet.STATUS_ACCEPTED
+    )
     SimulationProjetFactory.create_batch(
-        2, projet=projet, status=SimulationProjet.STATUS_ACCEPTED, montant=500, taux=10
+        2,
+        dotation_projet=dotation_projet,
+        status=SimulationProjet.STATUS_ACCEPTED,
+        montant=500,
+        taux=10,
     )
     ProgrammationProjetFactory(
         projet=projet,

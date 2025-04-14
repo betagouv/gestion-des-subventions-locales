@@ -70,11 +70,11 @@ class ProjetQuerySet(models.QuerySet):
 
     def included_in_enveloppe(self, enveloppe: "Enveloppe"):
         projet_qs = self.for_perimetre(enveloppe.perimetre)
-        projet_qs_with_the_right_type = projet_qs.filter(
-            dossier_ds__demande_dispositif_sollicite=enveloppe.dotation,
+        projet_qs_with_the_correct_dotation = projet_qs.filter(
+            dotationprojet__dotation=enveloppe.dotation
         )
         projet_qs_submitted_before_the_end_of_the_year = (
-            projet_qs_with_the_right_type.filter(
+            projet_qs_with_the_correct_dotation.filter(
                 dossier_ds__ds_date_depot__lt=datetime(
                     enveloppe.annee + 1, 1, 1, tzinfo=UTC
                 ),
@@ -135,11 +135,11 @@ class Projet(models.Model):
         (STATUS_PROCESSING, "🔄 En traitement"),
         (STATUS_DISMISSED, "⛔️ Classé sans suite"),
     )
-    # TODO remove this
+    # TODO pr_dotation remove this
     # TODO put back protected=True, once every status transition is handled
     status = FSMField("Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING)
 
-    # TODO remove this
+    # TODO pr_dotation remove this
     assiette = models.DecimalField(
         "Assiette subventionnable",
         max_digits=12,
@@ -147,6 +147,7 @@ class Projet(models.Model):
         null=True,
     )
 
+    # TODO pr_dotation remove this (and ensure that dotation field are copied its projet one ?)
     # TODO add a constraint to ensure that the projet is concerned by dotation DETR
     # or put this in new model DotationProjet ?
     avis_commission_detr = models.BooleanField(
@@ -177,14 +178,14 @@ class Projet(models.Model):
 
         return reverse("projet:get-projet", kwargs={"projet_id": self.id})
 
-    # TODO move it to DotationProjet ??
+    # TODO pr_dotation remove it
     @property
     def assiette_or_cout_total(self):
         if self.assiette:
             return self.assiette
         return self.dossier_ds.finance_cout_total
 
-    # TODO move it to DotationProjet
+    # TODO pr_dotation move it to DotationProjet
     @cached_property
     def accepted_programmation_projet(self):
         if (
@@ -193,14 +194,14 @@ class Projet(models.Model):
         ):
             return self.accepted_programmation_projets[0]
 
-    # TODO move it to DotationProjet
+    # TODO pr_dotation move it to DotationProjet
     @property
     def montant_retenu(self) -> float | None:
         if self.accepted_programmation_projet:
             return self.accepted_programmation_projet.montant
         return None
 
-    # TODO move it to DotationProjet
+    # TODO pr_dotation move it to DotationProjet
     @property
     def taux_retenu(self) -> float | None:
         if self.accepted_programmation_projet:
@@ -234,6 +235,7 @@ class Projet(models.Model):
         if self.assiette > 0:
             return int(100 * self.assiette / self.dossier_ds.finance_cout_total)
 
+    # TODO pr_dotation move transition to DotationProjet
     @transition(field=status, source="*", target=STATUS_ACCEPTED)
     def accept(self, montant: float, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
@@ -326,7 +328,7 @@ class DotationProjet(models.Model):
 
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
     dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
-    # TODO put back protected=True, once every status transition is handled
+    # TODO pr_dotation put back protected=True, once every status transition is handled
     status = FSMField("Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING)
     assiette = models.DecimalField(
         "Assiette subventionnable",
@@ -346,7 +348,7 @@ class DotationProjet(models.Model):
     def __str__(self):
         return f"Projet {self.projet_id} - Dotation {self.dotation}"
 
-    # TODO test it
+    # TODO pr_dotation test it
     def clean(self):
         errors = {}
         if self.dotation == DOTATION_DSIL and self.detr_avis_commission is not None:
@@ -356,3 +358,40 @@ class DotationProjet(models.Model):
 
         if errors:
             raise ValidationError(errors)
+
+    @property
+    def dossier_ds(self):
+        return self.projet.dossier_ds
+
+    @property
+    def assiette_or_cout_total(self):
+        if self.assiette:
+            return self.assiette
+        return self.dossier_ds.finance_cout_total
+
+    @transition(field=status, source="*", target=STATUS_ACCEPTED)
+    def accept(self, montant: float, enveloppe: "Enveloppe"):
+        from gsl_programmation.models import ProgrammationProjet
+        from gsl_programmation.services.enveloppe_service import EnveloppeService
+        from gsl_projet.services.projet_services import ProjetService
+        from gsl_simulation.models import SimulationProjet
+
+        taux = ProjetService.compute_taux_from_montant(self, montant)
+
+        SimulationProjet.objects.filter(dotation_projet=self).update(
+            status=SimulationProjet.STATUS_ACCEPTED,
+            montant=montant,
+            taux=taux,
+        )
+
+        parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
+
+        ProgrammationProjet.objects.update_or_create(
+            projet=self,
+            enveloppe=parent_enveloppe,
+            defaults={
+                "montant": montant,
+                "taux": taux,
+                "status": ProgrammationProjet.STATUS_ACCEPTED,
+            },
+        )

@@ -65,8 +65,9 @@ def detr_projets(departement_perimetre, arrondissement_perimetre):
         (6_500, 0, Dossier.STATE_SANS_SUITE, datetime(2024, 1, 1, tzinfo=UTC)),
         (2_500, 0, Dossier.STATE_SANS_SUITE, datetime(2025, 1, 1, tzinfo=UTC)),
     ):
+        status = ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state]
         projet = ProjetFactory(
-            status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
+            status=status,
             dossier_ds=DossierFactory(
                 demande_montant=montant,
                 demande_dispositif_sollicite=DOTATION_DETR,
@@ -76,7 +77,7 @@ def detr_projets(departement_perimetre, arrondissement_perimetre):
             perimetre=arrondissement_perimetre,
             assiette=assiette,
         )
-        DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+        DotationProjetFactory(projet=projet, dotation=DOTATION_DETR, status=status)
         projets.append(projet)
     return projets
 
@@ -94,8 +95,9 @@ def dsil_projets(departement_perimetre, arrondissement_perimetre):
         (2_500, 0, Dossier.STATE_SANS_SUITE, datetime(2024, 12, 13, tzinfo=UTC)),
         (2_500, 0, Dossier.STATE_SANS_SUITE, datetime(2025, 1, 1, tzinfo=UTC)),
     ):
+        status = ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state]
         projet = ProjetFactory(
-            status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
+            status=status,
             dossier_ds=DossierFactory(
                 demande_montant=montant,
                 demande_dispositif_sollicite="DSIL",
@@ -105,7 +107,7 @@ def dsil_projets(departement_perimetre, arrondissement_perimetre):
             perimetre=arrondissement_perimetre,
             assiette=assiette,
         )
-        DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+        DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL, status=status)
         projets.append(projet)
     return projets
 

@@ -568,15 +568,28 @@ def test_view_with_territory_filter():
     enveloppe = DetrEnveloppeFactory(perimetre=perimetre_departement_A)
     simulation = SimulationFactory(enveloppe=enveloppe)
 
-    SimulationProjetFactory.create_batch(
-        2,
-        simulation=simulation,
-        projet__perimetre=perimetre_arrondissement_A,
+    dotation_projets_A = DotationProjetFactory.create_batch(
+        2, dotation=enveloppe.dotation, projet__perimetre=perimetre_arrondissement_A
+    )
+    for dotation_projet_A in dotation_projets_A:
+        SimulationProjetFactory(
+            simulation=simulation,
+            dotation_projet=dotation_projet_A,
+        )
+    dotation_projets_B = DotationProjetFactory.create_batch(
+        3, dotation=enveloppe.dotation, projet__perimetre=perimetre_arrondissement_B
     )
 
-    SimulationProjetFactory.create_batch(
-        3, simulation=simulation, projet__perimetre=perimetre_arrondissement_B
-    )
+    for dotation_projet_B in dotation_projets_B:
+        SimulationProjetFactory(
+            simulation=simulation,
+            dotation_projet=dotation_projet_B,
+        )
+
+    assert Projet.objects.count() == 5
+    assert Projet.objects.for_perimetre(perimetre_departement_A).count() == 5
+    assert Projet.objects.for_perimetre(perimetre_arrondissement_A).count() == 2
+    assert Projet.objects.for_perimetre(perimetre_arrondissement_B).count() == 3
 
     user = CollegueFactory(perimetre=perimetre_departement_A)
     req = RequestFactory(user=user)

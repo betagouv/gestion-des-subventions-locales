@@ -3,10 +3,6 @@
 from django.db import migrations
 
 
-def nothing(apps, schema_editor):
-    pass
-
-
 def set_dotation_projet_for_simulation_projets(apps, schema_editor):
     SimulationProjet = apps.get_model("gsl_simulation", "SimulationProjet")
     DotationProjet = apps.get_model("gsl_projet", "DotationProjet")
@@ -39,6 +35,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(
-            set_dotation_projet_for_simulation_projets, reverse_code=nothing
+            set_dotation_projet_for_simulation_projets,
+            reverse_code=migrations.RunPython.noop,
         )
     ]
