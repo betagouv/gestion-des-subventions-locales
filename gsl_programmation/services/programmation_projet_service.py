@@ -57,7 +57,6 @@ class ProgrammationProjetService:
             },
         )
 
-        # TODO pr_dotation, useless now ?
         ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).exclude(
             enveloppe=enveloppe
         ).delete()

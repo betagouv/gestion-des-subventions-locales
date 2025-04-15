@@ -241,10 +241,11 @@ def test_create_or_update_from_refused_projet_with_an_existing_one_and_complete_
 def test_create_or_update_from_refused_projet_with_existing_one_with_only_dotation_in_annotations(
     perimetre, refused_dotation_projet, detr_enveloppe
 ):
-    refused_dotation_projet.dotation = DOTATION_DSIL
     ProgrammationProjetFactory(
         dotation_projet=refused_dotation_projet, enveloppe=detr_enveloppe
     )
+
+    refused_dotation_projet.dotation = DOTATION_DSIL
     dsil_enveloppe = DsilEnveloppeFactory(
         perimetre__region=perimetre.departement.region,
         annee=date.today().year,
