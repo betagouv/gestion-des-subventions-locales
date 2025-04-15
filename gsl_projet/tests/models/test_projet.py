@@ -4,7 +4,8 @@ from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     ProgrammationProjetFactory,
 )
-from gsl_projet.tests.factories import ProjetFactory
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -48,17 +49,20 @@ def test_taux_retenu_with_refused_programmation_projet():
 
 
 @pytest.mark.parametrize(
-    ("demande_dispositif_sollicite", "expected_is_asking_for_detr"),
+    ("create_a_detr_projet", "create_a_dsil_projet", "expected_is_asking_for_detr"),
     (
-        ("", False),
-        ("DETR", True),
-        ("DSIL", False),
-        ("DETR DSIL", True),
-        ("['DSIL', 'DETR']", True),
+        (True, False, True),
+        (True, True, True),
+        (False, True, False),
     ),
 )
-def test_is_asking_for_detr(demande_dispositif_sollicite, expected_is_asking_for_detr):
-    projet = ProjetFactory(
-        dossier_ds__demande_dispositif_sollicite=demande_dispositif_sollicite
-    )
+def test_is_asking_for_detr(
+    create_a_detr_projet, create_a_dsil_projet, expected_is_asking_for_detr
+):
+    projet = ProjetFactory()
+    if create_a_detr_projet:
+        DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    if create_a_dsil_projet:
+        DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+
     assert projet.is_asking_for_detr is expected_is_asking_for_detr

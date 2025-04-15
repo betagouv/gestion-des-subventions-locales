@@ -210,7 +210,7 @@ class Projet(models.Model):
 
     @property
     def is_asking_for_detr(self) -> bool:
-        return DOTATION_DETR in self.dossier_ds.demande_dispositif_sollicite
+        return self.dotationprojet_set.filter(dotation=DOTATION_DETR).exists()
 
     @property
     def categorie_doperation(self):
@@ -303,7 +303,10 @@ class DotationProjet(models.Model):
         from gsl_projet.services.projet_services import ProjetService
         from gsl_simulation.models import SimulationProjet
 
-        # TODO pr_dotation test enveloppe.dotation == self.dotation ??
+        if self.dotation != enveloppe.dotation:
+            raise ValidationError(
+                "La dotation du projet et de l'enveloppe ne correspondent pas."
+            )
 
         taux = ProjetService.compute_taux_from_montant(self, montant)
 
@@ -330,6 +333,11 @@ class DotationProjet(models.Model):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_programmation.services.enveloppe_service import EnveloppeService
         from gsl_simulation.models import SimulationProjet
+
+        if self.dotation != enveloppe.dotation:
+            raise ValidationError(
+                "La dotation du projet et de l'enveloppe ne correspondent pas."
+            )
 
         SimulationProjet.objects.filter(dotation_projet=self).update(
             status=SimulationProjet.STATUS_REFUSED,

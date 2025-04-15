@@ -174,6 +174,20 @@ def test_accept_dotation_projet_select_parent_enveloppe():
     assert programmation_projets.first().enveloppe == parent_enveloppe
 
 
+def test_accept_with_an_dotation_enveloppe_different_from_the_dotation():
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        status=DotationProjet.STATUS_PROCESSING,
+    )
+    enveloppe = DsilEnveloppeFactory()
+    with pytest.raises(ValidationError) as exc_info:
+        dotation_projet.accept(montant=5_000, enveloppe=enveloppe)
+    assert (
+        str(exc_info.value.message)
+        == "La dotation du projet et de l'enveloppe ne correspondent pas."
+    )
+
+
 # Refuse
 
 
@@ -238,6 +252,20 @@ def test_refusing_a_projet_updates_all_simulation_projet():
         assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
         assert simulation_projet.montant == 0
         assert simulation_projet.taux == 0
+
+
+def test_refuse_with_an_dotation_enveloppe_different_from_the_dotation():
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        status=DotationProjet.STATUS_PROCESSING,
+    )
+    enveloppe = DsilEnveloppeFactory()
+    with pytest.raises(ValidationError) as exc_info:
+        dotation_projet.refuse(enveloppe=enveloppe)
+    assert (
+        str(exc_info.value.message)
+        == "La dotation du projet et de l'enveloppe ne correspondent pas."
+    )
 
 
 # Dismiss
