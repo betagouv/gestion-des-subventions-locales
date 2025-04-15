@@ -16,7 +16,6 @@ from gsl_programmation.tests.factories import (
 )
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.services.dotation_projet_services import DotationProjetService
-from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
@@ -65,7 +64,9 @@ def detr_projets(departement_perimetre, arrondissement_perimetre):
         (6_500, 0, Dossier.STATE_SANS_SUITE, datetime(2024, 1, 1, tzinfo=UTC)),
         (2_500, 0, Dossier.STATE_SANS_SUITE, datetime(2025, 1, 1, tzinfo=UTC)),
     ):
-        status = ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state]
+        status = DotationProjetService.DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS[
+            state
+        ]
         projet = ProjetFactory(
             status=status,
             dossier_ds=DossierFactory(
@@ -95,7 +96,9 @@ def dsil_projets(departement_perimetre, arrondissement_perimetre):
         (2_500, 0, Dossier.STATE_SANS_SUITE, datetime(2024, 12, 13, tzinfo=UTC)),
         (2_500, 0, Dossier.STATE_SANS_SUITE, datetime(2025, 1, 1, tzinfo=UTC)),
     ):
-        status = ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state]
+        status = DotationProjetService.DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS[
+            state
+        ]
         projet = ProjetFactory(
             status=status,
             dossier_ds=DossierFactory(

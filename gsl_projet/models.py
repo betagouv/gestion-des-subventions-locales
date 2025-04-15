@@ -219,6 +219,11 @@ class Projet(models.Model):
         if DOTATION_DSIL in self.dossier_ds.demande_dispositif_sollicite:
             yield from self.dossier_ds.demande_eligibilite_dsil.all()
 
+    # TODO pr_dotation, ceci est temporaire en attendant le nouvel affichage dans la page liste des projets
+    @property
+    def first_dotation_projet(self):
+        return self.dotationprojet_set.first()
+
     def get_taux_de_subvention_sollicite(self):
         if (
             self.assiette_or_cout_total is None
@@ -234,84 +239,6 @@ class Projet(models.Model):
 
         if self.assiette > 0:
             return int(100 * self.assiette / self.dossier_ds.finance_cout_total)
-
-    # TODO pr_dotation move transition to DotationProjet
-    @transition(field=status, source="*", target=STATUS_ACCEPTED)
-    def accept(self, montant: float, enveloppe: "Enveloppe"):
-        from gsl_programmation.models import ProgrammationProjet
-        from gsl_programmation.services.enveloppe_service import EnveloppeService
-        from gsl_projet.services.projet_services import ProjetService
-        from gsl_simulation.models import SimulationProjet
-
-        taux = ProjetService.compute_taux_from_montant(self, montant)
-
-        SimulationProjet.objects.filter(projet=self).update(
-            status=SimulationProjet.STATUS_ACCEPTED,
-            montant=montant,
-            taux=taux,
-        )
-
-        parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
-
-        ProgrammationProjet.objects.update_or_create(
-            projet=self,
-            enveloppe=parent_enveloppe,
-            defaults={
-                "montant": montant,
-                "taux": taux,
-                "status": ProgrammationProjet.STATUS_ACCEPTED,
-            },
-        )
-
-    @transition(field=status, source="*", target=STATUS_REFUSED)
-    def refuse(self, enveloppe: "Enveloppe"):
-        from gsl_programmation.models import ProgrammationProjet
-        from gsl_programmation.services.enveloppe_service import EnveloppeService
-        from gsl_simulation.models import SimulationProjet
-
-        SimulationProjet.objects.filter(projet=self).update(
-            status=SimulationProjet.STATUS_REFUSED,
-            montant=0,
-            taux=0,
-        )
-
-        parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
-
-        ProgrammationProjet.objects.update_or_create(
-            projet=self,
-            enveloppe=parent_enveloppe,
-            defaults={
-                "montant": 0,
-                "taux": 0,
-                "status": ProgrammationProjet.STATUS_REFUSED,
-            },
-        )
-
-    @transition(
-        field=status,
-        source=[STATUS_ACCEPTED, STATUS_REFUSED, STATUS_DISMISSED],
-        target=STATUS_PROCESSING,
-    )
-    def set_back_status_to_processing(self):
-        from gsl_programmation.models import ProgrammationProjet
-        from gsl_simulation.models import SimulationProjet
-
-        SimulationProjet.objects.filter(projet=self).update(
-            status=SimulationProjet.STATUS_PROCESSING,
-        )
-
-        ProgrammationProjet.objects.filter(projet=self).delete()
-
-    @transition(field=status, source="*", target=STATUS_DISMISSED)
-    def dismiss(self):
-        from gsl_programmation.models import ProgrammationProjet
-        from gsl_simulation.models import SimulationProjet
-
-        SimulationProjet.objects.filter(projet=self).update(
-            status=SimulationProjet.STATUS_DISMISSED, montant=0, taux=0
-        )
-
-        ProgrammationProjet.objects.filter(projet=self).delete()
 
 
 class DotationProjet(models.Model):

@@ -1,5 +1,6 @@
 from decimal import Decimal, InvalidOperation
 
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.constants import DOTATION_DSIL, POSSIBLE_DOTATIONS
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.projet_services import ProjetService
@@ -38,12 +39,24 @@ class DotationProjetService:
             projet=projet,
             dotation=dotation,
             defaults={
-                "status": projet.status,
+                "status": cls.get_projet_status(projet.dossier_ds),
                 "assiette": assiette,
                 "detr_avis_commission": detr_avis_commission,
             },
         )
         return dotation_projet
+
+    DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS = {
+        Dossier.STATE_ACCEPTE: DotationProjet.STATUS_ACCEPTED,
+        Dossier.STATE_EN_CONSTRUCTION: DotationProjet.STATUS_PROCESSING,
+        Dossier.STATE_EN_INSTRUCTION: DotationProjet.STATUS_PROCESSING,
+        Dossier.STATE_REFUSE: DotationProjet.STATUS_REFUSED,
+        Dossier.STATE_SANS_SUITE: DotationProjet.STATUS_DISMISSED,
+    }
+
+    @classmethod
+    def get_projet_status(cls, ds_dossier):
+        return cls.DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS.get(ds_dossier.ds_state)
 
     @classmethod
     def compute_taux_from_montant(

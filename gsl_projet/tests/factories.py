@@ -30,7 +30,6 @@ class ProjetFactory(factory.django.DjangoModelFactory):
     address = factory.SubFactory(AdresseFactory)
     departement = factory.SubFactory(DepartementFactory)
     demandeur = factory.SubFactory(DemandeurFactory)
-    status = factory.fuzzy.FuzzyChoice(choice[0] for choice in Projet.STATUS_CHOICES)
     perimetre = factory.LazyAttribute(
         lambda obj: PerimetreArrondissementFactory(
             arrondissement=obj.dossier_ds.ds_demandeur.address.commune.arrondissement

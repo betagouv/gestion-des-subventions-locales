@@ -29,7 +29,6 @@ from gsl_programmation.tests.factories import (
 from gsl_projet.constants import DOTATION_DETR
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
-from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.tests.factories import (
     DemandeurFactory,
     DotationProjetFactory,
@@ -113,7 +112,6 @@ def projets(simulation, perimetre_departemental):
                     dossier_ds=dossier_2024,
                     perimetre=perimetre,
                     demandeur=demandeur,
-                    status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 )
                 projets.append(projet_2024)
 
@@ -130,7 +128,6 @@ def projets(simulation, perimetre_departemental):
                     dossier_ds=dossier_2025,
                     demandeur=demandeur,
                     perimetre=perimetre,
-                    status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 )
                 projets.append(projet_2025)
             demandeur = DemandeurFactory()
@@ -148,7 +145,6 @@ def projets(simulation, perimetre_departemental):
                     dossier_ds=dossier_2024,
                     demandeur=demandeur,
                     perimetre=perimetre,
-                    status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 )
                 projets.append(projet_2024)
 
@@ -165,7 +161,6 @@ def projets(simulation, perimetre_departemental):
                     dossier_ds=dossier_2025,
                     demandeur=demandeur,
                     perimetre=perimetre,
-                    status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 )
                 projets.append(projet_2025)
     for projet in projets:
@@ -369,7 +364,6 @@ def test_view_with_multiple_simulations(req, perimetre_departemental):
     projet = ProjetFactory(
         dossier_ds=dossier_2024,
         perimetre=perimetre_departemental,
-        status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
     )
 
     enveloppe = DetrEnveloppeFactory(

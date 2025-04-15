@@ -15,7 +15,7 @@ from gsl_programmation.tests.factories import (
     ProgrammationProjetFactory,
 )
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.models import DotationProjet
 from gsl_projet.tasks import (
     create_all_projets_from_dossiers,
     create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier,
@@ -72,7 +72,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         finance_cout_total=4_000,
         ds_demandeur__address__commune=commune,
     )
-    projet = ProjetFactory(dossier_ds=dossier, status=Projet.STATUS_ACCEPTED)
+    projet = ProjetFactory(dossier_ds=dossier)
     detr_dotation_projet = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=DotationProjet.STATUS_ACCEPTED
     )
@@ -80,9 +80,6 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(
         dossier.ds_number
     )
-
-    projet.refresh_from_db()
-    assert projet.status == Projet.STATUS_PROCESSING
 
     dotation_projets = DotationProjet.objects.filter(projet=projet)
     assert dotation_projets.count() == 2
@@ -118,7 +115,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         finance_cout_total=4_000,
         ds_demandeur__address__commune=commune,
     )
-    projet = ProjetFactory(dossier_ds=dossier, status=Projet.STATUS_ACCEPTED)
+    projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=DotationProjet.STATUS_ACCEPTED
     )
@@ -136,9 +133,6 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(
         dossier.ds_number
     )
-
-    projet.refresh_from_db()
-    assert projet.status == Projet.STATUS_PROCESSING
 
     dotation_projets = DotationProjet.objects.filter(projet=projet)
     assert dotation_projets.count() == 1
@@ -169,7 +163,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         annotations_taux=10,
         annotations_assiette=50_000,
     )
-    projet = ProjetFactory(dossier_ds=dossier, status=Projet.STATUS_REFUSED)
+    projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=DotationProjet.STATUS_REFUSED
     )
@@ -191,7 +185,6 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     )
 
     projet.refresh_from_db()
-    assert projet.status == Projet.STATUS_ACCEPTED
 
     dotation_projets = DotationProjet.objects.filter(projet=projet)
     assert dotation_projets.count() == 1
@@ -220,7 +213,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         annotations_dotation=DOTATION_DETR,
         ds_demandeur__address__commune=commune,
     )
-    projet = ProjetFactory(dossier_ds=dossier, status=Projet.STATUS_ACCEPTED)
+    projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=DotationProjet.STATUS_ACCEPTED
     )
@@ -243,7 +236,6 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     )
 
     projet.refresh_from_db()
-    assert projet.status == Projet.STATUS_REFUSED
 
     dotation_projets = DotationProjet.objects.filter(projet=projet)
     assert dotation_projets.count() == 1

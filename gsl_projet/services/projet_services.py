@@ -21,7 +21,6 @@ class ProjetService:
             )
         projet.address = ds_dossier.projet_adresse
         projet.perimetre = ds_dossier.perimetre
-        projet.avis_commission_detr = cls.get_avis_commission_detr(ds_dossier)
         projet.is_in_qpv = cls.get_is_in_qpv(ds_dossier)
         projet.is_attached_to_a_crte = cls.get_is_attached_to_a_crte(ds_dossier)
         projet.is_budget_vert = cls.get_is_budget_vert(ds_dossier)
@@ -34,21 +33,8 @@ class ProjetService:
             },
         )
 
-        projet.status = cls.get_projet_status(ds_dossier)
         projet.save()
         return projet
-
-    DOSSIER_DS_STATUS_TO_PROJET_STATUS = {
-        Dossier.STATE_ACCEPTE: Projet.STATUS_ACCEPTED,
-        Dossier.STATE_EN_CONSTRUCTION: Projet.STATUS_PROCESSING,
-        Dossier.STATE_EN_INSTRUCTION: Projet.STATUS_PROCESSING,
-        Dossier.STATE_REFUSE: Projet.STATUS_REFUSED,
-        Dossier.STATE_SANS_SUITE: Projet.STATUS_DISMISSED,
-    }
-
-    @classmethod
-    def get_projet_status(cls, ds_dossier):
-        return cls.DOSSIER_DS_STATUS_TO_PROJET_STATUS.get(ds_dossier.ds_state)
 
     @classmethod
     def get_total_cost(cls, projet_qs: QuerySet):

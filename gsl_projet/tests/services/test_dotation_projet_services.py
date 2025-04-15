@@ -1,5 +1,6 @@
 import pytest
 
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
@@ -27,7 +28,7 @@ def test_create_or_update_dotation_projet_from_projet(
 ):
     projet = ProjetFactory(
         avis_commission_detr=True,
-        status=Projet.STATUS_ACCEPTED,
+        dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
         assiette=1_000,
     )
     setattr(projet.dossier_ds, field, dotation_value)
@@ -75,7 +76,7 @@ def test_create_or_update_dotation_projet_from_projet_do_not_remove_dotation_pro
 def test_create_or_update_dotation_projet(dotation):
     projet = ProjetFactory(
         avis_commission_detr=False,
-        status=Projet.STATUS_DISMISSED,
+        dossier_ds__ds_state=Dossier.STATE_SANS_SUITE,
         assiette=2_000,
     )
 
@@ -107,3 +108,26 @@ def test_compute_taux_from_montant():
     )
     taux = DotationProjetService.compute_taux_from_montant(projet, 10_000)
     assert taux == 20
+
+
+def test_get_projet_status():
+    accepted = Dossier(ds_state=Dossier.STATE_ACCEPTE)
+    en_construction = Dossier(ds_state=Dossier.STATE_EN_CONSTRUCTION)
+    en_instruction = Dossier(ds_state=Dossier.STATE_EN_INSTRUCTION)
+    refused = Dossier(ds_state=Dossier.STATE_REFUSE)
+    dismissed = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
+
+    assert DotationProjetService.get_projet_status(accepted) == Projet.STATUS_ACCEPTED
+    assert (
+        DotationProjetService.get_projet_status(en_construction)
+        == Projet.STATUS_PROCESSING
+    )
+    assert (
+        DotationProjetService.get_projet_status(en_instruction)
+        == Projet.STATUS_PROCESSING
+    )
+    assert DotationProjetService.get_projet_status(refused) == Projet.STATUS_REFUSED
+    assert DotationProjetService.get_projet_status(dismissed) == Projet.STATUS_DISMISSED
+
+    dossier_unknown = Dossier(ds_state="unknown_state")
+    assert DotationProjetService.get_projet_status(dossier_unknown) is None
