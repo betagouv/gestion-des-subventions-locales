@@ -96,7 +96,9 @@ class ProgrammationProjet(models.Model):
     )
 
     # TODO pr_dotation remove this, and remplace it by a property ?
-    projet = models.ForeignKey(Projet, on_delete=models.CASCADE, verbose_name="Projet")
+    projet = models.ForeignKey(
+        Projet, on_delete=models.CASCADE, verbose_name="Projet", null=True
+    )
     dotation_projet = models.OneToOneField(
         DotationProjet, on_delete=models.CASCADE, verbose_name="Dotation projet"
     )
