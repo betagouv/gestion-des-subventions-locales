@@ -164,7 +164,7 @@ class ProgrammationProjet(models.Model):
                     }
             if self.montant and self.montant > self.dotation_projet.assiette:
                 errors["montant"] = {
-                    "Le montant de la programmation ne peut pas être supérieur à l'assiette du dotation projet."
+                    "Le montant de la programmation ne peut pas être supérieur à l'assiette du projet pour cette dotation."
                 }
         else:
             if (
@@ -175,7 +175,7 @@ class ProgrammationProjet(models.Model):
                 > self.dotation_projet.projet.dossier_ds.finance_cout_total
             ):
                 errors["montant"] = {
-                    "Le montant de la programmation ne peut pas être supérieur au coût total du dotation projet."
+                    "Le montant de la programmation ne peut pas être supérieur au coût total du projet pour cette dotation."
                 }
 
     def _validate_enveloppe(self, errors):
@@ -195,7 +195,7 @@ class ProgrammationProjet(models.Model):
 
         if self.enveloppe.dotation != self.dotation_projet.dotation:
             errors["enveloppe"] = {
-                "La dotation de l'enveloppe ne correspond pas à celle du dotation projet."
+                "La dotation de l'enveloppe ne correspond pas à celle du projet pour cette dotation."
             }
 
     def _validate_for_refused_status(self, errors):
