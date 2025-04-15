@@ -408,6 +408,7 @@ def test_create_or_update_from_dotation_projet_with_no_corresponding_enveloppe_c
 ):
     assert Enveloppe.objects.count() == 0
     dp = DotationProjetFactory(
+        dotation=DOTATION_DETR,
         status=DotationProjet.STATUS_REFUSED,
         projet__perimetre=perimetre,
         projet__dossier_ds__ds_date_traitement=date(2021, 1, 1),

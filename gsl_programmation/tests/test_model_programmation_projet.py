@@ -1,3 +1,4 @@
+import re
 from decimal import Decimal
 
 import pytest
@@ -23,7 +24,7 @@ from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 @pytest.mark.django_db
 def test_two_programmation_projets_cant_have_the_same_dotation_projet():
     dotation_projet = DotationProjetFactory()
-    pp = ProgrammationProjetFactory(dotation_projet=dotation_projet)
+    ProgrammationProjetFactory(dotation_projet=dotation_projet)
 
     with pytest.raises(IntegrityError) as exc_info:
         ProgrammationProjetFactory(dotation_projet=dotation_projet)
@@ -31,8 +32,9 @@ def test_two_programmation_projets_cant_have_the_same_dotation_projet():
         'duplicate key value violates unique constraint "gsl_programmation_progra_dotation_projet_id_ab0086eb_uniq"'
         in str(exc_info.value)
     )
-    assert f"DETAIL:  Key (dotation_projet_id)=({pp.pk}) already exists." in str(
-        exc_info.value
+    assert re.search(
+        "DETAIL:  Key \(dotation_projet_id\)=\(\d+\) already exists.",
+        str(exc_info.value),
     )
 
 
