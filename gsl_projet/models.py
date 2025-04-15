@@ -389,8 +389,7 @@ class DotationProjet(models.Model):
         parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
 
         ProgrammationProjet.objects.update_or_create(
-            # TODO pr_dotation replace projet by dotation_projet
-            projet=self.projet,
+            dotation_projet=self,
             enveloppe=parent_enveloppe,
             defaults={
                 "montant": montant,
@@ -414,8 +413,7 @@ class DotationProjet(models.Model):
         parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
 
         ProgrammationProjet.objects.update_or_create(
-            # TODO pr_dotation replace projet by dotation_projet
-            projet=self.projet,
+            dotation_projet=self,
             enveloppe=parent_enveloppe,
             defaults={
                 "montant": 0,
@@ -433,8 +431,7 @@ class DotationProjet(models.Model):
             status=SimulationProjet.STATUS_DISMISSED, montant=0, taux=0
         )
 
-        # TODO pr_dotation replace projet by dotation_projet
-        ProgrammationProjet.objects.filter(projet=self.projet).delete()
+        ProgrammationProjet.objects.filter(dotation_projet=self).delete()
 
     @transition(
         field=status,
@@ -449,5 +446,4 @@ class DotationProjet(models.Model):
             status=SimulationProjet.STATUS_PROCESSING,
         )
 
-        # TODO pr_dotation replace projet by dotation_projet
-        ProgrammationProjet.objects.filter(projet=self.projet).delete()
+        ProgrammationProjet.objects.filter(dotation_projet=self).delete()

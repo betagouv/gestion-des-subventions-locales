@@ -10,7 +10,7 @@ from gsl_core.tests.factories import (
 )
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.tests.factories import ProjetFactory
+from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 
 class DsilEnveloppeFactory(DjangoModelFactory):
@@ -37,7 +37,9 @@ class ProgrammationProjetFactory(DjangoModelFactory):
     class Meta:
         model = ProgrammationProjet
 
+    # TODO pr_dotation remove this ?
     projet = SubFactory(ProjetFactory)
+    dotation_projet = SubFactory(DotationProjetFactory)
     enveloppe = factory.LazyAttribute(
         lambda obj: DetrEnveloppeFactory(
             perimetre=PerimetreDepartementalFactory(

@@ -127,12 +127,6 @@ def test_get_initial_montant_from_projet():
     assert montant == 0
 
 
-# TODO pr_dotation remove it ??
-@pytest.fixture
-def projet():
-    return ProjetFactory(assiette=1000)
-
-
 @pytest.fixture
 def dotation_projet():
     return DotationProjetFactory(assiette=1000)
@@ -294,8 +288,7 @@ def test_update_status_with_provisoire_remove_programmation_projet_from_accepted
         dotation_projet=dotation_projet,
         simulation__enveloppe__dotation=dotation_projet.dotation,
     )
-    # TODO pr_dotation use dotation_projet
-    ProgrammationProjetFactory(projet=simulation_projet.projet)
+    ProgrammationProjetFactory(dotation_projet=simulation_projet.dotation_projet)
 
     SimulationProjetService.update_status(
         simulation_projet, SimulationProjet.STATUS_PROVISOIRE
@@ -304,7 +297,10 @@ def test_update_status_with_provisoire_remove_programmation_projet_from_accepted
     simulation_projet.refresh_from_db()
     assert simulation_projet.status == SimulationProjet.STATUS_PROVISOIRE
     assert (
-        ProgrammationProjet.objects.filter(projet=simulation_projet.projet).count() == 0
+        ProgrammationProjet.objects.filter(
+            dotation_projet=simulation_projet.dotation_projet
+        ).count()
+        == 0
     )
 
 
@@ -316,15 +312,18 @@ def test_accept_a_simulation_projet():
     other_projet_simulation_projet = SimulationProjetFactory(
         dotation_projet=simulation_projet.dotation_projet
     )
-    # TODO pr_dotation use dotation_projet instead of projet
-    pp_qs = ProgrammationProjet.objects.filter(projet=simulation_projet.projet)
+    pp_qs = ProgrammationProjet.objects.filter(
+        dotation_projet=simulation_projet.dotation_projet
+    )
     assert pp_qs.count() == 0
 
     SimulationProjetService._accept_a_simulation_projet(simulation_projet)
     updated_simulation_projet = SimulationProjet.objects.get(pk=simulation_projet.pk)
     assert updated_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
 
-    pp_qs = ProgrammationProjet.objects.filter(projet=updated_simulation_projet.projet)
+    pp_qs = ProgrammationProjet.objects.filter(
+        dotation_projet=updated_simulation_projet.dotation_projet
+    )
     assert pp_qs.count() == 1
 
     programmation_projet = pp_qs.first()
@@ -350,7 +349,7 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
     SimulationProjetService.update_status(simulation_projet, new_status)
 
     programmation_projets_qs = ProgrammationProjet.objects.filter(
-        projet=simulation_projet.projet
+        dotation_projet=simulation_projet.dotation_projet
     )
     assert programmation_projets_qs.count() == 1
     programmation_projet = programmation_projets_qs.first()
@@ -389,21 +388,20 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
         status=SimulationProjet.STATUS_PROCESSING,
         simulation__enveloppe=child_enveloppe,
     )
-    # TODO pr_dotation use dotation_projet instead of projet
     ProgrammationProjetFactory(
-        projet=simulation_projet.projet,
+        dotation_projet=simulation_projet.dotation_projet,
         enveloppe=mother_enveloppe,
         status=initial_programmation_status,
     )
     programmation_projets_qs = ProgrammationProjet.objects.filter(
-        projet=simulation_projet.projet
+        dotation_projet=simulation_projet.dotation_projet
     )
     assert programmation_projets_qs.count() == 1
 
     SimulationProjetService.update_status(simulation_projet, new_projet_status)
 
     programmation_projets_qs = ProgrammationProjet.objects.filter(
-        projet=simulation_projet.projet
+        dotation_projet=simulation_projet.dotation_projet
     )
     assert programmation_projets_qs.count() == 1
 
@@ -442,10 +440,9 @@ def test_update_taux_of_accepted_montat(dotation_projet):
         status=SimulationProjet.STATUS_ACCEPTED,
         taux=20.0,
     )
-    # TODO pr_dotation use dotation_projet instead of projet
     programmation_projet = ProgrammationProjetFactory(
         enveloppe=simulation_projet.enveloppe,
-        projet=dotation_projet.projet,
+        dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         taux=20.0,
     )
@@ -494,10 +491,9 @@ def test_update_montant_of_accepted_montant(dotation_projet):
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=1_000,
     )
-    # TODO pr_dotation use dotation_projet instead of projet
     programmation_projet = ProgrammationProjetFactory(
         enveloppe=simulation_projet.enveloppe,
-        projet=dotation_projet.projet,
+        dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         montant=1_000,
     )
