@@ -14,7 +14,7 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     ProgrammationProjetFactory,
 )
-from gsl_projet.constants import DOTATION_DETR
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.tasks import (
     create_all_projets_from_dossiers,
@@ -59,6 +59,55 @@ def detr_enveloppe(perimetre_departement):
 
 
 @pytest.mark.django_db
+def test_create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier_an_other_dotation_than_existing_one(
+    commune, perimetre_departement
+):
+    """
+    On teste le fait qu'un dossier DS avec une annotation_dotation donnée ne supprime pas les dotation_projets avec une autre dotation dans notre application.
+    """
+    dossier = DossierFactory(
+        ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        annotations_dotation=DOTATION_DSIL,
+        demande_montant=400,
+        finance_cout_total=4_000,
+        ds_demandeur__address__commune=commune,
+    )
+    projet = ProjetFactory(dossier_ds=dossier, status=Projet.STATUS_ACCEPTED)
+    detr_dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=DotationProjet.STATUS_ACCEPTED
+    )
+
+    create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(
+        dossier.ds_number
+    )
+
+    projet.refresh_from_db()
+    assert projet.status == Projet.STATUS_PROCESSING
+
+    dotation_projets = DotationProjet.objects.filter(projet=projet)
+    assert dotation_projets.count() == 2
+
+    detr_dotation_projet.refresh_from_db()
+    assert detr_dotation_projet.status == DotationProjet.STATUS_ACCEPTED
+
+    new_dotation_projets = dotation_projets.exclude(pk=detr_dotation_projet.pk)
+    assert new_dotation_projets.count() == 1
+    dotation_projet = new_dotation_projets.first()
+    assert dotation_projet.dotation == DOTATION_DSIL
+    assert dotation_projet.assiette is None
+    assert dotation_projet.status == DotationProjet.STATUS_PROCESSING
+
+    for simulation_projet in projet.simulationprojet_set.all():
+        assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
+        assert simulation_projet.montant == 400
+        assert simulation_projet.taux == 10
+
+    assert (
+        ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).count() == 0
+    )
+
+
+@pytest.mark.django_db
 def test_create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier_with_construction_one(
     commune, perimetre_departement
 ):
@@ -80,9 +129,8 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         montant=500,
         taux=0.5,
     )
-    # TODO pr_dotation update this when we add a link between programmation and dotation projet
     ProgrammationProjetFactory(
-        projet=projet, status=ProgrammationProjet.STATUS_ACCEPTED
+        dotation_projet=dotation_projet, status=ProgrammationProjet.STATUS_ACCEPTED
     )
 
     create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(
@@ -104,7 +152,9 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         assert simulation_projet.montant == 400
         assert simulation_projet.taux == 10
 
-    assert ProgrammationProjet.objects.filter(projet=projet).count() == 0
+    assert (
+        ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).count() == 0
+    )
 
 
 @pytest.mark.django_db
@@ -132,7 +182,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         taux=0,
     )
     ProgrammationProjetFactory(
-        projet=dotation_projet.projet,
+        dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_REFUSED,
         enveloppe=detr_enveloppe,
     )
@@ -155,7 +205,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         assert simulation_projet.montant == 5_000
         assert simulation_projet.taux == 10
 
-    programmation_projet = ProgrammationProjet.objects.get(projet=projet)
+    programmation_projet = dotation_projet.programmation_projet
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
     assert programmation_projet.montant == 5_000
     assert programmation_projet.taux == 10
@@ -182,7 +232,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         taux=10,
     )
     ProgrammationProjetFactory(
-        projet=projet,
+        dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         enveloppe=detr_enveloppe,
         montant=500,
@@ -207,7 +257,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         assert simulation_projet.montant == 0
         assert simulation_projet.taux == 0
 
-    programmation_projet = ProgrammationProjet.objects.get(projet=projet)
+    programmation_projet = dotation_projet.programmation_projet
     assert programmation_projet.status == ProgrammationProjet.STATUS_REFUSED
     assert programmation_projet.montant == 0
     assert programmation_projet.taux == 0

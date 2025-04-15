@@ -39,7 +39,9 @@ def create_or_update_projet_and_its_simulation_and_programmation_projets_from_do
         SimulationProjetService.update_simulation_projets_from_dotation_projet(
             dotation_projet
         )
-        ProgrammationProjetService.create_or_update_from_dotation_projet(projet)
+        ProgrammationProjetService.create_or_update_from_dotation_projet(
+            dotation_projet
+        )
 
 
 @shared_task

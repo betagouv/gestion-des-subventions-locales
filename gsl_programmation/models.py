@@ -100,7 +100,10 @@ class ProgrammationProjet(models.Model):
         Projet, on_delete=models.CASCADE, verbose_name="Projet", null=True
     )
     dotation_projet = models.OneToOneField(
-        DotationProjet, on_delete=models.CASCADE, verbose_name="Dotation projet"
+        DotationProjet,
+        on_delete=models.CASCADE,
+        verbose_name="Dotation projet",
+        related_name="programmation_projet",
     )
     enveloppe = models.ForeignKey(
         Enveloppe, on_delete=models.CASCADE, verbose_name="Enveloppe"
