@@ -225,11 +225,6 @@ class Projet(models.Model):
         if DOTATION_DSIL in self.dossier_ds.demande_dispositif_sollicite:
             yield from self.dossier_ds.demande_eligibilite_dsil.all()
 
-    # TODO pr_dotation, ceci est temporaire en attendant le nouvel affichage dans la page liste des projets
-    @property
-    def first_dotation_projet(self):
-        return self.dotationprojet_set.first()
-
     def get_taux_de_subvention_sollicite(self):
         if (
             self.assiette_or_cout_total is None

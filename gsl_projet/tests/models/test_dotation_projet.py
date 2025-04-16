@@ -182,7 +182,7 @@ def test_accept_dotation_projet_select_parent_enveloppe():
     assert programmation_projets.first().enveloppe == parent_enveloppe
 
 
-def test_accept_with_an_dotation_enveloppe_different_from_the_dotation():
+def test_accept_with_a_dotation_enveloppe_different_from_the_dotation():
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_PROCESSING,
