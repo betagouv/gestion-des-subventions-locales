@@ -41,15 +41,19 @@ def test_dossier_ds_join(django_assert_num_queries):
         dossier = DossierFactory()
         ProjetFactory(dossier_ds=dossier)
 
-    with django_assert_num_queries(1):
+    with django_assert_num_queries(2):
         projets = Projet.objects.all()
         assert "dossier_ds" in projets.query.select_related
         for projet in projets:
             _ = projet.dossier_ds.ds_number
+            _ = projet.dotationprojet_set.count()
 
     first_sql_query = connection.queries[0]["sql"]
     assert "INNER JOIN" in first_sql_query
     assert "dossier_ds" in first_sql_query
+
+    second_sql_query = connection.queries[1]["sql"]
+    assert "dotationprojet" in second_sql_query
 
 
 # Filter on perimetre ==================================================================

@@ -10,7 +10,16 @@ from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
-from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.constants import (
+    DOTATION_CHOICES,
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_CHOICES,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
 
 if TYPE_CHECKING:
     from gsl_programmation.models import Enveloppe
@@ -130,17 +139,6 @@ class Projet(models.Model):
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT, null=True)
     perimetre = models.ForeignKey(Perimetre, on_delete=models.PROTECT, null=True)
 
-    STATUS_ACCEPTED = "accepted"
-    STATUS_REFUSED = "refused"
-    STATUS_PROCESSING = "processing"
-    STATUS_DISMISSED = "dismissed"
-    STATUS_CHOICES = (
-        (STATUS_ACCEPTED, "✅ Accepté"),
-        (STATUS_REFUSED, "❌ Refusé"),
-        (STATUS_PROCESSING, "🔄 En traitement"),
-        (STATUS_DISMISSED, "⛔️ Classé sans suite"),
-    )
-
     # TODO pr_dotation remove this
     assiette = models.DecimalField(
         "Assiette subventionnable",
@@ -226,21 +224,6 @@ class Projet(models.Model):
     def first_dotation_projet(self):
         return self.dotationprojet_set.first()
 
-    @property
-    def status(self):
-        dotation_projets = self.dotationprojet_set.all()
-        if not dotation_projets:
-            return None
-        if any(dp.status == DotationProjet.STATUS_ACCEPTED for dp in dotation_projets):
-            return DotationProjet.STATUS_ACCEPTED
-        if any(
-            dp.status == DotationProjet.STATUS_PROCESSING for dp in dotation_projets
-        ):
-            return DotationProjet.STATUS_PROCESSING
-        if any(dp.status == DotationProjet.STATUS_REFUSED for dp in dotation_projets):
-            return DotationProjet.STATUS_REFUSED
-        return DotationProjet.STATUS_DISMISSED
-
     def get_taux_de_subvention_sollicite(self):
         if (
             self.assiette_or_cout_total is None
@@ -259,21 +242,12 @@ class Projet(models.Model):
 
 
 class DotationProjet(models.Model):
-    STATUS_ACCEPTED = "accepted"
-    STATUS_REFUSED = "refused"
-    STATUS_PROCESSING = "processing"
-    STATUS_DISMISSED = "dismissed"
-    STATUS_CHOICES = (
-        (STATUS_ACCEPTED, "✅ Accepté"),
-        (STATUS_REFUSED, "❌ Refusé"),
-        (STATUS_PROCESSING, "🔄 En traitement"),
-        (STATUS_DISMISSED, "⛔️ Classé sans suite"),
-    )
-
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
     dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
     # TODO pr_dotation put back protected=True, once every status transition is handled
-    status = FSMField("Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING)
+    status = FSMField(
+        "Statut", choices=PROJET_STATUS_CHOICES, default=PROJET_STATUS_PROCESSING
+    )
     assiette = models.DecimalField(
         "Assiette subventionnable",
         max_digits=12,
@@ -313,7 +287,7 @@ class DotationProjet(models.Model):
             return self.assiette
         return self.dossier_ds.finance_cout_total
 
-    @transition(field=status, source="*", target=STATUS_ACCEPTED)
+    @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
     def accept(self, montant: float, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_programmation.services.enveloppe_service import EnveloppeService
@@ -345,7 +319,7 @@ class DotationProjet(models.Model):
             },
         )
 
-    @transition(field=status, source="*", target=STATUS_REFUSED)
+    @transition(field=status, source="*", target=PROJET_STATUS_REFUSED)
     def refuse(self, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_programmation.services.enveloppe_service import EnveloppeService
@@ -374,7 +348,7 @@ class DotationProjet(models.Model):
             },
         )
 
-    @transition(field=status, source="*", target=STATUS_DISMISSED)
+    @transition(field=status, source="*", target=PROJET_STATUS_DISMISSED)
     def dismiss(self):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
@@ -387,8 +361,8 @@ class DotationProjet(models.Model):
 
     @transition(
         field=status,
-        source=[STATUS_ACCEPTED, STATUS_REFUSED, STATUS_DISMISSED],
-        target=STATUS_PROCESSING,
+        source=[PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED],
+        target=PROJET_STATUS_PROCESSING,
     )
     def set_back_status_to_processing(self):
         from gsl_programmation.models import ProgrammationProjet

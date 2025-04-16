@@ -14,8 +14,14 @@ from gsl_programmation.tests.factories import (
     DsilEnveloppeFactory,
     ProgrammationProjetFactory,
 )
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
 from gsl_projet.tests.factories import DotationProjetFactory
 
 
@@ -33,7 +39,7 @@ def detr_enveloppe(perimetre):
 @pytest.fixture
 def accepted_dotation_projet(perimetre):
     return DotationProjetFactory(
-        status=Projet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         assiette=3_000,
         dotation=DOTATION_DETR,
         projet__perimetre=perimetre,
@@ -174,7 +180,7 @@ def test_create_or_update_from_dotation_projet_with_an_existing_one_and_without_
 @pytest.fixture
 def refused_dotation_projet(perimetre):
     return DotationProjetFactory(
-        status=Projet.STATUS_REFUSED,
+        status=PROJET_STATUS_REFUSED,
         dotation=DOTATION_DETR,
         projet__dossier_ds__annotations_assiette=3_000,
         projet__perimetre=perimetre,
@@ -368,7 +374,7 @@ def test_create_or_update_from_refused_projet_with_no_existing_one_and_without_a
 
 # OTHER STATUS
 @pytest.mark.parametrize(
-    "other_status", (DotationProjet.STATUS_DISMISSED, DotationProjet.STATUS_PROCESSING)
+    "other_status", (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING)
 )
 @pytest.mark.django_db
 def test_create_or_update_from_dotation_projet_with_other_status_without_existing_one(
@@ -386,7 +392,7 @@ def test_create_or_update_from_dotation_projet_with_other_status_without_existin
 
 
 @pytest.mark.parametrize(
-    "other_status", (DotationProjet.STATUS_DISMISSED, DotationProjet.STATUS_PROCESSING)
+    "other_status", (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING)
 )
 @pytest.mark.django_db
 def test_create_or_update_from_dotation_projet_with_other_status_with_existing_one(
@@ -410,7 +416,7 @@ def test_create_or_update_from_dotation_projet_with_no_corresponding_enveloppe_c
     assert Enveloppe.objects.count() == 0
     dp = DotationProjetFactory(
         dotation=DOTATION_DETR,
-        status=DotationProjet.STATUS_REFUSED,
+        status=PROJET_STATUS_REFUSED,
         projet__perimetre=perimetre,
         projet__dossier_ds__ds_date_traitement=date(2021, 1, 1),
     )

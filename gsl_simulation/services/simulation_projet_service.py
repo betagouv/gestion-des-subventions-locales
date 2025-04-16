@@ -1,6 +1,12 @@
 from decimal import Decimal
 
 from gsl_core.models import Perimetre
+from gsl_projet.constants import (
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.services.projet_services import ProjetService
@@ -124,10 +130,10 @@ class SimulationProjetService:
         return simulation_projet
 
     PROJET_STATUS_TO_SIMULATION_PROJET_STATUS = {
-        DotationProjet.STATUS_ACCEPTED: SimulationProjet.STATUS_ACCEPTED,
-        DotationProjet.STATUS_DISMISSED: SimulationProjet.STATUS_DISMISSED,
-        DotationProjet.STATUS_REFUSED: SimulationProjet.STATUS_REFUSED,
-        DotationProjet.STATUS_PROCESSING: SimulationProjet.STATUS_PROCESSING,
+        PROJET_STATUS_ACCEPTED: SimulationProjet.STATUS_ACCEPTED,
+        PROJET_STATUS_DISMISSED: SimulationProjet.STATUS_DISMISSED,
+        PROJET_STATUS_REFUSED: SimulationProjet.STATUS_REFUSED,
+        PROJET_STATUS_PROCESSING: SimulationProjet.STATUS_PROCESSING,
     }
 
     @classmethod

@@ -4,7 +4,7 @@ from decimal import Decimal
 from django import template
 from django.template.defaultfilters import floatformat
 
-from gsl_projet.models import DotationProjet
+from gsl_projet.constants import PROJET_STATUS_CHOICES
 from gsl_simulation.models import SimulationProjet
 
 register = template.Library()
@@ -33,7 +33,7 @@ def remove_first_word(value):
     return parts[1] if len(parts) > 1 else ""
 
 
-STATUS_TO_DISPLAYED_STATUS = dict(DotationProjet.STATUS_CHOICES)
+STATUS_TO_DISPLAYED_STATUS = dict(PROJET_STATUS_CHOICES)
 
 
 @register.filter

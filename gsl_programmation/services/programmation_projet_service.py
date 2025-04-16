@@ -2,7 +2,12 @@ import logging
 
 from gsl_core.models import Perimetre
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_REFUSED,
+)
 from gsl_projet.models import DotationProjet, Projet
 
 
@@ -22,13 +27,13 @@ class ProgrammationProjetService:
             return
 
         if dotation_projet.status not in (
-            DotationProjet.STATUS_ACCEPTED,
-            DotationProjet.STATUS_REFUSED,
+            PROJET_STATUS_ACCEPTED,
+            PROJET_STATUS_REFUSED,
         ):
             ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).delete()
             return
 
-        if dotation_projet.status == DotationProjet.STATUS_ACCEPTED:
+        if dotation_projet.status == PROJET_STATUS_ACCEPTED:
             for field in (
                 "annotations_montant_accorde",
                 "annotations_taux",
@@ -63,17 +68,17 @@ class ProgrammationProjetService:
 
         montant = (
             dotation_projet.projet.dossier_ds.annotations_montant_accorde
-            if dotation_projet.status == DotationProjet.STATUS_ACCEPTED
+            if dotation_projet.status == PROJET_STATUS_ACCEPTED
             else 0
         )
         taux = (
             dotation_projet.projet.dossier_ds.annotations_taux
-            if dotation_projet.status == DotationProjet.STATUS_ACCEPTED
+            if dotation_projet.status == PROJET_STATUS_ACCEPTED
             else 0
         )
         programmation_projet_status = (
             ProgrammationProjet.STATUS_ACCEPTED
-            if dotation_projet.status == DotationProjet.STATUS_ACCEPTED
+            if dotation_projet.status == PROJET_STATUS_ACCEPTED
             else ProgrammationProjet.STATUS_REFUSED
         )
 

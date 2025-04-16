@@ -8,7 +8,15 @@ from django_filters import (
 
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_CHOICES,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
 from gsl_projet.models import Projet
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
@@ -31,6 +39,7 @@ class ProjetFilters(FilterSet):
         method="filter_dotation",
     )
 
+    # TODO dotation_pr use dotation_projet
     def filter_dotation(self, queryset, _name, values):
         if not values:
             return queryset
@@ -171,16 +180,16 @@ class ProjetFilters(FilterSet):
     )
 
     ordered_status: tuple[str, ...] = (
-        Projet.STATUS_PROCESSING,
-        Projet.STATUS_REFUSED,
-        Projet.STATUS_ACCEPTED,
-        Projet.STATUS_DISMISSED,
+        PROJET_STATUS_PROCESSING,
+        PROJET_STATUS_REFUSED,
+        PROJET_STATUS_ACCEPTED,
+        PROJET_STATUS_DISMISSED,
     )
 
     status = MultipleChoiceFilter(
         field_name="status",
         choices=order_couples_tuple_by_first_value(
-            Projet.STATUS_CHOICES, ordered_status
+            PROJET_STATUS_CHOICES, ordered_status
         ),
         widget=CustomCheckboxSelectMultiple(),
     )

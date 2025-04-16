@@ -8,8 +8,14 @@ from gsl_core.tests.factories import (
     DepartementFactory,
     RegionFactory,
 )
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.models import DotationProjet
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -381,16 +387,16 @@ def test_get_perimetre_children(
     "accepted, processing, refused, dismissed, expected_status",
     (
         (False, False, False, False, None),
-        (True, False, False, False, DotationProjet.STATUS_ACCEPTED),
-        (False, True, False, False, DotationProjet.STATUS_PROCESSING),
-        (False, False, True, False, DotationProjet.STATUS_REFUSED),
-        (False, False, False, True, DotationProjet.STATUS_DISMISSED),
-        (True, True, False, False, DotationProjet.STATUS_ACCEPTED),
-        (True, False, True, False, DotationProjet.STATUS_ACCEPTED),
-        (True, False, False, True, DotationProjet.STATUS_ACCEPTED),
-        (False, True, True, False, DotationProjet.STATUS_PROCESSING),
-        (False, True, False, True, DotationProjet.STATUS_PROCESSING),
-        (False, False, True, True, DotationProjet.STATUS_REFUSED),
+        (True, False, False, False, PROJET_STATUS_ACCEPTED),
+        (False, True, False, False, PROJET_STATUS_PROCESSING),
+        (False, False, True, False, PROJET_STATUS_REFUSED),
+        (False, False, False, True, PROJET_STATUS_DISMISSED),
+        (True, True, False, False, PROJET_STATUS_ACCEPTED),
+        (True, False, True, False, PROJET_STATUS_ACCEPTED),
+        (True, False, False, True, PROJET_STATUS_ACCEPTED),
+        (False, True, True, False, PROJET_STATUS_PROCESSING),
+        (False, True, False, True, PROJET_STATUS_PROCESSING),
+        (False, False, True, True, PROJET_STATUS_REFUSED),
     ),
 )
 def test_status_mixed_dotations(
@@ -402,28 +408,28 @@ def test_status_mixed_dotations(
     if accepted:
         DotationProjetFactory(
             projet=projet,
-            status=DotationProjet.STATUS_ACCEPTED,
+            status=PROJET_STATUS_ACCEPTED,
             dotation=current_dotation,
         )
         current_dotation = DOTATION_DSIL
     if processing:
         DotationProjetFactory(
             projet=projet,
-            status=DotationProjet.STATUS_PROCESSING,
+            status=PROJET_STATUS_PROCESSING,
             dotation=current_dotation,
         )
         current_dotation = DOTATION_DSIL
     if refused:
         DotationProjetFactory(
             projet=projet,
-            status=DotationProjet.STATUS_REFUSED,
+            status=PROJET_STATUS_REFUSED,
             dotation=current_dotation,
         )
         current_dotation = DOTATION_DSIL
     if dismissed:
         DotationProjetFactory(
             projet=projet,
-            status=DotationProjet.STATUS_DISMISSED,
+            status=PROJET_STATUS_DISMISSED,
             dotation=current_dotation,
         )
 

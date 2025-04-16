@@ -1,8 +1,15 @@
 import pytest
 
 from gsl_demarches_simplifiees.models import Dossier
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
+from gsl_projet.models import DotationProjet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
@@ -39,7 +46,7 @@ def test_create_or_update_dotation_projet_from_projet(
 
     for dotation_projet in DotationProjet.objects.all():
         assert dotation_projet.projet == projet
-        assert dotation_projet.status == DotationProjet.STATUS_ACCEPTED
+        assert dotation_projet.status == PROJET_STATUS_ACCEPTED
         assert dotation_projet.assiette == 1_000
         if dotation_projet.dotation == DOTATION_DSIL:
             assert dotation_projet.detr_avis_commission is None
@@ -87,7 +94,7 @@ def test_create_or_update_dotation_projet(dotation):
     dotation_projet = DotationProjet.objects.first()
     assert dotation_projet.projet == projet
     assert dotation_projet.dotation == dotation
-    assert dotation_projet.status == DotationProjet.STATUS_DISMISSED
+    assert dotation_projet.status == PROJET_STATUS_DISMISSED
     assert dotation_projet.assiette == 2_000
     if dotation_projet.dotation == DOTATION_DSIL:
         assert dotation_projet.detr_avis_commission is None
@@ -117,17 +124,17 @@ def test_get_projet_status():
     refused = Dossier(ds_state=Dossier.STATE_REFUSE)
     dismissed = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
 
-    assert DotationProjetService.get_projet_status(accepted) == Projet.STATUS_ACCEPTED
+    assert DotationProjetService.get_projet_status(accepted) == PROJET_STATUS_ACCEPTED
     assert (
         DotationProjetService.get_projet_status(en_construction)
-        == Projet.STATUS_PROCESSING
+        == PROJET_STATUS_PROCESSING
     )
     assert (
         DotationProjetService.get_projet_status(en_instruction)
-        == Projet.STATUS_PROCESSING
+        == PROJET_STATUS_PROCESSING
     )
-    assert DotationProjetService.get_projet_status(refused) == Projet.STATUS_REFUSED
-    assert DotationProjetService.get_projet_status(dismissed) == Projet.STATUS_DISMISSED
+    assert DotationProjetService.get_projet_status(refused) == PROJET_STATUS_REFUSED
+    assert DotationProjetService.get_projet_status(dismissed) == PROJET_STATUS_DISMISSED
 
     dossier_unknown = Dossier(ds_state="unknown_state")
     assert DotationProjetService.get_projet_status(dossier_unknown) is None

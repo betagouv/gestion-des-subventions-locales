@@ -14,7 +14,13 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     ProgrammationProjetFactory,
 )
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
 from gsl_projet.models import DotationProjet
 from gsl_projet.tasks import (
     create_all_projets_from_dossiers,
@@ -74,7 +80,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     )
     projet = ProjetFactory(dossier_ds=dossier)
     detr_dotation_projet = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=DotationProjet.STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
 
     create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(
@@ -85,14 +91,14 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     assert dotation_projets.count() == 2
 
     detr_dotation_projet.refresh_from_db()
-    assert detr_dotation_projet.status == DotationProjet.STATUS_ACCEPTED
+    assert detr_dotation_projet.status == PROJET_STATUS_ACCEPTED
 
     new_dotation_projets = dotation_projets.exclude(pk=detr_dotation_projet.pk)
     assert new_dotation_projets.count() == 1
     dotation_projet = new_dotation_projets.first()
     assert dotation_projet.dotation == DOTATION_DSIL
     assert dotation_projet.assiette is None
-    assert dotation_projet.status == DotationProjet.STATUS_PROCESSING
+    assert dotation_projet.status == PROJET_STATUS_PROCESSING
 
     for simulation_projet in projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
@@ -117,7 +123,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     )
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=DotationProjet.STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
     SimulationProjetFactory.create_batch(
         2,
@@ -139,7 +145,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     dotation_projet = dotation_projets.first()
     assert dotation_projet.dotation == DOTATION_DETR
     assert dotation_projet.assiette is None
-    assert dotation_projet.status == DotationProjet.STATUS_PROCESSING
+    assert dotation_projet.status == PROJET_STATUS_PROCESSING
 
     for simulation_projet in projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
@@ -165,7 +171,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     )
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=DotationProjet.STATUS_REFUSED
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_REFUSED
     )
     SimulationProjetFactory.create_batch(
         2,
@@ -191,7 +197,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     dotation_projet = dotation_projets.first()
     assert dotation_projet.dotation == DOTATION_DETR
     assert dotation_projet.assiette == 50_000
-    assert dotation_projet.status == DotationProjet.STATUS_ACCEPTED
+    assert dotation_projet.status == PROJET_STATUS_ACCEPTED
 
     for simulation_projet in projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
@@ -215,7 +221,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     )
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=DotationProjet.STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
     SimulationProjetFactory.create_batch(
         2,
@@ -242,7 +248,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     dotation_projet = dotation_projets.first()
     assert dotation_projet.dotation == DOTATION_DETR
     assert dotation_projet.assiette is None
-    assert dotation_projet.status == DotationProjet.STATUS_REFUSED
+    assert dotation_projet.status == PROJET_STATUS_REFUSED
 
     for simulation_projet in projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_REFUSED

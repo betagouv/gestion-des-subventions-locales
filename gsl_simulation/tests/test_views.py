@@ -26,7 +26,12 @@ from gsl_programmation.tests.factories import (
     DsilEnveloppeFactory,
     ProgrammationProjetFactory,
 )
-from gsl_projet.constants import DOTATION_DETR
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.tests.factories import (
@@ -611,7 +616,7 @@ def client_with_user_logged(collegue):
 @pytest.fixture
 def simulation_projet(collegue, detr_enveloppe) -> SimulationProjet:
     dotation_projet = DotationProjetFactory(
-        status=DotationProjet.STATUS_PROCESSING,
+        status=PROJET_STATUS_PROCESSING,
         projet__perimetre=collegue.perimetre,
         dotation=DOTATION_DETR,
     )
@@ -646,7 +651,7 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
 
     assert response.status_code == 200
     assert updated_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
-    assert dotation_projet.status == Projet.STATUS_ACCEPTED
+    assert dotation_projet.status == PROJET_STATUS_ACCEPTED
     assert "1 projet validé" in response.content.decode()
     assert "0 projet refusé" in response.content.decode()
     assert "0 projet notifié" in response.content.decode()
@@ -677,7 +682,7 @@ def test_patch_status_simulation_projet_with_refused_value_with_htmx(
 
     assert response.status_code == 200
     assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
-    assert dotation_projet.status == Projet.STATUS_REFUSED
+    assert dotation_projet.status == PROJET_STATUS_REFUSED
     assert "0 projet validé" in response.content.decode()
     assert "1 projet refusé" in response.content.decode()
     assert "0 projet notifié" in response.content.decode()
@@ -723,7 +728,7 @@ def test_patch_status_simulation_projet_with_refused_value_giving_message(
 ):
     if status == SimulationProjet.STATUS_PROCESSING:
         simulation_projet.status = SimulationProjet.STATUS_ACCEPTED
-        simulation_projet.dotation_projet.status = Projet.STATUS_ACCEPTED
+        simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
         simulation_projet.dotation_projet.save()
         simulation_projet.save()
 
@@ -770,7 +775,7 @@ def test_patch_status_simulation_projet_invalid_status(
 @pytest.fixture
 def accepted_simulation_projet(collegue, detr_enveloppe) -> SimulationProjet:
     dotation_projet = DotationProjetFactory(
-        status=DotationProjet.STATUS_PROCESSING,
+        status=PROJET_STATUS_PROCESSING,
         assiette=10_000,
         projet__assiette=10_000,
         projet__perimetre=collegue.perimetre,

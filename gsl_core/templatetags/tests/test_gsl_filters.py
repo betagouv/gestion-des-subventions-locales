@@ -9,7 +9,12 @@ from gsl_core.templatetags.gsl_filters import (
     percent,
     remove_first_word,
 )
-from gsl_projet.models import Projet
+from gsl_projet.constants import (
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
 from gsl_projet.views import ProjetListView
 
 
@@ -36,10 +41,10 @@ def test_remove_first_word():
     assert remove_first_word("Single") == ""
 
     mapping = ProjetListView.STATE_MAPPINGS
-    assert remove_first_word(mapping[Projet.STATUS_ACCEPTED]) == "Accepté"
-    assert remove_first_word(mapping[Projet.STATUS_REFUSED]) == "Refusé"
-    assert remove_first_word(mapping[Projet.STATUS_DISMISSED]) == "Classé sans suite"
-    assert remove_first_word(mapping[Projet.STATUS_PROCESSING]) == "En traitement"
+    assert remove_first_word(mapping[PROJET_STATUS_ACCEPTED]) == "Accepté"
+    assert remove_first_word(mapping[PROJET_STATUS_REFUSED]) == "Refusé"
+    assert remove_first_word(mapping[PROJET_STATUS_DISMISSED]) == "Classé sans suite"
+    assert remove_first_word(mapping[PROJET_STATUS_PROCESSING]) == "En traitement"
 
 
 def test_create_alert_data():

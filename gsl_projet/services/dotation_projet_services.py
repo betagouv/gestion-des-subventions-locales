@@ -1,7 +1,14 @@
 from decimal import Decimal, InvalidOperation
 
 from gsl_demarches_simplifiees.models import Dossier
-from gsl_projet.constants import DOTATION_DSIL, POSSIBLE_DOTATIONS
+from gsl_projet.constants import (
+    DOTATION_DSIL,
+    POSSIBLE_DOTATIONS,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.projet_services import ProjetService
 
@@ -47,11 +54,11 @@ class DotationProjetService:
         return dotation_projet
 
     DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS = {
-        Dossier.STATE_ACCEPTE: DotationProjet.STATUS_ACCEPTED,
-        Dossier.STATE_EN_CONSTRUCTION: DotationProjet.STATUS_PROCESSING,
-        Dossier.STATE_EN_INSTRUCTION: DotationProjet.STATUS_PROCESSING,
-        Dossier.STATE_REFUSE: DotationProjet.STATUS_REFUSED,
-        Dossier.STATE_SANS_SUITE: DotationProjet.STATUS_DISMISSED,
+        Dossier.STATE_ACCEPTE: PROJET_STATUS_ACCEPTED,
+        Dossier.STATE_EN_CONSTRUCTION: PROJET_STATUS_PROCESSING,
+        Dossier.STATE_EN_INSTRUCTION: PROJET_STATUS_PROCESSING,
+        Dossier.STATE_REFUSE: PROJET_STATUS_REFUSED,
+        Dossier.STATE_SANS_SUITE: PROJET_STATUS_DISMISSED,
     }
 
     @classmethod
