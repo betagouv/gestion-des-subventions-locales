@@ -139,6 +139,12 @@ class Projet(models.Model):
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT, null=True)
     perimetre = models.ForeignKey(Perimetre, on_delete=models.PROTECT, null=True)
 
+    status = models.CharField(
+        verbose_name="Statut",
+        choices=PROJET_STATUS_CHOICES,
+        default=PROJET_STATUS_PROCESSING,
+    )
+
     # TODO pr_dotation remove this
     assiette = models.DecimalField(
         "Assiette subventionnable",
