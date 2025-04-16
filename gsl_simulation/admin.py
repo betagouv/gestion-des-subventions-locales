@@ -101,18 +101,39 @@ class SimulationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 class SimulationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = (
         "__str__",
-        "projet__dossier_ds__projet_intitule",
-        "simulation__slug",
+        "intitule",
+        "simulation",
         "status",
     )
-    search_fields = ("projet__dossier_ds__projet_intitule",)
-    raw_id_fields = ("projet", "simulation")
+    search_fields = ("dotation_projet__projet__dossier_ds__projet_intitule",)
+    raw_id_fields = (
+        "dotation_projet",
+        "simulation",
+    )
+    fields = (
+        "dotation_projet",
+        "projet",
+        "simulation",
+        "montant",
+        "taux",
+        "status",
+        "created_at",
+        "updated_at",
+    )
+    readonly_fields = (
+        "projet",
+        "created_at",
+        "updated_at",
+    )
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         qs = (
-            qs.select_related("projet")
-            .select_related("projet__dossier_ds")
+            qs.select_related("dotation_projet__projet")
+            .select_related("dotation_projet__projet__dossier_ds")
             .select_related("simulation")
         )
         return qs
+
+    def intitule(self, obj):
+        return obj.dotation_projet.projet.dossier_ds.projet_intitule

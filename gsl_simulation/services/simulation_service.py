@@ -58,10 +58,10 @@ class SimulationService:
         )
         return (
             qs.filter(
-                simulationprojet__simulation=simulation,
-                simulationprojet__status__in=statuses_to_include,
-            ).aggregate(Sum("simulationprojet__montant"))[
-                "simulationprojet__montant__sum"
+                dotationprojet__simulationprojet__simulation=simulation,
+                dotationprojet__simulationprojet__status__in=statuses_to_include,
+            ).aggregate(Sum("dotationprojet__simulationprojet__montant"))[
+                "dotationprojet__simulationprojet__montant__sum"
             ]
             or 0.0
         )

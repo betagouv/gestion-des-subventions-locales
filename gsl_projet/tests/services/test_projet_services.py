@@ -15,7 +15,7 @@ from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import Projet
 from gsl_projet.services.projet_services import ProjetService
-from gsl_projet.tests.factories import ProjetFactory
+from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_simulation.models import Simulation
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
@@ -54,14 +54,14 @@ def test_create_projet_from_dossier():
 
 @pytest.fixture
 def simulation() -> Simulation:
-    return SimulationFactory()
+    return SimulationFactory(enveloppe__dotation=DOTATION_DETR)
 
 
 @pytest.fixture
 def projets_with_assiette(simulation):
     for amount in (10_000, 20_000, 30_000):
-        p = ProjetFactory(assiette=amount)
-        SimulationProjetFactory(projet=p, simulation=simulation)
+        dp = DotationProjetFactory(assiette=amount, dotation=DOTATION_DETR)
+        SimulationProjetFactory(dotation_projet=dp, simulation=simulation)
 
 
 @pytest.fixture
@@ -69,18 +69,18 @@ def projets_without_assiette_but_finance_cout_total_from_dossier_ds(
     simulation,
 ):
     for amount in (15_000, 25_000):
-        p = ProjetFactory(
+        dp = DotationProjetFactory(
             dossier_ds__finance_cout_total=amount,
             assiette=None,
         )
 
-        SimulationProjetFactory(projet=p, simulation=simulation)
+        SimulationProjetFactory(dotation_projet=dp, simulation=simulation)
 
 
 @pytest.fixture
 def projets_with_assiette_but_not_in_simulation():
-    p = ProjetFactory(assiette=50_000)
-    SimulationProjetFactory(projet=p)
+    dp = DotationProjetFactory(assiette=50_000, dotation=DOTATION_DETR)
+    SimulationProjetFactory(dotation_projet=dp)
 
 
 @pytest.mark.django_db

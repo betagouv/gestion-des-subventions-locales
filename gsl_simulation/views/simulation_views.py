@@ -11,7 +11,7 @@ from django_filters.views import FilterView
 from gsl_core.models import Perimetre
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.services.enveloppe_service import EnveloppeService
-from gsl_projet.models import Projet
+from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
 from gsl_projet.utils.filter_utils import FilterUtils
@@ -204,11 +204,20 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
     def get_projet_queryset(self):
         simulation = self.get_object()
         qs = self.get_filterset(self.filterset_class).qs
-        qs = qs.filter(simulationprojet__simulation=simulation)
-        qs = qs.select_related("address", "address__commune")
+        qs = qs.filter(dotationprojet__simulationprojet__simulation=simulation)
+        qs = qs.select_related("demandeur", "address", "address__commune")
         qs = qs.prefetch_related(
             Prefetch(
-                "simulationprojet_set",
+                "dotationprojet_set",
+                queryset=DotationProjet.objects.filter(
+                    dotation=simulation.enveloppe.dotation
+                ),
+                to_attr="dotation_projet",
+            )
+        )  # TODO pr_dotation test
+        qs = qs.prefetch_related(
+            Prefetch(
+                "dotation_projet__simulationprojet_set",
                 queryset=SimulationProjet.objects.filter(simulation=simulation),
                 to_attr="simu",
             )

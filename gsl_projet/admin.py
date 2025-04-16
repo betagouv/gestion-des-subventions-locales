@@ -51,7 +51,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     actions = ("refresh_from_dossier",)
     inlines = [
         DotationProjetInline,
-        SimulationProjetInline,
+        # SimulationProjetInline,
     ]
 
     def get_queryset(self, request):

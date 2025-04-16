@@ -784,7 +784,6 @@ def accepted_simulation_projet(collegue, detr_enveloppe) -> SimulationProjet:
 
     return SimulationProjetFactory(
         dotation_projet=dotation_projet,
-        projet=dotation_projet.projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=1_000,
         taux=0.5,
@@ -806,7 +805,7 @@ def test_patch_taux_simulation_projet(
         headers={"HX-Request": "true"},
     )
 
-    updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
+    updated_simulation_projet = SimulationProjet.objects.get(
         id=accepted_simulation_projet.id
     )
 
