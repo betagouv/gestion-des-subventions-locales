@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Count
 
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_simulation.models import SimulationProjet
@@ -23,18 +24,28 @@ class SimulationProjetInline(admin.TabularInline):
     model = SimulationProjet
     extra = 0
     show_change_link = True
-    readonly_fields = [
+    fields = [
         "simulation",
-        "projet",
         "montant",
         "taux",
         "status",
+        "created_at",
+        "updated_at",
+    ]
+    readonly_fields = [
+        "simulation",
+        "montant",
+        "taux",
+        "status",
+        "created_at",
+        "updated_at",
     ]
 
 
 @admin.register(Projet)
 class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("address", "departement", "demandeur", "dossier_ds")
+    # TODO pr_dotation add dotations list
     list_display = ("__str__", "status", "address", "departement")
     list_filter = ("status", "departement")
     actions = ("refresh_from_dossier",)
@@ -54,3 +65,21 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
         for projet in queryset.select_related("dossier_ds"):
             update_projet_from_dossier.delay(projet.dossier_ds.ds_number)
+
+
+@admin.register(DotationProjet)
+class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    raw_id_fields = ("projet",)
+    list_display = ("id", "projet", "dotation", "status", "simulation_count")
+    list_filter = ("dotation", "status")
+    inlines = [SimulationProjetInline]
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.annotate(simulation_count=Count("simulationprojet"))
+        qs = qs.select_related("projet")
+        qs = qs.prefetch_related("simulationprojet_set")
+        return qs
+
+    def simulation_count(self, obj):
+        return obj.simulation_count
