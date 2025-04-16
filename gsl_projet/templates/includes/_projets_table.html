@@ -95,7 +95,7 @@
                         </ul>
                     </td>
                     <td class="projet_status__{{ projet.status }}">
-                        <b>{{ projet.status|get_projet_status_display }}</b>
+                        <b>{{ projet.get_status_display }}</b>
                     </td>
                     <td class="fr-cell--right">
                         <a class="fr-btn--tertiary-no-outline gsl-no-underline"

@@ -200,7 +200,9 @@ def test_accept_with_an_dotation_enveloppe_different_from_the_dotation():
 
 
 def test_refusing_a_dotation_projet_creates_one_programmation_projet():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_PROCESSING)
+    dotation_projet = DotationProjetFactory(
+        status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
+    )
     assert dotation_projet.status == PROJET_STATUS_PROCESSING
     assert dotation_projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
 

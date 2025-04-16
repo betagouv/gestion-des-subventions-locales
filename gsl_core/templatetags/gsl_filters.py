@@ -4,7 +4,6 @@ from decimal import Decimal
 from django import template
 from django.template.defaultfilters import floatformat
 
-from gsl_projet.constants import PROJET_STATUS_CHOICES
 from gsl_simulation.models import SimulationProjet
 
 register = template.Library()
@@ -31,14 +30,6 @@ def euro(value, decimals=0):
 def remove_first_word(value):
     parts = value.split(" ", 1)
     return parts[1] if len(parts) > 1 else ""
-
-
-STATUS_TO_DISPLAYED_STATUS = dict(PROJET_STATUS_CHOICES)
-
-
-@register.filter
-def get_projet_status_display(value):
-    return STATUS_TO_DISPLAYED_STATUS.get(value, value)
 
 
 STATUS_TO_ALERT_TITLE = {
