@@ -114,7 +114,12 @@ class ProjetQuerySet(models.QuerySet):
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
     def get_queryset(self):
-        return super().get_queryset().select_related("dossier_ds")
+        return (
+            super()
+            .get_queryset()
+            .select_related("dossier_ds")
+            .prefetch_related("dotationprojet_set")
+        )
 
 
 class Projet(models.Model):
@@ -135,9 +140,6 @@ class Projet(models.Model):
         (STATUS_PROCESSING, "🔄 En traitement"),
         (STATUS_DISMISSED, "⛔️ Classé sans suite"),
     )
-    # TODO pr_dotation remove this
-    # TODO put back protected=True, once every status transition is handled
-    status = FSMField("Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING)
 
     # TODO pr_dotation remove this
     assiette = models.DecimalField(
@@ -223,6 +225,21 @@ class Projet(models.Model):
     @property
     def first_dotation_projet(self):
         return self.dotationprojet_set.first()
+
+    @property
+    def status(self):
+        dotation_projets = self.dotationprojet_set.all()
+        if not dotation_projets:
+            return None
+        if any(dp.status == DotationProjet.STATUS_ACCEPTED for dp in dotation_projets):
+            return DotationProjet.STATUS_ACCEPTED
+        if any(
+            dp.status == DotationProjet.STATUS_PROCESSING for dp in dotation_projets
+        ):
+            return DotationProjet.STATUS_PROCESSING
+        if any(dp.status == DotationProjet.STATUS_REFUSED for dp in dotation_projets):
+            return DotationProjet.STATUS_REFUSED
+        return DotationProjet.STATUS_DISMISSED
 
     def get_taux_de_subvention_sollicite(self):
         if (

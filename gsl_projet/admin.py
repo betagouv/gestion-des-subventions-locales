@@ -30,7 +30,7 @@ class SimulationProjetInline(admin.TabularInline):
 class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("address", "departement", "demandeur", "dossier_ds")
     list_display = ("__str__", "status", "address", "departement")
-    list_filter = ("status", "departement")
+    list_filter = ("departement",)
     actions = ("refresh_from_dossier",)
     inlines = [
         SimulationProjetInline,

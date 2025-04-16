@@ -68,7 +68,6 @@ def detr_projets(departement_perimetre, arrondissement_perimetre):
             state
         ]
         projet = ProjetFactory(
-            status=status,
             dossier_ds=DossierFactory(
                 demande_montant=montant,
                 demande_dispositif_sollicite=DOTATION_DETR,
@@ -100,7 +99,6 @@ def dsil_projets(departement_perimetre, arrondissement_perimetre):
             state
         ]
         projet = ProjetFactory(
-            status=status,
             dossier_ds=DossierFactory(
                 demande_montant=montant,
                 demande_dispositif_sollicite="DSIL",

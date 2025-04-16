@@ -94,9 +94,8 @@
                             {% endfor %}
                         </ul>
                     </td>
-                    <!-- TODO pr_dotation use a combo of dotation_projet statuses -->
-                    <td class="projet_status__{{ projet.first_dotation_projet.status }}">
-                        <b>{{ projet.first_dotation_projet.get_status_display }}</b>
+                    <td class="projet_status__{{ projet.status }}">
+                        <b>{{ projet.status|get_projet_status_display }}</b>
                     </td>
                     <td class="fr-cell--right">
                         <a class="fr-btn--tertiary-no-outline gsl-no-underline"

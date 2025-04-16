@@ -8,6 +8,9 @@ from gsl_core.tests.factories import (
     DepartementFactory,
     RegionFactory,
 )
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.models import DotationProjet
+from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -372,3 +375,56 @@ def test_get_perimetre_children(
     assert perimetre_departement_76 in children_of_region_normandie
     assert perimetre_departement_14 in children_of_region_normandie
     assert perimetre_arr_lehavre in children_of_region_normandie
+
+
+@pytest.mark.parametrize(
+    "accepted, processing, refused, dismissed, expected_status",
+    (
+        (False, False, False, False, None),
+        (True, False, False, False, DotationProjet.STATUS_ACCEPTED),
+        (False, True, False, False, DotationProjet.STATUS_PROCESSING),
+        (False, False, True, False, DotationProjet.STATUS_REFUSED),
+        (False, False, False, True, DotationProjet.STATUS_DISMISSED),
+        (True, True, False, False, DotationProjet.STATUS_ACCEPTED),
+        (True, False, True, False, DotationProjet.STATUS_ACCEPTED),
+        (True, False, False, True, DotationProjet.STATUS_ACCEPTED),
+        (False, True, True, False, DotationProjet.STATUS_PROCESSING),
+        (False, True, False, True, DotationProjet.STATUS_PROCESSING),
+        (False, False, True, True, DotationProjet.STATUS_REFUSED),
+    ),
+)
+def test_status_mixed_dotations(
+    accepted, processing, refused, dismissed, expected_status
+):
+    projet = ProjetFactory()
+    current_dotation = DOTATION_DETR
+
+    if accepted:
+        DotationProjetFactory(
+            projet=projet,
+            status=DotationProjet.STATUS_ACCEPTED,
+            dotation=current_dotation,
+        )
+        current_dotation = DOTATION_DSIL
+    if processing:
+        DotationProjetFactory(
+            projet=projet,
+            status=DotationProjet.STATUS_PROCESSING,
+            dotation=current_dotation,
+        )
+        current_dotation = DOTATION_DSIL
+    if refused:
+        DotationProjetFactory(
+            projet=projet,
+            status=DotationProjet.STATUS_REFUSED,
+            dotation=current_dotation,
+        )
+        current_dotation = DOTATION_DSIL
+    if dismissed:
+        DotationProjetFactory(
+            projet=projet,
+            status=DotationProjet.STATUS_DISMISSED,
+            dotation=current_dotation,
+        )
+
+    assert projet.status == expected_status
