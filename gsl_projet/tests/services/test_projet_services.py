@@ -14,7 +14,7 @@ from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import Projet
 from gsl_projet.services.projet_services import ProjetService
-from gsl_projet.tests.factories import ProjetFactory
+from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 
 @pytest.mark.django_db
@@ -87,19 +87,25 @@ def test_get_same_total_cost_even_if_there_is_other_projets(
 
 @pytest.mark.django_db
 def test_get_total_amount_granted():
-    projet_1 = ProjetFactory()
-    projet_2 = ProjetFactory()
-    projet_3 = ProjetFactory()
-    _projet_4 = ProjetFactory()
+    dotation_projet_1 = DotationProjetFactory()
+    dotation_projet_2 = DotationProjetFactory()
+    dotation_projet_3 = DotationProjetFactory()
+    _dotation_projet_4 = DotationProjetFactory()
 
     ProgrammationProjetFactory(
-        projet=projet_1, status=ProgrammationProjet.STATUS_ACCEPTED, montant=10_000
+        dotation_projet=dotation_projet_1,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        montant=10_000,
     )
     ProgrammationProjetFactory(
-        projet=projet_2, status=ProgrammationProjet.STATUS_ACCEPTED, montant=20_000
+        dotation_projet=dotation_projet_2,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        montant=20_000,
     )
     ProgrammationProjetFactory(
-        projet=projet_3, status=ProgrammationProjet.STATUS_REFUSED, montant=0
+        dotation_projet=dotation_projet_3,
+        status=ProgrammationProjet.STATUS_REFUSED,
+        montant=0,
     )
 
     qs = Projet.objects.all()

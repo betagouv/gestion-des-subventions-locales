@@ -4,7 +4,7 @@ from django.db import models
 from gsl_core.models import Perimetre
 from gsl_programmation.utils import is_there_less_or_equal_than_0_009_of_difference
 from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.models import DotationProjet
 
 
 class Enveloppe(models.Model):
@@ -95,10 +95,6 @@ class ProgrammationProjet(models.Model):
         (STATUS_REFUSED, "❌ Refusé"),
     )
 
-    # TODO pr_dotation remove this, and remplace it by a property ?
-    projet = models.ForeignKey(
-        Projet, on_delete=models.CASCADE, verbose_name="Projet", null=True
-    )
     dotation_projet = models.OneToOneField(
         DotationProjet,
         on_delete=models.CASCADE,
@@ -136,6 +132,10 @@ class ProgrammationProjet(models.Model):
 
     def __str__(self):
         return f"Projet programmé {self.pk}"
+
+    @property
+    def projet(self):
+        return self.dotation_projet.projet
 
     def clean(self):
         errors = {}

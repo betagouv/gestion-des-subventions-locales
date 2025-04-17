@@ -10,7 +10,7 @@ from gsl_core.tests.factories import (
 )
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
+from gsl_projet.tests.factories import DotationProjetFactory
 
 
 class DsilEnveloppeFactory(DjangoModelFactory):
@@ -26,6 +26,7 @@ class DsilEnveloppeFactory(DjangoModelFactory):
 class DetrEnveloppeFactory(DjangoModelFactory):
     class Meta:
         model = Enveloppe
+        django_get_or_create = ("perimetre", "dotation", "annee")
 
     dotation = DOTATION_DETR
     montant = Faker("random_number", digits=5)
@@ -37,14 +38,12 @@ class ProgrammationProjetFactory(DjangoModelFactory):
     class Meta:
         model = ProgrammationProjet
 
-    # TODO pr_dotation remove this ?
-    projet = SubFactory(ProjetFactory)
     dotation_projet = SubFactory(DotationProjetFactory)
     enveloppe = factory.LazyAttribute(
         lambda obj: DetrEnveloppeFactory(
             perimetre=PerimetreDepartementalFactory(
-                departement=obj.projet.perimetre.departement,
-                region=obj.projet.perimetre.region,
+                departement=obj.dotation_projet.projet.perimetre.departement,
+                region=obj.dotation_projet.projet.perimetre.region,
             )
         )
     )
