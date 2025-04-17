@@ -46,7 +46,9 @@ class DotationProjetService:
             projet=projet,
             dotation=dotation,
             defaults={
-                "status": cls.get_projet_status(projet.dossier_ds),
+                "status": cls.get_dotation_projet_status_from_dossier(
+                    projet.dossier_ds
+                ),
                 "assiette": assiette,
                 "detr_avis_commission": detr_avis_commission,
             },
@@ -62,7 +64,7 @@ class DotationProjetService:
     }
 
     @classmethod
-    def get_projet_status_from_dossier(cls, ds_dossier: Dossier):
+    def get_dotation_projet_status_from_dossier(cls, ds_dossier: Dossier):
         return cls.DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS.get(ds_dossier.ds_state)
 
     @classmethod

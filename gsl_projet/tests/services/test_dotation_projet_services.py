@@ -117,24 +117,36 @@ def test_compute_taux_from_montant():
     assert taux == 20
 
 
-def test_get_projet_status():
+def test_get_dotation_projet_status_from_dossier():
     accepted = Dossier(ds_state=Dossier.STATE_ACCEPTE)
     en_construction = Dossier(ds_state=Dossier.STATE_EN_CONSTRUCTION)
     en_instruction = Dossier(ds_state=Dossier.STATE_EN_INSTRUCTION)
     refused = Dossier(ds_state=Dossier.STATE_REFUSE)
     dismissed = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
 
-    assert DotationProjetService.get_projet_status(accepted) == PROJET_STATUS_ACCEPTED
     assert (
-        DotationProjetService.get_projet_status(en_construction)
+        DotationProjetService.get_dotation_projet_status_from_dossier(accepted)
+        == PROJET_STATUS_ACCEPTED
+    )
+    assert (
+        DotationProjetService.get_dotation_projet_status_from_dossier(en_construction)
         == PROJET_STATUS_PROCESSING
     )
     assert (
-        DotationProjetService.get_projet_status(en_instruction)
+        DotationProjetService.get_dotation_projet_status_from_dossier(en_instruction)
         == PROJET_STATUS_PROCESSING
     )
-    assert DotationProjetService.get_projet_status(refused) == PROJET_STATUS_REFUSED
-    assert DotationProjetService.get_projet_status(dismissed) == PROJET_STATUS_DISMISSED
+    assert (
+        DotationProjetService.get_dotation_projet_status_from_dossier(refused)
+        == PROJET_STATUS_REFUSED
+    )
+    assert (
+        DotationProjetService.get_dotation_projet_status_from_dossier(dismissed)
+        == PROJET_STATUS_DISMISSED
+    )
 
     dossier_unknown = Dossier(ds_state="unknown_state")
-    assert DotationProjetService.get_projet_status(dossier_unknown) is None
+    assert (
+        DotationProjetService.get_dotation_projet_status_from_dossier(dossier_unknown)
+        is None
+    )
