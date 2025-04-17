@@ -6,6 +6,7 @@ from django.views.decorators.http import require_GET
 from django.views.generic import ListView
 from django_filters.views import FilterView
 
+from gsl_projet.constants import PROJET_STATUS_CHOICES
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_filters import ProjetFilters
@@ -116,7 +117,7 @@ class ProjetListView(FilterView, ListView, FilterUtils):
     paginate_by = 25
     filterset_class = ProjetListViewFilters
     template_name = "gsl_projet/projet_list.html"
-    STATE_MAPPINGS = {key: value for key, value in Projet.STATUS_CHOICES}
+    STATE_MAPPINGS = {key: value for key, value in PROJET_STATUS_CHOICES}
 
     def get(self, request, *args, **kwargs):
         if "reset_filters" in request.GET:

@@ -3,7 +3,7 @@ from django.contrib import admin
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_simulation.models import SimulationProjet
 
-from .models import Demandeur, Projet
+from .models import Demandeur, DotationProjet, Projet
 
 
 @admin.register(Demandeur)
@@ -11,6 +11,12 @@ class DemandeurAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("address",)
     list_display = ("name", "address__commune__departement")
     search_fields = ("name", "siret", "address__commune__name")
+
+
+class DotationProjetInline(admin.TabularInline):
+    model = DotationProjet
+    extra = 0
+    show_change_link = True
 
 
 class SimulationProjetInline(admin.TabularInline):
@@ -33,6 +39,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_filter = ("status", "departement")
     actions = ("refresh_from_dossier",)
     inlines = [
+        DotationProjetInline,
         SimulationProjetInline,
     ]
 

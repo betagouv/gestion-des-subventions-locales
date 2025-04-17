@@ -10,7 +10,16 @@ from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
-from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.constants import (
+    DOTATION_CHOICES,
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_CHOICES,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
 
 if TYPE_CHECKING:
     from gsl_programmation.models import Enveloppe
@@ -114,7 +123,12 @@ class ProjetQuerySet(models.QuerySet):
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
     def get_queryset(self):
-        return super().get_queryset().select_related("dossier_ds")
+        return (
+            super()
+            .get_queryset()
+            .select_related("dossier_ds")
+            .prefetch_related("dotationprojet_set")
+        )
 
 
 class Projet(models.Model):
@@ -125,19 +139,11 @@ class Projet(models.Model):
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT, null=True)
     perimetre = models.ForeignKey(Perimetre, on_delete=models.PROTECT, null=True)
 
-    STATUS_ACCEPTED = "accepted"
-    STATUS_REFUSED = "refused"
-    STATUS_PROCESSING = "processing"
-    STATUS_DISMISSED = "dismissed"
-    STATUS_CHOICES = (
-        (STATUS_ACCEPTED, "✅ Accepté"),
-        (STATUS_REFUSED, "❌ Refusé"),
-        (STATUS_PROCESSING, "🔄 En traitement"),
-        (STATUS_DISMISSED, "⛔️ Classé sans suite"),
+    status = models.CharField(
+        verbose_name="Statut",
+        choices=PROJET_STATUS_CHOICES,
+        default=PROJET_STATUS_PROCESSING,
     )
-    # TODO pr_dotation remove this
-    # TODO put back protected=True, once every status transition is handled
-    status = FSMField("Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING)
 
     # TODO pr_dotation remove this
     assiette = models.DecimalField(
@@ -210,7 +216,7 @@ class Projet(models.Model):
 
     @property
     def is_asking_for_detr(self) -> bool:
-        return DOTATION_DETR in self.dossier_ds.demande_dispositif_sollicite
+        return self.dotationprojet_set.filter(dotation=DOTATION_DETR).exists()
 
     @property
     def categorie_doperation(self):
@@ -235,101 +241,14 @@ class Projet(models.Model):
         if self.assiette > 0:
             return int(100 * self.assiette / self.dossier_ds.finance_cout_total)
 
-    # TODO pr_dotation move transition to DotationProjet
-    @transition(field=status, source="*", target=STATUS_ACCEPTED)
-    def accept(self, montant: float, enveloppe: "Enveloppe"):
-        from gsl_programmation.models import ProgrammationProjet
-        from gsl_programmation.services.enveloppe_service import EnveloppeService
-        from gsl_projet.services.projet_services import ProjetService
-        from gsl_simulation.models import SimulationProjet
-
-        taux = ProjetService.compute_taux_from_montant(self, montant)
-
-        SimulationProjet.objects.filter(projet=self).update(
-            status=SimulationProjet.STATUS_ACCEPTED,
-            montant=montant,
-            taux=taux,
-        )
-
-        parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
-
-        ProgrammationProjet.objects.update_or_create(
-            projet=self,
-            enveloppe=parent_enveloppe,
-            defaults={
-                "montant": montant,
-                "taux": taux,
-                "status": ProgrammationProjet.STATUS_ACCEPTED,
-            },
-        )
-
-    @transition(field=status, source="*", target=STATUS_REFUSED)
-    def refuse(self, enveloppe: "Enveloppe"):
-        from gsl_programmation.models import ProgrammationProjet
-        from gsl_programmation.services.enveloppe_service import EnveloppeService
-        from gsl_simulation.models import SimulationProjet
-
-        SimulationProjet.objects.filter(projet=self).update(
-            status=SimulationProjet.STATUS_REFUSED,
-            montant=0,
-            taux=0,
-        )
-
-        parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
-
-        ProgrammationProjet.objects.update_or_create(
-            projet=self,
-            enveloppe=parent_enveloppe,
-            defaults={
-                "montant": 0,
-                "taux": 0,
-                "status": ProgrammationProjet.STATUS_REFUSED,
-            },
-        )
-
-    @transition(
-        field=status,
-        source=[STATUS_ACCEPTED, STATUS_REFUSED, STATUS_DISMISSED],
-        target=STATUS_PROCESSING,
-    )
-    def set_back_status_to_processing(self):
-        from gsl_programmation.models import ProgrammationProjet
-        from gsl_simulation.models import SimulationProjet
-
-        SimulationProjet.objects.filter(projet=self).update(
-            status=SimulationProjet.STATUS_PROCESSING,
-        )
-
-        ProgrammationProjet.objects.filter(projet=self).delete()
-
-    @transition(field=status, source="*", target=STATUS_DISMISSED)
-    def dismiss(self):
-        from gsl_programmation.models import ProgrammationProjet
-        from gsl_simulation.models import SimulationProjet
-
-        SimulationProjet.objects.filter(projet=self).update(
-            status=SimulationProjet.STATUS_DISMISSED, montant=0, taux=0
-        )
-
-        ProgrammationProjet.objects.filter(projet=self).delete()
-
 
 class DotationProjet(models.Model):
-    STATUS_ACCEPTED = "accepted"
-    STATUS_REFUSED = "refused"
-    STATUS_PROCESSING = "processing"
-    STATUS_DISMISSED = "dismissed"
-    STATUS_CHOICES = (
-        (STATUS_ACCEPTED, "✅ Accepté"),
-        (STATUS_REFUSED, "❌ Refusé"),
-        (STATUS_PROCESSING, "🔄 En traitement"),
-        (STATUS_DISMISSED, "⛔️ Classé sans suite"),
-    )
-
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
     dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
     # TODO pr_dotation put back protected=True, once every status transition is handled
-    status = FSMField("Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING)
+    status = FSMField(
+        "Statut", choices=PROJET_STATUS_CHOICES, default=PROJET_STATUS_PROCESSING
+    )
     assiette = models.DecimalField(
         "Assiette subventionnable",
         max_digits=12,
@@ -369,14 +288,17 @@ class DotationProjet(models.Model):
             return self.assiette
         return self.dossier_ds.finance_cout_total
 
-    @transition(field=status, source="*", target=STATUS_ACCEPTED)
+    @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
     def accept(self, montant: float, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_programmation.services.enveloppe_service import EnveloppeService
         from gsl_projet.services.projet_services import ProjetService
         from gsl_simulation.models import SimulationProjet
 
-        # TODO pr_dotation test enveloppe.dotation == self.dotation ??
+        if self.dotation != enveloppe.dotation:
+            raise ValidationError(
+                "La dotation du projet et de l'enveloppe ne correspondent pas."
+            )
 
         taux = ProjetService.compute_taux_from_montant(self, montant)
 
@@ -398,11 +320,16 @@ class DotationProjet(models.Model):
             },
         )
 
-    @transition(field=status, source="*", target=STATUS_REFUSED)
+    @transition(field=status, source="*", target=PROJET_STATUS_REFUSED)
     def refuse(self, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_programmation.services.enveloppe_service import EnveloppeService
         from gsl_simulation.models import SimulationProjet
+
+        if self.dotation != enveloppe.dotation:
+            raise ValidationError(
+                "La dotation du projet et de l'enveloppe ne correspondent pas."
+            )
 
         SimulationProjet.objects.filter(dotation_projet=self).update(
             status=SimulationProjet.STATUS_REFUSED,
@@ -422,7 +349,7 @@ class DotationProjet(models.Model):
             },
         )
 
-    @transition(field=status, source="*", target=STATUS_DISMISSED)
+    @transition(field=status, source="*", target=PROJET_STATUS_DISMISSED)
     def dismiss(self):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
@@ -435,8 +362,8 @@ class DotationProjet(models.Model):
 
     @transition(
         field=status,
-        source=[STATUS_ACCEPTED, STATUS_REFUSED, STATUS_DISMISSED],
-        target=STATUS_PROCESSING,
+        source=[PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED],
+        target=PROJET_STATUS_PROCESSING,
     )
     def set_back_status_to_processing(self):
         from gsl_programmation.models import ProgrammationProjet

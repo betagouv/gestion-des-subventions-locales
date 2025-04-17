@@ -4,6 +4,8 @@ from decimal import Decimal
 from django import template
 from django.template.defaultfilters import floatformat
 
+from gsl_simulation.models import SimulationProjet
+
 register = template.Library()
 
 
@@ -31,11 +33,11 @@ def remove_first_word(value):
 
 
 STATUS_TO_ALERT_TITLE = {
-    "valid": "Projet accepté",
-    "cancelled": "Projet refusé",
-    "provisoire": "Projet accepté provisoirement",
-    "dismissed": "Projet classé sans suite",
-    "draft": "Projet en traitement",
+    SimulationProjet.STATUS_ACCEPTED: "Projet accepté",
+    SimulationProjet.STATUS_REFUSED: "Projet refusé",
+    SimulationProjet.STATUS_PROVISOIRE: "Projet accepté provisoirement",
+    SimulationProjet.STATUS_DISMISSED: "Projet classé sans suite",
+    SimulationProjet.STATUS_PROCESSING: "Projet en traitement",
 }
 
 

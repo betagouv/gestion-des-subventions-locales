@@ -294,23 +294,6 @@ def test_compute_taux_from_montant_with_various_cout_total(
     assert taux == round(Decimal(expected_taux), 2)
 
 
-def test_get_projet_status():
-    accepted = Dossier(ds_state=Dossier.STATE_ACCEPTE)
-    en_construction = Dossier(ds_state=Dossier.STATE_EN_CONSTRUCTION)
-    en_instruction = Dossier(ds_state=Dossier.STATE_EN_INSTRUCTION)
-    refused = Dossier(ds_state=Dossier.STATE_REFUSE)
-    dismissed = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
-
-    assert ProjetService.get_projet_status(accepted) == Projet.STATUS_ACCEPTED
-    assert ProjetService.get_projet_status(en_construction) == Projet.STATUS_PROCESSING
-    assert ProjetService.get_projet_status(en_instruction) == Projet.STATUS_PROCESSING
-    assert ProjetService.get_projet_status(refused) == Projet.STATUS_REFUSED
-    assert ProjetService.get_projet_status(dismissed) == Projet.STATUS_DISMISSED
-
-    dossier_unknown = Dossier(ds_state="unknown_state")
-    assert ProjetService.get_projet_status(dossier_unknown) is None
-
-
 @pytest.mark.parametrize(
     "taux, should_raise_exception",
     [
