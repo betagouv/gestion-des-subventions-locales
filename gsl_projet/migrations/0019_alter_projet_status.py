@@ -2,38 +2,6 @@
 
 from django.db import migrations, models
 
-from gsl_projet.constants import (
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
-)
-from gsl_projet.signals import get_projet_status
-
-
-def initialize_projet_status(apps, schema_editor):
-    Projet = apps.get_model("gsl_projet", "Projet")
-    DotationProjet = apps.get_model("gsl_projet", "DotationProjet")
-    for projet in Projet.objects.all():
-        status = None
-        projet_dotation_projets = DotationProjet.objects.filter(projet=projet)
-
-        if not projet_dotation_projets:
-            continue
-        elif any(dp.status == PROJET_STATUS_ACCEPTED for dp in projet_dotation_projets):
-            status = PROJET_STATUS_ACCEPTED
-        elif any(
-            dp.status == PROJET_STATUS_PROCESSING for dp in projet_dotation_projets
-        ):
-            status = PROJET_STATUS_PROCESSING
-        elif any(dp.status == PROJET_STATUS_REFUSED for dp in projet_dotation_projets):
-            status = PROJET_STATUS_REFUSED
-        else:
-            status = PROJET_STATUS_DISMISSED
-
-        projet.status = status
-        projet.save()
-
 
 class Migration(migrations.Migration):
     dependencies = [
@@ -54,8 +22,5 @@ class Migration(migrations.Migration):
                 default="processing",
                 verbose_name="Statut",
             ),
-        ),
-        migrations.RunPython(
-            initialize_projet_status, reverse_code=migrations.RunPython.noop
         ),
     ]
