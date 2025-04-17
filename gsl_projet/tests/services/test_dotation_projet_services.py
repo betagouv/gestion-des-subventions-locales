@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 
 from gsl_demarches_simplifiees.models import Dossier
@@ -104,17 +106,21 @@ def test_create_or_update_dotation_projet(dotation):
 
 @pytest.mark.django_db
 def test_compute_taux_from_montant():
-    projet = DotationProjetFactory(
+    dotation_projet = DotationProjetFactory(
         projet__dossier_ds__finance_cout_total=100_000,
     )
-    taux = DotationProjetService.compute_taux_from_montant(projet, 10_000)
+    taux = DotationProjetService.compute_taux_from_montant(dotation_projet, 10_000)
     assert taux == 10
 
-    projet = DotationProjetFactory(
+    dotation_projet = DotationProjetFactory(
         assiette=50_000,
     )
-    taux = DotationProjetService.compute_taux_from_montant(projet, 10_000)
+    taux = DotationProjetService.compute_taux_from_montant(dotation_projet, 10_000)
     assert taux == 20
+
+    dotation_projet = DotationProjetFactory()
+    taux = DotationProjetService.compute_taux_from_montant(dotation_projet, 10_000)
+    assert taux == 0
 
 
 def test_get_dotation_projet_status_from_dossier():
@@ -150,3 +156,110 @@ def test_get_dotation_projet_status_from_dossier():
         DotationProjetService.get_dotation_projet_status_from_dossier(dossier_unknown)
         is None
     )
+
+
+@pytest.mark.parametrize(
+    "montant, assiette_or_cout_total, should_raise_exception",
+    [
+        (50, 100, False),  # Valid montant
+        (0, 100, False),  # Valid montant at lower bound
+        (100, 100, False),  # Valid montant at upper bound
+        (-1, 100, True),  # Invalid montant below lower bound
+        (101, 100, True),  # Invalid montant above upper bound
+        (None, 100, True),  # Invalid montant as None
+        ("invalid", 100, True),  # Invalid montant as string
+    ],
+)
+@pytest.mark.django_db
+def test_validate_montant(montant, assiette_or_cout_total, should_raise_exception):
+    dotation_projet_with_assiette = DotationProjetFactory(
+        assiette=assiette_or_cout_total
+    )
+    dotation_projet_without_assiette = DotationProjetFactory(
+        projet__dossier_ds__finance_cout_total=assiette_or_cout_total
+    )
+
+    if should_raise_exception:
+        with pytest.raises(
+            ValueError,
+            match=(
+                f"Montant {montant} must be greatear or equal to 0 and less than or "
+                f"equal to {dotation_projet_with_assiette.assiette_or_cout_total}"
+            ),
+        ):
+            DotationProjetService.validate_montant(
+                montant, dotation_projet_with_assiette
+            )
+
+        with pytest.raises(
+            ValueError,
+            match=(
+                f"Montant {montant} must be greatear or equal to 0 and less than or "
+                f"equal to {dotation_projet_without_assiette.assiette_or_cout_total}"
+            ),
+        ):
+            DotationProjetService.validate_montant(
+                montant, dotation_projet_with_assiette
+            )
+    else:
+        DotationProjetService.validate_montant(montant, dotation_projet_with_assiette)
+        DotationProjetService.validate_montant(
+            montant, dotation_projet_without_assiette
+        )
+
+
+test_data = (
+    (10_000, 30_000, 33.33),
+    (10_000, 0, 0),
+    (10_000, 10_000, 100),
+    (100_000, 10_000, 100),
+    (10_000, -3_000, 0),
+    (0, 0, 0),
+    (Decimal(0), Decimal(0), 0),
+    (0, None, 0),
+    (None, 0, 0),
+    (1_000, None, 0),
+    (None, 4_000, 0),
+)
+
+
+@pytest.mark.parametrize("montant, assiette, expected_taux", test_data)
+@pytest.mark.django_db
+def test_compute_taux_from_montant_with_various_assiettes(
+    assiette, montant, expected_taux
+):
+    dotation_projet = DotationProjetFactory(assiette=assiette)
+    taux = DotationProjetService.compute_taux_from_montant(dotation_projet, montant)
+    assert taux == round(Decimal(expected_taux), 2)
+
+
+@pytest.mark.parametrize("montant, cout_total, expected_taux", test_data)
+@pytest.mark.django_db
+def test_compute_taux_from_montant_with_various_cout_total(
+    cout_total, montant, expected_taux
+):
+    dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__finance_cout_total=cout_total
+    )
+    taux = DotationProjetService.compute_taux_from_montant(dotation_projet, montant)
+    assert taux == round(Decimal(expected_taux), 2)
+
+
+@pytest.mark.parametrize(
+    "taux, should_raise_exception",
+    [
+        (50, False),
+        (0, False),
+        (100, False),
+        (-1, True),
+        (101, True),
+        (None, True),
+        ("invalid", True),
+    ],
+)
+def test_validate_taux(taux, should_raise_exception):
+    if should_raise_exception:
+        with pytest.raises(ValueError, match=f"Taux {taux} must be between 0 and 100"):
+            DotationProjetService.validate_taux(taux)
+    else:
+        DotationProjetService.validate_taux(taux)

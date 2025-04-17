@@ -90,7 +90,7 @@ class SimulationProjetListViewFilters(ProjetFilters):
     )
 
     status = MultipleChoiceFilter(
-        field_name="simulationprojet__status",
+        field_name="dotationprojet__simulationprojet__status",
         choices=order_couples_tuple_by_first_value(
             SimulationProjet.STATUS_CHOICES, ordered_status
         ),
@@ -105,11 +105,11 @@ class SimulationProjetListViewFilters(ProjetFilters):
             # - les projets dont IL EXISTE UN SIMULATION_PROJET (pas forcément celui de la simulation en question) qui a un des statuts sélectionnés
             # - les simulation_projets de la simulation associés aux projets filtrés
             **self._simulation_slug_filter_kwarg(),
-            simulationprojet__status__in=value,
+            dotationprojet__simulationprojet__status__in=value,
         )
 
     montant_previsionnel_min = NumberFilter(
-        field_name="simulationprojet__montant",
+        field_name="dotationprojet__simulationprojet__montant",
         lookup_expr="gte",
         widget=NumberInput(
             attrs={"class": "fr-input", "min": "0"},
@@ -118,7 +118,7 @@ class SimulationProjetListViewFilters(ProjetFilters):
     )
 
     montant_previsionnel_max = NumberFilter(
-        field_name="simulationprojet__montant",
+        field_name="dotationprojet__simulationprojet__montant",
         lookup_expr="lte",
         widget=NumberInput(
             attrs={"class": "fr-input", "min": "0"},
@@ -129,17 +129,17 @@ class SimulationProjetListViewFilters(ProjetFilters):
     def filter_montant_previsionnel_min(self, queryset, name, value):
         return queryset.filter(
             **self._simulation_slug_filter_kwarg(),
-            simulationprojet__montant__gte=value,
+            dotationprojet__simulationprojet__montant__gte=value,
         )
 
     def filter_montant_previsionnel_max(self, queryset, name, value):
         return queryset.filter(
             **self._simulation_slug_filter_kwarg(),
-            simulationprojet__montant__lte=value,
+            dotationprojet__simulationprojet__montant__lte=value,
         )
 
     def _simulation_slug_filter_kwarg(self):
-        return {"simulationprojet__simulation__slug": self.slug}
+        return {"dotationprojet__simulationprojet__simulation__slug": self.slug}
 
 
 class SimulationDetailView(FilterView, DetailView, FilterUtils):

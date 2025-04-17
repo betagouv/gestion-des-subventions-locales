@@ -1,5 +1,4 @@
 from datetime import UTC
-from decimal import Decimal
 
 import pytest
 from django.utils import timezone
@@ -15,9 +14,7 @@ from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import Projet
 from gsl_projet.services.projet_services import ProjetService
-from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
-from gsl_simulation.models import Simulation
-from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
+from gsl_projet.tests.factories import ProjetFactory
 
 
 @pytest.mark.django_db
@@ -53,70 +50,39 @@ def test_create_projet_from_dossier():
 
 
 @pytest.fixture
-def simulation() -> Simulation:
-    return SimulationFactory(enveloppe__dotation=DOTATION_DETR)
-
-
-@pytest.fixture
-def projets_with_assiette(simulation):
-    for amount in (10_000, 20_000, 30_000):
-        dp = DotationProjetFactory(assiette=amount, dotation=DOTATION_DETR)
-        SimulationProjetFactory(dotation_projet=dp, simulation=simulation)
-
-
-@pytest.fixture
-def projets_without_assiette_but_finance_cout_total_from_dossier_ds(
-    simulation,
-):
+def projets_with_finance_cout_total():
+    projets = []
     for amount in (15_000, 25_000):
-        dp = DotationProjetFactory(
-            dossier_ds__finance_cout_total=amount,
-            assiette=None,
+        projets.append(
+            ProjetFactory(
+                dossier_ds__finance_cout_total=amount,
+                assiette=None,
+            )
         )
-
-        SimulationProjetFactory(dotation_projet=dp, simulation=simulation)
+    return projets
 
 
 @pytest.fixture
-def projets_with_assiette_but_not_in_simulation():
-    dp = DotationProjetFactory(assiette=50_000, dotation=DOTATION_DETR)
-    SimulationProjetFactory(dotation_projet=dp)
+def other_projets():
+    ProjetFactory(
+        dossier_ds__finance_cout_total=50_000,
+    )
 
 
 @pytest.mark.django_db
-def test_get_total_cost_with_assiette(simulation, projets_with_assiette):
+def test_get_total_cost(projets_with_finance_cout_total):
     qs = Projet.objects.all()
-    assert ProjetService.get_total_cost(qs) == 60_000
-
-
-@pytest.mark.django_db
-def test_get_total_cost_without_assiette(
-    simulation, projets_without_assiette_but_finance_cout_total_from_dossier_ds
-):
-    qs = Projet.objects.all()
-
     assert ProjetService.get_total_cost(qs) == 40_000
 
 
 @pytest.mark.django_db
-def test_get_total_cost(
-    simulation,
-    projets_with_assiette,
-    projets_without_assiette_but_finance_cout_total_from_dossier_ds,
-):
-    qs = Projet.objects.all()
-    assert ProjetService.get_total_cost(qs) == 100_000
-
-
-@pytest.mark.django_db
 def test_get_same_total_cost_even_if_there_is_other_projets(
-    simulation,
-    projets_with_assiette,
-    projets_without_assiette_but_finance_cout_total_from_dossier_ds,
-    projets_with_assiette_but_not_in_simulation,
+    projets_with_finance_cout_total,
+    other_projets,
 ):
-    qs = Projet.objects.filter(simulationprojet__simulation=simulation).all()
-    assert ProjetService.get_total_cost(qs) == 100_000
+    projet_ids = [projet.id for projet in projets_with_finance_cout_total]
+    qs = Projet.objects.filter(id__in=projet_ids).all()
+    assert ProjetService.get_total_cost(qs) == 40_000
 
 
 @pytest.mark.django_db
@@ -141,33 +107,32 @@ def test_get_total_amount_granted():
 
 
 @pytest.fixture
-def projets_with_dossier_ds__demande_montant_not_in_simulation() -> None:
-    for amount in (10_000, 2_000):
-        p = ProjetFactory(
-            dossier_ds__demande_montant=amount,
+def projets_with_demande_montant() -> list[Projet]:
+    projets = []
+    for amount in (15_000, 25_000):
+        projets.append(
+            ProjetFactory(
+                dossier_ds__demande_montant=amount,
+            )
         )
-        SimulationProjetFactory(projet=p)
+    return projets
 
 
 @pytest.fixture
-def projets_with_dossier_ds__demande_montant_in_simulation(
-    simulation,
-) -> None:
-    for amount in (15_000, 25_000):
-        p = ProjetFactory(
+def other_projets_with_demande_montant() -> None:
+    for amount in (10_000, 2_000):
+        ProjetFactory(
             dossier_ds__demande_montant=amount,
         )
-
-        SimulationProjetFactory(projet=p, simulation=simulation)
 
 
 @pytest.mark.django_db
 def test_get_total_amount_asked(
-    simulation,
-    projets_with_dossier_ds__demande_montant_in_simulation,
-    projets_with_dossier_ds__demande_montant_not_in_simulation,
+    projets_with_demande_montant,
+    other_projets_with_demande_montant,
 ):
-    qs = Projet.objects.filter(simulationprojet__simulation=simulation).all()
+    projet_ids = [projet.id for projet in projets_with_demande_montant]
+    qs = Projet.objects.filter(id__in=projet_ids).all()
     assert ProjetService.get_total_amount_asked(qs) == 15_000 + 25_000
 
 
@@ -243,77 +208,7 @@ def test_add_ordering_to_projets_qs():
     assert list(ordered_qs) == [projet3, projet1, projet2]
 
 
-@pytest.mark.django_db
-def test_compute_taux_from_montant():
-    projet = ProjetFactory(
-        dossier_ds__finance_cout_total=100_000,
-    )
-    taux = ProjetService.compute_taux_from_montant(projet, 10_000)
-    assert taux == 10
-
-
-@pytest.mark.django_db
-def test_compute_taux_from_montant_with_projet_without_finance_cout_total():
-    projet = ProjetFactory()
-    taux = ProjetService.compute_taux_from_montant(projet, 10_000)
-    assert taux == 0
-
-
-test_data = (
-    (10_000, 30_000, 33.33),
-    (10_000, 0, 0),
-    (10_000, 10_000, 100),
-    (100_000, 10_000, 100),
-    (10_000, -3_000, 0),
-    (0, 0, 0),
-    (Decimal(0), Decimal(0), 0),
-    (0, None, 0),
-    (None, 0, 0),
-    (1_000, None, 0),
-    (None, 4_000, 0),
-)
-
-
-@pytest.mark.parametrize("montant, assiette, expected_taux", test_data)
-@pytest.mark.django_db
-def test_compute_taux_from_montant_with_various_assiettes(
-    assiette, montant, expected_taux
-):
-    projet = ProjetFactory(assiette=assiette)
-    taux = ProjetService.compute_taux_from_montant(projet, montant)
-    assert taux == round(Decimal(expected_taux), 2)
-
-
-@pytest.mark.parametrize("montant, cout_total, expected_taux", test_data)
-@pytest.mark.django_db
-def test_compute_taux_from_montant_with_various_cout_total(
-    cout_total, montant, expected_taux
-):
-    projet = ProjetFactory(dossier_ds__finance_cout_total=cout_total)
-    taux = ProjetService.compute_taux_from_montant(projet, montant)
-    assert taux == round(Decimal(expected_taux), 2)
-
-
-@pytest.mark.parametrize(
-    "taux, should_raise_exception",
-    [
-        (50, False),
-        (0, False),
-        (100, False),
-        (-1, True),
-        (101, True),
-        (None, True),
-        ("invalid", True),
-    ],
-)
-def test_validate_taux(taux, should_raise_exception):
-    if should_raise_exception:
-        with pytest.raises(ValueError, match=f"Taux {taux} must be between 0 and 100"):
-            ProjetService.validate_taux(taux)
-    else:
-        ProjetService.validate_taux(taux)
-
-
+# TODO pr_dotattion move this in dotation_projet_services
 @pytest.mark.django_db
 def test_get_avis_commission_detr_with_accepted_state_and_detr_dispositif():
     dossier = DossierFactory(
@@ -368,48 +263,6 @@ def test_get_avis_commission_detr(ds_state, dispositif, expected_result):
         demande_dispositif_sollicite=dispositif,
     )
     assert ProjetService.get_avis_commission_detr(dossier) == expected_result
-
-
-@pytest.mark.parametrize(
-    "montant, assiette_or_cout_total, should_raise_exception",
-    [
-        (50, 100, False),  # Valid montant
-        (0, 100, False),  # Valid montant at lower bound
-        (100, 100, False),  # Valid montant at upper bound
-        (-1, 100, True),  # Invalid montant below lower bound
-        (101, 100, True),  # Invalid montant above upper bound
-        (None, 100, True),  # Invalid montant as None
-        ("invalid", 100, True),  # Invalid montant as string
-    ],
-)
-@pytest.mark.django_db
-def test_validate_montant(montant, assiette_or_cout_total, should_raise_exception):
-    projet_with_assiette = ProjetFactory(assiette=assiette_or_cout_total)
-    projet_without_assiette = ProjetFactory(
-        dossier_ds__finance_cout_total=assiette_or_cout_total
-    )
-
-    if should_raise_exception:
-        with pytest.raises(
-            ValueError,
-            match=(
-                f"Montant {montant} must be greatear or equal to 0 and less than or "
-                f"equal to {projet_with_assiette.assiette_or_cout_total}"
-            ),
-        ):
-            ProjetService.validate_montant(montant, projet_with_assiette)
-
-        with pytest.raises(
-            ValueError,
-            match=(
-                f"Montant {montant} must be greatear or equal to 0 and less than or "
-                f"equal to {projet_without_assiette.assiette_or_cout_total}"
-            ),
-        ):
-            ProjetService.validate_montant(montant, projet_with_assiette)
-    else:
-        ProjetService.validate_montant(montant, projet_with_assiette)
-        ProjetService.validate_montant(montant, projet_without_assiette)
 
 
 @pytest.mark.parametrize(

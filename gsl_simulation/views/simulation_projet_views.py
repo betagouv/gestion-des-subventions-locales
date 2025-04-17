@@ -8,7 +8,7 @@ from django.views.generic import DetailView
 
 from gsl.settings import ALLOWED_HOSTS
 from gsl_projet.forms import ProjetForm
-from gsl_projet.services.projet_services import ProjetService
+from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.services.simulation_projet_service import (
@@ -30,7 +30,7 @@ from gsl_simulation.views.simulation_views import SimulationDetailView
 def patch_taux_simulation_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     new_taux = replace_comma_by_dot(request.POST.get("taux"))
-    ProjetService.validate_taux(new_taux)
+    DotationProjetService.validate_taux(new_taux)
     SimulationProjetService.update_taux(simulation_projet, new_taux)
     return redirect_to_simulation_projet(request, simulation_projet)
 
@@ -41,7 +41,9 @@ def patch_taux_simulation_projet(request, pk):
 def patch_montant_simulation_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     new_montant = replace_comma_by_dot(request.POST.get("montant"))
-    ProjetService.validate_montant(new_montant, simulation_projet.projet)
+    DotationProjetService.validate_montant(
+        new_montant, simulation_projet.dotation_projet
+    )
     SimulationProjetService.update_montant(simulation_projet, new_montant)
     return redirect_to_simulation_projet(request, simulation_projet)
 
@@ -79,9 +81,9 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
         self.simulation_projet = SimulationProjet.objects.select_related(
             "simulation",
             "simulation__enveloppe",
-            "dotation_projet",  # TODO pr_dotation add dotation_projet__projet ?
-            "projet",
-            "projet__dossier_ds",
+            "dotation_projet",
+            "dotation_projet__projet",
+            "dotation_projet__projet__dossier_ds",
         ).get(id=request.resolver_match.kwargs.get("pk"))
         return super().get(request, *args, **kwargs)
 

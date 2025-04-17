@@ -1,8 +1,7 @@
 import logging
-from decimal import Decimal, InvalidOperation
 from typing import Any, Literal
 
-from django.db.models import Case, F, Sum, When
+from django.db.models import Sum
 from django.db.models.query import QuerySet
 
 from gsl_demarches_simplifiees.models import Dossier
@@ -38,14 +37,7 @@ class ProjetService:
 
     @classmethod
     def get_total_cost(cls, projet_qs: QuerySet):
-        projets = projet_qs.annotate(
-            calculed_cost=Case(
-                When(assiette__isnull=False, then=F("assiette")),
-                default=F("dossier_ds__finance_cout_total"),
-            )
-        )
-
-        return projets.aggregate(total=Sum("calculed_cost"))["total"]
+        return projet_qs.aggregate(total=Sum("dossier_ds__finance_cout_total"))["total"]
 
     @classmethod
     def get_total_amount_asked(cls, projet_qs: QuerySet):
@@ -84,41 +76,6 @@ class ProjetService:
         }
 
         return ordering_map.get(ordering, None)
-
-    # TODO pr_dotation remove this
-    @classmethod
-    def compute_taux_from_montant(
-        cls, projet: Projet, new_montant: float | Decimal
-    ) -> Decimal:
-        try:
-            new_taux = round(
-                (Decimal(new_montant) / Decimal(projet.assiette_or_cout_total)) * 100,
-                2,
-            )
-            return max(min(new_taux, Decimal(100)), Decimal(0))
-        except TypeError:
-            return Decimal(0)
-        except ZeroDivisionError:
-            return Decimal(0)
-        except InvalidOperation:
-            return Decimal(0)
-
-    @classmethod
-    def validate_taux(cls, taux: float | Decimal) -> None:
-        if type(taux) not in [float, Decimal, int] or taux < 0 or taux > 100:
-            raise ValueError(f"Taux {taux} must be between 0 and 100")
-
-    @classmethod
-    def validate_montant(cls, montant: float | Decimal, projet: Projet) -> None:
-        if (
-            type(montant) not in [float, Decimal, int]
-            or montant < 0
-            or projet.assiette_or_cout_total is None
-            or montant > projet.assiette_or_cout_total
-        ):
-            raise ValueError(
-                f"Montant {montant} must be greatear or equal to 0 and less than or equal to {projet.assiette_or_cout_total}"
-            )
 
     @classmethod
     def get_avis_commission_detr(cls, ds_dossier: Dossier):

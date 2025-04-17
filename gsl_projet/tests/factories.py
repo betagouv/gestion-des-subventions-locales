@@ -7,7 +7,12 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
-from gsl_projet.constants import DOTATIONS, PROJET_STATUS_CHOICES
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    DOTATIONS,
+    PROJET_STATUS_CHOICES,
+)
 
 from ..models import Demandeur, DotationProjet, Projet
 
@@ -64,3 +69,11 @@ class DotationProjetFactory(factory.django.DjangoModelFactory):
     dotation = factory.fuzzy.FuzzyChoice(DOTATIONS)
     status = factory.fuzzy.FuzzyChoice(choice[0] for choice in PROJET_STATUS_CHOICES)
     detr_avis_commission = factory.Faker("boolean")
+
+
+class DetrProjetFactory(DotationProjetFactory):
+    dotation = DOTATION_DETR
+
+
+class DsilProjetFactory(DotationProjetFactory):
+    dotation = DOTATION_DSIL

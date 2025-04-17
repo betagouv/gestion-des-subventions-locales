@@ -100,7 +100,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     assert dotation_projet.assiette is None
     assert dotation_projet.status == PROJET_STATUS_PROCESSING
 
-    for simulation_projet in projet.simulationprojet_set.all():
+    for simulation_projet in dotation_projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
         assert simulation_projet.montant == 400
         assert simulation_projet.taux == 10
@@ -147,7 +147,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     assert dotation_projet.assiette is None
     assert dotation_projet.status == PROJET_STATUS_PROCESSING
 
-    for simulation_projet in projet.simulationprojet_set.all():
+    for simulation_projet in dotation_projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
         assert simulation_projet.montant == 400
         assert simulation_projet.taux == 10
@@ -199,7 +199,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     assert dotation_projet.assiette == 50_000
     assert dotation_projet.status == PROJET_STATUS_ACCEPTED
 
-    for simulation_projet in projet.simulationprojet_set.all():
+    for simulation_projet in dotation_projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
         assert simulation_projet.montant == 5_000
         assert simulation_projet.taux == 10
@@ -250,7 +250,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
     assert dotation_projet.assiette is None
     assert dotation_projet.status == PROJET_STATUS_REFUSED
 
-    for simulation_projet in projet.simulationprojet_set.all():
+    for simulation_projet in dotation_projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
         assert simulation_projet.montant == 0
         assert simulation_projet.taux == 0
