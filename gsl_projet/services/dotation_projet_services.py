@@ -62,7 +62,7 @@ class DotationProjetService:
     }
 
     @classmethod
-    def get_projet_status(cls, ds_dossier):
+    def get_projet_status_from_dossier(cls, ds_dossier: Dossier):
         return cls.DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS.get(ds_dossier.ds_state)
 
     @classmethod
