@@ -24,6 +24,7 @@ def create_projet_from_valid_dossier(sender, instance: Dossier, *args, **kwargs)
     [post_save, post_delete], sender=DotationProjet, dispatch_uid="update_projet_status"
 )
 def update_projet_status(sender, instance: DotationProjet, **kwargs):
+    """N’a pas été géré par un GeneratedField car est dépendant de champs d’autres modèles"""
     instance.projet.status = get_projet_status(instance)
     instance.projet.save()
 
