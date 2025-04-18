@@ -24,6 +24,7 @@ dependencies = [
     "psycopg[binary]",
     "python-dotenv",
     "redis",
+    "requests",
     "sentry-sdk",
     "whitenoise",
 ]
