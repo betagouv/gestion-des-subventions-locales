@@ -64,7 +64,6 @@ def programmation_projets(perimetre_departemental, detr_enveloppe):
             enveloppe=detr_enveloppe,
             status=ProgrammationProjet.STATUS_REFUSED,
             dotation_projet=dotation_projet,
-            projet=dotation_projet.projet,  # TODO pr_dotation remove this ??
         )
 
     for montant in (200_000, 300_000):
@@ -81,7 +80,6 @@ def programmation_projets(perimetre_departemental, detr_enveloppe):
             status=ProgrammationProjet.STATUS_ACCEPTED,
             montant=montant,
             dotation_projet=dotation_projet,
-            projet=dotation_projet.projet,  # TODO pr_dotation remove this ??
         )
 
 

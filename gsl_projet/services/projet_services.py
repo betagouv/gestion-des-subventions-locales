@@ -51,7 +51,8 @@ class ProjetService:
 
         projet_ids = projet_qs.values_list("pk", flat=True)
         return ProgrammationProjet.objects.filter(
-            projet__in=projet_ids, status=ProgrammationProjet.STATUS_ACCEPTED
+            dotation_projet__projet__in=projet_ids,
+            status=ProgrammationProjet.STATUS_ACCEPTED,
         ).aggregate(total=Sum("montant"))["total"]
 
     @classmethod

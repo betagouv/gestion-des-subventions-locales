@@ -24,7 +24,9 @@ def test_montant_retenu_with_refused_programmation_projet():
     assert projet.montant_retenu is None
 
     ProgrammationProjetFactory(
-        projet=projet, status=ProgrammationProjet.STATUS_REFUSED, montant=0
+        dotation_projet__projet=projet,
+        status=ProgrammationProjet.STATUS_REFUSED,
+        montant=0,
     )
     assert projet.montant_retenu is None
 
@@ -43,7 +45,9 @@ def test_taux_retenu_with_refused_programmation_projet():
     assert projet.taux_retenu is None
 
     ProgrammationProjetFactory(
-        projet=projet, status=ProgrammationProjet.STATUS_REFUSED, taux=0
+        dotation_projet__projet=projet,
+        status=ProgrammationProjet.STATUS_REFUSED,
+        taux=0,
     )
     assert projet.taux_retenu is None
 
