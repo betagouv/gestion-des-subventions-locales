@@ -102,7 +102,7 @@ class ProjetListViewFilters(ProjetFilters):
             "dossier_ds__demande_eligibilite_detr",
             "dossier_ds__demande_eligibilite_dsil",
             Prefetch(
-                "dotationprojet_set__programmationprojet_set",
+                "dotationprojet_set__programmation_projet",
                 queryset=ProgrammationProjet.objects.filter(
                     status=ProgrammationProjet.STATUS_ACCEPTED
                 ),
