@@ -19,7 +19,11 @@ from gsl_projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
+from gsl_projet.tests.factories import (
+    DetrProjetFactory,
+    DotationProjetFactory,
+    ProjetFactory,
+)
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.services.simulation_projet_service import SimulationProjetService
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
@@ -32,11 +36,10 @@ from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFa
 def test_update_simulation_projets_from_dotation_projet_calls_create_or_update(
     mock_create_or_update,
 ):
-    dotation_projet = DotationProjetFactory(dotation=DOTATION_DETR)
+    dotation_projet = DetrProjetFactory()
     simulation_projets = SimulationProjetFactory.create_batch(
         3,
         dotation_projet=dotation_projet,
-        projet=dotation_projet.projet,
         simulation__enveloppe__dotation=DOTATION_DETR,
     )
 
@@ -85,7 +88,6 @@ def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_e
         dotation=simulation.enveloppe.dotation,
     )
     original_simulation_projet = SimulationProjetFactory(
-        projet=dotation_projet.projet,
         dotation_projet=dotation_projet,
         simulation=simulation,
         montant=500,
@@ -525,8 +527,8 @@ def test_is_simulation_projet_in_perimetre_regional():
     perimetre_regional = PerimetreRegionalFactory(
         region=perimetre_arrondissement.region
     )
-    projet = ProjetFactory(perimetre=perimetre_arrondissement)
-    simulation_projet = SimulationProjetFactory(projet=projet)
+    dotation_projet = DetrProjetFactory(projet__perimetre=perimetre_arrondissement)
+    simulation_projet = SimulationProjetFactory(dotation_projet=dotation_projet)
 
     assert (
         SimulationProjetService.is_simulation_projet_in_perimetre(
@@ -536,8 +538,12 @@ def test_is_simulation_projet_in_perimetre_regional():
     )
 
     other_arrondissement_perimetre = PerimetreArrondissementFactory()
-    other_projet = ProjetFactory(perimetre=other_arrondissement_perimetre)
-    other_simulation_projet = SimulationProjetFactory(projet=other_projet)
+    other_dotation_projet = DotationProjetFactory(
+        projet__perimetre=other_arrondissement_perimetre, dotation=DOTATION_DETR
+    )
+    other_simulation_projet = SimulationProjetFactory(
+        dotation_projet=other_dotation_projet
+    )
 
     assert (
         SimulationProjetService.is_simulation_projet_in_perimetre(
@@ -553,8 +559,8 @@ def test_is_simulation_projet_in_perimetre_departemental():
     perimetre_departemental = PerimetreDepartementalFactory(
         departement=perimetre_arrondissement.departement
     )
-    projet = ProjetFactory(perimetre=perimetre_arrondissement)
-    simulation_projet = SimulationProjetFactory(projet=projet)
+    dotation_projet = DetrProjetFactory(projet__perimetre=perimetre_arrondissement)
+    simulation_projet = SimulationProjetFactory(dotation_projet=dotation_projet)
 
     assert (
         SimulationProjetService.is_simulation_projet_in_perimetre(
@@ -564,8 +570,10 @@ def test_is_simulation_projet_in_perimetre_departemental():
     )
 
     other_arrondissement = PerimetreArrondissementFactory()
-    other_projet = ProjetFactory(perimetre=other_arrondissement)
-    other_simulation_projet = SimulationProjetFactory(projet=other_projet)
+    other_dotation_projet = DetrProjetFactory(projet__perimetre=other_arrondissement)
+    other_simulation_projet = SimulationProjetFactory(
+        dotation_projet=other_dotation_projet
+    )
 
     assert (
         SimulationProjetService.is_simulation_projet_in_perimetre(
@@ -578,8 +586,8 @@ def test_is_simulation_projet_in_perimetre_departemental():
 @pytest.mark.django_db
 def test_is_simulation_projet_in_perimetre_arrondissement():
     perimetre_arrondissement = PerimetreArrondissementFactory()
-    projet = ProjetFactory(perimetre=perimetre_arrondissement)
-    simulation_projet = SimulationProjetFactory(projet=projet)
+    dotation_projet = DetrProjetFactory(projet__perimetre=perimetre_arrondissement)
+    simulation_projet = SimulationProjetFactory(dotation_projet=dotation_projet)
 
     assert (
         SimulationProjetService.is_simulation_projet_in_perimetre(
@@ -589,8 +597,12 @@ def test_is_simulation_projet_in_perimetre_arrondissement():
     )
 
     other_arrondissement_perimetre = PerimetreArrondissementFactory()
-    other_projet = ProjetFactory(perimetre=other_arrondissement_perimetre)
-    other_simulation_projet = SimulationProjetFactory(projet=other_projet)
+    other_dotation_projet = DetrProjetFactory(
+        projet__perimetre=other_arrondissement_perimetre
+    )
+    other_simulation_projet = SimulationProjetFactory(
+        dotation_projet=other_dotation_projet
+    )
 
     assert (
         SimulationProjetService.is_simulation_projet_in_perimetre(

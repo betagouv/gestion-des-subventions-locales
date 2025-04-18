@@ -282,23 +282,25 @@ def test_view_without_filter(req, simulation, create_simulation_projets):
     assert projets.count() == 7
     assert (
         projets.filter(
-            simulationprojet__status=SimulationProjet.STATUS_ACCEPTED
+            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_ACCEPTED
         ).count()
         == 1
     )
     assert (
         projets.filter(
-            simulationprojet__status=SimulationProjet.STATUS_PROCESSING
+            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_PROCESSING
         ).count()
         == 4
     )
     assert (
-        projets.filter(simulationprojet__status=SimulationProjet.STATUS_REFUSED).count()
+        projets.filter(
+            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_REFUSED
+        ).count()
         == 1
     )
     assert (
         projets.filter(
-            simulationprojet__status=SimulationProjet.STATUS_DISMISSED
+            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_DISMISSED
         ).count()
         == 1
     )
@@ -316,7 +318,7 @@ def test_view_with_one_status_filter(req, simulation, create_simulation_projets)
     assert projets.count() == 4
     assert (
         projets.filter(
-            simulationprojet__status=SimulationProjet.STATUS_PROCESSING
+            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_PROCESSING
         ).count()
         == 4
     )
@@ -339,18 +341,22 @@ def test_view_with_filters(req, simulation, create_simulation_projets):
 
     assert (
         projets.filter(
-            simulationprojet__status=SimulationProjet.STATUS_ACCEPTED
+            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_ACCEPTED
         ).count()
         == 1
     )
     assert (
         projets.filter(
-            simulationprojet__status=SimulationProjet.STATUS_PROCESSING
+            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_PROCESSING
         ).count()
         == 2
     )
     for projet in projets:
-        assert 120_000 <= projet.simulationprojet_set.first().montant <= 400_000
+        assert (
+            120_000
+            <= projet.dotationprojet_set.first().simulationprojet_set.first().montant
+            <= 400_000
+        )
 
 
 ## Test with multiple simulations
@@ -449,7 +455,10 @@ def test_view_with_cout_total_filter(req, simulation, create_simulation_projets)
         (SimulationProjet.STATUS_REFUSED, 1),
         (SimulationProjet.STATUS_DISMISSED, 1),
     ]:
-        assert projets.filter(simulationprojet__status=status).count() == count
+        assert (
+            projets.filter(dotationprojet__simulationprojet__status=status).count()
+            == count
+        )
 
     for projet in projets:
         assert 2_000_000 <= projet.assiette_or_cout_total <= 3_000_000
@@ -473,7 +482,10 @@ def test_view_with_montant_demande_filter(req, simulation, create_simulation_pro
         (SimulationProjet.STATUS_REFUSED, 1),
         (SimulationProjet.STATUS_DISMISSED, 1),
     ]:
-        assert projets.filter(simulationprojet__status=status).count() == count
+        assert (
+            projets.filter(dotationprojet__simulationprojet__status=status).count()
+            == count
+        )
 
     for projet in projets:
         assert 300_000 <= projet.dossier_ds.demande_montant <= 400_000
@@ -496,7 +508,10 @@ def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
         (SimulationProjet.STATUS_REFUSED, 0),
         (SimulationProjet.STATUS_DISMISSED, 0),
     ]:
-        assert projets.filter(simulationprojet__status=status).count() == count
+        assert (
+            projets.filter(dotationprojet__simulationprojet__status=status).count()
+            == count
+        )
 
     for projet in projets:
         assert projet.dossier_ds.porteur_de_projet_nature.type == "epci"
@@ -516,7 +531,10 @@ def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
         (SimulationProjet.STATUS_REFUSED, 1),
         (SimulationProjet.STATUS_DISMISSED, 1),
     ]:
-        assert projets.filter(simulationprojet__status=status).count() == count
+        assert (
+            projets.filter(dotationprojet__simulationprojet__status=status).count()
+            == count
+        )
 
     for projet in projets:
         assert projet.dossier_ds.porteur_de_projet_nature.type == "communes"
@@ -642,9 +660,7 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
         headers={"HX-Request": "true"},
     )
 
-    updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
-        id=simulation_projet.id
-    )
+    updated_simulation_projet = SimulationProjet.objects.get(id=simulation_projet.id)
     dotation_projet = DotationProjet.objects.get(
         id=updated_simulation_projet.dotation_projet.id
     )
@@ -784,7 +800,6 @@ def accepted_simulation_projet(collegue, detr_enveloppe) -> SimulationProjet:
 
     return SimulationProjetFactory(
         dotation_projet=dotation_projet,
-        projet=dotation_projet.projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=1_000,
         taux=0.5,
@@ -806,7 +821,7 @@ def test_patch_taux_simulation_projet(
         headers={"HX-Request": "true"},
     )
 
-    updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
+    updated_simulation_projet = SimulationProjet.objects.get(
         id=accepted_simulation_projet.id
     )
 
@@ -858,7 +873,7 @@ def test_patch_montant_simulation_projet(
         headers={"HX-Request": "true"},
     )
 
-    updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
+    updated_simulation_projet = SimulationProjet.objects.get(
         id=accepted_simulation_projet.id
     )
 
@@ -888,7 +903,7 @@ def test_patch_avis_commission_detr_simulation_projet(
         follow=True,
     )
 
-    updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
+    updated_simulation_projet = SimulationProjet.objects.get(
         id=accepted_simulation_projet.id
     )
 
@@ -913,7 +928,7 @@ def test_patch_is_budget_vert_simulation_projet(
         follow=True,
     )
 
-    updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
+    updated_simulation_projet = SimulationProjet.objects.get(
         id=accepted_simulation_projet.id
     )
 

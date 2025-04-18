@@ -155,17 +155,17 @@ def test_get_total_amount_granted(simulation):
     )
     ## not in simulation
     SimulationProjetFactory(
-        projet=accepted_projet.projet,
+        dotation_projet=accepted_projet.dotation_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=6_000,
     )
     SimulationProjetFactory(
-        projet=provisionally_accepted_projet.projet,
+        dotation_projet=provisionally_accepted_projet.dotation_projet,
         status=SimulationProjet.STATUS_PROVISOIRE,
         montant=8_000,
     )
 
-    qs = Projet.objects.filter(simulationprojet__simulation=simulation)
+    qs = Projet.objects.filter(dotationprojet__simulationprojet__simulation=simulation)
     assert SimulationService.get_total_amount_granted(qs, simulation) == 1_200 + 2_300
 
 

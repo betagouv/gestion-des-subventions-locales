@@ -12,8 +12,8 @@ from gsl_core.tests.factories import (
     PerimetreRegionalFactory,
 )
 from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
-from gsl_projet.constants import DOTATION_DETR
-from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.tests.factories import DotationProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
@@ -368,12 +368,14 @@ def test_regional_user_cant_patch_projet_if_simulation_projet_is_associated_to_d
 
 @pytest.fixture
 def cote_dorien_dsil_simulation_projet(cote_d_or_perimetre):
-    projet = ProjetFactory(perimetre=cote_d_or_perimetre, assiette=1_000)
+    dotation_projet = DotationProjetFactory(
+        projet__perimetre=cote_d_or_perimetre, assiette=1_000, dotation=DOTATION_DSIL
+    )
     simulation = SimulationFactory(
         enveloppe=DsilEnveloppeFactory(perimetre=cote_d_or_perimetre)
     )
     return SimulationProjetFactory(
-        projet=projet,
+        dotation_projet=dotation_projet,
         simulation=simulation,
     )
 

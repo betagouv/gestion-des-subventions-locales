@@ -74,7 +74,6 @@ def test_simulation_projet_cant_have_a_montant_higher_than_projet_cout_total():
     with pytest.raises(ValidationError) as exc_info:
         sp = SimulationProjetFactory(
             dotation_projet=dotation_projet,
-            projet=dotation_projet.projet,
             simulation__enveloppe__dotation=DOTATION_DETR,
             montant=101,
         )

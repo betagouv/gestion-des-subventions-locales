@@ -84,3 +84,22 @@ class DotationProjetService:
             return Decimal(0)
         except InvalidOperation:
             return Decimal(0)
+
+    @classmethod
+    def validate_montant(
+        cls, montant: float | Decimal, dotation_projet: DotationProjet
+    ) -> None:
+        if (
+            type(montant) not in [float, Decimal, int]
+            or montant < 0
+            or dotation_projet.assiette_or_cout_total is None
+            or montant > dotation_projet.assiette_or_cout_total
+        ):
+            raise ValueError(
+                f"Montant {montant} must be greatear or equal to 0 and less than or equal to {dotation_projet.assiette_or_cout_total}"
+            )
+
+    @classmethod
+    def validate_taux(cls, taux: float | Decimal) -> None:
+        if type(taux) not in [float, Decimal, int] or taux < 0 or taux > 100:
+            raise ValueError(f"Taux {taux} must be between 0 and 100")

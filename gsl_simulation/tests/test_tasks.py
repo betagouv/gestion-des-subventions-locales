@@ -14,9 +14,14 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.constants import DOTATION_DETR
 from gsl_projet.services.dotation_projet_services import DotationProjetService
-from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
+from gsl_projet.tests.factories import (
+    DetrProjetFactory,
+    DotationProjetFactory,
+    DsilProjetFactory,
+    ProjetFactory,
+)
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
 from gsl_simulation.tests.factories import SimulationFactory
@@ -52,8 +57,10 @@ def dsil_simulation(region_perimetre):
 
 
 @pytest.fixture
-def detr_projets(departement_perimetre, arrondissement_perimetre):
-    projets = []
+def detr_projets(
+    departement_perimetre, arrondissement_perimetre
+) -> list[DotationProjetFactory]:
+    detr_projets = []
     for montant, assiette, state, date_traitement in (
         (1_000, 3_000, Dossier.STATE_EN_CONSTRUCTION, datetime(2024, 1, 1, tzinfo=UTC)),
         (600, None, Dossier.STATE_EN_INSTRUCTION, datetime(2023, 1, 1, tzinfo=UTC)),
@@ -77,14 +84,16 @@ def detr_projets(departement_perimetre, arrondissement_perimetre):
             perimetre=arrondissement_perimetre,
             assiette=assiette,
         )
-        DotationProjetFactory(projet=projet, dotation=DOTATION_DETR, status=status)
-        projets.append(projet)
-    return projets
+        detr_projet = DetrProjetFactory(projet=projet, status=status)
+        detr_projets.append(detr_projet)
+    return detr_projets
 
 
 @pytest.fixture
-def dsil_projets(departement_perimetre, arrondissement_perimetre):
-    projets = []
+def dsil_projets(
+    departement_perimetre, arrondissement_perimetre
+) -> list[DotationProjetFactory]:
+    dotation_projets = []
     for montant, assiette, state, date_traitement in (
         (1_000, 4_000, Dossier.STATE_EN_CONSTRUCTION, datetime(2024, 1, 1, tzinfo=UTC)),
         (600, None, Dossier.STATE_EN_INSTRUCTION, datetime(2023, 1, 1, tzinfo=UTC)),
@@ -108,9 +117,9 @@ def dsil_projets(departement_perimetre, arrondissement_perimetre):
             perimetre=arrondissement_perimetre,
             assiette=assiette,
         )
-        DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL, status=status)
-        projets.append(projet)
-    return projets
+        dsil_projet = DsilProjetFactory(projet=projet, status=status)
+        dotation_projets.append(dsil_projet)
+    return dotation_projets
 
 
 @pytest.mark.django_db
@@ -122,7 +131,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     assert SimulationProjet.objects.count() == 5
 
     simulation_projet = SimulationProjet.objects.get(
-        projet=detr_projets[0],
+        dotation_projet=detr_projets[0],
         simulation=detr_simulation,
     )
     assert simulation_projet.montant == 1_000
@@ -135,7 +144,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     )
 
     simulation_projet = SimulationProjet.objects.get(
-        projet=detr_projets[1],
+        dotation_projet=detr_projets[1],
         simulation=detr_simulation,
     )
     assert simulation_projet.montant == 600
@@ -148,7 +157,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     )
 
     simulation_projet = SimulationProjet.objects.get(
-        projet=detr_projets[3],
+        dotation_projet=detr_projets[3],
         simulation=detr_simulation,
     )
     assert simulation_projet.montant == 2_000
@@ -161,7 +170,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     )
 
     simulation_projet = SimulationProjet.objects.get(
-        projet=detr_projets[5],
+        dotation_projet=detr_projets[5],
         simulation=detr_simulation,
     )
     assert simulation_projet.montant == 1_500
@@ -174,7 +183,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     )
 
     simulation_projet = SimulationProjet.objects.get(
-        projet=detr_projets[7],
+        dotation_projet=detr_projets[7],
         simulation=detr_simulation,
     )
     assert simulation_projet.montant == 2_500
@@ -196,7 +205,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
     assert SimulationProjet.objects.count() == 5
 
     simulation_projet = SimulationProjet.objects.get(
-        projet=dsil_projets[0],
+        dotation_projet=dsil_projets[0],
         simulation=dsil_simulation,
     )
     assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
@@ -205,7 +214,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
     assert simulation_projet.enveloppe.dotation == "DSIL"
 
     simulation_projet = SimulationProjet.objects.get(
-        projet=dsil_projets[1],
+        dotation_projet=dsil_projets[1],
         simulation=dsil_simulation,
     )
     assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
@@ -218,7 +227,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
     )
 
     simulation_projet = SimulationProjet.objects.get(
-        projet=dsil_projets[3],
+        dotation_projet=dsil_projets[3],
         simulation=dsil_simulation,
     )
     assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
@@ -231,7 +240,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
     )
 
     simulation_projet = SimulationProjet.objects.get(
-        projet=dsil_projets[5],
+        dotation_projet=dsil_projets[5],
         simulation=dsil_simulation,
     )
     assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
@@ -244,7 +253,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
     )
 
     simulation_projet = SimulationProjet.objects.get(
-        projet=dsil_projets[7],
+        dotation_projet=dsil_projets[7],
         simulation=dsil_simulation,
     )
     assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED

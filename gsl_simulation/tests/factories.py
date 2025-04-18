@@ -4,7 +4,7 @@ from factory import Faker, LazyAttribute, Sequence, SubFactory
 from factory.django import DjangoModelFactory
 
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
-from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
+from gsl_projet.tests.factories import DotationProjetFactory
 from gsl_simulation.models import Simulation, SimulationProjet
 
 
@@ -22,16 +22,14 @@ class SimulationProjetFactory(DjangoModelFactory):
 
     simulation = SubFactory(SimulationFactory)
     dotation_projet = LazyAttribute(
-        lambda obj: DotationProjetFactory(
-            projet=ProjetFactory(), dotation=obj.simulation.enveloppe.dotation
-        )
+        lambda obj: DotationProjetFactory(dotation=obj.simulation.enveloppe.dotation)
     )
-    # TODO pr_dotation to remove
-    projet = LazyAttribute(lambda obj: obj.dotation_projet.projet)
-    # TODO pr_dotation use dotation_projet
     montant = LazyAttribute(
         lambda obj: randint(
-            0, obj.projet.assiette or obj.projet.dossier_ds.finance_cout_total or 1000
+            0,
+            obj.dotation_projet.assiette
+            or obj.dotation_projet.projet.dossier_ds.finance_cout_total
+            or 1000,
         )
     )
     taux = Faker("random_number", digits=2)

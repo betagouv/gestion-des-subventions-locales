@@ -9,7 +9,6 @@ from gsl_projet.constants import (
 )
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
-from gsl_projet.services.projet_services import ProjetService
 from gsl_simulation.models import Simulation, SimulationProjet
 
 
@@ -36,14 +35,13 @@ class SimulationProjetService:
         """
         montant = cls.get_initial_montant_from_projet(dotation_projet.projet)
         simulation_projet, _ = SimulationProjet.objects.update_or_create(
-            projet=dotation_projet.projet,  # TODO pr_dotation remove it
             dotation_projet=dotation_projet,
             simulation_id=simulation.id,
             defaults={
                 "montant": montant,
                 "taux": (
                     dotation_projet.projet.dossier_ds.annotations_taux
-                    or ProjetService.compute_taux_from_montant(
+                    or DotationProjetService.compute_taux_from_montant(
                         dotation_projet.projet, montant
                     )
                 ),

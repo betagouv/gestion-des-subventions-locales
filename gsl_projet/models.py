@@ -292,7 +292,7 @@ class DotationProjet(models.Model):
     def accept(self, montant: float, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_programmation.services.enveloppe_service import EnveloppeService
-        from gsl_projet.services.projet_services import ProjetService
+        from gsl_projet.services.dotation_projet_services import DotationProjetService
         from gsl_simulation.models import SimulationProjet
 
         if self.dotation != enveloppe.dotation:
@@ -300,7 +300,7 @@ class DotationProjet(models.Model):
                 "La dotation du projet et de l'enveloppe ne correspondent pas."
             )
 
-        taux = ProjetService.compute_taux_from_montant(self, montant)
+        taux = DotationProjetService.compute_taux_from_montant(self, montant)
 
         SimulationProjet.objects.filter(dotation_projet=self).update(
             status=SimulationProjet.STATUS_ACCEPTED,
