@@ -3,7 +3,6 @@ from decimal import Decimal, InvalidOperation
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.constants import (
     DOTATION_DETR,
-    DOTATION_DSIL,
     POSSIBLE_DOTATIONS,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
@@ -38,11 +37,7 @@ class DotationProjetService:
     def create_or_update_dotation_projet(
         cls, projet: Projet, dotation: POSSIBLE_DOTATIONS
     ):
-        detr_avis_commission = (
-            None
-            if dotation == DOTATION_DSIL
-            else cls.get_avis_commission_detr(projet.dossier_ds)
-        )
+        detr_avis_commission = cls.get_detr_avis_commission(dotation, projet.dossier_ds)
         assiette = projet.dossier_ds.annotations_assiette
 
         dotation_projet, _ = DotationProjet.objects.update_or_create(
@@ -71,10 +66,10 @@ class DotationProjetService:
         return cls.DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS.get(ds_dossier.ds_state)
 
     @classmethod
-    def get_avis_commission_detr(cls, ds_dossier: Dossier):
-        if ds_dossier.ds_state == Dossier.STATE_ACCEPTE:
-            if DOTATION_DETR in ds_dossier.demande_dispositif_sollicite:
-                return True
+    def get_detr_avis_commission(cls, dotation: str, ds_dossier: Dossier):
+        if dotation == DOTATION_DETR and ds_dossier.ds_state == Dossier.STATE_ACCEPTE:
+            return True
+
         return None
 
     @classmethod

@@ -474,28 +474,26 @@ def test_filter_by_max_cost(
 def test_filter_by_cost_range(
     req,
     view,
-    projets_with_assiette,
-    projets_without_assiette_but_finance_cout_total_from_dossier_ds,
+    projets_with_finance_cout_total_from_dossier_ds,
 ):
     request = req.get("/?cout_min=150000&cout_max=250000")
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
-    assert qs.count() == 5
-    assert all(100000 <= p.assiette_or_cout_total <= 250000 for p in qs)
+    assert qs.count() == 2
+    assert all(100000 <= p.dossier_ds.finance_cout_total <= 250000 for p in qs)
 
 
 def test_filter_with_wrong_values(
     req,
     view,
-    projets_with_assiette,
-    projets_without_assiette_but_finance_cout_total_from_dossier_ds,
+    projets_with_finance_cout_total_from_dossier_ds,
 ):
     request = req.get("/?cout_min=wrong")
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
-    assert qs.count() == 10
+    assert qs.count() == 5
 
 
 ### Test du filtre par montant retenu

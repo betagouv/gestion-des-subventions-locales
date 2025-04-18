@@ -7,7 +7,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DetailView
 
 from gsl.settings import ALLOWED_HOSTS
-from gsl_projet.forms import ProjetForm
+from gsl_projet.forms import DotationProjetForm
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.models import SimulationProjet
@@ -113,16 +113,20 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
         context["enveloppe"] = self.simulation_projet.simulation.enveloppe
         context["dossier"] = self.simulation_projet.projet.dossier_ds
         context["menu_dict"] = PROJET_MENU
-        context["projet_form"] = ProjetForm(instance=self.object.projet)
+        context["dotation_projet_form"] = DotationProjetForm(
+            instance=self.object.dotation_projet
+        )
 
         return context
 
     def post(self, request, *args, **kwargs):
         simulation_projet = get_object_or_404(SimulationProjet, id=self.kwargs["pk"])
-        projet_form = ProjetForm(request.POST, instance=simulation_projet.projet)
+        dotation_projet_form = DotationProjetForm(
+            request.POST, instance=simulation_projet.dotation_projet
+        )
 
-        if projet_form.is_valid():
-            projet_form.save()
+        if dotation_projet_form.is_valid():
+            dotation_projet_form.save()
             return redirect_to_simulation_projet(request, simulation_projet)
 
         return redirect_to_simulation_projet(

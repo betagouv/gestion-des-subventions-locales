@@ -461,7 +461,8 @@ def test_view_with_cout_total_filter(req, simulation, create_simulation_projets)
         )
 
     for projet in projets:
-        assert 2_000_000 <= projet.assiette_or_cout_total <= 3_000_000
+        for dotation_projet in projet.dotationprojet_set.all():
+            assert 2_000_000 <= dotation_projet.assiette_or_cout_total <= 3_000_000
 
 
 @pytest.mark.django_db
@@ -793,7 +794,6 @@ def accepted_simulation_projet(collegue, detr_enveloppe) -> SimulationProjet:
     dotation_projet = DotationProjetFactory(
         status=PROJET_STATUS_PROCESSING,
         assiette=10_000,
-        projet__assiette=10_000,
         projet__perimetre=collegue.perimetre,
         dotation=DOTATION_DETR,
     )
@@ -890,7 +890,7 @@ def test_patch_montant_simulation_projet(
     "value, expected_value", (("True", True), ("False", False), ("", None))
 )
 @pytest.mark.django_db
-def test_patch_avis_commission_detr_simulation_projet(
+def test_patch_detr_avis_commission_simulation_projet(
     client_with_user_logged, accepted_simulation_projet, value, expected_value
 ):
     url = reverse(
@@ -899,7 +899,7 @@ def test_patch_avis_commission_detr_simulation_projet(
     )
     response = client_with_user_logged.post(
         url,
-        {"avis_commission_detr": value},
+        {"detr_avis_commission": value},
         follow=True,
     )
 
@@ -908,7 +908,9 @@ def test_patch_avis_commission_detr_simulation_projet(
     )
 
     assert response.status_code == 200
-    assert updated_simulation_projet.projet.avis_commission_detr is expected_value
+    assert (
+        updated_simulation_projet.dotation_projet.detr_avis_commission is expected_value
+    )
 
 
 @pytest.mark.parametrize(

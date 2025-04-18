@@ -6,18 +6,18 @@
         </h2>
 
         <div class="avis-commission-detr-select-and-label">
-            {{ projet_form.avis_commission_detr.label_tag }}
+            {{ dotation_projet_form.detr_avis_commission.label_tag }}
 
             <div class="avis-commission-detr-select-group">
                 {% csrf_token %}
-                {% if projet.avis_commission_detr %}
+                {% if dotation_projet.detr_avis_commission %}
                     <span class="fr-icon-chat-check-fill green-color" aria-hidden="true"></span>
-                {% elif projet.avis_commission_detr is False %}
+                {% elif dotation_projet.detr_avis_commission is False %}
                     <span class="fr-icon-chat-delete-fill red-color" aria-hidden="true"></span>
                 {% else %}
                     <span class="fr-icon-message-2-fill grey-color" aria-hidden="true"></span>
                 {% endif %}
-                {{ projet_form.avis_commission_detr }}
+                {{ dotation_projet_form.detr_avis_commission }}
             </div>
         </div>
     </div>

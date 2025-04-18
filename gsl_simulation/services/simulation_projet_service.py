@@ -42,7 +42,7 @@ class SimulationProjetService:
                 "taux": (
                     dotation_projet.projet.dossier_ds.annotations_taux
                     or DotationProjetService.compute_taux_from_montant(
-                        dotation_projet.projet, montant
+                        dotation_projet, montant
                     )
                 ),
                 "status": cls.get_simulation_projet_status(dotation_projet),
