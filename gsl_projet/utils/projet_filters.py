@@ -153,7 +153,7 @@ class ProjetFilters(FilterSet):
         ),
     )
 
-    # TODO pr_dotation update this to filter on real montant retenu
+    # TODO pr_dotation update this to filter on real montant retenu => ticket
     montant_retenu_min = NumberFilter(
         field_name="dossier_ds__annotations_montant_accorde",
         lookup_expr="gte",
@@ -162,7 +162,7 @@ class ProjetFilters(FilterSet):
         ),
     )
 
-    # TODO pr_dotation update this to filter on real montant retenu
+    # TODO pr_dotation update this to filter on real montant retenu => ticket
     montant_retenu_max = NumberFilter(
         field_name="dossier_ds__annotations_montant_accorde",
         lookup_expr="lte",

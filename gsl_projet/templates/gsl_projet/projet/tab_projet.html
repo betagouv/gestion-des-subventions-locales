@@ -36,7 +36,7 @@
                 <span aria-hidden="true">🧾</span> Montant demandé : {{ dossier.demande_montant|euro }}
             </li>
             <li>
-                {% comment %} todo pr_dotation handle dotation projet with a block for each ? {% endcomment %}
+                {% comment %} todo pr_dotation handle dotation projet with a block for each ? => ticket {% endcomment %}
                 <span aria-hidden="true">🧾</span> Taux de subvention sollicité : {{ projet.dotation_projet.0.taux_de_subvention_sollicite|percent|default:"—" }}
                 <button class="fr-btn--tooltip fr-btn fr-m-0 fr-pv-0-5v gsl-tooltip"
                         type="button"

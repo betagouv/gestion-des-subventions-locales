@@ -17,19 +17,23 @@ def simulation_projects(simulation):
     SimulationProjetFactory.create_batch(
         2,
         simulation=simulation,
+        dotation_projet__dotation=simulation.enveloppe.dotation,
         status=SimulationProjet.STATUS_ACCEPTED,
     )
     SimulationProjetFactory(
         status=SimulationProjet.STATUS_ACCEPTED,
+        dotation_projet__dotation=simulation.enveloppe.dotation,
     )
     SimulationProjetFactory.create_batch(
         3,
         simulation=simulation,
+        dotation_projet__dotation=simulation.enveloppe.dotation,
         status=SimulationProjet.STATUS_REFUSED,
     )
     SimulationProjetFactory.create_batch(
         1,
         simulation=simulation,
+        dotation_projet__dotation=simulation.enveloppe.dotation,
         status=SimulationProjet.STATUS_PROCESSING,
     )
 
@@ -74,7 +78,6 @@ def test_simulation_projet_cant_have_a_montant_higher_than_projet_cout_total():
     with pytest.raises(ValidationError) as exc_info:
         sp = SimulationProjetFactory(
             dotation_projet=dotation_projet,
-            simulation__enveloppe__dotation=DOTATION_DETR,
             montant=101,
         )
         sp.save()

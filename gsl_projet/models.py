@@ -168,7 +168,7 @@ class Projet(models.Model):
 
         return reverse("projet:get-projet", kwargs={"projet_id": self.id})
 
-    # TODO pr_dotation move it to DotationProjet
+    # TODO pr_dotation move it to DotationProjet => ticket double ligne projet
     @cached_property
     def accepted_programmation_projet(self):
         if (
@@ -177,14 +177,14 @@ class Projet(models.Model):
         ):
             return self.accepted_programmation_projets[0]
 
-    # TODO pr_dotation move it to DotationProjet
+    # TODO pr_dotation move it to DotationProjet => ticket double ligne projet
     @property
     def montant_retenu(self) -> float | None:
         if self.accepted_programmation_projet:
             return self.accepted_programmation_projet.montant
         return None
 
-    # TODO pr_dotation move it to DotationProjet
+    # TODO pr_dotation move it to DotationProjet => ticket double ligne projet
     @property
     def taux_retenu(self) -> float | None:
         if self.accepted_programmation_projet:
@@ -206,9 +206,11 @@ class Projet(models.Model):
 class DotationProjet(models.Model):
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
     dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
-    # TODO pr_dotation put back protected=True, once every status transition is handled
+    # TODO pr_dotation put back protected=True, once every status transition is handled ?
     status = FSMField(
-        "Statut", choices=PROJET_STATUS_CHOICES, default=PROJET_STATUS_PROCESSING
+        "Statut",
+        choices=PROJET_STATUS_CHOICES,
+        default=PROJET_STATUS_PROCESSING,
     )
     assiette = models.DecimalField(
         "Assiette subventionnable",
@@ -228,7 +230,6 @@ class DotationProjet(models.Model):
     def __str__(self):
         return f"Projet {self.projet_id} - Dotation {self.dotation}"
 
-    # TODO pr_dotation test it
     def clean(self):
         errors = {}
         if self.dotation == DOTATION_DSIL and self.detr_avis_commission is not None:

@@ -61,6 +61,35 @@ def test_assiette_or_cout_total():
     assert dotation_projet.assiette_or_cout_total == 2_000
 
 
+@pytest.mark.parametrize(
+    ("dotation, avis_commission, must_raise_error"),
+    (
+        (DOTATION_DETR, True, False),
+        (DOTATION_DETR, False, False),
+        (DOTATION_DETR, None, False),
+        (DOTATION_DSIL, True, True),
+        (DOTATION_DSIL, False, True),
+        (DOTATION_DSIL, None, False),
+    ),
+)
+def test_error_raised_if_detr_avis_commission_is_set_on_dsil_projet(
+    dotation, avis_commission, must_raise_error
+):
+    dotation_projet = DotationProjetFactory(dotation=dotation)
+    dotation_projet.detr_avis_commission = avis_commission
+
+    if must_raise_error:
+        with pytest.raises(ValidationError) as exc_info:
+            dotation_projet.clean()
+        assert (
+            str(exc_info.value.messages[0])
+            == "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR."
+        )
+    else:
+        dotation_projet.clean()
+        assert dotation_projet.detr_avis_commission == avis_commission
+
+
 # Accept
 
 
@@ -306,7 +335,6 @@ def test_dismiss(status, montant, taux):
     SimulationProjetFactory.create_batch(
         3,
         dotation_projet=dotation_projet,
-        simulation__enveloppe__dotation=DOTATION_DETR,
         status=simulation_projet_status,
         montant=montant,
         taux=taux,
@@ -337,7 +365,6 @@ def test_dismiss_from_processing():
     SimulationProjetFactory.create_batch(
         3,
         dotation_projet=dotation_projet,
-        simulation__enveloppe__dotation=DOTATION_DETR,
         status=SimulationProjet.STATUS_PROCESSING,
         montant=500,
         taux=0.4,
@@ -375,7 +402,6 @@ def test_set_back_status_to_processing_from_accepted():
     SimulationProjetFactory.create_batch(
         3,
         dotation_projet=dotation_projet,
-        simulation__enveloppe__dotation=dotation_projet.dotation,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=10_000,
         taux=20,
@@ -408,7 +434,6 @@ def test_set_back_status_to_processing_from_refused():
     SimulationProjetFactory.create_batch(
         3,
         dotation_projet=dotation_projet,
-        simulation__enveloppe__dotation=dotation_projet.dotation,
         status=SimulationProjet.STATUS_REFUSED,
         montant=0,
         taux=0,

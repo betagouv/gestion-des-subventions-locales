@@ -96,7 +96,6 @@ class SimulationProjetService:
         simulation_projet.save()
         return simulation_projet
 
-    # TODO pr_dotation update test
     @classmethod
     def update_taux(cls, simulation_projet: SimulationProjet, new_taux: float):
         assiette = simulation_projet.dotation_projet.assiette_or_cout_total

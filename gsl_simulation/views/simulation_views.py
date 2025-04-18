@@ -214,7 +214,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                 ),
                 to_attr="dotation_projet",
             )
-        )  # TODO pr_dotation test
+        )
         qs = qs.prefetch_related(
             Prefetch(
                 "dotation_projet__simulationprojet_set",

@@ -106,7 +106,6 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
             ],
             "current": context["title"],
         }
-        # TODO pr_dotation remove it ??
         context["projet"] = self.simulation_projet.projet
         context["dotation_projet"] = self.simulation_projet.dotation_projet
         context["simu"] = self.simulation_projet
@@ -154,7 +153,6 @@ def redirect_to_simulation_projet(
             {
                 "simu": simulation_projet,
                 "dotation_projet": simulation_projet.dotation_projet,
-                # TODO pr_dotation remove it ??
                 "projet": simulation_projet.projet,
                 "available_states": SimulationProjet.STATUS_CHOICES,
                 "status_summary": simulation_projet.simulation.get_projet_status_summary(),
