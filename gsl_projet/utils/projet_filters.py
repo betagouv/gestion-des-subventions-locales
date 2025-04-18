@@ -122,30 +122,20 @@ class ProjetFilters(FilterSet):
     )
 
     cout_min = NumberFilter(
-        method="filter_cout_min",
+        field_name="dossier_ds__finance_cout_total",
+        lookup_expr="gte",
         widget=NumberInput(
             attrs={"class": "fr-input", "min": "0"},
         ),
     )
-
-    def filter_cout_min(self, queryset, _name, value):
-        return queryset.filter(
-            Q(assiette__isnull=False, assiette__gte=value)
-            | Q(assiette__isnull=True, dossier_ds__finance_cout_total__gte=value)
-        )
 
     cout_max = NumberFilter(
-        method="filter_cout_max",
+        field_name="dossier_ds__finance_cout_total",
+        lookup_expr="lte",
         widget=NumberInput(
             attrs={"class": "fr-input", "min": "0"},
         ),
     )
-
-    def filter_cout_max(self, queryset, _name, value):
-        return queryset.filter(
-            Q(assiette__isnull=False, assiette__lte=value)
-            | Q(assiette__isnull=True, dossier_ds__finance_cout_total__lte=value)
-        )
 
     montant_demande_max = NumberFilter(
         field_name="dossier_ds__demande_montant",
@@ -163,6 +153,7 @@ class ProjetFilters(FilterSet):
         ),
     )
 
+    # TODO pr_dotation update this to filter on real montant retenu
     montant_retenu_min = NumberFilter(
         field_name="dossier_ds__annotations_montant_accorde",
         lookup_expr="gte",
@@ -171,6 +162,7 @@ class ProjetFilters(FilterSet):
         ),
     )
 
+    # TODO pr_dotation update this to filter on real montant retenu
     montant_retenu_max = NumberFilter(
         field_name="dossier_ds__annotations_montant_accorde",
         lookup_expr="lte",

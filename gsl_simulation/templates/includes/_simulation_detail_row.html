@@ -19,14 +19,12 @@
         {{ projet.dossier_ds.demande_dispositif_sollicite }}
     </td>
     <td class="gsl-money">
-        {{ projet.assiette_or_cout_total|euro:2 }}
-        <br>
-        &nbsp;
+        {{ projet.dossier_ds.finance_cout_total|euro:2 }}
     </td>
     <td class="gsl-money">
         {{ projet.dossier_ds.demande_montant|euro:2 }}
         <br>
-        {{ projet.get_taux_de_subvention_sollicite|percent }}
+        {{ dotation_projet.taux_de_subvention_sollicite|percent }}
     </td>
     <td class="gsl-money">
         {% include "includes/table_forms/_montant_form.html" with simu=simu %}

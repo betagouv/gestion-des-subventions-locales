@@ -169,10 +169,8 @@ class ProgrammationProjet(models.Model):
         else:
             if (
                 self.montant
-                # TODO pr_dotation use projet property instead of dotation_projet
-                and self.dotation_projet.projet.dossier_ds.finance_cout_total
-                and self.montant
-                > self.dotation_projet.projet.dossier_ds.finance_cout_total
+                and self.projet.dossier_ds.finance_cout_total
+                and self.montant > self.projet.dossier_ds.finance_cout_total
             ):
                 errors["montant"] = {
                     "Le montant de la programmation ne peut pas être supérieur au coût total du projet pour cette dotation."
@@ -185,10 +183,7 @@ class ProgrammationProjet(models.Model):
                 "Il faut programmer sur l'enveloppe mère."
             }
 
-        # TODO pr_dotation use projet property instead of dotation_projet
-        if not self.enveloppe.perimetre.contains_or_equal(
-            self.dotation_projet.projet.perimetre
-        ):
+        if not self.enveloppe.perimetre.contains_or_equal(self.projet.perimetre):
             errors["enveloppe"] = {
                 "Le périmètre de l'enveloppe ne contient pas le périmètre du projet."
             }

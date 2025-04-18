@@ -158,6 +158,7 @@ def test_get_dotation_projet_status_from_dossier():
     )
 
 
+@pytest.mark.parametrize("field", ("assiette", "finance_cout_total"))
 @pytest.mark.parametrize(
     "montant, assiette_or_cout_total, should_raise_exception",
     [
@@ -171,41 +172,27 @@ def test_get_dotation_projet_status_from_dossier():
     ],
 )
 @pytest.mark.django_db
-def test_validate_montant(montant, assiette_or_cout_total, should_raise_exception):
-    dotation_projet_with_assiette = DotationProjetFactory(
-        assiette=assiette_or_cout_total
-    )
-    dotation_projet_without_assiette = DotationProjetFactory(
-        projet__dossier_ds__finance_cout_total=assiette_or_cout_total
-    )
+def test_validate_montant(
+    field, montant, assiette_or_cout_total, should_raise_exception
+):
+    dotation_projet = DotationProjetFactory()
+    if field == "finance_cout_total":
+        dotation_projet.projet.dossier_ds.finance_cout_total = assiette_or_cout_total
+    else:
+        dotation_projet.assiette = assiette_or_cout_total
 
     if should_raise_exception:
         with pytest.raises(
             ValueError,
             match=(
                 f"Montant {montant} must be greatear or equal to 0 and less than or "
-                f"equal to {dotation_projet_with_assiette.assiette_or_cout_total}"
+                f"equal to {dotation_projet.assiette_or_cout_total}"
             ),
         ):
-            DotationProjetService.validate_montant(
-                montant, dotation_projet_with_assiette
-            )
+            DotationProjetService.validate_montant(montant, dotation_projet)
 
-        with pytest.raises(
-            ValueError,
-            match=(
-                f"Montant {montant} must be greatear or equal to 0 and less than or "
-                f"equal to {dotation_projet_without_assiette.assiette_or_cout_total}"
-            ),
-        ):
-            DotationProjetService.validate_montant(
-                montant, dotation_projet_with_assiette
-            )
     else:
-        DotationProjetService.validate_montant(montant, dotation_projet_with_assiette)
-        DotationProjetService.validate_montant(
-            montant, dotation_projet_without_assiette
-        )
+        DotationProjetService.validate_montant(montant, dotation_projet)
 
 
 test_data = (

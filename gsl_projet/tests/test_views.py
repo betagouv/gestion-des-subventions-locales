@@ -433,56 +433,42 @@ def test_filter_by_epci_porteur(
 
 
 @pytest.fixture
-def projets_with_assiette(demandeur) -> list[Projet]:
-    return [
-        ProjetFactory(
-            assiette=amount,
-            demandeur=demandeur,
-        )
-        for amount in (100000, 150000, 200000, 250000, 300000)
-    ]
-
-
-@pytest.fixture
-def projets_without_assiette_but_finance_cout_total_from_dossier_ds(
+def projets_with_finance_cout_total_from_dossier_ds(
     demandeur,
 ) -> list[Projet]:
     return [
         ProjetFactory(
             dossier_ds__finance_cout_total=amount,
-            assiette=None,
             demandeur=demandeur,
         )
-        for amount in (12000, 170000, 220000, 270000, 320000)
+        for amount in (120_000, 170_000, 220_000, 270_000, 320_000)
     ]
 
 
 def test_filter_by_min_cost(
     req,
     view,
-    projets_with_assiette,
-    projets_without_assiette_but_finance_cout_total_from_dossier_ds,
+    projets_with_finance_cout_total_from_dossier_ds,
 ):
     request = req.get("/?cout_min=150000")
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
-    assert qs.count() == 8
-    assert all(150000 <= p.assiette_or_cout_total for p in qs)
+    assert qs.count() == 4
+    assert all(150_000 <= p.dossier_ds.finance_cout_total for p in qs)
 
 
 def test_filter_by_max_cost(
     req,
     view,
-    projets_with_assiette,
-    projets_without_assiette_but_finance_cout_total_from_dossier_ds,
+    projets_with_finance_cout_total_from_dossier_ds,
 ):
     request = req.get("/?cout_max=250000")
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
-    assert qs.count() == 7
-    assert all(p.assiette_or_cout_total <= 250000 for p in qs)
+    assert qs.count() == 3
+    assert all(p.dossier_ds.finance_cout_total <= 250_000 for p in qs)
 
 
 def test_filter_by_cost_range(
