@@ -346,7 +346,9 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
     child_enveloppe = DetrEnveloppeFactory(deleguee_by=mother_enveloppe)
     simulation = SimulationFactory(enveloppe=child_enveloppe)
     simulation_projet = SimulationProjetFactory(
-        status=SimulationProjet.STATUS_PROCESSING, simulation=simulation
+        status=SimulationProjet.STATUS_PROCESSING,
+        simulation=simulation,
+        dotation_projet__dotation=DOTATION_DETR,
     )
     new_status = SimulationProjet.STATUS_ACCEPTED
 
