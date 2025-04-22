@@ -12,6 +12,7 @@ from gsl_projet.constants import (
     DOTATION_DSIL,
     DOTATIONS,
     PROJET_STATUS_CHOICES,
+    PROJET_STATUS_PROCESSING,
 )
 
 from ..models import Demandeur, DotationProjet, Projet
@@ -40,6 +41,7 @@ class ProjetFactory(factory.django.DjangoModelFactory):
             arrondissement=obj.dossier_ds.ds_demandeur.address.commune.arrondissement
         )
     )
+    status = PROJET_STATUS_PROCESSING
 
 
 class SubmittedProjetFactory(ProjetFactory):

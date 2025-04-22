@@ -68,7 +68,7 @@
                         {{ projet.dossier_ds.ds_number }}
                     </td>
                     <td>
-                        {{ projet.dossier_ds.demande_dispositif_sollicite }}
+                        {{ projet.dotations|join:" et " }}
                     </td>
                     <td class="gsl-money">
                         {{ projet.dossier_ds.finance_cout_total|euro:2 }}

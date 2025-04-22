@@ -1,7 +1,13 @@
+from datetime import date
 from decimal import Decimal
 
 import pytest
 
+from gsl_core.tests.factories import (
+    PerimetreArrondissementFactory,
+    PerimetreDepartementalFactory,
+    PerimetreRegionalFactory,
+)
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 from gsl_projet.constants import (
@@ -15,6 +21,8 @@ from gsl_projet.constants import (
 from gsl_projet.models import DotationProjet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
+from gsl_simulation.models import Simulation, SimulationProjet
+from gsl_simulation.tests.factories import SimulationFactory
 
 
 @pytest.mark.django_db
@@ -98,6 +106,101 @@ def test_create_or_update_dotation_projet(dotation):
     assert dotation_projet.status == PROJET_STATUS_DISMISSED
     assert dotation_projet.assiette == 2_000
     assert dotation_projet.detr_avis_commission is None
+
+
+@pytest.mark.django_db
+def test_create_simulation_projets_from_dotation_projet():
+    arr_nanterre = PerimetreArrondissementFactory()
+    dep_92 = PerimetreDepartementalFactory(departement=arr_nanterre.departement)
+    region_idf = PerimetreRegionalFactory(region=dep_92.region)
+
+    arr_dijon = PerimetreArrondissementFactory()
+    dep_21 = PerimetreDepartementalFactory(departement=arr_dijon.departement)
+    region_bfc = PerimetreRegionalFactory(region=dep_21.region)
+
+    for annee in [date.today().year - 1, date.today().year, date.today().year + 1]:
+        SimulationFactory(
+            enveloppe__annee=annee,
+            enveloppe__dotation=DOTATION_DSIL,
+            enveloppe__perimetre=region_idf,
+        )
+        SimulationFactory(
+            enveloppe__annee=annee,
+            enveloppe__dotation=DOTATION_DSIL,
+            enveloppe__perimetre=dep_92,
+        )
+        SimulationFactory(
+            enveloppe__annee=annee,
+            enveloppe__dotation=DOTATION_DSIL,
+            enveloppe__perimetre=arr_nanterre,
+        )
+
+        SimulationFactory(
+            enveloppe__annee=annee,
+            enveloppe__dotation=DOTATION_DETR,
+            enveloppe__perimetre=dep_92,
+        )
+        SimulationFactory(
+            enveloppe__annee=annee,
+            enveloppe__dotation=DOTATION_DETR,
+            enveloppe__perimetre=arr_nanterre,
+        )
+
+        SimulationFactory(
+            enveloppe__annee=annee,
+            enveloppe__dotation=DOTATION_DSIL,
+            enveloppe__perimetre=region_bfc,
+        )
+        SimulationFactory(
+            enveloppe__annee=annee,
+            enveloppe__dotation=DOTATION_DSIL,
+            enveloppe__perimetre=dep_21,
+        )
+        SimulationFactory(
+            enveloppe__annee=annee,
+            enveloppe__dotation=DOTATION_DSIL,
+            enveloppe__perimetre=arr_dijon,
+        )
+
+        SimulationFactory(
+            enveloppe__annee=annee,
+            enveloppe__dotation=DOTATION_DETR,
+            enveloppe__perimetre=dep_21,
+        )
+        SimulationFactory(
+            enveloppe__annee=annee,
+            enveloppe__dotation=DOTATION_DETR,
+            enveloppe__perimetre=arr_dijon,
+        )
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_ACCEPTED,
+        projet__perimetre=arr_dijon,
+    )
+
+    DotationProjetService.create_simulation_projets_from_dotation_projet(
+        dotation_projet
+    )
+
+    # We only have a simulation_projets for enveloppe DETR of this year + the next year and on arr_dijon and dep_21
+    assert dotation_projet.simulationprojet_set.count() == 4
+    for annee in [date.today().year, date.today().year + 1]:
+        for perimetre in [dep_21, arr_dijon]:
+            simulation = Simulation.objects.filter(
+                enveloppe__annee=annee,
+                enveloppe__dotation=DOTATION_DETR,
+                enveloppe__perimetre=perimetre,
+            ).first()
+            simulation_projets = SimulationProjet.objects.filter(
+                simulation=simulation, dotation_projet=dotation_projet
+            )
+            assert simulation_projets.count() == 1
+            simulation_projet = simulation_projets.first()
+            assert simulation_projet.dotation_projet == dotation_projet
+            assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
+            assert simulation_projet.montant == 0
+            assert simulation_projet.taux == 0
 
 
 @pytest.mark.django_db

@@ -1,6 +1,8 @@
+from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_programmation.models import Enveloppe
 from gsl_projet.constants import (
     DOTATION_DETR,
     POSSIBLE_DOTATIONS,
@@ -11,6 +13,7 @@ from gsl_projet.constants import (
 )
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.projet_services import ProjetService
+from gsl_simulation.models import Simulation, SimulationProjet
 
 
 class DotationProjetService:
@@ -52,6 +55,30 @@ class DotationProjetService:
             },
         )
         return dotation_projet
+
+    @classmethod
+    def create_simulation_projets_from_dotation_projet(
+        cls,
+        dotation_projet: DotationProjet,
+        default_montant: float | Decimal = 0,
+    ):
+        projet_perimetre = dotation_projet.projet.perimetre
+        perimetres_containing_this_projet_perimetre = list(projet_perimetre.ancestors())
+        perimetres_containing_this_projet_perimetre.append(projet_perimetre)
+        enveloppes = Enveloppe.objects.filter(
+            dotation=dotation_projet.dotation,
+            perimetre__in=perimetres_containing_this_projet_perimetre,
+            annee__gte=date.today().year,
+        )
+        simulations = Simulation.objects.filter(enveloppe__in=enveloppes)
+        for simulation in simulations:
+            SimulationProjet.objects.create(
+                simulation=simulation,
+                dotation_projet=dotation_projet,
+                status=SimulationProjet.STATUS_PROCESSING,
+                montant=default_montant,
+                taux=cls.compute_taux_from_montant(dotation_projet, default_montant),
+            )
 
     DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS = {
         Dossier.STATE_ACCEPTE: PROJET_STATUS_ACCEPTED,

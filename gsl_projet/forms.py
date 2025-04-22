@@ -2,7 +2,9 @@ from django import forms
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
+from gsl_projet.constants import DOTATION_CHOICES
 from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.services.projet_services import ProjetService
 
 
 class ProjetForm(ModelForm, DsfrBaseForm):
@@ -31,6 +33,13 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
     )
 
+    dotations = forms.MultipleChoiceField(
+        label="Imputation budgétaire - Choix de la dotation",
+        choices=DOTATION_CHOICES,
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={"form": "simulation_projet_form"}),
+    )
+
     class Meta:
         model = Projet
         fields = [
@@ -38,6 +47,18 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             "is_in_qpv",
             "is_attached_to_a_crte",
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["dotations"].initial = self.instance.dotations
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        dotations = self.cleaned_data.get("dotations")
+        if dotations:
+            ProjetService.update_dotation(instance, dotations)
+
+        return instance
 
 
 class DotationProjetForm(ModelForm, DsfrBaseForm):

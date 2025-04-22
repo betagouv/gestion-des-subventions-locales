@@ -1,0 +1,16 @@
+
+<div class="form-disabled-before-value-change">
+    {% csrf_token %}
+    <fieldset class=" fr-fieldset fr-callout fr-background-alt--blue-france fr-py-2w fr-px-2w">
+        {{ dotation_projet_form.dotations.label_tag }}
+        {% for df in dotation_projet_form.dotations %}
+            <div class="fr-fieldset__element">
+                {{ df }}
+            </div>
+        {% endfor %}
+
+    </fieldset>
+    <button class="fr-btn" type="submit" form="projet_form" disabled>
+        Enregistrer
+    </button>
+</div>

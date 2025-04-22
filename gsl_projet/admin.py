@@ -66,7 +66,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             update_projet_from_dossier.delay(projet.dossier_ds.ds_number)
 
     def dotations(self, obj):
-        return ", ".join(str(dp.dotation) for dp in obj.dotationprojet_set.all())
+        return ", ".join(obj.dotations)
 
 
 @admin.register(DotationProjet)
