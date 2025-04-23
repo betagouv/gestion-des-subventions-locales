@@ -102,6 +102,10 @@ function closeModal() {
     modalId = undefined;
 }
 
+//
+// Event listeners
+//
+
 document.querySelectorAll(".close-modal").forEach((el) => {
     el.addEventListener('click', () => {
         closeModal();

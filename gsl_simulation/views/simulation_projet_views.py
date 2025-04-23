@@ -214,6 +214,7 @@ def _get_projets_queryset_with_filters(simulation, filter_params):
 def _enrich_simulation_projet_context_from_simulation_projet(
     context: dict, simulation_projet: SimulationProjet
 ):
+    projet_form = ProjetForm(instance=simulation_projet.projet)
     context["title"] = simulation_projet.projet.dossier_ds.projet_intitule
     context["breadcrumb_dict"] = {
         "links": [
@@ -237,9 +238,13 @@ def _enrich_simulation_projet_context_from_simulation_projet(
     context["enveloppe"] = simulation_projet.simulation.enveloppe
     context["dossier"] = simulation_projet.projet.dossier_ds
     context["menu_dict"] = PROJET_MENU
-    context["projet_form"] = ProjetForm(instance=simulation_projet.projet)
+    context["projet_form"] = projet_form
     context["dotation_projet_form"] = DotationProjetForm(
         instance=simulation_projet.dotation_projet
+    )
+    dotation_field = projet_form.fields.get("dotations")
+    context["initial_dotations"] = (
+        ",".join(dotation_field.initial) if dotation_field else []
     )
 
 
