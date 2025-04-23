@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.http import Http404, HttpRequest
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
@@ -94,14 +95,30 @@ def patch_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     form = ProjetForm(request.POST, instance=simulation_projet.projet)
     if form.is_valid():
-        form.save()
-        return redirect_to_same_page_or_to_simulation_detail_by_default(
-            request, simulation_projet
-        )
+        form.save(commit=False)  # TODO remove commit=False ?
+        try:
+            simulation_projet.refresh_from_db()
+            return redirect_to_same_page_or_to_simulation_detail_by_default(
+                request, simulation_projet
+            )
+        except SimulationProjet.DoesNotExist:
+            # Handle the case where the simulation_projet no longer exists
+            return redirect(
+                "simulation:simulation-detail",
+                slug=simulation_projet.simulation.slug,
+            )
 
-    return redirect_to_same_page_or_to_simulation_detail_by_default(
-        request, simulation_projet, message_type="error"
+    messages.error(
+        request,
+        "Une erreur s'est produite lors de la soumission du formulaire. Veuillez vérifier les champs et réessayer.",
+        extra_tags="alert",
     )
+    simulation_projet = _get_view_simulation_projet_from_pk(pk)
+    context = {"object": simulation_projet}
+    _enrich_simulation_projet_context_from_simulation_projet(context, simulation_projet)
+    context["projet_form"] = form
+
+    return render(request, "gsl_simulation/simulation_projet_detail.html", context)
 
 
 class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
@@ -118,45 +135,16 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
         return ["gsl_simulation/simulation_projet_detail.html"]
 
     def get(self, request, *args, **kwargs):
-        self.simulation_projet = SimulationProjet.objects.select_related(
-            "simulation",
-            "simulation__enveloppe",
-            "dotation_projet",
-            "dotation_projet__projet",
-            "dotation_projet__projet__dossier_ds",
-        ).get(id=request.resolver_match.kwargs.get("pk"))
+        self.simulation_projet = _get_view_simulation_projet_from_pk(
+            request.resolver_match.kwargs.get("pk")
+        )
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["title"] = self.object.projet.dossier_ds.projet_intitule
-        context["breadcrumb_dict"] = {
-            "links": [
-                {
-                    "url": reverse("simulation:simulation-list"),
-                    "title": "Mes simulations de programmation",
-                },
-                {
-                    "url": reverse(
-                        "simulation:simulation-detail",
-                        kwargs={"slug": self.simulation_projet.simulation.slug},
-                    ),
-                    "title": self.simulation_projet.simulation.title,
-                },
-            ],
-            "current": context["title"],
-        }
-        context["projet"] = self.simulation_projet.projet
-        context["dotation_projet"] = self.simulation_projet.dotation_projet
-        context["simu"] = self.simulation_projet
-        context["enveloppe"] = self.simulation_projet.simulation.enveloppe
-        context["dossier"] = self.simulation_projet.projet.dossier_ds
-        context["menu_dict"] = PROJET_MENU
-        context["projet_form"] = ProjetForm(instance=self.object.projet)
-        context["dotation_projet_form"] = DotationProjetForm(
-            instance=self.object.dotation_projet
+        _enrich_simulation_projet_context_from_simulation_projet(
+            context, self.simulation_projet
         )
-
         return context
 
 
@@ -221,3 +209,45 @@ def _get_projets_queryset_with_filters(simulation, filter_params):
 
     projets = view.get_projet_queryset()
     return projets
+
+
+def _enrich_simulation_projet_context_from_simulation_projet(
+    context: dict, simulation_projet: SimulationProjet
+):
+    context["title"] = simulation_projet.projet.dossier_ds.projet_intitule
+    context["breadcrumb_dict"] = {
+        "links": [
+            {
+                "url": reverse("simulation:simulation-list"),
+                "title": "Mes simulations de programmation",
+            },
+            {
+                "url": reverse(
+                    "simulation:simulation-detail",
+                    kwargs={"slug": simulation_projet.simulation.slug},
+                ),
+                "title": simulation_projet.simulation.title,
+            },
+        ],
+        "current": context["title"],
+    }
+    context["projet"] = simulation_projet.projet
+    context["dotation_projet"] = simulation_projet.dotation_projet
+    context["simu"] = simulation_projet
+    context["enveloppe"] = simulation_projet.simulation.enveloppe
+    context["dossier"] = simulation_projet.projet.dossier_ds
+    context["menu_dict"] = PROJET_MENU
+    context["projet_form"] = ProjetForm(instance=simulation_projet.projet)
+    context["dotation_projet_form"] = DotationProjetForm(
+        instance=simulation_projet.dotation_projet
+    )
+
+
+def _get_view_simulation_projet_from_pk(pk: int):
+    return SimulationProjet.objects.select_related(
+        "simulation",
+        "simulation__enveloppe",
+        "dotation_projet",
+        "dotation_projet__projet",
+        "dotation_projet__projet__dossier_ds",
+    ).get(id=pk)

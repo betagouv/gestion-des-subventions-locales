@@ -42,16 +42,18 @@ STATUS_TO_ALERT_TITLE = {
 
 
 @register.filter
-def create_alert_data(status: str | None, arg: str) -> dict[str, str | bool]:
+def create_alert_data(extra_tags: str | None, arg: str) -> dict[str, str | bool]:
     data_dict: dict[str, str | bool] = {"is_collapsible": True}
-    if status is None:
+    if extra_tags is None:
         data_dict["title"] = arg
         return data_dict
 
     data_dict["description"] = arg
 
-    if status in STATUS_TO_ALERT_TITLE:
-        data_dict["title"] = STATUS_TO_ALERT_TITLE[status]
+    if extra_tags in STATUS_TO_ALERT_TITLE:
+        data_dict["title"] = STATUS_TO_ALERT_TITLE[extra_tags]
+    else:
+        data_dict["type"] = extra_tags
 
     return data_dict
 

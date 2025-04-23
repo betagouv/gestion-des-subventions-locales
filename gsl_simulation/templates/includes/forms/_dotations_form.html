@@ -1,10 +1,29 @@
-
 <div class="form-disabled-before-value-change">
     {% csrf_token %}
-    <fieldset class=" fr-fieldset fr-callout fr-background-alt--blue-france fr-py-2w fr-px-2w">
-        {{ dotation_projet_form.dotations.label_tag }}
-        {% for df in dotation_projet_form.dotations %}
-            <div class="fr-fieldset__element">
+    <fieldset class=" fr-fieldset fr-callout fr-background-alt--blue-france fr-py-2w fr-px-2w"
+              aria-labelledby="titre-dotation">
+        <div id="titre-dotation" class="fr-m-1w fr-my-1w">
+            <b>
+                Imputation budgétaire - Choix de la dotation
+            </b>
+            <br />
+            <small class="hint-text">
+                Préciser la ligne budgétaire vers laquelle le projet doit être orienté
+            </small>
+        </div>
+
+        {% if projet_form.errors.dotations %}
+            <div class="fr-messages-group" aria-live="assertive">
+                {% for err in projet_form.errors.dotations %}
+                    <p class="fr-message fr-message--error">
+                        {{ err }}
+                    </p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% for df in projet_form.dotations %}
+            <div class="fr-fieldset__element fr-mb-1w">
                 {{ df }}
             </div>
         {% endfor %}

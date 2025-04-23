@@ -174,7 +174,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         page = self.kwargs.get("page") or self.request.GET.get("page") or 1
         current_page = paginator.page(page)
         context["simulations_paginator"] = current_page
-        context["simulations_list"] = current_page.object_list
+        context["simulation_projets_list"] = current_page.object_list
         context["title"] = (
             f"{simulation.enveloppe.dotation} {simulation.enveloppe.annee} – {simulation.title}"
         )

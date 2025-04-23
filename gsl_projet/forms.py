@@ -34,7 +34,6 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     )
 
     dotations = forms.MultipleChoiceField(
-        label="Imputation budgétaire - Choix de la dotation",
         choices=DOTATION_CHOICES,
         required=False,
         widget=forms.CheckboxSelectMultiple(attrs={"form": "simulation_projet_form"}),
@@ -51,6 +50,13 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["dotations"].initial = self.instance.dotations
+
+    def is_valid(self):
+        valid = super().is_valid()
+        if not self.cleaned_data.get("dotations"):
+            self.add_error("dotations", "Veuillez sélectionner au moins une dotation.")
+            valid = False
+        return valid
 
     def save(self, commit=True):
         instance = super().save(commit=False)

@@ -241,7 +241,7 @@ class DotationProjet(models.Model):
 
     def clean(self):
         errors = {}
-        if self.dotation == DOTATION_DSIL and self.detr_avis_commission is not None:
+        if self.dotation == DOTATION_DSIL and self.detr_avis_commission:
             errors["detr_avis_commission"] = (
                 "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR."
             )
