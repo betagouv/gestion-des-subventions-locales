@@ -1,3 +1,4 @@
+import logging
 from unittest import mock
 
 import pytest
@@ -22,7 +23,6 @@ from gsl_projet.constants import (
 from gsl_projet.tests.factories import (
     DetrProjetFactory,
     DotationProjetFactory,
-    ProjetFactory,
 )
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.services.simulation_projet_service import SimulationProjetService
@@ -110,25 +110,69 @@ def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_e
 
 
 @pytest.mark.django_db
-def test_get_initial_montant_from_projet():
-    projet_with_annotations_montant_accorde = ProjetFactory(
-        dossier_ds__annotations_montant_accorde=1_000,
-        dossier_ds__demande_montant=10_000,
+def test_get_initial_montant_from_dotation_projet():
+    dotation_projet_with_annotations_montant_accorde = DotationProjetFactory(
+        projet__dossier_ds__annotations_montant_accorde=1_000,
+        projet__dossier_ds__demande_montant=10_000,
     )
-    montant = SimulationProjetService.get_initial_montant_from_projet(
-        projet_with_annotations_montant_accorde
+    montant = SimulationProjetService.get_initial_montant_from_dotation_projet(
+        dotation_projet_with_annotations_montant_accorde
     )
     assert montant == 1_000
 
-    projet_with_demande_montant_only = ProjetFactory(dossier_ds__demande_montant=10_000)
-    montant = SimulationProjetService.get_initial_montant_from_projet(
-        projet_with_demande_montant_only
+    dotation_projet_with_demande_montant_only = DotationProjetFactory(
+        projet__dossier_ds__demande_montant=10_000
+    )
+    montant = SimulationProjetService.get_initial_montant_from_dotation_projet(
+        dotation_projet_with_demande_montant_only
     )
     assert montant == 10_000
 
-    projet_without_anything = ProjetFactory()
-    montant = SimulationProjetService.get_initial_montant_from_projet(
-        projet_without_anything
+    dotation_projet_without_anything = DotationProjetFactory()
+    montant = SimulationProjetService.get_initial_montant_from_dotation_projet(
+        dotation_projet_without_anything
+    )
+    assert montant == 0
+
+
+@pytest.mark.django_db
+def test_get_initial_montant_from_dotation_projet_with_assiette(caplog):
+    dotation_projet_with_annotations_montant_accorde = DotationProjetFactory(
+        projet__dossier_ds__annotations_montant_accorde=10_000,
+        projet__dossier_ds__demande_montant=100_000,
+        assiette=5_000,
+    )
+    with caplog.at_level(logging.WARNING):
+        montant = SimulationProjetService.get_initial_montant_from_dotation_projet(
+            dotation_projet_with_annotations_montant_accorde
+        )
+    assert montant == 5_000
+    assert (
+        f"Le projet de dotation {dotation_projet_with_annotations_montant_accorde.dotation} (id: {dotation_projet_with_annotations_montant_accorde.pk}) a une assiette plus petite que le montant accordé issu des annotations"
+        in caplog.text
+    )
+
+    dotation_projet_with_annotations_montant_accorde = DotationProjetFactory(
+        projet__dossier_ds__annotations_montant_accorde=1_000,
+        projet__dossier_ds__demande_montant=10_000,
+        assiette=5_000,
+    )
+    montant = SimulationProjetService.get_initial_montant_from_dotation_projet(
+        dotation_projet_with_annotations_montant_accorde
+    )
+    assert montant == 1_000
+
+    dotation_projet_with_demande_montant_only = DotationProjetFactory(
+        projet__dossier_ds__demande_montant=10_000, assiette=5_000
+    )
+    montant = SimulationProjetService.get_initial_montant_from_dotation_projet(
+        dotation_projet_with_demande_montant_only
+    )
+    assert montant == 5_000
+
+    dotation_projet_without_anything = DotationProjetFactory(assiette=5_000)
+    montant = SimulationProjetService.get_initial_montant_from_dotation_projet(
+        dotation_projet_without_anything
     )
     assert montant == 0
 

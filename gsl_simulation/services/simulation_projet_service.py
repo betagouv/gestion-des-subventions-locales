@@ -1,3 +1,4 @@
+import logging
 from decimal import Decimal
 
 from gsl_core.models import Perimetre
@@ -7,7 +8,7 @@ from gsl_projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.models import DotationProjet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_simulation.models import Simulation, SimulationProjet
 
@@ -33,7 +34,7 @@ class SimulationProjetService:
         """
         Create or update a SimulationProjet from a Dotation Projet and a Simulation.
         """
-        montant = cls.get_initial_montant_from_projet(dotation_projet.projet)
+        montant = cls.get_initial_montant_from_dotation_projet(dotation_projet)
         simulation_projet, _ = SimulationProjet.objects.update_or_create(
             dotation_projet=dotation_projet,
             simulation_id=simulation.id,
@@ -52,12 +53,31 @@ class SimulationProjetService:
         return simulation_projet
 
     @classmethod
-    def get_initial_montant_from_projet(cls, projet: Projet) -> Decimal:
+    def get_initial_montant_from_dotation_projet(
+        cls, dotation_projet: DotationProjet
+    ) -> Decimal:
+        projet = dotation_projet.projet
+        initial_montant = Decimal(0)
+
         if projet.dossier_ds.annotations_montant_accorde:
-            return projet.dossier_ds.annotations_montant_accorde
-        if projet.dossier_ds.demande_montant:
-            return projet.dossier_ds.demande_montant
-        return Decimal(0)
+            initial_montant = projet.dossier_ds.annotations_montant_accorde
+        elif projet.dossier_ds.demande_montant:
+            initial_montant = projet.dossier_ds.demande_montant
+
+        assiette = dotation_projet.assiette
+        if assiette and initial_montant > assiette:
+            initial_montant = assiette
+
+            if (
+                projet.dossier_ds.annotations_montant_accorde
+                and projet.dossier_ds.annotations_montant_accorde
+                > dotation_projet.assiette
+            ):
+                logging.warning(
+                    f"Le projet de dotation {dotation_projet.dotation} (id: {dotation_projet.pk}) a une assiette plus petite que le montant accordé issu des annotations"
+                )
+
+        return initial_montant
 
     @classmethod
     def update_status(cls, simulation_projet: SimulationProjet, new_status: str):
