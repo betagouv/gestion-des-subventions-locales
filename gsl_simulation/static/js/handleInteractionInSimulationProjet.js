@@ -5,14 +5,18 @@ document.querySelectorAll(".status-radio-button").forEach((elt) => {
       })
 })
 
-document.querySelector("#id_detr_avis_commission").addEventListener("change", (ev) => {
-  if(ev.target) ev.target.form.submit();
-})
+detr_avis_commission = document.querySelector("#id_detr_avis_commission")
+if (detr_avis_commission) {
+    detr_avis_commission.addEventListener("change", (ev) => {
+    if(ev.target) ev.target.form.submit();
+  })
+}
 
 document.querySelectorAll(".form-disabled-before-value-change").forEach((elt) => {
   let button = elt.querySelector("button[type='submit']")
-  
-  elt.addEventListener("change", (ev) => {
-    button.disabled = false;
-  })
+  if (button)(
+    elt.addEventListener("change", (ev) => {
+      button.disabled = false;
+    })
+  )
 })
