@@ -79,6 +79,11 @@ def patch_dotation_projet(request, pk):
     form = DotationProjetForm(request.POST, instance=simulation_projet.dotation_projet)
     if form.is_valid():
         form.save()
+        messages.success(
+            request,
+            "Les modifications ont été enregistrées avec succès.",
+            extra_tags="info",
+        )
         return redirect_to_same_page_or_to_simulation_detail_by_default(
             request, simulation_projet
         )
@@ -96,6 +101,11 @@ def patch_projet(request, pk):
     form = ProjetForm(request.POST, instance=simulation_projet.projet)
     if form.is_valid():
         form.save(commit=False)  # TODO remove commit=False ?
+        messages.success(
+            request,
+            "Les modifications ont été enregistrées avec succès.",
+            extra_tags="info",
+        )
         try:
             simulation_projet.refresh_from_db()
             return redirect_to_same_page_or_to_simulation_detail_by_default(
