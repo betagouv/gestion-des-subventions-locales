@@ -12,7 +12,7 @@
     {% endblock go_back_button %}
     <h1>
         {% block status_badge %}
-            <span class="fr-badge fr-text--xl gsl-pull-right fr-mt-2v fr-ml-5w badge-projet-status__{{ projet.status }}">{{ projet.status|remove_first_word }}</span>
+            <span class="fr-badge fr-text--xl gsl-pull-right fr-mt-2v fr-ml-5w badge-projet-status__{{ projet.status }}">{{ projet.get_status_display|remove_first_word }}</span>
         {% endblock status_badge %}
         {{ dossier.projet_intitule|lower|capfirst }}
     </h1>

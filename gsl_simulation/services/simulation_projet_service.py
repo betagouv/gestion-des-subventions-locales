@@ -1,13 +1,14 @@
 from decimal import Decimal
 
 from gsl_core.models import Perimetre
+from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.models import DotationProjet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_simulation.models import Simulation, SimulationProjet
 
@@ -33,30 +34,54 @@ class SimulationProjetService:
         """
         Create or update a SimulationProjet from a Dotation Projet and a Simulation.
         """
-        montant = cls.get_initial_montant_from_projet(dotation_projet.projet)
+        status = cls.get_simulation_projet_status(dotation_projet)
+        montant = cls.get_initial_montant_from_dotation_projet(dotation_projet, status)
+        taux = cls.get_initial_taux_from_dotation_projet(dotation_projet, montant)
         simulation_projet, _ = SimulationProjet.objects.update_or_create(
             dotation_projet=dotation_projet,
             simulation_id=simulation.id,
             defaults={
                 "montant": montant,
-                "taux": (
-                    dotation_projet.projet.dossier_ds.annotations_taux
-                    or DotationProjetService.compute_taux_from_montant(
-                        dotation_projet, montant
-                    )
-                ),
-                "status": cls.get_simulation_projet_status(dotation_projet),
+                "taux": taux,
+                "status": status,
             },
         )
 
         return simulation_projet
 
     @classmethod
-    def get_initial_montant_from_projet(cls, projet: Projet) -> Decimal:
+    def get_initial_montant_from_dotation_projet(
+        cls, dotation_projet: DotationProjet, status: str
+    ) -> Decimal:
+        if status in (
+            SimulationProjet.STATUS_DISMISSED,
+            SimulationProjet.STATUS_REFUSED,
+        ):
+            return Decimal(0)
+        try:
+            return dotation_projet.programmation_projet.montant
+        except ProgrammationProjet.DoesNotExist:
+            pass
+
+        projet = dotation_projet.projet
+
         if projet.dossier_ds.annotations_montant_accorde:
             return projet.dossier_ds.annotations_montant_accorde
         if projet.dossier_ds.demande_montant:
             return projet.dossier_ds.demande_montant
+        return Decimal(0)
+
+    @classmethod
+    def get_initial_taux_from_dotation_projet(
+        cls, dotation_projet: DotationProjet, montant: Decimal
+    ) -> Decimal:
+        if montant > 0:
+            return (
+                dotation_projet.projet.dossier_ds.annotations_taux
+                or DotationProjetService.compute_taux_from_montant(
+                    dotation_projet, montant
+                )
+            )
         return Decimal(0)
 
     @classmethod
