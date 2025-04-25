@@ -92,13 +92,13 @@ document.querySelector("#submit-dotation").addEventListener("click", (ev) => {
     selectedElement = ev.target
     openConfirmatioModal(ev.target)
   } else {
-    let form = document.querySelector("form#simulation_projet_form").closest("form")
+    let form = document.querySelector("form#projet_form").closest("form")
     form.submit()
   }
 });
 
 document.querySelector("#confirm-dotation-update").addEventListener("click", (ev) => {
-  let form = document.querySelector("form#simulation_projet_form").closest("form")
+  let form = document.querySelector("form#projet_form").closest("form")
   form.submit()
   closeModal()
 })

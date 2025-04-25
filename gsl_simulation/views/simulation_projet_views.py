@@ -100,7 +100,7 @@ def patch_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     form = ProjetForm(request.POST, instance=simulation_projet.projet)
     if form.is_valid():
-        form.save(commit=False)  # TODO remove commit=False ?
+        form.save()
         messages.success(
             request,
             "Les modifications ont été enregistrées avec succès.",
@@ -120,15 +120,13 @@ def patch_projet(request, pk):
 
     messages.error(
         request,
-        "Une erreur s'est produite lors de la soumission du formulaire. Veuillez vérifier les champs et réessayer.",
+        "Une erreur s'est produite lors de la soumission du formulaire. Veuillez sélectionner au moins une dotation.",
         extra_tags="alert",
     )
-    simulation_projet = _get_view_simulation_projet_from_pk(pk)
-    context = {"object": simulation_projet}
-    _enrich_simulation_projet_context_from_simulation_projet(context, simulation_projet)
-    context["projet_form"] = form
 
-    return render(request, "gsl_simulation/simulation_projet_detail.html", context)
+    return redirect_to_same_page_or_to_simulation_detail_by_default(
+        request, simulation_projet
+    )
 
 
 class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):

@@ -36,7 +36,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     dotations = forms.MultipleChoiceField(
         choices=DOTATION_CHOICES,
         required=False,
-        widget=forms.CheckboxSelectMultiple(attrs={"form": "simulation_projet_form"}),
+        widget=forms.CheckboxSelectMultiple(attrs={"form": "projet_form"}),
     )
 
     class Meta:
