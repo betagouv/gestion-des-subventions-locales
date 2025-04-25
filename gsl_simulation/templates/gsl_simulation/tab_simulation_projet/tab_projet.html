@@ -2,7 +2,14 @@
 {% load static gsl_filters %}
 
 {% block form_for_simulation_projet %}
-    <form method="post" id="simulation_projet_form">
+    <form method="post"
+          id="projet_form"
+          action="{% url 'gsl_simulation:patch-projet' simu.id %}">
+        {% csrf_token %}
+    </form>
+    <form method="post"
+          id="dotation_projet_form"
+          action="{% url 'gsl_simulation:patch-dotation-projet' simu.id %}">
         {% csrf_token %}
     </form>
 {% endblock form_for_simulation_projet %}
