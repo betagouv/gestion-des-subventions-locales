@@ -66,9 +66,14 @@ class SimulationProjetService:
         projet = dotation_projet.projet
 
         if projet.dossier_ds.annotations_montant_accorde:
-            return projet.dossier_ds.annotations_montant_accorde
+            return min(
+                projet.dossier_ds.annotations_montant_accorde,
+                projet.dossier_ds.finance_cout_total,
+            )
         if projet.dossier_ds.demande_montant:
-            return projet.dossier_ds.demande_montant
+            return min(
+                projet.dossier_ds.demande_montant, projet.dossier_ds.finance_cout_total
+            )
         return Decimal(0)
 
     @classmethod
