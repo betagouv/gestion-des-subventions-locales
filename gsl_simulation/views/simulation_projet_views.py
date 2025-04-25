@@ -164,7 +164,7 @@ def redirect_to_same_page_or_to_simulation_detail_by_default(
     request, simulation_projet, message_type: str | None = None
 ):
     if request.htmx:
-        render_partial_simulation_projet(request, simulation_projet)
+        return render_partial_simulation_projet(request, simulation_projet)
 
     add_success_message(request, message_type, simulation_projet)
 

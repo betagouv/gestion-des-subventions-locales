@@ -879,7 +879,7 @@ def test_patch_detr_avis_commission_simulation_projet(
     client_with_user_logged, accepted_simulation_projet, value, expected_value
 ):
     url = reverse(
-        "simulation:simulation-projet-detail",
+        "simulation:patch-dotation-projet",
         args=[accepted_simulation_projet.id],
     )
     response = client_with_user_logged.post(
@@ -899,40 +899,25 @@ def test_patch_detr_avis_commission_simulation_projet(
 
 
 @pytest.mark.parametrize(
-    "value, expected_value", (("True", True), ("False", False), ("", None))
+    "field, data, expected_value",
+    (
+        ("is_budget_vert", {"is_budget_vert": "True"}, True),
+        ("is_budget_vert", {"is_budget_vert": "False"}, False),
+        ("is_budget_vert", {"is_budget_vert": ""}, None),
+        ("is_attached_to_a_crte", {"is_attached_to_a_crte": "on"}, True),
+        ("is_attached_to_a_crte", {}, False),
+        ("is_in_qpv", {"is_in_qpv": "on"}, True),
+        ("is_in_qpv", {}, False),
+    ),
 )
-def test_patch_is_budget_vert_simulation_projet(
-    client_with_user_logged, accepted_simulation_projet, value, expected_value
+def test_patch_projet(
+    client_with_user_logged, accepted_simulation_projet, field, data, expected_value
 ):
-    url = reverse(
-        "simulation:simulation-projet-detail",
-        args=[accepted_simulation_projet.id],
-    )
-    response = client_with_user_logged.post(
-        url,
-        {"is_budget_vert": value},
-        follow=True,
-    )
-
-    updated_simulation_projet = SimulationProjet.objects.get(
-        id=accepted_simulation_projet.id
-    )
-
-    assert response.status_code == 200
-    assert updated_simulation_projet.projet.is_budget_vert is expected_value
-
-
-@pytest.mark.parametrize(
-    "data, expected_value", (({"is_in_qpv": "on"}, True), ({}, False))
-)
-def test_patch_is_qpv_simulation_projet(
-    client_with_user_logged, accepted_simulation_projet, data, expected_value
-):
-    accepted_simulation_projet.projet.is_in_qpv = not (expected_value)
+    accepted_simulation_projet.projet.__setattr__(field, not (expected_value))
     accepted_simulation_projet.projet.save()
 
     url = reverse(
-        "simulation:simulation-projet-detail",
+        "simulation:patch-projet",
         args=[accepted_simulation_projet.id],
     )
     response = client_with_user_logged.post(
@@ -944,32 +929,7 @@ def test_patch_is_qpv_simulation_projet(
     accepted_simulation_projet.projet.refresh_from_db()
 
     assert response.status_code == 200
-    assert accepted_simulation_projet.projet.is_in_qpv is expected_value
-
-
-@pytest.mark.parametrize(
-    "data, expected_value", (({"is_attached_to_a_crte": "on"}, True), ({}, False))
-)
-def test_patch_is_attached_to_a_crte_simulation_projet(
-    client_with_user_logged, accepted_simulation_projet, data, expected_value
-):
-    accepted_simulation_projet.projet.is_attached_to_a_crte = not (expected_value)
-    accepted_simulation_projet.projet.save()
-
-    url = reverse(
-        "simulation:simulation-projet-detail",
-        args=[accepted_simulation_projet.id],
-    )
-    response = client_with_user_logged.post(
-        url,
-        data,
-        follow=True,
-    )
-
-    accepted_simulation_projet.projet.refresh_from_db()
-
-    assert response.status_code == 200
-    assert accepted_simulation_projet.projet.is_attached_to_a_crte is expected_value
+    assert accepted_simulation_projet.projet.__getattribute__(field) is expected_value
 
 
 def test_get_projet_queryset_calls_prefetch(req, simulation, create_simulation_projets):
