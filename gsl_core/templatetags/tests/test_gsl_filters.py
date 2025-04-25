@@ -65,6 +65,7 @@ def test_create_alert_data():
     assert create_alert_data("other", "Test description") == {
         "is_collapsible": True,
         "description": "Test description",
+        "type": "other",
     }
 
 

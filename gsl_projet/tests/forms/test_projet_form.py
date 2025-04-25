@@ -1,14 +1,17 @@
 import pytest
 from django import forms
 
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.forms import ProjetForm
 from gsl_projet.models import Projet
-from gsl_projet.tests.factories import ProjetFactory
+from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 
 @pytest.fixture
 def projet():
-    return ProjetFactory()
+    projet = ProjetFactory()
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    return projet
 
 
 @pytest.mark.django_db
@@ -19,6 +22,7 @@ def test_projet_form_fields(projet):
         "is_budget_vert",
         "is_in_qpv",
         "is_attached_to_a_crte",
+        "dotations",
     ]
     assert list(form.fields.keys()) == expected_fields
 
@@ -37,10 +41,13 @@ def test_projet_form_fields(projet):
     assert budget_field.required is False
     assert budget_field.label == "Projet situé en QPV"
 
-    budget_field = form.fields["is_attached_to_a_crte"]
-    assert isinstance(budget_field, forms.BooleanField)
-    assert budget_field.required is False
-    assert budget_field.label == "Projet rattaché à un CRTE"
+    is_attached_to_a_crte = form.fields["is_attached_to_a_crte"]
+    assert isinstance(is_attached_to_a_crte, forms.BooleanField)
+    assert is_attached_to_a_crte.required is False
+
+    dotations = form.fields["dotations"]
+    assert isinstance(dotations, forms.MultipleChoiceField)
+    assert dotations.required is False
 
 
 @pytest.mark.django_db
@@ -49,6 +56,7 @@ def test_projet_form_validation(projet):
         "is_in_qpv": True,
         "is_attached_to_a_crte": False,
         "is_budget_vert": False,
+        "dotations": [DOTATION_DSIL],
     }
     form = ProjetForm(instance=projet, data=valid_data)
     assert form.is_valid()
@@ -57,10 +65,12 @@ def test_projet_form_validation(projet):
         "is_in_qpv": "invalid",
         "is_attached_to_a_crte": "invalid",
         "is_budget_vert": "invalid",
+        "dotations": [],
     }
     form = ProjetForm(instance=projet, data=invalid_data)
     assert not form.is_valid()
     assert "is_budget_vert" in form.errors
+    assert "dotations" in form.errors
 
     # BooleanField cast string value to boolean
     assert "is_in_qpv" not in form.errors
@@ -87,6 +97,7 @@ def test_projet_form_save(projet):
         "is_in_qpv": True,
         "is_attached_to_a_crte": True,
         "is_budget_vert": False,
+        "dotations": [DOTATION_DSIL],
     }
     form = ProjetForm(instance=projet, data=data)
     assert form.is_valid()
@@ -95,3 +106,4 @@ def test_projet_form_save(projet):
     assert projet.is_in_qpv is True
     assert projet.is_attached_to_a_crte is True
     assert projet.is_budget_vert is False
+    assert projet.dotations == [DOTATION_DSIL]

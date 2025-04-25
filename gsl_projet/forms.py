@@ -53,13 +53,16 @@ class ProjetForm(ModelForm, DsfrBaseForm):
 
     def is_valid(self):
         valid = super().is_valid()
-        if not self.cleaned_data.get("dotations"):
-            self.add_error("dotations", "Veuillez sélectionner au moins une dotation.")
-            valid = False
+        if "dotations" in self.data:
+            if not self.cleaned_data.get("dotations"):
+                self.add_error(
+                    "dotations", "Veuillez sélectionner au moins une dotation."
+                )
+                valid = False
         return valid
 
     def save(self, commit=True):
-        instance = super().save(commit=False)
+        instance = super().save(commit=commit)
         dotations = self.cleaned_data.get("dotations")
         if dotations:
             ProjetService.update_dotation(instance, dotations)
