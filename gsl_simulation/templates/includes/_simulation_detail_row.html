@@ -16,7 +16,7 @@
         {{ projet.demandeur.name | format_demandeur_nom }}
     </td>
     <td>
-        {{ dotation_projet.dotation }}
+        {% include "includes/table_forms/_dotation_form.html" with simu=simu %}
     </td>
     <td class="gsl-money">
         {{ projet.dossier_ds.finance_cout_total|euro:2 }}

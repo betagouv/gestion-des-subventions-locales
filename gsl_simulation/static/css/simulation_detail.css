@@ -32,6 +32,15 @@
   padding-right: 16px;
 }
 
+.dotation-select {
+  text-align: left;
+  gap: 0px
+}
+
+.dotation-select-content .fr-label {
+  font-size: small;
+}
+
 
 /* colors */
 

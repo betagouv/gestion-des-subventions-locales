@@ -8,6 +8,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DetailView
 
 from gsl.settings import ALLOWED_HOSTS
+from gsl_projet.constants import DOTATIONS
 from gsl_projet.forms import DotationProjetForm, ProjetForm
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
@@ -68,6 +69,22 @@ def patch_status_simulation_projet(request, pk):
     )
     return redirect_to_same_page_or_to_simulation_detail_by_default(
         request, updated_simulation_projet, status
+    )
+
+
+@projet_must_be_in_user_perimetre
+@exception_handler_decorator
+@require_POST
+def patch_dotation_simulation_projet(request, pk):
+    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
+    dotations = request.POST.get("dotations")
+
+    for dotation in dotations:
+        if dotation not in DOTATIONS:
+            raise ValueError("Invalid dotation")
+
+    return redirect_to_same_page_or_to_simulation_detail_by_default(
+        request, simulation_projet
     )
 
 

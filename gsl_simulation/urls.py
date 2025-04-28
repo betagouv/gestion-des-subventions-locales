@@ -8,6 +8,7 @@ from gsl_simulation.views.decorators import (
 from gsl_simulation.views.simulation_projet_views import (
     SimulationProjetDetailView,
     patch_dotation_projet,
+    patch_dotation_simulation_projet,
     patch_montant_simulation_projet,
     patch_projet,
     patch_status_simulation_projet,
@@ -51,6 +52,11 @@ urlpatterns = [
         "modifier-le-statut-d-un-projet-de-simulation/<int:pk>/",
         patch_status_simulation_projet,
         name="patch-simulation-projet-status",
+    ),
+    path(
+        "modifier-la-dotation-d-un-projet-de-simulation/<int:pk>/",
+        patch_dotation_simulation_projet,
+        name="patch-simulation-projet-dotation",
     ),
     path(
         "creation-simulation",

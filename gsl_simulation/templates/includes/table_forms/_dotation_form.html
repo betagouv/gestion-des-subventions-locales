@@ -1,0 +1,27 @@
+{% load gsl_filters %}
+<form action="{% url 'simulation:patch-simulation-projet-dotation' simu.id %}"
+      method="POST">
+    {% csrf_token %}
+    <div class="filter-dropdown">
+        <button type="button"
+                class="fr-select gsl-projet-table__select dotation-select input-simulation-projet-{{ simu.pk }}">
+            {{ projet.dotations|join:" et " }}
+        </button>
+        <div class="filter-content dotation-select-content">
+            {% for dotation in dotations %}
+                <div class="fr-checkbox-group fr-checkbox-group--sm">
+                    <input type="checkbox"
+                           name="dotation"
+                           value="{{ dotation }}"
+                           id="id_dotation_{{ forloop.counter }}"
+                           {% if dotation in projet.dotations %}checked{% endif %}>
+                    <label for="id_dotation_{{ forloop.counter }}" class="fr-label">
+                        {{ dotation }}
+                    </label>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <input type="hidden" name="filter_params" value="{{ filter_params }}">
+    <input type="submit" hidden />
+</form>
