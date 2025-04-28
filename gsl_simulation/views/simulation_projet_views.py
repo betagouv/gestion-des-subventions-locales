@@ -88,8 +88,14 @@ def patch_dotation_projet(request, pk):
             request, simulation_projet
         )
 
+    messages.error(
+        request,
+        "Une erreur s'est produite lors de la soumission du formulaire.",
+        extra_tags="alert",
+    )
+
     return redirect_to_same_page_or_to_simulation_detail_by_default(
-        request, simulation_projet, message_type="error"
+        request, simulation_projet, add_message=False
     )
 
 
@@ -125,7 +131,7 @@ def patch_projet(request, pk):
     )
 
     return redirect_to_same_page_or_to_simulation_detail_by_default(
-        request, simulation_projet
+        request, simulation_projet, add_message=False
     )
 
 
@@ -157,12 +163,13 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
 
 
 def redirect_to_same_page_or_to_simulation_detail_by_default(
-    request, simulation_projet, message_type: str | None = None
+    request, simulation_projet, message_type: str | None = None, add_message=True
 ):
     if request.htmx:
         return render_partial_simulation_projet(request, simulation_projet)
 
-    add_success_message(request, message_type, simulation_projet)
+    if add_message:
+        add_success_message(request, message_type, simulation_projet)
 
     referer = request.headers.get("Referer")
     if referer and url_has_allowed_host_and_scheme(
