@@ -1,7 +1,8 @@
 'use strict';
 
 let selectedElement = undefined;
-let modalId = undefined
+let modalId = undefined;
+let formButton = undefined; // Used in handleInteractionInSimulationProjet.js
 
 const VALID = "valid";
 const CANCELLED = "cancelled";
@@ -98,6 +99,9 @@ function closeModal() {
     selectedElement.form.reset()
     dsfr(modal).modal.conceal()
     selectedElement.focus()
+    if (formButton) {
+        formButton.disabled = true;
+    }
     selectedElement = undefined;
     modalId = undefined;
 }

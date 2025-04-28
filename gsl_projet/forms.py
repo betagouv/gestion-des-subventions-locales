@@ -53,12 +53,9 @@ class ProjetForm(ModelForm, DsfrBaseForm):
 
     def is_valid(self):
         valid = super().is_valid()
-        if "dotations" in self.data:
-            if not self.cleaned_data.get("dotations"):
-                self.add_error(
-                    "dotations", "Veuillez sélectionner au moins une dotation."
-                )
-                valid = False
+        if not self.cleaned_data.get("dotations"):
+            self.add_error("dotations", "Veuillez sélectionner au moins une dotation.")
+            valid = False
         return valid
 
     def save(self, commit=True):

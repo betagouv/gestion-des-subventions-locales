@@ -91,6 +91,7 @@ document.querySelector("#submit-dotation").addEventListener("click", (ev) => {
   if (mustOpenDotationUpdateConfirmationModal(ev.target)) {
     selectedElement = ev.target
     openConfirmatioModal(ev.target)
+    formButton = document.querySelector("button[type='submit']#submit-dotation")
   } else {
     let form = document.querySelector("form#projet_form").closest("form")
     form.submit()

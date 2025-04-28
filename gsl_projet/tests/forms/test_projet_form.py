@@ -82,6 +82,7 @@ def test_is_in_qpv_or_is_attached_to_a_crte_projet_form_validation(projet):
     invalid_data = {
         "is_in_qpv": "invalid value which will be transform to True",
         "is_attached_to_a_crte": "invalid value which will be transform to True",
+        "dotations": [DOTATION_DSIL],
     }
     form = ProjetForm(instance=projet, data=invalid_data)
     assert form.is_valid()

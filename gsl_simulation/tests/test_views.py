@@ -29,6 +29,7 @@ from gsl_programmation.tests.factories import (
 )
 from gsl_projet.constants import (
     DOTATION_DETR,
+    DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
@@ -915,6 +916,8 @@ def test_patch_projet(
 ):
     accepted_simulation_projet.projet.__setattr__(field, not (expected_value))
     accepted_simulation_projet.projet.save()
+
+    data["dotations"] = [DOTATION_DSIL]
 
     url = reverse(
         "simulation:patch-projet",
