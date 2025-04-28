@@ -58,6 +58,7 @@ class SimulationProjetService:
             SimulationProjet.STATUS_REFUSED,
         ):
             return Decimal(0)
+
         try:
             return dotation_projet.programmation_projet.montant
         except ProgrammationProjet.DoesNotExist:

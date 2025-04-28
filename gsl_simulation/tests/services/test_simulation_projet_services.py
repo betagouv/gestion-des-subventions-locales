@@ -28,8 +28,9 @@ from gsl_simulation.models import SimulationProjet
 from gsl_simulation.services.simulation_projet_service import SimulationProjetService
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
+pytestmark = pytest.mark.django_db
 
-@pytest.mark.django_db
+
 @mock.patch.object(
     SimulationProjetService, "create_or_update_simulation_projet_from_dotation_projet"
 )
@@ -53,7 +54,6 @@ def test_update_simulation_projets_from_dotation_projet_calls_create_or_update(
         )
 
 
-@pytest.mark.django_db
 def test_create_or_update_simulation_projet_from_dotation_projet_when_no_simulation_projet_exists():
     dotation_projet = DotationProjetFactory(
         projet__dossier_ds__annotations_montant_accorde=1_000,
@@ -77,7 +77,6 @@ def test_create_or_update_simulation_projet_from_dotation_projet_when_no_simulat
     assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
 
 
-@pytest.mark.django_db
 def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_exists():
     simulation = SimulationFactory()
     dotation_projet = DotationProjetFactory(
@@ -109,7 +108,6 @@ def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_e
     assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
 
 
-@pytest.mark.django_db
 def test_get_initial_montant_from_projet():
     projet_with_annotations_montant_accorde = ProjetFactory(
         dossier_ds__annotations_montant_accorde=1_000,
@@ -133,12 +131,61 @@ def test_get_initial_montant_from_projet():
     assert montant == 0
 
 
+@pytest.mark.parametrize(
+    "status, finance_cout_total, annotations_montant_accorde , demande_montant, expected_montant",
+    (
+        (SimulationProjet.STATUS_DISMISSED, 1_000, 10_000, 5_000, 0),
+        (SimulationProjet.STATUS_REFUSED, 1_000, 10_000, 5_000, 0),
+        (SimulationProjet.STATUS_PROCESSING, 1_000, 10_000, 5_000, 1_000),
+        (SimulationProjet.STATUS_PROCESSING, 10_000, 1_000, 5_000, 1_000),
+        (SimulationProjet.STATUS_PROCESSING, 1_000, None, 5_000, 1_000),
+        (SimulationProjet.STATUS_PROCESSING, 10_000, None, 5_000, 5_000),
+        (SimulationProjet.STATUS_PROCESSING, 10_000, None, None, 0),
+    ),
+)
+def test_get_initial_montant_from_dotation_projet(
+    status,
+    annotations_montant_accorde,
+    finance_cout_total,
+    demande_montant,
+    expected_montant,
+):
+    projet = ProjetFactory(
+        dossier_ds__annotations_montant_accorde=annotations_montant_accorde,
+        dossier_ds__finance_cout_total=finance_cout_total,
+        dossier_ds__demande_montant=demande_montant,
+    )
+    dotation_projet = DotationProjetFactory(projet=projet)
+
+    montant = SimulationProjetService.get_initial_montant_from_dotation_projet(
+        dotation_projet, status
+    )
+
+    assert montant == expected_montant
+
+
+def test_get_initial_montant_from_dotation_projet_with_an_accepted_programmation_projet():
+    projet = ProjetFactory(
+        dossier_ds__annotations_montant_accorde=400_000_000,
+        dossier_ds__finance_cout_total=100_000_000,
+        dossier_ds__demande_montant=100_202_500,
+    )
+    dotation_projet = DotationProjetFactory(projet=projet)
+    ProgrammationProjetFactory(dotation_projet=dotation_projet, montant=500)
+
+    montant = SimulationProjetService.get_initial_montant_from_dotation_projet(
+        dotation_projet,
+        SimulationProjet.STATUS_PROCESSING,  # status not coherent, but must work nevertheless
+    )
+
+    assert montant == 500
+
+
 @pytest.fixture
 def dotation_projet():
     return DotationProjetFactory(assiette=1000)
 
 
-@pytest.mark.django_db
 @mock.patch(
     "gsl_simulation.services.simulation_projet_service.SimulationProjetService._accept_a_simulation_projet"
 )
@@ -153,7 +200,6 @@ def test_update_status_with_accepted(mock_accept_a_simulation_projet):
     mock_accept_a_simulation_projet.assert_called_once_with(simulation_projet)
 
 
-@pytest.mark.django_db
 def test_update_status_with_refused():
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROCESSING
@@ -168,7 +214,6 @@ def test_update_status_with_refused():
         mock_refuse_a_simulation_projet.assert_called_once_with(simulation_projet)
 
 
-@pytest.mark.django_db
 def test_update_status_with_dismissed():
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROCESSING
@@ -183,7 +228,6 @@ def test_update_status_with_dismissed():
         mock_dismiss_a_simulation_projet.assert_called_once_with(simulation_projet)
 
 
-@pytest.mark.django_db
 @pytest.mark.parametrize(
     ("initial_status"),
     (
@@ -208,7 +252,6 @@ def test_update_status_with_processing_from_accepted_or_refused_or_dismissed(
         )
 
 
-@pytest.mark.django_db
 def test_update_status_with_processing():
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROVISOIRE
@@ -230,7 +273,6 @@ SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS = {
 }
 
 
-@pytest.mark.django_db
 @pytest.mark.parametrize(
     ("initial_status"),
     (
@@ -273,7 +315,6 @@ def test_update_status_with_provisoire_from_refused_or_accepted_or_dismissed(
         assert other_simulation_projet.status == SimulationProjet.STATUS_PROCESSING
 
 
-@pytest.mark.django_db
 @pytest.mark.parametrize(
     ("initial_status"),
     (
@@ -307,7 +348,6 @@ def test_update_status_with_provisoire_remove_programmation_projet_from_accepted
     )
 
 
-@pytest.mark.django_db
 def test_accept_a_simulation_projet():
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROCESSING
@@ -340,7 +380,6 @@ def test_accept_a_simulation_projet():
     assert updated_other_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
 
 
-@pytest.mark.django_db
 def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_mother_enveloppe():
     mother_enveloppe = DetrEnveloppeFactory()
     child_enveloppe = DetrEnveloppeFactory(deleguee_by=mother_enveloppe)
@@ -377,7 +416,6 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
         ),
     ),
 )
-@pytest.mark.django_db
 def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_mother_enveloppe(
     initial_programmation_status,
     new_projet_status,
@@ -421,7 +459,6 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
     "field_name",
     ("assiette", "projet__dossier_ds__finance_cout_total"),
 )
-@pytest.mark.django_db
 def test_update_taux(field_name):
     dotation_projet = DotationProjetFactory(
         **{field_name: 1000},
@@ -442,7 +479,6 @@ def test_update_taux(field_name):
     "field_name",
     ("assiette", "projet__dossier_ds__finance_cout_total"),
 )
-@pytest.mark.django_db
 def test_update_taux_of_accepted_montant(field_name):
     dotation_projet = DotationProjetFactory(
         **{field_name: 1000},
@@ -484,7 +520,6 @@ def test_update_taux_of_accepted_montant(field_name):
     "field_name",
     ("assiette", "projet__dossier_ds__finance_cout_total"),
 )
-@pytest.mark.django_db
 def test_update_montant(field_name):
     dotation_projet = DotationProjetFactory(
         **{field_name: 1000},
@@ -505,7 +540,6 @@ def test_update_montant(field_name):
     "field_name",
     ("assiette", "projet__dossier_ds__finance_cout_total"),
 )
-@pytest.mark.django_db
 def test_update_montant_of_accepted_montant(field_name):
     dotation_projet = DotationProjetFactory(
         **{field_name: 1000},
@@ -544,7 +578,6 @@ def test_update_montant_of_accepted_montant(field_name):
     assert programmation_projet.taux == 50.0
 
 
-@pytest.mark.django_db
 def test_is_simulation_projet_in_perimetre_regional():
     perimetre_arrondissement = PerimetreArrondissementFactory()
     perimetre_regional = PerimetreRegionalFactory(
@@ -576,7 +609,6 @@ def test_is_simulation_projet_in_perimetre_regional():
     )
 
 
-@pytest.mark.django_db
 def test_is_simulation_projet_in_perimetre_departemental():
     perimetre_arrondissement = PerimetreArrondissementFactory()
     perimetre_departemental = PerimetreDepartementalFactory(
@@ -606,7 +638,6 @@ def test_is_simulation_projet_in_perimetre_departemental():
     )
 
 
-@pytest.mark.django_db
 def test_is_simulation_projet_in_perimetre_arrondissement():
     perimetre_arrondissement = PerimetreArrondissementFactory()
     dotation_projet = DetrProjetFactory(projet__perimetre=perimetre_arrondissement)
@@ -644,7 +675,6 @@ def test_is_simulation_projet_in_perimetre_arrondissement():
         (PROJET_STATUS_DISMISSED, SimulationProjet.STATUS_DISMISSED),
     ),
 )
-@pytest.mark.django_db
 def test_get_simulation_projet_status(projet_status, simulation_projet_status_expected):
     dotation_projet = DotationProjetFactory(status=projet_status)
     status = SimulationProjetService.get_simulation_projet_status(dotation_projet)
@@ -665,7 +695,6 @@ def test_get_simulation_projet_status(projet_status, simulation_projet_status_ex
         ),
     ),
 )
-@pytest.mark.django_db
 def test_simulation_projet_transition_are_called(
     dotation_projet_transition, method, with_enveloppe, with_montant
 ):
