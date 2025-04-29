@@ -46,7 +46,7 @@ def test_get_projet_status_summary(simulation, simulation_projects):
         SimulationProjet.STATUS_REFUSED: 3,
         SimulationProjet.STATUS_PROCESSING: 1,
         SimulationProjet.STATUS_ACCEPTED: 2,
-        SimulationProjet.STATUS_PROVISOIRE: 0,
+        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: 0,
         "notified": 0,
     }
 

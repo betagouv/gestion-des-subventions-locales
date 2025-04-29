@@ -717,9 +717,9 @@ data_test = (
         "dismissed",
     ),
     (
-        SimulationProjet.STATUS_PROVISOIRE,
+        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         "Le projet est accepté provisoirement dans cette simulation.",
-        "provisoire",
+        "provisionally_accepted",
     ),
     (
         SimulationProjet.STATUS_PROCESSING,

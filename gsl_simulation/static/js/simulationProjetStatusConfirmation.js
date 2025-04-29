@@ -7,7 +7,7 @@ const VALID = "valid";
 const CANCELLED = "cancelled";
 const DISMISSED = "dismissed";
 const PROCESSING = "draft";
-const PROVISOIRE = "provisoire";
+const PROVISOIRE = "provisionally_accepted";
 
 const STATUSES_WITH_OTHER_SIMULATION_IMPACT = [VALID, CANCELLED, DISMISSED];
 
@@ -16,7 +16,7 @@ const STATUS_TO_MODAL_ID = {
     "cancelled": "refuse-confirmation-modal",
     "draft": "processing-confirmation-modal",
     "dismissed": "dismiss-confirmation-modal",
-    "provisoire": "provisoire-confirmation-modal",
+    "provisionally_accepted": "provisionally_accepted-confirmation-modal",
 }
 
 const STATUS_TO_FRENCH_WORD = {

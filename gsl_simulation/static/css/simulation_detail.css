@@ -102,7 +102,7 @@
   color: var(--text-default-error)
 }
 
-.status-select:has(> option[value="provisoire"]:checked){
+.status-select:has(> option[value="provisionally_accepted"]:checked){
   color: var(--text-default-info)
 }
 
@@ -113,7 +113,7 @@
   box-shadow: inset 0 -2px 0 0 var(--background-action-high-success)
 }
 
-.input-status-color-provisoire{
+.input-status-color-provisionally_accepted{
   background-color: var(--text-inverted-blue-ecume);
   box-shadow: inset 0 -2px 0 0 var(--border-action-high-info)
 }

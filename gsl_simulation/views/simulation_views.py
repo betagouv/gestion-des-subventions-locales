@@ -83,7 +83,7 @@ class SimulationProjetListViewFilters(ProjetFilters):
 
     ordered_status = (
         SimulationProjet.STATUS_PROCESSING,
-        SimulationProjet.STATUS_PROVISOIRE,
+        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         SimulationProjet.STATUS_REFUSED,
         SimulationProjet.STATUS_ACCEPTED,
         SimulationProjet.STATUS_DISMISSED,

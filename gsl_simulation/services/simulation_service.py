@@ -54,7 +54,7 @@ class SimulationService:
     def get_total_amount_granted(cls, qs: QuerySet[Projet], simulation: Simulation):
         statuses_to_include = (
             SimulationProjet.STATUS_ACCEPTED,
-            SimulationProjet.STATUS_PROVISOIRE,
+            SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         )
         return (
             qs.filter(
