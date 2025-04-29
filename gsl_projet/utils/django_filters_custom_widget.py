@@ -15,6 +15,7 @@ class CustomCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
         return {
             SimulationProjet.STATUS_PROCESSING: "",
             SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: "blue",
+            SimulationProjet.STATUS_PROVISIONALLY_REFUSED: "orange",
             SimulationProjet.STATUS_REFUSED: "red",
             SimulationProjet.STATUS_ACCEPTED: "green",
             PROJET_STATUS_ACCEPTED: "green",

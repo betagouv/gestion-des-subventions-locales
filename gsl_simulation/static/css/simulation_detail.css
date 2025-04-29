@@ -106,6 +106,10 @@
   color: var(--text-default-info)
 }
 
+.status-select:has(> option[value="provisionally_refused"]:checked){
+  color: var(--artwork-minor-pink-tuile)
+}
+
 /* inputs */
 
 .input-status-color-valid{
