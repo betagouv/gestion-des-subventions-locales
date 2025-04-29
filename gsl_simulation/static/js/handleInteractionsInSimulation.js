@@ -54,27 +54,6 @@ document.querySelectorAll('.dotation-dropdown button').forEach(button => {
         }
     });
 });
-
-// // Close dotation dropdowns + handle change when clicking outside
-// document.addEventListener('click', function (event) {
-//     if (dotationContentSelectedElement) {
-//         if (!dotationContentSelectedElement.contains(event.target)) {
-            
-//             // dotationContentSelectedElement.querySelector('.filter-content').style.display = 'none';
-//             // dotationContentSelectedElement = undefined
-//         }
-//     }
-// });
-  
-
-// document.querySelector("#submit-dotation").addEventListener("click", (ev) => {
-//     ev.preventDefault();
-//     selectedElement = ev.target
-//     let form = document.querySelector("form#projet_form").closest("form")
-//     let fieldset = document.querySelector("#dotation-fieldset")
-//     const initalDotationValues = selectedElement.dataset.initialDotations.split(",")
-//     handleDotationChange(form, fieldset, initalDotationValues)
-//   });
   
 
 document.querySelector("#confirm-dotation-update").addEventListener("click", (ev) => {

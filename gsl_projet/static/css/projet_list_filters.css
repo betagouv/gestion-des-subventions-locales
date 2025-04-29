@@ -5,6 +5,42 @@
   font-size: calc(1rem * 14 / 16);
 }
 
+.filter-dropdown > button {
+  text-align: start;
+}
+
+.filter-dropdown > .fr-input {
+  display: flex;
+}
+
+.filter-dropdown > button > span {
+  margin-top: 1px; /* Alignement vertical de l'icône */
+}
+
+.filter-dropdown .filter-content {
+  gap: 6px;
+  min-width: auto;
+}
+
+.filter-content {
+  display: none;
+  position: absolute;
+  background-color: white;
+  min-width: 260px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  z-index: 1000;
+  gap: 1rem;
+  --status-color-green: var(--text-default-success);
+  --status-color-blue: var(--text-default-info);
+  --status-color-orange: var(--text-default-warning);
+  --status-color-red: var(--text-default-error);
+}
+
+.filter-content > button {
+  width: 100%;
+  justify-content: center;
+}
 
 .amount-filter-group {
   display: flex;
