@@ -60,14 +60,20 @@ const mustOpenDotationUpdateConfirmationModal = (newValues, initialValues) => {
   return true
 }
 
-document.querySelector("#confirm-dotation-update").addEventListener("click", (ev) => {
-  let form = document.querySelector("form#projet_form").closest("form")
-  form.submit()
-  closeModal()
-})
+
+function arraysEqual(a, b) {
+  if (a === b) return true;
+  if (a == null || b == null) return false;
+  if (a.length !== b.length) return false;
+
+  for (var i = 0; i < a.length; ++i) {
+    if (!b.includes(a[i])) return false;
+  }
+  return true;
+}
 
 
-function handleDotationChange(form, fieldset, initalValues) {
+export function handleDotationChange(form, fieldset, initalValues) {
   newDotationValues = getDotationValues(fieldset)
   initialDotationValues = initalValues
 
@@ -81,17 +87,4 @@ function handleDotationChange(form, fieldset, initalValues) {
   } else {
     form.submit()
   }
-}
-
-
-//TODO mettre dans un fichier utilitaire (+ test ??)
-function arraysEqual(a, b) {
-  if (a === b) return true;
-  if (a == null || b == null) return false;
-  if (a.length !== b.length) return false;
-
-  for (var i = 0; i < a.length; ++i) {
-    if (!b.includes(a[i])) return false;
-  }
-  return true;
 }

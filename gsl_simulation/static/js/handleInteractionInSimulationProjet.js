@@ -1,3 +1,5 @@
+import { handleDotationChange } from "./modules/handleDotationUpdate.js";
+
 document.querySelectorAll(".status-radio-button").forEach((elt) => {
     elt.addEventListener("change", (ev) => {
         let target = ev.target;
@@ -5,7 +7,7 @@ document.querySelectorAll(".status-radio-button").forEach((elt) => {
       })
 })
 
-detr_avis_commission = document.querySelector("#id_detr_avis_commission")
+let detr_avis_commission = document.querySelector("#id_detr_avis_commission")
 if (detr_avis_commission) {
     detr_avis_commission.addEventListener("change", (ev) => {
     if(ev.target) ev.target.form.submit();
@@ -31,3 +33,10 @@ document.querySelector("#submit-dotation").addEventListener("click", (ev) => {
   const initalDotationValues = selectedElement.dataset.initialDotations.split(",")
   handleDotationChange(form, fieldset, initalDotationValues)
 });
+
+
+document.querySelector("#confirm-dotation-update").addEventListener("click", (ev) => {
+  let form = document.querySelector("form#projet_form").closest("form")
+  form.submit()
+  closeModal()
+})

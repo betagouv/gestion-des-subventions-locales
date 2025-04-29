@@ -32,6 +32,10 @@
   padding-right: 16px;
 }
 
+.dotation-dropdown > button {
+  line-height: inherit;
+}
+
 .dotation-select-content{
   text-align: left;
   gap: 0px;

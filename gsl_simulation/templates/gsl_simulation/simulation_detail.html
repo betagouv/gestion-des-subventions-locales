@@ -95,6 +95,6 @@
 {% block extra_js %}
     <script src="{% static 'js/htmx.min.js' %}"></script>
     <script src="{% static 'js/simulationProjetStatusConfirmation.js' %}"></script>
-    <script src="{% static 'js/handleDotationUpdate.js' %}"></script>
-    <script src="{% static 'js/handleInteractionsInSimulation.js' %}"></script>
+    <script type="module"
+            src="{% static 'js/handleInteractionsInSimulation.js' %}"></script>
 {% endblock extra_js %}
