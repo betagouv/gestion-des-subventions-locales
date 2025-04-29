@@ -67,9 +67,14 @@ document.querySelector("#confirm-dotation-update").addEventListener("click", (ev
 })
 
 
-const handleDotationChange = (form, fieldset, initalValues) => {
+function handleDotationChange(form, fieldset, initalValues) {
   newDotationValues = getDotationValues(fieldset)
   initialDotationValues = initalValues
+
+  if (arraysEqual(newDotationValues, initialDotationValues)) {
+    return
+  }
+
   if (mustOpenDotationUpdateConfirmationModal(newDotationValues, initialDotationValues)) {
     openConfirmatioModal()
     formButton = document.querySelector("button[type='submit']#submit-dotation")
@@ -80,10 +85,28 @@ const handleDotationChange = (form, fieldset, initalValues) => {
 
 
 // TODO à mettre dans un fichier à part !
-const setDotationValuesFromSimulationProjet = () => {
-  let dotationFieldSet = form.querySelector("#dotation-fieldset")
-  if (dotationFieldSet) {
-    return getDotationValues(dotationFieldSet)
+// const setDotationValuesFromSimulationProjet = () => {
+//   let dotationFieldSet = form.querySelector("#dotation-fieldset")
+//   if (dotationFieldSet) {
+//     return getDotationValues(dotationFieldSet)
+//   }
+//   return []
+// }
+
+
+//TODO mettre dans un fichier utilitaire (+ test ??)
+function arraysEqual(a, b) {
+  if (a === b) return true;
+  if (a == null || b == null) return false;
+  if (a.length !== b.length) return false;
+
+  // If you don't care about the order of the elements inside
+  // the array, you should sort both arrays here.
+  // Please note that calling sort on an array will modify that array.
+  // you might want to clone your array first.
+
+  for (var i = 0; i < a.length; ++i) {
+    if (a[i] !== b[i]) return false;
   }
-  return []
+  return true;
 }

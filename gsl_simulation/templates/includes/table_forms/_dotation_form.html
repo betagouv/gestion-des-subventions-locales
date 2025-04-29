@@ -1,27 +1,33 @@
 {% load gsl_filters %}
-<form action="{% url 'simulation:patch-simulation-projet-dotation' simu.id %}"
+<form id="simulation-projet-dotation-form-{{ simu.id }}"
+      action="{% url 'simulation:patch-projet' simu.id %}"
       method="POST">
     {% csrf_token %}
-    <div class="filter-dropdown">
+    <div class="dotation-dropdown">
         <button type="button"
-                class="fr-select gsl-projet-table__select dotation-select input-simulation-projet-{{ simu.pk }}">
+                class="fr-select gsl-projet-table__select input-simulation-projet-{{ simu.pk }}">
             {{ projet.dotations|join:" et " }}
         </button>
-        <div class="filter-content dotation-select-content">
+
+        <fieldset class="dotation-select-content"
+                  data-initial-dotations="{{ projet.dotations|join:"," }}">
             {% for dotation in dotations %}
                 <div class="fr-checkbox-group fr-checkbox-group--sm">
-                    <input type="checkbox"
-                           name="dotation"
+                    <input form="simulation-projet-dotation-form-{{ simu.id }}"
+                           type="checkbox"
+                           name="dotations"
                            value="{{ dotation }}"
-                           id="id_dotation_{{ forloop.counter }}"
+                           id="id_dotation_{{ simu.id }}_{{ forloop.counter }}"
                            {% if dotation in projet.dotations %}checked{% endif %}>
-                    <label for="id_dotation_{{ forloop.counter }}" class="fr-label">
+                    <label for="id_dotation_{{ simu.id }}_{{ forloop.counter }}"
+                           class="fr-label">
                         {{ dotation }}
                     </label>
                 </div>
             {% endfor %}
-        </div>
+        </fieldset>
     </div>
+
     <input type="hidden" name="filter_params" value="{{ filter_params }}">
     <input type="submit" hidden />
 </form>
