@@ -122,11 +122,6 @@
   box-shadow: inset 0 -2px 0 0 var(--border-action-high-info)
 }
 
-.fr-input:disabled.input-status-color-cancelled {
-  background-color: var(--background-alt-orange-terre-battue);
-  box-shadow: inset 0 -2px 0 0 var(--border-plain-error)
-}
-
 .form-disabled-before-value-change > .fr-callout {
   background-image: linear-gradient(0deg, var(--background-action-high-blue-france), var(--background-action-high-blue-france))
 }
