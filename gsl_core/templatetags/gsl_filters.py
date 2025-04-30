@@ -33,6 +33,11 @@ def remove_first_word(value):
     return parts[1] if len(parts) > 1 else ""
 
 
+@register.filter
+def get(dictionary, key):
+    return dictionary.get(key)
+
+
 STATUS_TO_ALERT_TITLE = {
     SimulationProjet.STATUS_ACCEPTED: "Projet accepté",
     SimulationProjet.STATUS_REFUSED: "Projet refusé",

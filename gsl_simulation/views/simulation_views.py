@@ -1,5 +1,7 @@
+from multiprocessing.managers import BaseManager
+
 from django.core.paginator import Paginator
-from django.db.models import Prefetch, Sum
+from django.db.models import Count, Prefetch, QuerySet, Sum
 from django.forms import NumberInput
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -189,6 +191,9 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         context["filter_params"] = self.request.GET.urlencode()
         context["enveloppe"] = self._get_enveloppe_data(simulation)
         context["dotations"] = DOTATIONS
+        context["other_dotations_simu"] = self._get_other_dotations_simulation_projet(
+            current_page.object_list, simulation.enveloppe.dotation
+        )
         self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
 
         context["breadcrumb_dict"] = {
@@ -267,6 +272,36 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
     def _get_territoire_choices(self):
         perimetre = self.perimetre
         return (perimetre, *perimetre.children())
+
+    def _get_other_dotations_simulation_projet(
+        self, projets: QuerySet[Projet], dotation: str
+    ):
+        projet_ids = list(projets.values_list("id", flat=True))
+        ids_of_double_dotation_projet = (
+            Projet.objects.annotate(dotation_projet_count=Count("dotationprojet"))
+            .filter(dotation_projet_count__gt=1, id__in=projet_ids)
+            .values_list("id", flat=True)
+        )
+
+        other_simulation_projets = (
+            SimulationProjet.objects.filter(
+                dotation_projet__projet__id__in=ids_of_double_dotation_projet
+            )
+            .exclude(simulation__enveloppe__dotation=dotation)
+            .order_by("-updated_at")
+        )
+        projet_id_to_last_updated_other_dotation_simulation_projet: dict[
+            int, BaseManager[SimulationProjet]
+        ] = {}
+        for projet_id in ids_of_double_dotation_projet:
+            last_updated_simulation_projets = other_simulation_projets.filter(
+                dotation_projet__projet__pk=projet_id
+            ).first()
+            projet_id_to_last_updated_other_dotation_simulation_projet[projet_id] = (
+                last_updated_simulation_projets
+            )
+        return projet_id_to_last_updated_other_dotation_simulation_projet
+        # TODO revoir la façon de les récupérer ? Faire le job de sélection côté client ?
 
     # This method is used to prevent caching of the page
     # This is useful for the row update with htmx
