@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.forms import NumberInput
 from django_filters import (
     FilterSet,
@@ -39,79 +39,50 @@ class ProjetFilters(FilterSet):
         method="filter_dotation",
     )
 
-    # TODO pr_dotation use dotation_projet
     def filter_dotation(self, queryset, _name, values):
         if not values:
             return queryset
 
         query = Q()
 
+        queryset = queryset.annotate(
+            detr_count=Count(
+                "dotationprojet", filter=Q(dotationprojet__dotation="DETR")
+            ),
+            dsil_count=Count(
+                "dotationprojet", filter=Q(dotationprojet__dotation="DSIL")
+            ),
+        )
+
         if DOTATION_DETR in values:
             if DOTATION_DSIL in values:
                 if "DETR_et_DSIL" in values:
                     # Inclure "DETR" ou "DSIL"
-                    query &= Q(
-                        Q(
-                            dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DETR
-                        )
-                        | Q(
-                            dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DSIL
-                        )
-                    )
+                    query &= Q(detr_count__gt=0) | Q(dsil_count__gt=0)
                 else:
                     # Inclure "DETR" seul ou "DSIL" seul mais pas "DETR" et "DSIL" ensemble
-                    query &= (
-                        Q(
-                            dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DETR
-                        )
-                        & ~Q(
-                            dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DSIL
-                        )
-                    ) | (
-                        Q(
-                            dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DSIL
-                        )
-                        & ~Q(
-                            dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DETR
-                        )
+                    query &= Q(detr_count__gt=0, dsil_count=0) | Q(
+                        detr_count=0, dsil_count__gt=0
                     )
             else:
                 if "DETR_et_DSIL" in values:
                     # Inclure "DETR" seul ou "DETR_et_DSIL", mais exclure "DSIL" seul
-                    query &= Q(
-                        dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DETR
-                    )
-
+                    query &= Q(detr_count__gt=0)
                 if "DETR_et_DSIL" not in values:
                     # Inclure "DETR" mais exclure ceux qui contiennent "DSIL"
-                    query &= Q(
-                        dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DETR
-                    ) & ~Q(
-                        dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DSIL
-                    )
-
+                    query &= Q(detr_count__gt=0, dsil_count=0)
         else:
             if DOTATION_DSIL in values:
                 if "DETR_et_DSIL" in values:
                     # Inclure "DSIL" seul ou "DETR_et_DSIL", mais exclure "DETR" seul
-                    query &= Q(
-                        dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DSIL
-                    )
+                    query &= Q(dsil_count__gt=0)
                 else:
                     # Inclure uniquement "DSIL" et exclure "DETR"
-                    query &= Q(
-                        dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DSIL
-                    ) & ~Q(
-                        dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DETR
-                    )
+                    query &= Q(detr_count=0, dsil_count__gt=0)
+
             else:
                 # Inclure seulement les projets double dotations "DETR" et "DSIL"
-                query &= Q(
-                    Q(dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DETR)
-                    & Q(
-                        dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DSIL
-                    )
-                )
+                query &= Q(detr_count__gt=0, dsil_count__gt=0)
 
         return queryset.filter(query)
 
