@@ -1,5 +1,3 @@
-from multiprocessing.managers import BaseManager
-
 from django.core.paginator import Paginator
 from django.db.models import Count, Prefetch, QuerySet, Sum
 from django.forms import NumberInput
@@ -284,15 +282,16 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         )
 
         other_simulation_projets = (
-            SimulationProjet.objects.filter(
-                dotation_projet__projet__id__in=ids_of_double_dotation_projet
-            )
+            SimulationProjet.objects.select_related("dotation_projet")
+            .filter(dotation_projet__projet__id__in=ids_of_double_dotation_projet)
             .exclude(simulation__enveloppe__dotation=dotation)
             .order_by("-updated_at")
         )
+
         projet_id_to_last_updated_other_dotation_simulation_projet: dict[
-            int, BaseManager[SimulationProjet]
+            int, SimulationProjet
         ] = {}
+
         for projet_id in ids_of_double_dotation_projet:
             last_updated_simulation_projets = other_simulation_projets.filter(
                 dotation_projet__projet__pk=projet_id
@@ -301,7 +300,6 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                 last_updated_simulation_projets
             )
         return projet_id_to_last_updated_other_dotation_simulation_projet
-        # TODO revoir la façon de les récupérer ? Faire le job de sélection côté client ?
 
     # This method is used to prevent caching of the page
     # This is useful for the row update with htmx
