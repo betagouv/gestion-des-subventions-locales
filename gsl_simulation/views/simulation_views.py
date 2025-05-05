@@ -272,19 +272,21 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         return (perimetre, *perimetre.children())
 
     def _get_other_dotations_simulation_projet(
-        self, projets: QuerySet[Projet], dotation: str
-    ):
+        self, projets: QuerySet[Projet], current_dotation: str
+    ) -> dict[int, SimulationProjet]:
         projet_ids = list(projets.values_list("id", flat=True))
         ids_of_double_dotation_projet = (
             Projet.objects.annotate(dotation_projet_count=Count("dotationprojet"))
             .filter(dotation_projet_count__gt=1, id__in=projet_ids)
             .values_list("id", flat=True)
         )
+        if ids_of_double_dotation_projet.count() == 0:
+            return {}
 
         other_simulation_projets = (
             SimulationProjet.objects.select_related("dotation_projet")
             .filter(dotation_projet__projet__id__in=ids_of_double_dotation_projet)
-            .exclude(simulation__enveloppe__dotation=dotation)
+            .exclude(simulation__enveloppe__dotation=current_dotation)
             .order_by("-updated_at")
         )
 
