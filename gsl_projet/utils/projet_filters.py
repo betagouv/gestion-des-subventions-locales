@@ -1,4 +1,4 @@
-from django.db.models import Count, Q
+from django.db.models import Exists, OuterRef, Q
 from django.forms import NumberInput
 from django_filters import (
     FilterSet,
@@ -17,7 +17,7 @@ from gsl_projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl_projet.models import Projet
+from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
@@ -125,40 +125,38 @@ class ProjetFilters(FilterSet):
     )
 
     montant_retenu_min = NumberFilter(
-        method="filter_montant_retenu_min",
+        method="filter_montant_retenu",
         widget=NumberInput(
             attrs={"class": "fr-input", "min": "0"},
         ),
     )
 
     montant_retenu_max = NumberFilter(
-        method="filter_montant_retenu_max",
+        method="filter_montant_retenu",
         widget=NumberInput(
             attrs={"class": "fr-input", "min": "0"},
         ),
     )
 
-    def filter_montant_retenu_min(self, queryset, _name, value):
-        if not value:
+    def filter_montant_retenu(self, queryset, _name, value):
+        montant_min = self.data.get("montant_retenu_min")
+        montant_max = self.data.get("montant_retenu_max")
+
+        if not montant_min and not montant_max:
             return queryset
 
-        return queryset.annotate(
-            dotation_projet_with_this_minimum_montant_retenu_count=Count(
-                "dotationprojet",
-                filter=Q(dotationprojet__programmation_projet__montant__gte=value),
-            ),
-        ).filter(dotation_projet_with_this_minimum_montant_retenu_count__gt=0)
+        dotation_qs = DotationProjet.objects.filter(projet=OuterRef("pk"))
 
-    def filter_montant_retenu_max(self, queryset, _name, value):
-        if not value:
-            return queryset
+        if montant_min:
+            dotation_qs = dotation_qs.filter(
+                programmation_projet__montant__gte=montant_min
+            )
+        if montant_max:
+            dotation_qs = dotation_qs.filter(
+                programmation_projet__montant__lte=montant_max
+            )
 
-        return queryset.annotate(
-            dotation_projet_with_this_max_montant_retenu_count=Count(
-                "dotationprojet",
-                filter=Q(dotationprojet__programmation_projet__montant__lte=value),
-            ),
-        ).filter(dotation_projet_with_this_max_montant_retenu_count__gt=0)
+        return queryset.annotate(match=Exists(dotation_qs)).filter(match=True)
 
     ordered_status: tuple[str, ...] = (
         PROJET_STATUS_PROCESSING,

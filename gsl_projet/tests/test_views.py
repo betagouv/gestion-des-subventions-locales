@@ -606,14 +606,15 @@ def test_filter_by_montant_retenu_range(
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
-    # This projets must be selected
-    # (100_000, 50_000),
-    # (100_000, 100_000),
-    # (150_000, 50_000),
+    # (None, 50_000) ❌
+    # (50_000, 50_000) ❌
+    # (100_000, 50_000) ✅
+    # (100_000, 100_000) ✅
+    # (150_000, 50_000) ❌ Il faut qu'un dotation_projet matche les deux filtres
+    # (150_000, 150_000) ❌
 
-    assert qs.count() == 3
+    assert qs.count() == 2
     for p in qs:
-        # Il faut qu'un dotation_projet matche les deux filtres
         assert any(
             90_000 <= dp.montant_retenu <= 110_000 for dp in p.dotationprojet_set.all()
         )
