@@ -12,12 +12,12 @@ register = template.Library()
 
 @register.filter
 def percent(value, decimals=0):
-    if value is None:
+    if value is None or value == "":
         return "— %"
     if not isinstance(value, Decimal):
         return value
     """Removes all values of arg from the given string"""
-    return floatformat(value, decimals) + " %"
+    return floatformat(value, decimals) + " %"
 
 
 @register.filter
