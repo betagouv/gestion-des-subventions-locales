@@ -1,6 +1,7 @@
 from datetime import UTC
 
 import pytest
+from django.db.models import Count, Q
 from django.urls import reverse
 from django.utils import timezone
 
@@ -18,6 +19,7 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
+from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import Demandeur, Projet
 from gsl_projet.tests.factories import (
@@ -503,13 +505,60 @@ def test_filter_with_wrong_values(
 
 @pytest.fixture
 def projets_with_montant_retenu(demandeur) -> list[Projet]:
-    return [
-        ProjetFactory(
-            dossier_ds__annotations_montant_accorde=amount,
+    projets = []
+    for detr_montant, dsil_montant in (
+        (None, 50_000),
+        (50_000, 50_000),
+        (100_000, 50_000),
+        (100_000, 100_000),
+        (150_000, 50_000),
+        (150_000, 150_000),
+    ):
+        projet = ProjetFactory(
             demandeur=demandeur,
         )
-        for amount in (None, 50_000, 100_000, 150_000, 200_000, 250_000)
-    ]
+        detr_projet = DetrProjetFactory(projet=projet)
+        if detr_montant is not None:
+            ProgrammationProjetFactory(
+                dotation_projet=detr_projet, montant=detr_montant
+            )
+
+        dsil_projet = DsilProjetFactory(projet=projet)
+        if dsil_montant is not None:
+            ProgrammationProjetFactory(
+                dotation_projet=dsil_projet, montant=dsil_montant
+            )
+
+        projets.append(projet)
+    return projets
+
+
+# TODO use : filter_params, like  = {
+#     "status": [
+#         SimulationProjet.STATUS_ACCEPTED,
+#         SimulationProjet.STATUS_PROCESSING,
+#     ],
+#     "montant_previsionnel_min": 120_000,
+#     "montant_previsionnel_max": 400_000,
+# }
+
+
+def test_annotate_montant_retenu(
+    req,
+    view,
+    projets_with_montant_retenu,
+):
+    projet_qs = Projet.objects.all()
+    projet_qs = projet_qs.annotate(
+        dotation_projet_with_this_minimum_montant_retenu_count=Count(
+            "dotationprojet",
+            filter=Q(dotationprojet__programmation_projet__montant__gte=100_000),
+        )
+    )
+    projet_qs = projet_qs.filter(
+        dotation_projet_with_this_minimum_montant_retenu_count__gt=0
+    )
+    assert projet_qs.count() == 4
 
 
 def test_filter_by_min_montant_retenu(
@@ -522,7 +571,8 @@ def test_filter_by_min_montant_retenu(
     qs = view.get_filterset(ProjetFilters).qs
 
     assert qs.count() == 4
-    assert all(100_000 <= p.dossier_ds.annotations_montant_accorde for p in qs)
+    for p in qs:
+        assert any(100_000 <= dp.montant_retenu for dp in p.dotationprojet_set.all())
 
 
 def test_filter_by_max_montant_retenu(
@@ -530,12 +580,21 @@ def test_filter_by_max_montant_retenu(
     view,
     projets_with_montant_retenu,
 ):
-    request = req.get("/?montant_retenu_max=200000")
+    request = req.get("/?montant_retenu_max=100000")
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
-    assert qs.count() == 4
-    assert all(p.dossier_ds.annotations_montant_accorde <= 200_000 for p in qs)
+    # (None, 50_000) ✅
+    # (50_000, 50_000) ✅
+    # (100_000, 50_000) ✅
+    # (100_000, 100_000) ✅
+    # (150_000, 50_000) ✅
+    # (150_000, 150_000) ❌
+    assert qs.count() == 5
+    for p in qs:
+        assert any(
+            (dp.montant_retenu or 0.0) <= 100_000 for dp in p.dotationprojet_set.all()
+        )
 
 
 def test_filter_by_montant_retenu_range(
@@ -543,14 +602,21 @@ def test_filter_by_montant_retenu_range(
     view,
     projets_with_montant_retenu,
 ):
-    request = req.get("/?montant_retenu_min=100000&montant_retenu_max=200000")
+    request = req.get("/?montant_retenu_min=90000&montant_retenu_max=110000")
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
+    # This projets must be selected
+    # (100_000, 50_000),
+    # (100_000, 100_000),
+    # (150_000, 50_000),
+
     assert qs.count() == 3
-    assert all(
-        100_000 <= p.dossier_ds.annotations_montant_accorde <= 200_000 for p in qs
-    )
+    for p in qs:
+        # Il faut qu'un dotation_projet matche les deux filtres
+        assert any(
+            90_000 <= dp.montant_retenu <= 110_000 for dp in p.dotationprojet_set.all()
+        )
 
 
 def test_filter_with_wrong_montant_retenu_values(

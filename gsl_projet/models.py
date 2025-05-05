@@ -247,6 +247,20 @@ class DotationProjet(models.Model):
             return self.dossier_ds.demande_montant * 100 / self.assiette_or_cout_total
         return None
 
+    # TODO test
+    @property
+    def montant_retenu(self) -> float | None:
+        if hasattr(self, "programmation_projet"):
+            return self.programmation_projet.montant
+        return None
+
+    # TODO test
+    @property
+    def taux_retenu(self) -> float | None:
+        if self.programmation_projet:
+            return self.programmation_projet.taux
+        return None
+
     @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
     def accept(self, montant: float, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet

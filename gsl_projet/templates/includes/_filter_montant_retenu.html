@@ -12,7 +12,12 @@
                     Montant retenu minimum
                 </label>
                 <div class="euro-input-wrap">
-                    {{ filter.form.montant_retenu_min }}
+                    <input type="number"
+                           name="montant_retenu_min"
+                           class="fr-input"
+                           min="0"
+                           step="any"
+                           id="id_montant_retenu_min">
                     <span class="euro-input-symbol">€</span>
                 </div>
             </div>
@@ -21,7 +26,12 @@
                     Montant retenu maximum
                 </label>
                 <div class="euro-input-wrap">
-                    {{ filter.form.montant_retenu_max }}
+                    <input type="number"
+                           name="montant_retenu_max"
+                           class="fr-input"
+                           min="0"
+                           step="any"
+                           id="id_montant_retenu_max">
                     <span class="euro-input-symbol">€</span>
                 </div>
             </div>

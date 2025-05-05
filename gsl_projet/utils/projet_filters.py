@@ -124,23 +124,41 @@ class ProjetFilters(FilterSet):
         ),
     )
 
-    # TODO pr_dotation update this to filter on real montant retenu => ticket
     montant_retenu_min = NumberFilter(
-        field_name="dossier_ds__annotations_montant_accorde",
-        lookup_expr="gte",
+        method="filter_montant_retenu_min",
         widget=NumberInput(
             attrs={"class": "fr-input", "min": "0"},
         ),
     )
 
-    # TODO pr_dotation update this to filter on real montant retenu => ticket
     montant_retenu_max = NumberFilter(
-        field_name="dossier_ds__annotations_montant_accorde",
-        lookup_expr="lte",
+        method="filter_montant_retenu_max",
         widget=NumberInput(
             attrs={"class": "fr-input", "min": "0"},
         ),
     )
+
+    def filter_montant_retenu_min(self, queryset, _name, value):
+        if not value:
+            return queryset
+
+        return queryset.annotate(
+            dotation_projet_with_this_minimum_montant_retenu_count=Count(
+                "dotationprojet",
+                filter=Q(dotationprojet__programmation_projet__montant__gte=value),
+            ),
+        ).filter(dotation_projet_with_this_minimum_montant_retenu_count__gt=0)
+
+    def filter_montant_retenu_max(self, queryset, _name, value):
+        if not value:
+            return queryset
+
+        return queryset.annotate(
+            dotation_projet_with_this_max_montant_retenu_count=Count(
+                "dotationprojet",
+                filter=Q(dotationprojet__programmation_projet__montant__lte=value),
+            ),
+        ).filter(dotation_projet_with_this_max_montant_retenu_count__gt=0)
 
     ordered_status: tuple[str, ...] = (
         PROJET_STATUS_PROCESSING,
