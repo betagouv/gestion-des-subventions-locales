@@ -40,6 +40,11 @@ def get(dictionary, key):
     return dictionary.get(key)
 
 
+@register.filter
+def sort(objects_list, key):
+    return sorted(objects_list, key=lambda x: getattr(x, key), reverse=True)
+
+
 STATUS_TO_ALERT_TITLE = {
     SimulationProjet.STATUS_ACCEPTED: "Projet accepté",
     SimulationProjet.STATUS_REFUSED: "Projet refusé",
