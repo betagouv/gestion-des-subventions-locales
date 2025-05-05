@@ -303,7 +303,7 @@ def test_for_year_2024_and_for_not_processed_states(submitted_year, count):
     assert qs.count() == count
 
 
-# Filter processed_in_enveloppe ========================================================
+# Filter included_in_enveloppe ========================================================
 
 # Date ---------------------------------------------------------------------------------
 
@@ -322,9 +322,8 @@ def test_for_year_2024_and_for_not_processed_states(submitted_year, count):
 )
 def test_for_year_2024_and_for_processed_states(submitted_year, processed_year, count):
     perimetre = PerimetreDepartementalFactory()
-    enveloppe = DetrEnveloppeFactory(annee=2024, perimetre=perimetre)
+    enveloppe = DsilEnveloppeFactory(annee=2024, perimetre=perimetre)
     projet = ProcessedProjetFactory(
-        dossier_ds__demande_dispositif_sollicite=enveloppe.dotation,
         dossier_ds__ds_date_depot=datetime(submitted_year, 12, 31, tzinfo=tz.utc),
         dossier_ds__ds_date_traitement=datetime(processed_year, 12, 31, tzinfo=tz.utc),
         perimetre=perimetre,
@@ -333,35 +332,5 @@ def test_for_year_2024_and_for_processed_states(submitted_year, processed_year, 
     print(f"Test with {projet.dossier_ds.ds_state}")
 
     qs = Projet.objects.included_in_enveloppe(enveloppe)
-
-    assert qs.count() == count
-
-
-# Test processed_in_enveloppe
-
-## Date
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "processed_year, count",
-    [
-        (2023, 0),
-        (2024, 1),
-        (2025, 0),
-    ],
-)
-@pytest.mark.django_db
-def test_processed_in_enveloppe_with_different_processed_dates(processed_year, count):
-    perimetre = PerimetreDepartementalFactory()
-    enveloppe = DetrEnveloppeFactory(annee=2024, perimetre=perimetre)
-    projet = ProcessedProjetFactory(
-        dossier_ds__demande_dispositif_sollicite=enveloppe.dotation,
-        dossier_ds__ds_date_traitement=datetime(processed_year, 1, 1, tzinfo=tz.utc),
-        perimetre=perimetre,
-    )
-    print(f"Test with {projet.dossier_ds.ds_state}")
-
-    qs = Projet.objects.processed_in_enveloppe(enveloppe)
 
     assert qs.count() == count
