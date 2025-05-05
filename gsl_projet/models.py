@@ -1,6 +1,5 @@
 from datetime import UTC, date, datetime
 from datetime import timezone as tz
-from functools import cached_property
 from typing import TYPE_CHECKING
 
 from django.db import models
@@ -143,33 +142,6 @@ class Projet(models.Model):
 
         return reverse("projet:get-projet", kwargs={"projet_id": self.id})
 
-    # TODO pr_dotation move it to DotationProjet => ticket double ligne projet
-    @cached_property
-    def accepted_programmation_projet(self):
-        if (
-            hasattr(self, "accepted_programmation_projets")
-            and len(self.accepted_programmation_projets) > 0
-        ):
-            return self.accepted_programmation_projets[0]
-        else:
-            for dp in self.dotationprojet_set.all():
-                if dp.status == PROJET_STATUS_ACCEPTED:
-                    return dp.programmation_projet
-
-    # TODO pr_dotation move it to DotationProjet => ticket double ligne projet
-    @property
-    def montant_retenu(self) -> float | None:
-        if self.accepted_programmation_projet:
-            return self.accepted_programmation_projet.montant
-        return None
-
-    # TODO pr_dotation move it to DotationProjet => ticket double ligne projet
-    @property
-    def taux_retenu(self) -> float | None:
-        if self.accepted_programmation_projet:
-            return self.accepted_programmation_projet.taux
-        return None
-
     @property
     def is_asking_for_detr(self) -> bool:
         return self.dotationprojet_set.filter(dotation=DOTATION_DETR).exists()
@@ -247,17 +219,15 @@ class DotationProjet(models.Model):
             return self.dossier_ds.demande_montant * 100 / self.assiette_or_cout_total
         return None
 
-    # TODO test
     @property
     def montant_retenu(self) -> float | None:
         if hasattr(self, "programmation_projet"):
             return self.programmation_projet.montant
         return None
 
-    # TODO test
     @property
     def taux_retenu(self) -> float | None:
-        if self.programmation_projet:
+        if hasattr(self, "programmation_projet"):
             return self.programmation_projet.taux
         return None
 

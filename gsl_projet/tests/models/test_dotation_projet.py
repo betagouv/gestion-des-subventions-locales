@@ -61,6 +61,44 @@ def test_assiette_or_cout_total():
     assert dotation_projet.assiette_or_cout_total == 2_000
 
 
+def test_montant_retenu_with_accepted_programmation_projet():
+    programmation_projet = ProgrammationProjetFactory(
+        status=ProgrammationProjet.STATUS_ACCEPTED, montant=10_000
+    )
+    assert programmation_projet.dotation_projet.montant_retenu == 10_000
+
+
+def test_montant_retenu_with_refused_programmation_projet():
+    dotation_projet = DotationProjetFactory()
+    assert dotation_projet.montant_retenu is None
+
+    ProgrammationProjetFactory(
+        dotation_projet=dotation_projet,
+        status=ProgrammationProjet.STATUS_REFUSED,
+        montant=0,
+    )
+    assert dotation_projet.montant_retenu == 0
+
+
+def test_taux_retenu_with_accepted_programmation_projet():
+    programmation_projet = ProgrammationProjetFactory(
+        status=ProgrammationProjet.STATUS_ACCEPTED, taux=10
+    )
+    assert programmation_projet.dotation_projet.taux_retenu == 10
+
+
+def test_taux_retenu_with_refused_programmation_projet():
+    dotation_projet = DotationProjetFactory()
+    assert dotation_projet.taux_retenu is None
+
+    ProgrammationProjetFactory(
+        dotation_projet=dotation_projet,
+        status=ProgrammationProjet.STATUS_REFUSED,
+        taux=0,
+    )
+    assert dotation_projet.taux_retenu == 0
+
+
 @pytest.mark.parametrize(
     ("dotation, avis_commission, must_raise_error"),
     (

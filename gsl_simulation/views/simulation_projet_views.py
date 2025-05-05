@@ -204,6 +204,7 @@ def render_partial_simulation_projet(request, simulation_projet):
             "status_summary": simulation_projet.simulation.get_projet_status_summary(),
             "total_amount_granted": total_amount_granted,
             "filter_params": filter_params,
+            "other_dotations_simu": {},
         },
     )
 
