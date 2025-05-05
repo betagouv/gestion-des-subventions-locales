@@ -3,6 +3,7 @@ from decimal import Decimal
 import pytest
 
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.tests.factories import DossierFactory
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -36,9 +37,8 @@ def test_create_or_update_dotation_projet_from_projet(
     field, dotation_value, dotation_projet_count
 ):
     projet = ProjetFactory(
-        avis_commission_detr=True,
         dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
-        assiette=1_000,
+        dossier_ds__annotations_assiette=1_000,
     )
     setattr(projet.dossier_ds, field, dotation_value)
 
@@ -84,9 +84,8 @@ def test_create_or_update_dotation_projet_from_projet_do_not_remove_dotation_pro
 )
 def test_create_or_update_dotation_projet(dotation):
     projet = ProjetFactory(
-        avis_commission_detr=False,
         dossier_ds__ds_state=Dossier.STATE_SANS_SUITE,
-        assiette=2_000,
+        dossier_ds__annotations_assiette=2_000,
     )
 
     DotationProjetService.create_or_update_dotation_projet(projet, dotation)
@@ -98,10 +97,7 @@ def test_create_or_update_dotation_projet(dotation):
     assert dotation_projet.dotation == dotation
     assert dotation_projet.status == PROJET_STATUS_DISMISSED
     assert dotation_projet.assiette == 2_000
-    if dotation_projet.dotation == DOTATION_DSIL:
-        assert dotation_projet.detr_avis_commission is None
-    else:
-        assert dotation_projet.detr_avis_commission is False
+    assert dotation_projet.detr_avis_commission is None
 
 
 @pytest.mark.django_db
@@ -158,6 +154,32 @@ def test_get_dotation_projet_status_from_dossier():
     )
 
 
+@pytest.mark.parametrize("dotation", (DOTATION_DETR, DOTATION_DSIL))
+@pytest.mark.parametrize(
+    "dossier_state",
+    (
+        Dossier.STATE_ACCEPTE,
+        Dossier.STATE_EN_CONSTRUCTION,
+        Dossier.STATE_EN_INSTRUCTION,
+        Dossier.STATE_REFUSE,
+        Dossier.STATE_SANS_SUITE,
+    ),
+)
+@pytest.mark.django_db
+def test_get_detr_avis_commission(dotation, dossier_state):
+    dossier = DossierFactory(
+        ds_state=dossier_state,
+    )
+    avis_commissioin_detr = DotationProjetService.get_detr_avis_commission(
+        dotation, dossier
+    )
+    if dotation == DOTATION_DETR and dossier_state == Dossier.STATE_ACCEPTE:
+        assert avis_commissioin_detr is True
+    else:
+        assert avis_commissioin_detr is None
+
+
+@pytest.mark.parametrize("field", ("assiette", "finance_cout_total"))
 @pytest.mark.parametrize(
     "montant, assiette_or_cout_total, should_raise_exception",
     [
@@ -171,41 +193,27 @@ def test_get_dotation_projet_status_from_dossier():
     ],
 )
 @pytest.mark.django_db
-def test_validate_montant(montant, assiette_or_cout_total, should_raise_exception):
-    dotation_projet_with_assiette = DotationProjetFactory(
-        assiette=assiette_or_cout_total
-    )
-    dotation_projet_without_assiette = DotationProjetFactory(
-        projet__dossier_ds__finance_cout_total=assiette_or_cout_total
-    )
+def test_validate_montant(
+    field, montant, assiette_or_cout_total, should_raise_exception
+):
+    dotation_projet = DotationProjetFactory()
+    if field == "finance_cout_total":
+        dotation_projet.projet.dossier_ds.finance_cout_total = assiette_or_cout_total
+    else:
+        dotation_projet.assiette = assiette_or_cout_total
 
     if should_raise_exception:
         with pytest.raises(
             ValueError,
             match=(
                 f"Montant {montant} must be greatear or equal to 0 and less than or "
-                f"equal to {dotation_projet_with_assiette.assiette_or_cout_total}"
+                f"equal to {dotation_projet.assiette_or_cout_total}"
             ),
         ):
-            DotationProjetService.validate_montant(
-                montant, dotation_projet_with_assiette
-            )
+            DotationProjetService.validate_montant(montant, dotation_projet)
 
-        with pytest.raises(
-            ValueError,
-            match=(
-                f"Montant {montant} must be greatear or equal to 0 and less than or "
-                f"equal to {dotation_projet_without_assiette.assiette_or_cout_total}"
-            ),
-        ):
-            DotationProjetService.validate_montant(
-                montant, dotation_projet_with_assiette
-            )
     else:
-        DotationProjetService.validate_montant(montant, dotation_projet_with_assiette)
-        DotationProjetService.validate_montant(
-            montant, dotation_projet_without_assiette
-        )
+        DotationProjetService.validate_montant(montant, dotation_projet)
 
 
 test_data = (

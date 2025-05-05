@@ -40,7 +40,6 @@ def test_update_simulation_projets_from_dotation_projet_calls_create_or_update(
     simulation_projets = SimulationProjetFactory.create_batch(
         3,
         dotation_projet=dotation_projet,
-        simulation__enveloppe__dotation=DOTATION_DETR,
     )
 
     SimulationProjetService.update_simulation_projets_from_dotation_projet(
@@ -249,7 +248,6 @@ def test_update_status_with_provisoire_from_refused_or_accepted_or_dismissed(
     simulation_projet = SimulationProjetFactory(
         status=initial_status,
         dotation_projet=dotation_projet,
-        simulation__enveloppe__dotation=dotation_projet.dotation,
     )
     assert (
         dotation_projet.status
@@ -259,7 +257,6 @@ def test_update_status_with_provisoire_from_refused_or_accepted_or_dismissed(
         3,
         dotation_projet=dotation_projet,
         status=initial_status,
-        simulation__enveloppe__dotation=dotation_projet.dotation,
     )
 
     SimulationProjetService.update_status(
@@ -293,7 +290,6 @@ def test_update_status_with_provisoire_remove_programmation_projet_from_accepted
     simulation_projet = SimulationProjetFactory(
         status=initial_status,
         dotation_projet=dotation_projet,
-        simulation__enveloppe__dotation=dotation_projet.dotation,
     )
     ProgrammationProjetFactory(dotation_projet=simulation_projet.dotation_projet)
 
@@ -348,8 +344,11 @@ def test_accept_a_simulation_projet():
 def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_mother_enveloppe():
     mother_enveloppe = DetrEnveloppeFactory()
     child_enveloppe = DetrEnveloppeFactory(deleguee_by=mother_enveloppe)
+    simulation = SimulationFactory(enveloppe=child_enveloppe)
     simulation_projet = SimulationProjetFactory(
-        status=SimulationProjet.STATUS_PROCESSING, simulation__enveloppe=child_enveloppe
+        status=SimulationProjet.STATUS_PROCESSING,
+        simulation=simulation,
+        dotation_projet__dotation=DOTATION_DETR,
     )
     new_status = SimulationProjet.STATUS_ACCEPTED
 
@@ -386,6 +385,7 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
 ):
     mother_enveloppe = DetrEnveloppeFactory()
     child_enveloppe = DetrEnveloppeFactory(deleguee_by=mother_enveloppe)
+    simulation = SimulationFactory(enveloppe=child_enveloppe)
     dotation_projet = DotationProjetFactory(
         projet__perimetre=child_enveloppe.perimetre, dotation=DOTATION_DETR
     )
@@ -393,7 +393,7 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
     simulation_projet = SimulationProjetFactory(
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_PROCESSING,
-        simulation__enveloppe=child_enveloppe,
+        simulation=simulation,
     )
     ProgrammationProjetFactory(
         dotation_projet=simulation_projet.dotation_projet,
@@ -417,13 +417,18 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
     assert programmation_projet.status == programmation_status_expected
 
 
+@pytest.mark.parametrize(
+    "field_name",
+    ("assiette", "projet__dossier_ds__finance_cout_total"),
+)
 @pytest.mark.django_db
-def test_update_taux(dotation_projet):
+def test_update_taux(field_name):
+    dotation_projet = DotationProjetFactory(
+        **{field_name: 1000},
+    )
     simulation_projet = SimulationProjetFactory(
-        # TODO PR dotation => make simulation__enveloppe__dotation=dotation_projet.dotation directly in factory ?
         dotation_projet=dotation_projet,
         taux=10.0,
-        simulation__enveloppe__dotation=dotation_projet.dotation,
     )
     new_taux = 15.0
 
@@ -433,11 +438,17 @@ def test_update_taux(dotation_projet):
     assert simulation_projet.montant == 150.0
 
 
+@pytest.mark.parametrize(
+    "field_name",
+    ("assiette", "projet__dossier_ds__finance_cout_total"),
+)
 @pytest.mark.django_db
-def test_update_taux_of_accepted_montat(dotation_projet):
+def test_update_taux_of_accepted_montant(field_name):
+    dotation_projet = DotationProjetFactory(
+        **{field_name: 1000},
+    )
     simulation_projet = SimulationProjetFactory(
         dotation_projet=dotation_projet,
-        simulation__enveloppe__dotation=dotation_projet.dotation,
         status=SimulationProjet.STATUS_ACCEPTED,
         taux=20.0,
     )
@@ -469,11 +480,17 @@ def test_update_taux_of_accepted_montat(dotation_projet):
     assert programmation_projet.montant == 150.0
 
 
+@pytest.mark.parametrize(
+    "field_name",
+    ("assiette", "projet__dossier_ds__finance_cout_total"),
+)
 @pytest.mark.django_db
-def test_update_montant(dotation_projet):
+def test_update_montant(field_name):
+    dotation_projet = DotationProjetFactory(
+        **{field_name: 1000},
+    )
     simulation_projet = SimulationProjetFactory(
         dotation_projet=dotation_projet,
-        simulation__enveloppe__dotation=dotation_projet.dotation,
         montant=1000.0,
     )
     new_montant = 500.0
@@ -484,11 +501,17 @@ def test_update_montant(dotation_projet):
     assert simulation_projet.taux == 50.0
 
 
+@pytest.mark.parametrize(
+    "field_name",
+    ("assiette", "projet__dossier_ds__finance_cout_total"),
+)
 @pytest.mark.django_db
-def test_update_montant_of_accepted_montant(dotation_projet):
+def test_update_montant_of_accepted_montant(field_name):
+    dotation_projet = DotationProjetFactory(
+        **{field_name: 1000},
+    )
     simulation_projet = SimulationProjetFactory(
         dotation_projet=dotation_projet,
-        simulation__enveloppe__dotation=dotation_projet.dotation,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=1_000,
     )

@@ -340,29 +340,31 @@ def client_with_bourguignon_user_logged(perimetre_bourgogne):
     return ClientWithLoggedUserFactory(bourguignon_collegue)
 
 
+PATCH_ROUTES_AND_DATA = (
+    ("simulation:patch-simulation-projet-taux", {"taux": "0.5"}),
+    ("simulation:patch-simulation-projet-montant", {"montant": "400"}),
+    ("simulation:patch-simulation-projet-status", {"status": "valid"}),
+    (
+        "simulation:patch-projet",
+        {"is_in_qpv": "on", "is_attached_to_a_crte": "on", "is_budget_vert": ""},
+    ),
+    ("simulation:patch-dotation-projet", {"detr_avis_commission": ""}),
+)
+
+
+@pytest.mark.parametrize(
+    "route, data",
+    PATCH_ROUTES_AND_DATA,
+)
 @pytest.mark.django_db
 def test_regional_user_cant_patch_projet_if_simulation_projet_is_associated_to_detr_enveloppe(
-    client_with_bourguignon_user_logged, cote_dorien_simulation_projet
+    client_with_bourguignon_user_logged, cote_dorien_simulation_projet, route, data
 ):
     url = reverse(
-        "simulation:patch-simulation-projet-taux",
+        route,
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_bourguignon_user_logged.post(url, {"taux": "0.5"})
-    assert response.status_code == 404
-
-    url = reverse(
-        "simulation:patch-simulation-projet-montant",
-        kwargs={"pk": cote_dorien_simulation_projet.pk},
-    )
-    response = client_with_bourguignon_user_logged.post(url, {"montant": "400"})
-    assert response.status_code == 404
-
-    url = reverse(
-        "simulation:patch-simulation-projet-status",
-        kwargs={"pk": cote_dorien_simulation_projet.pk},
-    )
-    response = client_with_bourguignon_user_logged.post(url, {"status": "valid"})
+    response = client_with_bourguignon_user_logged.post(url, data)
     assert response.status_code == 404
 
 
@@ -380,35 +382,16 @@ def cote_dorien_dsil_simulation_projet(cote_d_or_perimetre):
     )
 
 
+@pytest.mark.parametrize("route, data", PATCH_ROUTES_AND_DATA)
 @pytest.mark.django_db
 def test_regional_user_can_patch_projet_if_simulation_projet_is_associated_to_dsil_enveloppe_and_in_its_perimetre(
-    client_with_bourguignon_user_logged, cote_dorien_dsil_simulation_projet
+    client_with_bourguignon_user_logged, cote_dorien_dsil_simulation_projet, route, data
 ):
     url = reverse(
-        "simulation:patch-simulation-projet-taux",
+        route,
         kwargs={"pk": cote_dorien_dsil_simulation_projet.pk},
     )
-    response = client_with_bourguignon_user_logged.post(
-        url, {"taux": "0.5"}, follow=True
-    )
-    assert response.status_code == 200
-
-    url = reverse(
-        "simulation:patch-simulation-projet-montant",
-        kwargs={"pk": cote_dorien_dsil_simulation_projet.pk},
-    )
-    response = client_with_bourguignon_user_logged.post(
-        url, {"montant": "400"}, follow=True
-    )
-    assert response.status_code == 200
-
-    url = reverse(
-        "simulation:patch-simulation-projet-status",
-        kwargs={"pk": cote_dorien_dsil_simulation_projet.pk},
-    )
-    response = client_with_bourguignon_user_logged.post(
-        url, {"status": "valid"}, follow=True
-    )
+    response = client_with_bourguignon_user_logged.post(url, data, follow=True)
     assert response.status_code == 200
 
 
@@ -418,33 +401,20 @@ def client_with_staff_user_logged():
     return ClientWithLoggedUserFactory(staff_user)
 
 
+@pytest.mark.parametrize("route, data", PATCH_ROUTES_AND_DATA)
 @pytest.mark.django_db
 def test_patch_projet_allowed_for_staff_user(
-    client_with_staff_user_logged, cote_dorien_simulation_projet
+    client_with_staff_user_logged, cote_dorien_simulation_projet, route, data
 ):
     url = reverse(
-        "simulation:patch-simulation-projet-taux",
+        route,
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
     response = client_with_staff_user_logged.post(
         url,
-        {"taux": "0.5"},
+        data,
         follow=True,
     )
-    assert response.status_code == 200
-
-    url = reverse(
-        "simulation:patch-simulation-projet-montant",
-        kwargs={"pk": cote_dorien_simulation_projet.pk},
-    )
-    response = client_with_staff_user_logged.post(url, {"montant": "400"}, follow=True)
-    assert response.status_code == 200
-
-    url = reverse(
-        "simulation:patch-simulation-projet-status",
-        kwargs={"pk": cote_dorien_simulation_projet.pk},
-    )
-    response = client_with_staff_user_logged.post(url, {"status": "valid"}, follow=True)
     assert response.status_code == 200
 
 

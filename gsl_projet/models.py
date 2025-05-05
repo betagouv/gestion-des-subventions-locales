@@ -119,22 +119,6 @@ class Projet(models.Model):
         default=PROJET_STATUS_PROCESSING,
     )
 
-    # TODO pr_dotation remove this
-    assiette = models.DecimalField(
-        "Assiette subventionnable",
-        max_digits=12,
-        decimal_places=2,
-        null=True,
-    )
-
-    # TODO pr_dotation remove this (and ensure that dotation field are copied its projet one ?)
-    # TODO add a constraint to ensure that the projet is concerned by dotation DETR
-    # or put this in new model DotationProjet ?
-    avis_commission_detr = models.BooleanField(
-        "Avis commission DETR",
-        help_text="Pour les projets de plus de 100 000 €",
-        null=True,
-    )
     is_in_qpv = models.BooleanField("Projet situé en QPV", null=False, default=False)
     is_attached_to_a_crte = models.BooleanField(
         "Projet rattaché à un CRTE",
@@ -158,14 +142,7 @@ class Projet(models.Model):
 
         return reverse("projet:get-projet", kwargs={"projet_id": self.id})
 
-    # TODO pr_dotation remove it
-    @property
-    def assiette_or_cout_total(self):
-        if self.assiette:
-            return self.assiette
-        return self.dossier_ds.finance_cout_total
-
-    # TODO pr_dotation move it to DotationProjet
+    # TODO pr_dotation move it to DotationProjet => ticket double ligne projet
     @cached_property
     def accepted_programmation_projet(self):
         if (
@@ -174,14 +151,14 @@ class Projet(models.Model):
         ):
             return self.accepted_programmation_projets[0]
 
-    # TODO pr_dotation move it to DotationProjet
+    # TODO pr_dotation move it to DotationProjet => ticket double ligne projet
     @property
     def montant_retenu(self) -> float | None:
         if self.accepted_programmation_projet:
             return self.accepted_programmation_projet.montant
         return None
 
-    # TODO pr_dotation move it to DotationProjet
+    # TODO pr_dotation move it to DotationProjet => ticket double ligne projet
     @property
     def taux_retenu(self) -> float | None:
         if self.accepted_programmation_projet:
@@ -199,29 +176,15 @@ class Projet(models.Model):
         if DOTATION_DSIL in self.dossier_ds.demande_dispositif_sollicite:
             yield from self.dossier_ds.demande_eligibilite_dsil.all()
 
-    def get_taux_de_subvention_sollicite(self):
-        if (
-            self.assiette_or_cout_total is None
-            or self.dossier_ds.demande_montant is None
-        ):
-            return
-        if self.assiette_or_cout_total > 0:
-            return self.dossier_ds.demande_montant * 100 / self.assiette_or_cout_total
-
-    def get_taux_subventionnable(self):
-        if self.assiette is None:
-            return
-
-        if self.assiette > 0:
-            return int(100 * self.assiette / self.dossier_ds.finance_cout_total)
-
 
 class DotationProjet(models.Model):
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
     dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
-    # TODO pr_dotation put back protected=True, once every status transition is handled
+    # TODO pr_dotation put back protected=True, once every status transition is handled ?
     status = FSMField(
-        "Statut", choices=PROJET_STATUS_CHOICES, default=PROJET_STATUS_PROCESSING
+        "Statut",
+        choices=PROJET_STATUS_CHOICES,
+        default=PROJET_STATUS_PROCESSING,
     )
     assiette = models.DecimalField(
         "Assiette subventionnable",
@@ -241,7 +204,6 @@ class DotationProjet(models.Model):
     def __str__(self):
         return f"Projet {self.projet_id} - Dotation {self.dotation}"
 
-    # TODO pr_dotation test it
     def clean(self):
         errors = {}
         if self.dotation == DOTATION_DSIL and self.detr_avis_commission is not None:
@@ -261,6 +223,16 @@ class DotationProjet(models.Model):
         if self.assiette:
             return self.assiette
         return self.dossier_ds.finance_cout_total
+
+    @property
+    def taux_de_subvention_sollicite(self) -> float | None:
+        if (
+            self.assiette_or_cout_total is not None
+            and self.dossier_ds.demande_montant is not None
+            and self.assiette_or_cout_total > 0
+        ):
+            return self.dossier_ds.demande_montant * 100 / self.assiette_or_cout_total
+        return None
 
     @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
     def accept(self, montant: float, enveloppe: "Enveloppe"):

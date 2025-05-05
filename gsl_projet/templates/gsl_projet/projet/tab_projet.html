@@ -36,7 +36,8 @@
                 <span aria-hidden="true">🧾</span> Montant demandé : {{ dossier.demande_montant|euro }}
             </li>
             <li>
-                <span aria-hidden="true">🧾</span> Taux de subvention sollicité : {{ projet.get_taux_de_subvention_sollicite|percent|default:"—" }}
+                {% comment %} todo pr_dotation handle dotation projet with a block for each ? => ticket {% endcomment %}
+                <span aria-hidden="true">🧾</span> Taux de subvention sollicité : {{ projet.dotation_projet.0.taux_de_subvention_sollicite|percent|default:"—" }}
                 <button class="fr-btn--tooltip fr-btn fr-m-0 fr-pv-0-5v gsl-tooltip"
                         type="button"
                         aria-describedby="tooltip-taux">
@@ -54,7 +55,7 @@
 {% block form_for_simulation_projet %}
 {% endblock form_for_simulation_projet %}
 
-{% block avis_commission_detr %}
+{% block detr_avis_commission %}
     {% if projet.is_asking_for_detr %}
         <div class="fr-callout fr-background-alt--blue-france callout-without-left-border block-avis-commission-detr fr-p-2w">
             <h2 class="fr-callout__title fr-text--lg">
@@ -62,9 +63,9 @@
                       aria-hidden="true"></span>Avis de la commission DETR
             </h2>
             <p class="fr-callout__text">
-                {% if projet.avis_commission_detr %}
+                {% if projet.detr_avis_commission %}
                     <span class="fr-icon-chat-check-fill green-color" aria-hidden="true"></span> Oui
-                {% elif projet.avis_commission_detr is False %}
+                {% elif projet.detr_avis_commission is False %}
                     <span class="fr-icon-chat-delete-fill red-color" aria-hidden="true"></span> Non
                 {% else %}
                     <span class="fr-icon-message-2-fill grey-color" aria-hidden="true"></span> En cours
@@ -72,7 +73,7 @@
             </p>
         </div>
     {% endif %}
-{% endblock avis_commission_detr %}
+{% endblock detr_avis_commission %}
 
 {% block status_action %}
 {% endblock status_action %}

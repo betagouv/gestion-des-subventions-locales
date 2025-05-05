@@ -1,6 +1,7 @@
 import logging
 from datetime import UTC, datetime
 from decimal import Decimal
+from unittest.mock import patch
 
 import pytest
 from django.contrib.messages import get_messages
@@ -173,7 +174,6 @@ def projets(simulation, perimetre_departemental):
     return projets
 
 
-@pytest.mark.django_db
 def test_simulation_list_view(req, view, simulations):
     url = reverse("simulation:simulation-list")
     view.object_list = simulations
@@ -185,7 +185,6 @@ def test_simulation_list_view(req, view, simulations):
     )
 
 
-@pytest.mark.django_db
 def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
     detr_enveloppe_2024 = DetrEnveloppeFactory(
         perimetre=perimetre_departemental, annee=2024, montant=1_000_000
@@ -230,7 +229,6 @@ def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
     assert enveloppe_data["montant_accepte"] == 0
 
 
-@pytest.mark.django_db
 def test_get_validated_and_refused_projets_count_enveloppe_data(req, simulation):
     for montant in [100_000, 200_000, 300_000]:
         ProgrammationProjetFactory.create(
@@ -306,7 +304,6 @@ def test_view_without_filter(req, simulation, create_simulation_projets):
     )
 
 
-@pytest.mark.django_db
 def test_view_with_one_status_filter(req, simulation, create_simulation_projets):
     filter_params = {
         "status": SimulationProjet.STATUS_PROCESSING,
@@ -324,7 +321,6 @@ def test_view_with_one_status_filter(req, simulation, create_simulation_projets)
     )
 
 
-@pytest.mark.django_db
 def test_view_with_filters(req, simulation, create_simulation_projets):
     filter_params = {
         "status": [
@@ -437,7 +433,6 @@ def test_view_with_multiple_simulations(req, perimetre_departemental):
     assert projets.count() == 0
 
 
-@pytest.mark.django_db
 def test_view_with_cout_total_filter(req, simulation, create_simulation_projets):
     filter_params = {
         "cout_min": 2_000_000,
@@ -461,10 +456,10 @@ def test_view_with_cout_total_filter(req, simulation, create_simulation_projets)
         )
 
     for projet in projets:
-        assert 2_000_000 <= projet.assiette_or_cout_total <= 3_000_000
+        for dotation_projet in projet.dotationprojet_set.all():
+            assert 2_000_000 <= dotation_projet.assiette_or_cout_total <= 3_000_000
 
 
-@pytest.mark.django_db
 def test_view_with_montant_demande_filter(req, simulation, create_simulation_projets):
     filter_params = {
         "montant_demande_min": 300_000,
@@ -491,7 +486,6 @@ def test_view_with_montant_demande_filter(req, simulation, create_simulation_pro
         assert 300_000 <= projet.dossier_ds.demande_montant <= 400_000
 
 
-@pytest.mark.django_db
 def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
     filter_params = {
         "porteur": "epci",
@@ -632,7 +626,7 @@ def client_with_user_logged(collegue):
 
 
 @pytest.fixture
-def simulation_projet(collegue, detr_enveloppe) -> SimulationProjet:
+def simulation_projet(collegue, simulation) -> SimulationProjet:
     dotation_projet = DotationProjetFactory(
         status=PROJET_STATUS_PROCESSING,
         projet__perimetre=collegue.perimetre,
@@ -642,11 +636,10 @@ def simulation_projet(collegue, detr_enveloppe) -> SimulationProjet:
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_PROCESSING,
         montant=1000,
-        simulation__enveloppe=detr_enveloppe,
+        simulation=simulation,
     )
 
 
-@pytest.mark.django_db
 def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
     client_with_user_logged, simulation_projet
 ):
@@ -677,7 +670,6 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
     )
 
 
-@pytest.mark.django_db
 def test_patch_status_simulation_projet_with_refused_value_with_htmx(
     client_with_user_logged, simulation_projet
 ):
@@ -738,7 +730,6 @@ data_test = (
 
 
 @pytest.mark.parametrize("status, expected_message, expected_tag", data_test)
-@pytest.mark.django_db
 def test_patch_status_simulation_projet_with_refused_value_giving_message(
     client_with_user_logged, simulation_projet, status, expected_message, expected_tag
 ):
@@ -768,7 +759,6 @@ def test_patch_status_simulation_projet_with_refused_value_giving_message(
     assert message.extra_tags == expected_tag
 
 
-@pytest.mark.django_db
 @pytest.mark.parametrize("data", ({"status": "invalid_status"}, {}))
 def test_patch_status_simulation_projet_invalid_status(
     client_with_user_logged, simulation_projet, data
@@ -789,11 +779,10 @@ def test_patch_status_simulation_projet_invalid_status(
 
 
 @pytest.fixture
-def accepted_simulation_projet(collegue, detr_enveloppe) -> SimulationProjet:
+def accepted_simulation_projet(collegue, simulation) -> SimulationProjet:
     dotation_projet = DotationProjetFactory(
         status=PROJET_STATUS_PROCESSING,
         assiette=10_000,
-        projet__assiette=10_000,
         projet__perimetre=collegue.perimetre,
         dotation=DOTATION_DETR,
     )
@@ -803,11 +792,10 @@ def accepted_simulation_projet(collegue, detr_enveloppe) -> SimulationProjet:
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=1_000,
         taux=0.5,
-        simulation__enveloppe=detr_enveloppe,
+        simulation=simulation,
     )
 
 
-@pytest.mark.django_db
 def test_patch_taux_simulation_projet(
     client_with_user_logged, accepted_simulation_projet
 ):
@@ -835,7 +823,6 @@ def test_patch_taux_simulation_projet(
 
 
 @pytest.mark.parametrize("taux", ("-3", "100.1"))
-@pytest.mark.django_db
 def test_patch_taux_simulation_projet_with_wrong_value(
     client_with_user_logged, accepted_simulation_projet, taux, caplog
 ):
@@ -858,7 +845,6 @@ def test_patch_taux_simulation_projet_with_wrong_value(
     assert accepted_simulation_projet.montant == 1_000
 
 
-@pytest.mark.django_db
 def test_patch_montant_simulation_projet(
     client_with_user_logged, accepted_simulation_projet
 ):
@@ -889,17 +875,16 @@ def test_patch_montant_simulation_projet(
 @pytest.mark.parametrize(
     "value, expected_value", (("True", True), ("False", False), ("", None))
 )
-@pytest.mark.django_db
-def test_patch_avis_commission_detr_simulation_projet(
+def test_patch_detr_avis_commission_simulation_projet(
     client_with_user_logged, accepted_simulation_projet, value, expected_value
 ):
     url = reverse(
-        "simulation:simulation-projet-detail",
+        "simulation:patch-dotation-projet",
         args=[accepted_simulation_projet.id],
     )
     response = client_with_user_logged.post(
         url,
-        {"avis_commission_detr": value},
+        {"detr_avis_commission": value},
         follow=True,
     )
 
@@ -908,46 +893,31 @@ def test_patch_avis_commission_detr_simulation_projet(
     )
 
     assert response.status_code == 200
-    assert updated_simulation_projet.projet.avis_commission_detr is expected_value
+    assert (
+        updated_simulation_projet.dotation_projet.detr_avis_commission is expected_value
+    )
 
 
 @pytest.mark.parametrize(
-    "value, expected_value", (("True", True), ("False", False), ("", None))
+    "field, data, expected_value",
+    (
+        ("is_budget_vert", {"is_budget_vert": "True"}, True),
+        ("is_budget_vert", {"is_budget_vert": "False"}, False),
+        ("is_budget_vert", {"is_budget_vert": ""}, None),
+        ("is_attached_to_a_crte", {"is_attached_to_a_crte": "on"}, True),
+        ("is_attached_to_a_crte", {}, False),
+        ("is_in_qpv", {"is_in_qpv": "on"}, True),
+        ("is_in_qpv", {}, False),
+    ),
 )
-@pytest.mark.django_db
-def test_patch_is_budget_vert_simulation_projet(
-    client_with_user_logged, accepted_simulation_projet, value, expected_value
+def test_patch_projet(
+    client_with_user_logged, accepted_simulation_projet, field, data, expected_value
 ):
-    url = reverse(
-        "simulation:simulation-projet-detail",
-        args=[accepted_simulation_projet.id],
-    )
-    response = client_with_user_logged.post(
-        url,
-        {"is_budget_vert": value},
-        follow=True,
-    )
-
-    updated_simulation_projet = SimulationProjet.objects.get(
-        id=accepted_simulation_projet.id
-    )
-
-    assert response.status_code == 200
-    assert updated_simulation_projet.projet.is_budget_vert is expected_value
-
-
-@pytest.mark.parametrize(
-    "data, expected_value", (({"is_in_qpv": "on"}, True), ({}, False))
-)
-@pytest.mark.django_db
-def test_patch_is_qpv_simulation_projet(
-    client_with_user_logged, accepted_simulation_projet, data, expected_value
-):
-    accepted_simulation_projet.projet.is_in_qpv = not (expected_value)
+    accepted_simulation_projet.projet.__setattr__(field, not (expected_value))
     accepted_simulation_projet.projet.save()
 
     url = reverse(
-        "simulation:simulation-projet-detail",
+        "simulation:patch-projet",
         args=[accepted_simulation_projet.id],
     )
     response = client_with_user_logged.post(
@@ -959,30 +929,14 @@ def test_patch_is_qpv_simulation_projet(
     accepted_simulation_projet.projet.refresh_from_db()
 
     assert response.status_code == 200
-    assert accepted_simulation_projet.projet.is_in_qpv is expected_value
+    assert accepted_simulation_projet.projet.__getattribute__(field) is expected_value
 
 
-@pytest.mark.parametrize(
-    "data, expected_value", (({"is_attached_to_a_crte": "on"}, True), ({}, False))
-)
-@pytest.mark.django_db
-def test_patch_is_attached_to_a_crte_simulation_projet(
-    client_with_user_logged, accepted_simulation_projet, data, expected_value
-):
-    accepted_simulation_projet.projet.is_attached_to_a_crte = not (expected_value)
-    accepted_simulation_projet.projet.save()
+def test_get_projet_queryset_calls_prefetch(req, simulation, create_simulation_projets):
+    filter_params = {}
+    with patch("gsl_simulation.views.simulation_views.Prefetch") as mock_prefetch:
+        view = _get_view_with_filter(req, simulation, filter_params)
+        queryset = view.get_projet_queryset()
 
-    url = reverse(
-        "simulation:simulation-projet-detail",
-        args=[accepted_simulation_projet.id],
-    )
-    response = client_with_user_logged.post(
-        url,
-        data,
-        follow=True,
-    )
-
-    accepted_simulation_projet.projet.refresh_from_db()
-
-    assert response.status_code == 200
-    assert accepted_simulation_projet.projet.is_attached_to_a_crte is expected_value
+        assert queryset.exists()
+        assert mock_prefetch.call_count == 2

@@ -45,8 +45,7 @@ class SimulationProjetInline(admin.TabularInline):
 @admin.register(Projet)
 class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("address", "departement", "demandeur", "dossier_ds")
-    # TODO pr_dotation add dotations list
-    list_display = ("__str__", "status", "address", "departement")
+    list_display = ("__str__", "status", "address", "departement", "dotations")
     list_filter = ("status", "departement")
     actions = ("refresh_from_dossier",)
     inlines = [
@@ -56,6 +55,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         qs = qs.select_related("address").select_related("departement")
+        qs = qs.prefetch_related("dotationprojet_set")
         return qs
 
     @admin.action(description="Rafraîchir depuis le dossier DS")
@@ -64,6 +64,9 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
         for projet in queryset.select_related("dossier_ds"):
             update_projet_from_dossier.delay(projet.dossier_ds.ds_number)
+
+    def dotations(self, obj):
+        return ", ".join(str(dp.dotation) for dp in obj.dotationprojet_set.all())
 
 
 @admin.register(DotationProjet)

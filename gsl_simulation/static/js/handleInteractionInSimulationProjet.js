@@ -5,7 +5,7 @@ document.querySelectorAll(".status-radio-button").forEach((elt) => {
       })
 })
 
-document.querySelector("#id_avis_commission_detr").addEventListener("change", (ev) => {
+document.querySelector("#id_detr_avis_commission").addEventListener("change", (ev) => {
   if(ev.target) ev.target.form.submit();
 })
 

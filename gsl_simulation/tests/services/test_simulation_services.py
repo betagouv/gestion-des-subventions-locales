@@ -136,22 +136,37 @@ def simulation():
 def test_get_total_amount_granted(simulation):
     # must be included
     accepted_projet = SimulationProjetFactory(
-        simulation=simulation, status=SimulationProjet.STATUS_ACCEPTED, montant=1_200
+        simulation=simulation,
+        status=SimulationProjet.STATUS_ACCEPTED,
+        montant=1_200,
+        dotation_projet__dotation=DOTATION_DETR,
     )
     provisionally_accepted_projet = SimulationProjetFactory(
-        simulation=simulation, status=SimulationProjet.STATUS_PROVISOIRE, montant=2_300
+        simulation=simulation,
+        status=SimulationProjet.STATUS_PROVISOIRE,
+        montant=2_300,
+        dotation_projet__dotation=DOTATION_DETR,
     )
 
     # must not be included
     ## other statuses
     SimulationProjetFactory(
-        simulation=simulation, status=SimulationProjet.STATUS_REFUSED, montant=3_000
+        simulation=simulation,
+        status=SimulationProjet.STATUS_REFUSED,
+        montant=3_000,
+        dotation_projet__dotation=DOTATION_DETR,
     )
     SimulationProjetFactory(
-        simulation=simulation, status=SimulationProjet.STATUS_DISMISSED, montant=4_000
+        simulation=simulation,
+        status=SimulationProjet.STATUS_DISMISSED,
+        montant=4_000,
+        dotation_projet__dotation=DOTATION_DETR,
     )
     SimulationProjetFactory(
-        simulation=simulation, status=SimulationProjet.STATUS_PROCESSING, montant=5_000
+        simulation=simulation,
+        status=SimulationProjet.STATUS_PROCESSING,
+        montant=5_000,
+        dotation_projet__dotation=DOTATION_DETR,
     )
     ## not in simulation
     SimulationProjetFactory(

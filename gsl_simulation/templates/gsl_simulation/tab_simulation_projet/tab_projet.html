@@ -2,16 +2,23 @@
 {% load static gsl_filters %}
 
 {% block form_for_simulation_projet %}
-    <form method="post" id="simulation_projet_form">
+    <form method="post"
+          id="projet_form"
+          action="{% url 'gsl_simulation:patch-projet' simu.id %}">
+        {% csrf_token %}
+    </form>
+    <form method="post"
+          id="dotation_projet_form"
+          action="{% url 'gsl_simulation:patch-dotation-projet' simu.id %}">
         {% csrf_token %}
     </form>
 {% endblock form_for_simulation_projet %}
 
-{% block avis_commission_detr %}
+{% block detr_avis_commission %}
     {% if enveloppe.dotation == 'DETR' %}
-        {% include "includes/forms/_avis_commission_detr_form.html" %}
+        {% include "includes/forms/_detr_avis_commission_form.html" %}
     {% endif %}
-{% endblock avis_commission_detr %}
+{% endblock detr_avis_commission %}
 
 {% block status_action %}
     <div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-container fr-pb-1w fr-pt-3w fr-px-3w">

@@ -76,7 +76,8 @@
                     <td class="gsl-money">
                         {{ projet.dossier_ds.demande_montant|euro:2 }}
                         <br>
-                        {{ projet.get_taux_de_subvention_sollicite|percent }}
+                        {% comment %} todo pr_dotation handle dotation projet with a line for each dotation projet ? => ticket {% endcomment %}
+                        {{ projet.dotation_projet.0.taux_de_subvention_sollicite|percent }}
                     </td>
                     <td class="gsl-money {% if projet.montant_retenu is not None %} gsl_projet_table__montant_retenu {% endif %}">
                         {{ projet.montant_retenu|euro:2 }}

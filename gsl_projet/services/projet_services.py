@@ -79,13 +79,6 @@ class ProjetService:
         return ordering_map.get(ordering, None)
 
     @classmethod
-    def get_avis_commission_detr(cls, ds_dossier: Dossier):
-        if ds_dossier.ds_state == Dossier.STATE_ACCEPTE:
-            if DOTATION_DETR in ds_dossier.demande_dispositif_sollicite:
-                return True
-        return None
-
-    @classmethod
     def get_is_in_qpv(cls, ds_dossier: Dossier) -> bool:
         return bool(ds_dossier.annotations_is_qpv)
 

@@ -7,7 +7,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DetailView
 
 from gsl.settings import ALLOWED_HOSTS
-from gsl_projet.forms import ProjetForm
+from gsl_projet.forms import DotationProjetForm, ProjetForm
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.models import SimulationProjet
@@ -32,7 +32,9 @@ def patch_taux_simulation_projet(request, pk):
     new_taux = replace_comma_by_dot(request.POST.get("taux"))
     DotationProjetService.validate_taux(new_taux)
     SimulationProjetService.update_taux(simulation_projet, new_taux)
-    return redirect_to_simulation_projet(request, simulation_projet)
+    return redirect_to_same_page_or_to_simulation_detail_by_default(
+        request, simulation_projet
+    )
 
 
 @projet_must_be_in_user_perimetre
@@ -45,7 +47,9 @@ def patch_montant_simulation_projet(request, pk):
         new_montant, simulation_projet.dotation_projet
     )
     SimulationProjetService.update_montant(simulation_projet, new_montant)
-    return redirect_to_simulation_projet(request, simulation_projet)
+    return redirect_to_same_page_or_to_simulation_detail_by_default(
+        request, simulation_projet
+    )
 
 
 @projet_must_be_in_user_perimetre
@@ -61,7 +65,43 @@ def patch_status_simulation_projet(request, pk):
     updated_simulation_projet = SimulationProjetService.update_status(
         simulation_projet, status
     )
-    return redirect_to_simulation_projet(request, updated_simulation_projet, status)
+    return redirect_to_same_page_or_to_simulation_detail_by_default(
+        request, updated_simulation_projet, status
+    )
+
+
+@projet_must_be_in_user_perimetre
+@exception_handler_decorator
+@require_POST
+def patch_dotation_projet(request, pk):
+    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
+    form = DotationProjetForm(request.POST, instance=simulation_projet.dotation_projet)
+    if form.is_valid():
+        form.save()
+        return redirect_to_same_page_or_to_simulation_detail_by_default(
+            request, simulation_projet
+        )
+
+    return redirect_to_same_page_or_to_simulation_detail_by_default(
+        request, simulation_projet, message_type="error"
+    )
+
+
+@projet_must_be_in_user_perimetre
+@exception_handler_decorator
+@require_POST
+def patch_projet(request, pk):
+    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
+    form = ProjetForm(request.POST, instance=simulation_projet.projet)
+    if form.is_valid():
+        form.save()
+        return redirect_to_same_page_or_to_simulation_detail_by_default(
+            request, simulation_projet
+        )
+
+    return redirect_to_same_page_or_to_simulation_detail_by_default(
+        request, simulation_projet, message_type="error"
+    )
 
 
 class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
@@ -106,7 +146,6 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
             ],
             "current": context["title"],
         }
-        # TODO pr_dotation remove it ??
         context["projet"] = self.simulation_projet.projet
         context["dotation_projet"] = self.simulation_projet.dotation_projet
         context["simu"] = self.simulation_projet
@@ -114,50 +153,18 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
         context["dossier"] = self.simulation_projet.projet.dossier_ds
         context["menu_dict"] = PROJET_MENU
         context["projet_form"] = ProjetForm(instance=self.object.projet)
+        context["dotation_projet_form"] = DotationProjetForm(
+            instance=self.object.dotation_projet
+        )
 
         return context
 
-    def post(self, request, *args, **kwargs):
-        simulation_projet = get_object_or_404(SimulationProjet, id=self.kwargs["pk"])
-        projet_form = ProjetForm(request.POST, instance=simulation_projet.projet)
 
-        if projet_form.is_valid():
-            projet_form.save()
-            return redirect_to_simulation_projet(request, simulation_projet)
-
-        return redirect_to_simulation_projet(
-            request, simulation_projet, message_type="error"
-        )
-
-
-def redirect_to_simulation_projet(
+def redirect_to_same_page_or_to_simulation_detail_by_default(
     request, simulation_projet, message_type: str | None = None
 ):
     if request.htmx:
-        filter_params = request.POST.get("filter_params")
-        filtered_projets = _get_projets_queryset_with_filters(
-            simulation_projet.simulation,
-            filter_params,
-        )
-
-        total_amount_granted = SimulationService.get_total_amount_granted(
-            filtered_projets, simulation_projet.simulation
-        )
-
-        return render(
-            request,
-            "htmx/projet_update.html",
-            {
-                "simu": simulation_projet,
-                "dotation_projet": simulation_projet.dotation_projet,
-                # TODO pr_dotation remove it ??
-                "projet": simulation_projet.projet,
-                "available_states": SimulationProjet.STATUS_CHOICES,
-                "status_summary": simulation_projet.simulation.get_projet_status_summary(),
-                "total_amount_granted": total_amount_granted,
-                "filter_params": filter_params,
-            },
-        )
+        return render_partial_simulation_projet(request, simulation_projet)
 
     add_success_message(request, message_type, simulation_projet)
 
@@ -166,8 +173,35 @@ def redirect_to_simulation_projet(
         referer, allowed_hosts=ALLOWED_HOSTS
     ):
         return redirect(referer)
+
     return redirect(
         "simulation:simulation-detail", slug=simulation_projet.simulation.slug
+    )
+
+
+def render_partial_simulation_projet(request, simulation_projet):
+    filter_params = request.POST.get("filter_params")
+    filtered_projets = _get_projets_queryset_with_filters(
+        simulation_projet.simulation,
+        filter_params,
+    )
+
+    total_amount_granted = SimulationService.get_total_amount_granted(
+        filtered_projets, simulation_projet.simulation
+    )
+
+    return render(
+        request,
+        "htmx/projet_update.html",
+        {
+            "simu": simulation_projet,
+            "dotation_projet": simulation_projet.dotation_projet,
+            "projet": simulation_projet.projet,
+            "available_states": SimulationProjet.STATUS_CHOICES,
+            "status_summary": simulation_projet.simulation.get_projet_status_summary(),
+            "total_amount_granted": total_amount_granted,
+            "filter_params": filter_params,
+        },
     )
 
 

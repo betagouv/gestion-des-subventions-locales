@@ -39,8 +39,7 @@ class ProgrammationProjetService:
                 "annotations_taux",
                 "annotations_assiette",
             ):
-                # TODO pr_dotation add a property dossier_ds to dotation_projet ?
-                if getattr(dotation_projet.projet.dossier_ds, field) is None:
+                if getattr(dotation_projet.dossier_ds, field) is None:
                     logging.error(
                         f"Projet accepted {dotation_projet} is missing field {field}"
                     )

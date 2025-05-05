@@ -42,7 +42,7 @@ class SimulationProjetService:
                 "taux": (
                     dotation_projet.projet.dossier_ds.annotations_taux
                     or DotationProjetService.compute_taux_from_montant(
-                        dotation_projet.projet, montant
+                        dotation_projet, montant
                     )
                 ),
                 "status": cls.get_simulation_projet_status(dotation_projet),
@@ -96,7 +96,6 @@ class SimulationProjetService:
         simulation_projet.save()
         return simulation_projet
 
-    # TODO pr_dotation update test
     @classmethod
     def update_taux(cls, simulation_projet: SimulationProjet, new_taux: float):
         assiette = simulation_projet.dotation_projet.assiette_or_cout_total
