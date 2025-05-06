@@ -23,7 +23,7 @@ document.querySelectorAll(".form-disabled-before-value-change").forEach((elt) =>
 
 // Dotation Update (put it in other file)
 const getDotationValues = () => {
-  let dotationFieldSet = document.querySelector("#dotation-fieldset")
+  const dotationFieldSet = document.querySelector("#dotation-fieldset")
   const checkedValues = Array.from(dotationFieldSet.querySelectorAll('input[type="checkbox"]:checked')).map(checkbox => checkbox.value);
   return checkedValues
 }
