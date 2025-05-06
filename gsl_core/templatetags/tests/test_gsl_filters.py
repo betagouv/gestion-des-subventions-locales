@@ -53,8 +53,14 @@ def test_remove_first_word():
         ("valid", "Projet accepté", True, None),
         ("cancelled", "Projet refusé", True, None),
         (
-            "provisoire",
+            "provisionally_accepted",
             "Projet accepté provisoirement",
+            True,
+            None,
+        ),
+        (
+            "provisionally_refused",
+            "Projet refusé provisoirement",
             True,
             None,
         ),
