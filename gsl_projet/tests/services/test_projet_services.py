@@ -362,9 +362,7 @@ def test_update_dotation_from_one_to_two(
 
     assert projet.dotationprojet_set.count() == 2
     assert all(dotation in projet.dotations for dotation in {DOTATION_DETR, DOTATION_DSIL})
-    dotation_projets = projet.dotationprojet_set.all()
-
-    new_dotation_projet = dotation_projets.exclude(
+    new_dotation_projet = projet.dotationprojet_set.exclude(
         pk=original_dotation_projet.pk
     ).first()
     mock_create_simulation_projets.assert_called_once_with(new_dotation_projet)
