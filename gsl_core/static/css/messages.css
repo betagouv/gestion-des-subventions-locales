@@ -17,3 +17,8 @@
   background-color: var(--background-alt-grey);
   color: var(--text-default-grey);
 }
+
+.message--provisionally_refused > .fr-notice {
+  background-color: var(--background-alt-orange-terre-battue);
+  color: var(--text-action-high-orange-terre-battue);
+}
