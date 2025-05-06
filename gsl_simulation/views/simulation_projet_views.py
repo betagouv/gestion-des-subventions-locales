@@ -231,10 +231,10 @@ def _enrich_simulation_projet_context_from_simulation_projet(
 ):
     projet_form = ProjetForm(instance=simulation_projet.projet)
     dotation_field = projet_form.fields.get("dotations")
-
+    title = simulation_projet.projet.dossier_ds.projet_intitule
     context.update(
         {
-            "title": simulation_projet.projet.dossier_ds.projet_intitule,
+            "title": title,
             "breadcrumb_dict": {
                 "links": [
                     {
@@ -249,7 +249,7 @@ def _enrich_simulation_projet_context_from_simulation_projet(
                         "title": simulation_projet.simulation.title,
                     },
                 ],
-                "current": context["title"],
+                "current": title,
             },
             "projet": simulation_projet.projet,
             "dotation_projet": simulation_projet.dotation_projet,
