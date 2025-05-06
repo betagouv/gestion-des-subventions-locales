@@ -295,8 +295,8 @@ def simulation_form(request):
             "breadcrumb_dict": {
                 "links": [
                     {
-                        "url": reverse("gsl_projet:list"),
-                        "title": "Liste des projets",
+                        "url": reverse("gsl_simulation:simulation-list"),
+                        "title": "Mes simulations de programmation",
                     },
                 ],
                 "current": "Création d'une simulation de programmation",

@@ -150,6 +150,10 @@ class Projet(models.Model):
             and len(self.accepted_programmation_projets) > 0
         ):
             return self.accepted_programmation_projets[0]
+        else:
+            for dp in self.dotationprojet_set.all():
+                if dp.status == PROJET_STATUS_ACCEPTED:
+                    return dp.programmation_projet
 
     # TODO pr_dotation move it to DotationProjet => ticket double ligne projet
     @property

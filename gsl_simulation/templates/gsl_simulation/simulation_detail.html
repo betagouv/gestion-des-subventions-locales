@@ -65,7 +65,7 @@
             <tbody>
                 {% for projet in simulations_list %}
                     {% with projet.dotation_projet.0.simu.0 as simu %}
-                        {% include "includes/_simulation_detail_row.html" with simu=simu projet=projet %}
+                        {% include "includes/_simulation_detail_row.html" with simu=simu projet=projet dotation_projet=projet.dotation_projet.0 %}
                     {% endwith %}
                 {% empty %}
                     <tr>

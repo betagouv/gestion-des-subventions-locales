@@ -39,7 +39,7 @@ class ProjetFilters(FilterSet):
         method="filter_dotation",
     )
 
-    # TODO dotation_pr use dotation_projet
+    # TODO pr_dotation use dotation_projet
     def filter_dotation(self, queryset, _name, values):
         if not values:
             return queryset
