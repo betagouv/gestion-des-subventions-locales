@@ -25,36 +25,25 @@
         <h6>
             Financements :
         </h6>
-        <ul class="no-list-style">
-            <li>
-                <span aria-hidden="true">💶</span> Coût total de l’opération : {{ dossier.finance_cout_total|euro }}
-            </li>
-            <li>
-                <span aria-hidden="true">🧾</span> Montant demandé : {{ dossier.demande_montant|euro }}
-            </li>
-        </ul>
-        {% for dotation_projet in projet.dotationprojet_set.all %}
-            <p>
-                <b>{{ dotation_projet.dotation }}</b>
-            </p>
+
+        {% if projet.dotationprojet_set.all|length > 1 %}
             <ul class="no-list-style">
-                <li>
-                    <span aria-hidden="true">💶</span> Assiette subventionnable : {{ dotation_projet.assiette|euro }}
-                </li>
-                <li>
-                    <span aria-hidden="true">🧾</span> Taux de subvention sollicité : {{ dotation_projet.taux_de_subvention_sollicite|percent|default:"—" }}
-                    <button class="fr-btn--tooltip fr-btn fr-m-0 fr-pv-0-5v gsl-tooltip"
-                            type="button"
-                            aria-describedby="tooltip-taux-{{ dotation_projet.dotation }}">
-                        en % de l'assiette subventionnable
-                    </button>
-                    <span class="fr-tooltip fr-placement"
-                          id="tooltip-taux-{{ dotation_projet.dotation }}"
-                          role="tooltip"
-                          aria-hidden="true">en % de l'assiette subventionnable</span>
-                </li>
+                {% include "includes/projet_detail/_projet_financial_informations.html" %}
             </ul>
-        {% endfor %}
+            {% for dotation_projet in projet.dotationprojet_set.all %}
+                <p>
+                    <b>{{ dotation_projet.dotation }}</b>
+                </p>
+                <ul class="no-list-style">
+                    {% include "includes/projet_detail/_dotation_projet_financial_informations.html" %}
+                </ul>
+            {% endfor %}
+        {% else %}
+            <ul class="no-list-style">
+                {% include "includes/projet_detail/_projet_financial_informations.html" %}
+                {% include "includes/projet_detail/_dotation_projet_financial_informations.html" with dotation_projet=projet.dotationprojet_set.first %}
+            </ul>
+        {% endif %}
     </div>
 </div>
 
