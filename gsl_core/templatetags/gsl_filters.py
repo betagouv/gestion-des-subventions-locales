@@ -1,5 +1,6 @@
 import re
 from decimal import Decimal
+from typing import Any
 
 from django import template
 from django.template.defaultfilters import floatformat
@@ -42,18 +43,18 @@ STATUS_TO_ALERT_TITLE = {
 
 
 @register.filter
-def create_alert_data(extra_tags: str | None, arg: str) -> dict[str, str | bool]:
+def create_alert_data(message: Any) -> dict[str, str | bool]:
     data_dict: dict[str, str | bool] = {"is_collapsible": True}
-    if extra_tags is None:
-        data_dict["title"] = arg
+    if message.extra_tags is None:
+        data_dict["title"] = message.message
         return data_dict
 
-    data_dict["description"] = arg
+    data_dict["description"] = message.message
 
-    if extra_tags in STATUS_TO_ALERT_TITLE:
-        data_dict["title"] = STATUS_TO_ALERT_TITLE[extra_tags]
-    else:
-        data_dict["type"] = extra_tags
+    if message.extra_tags in STATUS_TO_ALERT_TITLE:
+        data_dict["title"] = STATUS_TO_ALERT_TITLE[message.extra_tags]
+    elif message.extra_tags in ["info", "alert"]:
+        data_dict["type"] = message.extra_tags
 
     return data_dict
 
