@@ -254,7 +254,7 @@ def test_update_status_with_processing_from_accepted_or_refused_or_dismissed(
 
 def test_update_status_with_processing():
     simulation_projet = SimulationProjetFactory(
-        status=SimulationProjet.STATUS_PROVISOIRE
+        status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
     )
     new_status = SimulationProjet.STATUS_PROCESSING
 
@@ -269,7 +269,7 @@ SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS = {
     SimulationProjet.STATUS_REFUSED: PROJET_STATUS_REFUSED,
     SimulationProjet.STATUS_PROCESSING: PROJET_STATUS_PROCESSING,
     SimulationProjet.STATUS_DISMISSED: PROJET_STATUS_DISMISSED,
-    SimulationProjet.STATUS_PROVISOIRE: PROJET_STATUS_PROCESSING,
+    SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: PROJET_STATUS_PROCESSING,
 }
 
 
@@ -281,7 +281,7 @@ SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS = {
         SimulationProjet.STATUS_DISMISSED,
     ),
 )
-def test_update_status_with_provisoire_from_refused_or_accepted_or_dismissed(
+def test_update_status_with_provisionally_accepted_from_refused_or_accepted_or_dismissed(
     initial_status,
 ):
     dotation_projet = DotationProjetFactory(
@@ -302,11 +302,11 @@ def test_update_status_with_provisoire_from_refused_or_accepted_or_dismissed(
     )
 
     SimulationProjetService.update_status(
-        simulation_projet, SimulationProjet.STATUS_PROVISOIRE
+        simulation_projet, SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
     )
 
     simulation_projet.refresh_from_db()
-    assert simulation_projet.status == SimulationProjet.STATUS_PROVISOIRE
+    assert simulation_projet.status == SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
     assert simulation_projet.dotation_projet.status == PROJET_STATUS_PROCESSING
 
     other_simulation_projets = SimulationProjet.objects.exclude(pk=simulation_projet.pk)
@@ -322,7 +322,7 @@ def test_update_status_with_provisoire_from_refused_or_accepted_or_dismissed(
         SimulationProjet.STATUS_REFUSED,
     ),
 )
-def test_update_status_with_provisoire_remove_programmation_projet_from_accepted_or_refused(
+def test_update_status_with_provisionally_accepted_remove_programmation_projet_from_accepted_or_refused(
     initial_status,
 ):
     dotation_projet = DotationProjetFactory(
@@ -335,11 +335,11 @@ def test_update_status_with_provisoire_remove_programmation_projet_from_accepted
     ProgrammationProjetFactory(dotation_projet=simulation_projet.dotation_projet)
 
     SimulationProjetService.update_status(
-        simulation_projet, SimulationProjet.STATUS_PROVISOIRE
+        simulation_projet, SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
     )
 
     simulation_projet.refresh_from_db()
-    assert simulation_projet.status == SimulationProjet.STATUS_PROVISOIRE
+    assert simulation_projet.status == SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
     assert (
         ProgrammationProjet.objects.filter(
             dotation_projet=simulation_projet.dotation_projet

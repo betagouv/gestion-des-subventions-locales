@@ -113,7 +113,7 @@ class SimulationProjetService:
             return cls._set_back_to_processing(simulation_projet)
 
         if (
-            new_status == SimulationProjet.STATUS_PROVISOIRE
+            new_status == SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
             and simulation_projet.status
             in (
                 SimulationProjet.STATUS_ACCEPTED,

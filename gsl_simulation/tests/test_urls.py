@@ -93,7 +93,7 @@ def cote_dorien_simulation_projet(cote_d_or_perimetre):
     return SimulationProjetFactory(
         dotation_projet=dotation_projet,
         simulation=simulation,
-        status=SimulationProjet.STATUS_PROVISOIRE,
+        status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         taux=0,
         montant=0,
     )
@@ -103,7 +103,7 @@ expected_status_summary = {
     "cancelled": 0,
     "draft": 0,
     "notified": 0,
-    "provisoire": 1,
+    "provisionally_accepted": 1,
     "valid": 0,
 }
 
@@ -207,7 +207,7 @@ status_update_expected_status_summary = {
     "cancelled": 0,
     "draft": 0,
     "notified": 0,
-    "provisoire": 0,
+    "provisionally_accepted": 0,
     "valid": 1,
 }
 

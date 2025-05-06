@@ -125,7 +125,7 @@ def test_accept_dotation_projet():
 
     SimulationProjetFactory(
         dotation_projet=dotation_projet,
-        status=SimulationProjet.STATUS_PROVISOIRE,
+        status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         montant=1_000,
     )
     SimulationProjetFactory(
@@ -264,7 +264,7 @@ def test_refusing_a_projet_updates_all_simulation_projet():
 
     SimulationProjetFactory(
         dotation_projet=dotation_projet,
-        status=SimulationProjet.STATUS_PROVISOIRE,
+        status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         montant=1_000,
     )
     SimulationProjetFactory(
