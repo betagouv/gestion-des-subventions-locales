@@ -130,6 +130,8 @@ faker==37.0.0
     # via factory-boy
 filelock==3.17.0
     # via virtualenv
+freezegun==1.5.1
+    # via gsl (pyproject.toml)
 gunicorn==23.0.0
     # via gsl (pyproject.toml)
 identify==2.6.9
@@ -229,6 +231,7 @@ python-crontab==3.2.0
 python-dateutil==2.9.0.post0
     # via
     #   celery
+    #   freezegun
     #   python-crontab
 python-dotenv==1.0.1
     # via gsl (pyproject.toml)

@@ -1,7 +1,7 @@
-from datetime import date
 from decimal import Decimal
 
 import pytest
+from freezegun import freeze_time
 
 from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
@@ -132,7 +132,7 @@ def simulations_of_previous_year_current_year_and_next_year_for_each_perimetres_
     perimetres,
 ):
     arr_nanterre, dep_92, region_idf, arr_dijon, dep_21, region_bfc = perimetres
-    for annee in [date.today().year - 1, date.today().year, date.today().year + 1]:
+    for annee in [2024, 2025, 2026]:
         """
         Pour ces 3 années, on crée ces simulations :
         |--------------+-------+-------|
@@ -170,6 +170,7 @@ def simulations_of_previous_year_current_year_and_next_year_for_each_perimetres_
             )
 
 
+@freeze_time("2025-05-06")
 @pytest.mark.django_db
 def test_create_simulation_projets_from_dotation_projet_with_a_detr_and_arrondissement_projet(
     perimetres,
@@ -189,7 +190,7 @@ def test_create_simulation_projets_from_dotation_projet_with_a_detr_and_arrondis
 
     # We only have a simulation_projets for enveloppe DETR of this year + the next year and on arr_dijon and dep_21 (because DETR)
     assert dotation_projet.simulationprojet_set.count() == 4
-    for annee in [date.today().year, date.today().year + 1]:
+    for annee in [2025, 2026]:
         for perimetre in [dep_21, arr_dijon]:
             simulation = Simulation.objects.filter(
                 enveloppe__annee=annee,
@@ -209,11 +210,12 @@ def test_create_simulation_projets_from_dotation_projet_with_a_detr_and_arrondis
             assert simulation_projet.taux == 0
 
     last_year_simulation_projets = SimulationProjet.objects.filter(
-        simulation__enveloppe__annee=date.today().year - 1
+        simulation__enveloppe__annee=2024
     )
     assert last_year_simulation_projets.count() == 0
 
 
+@freeze_time("2025-05-06")
 @pytest.mark.django_db
 def test_create_simulation_projets_from_dotation_projet_with_a_dsil_and_departement_projet(
     perimetres,
@@ -232,7 +234,7 @@ def test_create_simulation_projets_from_dotation_projet_with_a_dsil_and_departem
 
     # We only have a simulation_projets for enveloppe DSIL of this year + the next year and on dep_21 and region_bfc
     assert dotation_projet.simulationprojet_set.count() == 4
-    for annee in [date.today().year, date.today().year + 1]:
+    for annee in [2025, 2026]:
         for perimetre in [region_bfc, dep_21]:
             simulation = Simulation.objects.filter(
                 enveloppe__annee=annee,
@@ -252,7 +254,7 @@ def test_create_simulation_projets_from_dotation_projet_with_a_dsil_and_departem
             assert simulation_projet.taux == 0
 
     last_year_simulation_projets = SimulationProjet.objects.filter(
-        simulation__enveloppe__annee=date.today().year - 1
+        simulation__enveloppe__annee=2024
     )
     assert last_year_simulation_projets.count() == 0
 
