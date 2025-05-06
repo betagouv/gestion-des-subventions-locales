@@ -361,7 +361,9 @@ def test_update_dotation_from_one_to_two(
     ProjetService.update_dotation(projet, [DOTATION_DETR, DOTATION_DSIL])
 
     assert projet.dotationprojet_set.count() == 2
-    assert all(dotation in projet.dotations for dotation in {DOTATION_DETR, DOTATION_DSIL})
+    assert all(
+        dotation in projet.dotations for dotation in {DOTATION_DETR, DOTATION_DSIL}
+    )
     new_dotation_projet = projet.dotationprojet_set.exclude(
         pk=original_dotation_projet.pk
     ).first()
