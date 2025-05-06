@@ -35,7 +35,8 @@ class Simulation(models.Model):
             SimulationProjet.STATUS_PROCESSING: 0,
             SimulationProjet.STATUS_ACCEPTED: 0,
             SimulationProjet.STATUS_REFUSED: 0,
-            SimulationProjet.STATUS_PROVISOIRE: 0,
+            SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: 0,
+            SimulationProjet.STATUS_PROVISIONALLY_REFUSED: 0,
             "notified": 0,  # TODO : add notified count
         }
         status_count = (
@@ -53,12 +54,14 @@ class SimulationProjet(models.Model):
     STATUS_PROCESSING = "draft"
     STATUS_ACCEPTED = "valid"
     STATUS_REFUSED = "cancelled"
-    STATUS_PROVISOIRE = "provisoire"
+    STATUS_PROVISIONALLY_ACCEPTED = "provisionally_accepted"
+    STATUS_PROVISIONALLY_REFUSED = "provisionally_refused"
     STATUS_DISMISSED = "dismissed"
     STATUS_CHOICES = (
         (STATUS_PROCESSING, "🔄 En traitement"),
         (STATUS_ACCEPTED, "✅ Accepté"),
-        (STATUS_PROVISOIRE, "✔️ Accepté provisoirement"),
+        (STATUS_PROVISIONALLY_ACCEPTED, "✔️ Accepté provisoirement"),
+        (STATUS_PROVISIONALLY_REFUSED, "✖️ Refusé provisoirement"),
         (STATUS_REFUSED, "❌ Refusé"),
         (STATUS_DISMISSED, "⛔️ Classé sans suite"),
     )

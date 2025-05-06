@@ -15,8 +15,12 @@
   font-weight: 500;
 }
 
-.radio-input-provisoire label{
+.radio-input-provisionally_accepted label{
   color:var(--text-default-info);
+}
+
+.radio-input-provisionally_refused label{
+  color:var(--text-action-high-orange-terre-battue);
 }
 
 .radio-input-valid label {

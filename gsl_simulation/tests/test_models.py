@@ -36,6 +36,12 @@ def simulation_projects(simulation):
         dotation_projet__dotation=simulation.enveloppe.dotation,
         status=SimulationProjet.STATUS_PROCESSING,
     )
+    SimulationProjetFactory.create_batch(
+        4,
+        simulation=simulation,
+        dotation_projet__dotation=simulation.enveloppe.dotation,
+        status=SimulationProjet.STATUS_PROVISIONALLY_REFUSED,
+    )
 
 
 @pytest.mark.django_db
@@ -46,7 +52,8 @@ def test_get_projet_status_summary(simulation, simulation_projects):
         SimulationProjet.STATUS_REFUSED: 3,
         SimulationProjet.STATUS_PROCESSING: 1,
         SimulationProjet.STATUS_ACCEPTED: 2,
-        SimulationProjet.STATUS_PROVISOIRE: 0,
+        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: 0,
+        SimulationProjet.STATUS_PROVISIONALLY_REFUSED: 4,
         "notified": 0,
     }
 

@@ -36,7 +36,8 @@ def remove_first_word(value):
 STATUS_TO_ALERT_TITLE = {
     SimulationProjet.STATUS_ACCEPTED: "Projet accepté",
     SimulationProjet.STATUS_REFUSED: "Projet refusé",
-    SimulationProjet.STATUS_PROVISOIRE: "Projet accepté provisoirement",
+    SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: "Projet accepté provisoirement",
+    SimulationProjet.STATUS_PROVISIONALLY_REFUSED: "Projet refusé provisoirement",
     SimulationProjet.STATUS_DISMISSED: "Projet classé sans suite",
     SimulationProjet.STATUS_PROCESSING: "Projet en traitement",
 }

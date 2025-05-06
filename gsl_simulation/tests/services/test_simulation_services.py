@@ -143,7 +143,7 @@ def test_get_total_amount_granted(simulation):
     )
     provisionally_accepted_projet = SimulationProjetFactory(
         simulation=simulation,
-        status=SimulationProjet.STATUS_PROVISOIRE,
+        status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         montant=2_300,
         dotation_projet__dotation=DOTATION_DETR,
     )
@@ -176,7 +176,7 @@ def test_get_total_amount_granted(simulation):
     )
     SimulationProjetFactory(
         dotation_projet=provisionally_accepted_projet.dotation_projet,
-        status=SimulationProjet.STATUS_PROVISOIRE,
+        status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         montant=8_000,
     )
 
