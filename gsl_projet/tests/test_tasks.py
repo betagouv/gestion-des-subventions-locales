@@ -133,7 +133,8 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         taux=0.5,
     )
     ProgrammationProjetFactory(
-        dotation_projet=dotation_projet, status=ProgrammationProjet.STATUS_ACCEPTED
+        dotation_projet=dotation_projet,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
     )
 
     create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(

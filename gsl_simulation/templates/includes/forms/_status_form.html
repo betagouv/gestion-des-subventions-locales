@@ -6,7 +6,8 @@
             Décision de financement du projet
         </legend>
 
-        {% include "includes/_status_radio_button.html" with status_value="provisoire" status_label="Accepté provisoirement" icon="fr-icon-check-line" %}
+        {% include "includes/_status_radio_button.html" with status_value="provisionally_accepted" status_label="Accepté provisoirement" icon="fr-icon-check-line" %}
+        {% include "includes/_status_radio_button.html" with status_value="provisionally_refused" status_label="Refusé provisoirement" icon="fr-icon-check-line" %}
         <div class="separator" aria-hidden="true">
         </div>
         {% include "includes/_status_radio_button.html" with status_value="valid" status_label="Accepté" icon="fr-icon-checkbox-circle-line" %}

@@ -84,7 +84,7 @@ class SimulationProjetListViewFilters(ProjetFilters):
 
     ordered_status = (
         SimulationProjet.STATUS_PROCESSING,
-        SimulationProjet.STATUS_PROVISOIRE,
+        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         SimulationProjet.STATUS_REFUSED,
         SimulationProjet.STATUS_ACCEPTED,
         SimulationProjet.STATUS_DISMISSED,
@@ -297,8 +297,8 @@ def simulation_form(request):
             "breadcrumb_dict": {
                 "links": [
                     {
-                        "url": reverse("gsl_projet:list"),
-                        "title": "Liste des projets",
+                        "url": reverse("gsl_simulation:simulation-list"),
+                        "title": "Mes simulations de programmation",
                     },
                 ],
                 "current": "Création d'une simulation de programmation",

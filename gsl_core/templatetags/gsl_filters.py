@@ -1,5 +1,6 @@
 import re
 from decimal import Decimal
+from typing import Any
 
 from django import template
 from django.template.defaultfilters import floatformat
@@ -35,25 +36,23 @@ def remove_first_word(value):
 STATUS_TO_ALERT_TITLE = {
     SimulationProjet.STATUS_ACCEPTED: "Projet accepté",
     SimulationProjet.STATUS_REFUSED: "Projet refusé",
-    SimulationProjet.STATUS_PROVISOIRE: "Projet accepté provisoirement",
+    SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: "Projet accepté provisoirement",
+    SimulationProjet.STATUS_PROVISIONALLY_REFUSED: "Projet refusé provisoirement",
     SimulationProjet.STATUS_DISMISSED: "Projet classé sans suite",
     SimulationProjet.STATUS_PROCESSING: "Projet en traitement",
 }
 
 
 @register.filter
-def create_alert_data(extra_tags: str | None, arg: str) -> dict[str, str | bool]:
-    data_dict: dict[str, str | bool] = {"is_collapsible": True}
-    if extra_tags is None:
-        data_dict["title"] = arg
-        return data_dict
+def create_alert_data(message: Any) -> dict[str, str | bool]:
+    data_dict: dict[str, str | bool] = {}
+    data_dict["is_collapsible"] = True
+    data_dict["description"] = message.message
 
-    data_dict["description"] = arg
-
-    if extra_tags in STATUS_TO_ALERT_TITLE:
-        data_dict["title"] = STATUS_TO_ALERT_TITLE[extra_tags]
-    else:
-        data_dict["type"] = extra_tags
+    if message.extra_tags in STATUS_TO_ALERT_TITLE:
+        data_dict["title"] = STATUS_TO_ALERT_TITLE[message.extra_tags]
+    elif message.extra_tags in ["info", "alert"]:
+        data_dict["type"] = message.extra_tags
 
     return data_dict
 

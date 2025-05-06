@@ -2,6 +2,7 @@ import logging
 from decimal import Decimal
 
 from gsl_core.models import Perimetre
+from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
@@ -34,19 +35,18 @@ class SimulationProjetService:
         """
         Create or update a SimulationProjet from a Dotation Projet and a Simulation.
         """
-        montant = cls.get_initial_montant_from_dotation_projet(dotation_projet)
+        simulation_projet_status = cls.get_simulation_projet_status(dotation_projet)
+        montant = cls.get_initial_montant_from_dotation_projet(
+            dotation_projet, simulation_projet_status
+        )
+        taux = cls.get_initial_taux_from_dotation_projet(dotation_projet, montant)
         simulation_projet, _ = SimulationProjet.objects.update_or_create(
             dotation_projet=dotation_projet,
             simulation_id=simulation.id,
             defaults={
                 "montant": montant,
-                "taux": (
-                    dotation_projet.projet.dossier_ds.annotations_taux
-                    or DotationProjetService.compute_taux_from_montant(
-                        dotation_projet, montant
-                    )
-                ),
-                "status": cls.get_simulation_projet_status(dotation_projet),
+                "taux": taux,
+                "status": simulation_projet_status,
             },
         )
 
@@ -54,30 +54,69 @@ class SimulationProjetService:
 
     @classmethod
     def get_initial_montant_from_dotation_projet(
-        cls, dotation_projet: DotationProjet
+        cls, dotation_projet: DotationProjet, status: str
     ) -> Decimal:
-        projet = dotation_projet.projet
-        initial_montant = Decimal(0)
+        if status in (
+            SimulationProjet.STATUS_DISMISSED,
+            SimulationProjet.STATUS_REFUSED,
+        ):
+            return Decimal(0)
 
-        if projet.dossier_ds.annotations_montant_accorde:
-            initial_montant = projet.dossier_ds.annotations_montant_accorde
-        elif projet.dossier_ds.demande_montant:
-            initial_montant = projet.dossier_ds.demande_montant
+        try:
+            return dotation_projet.programmation_projet.montant
+        except ProgrammationProjet.DoesNotExist:
+            pass
 
-        assiette = dotation_projet.assiette
-        if assiette and initial_montant > assiette:
-            initial_montant = assiette
+        dossier = dotation_projet.projet.dossier_ds
 
-            if (
-                projet.dossier_ds.annotations_montant_accorde
-                and projet.dossier_ds.annotations_montant_accorde
-                > dotation_projet.assiette
-            ):
-                logging.warning(
-                    f"Le projet de dotation {dotation_projet.dotation} (id: {dotation_projet.pk}) a une assiette plus petite que le montant accordé issu des annotations"
+        if dossier.annotations_montant_accorde:
+            return cls._select_minimum_between_value_and_assiette_or_cout_total(
+                dossier.annotations_montant_accorde,
+                dotation_projet,
+                "le montant accordé issu des annotations",
+            )
+
+        if dossier.demande_montant:
+            return cls._select_minimum_between_value_and_assiette_or_cout_total(
+                dossier.demande_montant,
+                dotation_projet,
+                "le montant demandé",
+            )
+
+        return Decimal(0)
+
+    @classmethod
+    def _select_minimum_between_value_and_assiette_or_cout_total(
+        cls, value: Decimal, dotation_projet: DotationProjet, value_label: str
+    ):
+        if dotation_projet.assiette_or_cout_total is None:
+            logging.warning(
+                f"Le projet de dotation {dotation_projet.dotation} (id: {dotation_projet.pk}) n'a ni assiette ni coût total."
+            )
+            return value
+
+        if value and value > dotation_projet.assiette_or_cout_total:
+            logging.warning(
+                f"Le projet de dotation {dotation_projet.dotation} (id: {dotation_projet.pk}) a une assiette plus petite que {value_label}."
+            )
+
+        return min(
+            value,
+            dotation_projet.assiette_or_cout_total,
+        )
+
+    @classmethod
+    def get_initial_taux_from_dotation_projet(
+        cls, dotation_projet: DotationProjet, montant: Decimal
+    ) -> Decimal:
+        if montant > 0:
+            return (
+                dotation_projet.projet.dossier_ds.annotations_taux
+                or DotationProjetService.compute_taux_from_montant(
+                    dotation_projet, montant
                 )
-
-        return initial_montant
+            )
+        return Decimal(0)
 
     @classmethod
     def update_status(cls, simulation_projet: SimulationProjet, new_status: str):
@@ -102,7 +141,7 @@ class SimulationProjetService:
             return cls._set_back_to_processing(simulation_projet)
 
         if (
-            new_status == SimulationProjet.STATUS_PROVISOIRE
+            new_status == SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
             and simulation_projet.status
             in (
                 SimulationProjet.STATUS_ACCEPTED,

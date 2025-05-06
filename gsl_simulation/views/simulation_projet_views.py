@@ -230,36 +230,41 @@ def _enrich_simulation_projet_context_from_simulation_projet(
     context: dict, simulation_projet: SimulationProjet
 ):
     projet_form = ProjetForm(instance=simulation_projet.projet)
-    context["title"] = simulation_projet.projet.dossier_ds.projet_intitule
-    context["breadcrumb_dict"] = {
-        "links": [
-            {
-                "url": reverse("simulation:simulation-list"),
-                "title": "Mes simulations de programmation",
-            },
-            {
-                "url": reverse(
-                    "simulation:simulation-detail",
-                    kwargs={"slug": simulation_projet.simulation.slug},
-                ),
-                "title": simulation_projet.simulation.title,
-            },
-        ],
-        "current": context["title"],
-    }
-    context["projet"] = simulation_projet.projet
-    context["dotation_projet"] = simulation_projet.dotation_projet
-    context["simu"] = simulation_projet
-    context["enveloppe"] = simulation_projet.simulation.enveloppe
-    context["dossier"] = simulation_projet.projet.dossier_ds
-    context["menu_dict"] = PROJET_MENU
-    context["projet_form"] = projet_form
-    context["dotation_projet_form"] = DotationProjetForm(
-        instance=simulation_projet.dotation_projet
-    )
     dotation_field = projet_form.fields.get("dotations")
-    context["initial_dotations"] = (
-        ",".join(dotation_field.initial) if dotation_field else []
+    title = simulation_projet.projet.dossier_ds.projet_intitule
+    context.update(
+        {
+            "title": title,
+            "breadcrumb_dict": {
+                "links": [
+                    {
+                        "url": reverse("simulation:simulation-list"),
+                        "title": "Mes simulations de programmation",
+                    },
+                    {
+                        "url": reverse(
+                            "simulation:simulation-detail",
+                            kwargs={"slug": simulation_projet.simulation.slug},
+                        ),
+                        "title": simulation_projet.simulation.title,
+                    },
+                ],
+                "current": title,
+            },
+            "projet": simulation_projet.projet,
+            "dotation_projet": simulation_projet.dotation_projet,
+            "simu": simulation_projet,
+            "enveloppe": simulation_projet.simulation.enveloppe,
+            "dossier": simulation_projet.projet.dossier_ds,
+            "menu_dict": PROJET_MENU,
+            "projet_form": projet_form,
+            "dotation_projet_form": DotationProjetForm(
+                instance=simulation_projet.dotation_projet
+            ),
+            "initial_dotations": ",".join(dotation_field.initial)
+            if dotation_field
+            else [],
+        }
     )
 
 

@@ -171,7 +171,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
         dotation_projet=detr_projets[5],
         simulation=detr_simulation,
     )
-    assert simulation_projet.montant == 1_500
+    assert simulation_projet.montant == 0
     assert simulation_projet.taux == 0
     assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
     assert simulation_projet.enveloppe.dotation == DOTATION_DETR
@@ -184,7 +184,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
         dotation_projet=detr_projets[7],
         simulation=detr_simulation,
     )
-    assert simulation_projet.montant == 2_500
+    assert simulation_projet.montant == 0
     assert simulation_projet.taux == 0
     assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED
     assert simulation_projet.enveloppe.dotation == DOTATION_DETR
@@ -242,7 +242,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
         simulation=dsil_simulation,
     )
     assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
-    assert simulation_projet.montant == 1_500
+    assert simulation_projet.montant == 0
     assert simulation_projet.taux == 0
     assert simulation_projet.enveloppe.dotation == "DSIL"
     assert (
@@ -255,7 +255,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
         simulation=dsil_simulation,
     )
     assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED
-    assert simulation_projet.montant == 2_500
+    assert simulation_projet.montant == 0
     assert simulation_projet.taux == 0
     assert simulation_projet.enveloppe.dotation == "DSIL"
     assert (
