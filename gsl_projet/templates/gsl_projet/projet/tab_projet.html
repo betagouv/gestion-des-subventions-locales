@@ -30,25 +30,31 @@
                 <span aria-hidden="true">💶</span> Coût total de l’opération : {{ dossier.finance_cout_total|euro }}
             </li>
             <li>
-                <span aria-hidden="true">💶</span> Assiette subventionnable : {{ projet.assiette|euro }}
-            </li>
-            <li>
                 <span aria-hidden="true">🧾</span> Montant demandé : {{ dossier.demande_montant|euro }}
             </li>
-            <li>
-                {% comment %} todo pr_dotation handle dotation projet with a block for each ? => ticket {% endcomment %}
-                <span aria-hidden="true">🧾</span> Taux de subvention sollicité : {{ projet.dotation_projet.0.taux_de_subvention_sollicite|percent|default:"—" }}
-                <button class="fr-btn--tooltip fr-btn fr-m-0 fr-pv-0-5v gsl-tooltip"
-                        type="button"
-                        aria-describedby="tooltip-taux">
-                    en % de l'assiette subventionnable
-                </button>
-                <span class="fr-tooltip fr-placement"
-                      id="tooltip-taux"
-                      role="tooltip"
-                      aria-hidden="true">en % de l'assiette subventionnable</span>
-            </li>
         </ul>
+        {% for dotation_projet in projet.dotationprojet_set.all %}
+            <p>
+                <b>{{ dotation_projet.dotation }}</b>
+            </p>
+            <ul class="no-list-style">
+                <li>
+                    <span aria-hidden="true">💶</span> Assiette subventionnable : {{ dotation_projet.assiette|euro }}
+                </li>
+                <li>
+                    <span aria-hidden="true">🧾</span> Taux de subvention sollicité : {{ dotation_projet.taux_de_subvention_sollicite|percent|default:"—" }}
+                    <button class="fr-btn--tooltip fr-btn fr-m-0 fr-pv-0-5v gsl-tooltip"
+                            type="button"
+                            aria-describedby="tooltip-taux-{{ dotation_projet.dotation }}">
+                        en % de l'assiette subventionnable
+                    </button>
+                    <span class="fr-tooltip fr-placement"
+                          id="tooltip-taux-{{ dotation_projet.dotation }}"
+                          role="tooltip"
+                          aria-hidden="true">en % de l'assiette subventionnable</span>
+                </li>
+            </ul>
+        {% endfor %}
     </div>
 </div>
 
