@@ -13,7 +13,7 @@ from gsl_projet.constants import (
 )
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.projet_services import ProjetService
-from gsl_simulation.models import Simulation, SimulationProjet
+from gsl_simulation.models import Simulation
 
 
 class DotationProjetService:
@@ -60,8 +60,11 @@ class DotationProjetService:
     def create_simulation_projets_from_dotation_projet(
         cls,
         dotation_projet: DotationProjet,
-        default_montant: float | Decimal = 0,
     ):
+        from gsl_simulation.services.simulation_projet_service import (
+            SimulationProjetService,
+        )
+
         projet_perimetre = dotation_projet.projet.perimetre
         perimetres_containing_this_projet_perimetre = list(projet_perimetre.ancestors())
         perimetres_containing_this_projet_perimetre.append(projet_perimetre)
@@ -72,12 +75,8 @@ class DotationProjetService:
         )
         simulations = Simulation.objects.filter(enveloppe__in=enveloppes)
         for simulation in simulations:
-            SimulationProjet.objects.create(
-                simulation=simulation,
-                dotation_projet=dotation_projet,
-                status=SimulationProjet.STATUS_PROCESSING,
-                montant=default_montant,
-                taux=cls.compute_taux_from_montant(dotation_projet, default_montant),
+            SimulationProjetService.create_or_update_simulation_projet_from_dotation_projet(
+                dotation_projet, simulation
             )
 
     DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS = {
