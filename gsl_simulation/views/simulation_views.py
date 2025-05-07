@@ -11,6 +11,7 @@ from django_filters.views import FilterView
 from gsl_core.models import Perimetre
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.services.enveloppe_service import EnveloppeService
+from gsl_projet.constants import DOTATIONS
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
@@ -187,6 +188,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         context["available_states"] = SimulationProjet.STATUS_CHOICES
         context["filter_params"] = self.request.GET.urlencode()
         context["enveloppe"] = self._get_enveloppe_data(simulation)
+        context["dotations"] = DOTATIONS
         self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
 
         context["breadcrumb_dict"] = {
