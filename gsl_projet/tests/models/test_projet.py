@@ -41,3 +41,37 @@ def test_can_have_a_commission_detr_avis(
         projet.can_have_a_commission_detr_avis
         is expected_can_have_a_commission_detr_avis
     )
+    assert projet.is_asking_for_detr is expected_can_have_a_commission_detr_avis
+
+
+def test_has_double_dotations():
+    projet = ProjetFactory()
+    assert projet.has_double_dotations is False
+
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    assert projet.has_double_dotations is False
+
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+    assert projet.has_double_dotations is True
+
+
+def test_dotation_detr():
+    projet = ProjetFactory()
+    assert projet.dotation_detr is None
+
+    dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+    assert projet.dotation_detr is None
+
+    dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    assert projet.dotation_detr == dotation
+
+
+def test_dotation_dsil():
+    projet = ProjetFactory()
+    assert projet.dotation_dsil is None
+
+    dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    assert projet.dotation_dsil is None
+
+    dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+    assert projet.dotation_dsil == dotation
