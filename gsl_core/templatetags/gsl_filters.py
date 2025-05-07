@@ -35,6 +35,8 @@ def remove_first_word(value):
 
 @register.filter
 def get(dictionary, key):
+    if not isinstance(dictionary, dict):
+        return dictionary
     return dictionary.get(key)
 
 
