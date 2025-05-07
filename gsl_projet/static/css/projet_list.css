@@ -4,3 +4,12 @@
   color: var(--text-default-success);
   font-weight: 500;
 }
+
+td.dotation_attribute > span {
+  display: block;
+  font-weight: bold;
+}
+
+td.dotation_attribute > span:not(:last-child) {
+  margin-bottom: 1rem;
+}

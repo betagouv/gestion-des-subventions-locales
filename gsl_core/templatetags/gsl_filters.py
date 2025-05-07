@@ -12,12 +12,12 @@ register = template.Library()
 
 @register.filter
 def percent(value, decimals=0):
-    if value is None:
+    if value is None or value == "":
         return "— %"
     if not isinstance(value, Decimal):
         return value
     """Removes all values of arg from the given string"""
-    return floatformat(value, decimals) + " %"
+    return floatformat(value, decimals) + " %"
 
 
 @register.filter
@@ -38,6 +38,11 @@ def get(dictionary, key):
     if not isinstance(dictionary, dict):
         return dictionary
     return dictionary.get(key)
+
+
+@register.filter
+def sort(objects_list, key):
+    return sorted(objects_list, key=lambda x: getattr(x, key), reverse=True)
 
 
 STATUS_TO_ALERT_TITLE = {

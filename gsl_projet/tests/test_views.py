@@ -1,6 +1,7 @@
 from datetime import UTC
 
 import pytest
+from django.db.models import Count, Q
 from django.urls import reverse
 from django.utils import timezone
 
@@ -18,6 +19,7 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
+from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import Demandeur, Projet
 from gsl_projet.tests.factories import (
@@ -81,7 +83,7 @@ def test_get_ordering(req, view, tri_param, expected_ordering):
     """Test que get_ordering retourne le bon ordre selon le paramètre 'tri'"""
     request = req.get("/")
     if tri_param is not None:
-        request = req.get(f"/?tri={tri_param}")
+        request = req.get("/", data={"tri": tri_param})
 
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
@@ -120,7 +122,7 @@ def projets(demandeur) -> list[Projet]:
     ],
 )
 def test_projets_ordering(req, view, projets, tri_param, expected_ordering):
-    request = req.get("/?tri=" + tri_param)
+    request = req.get("/", data={"tri": tri_param})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
     projets_lis = [projets[1], projets[0]] if expected_ordering == "1-0" else projets
@@ -179,7 +181,7 @@ def test_filter_by_dotation_only_detr(
     projets_with_double_dotations_values,
     projets_with_other_dotations_values,
 ):
-    request = req.get("/?dotation=DETR")
+    request = req.get("/", data={"dotation": ["DETR"]})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
@@ -198,7 +200,7 @@ def test_filter_by_dotation_only_dsil(
     projets_with_double_dotations_values,
     projets_with_other_dotations_values,
 ):
-    request = req.get("/?dotation=DSIL")
+    request = req.get("/", data={"dotation": ["DSIL"]})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
@@ -217,7 +219,7 @@ def test_filter_by_dotation_detr_and_dsil(
     projets_with_double_dotations_values,
     projets_with_other_dotations_values,
 ):
-    request = req.get("/?dotation=DETR&dotation=DSIL")
+    request = req.get("/", data={"dotation": ["DETR", "DSIL"]})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
@@ -237,7 +239,7 @@ def test_filter_by_dotation_only_detr_dsil(
     projets_with_double_dotations_values,
     projets_with_other_dotations_values,
 ):
-    request = req.get("/?dotation=DETR_et_DSIL")
+    request = req.get("/", data={"dotation": ["DETR_et_DSIL"]})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
@@ -262,7 +264,7 @@ def test_filter_by_dotation_detr_and_detr_dsil(
     projets_with_double_dotations_values,
     projets_with_other_dotations_values,
 ):
-    request = req.get("/?dotation=DETR&dotation=DETR_et_DSIL")
+    request = req.get("/", data={"dotation": ["DETR", "DETR_et_DSIL"]})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
@@ -289,7 +291,7 @@ def test_filter_by_dotation_dsil_and_detr_dsil(
     projets_with_double_dotations_values,
     projets_with_other_dotations_values,
 ):
-    request = req.get("/?dotation=DSIL&dotation=DETR_et_DSIL")
+    request = req.get("/", data={"dotation": ["DSIL", "DETR_et_DSIL"]})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
@@ -309,7 +311,7 @@ def test_filter_by_dotation_detr_and_dsil_and_detr_dsil(
     projets_with_double_dotations_values,
     projets_with_other_dotations_values,
 ):
-    request = req.get("/?dotation=DETR&dotation=DSIL&dotation=DETR_et_DSIL")
+    request = req.get("/", data={"dotation": ["DETR", "DSIL", "DETR_et_DSIL"]})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
@@ -452,7 +454,7 @@ def test_filter_by_min_cost(
     view,
     projets_with_finance_cout_total_from_dossier_ds,
 ):
-    request = req.get("/?cout_min=150000")
+    request = req.get("/", data={"cout_min": 150_000})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
@@ -465,7 +467,7 @@ def test_filter_by_max_cost(
     view,
     projets_with_finance_cout_total_from_dossier_ds,
 ):
-    request = req.get("/?cout_max=250000")
+    request = req.get("/", data={"cout_max": 250_000})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
@@ -478,7 +480,7 @@ def test_filter_by_cost_range(
     view,
     projets_with_finance_cout_total_from_dossier_ds,
 ):
-    request = req.get("/?cout_min=150000&cout_max=250000")
+    request = req.get("/", data={"cout_min": 150_000, "cout_max": 250_000})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
@@ -491,7 +493,7 @@ def test_filter_with_wrong_values(
     view,
     projets_with_finance_cout_total_from_dossier_ds,
 ):
-    request = req.get("/?cout_min=wrong")
+    request = req.get("/", data={"cout_min": "wrong"})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
@@ -503,13 +505,50 @@ def test_filter_with_wrong_values(
 
 @pytest.fixture
 def projets_with_montant_retenu(demandeur) -> list[Projet]:
-    return [
-        ProjetFactory(
-            dossier_ds__annotations_montant_accorde=amount,
+    projets = []
+    for detr_montant, dsil_montant in (
+        (None, 50_000),
+        (50_000, 50_000),
+        (100_000, 50_000),
+        (100_000, 100_000),
+        (150_000, 50_000),
+        (150_000, 150_000),
+    ):
+        projet = ProjetFactory(
             demandeur=demandeur,
         )
-        for amount in (None, 50_000, 100_000, 150_000, 200_000, 250_000)
-    ]
+        detr_projet = DetrProjetFactory(projet=projet)
+        if detr_montant is not None:
+            ProgrammationProjetFactory(
+                dotation_projet=detr_projet, montant=detr_montant
+            )
+
+        dsil_projet = DsilProjetFactory(projet=projet)
+        if dsil_montant is not None:
+            ProgrammationProjetFactory(
+                dotation_projet=dsil_projet, montant=dsil_montant
+            )
+
+        projets.append(projet)
+    return projets
+
+
+def test_annotate_montant_retenu(
+    req,
+    view,
+    projets_with_montant_retenu,
+):
+    projet_qs = Projet.objects.all()
+    projet_qs = projet_qs.annotate(
+        dotation_projet_with_this_minimum_montant_retenu_count=Count(
+            "dotationprojet",
+            filter=Q(dotationprojet__programmation_projet__montant__gte=100_000),
+        )
+    )
+    projet_qs = projet_qs.filter(
+        dotation_projet_with_this_minimum_montant_retenu_count__gt=0
+    )
+    assert projet_qs.count() == 4
 
 
 def test_filter_by_min_montant_retenu(
@@ -517,12 +556,13 @@ def test_filter_by_min_montant_retenu(
     view,
     projets_with_montant_retenu,
 ):
-    request = req.get("/?montant_retenu_min=100000")
+    request = req.get("/", data={"montant_retenu_min": 100_000})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
     assert qs.count() == 4
-    assert all(100_000 <= p.dossier_ds.annotations_montant_accorde for p in qs)
+    for p in qs:
+        assert any(100_000 <= dp.montant_retenu for dp in p.dotationprojet_set.all())
 
 
 def test_filter_by_max_montant_retenu(
@@ -530,12 +570,21 @@ def test_filter_by_max_montant_retenu(
     view,
     projets_with_montant_retenu,
 ):
-    request = req.get("/?montant_retenu_max=200000")
+    request = req.get("/", data={"montant_retenu_max": 100_000})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
-    assert qs.count() == 4
-    assert all(p.dossier_ds.annotations_montant_accorde <= 200_000 for p in qs)
+    # (None, 50_000) ✅
+    # (50_000, 50_000) ✅
+    # (100_000, 50_000) ✅
+    # (100_000, 100_000) ✅
+    # (150_000, 50_000) ✅
+    # (150_000, 150_000) ❌
+    assert qs.count() == 5
+    for p in qs:
+        assert any(
+            (dp.montant_retenu or 0.0) <= 100_000 for dp in p.dotationprojet_set.all()
+        )
 
 
 def test_filter_by_montant_retenu_range(
@@ -543,14 +592,24 @@ def test_filter_by_montant_retenu_range(
     view,
     projets_with_montant_retenu,
 ):
-    request = req.get("/?montant_retenu_min=100000&montant_retenu_max=200000")
+    request = req.get(
+        "/", data={"montant_retenu_min": 90_000, "montant_retenu_max": 110_000}
+    )
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
-    assert qs.count() == 3
-    assert all(
-        100_000 <= p.dossier_ds.annotations_montant_accorde <= 200_000 for p in qs
-    )
+    # (None, 50_000) ❌
+    # (50_000, 50_000) ❌
+    # (100_000, 50_000) ✅
+    # (100_000, 100_000) ✅
+    # (150_000, 50_000) ❌ Il faut qu'un dotation_projet matche les deux filtres
+    # (150_000, 150_000) ❌
+
+    assert qs.count() == 2
+    for p in qs:
+        assert any(
+            90_000 <= dp.montant_retenu <= 110_000 for dp in p.dotationprojet_set.all()
+        )
 
 
 def test_filter_with_wrong_montant_retenu_values(
@@ -558,7 +617,7 @@ def test_filter_with_wrong_montant_retenu_values(
     view,
     projets_with_montant_retenu,
 ):
-    request = req.get("/?montant_retenu_min=wrong")
+    request = req.get("/", data={"montant_retenu_min": "wrong"})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
@@ -584,7 +643,7 @@ def test_filter_by_min_montant_demande(
     view,
     projets_with_montant_demande,
 ):
-    request = req.get("/?montant_demande_min=60000")
+    request = req.get("/", data={"montant_demande_min": 60_000})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
@@ -597,7 +656,7 @@ def test_filter_by_max_montant_demande(
     view,
     projets_with_montant_demande,
 ):
-    request = req.get("/?montant_demande_max=120000")
+    request = req.get("/", data={"montant_demande_max": 120_000})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
@@ -610,7 +669,9 @@ def test_filter_by_montant_demande_range(
     view,
     projets_with_montant_demande,
 ):
-    request = req.get("/?montant_demande_min=60000&montant_demande_max=120000")
+    request = req.get(
+        "/", data={"montant_demande_min": 60_000, "montant_demande_max": 120_000}
+    )
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
@@ -623,7 +684,7 @@ def test_filter_with_wrong_montant_demande_values(
     view,
     projets_with_montant_demande,
 ):
-    request = req.get("/?montant_demande_min=wrong")
+    request = req.get("/", data={"montant_demande_min": "wrong"})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
@@ -657,7 +718,7 @@ def projets_with_status(demandeur) -> list[Projet]:
     ],
 )
 def test_filter_by_status(req, view, projets_with_status, status, expected_count):
-    request = req.get(f"/?status={status}")
+    request = req.get("/", data={"status": status})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
@@ -672,7 +733,7 @@ def test_get_status_placeholder(req, view, projets_with_status):
 
 
 def test_get_status_placeholder_with_status(req, view, projets_with_status):
-    request = req.get("/?status=accepted&status=processing")
+    request = req.get("/", data={"status": ["accepted", "processing"]})
     view.request = request
     assert (
         view._get_status_placeholder(ProjetListView.STATE_MAPPINGS)
@@ -710,7 +771,7 @@ def projets_29(perimetre_29, perimetre_quimper, perimetre_brest):
 def test_filter_territoire_with_a_departement_gives_all_departement_projets(
     req, view, projets_29, perimetre_29
 ):
-    request = req.get(f"/?territoire={perimetre_29.id}")
+    request = req.get("/", data={"territoire": perimetre_29.id})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
@@ -721,7 +782,7 @@ def test_filter_territoire_with_a_departement_gives_all_departement_projets(
 def test_filter_territoire_with_an_arrondissement_gives_only_arrondissement_projets(
     req, view, projets_29, perimetre_quimper
 ):
-    request = req.get(f"/?territoire={perimetre_quimper.id}")
+    request = req.get("/", data={"territoire": perimetre_quimper.id})
     view.request = request
     qs = view.get_filterset(ProjetListViewFilters).qs
 
@@ -733,7 +794,7 @@ def test_filter_territoire_with_two_arrondissements_gives_only_these_arrondissem
     req, view, projets_29, perimetre_quimper, perimetre_brest
 ):
     request = req.get(
-        f"/?territoire={perimetre_quimper.id}&territoire={perimetre_brest.id}"
+        "/", data={"territoire": [perimetre_quimper.id, perimetre_brest.id]}
     )
     view.request = request
     qs = view.get_filterset(ProjetListViewFilters).qs

@@ -1,4 +1,4 @@
-from django.db.models import Count, Q
+from django.db.models import Count, Exists, OuterRef, Q
 from django.forms import NumberInput
 from django_filters import (
     FilterSet,
@@ -17,7 +17,7 @@ from gsl_projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl_projet.models import Projet
+from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
@@ -124,23 +124,39 @@ class ProjetFilters(FilterSet):
         ),
     )
 
-    # TODO pr_dotation update this to filter on real montant retenu => ticket
     montant_retenu_min = NumberFilter(
-        field_name="dossier_ds__annotations_montant_accorde",
-        lookup_expr="gte",
+        method="filter_montant_retenu",
         widget=NumberInput(
             attrs={"class": "fr-input", "min": "0"},
         ),
     )
 
-    # TODO pr_dotation update this to filter on real montant retenu => ticket
     montant_retenu_max = NumberFilter(
-        field_name="dossier_ds__annotations_montant_accorde",
-        lookup_expr="lte",
+        method="filter_montant_retenu",
         widget=NumberInput(
             attrs={"class": "fr-input", "min": "0"},
         ),
     )
+
+    def filter_montant_retenu(self, queryset, _name, value):
+        montant_min = self.data.get("montant_retenu_min")
+        montant_max = self.data.get("montant_retenu_max")
+
+        if not montant_min and not montant_max:
+            return queryset
+
+        dotation_qs = DotationProjet.objects.filter(projet=OuterRef("pk"))
+
+        if montant_min:
+            dotation_qs = dotation_qs.filter(
+                programmation_projet__montant__gte=montant_min
+            )
+        if montant_max:
+            dotation_qs = dotation_qs.filter(
+                programmation_projet__montant__lte=montant_max
+            )
+
+        return queryset.annotate(match=Exists(dotation_qs)).filter(match=True)
 
     ordered_status: tuple[str, ...] = (
         PROJET_STATUS_PROCESSING,

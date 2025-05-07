@@ -54,58 +54,64 @@
         </thead>
         <tbody id="projet-list">
             {% for projet in object_list %}
-                <tr>
-                    <td>
-                        {{ projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}
-                    </td>
-                    <td>
-                        {{ projet.dossier_ds.projet_intitule }}
-                    </td>
-                    <td>
-                        {{ projet.demandeur.name | format_demandeur_nom }}
-                    </td>
-                    <td>
-                        {{ projet.dossier_ds.ds_number }}
-                    </td>
-                    <td>
-                        {{ projet.dotations|join:" et " }}
-                    </td>
-                    <td class="gsl-money">
-                        {{ projet.dossier_ds.finance_cout_total|euro:2 }}
-                    </td>
-                    <td class="gsl-money">
-                        {{ projet.dossier_ds.demande_montant|euro:2 }}
-                        <br>
-                        {% comment %} todo pr_dotation handle dotation projet with a line for each dotation projet ? => ticket {% endcomment %}
-                        {{ projet.dotation_projet.0.taux_de_subvention_sollicite|percent }}
-                    </td>
-                    <td class="gsl-money {% if projet.montant_retenu is not None %} gsl_projet_table__montant_retenu {% endif %}">
-                        {{ projet.montant_retenu|euro:2 }}
-                        <br>
-                    </td>
-                    <td class="gsl-money">
-                        {{ projet.taux_retenu|percent }}
-                    </td>
-                    <td>
-                        <ul class="no-list-style">
-                            {% for categorie in projet.categorie_doperation %}
-                                <li>
-                                    {{ categorie }}
-                                </li>
+                {% with projet.dotationprojet_set.all|sort:"dotation" as dotation_projets %}
+                    <tr>
+                        <td>
+                            {{ projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}
+                        </td>
+                        <td>
+                            {{ projet.dossier_ds.projet_intitule }}
+                        </td>
+                        <td>
+                            {{ projet.demandeur.name | format_demandeur_nom }}
+                        </td>
+                        <td>
+                            {{ projet.dossier_ds.ds_number }}
+                        </td>
+                        <td class="dotation_attribute">
+                            {% for dp in dotation_projets %}
+                                <span>{{ dp.dotation }}</span>
                             {% endfor %}
-                        </ul>
-                    </td>
-                    <td class="projet_status__{{ projet.status }}">
-                        <b>{{ projet.get_status_display }}</b>
-                    </td>
-                    <td class="fr-cell--right">
-                        <a class="fr-btn--tertiary-no-outline gsl-no-underline"
-                           href="{{ projet.get_absolute_url }}">
-                            <span class="fr-sr-only">Voir le projet {{ projet.dossier_ds.ds_number }}</span>
-                            <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
-                        </a>
-                    </td>
-                </tr>
+                        </td>
+                        <td class="gsl-money">
+                            {{ projet.dossier_ds.finance_cout_total|euro }}
+                        </td>
+                        <td class="gsl-money">
+                            {{ projet.dossier_ds.demande_montant|euro }}
+                        </td>
+                        <td class="gsl-money {% if projet.montant_retenu is not None %} gsl_projet_table__montant_retenu {% endif %} dotation_attribute">
+                            {% for dp in dotation_projets %}
+                                <span>{{ dp.montant_retenu|euro }}</span>
+                            {% endfor %}
+                        </td>
+                        <td class="gsl-money dotation_attribute">
+                            {% for dp in dotation_projets %}
+                                <span>{{ dp.taux_retenu|percent }}</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <ul class="no-list-style">
+                                {% for categorie in projet.categorie_doperation %}
+                                    <li>
+                                        {{ categorie }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td class="dotation_attribute">
+                            {% for dp in dotation_projets %}
+                                <span class="projet_status__{{ dp.status }}">{{ dp.get_status_display }}</span>
+                            {% endfor %}
+                        </td>
+                        <td class="fr-cell--right">
+                            <a class="fr-btn--tertiary-no-outline gsl-no-underline"
+                               href="{{ projet.get_absolute_url }}">
+                                <span class="fr-sr-only">Voir le projet {{ projet.dossier_ds.ds_number }}</span>
+                                <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
+                            </a>
+                        </td>
+                    </tr>
+                {% endwith %}
             {% empty %}
                 <tr>
                     <td colspan="12">
