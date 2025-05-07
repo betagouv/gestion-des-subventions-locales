@@ -134,6 +134,14 @@ ul.no-list-style li {
     text-overflow: ellipsis;
 }
 
+.max_160_width {
+    max-width: 160px;
+    width: 160px;
+    min-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .max_80_width {
     max-width: 100px;
     width: 80px;

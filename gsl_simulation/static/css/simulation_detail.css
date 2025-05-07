@@ -52,6 +52,29 @@
   font-size: small;
 }
 
+/* other dotation */
+.other-simulation-row {
+  background-color: var(--background-default-grey-hover);
+  min-height: 40px;
+  height: 40px;
+}
+
+.gsl-projet-table table tbody tr.row-with-double-dotations td{ /* cette longue liste est utile pour être plus spécifique que .gsl-projet-table table tbody tr td */
+  border-bottom: 1px solid var(--border-disabled-grey);
+}
+
+.information-other-dotation {
+  text-align: end;
+  font-style: italic;
+}
+
+.other-simulation-status {
+  text-align: end;
+}
+
+.other-simulation-status > b {
+  margin-right: 20px;
+}
 
 /* colors */
 
