@@ -85,8 +85,8 @@ def test_remove_first_word():
 def test_create_alert_data(extra_tags, title_expected, has_message, type_expected):
     message_text = "Test description"
     message = type("Message", (object,), {})()
-    message.__setattr__("message", message_text)
-    message.__setattr__("extra_tags", extra_tags)
+    message.message = message_text
+    message.extra_tags = extra_tags
 
     data = create_alert_data(message)
 
