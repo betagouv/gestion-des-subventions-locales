@@ -269,10 +269,14 @@ def _enrich_simulation_projet_context_from_simulation_projet(
 
 
 def _get_view_simulation_projet_from_pk(pk: int):
-    return SimulationProjet.objects.select_related(
-        "simulation",
-        "simulation__enveloppe",
-        "dotation_projet",
-        "dotation_projet__projet",
-        "dotation_projet__projet__dossier_ds",
-    ).get(id=pk)
+    return (
+        SimulationProjet.objects.select_related(
+            "simulation",
+            "simulation__enveloppe",
+            "dotation_projet",
+            "dotation_projet__projet",
+            "dotation_projet__projet__dossier_ds",
+        )
+        .prefetch_related("dotation_projet__projet__dotationprojet_set")
+        .get(id=pk)
+    )

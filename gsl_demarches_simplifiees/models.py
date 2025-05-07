@@ -458,6 +458,12 @@ class Dossier(DsModel):
             )
         return None
 
+    @property
+    def taux_demande(self):
+        if self.finance_cout_total and self.demande_montant:
+            return round(self.demande_montant / self.finance_cout_total * 100, 2)
+        return None
+
 
 class DsChoiceLibelle(DsModel):
     label = models.CharField("Libellé", unique=True)

@@ -275,7 +275,7 @@
                         {{ dossier.finance_cout_total|euro:2 }}
                     </p>
                     <p>
-                        <b>Montant de la subvention demandée : </b>{{ dossier.demande_montant|euro:2 }}
+                        <b>Montant de la subvention demandée : </b>{{ dossier.demande_montant|euro:2 }} ({{ dossier.taux_demande|percent:2 }} du coût total)
                     </p>
                 </div>
                 {% for dotation_projet in projet.dotationprojet_set.all %}
