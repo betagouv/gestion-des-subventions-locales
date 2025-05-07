@@ -18,8 +18,14 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import Demandeur, Projet
-from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
+from gsl_projet.tests.factories import (
+    DemandeurFactory,
+    DetrProjetFactory,
+    DsilProjetFactory,
+    ProjetFactory,
+)
 from gsl_projet.utils.projet_filters import ProjetFilters
 from gsl_projet.views import ProjetListView, ProjetListViewFilters
 
@@ -126,39 +132,30 @@ def test_projets_ordering(req, view, projets, tri_param, expected_ordering):
 
 @pytest.fixture
 def projets_detr(demandeur) -> list[Projet]:
-    return [
-        ProjetFactory(
-            dossier_ds__demande_dispositif_sollicite=dotation,
-            demandeur=demandeur,
-        )
-        for dotation in ("DETR", "DETR", "['DETR']")
-    ]
+    dotation_projets = DetrProjetFactory.create_batch(
+        3,
+        projet__demandeur=demandeur,
+    )
+    return [dp.projet for dp in dotation_projets]
 
 
 @pytest.fixture
 def projets_dsil(demandeur) -> list[Projet]:
-    return [
-        ProjetFactory(
-            dossier_ds__demande_dispositif_sollicite=dotation,
-            demandeur=demandeur,
-        )
-        for dotation in ("DSIL", "['DSIL']")
-    ]
+    dotation_projets = DsilProjetFactory.create_batch(
+        2,
+        projet__demandeur=demandeur,
+    )
+    return [dp.projet for dp in dotation_projets]
 
 
 @pytest.fixture
 def projets_with_double_dotations_values(demandeur) -> list[Projet]:
-    return [
-        ProjetFactory(
-            dossier_ds__demande_dispositif_sollicite=dotation, demandeur=demandeur
-        )
-        for dotation in (
-            "['DETR et DSIL']",
-            "DETR et DSIL",
-            "['DSIL', 'DETR']",
-            "['DETR', 'DSIL', 'DETR et DSIL']",
-        )
-    ]
+    projets = []
+    for _ in range(4):
+        detr_projet = DetrProjetFactory(projet__demandeur=demandeur)
+        DsilProjetFactory(projet=detr_projet.projet)
+        projets.append(detr_projet.projet)
+    return projets
 
 
 @pytest.fixture
@@ -189,11 +186,8 @@ def test_filter_by_dotation_only_detr(
     assert Projet.objects.count() == 11
 
     assert qs.count() == 3
-    for p in qs:
-        dotation = p.dossier_ds.demande_dispositif_sollicite
-        assert "DETR" in dotation
-        assert "DSIL" not in dotation
-        assert not ("DSIL" in dotation and "DETR" in dotation)
+    assert all(p.dotationprojet_set.count() == 1 for p in qs)
+    assert all(p.dotationprojet_set.first().dotation == DOTATION_DETR for p in qs)
 
 
 def test_filter_by_dotation_only_dsil(
@@ -211,11 +205,8 @@ def test_filter_by_dotation_only_dsil(
     assert Projet.objects.count() == 11
 
     assert qs.count() == 2
-    for p in qs:
-        dotation = p.dossier_ds.demande_dispositif_sollicite
-        assert "DSIL" in dotation
-        assert "DETR" not in dotation
-        assert not ("DSIL" in dotation and "DETR" in dotation)
+    assert all(p.dotationprojet_set.count() == 1 for p in qs)
+    assert all(p.dotationprojet_set.first().dotation == DOTATION_DSIL for p in qs)
 
 
 def test_filter_by_dotation_detr_and_dsil(
@@ -233,10 +224,9 @@ def test_filter_by_dotation_detr_and_dsil(
     assert Projet.objects.count() == 11
 
     assert qs.count() == 3 + 2
-    for p in qs:
-        dotation = p.dossier_ds.demande_dispositif_sollicite
-        assert "DSIL" in dotation or "DETR" in dotation
-        assert not ("DSIL" in dotation and "DETR" in dotation)
+    assert all(p.dotationprojet_set.count() == 1 for p in qs)
+    assert qs.filter(dotationprojet__dotation=DOTATION_DETR).count() == 3
+    assert qs.filter(dotationprojet__dotation=DOTATION_DSIL).count() == 2
 
 
 def test_filter_by_dotation_only_detr_dsil(
@@ -254,9 +244,14 @@ def test_filter_by_dotation_only_detr_dsil(
     assert Projet.objects.count() == 11
 
     assert qs.count() == 4
-    for p in qs:
-        dotation = p.dossier_ds.demande_dispositif_sollicite
-        assert "DSIL" in dotation and "DETR" in dotation
+    assert (
+        sum(
+            1
+            for projet in qs
+            if "DETR" in projet.dotations and "DSIL" in projet.dotations
+        )
+        == 4
+    )
 
 
 def test_filter_by_dotation_detr_and_detr_dsil(
@@ -274,10 +269,16 @@ def test_filter_by_dotation_detr_and_detr_dsil(
     assert Projet.objects.count() == 11
 
     assert qs.count() == 3 + 4
-    for p in qs:
-        dotation = p.dossier_ds.demande_dispositif_sollicite
-        assert ("DSIL" in dotation and "DETR" in dotation) or "DETR" in dotation
-        assert not ("DSIL" in dotation and "DETR" not in dotation)
+    assert sum(1 for projet in qs if "DETR" in projet.dotations) == 7
+    assert (
+        sum(
+            1
+            for projet in qs
+            if "DETR" in projet.dotations and "DSIL" not in projet.dotations
+        )
+        == 3
+    )
+    assert sum(1 for projet in qs if "DSIL" in projet.dotations) == 4
 
 
 def test_filter_by_dotation_dsil_and_detr_dsil(
@@ -295,10 +296,9 @@ def test_filter_by_dotation_dsil_and_detr_dsil(
     assert Projet.objects.count() == 11
 
     assert qs.count() == 2 + 4
-    for p in qs:
-        dotation = p.dossier_ds.demande_dispositif_sollicite
-        assert ("DSIL" in dotation and "DETR" in dotation) or "DSIL" in dotation
-        assert not ("DETR" in dotation and "DSIL" not in dotation)
+    assert all("DSIL" in projet.dotations for projet in qs)
+    assert sum(1 for projet in qs if "DETR" not in projet.dotations) == 2
+    assert sum(1 for projet in qs if "DETR" in projet.dotations) == 4
 
 
 def test_filter_by_dotation_detr_and_dsil_and_detr_dsil(
@@ -316,9 +316,11 @@ def test_filter_by_dotation_detr_and_dsil_and_detr_dsil(
     assert Projet.objects.count() == 11
 
     assert qs.count() == 3 + 2 + 4
-    for p in qs:
-        dotation = p.dossier_ds.demande_dispositif_sollicite
-        assert "DETR" in dotation or "DSIL" in dotation
+    assert sum(1 for projet in qs if "DETR" in projet.dotations) == 7
+    assert sum(1 for projet in qs if "DETR" not in projet.dotations) == 2
+    assert sum(1 for projet in qs if "DSIL" in projet.dotations) == 6
+    assert sum(1 for projet in qs if "DSIL" not in projet.dotations) == 3
+    assert sum(1 for projet in qs if len(projet.dotations) == 2) == 4
 
 
 def test_no_dispositif_filter(
