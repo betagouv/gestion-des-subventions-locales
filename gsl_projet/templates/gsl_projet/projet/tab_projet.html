@@ -219,22 +219,6 @@
                     3 - Plan de financement prévisionnel
                 </h3>
 
-                <h4 id="couts_financement">
-                    Coûts de financement
-                </h4>
-                <div class="fr-highlight fr-highlight--beige-gris-galet fr-ml-0 fr-mb-4w">
-                    <p>
-                        <b>Coût total de l’opération :</b>
-                        {{ dossier.finance_cout_total|euro:2 }}
-                    </p>
-                    <p>
-                        <b>Assiette subventionnable :</b>
-                        {{ projet.assiette|euro:2 }} ({{ projet.taux_subventionnable|percent|default:"— %" }})
-                    </p>
-                    <p>
-                        <b>Montant demandé : {{ dossier.demande_montant|euro:2 }}</b>
-                    </p>
-                </div>
                 <h4 id="detail_financement">
                     Détail du financement
                 </h4>
@@ -243,6 +227,7 @@
                     Le projet va-t-il générer des recettes
                     ? {{ dossier.finance_recettes|yesno:"Oui,Non,Non renseigné" }}
                 </p>
+
                 {# todo: plan de financement détaillé #}
                 <h4 id="dispositifs_sollicites">
                     Dispositifs de financement sollicités
@@ -280,6 +265,38 @@
                 {% endif %}
                 {% block dotations_form %}
                 {% endblock dotations_form %}
+
+                <h4 id="couts_financement">
+                    Coûts de financement
+                </h4>
+                <div class="fr-highlight fr-highlight--beige-gris-galet fr-ml-0 fr-mb-4w">
+                    <p>
+                        <b>Coût total de l’opération :</b>
+                        {{ dossier.finance_cout_total|euro:2 }}
+                    </p>
+                    <p>
+                        <b>Montant de la subvention demandée : </b>{{ dossier.demande_montant|euro:2 }}
+                    </p>
+                </div>
+                {% for dotation_projet in projet.dotationprojet_set.all %}
+                    {% if projet.dotationprojet_set.all|length > 1 %}
+                        <h6>
+                            {{ dotation_projet.dotation }}
+                        </h6>
+                    {% endif %}
+
+                    <div class="fr-highlight fr-highlight--beige-gris-galet fr-ml-0 fr-mb-4w">
+                        <p>
+                            <b>Montant des dépenses éligibles retenues (€) :</b> {{ dotation_projet.assiette|euro:2 }}
+                        </p>
+                        <p>
+                            <b>Montant accordé :</b> {{ dotation_projet.montant_retenu|euro:2 }}
+                        </p>
+                        <p>
+                            <b>Taux de subvention (%) :</b> {{ dotation_projet.taux_retenu|percent:2 }}
+                        </p>
+                    </div>
+                {% endfor %}
             </section>
         </div>
     </div>
