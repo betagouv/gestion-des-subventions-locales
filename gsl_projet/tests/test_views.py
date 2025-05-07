@@ -244,9 +244,14 @@ def test_filter_by_dotation_only_detr_dsil(
     assert Projet.objects.count() == 11
 
     assert qs.count() == 4
-    assert qs.filter(detr_count=0, dsil_count__gt=0).count() == 0
-    assert qs.filter(detr_count__gt=0, dsil_count=0).count() == 0
-    assert qs.filter(detr_count__gt=0, dsil_count__gt=0).count() == 4
+    assert (
+        sum(
+            1
+            for projet in qs
+            if "DETR" in projet.dotations and "DSIL" in projet.dotations
+        )
+        == 4
+    )
 
 
 def test_filter_by_dotation_detr_and_detr_dsil(
@@ -264,9 +269,16 @@ def test_filter_by_dotation_detr_and_detr_dsil(
     assert Projet.objects.count() == 11
 
     assert qs.count() == 3 + 4
-    assert qs.filter(detr_count__gt=0).count() == 7
-    assert qs.filter(detr_count__gt=0, dsil_count=0).count() == 3
-    assert qs.filter(dsil_count__gt=0).count() == 4
+    assert sum(1 for projet in qs if "DETR" in projet.dotations) == 7
+    assert (
+        sum(
+            1
+            for projet in qs
+            if "DETR" in projet.dotations and "DSIL" not in projet.dotations
+        )
+        == 3
+    )
+    assert sum(1 for projet in qs if "DSIL" in projet.dotations) == 4
 
 
 def test_filter_by_dotation_dsil_and_detr_dsil(
@@ -284,9 +296,9 @@ def test_filter_by_dotation_dsil_and_detr_dsil(
     assert Projet.objects.count() == 11
 
     assert qs.count() == 2 + 4
-    assert qs.filter(dsil_count__gt=0).count() == 6
-    assert qs.filter(detr_count=0, dsil_count__gt=0).count() == 2
-    assert qs.filter(detr_count__gt=0).count() == 4
+    assert all("DSIL" in projet.dotations for projet in qs)
+    assert sum(1 for projet in qs if "DETR" not in projet.dotations) == 2
+    assert sum(1 for projet in qs if "DETR" in projet.dotations) == 4
 
 
 def test_filter_by_dotation_detr_and_dsil_and_detr_dsil(
@@ -304,9 +316,11 @@ def test_filter_by_dotation_detr_and_dsil_and_detr_dsil(
     assert Projet.objects.count() == 11
 
     assert qs.count() == 3 + 2 + 4
-    assert qs.filter(detr_count__gt=0, dsil_count=0).count() == 3
-    assert qs.filter(detr_count=0, dsil_count__gt=0).count() == 2
-    assert qs.filter(detr_count__gt=0, dsil_count__gt=0).count() == 4
+    assert sum(1 for projet in qs if "DETR" in projet.dotations) == 7
+    assert sum(1 for projet in qs if "DETR" not in projet.dotations) == 2
+    assert sum(1 for projet in qs if "DSIL" in projet.dotations) == 6
+    assert sum(1 for projet in qs if "DSIL" not in projet.dotations) == 3
+    assert sum(1 for projet in qs if len(projet.dotations) == 2) == 4
 
 
 def test_no_dispositif_filter(
