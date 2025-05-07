@@ -57,3 +57,8 @@
 #id_is_budget_vert {
   width:180px
 }
+
+.hint-text {
+  font-size: calc(12rem / 16);
+  color: var(--text-mention-grey);
+}

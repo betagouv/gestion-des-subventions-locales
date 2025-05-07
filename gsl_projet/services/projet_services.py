@@ -5,8 +5,13 @@ from django.db.models import Sum
 from django.db.models.query import QuerySet
 
 from gsl_demarches_simplifiees.models import Dossier
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.models import Demandeur, Projet
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    POSSIBLE_DOTATIONS,
+    PROJET_STATUS_PROCESSING,
+)
+from gsl_projet.models import Demandeur, DotationProjet, Projet
 
 
 class ProjetService:
@@ -117,3 +122,29 @@ class ProjetService:
                 f"Projet {projet} annotation dotation {dotation_annotation} is unkown"
             )
         return dotations
+
+    @classmethod
+    def update_dotation(cls, projet: Projet, dotations: list[POSSIBLE_DOTATIONS]):
+        from gsl_projet.services.dotation_projet_services import DotationProjetService
+
+        if len(dotations) == 0:
+            logging.warning(f"Projet {projet} must have at least one dotation")
+            return
+        if len(dotations) > 2:
+            logging.warning(f"Projet {projet} can't have more than two dotations")
+            return
+
+        new_dotations = set(dotations) - set(projet.dotations)
+        dotation_to_remove = set(projet.dotations) - set(dotations)
+
+        for dotation in new_dotations:
+            dotation_projet = DotationProjet.objects.create(
+                projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
+            )
+            DotationProjetService.create_simulation_projets_from_dotation_projet(
+                dotation_projet
+            )
+
+        DotationProjet.objects.filter(
+            projet=projet, dotation__in=dotation_to_remove
+        ).delete()

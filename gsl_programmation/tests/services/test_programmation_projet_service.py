@@ -1,5 +1,5 @@
 import logging
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import pytest
@@ -418,7 +418,7 @@ def test_create_or_update_from_dotation_projet_with_no_corresponding_enveloppe_c
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_REFUSED,
         projet__perimetre=perimetre,
-        projet__dossier_ds__ds_date_traitement=date(2021, 1, 1),
+        projet__dossier_ds__ds_date_traitement=datetime(2021, 1, 1, tzinfo=UTC),
     )
 
     programmation_projet = (

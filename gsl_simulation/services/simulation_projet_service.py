@@ -1,3 +1,4 @@
+import logging
 from decimal import Decimal
 
 from gsl_core.models import Perimetre
@@ -34,8 +35,10 @@ class SimulationProjetService:
         """
         Create or update a SimulationProjet from a Dotation Projet and a Simulation.
         """
-        status = cls.get_simulation_projet_status(dotation_projet)
-        montant = cls.get_initial_montant_from_dotation_projet(dotation_projet, status)
+        simulation_projet_status = cls.get_simulation_projet_status(dotation_projet)
+        montant = cls.get_initial_montant_from_dotation_projet(
+            dotation_projet, simulation_projet_status
+        )
         taux = cls.get_initial_taux_from_dotation_projet(dotation_projet, montant)
         simulation_projet, _ = SimulationProjet.objects.update_or_create(
             dotation_projet=dotation_projet,
@@ -43,7 +46,7 @@ class SimulationProjetService:
             defaults={
                 "montant": montant,
                 "taux": taux,
-                "status": status,
+                "status": simulation_projet_status,
             },
         )
 
@@ -64,18 +67,43 @@ class SimulationProjetService:
         except ProgrammationProjet.DoesNotExist:
             pass
 
-        projet = dotation_projet.projet
+        dossier = dotation_projet.projet.dossier_ds
 
-        if projet.dossier_ds.annotations_montant_accorde:
-            return min(
-                projet.dossier_ds.annotations_montant_accorde,
-                projet.dossier_ds.finance_cout_total,
+        if dossier.annotations_montant_accorde:
+            return cls._select_minimum_between_value_and_assiette_or_cout_total(
+                dossier.annotations_montant_accorde,
+                dotation_projet,
+                "le montant accordé issu des annotations",
             )
-        if projet.dossier_ds.demande_montant:
-            return min(
-                projet.dossier_ds.demande_montant, projet.dossier_ds.finance_cout_total
+
+        if dossier.demande_montant:
+            return cls._select_minimum_between_value_and_assiette_or_cout_total(
+                dossier.demande_montant,
+                dotation_projet,
+                "le montant demandé",
             )
+
         return Decimal(0)
+
+    @classmethod
+    def _select_minimum_between_value_and_assiette_or_cout_total(
+        cls, value: Decimal, dotation_projet: DotationProjet, value_label: str
+    ):
+        if dotation_projet.assiette_or_cout_total is None:
+            logging.warning(
+                f"Le projet de dotation {dotation_projet.dotation} (id: {dotation_projet.pk}) n'a ni assiette ni coût total."
+            )
+            return value
+
+        if value and value > dotation_projet.assiette_or_cout_total:
+            logging.warning(
+                f"Le projet de dotation {dotation_projet.dotation} (id: {dotation_projet.pk}) a une assiette plus petite que {value_label}."
+            )
+
+        return min(
+            value,
+            dotation_projet.assiette_or_cout_total,
+        )
 
     @classmethod
     def get_initial_taux_from_dotation_projet(

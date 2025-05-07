@@ -47,25 +47,65 @@ def test_remove_first_word():
     assert remove_first_word(mapping[PROJET_STATUS_PROCESSING]) == "En traitement"
 
 
-def test_create_alert_data():
-    assert create_alert_data(None, "Test description") == {
-        "is_collapsible": True,
-        "title": "Test description",
-    }
-    assert create_alert_data("valid", "Test description") == {
-        "is_collapsible": True,
-        "description": "Test description",
-        "title": "Projet accepté",
-    }
-    assert create_alert_data("cancelled", "Test description") == {
-        "is_collapsible": True,
-        "description": "Test description",
-        "title": "Projet refusé",
-    }
-    assert create_alert_data("other", "Test description") == {
-        "is_collapsible": True,
-        "description": "Test description",
-    }
+@pytest.mark.parametrize(
+    "extra_tags, title_expected, has_message, type_expected",
+    (
+        ("valid", "Projet accepté", True, None),
+        ("cancelled", "Projet refusé", True, None),
+        (
+            "provisionally_accepted",
+            "Projet accepté provisoirement",
+            True,
+            None,
+        ),
+        (
+            "provisionally_refused",
+            "Projet refusé provisoirement",
+            True,
+            None,
+        ),
+        (
+            "dismissed",
+            "Projet classé sans suite",
+            True,
+            None,
+        ),
+        (
+            "draft",
+            "Projet en traitement",
+            True,
+            None,
+        ),
+        ("info", None, "Test description", "info"),
+        ("alert", None, "Test description", "alert"),
+        ("other", None, "Test description", None),
+        (None, None, "Test description", None),
+    ),
+)
+def test_create_alert_data(extra_tags, title_expected, has_message, type_expected):
+    message_text = "Test description"
+    message = type("Message", (object,), {})()
+    message.message = message_text
+    message.extra_tags = extra_tags
+
+    data = create_alert_data(message)
+
+    assert data["is_collapsible"] is True
+
+    if title_expected:
+        assert data["title"] == title_expected
+    else:
+        assert "title" not in data
+
+    if has_message:
+        assert data["description"] == message_text
+    else:
+        assert "description" not in data
+
+    if type_expected:
+        assert data["type"] == type_expected
+    else:
+        assert "type" not in data
 
 
 @pytest.mark.parametrize(

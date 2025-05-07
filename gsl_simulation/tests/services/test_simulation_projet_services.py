@@ -1,3 +1,4 @@
+import logging
 from unittest import mock
 
 import pytest
@@ -108,31 +109,38 @@ def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_e
     assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
 
 
-def test_get_initial_montant_from_projet():
-    projet_with_annotations_montant_accorde = ProjetFactory(
-        dossier_ds__annotations_montant_accorde=1_000,
-        dossier_ds__demande_montant=10_000,
+@pytest.mark.parametrize(
+    "annotations_montant_accorde, demande_montant, assiette, log",
+    (
+        (10_000, 100_000, 5_000, "accordé issu des annotations"),
+        (None, 10_000, 5_000, "demandé"),
+    ),
+)
+def test_get_initial_montant_from_dotation_projet_must_log_if_there_is_a_problem(
+    annotations_montant_accorde, demande_montant, assiette, log, caplog
+):
+    dp = DotationProjetFactory(
+        projet__dossier_ds__annotations_montant_accorde=annotations_montant_accorde,
+        projet__dossier_ds__demande_montant=demande_montant,
+        assiette=assiette,
     )
-    montant = SimulationProjetService.get_initial_montant_from_projet(
-        projet_with_annotations_montant_accorde
+    with caplog.at_level(logging.WARNING):
+        montant = SimulationProjetService.get_initial_montant_from_dotation_projet(
+            dp,
+            status=SimulationProjet.STATUS_PROCESSING,
+        )
+    assert montant == assiette
+    assert (
+        f"Le projet de dotation {dp.dotation} (id: {dp.pk}) a une assiette plus petite que le montant {log}"
+        in caplog.text
     )
-    assert montant == 1_000
-
-    projet_with_demande_montant_only = ProjetFactory(dossier_ds__demande_montant=10_000)
-    montant = SimulationProjetService.get_initial_montant_from_projet(
-        projet_with_demande_montant_only
-    )
-    assert montant == 10_000
-
-    projet_without_anything = ProjetFactory()
-    montant = SimulationProjetService.get_initial_montant_from_projet(
-        projet_without_anything
-    )
-    assert montant == 0
 
 
 @pytest.mark.parametrize(
-    "status, finance_cout_total, annotations_montant_accorde , demande_montant, expected_montant",
+    "field", ("assiette", "projet__dossier_ds__finance_cout_total")
+)
+@pytest.mark.parametrize(
+    "status, assiette_or_finance_cout_total, annotations_montant_accorde , demande_montant, expected_montant",
     (
         (SimulationProjet.STATUS_DISMISSED, 1_000, 10_000, 5_000, 0),
         (SimulationProjet.STATUS_REFUSED, 1_000, 10_000, 5_000, 0),
@@ -144,18 +152,21 @@ def test_get_initial_montant_from_projet():
     ),
 )
 def test_get_initial_montant_from_dotation_projet(
+    field,
     status,
     annotations_montant_accorde,
-    finance_cout_total,
+    assiette_or_finance_cout_total,
     demande_montant,
     expected_montant,
 ):
-    projet = ProjetFactory(
-        dossier_ds__annotations_montant_accorde=annotations_montant_accorde,
-        dossier_ds__finance_cout_total=finance_cout_total,
-        dossier_ds__demande_montant=demande_montant,
+    dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__annotations_montant_accorde=annotations_montant_accorde,
+        projet__dossier_ds__demande_montant=demande_montant,
+        assiette=assiette_or_finance_cout_total if field == "assiette" else None,
+        projet__dossier_ds__finance_cout_total=assiette_or_finance_cout_total
+        if field == "projet__dossier_ds__finance_cout_total"
+        else None,
     )
-    dotation_projet = DotationProjetFactory(projet=projet)
 
     montant = SimulationProjetService.get_initial_montant_from_dotation_projet(
         dotation_projet, status

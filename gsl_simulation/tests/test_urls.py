@@ -104,6 +104,7 @@ expected_status_summary = {
     "draft": 0,
     "notified": 0,
     "provisionally_accepted": 1,
+    "provisionally_refused": 0,
     "valid": 0,
 }
 
@@ -208,6 +209,7 @@ status_update_expected_status_summary = {
     "draft": 0,
     "notified": 0,
     "provisionally_accepted": 0,
+    "provisionally_refused": 0,
     "valid": 1,
 }
 

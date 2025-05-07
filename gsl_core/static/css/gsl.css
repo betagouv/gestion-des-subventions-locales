@@ -278,7 +278,8 @@ ul.no-list-style li {
 
 .grey-color {
     color: var(--text-default-grey);
-  }
+}
+  
 /* detail projet */
 
 .fr-tabs__list.fake {

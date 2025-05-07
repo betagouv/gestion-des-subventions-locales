@@ -14,6 +14,7 @@ from gsl_projet.constants import (
     DOTATION_CHOICES,
     DOTATION_DETR,
     DOTATION_DSIL,
+    POSSIBLE_DOTATIONS,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_CHOICES,
     PROJET_STATUS_DISMISSED,
@@ -179,6 +180,14 @@ class Projet(models.Model):
             yield from self.dossier_ds.demande_eligibilite_detr.all()
         if DOTATION_DSIL in self.dossier_ds.demande_dispositif_sollicite:
             yield from self.dossier_ds.demande_eligibilite_dsil.all()
+
+    @property
+    def dotations(self) -> list[POSSIBLE_DOTATIONS]:
+        return [
+            dotation.dotation
+            for dotation in self.dotationprojet_set.all()
+            if dotation.dotation in [DOTATION_DETR, DOTATION_DSIL]
+        ]
 
 
 class DotationProjet(models.Model):
