@@ -45,9 +45,18 @@ class SimulationForm(DsfrBaseForm):
 
 
 class SimulationProjetForm(ModelForm, DsfrBaseForm):
+    assiette = forms.DecimalField(
+        label="Montant des dépenses éligibles retenues (€)",
+        max_digits=12,
+        decimal_places=2,
+        min_value=0,
+        required=False,
+        widget=forms.NumberInput(attrs={"form": "simulation_projet_form", "min": 0}),
+    )
+
     montant = forms.DecimalField(
         label="Montant prévisionnel accordé (€)",
-        max_digits=14,
+        max_digits=12,
         decimal_places=2,
         min_value=0,
         required=False,
@@ -70,9 +79,22 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         model = SimulationProjet
         fields = ["montant", "taux"]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        dotation_projet = (
+            self.instance.dotation_projet
+            if self.instance and self.instance.dotation_projet
+            else None
+        )
+        if dotation_projet:
+            self.fields["assiette"].initial = dotation_projet.assiette
+
     def clean(self):
         cleaned_data = super().clean()
         simulation_projet = self.instance
+        dotation_projet = self.instance.dotation_projet
+        dotation_projet.clean()
+
         new_montant = cleaned_data.get("montant")
         new_taux = cleaned_data.get("taux")
         has_montant_changed = simulation_projet.montant != new_montant

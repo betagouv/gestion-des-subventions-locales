@@ -228,6 +228,15 @@ class DotationProjet(models.Model):
                     f"L'avis de la commission DETR ne doit être renseigné que pour les projets DETR dont le montant demandé est supérieur ou égal à {MIN_DEMANDE_MONTANT_FOR_AVIS_DETR}."
                 )
 
+        if (
+            self.dossier_ds.finance_cout_total
+            and self.assiette
+            and self.dossier_ds.finance_cout_total
+        ):
+            errors["assiette"] = (
+                "L'assiette ne doit pas être supérieure au coût total du projet."
+            )
+
         if errors:
             raise ValidationError(errors)
 
