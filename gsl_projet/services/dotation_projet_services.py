@@ -117,6 +117,23 @@ class DotationProjetService:
         except InvalidOperation:
             return Decimal(0)
 
+    # TODO test
+    @classmethod
+    def compute_montant_from_taux(
+        cls, dotation_projet: DotationProjet, new_taux: float | Decimal
+    ) -> float | Decimal:
+        try:
+            assiette = dotation_projet.assiette_or_cout_total
+            new_montant = (assiette * Decimal(new_taux) / 100) if assiette else 0
+            new_montant = round(new_montant, 2)
+            return max(min(new_montant, dotation_projet.assiette_or_cout_total), 0)
+        except TypeError:
+            return 0
+        except ZeroDivisionError:
+            return 0
+        except InvalidOperation:
+            return 0
+
     @classmethod
     def validate_montant(
         cls, montant: float | Decimal, dotation_projet: DotationProjet

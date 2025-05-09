@@ -154,9 +154,9 @@ class SimulationProjetService:
 
     @classmethod
     def update_taux(cls, simulation_projet: SimulationProjet, new_taux: float):
-        assiette = simulation_projet.dotation_projet.assiette_or_cout_total
-        new_montant = (assiette * Decimal(new_taux) / 100) if assiette else 0
-        new_montant = round(new_montant, 2)
+        new_montant = DotationProjetService.compute_montant_from_taux(
+            simulation_projet.dotation_projet, new_taux
+        )
 
         simulation_projet.montant = new_montant
         simulation_projet.save()

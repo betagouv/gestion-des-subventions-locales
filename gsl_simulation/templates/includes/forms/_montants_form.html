@@ -1,0 +1,47 @@
+<form id="simulation_projet_form"
+      class="form-disabled-before-value-change fr-mb-2w"
+      method="post">
+    {% csrf_token %}
+    <div class="fr-callout fr-background-alt--blue-france fr-py-2w fr-pl-3w">
+        {{ simulation_projet_form.non_field_errors }}
+
+        <div class="fr-mb-4w">
+            {{ simulation_projet_form.montant.label_tag }}
+            <br>
+            <small class="fr-hint-text">Vous pouvez saisir jusqu’à 3 décimales après le point. Exemple: 3.141
+                <br>
+            Montant des dépenses éligibles retenues à faire figurer sur l'arrêté préfectoral notifiant la décision de financement</small>
+            {{ simulation_projet_form.montant }}
+            {% if simulation_projet_form.errors.montant %}
+                <div class="fr-messages-group">
+                    {% for err in simulation_projet_form.errors.montant %}
+                        <p class="fr-message fr-message--error">
+                            {{ err }}
+                        </p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div>
+            {{ simulation_projet_form.taux.label_tag }}
+            <br>
+            <small class="fr-hint-text">Vous pouvez saisir jusqu’à 3 décimales après le point. Exemple: 3.141
+                <br>
+            Montant des dépenses éligibles retenues à faire figurer sur l'arrêté préfectoral notifiant la décision de financement</small>
+            {{ simulation_projet_form.taux }}
+            {% if simulation_projet_form.errors.taux %}
+                <div class="fr-messages-group">
+                    {% for err in simulation_projet_form.errors.taux %}
+                        <p class="fr-message fr-message--error">
+                            {{ err }}
+                        </p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    <button class="fr-btn" type="submit" form='simulation_projet_form' disabled>
+        Enregistrer
+    </button>
+</form>

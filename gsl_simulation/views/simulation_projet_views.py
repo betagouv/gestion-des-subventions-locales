@@ -11,6 +11,7 @@ from gsl.settings import ALLOWED_HOSTS
 from gsl_projet.forms import DotationProjetForm, ProjetForm
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
+from gsl_simulation.forms import SimulationProjetForm
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.services.simulation_projet_service import (
     SimulationProjetService,
@@ -161,6 +162,33 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
         )
         return context
 
+    def post(self, request, *args, **kwargs):
+        simulation_projet = get_object_or_404(
+            SimulationProjet, id=request.resolver_match.kwargs.get("pk")
+        )
+        form = SimulationProjetForm(request.POST, instance=simulation_projet)
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                "Les modifications ont été enregistrées avec succès.",
+                extra_tags="info",
+            )
+            return redirect_to_same_page_or_to_simulation_detail_by_default(
+                request, simulation_projet
+            )
+
+        messages.error(
+            request,
+            "Une erreur s'est produite lors de la soumission du formulaire.",
+            extra_tags="alert",
+        )
+        self.object = simulation_projet
+        self.simulation_projet = simulation_projet
+        context = self.get_context_data(**kwargs)
+        context["simulation_projet_form"] = form
+        return render(request, "gsl_simulation/simulation_projet_detail.html", context)
+
 
 def redirect_to_same_page_or_to_simulation_detail_by_default(
     request, simulation_projet, message_type: str | None = None, add_message=True
@@ -230,6 +258,7 @@ def _enrich_simulation_projet_context_from_simulation_projet(
     context: dict, simulation_projet: SimulationProjet
 ):
     projet_form = ProjetForm(instance=simulation_projet.projet)
+    simulation_projet_form = SimulationProjetForm(instance=simulation_projet)
     dotation_field = projet_form.fields.get("dotations")
     title = simulation_projet.projet.dossier_ds.projet_intitule
     context.update(
@@ -261,6 +290,7 @@ def _enrich_simulation_projet_context_from_simulation_projet(
             "dotation_projet_form": DotationProjetForm(
                 instance=simulation_projet.dotation_projet
             ),
+            "simulation_projet_form": simulation_projet_form,
             "initial_dotations": ",".join(dotation_field.initial)
             if dotation_field
             else [],
