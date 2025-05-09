@@ -139,10 +139,7 @@ def test_assiette_cant_be_higher_than_cout_total(simulation_projet):
 
 
 def test_montant_cant_be_higher_than_assiette(simulation_projet):
-    data = {
-        "assiette": 1_000,
-        "montant": 2_000,
-    }
+    data = {"assiette": 1_000, "montant": 2_000, "taux": 10}
     form = SimulationProjetForm(instance=simulation_projet, data=data)
     assert not form.is_valid()
     assert list(form.errors.keys()) == ["montant"]

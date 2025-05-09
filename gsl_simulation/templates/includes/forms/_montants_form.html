@@ -6,6 +6,24 @@
         {{ simulation_projet_form.non_field_errors }}
 
         <div class="fr-mb-4w">
+            {{ simulation_projet_form.assiette.label_tag }}
+            <br>
+            <small class="fr-hint-text">Vous pouvez saisir jusqu’à 3 décimales après le point. Exemple: 3.141
+                <br>
+            Montant des dépenses éligibles retenues à faire figurer sur l'arrêté préfectoral notifiant la décision de financement</small>
+            {{ simulation_projet_form.assiette }}
+            {% if simulation_projet_form.errors.assiette %}
+                <div class="fr-messages-group">
+                    {% for err in simulation_projet_form.errors.assiette %}
+                        <p class="fr-message fr-message--error">
+                            {{ err }}
+                        </p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="fr-mb-4w">
             {{ simulation_projet_form.montant.label_tag }}
             <br>
             <small class="fr-hint-text">Vous pouvez saisir jusqu’à 3 décimales après le point. Exemple: 3.141
