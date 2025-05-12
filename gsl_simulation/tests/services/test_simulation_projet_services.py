@@ -292,8 +292,15 @@ SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS = {
         SimulationProjet.STATUS_DISMISSED,
     ),
 )
+@pytest.mark.parametrize(
+    "new_status",
+    (
+        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
+        SimulationProjet.STATUS_PROVISIONALLY_REFUSED,
+    ),
+)
 def test_update_status_with_provisionally_accepted_from_refused_or_accepted_or_dismissed(
-    initial_status,
+    initial_status, new_status
 ):
     dotation_projet = DotationProjetFactory(
         status=SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS[initial_status]
@@ -312,12 +319,10 @@ def test_update_status_with_provisionally_accepted_from_refused_or_accepted_or_d
         status=initial_status,
     )
 
-    SimulationProjetService.update_status(
-        simulation_projet, SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
-    )
+    SimulationProjetService.update_status(simulation_projet, new_status)
 
     simulation_projet.refresh_from_db()
-    assert simulation_projet.status == SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
+    assert simulation_projet.status == new_status
     assert simulation_projet.dotation_projet.status == PROJET_STATUS_PROCESSING
 
     other_simulation_projets = SimulationProjet.objects.exclude(pk=simulation_projet.pk)

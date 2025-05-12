@@ -140,14 +140,13 @@ class SimulationProjetService:
         ):
             return cls._set_back_to_processing(simulation_projet)
 
-        if (
-            new_status == SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
-            and simulation_projet.status
-            in (
-                SimulationProjet.STATUS_ACCEPTED,
-                SimulationProjet.STATUS_REFUSED,
-                SimulationProjet.STATUS_DISMISSED,
-            )
+        if new_status in (
+            SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
+            SimulationProjet.STATUS_PROVISIONALLY_REFUSED,
+        ) and simulation_projet.status in (
+            SimulationProjet.STATUS_ACCEPTED,
+            SimulationProjet.STATUS_REFUSED,
+            SimulationProjet.STATUS_DISMISSED,
         ):
             cls._set_back_to_processing(simulation_projet)
 

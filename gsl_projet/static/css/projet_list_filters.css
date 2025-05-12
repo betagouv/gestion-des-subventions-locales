@@ -33,7 +33,7 @@
   gap: 1rem;
   --status-color-green: var(--text-default-success);
   --status-color-blue: var(--text-default-info);
-  --status-color-orange: var(--text-default-warning);
+  --status-color-brown: var(--text-action-high-orange-terre-battue);
   --status-color-red: var(--text-default-error);
 }
 
