@@ -68,12 +68,9 @@
   font-style: italic;
 }
 
-.other-simulation-status {
+.gsl-projet-table table tbody td.other-simulation-status {
   text-align: end;
-}
-
-.other-simulation-status > b {
-  margin-right: 20px;
+  padding-right: 26px;
 }
 
 /* colors */
