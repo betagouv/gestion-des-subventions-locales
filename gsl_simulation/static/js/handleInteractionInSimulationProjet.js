@@ -1,4 +1,5 @@
 import { handleDotationChange } from "./modules/handleDotationUpdate.js";
+import { disableAllModalButtons } from "./modules/utils.js";
 
 document.querySelectorAll(".status-radio-button").forEach((elt) => {
     elt.addEventListener("change", (ev) => {
@@ -35,8 +36,11 @@ document.querySelector("#submit-dotation").addEventListener("click", (ev) => {
 });
 
 
-document.querySelector("#confirm-dotation-update").addEventListener("click", (ev) => {
-  let form = document.querySelector("form#projet_form").closest("form")
-  form.submit()
-  closeModal()
+document.querySelectorAll("#confirm-dotation-update").forEach(elt => {
+  elt.addEventListener("click", async (ev) => {
+    disableAllModalButtons(elt.closest(".confirmation-modal"));
+    let form = document.querySelector("form#projet_form").closest("form")
+    form.submit()
+    closeModal()
+  })
 })
