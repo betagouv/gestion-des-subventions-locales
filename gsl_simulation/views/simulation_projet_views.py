@@ -1,4 +1,4 @@
-from django.http import HttpRequest
+from django.http import Http404, HttpRequest
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import resolve, reverse
@@ -7,7 +7,8 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DetailView
 
 from gsl.settings import ALLOWED_HOSTS
-from gsl_projet.services import ProjetService
+from gsl_projet.forms import ProjetForm
+from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.services.simulation_projet_service import (
@@ -19,64 +20,8 @@ from gsl_simulation.views.decorators import (
     exception_handler_decorator,
     projet_must_be_in_user_perimetre,
 )
+from gsl_simulation.views.mixins import CorrectUserPerimeterRequiredMixin
 from gsl_simulation.views.simulation_views import SimulationDetailView
-
-
-def _get_projets_queryset_with_filters(simulation, filter_params):
-    url = reverse(
-        "simulation:simulation-detail",
-        kwargs={"slug": simulation.slug},
-    )
-    new_request = HttpRequest()
-    new_request.GET = QueryDict(filter_params)
-    new_request.resolver_match = resolve(url)
-
-    view = SimulationDetailView()
-    view.object = simulation
-    view.request = new_request
-    view.kwargs = {"slug": simulation.slug}
-
-    projets = view.get_projet_queryset()
-    return projets
-
-
-def redirect_to_simulation_projet(
-    request, simulation_projet, message_type: str | None = None
-):
-    if request.htmx:
-        filter_params = request.POST.get("filter_params")
-        filtered_projets = _get_projets_queryset_with_filters(
-            simulation_projet.simulation,
-            filter_params,
-        )
-
-        total_amount_granted = SimulationService.get_total_amount_granted(
-            filtered_projets, simulation_projet.simulation
-        )
-
-        return render(
-            request,
-            "htmx/projet_update.html",
-            {
-                "simu": simulation_projet,
-                "projet": simulation_projet.projet,
-                "available_states": SimulationProjet.STATUS_CHOICES,
-                "status_summary": simulation_projet.simulation.get_projet_status_summary(),
-                "total_amount_granted": total_amount_granted,
-                "filter_params": filter_params,
-            },
-        )
-
-    add_success_message(request, message_type, simulation_projet)
-
-    referer = request.headers.get("Referer")
-    if referer and url_has_allowed_host_and_scheme(
-        referer, allowed_hosts=ALLOWED_HOSTS
-    ):
-        return redirect(referer)
-    return redirect(
-        "simulation:simulation-detail", slug=simulation_projet.simulation.slug
-    )
 
 
 @projet_must_be_in_user_perimetre
@@ -85,7 +30,7 @@ def redirect_to_simulation_projet(
 def patch_taux_simulation_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     new_taux = replace_comma_by_dot(request.POST.get("taux"))
-    ProjetService.validate_taux(new_taux)
+    DotationProjetService.validate_taux(new_taux)
     SimulationProjetService.update_taux(simulation_projet, new_taux)
     return redirect_to_simulation_projet(request, simulation_projet)
 
@@ -96,6 +41,9 @@ def patch_taux_simulation_projet(request, pk):
 def patch_montant_simulation_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     new_montant = replace_comma_by_dot(request.POST.get("montant"))
+    DotationProjetService.validate_montant(
+        new_montant, simulation_projet.dotation_projet
+    )
     SimulationProjetService.update_montant(simulation_projet, new_montant)
     return redirect_to_simulation_projet(request, simulation_projet)
 
@@ -116,16 +64,26 @@ def patch_status_simulation_projet(request, pk):
     return redirect_to_simulation_projet(request, updated_simulation_projet, status)
 
 
-class SimulationProjetDetailView(DetailView):
+class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
     model = SimulationProjet
-    template_name = "gsl_simulation/simulation_projet_detail.html"
+
+    ALLOWED_TABS = {"annotations", "demandeur", "historique"}
+
+    def get_template_names(self):
+        if "tab" in self.kwargs:
+            tab = self.kwargs["tab"]
+            if tab not in self.ALLOWED_TABS:
+                raise Http404
+            return [f"gsl_simulation/tab_simulation_projet/tab_{tab}.html"]
+        return ["gsl_simulation/simulation_projet_detail.html"]
 
     def get(self, request, *args, **kwargs):
         self.simulation_projet = SimulationProjet.objects.select_related(
             "simulation",
             "simulation__enveloppe",
-            "projet",
-            "projet__dossier_ds",
+            "dotation_projet",
+            "dotation_projet__projet",
+            "dotation_projet__projet__dossier_ds",
         ).get(id=request.resolver_match.kwargs.get("pk"))
         return super().get(request, *args, **kwargs)
 
@@ -148,10 +106,84 @@ class SimulationProjetDetailView(DetailView):
             ],
             "current": context["title"],
         }
+        # TODO pr_dotation remove it ??
         context["projet"] = self.simulation_projet.projet
+        context["dotation_projet"] = self.simulation_projet.dotation_projet
         context["simu"] = self.simulation_projet
         context["enveloppe"] = self.simulation_projet.simulation.enveloppe
         context["dossier"] = self.simulation_projet.projet.dossier_ds
         context["menu_dict"] = PROJET_MENU
+        context["projet_form"] = ProjetForm(instance=self.object.projet)
 
         return context
+
+    def post(self, request, *args, **kwargs):
+        simulation_projet = get_object_or_404(SimulationProjet, id=self.kwargs["pk"])
+        projet_form = ProjetForm(request.POST, instance=simulation_projet.projet)
+
+        if projet_form.is_valid():
+            projet_form.save()
+            return redirect_to_simulation_projet(request, simulation_projet)
+
+        return redirect_to_simulation_projet(
+            request, simulation_projet, message_type="error"
+        )
+
+
+def redirect_to_simulation_projet(
+    request, simulation_projet, message_type: str | None = None
+):
+    if request.htmx:
+        filter_params = request.POST.get("filter_params")
+        filtered_projets = _get_projets_queryset_with_filters(
+            simulation_projet.simulation,
+            filter_params,
+        )
+
+        total_amount_granted = SimulationService.get_total_amount_granted(
+            filtered_projets, simulation_projet.simulation
+        )
+
+        return render(
+            request,
+            "htmx/projet_update.html",
+            {
+                "simu": simulation_projet,
+                "dotation_projet": simulation_projet.dotation_projet,
+                # TODO pr_dotation remove it ??
+                "projet": simulation_projet.projet,
+                "available_states": SimulationProjet.STATUS_CHOICES,
+                "status_summary": simulation_projet.simulation.get_projet_status_summary(),
+                "total_amount_granted": total_amount_granted,
+                "filter_params": filter_params,
+            },
+        )
+
+    add_success_message(request, message_type, simulation_projet)
+
+    referer = request.headers.get("Referer")
+    if referer and url_has_allowed_host_and_scheme(
+        referer, allowed_hosts=ALLOWED_HOSTS
+    ):
+        return redirect(referer)
+    return redirect(
+        "simulation:simulation-detail", slug=simulation_projet.simulation.slug
+    )
+
+
+def _get_projets_queryset_with_filters(simulation, filter_params):
+    url = reverse(
+        "simulation:simulation-detail",
+        kwargs={"slug": simulation.slug},
+    )
+    new_request = HttpRequest()
+    new_request.GET = QueryDict(filter_params)
+    new_request.resolver_match = resolve(url)
+
+    view = SimulationDetailView()
+    view.object = simulation
+    view.request = new_request
+    view.kwargs = {"slug": simulation.slug}
+
+    projets = view.get_projet_queryset()
+    return projets

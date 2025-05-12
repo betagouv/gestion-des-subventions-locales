@@ -5,6 +5,23 @@
   font-size: calc(1rem * 14 / 16);
 }
 
+.filter-dropdown > button {
+  text-align: start;
+}
+
+.filter-dropdown > .fr-input {
+  display: flex;
+}
+
+.filter-dropdown > button > span {
+  margin-top: 1px; /* Alignement vertical de l'icône */
+}
+
+.filter-dropdown .filter-content {
+  gap: 6px;
+  min-width: auto;
+}
+
 .filter-content {
   display: none;
   position: absolute;
@@ -19,7 +36,6 @@
   --status-color-orange: var(--text-default-warning);
   --status-color-red: var(--text-default-error);
 }
-
 
 .filter-content > button {
   width: 100%;
@@ -96,11 +112,6 @@
   padding-top: 6px;
 }
 
-#filter-status-button .filter-content {
-  min-width: auto;
-  gap: 6px;
-}
-
 .filter-field > select,
 .filter-field > button,
 .filter-dropdown > button {
@@ -111,11 +122,11 @@
 
 .territoire-type-d ~ .territoire-type-a,
 .territoire-type-r ~ .territoire-type-d {
-  transform: translateX(1em);
+  margin-left: 1em;
 }
 
 .territoire-type-r ~ .territoire-type-a {
-  transform: translateX(2em);
+  margin-left: 2em;
 }
 
 #filter-territoire input[type="checkbox"]:indeterminate  ~ label::before {
@@ -125,4 +136,14 @@
 
 #filter-territoire {
   gap: 6px;
+}
+
+.reinit-filters {
+  place-content: end;
+}
+
+.reinit-filters > button {
+  width: 100%;
+  gap: 8px;
+  justify-content: center;
 }

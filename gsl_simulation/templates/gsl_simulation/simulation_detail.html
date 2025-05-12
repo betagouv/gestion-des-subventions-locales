@@ -27,7 +27,7 @@
                         Intitulé du projet
                     </th>
                     <th>
-                        Commune
+                        Demandeur
                     </th>
                     <th>
                         Dotation
@@ -64,7 +64,7 @@
             </thead>
             <tbody>
                 {% for projet in simulations_list %}
-                    {% with projet.simu.0 as simu %}
+                    {% with projet.dotation_projet.0.simu.0 as simu %}
                         {% include "includes/_simulation_detail_row.html" with simu=simu projet=projet %}
                     {% endwith %}
                 {% empty %}

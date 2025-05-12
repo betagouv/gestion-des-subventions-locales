@@ -2,6 +2,7 @@ from decimal import Decimal
 
 import pytest
 from django.urls import reverse
+from pytest_django.asserts import assertTemplateUsed
 
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -11,7 +12,8 @@ from gsl_core.tests.factories import (
     PerimetreRegionalFactory,
 )
 from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
-from gsl_projet.tests.factories import ProjetFactory
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.tests.factories import DotationProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
@@ -80,12 +82,16 @@ def client_with_cote_d_or_user_logged(cote_d_or_perimetre):
 
 @pytest.fixture
 def cote_dorien_simulation_projet(cote_d_or_perimetre):
-    projet = ProjetFactory(perimetre=cote_d_or_perimetre)
+    dotation_projet = DotationProjetFactory(
+        projet__perimetre=cote_d_or_perimetre,
+        projet__dossier_ds__finance_cout_total=500_000,
+        dotation=DOTATION_DETR,
+    )
     simulation = SimulationFactory(
         enveloppe=DetrEnveloppeFactory(perimetre=cote_d_or_perimetre)
     )
     return SimulationProjetFactory(
-        projet=projet,
+        dotation_projet=dotation_projet,
         simulation=simulation,
         status=SimulationProjet.STATUS_PROVISOIRE,
         taux=0,
@@ -117,7 +123,7 @@ def test_patch_taux_simulation_projet_url(
     assert response.context["projet"] == cote_dorien_simulation_projet.projet
     assert response.context["available_states"] == SimulationProjet.STATUS_CHOICES
     assert response.context["status_summary"] == expected_status_summary
-    assert response.context["total_amount_granted"] == Decimal("0.00")
+    assert response.context["total_amount_granted"] == Decimal("2500.00")
     assert response.context["filter_params"] == ""
 
     cote_dorien_simulation_projet.refresh_from_db()
@@ -138,10 +144,14 @@ def test_patch_taux_simulation_projet_url_with_htmx(
     assert response.status_code == 200
     assert response.templates[0].name == "htmx/projet_update.html"
     assert response.context["simu"] == cote_dorien_simulation_projet
+    assert (
+        response.context["dotation_projet"]
+        == cote_dorien_simulation_projet.dotation_projet
+    )
     assert response.context["projet"] == cote_dorien_simulation_projet.projet
     assert response.context["available_states"] == SimulationProjet.STATUS_CHOICES
     assert response.context["status_summary"] == expected_status_summary
-    assert response.context["total_amount_granted"] == Decimal("0.00")
+    assert response.context["total_amount_granted"] == Decimal("2500.00")
 
     cote_dorien_simulation_projet.refresh_from_db()
     assert cote_dorien_simulation_projet.taux == 0.5
@@ -358,12 +368,14 @@ def test_regional_user_cant_patch_projet_if_simulation_projet_is_associated_to_d
 
 @pytest.fixture
 def cote_dorien_dsil_simulation_projet(cote_d_or_perimetre):
-    projet = ProjetFactory(perimetre=cote_d_or_perimetre)
+    dotation_projet = DotationProjetFactory(
+        projet__perimetre=cote_d_or_perimetre, assiette=1_000, dotation=DOTATION_DSIL
+    )
     simulation = SimulationFactory(
         enveloppe=DsilEnveloppeFactory(perimetre=cote_d_or_perimetre)
     )
     return SimulationProjetFactory(
-        projet=projet,
+        dotation_projet=dotation_projet,
         simulation=simulation,
     )
 
@@ -449,6 +461,43 @@ def test_simulation_projet_detail_url(
     assert response.templates[0].name == "gsl_simulation/simulation_projet_detail.html"
     assert response.context["simu"] == cote_dorien_simulation_projet
     assert response.context["projet"] == cote_dorien_simulation_projet.projet
+
+
+@pytest.mark.parametrize(
+    "tab_name,expected_template",
+    (
+        ("historique", "gsl_simulation/tab_simulation_projet/tab_historique.html"),
+        ("demandeur", "gsl_simulation/tab_simulation_projet/tab_demandeur.html"),
+        ("annotations", "gsl_simulation/tab_simulation_projet/tab_annotations.html"),
+    ),
+)
+@pytest.mark.django_db
+def test_simulation_projet_detail_tabs_use_the_right_templates(
+    client_with_cote_d_or_user_logged,
+    cote_dorien_simulation_projet,
+    tab_name,
+    expected_template,
+):
+    url = reverse(
+        "simulation:simulation-projet-tab",
+        kwargs={"pk": cote_dorien_simulation_projet.pk, "tab": tab_name},
+    )
+    response = client_with_cote_d_or_user_logged.get(url)
+    assert response.status_code == 200
+    assertTemplateUsed("gsl_simulation/simulation_projet_detail.html")
+    assertTemplateUsed(expected_template)
+
+
+@pytest.mark.django_db
+def test_simulation_projet_detail_tabs_404_if_wrong_tab(
+    client_with_cote_d_or_user_logged, cote_dorien_simulation_projet
+):
+    url = reverse(
+        "simulation:simulation-projet-tab",
+        kwargs={"pk": cote_dorien_simulation_projet.pk, "tab": "toto"},
+    )
+    response = client_with_cote_d_or_user_logged.get(url)
+    assert response.status_code == 404
 
 
 @pytest.mark.django_db

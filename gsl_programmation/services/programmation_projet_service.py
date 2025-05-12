@@ -1,9 +1,14 @@
 import logging
 
 from gsl_core.models import Perimetre
-from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
-from gsl_projet.models import Projet
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_REFUSED,
+)
+from gsl_projet.models import DotationProjet, Projet
 
 
 class ProgrammationProjetService:
@@ -16,66 +21,69 @@ class ProgrammationProjetService:
     ]
 
     @classmethod
-    def create_or_update_from_projet(cls, projet: Projet):
-        if projet.status is None:
-            logging.error(f"Projet {projet} is missing status")
+    def create_or_update_from_dotation_projet(cls, dotation_projet: DotationProjet):
+        if dotation_projet.status is None:
+            logging.error(f"Dotation projet {dotation_projet} is missing status")
             return
 
-        if projet.status not in (Projet.STATUS_ACCEPTED, Projet.STATUS_REFUSED):
-            ProgrammationProjet.objects.filter(projet=projet).delete()
-            return
-        try:
-            dotation = cls.compute_from_annotation(projet)
-        except ValueError as e:
-            logging.error(e)
+        if dotation_projet.status not in (
+            PROJET_STATUS_ACCEPTED,
+            PROJET_STATUS_REFUSED,
+        ):
+            ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).delete()
             return
 
-        if projet.status == Projet.STATUS_ACCEPTED:
+        if dotation_projet.status == PROJET_STATUS_ACCEPTED:
             for field in (
                 "annotations_montant_accorde",
                 "annotations_taux",
                 "annotations_assiette",
             ):
-                if getattr(projet.dossier_ds, field) is None:
-                    logging.error(f"Projet accepted {projet} is missing field {field}")
+                # TODO pr_dotation add a property dossier_ds to dotation_projet ?
+                if getattr(dotation_projet.projet.dossier_ds, field) is None:
+                    logging.error(
+                        f"Projet accepted {dotation_projet} is missing field {field}"
+                    )
                     return
 
-        perimetre = cls.get_perimetre_from_dotation(projet, dotation)
+        perimetre = cls.get_perimetre_from_dotation(
+            dotation_projet.projet, dotation_projet.dotation
+        )
         if perimetre is None:
-            logging.error(f"Projet {projet} is missing perimetre")
+            logging.error(f"Dotation projet {dotation_projet} is missing perimetre")
             return
 
         enveloppe, _ = Enveloppe.objects.get_or_create(
             perimetre=perimetre,
-            annee=projet.dossier_ds.ds_date_traitement.year,
-            type=dotation,
+            annee=dotation_projet.projet.dossier_ds.ds_date_traitement.year,
+            dotation=dotation_projet.dotation,
             defaults={
                 "montant": 0,
             },
         )
 
-        ProgrammationProjet.objects.filter(projet=projet).exclude(
+        ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).exclude(
             enveloppe=enveloppe
         ).delete()
 
         montant = (
-            projet.dossier_ds.annotations_montant_accorde
-            if projet.status == Projet.STATUS_ACCEPTED
+            dotation_projet.projet.dossier_ds.annotations_montant_accorde
+            if dotation_projet.status == PROJET_STATUS_ACCEPTED
             else 0
         )
         taux = (
-            projet.dossier_ds.annotations_taux
-            if projet.status == Projet.STATUS_ACCEPTED
+            dotation_projet.projet.dossier_ds.annotations_taux
+            if dotation_projet.status == PROJET_STATUS_ACCEPTED
             else 0
         )
         programmation_projet_status = (
             ProgrammationProjet.STATUS_ACCEPTED
-            if projet.status == Projet.STATUS_ACCEPTED
+            if dotation_projet.status == PROJET_STATUS_ACCEPTED
             else ProgrammationProjet.STATUS_REFUSED
         )
 
         programmation_projet, _ = ProgrammationProjet.objects.update_or_create(
-            projet=projet,
+            dotation_projet=dotation_projet,
             enveloppe=enveloppe,
             defaults={
                 "status": programmation_projet_status,
@@ -89,12 +97,12 @@ class ProgrammationProjetService:
     def get_perimetre_from_dotation(
         cls, projet: Projet, dotation: str
     ) -> Perimetre | None:
-        if dotation == Dossier.DOTATION_DETR:
+        if dotation == DOTATION_DETR:
             return Perimetre.objects.get(
                 departement=projet.perimetre.departement, arrondissement=None
             )
 
-        elif dotation == Dossier.DOTATION_DSIL:
+        elif dotation == DOTATION_DSIL:
             return Perimetre.objects.get(
                 region=projet.perimetre.departement.region,
                 departement=None,
@@ -102,25 +110,3 @@ class ProgrammationProjetService:
             )
 
         return None
-
-    @classmethod
-    def compute_from_annotation(cls, projet):
-        dotation_annotation = projet.dossier_ds.annotations_dotation
-        if dotation_annotation is None:
-            logging.error(f"Projet {projet} is missing annotation dotation")
-            raise ValueError(f"Projet {projet} is missing annotation dotation")
-
-        if "DETR" in dotation_annotation and "DSIL" in dotation_annotation:
-            raise ValueError(
-                f"Projet {projet} annotation dotation contains both DETR and DSIL"
-            )
-
-        if "DETR" in dotation_annotation:
-            return Dossier.DOTATION_DETR
-
-        if "DSIL" in dotation_annotation:
-            return Dossier.DOTATION_DSIL
-
-        raise ValueError(
-            f"Projet {projet} annotation dotation {dotation_annotation} is unkown"
-        )

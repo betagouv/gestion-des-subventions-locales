@@ -1,13 +1,13 @@
 {% if territoire_choices|length != 0 and territoire_choices|length != 1 %}
     <div class="filter-field fr-col-12 fr-col-md-4 fr-col-lg-2">
-        <div class="filter-dropdown" id="filter-territoire-button">
+        <div class="filter-dropdown">
             <label class="fr-label" id="filter_territoire_label">
                 <span class="fr-sr-only">Filtrer par</span>
                 Territoire
             </label>
             <button type="button"
                     class="fr-select {% if is_territoire_active %}filter-dropdown-button-active{% endif %}">
-                {{ is_territoire_placeholder }}
+                {{ territoire_placeholder }}
             </button>
             <div id="filter-territoire"
                  class="filter-content"

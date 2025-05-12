@@ -1,7 +1,10 @@
+import re
 from decimal import Decimal
 
 from django import template
 from django.template.defaultfilters import floatformat
+
+from gsl_simulation.models import SimulationProjet
 
 register = template.Library()
 
@@ -30,11 +33,11 @@ def remove_first_word(value):
 
 
 STATUS_TO_ALERT_TITLE = {
-    "valid": "Projet accepté",
-    "cancelled": "Projet refusé",
-    "provisoire": "Projet accepté provisoirement",
-    "dismissed": "Projet classé sans suite",
-    "draft": "Projet en traitement",
+    SimulationProjet.STATUS_ACCEPTED: "Projet accepté",
+    SimulationProjet.STATUS_REFUSED: "Projet refusé",
+    SimulationProjet.STATUS_PROVISOIRE: "Projet accepté provisoirement",
+    SimulationProjet.STATUS_DISMISSED: "Projet classé sans suite",
+    SimulationProjet.STATUS_PROCESSING: "Projet en traitement",
 }
 
 
@@ -51,3 +54,45 @@ def create_alert_data(status: str | None, arg: str) -> dict[str, str | bool]:
         data_dict["title"] = STATUS_TO_ALERT_TITLE[status]
 
     return data_dict
+
+
+@register.filter
+def format_demandeur_nom(nom):
+    MOTS_MIN = (
+        "de",
+        "du",
+        "des",
+        "sur",
+        "et",
+        "la",
+        "le",
+        "les",
+        "d",
+        "en",
+        "l",
+        "au",
+        "aux",
+        "a",
+        "un",
+        "une",
+        "l",
+    )
+    ABREVIATIONS = ("cc", "ca", "cte")
+
+    # Sépare les mots tout en conservant les tirets et les apostrophes
+    mots = re.split(r"(\s+|-|\')", nom.lower().strip())
+
+    resultat = []
+    for mot in mots:
+        if mot in ABREVIATIONS:
+            resultat.append(mot.upper())
+        elif mot.strip() in MOTS_MIN:
+            resultat.append(mot.lower())  # Garde en minuscule
+        else:
+            resultat.append(mot.capitalize())  # Met la première lettre en majuscule
+
+    # Correction de l'apostrophe
+    texte_final = "".join(resultat)
+    texte_final = texte_final.replace(" d ", " d'").replace(" d' ", " d'")
+
+    return texte_final

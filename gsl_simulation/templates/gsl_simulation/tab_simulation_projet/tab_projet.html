@@ -1,31 +1,36 @@
 {% extends "gsl_projet/projet/tab_projet.html" %}
 {% load static gsl_filters %}
 
+{% block form_for_simulation_projet %}
+    <form method="post" id="simulation_projet_form">
+        {% csrf_token %}
+    </form>
+{% endblock form_for_simulation_projet %}
+
+{% block avis_commission_detr %}
+    {% if enveloppe.dotation == 'DETR' %}
+        {% include "includes/forms/_avis_commission_detr_form.html" %}
+    {% endif %}
+{% endblock avis_commission_detr %}
+
 {% block status_action %}
-    <div class="fr-callout fr-background-alt--blue-france">
+    <div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-container fr-pb-1w fr-pt-3w fr-px-3w">
         <h2 class="fr-callout__title">
             <i class="fr-icon-coin-fill blue-color" aria-hidden="true"></i>
             Décision de financement du projet
         </h2>
 
-        <form action="{% url 'simulation:patch-simulation-projet-status' simu.id %}"
-              method="POST">
-            {% csrf_token %}
-            <fieldset class="fr-fieldset fr-mb-0"
-                      id="radio-rich-no-pictogram-inline"
-                      aria-labelledby="todo => radio-rich-no-pictogram-inline-legend radio-r ich-no-pictogram-inline-messages">
-
-                {% include "includes/_status_radio_button.html" with status_value="provisoire" status_label="Accepté provisoirement" icon="fr-icon-check-line" %}
-                <div class="separator">
-                </div>
-                {% include "includes/_status_radio_button.html" with status_value="valid" status_label="Accepté" icon="fr-icon-checkbox-circle-line" %}
-                {% include "includes/_status_radio_button.html" with status_value="cancelled" status_label="Refusé" icon="fr-icon-close-line" %}
-                {% include "includes/_status_radio_button.html" with status_value="dismissed" status_label="Classé sans suite" icon="fr-icon-subtract-line" %}
-                <div class="separator">
-                </div>
-                {% include "includes/_status_radio_button.html" with status_value="draft" status_label="En traitement" icon="fr-icon-draft-fill" %}
-            </fieldset>
-            <input type="submit" hidden />
-        </form>
+        {% include "includes/forms/_status_form.html" %}
     </div>
 {% endblock status_action %}
+
+{% block projet_detail_form %}
+    {% include "includes/forms/_is_qpv_and_is_attached_to_a_crte_form.html" %}
+{% endblock projet_detail_form %}
+
+{% block transition_ecologique_content %}
+    <p>
+        <b>Le projet concourt-il aux enjeux de la transition écologique au sens budget vert :</b>
+    </p>
+    {% include "includes/forms/_is_budget_vert_form.html" %}
+{% endblock transition_ecologique_content %}

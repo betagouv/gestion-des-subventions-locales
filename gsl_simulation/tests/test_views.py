@@ -15,7 +15,7 @@ from gsl_core.tests.factories import (
     PerimetreRegionalFactory,
     RequestFactory,
 )
-from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.models import Dossier, NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     NaturePorteurProjetFactory,
@@ -26,9 +26,19 @@ from gsl_programmation.tests.factories import (
     DsilEnveloppeFactory,
     ProgrammationProjetFactory,
 )
-from gsl_projet.models import Projet
-from gsl_projet.services import ProjetService
-from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
+from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.services.dotation_projet_services import DotationProjetService
+from gsl_projet.tests.factories import (
+    DemandeurFactory,
+    DotationProjetFactory,
+    ProjetFactory,
+)
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
@@ -67,7 +77,7 @@ def simulations(perimetre_departemental):
 @pytest.fixture
 def detr_enveloppe(perimetre_departemental):
     return DetrEnveloppeFactory(
-        perimetre=perimetre_departemental, annee=2024, montant=1_000_000
+        perimetre=perimetre_departemental, annee=2025, montant=1_000_000
     )
 
 
@@ -80,12 +90,14 @@ def simulation(detr_enveloppe):
 def projets(simulation, perimetre_departemental):
     other_perimeter = PerimetreDepartementalFactory()
     projets = []
-    epci = NaturePorteurProjetFactory(label="EPCI")
-    commune = NaturePorteurProjetFactory(label="Commune")
+    epci = NaturePorteurProjetFactory(label="EPCI", type=NaturePorteurProjet.EPCI)
+    commune = NaturePorteurProjetFactory(
+        label="Commune", type=NaturePorteurProjet.COMMUNES
+    )
 
     for perimetre in (perimetre_departemental, other_perimeter):
         demandeur = DemandeurFactory()
-        for type in ("DETR", "DSIL"):
+        for dotation in ("DETR", "DSIL"):
             for state in (
                 Dossier.STATE_ACCEPTE,
                 Dossier.STATE_REFUSE,
@@ -97,7 +109,7 @@ def projets(simulation, perimetre_departemental):
                     ds_date_traitement=datetime(2024, 1, 1, tzinfo=UTC),
                     annotations_montant_accorde=150_000,
                     demande_montant=200_000,
-                    demande_dispositif_sollicite=type,
+                    demande_dispositif_sollicite=dotation,
                     finance_cout_total=1_000_000,
                     porteur_de_projet_nature=epci,
                 )
@@ -105,7 +117,6 @@ def projets(simulation, perimetre_departemental):
                     dossier_ds=dossier_2024,
                     perimetre=perimetre,
                     demandeur=demandeur,
-                    status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 )
                 projets.append(projet_2024)
 
@@ -114,7 +125,7 @@ def projets(simulation, perimetre_departemental):
                     ds_date_traitement=datetime(2025, 1, 1, tzinfo=UTC),
                     demande_montant=300_000,
                     annotations_montant_accorde=120_000,
-                    demande_dispositif_sollicite=type,
+                    demande_dispositif_sollicite=dotation,
                     finance_cout_total=2_000_000,
                     porteur_de_projet_nature=commune,
                 )
@@ -122,7 +133,6 @@ def projets(simulation, perimetre_departemental):
                     dossier_ds=dossier_2025,
                     demandeur=demandeur,
                     perimetre=perimetre,
-                    status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 )
                 projets.append(projet_2025)
             demandeur = DemandeurFactory()
@@ -131,7 +141,7 @@ def projets(simulation, perimetre_departemental):
                     ds_state=state,
                     ds_date_depot=datetime(2024, 2, 12, tzinfo=UTC),
                     ds_date_traitement=None,
-                    demande_dispositif_sollicite=type,
+                    demande_dispositif_sollicite=dotation,
                     demande_montant=400_000,
                     finance_cout_total=3_000_000,
                     porteur_de_projet_nature=commune,
@@ -140,7 +150,6 @@ def projets(simulation, perimetre_departemental):
                     dossier_ds=dossier_2024,
                     demandeur=demandeur,
                     perimetre=perimetre,
-                    status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 )
                 projets.append(projet_2024)
 
@@ -148,7 +157,7 @@ def projets(simulation, perimetre_departemental):
                     ds_state=state,
                     ds_date_depot=datetime(2025, 2, 12, tzinfo=UTC),
                     ds_date_traitement=None,
-                    demande_dispositif_sollicite=type,
+                    demande_dispositif_sollicite=dotation,
                     demande_montant=500_000,
                     finance_cout_total=4_000_000,
                     porteur_de_projet_nature=epci,
@@ -157,9 +166,10 @@ def projets(simulation, perimetre_departemental):
                     dossier_ds=dossier_2025,
                     demandeur=demandeur,
                     perimetre=perimetre,
-                    status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
                 )
                 projets.append(projet_2025)
+    for projet in projets:
+        DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
     return projets
 
 
@@ -177,35 +187,39 @@ def test_simulation_list_view(req, view, simulations):
 
 @pytest.mark.django_db
 def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
-    view = SimulationDetailView()
-    view.kwargs = {"slug": simulation.slug}
-    view.request = req.get(
-        reverse("simulation:simulation-detail", kwargs={"slug": simulation.slug})
+    detr_enveloppe_2024 = DetrEnveloppeFactory(
+        perimetre=perimetre_departemental, annee=2024, montant=1_000_000
     )
-    view.object = simulation
+    simulation_2024 = SimulationFactory(enveloppe=detr_enveloppe_2024)
+    view = SimulationDetailView()
+    view.kwargs = {"slug": simulation_2024.slug}
+    view.request = req.get(
+        reverse("simulation:simulation-detail", kwargs={"slug": simulation_2024.slug})
+    )
+    view.object = simulation_2024
 
-    enveloppe_data = view._get_enveloppe_data(simulation)
+    enveloppe_data = view._get_enveloppe_data(simulation_2024)
 
     assert Projet.objects.count() == 40
 
     projet_filter_by_perimetre = Projet.objects.for_perimetre(perimetre_departemental)
     assert projet_filter_by_perimetre.count() == 20
 
-    projet_filter_by_perimetre_and_type = projet_filter_by_perimetre.filter(
+    projet_filter_by_perimetre_and_dotation = projet_filter_by_perimetre.filter(
         dossier_ds__demande_dispositif_sollicite="DETR"
     )
-    assert projet_filter_by_perimetre_and_type.count() == 10
+    assert projet_filter_by_perimetre_and_dotation.count() == 10
 
     projet_qs_submitted_before_the_end_of_the_year = (
-        projet_filter_by_perimetre_and_type.filter(
+        projet_filter_by_perimetre_and_dotation.filter(
             dossier_ds__ds_date_depot__lt=datetime(
-                simulation.enveloppe.annee + 1, 1, 1, tzinfo=UTC
+                simulation_2024.enveloppe.annee + 1, 1, 1, tzinfo=UTC
             ),
         )
     )
     assert projet_qs_submitted_before_the_end_of_the_year.count() == 5
 
-    assert enveloppe_data["type"] == "DETR"
+    assert enveloppe_data["dotation"] == "DETR"
     assert enveloppe_data["montant"] == 1_000_000
     assert enveloppe_data["perimetre"] == perimetre_departemental
     assert enveloppe_data["validated_projets_count"] == 0
@@ -268,23 +282,25 @@ def test_view_without_filter(req, simulation, create_simulation_projets):
     assert projets.count() == 7
     assert (
         projets.filter(
-            simulationprojet__status=SimulationProjet.STATUS_ACCEPTED
+            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_ACCEPTED
         ).count()
         == 1
     )
     assert (
         projets.filter(
-            simulationprojet__status=SimulationProjet.STATUS_PROCESSING
+            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_PROCESSING
         ).count()
         == 4
     )
     assert (
-        projets.filter(simulationprojet__status=SimulationProjet.STATUS_REFUSED).count()
+        projets.filter(
+            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_REFUSED
+        ).count()
         == 1
     )
     assert (
         projets.filter(
-            simulationprojet__status=SimulationProjet.STATUS_DISMISSED
+            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_DISMISSED
         ).count()
         == 1
     )
@@ -302,7 +318,7 @@ def test_view_with_one_status_filter(req, simulation, create_simulation_projets)
     assert projets.count() == 4
     assert (
         projets.filter(
-            simulationprojet__status=SimulationProjet.STATUS_PROCESSING
+            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_PROCESSING
         ).count()
         == 4
     )
@@ -325,18 +341,22 @@ def test_view_with_filters(req, simulation, create_simulation_projets):
 
     assert (
         projets.filter(
-            simulationprojet__status=SimulationProjet.STATUS_ACCEPTED
+            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_ACCEPTED
         ).count()
         == 1
     )
     assert (
         projets.filter(
-            simulationprojet__status=SimulationProjet.STATUS_PROCESSING
+            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_PROCESSING
         ).count()
         == 2
     )
     for projet in projets:
-        assert 120_000 <= projet.simulationprojet_set.first().montant <= 400_000
+        assert (
+            120_000
+            <= projet.dotationprojet_set.first().simulationprojet_set.first().montant
+            <= 400_000
+        )
 
 
 ## Test with multiple simulations
@@ -352,10 +372,9 @@ def test_view_with_multiple_simulations(req, perimetre_departemental):
         demande_montant=200_000,
         demande_dispositif_sollicite="DETR",
     )
-    ProjetFactory(
+    projet = ProjetFactory(
         dossier_ds=dossier_2024,
         perimetre=perimetre_departemental,
-        status=ProjetService.DOSSIER_DS_STATUS_TO_PROJET_STATUS[state],
     )
 
     enveloppe = DetrEnveloppeFactory(
@@ -364,6 +383,7 @@ def test_view_with_multiple_simulations(req, perimetre_departemental):
     simulation_1 = SimulationFactory(enveloppe=enveloppe)
     simulation_2 = SimulationFactory(enveloppe=enveloppe)
 
+    DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
     add_enveloppe_projets_to_simulation(simulation_1.id)
     add_enveloppe_projets_to_simulation(simulation_2.id)
 
@@ -435,7 +455,10 @@ def test_view_with_cout_total_filter(req, simulation, create_simulation_projets)
         (SimulationProjet.STATUS_REFUSED, 1),
         (SimulationProjet.STATUS_DISMISSED, 1),
     ]:
-        assert projets.filter(simulationprojet__status=status).count() == count
+        assert (
+            projets.filter(dotationprojet__simulationprojet__status=status).count()
+            == count
+        )
 
     for projet in projets:
         assert 2_000_000 <= projet.assiette_or_cout_total <= 3_000_000
@@ -459,7 +482,10 @@ def test_view_with_montant_demande_filter(req, simulation, create_simulation_pro
         (SimulationProjet.STATUS_REFUSED, 1),
         (SimulationProjet.STATUS_DISMISSED, 1),
     ]:
-        assert projets.filter(simulationprojet__status=status).count() == count
+        assert (
+            projets.filter(dotationprojet__simulationprojet__status=status).count()
+            == count
+        )
 
     for projet in projets:
         assert 300_000 <= projet.dossier_ds.demande_montant <= 400_000
@@ -468,7 +494,7 @@ def test_view_with_montant_demande_filter(req, simulation, create_simulation_pro
 @pytest.mark.django_db
 def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
     filter_params = {
-        "porteur": "EPCI",
+        "porteur": "epci",
     }
     view = _get_view_with_filter(req, simulation, filter_params)
 
@@ -482,13 +508,16 @@ def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
         (SimulationProjet.STATUS_REFUSED, 0),
         (SimulationProjet.STATUS_DISMISSED, 0),
     ]:
-        assert projets.filter(simulationprojet__status=status).count() == count
+        assert (
+            projets.filter(dotationprojet__simulationprojet__status=status).count()
+            == count
+        )
 
     for projet in projets:
-        assert projet.dossier_ds.porteur_de_projet_nature.label == "EPCI"
+        assert projet.dossier_ds.porteur_de_projet_nature.type == "epci"
 
     filter_params = {
-        "porteur": "Communes",
+        "porteur": "communes",
     }
     view = _get_view_with_filter(req, simulation, filter_params)
 
@@ -502,10 +531,13 @@ def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
         (SimulationProjet.STATUS_REFUSED, 1),
         (SimulationProjet.STATUS_DISMISSED, 1),
     ]:
-        assert projets.filter(simulationprojet__status=status).count() == count
+        assert (
+            projets.filter(dotationprojet__simulationprojet__status=status).count()
+            == count
+        )
 
     for projet in projets:
-        assert projet.dossier_ds.porteur_de_projet_nature.label == "Commune"
+        assert projet.dossier_ds.porteur_de_projet_nature.type == "communes"
 
 
 def test_simulation_has_correct_territoire_choices():
@@ -553,15 +585,28 @@ def test_view_with_territory_filter():
     enveloppe = DetrEnveloppeFactory(perimetre=perimetre_departement_A)
     simulation = SimulationFactory(enveloppe=enveloppe)
 
-    SimulationProjetFactory.create_batch(
-        2,
-        simulation=simulation,
-        projet__perimetre=perimetre_arrondissement_A,
+    dotation_projets_A = DotationProjetFactory.create_batch(
+        2, dotation=enveloppe.dotation, projet__perimetre=perimetre_arrondissement_A
+    )
+    for dotation_projet_A in dotation_projets_A:
+        SimulationProjetFactory(
+            simulation=simulation,
+            dotation_projet=dotation_projet_A,
+        )
+    dotation_projets_B = DotationProjetFactory.create_batch(
+        3, dotation=enveloppe.dotation, projet__perimetre=perimetre_arrondissement_B
     )
 
-    SimulationProjetFactory.create_batch(
-        3, simulation=simulation, projet__perimetre=perimetre_arrondissement_B
-    )
+    for dotation_projet_B in dotation_projets_B:
+        SimulationProjetFactory(
+            simulation=simulation,
+            dotation_projet=dotation_projet_B,
+        )
+
+    assert Projet.objects.count() == 5
+    assert Projet.objects.for_perimetre(perimetre_departement_A).count() == 5
+    assert Projet.objects.for_perimetre(perimetre_arrondissement_A).count() == 2
+    assert Projet.objects.for_perimetre(perimetre_arrondissement_B).count() == 3
 
     user = CollegueFactory(perimetre=perimetre_departement_A)
     req = RequestFactory(user=user)
@@ -588,11 +633,13 @@ def client_with_user_logged(collegue):
 
 @pytest.fixture
 def simulation_projet(collegue, detr_enveloppe) -> SimulationProjet:
+    dotation_projet = DotationProjetFactory(
+        status=PROJET_STATUS_PROCESSING,
+        projet__perimetre=collegue.perimetre,
+        dotation=DOTATION_DETR,
+    )
     return SimulationProjetFactory(
-        projet=ProjetFactory(
-            status=Projet.STATUS_PROCESSING,
-            perimetre=collegue.perimetre,
-        ),
+        dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_PROCESSING,
         montant=1000,
         simulation__enveloppe=detr_enveloppe,
@@ -613,14 +660,14 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
         headers={"HX-Request": "true"},
     )
 
-    updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
-        id=simulation_projet.id
+    updated_simulation_projet = SimulationProjet.objects.get(id=simulation_projet.id)
+    dotation_projet = DotationProjet.objects.get(
+        id=updated_simulation_projet.dotation_projet.id
     )
-    projet = Projet.objects.get(id=updated_simulation_projet.projet.id)
 
     assert response.status_code == 200
     assert updated_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
-    assert projet.status == Projet.STATUS_ACCEPTED
+    assert dotation_projet.status == PROJET_STATUS_ACCEPTED
     assert "1 projet validé" in response.content.decode()
     assert "0 projet refusé" in response.content.decode()
     assert "0 projet notifié" in response.content.decode()
@@ -645,11 +692,13 @@ def test_patch_status_simulation_projet_with_refused_value_with_htmx(
     )
 
     simulation_projet.refresh_from_db()
-    projet = Projet.objects.get(id=simulation_projet.projet.id)
+    dotation_projet = DotationProjet.objects.get(
+        id=simulation_projet.dotation_projet.id
+    )
 
     assert response.status_code == 200
     assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
-    assert projet.status == Projet.STATUS_REFUSED
+    assert dotation_projet.status == PROJET_STATUS_REFUSED
     assert "0 projet validé" in response.content.decode()
     assert "1 projet refusé" in response.content.decode()
     assert "0 projet notifié" in response.content.decode()
@@ -695,8 +744,8 @@ def test_patch_status_simulation_projet_with_refused_value_giving_message(
 ):
     if status == SimulationProjet.STATUS_PROCESSING:
         simulation_projet.status = SimulationProjet.STATUS_ACCEPTED
-        simulation_projet.projet.status = Projet.STATUS_ACCEPTED
-        simulation_projet.projet.save()
+        simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
+        simulation_projet.dotation_projet.save()
         simulation_projet.save()
 
     url = reverse(
@@ -735,20 +784,24 @@ def test_patch_status_simulation_projet_invalid_status(
     )
 
     updated_simulation_projet = SimulationProjet.objects.get(id=simulation_projet.id)
-    assert response.status_code == 400
+    assert response.status_code == 500
     assert updated_simulation_projet.status == SimulationProjet.STATUS_PROCESSING
 
 
 @pytest.fixture
 def accepted_simulation_projet(collegue, detr_enveloppe) -> SimulationProjet:
+    dotation_projet = DotationProjetFactory(
+        status=PROJET_STATUS_PROCESSING,
+        assiette=10_000,
+        projet__assiette=10_000,
+        projet__perimetre=collegue.perimetre,
+        dotation=DOTATION_DETR,
+    )
+
     return SimulationProjetFactory(
-        projet=ProjetFactory(
-            status=Projet.STATUS_PROCESSING,
-            assiette=10_000,
-            perimetre=collegue.perimetre,
-        ),
+        dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
-        montant=1000,
+        montant=1_000,
         taux=0.5,
         simulation__enveloppe=detr_enveloppe,
     )
@@ -768,7 +821,7 @@ def test_patch_taux_simulation_projet(
         headers={"HX-Request": "true"},
     )
 
-    updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
+    updated_simulation_projet = SimulationProjet.objects.get(
         id=accepted_simulation_projet.id
     )
 
@@ -798,7 +851,7 @@ def test_patch_taux_simulation_projet_with_wrong_value(
     with caplog.at_level(logging.ERROR):
         accepted_simulation_projet.refresh_from_db()
 
-    assert response.status_code == 400
+    assert response.status_code == 500
     assert response.content == b'{"error": "An internal error has occurred."}'
     assert "must be between 0 and 100" in caplog.text
     assert accepted_simulation_projet.taux == 0.5
@@ -820,7 +873,7 @@ def test_patch_montant_simulation_projet(
         headers={"HX-Request": "true"},
     )
 
-    updated_simulation_projet = SimulationProjet.objects.select_related("projet").get(
+    updated_simulation_projet = SimulationProjet.objects.get(
         id=accepted_simulation_projet.id
     )
 
@@ -831,3 +884,105 @@ def test_patch_montant_simulation_projet(
         '<span hx-swap-oob="innerHTML" id="total-amount-granted">1\xa0267\xa0€</span>'
         in response.content.decode()
     )
+
+
+@pytest.mark.parametrize(
+    "value, expected_value", (("True", True), ("False", False), ("", None))
+)
+@pytest.mark.django_db
+def test_patch_avis_commission_detr_simulation_projet(
+    client_with_user_logged, accepted_simulation_projet, value, expected_value
+):
+    url = reverse(
+        "simulation:simulation-projet-detail",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.post(
+        url,
+        {"avis_commission_detr": value},
+        follow=True,
+    )
+
+    updated_simulation_projet = SimulationProjet.objects.get(
+        id=accepted_simulation_projet.id
+    )
+
+    assert response.status_code == 200
+    assert updated_simulation_projet.projet.avis_commission_detr is expected_value
+
+
+@pytest.mark.parametrize(
+    "value, expected_value", (("True", True), ("False", False), ("", None))
+)
+@pytest.mark.django_db
+def test_patch_is_budget_vert_simulation_projet(
+    client_with_user_logged, accepted_simulation_projet, value, expected_value
+):
+    url = reverse(
+        "simulation:simulation-projet-detail",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.post(
+        url,
+        {"is_budget_vert": value},
+        follow=True,
+    )
+
+    updated_simulation_projet = SimulationProjet.objects.get(
+        id=accepted_simulation_projet.id
+    )
+
+    assert response.status_code == 200
+    assert updated_simulation_projet.projet.is_budget_vert is expected_value
+
+
+@pytest.mark.parametrize(
+    "data, expected_value", (({"is_in_qpv": "on"}, True), ({}, False))
+)
+@pytest.mark.django_db
+def test_patch_is_qpv_simulation_projet(
+    client_with_user_logged, accepted_simulation_projet, data, expected_value
+):
+    accepted_simulation_projet.projet.is_in_qpv = not (expected_value)
+    accepted_simulation_projet.projet.save()
+
+    url = reverse(
+        "simulation:simulation-projet-detail",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.post(
+        url,
+        data,
+        follow=True,
+    )
+
+    accepted_simulation_projet.projet.refresh_from_db()
+
+    assert response.status_code == 200
+    assert accepted_simulation_projet.projet.is_in_qpv is expected_value
+
+
+@pytest.mark.parametrize(
+    "data, expected_value", (({"is_attached_to_a_crte": "on"}, True), ({}, False))
+)
+@pytest.mark.django_db
+def test_patch_is_attached_to_a_crte_simulation_projet(
+    client_with_user_logged, accepted_simulation_projet, data, expected_value
+):
+    accepted_simulation_projet.projet.is_attached_to_a_crte = not (expected_value)
+    accepted_simulation_projet.projet.save()
+
+    url = reverse(
+        "simulation:simulation-projet-detail",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.post(
+        url,
+        data,
+        follow=True,
+    )
+
+    accepted_simulation_projet.projet.refresh_from_db()
+
+    assert response.status_code == 200
+    assert accepted_simulation_projet.projet.is_attached_to_a_crte is expected_value

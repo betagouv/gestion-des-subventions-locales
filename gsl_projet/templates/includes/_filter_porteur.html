@@ -1,6 +1,17 @@
 <div class="filter-field fr-col-12 fr-col-md-4 fr-col-lg-2">
-    <label class="fr-label" for="porteur">
-        Porteur de projet
-    </label>
-    {{ filter.form.porteur }}
+    <div class="filter-dropdown">
+        <label class="fr-label" for="porteur">
+            Demandeur
+        </label>
+        <button type="button"
+                class="fr-select {% if is_porteur_active %}filter-dropdown-button-active{% endif %}">
+            {{ porteur_placeholder }}
+        </button>
+        <div class="filter-content">
+            {{ filter.form.porteur }}
+            <button type="submit" class="fr-btn fr-btn--sm">
+                Filtrer
+            </button>
+        </div>
+    </div>
 </div>

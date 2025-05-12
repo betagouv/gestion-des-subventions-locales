@@ -13,7 +13,7 @@
         {{ projet.dossier_ds.projet_intitule }}
     </td>
     <td>
-        {{ projet.address.commune.name }}
+        {{ projet.demandeur.name | format_demandeur_nom }}
     </td>
     <td>
         {{ projet.dossier_ds.demande_dispositif_sollicite }}
@@ -29,10 +29,10 @@
         {{ projet.get_taux_de_subvention_sollicite|percent }}
     </td>
     <td class="gsl-money">
-        {% include "includes/_montant_form.html" with simu=simu %}
+        {% include "includes/table_forms/_montant_form.html" with simu=simu %}
     </td>
     <td class="gsl-money">
-        {% include "includes/_taux_form.html" with simu=simu %}
+        {% include "includes/table_forms/_taux_form.html" with simu=simu %}
     </td>
     <td>
         <select class="fr-select gsl-projet-table__select" name="" id="">
@@ -42,7 +42,7 @@
         </select>
     </td>
     <td>
-        {% include "includes/_status_form.html" with simu=simu %}
+        {% include "includes/table_forms/_status_form.html" with simu=simu %}
     </td>
     <td class="fr-cell--right gsl-nowrap">
         <a class="fr-btn--tertiary-no-outline gsl-no-underline"

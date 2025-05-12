@@ -1,11 +1,13 @@
 from django.db.models import Prefetch
 from django.http import Http404
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_GET
 from django.views.generic import ListView
 from django_filters.views import FilterView
 
-from gsl_projet.services import ProjetService
+from gsl_projet.constants import PROJET_STATUS_CHOICES
+from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_filters import ProjetFilters
 from gsl_projet.utils.projet_page import PROJET_MENU
@@ -31,9 +33,7 @@ def visible_by_user(func):
     return wrapper
 
 
-@visible_by_user
-@require_GET
-def get_projet(request, projet_id):
+def _get_projet_context_info(projet_id):
     projet = get_object_or_404(Projet, id=projet_id)
     title = projet.dossier_ds.projet_intitule
     context = {
@@ -45,7 +45,26 @@ def get_projet(request, projet_id):
         },
         "menu_dict": PROJET_MENU,
     }
+    return context
+
+
+@visible_by_user
+@require_GET
+def get_projet(request, projet_id):
+    context = _get_projet_context_info(projet_id)
     return render(request, "gsl_projet/projet.html", context)
+
+
+PROJET_TABS = {"annotations", "demandeur", "historique"}
+
+
+@visible_by_user
+@require_GET
+def get_projet_tab(request, projet_id, tab):
+    if tab not in PROJET_TABS:
+        raise Http404
+    context = _get_projet_context_info(projet_id)
+    return render(request, f"gsl_projet/projet/tab_{tab}.html", context)
 
 
 class ProjetListViewFilters(ProjetFilters):
@@ -78,11 +97,12 @@ class ProjetListViewFilters(ProjetFilters):
             "address",
             "address__commune",
             "perimetre",
+            "demandeur",
         ).prefetch_related(
             "dossier_ds__demande_eligibilite_detr",
             "dossier_ds__demande_eligibilite_dsil",
             Prefetch(
-                "programmationprojet_set",
+                "dotationprojet_set__programmation_projet",
                 queryset=ProgrammationProjet.objects.filter(
                     status=ProgrammationProjet.STATUS_ACCEPTED
                 ),
@@ -97,7 +117,15 @@ class ProjetListView(FilterView, ListView, FilterUtils):
     paginate_by = 25
     filterset_class = ProjetListViewFilters
     template_name = "gsl_projet/projet_list.html"
-    STATE_MAPPINGS = {key: value for key, value in Projet.STATUS_CHOICES}
+    STATE_MAPPINGS = {key: value for key, value in PROJET_STATUS_CHOICES}
+
+    def get(self, request, *args, **kwargs):
+        if "reset_filters" in request.GET:
+            if request.path == reverse("gsl_projet:list"):
+                return redirect(request.path)
+            else:
+                return redirect("/")
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -105,7 +133,6 @@ class ProjetListView(FilterView, ListView, FilterUtils):
             self.filterset.qs
         )  # utile pour ne pas avoir la pagination de context["object_list"]
         context["title"] = "Projets 2025"
-        context["porteur_mappings"] = ProjetService.PORTEUR_MAPPINGS
         context["breadcrumb_dict"] = {}
         context["total_cost"] = ProjetService.get_total_cost(qs_global)
         context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs_global)

@@ -18,6 +18,7 @@ from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnvelopp
 
 from ..models import Projet
 from .factories import (
+    DotationProjetFactory,
     ProcessedProjetFactory,
     ProjetFactory,
     SubmittedProjetFactory,
@@ -40,15 +41,19 @@ def test_dossier_ds_join(django_assert_num_queries):
         dossier = DossierFactory()
         ProjetFactory(dossier_ds=dossier)
 
-    with django_assert_num_queries(1):
+    with django_assert_num_queries(2):
         projets = Projet.objects.all()
         assert "dossier_ds" in projets.query.select_related
         for projet in projets:
             _ = projet.dossier_ds.ds_number
+            _ = projet.dotationprojet_set.count()
 
     first_sql_query = connection.queries[0]["sql"]
     assert "INNER JOIN" in first_sql_query
     assert "dossier_ds" in first_sql_query
+
+    second_sql_query = connection.queries[1]["sql"]
+    assert "dotationprojet" in second_sql_query
 
 
 # Filter on perimetre ==================================================================
@@ -241,7 +246,7 @@ def for_year_with_projet_to_display(state, ds_date_traitement):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "projet_type, enveloppe_type, count",
+    "projet_dotation, enveloppe_dotation, count",
     [
         ("DSIL", "DSIL", 1),
         ("DSIL", "DETR", 0),
@@ -249,20 +254,20 @@ def for_year_with_projet_to_display(state, ds_date_traitement):
         ("DETR", "DETR", 1),
     ],
 )
-def test_for_enveloppe_with_projet_type_and_enveloppe_type(
-    projet_type, enveloppe_type, count
+def test_for_enveloppe_with_projet_type_and_enveloppe_dotation(
+    projet_dotation, enveloppe_dotation, count
 ):
     perimetre = PerimetreDepartementalFactory()
     enveloppe_factory = (
-        DetrEnveloppeFactory if enveloppe_type == "DETR" else DsilEnveloppeFactory
+        DetrEnveloppeFactory if enveloppe_dotation == "DETR" else DsilEnveloppeFactory
     )
     enveloppe = enveloppe_factory(annee=2024, perimetre=perimetre)
-    ProjetFactory(
+    projet = ProjetFactory(
         perimetre=perimetre,
         dossier_ds__ds_date_depot=datetime(2024, 3, 1, tzinfo=UTC),
         dossier_ds__ds_date_traitement=datetime(2024, 5, 1, tzinfo=UTC),
-        dossier_ds__demande_dispositif_sollicite=projet_type,
     )
+    DotationProjetFactory(projet=projet, dotation=projet_dotation)
 
     qs = Projet.objects.included_in_enveloppe(enveloppe=enveloppe)
 
@@ -285,11 +290,12 @@ def test_for_year_2024_and_for_not_processed_states(submitted_year, count):
     perimetre = PerimetreDepartementalFactory()
     enveloppe = DetrEnveloppeFactory(annee=2024, perimetre=perimetre)
     projet = SubmittedProjetFactory(
-        dossier_ds__demande_dispositif_sollicite=enveloppe.type,
+        dossier_ds__demande_dispositif_sollicite=enveloppe.dotation,
         dossier_ds__ds_date_depot=datetime(submitted_year, 12, 31, tzinfo=tz.utc),
         dossier_ds__ds_date_traitement=datetime(submitted_year + 1, 5, 1, tzinfo=UTC),
         perimetre=perimetre,
     )
+    DotationProjetFactory(projet=projet, dotation=enveloppe.dotation)
     print(f"Test with {projet.dossier_ds.ds_state}")
 
     qs = Projet.objects.included_in_enveloppe(enveloppe)
@@ -318,11 +324,12 @@ def test_for_year_2024_and_for_processed_states(submitted_year, processed_year, 
     perimetre = PerimetreDepartementalFactory()
     enveloppe = DetrEnveloppeFactory(annee=2024, perimetre=perimetre)
     projet = ProcessedProjetFactory(
-        dossier_ds__demande_dispositif_sollicite=enveloppe.type,
+        dossier_ds__demande_dispositif_sollicite=enveloppe.dotation,
         dossier_ds__ds_date_depot=datetime(submitted_year, 12, 31, tzinfo=tz.utc),
         dossier_ds__ds_date_traitement=datetime(processed_year, 12, 31, tzinfo=tz.utc),
         perimetre=perimetre,
     )
+    DotationProjetFactory(projet=projet, dotation=enveloppe.dotation)
     print(f"Test with {projet.dossier_ds.ds_state}")
 
     qs = Projet.objects.included_in_enveloppe(enveloppe)
@@ -349,7 +356,7 @@ def test_processed_in_enveloppe_with_different_processed_dates(processed_year, c
     perimetre = PerimetreDepartementalFactory()
     enveloppe = DetrEnveloppeFactory(annee=2024, perimetre=perimetre)
     projet = ProcessedProjetFactory(
-        dossier_ds__demande_dispositif_sollicite=enveloppe.type,
+        dossier_ds__demande_dispositif_sollicite=enveloppe.dotation,
         dossier_ds__ds_date_traitement=datetime(processed_year, 1, 1, tzinfo=tz.utc),
         perimetre=perimetre,
     )

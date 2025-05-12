@@ -7,9 +7,22 @@
 <form method="get"
       action="{{ request.path }}{% querystring %}"
       class="fr-background-alt--blue-france">
-
+    {% comment %}
+      Le premier bouton est utile lorsqu'on tape sur Entrée. Le formulaire agit alors en fonction du premier bouton rencontré.
+      Ça évite que le bouton Entrée ne réinitialise les filtres
+    {% endcomment %}
+    <button type="submit" hidden>
+    </button>
     <div class="projets-filters-layout fr-container--fluid">
         <div class="fr-grid-row fr-grid-row--gutters">
+            <div class="fr-col-12 fr-col-md-4 fr-col-lg-3 reinit-filters">
+                <button class="fr-btn fr-btn--tertiary"
+                        type="submit"
+                        name="reset_filters"
+                        value="1">
+                    <span class="fr-icon-arrow-go-back-fill fr-icon--sm"></span> Réinitialiser les filtres
+                </button>
+            </div>
             {% include "includes/_filter_trier_par.html" %}
             {% for filter_name in filter_templates %}
                 {% include filter_name %}

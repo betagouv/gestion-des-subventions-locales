@@ -13,6 +13,7 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import Projet
 from gsl_simulation.models import Simulation, SimulationProjet
 from gsl_simulation.services.simulation_service import SimulationService
@@ -32,7 +33,7 @@ def test_user_with_department_and_ask_for_dsil_simulation():
 
     enveloppe_dsil_deleguee = Enveloppe.objects.get(
         perimetre=perimetre_departemental,
-        type=Enveloppe.TYPE_DSIL,
+        dotation=DOTATION_DSIL,
         annee=date.today().year,
     )
 
@@ -47,10 +48,10 @@ def test_empty_enveloppe_is_created_if_needed():
     user = CollegueFactory(perimetre=perimetre_departemental)
     assert Enveloppe.objects.count() == 0
 
-    simulation = SimulationService.create_simulation(user, "Test", Enveloppe.TYPE_DETR)
+    simulation = SimulationService.create_simulation(user, "Test", DOTATION_DETR)
 
     assert Enveloppe.objects.count() == 1
-    assert simulation.enveloppe.type == Enveloppe.TYPE_DETR
+    assert simulation.enveloppe.dotation == DOTATION_DETR
 
 
 @pytest.mark.django_db
@@ -64,7 +65,7 @@ def test_user_with_department_and_ask_for_detr_simulation():
 
     simulation = Simulation.objects.get(enveloppe=enveloppe_detr)
     assert simulation.enveloppe == enveloppe_detr
-    assert simulation.enveloppe.type == Enveloppe.TYPE_DETR
+    assert simulation.enveloppe.dotation == DOTATION_DETR
     assert simulation.enveloppe.montant == enveloppe_detr.montant
     assert simulation.slug == "test-aussi-le-slug"
 
@@ -101,7 +102,7 @@ def test_user_with_arrondissement_and_ask_for_dsil_simulation():
     )
 
     simulation = Simulation.objects.get(enveloppe__perimetre=perimetre_arrondissement)
-    assert simulation.enveloppe.type == Enveloppe.TYPE_DSIL
+    assert simulation.enveloppe.dotation == DOTATION_DSIL
     assert simulation.enveloppe.montant == 0
     assert simulation.slug == "test-avec-ces-caracteres"
 
@@ -154,17 +155,17 @@ def test_get_total_amount_granted(simulation):
     )
     ## not in simulation
     SimulationProjetFactory(
-        projet=accepted_projet.projet,
+        dotation_projet=accepted_projet.dotation_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=6_000,
     )
     SimulationProjetFactory(
-        projet=provisionally_accepted_projet.projet,
+        dotation_projet=provisionally_accepted_projet.dotation_projet,
         status=SimulationProjet.STATUS_PROVISOIRE,
         montant=8_000,
     )
 
-    qs = Projet.objects.filter(simulationprojet__simulation=simulation)
+    qs = Projet.objects.filter(dotationprojet__simulationprojet__simulation=simulation)
     assert SimulationService.get_total_amount_granted(qs, simulation) == 1_200 + 2_300
 
 

@@ -126,7 +126,9 @@ class DossierConverter:
         self, dossier: Dossier, django_field_object: models.Field, injectable_value
     ):
         if isinstance(django_field_object, models.ManyToManyField):
-            if not isinstance(injectable_value, Iterable):
+            if isinstance(injectable_value, str) or not isinstance(
+                injectable_value, Iterable
+            ):
                 injectable_value = [injectable_value]
             if not issubclass(django_field_object.related_model, DsChoiceLibelle):
                 raise NotImplementedError("Can only inject DsChoiceLibelle objects")

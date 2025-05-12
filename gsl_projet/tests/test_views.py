@@ -16,6 +16,7 @@ from gsl_core.tests.factories import (
     PerimetreRegionalFactory,
     RequestFactory,
 )
+from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
 from gsl_projet.models import Demandeur, Projet
 from gsl_projet.tests.factories import DemandeurFactory, ProjetFactory
@@ -127,10 +128,10 @@ def test_projets_ordering(req, view, projets, tri_param, expected_ordering):
 def projets_detr(demandeur) -> list[Projet]:
     return [
         ProjetFactory(
-            dossier_ds__demande_dispositif_sollicite="DETR",
+            dossier_ds__demande_dispositif_sollicite=dotation,
             demandeur=demandeur,
         )
-        for _ in range(3)
+        for dotation in ("DETR", "DETR", "['DETR']")
     ]
 
 
@@ -138,63 +139,201 @@ def projets_detr(demandeur) -> list[Projet]:
 def projets_dsil(demandeur) -> list[Projet]:
     return [
         ProjetFactory(
-            dossier_ds__demande_dispositif_sollicite="DSIL",
+            dossier_ds__demande_dispositif_sollicite=dotation,
             demandeur=demandeur,
         )
-        for _ in range(2)
+        for dotation in ("DSIL", "['DSIL']")
+    ]
+
+
+@pytest.fixture
+def projets_with_double_dotations_values(demandeur) -> list[Projet]:
+    return [
+        ProjetFactory(
+            dossier_ds__demande_dispositif_sollicite=dotation, demandeur=demandeur
+        )
+        for dotation in (
+            "['DETR et DSIL']",
+            "DETR et DSIL",
+            "['DSIL', 'DETR']",
+            "['DETR', 'DSIL', 'DETR et DSIL']",
+        )
     ]
 
 
 @pytest.fixture
 def projets_with_other_dotations_values(demandeur) -> list[Projet]:
-    projets = []
-    for dotation in (
-        "['DETR']",
-        "['DETR et DSIL']",
-        "DETR et DSIL",
-        "['DSIL']",
-        "['DETR', 'DSIL', 'DETR et DSIL']",
-    ):
-        projets.append(
-            ProjetFactory(
-                dossier_ds__demande_dispositif_sollicite=dotation, demandeur=demandeur
-            )
+    return [
+        ProjetFactory(
+            dossier_ds__demande_dispositif_sollicite=dotation, demandeur=demandeur
         )
-    return projets
+        for dotation in (
+            "",
+            "Fond vert",
+        )
+    ]
 
 
-def test_filter_by_dotation(
-    req, view, projets_detr, projets_dsil, projets_with_other_dotations_values
+def test_filter_by_dotation_only_detr(
+    req,
+    view,
+    projets_detr,
+    projets_dsil,
+    projets_with_double_dotations_values,
+    projets_with_other_dotations_values,
 ):
     request = req.get("/?dotation=DETR")
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
-    assert Projet.objects.count() == 10
+    assert Projet.objects.count() == 11
 
-    assert qs.count() == 3 + 4
-    assert all("DETR" in p.dossier_ds.demande_dispositif_sollicite for p in qs)
+    assert qs.count() == 3
+    for p in qs:
+        dotation = p.dossier_ds.demande_dispositif_sollicite
+        assert "DETR" in dotation
+        assert "DSIL" not in dotation
+        assert not ("DSIL" in dotation and "DETR" in dotation)
 
 
-def test_filter_by_dotation_dsil(
-    req, view, projets_detr, projets_dsil, projets_with_other_dotations_values
+def test_filter_by_dotation_only_dsil(
+    req,
+    view,
+    projets_detr,
+    projets_dsil,
+    projets_with_double_dotations_values,
+    projets_with_other_dotations_values,
 ):
     request = req.get("/?dotation=DSIL")
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
-    assert Projet.objects.count() == 10
+    assert Projet.objects.count() == 11
+
+    assert qs.count() == 2
+    for p in qs:
+        dotation = p.dossier_ds.demande_dispositif_sollicite
+        assert "DSIL" in dotation
+        assert "DETR" not in dotation
+        assert not ("DSIL" in dotation and "DETR" in dotation)
+
+
+def test_filter_by_dotation_detr_and_dsil(
+    req,
+    view,
+    projets_detr,
+    projets_dsil,
+    projets_with_double_dotations_values,
+    projets_with_other_dotations_values,
+):
+    request = req.get("/?dotation=DETR&dotation=DSIL")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert Projet.objects.count() == 11
+
+    assert qs.count() == 3 + 2
+    for p in qs:
+        dotation = p.dossier_ds.demande_dispositif_sollicite
+        assert "DSIL" in dotation or "DETR" in dotation
+        assert not ("DSIL" in dotation and "DETR" in dotation)
+
+
+def test_filter_by_dotation_only_detr_dsil(
+    req,
+    view,
+    projets_detr,
+    projets_dsil,
+    projets_with_double_dotations_values,
+    projets_with_other_dotations_values,
+):
+    request = req.get("/?dotation=DETR_et_DSIL")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert Projet.objects.count() == 11
+
+    assert qs.count() == 4
+    for p in qs:
+        dotation = p.dossier_ds.demande_dispositif_sollicite
+        assert "DSIL" in dotation and "DETR" in dotation
+
+
+def test_filter_by_dotation_detr_and_detr_dsil(
+    req,
+    view,
+    projets_detr,
+    projets_dsil,
+    projets_with_double_dotations_values,
+    projets_with_other_dotations_values,
+):
+    request = req.get("/?dotation=DETR&dotation=DETR_et_DSIL")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert Projet.objects.count() == 11
+
+    assert qs.count() == 3 + 4
+    for p in qs:
+        dotation = p.dossier_ds.demande_dispositif_sollicite
+        assert ("DSIL" in dotation and "DETR" in dotation) or "DETR" in dotation
+        assert not ("DSIL" in dotation and "DETR" not in dotation)
+
+
+def test_filter_by_dotation_dsil_and_detr_dsil(
+    req,
+    view,
+    projets_detr,
+    projets_dsil,
+    projets_with_double_dotations_values,
+    projets_with_other_dotations_values,
+):
+    request = req.get("/?dotation=DSIL&dotation=DETR_et_DSIL")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert Projet.objects.count() == 11
 
     assert qs.count() == 2 + 4
-    assert all("DSIL" in p.dossier_ds.demande_dispositif_sollicite for p in qs)
+    for p in qs:
+        dotation = p.dossier_ds.demande_dispositif_sollicite
+        assert ("DSIL" in dotation and "DETR" in dotation) or "DSIL" in dotation
+        assert not ("DETR" in dotation and "DSIL" not in dotation)
 
 
-def test_no_dispositif_filter(req, view, projets_detr, projets_dsil):
+def test_filter_by_dotation_detr_and_dsil_and_detr_dsil(
+    req,
+    view,
+    projets_detr,
+    projets_dsil,
+    projets_with_double_dotations_values,
+    projets_with_other_dotations_values,
+):
+    request = req.get("/?dotation=DETR&dotation=DSIL&dotation=DETR_et_DSIL")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert Projet.objects.count() == 11
+
+    assert qs.count() == 3 + 2 + 4
+    for p in qs:
+        dotation = p.dossier_ds.demande_dispositif_sollicite
+        assert "DETR" in dotation or "DSIL" in dotation
+
+
+def test_no_dispositif_filter(
+    req,
+    view,
+    projets_detr,
+    projets_dsil,
+    projets_with_double_dotations_values,
+    projets_with_other_dotations_values,
+):
     request = req.get("/")
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
-    assert qs.count() == 5
+    assert qs.count() == 11
 
 
 ### Test du filtre par porteur
@@ -203,8 +342,14 @@ def test_no_dispositif_filter(req, view, projets_detr, projets_dsil):
 @pytest.fixture
 def projets_epci(demandeur) -> list[Projet]:
     projets = []
-    for epci_label in ["EPCI", "Pôle d'équilibre territorial et rural"]:
-        nature_porteur_projet = NaturePorteurProjetFactory(label=epci_label)
+    for epci_label in (
+        "EPCI",
+        "Pôle d'équilibre territorial et rural",
+        "Syndicat de communes",
+    ):
+        nature_porteur_projet = NaturePorteurProjetFactory(
+            label=epci_label, type=NaturePorteurProjet.EPCI
+        )
         projets.append(
             ProjetFactory(
                 demandeur=demandeur,
@@ -216,14 +361,24 @@ def projets_epci(demandeur) -> list[Projet]:
 
 @pytest.fixture
 def projets_communes(demandeur) -> list[Projet]:
+    for commune_label in ("Commune",):
+        nature_porteur_projet = NaturePorteurProjetFactory(
+            label=commune_label, type=NaturePorteurProjet.COMMUNES
+        )
+        projet = ProjetFactory(
+            demandeur=demandeur,
+            dossier_ds__porteur_de_projet_nature=nature_porteur_projet,
+        )
+    return [projet]
+
+
+@pytest.fixture
+def projets_other(demandeur) -> list[Projet]:
     projets = []
-    for commune_label in [
-        "Commune",
-        "Syndicat de communes",
-        "Syndicat mixte fermé",
-        "Syndicat Mixte Fermé",
-    ]:
-        nature_porteur_projet = NaturePorteurProjetFactory(label=commune_label)
+    for commune_label in ("test_gsl", "Departement"):
+        nature_porteur_projet = NaturePorteurProjetFactory(
+            label=commune_label, type=NaturePorteurProjet.AUTRE
+        )
         projets.append(
             ProjetFactory(
                 demandeur=demandeur,
@@ -236,7 +391,7 @@ def projets_communes(demandeur) -> list[Projet]:
 @pytest.fixture
 def projets_unknown_projet(demandeur) -> list[Projet]:
     projets = []
-    for porteur_label in ["Inconnu", "Fake", "Wrong"]:
+    for porteur_label in ("Inconnu", "Fake", "Wrong"):
         nature_porteur_projet = NaturePorteurProjetFactory(label=porteur_label)
         projets.append(
             ProjetFactory(
@@ -247,44 +402,31 @@ def projets_unknown_projet(demandeur) -> list[Projet]:
     return projets
 
 
+@pytest.mark.parametrize(
+    "porteur, expected_count",
+    (
+        ("epci", 3),
+        ("communes", 1),
+        ("autre", 2),
+        ("inconnu", 9),
+        ("", 9),
+    ),
+)
 def test_filter_by_epci_porteur(
-    req, view, projets_epci, projets_unknown_projet, projets_communes
+    req,
+    view,
+    projets_epci,
+    projets_unknown_projet,
+    projets_other,
+    projets_communes,
+    porteur,
+    expected_count,
 ):
-    request = req.get("/?porteur=EPCI")
+    request = req.get(f"/?porteur={porteur}")
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
 
-    assert qs.count() == 2
-
-
-def test_filter_by_communes_porteur(
-    req, view, projets_epci, projets_unknown_projet, projets_communes
-):
-    request = req.get("/?porteur=Communes")
-    view.request = request
-    qs = view.get_filterset(ProjetFilters).qs
-
-    assert qs.count() == 4
-
-
-def test_filter_by_epci(
-    req, view, projets_epci, projets_unknown_projet, projets_communes
-):
-    request = req.get("/")
-    view.request = request
-    qs = view.get_filterset(ProjetFilters).qs
-
-    assert qs.count() == 9
-
-
-def test_wrong_porteur_filter(
-    req, view, projets_epci, projets_unknown_projet, projets_communes
-):
-    request = req.get("/?porteur='Fake'")
-    view.request = request
-    qs = view.get_filterset(ProjetFilters).qs
-
-    assert qs.count() == 9
+    assert qs.count() == expected_count
 
 
 ### Test du filtre par coût

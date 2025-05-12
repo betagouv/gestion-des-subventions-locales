@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Count
 
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_core.models import Perimetre
@@ -63,13 +64,25 @@ class SimulationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
     raw_id_fields = ("created_by",)
     autocomplete_fields = ("enveloppe", "created_by")
-    list_display = ("__str__", "enveloppe", "created_at", "slug")
+    list_display = (
+        "__str__",
+        "enveloppe",
+        "created_at",
+        "slug",
+        "simulationprojets_count",
+    )
     list_filter = (
         "enveloppe__annee",
-        "enveloppe__type",
+        "enveloppe__dotation",
         SimulationRegionFilter,
         SimulationDepartementFilter,
     )
+
+    def simulationprojets_count(self, obj) -> int:
+        return obj.simulationprojets_count
+
+    simulationprojets_count.admin_order_field = "simulationprojets_count"
+    simulationprojets_count.short_description = "Nb de projets"
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -80,6 +93,7 @@ class SimulationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             .select_related("enveloppe__perimetre__departement")
             .select_related("enveloppe__perimetre__arrondissement")
         )
+        qs = qs.annotate(simulationprojets_count=Count("simulationprojet"))
         return qs
 
 
@@ -87,18 +101,39 @@ class SimulationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 class SimulationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = (
         "__str__",
-        "projet__dossier_ds__projet_intitule",
-        "simulation__slug",
+        "intitule",
+        "simulation",
         "status",
     )
-    search_fields = ("projet__dossier_ds__projet_intitule",)
-    raw_id_fields = ("projet", "simulation")
+    search_fields = ("dotation_projet__projet__dossier_ds__projet_intitule",)
+    raw_id_fields = (
+        "dotation_projet",
+        "simulation",
+    )
+    fields = (
+        "dotation_projet",
+        "projet",
+        "simulation",
+        "montant",
+        "taux",
+        "status",
+        "created_at",
+        "updated_at",
+    )
+    readonly_fields = (
+        "projet",
+        "created_at",
+        "updated_at",
+    )
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         qs = (
-            qs.select_related("projet")
-            .select_related("projet__dossier_ds")
+            qs.select_related("dotation_projet__projet")
+            .select_related("dotation_projet__projet__dossier_ds")
             .select_related("simulation")
         )
         return qs
+
+    def intitule(self, obj):
+        return obj.dotation_projet.projet.dossier_ds.projet_intitule

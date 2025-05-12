@@ -1,4 +1,5 @@
 from django.db import models
+from django.urls import reverse
 
 from gsl_core.models import Adresse, Perimetre
 from gsl_core.models import Arrondissement as CoreArrondissement
@@ -279,8 +280,6 @@ class Dossier(DsModel):
         blank=True,
     )
 
-    DOTATION_DETR = "DETR"
-    DOTATION_DSIL = "DSIL"
     demande_dispositif_sollicite = models.CharField(
         "Dispositif de financement sollicité",
         blank=True,
@@ -424,6 +423,12 @@ class Dossier(DsModel):
         return f"https://www.demarches-simplifiees.fr/procedures/{self.ds_demarche.ds_number}/dossiers/{self.ds_number}"
 
     @property
+    def json_url(self):
+        return reverse(
+            "ds:view-dossier-json", kwargs={"dossier_ds_number": self.ds_number}
+        )
+
+    @property
     def perimetre(self) -> Perimetre | None:
         """
         Retourne le périmètre du projet, le + précis possible (niveau arrondissement).
@@ -465,14 +470,19 @@ class DsChoiceLibelle(DsModel):
 
 
 class NaturePorteurProjet(DsChoiceLibelle):
-    EPCI_NATURES = ["EPCI", "Pôle d'équilibre territorial et rural"]
-    COMMUNE_NATURES = [
-        "Commune",
-        "Syndicat de communes",
-        "Syndicat mixte fermé",
-        "Syndicat Mixte Fermé",
-    ]
-    pass
+    EPCI = "epci"
+    COMMUNES = "communes"
+    AUTRE = "autre"
+    TYPE_CHOICES = (
+        (EPCI, "EPCI"),
+        (COMMUNES, "Communes"),
+        (AUTRE, "Autre"),
+    )
+    type = models.CharField(max_length=8, choices=TYPE_CHOICES, blank=True)
+
+    class Meta:
+        verbose_name = "Nature du porteur de projet"
+        verbose_name_plural = "Natures de porteur de projet"
 
 
 class Arrondissement(DsChoiceLibelle):
@@ -503,11 +513,15 @@ class ObjectifEnvironnemental(DsChoiceLibelle):
 
 
 class CritereEligibiliteDetr(DsChoiceLibelle):
-    pass
+    class Meta:
+        verbose_name = "Catégorie DETR"
+        verbose_name_plural = "Catégories DETR"
 
 
 class CritereEligibiliteDsil(DsChoiceLibelle):
-    pass
+    class Meta:
+        verbose_name = "Catégorie DSIL"
+        verbose_name_plural = "Catégories DSIL"
 
 
 class AutreAide(DsChoiceLibelle):

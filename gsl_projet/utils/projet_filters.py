@@ -1,57 +1,125 @@
 from django.db.models import Q
-from django.forms import NumberInput, Select
+from django.forms import NumberInput
 from django_filters import (
-    ChoiceFilter,
     FilterSet,
     MultipleChoiceFilter,
     NumberFilter,
 )
 
 from gsl_core.models import Perimetre
-from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.models import NaturePorteurProjet
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_CHOICES,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
 from gsl_projet.models import Projet
-from gsl_projet.services import ProjetService
+from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 
 
 class ProjetFilters(FilterSet):
-    dotation = ChoiceFilter(
-        field_name="dossier_ds__demande_dispositif_sollicite",
-        choices=(
-            (Dossier.DOTATION_DETR, Dossier.DOTATION_DETR),
-            (Dossier.DOTATION_DSIL, Dossier.DOTATION_DSIL),
+    DOTATION_CHOICES = (
+        (DOTATION_DETR, DOTATION_DETR),
+        (DOTATION_DSIL, DOTATION_DSIL),
+        (
+            "DETR_et_DSIL",
+            f"{DOTATION_DETR} et {DOTATION_DSIL}",
         ),
-        widget=Select(
-            attrs={
-                "class": "fr-select",
-            }
-        ),
-        empty_label="Toutes les dotations",
-        lookup_expr="contains",
     )
 
-    porteur = ChoiceFilter(
-        field_name="dossier_ds__porteur_de_projet_nature__label__in",
-        choices=(
-            ("EPCI", "EPCI"),
-            ("Communes", "Communes"),
-        ),
-        method="filter_porteur",
-        widget=Select(
-            attrs={
-                "class": "fr-select",
-            },
-        ),
-        empty_label="Tous les porteurs",
+    dotation = MultipleChoiceFilter(
+        choices=DOTATION_CHOICES,
+        widget=CustomCheckboxSelectMultiple(),
+        method="filter_dotation",
     )
 
-    def filter_porteur(self, queryset, _name, value):
-        return queryset.filter(
-            dossier_ds__porteur_de_projet_nature__label__in=ProjetService.PORTEUR_MAPPINGS.get(
-                value
-            )
-        )
+    # TODO dotation_pr use dotation_projet
+    def filter_dotation(self, queryset, _name, values):
+        if not values:
+            return queryset
+
+        query = Q()
+
+        if DOTATION_DETR in values:
+            if DOTATION_DSIL in values:
+                if "DETR_et_DSIL" in values:
+                    # Inclure "DETR" ou "DSIL"
+                    query &= Q(
+                        Q(
+                            dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DETR
+                        )
+                        | Q(
+                            dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DSIL
+                        )
+                    )
+                else:
+                    # Inclure "DETR" seul ou "DSIL" seul mais pas "DETR" et "DSIL" ensemble
+                    query &= (
+                        Q(
+                            dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DETR
+                        )
+                        & ~Q(
+                            dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DSIL
+                        )
+                    ) | (
+                        Q(
+                            dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DSIL
+                        )
+                        & ~Q(
+                            dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DETR
+                        )
+                    )
+            else:
+                if "DETR_et_DSIL" in values:
+                    # Inclure "DETR" seul ou "DETR_et_DSIL", mais exclure "DSIL" seul
+                    query &= Q(
+                        dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DETR
+                    )
+
+                if "DETR_et_DSIL" not in values:
+                    # Inclure "DETR" mais exclure ceux qui contiennent "DSIL"
+                    query &= Q(
+                        dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DETR
+                    ) & ~Q(
+                        dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DSIL
+                    )
+
+        else:
+            if DOTATION_DSIL in values:
+                if "DETR_et_DSIL" in values:
+                    # Inclure "DSIL" seul ou "DETR_et_DSIL", mais exclure "DETR" seul
+                    query &= Q(
+                        dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DSIL
+                    )
+                else:
+                    # Inclure uniquement "DSIL" et exclure "DETR"
+                    query &= Q(
+                        dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DSIL
+                    ) & ~Q(
+                        dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DETR
+                    )
+            else:
+                # Inclure seulement les projets double dotations "DETR" et "DSIL"
+                query &= Q(
+                    Q(dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DETR)
+                    & Q(
+                        dossier_ds__demande_dispositif_sollicite__icontains=DOTATION_DSIL
+                    )
+                )
+
+        return queryset.filter(query)
+
+    porteur = MultipleChoiceFilter(
+        field_name="dossier_ds__porteur_de_projet_nature__type",
+        choices=NaturePorteurProjet.TYPE_CHOICES,
+        widget=CustomCheckboxSelectMultiple(),
+    )
 
     cout_min = NumberFilter(
         method="filter_cout_min",
@@ -112,16 +180,16 @@ class ProjetFilters(FilterSet):
     )
 
     ordered_status: tuple[str, ...] = (
-        Projet.STATUS_PROCESSING,
-        Projet.STATUS_REFUSED,
-        Projet.STATUS_ACCEPTED,
-        Projet.STATUS_DISMISSED,
+        PROJET_STATUS_PROCESSING,
+        PROJET_STATUS_REFUSED,
+        PROJET_STATUS_ACCEPTED,
+        PROJET_STATUS_DISMISSED,
     )
 
     status = MultipleChoiceFilter(
         field_name="status",
         choices=order_couples_tuple_by_first_value(
-            Projet.STATUS_CHOICES, ordered_status
+            PROJET_STATUS_CHOICES, ordered_status
         ),
         widget=CustomCheckboxSelectMultiple(),
     )

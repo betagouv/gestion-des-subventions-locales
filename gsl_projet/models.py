@@ -5,10 +5,21 @@ from typing import TYPE_CHECKING
 
 from django.db import models
 from django.db.models import Q
+from django.forms import ValidationError
 from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_projet.constants import (
+    DOTATION_CHOICES,
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_CHOICES,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
 
 if TYPE_CHECKING:
     from gsl_programmation.models import Enveloppe
@@ -68,11 +79,11 @@ class ProjetQuerySet(models.QuerySet):
 
     def included_in_enveloppe(self, enveloppe: "Enveloppe"):
         projet_qs = self.for_perimetre(enveloppe.perimetre)
-        projet_qs_with_the_right_type = projet_qs.filter(
-            dossier_ds__demande_dispositif_sollicite=enveloppe.type,
+        projet_qs_with_the_correct_dotation = projet_qs.filter(
+            dotationprojet__dotation=enveloppe.dotation
         )
         projet_qs_submitted_before_the_end_of_the_year = (
-            projet_qs_with_the_right_type.filter(
+            projet_qs_with_the_correct_dotation.filter(
                 dossier_ds__ds_date_depot__lt=datetime(
                     enveloppe.annee + 1, 1, 1, tzinfo=UTC
                 ),
@@ -86,7 +97,7 @@ class ProjetQuerySet(models.QuerySet):
     def processed_in_enveloppe(self, enveloppe: "Enveloppe"):
         projet_qs = self.for_perimetre(enveloppe.perimetre)
         projet_qs_with_the_right_type = projet_qs.filter(
-            dossier_ds__demande_dispositif_sollicite=enveloppe.type,
+            dossier_ds__demande_dispositif_sollicite=enveloppe.dotation,
         )
         projet_qs_with_a_processed_state = projet_qs_with_the_right_type.filter(
             dossier_ds__ds_state__in=[
@@ -112,7 +123,12 @@ class ProjetQuerySet(models.QuerySet):
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
     def get_queryset(self):
-        return super().get_queryset().select_related("dossier_ds")
+        return (
+            super()
+            .get_queryset()
+            .select_related("dossier_ds")
+            .prefetch_related("dotationprojet_set")
+        )
 
 
 class Projet(models.Model):
@@ -123,19 +139,13 @@ class Projet(models.Model):
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT, null=True)
     perimetre = models.ForeignKey(Perimetre, on_delete=models.PROTECT, null=True)
 
-    STATUS_ACCEPTED = "accepted"
-    STATUS_REFUSED = "refused"
-    STATUS_PROCESSING = "processing"
-    STATUS_DISMISSED = "dismissed"
-    STATUS_CHOICES = (
-        (STATUS_ACCEPTED, "✅ Accepté"),
-        (STATUS_REFUSED, "❌ Refusé"),
-        (STATUS_PROCESSING, "🔄 En traitement"),
-        (STATUS_DISMISSED, "⛔️ Classé sans suite"),
+    status = models.CharField(
+        verbose_name="Statut",
+        choices=PROJET_STATUS_CHOICES,
+        default=PROJET_STATUS_PROCESSING,
     )
-    # TODO put back protected=True, once every status transition is handled
-    status = FSMField("Statut", choices=STATUS_CHOICES, default=STATUS_PROCESSING)
 
+    # TODO pr_dotation remove this
     assiette = models.DecimalField(
         "Assiette subventionnable",
         max_digits=12,
@@ -143,10 +153,24 @@ class Projet(models.Model):
         null=True,
     )
 
+    # TODO pr_dotation remove this (and ensure that dotation field are copied its projet one ?)
+    # TODO add a constraint to ensure that the projet is concerned by dotation DETR
+    # or put this in new model DotationProjet ?
     avis_commission_detr = models.BooleanField(
         "Avis commission DETR",
         help_text="Pour les projets de plus de 100 000 €",
         null=True,
+    )
+    is_in_qpv = models.BooleanField("Projet situé en QPV", null=False, default=False)
+    is_attached_to_a_crte = models.BooleanField(
+        "Projet rattaché à un CRTE",
+        null=False,
+        default=False,
+    )
+    is_budget_vert = models.BooleanField(
+        "Projet concourant à la transition écologique au sens budget vert",
+        null=True,
+        default=False,
     )
     free_comment = models.TextField("Commentaires libres", blank=True, default="")
 
@@ -160,12 +184,14 @@ class Projet(models.Model):
 
         return reverse("projet:get-projet", kwargs={"projet_id": self.id})
 
+    # TODO pr_dotation remove it
     @property
     def assiette_or_cout_total(self):
         if self.assiette:
             return self.assiette
         return self.dossier_ds.finance_cout_total
 
+    # TODO pr_dotation move it to DotationProjet
     @cached_property
     def accepted_programmation_projet(self):
         if (
@@ -174,17 +200,30 @@ class Projet(models.Model):
         ):
             return self.accepted_programmation_projets[0]
 
+    # TODO pr_dotation move it to DotationProjet
     @property
     def montant_retenu(self) -> float | None:
         if self.accepted_programmation_projet:
             return self.accepted_programmation_projet.montant
         return None
 
+    # TODO pr_dotation move it to DotationProjet
     @property
     def taux_retenu(self) -> float | None:
         if self.accepted_programmation_projet:
             return self.accepted_programmation_projet.taux
         return None
+
+    @property
+    def is_asking_for_detr(self) -> bool:
+        return self.dotationprojet_set.filter(dotation=DOTATION_DETR).exists()
+
+    @property
+    def categorie_doperation(self):
+        if DOTATION_DETR in self.dossier_ds.demande_dispositif_sollicite:
+            yield from self.dossier_ds.demande_eligibilite_detr.all()
+        if DOTATION_DSIL in self.dossier_ds.demande_dispositif_sollicite:
+            yield from self.dossier_ds.demande_eligibilite_dsil.all()
 
     def get_taux_de_subvention_sollicite(self):
         if (
@@ -202,23 +241,68 @@ class Projet(models.Model):
         if self.assiette > 0:
             return int(100 * self.assiette / self.dossier_ds.finance_cout_total)
 
-    @property
-    def categorie_doperation(self):
-        if "DETR" in self.dossier_ds.demande_dispositif_sollicite:
-            yield from self.dossier_ds.demande_eligibilite_detr.all()
-        if "DSIL" in self.dossier_ds.demande_dispositif_sollicite:
-            yield from self.dossier_ds.demande_eligibilite_dsil.all()
 
-    @transition(field=status, source="*", target=STATUS_ACCEPTED)
+class DotationProjet(models.Model):
+    projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
+    dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
+    # TODO pr_dotation put back protected=True, once every status transition is handled
+    status = FSMField(
+        "Statut", choices=PROJET_STATUS_CHOICES, default=PROJET_STATUS_PROCESSING
+    )
+    assiette = models.DecimalField(
+        "Assiette subventionnable",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+    )
+    detr_avis_commission = models.BooleanField(
+        "Avis commission DETR",
+        help_text="Pour les projets de plus de 100 000 €",
+        null=True,
+    )
+
+    class Meta:
+        unique_together = ("projet", "dotation")
+
+    def __str__(self):
+        return f"Projet {self.projet_id} - Dotation {self.dotation}"
+
+    # TODO pr_dotation test it
+    def clean(self):
+        errors = {}
+        if self.dotation == DOTATION_DSIL and self.detr_avis_commission is not None:
+            errors["detr_avis_commission"] = (
+                "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR."
+            )
+
+        if errors:
+            raise ValidationError(errors)
+
+    @property
+    def dossier_ds(self):
+        return self.projet.dossier_ds
+
+    @property
+    def assiette_or_cout_total(self):
+        if self.assiette:
+            return self.assiette
+        return self.dossier_ds.finance_cout_total
+
+    @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
     def accept(self, montant: float, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_programmation.services.enveloppe_service import EnveloppeService
-        from gsl_projet.services import ProjetService
+        from gsl_projet.services.dotation_projet_services import DotationProjetService
         from gsl_simulation.models import SimulationProjet
 
-        taux = ProjetService.compute_taux_from_montant(self, montant)
+        if self.dotation != enveloppe.dotation:
+            raise ValidationError(
+                "La dotation du projet et de l'enveloppe ne correspondent pas."
+            )
 
-        SimulationProjet.objects.filter(projet=self).update(
+        taux = DotationProjetService.compute_taux_from_montant(self, montant)
+
+        SimulationProjet.objects.filter(dotation_projet=self).update(
             status=SimulationProjet.STATUS_ACCEPTED,
             montant=montant,
             taux=taux,
@@ -227,7 +311,7 @@ class Projet(models.Model):
         parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
 
         ProgrammationProjet.objects.update_or_create(
-            projet=self,
+            dotation_projet=self,
             enveloppe=parent_enveloppe,
             defaults={
                 "montant": montant,
@@ -236,13 +320,18 @@ class Projet(models.Model):
             },
         )
 
-    @transition(field=status, source="*", target=STATUS_REFUSED)
+    @transition(field=status, source="*", target=PROJET_STATUS_REFUSED)
     def refuse(self, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_programmation.services.enveloppe_service import EnveloppeService
         from gsl_simulation.models import SimulationProjet
 
-        SimulationProjet.objects.filter(projet=self).update(
+        if self.dotation != enveloppe.dotation:
+            raise ValidationError(
+                "La dotation du projet et de l'enveloppe ne correspondent pas."
+            )
+
+        SimulationProjet.objects.filter(dotation_projet=self).update(
             status=SimulationProjet.STATUS_REFUSED,
             montant=0,
             taux=0,
@@ -251,7 +340,7 @@ class Projet(models.Model):
         parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
 
         ProgrammationProjet.objects.update_or_create(
-            projet=self,
+            dotation_projet=self,
             enveloppe=parent_enveloppe,
             defaults={
                 "montant": 0,
@@ -260,28 +349,28 @@ class Projet(models.Model):
             },
         )
 
+    @transition(field=status, source="*", target=PROJET_STATUS_DISMISSED)
+    def dismiss(self):
+        from gsl_programmation.models import ProgrammationProjet
+        from gsl_simulation.models import SimulationProjet
+
+        SimulationProjet.objects.filter(dotation_projet=self).update(
+            status=SimulationProjet.STATUS_DISMISSED, montant=0, taux=0
+        )
+
+        ProgrammationProjet.objects.filter(dotation_projet=self).delete()
+
     @transition(
         field=status,
-        source=[STATUS_ACCEPTED, STATUS_REFUSED, STATUS_DISMISSED],
-        target=STATUS_PROCESSING,
+        source=[PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED],
+        target=PROJET_STATUS_PROCESSING,
     )
     def set_back_status_to_processing(self):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
-        SimulationProjet.objects.filter(projet=self).update(
+        SimulationProjet.objects.filter(dotation_projet=self).update(
             status=SimulationProjet.STATUS_PROCESSING,
         )
 
-        ProgrammationProjet.objects.filter(projet=self).delete()
-
-    @transition(field=status, source="*", target=STATUS_DISMISSED)
-    def dismiss(self):
-        from gsl_programmation.models import ProgrammationProjet
-        from gsl_simulation.models import SimulationProjet
-
-        SimulationProjet.objects.filter(projet=self).update(
-            status=SimulationProjet.STATUS_DISMISSED, montant=0, taux=0
-        )
-
-        ProgrammationProjet.objects.filter(projet=self).delete()
+        ProgrammationProjet.objects.filter(dotation_projet=self).delete()

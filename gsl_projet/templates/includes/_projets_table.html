@@ -15,7 +15,7 @@
                     Intitulé du projet
                 </th>
                 <th>
-                    Commune
+                    Demandeur
                 </th>
                 <th>
                     N° D.S.
@@ -62,7 +62,7 @@
                         {{ projet.dossier_ds.projet_intitule }}
                     </td>
                     <td>
-                        {{ projet.address.commune.name }}
+                        {{ projet.demandeur.name | format_demandeur_nom }}
                     </td>
                     <td>
                         {{ projet.dossier_ds.ds_number }}
@@ -71,7 +71,7 @@
                         {{ projet.dossier_ds.demande_dispositif_sollicite }}
                     </td>
                     <td class="gsl-money">
-                        {{ projet.assiette_or_cout_total|euro:2 }}
+                        {{ projet.dossier_ds.finance_cout_total|euro:2 }}
                     </td>
                     <td class="gsl-money">
                         {{ projet.dossier_ds.demande_montant|euro:2 }}

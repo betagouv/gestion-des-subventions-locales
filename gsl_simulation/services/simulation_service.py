@@ -7,6 +7,7 @@ from django.utils.text import slugify
 
 from gsl_core.models import Perimetre
 from gsl_programmation.models import Enveloppe
+from gsl_projet.constants import DOTATION_DETR
 from gsl_projet.models import Projet
 from gsl_simulation.models import Simulation, SimulationProjet
 
@@ -18,13 +19,13 @@ class SimulationService:
         if user_perimetre is None:
             raise ValueError("User has no perimetre")
 
-        if dotation == Enveloppe.TYPE_DETR:
+        if dotation == DOTATION_DETR:
             if user_perimetre.type == Perimetre.TYPE_REGION:
                 raise ValueError("For a DETR simulation, user must have a departement")
 
         enveloppe, _ = Enveloppe.objects.get_or_create(
             perimetre=user_perimetre,
-            type=dotation,
+            dotation=dotation,
             annee=date.today().year,
             defaults={"montant": 0},
         )  # TODO: handle deleguee_by if needed
@@ -57,10 +58,10 @@ class SimulationService:
         )
         return (
             qs.filter(
-                simulationprojet__simulation=simulation,
-                simulationprojet__status__in=statuses_to_include,
-            ).aggregate(Sum("simulationprojet__montant"))[
-                "simulationprojet__montant__sum"
+                dotationprojet__simulationprojet__simulation=simulation,
+                dotationprojet__simulationprojet__status__in=statuses_to_include,
+            ).aggregate(Sum("dotationprojet__simulationprojet__montant"))[
+                "dotationprojet__simulationprojet__montant__sum"
             ]
             or 0.0
         )

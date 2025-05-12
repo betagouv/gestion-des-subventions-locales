@@ -1,4 +1,6 @@
 from gsl_core.models import Perimetre
+from gsl_demarches_simplifiees.models import NaturePorteurProjet
+from gsl_projet.utils.projet_filters import ProjetFilters
 
 
 class FilterUtils:
@@ -13,9 +15,14 @@ class FilterUtils:
         "territoire": "includes/_filter_territoire.html",
     }
 
+    DOTATION_MAPPING = dict(ProjetFilters.DOTATION_CHOICES)
+    PORTEUR_MAPPING = dict(NaturePorteurProjet.TYPE_CHOICES)
+
     def enrich_context_with_filter_utils(self, context, state_mappings):
+        context["is_dotation_active"] = self._get_is_one_field_active("dotation")
+        context["dotation_placeholder"] = self._get_dotation_placeholder()
         context["is_status_active"] = self._get_is_one_field_active("status")
-        context["is_status_placeholder"] = self._get_status_placeholder(state_mappings)
+        context["status_placeholder"] = self._get_status_placeholder(state_mappings)
         context["is_cout_total_active"] = self._get_is_one_field_active(
             "cout_min", "cout_max"
         )
@@ -28,15 +35,26 @@ class FilterUtils:
         context["is_montant_previsionnel_active"] = self._get_is_one_field_active(
             "montant_previsionnel_min", "montant_previsionnel_max"
         )
+        context["is_porteur_active"] = self._get_is_one_field_active("porteur")
+        context["porteur_placeholder"] = self._get_porteur_placeholder()
         context["is_territoire_active"] = self._get_is_one_field_active("territoire")
-        context["is_territoire_placeholder"], context["territoire_selected"] = (
+        context["territoire_placeholder"], context["territoire_selected"] = (
             self._get_selected_territoires()
         )
         context["territoire_choices"] = self._get_territoire_choices()
-
         context["filter_templates"] = self._get_filter_templates()
 
         return context
+
+    def _get_dotation_placeholder(self):
+        if self.request.GET.getlist("dotation") in ("", None, []):
+            return "Toutes les dotations"
+
+        return ", ".join(
+            FilterUtils.DOTATION_MAPPING[dotation]
+            for dotation in self.request.GET.getlist("dotation")
+            if dotation in FilterUtils.DOTATION_MAPPING
+        )
 
     def _get_filter_templates(self):
         try:
@@ -52,6 +70,14 @@ class FilterUtils:
             state_mappings[status]
             for status in self.request.GET.getlist("status")
             if status in state_mappings
+        )
+
+    def _get_porteur_placeholder(self):
+        if self.request.GET.getlist("porteur") in (None, "", []):
+            return "Tous"
+        return ", ".join(
+            FilterUtils.PORTEUR_MAPPING[porteur]
+            for porteur in self.request.GET.getlist("porteur")
         )
 
     def _get_selected_territoires(self):
