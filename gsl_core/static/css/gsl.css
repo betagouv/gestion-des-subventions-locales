@@ -52,8 +52,8 @@ ul.no-list-style li {
     color: var(--status-color-blue);
 }
 
-.color-orange {
-    color: var(--artwork-minor-pink-tuile)
+.color-brown {
+    color: var(--status-color-brown);
 }
 
 /* Page un projet */

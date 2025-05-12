@@ -147,7 +147,7 @@
 }
 
 .status-select:has(> option[value="provisionally_refused"]:checked){
-  color: var(--artwork-minor-pink-tuile)
+  color: var(--text-action-high-orange-terre-battue)
 }
 
 /* inputs */
@@ -160,6 +160,11 @@
 .input-status-color-provisionally_accepted{
   background-color: var(--text-inverted-blue-ecume);
   box-shadow: inset 0 -2px 0 0 var(--border-action-high-info)
+}
+
+.input-status-color-provisionally_refused{
+  background-color: var(--background-contrast-brown-opera);
+  box-shadow: inset 0 -2px 0 0 var(--text-action-high-orange-terre-battue)
 }
 
 .form-disabled-before-value-change > .fr-callout {
