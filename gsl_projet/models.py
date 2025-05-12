@@ -13,6 +13,7 @@ from gsl_projet.constants import (
     DOTATION_CHOICES,
     DOTATION_DETR,
     DOTATION_DSIL,
+    MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
     POSSIBLE_DOTATIONS,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_CHOICES,
@@ -143,8 +144,12 @@ class Projet(models.Model):
         return reverse("projet:get-projet", kwargs={"projet_id": self.id})
 
     @property
-    def is_asking_for_detr(self) -> bool:
-        return self.dotationprojet_set.filter(dotation=DOTATION_DETR).exists()
+    def can_have_a_commission_detr_avis(self) -> bool:
+        return (
+            self.dotationprojet_set.filter(dotation=DOTATION_DETR).exists()
+            and self.dossier_ds.demande_montant
+            and self.dossier_ds.demande_montant >= 50_000
+        )
 
     @property
     def categorie_doperation(self):
@@ -191,10 +196,19 @@ class DotationProjet(models.Model):
 
     def clean(self):
         errors = {}
-        if self.dotation == DOTATION_DSIL and self.detr_avis_commission is not None:
-            errors["detr_avis_commission"] = (
-                "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR."
-            )
+        if self.detr_avis_commission is not None:
+            if self.dotation == DOTATION_DSIL:
+                errors["detr_avis_commission"] = (
+                    "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR."
+                )
+
+            if (
+                self.dossier_ds.demande_montant is not None
+                and self.dossier_ds.demande_montant < MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
+            ):
+                errors["detr_avis_commission"] = (
+                    f"L'avis de la commission DETR ne doit être renseigné que pour les projets DETR dont le montant demandé est supérieur ou égal à {MIN_DEMANDE_MONTANT_FOR_AVIS_DETR}."
+                )
 
         if errors:
             raise ValidationError(errors)
