@@ -79,7 +79,7 @@ class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         qs = qs.annotate(simulation_count=Count("simulationprojet"))
-        qs = qs.select_related("projet")
+        qs = qs.select_related("projet", "projet__dossier_ds")
         qs = qs.prefetch_related("simulationprojet_set")
         return qs
 
