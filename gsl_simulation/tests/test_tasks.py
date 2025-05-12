@@ -68,8 +68,8 @@ def detr_projets(
         (2_000, 4_000, Dossier.STATE_ACCEPTE, datetime(2025, 1, 1, tzinfo=UTC)),
         (1_500, None, Dossier.STATE_REFUSE, datetime(2024, 1, 1, tzinfo=UTC)),
         (1_500, None, Dossier.STATE_REFUSE, datetime(2025, 1, 1, tzinfo=UTC)),
-        (6_500, 0, Dossier.STATE_SANS_SUITE, datetime(2024, 1, 1, tzinfo=UTC)),
-        (2_500, 0, Dossier.STATE_SANS_SUITE, datetime(2025, 1, 1, tzinfo=UTC)),
+        (6_500, None, Dossier.STATE_SANS_SUITE, datetime(2024, 1, 1, tzinfo=UTC)),
+        (2_500, None, Dossier.STATE_SANS_SUITE, datetime(2025, 1, 1, tzinfo=UTC)),
     ):
         status = DotationProjetService.DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS[
             state
@@ -82,9 +82,8 @@ def detr_projets(
                 ds_date_traitement=date_traitement,
             ),
             perimetre=arrondissement_perimetre,
-            assiette=assiette,
         )
-        detr_projet = DetrProjetFactory(projet=projet, status=status)
+        detr_projet = DetrProjetFactory(projet=projet, status=status, assiette=assiette)
         detr_projets.append(detr_projet)
     return detr_projets
 
@@ -101,8 +100,8 @@ def dsil_projets(
         (5_000, 10_000, Dossier.STATE_ACCEPTE, datetime(2025, 1, 1, tzinfo=UTC)),
         (3_500, None, Dossier.STATE_REFUSE, datetime(2024, 12, 31, tzinfo=UTC)),
         (1_500, None, Dossier.STATE_REFUSE, datetime(2025, 1, 1, tzinfo=UTC)),
-        (2_500, 0, Dossier.STATE_SANS_SUITE, datetime(2024, 12, 13, tzinfo=UTC)),
-        (2_500, 0, Dossier.STATE_SANS_SUITE, datetime(2025, 1, 1, tzinfo=UTC)),
+        (2_500, None, Dossier.STATE_SANS_SUITE, datetime(2024, 12, 13, tzinfo=UTC)),
+        (2_500, None, Dossier.STATE_SANS_SUITE, datetime(2025, 1, 1, tzinfo=UTC)),
     ):
         status = DotationProjetService.DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS[
             state
@@ -115,9 +114,8 @@ def dsil_projets(
                 ds_date_traitement=date_traitement,
             ),
             perimetre=arrondissement_perimetre,
-            assiette=assiette,
         )
-        dsil_projet = DsilProjetFactory(projet=projet, status=status)
+        dsil_projet = DsilProjetFactory(projet=projet, status=status, assiette=assiette)
         dotation_projets.append(dsil_projet)
     return dotation_projets
 
@@ -173,7 +171,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
         dotation_projet=detr_projets[5],
         simulation=detr_simulation,
     )
-    assert simulation_projet.montant == 1_500
+    assert simulation_projet.montant == 0
     assert simulation_projet.taux == 0
     assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
     assert simulation_projet.enveloppe.dotation == DOTATION_DETR
@@ -186,7 +184,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
         dotation_projet=detr_projets[7],
         simulation=detr_simulation,
     )
-    assert simulation_projet.montant == 2_500
+    assert simulation_projet.montant == 0
     assert simulation_projet.taux == 0
     assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED
     assert simulation_projet.enveloppe.dotation == DOTATION_DETR
@@ -244,7 +242,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
         simulation=dsil_simulation,
     )
     assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
-    assert simulation_projet.montant == 1_500
+    assert simulation_projet.montant == 0
     assert simulation_projet.taux == 0
     assert simulation_projet.enveloppe.dotation == "DSIL"
     assert (
@@ -257,7 +255,7 @@ def test_add_enveloppe_projets_to_dsil_simulation(
         simulation=dsil_simulation,
     )
     assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED
-    assert simulation_projet.montant == 2_500
+    assert simulation_projet.montant == 0
     assert simulation_projet.taux == 0
     assert simulation_projet.enveloppe.dotation == "DSIL"
     assert (

@@ -17,20 +17,30 @@ def simulation_projects(simulation):
     SimulationProjetFactory.create_batch(
         2,
         simulation=simulation,
+        dotation_projet__dotation=simulation.enveloppe.dotation,
         status=SimulationProjet.STATUS_ACCEPTED,
     )
     SimulationProjetFactory(
         status=SimulationProjet.STATUS_ACCEPTED,
+        dotation_projet__dotation=simulation.enveloppe.dotation,
     )
     SimulationProjetFactory.create_batch(
         3,
         simulation=simulation,
+        dotation_projet__dotation=simulation.enveloppe.dotation,
         status=SimulationProjet.STATUS_REFUSED,
     )
     SimulationProjetFactory.create_batch(
         1,
         simulation=simulation,
+        dotation_projet__dotation=simulation.enveloppe.dotation,
         status=SimulationProjet.STATUS_PROCESSING,
+    )
+    SimulationProjetFactory.create_batch(
+        4,
+        simulation=simulation,
+        dotation_projet__dotation=simulation.enveloppe.dotation,
+        status=SimulationProjet.STATUS_PROVISIONALLY_REFUSED,
     )
 
 
@@ -42,7 +52,8 @@ def test_get_projet_status_summary(simulation, simulation_projects):
         SimulationProjet.STATUS_REFUSED: 3,
         SimulationProjet.STATUS_PROCESSING: 1,
         SimulationProjet.STATUS_ACCEPTED: 2,
-        SimulationProjet.STATUS_PROVISOIRE: 0,
+        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: 0,
+        SimulationProjet.STATUS_PROVISIONALLY_REFUSED: 4,
         "notified": 0,
     }
 
@@ -59,7 +70,7 @@ def test_simulation_projet_cant_have_a_montant_higher_than_projet_assiette():
         assert sp.montant == 101
         sp.save()
     assert (
-        "Le montant de la simulation ne peut pas être supérieur à l'assiette du projet."
+        "Le montant de la simulation ne peut pas être supérieur à l'assiette du projet"
         in exc_info.value.message_dict.get("montant")[0]
     )
 
@@ -74,12 +85,11 @@ def test_simulation_projet_cant_have_a_montant_higher_than_projet_cout_total():
     with pytest.raises(ValidationError) as exc_info:
         sp = SimulationProjetFactory(
             dotation_projet=dotation_projet,
-            simulation__enveloppe__dotation=DOTATION_DETR,
             montant=101,
         )
         sp.save()
     assert (
-        "Le montant de la simulation ne peut pas être supérieur au coût total du projet."
+        "Le montant de la simulation ne peut pas être supérieur au coût total du projet"
         in exc_info.value.message_dict.get("montant")[0]
     )
 

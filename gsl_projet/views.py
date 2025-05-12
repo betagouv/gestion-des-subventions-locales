@@ -106,7 +106,6 @@ class ProjetListViewFilters(ProjetFilters):
                 queryset=ProgrammationProjet.objects.filter(
                     status=ProgrammationProjet.STATUS_ACCEPTED
                 ),
-                to_attr="accepted_programmation_projets",
             ),
         )
         return qs

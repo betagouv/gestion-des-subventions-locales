@@ -24,6 +24,7 @@ dependencies = [
     "psycopg[binary]",
     "python-dotenv",
     "redis",
+    "requests",
     "sentry-sdk",
     "whitenoise",
 ]
@@ -41,6 +42,7 @@ dev = [
     "django-query-counter",
     "djlint",
     "factory_boy",
+    "freezegun",
     "pip-tools",
     "pre-commit",
     "pytest-cov",

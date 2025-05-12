@@ -24,6 +24,9 @@ def add_enveloppe_projets_to_simulation(simulation_id):
     selected_projets = selected_projets.for_current_year()
     selected_dotation_projet = DotationProjet.objects.filter(
         projet__in=selected_projets, dotation=simulation_dotation
+    ).select_related(
+        "projet",
+        "projet__dossier_ds",
     )
 
     for dotation_projet in selected_dotation_projet:

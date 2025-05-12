@@ -51,10 +51,10 @@
                     <th class="max_80_width">
                         Taux de subvention
                     </th>
-                    <th>
+                    <th class="max_160_width">
                         Choix de la catégorie d’opération
                     </th>
-                    <th class="max_180_width">
+                    <th class="max_160_width">
                         Statut
                     </th>
                     <th>
@@ -63,9 +63,11 @@
                 </tr>
             </thead>
             <tbody>
-                {% for projet in simulations_list %}
-                    {% with projet.dotation_projet.0.simu.0 as simu %}
-                        {% include "includes/_simulation_detail_row.html" with simu=simu projet=projet %}
+                {% for projet in simulation_projets_list %}
+                    {% with projet.dotation_projet.0 as dotation_projet %}
+                        {% with dotation_projet.simu.0 as simu %}
+                            {% include "includes/_simulation_detail_row.html" with simu=simu projet=projet dotation_projet=dotation_projet %}
+                        {% endwith %}
                     {% endwith %}
                 {% empty %}
                     <tr>
@@ -86,11 +88,14 @@
     {% include "includes/modals/_refuse_confirmation_modal.html" %}
     {% include "includes/modals/_dismiss_confirmation_modal.html" %}
     {% include "includes/modals/_go_back_to_processing_modal.html" %}
-    {% include "includes/modals/_go_back_to_provisoire_modal.html" %}
+    {% include "includes/modals/_go_back_to_provisionally_accepted_modal.html" %}
+    {% include "includes/modals/_go_back_to_provisionally_refused_modal.html" %}
+    {% include "includes/modals/_dotation_update_confirmation_modal.html" %}
 {% endblock modal %}
 
 {% block extra_js %}
-    <script src="{% static 'js/htmx.min.js' %}" defer></script>
-    <script src="{% static 'js/simulationProjetStatusConfirmation.js' %}" defer></script>
-    <script src="{% static 'js/handleInteractionsInSimulation.js' %}" defer></script>
+    <script src="{% static 'js/htmx.min.js' %}"></script>
+    <script src="{% static 'js/simulationProjetStatusConfirmation.js' %}"></script>
+    <script type="module"
+            src="{% static 'js/handleInteractionsInSimulation.js' %}"></script>
 {% endblock extra_js %}

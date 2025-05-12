@@ -1,5 +1,5 @@
 from django.core.paginator import Paginator
-from django.db.models import Prefetch, Sum
+from django.db.models import Count, Prefetch, QuerySet, Sum
 from django.forms import NumberInput
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -11,6 +11,7 @@ from django_filters.views import FilterView
 from gsl_core.models import Perimetre
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.services.enveloppe_service import EnveloppeService
+from gsl_projet.constants import DOTATIONS
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
@@ -83,7 +84,7 @@ class SimulationProjetListViewFilters(ProjetFilters):
 
     ordered_status = (
         SimulationProjet.STATUS_PROCESSING,
-        SimulationProjet.STATUS_PROVISOIRE,
+        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         SimulationProjet.STATUS_REFUSED,
         SimulationProjet.STATUS_ACCEPTED,
         SimulationProjet.STATUS_DISMISSED,
@@ -174,7 +175,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         page = self.kwargs.get("page") or self.request.GET.get("page") or 1
         current_page = paginator.page(page)
         context["simulations_paginator"] = current_page
-        context["simulations_list"] = current_page.object_list
+        context["simulation_projets_list"] = current_page.object_list
         context["title"] = (
             f"{simulation.enveloppe.dotation} {simulation.enveloppe.annee} – {simulation.title}"
         )
@@ -187,6 +188,10 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         context["available_states"] = SimulationProjet.STATUS_CHOICES
         context["filter_params"] = self.request.GET.urlencode()
         context["enveloppe"] = self._get_enveloppe_data(simulation)
+        context["dotations"] = DOTATIONS
+        context["other_dotations_simu"] = self._get_other_dotations_simulation_projet(
+            current_page.object_list, simulation.enveloppe.dotation
+        )
         self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
 
         context["breadcrumb_dict"] = {
@@ -214,7 +219,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                 ),
                 to_attr="dotation_projet",
             )
-        )  # TODO pr_dotation test
+        )
         qs = qs.prefetch_related(
             Prefetch(
                 "dotation_projet__simulationprojet_set",
@@ -266,6 +271,38 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         perimetre = self.perimetre
         return (perimetre, *perimetre.children())
 
+    def _get_other_dotations_simulation_projet(
+        self, projets: QuerySet[Projet], current_dotation: str
+    ) -> dict[int, SimulationProjet]:
+        projet_ids = list(projets.values_list("id", flat=True))
+        ids_of_double_dotation_projet = (
+            Projet.objects.annotate(dotation_projet_count=Count("dotationprojet"))
+            .filter(dotation_projet_count__gt=1, id__in=projet_ids)
+            .values_list("id", flat=True)
+        )
+        if ids_of_double_dotation_projet.count() == 0:
+            return {}
+
+        other_simulation_projets = (
+            SimulationProjet.objects.select_related("dotation_projet")
+            .filter(dotation_projet__projet__id__in=ids_of_double_dotation_projet)
+            .exclude(simulation__enveloppe__dotation=current_dotation)
+            .order_by("-updated_at")
+        )
+
+        projet_id_to_last_updated_other_dotation_simulation_projet: dict[
+            int, SimulationProjet
+        ] = {}
+
+        for projet_id in ids_of_double_dotation_projet:
+            last_updated_simulation_projets = other_simulation_projets.filter(
+                dotation_projet__projet__pk=projet_id
+            ).first()
+            projet_id_to_last_updated_other_dotation_simulation_projet[projet_id] = (
+                last_updated_simulation_projets
+            )
+        return projet_id_to_last_updated_other_dotation_simulation_projet
+
     # This method is used to prevent caching of the page
     # This is useful for the row update with htmx
     def render_to_response(self, context, **response_kwargs):
@@ -295,8 +332,8 @@ def simulation_form(request):
             "breadcrumb_dict": {
                 "links": [
                     {
-                        "url": reverse("gsl_projet:list"),
-                        "title": "Liste des projets",
+                        "url": reverse("gsl_simulation:simulation-list"),
+                        "title": "Mes simulations de programmation",
                     },
                 ],
                 "current": "Création d'une simulation de programmation",

@@ -1,22 +1,26 @@
 'use strict';
 
 let selectedElement = undefined;
-let modalId = undefined
+let modalId = undefined;
+let formButton = undefined; // Used in handleInteractionInSimulationProjet.js
 
 const VALID = "valid";
 const CANCELLED = "cancelled";
 const DISMISSED = "dismissed";
 const PROCESSING = "draft";
-const PROVISOIRE = "provisoire";
+const PROVISIONALLY_ACCEPTED = "provisionally_accepted";
+const STATUS_PROVISIONALLY_REFUSED = "provisionally_refused";
 
 const STATUSES_WITH_OTHER_SIMULATION_IMPACT = [VALID, CANCELLED, DISMISSED];
+const STATUSES_WITHOUT_OTHER_SIMULATION_IMPACT = [PROCESSING, PROVISIONALLY_ACCEPTED, STATUS_PROVISIONALLY_REFUSED];
 
 const STATUS_TO_MODAL_ID = {
     "valid": "accept-confirmation-modal",
     "cancelled": "refuse-confirmation-modal",
     "draft": "processing-confirmation-modal",
     "dismissed": "dismiss-confirmation-modal",
-    "provisoire": "provisoire-confirmation-modal",
+    "provisionally_accepted": "provisionally_accepted-confirmation-modal",
+    "provisionally_refused": "provisionally_refused-confirmation-modal",
 }
 
 const STATUS_TO_FRENCH_WORD = {
@@ -27,8 +31,7 @@ const STATUS_TO_FRENCH_WORD = {
 
 function mustOpenConfirmationModal(newValue, originalValue) {
     if (STATUSES_WITH_OTHER_SIMULATION_IMPACT.includes(newValue)) return true;
-    if (newValue === PROCESSING && STATUSES_WITH_OTHER_SIMULATION_IMPACT.includes(originalValue)) return true;
-    if (newValue === PROVISOIRE && STATUSES_WITH_OTHER_SIMULATION_IMPACT.includes(originalValue)) return true;
+    if (STATUSES_WITHOUT_OTHER_SIMULATION_IMPACT.includes(newValue) && STATUSES_WITH_OTHER_SIMULATION_IMPACT.includes(originalValue)) return true;
     return false;
 }
 
@@ -62,7 +65,7 @@ function showConfirmationModal(select, originalValue) {
         return
     }
     selectedElement = select;
-    if ([PROCESSING, PROVISOIRE].includes(status)) {
+    if (STATUSES_WITHOUT_OTHER_SIMULATION_IMPACT.includes(status)) {
         const modalContentId = `${status}-confirmation-modal-content`
         _replaceInitialStatusModalContentText(originalValue, modalContentId)
         if (originalValue === DISMISSED) _removeFromProgrammationText(modalContentId)
@@ -98,9 +101,16 @@ function closeModal() {
     selectedElement.form.reset()
     dsfr(modal).modal.conceal()
     selectedElement.focus()
+    if (formButton) {
+        formButton.disabled = true;
+    }
     selectedElement = undefined;
     modalId = undefined;
 }
+
+//
+// Event listeners
+//
 
 document.querySelectorAll(".close-modal").forEach((el) => {
     el.addEventListener('click', () => {

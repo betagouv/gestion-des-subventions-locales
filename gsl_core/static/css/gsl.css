@@ -52,6 +52,10 @@ ul.no-list-style li {
     color: var(--status-color-blue);
 }
 
+.color-brown {
+    color: var(--status-color-brown);
+}
+
 /* Page un projet */
 
 .gsl-projet-container {
@@ -125,6 +129,14 @@ ul.no-list-style li {
 .max_180_width {
     max-width: 180px;
     width: 180px;
+    min-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.max_160_width {
+    max-width: 160px;
+    width: 160px;
     min-width: 140px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -248,9 +260,14 @@ ul.no-list-style li {
     color: var(--text-default-warning);
 }
 
-.badge-projet-status__provisoire {
+.badge-projet-status__provisionally_accepted {
     background-color: var(--background-contrast-info);
     color: var(--text-default-info);
+}
+
+.badge-projet-status__provisionally_refused {
+    background-color: var(--background-contrast-beige-gris-galet);
+    color: var(--text-action-high-orange-terre-battue);
 }
 
 /* common */
@@ -269,7 +286,8 @@ ul.no-list-style li {
 
 .grey-color {
     color: var(--text-default-grey);
-  }
+}
+  
 /* detail projet */
 
 .fr-tabs__list.fake {

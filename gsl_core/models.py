@@ -246,6 +246,21 @@ class Perimetre(BaseModel):
             kwargs["arrondissement_id"] = self.arrondissement_id
         return Perimetre.objects.filter(**kwargs).exclude(id=self.id)
 
+    def ancestors(self):
+        if self.departement_id:
+            region_perimetre_qs = Perimetre.objects.filter(
+                region_id=self.region_id, departement_id=None, arrondissement_id=None
+            )
+            if self.arrondissement_id:
+                departement_perimetre_qs = Perimetre.objects.filter(
+                    region_id=self.region_id,
+                    departement_id=self.departement_id,
+                    arrondissement_id=None,
+                )
+                return region_perimetre_qs.union(departement_perimetre_qs)
+            return region_perimetre_qs
+        return Perimetre.objects.none()
+
 
 class Collegue(AbstractUser):
     proconnect_sub = models.UUIDField(

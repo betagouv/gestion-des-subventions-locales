@@ -1,20 +1,24 @@
+import logging
 from datetime import UTC
+from unittest import mock
 
 import pytest
 from django.utils import timezone
 
 from gsl_core.tests.factories import AdresseFactory, PerimetreArrondissementFactory
-from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     NaturePorteurProjetFactory,
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.models import Projet
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, PROJET_STATUS_PROCESSING
+from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
+from gsl_simulation.models import SimulationProjet
+from gsl_simulation.tests.factories import SimulationProjetFactory
 
 
 @pytest.mark.django_db
@@ -56,7 +60,6 @@ def projets_with_finance_cout_total():
         projets.append(
             ProjetFactory(
                 dossier_ds__finance_cout_total=amount,
-                assiette=None,
             )
         )
     return projets
@@ -214,63 +217,6 @@ def test_add_ordering_to_projets_qs():
     assert list(ordered_qs) == [projet3, projet1, projet2]
 
 
-# TODO pr_dotattion move this in dotation_projet_services
-@pytest.mark.django_db
-def test_get_avis_commission_detr_with_accepted_state_and_detr_dispositif():
-    dossier = DossierFactory(
-        ds_state=Dossier.STATE_ACCEPTE,
-        demande_dispositif_sollicite="DETR",
-    )
-    assert ProjetService.get_avis_commission_detr(dossier) is True
-
-
-@pytest.mark.django_db
-def test_get_avis_commission_detr_with_accepted_state_and_non_detr_dispositif():
-    dossier = DossierFactory(
-        ds_state=Dossier.STATE_ACCEPTE,
-        demande_dispositif_sollicite="DSIL",
-    )
-    assert ProjetService.get_avis_commission_detr(dossier) is None
-
-
-@pytest.mark.django_db
-def test_get_avis_commission_detr_with_non_accepted_state_and_detr_dispositif():
-    dossier = DossierFactory(
-        ds_state=Dossier.STATE_EN_INSTRUCTION,
-        demande_dispositif_sollicite="DETR",
-    )
-    assert ProjetService.get_avis_commission_detr(dossier) is None
-
-
-@pytest.mark.django_db
-def test_get_avis_commission_detr_with_non_accepted_state_and_non_detr_dispositif():
-    dossier = DossierFactory(
-        ds_state=Dossier.STATE_REFUSE,
-        demande_dispositif_sollicite="DSIL",
-    )
-    assert ProjetService.get_avis_commission_detr(dossier) is None
-
-
-@pytest.mark.parametrize(
-    "ds_state, dispositif, expected_result",
-    [
-        (Dossier.STATE_ACCEPTE, "DETR", True),
-        (Dossier.STATE_ACCEPTE, "['DSIL', 'DETR']", True),
-        (Dossier.STATE_ACCEPTE, "DSIL", None),
-        (Dossier.STATE_EN_INSTRUCTION, "DETR", None),
-        (Dossier.STATE_REFUSE, "DSIL", None),
-        (Dossier.STATE_SANS_SUITE, "DETR", None),
-    ],
-)
-@pytest.mark.django_db
-def test_get_avis_commission_detr(ds_state, dispositif, expected_result):
-    dossier = DossierFactory(
-        ds_state=ds_state,
-        demande_dispositif_sollicite=dispositif,
-    )
-    assert ProjetService.get_avis_commission_detr(dossier) == expected_result
-
-
 @pytest.mark.parametrize(
     "is_in_qpv, expected_result",
     [
@@ -345,3 +291,83 @@ def test_get_dotations_from_field(field, value, expected_dotation):
     setattr(projet.dossier_ds, field, value)
     dotation = ProjetService.get_dotations_from_field(projet, field)
     assert dotation == expected_dotation
+
+
+@pytest.fixture
+def projet():
+    return ProjetFactory()
+
+
+@pytest.mark.django_db
+def test_update_dotation_with_no_value(projet, caplog):
+    with caplog.at_level(logging.WARNING):
+        ProjetService.update_dotation(projet, [])
+    assert f"Projet {projet.__str__()} must have at least one dotation" in caplog.text
+    assert projet.dotations == []
+
+
+@pytest.mark.django_db
+def test_update_dotation_with_more_than_2_values(projet, caplog):
+    with caplog.at_level(logging.WARNING):
+        ProjetService.update_dotation(projet, [DOTATION_DETR, DOTATION_DSIL, "unknown"])
+    assert (
+        f"Projet {projet.__str__()} can't have more than two dotations" in caplog.text
+    )
+    assert projet.dotations == []
+
+
+@pytest.mark.parametrize("dotation", [DOTATION_DETR, DOTATION_DSIL])
+@mock.patch.object(
+    DotationProjetService, "create_simulation_projets_from_dotation_projet"
+)
+@pytest.mark.django_db
+def test_update_dotation_from_one_dotation_to_another(
+    mock_create_simulation_projets, dotation, projet
+):
+    original_dotation_projet = DotationProjetFactory(projet=projet, dotation=dotation)
+    SimulationProjetFactory.create_batch(3, dotation_projet=original_dotation_projet)
+    ProgrammationProjetFactory.create(dotation_projet=original_dotation_projet)
+
+    new_dotation = DOTATION_DSIL if dotation == DOTATION_DETR else DOTATION_DETR
+    ProjetService.update_dotation(projet, [new_dotation])
+
+    assert projet.dotations == [new_dotation]
+    assert projet.dotationprojet_set.count() == 1
+    dotation_projet = projet.dotationprojet_set.first()
+
+    assert mock_create_simulation_projets.call_count == 1
+    mock_create_simulation_projets.assert_called_once_with(dotation_projet)
+
+    # Check that the old dotation_projet is deleted
+    assert DotationProjet.objects.filter(pk=original_dotation_projet.pk).count() == 0
+    assert SimulationProjet.objects.count() == 0
+    assert ProgrammationProjet.objects.count() == 0
+
+
+@pytest.mark.parametrize("original_dotation", [DOTATION_DETR, DOTATION_DSIL])
+@mock.patch.object(
+    DotationProjetService, "create_simulation_projets_from_dotation_projet"
+)
+@pytest.mark.django_db
+def test_update_dotation_from_one_to_two(
+    mock_create_simulation_projets, original_dotation, projet
+):
+    original_dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=original_dotation
+    )
+    SimulationProjetFactory.create_batch(3, dotation_projet=original_dotation_projet)
+    ProgrammationProjetFactory.create(dotation_projet=original_dotation_projet)
+
+    ProjetService.update_dotation(projet, [DOTATION_DETR, DOTATION_DSIL])
+
+    assert projet.dotationprojet_set.count() == 2
+    assert all(
+        dotation in projet.dotations for dotation in {DOTATION_DETR, DOTATION_DSIL}
+    )
+    new_dotation_projet = projet.dotationprojet_set.exclude(
+        pk=original_dotation_projet.pk
+    ).first()
+    mock_create_simulation_projets.assert_called_once_with(new_dotation_projet)
+    assert new_dotation_projet.status == PROJET_STATUS_PROCESSING
+    assert new_dotation_projet.assiette is None
+    assert new_dotation_projet.detr_avis_commission is None

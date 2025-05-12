@@ -372,3 +372,36 @@ def test_get_perimetre_children(
     assert perimetre_departement_76 in children_of_region_normandie
     assert perimetre_departement_14 in children_of_region_normandie
     assert perimetre_arr_lehavre in children_of_region_normandie
+
+
+@pytest.mark.django_db
+def test_ancestors_for_region(region_idf):
+    perimetre_region = Perimetre.objects.create(region=region_idf)
+    ancestors = perimetre_region.ancestors()
+    assert ancestors.count() == 0
+
+
+@pytest.mark.django_db
+def test_ancestors_for_departement(region_idf, dept_75):
+    perimetre_region = Perimetre.objects.create(region=region_idf)
+    perimetre_departement = Perimetre.objects.create(
+        region=region_idf, departement=dept_75
+    )
+    ancestors = perimetre_departement.ancestors()
+    assert ancestors.count() == 1
+    assert perimetre_region in ancestors
+
+
+@pytest.mark.django_db
+def test_ancestors_for_arrondissement(region_idf, dept_75, arr_paris_centre):
+    perimetre_region = Perimetre.objects.create(region=region_idf)
+    perimetre_departement = Perimetre.objects.create(
+        region=region_idf, departement=dept_75
+    )
+    perimetre_arrondissement = Perimetre.objects.create(
+        region=region_idf, departement=dept_75, arrondissement=arr_paris_centre
+    )
+    ancestors = perimetre_arrondissement.ancestors()
+    assert ancestors.count() == 2
+    assert perimetre_region in ancestors
+    assert perimetre_departement in ancestors

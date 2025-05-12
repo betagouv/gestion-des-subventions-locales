@@ -1,6 +1,7 @@
 import pytest
 from django.db import IntegrityError
 
+from gsl_projet.constants import DOTATION_DETR
 from gsl_projet.tests.factories import (
     DetrProjetFactory,
 )
@@ -41,7 +42,9 @@ def test_projet_twice_per_simulation_with_different_projet(simulation):
         simulation=simulation,
         dotation_projet=DetrProjetFactory(),
     )
-    SimulationProjetFactory(simulation=simulation)
+    SimulationProjetFactory(
+        simulation=simulation, dotation_projet__dotation=DOTATION_DETR
+    )
 
 
 @pytest.mark.django_db

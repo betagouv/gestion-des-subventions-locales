@@ -14,7 +14,8 @@ class CustomCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
     def _get_color(self, option_value):
         return {
             SimulationProjet.STATUS_PROCESSING: "",
-            SimulationProjet.STATUS_PROVISOIRE: "blue",
+            SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: "blue",
+            SimulationProjet.STATUS_PROVISIONALLY_REFUSED: "brown",
             SimulationProjet.STATUS_REFUSED: "red",
             SimulationProjet.STATUS_ACCEPTED: "green",
             PROJET_STATUS_ACCEPTED: "green",

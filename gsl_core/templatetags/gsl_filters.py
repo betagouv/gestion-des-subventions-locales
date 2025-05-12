@@ -1,5 +1,6 @@
 import re
 from decimal import Decimal
+from typing import Any
 
 from django import template
 from django.template.defaultfilters import floatformat
@@ -11,12 +12,12 @@ register = template.Library()
 
 @register.filter
 def percent(value, decimals=0):
-    if value is None:
+    if value is None or value == "":
         return "— %"
     if not isinstance(value, Decimal):
         return value
     """Removes all values of arg from the given string"""
-    return floatformat(value, decimals) + " %"
+    return floatformat(value, decimals) + " %"
 
 
 @register.filter
@@ -32,26 +33,39 @@ def remove_first_word(value):
     return parts[1] if len(parts) > 1 else ""
 
 
+@register.filter
+def get(dictionary, key):
+    if not isinstance(dictionary, dict):
+        return dictionary
+    return dictionary.get(key)
+
+
+@register.filter
+def sort(objects_list, key):
+    return sorted(objects_list, key=lambda x: getattr(x, key), reverse=True)
+
+
 STATUS_TO_ALERT_TITLE = {
     SimulationProjet.STATUS_ACCEPTED: "Projet accepté",
     SimulationProjet.STATUS_REFUSED: "Projet refusé",
-    SimulationProjet.STATUS_PROVISOIRE: "Projet accepté provisoirement",
+    SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: "Projet accepté provisoirement",
+    SimulationProjet.STATUS_PROVISIONALLY_REFUSED: "Projet refusé provisoirement",
     SimulationProjet.STATUS_DISMISSED: "Projet classé sans suite",
     SimulationProjet.STATUS_PROCESSING: "Projet en traitement",
 }
 
 
 @register.filter
-def create_alert_data(status: str | None, arg: str) -> dict[str, str | bool]:
-    data_dict: dict[str, str | bool] = {"is_collapsible": True}
-    if status is None:
-        data_dict["title"] = arg
-        return data_dict
+def create_alert_data(message: Any) -> dict[str, str | bool]:
+    data_dict = {
+        "is_collapsible": True,
+        "description": message.message,
+    }
 
-    data_dict["description"] = arg
-
-    if status in STATUS_TO_ALERT_TITLE:
-        data_dict["title"] = STATUS_TO_ALERT_TITLE[status]
+    if message.extra_tags in STATUS_TO_ALERT_TITLE:
+        data_dict["title"] = STATUS_TO_ALERT_TITLE[message.extra_tags]
+    elif message.extra_tags in ["info", "alert"]:
+        data_dict["type"] = message.extra_tags
 
     return data_dict
 

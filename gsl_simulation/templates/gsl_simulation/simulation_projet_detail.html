@@ -29,14 +29,17 @@
 {% endblock tab_projet %}
 
 {% block modal %}
-    {% include "includes/modals/_go_back_to_provisoire_modal.html" %}
+    {% include "includes/modals/_go_back_to_provisionally_accepted_modal.html" %}
+    {% include "includes/modals/_go_back_to_provisionally_refused_modal.html" %}
     {% include "includes/modals/_go_back_to_processing_modal.html" %}
     {% include "includes/modals/_accept_confirmation_modal.html" %}
     {% include "includes/modals/_refuse_confirmation_modal.html" %}
     {% include "includes/modals/_dismiss_confirmation_modal.html" %}
+    {% include "includes/modals/_dotation_update_confirmation_modal.html" %}
 {% endblock modal %}
 
 {% block extra_js %}
-    <script src="{% static 'js/simulationProjetStatusConfirmation.js' %}" defer></script>
-    <script src="{% static 'js/handleInteractionInSimulationProjet.js' %}" defer></script>
+    <script src="{% static 'js/simulationProjetStatusConfirmation.js' %}"></script>
+    <script type="module"
+            src="{% static 'js/handleInteractionInSimulationProjet.js' %}"></script>
 {% endblock extra_js %}

@@ -1,8 +1,10 @@
+from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_programmation.models import Enveloppe
 from gsl_projet.constants import (
-    DOTATION_DSIL,
+    DOTATION_DETR,
     POSSIBLE_DOTATIONS,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
@@ -11,6 +13,7 @@ from gsl_projet.constants import (
 )
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.projet_services import ProjetService
+from gsl_simulation.models import Simulation
 
 
 class DotationProjetService:
@@ -37,10 +40,8 @@ class DotationProjetService:
     def create_or_update_dotation_projet(
         cls, projet: Projet, dotation: POSSIBLE_DOTATIONS
     ):
-        detr_avis_commission = (
-            None if dotation == DOTATION_DSIL else projet.avis_commission_detr
-        )
-        assiette = projet.dossier_ds.annotations_assiette or projet.assiette
+        detr_avis_commission = cls.get_detr_avis_commission(dotation, projet.dossier_ds)
+        assiette = projet.dossier_ds.annotations_assiette
 
         dotation_projet, _ = DotationProjet.objects.update_or_create(
             projet=projet,
@@ -55,6 +56,29 @@ class DotationProjetService:
         )
         return dotation_projet
 
+    @classmethod
+    def create_simulation_projets_from_dotation_projet(
+        cls,
+        dotation_projet: DotationProjet,
+    ):
+        from gsl_simulation.services.simulation_projet_service import (
+            SimulationProjetService,
+        )
+
+        projet_perimetre = dotation_projet.projet.perimetre
+        perimetres_containing_this_projet_perimetre = list(projet_perimetre.ancestors())
+        perimetres_containing_this_projet_perimetre.append(projet_perimetre)
+        enveloppes = Enveloppe.objects.filter(
+            dotation=dotation_projet.dotation,
+            perimetre__in=perimetres_containing_this_projet_perimetre,
+            annee__gte=date.today().year,
+        )
+        simulations = Simulation.objects.filter(enveloppe__in=enveloppes)
+        for simulation in simulations:
+            SimulationProjetService.create_or_update_simulation_projet_from_dotation_projet(
+                dotation_projet, simulation
+            )
+
     DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS = {
         Dossier.STATE_ACCEPTE: PROJET_STATUS_ACCEPTED,
         Dossier.STATE_EN_CONSTRUCTION: PROJET_STATUS_PROCESSING,
@@ -66,6 +90,13 @@ class DotationProjetService:
     @classmethod
     def get_dotation_projet_status_from_dossier(cls, ds_dossier: Dossier):
         return cls.DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS.get(ds_dossier.ds_state)
+
+    @classmethod
+    def get_detr_avis_commission(cls, dotation: str, ds_dossier: Dossier):
+        if dotation == DOTATION_DETR and ds_dossier.ds_state == Dossier.STATE_ACCEPTE:
+            return True
+
+        return None
 
     @classmethod
     def compute_taux_from_montant(
