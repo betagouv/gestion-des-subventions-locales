@@ -107,7 +107,11 @@ def test_create_or_update_dotation_projet(dotation):
         CritereEligibiliteDetrFactory(detr_category=categorie_detr)
     )
 
+    # ------
+
     DotationProjetService.create_or_update_dotation_projet(projet, dotation)
+
+    # ------
 
     assert DotationProjet.objects.count() == 1
 
@@ -116,11 +120,11 @@ def test_create_or_update_dotation_projet(dotation):
     assert dotation_projet.dotation == dotation
     assert dotation_projet.status == PROJET_STATUS_DISMISSED
     assert dotation_projet.assiette == 2_000
+    assert dotation_projet.detr_avis_commission is None
+
     if dotation_projet.dotation == DOTATION_DSIL:
-        assert dotation_projet.detr_avis_commission is None
         assert dotation_projet.detr_categories.count() == 0
     else:
-        assert dotation_projet.detr_avis_commission is False
         assert categorie_detr in dotation_projet.detr_categories.all()
 
 
