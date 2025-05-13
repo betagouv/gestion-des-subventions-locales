@@ -58,9 +58,9 @@
                       aria-hidden="true"></span>Avis de la commission DETR
             </h2>
             <p class="fr-callout__text">
-                {% if projet.detr_avis_commission %}
+                {% if projet.dotation_detr.detr_avis_commission %}
                     <span class="fr-icon-chat-check-fill green-color" aria-hidden="true"></span> Oui
-                {% elif projet.detr_avis_commission is False %}
+                {% elif projet.dotation_detr.detr_avis_commission is False %}
                     <span class="fr-icon-chat-delete-fill red-color" aria-hidden="true"></span> Non
                 {% else %}
                     <span class="fr-icon-message-2-fill grey-color" aria-hidden="true"></span> En cours

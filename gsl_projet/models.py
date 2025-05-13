@@ -166,6 +166,24 @@ class Projet(models.Model):
             if dotation.dotation in [DOTATION_DETR, DOTATION_DSIL]
         ]
 
+    @property
+    def has_double_dotations(self):
+        return self.dotationprojet_set.count() > 1
+
+    @property
+    def dotation_detr(self):
+        try:
+            return self.dotationprojet_set.get(dotation=DOTATION_DETR)
+        except DotationProjet.DoesNotExist:
+            return None
+
+    @property
+    def dotation_dsil(self):
+        try:
+            return self.dotationprojet_set.get(dotation=DOTATION_DSIL)
+        except DotationProjet.DoesNotExist:
+            return None
+
 
 class DotationProjet(models.Model):
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
