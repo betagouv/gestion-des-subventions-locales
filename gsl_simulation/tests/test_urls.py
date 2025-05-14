@@ -94,7 +94,6 @@ def cote_dorien_simulation_projet(cote_d_or_perimetre):
         dotation_projet=dotation_projet,
         simulation=simulation,
         status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
-        taux=0,
         montant=0,
     )
 

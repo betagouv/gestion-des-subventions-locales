@@ -351,13 +351,13 @@ def test_refuse_with_an_dotation_enveloppe_different_from_the_dotation():
 
 
 @pytest.mark.parametrize(
-    ("status, montant, taux"),
+    ("status, montant"),
     (
-        (PROJET_STATUS_REFUSED, 0, 0),
-        (PROJET_STATUS_ACCEPTED, 10_000, 20),
+        (PROJET_STATUS_REFUSED, 0),
+        (PROJET_STATUS_ACCEPTED, 10_000),
     ),
 )
-def test_dismiss(status, montant, taux):
+def test_dismiss(status, montant):
     dotation_projet = DotationProjetFactory(status=status, dotation=DOTATION_DETR)
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
@@ -377,7 +377,6 @@ def test_dismiss(status, montant, taux):
         dotation_projet=dotation_projet,
         status=simulation_projet_status,
         montant=montant,
-        taux=taux,
     )
 
     dotation_projet.dismiss()
@@ -407,7 +406,6 @@ def test_dismiss_from_processing():
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_PROCESSING,
         montant=500,
-        taux=0.4,
     )
 
     dotation_projet.dismiss()
@@ -432,7 +430,9 @@ def test_dismiss_from_processing():
 
 
 def test_set_back_status_to_processing_from_accepted():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    dotation_projet = DotationProjetFactory(
+        status=PROJET_STATUS_ACCEPTED, assiette=50_000
+    )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
@@ -443,7 +443,6 @@ def test_set_back_status_to_processing_from_accepted():
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=10_000,
-        taux=20,
     )
 
     dotation_projet.set_back_status_to_processing()
@@ -475,7 +474,6 @@ def test_set_back_status_to_processing_from_refused():
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_REFUSED,
         montant=0,
-        taux=0,
     )
 
     dotation_projet.set_back_status_to_processing()

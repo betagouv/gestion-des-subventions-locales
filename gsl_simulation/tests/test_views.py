@@ -792,7 +792,6 @@ def accepted_simulation_projet(collegue, simulation) -> SimulationProjet:
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=1_000,
-        taux=0.5,
         simulation=simulation,
     )
 
@@ -842,7 +841,7 @@ def test_patch_taux_simulation_projet_with_wrong_value(
     assert response.status_code == 500
     assert response.content == b'{"error": "An internal error has occurred."}'
     assert "must be between 0 and 100" in caplog.text
-    assert accepted_simulation_projet.taux == 0.5
+    assert accepted_simulation_projet.taux == 10
     assert accepted_simulation_projet.montant == 1_000
 
 

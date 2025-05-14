@@ -26,7 +26,6 @@ def test_projet_only_once_per_simulation_and_enveloppe(simulation):
             simulation=simulation_projet_un.simulation,
             dotation_projet=dotation_projet,
             montant=0,
-            taux=0,
         )
         sp.save()
 
