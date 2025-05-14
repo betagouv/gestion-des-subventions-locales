@@ -66,7 +66,7 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "notified_at",
     )
     autocomplete_fields = ("enveloppe",)
-    raw_id_fields = ("dotation_projet",)  # TODO pr_dotation, ok here ?
+    raw_id_fields = ("dotation_projet",)
     readonly_fields = ("created_at", "updated_at")
 
     def formatted_amount(self, obj):

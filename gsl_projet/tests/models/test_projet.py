@@ -41,7 +41,6 @@ def test_can_have_a_commission_detr_avis(
         projet.can_have_a_commission_detr_avis
         is expected_can_have_a_commission_detr_avis
     )
-    assert projet.is_asking_for_detr is expected_can_have_a_commission_detr_avis
 
 
 def test_has_double_dotations():

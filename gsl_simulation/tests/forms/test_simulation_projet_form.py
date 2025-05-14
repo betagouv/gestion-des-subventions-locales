@@ -11,9 +11,16 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def simulation_projet():
     dotation_projet = DetrProjetFactory(assiette=1_000)
-    return SimulationProjetFactory(
-        dotation_projet=dotation_projet, montant=200, taux=20
-    )
+    return SimulationProjetFactory(dotation_projet=dotation_projet, montant=200)
+
+
+@pytest.fixture
+def initial_data():
+    return {
+        "assiette": 1_000,
+        "montant": 200,
+        "taux": 20,
+    }
 
 
 def test_assiette_field(simulation_projet):
@@ -51,8 +58,8 @@ def test_taux_field(simulation_projet):
     assert "taux" in form.fields
     assert isinstance(form.fields["taux"], forms.DecimalField)
     assert form.fields["taux"].label == "Taux de subvention (%)"
-    assert form.fields["taux"].max_digits == 5
-    assert form.fields["taux"].decimal_places == 2
+    assert form.fields["taux"].max_digits == 6
+    assert form.fields["taux"].decimal_places == 3
     assert form.fields["taux"].required is False
     assert form.fields["taux"].widget.attrs["min"] == 0
     assert form.fields["taux"].widget.attrs["max"] == 100
@@ -61,11 +68,10 @@ def test_taux_field(simulation_projet):
     assert not form.is_valid()
 
 
-def test_new_montant(simulation_projet):
-    data = {
-        "montant": 300,
-        "taux": 20,
-    }
+def test_new_montant(simulation_projet, initial_data):
+    data = initial_data
+    data["montant"] = 300
+
     form = SimulationProjetForm(instance=simulation_projet, data=data)
 
     assert form.is_valid()
@@ -76,11 +82,10 @@ def test_new_montant(simulation_projet):
     assert simulation_projet.taux == 30
 
 
-def test_new_taux(simulation_projet):
-    data = {
-        "montant": 200,
-        "taux": 30,
-    }
+def test_new_taux(simulation_projet, initial_data):
+    data = initial_data
+    data["taux"] = 30
+
     form = SimulationProjetForm(instance=simulation_projet, data=data)
 
     assert form.is_valid()
@@ -91,11 +96,11 @@ def test_new_taux(simulation_projet):
     assert simulation_projet.taux == 30
 
 
-def test_coherent_both_new_montant_and_new_taux(simulation_projet):
-    data = {
-        "montant": 300,
-        "taux": 30,
-    }
+def test_coherent_new_montant_and_new_taux(simulation_projet, initial_data):
+    data = initial_data
+    data["montant"] = 300
+    data["taux"] = 30
+
     form = SimulationProjetForm(instance=simulation_projet, data=data)
 
     assert form.is_valid()
@@ -106,20 +111,36 @@ def test_coherent_both_new_montant_and_new_taux(simulation_projet):
     assert simulation_projet.taux == 30
 
 
-def test_incoherent_both_new_montant_and_new_taux(simulation_projet):
-    data = {
-        "montant": 400,
-        "taux": 30,
-    }
+def test_incoherent_new_montant_and_new_taux(simulation_projet, initial_data):
+    data = initial_data
+    data["montant"] = 400
+    data["taux"] = 30  # will be ignored
+
     form = SimulationProjetForm(instance=simulation_projet, data=data)
 
-    assert not form.is_valid()
-    assert list(form.errors.keys()) == ["montant", "taux", "__all__"]
-    assert form.errors["montant"] == ["Le montant doit être cohérent avec le taux."]
-    assert form.errors["taux"] == ["Le taux doit être cohérent avec le montant."]
-    assert form.errors["__all__"] == [
-        "Le montant et le taux ne sont pas cohérents. Veuillez vérifier vos données."
-    ]
+    assert form.is_valid()
+    assert form.cleaned_data["montant"] == 400
+    assert form.cleaned_data["taux"] == 40
+    form.save()
+    assert simulation_projet.montant == 400
+    assert simulation_projet.taux == 40
+
+
+def test_incoherent_new_assiette_and_new_taux(simulation_projet, initial_data):
+    data = initial_data
+    data["assiette"] = 2_000
+    data["taux"] = 30  # will be ignored
+
+    form = SimulationProjetForm(instance=simulation_projet, data=data)
+
+    assert form.is_valid()
+    assert form.cleaned_data["assiette"] == 2_000
+    assert form.cleaned_data["montant"] == 200
+    assert form.cleaned_data["taux"] == 10
+    form.save()
+    assert simulation_projet.dotation_projet.assiette == 2_000
+    assert simulation_projet.montant == 200
+    assert simulation_projet.taux == 10
 
 
 def test_assiette_cant_be_higher_than_cout_total(simulation_projet):
@@ -143,6 +164,7 @@ def test_montant_cant_be_higher_than_assiette(simulation_projet):
     form = SimulationProjetForm(instance=simulation_projet, data=data)
     assert not form.is_valid()
     assert list(form.errors.keys()) == ["montant"]
-    assert form.errors["montant"] == [
-        "Le montant ne doit pas être supérieure à l'assiette."
-    ]
+    assert (
+        "Le montant de la simulation ne peut pas être supérieur à l'assiette du projet"
+        in form.errors["montant"][0]
+    )

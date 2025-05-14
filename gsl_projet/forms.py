@@ -80,15 +80,9 @@ class DotationProjetForm(ModelForm, DsfrBaseForm):
         required=False,
         widget=forms.Select(attrs={"form": "dotation_projet_form"}),
     )
-    assiette = forms.DecimalField(
-        label="Montant des dépenses éligibles retenues (€)",
-        required=False,
-        widget=forms.NumberInput(attrs={"form": "dotation_projet_form"}),
-    )
 
     class Meta:
         model = DotationProjet
         fields = [
             "detr_avis_commission",
-            "assiette",
         ]

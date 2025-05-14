@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const montant = parseValue(montantInput.value);
       if (!isNaN(assiette) && !isNaN(montant)) {
           const taux = (montant / assiette) * 100;
-          tauxInput.value = taux.toFixed(2).replace('.', ',');
+          tauxInput.value = taux.toFixed(3).replace('.', ',');
       }
   });
 
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const montant = parseValue(montantInput.value);
       if (!isNaN(montant)) {
           const taux = (montant / TOTAL_ELIGIBLE) * 100;
-          tauxInput.value = taux.toFixed(2).replace('.', ',');
+          tauxInput.value = taux.toFixed(3).replace('.', ',');
       }
   });
 

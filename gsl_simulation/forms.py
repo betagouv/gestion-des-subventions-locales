@@ -66,8 +66,8 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
 
     taux = forms.DecimalField(
         label="Taux de subvention (%)",
-        max_digits=5,
-        decimal_places=2,
+        max_digits=6,
+        decimal_places=3,
         min_value=0,
         max_value=100,
         required=False,
@@ -100,7 +100,6 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         cleaned_data = super().clean()
         simulation_projet = self.instance
         dotation_projet = self.instance.dotation_projet
-        dotation_projet.clean()
 
         new_montant = cleaned_data.get("montant")
         has_montant_changed = simulation_projet.montant != new_montant
@@ -125,6 +124,8 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
                 )
                 cleaned_data["montant"] = computed_montant
 
+        dotation_projet.assiette = new_assiette
+        dotation_projet.clean()
         return cleaned_data
 
     def save(self, commit=True):
