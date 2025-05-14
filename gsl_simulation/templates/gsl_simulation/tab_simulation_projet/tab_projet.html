@@ -15,7 +15,7 @@
 {% endblock form_for_simulation_projet %}
 
 {% block detr_avis_commission %}
-    {% if enveloppe.dotation == 'DETR' %}
+    {% if enveloppe.dotation == 'DETR' and projet.can_have_a_commission_detr_avis %}
         {% include "includes/forms/_detr_avis_commission_form.html" %}
     {% endif %}
 {% endblock detr_avis_commission %}

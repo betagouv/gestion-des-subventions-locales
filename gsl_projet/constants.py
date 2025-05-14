@@ -18,3 +18,6 @@ PROJET_STATUS_CHOICES = (
     (PROJET_STATUS_PROCESSING, "🔄 En traitement"),
     (PROJET_STATUS_DISMISSED, "⛔️ Classé sans suite"),
 )
+
+
+MIN_DEMANDE_MONTANT_FOR_AVIS_DETR = 50_000
