@@ -6,6 +6,7 @@ from dsfr.forms import DsfrBaseForm
 from gsl_core.models import Perimetre
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.services.dotation_projet_services import DotationProjetService
+from gsl_projet.utils.utils import compute_taux
 from gsl_simulation.models import SimulationProjet
 
 
@@ -77,10 +78,12 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
 
     class Meta:
         model = SimulationProjet
-        fields = ["montant", "taux"]
+        fields = ["montant"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["taux"].initial = self.instance.taux
+
         dotation_projet = (
             self.instance.dotation_projet
             if self.instance and self.instance.dotation_projet
@@ -90,40 +93,49 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
             self.fields["assiette"].initial = dotation_projet.assiette
 
     def clean(self):
+        """
+        Si le montant et/ou l'assiette a changé, on recalcule le taux.
+        Sinon, on regarde si le taux a changé. Si oui, on recalcule le montant.
+        """
         cleaned_data = super().clean()
         simulation_projet = self.instance
         dotation_projet = self.instance.dotation_projet
         dotation_projet.clean()
 
         new_montant = cleaned_data.get("montant")
-        new_taux = cleaned_data.get("taux")
         has_montant_changed = simulation_projet.montant != new_montant
-        has_taux_changed = simulation_projet.taux != new_taux
 
-        if has_montant_changed:
-            computed_taux = DotationProjetService.compute_taux_from_montant(
-                simulation_projet.dotation_projet, new_montant
-            )
+        new_assiette = cleaned_data.get("assiette")
+        has_assiette_changed = (
+            simulation_projet.dotation_projet.assiette != new_assiette
+        )
 
+        if has_assiette_changed or has_montant_changed:
+            computed_taux = compute_taux(new_montant, new_assiette)
+            cleaned_data["taux"] = computed_taux
+
+        else:
+            new_taux = cleaned_data.get("taux")
+            has_taux_changed = (
+                simulation_projet.taux != new_taux
+            )  # TODO Test si le taux a changé et de 0,01 ou moins
             if has_taux_changed:
-                if computed_taux != new_taux:
-                    self.add_error(
-                        "montant", "Le montant doit être cohérent avec le taux."
-                    )
-                    self.add_error(
-                        "taux", "Le taux doit être cohérent avec le montant."
-                    )
-                    raise ValidationError(
-                        "Le montant et le taux ne sont pas cohérents. Veuillez vérifier vos données."
-                    )
-
-            else:
-                cleaned_data["taux"] = computed_taux
-
-        elif has_taux_changed:
-            computed_montant = DotationProjetService.compute_montant_from_taux(
-                simulation_projet.dotation_projet, new_taux
-            )
-            cleaned_data["montant"] = computed_montant
+                computed_montant = DotationProjetService.compute_montant_from_taux(
+                    simulation_projet.dotation_projet, new_taux
+                )
+                cleaned_data["montant"] = computed_montant
 
         return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        dotation_projet = instance.dotation_projet
+        if dotation_projet:
+            dotation_projet.assiette = self.cleaned_data.get("assiette")
+
+        if commit:
+            dotation_projet.save()
+            instance.save()
+
+        return instance

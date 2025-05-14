@@ -104,19 +104,6 @@ class SimulationProjetService:
         )
 
     @classmethod
-    def get_initial_taux_from_dotation_projet(
-        cls, dotation_projet: DotationProjet, montant: Decimal
-    ) -> Decimal:
-        if montant > 0:
-            return (
-                dotation_projet.projet.dossier_ds.annotations_taux
-                or DotationProjetService.compute_taux_from_montant(
-                    dotation_projet, montant
-                )
-            )
-        return Decimal(0)
-
-    @classmethod
     def update_status(cls, simulation_projet: SimulationProjet, new_status: str):
         if new_status == SimulationProjet.STATUS_ACCEPTED:
             return cls._accept_a_simulation_projet(simulation_projet)
