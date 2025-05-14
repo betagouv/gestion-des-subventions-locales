@@ -39,13 +39,11 @@ class SimulationProjetService:
         montant = cls.get_initial_montant_from_dotation_projet(
             dotation_projet, simulation_projet_status
         )
-        taux = cls.get_initial_taux_from_dotation_projet(dotation_projet, montant)
         simulation_projet, _ = SimulationProjet.objects.update_or_create(
             dotation_projet=dotation_projet,
             simulation_id=simulation.id,
             defaults={
                 "montant": montant,
-                "taux": taux,
                 "status": simulation_projet_status,
             },
         )
@@ -160,7 +158,6 @@ class SimulationProjetService:
         new_montant = (assiette * Decimal(new_taux) / 100) if assiette else 0
         new_montant = round(new_montant, 2)
 
-        simulation_projet.taux = new_taux
         simulation_projet.montant = new_montant
         simulation_projet.save()
 
@@ -171,11 +168,6 @@ class SimulationProjetService:
 
     @classmethod
     def update_montant(cls, simulation_projet: SimulationProjet, new_montant: float):
-        new_taux = DotationProjetService.compute_taux_from_montant(
-            simulation_projet.dotation_projet, new_montant
-        )
-
-        simulation_projet.taux = new_taux
         simulation_projet.montant = new_montant
         simulation_projet.save()
 

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 from django.forms import ValidationError
 
@@ -5,6 +7,27 @@ from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.tests.factories import DotationProjetFactory
 from gsl_simulation.models import Simulation, SimulationProjet
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
+
+
+@pytest.mark.parametrize(
+    "montant, assiette, finance_cout_total, expected_taux",
+    (
+        (1_000, 2_000, 4_000, 50),
+        (1_000, 2_000, None, 50),
+        (1_000, None, 4_000, 25),
+        (1_000, None, None, 0),
+    ),
+)
+@pytest.mark.django_db
+def test_progammation_projet_taux(montant, assiette, finance_cout_total, expected_taux):
+    dotation_projet = DotationProjetFactory(
+        assiette=assiette, projet__dossier_ds__finance_cout_total=finance_cout_total
+    )
+    programmation_projet = SimulationProjetFactory(
+        dotation_projet=dotation_projet, montant=montant
+    )
+    assert isinstance(programmation_projet.taux, Decimal)
+    assert programmation_projet.taux == expected_taux
 
 
 @pytest.fixture
@@ -91,17 +114,6 @@ def test_simulation_projet_cant_have_a_montant_higher_than_projet_cout_total():
     assert (
         "Le montant de la simulation ne peut pas être supérieur au coût total du projet"
         in exc_info.value.message_dict.get("montant")[0]
-    )
-
-
-@pytest.mark.django_db
-def test_simulation_projet_cant_have_a_taux_higher_than_100():
-    with pytest.raises(ValidationError) as exc_info:
-        sp = SimulationProjetFactory(taux=101)
-        sp.save()
-    assert (
-        "Le taux de la simulation ne peut pas être supérieur à 100"
-        in exc_info.value.message_dict.get("taux")[0]
     )
 
 

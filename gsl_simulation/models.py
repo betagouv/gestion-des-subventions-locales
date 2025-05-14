@@ -5,6 +5,7 @@ from django.forms import ValidationError
 from gsl_core.models import Collegue
 from gsl_programmation.models import Enveloppe
 from gsl_projet.models import DotationProjet
+from gsl_projet.utils.utils import compute_taux
 
 
 class Simulation(models.Model):
@@ -75,7 +76,6 @@ class SimulationProjet(models.Model):
     montant = models.DecimalField(
         decimal_places=2, max_digits=14, verbose_name="Montant"
     )
-    taux = models.DecimalField(decimal_places=2, max_digits=5, verbose_name="Taux")
     status = models.CharField(
         verbose_name="État", choices=STATUS_CHOICES, default=STATUS_PROCESSING
     )
@@ -113,6 +113,10 @@ class SimulationProjet(models.Model):
     @property
     def enveloppe(self):
         return self.simulation.enveloppe
+
+    @property
+    def taux(self):
+        return compute_taux(self.montant, self.dotation_projet.assiette_or_cout_total)
 
     def clean(self):
         errors = {}

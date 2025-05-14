@@ -21,6 +21,27 @@ from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 
+@pytest.mark.parametrize(
+    "montant, assiette, finance_cout_total, expected_taux",
+    (
+        (1_000, 2_000, 4_000, 50),
+        (1_000, 2_000, None, 50),
+        (1_000, None, 4_000, 25),
+        (1_000, None, None, 0),
+    ),
+)
+@pytest.mark.django_db
+def test_progammation_projet_taux(montant, assiette, finance_cout_total, expected_taux):
+    dotation_projet = DotationProjetFactory(
+        assiette=assiette, projet__dossier_ds__finance_cout_total=finance_cout_total
+    )
+    programmation_projet = ProgrammationProjetFactory(
+        dotation_projet=dotation_projet, montant=montant
+    )
+    assert isinstance(programmation_projet.taux, Decimal)
+    assert programmation_projet.taux == expected_taux
+
+
 @pytest.mark.django_db
 def test_two_programmation_projets_cant_have_the_same_dotation_projet():
     dotation_projet = DotationProjetFactory()
@@ -61,17 +82,6 @@ def test_programmation_projet_cant_have_a_montant_higher_than_projet_cout_total(
     assert (
         "Le montant de la programmation ne peut pas être supérieur au coût total du projet pour cette dotation."
         in exc_info.value.message_dict.get("montant")[0]
-    )
-
-
-@pytest.mark.django_db
-def test_programmation_projet_cant_have_a_taux_higher_than_100():
-    with pytest.raises(ValidationError) as exc_info:
-        pp = ProgrammationProjetFactory(taux=101)
-        pp.full_clean()
-    assert (
-        "Le taux de la programmation ne peut pas être supérieur à 100."
-        in exc_info.value.message_dict.get("taux")[0]
     )
 
 
@@ -120,44 +130,6 @@ def enveloppe(region_perimetre) -> Enveloppe:
     return DsilEnveloppeFactory(perimetre=region_perimetre)
 
 
-@pytest.mark.django_db
-def test_taux_consistency_is_valid_with_a_difference_of_more_than_a_tenth(
-    dotation_projet, enveloppe
-):
-    for taux in [Decimal("3.39"), Decimal("3.42")]:
-        prog_projet = ProgrammationProjetFactory(
-            dotation_projet=dotation_projet,
-            montant=Decimal("42"),
-            taux=taux,
-            enveloppe=enveloppe,
-        )
-        with pytest.raises(ValidationError) as exc_info:
-            prog_projet.full_clean()
-
-        exception_message = exc_info.value.message_dict["taux"][0]
-        assert (
-            "Le taux et le montant de la programmation ne sont pas cohérents."
-            in exception_message
-        )
-        assert "Taux attendu : 3.40" in exception_message
-        prog_projet.delete()
-
-
-@pytest.mark.django_db
-def test_taux_consistency_is_valid_with_a_difference_of_less_than_a_tenth(
-    dotation_projet, enveloppe
-):
-    for taux in [Decimal("3.40"), Decimal("3.41")]:
-        prog_projet = ProgrammationProjetFactory(
-            dotation_projet=dotation_projet,
-            montant=Decimal("42"),
-            taux=taux,
-            enveloppe=enveloppe,
-        )
-        prog_projet.full_clean()
-        prog_projet.delete()
-
-
 @pytest.fixture
 def departement_perimetre(arrondisement_perimetre) -> Perimetre:
     return PerimetreRegionalFactory(
@@ -177,7 +149,6 @@ def test_clean_programmation_on_deleguee_enveloppe(dotation_projet, enveloppe_de
         dotation_projet=dotation_projet,
         enveloppe=enveloppe_deleguee,
         montant=Decimal("100.00"),
-        taux=Decimal("8.10"),
     )
     with pytest.raises(ValidationError) as exc_info:
         programmation.clean()
@@ -193,7 +164,6 @@ def test_clean_valid_programmation(dotation_projet, enveloppe):
         dotation_projet=dotation_projet,
         enveloppe=enveloppe,
         montant=Decimal("100.00"),
-        taux=Decimal("8.10"),
     )
     programmation.clean()
 
@@ -204,14 +174,12 @@ def test_clean_programmation_with_refused_status(dotation_projet, enveloppe):
         dotation_projet=dotation_projet,
         enveloppe=enveloppe,
         montant=Decimal("100.00"),
-        taux=Decimal("8.10"),
         status=ProgrammationProjet.STATUS_REFUSED,
     )
     with pytest.raises(ValidationError) as exc_info:
         programmation.clean()
     errors = exc_info.value.message_dict
     assert "Un projet refusé doit avoir un montant nul." in str(errors["montant"])
-    assert "Un projet refusé doit avoir un taux nul." in str(errors["taux"])
 
 
 @pytest.mark.django_db

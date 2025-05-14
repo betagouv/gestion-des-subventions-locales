@@ -267,7 +267,6 @@ class DotationProjet(models.Model):
     def accept(self, montant: float, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_programmation.services.enveloppe_service import EnveloppeService
-        from gsl_projet.services.dotation_projet_services import DotationProjetService
         from gsl_simulation.models import SimulationProjet
 
         if self.dotation != enveloppe.dotation:
@@ -275,12 +274,9 @@ class DotationProjet(models.Model):
                 "La dotation du projet et de l'enveloppe ne correspondent pas."
             )
 
-        taux = DotationProjetService.compute_taux_from_montant(self, montant)
-
         SimulationProjet.objects.filter(dotation_projet=self).update(
             status=SimulationProjet.STATUS_ACCEPTED,
             montant=montant,
-            taux=taux,
         )
 
         parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
@@ -290,7 +286,6 @@ class DotationProjet(models.Model):
             enveloppe=parent_enveloppe,
             defaults={
                 "montant": montant,
-                "taux": taux,
                 "status": ProgrammationProjet.STATUS_ACCEPTED,
             },
         )
@@ -309,7 +304,6 @@ class DotationProjet(models.Model):
         SimulationProjet.objects.filter(dotation_projet=self).update(
             status=SimulationProjet.STATUS_REFUSED,
             montant=0,
-            taux=0,
         )
 
         parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
@@ -319,7 +313,6 @@ class DotationProjet(models.Model):
             enveloppe=parent_enveloppe,
             defaults={
                 "montant": 0,
-                "taux": 0,
                 "status": ProgrammationProjet.STATUS_REFUSED,
             },
         )
@@ -330,7 +323,7 @@ class DotationProjet(models.Model):
         from gsl_simulation.models import SimulationProjet
 
         SimulationProjet.objects.filter(dotation_projet=self).update(
-            status=SimulationProjet.STATUS_DISMISSED, montant=0, taux=0
+            status=SimulationProjet.STATUS_DISMISSED, montant=0
         )
 
         ProgrammationProjet.objects.filter(dotation_projet=self).delete()
