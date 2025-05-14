@@ -147,7 +147,7 @@ class Projet(models.Model):
     def can_have_a_commission_detr_avis(self) -> bool:
         return (
             self.dotationprojet_set.filter(dotation=DOTATION_DETR).exists()
-            and self.dossier_ds.demande_montant
+            and self.dossier_ds.demande_montant is not None
             and self.dossier_ds.demande_montant >= 50_000
         )
 
