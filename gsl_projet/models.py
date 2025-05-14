@@ -148,7 +148,7 @@ class Projet(models.Model):
         return (
             self.dotationprojet_set.filter(dotation=DOTATION_DETR).exists()
             and self.dossier_ds.demande_montant is not None
-            and self.dossier_ds.demande_montant >= 50_000
+            and self.dossier_ds.demande_montant >= MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
         )
 
     @property
