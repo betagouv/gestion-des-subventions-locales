@@ -78,11 +78,11 @@ def test_create_or_update_dotation_projet_from_projet_do_not_remove_dotation_pro
     projet_dotation_projets = DotationProjet.objects.filter(projet_id=projet.id)
     assert projet_dotation_projets.count() == 2
 
-    dotation_projet = projet_dotation_projets[0]
-    assert dotation_projet.dotation == DOTATION_DSIL
+    dsil_dotation_projets = projet_dotation_projets.filter(dotation=DOTATION_DSIL)
+    assert dsil_dotation_projets.count() == 1
 
-    dotation_projet = projet_dotation_projets[1]
-    assert dotation_projet.dotation == DOTATION_DETR
+    detr_dotation_projet = projet_dotation_projets.filter(dotation=DOTATION_DETR)
+    assert detr_dotation_projet.count() == 1
 
 
 @pytest.mark.django_db
