@@ -1,4 +1,5 @@
 import { handleDotationChange } from "./modules/handleDotationUpdate.js"
+import { disableAllModalButtons } from "./modules/utils.js"
 
 'use strict'
 
@@ -61,7 +62,10 @@ document.querySelectorAll('.dotation-dropdown button').forEach(button => {
 });
   
 
-document.querySelector("#confirm-dotation-update").addEventListener("click", (ev) => {
+document.querySelectorAll("#confirm-dotation-update").forEach(elt => {
+  elt.addEventListener("click", (ev) => {
+    disableAllModalButtons(elt.closest(".confirmation-modal"));
     selectedForm.submit();
     closeModal();
   })
+})

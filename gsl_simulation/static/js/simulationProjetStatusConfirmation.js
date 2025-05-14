@@ -35,11 +35,6 @@ function mustOpenConfirmationModal(newValue, originalValue) {
     return false;
 }
 
-function replaceInitialStatusModalContentText(originalValue, modalContentId) {
-    const confirmationModalContent = document.getElementById(modalContentId)
-    confirmationModalContent.querySelector(".initial-status").innerHTML= STATUS_TO_FRENCH_WORD[originalValue]
-}
-
 function handleStatusChangeWithHtmx(select, originalValue) {
     if (mustOpenConfirmationModal(select.value, originalValue)) {
         showConfirmationModal(select, originalValue);
@@ -72,6 +67,7 @@ function showConfirmationModal(select, originalValue) {
     }
 
     const modal = document.getElementById(modalId)
+    _ensureButtonsAreEnabled(modal)
     dsfr(modal).modal.disclose()
 }
 
@@ -90,6 +86,20 @@ function _removeFromProgrammationText(modalContentId) {
     catch (e) {
         console.log("No element to remove")
     }
+}
+
+function _ensureButtonsAreEnabled(modal) {
+    const buttons = modal.querySelectorAll("button")
+    buttons.forEach((button) => {
+        button.disabled = false
+    })
+}
+
+function _disableAllModalButtons(modal) {
+    const buttons = modal.querySelectorAll("button")
+    buttons.forEach((button) => {
+        button.disabled = true
+    })
 }
 
 function closeModal() {
@@ -120,6 +130,7 @@ document.querySelectorAll(".close-modal").forEach((el) => {
 
 document.querySelectorAll('#confirmChange').forEach((e) => {
     e.addEventListener('click', function () {
+        _disableAllModalButtons(this.closest(".confirmation-modal"));
         if (selectedElement) {
             selectedElement.form.submit();
         }
