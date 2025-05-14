@@ -82,19 +82,21 @@ def test_montant_retenu_with_refused_programmation_projet():
 
 def test_taux_retenu_with_accepted_programmation_projet():
     programmation_projet = ProgrammationProjetFactory(
-        status=ProgrammationProjet.STATUS_ACCEPTED, taux=10
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        montant=100,
+        dotation_projet__assiette=1_000,
     )
     assert programmation_projet.dotation_projet.taux_retenu == 10
 
 
 def test_taux_retenu_with_refused_programmation_projet():
-    dotation_projet = DotationProjetFactory()
+    dotation_projet = DotationProjetFactory(assiette=1_000)
     assert dotation_projet.taux_retenu is None
 
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_REFUSED,
-        taux=0,
+        montant=0,
     )
     assert dotation_projet.taux_retenu == 0
 
@@ -435,7 +437,6 @@ def test_set_back_status_to_processing_from_accepted():
         dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         montant=10_000,
-        taux=20,
     )
     SimulationProjetFactory.create_batch(
         3,

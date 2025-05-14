@@ -235,7 +235,6 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         status=ProgrammationProjet.STATUS_ACCEPTED,
         enveloppe=detr_enveloppe,
         montant=500,
-        taux=10,
     )
     create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(
         dossier.ds_number

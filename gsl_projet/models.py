@@ -258,7 +258,6 @@ class DotationProjet(models.Model):
             enveloppe=parent_enveloppe,
             defaults={
                 "montant": montant,
-                "taux": taux,
                 "status": ProgrammationProjet.STATUS_ACCEPTED,
             },
         )
@@ -287,7 +286,6 @@ class DotationProjet(models.Model):
             enveloppe=parent_enveloppe,
             defaults={
                 "montant": 0,
-                "taux": 0,
                 "status": ProgrammationProjet.STATUS_REFUSED,
             },
         )

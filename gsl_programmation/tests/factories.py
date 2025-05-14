@@ -49,4 +49,3 @@ class ProgrammationProjetFactory(DjangoModelFactory):
     )
 
     montant = Faker("random_number", digits=5)
-    taux = Faker("random_number", digits=2)

@@ -514,7 +514,6 @@ def test_update_taux_of_accepted_montant(field_name):
         enveloppe=simulation_projet.enveloppe,
         dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
-        taux=20.0,
     )
 
     new_taux = 15.0

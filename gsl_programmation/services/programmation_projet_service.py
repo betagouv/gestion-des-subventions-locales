@@ -12,14 +12,6 @@ from gsl_projet.models import DotationProjet, Projet
 
 
 class ProgrammationProjetService:
-    PROJET_MANDATORY_FIELDS_TO_CREATE_OR_UPDATE_PROGRAMMATION_PROJET = [
-        "dossier_ds",
-        "annotations_montant_accorde",
-        "annotations_taux",
-        "annotations_dotation",
-        "annotations_assiette",
-    ]
-
     @classmethod
     def create_or_update_from_dotation_projet(cls, dotation_projet: DotationProjet):
         if dotation_projet.status is None:
@@ -34,16 +26,14 @@ class ProgrammationProjetService:
             return
 
         if dotation_projet.status == PROJET_STATUS_ACCEPTED:
-            for field in (
-                "annotations_montant_accorde",
-                "annotations_taux",
-                "annotations_assiette",
+            if (
+                getattr(dotation_projet.dossier_ds, "annotations_montant_accorde")
+                is None
             ):
-                if getattr(dotation_projet.dossier_ds, field) is None:
-                    logging.error(
-                        f"Projet accepted {dotation_projet} is missing field {field}"
-                    )
-                    return
+                logging.error(
+                    f"Projet accepted {dotation_projet} is missing field annotations_montant_accorde"
+                )
+                return
 
         perimetre = cls.get_perimetre_from_dotation(
             dotation_projet.projet, dotation_projet.dotation
@@ -70,11 +60,6 @@ class ProgrammationProjetService:
             if dotation_projet.status == PROJET_STATUS_ACCEPTED
             else 0
         )
-        taux = (
-            dotation_projet.projet.dossier_ds.annotations_taux
-            if dotation_projet.status == PROJET_STATUS_ACCEPTED
-            else 0
-        )
         programmation_projet_status = (
             ProgrammationProjet.STATUS_ACCEPTED
             if dotation_projet.status == PROJET_STATUS_ACCEPTED
@@ -87,7 +72,6 @@ class ProgrammationProjetService:
             defaults={
                 "status": programmation_projet_status,
                 "montant": montant,
-                "taux": taux,
             },
         )
         return programmation_projet

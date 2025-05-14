@@ -98,6 +98,7 @@ class DotationProjetService:
 
         return None
 
+    # TODO, to remove ??
     @classmethod
     def compute_taux_from_montant(
         cls, dotation_projet: DotationProjet, new_montant: float | Decimal
