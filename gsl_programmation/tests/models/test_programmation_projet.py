@@ -21,6 +21,27 @@ from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 
+@pytest.mark.parametrize(
+    "montant, assiette, finance_cout_total, expected_taux",
+    (
+        (1_000, 2_000, 4_000, 50),
+        (1_000, 2_000, None, 50),
+        (1_000, None, 4_000, 25),
+        (1_000, None, None, 0),
+    ),
+)
+@pytest.mark.django_db
+def test_progammation_projet_taux(montant, assiette, finance_cout_total, expected_taux):
+    dotation_projet = DotationProjetFactory(
+        assiette=assiette, projet__dossier_ds__finance_cout_total=finance_cout_total
+    )
+    programmation_projet = ProgrammationProjetFactory(
+        dotation_projet=dotation_projet, montant=montant
+    )
+    assert isinstance(programmation_projet.taux, Decimal)
+    assert programmation_projet.taux == expected_taux
+
+
 @pytest.mark.django_db
 def test_two_programmation_projets_cant_have_the_same_dotation_projet():
     dotation_projet = DotationProjetFactory()
