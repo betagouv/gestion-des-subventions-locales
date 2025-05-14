@@ -4,7 +4,7 @@
   "title": "Titre de la démarche",
   "state": "brouillon",
   "declarative": null,
-  "dateCreation": "2023-10-07T14:47:24+02:00",
+  "dateCreation": "2022-10-07T14:47:24+02:00",
   "dateFermeture": null,
   "chorusConfiguration": {
     "centreDeCout": "",
@@ -13,7 +13,7 @@
   },
   "activeRevision": {
     "id": "TEST_ID_MTYyNjE0",
-    "datePublication": "2024-10-07T14:47:24+02:00",
+    "datePublication": "2023-10-07T14:47:24+02:00",
     "champDescriptors": [
       {
         "__typename": "ExplicationChampDescriptor",

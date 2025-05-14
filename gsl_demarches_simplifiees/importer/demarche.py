@@ -179,7 +179,7 @@ def extract_categories_operation_detr(demarche_data, demarche: Demarche):
         detr_cat, _ = CategorieDetr.objects.get_or_create(
             departement=departement,
             tri=sort_order,
-            annee=2025,
+            annee=year,
             defaults={"libelle": label},
         )
         CritereEligibiliteDetr.objects.update_or_create(
