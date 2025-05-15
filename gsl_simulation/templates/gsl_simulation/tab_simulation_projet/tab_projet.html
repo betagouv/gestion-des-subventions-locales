@@ -47,5 +47,19 @@
 {% endblock dotations_form %}
 
 {% block montants_form %}
+    {% if other_dotation_simu %}
+        <h6>
+            {{ dotation_projet.dotation }}
+        </h6>
+    {% endif %}
+
     {% include "includes/forms/_montants_form.html" %}
+
+    {% if other_dotation_simu %}
+        <h6>
+            {{ other_dotation_simu.dotation_projet.dotation }}
+        </h6>
+        {% include "includes/projet_detail/dotation_montant_info.html" with assiette=other_dotation_simu.dotation_projet.assiette montant=other_dotation_simu.montant taux=other_dotation_simu.taux %}
+    {% endif %}
+
 {% endblock montants_form %}

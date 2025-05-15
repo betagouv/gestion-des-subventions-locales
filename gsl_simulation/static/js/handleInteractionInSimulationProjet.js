@@ -48,13 +48,15 @@ document.querySelectorAll("#confirm-dotation-update").forEach(elt => {
 
 // Montant update
 document.addEventListener('DOMContentLoaded', function () {
+  const form = document.querySelector('#simulation_projet_form');
   const assietteInput = document.querySelector('#id_assiette'); 
   const montantInput = document.querySelector('#id_montant'); 
   const tauxInput = document.querySelector('#id_taux');
-
   
+  const coutTotal = form.dataset.coutTotal;
+
   const parseValue = (val) => parseFloat(val.replace(',', '.').replace(/\s/g, ''));
-  const TOTAL_ELIGIBLE = assietteInput.value ? parseValue(assietteInput.value) : 0;
+  const TOTAL_ELIGIBLE = assietteInput.value ? parseValue(assietteInput.value) : parseValue(coutTotal);
 
   // Lorsqu'on modifie l'assiette
   assietteInput.addEventListener('input', function () {

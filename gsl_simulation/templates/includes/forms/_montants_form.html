@@ -1,6 +1,7 @@
 <form id="simulation_projet_form"
       class="form-disabled-before-value-change fr-mb-2w"
-      method="post">
+      method="post"
+      data-cout-total="{{ dossier.finance_cout_total }}">
     {% csrf_token %}
     <div class="fr-callout fr-background-alt--blue-france fr-py-2w fr-pl-3w">
         {{ simulation_projet_form.non_field_errors }}

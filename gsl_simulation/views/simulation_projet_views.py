@@ -261,6 +261,7 @@ def _enrich_simulation_projet_context_from_simulation_projet(
     simulation_projet_form = SimulationProjetForm(instance=simulation_projet)
     dotation_field = projet_form.fields.get("dotations")
     title = simulation_projet.projet.dossier_ds.projet_intitule
+    projet = simulation_projet.projet
     context.update(
         {
             "title": title,
@@ -280,11 +281,11 @@ def _enrich_simulation_projet_context_from_simulation_projet(
                 ],
                 "current": title,
             },
-            "projet": simulation_projet.projet,
+            "projet": projet,
             "dotation_projet": simulation_projet.dotation_projet,
             "simu": simulation_projet,
             "enveloppe": simulation_projet.simulation.enveloppe,
-            "dossier": simulation_projet.projet.dossier_ds,
+            "dossier": projet.dossier_ds,
             "menu_dict": PROJET_MENU,
             "projet_form": projet_form,
             "dotation_projet_form": DotationProjetForm(
@@ -294,6 +295,9 @@ def _enrich_simulation_projet_context_from_simulation_projet(
             "initial_dotations": ",".join(dotation_field.initial)
             if dotation_field
             else [],
+            "other_dotation_simu": _get_other_dotation_simulation_projet(
+                simulation_projet
+            ),
         }
     )
 
@@ -309,4 +313,21 @@ def _get_view_simulation_projet_from_pk(pk: int):
         )
         .prefetch_related("dotation_projet__projet__dotationprojet_set")
         .get(id=pk)
+    )
+
+
+def _get_other_dotation_simulation_projet(
+    simulation_projet: SimulationProjet,
+) -> SimulationProjet | None:
+    if not simulation_projet.projet.has_double_dotations:
+        return None
+
+    # Get the most recent simulation projet with the same projet but different dotation
+    return (
+        SimulationProjet.objects.filter(
+            dotation_projet__projet=simulation_projet.projet,
+        )
+        .exclude(dotation_projet__dotation=simulation_projet.dotation_projet.dotation)
+        .order_by("-updated_at")
+        .first()
     )
