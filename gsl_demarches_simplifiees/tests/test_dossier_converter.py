@@ -7,11 +7,13 @@ import pytest
 from gsl_core.models import Adresse
 from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverter
 from gsl_demarches_simplifiees.models import (
+    CritereEligibiliteDetr,
     Demarche,
     Dossier,
     FieldMappingForComputer,
     PersonneMorale,
 )
+from gsl_demarches_simplifiees.tests.factories import DemarcheFactory
 
 pytestmark = [
     pytest.mark.django_db,
@@ -348,6 +350,26 @@ def test_inject_string_into_manytomany_value(dossier_converter, dossier):
     )
     dossier.save()
     assert len(dossier.projet_zonage.all()) == 1
+
+
+def test_inject_correct_category_detr_value_with_several_demarches(
+    dossier_converter, dossier
+):
+    libelle = "1. Valeur du premier choix"
+    other_critere_detr = CritereEligibiliteDetr.objects.create(
+        demarche=DemarcheFactory(), label=libelle
+    )
+    good_critere_detr = CritereEligibiliteDetr.objects.create(
+        demarche=dossier.ds_demarche, label=libelle
+    )
+    dossier_converter.inject_into_field(
+        dossier,
+        Dossier._meta.get_field("demande_eligibilite_detr"),
+        libelle,
+    )
+    dossier.save()
+    assert dossier.demande_eligibilite_detr == good_critere_detr
+    assert dossier.demande_eligibilite_detr != other_critere_detr
 
 
 def test_inject_address_value(dossier_converter, dossier):
