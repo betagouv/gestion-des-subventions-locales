@@ -1,5 +1,7 @@
 <form action="{% url 'simulation:patch-simulation-projet-taux' simu.id %}"
-      method="POST">
+      method="POST"
+      id="id-taux-{{ simu.id }}"
+      hx-swap-oob="true">
     {% csrf_token %}
     <div class="gsl-projet-table__input-wrap gsl-projet-table__rate">
         <input name="taux"

@@ -284,7 +284,11 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             return {}
 
         other_simulation_projets = (
-            SimulationProjet.objects.select_related("dotation_projet")
+            SimulationProjet.objects.select_related(
+                "dotation_projet",
+                "dotation_projet__projet",
+                "dotation_projet__projet__dossier_ds",
+            )
             .filter(dotation_projet__projet__id__in=ids_of_double_dotation_projet)
             .exclude(simulation__enveloppe__dotation=current_dotation)
             .order_by("-updated_at")
