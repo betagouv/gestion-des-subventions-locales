@@ -10,7 +10,7 @@
         {{ title }}
     </h1>
     {% include "includes/_status_summary.html" %}
-    <a class="fr-btn fr-btn--secondary"
+    <a class="fr-btn fr-btn--secondary fr-mt-2w"
        href="{% url 'gsl_simulation:simulation-projets-export' slug=simulation.slug %}?{{ filter_params }}">
         Exporter le tableau en csv
     </a>
