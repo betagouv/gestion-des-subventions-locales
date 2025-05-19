@@ -36,7 +36,7 @@ class DsilSimulationProjetResource(ModelResource):
     )
     porteur_name = Field(
         attribute="projet__dossier_ds__porteur_fullname",
-        column_name="Nom et prénomn du demandeur",  # TODO: demandeur ?? ou porteur ?
+        column_name="Nom et prénom du demandeur",
     )
     demandeur_code_insee = Field(
         attribute="projet__demandeur__address__commune__insee_code",
