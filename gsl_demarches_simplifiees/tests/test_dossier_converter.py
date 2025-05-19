@@ -356,20 +356,27 @@ def test_inject_correct_category_detr_value_with_several_demarches(
     dossier_converter, dossier
 ):
     libelle = "1. Valeur du premier choix"
+    demarche_revision = ""
     other_critere_detr = CritereEligibiliteDetr.objects.create(
-        demarche=DemarcheFactory(), label=libelle
+        demarche=DemarcheFactory(ds_title="Démarche qui n'a rien à voir"),
+        label=libelle,
+        demarche_revision="tata",
     )
     good_critere_detr = CritereEligibiliteDetr.objects.create(
-        demarche=dossier.ds_demarche, label=libelle
+        demarche=dossier.ds_demarche,
+        label=libelle,
+        demarche_revision=demarche_revision,
     )
+    dossier_converter.ds_demarche_revision = demarche_revision
     dossier_converter.inject_into_field(
         dossier,
         Dossier._meta.get_field("demande_eligibilite_detr"),
         libelle,
     )
     dossier.save()
-    assert dossier.demande_eligibilite_detr == good_critere_detr
-    assert dossier.demande_eligibilite_detr != other_critere_detr
+    dossier_critere = dossier.demande_eligibilite_detr.first()
+    assert dossier_critere == good_critere_detr
+    assert dossier_critere != other_critere_detr
 
 
 def test_inject_address_value(dossier_converter, dossier):
