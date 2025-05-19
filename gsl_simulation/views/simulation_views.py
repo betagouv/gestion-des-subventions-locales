@@ -174,35 +174,37 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         paginator = Paginator(qs, 25)
         page = self.kwargs.get("page") or self.request.GET.get("page") or 1
         current_page = paginator.page(page)
-        context["simulations_paginator"] = current_page
-        context["simulation_projets_list"] = current_page.object_list
-        context["title"] = (
-            f"{simulation.enveloppe.dotation} {simulation.enveloppe.annee} – {simulation.title}"
-        )
-        context["status_summary"] = simulation.get_projet_status_summary()
-        context["total_cost"] = ProjetService.get_total_cost(qs)
-        context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs)
-        context["total_amount_granted"] = SimulationService.get_total_amount_granted(
-            qs, simulation
-        )
-        context["available_states"] = SimulationProjet.STATUS_CHOICES
-        context["filter_params"] = self.request.GET.urlencode()
-        context["enveloppe"] = self._get_enveloppe_data(simulation)
-        context["dotations"] = DOTATIONS
-        context["other_dotations_simu"] = self._get_other_dotations_simulation_projet(
-            current_page.object_list, simulation.enveloppe.dotation
+        context.update(
+            {
+                "simulation": simulation,
+                "simulations_paginator": current_page,
+                "simulation_projets_list": current_page.object_list,
+                "title": f"{simulation.enveloppe.dotation} {simulation.enveloppe.annee} – {simulation.title}",
+                "status_summary": simulation.get_projet_status_summary(),
+                "total_cost": ProjetService.get_total_cost(qs),
+                "total_amount_asked": ProjetService.get_total_amount_asked(qs),
+                "total_amount_granted": SimulationService.get_total_amount_granted(
+                    qs, simulation
+                ),
+                "available_states": SimulationProjet.STATUS_CHOICES,
+                "filter_params": self.request.GET.urlencode(),
+                "enveloppe": self._get_enveloppe_data(simulation),
+                "dotations": DOTATIONS,
+                "other_dotations_simu": self._get_other_dotations_simulation_projet(
+                    current_page.object_list, simulation.enveloppe.dotation
+                ),
+                "breadcrumb_dict": {
+                    "links": [
+                        {
+                            "url": reverse("simulation:simulation-list"),
+                            "title": "Mes simulations de programmation",
+                        }
+                    ],
+                    "current": simulation.title,
+                },
+            }
         )
         self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
-
-        context["breadcrumb_dict"] = {
-            "links": [
-                {
-                    "url": reverse("simulation:simulation-list"),
-                    "title": "Mes simulations de programmation",
-                }
-            ],
-            "current": simulation.title,
-        }
 
         return context
 

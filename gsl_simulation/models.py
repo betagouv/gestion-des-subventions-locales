@@ -2,22 +2,19 @@ from django.db import models
 from django.db.models import Count
 from django.forms import ValidationError
 
-from gsl_core.models import Collegue
+from gsl_core.models import BaseModel, Collegue
 from gsl_programmation.models import Enveloppe
 from gsl_projet.models import DotationProjet
 from gsl_projet.utils.utils import compute_taux
 
 
-class Simulation(models.Model):
+class Simulation(BaseModel):
     title = models.CharField(verbose_name="Titre")
     created_by = models.ForeignKey(Collegue, on_delete=models.SET_NULL, null=True)
     enveloppe = models.ForeignKey(
         Enveloppe, on_delete=models.PROTECT, verbose_name="Dotation associée"
     )
     slug = models.SlugField(verbose_name="Clé d’URL", unique=True, max_length=120)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "Simulation"
@@ -38,7 +35,7 @@ class Simulation(models.Model):
             SimulationProjet.STATUS_REFUSED: 0,
             SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: 0,
             SimulationProjet.STATUS_PROVISIONALLY_REFUSED: 0,
-            "notified": 0,  # TODO : add notified count
+            "notified": 0,
         }
         status_count = (
             SimulationProjet.objects.filter(simulation=self)
@@ -51,7 +48,7 @@ class Simulation(models.Model):
         return {**default_status_summary, **summary}
 
 
-class SimulationProjet(models.Model):
+class SimulationProjet(BaseModel):
     STATUS_PROCESSING = "draft"
     STATUS_ACCEPTED = "valid"
     STATUS_REFUSED = "cancelled"
@@ -79,9 +76,6 @@ class SimulationProjet(models.Model):
     status = models.CharField(
         verbose_name="État", choices=STATUS_CHOICES, default=STATUS_PROCESSING
     )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "Projet de simulation"
