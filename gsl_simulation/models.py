@@ -23,6 +23,10 @@ class Simulation(BaseModel):
     def __str__(self):
         return self.title
 
+    @property
+    def dotation(self):
+        return self.enveloppe.dotation
+
     def get_absolute_url(self):
         from django.urls import reverse
 

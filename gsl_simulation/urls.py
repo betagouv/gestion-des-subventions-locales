@@ -28,6 +28,13 @@ urlpatterns = [
         name="simulation-detail",
     ),
     path(
+        "voir/<slug:slug>/csv",
+        simulation_must_be_visible_by_user(
+            simulation_views.FilteredProjetsCSVExportView.as_view()
+        ),
+        name="simulation-projets-export",
+    ),
+    path(
         "projet-detail/<int:pk>/",
         simulation_projet_must_be_visible_by_user(SimulationProjetDetailView.as_view()),
         name="simulation-projet-detail",
