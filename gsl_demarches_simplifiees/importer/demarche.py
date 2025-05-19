@@ -150,7 +150,7 @@ def guess_year_from_demarche_data(demarche_data) -> int:
         return date.year
 
 
-def extract_categories_operation_detr(demarche_data, demarche: Demarche):
+def extract_categories_operation_detr(demarche_data: dict, demarche: Demarche):
     from gsl_projet.models import CategorieDetr
 
     try:
