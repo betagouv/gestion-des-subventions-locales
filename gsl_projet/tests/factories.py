@@ -79,3 +79,13 @@ class DetrProjetFactory(DotationProjetFactory):
 
 class DsilProjetFactory(DotationProjetFactory):
     dotation = DOTATION_DSIL
+
+
+class ProjetNoteFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "gsl_projet.ProjetNote"
+
+    projet = factory.SubFactory(ProjetFactory)
+    title = factory.Faker("sentence", locale="fr_FR")
+    content = factory.Faker("text", locale="fr_FR")
+    created_by = factory.SubFactory("gsl_core.tests.factories.CollegueFactory")

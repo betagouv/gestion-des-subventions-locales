@@ -3,16 +3,13 @@ import pytest
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.tests.factories import PersonneMoraleFactory
 
-from ..models import (
-    Demandeur,
-    DotationProjet,
-    Projet,
-)
+from ..models import Demandeur, DotationProjet, Projet, ProjetNote
 from .factories import (
     DemandeurFactory,
     DotationProjetFactory,
     ProcessedProjetFactory,
     ProjetFactory,
+    ProjetNoteFactory,
     SubmittedProjetFactory,
 )
 
@@ -24,6 +21,7 @@ test_data = (
     (SubmittedProjetFactory, Projet),
     (ProcessedProjetFactory, Projet),
     (DotationProjetFactory, DotationProjet),
+    (ProjetNoteFactory, ProjetNote),
 )
 
 

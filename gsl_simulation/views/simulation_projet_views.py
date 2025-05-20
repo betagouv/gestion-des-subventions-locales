@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DetailView
 
 from gsl.settings import ALLOWED_HOSTS
-from gsl_projet.forms import DotationProjetForm, ProjetForm
+from gsl_projet.forms import DotationProjetForm, ProjetForm, ProjetNoteForm
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.forms import SimulationProjetForm
@@ -149,16 +149,17 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
             return [f"gsl_simulation/tab_simulation_projet/tab_{tab}.html"]
         return ["gsl_simulation/simulation_projet_detail.html"]
 
-    def get(self, request, *args, **kwargs):
-        self.simulation_projet = _get_view_simulation_projet_from_pk(
-            request.resolver_match.kwargs.get("pk")
-        )
-        return super().get(request, *args, **kwargs)
+    def get_object(self, queryset=None):
+        if not hasattr(self, "_simulation_projet"):
+            self._simulation_projet = _get_view_simulation_projet_from_pk(
+                self.kwargs.get("pk")
+            )
+        return self._simulation_projet
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         _enrich_simulation_projet_context_from_simulation_projet(
-            context, self.simulation_projet
+            context, self.get_object()
         )
         return context
 
@@ -288,6 +289,7 @@ def _enrich_simulation_projet_context_from_simulation_projet(
             "dossier": projet.dossier_ds,
             "menu_dict": PROJET_MENU,
             "projet_form": projet_form,
+            "projet_note_form": ProjetNoteForm(),
             "dotation_projet_form": DotationProjetForm(
                 instance=simulation_projet.dotation_projet
             ),

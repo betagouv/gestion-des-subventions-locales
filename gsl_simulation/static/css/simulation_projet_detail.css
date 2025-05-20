@@ -57,3 +57,12 @@
 #id_is_budget_vert {
   width:180px
 }
+
+.submit-projet-note-form-container {
+  display: flex;
+  justify-content: end;
+}
+
+#projet_note_form {
+  display:none
+}

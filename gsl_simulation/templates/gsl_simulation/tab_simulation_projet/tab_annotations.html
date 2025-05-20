@@ -1,5 +1,29 @@
 {% extends "gsl_simulation/simulation_projet_detail.html" %}
+{% load static %}
 
 {% block tab_projet %}
     {% include "includes/_annotations_detail.html" %}
+    {% block projet_note_form %}
+        <div class="fr-mt-2w">
+            <button class="fr-btn fr-btn--primary fr-btn--icon-left fr-icon-add-line fr-icon--lg"
+                    id="add_note_button">
+                Ajouter une nouvelle note
+            </button>
+        </div>
+        <form class="fr-mt-4w" method="post" id="projet_note_form">
+            {% csrf_token %}
+            {{ projet_note_form }}
+            <input type="hidden" name="projet_id" value="{{ projet.id }}">
+            <input type="hidden" name="created_by_id" value="{{ user.id }}">
+            <div class="fr-mt-2w submit-projet-note-form-container">
+                <button type="submit" class="fr-btn fr-btn--primary">
+                    Ajouter
+                </button>
+            </div>
+        </form>
+    {% endblock projet_note_form %}
 {% endblock tab_projet %}
+
+{% block extra_js %}
+    <script src="{% static 'js/handleInteractionInSimulationProjetAnnotations.js' %}"></script>
+{% endblock extra_js %}

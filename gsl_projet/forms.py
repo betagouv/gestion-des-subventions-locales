@@ -3,7 +3,7 @@ from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
 from gsl_projet.constants import DOTATION_CHOICES
-from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.models import DotationProjet, Projet, ProjetNote
 from gsl_projet.services.projet_services import ProjetService
 
 
@@ -85,4 +85,21 @@ class DotationProjetForm(ModelForm, DsfrBaseForm):
         model = DotationProjet
         fields = [
             "detr_avis_commission",
+        ]
+
+
+class ProjetNoteForm(ModelForm, DsfrBaseForm):
+    title = forms.CharField(
+        label="Titre de la note",
+    )
+    content = forms.CharField(
+        label="Note",
+        widget=forms.Textarea(attrs={"rows": 6}),
+    )
+
+    class Meta:
+        model = ProjetNote
+        fields = [
+            "title",
+            "content",
         ]
