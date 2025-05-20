@@ -7,7 +7,7 @@ from django.db.models import Q, UniqueConstraint
 from django.forms import ValidationError
 from django_fsm import FSMField, transition
 
-from gsl_core.models import Adresse, Collegue, Departement, Perimetre
+from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.constants import (
     DOTATION_CHOICES,
@@ -378,3 +378,10 @@ class DotationProjet(models.Model):
         )
 
         ProgrammationProjet.objects.filter(dotation_projet=self).delete()
+
+
+class ProjetNote(BaseModel):
+    projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
+    title = models.CharField(max_length=100)
+    content = models.TextField()
+    created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
