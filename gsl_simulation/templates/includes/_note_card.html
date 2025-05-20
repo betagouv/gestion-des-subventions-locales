@@ -1,0 +1,17 @@
+
+<section class="fr-mt-2w fr-py-2w fr-px-4w note-card">
+    <p class="fr-text--sm">
+        Créé le {{ note.created_at|date:"d/m/Y" }} par {{ note.created_by.get_full_name }}
+        {% if note.created_at|date:"d/m/Y" != note.updated_at|date:"d/m/Y" %}
+            <br>
+            <span>Modifié le {{ note.updated_at|date:"d/m/Y" }}</span>
+        {% endif %}
+
+    </p>
+    <h4 class="fr-mb-1w">
+        {{ note.title }}
+    </h4>
+    <p class="fr-mb-1w">
+        {{ note.content }}
+    </p>
+</section>

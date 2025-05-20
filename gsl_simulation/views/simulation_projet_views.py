@@ -161,6 +161,10 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
         _enrich_simulation_projet_context_from_simulation_projet(
             context, self.get_object()
         )
+        tab = self.kwargs["tab"]
+        if tab == "annotations":
+            context["projet_note_form"] = ProjetNoteForm()
+            context["projet_notes"] = self.object.projet.notes.all()
         return context
 
     def post(self, request, *args, **kwargs):
@@ -289,7 +293,6 @@ def _enrich_simulation_projet_context_from_simulation_projet(
             "dossier": projet.dossier_ds,
             "menu_dict": PROJET_MENU,
             "projet_form": projet_form,
-            "projet_note_form": ProjetNoteForm(),
             "dotation_projet_form": DotationProjetForm(
                 instance=simulation_projet.dotation_projet
             ),
