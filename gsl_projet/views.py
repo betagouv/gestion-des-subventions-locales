@@ -12,7 +12,7 @@ from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_filters import ProjetFilters
 from gsl_projet.utils.projet_page import PROJET_MENU
 
-from .models import Projet
+from .models import CategorieDetr, Projet
 
 
 def visible_by_user(func):
@@ -85,6 +85,7 @@ class ProjetListViewFilters(ProjetFilters):
         "cout_total",
         "montant_demande",
         "montant_retenu",
+        "categorie_detr",
     )
 
     @property
@@ -132,7 +133,7 @@ class ProjetListView(FilterView, ListView, FilterUtils):
         qs_global = (
             self.filterset.qs
         )  # utile pour ne pas avoir la pagination de context["object_list"]
-        context["title"] = "Projets 2025"
+        context["title"] = "Projets 2025"  # todo année hardcodée
         context["breadcrumb_dict"] = {}
         context["total_cost"] = ProjetService.get_total_cost(qs_global)
         context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs_global)
@@ -153,3 +154,16 @@ class ProjetListView(FilterView, ListView, FilterUtils):
             return ()
 
         return (perimetre, *perimetre.children())
+
+    def _get_categorie_detr_choices(self):
+        perimetre = self._get_perimetre()
+        if not perimetre:
+            return ()
+
+        if not perimetre.departement:
+            return ()
+
+        # todo année hardcodée :
+        return CategorieDetr.objects.filter(
+            annee=2025, departement=perimetre.departement
+        ).order_by("tri")

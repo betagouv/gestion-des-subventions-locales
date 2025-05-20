@@ -13,6 +13,7 @@ class FilterUtils:
         "montant_retenu": "includes/_filter_montant_retenu.html",
         "montant_previsionnel": "includes/_filter_montant_previsionnel.html",
         "territoire": "includes/_filter_territoire.html",
+        "categorie_detr": "includes/_filter_categorie_detr.html",
     }
 
     DOTATION_MAPPING = dict(ProjetFilters.DOTATION_CHOICES)
@@ -42,6 +43,15 @@ class FilterUtils:
             self._get_selected_territoires()
         )
         context["territoire_choices"] = self._get_territoire_choices()
+        context["is_categorie_detr_active"] = self._get_is_one_field_active(
+            "categorie_detr"
+        )
+        context["categorie_detr_placeholder"], context["categorie_detr_selected"] = (
+            self._get_selected_categorie_detr()
+        )
+        context["categorie_detr_choices"] = self._get_categorie_detr_choices()
+        # context["categorie_dsil_choices"] = self._get_territoire_choices()
+
         context["filter_templates"] = self._get_filter_templates()
 
         return context
@@ -94,10 +104,26 @@ class FilterUtils:
         )
         return ", ".join(p.entity_name for p in perimetres), territoire_ids
 
+    def _get_selected_categorie_detr(self):
+        if self.request.GET.get("categorie_detr") in (None, "", []):
+            return "Toutes", set()
+
+        categorie_detr_ids = set(
+            int(categorie_detr)
+            for categorie_detr in self.request.GET.getlist("categorie_detr")
+        )
+        categories_detr = self._get_categorie_detr_choices().filter(
+            id__in=categorie_detr_ids
+        )
+        return ", ".join(c.libelle for c in categories_detr), categorie_detr_ids
+
     def _get_perimetre(self) -> Perimetre:
         raise NotImplementedError
 
     def _get_territoire_choices(self):
+        raise NotImplementedError
+
+    def _get_categorie_detr_choices(self):
         raise NotImplementedError
 
     def _get_is_one_field_active(self, *field_names):

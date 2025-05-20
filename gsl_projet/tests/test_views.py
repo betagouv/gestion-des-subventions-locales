@@ -827,3 +827,31 @@ def test_view_has_correct_territoire_choices():
         perimetre_departement_A,
         perimetre_arrondissement_A,
     )
+
+
+def test_view_has_correct_detr_category_choices():
+    perimetre_arrondissement_A = PerimetreArrondissementFactory()
+    perimetre_arrondissement_B = PerimetreArrondissementFactory()
+
+    perimetre_departement_A = PerimetreDepartementalFactory(
+        departement=perimetre_arrondissement_A.departement,
+    )
+    _perimetre_departement_B = PerimetreDepartementalFactory(
+        departement=perimetre_arrondissement_B.departement,
+    )
+    perimetre_region_A = PerimetreRegionalFactory(
+        region=perimetre_departement_A.region,
+    )
+
+    user = CollegueFactory(perimetre=perimetre_region_A)
+    client = ClientWithLoggedUserFactory(user)
+    url = reverse("projet:list")
+
+    response = client.get(url)
+    assert response.status_code == 200
+    assert len(response.context["territoire_choices"]) == 3
+    assert response.context["territoire_choices"] == (
+        perimetre_region_A,
+        perimetre_departement_A,
+        perimetre_arrondissement_A,
+    )
