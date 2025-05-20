@@ -381,7 +381,7 @@ class DotationProjet(models.Model):
 
 
 class ProjetNote(BaseModel):
-    projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
+    projet = models.ForeignKey(Projet, on_delete=models.CASCADE, related_name="notes")
     title = models.CharField(max_length=100)
     content = models.TextField()
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)

@@ -66,3 +66,7 @@
 #projet_note_form {
   display:none
 }
+
+.note-card {
+  border: 1px solid var(--border-default-grey);
+}
