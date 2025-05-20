@@ -441,11 +441,12 @@ class Dossier(DsModel):
         :return: Perimetre
         """
         projet_departement, projet_arrondissement = None, None
-        commune = self.ds_demandeur.address.commune
-        if commune.departement:
-            projet_departement = commune.departement
-            if commune.arrondissement:
-                projet_arrondissement = commune.arrondissement
+        if self.ds_demandeur and self.ds_demandeur.address:
+            commune = self.ds_demandeur.address.commune
+            if commune.departement:
+                projet_departement = commune.departement
+                if commune.arrondissement:
+                    projet_arrondissement = commune.arrondissement
         if not projet_arrondissement:
             ds_arrondissement_declaratif = self.porteur_de_projet_arrondissement
             if ds_arrondissement_declaratif is not None:
