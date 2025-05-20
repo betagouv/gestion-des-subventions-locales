@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DetailView
 
 from gsl.settings import ALLOWED_HOSTS
-from gsl_projet.forms import DotationProjetForm, ProjetForm
+from gsl_projet.forms import DotationProjetForm, ProjetForm, ProjetNoteForm
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.forms import SimulationProjetForm
