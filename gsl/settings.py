@@ -52,6 +52,9 @@ if SENTRY_DSN:
             LoggingIntegration(level=logging.ERROR, event_level=logging.ERROR),
         ],
         environment=SENTRY_ENV,
+        _experiments={
+            "enable_logs": True,
+        },
     )
 
 # Application definition

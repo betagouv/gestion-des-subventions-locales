@@ -119,6 +119,16 @@ class ProjetListView(FilterView, ListView, FilterUtils):
     STATE_MAPPINGS = {key: value for key, value in PROJET_STATUS_CHOICES}
 
     def get(self, request, *args, **kwargs):
+        from sentry_sdk import logger as sentry_logger
+
+        sentry_logger.info(
+            "ProjetListView get",
+            extra={
+                "user": request.user.username,
+                "path": request.path,
+                "query_params": request.GET.dict(),
+            },
+        )
         if "reset_filters" in request.GET:
             if request.path == reverse("gsl_projet:list"):
                 return redirect(request.path)
