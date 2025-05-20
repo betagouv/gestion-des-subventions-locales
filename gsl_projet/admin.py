@@ -57,6 +57,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     inlines = [
         DotationProjetInline,
     ]
+    search_fields = ("dossier_ds__ds_number",)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
