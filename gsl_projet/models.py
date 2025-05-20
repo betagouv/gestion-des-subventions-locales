@@ -175,8 +175,8 @@ class Projet(models.Model):
 
     @property
     def categorie_doperation(self):
-        if DOTATION_DETR in self.dossier_ds.demande_dispositif_sollicite:
-            yield from self.dossier_ds.demande_eligibilite_detr.all()
+        if self.dotation_detr:
+            yield from self.dotation_detr.detr_categories.all()
         if DOTATION_DSIL in self.dossier_ds.demande_dispositif_sollicite:
             yield from self.dossier_ds.demande_eligibilite_dsil.all()
 
