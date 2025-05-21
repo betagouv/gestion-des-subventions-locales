@@ -162,6 +162,7 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
             context, self.get_object()
         )
         tab = self.kwargs.get("tab", None)
+        # rework this and put in a function ?
         if tab == "annotations":
             context["projet_note_form"] = ProjetNoteForm()
             context["projet_notes"] = self.object.projet.notes.all()
