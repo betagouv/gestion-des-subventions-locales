@@ -23,7 +23,7 @@ class TestCorrectUserPerimeterRequiredMixin:
         mock_request.resolver_match.kwargs = {"pk": 1}
 
         mock_simulation_projet = MagicMock()
-        mock_simulation_projet.simulation.enveloppe = "enveloppe_1"
+        mock_simulation_projet.enveloppe = "enveloppe_1"
         mock_get_object_or_404.return_value = mock_simulation_projet
 
         mock_get_enveloppes.return_value = ["enveloppe_1", "enveloppe_2"]
@@ -47,7 +47,7 @@ class TestCorrectUserPerimeterRequiredMixin:
         mock_request.resolver_match.kwargs = {"pk": 1}
 
         mock_simulation_projet = MagicMock()
-        mock_simulation_projet.simulation.enveloppe = "enveloppe_3"
+        mock_simulation_projet.enveloppe = "enveloppe_3"
         mock_get_object_or_404.return_value = mock_simulation_projet
 
         mock_get_enveloppes.return_value = ["enveloppe_1", "enveloppe_2"]
