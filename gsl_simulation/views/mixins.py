@@ -16,7 +16,7 @@ class CorrectUserPerimeterRequiredMixin(UserPassesTestMixin):
         enveloppes_visible_by_user = EnveloppeService.get_enveloppes_visible_for_a_user(
             user
         )
-        return simulation_projet.simulation.enveloppe in enveloppes_visible_by_user
+        return simulation_projet.enveloppe in enveloppes_visible_by_user
 
     def handle_no_permission(self):
         return HttpResponseRedirect(reverse_lazy("simulation:simulation-list"))
