@@ -104,30 +104,21 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         simulation_projet = self.instance
         dotation_projet = self.instance.dotation_projet
 
-        new_montant = cleaned_data.get("montant")
-        has_montant_changed = simulation_projet.montant != new_montant
-
-        new_assiette = cleaned_data.get("assiette")
-        has_assiette_changed = (
-            simulation_projet.dotation_projet.assiette != new_assiette
-        )
-
-        if has_assiette_changed or has_montant_changed:
-            computed_taux = compute_taux(new_montant, new_assiette)
+        if "assiette" in self.changed_data or "montant" in self.changed_data:
+            computed_taux = compute_taux(
+                cleaned_data.get("montant"), cleaned_data.get("assiette")
+            )
             cleaned_data["taux"] = computed_taux
 
         else:
-            new_taux = cleaned_data.get("taux")
-            has_taux_changed = (
-                simulation_projet.taux != new_taux
-            )  # TODO Test si le taux a changé et de 0,01 ou moins
-            if has_taux_changed:
+            # TODO Test si le taux a changé et de 0,01 ou moins
+            if "taux" in self.changed_data:
                 computed_montant = DotationProjetService.compute_montant_from_taux(
-                    simulation_projet.dotation_projet, new_taux
+                    simulation_projet.dotation_projet, cleaned_data.get("taux")
                 )
                 cleaned_data["montant"] = computed_montant
 
-        dotation_projet.assiette = new_assiette
+        dotation_projet.assiette = cleaned_data.get("assiette")
         dotation_projet.clean()
         return cleaned_data
 

@@ -9,7 +9,7 @@
         <div class="fr-mb-4w">
             {{ simulation_projet_form.assiette.label_tag }}
             <br>
-            <small class="fr-hint-text">Vous pouvez saisir jusqu’à 3 décimales après le point. Exemple: 3.141
+            <small class="fr-hint-text">Vous pouvez saisir jusqu’à 2 décimales après la virgule. Exemple: 3,14
                 <br>
             Montant des dépenses éligibles retenues à faire figurer sur l'arrêté préfectoral notifiant la décision de financement</small>
             {{ simulation_projet_form.assiette }}
@@ -27,9 +27,9 @@
         <div class="fr-mb-4w">
             {{ simulation_projet_form.montant.label_tag }}
             <br>
-            <small class="fr-hint-text">Vous pouvez saisir jusqu’à 3 décimales après le point. Exemple: 3.141
+            <small class="fr-hint-text">Vous pouvez saisir jusqu’à 2 décimales après la virgule. Exemple: 3,14
                 <br>
-            Montant des dépenses éligibles retenues à faire figurer sur l'arrêté préfectoral notifiant la décision de financement</small>
+            Montant de la subvention à faire figurer sur l'arrêté préfectoral notifiant la décision de financement.</small>
             {{ simulation_projet_form.montant }}
             {% if simulation_projet_form.errors.montant %}
                 <div class="fr-messages-group">
@@ -45,9 +45,9 @@
         <div>
             {{ simulation_projet_form.taux.label_tag }}
             <br>
-            <small class="fr-hint-text">Vous pouvez saisir jusqu’à 3 décimales après le point. Exemple: 3.141
+            <small class="fr-hint-text">Vous pouvez saisir jusqu’à 3 décimales après la virgule. Exemple: 3,141
                 <br>
-            Montant des dépenses éligibles retenues à faire figurer sur l'arrêté préfectoral notifiant la décision de financement</small>
+            Le taux de subvention à faire figurer sur l'arrêté préfectoral notifiant la décision de financement.Sources juridiques : articles L. 1111-10 et R.2334-27 CGCT.</small>
             {{ simulation_projet_form.taux }}
             {% if simulation_projet_form.errors.taux %}
                 <div class="fr-messages-group">
