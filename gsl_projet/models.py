@@ -231,7 +231,7 @@ class DotationProjet(models.Model):
         if (
             self.dossier_ds.finance_cout_total
             and self.assiette
-            and self.dossier_ds.finance_cout_total < self.assiette  # TODO test
+            and self.dossier_ds.finance_cout_total < self.assiette
         ):
             errors["assiette"] = (
                 "L'assiette ne doit pas être supérieure au coût total du projet."
