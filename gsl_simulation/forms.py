@@ -52,7 +52,8 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         decimal_places=2,
         min_value=0,
         required=False,
-        widget=forms.NumberInput(attrs={"form": "simulation_projet_form", "min": 0}),
+        localize=True,
+        widget=forms.TextInput(attrs={"form": "simulation_projet_form", "min": 0}),
     )
 
     montant = forms.DecimalField(
@@ -61,7 +62,8 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         decimal_places=2,
         min_value=0,
         required=False,
-        widget=forms.NumberInput(attrs={"form": "simulation_projet_form", "min": 0}),
+        localize=True,
+        widget=forms.TextInput(attrs={"form": "simulation_projet_form", "min": 0}),
     )
 
     taux = forms.DecimalField(
@@ -71,7 +73,8 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         min_value=0,
         max_value=100,
         required=False,
-        widget=forms.NumberInput(
+        localize=True,
+        widget=forms.TextInput(
             attrs={"form": "simulation_projet_form", "min": 0, "max": 100}
         ),
     )
