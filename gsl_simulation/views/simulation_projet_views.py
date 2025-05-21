@@ -161,7 +161,7 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
         _enrich_simulation_projet_context_from_simulation_projet(
             context, self.get_object()
         )
-        tab = self.kwargs["tab"]
+        tab = self.kwargs.get("tab", None)
         if tab == "annotations":
             context["projet_note_form"] = ProjetNoteForm()
             context["projet_notes"] = self.object.projet.notes.all()
