@@ -865,7 +865,7 @@ def test_patch_montant_simulation_projet(
 
     assert response.status_code == 200
     assert updated_simulation_projet.montant == Decimal("1267.32")
-    assert updated_simulation_projet.taux == Decimal("12.67")
+    assert updated_simulation_projet.taux == Decimal("12.673")
     assert (
         '<span hx-swap-oob="innerHTML" id="total-amount-granted">1\xa0267\xa0€</span>'
         in response.content.decode()

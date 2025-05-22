@@ -259,7 +259,7 @@ def test_accept_dotation_projet_update_programmation_projet():
     assert programmation_projets.count() == 1
     programmation_projet = programmation_projets.first()
     assert programmation_projet.montant == 5_000
-    assert programmation_projet.taux == Decimal("55.56")
+    assert programmation_projet.taux == Decimal("55.556")
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
 
 

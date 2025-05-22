@@ -133,7 +133,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
         simulation=detr_simulation,
     )
     assert simulation_projet.montant == 1_000
-    assert simulation_projet.taux == Decimal("33.33")
+    assert simulation_projet.taux == Decimal("33.333")
     assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
     assert simulation_projet.enveloppe.dotation == DOTATION_DETR
     assert (
