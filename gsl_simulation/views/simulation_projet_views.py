@@ -270,30 +270,20 @@ def _enrich_simulation_projet_context_with_specific_info_for_main_tab(
     dotation_field = projet_form.fields.get("dotations")
     context.update(
         {
-<<<<<<< HEAD
-=======
-            "projet": simulation_projet.projet,
->>>>>>> 3e71e499 (refacto: use specific view for annotations tab)
             "dotation_projet": simulation_projet.dotation_projet,
             "enveloppe": simulation_projet.simulation.enveloppe,
             "menu_dict": PROJET_MENU,
             "projet_form": projet_form,
-<<<<<<< HEAD
             "simulation_projet_form": simulation_projet_form,
-=======
->>>>>>> 3e71e499 (refacto: use specific view for annotations tab)
             "dotation_projet_form": DotationProjetForm(
                 instance=simulation_projet.dotation_projet
             ),
             "initial_dotations": ",".join(dotation_field.initial)
             if dotation_field
             else [],
-<<<<<<< HEAD
             "other_dotation_simu": _get_other_dotation_simulation_projet(
                 simulation_projet
             ),
-=======
->>>>>>> 3e71e499 (refacto: use specific view for annotations tab)
         }
     )
 
@@ -321,35 +311,9 @@ def _enrich_simulation_projet_context_with_generic_info_for_all_tabs(
                 ],
                 "current": title,
             },
-<<<<<<< HEAD
             "simu": simulation_projet,
             "projet": simulation_projet.projet,
             "dossier": simulation_projet.projet.dossier_ds,
-=======
-<<<<<<< HEAD
-            "projet": projet,
-            "dotation_projet": simulation_projet.dotation_projet,
-            "simu": simulation_projet,
-            "enveloppe": simulation_projet.simulation.enveloppe,
-            "dossier": projet.dossier_ds,
-            "menu_dict": PROJET_MENU,
-            "projet_form": projet_form,
-            "dotation_projet_form": DotationProjetForm(
-                instance=simulation_projet.dotation_projet
-            ),
-            "simulation_projet_form": simulation_projet_form,
-            "initial_dotations": ",".join(dotation_field.initial)
-            if dotation_field
-            else [],
-            "other_dotation_simu": _get_other_dotation_simulation_projet(
-                simulation_projet
-            ),
-=======
-            "simu": simulation_projet,
-            "projet": simulation_projet.projet,
-            "dossier": simulation_projet.projet.dossier_ds,
->>>>>>> 6ef85bb7 (refacto: use specific view for annotations tab)
->>>>>>> 3e71e499 (refacto: use specific view for annotations tab)
         }
     )
 
