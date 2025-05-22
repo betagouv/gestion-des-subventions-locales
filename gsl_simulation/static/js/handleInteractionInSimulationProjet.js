@@ -39,7 +39,7 @@ document.querySelector("#submit-dotation").addEventListener("click", (ev) => {
 document.querySelectorAll("#confirm-dotation-update").forEach(elt => {
   elt.addEventListener("click", async (ev) => {
     disableAllModalButtons(elt.closest(".confirmation-modal"));
-    let form = document.querySelector("form#projet_note_form").closest("form")
+    let form = document.querySelector("form#projet_form").closest("form")
     form.submit()
     closeModal()
   })
