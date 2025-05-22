@@ -11,7 +11,11 @@ from gsl_core.tests.factories import (
 )
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
 from gsl_projet.constants import DOTATION_DETR
+<<<<<<< HEAD
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetNoteFactory
+=======
+from gsl_projet.tests.factories import DotationProjetFactory
+>>>>>>> 249847da (fix: tests)
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
 
