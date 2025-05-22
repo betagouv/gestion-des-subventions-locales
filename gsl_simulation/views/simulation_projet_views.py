@@ -270,7 +270,6 @@ def _enrich_simulation_projet_context_with_specific_info_for_main_tab(
     dotation_field = projet_form.fields.get("dotations")
     context.update(
         {
-            "projet": simulation_projet.projet,
             "dotation_projet": simulation_projet.dotation_projet,
             "enveloppe": simulation_projet.simulation.enveloppe,
             "menu_dict": PROJET_MENU,
@@ -281,6 +280,10 @@ def _enrich_simulation_projet_context_with_specific_info_for_main_tab(
             "initial_dotations": ",".join(dotation_field.initial)
             if dotation_field
             else [],
+            "simulation_projet_form": simulation_projet_form,
+            "other_dotation_simu": _get_other_dotation_simulation_projet(
+                simulation_projet
+            ),
         }
     )
 
@@ -289,7 +292,6 @@ def _enrich_simulation_projet_context_with_generic_info_for_all_tabs(
     context: dict, simulation_projet: SimulationProjet
 ):
     title = simulation_projet.projet.dossier_ds.projet_intitule
-    projet = simulation_projet.projet
     context.update(
         {
             "title": title,
@@ -309,29 +311,9 @@ def _enrich_simulation_projet_context_with_generic_info_for_all_tabs(
                 ],
                 "current": title,
             },
-<<<<<<< HEAD
-            "projet": projet,
-            "dotation_projet": simulation_projet.dotation_projet,
-            "simu": simulation_projet,
-            "enveloppe": simulation_projet.simulation.enveloppe,
-            "dossier": projet.dossier_ds,
-            "menu_dict": PROJET_MENU,
-            "projet_form": projet_form,
-            "dotation_projet_form": DotationProjetForm(
-                instance=simulation_projet.dotation_projet
-            ),
-            "simulation_projet_form": simulation_projet_form,
-            "initial_dotations": ",".join(dotation_field.initial)
-            if dotation_field
-            else [],
-            "other_dotation_simu": _get_other_dotation_simulation_projet(
-                simulation_projet
-            ),
-=======
             "simu": simulation_projet,
             "projet": simulation_projet.projet,
             "dossier": simulation_projet.projet.dossier_ds,
->>>>>>> 6ef85bb7 (refacto: use specific view for annotations tab)
         }
     )
 
