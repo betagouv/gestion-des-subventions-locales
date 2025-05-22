@@ -64,6 +64,8 @@ def create_alert_data(message: Any) -> dict[str, str | bool]:
 
     if message.extra_tags in STATUS_TO_ALERT_TITLE:
         data_dict["title"] = STATUS_TO_ALERT_TITLE[message.extra_tags]
+    if message.extra_tags == "projet_note_deletion":
+        data_dict["title"] = "Suppression de la note"
     elif message.extra_tags in ["info", "alert"]:
         data_dict["type"] = message.extra_tags
 

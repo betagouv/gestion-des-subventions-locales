@@ -1,4 +1,5 @@
-.message--cancelled > .fr-notice {
+.message--cancelled > .fr-notice,
+.message--projet_note_deletion > .fr-notice {
   background-color: var(--background-alt-orange-terre-battue);
   color: var(--text-default-error);
 }
