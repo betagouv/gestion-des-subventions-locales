@@ -70,7 +70,7 @@ def test_create_or_update_from_dotation_projet_with_no_existing_one_and_complete
     )
     assert programmation_projet.dotation_projet == accepted_dotation_projet
     assert programmation_projet.montant == 1_000
-    assert programmation_projet.taux == Decimal("33.33")
+    assert programmation_projet.taux == Decimal("33.333")
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
     assert programmation_projet.enveloppe == detr_enveloppe
     assert ProgrammationProjet.objects.count() == 11
@@ -99,7 +99,7 @@ def test_create_or_update_from_dotation_projet_with_an_existing_one_and_complete
     )
     assert programmation_projet.dotation_projet == accepted_dotation_projet
     assert programmation_projet.montant == 1_000
-    assert programmation_projet.taux == Decimal("33.33")
+    assert programmation_projet.taux == Decimal("33.333")
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
     assert programmation_projet.enveloppe == detr_enveloppe
 

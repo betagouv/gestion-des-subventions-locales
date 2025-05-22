@@ -120,17 +120,10 @@ class SimulationProjet(models.Model):
 
     def clean(self):
         errors = {}
-        self._validate_taux(errors)
         self._validate_montant(errors)
         self._validate_dotation(errors)
         if errors:
             raise ValidationError(errors)
-
-    def _validate_taux(self, errors):
-        if self.taux and self.taux > 100:
-            errors["taux"] = {
-                "Le taux de la simulation ne peut pas être supérieur à 100."
-            }
 
     def _validate_montant(self, errors):
         if self.dotation_projet.assiette is not None:

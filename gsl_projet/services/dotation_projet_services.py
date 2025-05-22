@@ -98,24 +98,19 @@ class DotationProjetService:
 
         return None
 
-    # TODO, to remove ??
     @classmethod
-    def compute_taux_from_montant(
-        cls, dotation_projet: DotationProjet, new_montant: float | Decimal
-    ) -> Decimal:
+    def compute_montant_from_taux(
+        cls, dotation_projet: DotationProjet, new_taux: float | Decimal
+    ) -> float | Decimal:
         try:
-            new_taux = round(
-                (Decimal(new_montant) / Decimal(dotation_projet.assiette_or_cout_total))
-                * 100,
-                2,
-            )
-            return max(min(new_taux, Decimal(100)), Decimal(0))
+            assiette = dotation_projet.assiette_or_cout_total
+            new_montant = (assiette * Decimal(new_taux) / 100) if assiette else 0
+            new_montant = round(new_montant, 2)
+            return max(min(new_montant, dotation_projet.assiette_or_cout_total), 0)
         except TypeError:
-            return Decimal(0)
-        except ZeroDivisionError:
-            return Decimal(0)
+            return 0
         except InvalidOperation:
-            return Decimal(0)
+            return 0
 
     @classmethod
     def validate_montant(

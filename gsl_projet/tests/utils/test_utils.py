@@ -45,7 +45,7 @@ def test_order_couples_tuple_by_first_value_empty_choices():
 @pytest.mark.parametrize(
     "numerator, denominator, expected_taux",
     (
-        (10_000, 30_000, 33.33),
+        (10_000, 30_000, 33.333),
         (10_000, 0, 0),
         (10_000, 10_000, 100),
         (100_000, 10_000, 1000),  # we accept more than 100%
@@ -60,4 +60,4 @@ def test_order_couples_tuple_by_first_value_empty_choices():
 )
 def test_compute_taux(numerator, denominator, expected_taux):
     taux = compute_taux(numerator, denominator)
-    assert taux == round(Decimal(expected_taux), 2)
+    assert taux == round(Decimal(expected_taux), 3)

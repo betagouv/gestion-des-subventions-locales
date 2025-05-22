@@ -130,6 +130,36 @@ def test_error_raised_if_detr_avis_commission_is_set_on_dsil_projet(
         assert dotation_projet.detr_avis_commission == avis_commission
 
 
+@pytest.mark.parametrize(
+    ("cout_total, assiette, must_raise_error"),
+    (
+        (None, 1_000, False),
+        (1_000, 1_000, False),
+        (1_000, 1_001, True),
+        (1_000, None, False),
+    ),
+)
+def test_error_raised_if_assiette_is_greater_than_cout_total(
+    cout_total, assiette, must_raise_error
+):
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        assiette=assiette,
+        projet__dossier_ds__finance_cout_total=cout_total,
+    )
+
+    if must_raise_error:
+        with pytest.raises(ValidationError) as exc_info:
+            dotation_projet.clean()
+        assert (
+            str(exc_info.value.messages[0])
+            == "L'assiette ne doit pas être supérieure au coût total du projet."
+        )
+    else:
+        dotation_projet.clean()
+        assert dotation_projet.assiette == assiette
+
+
 # Accept
 
 
@@ -229,7 +259,7 @@ def test_accept_dotation_projet_update_programmation_projet():
     assert programmation_projets.count() == 1
     programmation_projet = programmation_projets.first()
     assert programmation_projet.montant == 5_000
-    assert programmation_projet.taux == Decimal("55.56")
+    assert programmation_projet.taux == Decimal("55.556")
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
 
 
