@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (event.key === "Enter" && (event.shiftKey || event.metaKey)) {
       event.preventDefault(); // empêche d'ajouter un saut de ligne
       isFormDirty = false;
-      form.submit();          // soumet le formulaire
+      form.submit();
     }
   }
 
@@ -29,14 +29,10 @@ document.addEventListener('DOMContentLoaded', function () {
     submitForm(event);
   });
 
-
-  if (!form) return;
-
   form.addEventListener('input', function () {
     isFormDirty = true;
   });
 
-  // Optionnel : désactiver l'avertissement si le formulaire est soumis
   form.addEventListener('submit', function () {
     isFormDirty = false;
   });
