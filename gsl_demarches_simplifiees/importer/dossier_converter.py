@@ -41,7 +41,7 @@ class DossierConverter:
         ).exclude(django_field="")
 
         self.ds_dossier_data = ds_dossier_data
-
+        self.ds_demarche_revision = ds_dossier_data["demarche"]["revision"]["id"]
         self.ds_id_to_django_field = {
             mapping.ds_field_id: Dossier._meta.get_field(mapping.django_field)
             for mapping in computed_mappings.all()
@@ -122,6 +122,18 @@ class DossierConverter:
         adresse.save()
         return adresse
 
+    def _get_related_model_get_or_create_arguments(
+        self, related_model, injectable_value
+    ):
+        arguments = {"label": injectable_value}
+        for constraint in related_model._meta.constraints:
+            if isinstance(constraint, models.UniqueConstraint):
+                fields = constraint.fields
+                if "demarche" in fields and "demarche_revision" in fields:
+                    arguments["demarche"] = self.dossier.ds_demarche
+                    arguments["demarche_revision"] = self.ds_demarche_revision
+        return arguments
+
     def inject_into_field(
         self, dossier: Dossier, django_field_object: models.Field, injectable_value
     ):
@@ -135,7 +147,9 @@ class DossierConverter:
 
             for value in injectable_value:
                 related, _ = django_field_object.related_model.objects.get_or_create(
-                    label=value
+                    **self._get_related_model_get_or_create_arguments(
+                        django_field_object.related_model, value
+                    )
                 )
                 dossier.__getattribute__(django_field_object.name).add(related)
 
@@ -152,7 +166,9 @@ class DossierConverter:
             else:
                 injectable_value, _ = (
                     django_field_object.related_model.objects.get_or_create(
-                        label=injectable_value
+                        **self._get_related_model_get_or_create_arguments(
+                            django_field_object.related_model, injectable_value
+                        )
                     )
                 )
 
