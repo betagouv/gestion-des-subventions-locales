@@ -28,9 +28,12 @@
                 </button>
             </div>
         </form>
-        {% include "includes/modals/_delete_note_confirmation_modal.html" %}
     {% endblock block_projet_notes %}
 {% endblock tab_projet %}
+
+{% block modal %}
+    {% include "includes/modals/_delete_note_confirmation_modal.html" %}
+{% endblock modal %}
 
 {% block extra_js %}
     <script type="module"
