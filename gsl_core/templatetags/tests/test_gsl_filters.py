@@ -76,6 +76,7 @@ def test_remove_first_word():
             True,
             None,
         ),
+        ("projet_note_deletion", "Suppression de la note", "Test description", None),
         ("info", None, "Test description", "info"),
         ("alert", None, "Test description", "alert"),
         ("other", None, "Test description", None),

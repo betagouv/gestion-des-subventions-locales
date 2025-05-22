@@ -1,4 +1,29 @@
+import { disableAllModalButtons, ensureButtonsAreEnabled } from "./modules/utils.js"
+
 let isFormDirty = false;
+let selectedForm = null;
+let modalId = undefined;
+let modal = undefined;
+
+function closeModal() {
+    if (selectedForm === undefined) {
+        return
+    }
+
+    selectedForm.reset()
+    dsfr(modal).modal.conceal()
+    selectedForm.focus()
+    selectedForm = undefined;
+    modalId = undefined;
+}
+
+
+const openDeleteConfirmationDialog = () => {
+  const noteTitle = selectedForm.dataset.noteTitle;
+  modal.querySelector('#delete-note-modal-title').textContent = `Suppression de ${noteTitle}`;
+  ensureButtonsAreEnabled(modal)
+  dsfr(modal).modal.disclose()
+}
 
 document.addEventListener('DOMContentLoaded', function () {
   const form = document.querySelector("#projet_note_form");
@@ -36,7 +61,32 @@ document.addEventListener('DOMContentLoaded', function () {
   form.addEventListener('submit', function () {
     isFormDirty = false;
   });
-});
+
+  modal = document.getElementById('delete-confirmation-modal');
+
+  const deleteButtons = document.querySelectorAll('.delete_note_button');
+  deleteButtons.forEach(function (button) {
+    button.addEventListener('click', function (event) {
+      event.preventDefault();
+      selectedForm = event.target.closest('form');
+      openDeleteConfirmationDialog(selectedForm);
+  });
+
+  const confirmDeleteButton = document.querySelector('#confirm-delete-note');
+  confirmDeleteButton.addEventListener('click', function () {
+      disableAllModalButtons(modal)
+      selectedForm.submit();
+      })
+  });
+
+  const cancelDeleteButtons = document.querySelectorAll('.close-modal');
+  cancelDeleteButtons.forEach(function (button) {
+    button.addEventListener('click', function (event) {
+      event.preventDefault();
+      closeModal();
+    });
+  });
+})
 
     
 // Avant de quitter ou rafraîchir la page

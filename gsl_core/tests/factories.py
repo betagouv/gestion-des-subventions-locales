@@ -110,6 +110,7 @@ class RequestFactory(RequestFactory):
 class ClientWithLoggedUserFactory(Client):
     def __init__(self, user, **kwargs):
         super().__init__(**kwargs)
+        self.user = user
         self.force_login(user)
 
 
