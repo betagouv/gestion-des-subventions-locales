@@ -292,7 +292,6 @@ def _enrich_simulation_projet_context_with_generic_info_for_all_tabs(
     context: dict, simulation_projet: SimulationProjet
 ):
     title = simulation_projet.projet.dossier_ds.projet_intitule
-    projet = simulation_projet.projet
     context.update(
         {
             "title": title,
@@ -314,7 +313,7 @@ def _enrich_simulation_projet_context_with_generic_info_for_all_tabs(
             },
             "simu": simulation_projet,
             "projet": simulation_projet.projet,
-            "dossier": projet.dossier_ds,
+            "dossier": simulation_projet.projet.dossier_ds,
         }
     )
 
