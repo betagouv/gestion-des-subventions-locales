@@ -11,7 +11,7 @@ from gsl_core.tests.factories import (
 )
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
 from gsl_projet.constants import DOTATION_DETR
-from gsl_projet.tests.factories import DotationProjetFactory
+from gsl_projet.tests.factories import DotationProjetFactory, ProjetNoteFactory
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
 
@@ -56,8 +56,92 @@ def test_projet_note_form_save(client_with_user_logged, simulation_projet):
         },
         follow=True,
     )
+
     assert response.status_code == 200
+
     projet.refresh_from_db()
     assert projet.notes.count() == 1
     assert projet.notes.first().title == "titre"
     assert projet.notes.first().content == "contenu"
+
+
+@pytest.mark.django_db
+def test_projet_note_form_save_with_error(client_with_user_logged, simulation_projet):
+    projet = simulation_projet.projet
+    assert projet.notes.count() == 0
+
+    url = reverse(
+        "simulation:simulation-projet-tab",
+        kwargs={"pk": simulation_projet.pk, "tab": "annotations"},
+    )
+    response = client_with_user_logged.post(
+        url,
+        data={
+            "title": "12caracteres" * 13,
+            "content": "",
+        },
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    assert response.context["projet_note_form"].errors == {
+        "title": [
+            "Assurez-vous que cette valeur comporte au plus 100 caractères (actuellement 156)."
+        ],
+        "content": ["Ce champ est obligatoire."],
+    }
+
+    projet.refresh_from_db()
+    assert projet.notes.count() == 0
+
+
+@pytest.mark.django_db
+def test_projet_note_deletion(client_with_user_logged, simulation_projet):
+    projet = simulation_projet.projet
+    projet_note = ProjetNoteFactory(
+        projet=projet,
+        created_by=client_with_user_logged.user,
+    )
+    assert projet.notes.count() == 1
+
+    url = reverse(
+        "simulation:simulation-projet-tab",
+        kwargs={"pk": simulation_projet.pk, "tab": "annotations"},
+    )
+    response = client_with_user_logged.post(
+        url,
+        data={
+            "action": "delete_note",
+            "note_id": projet_note.id,
+        },
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    projet.refresh_from_db()
+    assert projet.notes.count() == 0
+
+
+@pytest.mark.django_db
+def test_other_user_projet_note_deletion(client_with_user_logged, simulation_projet):
+    projet = simulation_projet.projet
+    projet_note = ProjetNoteFactory(
+        projet=projet,
+    )
+    assert projet.notes.count() == 1
+
+    url = reverse(
+        "simulation:simulation-projet-tab",
+        kwargs={"pk": simulation_projet.pk, "tab": "annotations"},
+    )
+    response = client_with_user_logged.post(
+        url,
+        data={
+            "action": "delete_note",
+            "note_id": projet_note.id,
+        },
+        follow=True,
+    )
+    assert response.status_code == 403
+    projet.refresh_from_db()
+    assert projet.notes.count() == 1
