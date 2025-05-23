@@ -1,5 +1,7 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
+from django.views.generic.edit import UpdateView
 
 from gsl_projet.forms import ProjetNoteForm
 from gsl_projet.models import ProjetNote
@@ -22,9 +24,11 @@ class SimulationProjetAnnotationsView(SimulationProjetDetailView):
             with_specific_info_for_main_tab=False, **kwargs
         )
         context["projet_note_form"] = ProjetNoteForm()
-        context["projet_notes"] = self.object.projet.notes.select_related(
-            "created_by"
-        ).all()
+        context["projet_notes"] = (
+            self.object.projet.notes.select_related("created_by")
+            .order_by("created_at")
+            .all()
+        )
         return context
 
     def post(self, request, *args, **kwargs):
@@ -82,3 +86,39 @@ class SimulationProjetAnnotationsView(SimulationProjetDetailView):
         return redirect_to_same_page_or_to_simulation_detail_by_default(
             request, simulation_projet
         )
+
+
+class ProjetNoteEditView(UpdateView):
+    model = ProjetNote
+    form_class = ProjetNoteForm
+    template_name = "gsl_simulation/tab_simulation_projet/projet_note_update_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.simulation_projet_id = request.GET.get(
+            "simulation_projet_id"
+        ) or request.POST.get("simulation_projet_id")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_object(self, queryset=None):
+        self.obj = super().get_object(queryset)
+        if self.obj.created_by != self.request.user:
+            raise HttpResponseForbidden(
+                "Vous n'avez pas la permission de modifier cette note."
+            )
+        return self.obj
+
+    def get_success_url(self):
+        messages.success(
+            self.request,
+            "La note a été mise à jour avec succès.",
+            extra_tags="info",
+        )
+        return reverse(
+            "gsl_simulation:simulation-projet-annotations",
+            kwargs={"pk": self.simulation_projet_id},
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["simulation_projet_id"] = self.simulation_projet_id
+        return context

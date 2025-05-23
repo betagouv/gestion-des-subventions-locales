@@ -12,11 +12,15 @@
 
         {% if note.created_by == user %}
             <div class="note-card-header-actions">
-                <button class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-edit-line"
-                        id="edit_note_button_{{ note.id }}"
-                        data-note-id="{{ note.id }}">
+                <a class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-edit-line"
+                   id="edit_note_button_{{ note.id }}"
+                   href="{% url 'gsl_simulation:get-edit-projet-note' note.id %}?simulation_projet_id={{ simu.id|striptags }}"
+                   hx-boost="true"
+                   hx-replace-url="false"
+                   hx-target="#note_card_{{ note.id }}"
+                   hx-swap="innerHTML">
                     Modifier
-                </button>
+                </a>
                 <form method="POST" data-note-title="{{ note.title }}">
                     {% csrf_token %}
                     <input type="hidden" name="note_id" value="{{ note.id }}">
