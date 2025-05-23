@@ -30,6 +30,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG")
+ENV = os.getenv("ENV", "dev")
 
 # We support a comma-separated list of allowed hosts.
 ENV_SEPARATOR = ","
@@ -125,6 +126,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "dsfr.context_processors.site_config",
+                "gsl.utils.context_processors.export_vars",
             ],
         },
     },
@@ -242,9 +244,13 @@ CELERY_RESULT_EXTENDED = True
 CONTENT_SECURITY_POLICY = {
     "DIRECTIVES": {
         "default-src": [SELF],
-        "img-src": [SELF, "data:"],
+        "img-src": [SELF, "data:", "stats.beta.gouv.fr"],
         "style-src": [SELF, NONCE],
-        "script-src": [SELF, NONCE],
+        "script-src": [SELF, NONCE, "stats.beta.gouv.fr"],
+        "connect-src": [
+            SELF,
+            "https://stats.beta.gouv.fr",
+        ],
     },
 }
 
