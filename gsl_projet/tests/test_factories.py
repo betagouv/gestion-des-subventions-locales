@@ -47,14 +47,14 @@ def test_projet_factory_can_be_called_twice_with_same_demandeur():
 
 def test_category_detr_factory_can_be_called_twice_with_same_parameters():
     annee = 2025
-    tri = 7
+    rang = 7
     departement = DepartementFactory()
     assert CategorieDetr.objects.count() == 0
 
     for _ in range(2):
-        category = CategorieDetrFactory(tri=tri, annee=annee, departement=departement)
+        category = CategorieDetrFactory(rang=rang, annee=annee, departement=departement)
 
-    assert category.tri == tri
+    assert category.rang == rang
     assert category.annee == 2025
     assert category.departement == departement
 
