@@ -1,125 +1,168 @@
 import { disableAllModalButtons, ensureButtonsAreEnabled } from "./modules/utils.js"
 
 let isFormDirty = false;
-let form = undefined;
+const formStates = {};
+let mainForm = null;
 let selectedForm = null;
-let modalId = undefined;
-let modal = undefined;
+let selectedModal = null;
+let deleteModal = null;
+let cancelModal = null;
+let cancelUpdateButton = null;
 
-function closeModal() {
-    if (selectedForm === undefined) {
-        return
+function closeModal({ reset = false, cancelling = false } = {}) {
+    if (!selectedForm) return;
+
+    if (reset) selectedForm.reset();
+    dsfr(selectedModal).modal.conceal();
+    selectedForm.focus();
+    selectedForm = null;
+    selectedModal = null;
+    if (cancelling) {
+        isFormDirty = false;
+        if (cancelUpdateButton) htmx.trigger(cancelUpdateButton, 'cancel');
+        cancelUpdateButton = undefined
     }
-
-    selectedForm.reset()
-    dsfr(modal).modal.conceal()
-    selectedForm.focus()
-    selectedForm = undefined;
-    modalId = undefined;
 }
 
-
-const openDeleteConfirmationDialog = () => {
-  const noteTitle = selectedForm.dataset.noteTitle;
-  modal.querySelector('#delete-note-modal-title').textContent = `Suppression de ${noteTitle}`;
-  ensureButtonsAreEnabled(modal)
-  dsfr(modal).modal.disclose()
+function openDeleteConfirmationDialog() {
+    if (!selectedForm) return;
+    selectedModal = deleteModal;
+    const noteTitle = selectedForm.dataset.noteTitle || '';
+    deleteModal.querySelector('#delete-note-modal-title').textContent = `Suppression de ${noteTitle}`;
+    ensureButtonsAreEnabled(deleteModal);
+    dsfr(deleteModal).modal.disclose();
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-  form = document.querySelector("#projet_note_form");
-  const addNoteButton = document.querySelector('#add_note_button')
+function openConfirmationModal(formTemp) {
+    selectedForm = formTemp;
+    selectedModal = cancelModal;
+    ensureButtonsAreEnabled(cancelModal);
+    dsfr(cancelModal).modal.disclose();
+}
 
-  if (addNoteButton){
-    addNoteButton.addEventListener('click', (ev) => {
-      form.style.display="block";
-
-    })
-  }
-
-  const error = document.querySelector(".fr-error-text")
-  if (error) {
-    form.style.display="block";
-  }
-
-  function submitForm(event) {
-  // Vérifie si Maj (Shift) + Entrée sont pressés
-    if (event.key === "Enter" && (event.shiftKey || event.metaKey)) {
-      event.preventDefault(); // empêche d'ajouter un saut de ligne
-      isFormDirty = false;
-      form.submit();
-    }
-  }
-
-  form.addEventListener("keydown", function (event) {
-    submitForm(event);
-  });
-
-  form.addEventListener('input', function () {
+function handleFormInput() {
     isFormDirty = true;
-  });
+}
 
-  form.addEventListener('submit', function () {
+function handleFormSubmit() {
     isFormDirty = false;
-  });
+}
 
-  modal = document.getElementById('delete-confirmation-modal');
+function handleFormKeydown(event) {
+    // Maj+Entrée ou Cmd+Entrée pour soumettre
+    if (event.key === "Enter" && (event.shiftKey || event.metaKey)) {
+        event.preventDefault();
+        isFormDirty = false;
+        event.target.form.submit();
+    }
+}
 
-  const deleteButtons = document.querySelectorAll('.delete_note_button');
-  deleteButtons.forEach(function (button) {
-    button.addEventListener('click', function (event) {
-      event.preventDefault();
-      selectedForm = event.target.closest('form');
-      openDeleteConfirmationDialog(selectedForm);
-  });
+function addListenersToForm(formElem) {
+    const formId = formElem.id;
+    formElem.addEventListener('input', () => { formStates[formId] = true; });
+    formElem.addEventListener('submit', () => { formStates[formId] = false; });
 
-  const confirmDeleteButton = document.querySelector('#confirm-delete-note');
-  confirmDeleteButton.addEventListener('click', function () {
-      disableAllModalButtons(modal)
-      selectedForm.submit();
-      })
-  });
-
-  const cancelDeleteButtons = document.querySelectorAll('.close-modal');
-  cancelDeleteButtons.forEach(function (button) {
-    button.addEventListener('click', function (event) {
-      event.preventDefault();
-      closeModal();
+    formElem.querySelectorAll(".cancel-button").forEach(button => {
+      button.addEventListener('click', evt => {
+            evt.preventDefault();
+            cancelUpdateButton = button;
+            if (formStates[formId]) {
+                openConfirmationModal(formElem);
+            } else {
+                htmx.trigger(button, 'cancel');
+            }
+        });
     });
-  });
-})
+}
 
 function initFormChangeWatcher() {
     const forms = document.querySelectorAll(".projet_note_update_form");
-    forms.forEach(form => {
-      if (form) {
-          form.addEventListener('input', function () {
-              isFormDirty = true;
-          });
-
-          form.addEventListener('submit', function () {
-              isFormDirty = false;
-          });
-      }
+    forms.forEach(formElem => {
+        formElem.addEventListener('input', handleFormInput);
+        formElem.addEventListener('submit', handleFormSubmit);
     });
-    const isThereNoFormDisplayed = forms.length == 0
-    const isProjetNoteFormHidden = window.getComputedStyle(form).display === "none";
+    const isThereNoFormDisplayed = forms.length === 0;
+    const isProjetNoteFormHidden = mainForm && window.getComputedStyle(mainForm).display === "none";
     if (isThereNoFormDisplayed && isProjetNoteFormHidden) {
-      isFormDirty = false;
+        isFormDirty = false;
     }
 }
 
-document.body.addEventListener("htmx:afterSwap", function(evt) {
-    // Formulaire injecté : on attache la logique de détection de changements
-    initFormChangeWatcher();  
+document.addEventListener('DOMContentLoaded', () => {
+    mainForm = document.querySelector("#projet_note_form");
+    const addNoteButton = document.querySelector('#add_note_button');
+    deleteModal = document.getElementById('delete-confirmation-modal');
+    cancelModal = document.getElementById('cancel-update-confirmation-modal');
+
+    if (addNoteButton && mainForm) {
+        addNoteButton.addEventListener('click', () => {
+            mainForm.style.display = "block";
+        });
+    }
+
+    if (mainForm) {
+        const error = document.querySelector(".fr-error-text");
+        if (error) mainForm.style.display = "block";
+        mainForm.addEventListener("keydown", handleFormKeydown);
+        mainForm.addEventListener('input', handleFormInput);
+        mainForm.addEventListener('submit', handleFormSubmit);
+    }
+
+    document.querySelectorAll('.delete_note_button').forEach(button => {
+        button.addEventListener('click', event => {
+            event.preventDefault();
+            selectedForm = event.target.closest('form');
+            openDeleteConfirmationDialog();
+        });
+    });
+
+    if (deleteModal) {
+        const confirmDeleteButton = deleteModal.querySelector('#confirm-delete-note');
+        if (confirmDeleteButton) {
+            confirmDeleteButton.addEventListener('click', () => {
+                disableAllModalButtons(deleteModal);
+                if (selectedForm) selectedForm.submit();
+            });
+        }
+    }
+
+    document.querySelectorAll('.close-modal').forEach(button => {
+        button.addEventListener('click', event => {
+            event.preventDefault();
+            closeModal();
+        });
+    });
+
+    if (cancelModal) {
+        const confirmCancelButton = cancelModal.querySelector('#confirm-cancel-update');
+        if (confirmCancelButton) {
+            confirmCancelButton.addEventListener('click', evt => {
+                evt.preventDefault();
+                disableAllModalButtons(cancelModal);
+                closeModal({ cancelling: true });
+            });
+        }
+    }
 });
 
+document.body.addEventListener("htmx:afterSwap", evt => {
+    initFormChangeWatcher();
+    const updateForm = evt.target.querySelector(".projet_note_update_form");
+    if (updateForm) addListenersToForm(updateForm);
+    const deleteButton = evt.target.querySelector('.delete_note_button')
+    if (deleteButton) {
+      deleteButton.addEventListener('click', event => {
+            event.preventDefault();
+            selectedForm = event.target.closest('form');
+            openDeleteConfirmationDialog();
+        });
+    }
+});
 
-
-    
 // Avant de quitter ou rafraîchir la page
-window.addEventListener('beforeunload', function (e) {
-  if (isFormDirty) {
-    e.preventDefault(); // Nécessaire pour certains navigateurs
-  }
-})
+window.addEventListener('beforeunload', e => {
+    if (isFormDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
