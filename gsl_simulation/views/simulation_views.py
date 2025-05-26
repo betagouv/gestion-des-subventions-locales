@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.core.paginator import Paginator
 from django.db.models import Count, Prefetch, QuerySet, Sum
 from django.forms import NumberInput
@@ -383,6 +385,6 @@ class FilteredProjetsCSVExportView(SimulationDetailView):
 
         response = HttpResponse(export_data, content_type="text/csv")
         response["Content-Disposition"] = (
-            f'attachment; filename="projets_{self.simulation.slug}.csv"'
+            f'attachment; filename="{date.today().strftime("%Y-%m-%d")} simulation {self.simulation.title}.csv"'
         )
         return response

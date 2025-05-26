@@ -3,6 +3,7 @@ import io
 
 import pytest
 from django.urls import resolve, reverse
+from freezegun import freeze_time
 
 from gsl_core.tests.factories import (
     RequestFactory,
@@ -90,10 +91,13 @@ def test_get_other_dotations_simulation_projet_without_other_simulation_projet(
     }
 
 
+@freeze_time("2025-05-26")
 @pytest.mark.django_db
 def test_get_filter_projets_csv_export_view():
     ### Arrange
-    simulation = SimulationFactory(enveloppe__dotation=DOTATION_DSIL)
+    simulation = SimulationFactory(
+        title="Ma Simulation", enveloppe__dotation=DOTATION_DSIL
+    )
     SimulationProjetFactory.create_batch(
         2,
         dotation_projet__dotation=DOTATION_DSIL,
@@ -124,7 +128,7 @@ def test_get_filter_projets_csv_export_view():
     ### Assert
     assert response.status_code == 200
     assert response["Content-Disposition"] == (
-        f'attachment; filename="projets_{simulation.slug}.csv"'
+        'attachment; filename="2025-05-26 simulation Ma Simulation.csv"'
     )
     assert response["Content-Type"] == "text/csv"
 
