@@ -62,6 +62,10 @@ def get_or_create_demarche(demarche_data):
     django_data = {
         f"ds_{field}": demarche_data[camelcase(field)] for field in ds_fields
     }
+    django_data["active_revision_date"] = demarche_data["activeRevision"][
+        "datePublication"
+    ]
+    django_data["active_revision_id"] = demarche_data["activeRevision"]["id"]
     try:
         demarche = Demarche.objects.get(ds_id=demarche_data["id"])
         demarche.raw_ds_data = demarche_data

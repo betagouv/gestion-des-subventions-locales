@@ -53,7 +53,12 @@ def test_get_existing_demarche_updates_ds_fields(demarche_data_without_dossier):
     assert returned_demarche.ds_title == "Titre de la démarche"
     assert returned_demarche.ds_number == 123456
     assert returned_demarche.ds_state == "brouillon"
+    assert returned_demarche.active_revision_date == "2023-10-07T14:47:24+02:00"
+    assert returned_demarche.active_revision_id == "TEST_ID_MTYyNjE0"
     assert returned_demarche.raw_ds_data == demarche_data_without_dossier
+    existing_demarche.refresh_from_db()
+    assert existing_demarche.ds_title == "Titre de la démarche"
+    assert existing_demarche.active_revision_id == "TEST_ID_MTYyNjE0"
 
 
 def test_get_new_demarche_prefills_ds_fields(demarche_data_without_dossier):
@@ -62,6 +67,8 @@ def test_get_new_demarche_prefills_ds_fields(demarche_data_without_dossier):
     assert demarche.ds_number == 123456
     assert demarche.ds_title == "Titre de la démarche"
     assert demarche.ds_state == "brouillon"
+    assert demarche.active_revision_date == "2023-10-07T14:47:24+02:00"
+    assert demarche.active_revision_id == "TEST_ID_MTYyNjE0"
     assert demarche.raw_ds_data == demarche_data_without_dossier
 
 

@@ -32,7 +32,14 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         for field in Demarche._meta.get_fields()
         if field.name not in ("perimetre", "raw_ds_data")
     )
-    list_display = ("ds_number", "perimetre", "ds_title", "ds_state", "dossiers_count")
+    list_display = (
+        "ds_number",
+        "perimetre",
+        "ds_title",
+        "ds_state",
+        "dossiers_count",
+        "link_to_json",
+    )
     actions = ("refresh_field_mappings", "extract_detr_categories")
     autocomplete_fields = ("perimetre",)
     fieldsets = (
@@ -91,6 +98,9 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def extract_detr_categories(self, request, queryset):
         for demarche in queryset:
             refresh_categories_operation_detr(demarche.ds_number)
+
+    def link_to_json(self, obj):
+        return mark_safe(f'<a href="{obj.json_url}">JSON brut</a>')
 
 
 @admin.register(PersonneMorale)
@@ -204,6 +214,7 @@ class FieldMappingForHumanAdmin(
     resource_classes = (FieldMappingForHumanResource,)
     list_filter = ("demarche",)
     readonly_fields = ("demarche",)
+    search_fields = ("label", "django_field")
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

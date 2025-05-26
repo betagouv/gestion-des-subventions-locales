@@ -69,6 +69,12 @@ class Demarche(DsModel):
     def __str__(self):
         return f"Démarche {self.ds_number} - {self.ds_title}"
 
+    @property
+    def json_url(self):
+        return reverse(
+            "ds:view-demarche-json", kwargs={"demarche_ds_number": self.ds_number}
+        )
+
 
 class FormeJuridique(models.Model):
     code = models.CharField("Code", primary_key=True)
