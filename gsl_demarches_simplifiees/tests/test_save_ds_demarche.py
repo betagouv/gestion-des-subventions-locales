@@ -1,13 +1,17 @@
 import json
+from datetime import datetime
 from pathlib import Path
 
 import pytest
+from django.utils import timezone
 
-from gsl_core.tests.factories import DepartementFactory
+from gsl_core.tests.factories import (
+    PerimetreDepartementalFactory,
+)
 from gsl_demarches_simplifiees.importer.demarche import (
     extract_categories_operation_detr,
     get_or_create_demarche,
-    guess_year_from_demarche_data,
+    guess_year_from_demarche,
     save_field_mappings,
     save_groupe_instructeurs,
 )
@@ -17,6 +21,7 @@ from gsl_demarches_simplifiees.models import (
     FieldMappingForHuman,
     Profile,
 )
+from gsl_demarches_simplifiees.tests.factories import DemarcheFactory
 from gsl_projet.models import CategorieDetr
 
 pytestmark = pytest.mark.django_db
@@ -53,7 +58,10 @@ def test_get_existing_demarche_updates_ds_fields(demarche_data_without_dossier):
     assert returned_demarche.ds_title == "Titre de la démarche"
     assert returned_demarche.ds_number == 123456
     assert returned_demarche.ds_state == "brouillon"
-    assert returned_demarche.active_revision_date == "2023-10-07T14:47:24+02:00"
+    assert isinstance(returned_demarche.active_revision_date, datetime)
+    assert returned_demarche.active_revision_date.year == 2023
+    assert returned_demarche.active_revision_date.month == 10
+    assert returned_demarche.active_revision_date.day == 7
     assert returned_demarche.active_revision_id == "TEST_ID_MTYyNjE0"
     assert returned_demarche.raw_ds_data == demarche_data_without_dossier
     existing_demarche.refresh_from_db()
@@ -67,7 +75,10 @@ def test_get_new_demarche_prefills_ds_fields(demarche_data_without_dossier):
     assert demarche.ds_number == 123456
     assert demarche.ds_title == "Titre de la démarche"
     assert demarche.ds_state == "brouillon"
-    assert demarche.active_revision_date == "2023-10-07T14:47:24+02:00"
+    assert isinstance(demarche.active_revision_date, datetime)
+    assert demarche.active_revision_date.year == 2023
+    assert demarche.active_revision_date.month == 10
+    assert demarche.active_revision_date.day == 7
     assert demarche.active_revision_id == "TEST_ID_MTYyNjE0"
     assert demarche.raw_ds_data == demarche_data_without_dossier
 
@@ -194,11 +205,14 @@ def test_ds_field_id_is_used_even_if_ds_label_changes(
 
 def test_categories_detr_are_created(demarche_data_without_dossier, demarche):
     # arrange
-    departement = DepartementFactory(name="Bas-Rhin")  # to fit demarche.name
     FieldMappingForComputer.objects.create(
         demarche=demarche,
         django_field="demande_eligibilite_detr",
         ds_field_id="ID_DU_CHAMP_ELIGIBILTIE_DETR",
+    )
+    demarche.perimetre = PerimetreDepartementalFactory()
+    demarche.ds_date_creation = timezone.datetime.fromisoformat(
+        "2023-10-07T14:47:24+02:00"
     )
 
     # act
@@ -210,7 +224,7 @@ def test_categories_detr_are_created(demarche_data_without_dossier, demarche):
     assert first_category.tri == 0
     assert first_category.libelle == "Premier choix"
     assert first_category.annee == 2024
-    assert first_category.departement == departement
+    assert first_category.departement == demarche.perimetre.departement
 
 
 def test_no_error_if_cannot_guess_departement(demarche_data_without_dossier, demarche):
@@ -261,9 +275,15 @@ def test_guess_year_from_demarche_data(
     demarche_data_without_dossier, date_revision, date_creation, expected_year, comment
 ):
     # arrange
-    demarche_data_without_dossier["activeRevision"]["datePublication"] = date_revision
-    demarche_data_without_dossier["dateCreation"] = date_creation
+    demarche = DemarcheFactory(
+        ds_date_creation=timezone.datetime.fromisoformat(date_creation)
+        if date_creation
+        else None,
+        active_revision_date=timezone.datetime.fromisoformat(date_revision)
+        if date_revision
+        else None,
+    )
     # act
-    year = guess_year_from_demarche_data(demarche_data_without_dossier)
+    year = guess_year_from_demarche(demarche)
     # assert
     assert year == expected_year

@@ -62,10 +62,11 @@ def get_or_create_demarche(demarche_data):
     django_data = {
         f"ds_{field}": demarche_data[camelcase(field)] for field in ds_fields
     }
-    django_data["active_revision_date"] = demarche_data["activeRevision"][
-        "datePublication"
-    ]
-    django_data["active_revision_id"] = demarche_data["activeRevision"]["id"]
+    if demarche_data["activeRevision"]:
+        django_data["active_revision_date"] = timezone.datetime.fromisoformat(
+            demarche_data["activeRevision"]["datePublication"]
+        )
+        django_data["active_revision_id"] = demarche_data["activeRevision"]["id"]
     try:
         demarche = Demarche.objects.get(ds_id=demarche_data["id"])
         demarche.raw_ds_data = demarche_data
@@ -130,28 +131,27 @@ def save_field_mappings(demarche_data, demarche):
 
 
 def guess_department_from_demarche(demarche) -> Departement:
+    if demarche.perimetre and demarche.perimetre.departement:
+        return demarche.perimetre.departement
     for departement in Departement.objects.all():
         if departement.name in demarche.ds_title:
             return departement
 
 
-def guess_year_from_demarche_data(demarche_data) -> int:
+def guess_year_from_demarche(demarche: Demarche) -> int:
     """
     Savoir à quelle année associer les catégories DETR extraites de la démarche DS
     """
-    date_revision = demarche_data["activeRevision"]["datePublication"]
+    date_revision = demarche.active_revision_date
     if not date_revision:
         # à défaut de date de dernière révision,
         # on regarde la date de création de la démarche.
-        date_revision = demarche_data["dateCreation"]
-    date = timezone.datetime.fromisoformat(date_revision)
-    if not date:
-        return
+        date_revision = demarche.ds_date_creation
 
-    if date.month >= 9:
-        return date.year + 1
+    if date_revision.month >= 9:
+        return date_revision.year + 1
     else:
-        return date.year
+        return date_revision.year
 
 
 def extract_categories_operation_detr(demarche_data: dict, demarche: Demarche):
@@ -175,7 +175,7 @@ def extract_categories_operation_detr(demarche_data: dict, demarche: Demarche):
     if not departement:
         return
 
-    year = guess_year_from_demarche_data(demarche_data)
+    year = guess_year_from_demarche(demarche)
     if not year:
         return
 
