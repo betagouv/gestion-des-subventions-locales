@@ -42,24 +42,38 @@ def client_with_same_departement_perimetre(enveloppe_departemental):
     return ClientWithLoggedUserFactory(collegue)
 
 
+@pytest.mark.parametrize(
+    "route",
+    (
+        "simulation:simulation-detail",
+        "simulation:simulation-projets-export",
+    ),
+)
 @pytest.mark.django_db
 def test_simulation_detail_url_with_not_authorized_user(
-    client_with_user_logged, enveloppe_departemental
+    client_with_user_logged, enveloppe_departemental, route
 ):
     SimulationFactory(slug="test-slug", enveloppe=enveloppe_departemental)
 
-    url = reverse("simulation:simulation-detail", kwargs={"slug": "test-slug"})
+    url = reverse(route, kwargs={"slug": "test-slug"})
     response = client_with_user_logged.get(url)
     assert response.status_code == 404
 
 
+@pytest.mark.parametrize(
+    "route",
+    (
+        "simulation:simulation-detail",
+        "simulation:simulation-projets-export",
+    ),
+)
 @pytest.mark.django_db
 def test_simulation_detail_url_for_user_with_correct_perimetre(
-    client_with_same_departement_perimetre, enveloppe_departemental
+    client_with_same_departement_perimetre, enveloppe_departemental, route
 ):
     SimulationFactory(slug="test-slug", enveloppe=enveloppe_departemental)
 
-    url = reverse("simulation:simulation-detail", kwargs={"slug": "test-slug"})
+    url = reverse(route, kwargs={"slug": "test-slug"})
     response = client_with_same_departement_perimetre.get(url)
     assert response.status_code == 200
 

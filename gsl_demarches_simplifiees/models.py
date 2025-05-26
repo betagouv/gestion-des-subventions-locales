@@ -3,6 +3,7 @@ from django.urls import reverse
 
 from gsl_core.models import Adresse, Perimetre
 from gsl_core.models import Arrondissement as CoreArrondissement
+from gsl_projet.constants import MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
 
 
 class DsModel(models.Model):
@@ -464,6 +465,14 @@ class Dossier(DsModel):
         if self.finance_cout_total and self.demande_montant:
             return round(self.demande_montant / self.finance_cout_total * 100, 2)
         return None
+
+    @property
+    def porteur_fullname(self):
+        return f"{self.porteur_de_projet_nom} {self.porteur_de_projet_prenom}"
+
+    @property
+    def demande_montant_is_greater_thant_min_montant_for_detr_commission(self):
+        return self.demande_montant >= MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
 
 
 class DsChoiceLibelle(DsModel):
