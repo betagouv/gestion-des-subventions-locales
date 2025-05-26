@@ -8,6 +8,7 @@ from gsl_simulation.views.decorators import (
 from gsl_simulation.views.simulation_projet_annotations_views import (
     ProjetNoteEditView,
     SimulationProjetAnnotationsView,
+    get_note_card,
 )
 from gsl_simulation.views.simulation_projet_views import (
     SimulationProjetDetailView,
@@ -85,9 +86,15 @@ urlpatterns = [
         patch_dotation_projet,
         name="patch-dotation-projet",
     ),
+    # Annotations
     path(
         "modifier-l-annotation-d-un-projet/<str:pk>/",
         ProjetNoteEditView.as_view(),
         name="get-edit-projet-note",
+    ),
+    path(
+        "simulation_projet/<int:pk>/annotations/<int:note_id>",
+        simulation_projet_must_be_visible_by_user(get_note_card),
+        name="get-note-card",
     ),
 ]

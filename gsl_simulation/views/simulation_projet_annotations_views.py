@@ -1,11 +1,13 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
+from django.views.decorators.http import require_GET
 from django.views.generic.edit import UpdateView
 
 from gsl_projet.forms import ProjetNoteForm
 from gsl_projet.models import ProjetNote
 from gsl_simulation.models import SimulationProjet
+from gsl_simulation.views.decorators import exception_handler_decorator
 from gsl_simulation.views.simulation_projet_views import (
     SimulationProjetDetailView,
     redirect_to_same_page_or_to_simulation_detail_by_default,
@@ -91,12 +93,23 @@ class SimulationProjetAnnotationsView(SimulationProjetDetailView):
 class ProjetNoteEditView(UpdateView):
     model = ProjetNote
     form_class = ProjetNoteForm
-    template_name = "gsl_simulation/tab_simulation_projet/projet_note_update_form.html"
+    template_name = (
+        "gsl_simulation/tab_simulation_projet/annotations/projet_note_update_form.html"
+    )
+    htmx_template_name = "gsl_simulation/tab_simulation_projet/annotations/projet_note_update_form_htmx.html"  # À créer
+
+    def get_template_names(self):
+        if self.request.headers.get("HX-Request") == "true":
+            return [self.htmx_template_name]
+        return [self.template_name]
 
     def dispatch(self, request, *args, **kwargs):
         self.simulation_projet_id = request.GET.get(
             "simulation_projet_id"
         ) or request.POST.get("simulation_projet_id")
+        self.simulation_projet = get_object_or_404(
+            SimulationProjet, id=self.simulation_projet_id
+        )
         return super().dispatch(request, *args, **kwargs)
 
     def get_object(self, queryset=None):
@@ -121,4 +134,57 @@ class ProjetNoteEditView(UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["simulation_projet_id"] = self.simulation_projet_id
+        if self.request.headers.get("HX-Request") != "true":
+            context["breadcrumb"] = _enrich_context_with_title_and_breadcrumb(
+                context, self.object, self.simulation_projet
+            )
         return context
+
+
+def _enrich_context_with_title_and_breadcrumb(
+    context, projet_note: ProjetNote, simulation_projet: SimulationProjet
+):
+    context.update(
+        {
+            "title": projet_note.title,
+            "breadcrumb_dict": {
+                "links": [
+                    {
+                        "url": reverse("simulation:simulation-list"),
+                        "title": "Mes simulations de programmation",
+                    },
+                    {
+                        "url": reverse(
+                            "simulation:simulation-detail",
+                            kwargs={"slug": simulation_projet.simulation.slug},
+                        ),
+                        "title": simulation_projet.simulation.title,
+                    },
+                    {
+                        "url": reverse(
+                            "simulation:simulation-projet-annotations",
+                            kwargs={"pk": simulation_projet.pk},
+                        ),
+                        "title": simulation_projet.projet.dossier_ds.projet_intitule,
+                    },
+                ],
+                "current": projet_note.title,
+            },
+        }
+    )
+
+
+# TODO projet must be in user perimeter
+@exception_handler_decorator
+@require_GET
+def get_note_card(request, pk: int, note_id: int):
+    if request.headers.get("HX-Request") != "true":
+        return HttpResponseForbidden("Cette action n'est pas autorisée.")
+    return render(
+        request,
+        "includes/_note_card.html",
+        {
+            "note": get_object_or_404(ProjetNote, id=note_id),
+            "simu": get_object_or_404(SimulationProjet, id=pk),
+        },
+    )
