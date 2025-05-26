@@ -93,14 +93,11 @@ class SimulationProjetAnnotationsView(SimulationProjetDetailView):
 class ProjetNoteEditView(UpdateView):
     model = ProjetNote
     form_class = ProjetNoteForm
-    template_name = (
-        "gsl_simulation/tab_simulation_projet/annotations/projet_note_update_form.html"
-    )
-    htmx_template_name = "gsl_simulation/tab_simulation_projet/annotations/projet_note_update_form_htmx.html"  # À créer
+    template_name = "htmx/projet_note_update_form.html"
 
     def get_template_names(self):
-        if self.request.headers.get("HX-Request") == "true":
-            return [self.htmx_template_name]
+        if self.request.headers.get("HX-Request") != "true":
+            return HttpResponseForbidden("Cette action n'est pas autorisée.")
         return [self.template_name]
 
     def dispatch(self, request, *args, **kwargs):
@@ -134,44 +131,7 @@ class ProjetNoteEditView(UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["simulation_projet_id"] = self.simulation_projet_id
-        if self.request.headers.get("HX-Request") != "true":
-            context["breadcrumb"] = _enrich_context_with_title_and_breadcrumb(
-                context, self.object, self.simulation_projet
-            )
         return context
-
-
-def _enrich_context_with_title_and_breadcrumb(
-    context, projet_note: ProjetNote, simulation_projet: SimulationProjet
-):
-    context.update(
-        {
-            "title": projet_note.title,
-            "breadcrumb_dict": {
-                "links": [
-                    {
-                        "url": reverse("simulation:simulation-list"),
-                        "title": "Mes simulations de programmation",
-                    },
-                    {
-                        "url": reverse(
-                            "simulation:simulation-detail",
-                            kwargs={"slug": simulation_projet.simulation.slug},
-                        ),
-                        "title": simulation_projet.simulation.title,
-                    },
-                    {
-                        "url": reverse(
-                            "simulation:simulation-projet-annotations",
-                            kwargs={"pk": simulation_projet.pk},
-                        ),
-                        "title": simulation_projet.projet.dossier_ds.projet_intitule,
-                    },
-                ],
-                "current": projet_note.title,
-            },
-        }
-    )
 
 
 # TODO projet must be in user perimeter

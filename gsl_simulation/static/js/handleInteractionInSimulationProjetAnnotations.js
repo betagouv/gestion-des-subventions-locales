@@ -1,6 +1,7 @@
 import { disableAllModalButtons, ensureButtonsAreEnabled } from "./modules/utils.js"
 
 let isFormDirty = false;
+let form = undefined;
 let selectedForm = null;
 let modalId = undefined;
 let modal = undefined;
@@ -26,7 +27,7 @@ const openDeleteConfirmationDialog = () => {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-  const form = document.querySelector("#projet_note_form");
+  form = document.querySelector("#projet_note_form");
   const addNoteButton = document.querySelector('#add_note_button')
 
   if (addNoteButton){
@@ -87,6 +88,33 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 })
+
+function initFormChangeWatcher() {
+    const forms = document.querySelectorAll(".projet_note_update_form");
+    forms.forEach(form => {
+      if (form) {
+          form.addEventListener('input', function () {
+              isFormDirty = true;
+          });
+
+          form.addEventListener('submit', function () {
+              isFormDirty = false;
+          });
+      }
+    });
+    const isThereNoFormDisplayed = forms.length == 0
+    const isProjetNoteFormHidden = window.getComputedStyle(form).display === "none";
+    if (isThereNoFormDisplayed && isProjetNoteFormHidden) {
+      isFormDirty = false;
+    }
+}
+
+document.body.addEventListener("htmx:afterSwap", function(evt) {
+    // Formulaire injecté : on attache la logique de détection de changements
+    initFormChangeWatcher();  
+});
+
+
 
     
 // Avant de quitter ou rafraîchir la page
