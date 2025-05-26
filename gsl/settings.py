@@ -30,7 +30,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG")
-ENV = os.getenv("ENV", "dev")
+ENV = os.getenv("ENV")
 if ENV not in ("dev", "staging", "prod"):
     raise ValueError(
         f"ENV must be one of 'dev', 'staging' or 'prod'. Got {ENV} instead."

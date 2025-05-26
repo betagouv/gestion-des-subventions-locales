@@ -1,7 +1,7 @@
-import os
+from gsl import settings
 
 
 def export_vars(request):
     data = {}
-    data["ENV"] = os.environ["ENV"]
+    data["ENV"] = settings.ENV
     return data
