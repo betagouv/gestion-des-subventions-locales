@@ -169,10 +169,10 @@ class Perimetre(BaseModel):
         )
 
     def __str__(self):
-        name = f"{self.region.name}"
-        if self.departement:
+        name = f"{self.type} | {self.region.name}"
+        if self.departement_id:
             name += f" - {self.departement.name}"
-        if self.arrondissement:
+        if self.arrondissement_id:
             name += f" - {self.arrondissement.name}"
         return name
 

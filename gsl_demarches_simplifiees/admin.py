@@ -30,13 +30,28 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     readonly_fields = tuple(
         field.name
         for field in Demarche._meta.get_fields()
-        if field.name != "raw_ds_data"
+        if field.name not in ("perimetre", "raw_ds_data")
     )
-    list_display = ("ds_number", "ds_title", "ds_state", "dossiers_count")
+    list_display = ("ds_number", "perimetre", "ds_title", "ds_state", "dossiers_count")
     actions = ("refresh_field_mappings", "extract_detr_categories")
+    autocomplete_fields = ("perimetre",)
     fieldsets = (
         (None, {"fields": ("ds_number", "ds_id", "ds_title", "ds_state")}),
-        ("Dates", {"fields": ("ds_date_creation", "ds_date_fermeture")}),
+        (
+            "Configuration Turgot",
+            {"fields": ("perimetre",)},
+        ),
+        (
+            "Dates",
+            {
+                "fields": (
+                    "ds_date_creation",
+                    "ds_date_fermeture",
+                    "active_revision_date",
+                    "active_revision_id",
+                )
+            },
+        ),
         (
             "Instructeurs",
             {
@@ -54,7 +69,12 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs.prefetch_related("dossier_set")
+        qs = qs.select_related(
+            "perimetre",
+            "perimetre__region",
+            "perimetre__departement",
+            "perimetre__arrondissement",
+        )
         return qs.annotate(dossier_count=Count("dossier"))
 
     def dossiers_count(self, obj) -> int:
