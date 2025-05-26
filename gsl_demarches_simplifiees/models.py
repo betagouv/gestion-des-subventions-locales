@@ -556,7 +556,6 @@ class CritereEligibiliteDetr(DsChoiceLibelle):
     demarche_revision = models.CharField(
         blank=True, default="", verbose_name="Révision"
     )
-    tri = models.IntegerField(blank=True, default=0, verbose_name="Numéro d’ordre")
     detr_category = models.ForeignKey(
         "gsl_projet.CategorieDetr",
         on_delete=models.SET_NULL,

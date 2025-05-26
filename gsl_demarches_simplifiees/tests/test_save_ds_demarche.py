@@ -221,7 +221,7 @@ def test_categories_detr_are_created(demarche_data_without_dossier, demarche):
     # assert
     assert CategorieDetr.objects.count() == 2
     first_category = CategorieDetr.objects.first()
-    assert first_category.tri == 0
+    assert first_category.rang == 1
     assert first_category.libelle == "Premier choix"
     assert first_category.annee == 2024
     assert first_category.departement == demarche.perimetre.departement

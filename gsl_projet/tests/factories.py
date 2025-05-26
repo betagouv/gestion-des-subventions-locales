@@ -84,9 +84,9 @@ class DsilProjetFactory(DotationProjetFactory):
 class CategorieDetrFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = CategorieDetr
-        django_get_or_create = ("departement", "annee", "tri")
+        django_get_or_create = ("departement", "annee", "rang")
 
     departement = factory.SubFactory(DepartementFactory)
     annee = factory.Faker("random_int", min=2024, max=2027)
-    tri = factory.Faker("random_int", min=0, max=20)
+    rang = factory.Faker("random_int", min=1, max=20)
     libelle = factory.Faker("sentence", locale="fr_FR")

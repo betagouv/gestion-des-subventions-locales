@@ -179,10 +179,10 @@ def extract_categories_operation_detr(demarche_data: dict, demarche: Demarche):
     if not year:
         return
 
-    for sort_order, label in enumerate(options):
+    for sort_order, label in enumerate(options, 1):
         detr_cat, _ = CategorieDetr.objects.get_or_create(
             departement=departement,
-            tri=sort_order,
+            rang=sort_order,
             annee=year,
             defaults={"libelle": label},
         )

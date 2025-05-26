@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 class CategorieDetr(models.Model):
     libelle = models.CharField("Libellé")
-    tri = models.IntegerField("Numéro d'ordre")
+    rang = models.IntegerField("Rang", default=0)
     annee = models.IntegerField("Année")
     departement = models.ForeignKey(
         Departement, verbose_name="Département", on_delete=models.PROTECT
@@ -39,8 +39,8 @@ class CategorieDetr(models.Model):
         verbose_name_plural = "Catégories DETR"
         constraints = (
             UniqueConstraint(
-                fields=("departement", "annee", "tri"),
-                name="unique_by_departement_tri_annee",
+                fields=("departement", "annee", "rang"),
+                name="unique_by_departement_rang_annee",
             ),
         )
 

@@ -22,7 +22,7 @@ class DotationProjetInline(admin.TabularInline):
 
 @admin.register(CategorieDetr)
 class CategorieDetrAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    list_display = ("departement_id", "annee", "tri", "libelle")
+    list_display = ("departement_id", "annee", "rang", "libelle")
     list_filter = ("departement", "annee")
 
 
