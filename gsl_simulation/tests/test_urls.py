@@ -596,8 +596,31 @@ def test_redirection_with_referer_not_allowed(
     assert response.templates[0].name == "gsl_simulation/simulation_detail.html"
 
 
+def _get_client_and_url_of_edit_projet_note_url(
+    local_client,
+    other_client,
+    simulation_projet,
+    is_note_creator,
+    is_projet_in_user_perimetre,
+):
+    client = local_client if is_projet_in_user_perimetre else other_client
+    projet = (
+        simulation_projet.projet if is_projet_in_user_perimetre else ProjetFactory()
+    )
+    creator = client.user if is_note_creator else CollegueFactory()
+    user_note = ProjetNoteFactory(
+        projet=projet,
+        created_by=creator,
+    )
+
+    url = reverse(
+        "simulation:get-edit-projet-note",
+        kwargs={"pk": simulation_projet.pk, "note_id": user_note.id},
+    )
+    return client, url
+
+
 @pytest.mark.django_db
-@pytest.mark.parametrize("method", ("get", "post"))
 @pytest.mark.parametrize(
     "is_note_creator, is_projet_in_user_perimetre, with_htmx, expected_status_code",
     (
@@ -611,7 +634,7 @@ def test_redirection_with_referer_not_allowed(
         (False, False, False, 403),
     ),
 )
-def test_edit_projet_note_url(
+def test_get_edit_projet_note_url(
     client_with_cote_d_or_user_logged,
     client_with_iconnais_user_logged,
     cote_dorien_simulation_projet,
@@ -619,35 +642,46 @@ def test_edit_projet_note_url(
     is_projet_in_user_perimetre,
     with_htmx,
     expected_status_code,
-    method,
 ):
-    client = (
-        client_with_cote_d_or_user_logged
-        if is_projet_in_user_perimetre
-        else client_with_iconnais_user_logged
-    )
-    projet = (
-        cote_dorien_simulation_projet.projet
-        if is_projet_in_user_perimetre
-        else ProjetFactory()
-    )
-    creator = client.user if is_note_creator else CollegueFactory()
-    user_note = ProjetNoteFactory(
-        projet=projet,
-        created_by=creator,
-    )
-
-    url = reverse(
-        "simulation:get-edit-projet-note",
-        kwargs={"pk": cote_dorien_simulation_projet.pk, "note_id": user_note.id},
+    client, url = _get_client_and_url_of_edit_projet_note_url(
+        client_with_cote_d_or_user_logged,
+        client_with_iconnais_user_logged,
+        cote_dorien_simulation_projet,
+        is_note_creator,
+        is_projet_in_user_perimetre,
     )
     headers = {"HX-Request": "true"} if with_htmx else {}
-    if method == "get":
-        response = client.get(url, headers=headers)
-    else:
-        response = client.post(
-            url, headers=headers, data={"title": "A", "content": "b"}, follow=True
-        )
+    response = client.get(url, headers=headers)
+
+    assert response.status_code == expected_status_code
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "is_note_creator, is_projet_in_user_perimetre, expected_status_code",
+    (
+        (True, True, 200),
+        (False, True, 403),
+        (True, False, 404),
+        (False, False, 403),
+    ),
+)
+def test_post_edit_projet_note_url(
+    client_with_cote_d_or_user_logged,
+    client_with_iconnais_user_logged,
+    cote_dorien_simulation_projet,
+    is_note_creator,
+    is_projet_in_user_perimetre,
+    expected_status_code,
+):
+    client, url = _get_client_and_url_of_edit_projet_note_url(
+        client_with_cote_d_or_user_logged,
+        client_with_iconnais_user_logged,
+        cote_dorien_simulation_projet,
+        is_note_creator,
+        is_projet_in_user_perimetre,
+    )
+    response = client.post(url, data={"title": "A", "content": "b"}, follow=True)
 
     assert response.status_code == expected_status_code
 

@@ -126,21 +126,20 @@ class ProjetNoteEditView(UpdateView):
         return context
 
     def get(self, request, *args, **kwargs):
-        check = self.check_user_rights_and_htmx(request)
+        if self.request.headers.get("HX-Request") != "true":
+            return HttpResponseForbidden("Cette action n'est pas autorisée.")
+        check = self.check_user_rights(request)
         if check is not None:
             return check
         return super().get(self, request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
-        check = self.check_user_rights_and_htmx(request)
+        check = self.check_user_rights(request)
         if check is not None:
             return check
         return super().post(self, request, *args, **kwargs)
 
-    def check_user_rights_and_htmx(self, request):
-        if self.request.headers.get("HX-Request") != "true":
-            return HttpResponseForbidden("Cette action n'est pas autorisée.")
-
+    def check_user_rights(self, request):
         if self.projet_note.created_by != self.request.user:
             return HttpResponseForbidden(
                 "Vous n'avez pas la permission de modifier cette note."
