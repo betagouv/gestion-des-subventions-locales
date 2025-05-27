@@ -14,7 +14,11 @@ from gsl_core.tests.factories import (
 from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.forms import ProjetNoteForm
-from gsl_projet.tests.factories import DotationProjetFactory
+from gsl_projet.tests.factories import (
+    DotationProjetFactory,
+    ProjetFactory,
+    ProjetNoteFactory,
+)
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
@@ -590,3 +594,107 @@ def test_redirection_with_referer_not_allowed(
     response = client.post(url, {"status": "valid"}, follow=True)
     assert response.status_code == 200
     assert response.templates[0].name == "gsl_simulation/simulation_detail.html"
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("method", ("get", "post"))
+@pytest.mark.parametrize(
+    "is_note_creator, is_projet_in_user_perimetre, with_htmx, expected_status_code",
+    (
+        (True, True, True, 200),
+        (False, True, True, 403),
+        (True, False, True, 404),
+        (False, False, True, 403),
+        (True, True, False, 403),
+        (False, True, False, 403),
+        (True, False, False, 403),
+        (False, False, False, 403),
+    ),
+)
+def test_edit_projet_note_url(
+    client_with_cote_d_or_user_logged,
+    client_with_iconnais_user_logged,
+    cote_dorien_simulation_projet,
+    is_note_creator,
+    is_projet_in_user_perimetre,
+    with_htmx,
+    expected_status_code,
+    method,
+):
+    client = (
+        client_with_cote_d_or_user_logged
+        if is_projet_in_user_perimetre
+        else client_with_iconnais_user_logged
+    )
+    projet = (
+        cote_dorien_simulation_projet.projet
+        if is_projet_in_user_perimetre
+        else ProjetFactory()
+    )
+    creator = client.user if is_note_creator else CollegueFactory()
+    user_note = ProjetNoteFactory(
+        projet=projet,
+        created_by=creator,
+    )
+
+    url = reverse(
+        "simulation:get-edit-projet-note",
+        kwargs={"pk": cote_dorien_simulation_projet.pk, "note_id": user_note.id},
+    )
+    headers = {"HX-Request": "true"} if with_htmx else {}
+    if method == "get":
+        response = client.get(url, headers=headers)
+    else:
+        response = client.post(
+            url, headers=headers, data={"title": "A", "content": "b"}, follow=True
+        )
+
+    assert response.status_code == expected_status_code
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "is_note_creator, is_projet_in_user_perimetre, with_htmx, expected_status_code",
+    (
+        (True, True, True, 200),
+        (False, True, True, 200),
+        (True, False, True, 404),
+        (False, False, True, 404),
+        (True, True, False, 403),
+        (False, True, False, 403),
+        (True, False, False, 404),
+        (False, False, False, 404),
+    ),
+)
+def test_get_note_card_url(
+    client_with_cote_d_or_user_logged,
+    client_with_iconnais_user_logged,
+    cote_dorien_simulation_projet,
+    is_note_creator,
+    is_projet_in_user_perimetre,
+    with_htmx,
+    expected_status_code,
+):
+    client = (
+        client_with_cote_d_or_user_logged
+        if is_projet_in_user_perimetre
+        else client_with_iconnais_user_logged
+    )
+    projet = (
+        cote_dorien_simulation_projet.projet
+        if is_projet_in_user_perimetre
+        else ProjetFactory()
+    )
+    creator = client.user if is_note_creator else CollegueFactory()
+    user_note = ProjetNoteFactory(
+        projet=projet,
+        created_by=creator,
+    )
+
+    url = reverse(
+        "simulation:get-note-card",
+        kwargs={"pk": cote_dorien_simulation_projet.pk, "note_id": user_note.id},
+    )
+    headers = {"HX-Request": "true"} if with_htmx else {}
+    response = client.get(url, headers=headers)
+    assert response.status_code == expected_status_code

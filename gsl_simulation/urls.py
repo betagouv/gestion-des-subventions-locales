@@ -88,7 +88,7 @@ urlpatterns = [
     ),
     # Annotations
     path(
-        "modifier-l-annotation-d-un-projet/<str:pk>/",
+        "simulation_projet/<int:pk>/annotations/<int:note_id>/edit",
         ProjetNoteEditView.as_view(),
         name="get-edit-projet-note",
     ),

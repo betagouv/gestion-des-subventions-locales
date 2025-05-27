@@ -1,6 +1,6 @@
 
 <form method="post"
-      action="{% url 'gsl_simulation:get-edit-projet-note' object.id %}"
+      action="{% url 'gsl_simulation:get-edit-projet-note' simulation_projet_id object.id %}"
       class="projet_note_update_form"
       id="projet_note_update_form_{{ object.id }}">
     {% csrf_token %}

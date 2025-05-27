@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET
@@ -7,7 +8,10 @@ from django.views.generic.edit import UpdateView
 from gsl_projet.forms import ProjetNoteForm
 from gsl_projet.models import ProjetNote
 from gsl_simulation.models import SimulationProjet
-from gsl_simulation.views.decorators import exception_handler_decorator
+from gsl_simulation.views.decorators import (
+    check_if_simulation_projet_enveloppe_is_in_user_enveloppes,
+    exception_handler_decorator,
+)
 from gsl_simulation.views.simulation_projet_views import (
     SimulationProjetDetailView,
     redirect_to_same_page_or_to_simulation_detail_by_default,
@@ -93,29 +97,17 @@ class SimulationProjetAnnotationsView(SimulationProjetDetailView):
 class ProjetNoteEditView(UpdateView):
     model = ProjetNote
     form_class = ProjetNoteForm
+    pk_url_kwarg = "note_id"
     template_name = "htmx/projet_note_update_form.html"
 
-    def get_template_names(self):
-        if self.request.headers.get("HX-Request") != "true":
-            return HttpResponseForbidden("Cette action n'est pas autorisée.")
-        return [self.template_name]
-
     def dispatch(self, request, *args, **kwargs):
-        self.simulation_projet_id = request.GET.get(
-            "simulation_projet_id"
-        ) or request.POST.get("simulation_projet_id")
+        self.projet_note = self.get_object()
+        self.simulation_projet_id = self.kwargs.get("pk")
         self.simulation_projet = get_object_or_404(
             SimulationProjet, id=self.simulation_projet_id
         )
-        return super().dispatch(request, *args, **kwargs)
 
-    def get_object(self, queryset=None):
-        self.obj = super().get_object(queryset)
-        if self.obj.created_by != self.request.user:
-            raise HttpResponseForbidden(
-                "Vous n'avez pas la permission de modifier cette note."
-            )
-        return self.obj
+        return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
         messages.success(
@@ -133,8 +125,32 @@ class ProjetNoteEditView(UpdateView):
         context["simulation_projet_id"] = self.simulation_projet_id
         return context
 
+    def get(self, request, *args, **kwargs):
+        check = self.check_user_rights_and_htmx(request)
+        if check is not None:
+            return check
+        return super().get(self, request, *args, **kwargs)
 
-# TODO projet must be in user perimeter
+    def post(self, request, *args, **kwargs):
+        check = self.check_user_rights_and_htmx(request)
+        if check is not None:
+            return check
+        return super().post(self, request, *args, **kwargs)
+
+    def check_user_rights_and_htmx(self, request):
+        if self.request.headers.get("HX-Request") != "true":
+            return HttpResponseForbidden("Cette action n'est pas autorisée.")
+
+        if self.projet_note.created_by != self.request.user:
+            return HttpResponseForbidden(
+                "Vous n'avez pas la permission de modifier cette note."
+            )
+
+        check_if_simulation_projet_enveloppe_is_in_user_enveloppes(
+            request.user, self.simulation_projet_id
+        )
+
+
 @exception_handler_decorator
 @require_GET
 def get_note_card(request, pk: int, note_id: int):
