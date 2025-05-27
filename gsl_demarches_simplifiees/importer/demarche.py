@@ -1,5 +1,9 @@
+from django.utils import timezone
+
+from gsl_core.models import Departement
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.models import (
+    CritereEligibiliteDetr,
     Demarche,
     Dossier,
     FieldMappingForComputer,
@@ -34,12 +38,22 @@ def save_demarche_from_ds(demarche_number):
     demarche = get_or_create_demarche(demarche_data)
     save_groupe_instructeurs(demarche_data, demarche)
     save_field_mappings(demarche_data, demarche)
+    extract_categories_operation_detr(demarche_data, demarche)
 
 
 def refresh_field_mappings_on_demarche(demarche_number):
     demarche = Demarche.objects.get(ds_number=demarche_number)
     if demarche.raw_ds_data:
         save_field_mappings(demarche.raw_ds_data, demarche)
+        extract_categories_operation_detr(demarche.raw_ds_data, demarche)
+    else:
+        save_demarche_from_ds(demarche_number)
+
+
+def refresh_categories_operation_detr(demarche_number):
+    demarche = Demarche.objects.get(ds_number=demarche_number)
+    if demarche.raw_ds_data:
+        extract_categories_operation_detr(demarche.raw_ds_data, demarche)
     else:
         save_demarche_from_ds(demarche_number)
 
@@ -49,6 +63,11 @@ def get_or_create_demarche(demarche_data):
     django_data = {
         f"ds_{field}": demarche_data[camelcase(field)] for field in ds_fields
     }
+    if demarche_data["activeRevision"]:
+        django_data["active_revision_date"] = timezone.datetime.fromisoformat(
+            demarche_data["activeRevision"]["datePublication"]
+        )
+        django_data["active_revision_id"] = demarche_data["activeRevision"]["id"]
     try:
         demarche = Demarche.objects.get(ds_id=demarche_data["id"])
         demarche.raw_ds_data = demarche_data
@@ -110,3 +129,67 @@ def save_field_mappings(demarche_data, demarche):
                 label=ds_label,
                 demarche=demarche,
             )
+
+
+def guess_department_from_demarche(demarche) -> Departement:
+    if demarche.perimetre and demarche.perimetre.departement:
+        return demarche.perimetre.departement
+    for departement in Departement.objects.all():
+        if departement.name in demarche.ds_title:
+            return departement
+
+
+def guess_year_from_demarche(demarche: Demarche) -> int:
+    """
+    Savoir à quelle année associer les catégories DETR extraites de la démarche DS
+    """
+    date_revision = demarche.active_revision_date
+    if not date_revision:
+        # à défaut de date de dernière révision,
+        # on regarde la date de création de la démarche.
+        date_revision = demarche.ds_date_creation
+
+    if date_revision.month >= 9:
+        return date_revision.year + 1
+    else:
+        return date_revision.year
+
+
+def extract_categories_operation_detr(demarche_data: dict, demarche: Demarche):
+    from gsl_projet.models import CategorieDetr
+
+    try:
+        mapping = FieldMappingForComputer.objects.filter(
+            demarche=demarche, django_field="demande_eligibilite_detr"
+        ).get()
+    except FieldMappingForComputer.DoesNotExist:
+        return
+    demande_eligibilite_detr_field_id = mapping.ds_field_id
+
+    options = []
+    for field in demarche_data["activeRevision"]["champDescriptors"]:
+        if field["id"] == demande_eligibilite_detr_field_id:
+            options = field["options"]
+            break
+
+    departement = guess_department_from_demarche(demarche)
+    if not departement:
+        return
+
+    year = guess_year_from_demarche(demarche)
+    if not year:
+        return
+
+    for sort_order, label in enumerate(options, 1):
+        detr_cat, _ = CategorieDetr.objects.get_or_create(
+            departement=departement,
+            rang=sort_order,
+            annee=year,
+            defaults={"libelle": label},
+        )
+        CritereEligibiliteDetr.objects.update_or_create(
+            label=label,
+            demarche=demarche,
+            demarche_revision=demarche_data["activeRevision"]["id"],
+            defaults={"detr_category": detr_cat},
+        )

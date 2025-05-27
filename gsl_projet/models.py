@@ -3,7 +3,7 @@ from datetime import timezone as tz
 from typing import TYPE_CHECKING
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, UniqueConstraint
 from django.forms import ValidationError
 from django_fsm import FSMField, transition
 
@@ -24,6 +24,28 @@ from gsl_projet.constants import (
 
 if TYPE_CHECKING:
     from gsl_programmation.models import Enveloppe
+
+
+class CategorieDetr(models.Model):
+    libelle = models.CharField("Libellé")
+    rang = models.IntegerField("Rang", default=0)
+    annee = models.IntegerField("Année")
+    departement = models.ForeignKey(
+        Departement, verbose_name="Département", on_delete=models.PROTECT
+    )
+
+    class Meta:
+        verbose_name = "Catégorie DETR"
+        verbose_name_plural = "Catégories DETR"
+        constraints = (
+            UniqueConstraint(
+                fields=("departement", "annee", "rang"),
+                name="unique_by_departement_rang_annee",
+            ),
+        )
+
+    def __str__(self):
+        return f"Catégorie DETR {self.id} - {self.libelle}"
 
 
 class Demandeur(models.Model):
@@ -205,9 +227,14 @@ class DotationProjet(models.Model):
         help_text="Pour les projets de plus de 100 000 €",
         null=True,
     )
+    detr_categories = models.ManyToManyField(
+        CategorieDetr, verbose_name="Catégories d’opération DETR"
+    )
 
     class Meta:
         unique_together = ("projet", "dotation")
+        verbose_name = "Dotation projet"
+        verbose_name_plural = "Dotations projet"
 
     def __str__(self):
         return f"Projet {self.projet_id} - Dotation {self.dotation}"

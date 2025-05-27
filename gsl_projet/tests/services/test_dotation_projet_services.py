@@ -9,7 +9,10 @@ from gsl_core.tests.factories import (
     PerimetreRegionalFactory,
 )
 from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.tests.factories import DossierFactory
+from gsl_demarches_simplifiees.tests.factories import (
+    CritereEligibiliteDetrFactory,
+    DossierFactory,
+)
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -20,7 +23,11 @@ from gsl_projet.constants import (
 )
 from gsl_projet.models import DotationProjet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
-from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
+from gsl_projet.tests.factories import (
+    CategorieDetrFactory,
+    DotationProjetFactory,
+    ProjetFactory,
+)
 from gsl_simulation.models import Simulation, SimulationProjet
 from gsl_simulation.tests.factories import SimulationFactory
 
@@ -95,8 +102,16 @@ def test_create_or_update_dotation_projet(dotation):
         dossier_ds__ds_state=Dossier.STATE_SANS_SUITE,
         dossier_ds__annotations_assiette=2_000,
     )
+    categorie_detr = CategorieDetrFactory()
+    projet.dossier_ds.demande_eligibilite_detr.add(
+        CritereEligibiliteDetrFactory(detr_category=categorie_detr)
+    )
+
+    # ------
 
     DotationProjetService.create_or_update_dotation_projet(projet, dotation)
+
+    # ------
 
     assert DotationProjet.objects.count() == 1
 
@@ -106,6 +121,11 @@ def test_create_or_update_dotation_projet(dotation):
     assert dotation_projet.status == PROJET_STATUS_DISMISSED
     assert dotation_projet.assiette == 2_000
     assert dotation_projet.detr_avis_commission is None
+
+    if dotation_projet.dotation == DOTATION_DSIL:
+        assert dotation_projet.detr_categories.count() == 0
+    else:
+        assert categorie_detr in dotation_projet.detr_categories.all()
 
 
 @pytest.fixture
