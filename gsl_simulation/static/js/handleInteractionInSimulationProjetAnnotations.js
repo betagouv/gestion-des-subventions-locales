@@ -1,27 +1,30 @@
 import { disableAllModalButtons, ensureButtonsAreEnabled } from "./modules/utils.js"
 
-let isFormDirty = false;
-const formStates = {};
-let mainForm = null;
-let selectedForm = null;
-let selectedModal = null;
+
+// for modal
 let deleteModal = null;
 let cancelModal = null;
 let cancelUpdateButton = null;
 
-function closeModal({ reset = false, cancelling = false } = {}) {
+let addForm = null;
+const formStates = {};
+
+let selectedForm = null;
+let selectedModal = null;
+
+
+function closeModal({ cancelling = false } = {}) {
     if (!selectedForm) return;
 
-    if (reset) selectedForm.reset();
     dsfr(selectedModal).modal.conceal();
     selectedForm.focus();
-    selectedForm = null;
-    selectedModal = null;
     if (cancelling) {
-        isFormDirty = false;
+        formStates[selectedForm.id] = false;
         if (cancelUpdateButton) htmx.trigger(cancelUpdateButton, 'cancel');
         cancelUpdateButton = undefined
     }
+    selectedForm = null;
+    selectedModal = null;
 }
 
 function openDeleteConfirmationDialog() {
@@ -40,12 +43,12 @@ function openConfirmationModal(formTemp) {
     dsfr(cancelModal).modal.disclose();
 }
 
-function handleFormInput() {
-    isFormDirty = true;
+function handleFormInput(formId) {
+    formStates[formId] = true;
 }
 
-function handleFormSubmit() {
-    isFormDirty = false;
+function handleFormSubmit(formId) {
+    formStates[formId] = false;
 }
 
 function handleFormKeydown(event) {
@@ -59,8 +62,9 @@ function handleFormKeydown(event) {
 
 function addListenersToForm(formElem) {
     const formId = formElem.id;
-    formElem.addEventListener('input', () => { formStates[formId] = true; });
-    formElem.addEventListener('submit', () => { formStates[formId] = false; });
+    formElem.addEventListener('input', () => { handleFormInput(formId) });
+    formElem.addEventListener('submit', () => { handleFormSubmit(formId) });
+    formElem.addEventListener("keydown", (event) => handleFormKeydown(event))
 
     formElem.querySelectorAll(".cancel-button").forEach(button => {
       button.addEventListener('click', evt => {
@@ -78,34 +82,38 @@ function addListenersToForm(formElem) {
 function initFormChangeWatcher() {
     const forms = document.querySelectorAll(".projet_note_update_form");
     forms.forEach(formElem => {
-        formElem.addEventListener('input', handleFormInput);
-        formElem.addEventListener('submit', handleFormSubmit);
+        formElem.addEventListener('input', () => handleFormInput(formElem.id));
+        formElem.addEventListener('submit', () => handleFormSubmit(formElem.id));
     });
     const isThereNoFormDisplayed = forms.length === 0;
-    const isProjetNoteFormHidden = mainForm && window.getComputedStyle(mainForm).display === "none";
+    const isProjetNoteFormHidden = addForm && window.getComputedStyle(addForm).display === "none";
     if (isThereNoFormDisplayed && isProjetNoteFormHidden) {
         isFormDirty = false;
     }
 }
 
+function isAnyDirtyForm() {
+    return Object.values(formStates).some(v => v === true)
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    mainForm = document.querySelector("#projet_note_form");
+    addForm = document.querySelector("#projet_note_form");
     const addNoteButton = document.querySelector('#add_note_button');
     deleteModal = document.getElementById('delete-confirmation-modal');
     cancelModal = document.getElementById('cancel-update-confirmation-modal');
 
-    if (addNoteButton && mainForm) {
+    if (addNoteButton && addForm) {
         addNoteButton.addEventListener('click', () => {
-            mainForm.style.display = "block";
+            addForm.style.display = "block";
         });
     }
 
-    if (mainForm) {
+    if (addForm) {
         const error = document.querySelector(".fr-error-text");
-        if (error) mainForm.style.display = "block";
-        mainForm.addEventListener("keydown", handleFormKeydown);
-        mainForm.addEventListener('input', handleFormInput);
-        mainForm.addEventListener('submit', handleFormSubmit);
+        if (error) addForm.style.display = "block";
+        addForm.addEventListener("keydown", handleFormKeydown);
+        addForm.addEventListener('input', () => handleFormInput(addForm.id));
+        addForm.addEventListener('submit', () => handleFormSubmit(addForm.id));
     }
 
     document.querySelectorAll('.delete_note_button').forEach(button => {
@@ -161,7 +169,7 @@ document.body.addEventListener("htmx:afterSwap", evt => {
 
 // Avant de quitter ou rafraîchir la page
 window.addEventListener('beforeunload', e => {
-    if (isFormDirty) {
+    if (isAnyDirtyForm()) {
         e.preventDefault();
         e.returnValue = '';
     }
