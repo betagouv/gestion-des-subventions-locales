@@ -45,6 +45,7 @@ def refresh_field_mappings_on_demarche(demarche_number):
     demarche = Demarche.objects.get(ds_number=demarche_number)
     if demarche.raw_ds_data:
         save_field_mappings(demarche.raw_ds_data, demarche)
+        extract_categories_operation_detr(demarche.raw_ds_data, demarche)
     else:
         save_demarche_from_ds(demarche_number)
 
