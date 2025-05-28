@@ -50,7 +50,6 @@ class FilterUtils:
             self._get_selected_categorie_detr()
         )
         context["categorie_detr_choices"] = self._get_categorie_detr_choices()
-        # context["categorie_dsil_choices"] = self._get_territoire_choices()
 
         context["filter_templates"] = self._get_filter_templates()
 

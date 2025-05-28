@@ -14,8 +14,8 @@ from django_filters.views import FilterView
 from gsl_core.models import Perimetre
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.services.enveloppe_service import EnveloppeService
-from gsl_projet.constants import DOTATION_DSIL, DOTATIONS
-from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, DOTATIONS
+from gsl_projet.models import CategorieDetr, DotationProjet, Projet
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
 from gsl_projet.utils.filter_utils import FilterUtils
@@ -279,6 +279,16 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
     def _get_territoire_choices(self):
         perimetre = self.perimetre
         return (perimetre, *perimetre.children())
+
+    def _get_categorie_detr_choices(self):
+        simulation = self.get_object()
+        if simulation.dotation != DOTATION_DETR:
+            return []
+
+        return CategorieDetr.objects.filter(
+            departement=simulation.enveloppe.perimetre.departement,
+            annee=simulation.enveloppe.annee,
+        )
 
     def _get_other_dotations_simulation_projet(
         self, projets: QuerySet[Projet], current_dotation: str

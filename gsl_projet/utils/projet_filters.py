@@ -188,11 +188,13 @@ class ProjetFilters(FilterSet):
         return queryset.filter(perimetre__in=perimetres)
 
     categorie_detr = MultipleChoiceFilter(
-        field_name="dotation_projet__categorie_detr",
-        lookup_expr="in",
+        method="filter_categorie_detr",
         choices=[],
         widget=CustomCheckboxSelectMultiple(),
     )
+
+    def filter_categorie_detr(self, queryset, _name, values: list[int]):
+        return queryset.filter(dotation_projet_set__categorie_detr_id__in=values)
 
     class Meta:
         model = Projet

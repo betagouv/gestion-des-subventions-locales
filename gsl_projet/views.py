@@ -165,5 +165,5 @@ class ProjetListView(FilterView, ListView, FilterUtils):
 
         # todo année hardcodée :
         return CategorieDetr.objects.filter(
-            annee=2025, departement=perimetre.departement
-        ).order_by("tri")
+            annee=2024, departement=perimetre.departement
+        ).order_by("rang")
