@@ -1,4 +1,4 @@
-{% if categorie_detr_choices|length != 0 and categorie_detr_choices|length != 1 %}
+{% if categorie_detr_choices|length > 1 %}
     <div class="filter-field fr-col-12 fr-col-md-4 fr-col-lg-2">
         <div class="filter-dropdown">
             <label class="fr-label" id="filter_categorie_detr_label">
@@ -25,7 +25,7 @@
                         </label>
                     </div>
                 {% endfor %}
-                <button type="submit" class="fr-btn fr-btn--sm">
+                <button type="submit" class="fr-btn fr-btn--sm stick-to-bottom">
                     Filtrer
                 </button>
             </div>
