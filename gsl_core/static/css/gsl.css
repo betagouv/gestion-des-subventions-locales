@@ -308,3 +308,38 @@ ul.no-list-style li {
 .callout-without-left-border {
   background-image: none;
 }
+
+/* dropdown */
+.gsl-dropdown > button {
+  text-align: start;
+}
+
+.gsl-dropdown > .fr-input {
+  display: flex;
+}
+
+.gsl-dropdown > button > span {
+  margin-top: 1px; /* Alignement vertical de l'icône */
+}
+
+.gsl-dropdown .gsl-dropdown-content {
+  gap: 6px;
+  min-width: auto;
+}
+
+.gsl-dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: white;
+  min-width: 260px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  z-index: 1000;
+  gap: 1rem;
+}
+
+gsl-dropdown > button {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
