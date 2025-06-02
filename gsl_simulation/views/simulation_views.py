@@ -358,8 +358,16 @@ def simulation_form(request):
         return render(request, "gsl_simulation/simulation_form.html", context)
 
 
-class FilteredProjetsCSVExportView(SimulationDetailView):
+class FilteredProjetsExportView(SimulationDetailView):
+    XLS = "xls"
+    CSV = "csv"
+    EXPORT_TYPES = [XLS, CSV]
+
     def get(self, request, *args, **kwargs):
+        export_type = self.kwargs.get("type")
+        if export_type not in self.EXPORT_TYPES:
+            return HttpResponse("Invalid export type", status=400)
+
         self.object = self.get_object()
         self.simulation = Simulation.objects.get(slug=self.object.slug)
         queryset = self.get_projet_queryset()
@@ -381,10 +389,16 @@ class FilteredProjetsCSVExportView(SimulationDetailView):
             else DetrSimulationProjetResource()
         )
         dataset = resource.export(simu_projet_qs)
-        export_data = dataset.csv
 
-        response = HttpResponse(export_data, content_type="text/csv")
+        if export_type == self.XLS:
+            export_data = dataset.xls
+            content_type = "application/vnd.ms-excel"
+        else:  # export_type == self.CSV
+            export_data = dataset.csv
+            content_type = "text/csv"
+
+        response = HttpResponse(export_data, content_type=content_type)
         response["Content-Disposition"] = (
-            f'attachment; filename="{date.today().strftime("%Y-%m-%d")} simulation {self.simulation.title}.csv"'
+            f'attachment; filename="{date.today().strftime("%Y-%m-%d")} simulation {self.simulation.title}.{export_type}"'
         )
         return response
