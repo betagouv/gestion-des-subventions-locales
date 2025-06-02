@@ -3,7 +3,6 @@ from import_export.widgets import (
     BooleanWidget,
     DateTimeWidget,
     DateWidget,
-    ForeignKeyWidget,
 )
 
 from gsl_simulation.models import SimulationProjet
@@ -47,9 +46,9 @@ class DsilSimulationProjetResource(ModelResource):
         column_name="Code INSEE commune du demandeur",
     )
     has_double_dotations = Field(
-        attribute="projet",
+        attribute="projet__has_double_dotations",
         column_name="Projet en double dotation",
-        widget=ForeignKeyWidget("projet", field="has_double_dotations"),
+        widget=OuiNonWidget(),
     )
     cout_total = Field(
         attribute="projet__dossier_ds__finance_cout_total",
