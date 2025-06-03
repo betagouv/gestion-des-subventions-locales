@@ -194,7 +194,7 @@ class ProjetFilters(FilterSet):
     )
 
     def filter_categorie_detr(self, queryset, _name, values: list[int]):
-        return queryset.filter(dotation_projet_set__categorie_detr_id__in=values)
+        return queryset.filter(dotationprojet__detr_categories__in=values)
 
     class Meta:
         model = Projet

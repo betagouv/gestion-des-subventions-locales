@@ -76,6 +76,12 @@ class ProjetListViewFilters(ProjetFilters):
             self.filters["territoire"].extra["choices"] = tuple(
                 (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
             )
+            self.filters["categorie_detr"].extra["choices"] = tuple(
+                (c.id, c.libelle)
+                for c in CategorieDetr.objects.filter(
+                    annee=2024, departement=perimetre.departement
+                ).order_by("rang")
+            )
 
     filterset = (
         "territoire",
