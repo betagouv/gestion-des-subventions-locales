@@ -18,18 +18,14 @@
             <span class="fr-icon-arrow-down-s-line fr-btn--icon-right"></span>
         </button>
         <div class="gsl-dropdown-content fr-p-0 export-btn-container" role="menu">
-            <a class="fr-btn fr-btn--secondary export-btn"
-               href="{% url 'gsl_simulation:simulation-projets-export' slug=simulation.slug type='csv' %}?{{ filter_params }}"
-               role="menuitem">
-                format .csv <span class="fr-icon-download-line fr-icon--sm fr-btn--icon-right"
+            {% for export_type in export_types %}
+                <a class="fr-btn fr-btn--secondary export-btn"
+                   href="{% url 'gsl_simulation:simulation-projets-export' slug=simulation.slug type=export_type %}?{{ filter_params }}"
+                   role="menuitem">
+                    format .{{ export_type }} <span class="fr-icon-download-line fr-icon--sm fr-btn--icon-right"
        aria-hidden="true"></span>
-            </a>
-            <a class="fr-btn fr-btn--secondary export-btn"
-               href="{% url 'gsl_simulation:simulation-projets-export' slug=simulation.slug type='xls' %}?{{ filter_params }}"
-               role="menuitem">
-                format .xls <span class="fr-icon-download-line fr-icon--sm fr-btn--icon-right"
-       aria-hidden="true"></span>
-            </a>
+                </a>
+            {% endfor %}
         </div>
     </div>
     {% include "includes/_enveloppe_summary.html" %}

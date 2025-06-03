@@ -200,6 +200,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                 "other_dotations_simu": self._get_other_dotations_simulation_projet(
                     current_page.object_list, simulation.enveloppe.dotation
                 ),
+                "export_types": FilteredProjetsExportView.EXPORT_TYPES,
                 "breadcrumb_dict": {
                     "links": [
                         {
@@ -360,8 +361,16 @@ def simulation_form(request):
 
 class FilteredProjetsExportView(SimulationDetailView):
     XLS = "xls"
+    XLSX = "xlsx"
     CSV = "csv"
-    EXPORT_TYPES = [XLS, CSV]
+    ODS = "ods"
+    EXPORT_TYPES = [XLS, XLSX, CSV, ODS]
+    EXPORT_TYPE_TO_CONTENT_TYPE = {
+        XLS: "application/vnd.ms-excel",
+        XLSX: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        CSV: "text/csv",
+        ODS: "application/vnd.oasis.opendocument.spreadsheet",
+    }
 
     def get(self, request, *args, **kwargs):
         export_type = self.kwargs.get("type")
@@ -390,12 +399,8 @@ class FilteredProjetsExportView(SimulationDetailView):
         )
         dataset = resource.export(simu_projet_qs)
 
-        if export_type == self.XLS:
-            export_data = dataset.export("xlsx")
-            content_type = "application/vnd.ms-excel"
-        else:  # export_type == self.CSV
-            export_data = dataset.export("csv")
-            content_type = "text/csv"
+        export_data = dataset.export(export_type)
+        content_type = self.EXPORT_TYPE_TO_CONTENT_TYPE[export_type]
 
         response = HttpResponse(export_data, content_type=content_type)
         response["Content-Disposition"] = (

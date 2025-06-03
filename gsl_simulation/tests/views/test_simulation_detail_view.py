@@ -17,7 +17,7 @@ from gsl_projet.tests.factories import (
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_simulation.views.simulation_views import (
-    FilteredProjetsCSVExportView,
+    FilteredProjetsExportView,
     SimulationDetailView,
 )
 
@@ -115,9 +115,10 @@ def test_get_filter_projets_csv_export_view():
 
     ### Act
     req = RequestFactory()
-    view = FilteredProjetsCSVExportView()
+    view = FilteredProjetsExportView()
     url = reverse(
-        "simulation:simulation-projets-export", kwargs={"slug": simulation.slug}
+        "simulation:simulation-projets-export",
+        kwargs={"slug": simulation.slug, "type": "csv"},
     )
     request = req.get(url, data={"status": [SimulationProjet.STATUS_ACCEPTED]})
     request.resolver_match = resolve(url)
