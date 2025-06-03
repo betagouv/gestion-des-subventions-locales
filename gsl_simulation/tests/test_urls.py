@@ -452,7 +452,6 @@ def test_simulation_projet_detail_url(
     "tab_name,expected_template",
     (
         ("historique", "gsl_simulation/tab_simulation_projet/tab_historique.html"),
-        ("demandeur", "gsl_simulation/tab_simulation_projet/tab_demandeur.html"),
         ("annotations", "gsl_simulation/tab_simulation_projet/tab_annotations.html"),
     ),
 )
