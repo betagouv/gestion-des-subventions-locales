@@ -55,27 +55,53 @@ def test_simulation_detail_url_with_not_authorized_user(
 ):
     SimulationFactory(slug="test-slug", enveloppe=enveloppe_departemental)
 
-    url = reverse(route, kwargs={"slug": "test-slug"})
+    kwargs = (
+        {"slug": "test-slug"}
+        if route == "simulation:simulation-detail"
+        else {"slug": "test-slug", "type": "xls"}
+    )
+
+    url = reverse(route, kwargs=kwargs)
     response = client_with_user_logged.get(url)
     assert response.status_code == 404
 
 
-@pytest.mark.parametrize(
-    "route",
-    (
-        "simulation:simulation-detail",
-        "simulation:simulation-projets-export",
-    ),
-)
 @pytest.mark.django_db
 def test_simulation_detail_url_for_user_with_correct_perimetre(
-    client_with_same_departement_perimetre, enveloppe_departemental, route
+    client_with_same_departement_perimetre, enveloppe_departemental
 ):
     SimulationFactory(slug="test-slug", enveloppe=enveloppe_departemental)
 
-    url = reverse(route, kwargs={"slug": "test-slug"})
+    url = reverse("simulation:simulation-detail", kwargs={"slug": "test-slug"})
     response = client_with_same_departement_perimetre.get(url)
     assert response.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "export_type, response_code",
+    (
+        ("xls", 200),
+        ("xlsx", 200),
+        ("csv", 200),
+        ("ods", 200),
+        ("inconnu_au_bataillon", 400),
+    ),
+)
+@pytest.mark.django_db
+def test_simulation_export_url_for_user_with_correct_perimetre(
+    client_with_same_departement_perimetre,
+    enveloppe_departemental,
+    export_type,
+    response_code,
+):
+    SimulationFactory(slug="test-slug", enveloppe=enveloppe_departemental)
+
+    url = reverse(
+        "simulation:simulation-projets-export",
+        kwargs={"slug": "test-slug", "type": export_type},
+    )
+    response = client_with_same_departement_perimetre.get(url)
+    assert response.status_code == response_code
 
 
 @pytest.fixture
@@ -452,7 +478,6 @@ def test_simulation_projet_detail_url(
     "tab_name,expected_template",
     (
         ("historique", "gsl_simulation/tab_simulation_projet/tab_historique.html"),
-        ("demandeur", "gsl_simulation/tab_simulation_projet/tab_demandeur.html"),
         ("annotations", "gsl_simulation/tab_simulation_projet/tab_annotations.html"),
     ),
 )

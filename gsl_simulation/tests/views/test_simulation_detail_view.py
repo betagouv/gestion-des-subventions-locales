@@ -91,9 +91,21 @@ def test_get_other_dotations_simulation_projet_without_other_simulation_projet(
     }
 
 
+@pytest.mark.parametrize(
+    "export_type, content_type",
+    (
+        ("csv", "text/csv"),
+        (
+            "xlsx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ),
+        ("xls", "application/vnd.ms-excel"),
+        ("ods", "application/vnd.oasis.opendocument.spreadsheet"),
+    ),
+)
 @freeze_time("2025-05-26")
 @pytest.mark.django_db
-def test_get_filter_projets_csv_export_view():
+def test_get_filter_projets_export_view(export_type, content_type):
     ### Arrange
     simulation = SimulationFactory(
         title="Ma Simulation", enveloppe__dotation=DOTATION_DSIL
@@ -116,23 +128,22 @@ def test_get_filter_projets_csv_export_view():
     ### Act
     req = RequestFactory()
     view = FilteredProjetsExportView()
-    url = reverse(
-        "simulation:simulation-projets-export",
-        kwargs={"slug": simulation.slug, "type": "csv"},
-    )
+    kwargs = {"slug": simulation.slug, "type": export_type}
+    url = reverse("simulation:simulation-projets-export", kwargs=kwargs)
     request = req.get(url, data={"status": [SimulationProjet.STATUS_ACCEPTED]})
     request.resolver_match = resolve(url)
     view.request = request
-    view.kwargs = {"slug": simulation.slug}
+    view.kwargs = kwargs
     response = view.get(request)
 
     ### Assert
     assert response.status_code == 200
     assert response["Content-Disposition"] == (
-        'attachment; filename="2025-05-26 simulation Ma Simulation.csv"'
+        f'attachment; filename="2025-05-26 simulation Ma Simulation.{export_type}"'
     )
-    assert response["Content-Type"] == "text/csv"
+    assert response["Content-Type"] == content_type
 
-    csv_content = response.content.decode("utf-8")
-    csv_lines = list(csv.reader(io.StringIO(csv_content)))
-    assert len(csv_lines) == 3  # 1 header + 2 projets acceptés
+    if export_type == "csv":
+        csv_content = response.content.decode("utf-8")
+        csv_lines = list(csv.reader(io.StringIO(csv_content)))
+        assert len(csv_lines) == 3  # 1 header + 2 projets acceptés
