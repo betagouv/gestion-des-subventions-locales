@@ -173,7 +173,7 @@
 
 /* export buttons */
 .gsl-dropdown .export-btn-container {
-  gap: 0px;
+  gap: 0;
 }
 
 .gsl-dropdown .export-btn {
