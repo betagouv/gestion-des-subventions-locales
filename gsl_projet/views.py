@@ -55,7 +55,7 @@ def get_projet(request, projet_id):
     return render(request, "gsl_projet/projet.html", context)
 
 
-PROJET_TABS = {"annotations", "demandeur", "historique"}
+PROJET_TABS = {"annotations", "historique"}
 
 
 @visible_by_user
