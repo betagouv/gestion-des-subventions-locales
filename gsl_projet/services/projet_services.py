@@ -29,13 +29,14 @@ class ProjetService:
         projet.is_attached_to_a_crte = cls.get_is_attached_to_a_crte(ds_dossier)
         projet.is_budget_vert = cls.get_is_budget_vert(ds_dossier)
 
-        projet.demandeur, _ = Demandeur.objects.get_or_create(
-            siret=ds_dossier.ds_demandeur.siret,
-            defaults={
-                "name": ds_dossier.ds_demandeur.raison_sociale,
-                "address": ds_dossier.ds_demandeur.address,
-            },
-        )
+        if ds_dossier.ds_demandeur:
+            projet.demandeur, _ = Demandeur.objects.get_or_create(
+                siret=ds_dossier.ds_demandeur.siret,
+                defaults={
+                    "name": ds_dossier.ds_demandeur.raison_sociale,
+                    "address": ds_dossier.ds_demandeur.address,
+                },
+            )
 
         projet.save()
         return projet

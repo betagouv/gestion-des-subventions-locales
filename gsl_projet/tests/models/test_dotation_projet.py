@@ -82,19 +82,21 @@ def test_montant_retenu_with_refused_programmation_projet():
 
 def test_taux_retenu_with_accepted_programmation_projet():
     programmation_projet = ProgrammationProjetFactory(
-        status=ProgrammationProjet.STATUS_ACCEPTED, taux=10
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        montant=100,
+        dotation_projet__assiette=1_000,
     )
     assert programmation_projet.dotation_projet.taux_retenu == 10
 
 
 def test_taux_retenu_with_refused_programmation_projet():
-    dotation_projet = DotationProjetFactory()
+    dotation_projet = DotationProjetFactory(assiette=1_000)
     assert dotation_projet.taux_retenu is None
 
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_REFUSED,
-        taux=0,
+        montant=0,
     )
     assert dotation_projet.taux_retenu == 0
 
@@ -126,6 +128,36 @@ def test_error_raised_if_detr_avis_commission_is_set_on_dsil_projet(
     else:
         dotation_projet.clean()
         assert dotation_projet.detr_avis_commission == avis_commission
+
+
+@pytest.mark.parametrize(
+    ("cout_total, assiette, must_raise_error"),
+    (
+        (None, 1_000, False),
+        (1_000, 1_000, False),
+        (1_000, 1_001, True),
+        (1_000, None, False),
+    ),
+)
+def test_error_raised_if_assiette_is_greater_than_cout_total(
+    cout_total, assiette, must_raise_error
+):
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        assiette=assiette,
+        projet__dossier_ds__finance_cout_total=cout_total,
+    )
+
+    if must_raise_error:
+        with pytest.raises(ValidationError) as exc_info:
+            dotation_projet.clean()
+        assert (
+            str(exc_info.value.messages[0])
+            == "L'assiette ne doit pas être supérieure au coût total du projet."
+        )
+    else:
+        dotation_projet.clean()
+        assert dotation_projet.assiette == assiette
 
 
 # Accept
@@ -227,7 +259,7 @@ def test_accept_dotation_projet_update_programmation_projet():
     assert programmation_projets.count() == 1
     programmation_projet = programmation_projets.first()
     assert programmation_projet.montant == 5_000
-    assert programmation_projet.taux == Decimal("55.56")
+    assert programmation_projet.taux == Decimal("55.556")
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
 
 
@@ -349,13 +381,13 @@ def test_refuse_with_an_dotation_enveloppe_different_from_the_dotation():
 
 
 @pytest.mark.parametrize(
-    ("status, montant, taux"),
+    ("status, montant"),
     (
-        (PROJET_STATUS_REFUSED, 0, 0),
-        (PROJET_STATUS_ACCEPTED, 10_000, 20),
+        (PROJET_STATUS_REFUSED, 0),
+        (PROJET_STATUS_ACCEPTED, 10_000),
     ),
 )
-def test_dismiss(status, montant, taux):
+def test_dismiss(status, montant):
     dotation_projet = DotationProjetFactory(status=status, dotation=DOTATION_DETR)
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
@@ -375,7 +407,6 @@ def test_dismiss(status, montant, taux):
         dotation_projet=dotation_projet,
         status=simulation_projet_status,
         montant=montant,
-        taux=taux,
     )
 
     dotation_projet.dismiss()
@@ -405,7 +436,6 @@ def test_dismiss_from_processing():
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_PROCESSING,
         montant=500,
-        taux=0.4,
     )
 
     dotation_projet.dismiss()
@@ -430,19 +460,19 @@ def test_dismiss_from_processing():
 
 
 def test_set_back_status_to_processing_from_accepted():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    dotation_projet = DotationProjetFactory(
+        status=PROJET_STATUS_ACCEPTED, assiette=50_000
+    )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         montant=10_000,
-        taux=20,
     )
     SimulationProjetFactory.create_batch(
         3,
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=10_000,
-        taux=20,
     )
 
     dotation_projet.set_back_status_to_processing()
@@ -474,7 +504,6 @@ def test_set_back_status_to_processing_from_refused():
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_REFUSED,
         montant=0,
-        taux=0,
     )
 
     dotation_projet.set_back_status_to_processing()

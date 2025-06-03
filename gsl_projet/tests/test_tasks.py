@@ -130,7 +130,6 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=500,
-        taux=0.5,
     )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
@@ -179,7 +178,6 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_REFUSED,
         montant=0,
-        taux=0,
     )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
@@ -228,14 +226,12 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=500,
-        taux=10,
     )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         enveloppe=detr_enveloppe,
         montant=500,
-        taux=10,
     )
     create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(
         dossier.ds_number

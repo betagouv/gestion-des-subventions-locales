@@ -106,7 +106,7 @@
   color: var(--background-alt-blue-france)
 }
 
-.accept-button:hover{
+.accept-button:hover:not(:disabled){
   background-color: var(--background-action-high-success-hover) !important;
 }
 
@@ -115,7 +115,7 @@
   color: var(--background-alt-blue-france)
 }
 
-.refuse-button:hover{
+.refuse-button:hover:not(:disabled){
   background-color: var(--background-action-high-error-hover) !important;
 }
 
@@ -124,7 +124,7 @@
   color: var(--background-alt-blue-france)
 }
 
-.dismiss-button:hover{
+.dismiss-button:hover:not(:disabled){
   background-color: var(--background-action-high-warning-hover) !important;
 }
 

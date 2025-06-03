@@ -3,6 +3,7 @@ from django.urls import reverse
 
 from gsl_core.models import Adresse, Perimetre
 from gsl_core.models import Arrondissement as CoreArrondissement
+from gsl_projet.constants import MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
 
 
 class DsModel(models.Model):
@@ -33,6 +34,13 @@ class Demarche(DsModel):
         (STATE_PUBLIEE, "Publiée"),
     )
 
+    perimetre = models.ForeignKey(
+        Perimetre,
+        on_delete=models.PROTECT,
+        verbose_name="Périmètre",
+        null=True,
+    )
+
     # Fields prefixed with ds_ are DS fixed fields,
     # copied as-is, without any mapping needed.
     ds_id = models.CharField("Identifiant DS", unique=True)
@@ -48,12 +56,24 @@ class Demarche(DsModel):
     ds_instructeurs = models.ManyToManyField("gsl_demarches_simplifiees.Profile")
 
     raw_ds_data = models.JSONField("Données DS brutes", null=True, blank=True)
+    active_revision_id = models.CharField(
+        "Identifiant de la révision DS active", blank=True, default=""
+    )
+    active_revision_date = models.DateTimeField(
+        "Date de publication de la révision active", blank=True, null=True
+    )
 
     class Meta:
         verbose_name = "Démarche"
 
     def __str__(self):
         return f"Démarche {self.ds_number} - {self.ds_title}"
+
+    @property
+    def json_url(self):
+        return reverse(
+            "ds:view-demarche-json", kwargs={"demarche_ds_number": self.ds_number}
+        )
 
 
 class FormeJuridique(models.Model):
@@ -441,11 +461,12 @@ class Dossier(DsModel):
         :return: Perimetre
         """
         projet_departement, projet_arrondissement = None, None
-        commune = self.ds_demandeur.address.commune
-        if commune.departement:
-            projet_departement = commune.departement
-            if commune.arrondissement:
-                projet_arrondissement = commune.arrondissement
+        if self.ds_demandeur and self.ds_demandeur.address:
+            commune = self.ds_demandeur.address.commune
+            if commune.departement:
+                projet_departement = commune.departement
+                if commune.arrondissement:
+                    projet_arrondissement = commune.arrondissement
         if not projet_arrondissement:
             ds_arrondissement_declaratif = self.porteur_de_projet_arrondissement
             if ds_arrondissement_declaratif is not None:
@@ -463,6 +484,14 @@ class Dossier(DsModel):
         if self.finance_cout_total and self.demande_montant:
             return round(self.demande_montant / self.finance_cout_total * 100, 2)
         return None
+
+    @property
+    def porteur_fullname(self):
+        return f"{self.porteur_de_projet_nom} {self.porteur_de_projet_prenom}"
+
+    @property
+    def demande_montant_is_greater_thant_min_montant_for_detr_commission(self):
+        return self.demande_montant >= MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
 
 
 class DsChoiceLibelle(DsModel):
@@ -519,9 +548,31 @@ class ObjectifEnvironnemental(DsChoiceLibelle):
 
 
 class CritereEligibiliteDetr(DsChoiceLibelle):
+    label = models.CharField("Libellé", unique=False)
+
+    demarche = models.ForeignKey(
+        Demarche, on_delete=models.PROTECT, null=True, verbose_name="Démarche"
+    )
+    demarche_revision = models.CharField(
+        blank=True, default="", verbose_name="Révision"
+    )
+    detr_category = models.ForeignKey(
+        "gsl_projet.CategorieDetr",
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name="Catégorie d’opération DETR",
+    )
+
     class Meta:
         verbose_name = "Catégorie DETR"
         verbose_name_plural = "Catégories DETR"
+        constraints = (
+            models.UniqueConstraint(
+                fields=("label", "demarche", "demarche_revision"),
+                name="unique_%(class)s_label_per_demarche_revision",
+                nulls_distinct=False,
+            ),
+        )
 
 
 class CritereEligibiliteDsil(DsChoiceLibelle):

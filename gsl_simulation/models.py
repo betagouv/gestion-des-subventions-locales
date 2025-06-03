@@ -2,12 +2,13 @@ from django.db import models
 from django.db.models import Count
 from django.forms import ValidationError
 
-from gsl_core.models import Collegue
+from gsl_core.models import BaseModel, Collegue
 from gsl_programmation.models import Enveloppe
 from gsl_projet.models import DotationProjet
+from gsl_projet.utils.utils import compute_taux
 
 
-class Simulation(models.Model):
+class Simulation(BaseModel):
     title = models.CharField(verbose_name="Titre")
     created_by = models.ForeignKey(Collegue, on_delete=models.SET_NULL, null=True)
     enveloppe = models.ForeignKey(
@@ -15,15 +16,16 @@ class Simulation(models.Model):
     )
     slug = models.SlugField(verbose_name="Clé d’URL", unique=True, max_length=120)
 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
     class Meta:
         verbose_name = "Simulation"
         verbose_name_plural = "Simulations"
 
     def __str__(self):
         return self.title
+
+    @property
+    def dotation(self):
+        return self.enveloppe.dotation
 
     def get_absolute_url(self):
         from django.urls import reverse
@@ -37,7 +39,7 @@ class Simulation(models.Model):
             SimulationProjet.STATUS_REFUSED: 0,
             SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: 0,
             SimulationProjet.STATUS_PROVISIONALLY_REFUSED: 0,
-            "notified": 0,  # TODO : add notified count
+            "notified": 0,
         }
         status_count = (
             SimulationProjet.objects.filter(simulation=self)
@@ -50,7 +52,7 @@ class Simulation(models.Model):
         return {**default_status_summary, **summary}
 
 
-class SimulationProjet(models.Model):
+class SimulationProjet(BaseModel):
     STATUS_PROCESSING = "draft"
     STATUS_ACCEPTED = "valid"
     STATUS_REFUSED = "cancelled"
@@ -75,13 +77,9 @@ class SimulationProjet(models.Model):
     montant = models.DecimalField(
         decimal_places=2, max_digits=14, verbose_name="Montant"
     )
-    taux = models.DecimalField(decimal_places=2, max_digits=5, verbose_name="Taux")
     status = models.CharField(
         verbose_name="État", choices=STATUS_CHOICES, default=STATUS_PROCESSING
     )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "Projet de simulation"
@@ -114,19 +112,16 @@ class SimulationProjet(models.Model):
     def enveloppe(self):
         return self.simulation.enveloppe
 
+    @property
+    def taux(self):
+        return compute_taux(self.montant, self.dotation_projet.assiette_or_cout_total)
+
     def clean(self):
         errors = {}
-        self._validate_taux(errors)
         self._validate_montant(errors)
         self._validate_dotation(errors)
         if errors:
             raise ValidationError(errors)
-
-    def _validate_taux(self, errors):
-        if self.taux and self.taux > 100:
-            errors["taux"] = {
-                "Le taux de la simulation ne peut pas être supérieur à 100."
-            }
 
     def _validate_montant(self, errors):
         if self.dotation_projet.assiette is not None:

@@ -1,6 +1,6 @@
 from random import randint
 
-from factory import Faker, LazyAttribute, Sequence, SubFactory
+from factory import LazyAttribute, Sequence, SubFactory
 from factory.django import DjangoModelFactory
 
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
@@ -32,5 +32,4 @@ class SimulationProjetFactory(DjangoModelFactory):
             or 1000,
         )
     )
-    taux = Faker("random_number", digits=2)
     status = SimulationProjet.STATUS_PROCESSING

@@ -51,7 +51,6 @@ def test_create_or_update_from_dotation_projet_with_no_existing_one_and_complete
     accepted_dotation_projet, detr_enveloppe
 ):
     accepted_dotation_projet.projet.dossier_ds.annotations_montant_accorde = 1_000
-    accepted_dotation_projet.projet.dossier_ds.annotations_taux = 0.33
     accepted_dotation_projet.projet.dossier_ds.annotations_assiette = 3_000
     ProgrammationProjetFactory.create_batch(10)
     assert (
@@ -71,7 +70,7 @@ def test_create_or_update_from_dotation_projet_with_no_existing_one_and_complete
     )
     assert programmation_projet.dotation_projet == accepted_dotation_projet
     assert programmation_projet.montant == 1_000
-    assert programmation_projet.taux == Decimal("0.33")
+    assert programmation_projet.taux == Decimal("33.333")
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
     assert programmation_projet.enveloppe == detr_enveloppe
     assert ProgrammationProjet.objects.count() == 11
@@ -82,27 +81,25 @@ def test_create_or_update_from_dotation_projet_with_an_existing_one_and_complete
     accepted_dotation_projet, detr_enveloppe
 ):
     accepted_dotation_projet.dossier_ds.annotations_montant_accorde = 1_000
-    accepted_dotation_projet.dossier_ds.annotations_taux = 0.25
-    accepted_dotation_projet.dossier_ds.annotations_assiette = 4_000
 
     ProgrammationProjetFactory(
         dotation_projet=accepted_dotation_projet,
         montant=0,
-        taux=0,
         status=ProgrammationProjet.STATUS_REFUSED,
         enveloppe=detr_enveloppe,
     )
 
-    ProgrammationProjetService.create_or_update_from_dotation_projet(
+    pp = ProgrammationProjetService.create_or_update_from_dotation_projet(
         accepted_dotation_projet
     )
+    pp.save()
 
     programmation_projet = ProgrammationProjet.objects.get(
         dotation_projet=accepted_dotation_projet
     )
     assert programmation_projet.dotation_projet == accepted_dotation_projet
     assert programmation_projet.montant == 1_000
-    assert programmation_projet.taux == 0.25
+    assert programmation_projet.taux == Decimal("33.333")
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
     assert programmation_projet.enveloppe == detr_enveloppe
 
@@ -219,12 +216,10 @@ def test_create_or_update_from_refused_projet_with_an_existing_one_and_complete_
     refused_dotation_projet, detr_enveloppe
 ):
     refused_dotation_projet.dossier_ds.annotations_montant_accorde = 0
-    refused_dotation_projet.dossier_ds.annotations_taux = 0
 
     ProgrammationProjetFactory(
         dotation_projet=refused_dotation_projet,
         montant=10,
-        taux=2,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         enveloppe=detr_enveloppe,
     )

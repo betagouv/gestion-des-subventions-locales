@@ -3,7 +3,7 @@ from datetime import timezone as tz
 from typing import TYPE_CHECKING
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, UniqueConstraint
 from django.forms import ValidationError
 from django_fsm import FSMField, transition
 
@@ -13,6 +13,7 @@ from gsl_projet.constants import (
     DOTATION_CHOICES,
     DOTATION_DETR,
     DOTATION_DSIL,
+    MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
     POSSIBLE_DOTATIONS,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_CHOICES,
@@ -23,6 +24,28 @@ from gsl_projet.constants import (
 
 if TYPE_CHECKING:
     from gsl_programmation.models import Enveloppe
+
+
+class CategorieDetr(models.Model):
+    libelle = models.CharField("Libellé")
+    rang = models.IntegerField("Rang", default=0)
+    annee = models.IntegerField("Année")
+    departement = models.ForeignKey(
+        Departement, verbose_name="Département", on_delete=models.PROTECT
+    )
+
+    class Meta:
+        verbose_name = "Catégorie DETR"
+        verbose_name_plural = "Catégories DETR"
+        constraints = (
+            UniqueConstraint(
+                fields=("departement", "annee", "rang"),
+                name="unique_by_departement_rang_annee",
+            ),
+        )
+
+    def __str__(self):
+        return f"Catégorie DETR {self.id} - {self.libelle}"
 
 
 class Demandeur(models.Model):
@@ -143,8 +166,12 @@ class Projet(models.Model):
         return reverse("projet:get-projet", kwargs={"projet_id": self.id})
 
     @property
-    def is_asking_for_detr(self) -> bool:
-        return self.dotationprojet_set.filter(dotation=DOTATION_DETR).exists()
+    def can_have_a_commission_detr_avis(self) -> bool:
+        return (
+            self.dotationprojet_set.filter(dotation=DOTATION_DETR).exists()
+            and self.dossier_ds.demande_montant is not None
+            and self.dossier_ds.demande_montant >= MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
+        )
 
     @property
     def categorie_doperation(self):
@@ -160,6 +187,24 @@ class Projet(models.Model):
             for dotation in self.dotationprojet_set.all()
             if dotation.dotation in [DOTATION_DETR, DOTATION_DSIL]
         ]
+
+    @property
+    def has_double_dotations(self):
+        return self.dotationprojet_set.count() > 1
+
+    @property
+    def dotation_detr(self):
+        try:
+            return self.dotationprojet_set.get(dotation=DOTATION_DETR)
+        except DotationProjet.DoesNotExist:
+            return None
+
+    @property
+    def dotation_dsil(self):
+        try:
+            return self.dotationprojet_set.get(dotation=DOTATION_DSIL)
+        except DotationProjet.DoesNotExist:
+            return None
 
 
 class DotationProjet(models.Model):
@@ -182,18 +227,41 @@ class DotationProjet(models.Model):
         help_text="Pour les projets de plus de 100 000 €",
         null=True,
     )
+    detr_categories = models.ManyToManyField(
+        CategorieDetr, verbose_name="Catégories d’opération DETR"
+    )
 
     class Meta:
         unique_together = ("projet", "dotation")
+        verbose_name = "Dotation projet"
+        verbose_name_plural = "Dotations projet"
 
     def __str__(self):
         return f"Projet {self.projet_id} - Dotation {self.dotation}"
 
     def clean(self):
         errors = {}
-        if self.dotation == DOTATION_DSIL and self.detr_avis_commission is not None:
-            errors["detr_avis_commission"] = (
-                "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR."
+        if self.detr_avis_commission is not None:
+            if self.dotation == DOTATION_DSIL:
+                errors["detr_avis_commission"] = (
+                    "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR."
+                )
+
+            if (
+                self.dossier_ds.demande_montant is not None
+                and self.dossier_ds.demande_montant < MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
+            ):
+                errors["detr_avis_commission"] = (
+                    f"L'avis de la commission DETR ne doit être renseigné que pour les projets DETR dont le montant demandé est supérieur ou égal à {MIN_DEMANDE_MONTANT_FOR_AVIS_DETR}."
+                )
+
+        if (
+            self.dossier_ds.finance_cout_total
+            and self.assiette
+            and self.dossier_ds.finance_cout_total < self.assiette
+        ):
+            errors["assiette"] = (
+                "L'assiette ne doit pas être supérieure au coût total du projet."
             )
 
         if errors:
@@ -235,7 +303,6 @@ class DotationProjet(models.Model):
     def accept(self, montant: float, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_programmation.services.enveloppe_service import EnveloppeService
-        from gsl_projet.services.dotation_projet_services import DotationProjetService
         from gsl_simulation.models import SimulationProjet
 
         if self.dotation != enveloppe.dotation:
@@ -243,12 +310,9 @@ class DotationProjet(models.Model):
                 "La dotation du projet et de l'enveloppe ne correspondent pas."
             )
 
-        taux = DotationProjetService.compute_taux_from_montant(self, montant)
-
         SimulationProjet.objects.filter(dotation_projet=self).update(
             status=SimulationProjet.STATUS_ACCEPTED,
             montant=montant,
-            taux=taux,
         )
 
         parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
@@ -258,7 +322,6 @@ class DotationProjet(models.Model):
             enveloppe=parent_enveloppe,
             defaults={
                 "montant": montant,
-                "taux": taux,
                 "status": ProgrammationProjet.STATUS_ACCEPTED,
             },
         )
@@ -277,7 +340,6 @@ class DotationProjet(models.Model):
         SimulationProjet.objects.filter(dotation_projet=self).update(
             status=SimulationProjet.STATUS_REFUSED,
             montant=0,
-            taux=0,
         )
 
         parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
@@ -287,7 +349,6 @@ class DotationProjet(models.Model):
             enveloppe=parent_enveloppe,
             defaults={
                 "montant": 0,
-                "taux": 0,
                 "status": ProgrammationProjet.STATUS_REFUSED,
             },
         )
@@ -298,7 +359,7 @@ class DotationProjet(models.Model):
         from gsl_simulation.models import SimulationProjet
 
         SimulationProjet.objects.filter(dotation_projet=self).update(
-            status=SimulationProjet.STATUS_DISMISSED, montant=0, taux=0
+            status=SimulationProjet.STATUS_DISMISSED, montant=0
         )
 
         ProgrammationProjet.objects.filter(dotation_projet=self).delete()

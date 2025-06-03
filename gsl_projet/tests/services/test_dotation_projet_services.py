@@ -9,7 +9,10 @@ from gsl_core.tests.factories import (
     PerimetreRegionalFactory,
 )
 from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.tests.factories import DossierFactory
+from gsl_demarches_simplifiees.tests.factories import (
+    CritereEligibiliteDetrFactory,
+    DossierFactory,
+)
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -20,7 +23,11 @@ from gsl_projet.constants import (
 )
 from gsl_projet.models import DotationProjet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
-from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
+from gsl_projet.tests.factories import (
+    CategorieDetrFactory,
+    DotationProjetFactory,
+    ProjetFactory,
+)
 from gsl_simulation.models import Simulation, SimulationProjet
 from gsl_simulation.tests.factories import SimulationFactory
 
@@ -78,11 +85,11 @@ def test_create_or_update_dotation_projet_from_projet_do_not_remove_dotation_pro
     projet_dotation_projets = DotationProjet.objects.filter(projet_id=projet.id)
     assert projet_dotation_projets.count() == 2
 
-    dotation_projet = projet_dotation_projets[0]
-    assert dotation_projet.dotation == DOTATION_DSIL
+    dsil_dotation_projets = projet_dotation_projets.filter(dotation=DOTATION_DSIL)
+    assert dsil_dotation_projets.count() == 1
 
-    dotation_projet = projet_dotation_projets[1]
-    assert dotation_projet.dotation == DOTATION_DETR
+    detr_dotation_projet = projet_dotation_projets.filter(dotation=DOTATION_DETR)
+    assert detr_dotation_projet.count() == 1
 
 
 @pytest.mark.django_db
@@ -95,8 +102,16 @@ def test_create_or_update_dotation_projet(dotation):
         dossier_ds__ds_state=Dossier.STATE_SANS_SUITE,
         dossier_ds__annotations_assiette=2_000,
     )
+    categorie_detr = CategorieDetrFactory()
+    projet.dossier_ds.demande_eligibilite_detr.add(
+        CritereEligibiliteDetrFactory(detr_category=categorie_detr)
+    )
+
+    # ------
 
     DotationProjetService.create_or_update_dotation_projet(projet, dotation)
+
+    # ------
 
     assert DotationProjet.objects.count() == 1
 
@@ -106,6 +121,11 @@ def test_create_or_update_dotation_projet(dotation):
     assert dotation_projet.status == PROJET_STATUS_DISMISSED
     assert dotation_projet.assiette == 2_000
     assert dotation_projet.detr_avis_commission is None
+
+    if dotation_projet.dotation == DOTATION_DSIL:
+        assert dotation_projet.detr_categories.count() == 0
+    else:
+        assert categorie_detr in dotation_projet.detr_categories.all()
 
 
 @pytest.fixture
@@ -259,25 +279,6 @@ def test_create_simulation_projets_from_dotation_projet_with_a_dsil_and_departem
     assert last_year_simulation_projets.count() == 0
 
 
-@pytest.mark.django_db
-def test_compute_taux_from_montant():
-    dotation_projet = DotationProjetFactory(
-        projet__dossier_ds__finance_cout_total=100_000,
-    )
-    taux = DotationProjetService.compute_taux_from_montant(dotation_projet, 10_000)
-    assert taux == 10
-
-    dotation_projet = DotationProjetFactory(
-        assiette=50_000,
-    )
-    taux = DotationProjetService.compute_taux_from_montant(dotation_projet, 10_000)
-    assert taux == 20
-
-    dotation_projet = DotationProjetFactory()
-    taux = DotationProjetService.compute_taux_from_montant(dotation_projet, 10_000)
-    assert taux == 0
-
-
 def test_get_dotation_projet_status_from_dossier():
     accepted = Dossier(ds_state=Dossier.STATE_ACCEPTE)
     en_construction = Dossier(ds_state=Dossier.STATE_EN_CONSTRUCTION)
@@ -375,41 +376,62 @@ def test_validate_montant(
         DotationProjetService.validate_montant(montant, dotation_projet)
 
 
+@pytest.mark.django_db
+def test_compute_montant_from_taux():
+    dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__finance_cout_total=100_000,
+    )
+    taux = DotationProjetService.compute_montant_from_taux(dotation_projet, 25)
+    assert taux == 25_000
+
+    dotation_projet = DotationProjetFactory(
+        assiette=50_000,
+    )
+    taux = DotationProjetService.compute_montant_from_taux(dotation_projet, 25)
+    assert taux == 12_500
+
+    dotation_projet = DotationProjetFactory()
+    taux = DotationProjetService.compute_montant_from_taux(dotation_projet, 25)
+    assert taux == 0
+
+
 test_data = (
-    (10_000, 30_000, 33.33),
-    (10_000, 0, 0),
-    (10_000, 10_000, 100),
-    (100_000, 10_000, 100),
-    (10_000, -3_000, 0),
+    (30_000, 33.333, 9_999.90),
+    (10_000, 100, 10_000),
+    (10_000, 1000, 10_000),
+    (-3_000, 10, 0),
+    (0, 100, 0),
     (0, 0, 0),
-    (Decimal(0), Decimal(0), 0),
-    (0, None, 0),
+    (Decimal(0), 0, 0),
+    (1_000, Decimal(10), 100),
     (None, 0, 0),
-    (1_000, None, 0),
-    (None, 4_000, 0),
+    (None, 10, 0),
+    (0, None, 0),
+    (10, None, 0),
+    (4_000, 0, 0),
 )
 
 
-@pytest.mark.parametrize("montant, assiette, expected_taux", test_data)
+@pytest.mark.parametrize("assiette, taux, expected_montant", test_data)
 @pytest.mark.django_db
-def test_compute_taux_from_montant_with_various_assiettes(
-    assiette, montant, expected_taux
+def test_compute_montant_from_taux_with_various_assiettes(
+    assiette, taux, expected_montant
 ):
     dotation_projet = DotationProjetFactory(assiette=assiette)
-    taux = DotationProjetService.compute_taux_from_montant(dotation_projet, montant)
-    assert taux == round(Decimal(expected_taux), 2)
+    montant = DotationProjetService.compute_montant_from_taux(dotation_projet, taux)
+    assert montant == round(Decimal(expected_montant), 2)
 
 
-@pytest.mark.parametrize("montant, cout_total, expected_taux", test_data)
+@pytest.mark.parametrize("cout_total, taux, expected_montant", test_data)
 @pytest.mark.django_db
-def test_compute_taux_from_montant_with_various_cout_total(
-    cout_total, montant, expected_taux
+def test_compute_montant_from_taux_with_various_cout_total(
+    taux, cout_total, expected_montant
 ):
     dotation_projet = DotationProjetFactory(
         projet__dossier_ds__finance_cout_total=cout_total
     )
-    taux = DotationProjetService.compute_taux_from_montant(dotation_projet, montant)
-    assert taux == round(Decimal(expected_taux), 2)
+    montant = DotationProjetService.compute_montant_from_taux(dotation_projet, taux)
+    assert montant == round(Decimal(expected_montant), 2)
 
 
 @pytest.mark.parametrize(

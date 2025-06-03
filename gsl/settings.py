@@ -30,6 +30,11 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG")
+ENV = os.getenv("ENV")
+if ENV not in ("dev", "staging", "prod"):
+    raise ValueError(
+        f"ENV must be one of 'dev', 'staging' or 'prod'. Got {ENV} instead."
+    )
 
 # We support a comma-separated list of allowed hosts.
 ENV_SEPARATOR = ","
@@ -125,6 +130,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "dsfr.context_processors.site_config",
+                "gsl.utils.context_processors.export_vars",
             ],
         },
     },
@@ -181,6 +187,9 @@ TIME_ZONE = "Europe/Paris"
 USE_I18N = True
 
 USE_TZ = True
+
+USE_THOUSAND_SEPARATOR = True
+THOUSAND_SEPARATOR = " "
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
@@ -239,9 +248,13 @@ CELERY_RESULT_EXTENDED = True
 CONTENT_SECURITY_POLICY = {
     "DIRECTIVES": {
         "default-src": [SELF],
-        "img-src": [SELF, "data:"],
+        "img-src": [SELF, "data:", "stats.beta.gouv.fr"],
         "style-src": [SELF, NONCE],
-        "script-src": [SELF, NONCE],
+        "script-src": [SELF, NONCE, "stats.beta.gouv.fr"],
+        "connect-src": [
+            SELF,
+            "https://stats.beta.gouv.fr",
+        ],
     },
 }
 

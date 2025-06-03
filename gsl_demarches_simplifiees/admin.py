@@ -5,6 +5,7 @@ from import_export.admin import ImportExportMixin
 
 from gsl_core.admin import AllPermsForStaffUser
 
+from .importer.demarche import refresh_categories_operation_detr
 from .models import (
     Arrondissement,
     CritereEligibiliteDetr,
@@ -29,13 +30,35 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     readonly_fields = tuple(
         field.name
         for field in Demarche._meta.get_fields()
-        if field.name != "raw_ds_data"
+        if field.name not in ("perimetre", "raw_ds_data")
     )
-    list_display = ("ds_number", "ds_title", "ds_state", "dossiers_count")
-    actions = ("refresh_field_mappings",)
+    list_display = (
+        "ds_number",
+        "perimetre",
+        "ds_title",
+        "ds_state",
+        "dossiers_count",
+        "link_to_json",
+    )
+    actions = ("refresh_field_mappings", "extract_detr_categories")
+    autocomplete_fields = ("perimetre",)
     fieldsets = (
         (None, {"fields": ("ds_number", "ds_id", "ds_title", "ds_state")}),
-        ("Dates", {"fields": ("ds_date_creation", "ds_date_fermeture")}),
+        (
+            "Configuration Turgot",
+            {"fields": ("perimetre",)},
+        ),
+        (
+            "Dates",
+            {
+                "fields": (
+                    "ds_date_creation",
+                    "ds_date_fermeture",
+                    "active_revision_date",
+                    "active_revision_id",
+                )
+            },
+        ),
         (
             "Instructeurs",
             {
@@ -53,7 +76,12 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs.prefetch_related("dossier_set")
+        qs = qs.select_related(
+            "perimetre",
+            "perimetre__region",
+            "perimetre__departement",
+            "perimetre__arrondissement",
+        )
         return qs.annotate(dossier_count=Count("dossier"))
 
     def dossiers_count(self, obj) -> int:
@@ -66,6 +94,13 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def refresh_field_mappings(self, request, queryset):
         for demarche in queryset:
             task_refresh_field_mappings_on_demarche(demarche.ds_number)
+
+    def extract_detr_categories(self, request, queryset):
+        for demarche in queryset:
+            refresh_categories_operation_detr(demarche.ds_number)
+
+    def link_to_json(self, obj):
+        return mark_safe(f'<a href="{obj.json_url}">JSON brut</a>')
 
 
 @admin.register(PersonneMorale)
@@ -155,6 +190,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_demandeur",
     )
     search_fields = ("ds_number", "projet_intitule")
+    readonly_fields = [field.name for field in Dossier._meta.fields]
 
     @admin.action(description="Rafraîchir depuis la base de données")
     def refresh_from_db(self, request, queryset):
@@ -178,6 +214,7 @@ class FieldMappingForHumanAdmin(
     resource_classes = (FieldMappingForHumanResource,)
     list_filter = ("demarche",)
     readonly_fields = ("demarche",)
+    search_fields = ("label", "django_field")
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -242,6 +279,11 @@ class NaturePorteurProjetAdmin(
 
 
 @admin.register(CritereEligibiliteDsil)
-@admin.register(CritereEligibiliteDetr)
 class CategorieDoperationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = ("id", "label")
+
+
+@admin.register(CritereEligibiliteDetr)
+class CritereEligibiliteDetrAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    list_display = ("id", "label", "demarche")
+    readonly_fields = ("demarche", "demarche_revision", "detr_category", "label")

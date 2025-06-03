@@ -39,13 +39,11 @@ class SimulationProjetService:
         montant = cls.get_initial_montant_from_dotation_projet(
             dotation_projet, simulation_projet_status
         )
-        taux = cls.get_initial_taux_from_dotation_projet(dotation_projet, montant)
         simulation_projet, _ = SimulationProjet.objects.update_or_create(
             dotation_projet=dotation_projet,
             simulation_id=simulation.id,
             defaults={
                 "montant": montant,
-                "taux": taux,
                 "status": simulation_projet_status,
             },
         )
@@ -106,19 +104,6 @@ class SimulationProjetService:
         )
 
     @classmethod
-    def get_initial_taux_from_dotation_projet(
-        cls, dotation_projet: DotationProjet, montant: Decimal
-    ) -> Decimal:
-        if montant > 0:
-            return (
-                dotation_projet.projet.dossier_ds.annotations_taux
-                or DotationProjetService.compute_taux_from_montant(
-                    dotation_projet, montant
-                )
-            )
-        return Decimal(0)
-
-    @classmethod
     def update_status(cls, simulation_projet: SimulationProjet, new_status: str):
         if new_status == SimulationProjet.STATUS_ACCEPTED:
             return cls._accept_a_simulation_projet(simulation_projet)
@@ -156,11 +141,10 @@ class SimulationProjetService:
 
     @classmethod
     def update_taux(cls, simulation_projet: SimulationProjet, new_taux: float):
-        assiette = simulation_projet.dotation_projet.assiette_or_cout_total
-        new_montant = (assiette * Decimal(new_taux) / 100) if assiette else 0
-        new_montant = round(new_montant, 2)
+        new_montant = DotationProjetService.compute_montant_from_taux(
+            simulation_projet.dotation_projet, new_taux
+        )
 
-        simulation_projet.taux = new_taux
         simulation_projet.montant = new_montant
         simulation_projet.save()
 
@@ -171,11 +155,6 @@ class SimulationProjetService:
 
     @classmethod
     def update_montant(cls, simulation_projet: SimulationProjet, new_montant: float):
-        new_taux = DotationProjetService.compute_taux_from_montant(
-            simulation_projet.dotation_projet, new_montant
-        )
-
-        simulation_projet.taux = new_taux
         simulation_projet.montant = new_montant
         simulation_projet.save()
 

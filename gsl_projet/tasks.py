@@ -16,7 +16,8 @@ from .services.projet_services import ProjetService
 @shared_task
 def update_projet_from_dossier(ds_dossier_number):
     ds_dossier = Dossier.objects.get(ds_number=ds_dossier_number)
-    ProjetService.create_or_update_from_ds_dossier(ds_dossier)
+    projet = ProjetService.create_or_update_from_ds_dossier(ds_dossier)
+    DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
 
 
 @shared_task

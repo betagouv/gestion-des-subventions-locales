@@ -2,9 +2,9 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from gsl_core.models import Perimetre
-from gsl_programmation.utils import is_there_less_or_equal_than_0_009_of_difference
 from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import DotationProjet
+from gsl_projet.utils.utils import compute_taux
 
 
 class Enveloppe(models.Model):
@@ -110,7 +110,6 @@ class ProgrammationProjet(models.Model):
     montant = models.DecimalField(
         decimal_places=2, max_digits=14, verbose_name="Montant"
     )
-    taux = models.DecimalField(decimal_places=2, max_digits=5, verbose_name="Taux")
 
     justification = models.TextField(
         verbose_name="Justification", blank=True, null=False, default=""
@@ -137,31 +136,20 @@ class ProgrammationProjet(models.Model):
     def projet(self):
         return self.dotation_projet.projet
 
+    @property
+    def taux(self):
+        return compute_taux(self.montant, self.dotation_projet.assiette_or_cout_total)
+
     def clean(self):
         errors = {}
-        self._validate_taux(errors)
         self._validate_montant(errors)
         self._validate_enveloppe(errors)
         self._validate_for_refused_status(errors)
         if errors:
             raise ValidationError(errors)
 
-    def _validate_taux(self, errors):
-        if self.taux and self.taux > 100:
-            errors["taux"] = {
-                "Le taux de la programmation ne peut pas être supérieur à 100."
-            }
-
     def _validate_montant(self, errors):
         if self.dotation_projet.assiette is not None:
-            if self.dotation_projet.assiette > 0:
-                if not is_there_less_or_equal_than_0_009_of_difference(
-                    self.taux, self.montant * 100 / self.dotation_projet.assiette
-                ):
-                    errors["taux"] = {
-                        "Le taux et le montant de la programmation ne sont pas cohérents. "
-                        f"Taux attendu : {str(round(self.montant * 100 / self.dotation_projet.assiette, 2))}"
-                    }
             if self.montant and self.montant > self.dotation_projet.assiette:
                 errors["montant"] = {
                     "Le montant de la programmation ne peut pas être supérieur à l'assiette du projet pour cette dotation."
@@ -197,5 +185,3 @@ class ProgrammationProjet(models.Model):
         if self.status == self.STATUS_REFUSED:
             if self.montant != 0:
                 errors["montant"] = {"Un projet refusé doit avoir un montant nul."}
-            if self.taux != 0:
-                errors["taux"] = {"Un projet refusé doit avoir un taux nul."}

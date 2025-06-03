@@ -1,6 +1,9 @@
+from datetime import date
+
 from django.core.paginator import Paginator
 from django.db.models import Count, Prefetch, QuerySet, Sum
 from django.forms import NumberInput
+from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.generic.detail import DetailView
@@ -11,7 +14,7 @@ from django_filters.views import FilterView
 from gsl_core.models import Perimetre
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.services.enveloppe_service import EnveloppeService
-from gsl_projet.constants import DOTATIONS
+from gsl_projet.constants import DOTATION_DSIL, DOTATIONS
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
@@ -20,6 +23,10 @@ from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 from gsl_projet.views import ProjetFilters
 from gsl_simulation.forms import SimulationForm
 from gsl_simulation.models import Simulation, SimulationProjet
+from gsl_simulation.resources import (
+    DetrSimulationProjetResource,
+    DsilSimulationProjetResource,
+)
 from gsl_simulation.services.simulation_service import SimulationService
 from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
 
@@ -174,35 +181,37 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         paginator = Paginator(qs, 25)
         page = self.kwargs.get("page") or self.request.GET.get("page") or 1
         current_page = paginator.page(page)
-        context["simulations_paginator"] = current_page
-        context["simulation_projets_list"] = current_page.object_list
-        context["title"] = (
-            f"{simulation.enveloppe.dotation} {simulation.enveloppe.annee} – {simulation.title}"
-        )
-        context["status_summary"] = simulation.get_projet_status_summary()
-        context["total_cost"] = ProjetService.get_total_cost(qs)
-        context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs)
-        context["total_amount_granted"] = SimulationService.get_total_amount_granted(
-            qs, simulation
-        )
-        context["available_states"] = SimulationProjet.STATUS_CHOICES
-        context["filter_params"] = self.request.GET.urlencode()
-        context["enveloppe"] = self._get_enveloppe_data(simulation)
-        context["dotations"] = DOTATIONS
-        context["other_dotations_simu"] = self._get_other_dotations_simulation_projet(
-            current_page.object_list, simulation.enveloppe.dotation
+        context.update(
+            {
+                "simulation": simulation,
+                "simulations_paginator": current_page,
+                "simulation_projets_list": current_page.object_list,
+                "title": f"{simulation.enveloppe.dotation} {simulation.enveloppe.annee} – {simulation.title}",
+                "status_summary": simulation.get_projet_status_summary(),
+                "total_cost": ProjetService.get_total_cost(qs),
+                "total_amount_asked": ProjetService.get_total_amount_asked(qs),
+                "total_amount_granted": SimulationService.get_total_amount_granted(
+                    qs, simulation
+                ),
+                "available_states": SimulationProjet.STATUS_CHOICES,
+                "filter_params": self.request.GET.urlencode(),
+                "enveloppe": self._get_enveloppe_data(simulation),
+                "dotations": DOTATIONS,
+                "other_dotations_simu": self._get_other_dotations_simulation_projet(
+                    current_page.object_list, simulation.enveloppe.dotation
+                ),
+                "breadcrumb_dict": {
+                    "links": [
+                        {
+                            "url": reverse("simulation:simulation-list"),
+                            "title": "Mes simulations de programmation",
+                        }
+                    ],
+                    "current": simulation.title,
+                },
+            }
         )
         self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
-
-        context["breadcrumb_dict"] = {
-            "links": [
-                {
-                    "url": reverse("simulation:simulation-list"),
-                    "title": "Mes simulations de programmation",
-                }
-            ],
-            "current": simulation.title,
-        }
 
         return context
 
@@ -284,7 +293,11 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             return {}
 
         other_simulation_projets = (
-            SimulationProjet.objects.select_related("dotation_projet")
+            SimulationProjet.objects.select_related(
+                "dotation_projet",
+                "dotation_projet__projet",
+                "dotation_projet__projet__dossier_ds",
+            )
             .filter(dotation_projet__projet__id__in=ids_of_double_dotation_projet)
             .exclude(simulation__enveloppe__dotation=current_dotation)
             .order_by("-updated_at")
@@ -343,3 +356,35 @@ def simulation_form(request):
         context["title"] = "Création d'une simulation de programmation"
 
         return render(request, "gsl_simulation/simulation_form.html", context)
+
+
+class FilteredProjetsCSVExportView(SimulationDetailView):
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.simulation = Simulation.objects.get(slug=self.object.slug)
+        queryset = self.get_projet_queryset()
+        simu_projet_qs = SimulationProjet.objects.filter(
+            simulation=self.simulation, dotation_projet__projet__in=queryset
+        ).select_related(
+            "dotation_projet",
+            "dotation_projet__projet",
+            "dotation_projet__projet__dossier_ds",
+            "dotation_projet__projet__demandeur",
+            "dotation_projet__projet__demandeur__address",
+            "dotation_projet__projet__demandeur__address__commune",
+            "dotation_projet__projet__demandeur__address__commune__arrondissement",
+        )
+
+        resource = (
+            DsilSimulationProjetResource()
+            if self.simulation.dotation == DOTATION_DSIL
+            else DetrSimulationProjetResource()
+        )
+        dataset = resource.export(simu_projet_qs)
+        export_data = dataset.csv
+
+        response = HttpResponse(export_data, content_type="text/csv")
+        response["Content-Disposition"] = (
+            f'attachment; filename="{date.today().strftime("%Y-%m-%d")} simulation {self.simulation.title}.csv"'
+        )
+        return response

@@ -94,6 +94,9 @@
         {% endblock modal %}
 
         <script src="{% static "js/gsl.js" %}" defer></script>
+        {% if ENV == "prod" %}
+            <script src="{% static "js/matomo.js" %}" nonce="{{request.csp_nonce}}" defer></script>
+        {% endif %}
         {% block extra_js %}
         {% endblock extra_js %}
     </body>

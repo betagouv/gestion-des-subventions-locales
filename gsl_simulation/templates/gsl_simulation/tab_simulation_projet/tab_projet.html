@@ -15,7 +15,7 @@
 {% endblock form_for_simulation_projet %}
 
 {% block detr_avis_commission %}
-    {% if enveloppe.dotation == 'DETR' %}
+    {% if enveloppe.dotation == 'DETR' and projet.can_have_a_commission_detr_avis %}
         {% include "includes/forms/_detr_avis_commission_form.html" %}
     {% endif %}
 {% endblock detr_avis_commission %}
@@ -45,3 +45,21 @@
 {% block dotations_form %}
     {% include "includes/forms/_dotations_form.html" %}
 {% endblock dotations_form %}
+
+{% block montants_form %}
+    {% if other_dotation_simu %}
+        <h6>
+            {{ dotation_projet.dotation }}
+        </h6>
+    {% endif %}
+
+    {% include "includes/forms/_montants_form.html" %}
+
+    {% if other_dotation_simu %}
+        <h6>
+            {{ other_dotation_simu.dotation_projet.dotation }}
+        </h6>
+        {% include "includes/projet_detail/dotation_montant_info.html" with assiette=other_dotation_simu.dotation_projet.assiette montant=other_dotation_simu.montant taux=other_dotation_simu.taux %}
+    {% endif %}
+
+{% endblock montants_form %}

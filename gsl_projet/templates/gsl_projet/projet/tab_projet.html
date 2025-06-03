@@ -51,16 +51,16 @@
 {% endblock form_for_simulation_projet %}
 
 {% block detr_avis_commission %}
-    {% if projet.is_asking_for_detr %}
+    {% if projet.can_have_a_commission_detr_avis %}
         <div class="fr-callout fr-background-alt--blue-france callout-without-left-border block-avis-commission-detr fr-p-2w">
             <h2 class="fr-callout__title fr-text--lg">
                 <span class="fr-icon fr-icon-team-fill blue-color fr-mr-3v"
                       aria-hidden="true"></span>Avis de la commission DETR
             </h2>
             <p class="fr-callout__text">
-                {% if projet.detr_avis_commission %}
+                {% if projet.dotation_detr.detr_avis_commission %}
                     <span class="fr-icon-chat-check-fill green-color" aria-hidden="true"></span> Oui
-                {% elif projet.detr_avis_commission is False %}
+                {% elif projet.dotation_detr.detr_avis_commission is False %}
                     <span class="fr-icon-chat-delete-fill red-color" aria-hidden="true"></span> Non
                 {% else %}
                     <span class="fr-icon-message-2-fill grey-color" aria-hidden="true"></span> En cours
@@ -278,25 +278,16 @@
                         <b>Montant de la subvention demandée : </b>{{ dossier.demande_montant|euro:2 }} ({{ dossier.taux_demande|percent:2 }} du coût total)
                     </p>
                 </div>
-                {% for dotation_projet in projet.dotationprojet_set.all %}
-                    {% if projet.dotationprojet_set.all|length > 1 %}
-                        <h6>
-                            {{ dotation_projet.dotation }}
-                        </h6>
-                    {% endif %}
-
-                    <div class="fr-highlight fr-highlight--beige-gris-galet fr-ml-0 fr-mb-4w">
-                        <p>
-                            <b>Montant des dépenses éligibles retenues :</b> {{ dotation_projet.assiette|euro:2 }}
-                        </p>
-                        <p>
-                            <b>Montant accordé :</b> {{ dotation_projet.montant_retenu|euro:2 }}
-                        </p>
-                        <p>
-                            <b>Taux de subvention :</b> {{ dotation_projet.taux_retenu|percent:2 }}
-                        </p>
-                    </div>
-                {% endfor %}
+                {% block montants_form %}
+                    {% for dotation_projet in projet.dotationprojet_set.all %}
+                        {% if projet.dotationprojet_set.all|length > 1 %}
+                            <h6>
+                                {{ dotation_projet.dotation }}
+                            </h6>
+                        {% endif %}
+                        {% include "includes/projet_detail/dotation_montant_info.html" with assiette=dotation_projet.assiette montant=dotation_projet.montant_retenu taux=dotation_projet.taux_retenu %}
+                    {% endfor %}
+                {% endblock montants_form %}
             </section>
         </div>
     </div>

@@ -90,7 +90,6 @@ def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_e
         dotation_projet=dotation_projet,
         simulation=simulation,
         montant=500,
-        taux=5.0,
         status=SimulationProjet.STATUS_PROCESSING,
     )
 
@@ -481,7 +480,7 @@ def test_update_taux(field_name):
     )
     simulation_projet = SimulationProjetFactory(
         dotation_projet=dotation_projet,
-        taux=10.0,
+        montant=100,
     )
     new_taux = 15.0
 
@@ -502,19 +501,18 @@ def test_update_taux_of_accepted_montant(field_name):
     simulation_projet = SimulationProjetFactory(
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
-        taux=20.0,
+        montant=200,
     )
     other_simulation_projet = SimulationProjetFactory(
         simulation__enveloppe=simulation_projet.enveloppe,
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
-        taux=20.0,
+        montant=200,
     )
     programmation_projet = ProgrammationProjetFactory(
         enveloppe=simulation_projet.enveloppe,
         dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
-        taux=20.0,
     )
 
     new_taux = 15.0
