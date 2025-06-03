@@ -139,7 +139,7 @@ def patch_projet(request, pk):
 class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
     model = SimulationProjet
 
-    ALLOWED_TABS = {"annotations", "demandeur", "historique"}
+    ALLOWED_TABS = {"annotations", "historique"}
 
     def get_template_names(self):
         if "tab" in self.kwargs:

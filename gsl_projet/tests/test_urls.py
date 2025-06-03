@@ -70,7 +70,6 @@ def test_projet_detail_visible_by_user_with_correct_perimetre(
     (
         ("annotations", "gsl_projet/projet/tab_annotations.html"),
         ("historique", "gsl_projet/projet/tab_historique.html"),
-        ("demandeur", "gsl_projet/projet/tab_demandeur.html"),
     ),
 )
 @pytest.mark.django_db
