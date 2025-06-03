@@ -391,10 +391,10 @@ class FilteredProjetsExportView(SimulationDetailView):
         dataset = resource.export(simu_projet_qs)
 
         if export_type == self.XLS:
-            export_data = dataset.xls
+            export_data = dataset.export("xlsx")
             content_type = "application/vnd.ms-excel"
         else:  # export_type == self.CSV
-            export_data = dataset.csv
+            export_data = dataset.export("csv")
             content_type = "text/csv"
 
         response = HttpResponse(export_data, content_type=content_type)

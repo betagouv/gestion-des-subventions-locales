@@ -26,6 +26,8 @@ dependencies = [
     "redis",
     "requests",
     "sentry-sdk",
+    "tablib[xlsx]",
+    "tablib[ods]",
     "whitenoise",
 ]
 
