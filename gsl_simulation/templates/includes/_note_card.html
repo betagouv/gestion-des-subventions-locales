@@ -2,10 +2,10 @@
 <section class="fr-mt-2w fr-py-2w fr-px-4w note-card">
     <div class="note-card-header">
         <p class="fr-text--sm">
-            Créé le {{ note.created_at|date:"d/m/Y" }} par {{ note.created_by.get_full_name }}
+            Créée le {{ note.created_at|date:"d/m/Y" }} par {{ note.created_by.get_full_name }}
             {% if note.created_at|date:"d/m/Y" != note.updated_at|date:"d/m/Y" %}
                 <br>
-                <span>Modifié le {{ note.updated_at|date:"d/m/Y" }}</span>
+                <span>Modifiée le {{ note.updated_at|date:"d/m/Y" }}</span>
             {% endif %}
         </p>
 
