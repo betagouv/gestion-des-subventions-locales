@@ -31,6 +31,11 @@
     {% endblock block_projet_notes %}
 {% endblock tab_projet %}
 
+{% block modal %}
+    {% include "includes/modals/_delete_note_confirmation_modal.html" %}
+{% endblock modal %}
+
 {% block extra_js %}
-    <script src="{% static 'js/handleInteractionInSimulationProjetAnnotations.js' %}"></script>
+    <script type="module"
+            src="{% static 'js/handleInteractionInSimulationProjetAnnotations.js' %}"></script>
 {% endblock extra_js %}

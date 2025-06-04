@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, render
 
 from gsl_projet.forms import ProjetNoteForm
+from gsl_projet.models import ProjetNote
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.views.simulation_projet_views import (
     SimulationProjetDetailView,
@@ -30,6 +31,9 @@ class SimulationProjetAnnotationsView(SimulationProjetDetailView):
         simulation_projet = get_object_or_404(
             SimulationProjet, id=self.kwargs.get("pk")
         )
+        if request.POST.get("action") == "delete_note":
+            return self.delete(request, *args, **kwargs)
+
         form = ProjetNoteForm(request.POST)
 
         if form.is_valid():
@@ -55,3 +59,26 @@ class SimulationProjetAnnotationsView(SimulationProjetDetailView):
             context = self.get_context_data(**kwargs)
             context["projet_note_form"] = form
             return render(request, self.template_name, context)
+
+    def delete(self, request, *args, **kwargs):
+        simulation_projet = get_object_or_404(
+            SimulationProjet, id=self.kwargs.get("pk")
+        )
+        note_id = request.POST.get("note_id")
+        if note_id:
+            note = get_object_or_404(
+                ProjetNote,
+                pk=note_id,
+                created_by=request.user,
+                projet_id=simulation_projet.projet.id,
+            )
+            title = note.title
+            note.delete()
+            messages.success(
+                request,
+                f'La note "{title}" a bien été supprimée.',
+                extra_tags="projet_note_deletion",
+            )
+        return redirect_to_same_page_or_to_simulation_detail_by_default(
+            request, simulation_projet
+        )

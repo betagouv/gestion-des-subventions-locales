@@ -1,5 +1,6 @@
 
-<section class="fr-mt-2w fr-py-2w fr-px-4w note-card">
+<section class="fr-my-4w fr-py-2w fr-px-4w note-card"
+         id="note_card_{{ note.id }}">
     <div class="note-card-header">
         <p class="fr-text--sm">
             Créée le {{ note.created_at|date:"d/m/Y" }} par {{ note.created_by.get_full_name }}
@@ -16,12 +17,15 @@
                         data-note-id="{{ note.id }}">
                     Modifier
                 </button>
-                <button class="fr-btn fr-btn--tertiary fr-btn--icon-left fr-icon-delete-bin-line red-button"
-                        id="delete_note_button_{{ note.id }}"
-                        type="submit"
-                        data-note-id="{{ note.id }}">
-                    Supprimer
-                </button>
+                <form method="POST" data-note-title="{{ note.title }}">
+                    {% csrf_token %}
+                    <input type="hidden" name="note_id" value="{{ note.id }}">
+                    <input type="hidden" name="action" value="delete_note">
+                    <button class="fr-btn fr-btn--tertiary fr-btn--icon-left fr-icon-delete-bin-line delete_note_button red-button"
+                            type="submit">
+                        Supprimer
+                    </button>
+                </form>
             </div>
         {% endif %}
     </div>

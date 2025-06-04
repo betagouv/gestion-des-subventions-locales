@@ -111,7 +111,6 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
             cleaned_data["taux"] = computed_taux
 
         else:
-            # TODO Test si le taux a changé et de 0,01 ou moins
             if "taux" in self.changed_data:
                 computed_montant = DotationProjetService.compute_montant_from_taux(
                     simulation_projet.dotation_projet, cleaned_data.get("taux")
