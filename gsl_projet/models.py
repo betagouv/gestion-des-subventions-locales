@@ -194,17 +194,15 @@ class Projet(models.Model):
 
     @property
     def dotation_detr(self):
-        try:
-            return self.dotationprojet_set.get(dotation=DOTATION_DETR)
-        except DotationProjet.DoesNotExist:
-            return None
+        for dp in self.dotationprojet_set.all():
+            if dp.dotation == DOTATION_DETR:
+                return dp
 
     @property
     def dotation_dsil(self):
-        try:
-            return self.dotationprojet_set.get(dotation=DOTATION_DSIL)
-        except DotationProjet.DoesNotExist:
-            return None
+        for dp in self.dotationprojet_set.all():
+            if dp.dotation == DOTATION_DSIL:
+                return dp
 
     @property
     def to_notify(self) -> bool:
