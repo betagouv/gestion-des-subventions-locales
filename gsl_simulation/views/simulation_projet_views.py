@@ -139,7 +139,7 @@ def patch_projet(request, pk):
 class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
     model = SimulationProjet
 
-    ALLOWED_TABS = {"annotations", "historique"}
+    ALLOWED_TABS = {"historique"}
 
     def get_template_names(self):
         if "tab" in self.kwargs:
@@ -149,17 +149,25 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
             return [f"gsl_simulation/tab_simulation_projet/tab_{tab}.html"]
         return ["gsl_simulation/simulation_projet_detail.html"]
 
-    def get(self, request, *args, **kwargs):
-        self.simulation_projet = _get_view_simulation_projet_from_pk(
-            request.resolver_match.kwargs.get("pk")
-        )
-        return super().get(request, *args, **kwargs)
+    def get_object(self, queryset=None):
+        if not hasattr(self, "_simulation_projet"):
+            self._simulation_projet = _get_view_simulation_projet_from_pk(
+                self.kwargs.get("pk")
+            )
+        return self._simulation_projet
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, with_specific_info_for_main_tab=True, **kwargs):
         context = super().get_context_data(**kwargs)
-        _enrich_simulation_projet_context_from_simulation_projet(
-            context, self.simulation_projet
+        simulation_projet = self.get_object()
+        _enrich_simulation_projet_context_with_generic_info_for_all_tabs(
+            context, simulation_projet
         )
+
+        if with_specific_info_for_main_tab:
+            _enrich_simulation_projet_context_with_specific_info_for_main_tab(
+                context, simulation_projet
+            )
+
         return context
 
     def post(self, request, *args, **kwargs):
@@ -254,14 +262,36 @@ def _get_projets_queryset_with_filters(simulation, filter_params):
     return projets
 
 
-def _enrich_simulation_projet_context_from_simulation_projet(
+def _enrich_simulation_projet_context_with_specific_info_for_main_tab(
     context: dict, simulation_projet: SimulationProjet
 ):
     projet_form = ProjetForm(instance=simulation_projet.projet)
     simulation_projet_form = SimulationProjetForm(instance=simulation_projet)
     dotation_field = projet_form.fields.get("dotations")
+    context.update(
+        {
+            "dotation_projet": simulation_projet.dotation_projet,
+            "enveloppe": simulation_projet.simulation.enveloppe,
+            "menu_dict": PROJET_MENU,
+            "projet_form": projet_form,
+            "simulation_projet_form": simulation_projet_form,
+            "dotation_projet_form": DotationProjetForm(
+                instance=simulation_projet.dotation_projet
+            ),
+            "initial_dotations": ",".join(dotation_field.initial)
+            if dotation_field
+            else [],
+            "other_dotation_simu": _get_other_dotation_simulation_projet(
+                simulation_projet
+            ),
+        }
+    )
+
+
+def _enrich_simulation_projet_context_with_generic_info_for_all_tabs(
+    context: dict, simulation_projet: SimulationProjet
+):
     title = simulation_projet.projet.dossier_ds.projet_intitule
-    projet = simulation_projet.projet
     context.update(
         {
             "title": title,
@@ -281,23 +311,9 @@ def _enrich_simulation_projet_context_from_simulation_projet(
                 ],
                 "current": title,
             },
-            "projet": projet,
-            "dotation_projet": simulation_projet.dotation_projet,
             "simu": simulation_projet,
-            "enveloppe": simulation_projet.simulation.enveloppe,
-            "dossier": projet.dossier_ds,
-            "menu_dict": PROJET_MENU,
-            "projet_form": projet_form,
-            "dotation_projet_form": DotationProjetForm(
-                instance=simulation_projet.dotation_projet
-            ),
-            "simulation_projet_form": simulation_projet_form,
-            "initial_dotations": ",".join(dotation_field.initial)
-            if dotation_field
-            else [],
-            "other_dotation_simu": _get_other_dotation_simulation_projet(
-                simulation_projet
-            ),
+            "projet": simulation_projet.projet,
+            "dossier": simulation_projet.projet.dossier_ds,
         }
     )
 

@@ -5,6 +5,9 @@ from gsl_simulation.views.decorators import (
     simulation_must_be_visible_by_user,
     simulation_projet_must_be_visible_by_user,
 )
+from gsl_simulation.views.simulation_projet_annotations_views import (
+    SimulationProjetAnnotationsView,
+)
 from gsl_simulation.views.simulation_projet_views import (
     SimulationProjetDetailView,
     patch_dotation_projet,
@@ -38,6 +41,13 @@ urlpatterns = [
         "projet-detail/<int:pk>/",
         simulation_projet_must_be_visible_by_user(SimulationProjetDetailView.as_view()),
         name="simulation-projet-detail",
+    ),
+    path(
+        "projet-detail/<int:pk>/annotations/",
+        simulation_projet_must_be_visible_by_user(
+            SimulationProjetAnnotationsView.as_view()
+        ),
+        name="simulation-projet-annotations",
     ),
     path(
         "projet-detail/<int:pk>/<str:tab>/",

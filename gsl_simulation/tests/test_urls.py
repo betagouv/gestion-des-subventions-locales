@@ -13,6 +13,7 @@ from gsl_core.tests.factories import (
 )
 from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.forms import ProjetNoteForm
 from gsl_projet.tests.factories import DotationProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
@@ -120,6 +121,16 @@ expected_status_summary = {
     "provisionally_refused": 0,
     "valid": 0,
 }
+
+
+def get_client_with_referer(perimetre, referer):
+    cote_dorien_collegue = CollegueFactory(perimetre=perimetre)
+    return ClientWithLoggedUserFactory(
+        cote_dorien_collegue,
+        headers={
+            "Referer": referer,
+        },
+    )
 
 
 @pytest.mark.django_db
@@ -434,7 +445,7 @@ def test_patch_projet_allowed_for_staff_user(
 
 
 @pytest.mark.django_db
-def test_simulation_projet_detail_url(
+def test_get_simulation_projet_detail_url(
     client_with_cote_d_or_user_logged, cote_dorien_simulation_projet
 ):
     url = reverse(
@@ -446,6 +457,56 @@ def test_simulation_projet_detail_url(
     assert response.templates[0].name == "gsl_simulation/simulation_projet_detail.html"
     assert response.context["simu"] == cote_dorien_simulation_projet
     assert response.context["projet"] == cote_dorien_simulation_projet.projet
+
+
+@pytest.mark.django_db
+def test_post_simulation_projet_detail_url(
+    cote_d_or_perimetre, cote_dorien_simulation_projet
+):
+    annotations_tab_url = reverse(
+        "simulation:simulation-projet-tab",
+        kwargs={"pk": cote_dorien_simulation_projet.pk, "tab": "annotations"},
+    )
+    client = get_client_with_referer(cote_d_or_perimetre, annotations_tab_url)
+
+    response = client.post(
+        annotations_tab_url,
+        {"title": "Titre de la note", "content": "Contenu de la note"},
+        follow=True,
+    )
+    assert response.status_code == 200
+    assert (
+        response.templates[0].name
+        == "gsl_simulation/tab_simulation_projet/tab_annotations.html"
+    )
+    assert response.context["simu"] == cote_dorien_simulation_projet
+    assert response.context["projet"] == cote_dorien_simulation_projet.projet
+    # Specific context for the annotations tab
+    assert response.context["projet_note_form"].__class__ == ProjetNoteForm
+    notes = cote_dorien_simulation_projet.projet.notes
+    assert notes.count() == 1
+    assert response.context["projet_notes"].count() == 1
+    assert response.context["projet_notes"].first().title == "Titre de la note"
+    assert response.context["projet_notes"].first().content == "Contenu de la note"
+
+
+@pytest.mark.django_db
+def test_post_simulation_for_a_user_not_in_perimetre(
+    client_with_iconnais_user_logged, cote_dorien_simulation_projet
+):
+    annotations_tab_url = reverse(
+        "simulation:simulation-projet-tab",
+        kwargs={"pk": cote_dorien_simulation_projet.pk, "tab": "annotations"},
+    )
+
+    response = client_with_iconnais_user_logged.post(
+        annotations_tab_url,
+        {"title": "Titre de la note", "content": "Contenu de la note"},
+        follow=True,
+    )
+    assert response.status_code == 404
+    notes = cote_dorien_simulation_projet.projet.notes
+    assert notes.count() == 0
 
 
 @pytest.mark.parametrize(
@@ -494,16 +555,6 @@ def test_simulation_projet_detail_url_with_perimetre_not_in_user_one(
     )
     response = client_with_iconnais_user_logged.get(url)
     assert response.status_code == 404
-
-
-def get_client_with_referer(perimetre, referer):
-    cote_dorien_collegue = CollegueFactory(perimetre=perimetre)
-    return ClientWithLoggedUserFactory(
-        cote_dorien_collegue,
-        headers={
-            "Referer": referer,
-        },
-    )
 
 
 @pytest.mark.django_db
