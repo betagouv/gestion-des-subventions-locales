@@ -1,5 +1,4 @@
 from django.contrib import messages
-from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, render
 
 from gsl_projet.forms import ProjetNoteForm
@@ -67,26 +66,19 @@ class SimulationProjetAnnotationsView(SimulationProjetDetailView):
         )
         note_id = request.POST.get("note_id")
         if note_id:
-            note = ProjetNote.objects.get(pk=note_id)
-            if note:
-                if note.created_by != request.user:
-                    return HttpResponseForbidden(
-                        "Vous n'avez pas la permission de supprimer cette note."
-                    )
-
-                title = note.title
-                note.delete()
-                messages.success(
-                    request,
-                    f'La note "{title}" a bien été supprimée.',
-                    extra_tags="projet_note_deletion",
-                )
-            else:
-                messages.error(
-                    request,
-                    "La note n'a pas pu être trouvée.",
-                    extra_tags="alert",
-                )
+            note = get_object_or_404(
+                ProjetNote,
+                pk=note_id,
+                created_by=request.user,
+                projet_id=simulation_projet.projet.id,
+            )
+            title = note.title
+            note.delete()
+            messages.success(
+                request,
+                f'La note "{title}" a bien été supprimée.',
+                extra_tags="projet_note_deletion",
+            )
         return redirect_to_same_page_or_to_simulation_detail_by_default(
             request, simulation_projet
         )
