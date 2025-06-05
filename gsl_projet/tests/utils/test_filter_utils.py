@@ -18,6 +18,9 @@ def filter_utils():
         def _get_territoire_choices(self):
             return ["Choice 1", "Choice 2"]
 
+        def _get_categorie_detr_choices(self):
+            return ["Category 1", "Category 2"]
+
     return MockFilterUtils
 
 
