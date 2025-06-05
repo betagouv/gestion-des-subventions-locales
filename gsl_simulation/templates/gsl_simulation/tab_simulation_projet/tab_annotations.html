@@ -33,9 +33,11 @@
 
 {% block modal %}
     {% include "includes/modals/_delete_note_confirmation_modal.html" %}
+    {% include "includes/modals/_cancel_update_note_confirmation_modal.html" %}
 {% endblock modal %}
 
 {% block extra_js %}
+    <script type="module" src="{% static 'js/htmx.min.js' %}"></script>
     <script type="module"
             src="{% static 'js/handleInteractionInSimulationProjetAnnotations.js' %}"></script>
 {% endblock extra_js %}

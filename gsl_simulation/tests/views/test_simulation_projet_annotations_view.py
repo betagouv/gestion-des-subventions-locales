@@ -138,3 +138,44 @@ def test_projet_note_deletion(
     assert response.status_code == expected_status_code
     projet.refresh_from_db()
     assert projet.notes.count() == expected_note_count
+
+
+@pytest.mark.django_db
+def test_get_edit_projet_note(client_with_user_logged, simulation_projet):
+    projet = simulation_projet.projet
+    projet_note = ProjetNoteFactory(
+        projet=projet, created_by=client_with_user_logged.user
+    )
+    assert projet.notes.count() == 1
+
+    url = reverse(
+        "simulation:get-edit-projet-note",
+        kwargs={"pk": simulation_projet.pk, "note_id": projet_note.pk},
+    )
+    response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_post_edit_projet_note(client_with_user_logged, simulation_projet):
+    projet = simulation_projet.projet
+    projet_note = ProjetNoteFactory(
+        projet=projet, created_by=client_with_user_logged.user
+    )
+    assert projet.notes.count() == 1
+
+    url = reverse(
+        "simulation:get-edit-projet-note",
+        kwargs={"pk": simulation_projet.pk, "note_id": projet_note.pk},
+    )
+    response = client_with_user_logged.post(
+        url,
+        headers={"HX-Request": "true"},
+        data={"title": "Mon titre", "content": "Mon contenu"},
+        follow=True,
+    )
+    assert response.status_code == 200
+
+    projet_note.refresh_from_db()
+    assert projet_note.title == "Mon titre"
+    assert projet_note.content == "Mon contenu"
