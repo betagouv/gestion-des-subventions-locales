@@ -111,10 +111,12 @@ class FilterUtils:
             int(categorie_detr)
             for categorie_detr in self.request.GET.getlist("categorie_detr")
         )
-        categories_detr = self._get_categorie_detr_choices().filter(
-            id__in=categorie_detr_ids
+        categories_detr_libelles = (
+            c.libelle
+            for c in self._get_categorie_detr_choices()
+            if c.id in categorie_detr_ids
         )
-        return ", ".join(c.libelle for c in categories_detr), categorie_detr_ids
+        return ", ".join(categories_detr_libelles), categorie_detr_ids
 
     def _get_perimetre(self) -> Perimetre:
         raise NotImplementedError

@@ -79,6 +79,12 @@ class SimulationProjetListViewFilters(ProjetFilters):
             self.filters["territoire"].extra["choices"] = tuple(
                 (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
             )
+            self.filters["categorie_detr"].extra["choices"] = tuple(
+                (c.id, c.libelle)
+                for c in CategorieDetr.objects.filter(
+                    departement=perimetre.departement, annee=simulation.enveloppe.annee
+                )
+            )
 
     filterset = (
         "territoire",
@@ -87,6 +93,7 @@ class SimulationProjetListViewFilters(ProjetFilters):
         "cout_total",
         "montant_demande",
         "montant_previsionnel",
+        "categorie_detr",
     )
 
     ordered_status = (
@@ -285,9 +292,11 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         if simulation.dotation != DOTATION_DETR:
             return []
 
-        return CategorieDetr.objects.filter(
-            departement=simulation.enveloppe.perimetre.departement,
-            annee=simulation.enveloppe.annee,
+        return list(
+            CategorieDetr.objects.filter(
+                departement=simulation.enveloppe.perimetre.departement,
+                annee=simulation.enveloppe.annee,
+            ).all()
         )
 
     def _get_other_dotations_simulation_projet(
