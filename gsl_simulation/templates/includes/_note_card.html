@@ -4,7 +4,7 @@
     <div class="note-card-header">
         <p class="fr-text--sm">
             Créée le {{ note.created_at|date:"d/m/Y" }} par {{ note.created_by.get_full_name }}
-            {% if note.created_at|date:"d/m/Y" != note.updated_at|date:"d/m/Y" %}
+            {% if note.created_at|date:"d/m/Y - H|i|s" != note.updated_at|date:"d/m/Y - H|i|s" %}
                 <br>
                 <span>Modifiée le {{ note.updated_at|date:"d/m/Y" }}</span>
             {% endif %}
