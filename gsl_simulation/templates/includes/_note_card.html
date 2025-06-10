@@ -10,7 +10,7 @@
             {% endif %}
         </p>
 
-        {% if note.created_by == user %}
+        {% if allow_update and note.created_by == user %}
             <div class="note-card-header-actions">
                 <a class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-edit-line"
                    id="edit_note_button_{{ note.id }}"

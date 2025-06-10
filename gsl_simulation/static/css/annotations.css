@@ -1,0 +1,26 @@
+.note-card {
+  border: 1px solid var(--border-default-grey);
+}
+
+.note-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.note-card-header-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: end;
+  min-width: 141px;
+  flex-wrap: wrap;
+}
+
+.note-card-content {
+  white-space: pre-line;
+}
+
+.red-button {
+  color: var(--text-default-error);
+  box-shadow: inset 0 0 0 1px var(--border-action-high-error);
+}

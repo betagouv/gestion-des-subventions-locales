@@ -44,6 +44,7 @@ def _get_projet_context_info(projet_id):
             "current": title,
         },
         "menu_dict": PROJET_MENU,
+        "projet_notes": projet.notes.all(),
     }
     return context
 
