@@ -200,6 +200,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                 "other_dotations_simu": self._get_other_dotations_simulation_projet(
                     current_page.object_list, simulation.enveloppe.dotation
                 ),
+                "export_types": FilteredProjetsExportView.EXPORT_TYPES,
                 "breadcrumb_dict": {
                     "links": [
                         {
@@ -358,8 +359,24 @@ def simulation_form(request):
         return render(request, "gsl_simulation/simulation_form.html", context)
 
 
-class FilteredProjetsCSVExportView(SimulationDetailView):
+class FilteredProjetsExportView(SimulationDetailView):
+    XLS = "xls"
+    XLSX = "xlsx"
+    CSV = "csv"
+    ODS = "ods"
+    EXPORT_TYPES = [XLS, XLSX, CSV, ODS]
+    EXPORT_TYPE_TO_CONTENT_TYPE = {
+        XLS: "application/vnd.ms-excel",
+        XLSX: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        CSV: "text/csv",
+        ODS: "application/vnd.oasis.opendocument.spreadsheet",
+    }
+
     def get(self, request, *args, **kwargs):
+        export_type = self.kwargs.get("type")
+        if export_type not in self.EXPORT_TYPES:
+            return HttpResponse("Invalid export type", status=400)
+
         self.object = self.get_object()
         self.simulation = Simulation.objects.get(slug=self.object.slug)
         queryset = self.get_projet_queryset()
@@ -381,10 +398,12 @@ class FilteredProjetsCSVExportView(SimulationDetailView):
             else DetrSimulationProjetResource()
         )
         dataset = resource.export(simu_projet_qs)
-        export_data = dataset.csv
 
-        response = HttpResponse(export_data, content_type="text/csv")
+        export_data = dataset.export(export_type)
+        content_type = self.EXPORT_TYPE_TO_CONTENT_TYPE[export_type]
+
+        response = HttpResponse(export_data, content_type=content_type)
         response["Content-Disposition"] = (
-            f'attachment; filename="{date.today().strftime("%Y-%m-%d")} simulation {self.simulation.title}.csv"'
+            f'attachment; filename="{date.today().strftime("%Y-%m-%d")} simulation {self.simulation.title}.{export_type}"'
         )
         return response
