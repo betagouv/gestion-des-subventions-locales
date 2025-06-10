@@ -185,3 +185,33 @@ class ProgrammationProjet(models.Model):
         if self.status == self.STATUS_REFUSED:
             if self.montant != 0:
                 errors["montant"] = {"Un projet refusé doit avoir un montant nul."}
+
+
+class Arrete(models.Model):
+    programmation_projet = models.ForeignKey(
+        ProgrammationProjet,
+        on_delete=models.CASCADE,
+        verbose_name="Programmation projet",
+        related_name="arretes",
+    )
+    numero = models.CharField(max_length=255, verbose_name="Numéro de l'arrêté")
+    date = models.DateField(verbose_name="Date de l'arrêté")
+    document = models.FileField(
+        upload_to="arretes/",
+        verbose_name="Document de l'arrêté",
+        blank=True,
+        null=True,
+    )
+    content = models.JSONField(
+        verbose_name="Contenu de l'arrêté",
+        blank=True,
+        null=True,
+        help_text="Contenu JSON de l'arrêté, utilisé pour les exports.",
+    )
+
+    class Meta:
+        verbose_name = "Arrêté"
+        verbose_name_plural = "Arrêtés"
+
+    def __str__(self):
+        return f"Arrêté {self.numero} du {self.date}"
