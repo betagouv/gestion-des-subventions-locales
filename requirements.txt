@@ -53,7 +53,7 @@ diff-match-patch==20241021
     # via django-import-export
 dj-database-url==2.3.0
     # via gsl (pyproject.toml)
-django==5.2.1
+django==5.2.2
     # via
     #   dj-database-url
     #   django-celery-beat
@@ -158,7 +158,7 @@ python-dotenv==1.1.0
     # via gsl (pyproject.toml)
 redis==6.1.0
     # via gsl (pyproject.toml)
-requests==2.32.3
+requests==2.32.4
     # via
     #   django-dsfr
     #   gsl (pyproject.toml)
