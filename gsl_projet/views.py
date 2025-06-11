@@ -1,3 +1,5 @@
+from functools import cached_property
+
 from django.db.models import Prefetch
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
@@ -163,7 +165,8 @@ class ProjetListView(FilterView, ListView, FilterUtils):
 
         return (perimetre, *perimetre.children())
 
-    def _get_categorie_detr_choices(self):
+    @cached_property
+    def categorie_detr_choices(self):
         perimetre = self._get_perimetre()
         if not perimetre:
             return ()
@@ -173,7 +176,7 @@ class ProjetListView(FilterView, ListView, FilterUtils):
 
         # find most recent year with categorieDetr
         year = timezone.now().year + 1
-        while year > 2020:
+        while year > 2022:
             qs = CategorieDetr.objects.filter(
                 annee=year, departement=perimetre.departement
             ).order_by("rang")

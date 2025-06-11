@@ -1,3 +1,5 @@
+from functools import cached_property
+
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_projet.utils.projet_filters import ProjetFilters
@@ -49,7 +51,7 @@ class FilterUtils:
         context["categorie_detr_placeholder"], context["categorie_detr_selected"] = (
             self._get_selected_categorie_detr()
         )
-        context["categorie_detr_choices"] = self._get_categorie_detr_choices()
+        context["categorie_detr_choices"] = self.categorie_detr_choices
 
         context["filter_templates"] = self._get_filter_templates()
 
@@ -112,9 +114,7 @@ class FilterUtils:
             for categorie_detr in self.request.GET.getlist("categorie_detr")
         )
         categories_detr_libelles = (
-            c.libelle
-            for c in self._get_categorie_detr_choices()
-            if c.id in categorie_detr_ids
+            c.libelle for c in self.categorie_detr_choices if c.id in categorie_detr_ids
         )
         return ", ".join(categories_detr_libelles), categorie_detr_ids
 
@@ -124,7 +124,8 @@ class FilterUtils:
     def _get_territoire_choices(self):
         raise NotImplementedError
 
-    def _get_categorie_detr_choices(self):
+    @cached_property
+    def categorie_detr_choices(self):
         raise NotImplementedError
 
     def _get_is_one_field_active(self, *field_names):

@@ -1,4 +1,5 @@
 from datetime import date
+from functools import cached_property
 
 from django.core.paginator import Paginator
 from django.db.models import Count, Prefetch, QuerySet, Sum
@@ -287,17 +288,23 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         perimetre = self.perimetre
         return (perimetre, *perimetre.children())
 
-    def _get_categorie_detr_choices(self):
+    @cached_property
+    def categorie_detr_choices(self):
         simulation = self.get_object()
         if simulation.dotation != DOTATION_DETR:
             return []
 
-        return list(
-            CategorieDetr.objects.filter(
+        annee = simulation.enveloppe.annee
+
+        while annee > 2022:
+            qs = CategorieDetr.objects.filter(
                 departement=simulation.enveloppe.perimetre.departement,
                 annee=simulation.enveloppe.annee,
-            ).all()
-        )
+            )
+            if qs.exists():
+                return tuple(qs.all())
+
+            annee = annee - 1
 
     def _get_other_dotations_simulation_projet(
         self, projets: QuerySet[Projet], current_dotation: str
