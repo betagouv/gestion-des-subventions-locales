@@ -67,7 +67,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         return instance
 
 
-class DotationProjetForm(ModelForm, DsfrBaseForm):
+class DotationProjetForm(ModelForm):
     DETR_AVIS_CHOICES = [
         (None, "En cours"),
         (True, "Oui"),
@@ -78,13 +78,15 @@ class DotationProjetForm(ModelForm, DsfrBaseForm):
         label="Sélectionner l'avis de la commission d'élus DETR :",
         choices=DETR_AVIS_CHOICES,
         required=False,
-        widget=forms.Select(attrs={"form": "dotation_projet_form"}),
+        widget=forms.Select(
+            attrs={"form": "dotation_projet_form", "class": "fr-select"}
+        ),
     )
 
     detr_categories = forms.ModelMultipleChoiceField(
         queryset=CategorieDetr.objects.none(),
         required=False,
-        widget=forms.SelectMultiple(attrs={"form": "dotation_projet_form"}),
+        widget=forms.CheckboxSelectMultiple(attrs={"form": "dotation_projet_form"}),
         label="Catégories d'opération DETR",
     )
 

@@ -1,16 +1,41 @@
 <div id="dotation_projet_form"
      class="form-disabled-before-value-change fr-mb-2w">
     {% csrf_token %}
-    <div class="fr-callout fr-background-alt--blue-france fr-py-2w fr-pl-3w">
+    <div class="gsl-dropdown fr-callout fr-background-alt--blue-france fr-py-2w fr-pl-3w">
         <div class="fr-mb-2w">
-            <p class="fr-mb-2w">
+            <p class="fr-mb-2w" id="detr_categories_form_title">
                 <b>
                     Modifier la/les catégorie(s)
                 </b>
             </p>
 
-            {{ dotation_projet_form.detr_categories.label_tag }}
-            {{ dotation_projet_form.detr_categories }}
+            <button type="button" class="fr-select">
+                {% comment %} class="fr-select {% if is_categorie_detr_active %}filter-dropdown-button-active{% endif %}">
+                {% endcomment %}
+                {% comment %} {{ categorie_detr_placeholder }} {% endcomment %}
+                Catégories d'opération DETR
+            </button>
+            <div id="filter-categorie_detr"
+                 class="gsl-dropdown-content"
+                 role="group"
+                 aria-describedby="detr_categories_form_title">
+                {% comment %} {% for categorie in dotation_projet_form.detr_categories %}
+          <div class="fr-checkbox-group fr-checkbox-group--sm">
+            <input type="checkbox" name="categorie_detr" value="{{ categorie.id }}" id="id_categorie_detr_{{ forloop.counter }}">
+            <label for="id_categorie_detr_{{ forloop.counter }}" class="fr-label">
+              {{ categorie.choice_label }}
+            </label>
+          </div>
+                {% endfor %} {% endcomment %}
+                {% for checkbox in dotation_projet_form.detr_categories %}
+                    <div class="fr-checkbox-group fr-checkbox-group--sm">
+                        {{ checkbox.tag }}
+                        <label for="{{ checkbox.id_for_label }}" class="fr-label">
+                            {{ checkbox.choice_label }}
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
 
             {% if dotation_projet_form.errors.detr_categories %}
                 <div class="fr-messages-group">
