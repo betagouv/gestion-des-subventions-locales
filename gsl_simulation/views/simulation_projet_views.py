@@ -77,7 +77,10 @@ def patch_status_simulation_projet(request, pk):
 @require_POST
 def patch_dotation_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
-    form = DotationProjetForm(request.POST, instance=simulation_projet.dotation_projet)
+    form = DotationProjetForm(
+        request.POST,
+        instance=simulation_projet.dotation_projet,
+    )
     if form.is_valid():
         form.save()
         messages.success(
@@ -276,7 +279,7 @@ def _enrich_simulation_projet_context_with_specific_info_for_main_tab(
             "projet_form": projet_form,
             "simulation_projet_form": simulation_projet_form,
             "dotation_projet_form": DotationProjetForm(
-                instance=simulation_projet.dotation_projet
+                instance=simulation_projet.dotation_projet,
             ),
             "initial_dotations": ",".join(dotation_field.initial)
             if dotation_field

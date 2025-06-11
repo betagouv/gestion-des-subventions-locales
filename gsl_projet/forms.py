@@ -82,11 +82,23 @@ class DotationProjetForm(ModelForm, DsfrBaseForm):
     )
 
     detr_categories = forms.ModelMultipleChoiceField(
-        queryset=CategorieDetr.objects.all(),
+        queryset=CategorieDetr.objects.none(),
         required=False,
         widget=forms.SelectMultiple(attrs={"form": "dotation_projet_form"}),
         label="Catégories d'opération DETR",
     )
+
+    def __init__(self, *args, departement=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        departement = (
+            self.instance.projet.perimetre.departement if self.instance.projet else None
+        )
+        if departement is not None:
+            self.fields["detr_categories"].queryset = CategorieDetr.objects.filter(
+                departement=departement
+            )
+        else:
+            self.fields["detr_categories"].queryset = CategorieDetr.objects.all()
 
     def clean_detr_avis_commission(self):
         value = self.cleaned_data.get("detr_avis_commission")
