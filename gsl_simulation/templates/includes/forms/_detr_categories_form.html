@@ -1,5 +1,4 @@
-<div id="dotation_projet_form"
-     class="form-disabled-before-value-change fr-mb-2w">
+<div class="form-disabled-before-value-change fr-mb-2w">
     {% csrf_token %}
     <div class="gsl-dropdown fr-callout fr-background-alt--blue-france fr-py-2w fr-pl-3w">
         <div class="fr-mb-2w">
@@ -10,8 +9,13 @@
             </p>
 
             {{ dotation_projet_form.detr_categories.label_tag }}
-            <button type="button" class="fr-select">
-                Toutes les catégories d'opération DETR
+            <button type="button"
+                    class="fr-select"
+                    id="categorie-detr-select-button"
+                    aria-haspopup="group"
+                    aria-expanded="false"
+                    aria-controls="categorie-detr-select">
+                Sélectionner une/des catégorie(s)
             </button>
             <div id="categorie-detr-select"
                  class="gsl-dropdown-content categories-detr-dropdown"

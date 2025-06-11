@@ -73,3 +73,7 @@
   scroll-behavior: auto;
   overflow: auto;
 }
+
+#categorie-detr-select-button {
+  text-align: start;
+}
