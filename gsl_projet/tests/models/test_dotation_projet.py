@@ -28,6 +28,7 @@ from gsl_projet.models import (
 from gsl_projet.tests.factories import (
     CategorieDetrFactory,
     DotationProjetFactory,
+    DsilProjetFactory,
     ProjetFactory,
 )
 from gsl_simulation.models import SimulationProjet
@@ -565,3 +566,18 @@ def test_categorie_detr_departement_constraint():
     with pytest.raises(ValidationError) as excinfo:
         dotation_projet.clean()
     assert "n'appartient pas au même département que le projet" in str(excinfo.value)
+
+
+@pytest.mark.django_db
+def test_categorie_detr_dotation_constraint():
+    category = CategorieDetrFactory()
+    dsil_dotation_projet = DsilProjetFactory()
+
+    dsil_dotation_projet.detr_categories.set([category])
+
+    with pytest.raises(ValidationError) as excinfo:
+        dsil_dotation_projet.clean()
+    assert (
+        "Les catégories DETR ne doivent être renseignées que pour les projets DETR"
+        in str(excinfo.value)
+    )

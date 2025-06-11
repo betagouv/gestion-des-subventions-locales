@@ -294,16 +294,22 @@ class DotationProjet(models.Model):
                 "L'assiette ne doit pas être supérieure au coût total du projet."
             )
 
-        projet_departement = (
-            self.projet.perimetre.departement
-            if self.projet and self.projet.perimetre
-            else None
-        )
-        for categorie in self.detr_categories.all():
-            if categorie.departement != projet_departement:
-                errors.setdefault("detr_categories", []).append(
-                    f"La catégorie DETR « {categorie.libelle} » n'appartient pas au même département que le projet."
+        if self.dotation != DOTATION_DETR:
+            if self.detr_categories.exists():
+                errors["detr_categories"] = (
+                    "Les catégories DETR ne doivent être renseignées que pour les projets DETR."
                 )
+        else:
+            projet_departement = (
+                self.projet.perimetre.departement
+                if self.projet and self.projet.perimetre
+                else None
+            )
+            for categorie in self.detr_categories.all():
+                if categorie.departement != projet_departement:
+                    errors["detr_categories"] = (
+                        f"La catégorie DETR « {categorie.libelle} » n'appartient pas au même département que le projet."
+                    )
 
         if errors:
             raise ValidationError(errors)
