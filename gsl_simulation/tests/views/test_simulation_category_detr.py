@@ -1,5 +1,4 @@
 import pytest
-from django.urls import reverse
 
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -10,12 +9,14 @@ from gsl_core.tests.factories import (
     PerimetreRegionalFactory,
 )
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
+from gsl_projet.constants import DOTATION_DETR
 from gsl_projet.tests.factories import (
     CategorieDetrFactory,
     DetrProjetFactory,
+    DotationProjetFactory,
     ProjetFactory,
 )
-from gsl_simulation.tests.factories import SimulationFactory
+from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -150,6 +151,7 @@ def test_filter_simulation_view_on_category_detr(
     categorie_detr_a,
     categorie_detr_b,
     categorie_detr_c,
+    simulation,
 ):
     projet_with_both_categories = projet_with_categories_detr(
         [categorie_detr_a, categorie_detr_b], perimetre_arrondissement
@@ -160,9 +162,20 @@ def test_filter_simulation_view_on_category_detr(
     projet_with_category_b = projet_with_categories_detr(
         [categorie_detr_b, CategorieDetrFactory()], perimetre_arrondissement
     )
+    for projet in (
+        projet_with_both_categories,
+        projet_with_category_b,
+        projet_with_category_a,
+    ):
+        SimulationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=projet, dotation=DOTATION_DETR
+            ),
+            simulation=simulation,
+        )
 
     client = ClientWithLoggedUserFactory(departemental_user)
-    url = reverse("projet:list")
+    url = simulation.get_absolute_url()
 
     response = client.get(
         url,
