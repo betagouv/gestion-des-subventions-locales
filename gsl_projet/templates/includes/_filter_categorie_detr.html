@@ -1,6 +1,6 @@
 {% if categorie_detr_choices|length > 1 %}
     <div class="filter-field fr-col-12 fr-col-md-4 fr-col-lg-2">
-        <div class="filter-dropdown">
+        <div class="gsl-dropdown">
             <label class="fr-label" id="filter_categorie_detr_label">
                 <span class="fr-sr-only">Filtrer par</span>
                 Catégorie DETR
@@ -10,7 +10,7 @@
                 {{ categorie_detr_placeholder }}
             </button>
             <div id="filter-categorie_detr"
-                 class="filter-content"
+                 class="gsl-dropdown-content"
                  role="group"
                  aria-describedby="filter_categorie_detr_label">
                 {% for categorie in categorie_detr_choices %}
