@@ -9,24 +9,14 @@
                 </b>
             </p>
 
+            {{ dotation_projet_form.detr_categories.label_tag }}
             <button type="button" class="fr-select">
-                {% comment %} class="fr-select {% if is_categorie_detr_active %}filter-dropdown-button-active{% endif %}">
-                {% endcomment %}
-                {% comment %} {{ categorie_detr_placeholder }} {% endcomment %}
-                Catégories d'opération DETR
+                Toutes les catégories d'opération DETR
             </button>
-            <div id="filter-categorie_detr"
-                 class="gsl-dropdown-content"
+            <div id="categorie-detr-select"
+                 class="gsl-dropdown-content categories-detr-dropdown"
                  role="group"
                  aria-describedby="detr_categories_form_title">
-                {% comment %} {% for categorie in dotation_projet_form.detr_categories %}
-          <div class="fr-checkbox-group fr-checkbox-group--sm">
-            <input type="checkbox" name="categorie_detr" value="{{ categorie.id }}" id="id_categorie_detr_{{ forloop.counter }}">
-            <label for="id_categorie_detr_{{ forloop.counter }}" class="fr-label">
-              {{ categorie.choice_label }}
-            </label>
-          </div>
-                {% endfor %} {% endcomment %}
                 {% for checkbox in dotation_projet_form.detr_categories %}
                     <div class="fr-checkbox-group fr-checkbox-group--sm">
                         {{ checkbox.tag }}

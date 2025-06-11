@@ -101,6 +101,9 @@ class DotationProjetForm(ModelForm):
             )
         else:
             self.fields["detr_categories"].queryset = CategorieDetr.objects.all()
+        self.fields["detr_categories"].label_from_instance = (
+            lambda obj: f"{obj.rang} - {obj.libelle}"
+        )
 
     def clean_detr_avis_commission(self):
         value = self.cleaned_data.get("detr_avis_commission")
