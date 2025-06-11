@@ -82,8 +82,8 @@ class SimulationProjetListViewFilters(ProjetFilters):
             )
             self.filters["categorie_detr"].extra["choices"] = tuple(
                 (c.id, c.libelle)
-                for c in CategorieDetr.objects.filter(
-                    departement=perimetre.departement, annee=simulation.enveloppe.annee
+                for c in CategorieDetr.objects.most_recent_for_departement(
+                    perimetre.departement
                 )
             )
 
@@ -294,17 +294,11 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         if simulation.dotation != DOTATION_DETR:
             return []
 
-        annee = simulation.enveloppe.annee
-
-        while annee > 2022:
-            qs = CategorieDetr.objects.filter(
-                departement=simulation.enveloppe.perimetre.departement,
-                annee=simulation.enveloppe.annee,
-            )
-            if qs.exists():
-                return tuple(qs.all())
-
-            annee = annee - 1
+        return tuple(
+            CategorieDetr.objects.most_recent_for_departement(
+                simulation.enveloppe.perimetre.departement
+            ).all()
+        )
 
     def _get_other_dotations_simulation_projet(
         self, projets: QuerySet[Projet], current_dotation: str

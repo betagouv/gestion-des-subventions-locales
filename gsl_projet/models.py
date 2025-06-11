@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from django.db import models
 from django.db.models import Q, UniqueConstraint
 from django.forms import ValidationError
+from django.utils import timezone
 from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
@@ -26,6 +27,18 @@ if TYPE_CHECKING:
     from gsl_programmation.models import Enveloppe
 
 
+class CategorieDetrQueryset(models.QuerySet):
+    def most_recent_for_departement(self, departement: Departement):
+        annee = timezone.now().year
+        while annee > 2022:
+            qs = self.filter(departement=departement, annee=annee)
+            if qs.exists():
+                return qs
+
+            annee = annee - 1
+        return self.none()
+
+
 class CategorieDetr(models.Model):
     libelle = models.CharField("Libellé")
     rang = models.IntegerField("Rang", default=0)
@@ -33,6 +46,8 @@ class CategorieDetr(models.Model):
     departement = models.ForeignKey(
         Departement, verbose_name="Département", on_delete=models.PROTECT
     )
+
+    objects = CategorieDetrQueryset.as_manager()
 
     class Meta:
         verbose_name = "Catégorie DETR"
