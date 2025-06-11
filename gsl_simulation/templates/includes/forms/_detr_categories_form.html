@@ -1,0 +1,30 @@
+<div id="dotation_projet_form"
+     class="form-disabled-before-value-change fr-mb-2w">
+    {% csrf_token %}
+    <div class="fr-callout fr-background-alt--blue-france fr-py-2w fr-pl-3w">
+        <div class="fr-mb-2w">
+            <p class="fr-mb-2w">
+                <b>
+                    Modifier la/les catégorie(s)
+                </b>
+            </p>
+
+            {{ dotation_projet_form.detr_categories.label_tag }}
+            {{ dotation_projet_form.detr_categories }}
+
+            {% if dotation_projet_form.errors.detr_categories %}
+                <div class="fr-messages-group">
+                    {% for err in dotation_projet_form.errors.detr_categories %}
+                        <p class="fr-message fr-message--error">
+                            {{ err }}
+                        </p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <button class="fr-btn" type="submit" form='dotation_projet_form' disabled>
+        Enregistrer
+    </button>
+</div>

@@ -47,6 +47,7 @@ def _get_projet_context_info(projet_id):
         },
         "menu_dict": PROJET_MENU,
         "projet_notes": projet.notes.all(),
+        "dotation_projets": projet.dotationprojet_set.all(),
     }
     return context
 

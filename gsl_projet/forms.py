@@ -3,7 +3,7 @@ from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
 from gsl_projet.constants import DOTATION_CHOICES
-from gsl_projet.models import DotationProjet, Projet, ProjetNote
+from gsl_projet.models import CategorieDetr, DotationProjet, Projet, ProjetNote
 from gsl_projet.services.projet_services import ProjetService
 
 
@@ -81,10 +81,28 @@ class DotationProjetForm(ModelForm, DsfrBaseForm):
         widget=forms.Select(attrs={"form": "dotation_projet_form"}),
     )
 
+    detr_categories = forms.ModelMultipleChoiceField(
+        queryset=CategorieDetr.objects.all(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={"form": "dotation_projet_form"}),
+        label="Catégories d'opération DETR",
+    )
+
+    def clean_detr_avis_commission(self):
+        value = self.cleaned_data.get("detr_avis_commission")
+        if value == "":
+            return None
+        if value == "True":
+            return True
+        if value == "False":
+            return False
+        return value
+
     class Meta:
         model = DotationProjet
         fields = [
             "detr_avis_commission",
+            "detr_categories",
         ]
 
 

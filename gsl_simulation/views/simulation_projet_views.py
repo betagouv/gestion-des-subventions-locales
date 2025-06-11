@@ -284,6 +284,7 @@ def _enrich_simulation_projet_context_with_specific_info_for_main_tab(
             "other_dotation_simu": _get_other_dotation_simulation_projet(
                 simulation_projet
             ),
+            "dotation_projets": simulation_projet.projet.dotationprojet_set.all(),
         }
     )
 

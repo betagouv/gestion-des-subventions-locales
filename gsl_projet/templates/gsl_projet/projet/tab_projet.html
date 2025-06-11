@@ -7,7 +7,7 @@
     <div class="fr-callout__text">
         <ul class="no-list-style">
             <li>
-                <b><span class="blue-color">Numéro de dossier (Démarches Simplifiées)</span> : {{ dossier.ds_number }}</b>
+                <b><span class="blue-color">Numéro de dossier (Démarches Simplifiées)</span> : {{ dossier.ds_number|stringformat:"s" }}</b>
             </li>
             <li>
                 <span aria-hidden="true">📍</span> Département : {{ projet.perimetre.departement.name|default:"-" }}
@@ -26,11 +26,11 @@
             Financements :
         </h6>
 
-        {% if projet.dotationprojet_set.all|length > 1 %}
+        {% if dotation_projets|length > 1 %}
             <ul class="no-list-style">
                 {% include "includes/projet_detail/_projet_financial_informations.html" %}
             </ul>
-            {% for dotation_projet in projet.dotationprojet_set.all %}
+            {% for dotation_projet in dotation_projets %}
                 <p>
                     <b>{{ dotation_projet.dotation }}</b>
                 </p>
@@ -222,13 +222,12 @@
                 <h4 id="detail_financement">
                     Détail du financement
                 </h4>
-                {# todo: justificatif des dépenses prévisionnelles #}
+
                 <p>
                     Le projet va-t-il générer des recettes
                     ? {{ dossier.finance_recettes|yesno:"Oui,Non,Non renseigné" }}
                 </p>
 
-                {# todo: plan de financement détaillé #}
                 <h4 id="dispositifs_sollicites">
                     Dispositifs de financement sollicités
                 </h4>
@@ -240,31 +239,41 @@
                     <b>Dispositif de financement sollicité :</b>
                     {{ dossier.demande_dispositif_sollicite }}
                 </p>
-                {% if dossier.demande_dispositif_sollicite == "DSIL" %}
-                    <p>
-                        <b>Éligibilité de l'opération à la DSIL :</b>
-                    </p>
-                    <ul>
-                        {% for critere in dossier.demande_eligibilite_dsil.all %}
-                            <li>
-                                {{ critere }}
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% elif dossier.demande_dispositif_sollicite == "DETR" %}
-                    <p>
-                        <b>Éligibilité de l'opération à la DETR :</b>
-                    </p>
-                    <ul>
-                        {% for critere in dossier.demande_eligibilite_detr.all %}
-                            <li>
-                                {{ critere }}
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
                 {% block dotations_form %}
                 {% endblock dotations_form %}
+
+                {% for dotation_projet in dotation_projets %}
+                    <p>
+                        <b>Catégories d'opération {{ dotation_projet.dotation }}</b>
+                    </p>
+
+                    {% if dotation_projet.dotation == "DSIL" %}
+                        <p class="fr-text--sm">
+                            <b>Catégories choisies</b>
+                        </p>
+                        {% comment %}TODO use a for loop once categorie DSIL implemented {%endcomment%}
+                        <ul class="fr-text--sm">
+                            {% for critere in dossier.demande_eligibilite_dsil.all %}
+                                <li>
+                                    {{ critere }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% elif dotation_projet.dotation == "DETR" %}
+                        <p class="fr-text--sm">
+                            <b>Catégories choisies</b>
+                        </p>
+                        <ul class="fr-text--sm">
+                            {% for categorie in dotation_projet.detr_categories.all %}
+                                <li>
+                                    {{ categorie.libelle }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        {% block detr_categories_form %}
+                        {% endblock detr_categories_form %}
+                    {% endif %}
+                {% endfor %}
 
                 <h4 id="couts_financement">
                     Coûts de financement
