@@ -81,10 +81,10 @@ class ProjetListViewFilters(ProjetFilters):
             if perimetre.departement:
                 self.filters["categorie_detr"].extra["choices"] = tuple(
                     (c.id, c.libelle)
-                    for c in CategorieDetr.objects.filter(
-                        annee=2025, departement=perimetre.departement
-                    ).order_by("rang")
-                )  # todo année hardcodée
+                    for c in CategorieDetr.objects.most_recent_for_departement(
+                        perimetre.departement
+                    )
+                )
 
     filterset = (
         "territoire",
