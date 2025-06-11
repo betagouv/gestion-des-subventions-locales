@@ -53,11 +53,41 @@
     {% include "includes/forms/_dotations_form.html" %}
 {% endblock dotations_form %}
 
-{% block detr_categories_form %}
-    {% if enveloppe.dotation == 'DETR' %}
-        {% include "includes/forms/_detr_categories_form.html" %}
-    {% endif %}
-{% endblock detr_categories_form %}
+{% block categories %}
+    {% for dotation_projet in dotation_projets %}
+        <p>
+            <b>Catégories d'opération {{ dotation_projet.dotation }}</b>
+        </p>
+
+        {% if dotation_projet.dotation == "DSIL" %}
+            <p class="fr-text--sm">
+                <b>Catégories choisies</b>
+            </p>
+            <ul class="fr-text--sm">
+                {% for critere in dossier.demande_eligibilite_dsil.all %}
+                    <li>
+                        {{ critere }}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% elif dotation_projet.dotation == "DETR" %}
+            <p class="fr-text--sm">
+                <b>Catégories choisies</b>
+            </p>
+            <ul class="fr-text--sm">
+                {% for categorie in dotation_projet.detr_categories.all %}
+                    <li>
+                        {{ categorie.libelle }}
+                    </li>
+                {% endfor %}
+            </ul>
+            {% if enveloppe.dotation == 'DETR' %}
+                {% include "includes/forms/_detr_categories_form.html" %}
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+
+{% endblock categories %}
 
 {% block montants_form %}
     {% if other_dotation_simu %}

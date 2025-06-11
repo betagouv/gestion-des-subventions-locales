@@ -242,38 +242,31 @@
                 {% block dotations_form %}
                 {% endblock dotations_form %}
 
-                {% for dotation_projet in dotation_projets %}
-                    <p>
-                        <b>Catégories d'opération {{ dotation_projet.dotation }}</b>
-                    </p>
+                {% block categories %}
+                    {% for dotation_projet in dotation_projets %}
+                        <p>
+                            <b>Catégories d'opération {{ dotation_projet.dotation }}</b>
+                        </p>
 
-                    {% if dotation_projet.dotation == "DSIL" %}
-                        <p class="fr-text--sm">
-                            <b>Catégories choisies</b>
-                        </p>
-                        {% comment %}TODO use a for loop once categorie DSIL implemented {%endcomment%}
-                        <ul class="fr-text--sm">
-                            {% for critere in dossier.demande_eligibilite_dsil.all %}
-                                <li>
-                                    {{ critere }}
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% elif dotation_projet.dotation == "DETR" %}
-                        <p class="fr-text--sm">
-                            <b>Catégories choisies</b>
-                        </p>
-                        <ul class="fr-text--sm">
-                            {% for categorie in dotation_projet.detr_categories.all %}
-                                <li>
-                                    {{ categorie.libelle }}
-                                </li>
-                            {% endfor %}
-                        </ul>
-                        {% block detr_categories_form %}
-                        {% endblock detr_categories_form %}
-                    {% endif %}
-                {% endfor %}
+                        {% if dotation_projet.dotation == "DSIL" %}
+                            <ul class="fr-text--sm">
+                                {% for critere in dossier.demande_eligibilite_dsil.all %}
+                                    <li>
+                                        {{ critere }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% elif dotation_projet.dotation == "DETR" %}
+                            <ul class="fr-text--sm">
+                                {% for categorie in dotation_projet.detr_categories.all %}
+                                    <li>
+                                        {{ categorie.libelle }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    {% endfor %}
+                {% endblock categories %}
 
                 <h4 id="couts_financement">
                     Coûts de financement
