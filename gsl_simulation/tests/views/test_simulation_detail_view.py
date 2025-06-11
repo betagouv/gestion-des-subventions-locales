@@ -3,7 +3,7 @@ import io
 
 import pytest
 from django.urls import resolve, reverse
-from freezegun import freeze_time
+from django.utils import timezone
 
 from gsl_core.tests.factories import (
     RequestFactory,
@@ -103,7 +103,6 @@ def test_get_other_dotations_simulation_projet_without_other_simulation_projet(
         ("ods", "application/vnd.oasis.opendocument.spreadsheet"),
     ),
 )
-@freeze_time("2025-05-26")
 @pytest.mark.django_db
 def test_get_filter_projets_export_view(export_type, content_type):
     ### Arrange
@@ -124,6 +123,7 @@ def test_get_filter_projets_export_view(export_type, content_type):
     )
     projets = Projet.objects.all()
     assert projets.count() == 5
+    today = timezone.now().strftime("%Y-%m-%d")
 
     ### Act
     req = RequestFactory()
@@ -139,7 +139,7 @@ def test_get_filter_projets_export_view(export_type, content_type):
     ### Assert
     assert response.status_code == 200
     assert response["Content-Disposition"] == (
-        f'attachment; filename="2025-05-26 simulation Ma Simulation.{export_type}"'
+        f'attachment; filename="{today} simulation Ma Simulation.{export_type}"'
     )
     assert response["Content-Type"] == content_type
 

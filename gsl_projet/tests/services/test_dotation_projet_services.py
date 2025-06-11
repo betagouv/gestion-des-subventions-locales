@@ -1,7 +1,6 @@
 from decimal import Decimal
 
 import pytest
-from freezegun import freeze_time
 
 from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
@@ -190,7 +189,7 @@ def simulations_of_previous_year_current_year_and_next_year_for_each_perimetres_
             )
 
 
-@freeze_time("2025-05-06")
+# @freeze_time("2025-05-06")
 @pytest.mark.django_db
 def test_create_simulation_projets_from_dotation_projet_with_a_detr_and_arrondissement_projet(
     perimetres,
@@ -235,7 +234,7 @@ def test_create_simulation_projets_from_dotation_projet_with_a_detr_and_arrondis
     assert last_year_simulation_projets.count() == 0
 
 
-@freeze_time("2025-05-06")
+# @freeze_time("2025-05-06")
 @pytest.mark.django_db
 def test_create_simulation_projets_from_dotation_projet_with_a_dsil_and_departement_projet(
     perimetres,
