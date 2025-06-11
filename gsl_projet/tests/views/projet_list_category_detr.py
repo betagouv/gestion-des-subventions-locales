@@ -67,6 +67,29 @@ def test_project_list_view_has_correct_detr_category_choices_for_departemental_u
     )
 
 
+def test_project_list_view_has_previous_year_category_choices_if_needed(
+    departemental_user,
+):
+    departement = departemental_user.perimetre.departement
+    client = ClientWithLoggedUserFactory(departemental_user)
+    url = reverse("projet:list")
+
+    # should display most recent detr category in the right departement
+    detr_category_displayed = CategorieDetrFactory(annee=2023, departement=departement)
+    wrong_year_category = CategorieDetrFactory(annee=2022, departement=departement)
+    wrong_departement_category = CategorieDetrFactory(
+        annee=2025, departement=DepartementFactory()
+    )
+    response = client.get(url)
+    assert response.status_code == 200
+    assert len(response.context["categorie_detr_choices"]) == 1
+    assert detr_category_displayed in response.context["categorie_detr_choices"]
+    assert all(
+        category not in response.context["categorie_detr_choices"]
+        for category in (wrong_departement_category, wrong_year_category)
+    )
+
+
 def test_project_list_view_regional_user_does_not_see_category_detr_choices(
     regional_user,
 ):

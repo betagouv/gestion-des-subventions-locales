@@ -2,6 +2,7 @@ from django.db.models import Prefetch
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_GET
 from django.views.generic import ListView
 from django_filters.views import FilterView
@@ -170,7 +171,14 @@ class ProjetListView(FilterView, ListView, FilterUtils):
         if not perimetre.departement:
             return ()
 
-        # todo année hardcodée :
-        return CategorieDetr.objects.filter(
-            annee=2025, departement=perimetre.departement
-        ).order_by("rang")
+        # find most recent year with categorieDetr
+        year = timezone.now().year + 1
+        while year > 2020:
+            qs = CategorieDetr.objects.filter(
+                annee=year, departement=perimetre.departement
+            ).order_by("rang")
+            if qs.exists():
+                return qs
+            year = year - 1
+
+        return ()
