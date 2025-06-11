@@ -5,6 +5,7 @@ from django.db import IntegrityError
 from django.forms import ValidationError
 from django_fsm import TransitionNotAllowed
 
+from gsl_core.tests.factories import DepartementFactory, PerimetreFactory
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
@@ -21,8 +22,14 @@ from gsl_projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl_projet.models import DotationProjet
-from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
+from gsl_projet.models import (
+    DotationProjet,
+)
+from gsl_projet.tests.factories import (
+    CategorieDetrFactory,
+    DotationProjetFactory,
+    ProjetFactory,
+)
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationProjetFactory
 
@@ -532,3 +539,29 @@ def test_set_back_status_to_processing_from_other_status_than_accepted_or_refuse
 
     with pytest.raises(TransitionNotAllowed):
         dotation_projet.set_back_status_to_processing()
+
+
+@pytest.mark.django_db
+def test_categorie_detr_departement_constraint():
+    dep1 = DepartementFactory()
+    dep2 = DepartementFactory()
+
+    perimetre = PerimetreFactory(departement=dep1)
+    projet = ProjetFactory(perimetre=perimetre)
+
+    cat_ok = CategorieDetrFactory(
+        libelle="Cat OK", rang=1, annee=2024, departement=dep1
+    )
+    cat_bad = CategorieDetrFactory(
+        libelle="Cat BAD", rang=2, annee=2024, departement=dep2
+    )
+
+    dotation_projet = DotationProjetFactory(projet=projet, dotation="DETR")
+
+    dotation_projet.detr_categories.set([cat_ok])
+    dotation_projet.clean()
+
+    dotation_projet.detr_categories.set([cat_bad])
+    with pytest.raises(ValidationError) as excinfo:
+        dotation_projet.clean()
+    assert "n'appartient pas au même département que le projet" in str(excinfo.value)

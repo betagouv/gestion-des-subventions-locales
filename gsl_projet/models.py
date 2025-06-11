@@ -2,9 +2,9 @@ from datetime import UTC, date, datetime
 from datetime import timezone as tz
 from typing import TYPE_CHECKING, Iterator, Union
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q, UniqueConstraint
-from django.forms import ValidationError
 from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
@@ -270,6 +270,7 @@ class DotationProjet(models.Model):
 
     def clean(self):
         errors = {}
+
         if self.detr_avis_commission is not None:
             if self.dotation == DOTATION_DSIL:
                 errors["detr_avis_commission"] = (
@@ -292,6 +293,17 @@ class DotationProjet(models.Model):
             errors["assiette"] = (
                 "L'assiette ne doit pas être supérieure au coût total du projet."
             )
+
+        projet_departement = (
+            self.projet.perimetre.departement
+            if self.projet and self.projet.perimetre
+            else None
+        )
+        for categorie in self.detr_categories.all():
+            if categorie.departement != projet_departement:
+                errors.setdefault("detr_categories", []).append(
+                    f"La catégorie DETR « {categorie.libelle} » n'appartient pas au même département que le projet."
+                )
 
         if errors:
             raise ValidationError(errors)
