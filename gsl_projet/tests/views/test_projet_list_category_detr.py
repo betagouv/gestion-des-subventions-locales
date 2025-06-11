@@ -113,6 +113,7 @@ def categorie_detr_a(perimetre_arrondissement):
         annee=2025,
         departement=perimetre_arrondissement.departement,
         libelle="Choix A",
+        rang=1,
     )
 
 
@@ -123,13 +124,17 @@ def categorie_detr_b(perimetre_arrondissement):
         annee=2025,
         departement=perimetre_arrondissement.departement,
         libelle="Choix B",
+        rang=2,
     )
 
 
 @pytest.fixture
 def categorie_detr_c(perimetre_arrondissement):
     return CategorieDetrFactory(
-        annee=2025, departement=perimetre_arrondissement.departement, libelle="Choix C"
+        annee=2025,
+        departement=perimetre_arrondissement.departement,
+        libelle="Choix C",
+        rang=3,
     )
 
 
