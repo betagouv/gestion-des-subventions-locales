@@ -208,11 +208,11 @@ def test_add_ordering_to_projets_qs():
 
     assert list(ordered_qs) == [projet1, projet3, projet2]
 
-    ordering = "commune_desc"
+    ordering = "demandeur_desc"
     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
     assert list(ordered_qs) == [projet2, projet1, projet3]
 
-    ordering = "commune_asc"
+    ordering = "demandeur_asc"
     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
     assert list(ordered_qs) == [projet3, projet1, projet2]
 
