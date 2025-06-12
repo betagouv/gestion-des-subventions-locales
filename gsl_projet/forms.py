@@ -96,14 +96,12 @@ class DotationProjetForm(ModelForm):
             self.instance.projet.perimetre.departement if self.instance.projet else None
         )
         if departement is not None:
-            self.fields["detr_categories"].queryset = CategorieDetr.objects.filter(
-                departement=departement
-            )
+            self.fields[
+                "detr_categories"
+            ].queryset = CategorieDetr.objects.most_recent_for_departement(departement)
         else:
-            self.fields["detr_categories"].queryset = CategorieDetr.objects.all()
-        self.fields["detr_categories"].label_from_instance = (
-            lambda obj: f"{obj.rang} - {obj.libelle}"
-        )
+            self.fields["detr_categories"].queryset = CategorieDetr.objects.none()
+        self.fields["detr_categories"].label_from_instance = lambda obj: obj.label
 
     def clean_detr_avis_commission(self):
         value = self.cleaned_data.get("detr_avis_commission")
