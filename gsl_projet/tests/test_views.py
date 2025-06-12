@@ -73,8 +73,8 @@ def view() -> ProjetListView:
         ("date_asc", ("dossier_ds__ds_date_depot",)),
         ("cout_desc", ("-dossier_ds__finance_cout_total",)),
         ("cout_asc", ("dossier_ds__finance_cout_total",)),
-        ("commune_desc", ("-address__commune__name",)),
-        ("commune_asc", ("address__commune__name",)),
+        ("demandeur_desc", ("-demandeur__name",)),
+        ("demandeur_asc", ("demandeur__name",)),
         (None, ("-dossier_ds__ds_date_depot",)),  # Test valeur par défaut
         ("invalid_value", ("-dossier_ds__ds_date_depot",)),  # Test valeur invalide
     ],
@@ -96,14 +96,12 @@ def projets(demandeur) -> list[Projet]:
     projet0 = ProjetFactory(
         dossier_ds__ds_date_depot=timezone.datetime(2024, 9, 1, tzinfo=UTC),
         dossier_ds__finance_cout_total=1000,
-        address__commune__name="Commune A",
-        demandeur=demandeur,
+        demandeur__name="Commune A",
     )
     projet1 = ProjetFactory(
         dossier_ds__ds_date_depot=timezone.datetime(2024, 9, 2, tzinfo=UTC),
         dossier_ds__finance_cout_total=2000,
-        address__commune__name="Commune B",
-        demandeur=demandeur,
+        demandeur__name="Commune B",
     )
     return [projet0, projet1]
 
@@ -115,8 +113,8 @@ def projets(demandeur) -> list[Projet]:
         ("date_asc", "0-1"),
         ("cout_desc", "1-0"),
         ("cout_asc", "0-1"),
-        ("commune_desc", "1-0"),
-        ("commune_asc", "0-1"),
+        ("demandeur_desc", "1-0"),
+        ("demandeur_asc", "0-1"),
         ("", "1-0"),
         ("invalid_value", "1-0"),
     ],

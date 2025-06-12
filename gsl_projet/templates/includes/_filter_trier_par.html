@@ -26,13 +26,13 @@
                 Décroissant
             </option>
         </optgroup>
-        <optgroup label="Commune">
-            <option value="commune_asc"
-                    {% if request.GET.tri == 'commune_asc' %}selected{% endif %}>
+        <optgroup label="Demandeur">
+            <option value="demandeur_asc"
+                    {% if request.GET.tri == 'demandeur_asc' %}selected{% endif %}>
                 A → Z
             </option>
-            <option value="commune_desc"
-                    {% if request.GET.tri == 'commune_desc' %}selected{% endif %}>
+            <option value="demandeur_desc"
+                    {% if request.GET.tri == 'demandeur_desc' %}selected{% endif %}>
                 Z → A
             </option>
         </optgroup>
