@@ -78,8 +78,8 @@ class ProjetService:
             "date_asc": "dossier_ds__ds_date_depot",
             "cout_desc": "-dossier_ds__finance_cout_total",
             "cout_asc": "dossier_ds__finance_cout_total",
-            "demandeur_desc": "-address__commune__name",
-            "demandeur_asc": "address__commune__name",
+            "demandeur_desc": "-demandeur__name",
+            "demandeur_asc": "demandeur__name",
         }
 
         return ordering_map.get(ordering, None)
