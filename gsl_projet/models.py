@@ -206,6 +206,16 @@ class Projet(models.Model):
         except DotationProjet.DoesNotExist:
             return None
 
+    @property
+    def to_notify(self) -> bool:
+        from gsl_programmation.models import ProgrammationProjet
+
+        return ProgrammationProjet.objects.filter(
+            dotation_projet__projet=self,
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            notified_at__isnull=True,
+        ).exists()
+
 
 class DotationProjet(models.Model):
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)

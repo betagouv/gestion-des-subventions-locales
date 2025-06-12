@@ -1,0 +1,12 @@
+.projet-header {
+  display: flex;
+  flex-direction: row;
+  align-items: space-between;
+  gap: 16px;
+}
+
+.projet-header__status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
