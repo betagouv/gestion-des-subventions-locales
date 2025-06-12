@@ -182,6 +182,12 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         self.perimetre = self.simulation.enveloppe.perimetre
         return super().get(request, *args, **kwargs)
 
+    def get_object(self, queryset=None):
+        # surcharge pour éviter les requêtes multiples
+        if hasattr(self, "object") and self.object:
+            return self.object
+        return super().get_object(queryset)
+
     def get_context_data(self, **kwargs):
         simulation = self.simulation
         qs = self.get_projet_queryset()
@@ -244,6 +250,13 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             ),
             "dotation_projet__programmation_projet",
         )
+        if simulation.dotation == DOTATION_DSIL:
+            qs = qs.prefetch_related("dossier_ds__demande_eligibilite_dsil")
+        else:
+            qs = qs.prefetch_related(
+                "dotation_projet__detr_categories",
+            )
+
         qs.distinct()
         return qs
 
@@ -309,9 +322,10 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             .filter(dotation_projet_count__gt=1, id__in=projet_ids)
             .values_list("id", flat=True)
         )
-        if ids_of_double_dotation_projet.count() == 0:
+        if not ids_of_double_dotation_projet:
             return {}
 
+        # Récupère tous les SimulationProjet concernés en une seule requête
         other_simulation_projets = (
             SimulationProjet.objects.select_related(
                 "dotation_projet",
@@ -320,20 +334,24 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             )
             .filter(dotation_projet__projet__id__in=ids_of_double_dotation_projet)
             .exclude(simulation__enveloppe__dotation=current_dotation)
-            .order_by("-updated_at")
+            .order_by("dotation_projet__projet__id", "-updated_at")
         )
-
-        projet_id_to_last_updated_other_dotation_simulation_projet: dict[
-            int, SimulationProjet
-        ] = {}
-
-        for projet_id in ids_of_double_dotation_projet:
-            last_updated_simulation_projets = other_simulation_projets.filter(
-                dotation_projet__projet__pk=projet_id
-            ).first()
-            projet_id_to_last_updated_other_dotation_simulation_projet[projet_id] = (
-                last_updated_simulation_projets
+        if current_dotation == DOTATION_DSIL:
+            other_simulation_projets = other_simulation_projets.prefetch_related(
+                "dotation_projet__detr_categories"
             )
+        else:
+            other_simulation_projets = other_simulation_projets.prefetch_related(
+                "dotation_projet__projet__dossier_ds__demande_eligibilite_dsil",
+            )
+
+        # On ne garde que le SimulationProjet le plus récent pour chaque projet_id
+        projet_id_to_last_updated_other_dotation_simulation_projet = {}
+        for sp in other_simulation_projets:
+            pid = sp.dotation_projet.projet_id
+            if pid not in projet_id_to_last_updated_other_dotation_simulation_projet:
+                projet_id_to_last_updated_other_dotation_simulation_projet[pid] = sp
+
         return projet_id_to_last_updated_other_dotation_simulation_projet
 
     # This method is used to prevent caching of the page
