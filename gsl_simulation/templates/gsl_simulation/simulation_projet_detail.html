@@ -19,7 +19,7 @@
 
 {% block status_badge %}
     <span class="fr-badge fr-text--xl fr-mt-2v fr-ml-5w badge-projet-status__{{ simu.status }}">{{ simu.get_status_display|remove_first_word }}</span>
-    {% if dotation_projet.status == 'accepted' and dotation_projet.programmation_projet.to_notify %}
+    {% if dotation_projet.programmation_projet.to_notify %}
         <span class="fr-text--xl fr-mt-2v projet__to_notify">À notifier <span class="fr-icon-mail-fill"></span></span>
     {% endif %}
 {% endblock status_badge %}

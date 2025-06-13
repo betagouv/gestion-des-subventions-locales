@@ -28,6 +28,13 @@
         </h2>
 
         {% include "includes/forms/_status_form.html" %}
+
+        {% if dotation_projet.programmation_projet.to_notify %}
+            <button class="fr-mb-2w fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
+                    id="to_notify_button">
+                Notifier le demandeur
+            </button>
+        {% endif %}
     </div>
 {% endblock status_action %}
 
