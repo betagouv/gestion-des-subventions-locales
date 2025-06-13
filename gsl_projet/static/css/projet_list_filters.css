@@ -87,8 +87,8 @@
   padding-top: 6px;
 }
 
-.filter-field > select,
-.filter-field > button {
+.filter-field > .gsl-dropdown > select,
+.filter-field > .gsl-dropdown > button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
