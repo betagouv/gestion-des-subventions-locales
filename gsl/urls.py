@@ -24,6 +24,10 @@ urlpatterns = [
         "simulation/",
         include(("gsl_simulation.urls", "gsl_simulation"), "simulation"),
     ),
+    path(
+        "notification/",
+        include(("gsl_notification.urls", "gsl_notification"), "notification"),
+    ),
 ]
 
 if settings.DEBUG:

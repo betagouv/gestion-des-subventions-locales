@@ -1,0 +1,12 @@
+.form-container {
+  border: 1px solid var(--background-action-low-blue-france-active);
+  padding: 4vw;
+}
+
+#arrete-signe-form {
+  margin-top: 2vw;
+}
+
+.hidden {
+  display: none;
+}
