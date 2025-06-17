@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime
 from datetime import timezone as tz
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterator, Union
 
 from django.db import models
 from django.db.models import Q, UniqueConstraint
@@ -24,6 +24,7 @@ from gsl_projet.constants import (
 )
 
 if TYPE_CHECKING:
+    from gsl_demarches_simplifiees.models import CritereEligibiliteDsil, Dossier
     from gsl_programmation.models import Enveloppe
 
 
@@ -189,7 +190,9 @@ class Projet(models.Model):
         )
 
     @property
-    def categorie_doperation(self):
+    def categories_doperation(
+        self,
+    ) -> Iterator[Union["CategorieDetr", "CritereEligibiliteDsil"]]:
         if self.dotation_detr:
             yield from self.dotation_detr.detr_categories.all()
         if DOTATION_DSIL in self.dossier_ds.demande_dispositif_sollicite:
