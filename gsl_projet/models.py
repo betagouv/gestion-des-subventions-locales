@@ -47,6 +47,11 @@ class CategorieDetr(models.Model):
     departement = models.ForeignKey(
         Departement, verbose_name="Département", on_delete=models.PROTECT
     )
+    is_current = models.BooleanField(
+        "Actuelle",
+        help_text="Indique si cette catégorie est utilisable sur la campagne actuelle ou non",
+        default=False,
+    )
 
     objects = CategorieDetrQueryset.as_manager()
 

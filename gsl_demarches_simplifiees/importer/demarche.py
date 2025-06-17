@@ -180,16 +180,24 @@ def extract_categories_operation_detr(demarche_data: dict, demarche: Demarche):
     if not year:
         return
 
+    current_detr_category_ids = set()
     for sort_order, label in enumerate(options, 1):
-        detr_cat, _ = CategorieDetr.objects.get_or_create(
+        detr_cat, _ = CategorieDetr.objects.update_or_create(
             departement=departement,
             rang=sort_order,
             annee=year,
-            defaults={"libelle": label},
+            defaults={"libelle": label, "is_current": True},
         )
+        current_detr_category_ids.add(detr_cat.id)
         CritereEligibiliteDetr.objects.update_or_create(
             label=label,
             demarche=demarche,
             demarche_revision=demarche_data["activeRevision"]["id"],
             defaults={"detr_category": detr_cat},
         )
+    # tout ce qui est dans le même département mais
+    # n'est pas dans current_detr_categories :
+    # on passe current à false
+    CategorieDetr.objects.exclude(id__in=current_detr_category_ids).filter(
+        departement=departement
+    ).update(is_current=False)
