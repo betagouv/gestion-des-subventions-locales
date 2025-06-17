@@ -79,12 +79,14 @@ INSTALLED_APPS = [
     "django_htmx",
     "django_filters",
     "django_extensions",
+    "storages",
     # gsl apps:
     "gsl_core",
     "gsl_demarches_simplifiees",
     "gsl_projet",
     "gsl_programmation",
     "gsl_simulation",
+    "gsl_notification",
     "gsl_pages",
     "gsl_oidc",
 ]
@@ -135,6 +137,17 @@ TEMPLATES = [
         },
     },
 ]
+
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {},
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
 
 WSGI_APPLICATION = "gsl.wsgi.application"
 
@@ -265,3 +278,22 @@ CONTENT_SECURITY_POLICY_REPORT_ONLY = {}
 # syntax coloring queries in django-query-counters.
 # see https://pygments.org/demo/
 DQC_PYGMENTS_STYLE = os.getenv("DQC_PYGMENTS_STYLE", "monokai")
+
+
+# Storage
+USE_S3 = (
+    os.getenv("SCALEWAY_S3_KEY")
+    and os.getenv("SCALEWAY_S3_SECRET")
+    and os.getenv("SCALEWAY_BUCKET")
+)
+
+if USE_S3:
+    AWS_ACCESS_KEY_ID = os.getenv("SCALEWAY_S3_KEY")
+    AWS_SECRET_ACCESS_KEY = os.getenv("SCALEWAY_S3_SECRET")
+    AWS_STORAGE_BUCKET_NAME = os.getenv("SCALEWAY_BUCKET")
+    AWS_S3_REGION_NAME = os.getenv("SCALEWAY_S3_REGION", "fr-par")
+    AWS_S3_ENDPOINT_URL = f"https://s3.{AWS_S3_REGION_NAME}.scw.cloud"
+    AWS_S3_ADDRESSING_STYLE = "path"
+    AWS_QUERYSTRING_AUTH = False
+else:
+    print("⚠️  Stockage S3 désactivé : variables Scaleway manquantes.")
