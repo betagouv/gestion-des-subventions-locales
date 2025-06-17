@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404, redirect, render
 
 from gsl_notification.forms import ArreteSigneForm
+from gsl_notification.models import ArreteSigne
 from gsl_programmation.models import ProgrammationProjet
 
 
@@ -19,6 +20,7 @@ def create_arrete_view(request, programmation_projet_id):
         form = ArreteSigneForm(request.POST, request.FILES)
         if form.is_valid():
             form.instance.programmation_projet = programmation_projet
+            form.instance.created_by = request.user
             form.save()
             return redirect("gsl_notification:get-arrete", pk=programmation_projet.id)
     else:
@@ -46,8 +48,9 @@ def get_arrete_view(request, programmation_projet_id):
         ProgrammationProjet,
         id=programmation_projet_id,
     )
-    arrete_signe = programmation_projet.arrete_signe
-    if not arrete_signe:
+    try:
+        arrete_signe = programmation_projet.arrete_signe
+    except ArreteSigne.DoesNotExist:
         return redirect(
             "gsl_notification:create-arrete",
             programmation_projet_id=programmation_projet.id,

@@ -10,3 +10,20 @@
 .hidden {
   display: none;
 }
+
+.arrete-card {
+  border: 1px solid var(--border-default-grey);
+  padding: 1rem;
+  width: fit-content;
+  max-width: 300px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.arrete-card > img {
+  max-width: 150px;
+  max-height: fit-content;
+  margin-bottom: 1rem;
+}
