@@ -39,7 +39,11 @@
             Ajouter l’arrêté déjà prêt et signé
         </button>
 
-        {{ arrete_signe.file.name }}
+        <p>
+            {{ arrete_signe.name }} -
+            {{ arrete_signe.type|upper }} -
+            {{ arrete_signe.size|filesizeformat }}
+        </p>
 
     </div>
 {% endblock content %}
