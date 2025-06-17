@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Iterator, Union
 from django.db import models
 from django.db.models import Q, UniqueConstraint
 from django.forms import ValidationError
-from django.utils import timezone
 from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
@@ -29,15 +28,8 @@ if TYPE_CHECKING:
 
 
 class CategorieDetrQueryset(models.QuerySet):
-    def most_recent_for_departement(self, departement: Departement):
-        annee = timezone.now().year
-        while annee > 2022:
-            qs = self.filter(departement=departement, annee=annee)
-            if qs.exists():
-                return qs
-
-            annee = annee - 1
-        return self.none()
+    def current_for_departement(self, departement: Departement):
+        return self.filter(departement=departement, is_current=True)
 
 
 class CategorieDetr(models.Model):

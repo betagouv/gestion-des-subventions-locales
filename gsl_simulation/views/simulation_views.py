@@ -82,7 +82,7 @@ class SimulationProjetListViewFilters(ProjetFilters):
             )
             self.filters["categorie_detr"].extra["choices"] = tuple(
                 (c.id, c.libelle)
-                for c in CategorieDetr.objects.most_recent_for_departement(
+                for c in CategorieDetr.objects.current_for_departement(
                     perimetre.departement
                 )
             )
@@ -295,7 +295,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             return []
 
         return tuple(
-            CategorieDetr.objects.most_recent_for_departement(
+            CategorieDetr.objects.current_for_departement(
                 simulation.enveloppe.perimetre.departement
             ).all()
         )

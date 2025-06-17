@@ -81,7 +81,7 @@ class ProjetListViewFilters(ProjetFilters):
             if perimetre.departement:
                 self.filters["categorie_detr"].extra["choices"] = tuple(
                     (c.id, c.libelle)
-                    for c in CategorieDetr.objects.most_recent_for_departement(
+                    for c in CategorieDetr.objects.current_for_departement(
                         perimetre.departement
                     )
                 )
@@ -173,4 +173,4 @@ class ProjetListView(FilterView, ListView, FilterUtils):
         if not perimetre.departement:
             return ()
 
-        return CategorieDetr.objects.most_recent_for_departement(perimetre.departement)
+        return CategorieDetr.objects.current_for_departement(perimetre.departement)

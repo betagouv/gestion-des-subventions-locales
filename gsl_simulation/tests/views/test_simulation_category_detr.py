@@ -65,10 +65,16 @@ def test_simulation_view_has_correct_detr_category_choices_for_departemental_use
     client = ClientWithLoggedUserFactory(departemental_user)
     url = simulation.get_absolute_url()
 
-    detr_category_displayed = CategorieDetrFactory(annee=2025, departement=departement)
-    wrong_year_category = CategorieDetrFactory(annee=2023, departement=departement)
+    detr_category_displayed = CategorieDetrFactory(
+        annee=2025, departement=departement, is_current=True
+    )
+    wrong_year_category = CategorieDetrFactory(
+        annee=2023, departement=departement, is_current=False
+    )
     wrong_departement_category = CategorieDetrFactory(
-        annee=2025, departement=DepartementFactory()
+        annee=2025,
+        departement=DepartementFactory(),
+        is_current=True,
     )
     response = client.get(url)
     assert response.status_code == 200
@@ -88,10 +94,16 @@ def test_project_list_view_has_previous_year_category_choices_if_needed(
     url = simulation.get_absolute_url()
 
     # should display most recent detr category in the right departement
-    detr_category_displayed = CategorieDetrFactory(annee=2024, departement=departement)
-    wrong_year_category = CategorieDetrFactory(annee=2023, departement=departement)
+    detr_category_displayed = CategorieDetrFactory(
+        annee=2024, departement=departement, is_current=True
+    )
+    wrong_year_category = CategorieDetrFactory(
+        annee=2023, departement=departement, is_current=False
+    )
     wrong_departement_category = CategorieDetrFactory(
-        annee=2025, departement=DepartementFactory()
+        annee=2025,
+        departement=DepartementFactory(),
+        is_current=True,
     )
     response = client.get(url)
     assert response.status_code == 200
@@ -111,6 +123,7 @@ def categorie_detr_a(perimetre_arrondissement):
         departement=perimetre_arrondissement.departement,
         libelle="Choix A",
         rang=1,
+        is_current=True,
     )
 
 
@@ -122,6 +135,7 @@ def categorie_detr_b(perimetre_arrondissement):
         departement=perimetre_arrondissement.departement,
         libelle="Choix B",
         rang=2,
+        is_current=True,
     )
 
 
@@ -132,6 +146,7 @@ def categorie_detr_c(perimetre_arrondissement):
         departement=perimetre_arrondissement.departement,
         libelle="Choix C",
         rang=3,
+        is_current=True,
     )
 
 
