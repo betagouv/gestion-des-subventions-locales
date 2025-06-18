@@ -201,9 +201,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-USE_THOUSAND_SEPARATOR = True
-THOUSAND_SEPARATOR = " "
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
@@ -293,7 +290,7 @@ if USE_S3:
     AWS_STORAGE_BUCKET_NAME = os.getenv("SCALEWAY_BUCKET")
     AWS_S3_REGION_NAME = os.getenv("SCALEWAY_S3_REGION", "fr-par")
     AWS_S3_ENDPOINT_URL = f"https://s3.{AWS_S3_REGION_NAME}.scw.cloud"
-    AWS_S3_ADDRESSING_STYLE = "path"
-    AWS_QUERYSTRING_AUTH = False
+    # AWS_S3_ADDRESSING_STYLE = "path"
+    # AWS_QUERYSTRING_AUTH = False
 else:
     print("⚠️  Stockage S3 désactivé : variables Scaleway manquantes.")
