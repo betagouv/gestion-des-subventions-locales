@@ -1,0 +1,34 @@
+{% if categorie_detr_choices|length > 1 %}
+    <div class="filter-field fr-col-12 fr-col-md-4 fr-col-lg-2">
+        <div class="gsl-dropdown">
+            <label class="fr-label" id="filter_categorie_detr_label">
+                <span class="fr-sr-only">Filtrer par</span>
+                Catégorie DETR
+            </label>
+            <button type="button"
+                    class="fr-select {% if is_categorie_detr_active %}filter-dropdown-button-active{% endif %}">
+                {{ categorie_detr_placeholder }}
+            </button>
+            <div id="filter-categorie_detr"
+                 class="gsl-dropdown-content"
+                 role="group"
+                 aria-describedby="filter_categorie_detr_label">
+                {% for categorie in categorie_detr_choices %}
+                    <div class="fr-checkbox-group fr-checkbox-group--sm">
+                        <input type="checkbox"
+                               name="categorie_detr"
+                               value="{{ categorie.id }}"
+                               id="id_categorie_detr_{{ forloop.counter }}"
+                               {% if categorie.id in categorie_detr_selected %}checked{% endif %}>
+                        <label for="id_categorie_detr_{{ forloop.counter }}" class="fr-label">
+                            {{ categorie.libelle }}
+                        </label>
+                    </div>
+                {% endfor %}
+                <button type="submit" class="fr-btn fr-btn--sm stick-to-bottom">
+                    Filtrer
+                </button>
+            </div>
+        </div>
+    </div>
+{% endif %}

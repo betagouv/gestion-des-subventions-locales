@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime
 from datetime import timezone as tz
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterator, Union
 
 from django.db import models
 from django.db.models import Q, UniqueConstraint
@@ -23,7 +23,13 @@ from gsl_projet.constants import (
 )
 
 if TYPE_CHECKING:
+    from gsl_demarches_simplifiees.models import CritereEligibiliteDsil, Dossier
     from gsl_programmation.models import Enveloppe
+
+
+class CategorieDetrQueryset(models.QuerySet):
+    def current_for_departement(self, departement: Departement):
+        return self.filter(departement=departement, is_current=True)
 
 
 class CategorieDetr(models.Model):
@@ -33,6 +39,13 @@ class CategorieDetr(models.Model):
     departement = models.ForeignKey(
         Departement, verbose_name="Département", on_delete=models.PROTECT
     )
+    is_current = models.BooleanField(
+        "Actuelle",
+        help_text="Indique si cette catégorie est utilisable sur la campagne actuelle ou non",
+        default=False,
+    )
+
+    objects = CategorieDetrQueryset.as_manager()
 
     class Meta:
         verbose_name = "Catégorie DETR"
@@ -174,9 +187,11 @@ class Projet(models.Model):
         )
 
     @property
-    def categorie_doperation(self):
-        if DOTATION_DETR in self.dossier_ds.demande_dispositif_sollicite:
-            yield from self.dossier_ds.demande_eligibilite_detr.all()
+    def categories_doperation(
+        self,
+    ) -> Iterator[Union["CategorieDetr", "CritereEligibiliteDsil"]]:
+        if self.dotation_detr:
+            yield from self.dotation_detr.detr_categories.all()
         if DOTATION_DSIL in self.dossier_ds.demande_dispositif_sollicite:
             yield from self.dossier_ds.demande_eligibilite_dsil.all()
 
@@ -194,17 +209,15 @@ class Projet(models.Model):
 
     @property
     def dotation_detr(self):
-        try:
-            return self.dotationprojet_set.get(dotation=DOTATION_DETR)
-        except DotationProjet.DoesNotExist:
-            return None
+        for dp in self.dotationprojet_set.all():
+            if dp.dotation == DOTATION_DETR:
+                return dp
 
     @property
     def dotation_dsil(self):
-        try:
-            return self.dotationprojet_set.get(dotation=DOTATION_DSIL)
-        except DotationProjet.DoesNotExist:
-            return None
+        for dp in self.dotationprojet_set.all():
+            if dp.dotation == DOTATION_DSIL:
+                return dp
 
     @property
     def to_notify(self) -> bool:

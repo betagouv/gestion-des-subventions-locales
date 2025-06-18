@@ -1,4 +1,5 @@
 from datetime import date
+from functools import cached_property
 
 from django.core.paginator import Paginator
 from django.db.models import Count, Prefetch, QuerySet, Sum
@@ -14,8 +15,8 @@ from django_filters.views import FilterView
 from gsl_core.models import Perimetre
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.services.enveloppe_service import EnveloppeService
-from gsl_projet.constants import DOTATION_DSIL, DOTATIONS
-from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, DOTATIONS
+from gsl_projet.models import CategorieDetr, DotationProjet, Projet
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
 from gsl_projet.utils.filter_utils import FilterUtils
@@ -79,6 +80,12 @@ class SimulationProjetListViewFilters(ProjetFilters):
             self.filters["territoire"].extra["choices"] = tuple(
                 (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
             )
+            self.filters["categorie_detr"].extra["choices"] = tuple(
+                (c.id, c.libelle)
+                for c in CategorieDetr.objects.current_for_departement(
+                    perimetre.departement
+                )
+            )
 
     filterset = (
         "territoire",
@@ -87,6 +94,7 @@ class SimulationProjetListViewFilters(ProjetFilters):
         "cout_total",
         "montant_demande",
         "montant_previsionnel",
+        "categorie_detr",
     )
 
     ordered_status = (
@@ -279,6 +287,18 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
     def _get_territoire_choices(self):
         perimetre = self.perimetre
         return (perimetre, *perimetre.children())
+
+    @cached_property
+    def categorie_detr_choices(self):
+        simulation = self.get_object()
+        if simulation.dotation != DOTATION_DETR:
+            return []
+
+        return tuple(
+            CategorieDetr.objects.current_for_departement(
+                simulation.enveloppe.perimetre.departement
+            ).all()
+        )
 
     def _get_other_dotations_simulation_projet(
         self, projets: QuerySet[Projet], current_dotation: str

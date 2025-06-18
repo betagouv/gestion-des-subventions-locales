@@ -36,11 +36,9 @@
             {% include "includes/table_forms/_taux_form.html" %}
         </td>
         <td>
-            <select class="fr-select gsl-projet-table__select" name="" id="">
-                <option value="">
-                    {{ projet.categorie_doperation.first }}
-                </option>
-            </select>
+            {% for c in projet.categories_doperation %}
+                {{ c }}
+            {% endfor %}
         </td>
         <td class="simulation-status">
             {% include "includes/table_forms/_status_form.html" %}
