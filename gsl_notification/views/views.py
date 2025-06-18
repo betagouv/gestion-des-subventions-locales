@@ -10,51 +10,11 @@ from gsl_notification.models import ArreteSigne
 from gsl_notification.utils import (
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
+from gsl_notification.views.decorators import (
+    arrete_visible_by_user,
+    programmation_projet_visible_by_user,
+)
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.models import Projet
-
-## decorators (to move ??)
-
-
-def programmation_projet_visible_by_user(func):
-    def wrapper(*args, **kwargs):
-        user = args[0].user
-        if user.is_staff:
-            return func(*args, **kwargs)
-
-        programmation_projet = get_object_or_404(
-            ProgrammationProjet, id=kwargs["programmation_projet_id"]
-        )
-        projet = programmation_projet.projet
-        is_projet_visible_by_user = (
-            Projet.objects.for_user(user).filter(id=projet.id).exists()
-        )
-        if not is_projet_visible_by_user:
-            raise Http404("No %s matches the given query." % Projet._meta.object_name)
-
-        return func(*args, **kwargs)
-
-    return wrapper
-
-
-def arrete_visible_by_user(func):
-    def wrapper(*args, **kwargs):
-        user = args[0].user
-        if user.is_staff:
-            return func(*args, **kwargs)
-
-        arrete = get_object_or_404(ArreteSigne, id=kwargs["arrete_signe_id"])
-        projet = arrete.programmation_projet.projet
-        is_projet_visible_by_user = (
-            Projet.objects.for_user(user).filter(id=projet.id).exists()
-        )
-        if not is_projet_visible_by_user:
-            raise Http404("No %s matches the given query." % Projet._meta.object_name)
-
-        return func(*args, **kwargs)
-
-    return wrapper
-
 
 ## views
 
@@ -92,19 +52,11 @@ def create_arrete_view(request, programmation_projet_id):
         form = ArreteSigneForm()
 
     context = {
-        "programmation_projet": programmation_projet,
         "form": form,
-        "projet": programmation_projet.projet,
-        "source_simulation_projet_id": request.GET.get(
-            "source_simulation_projet_id", None
-        ),
-        "stepper_dict": {
-            "current_step_id": 1,
-            "current_step_title": "1 - Création de l’arrêté",
-            "next_step_title": "Ajout de la lettre de notification",
-            "total_steps": 5,
-        },
     }
+    context = _enrich_context_for_create_or_get_arrete_view(
+        context, programmation_projet, request
+    )
     return render(request, "create_arrete.html", context=context)
 
 
@@ -122,20 +74,10 @@ def get_arrete_view(request, programmation_projet_id):
             "gsl_notification:create-arrete",
             programmation_projet_id=programmation_projet.id,
         )
-    context = {
-        "programmation_projet": programmation_projet,
-        "arrete_signe": arrete_signe,
-        "projet": programmation_projet.projet,
-        "source_simulation_projet_id": request.GET.get(
-            "source_simulation_projet_id", None
-        ),
-        "stepper_dict": {
-            "current_step_id": 1,
-            "current_step_title": "1 - Création de l’arrêté",
-            "next_step_title": "Ajout de la lettre de notification",
-            "total_steps": 5,
-        },
-    }
+    context = {"arrete_signe": arrete_signe}
+    context = _enrich_context_for_create_or_get_arrete_view(
+        context, programmation_projet, request
+    )
     return render(request, "get_arrete.html", context=context)
 
 
@@ -179,3 +121,20 @@ def _redirect_to_get_arrete_view(
     if source_simulation_projet_id:
         url += f"?source_simulation_projet_id={source_simulation_projet_id}"
     return redirect(url)
+
+
+def _enrich_context_for_create_or_get_arrete_view(
+    context, programmation_projet, request
+):
+    context["stepper_dict"] = {
+        "current_step_id": 1,
+        "current_step_title": "1 - Création de l’arrêté",
+        "next_step_title": "Ajout de la lettre de notification",
+        "total_steps": 5,
+    }
+    context["programmation_projet"] = programmation_projet
+    context["projet"] = programmation_projet.projet
+    context["source_simulation_projet_id"] = request.GET.get(
+        "source_simulation_projet_id", None
+    )
+    return context
