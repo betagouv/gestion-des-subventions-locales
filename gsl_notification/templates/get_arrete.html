@@ -7,7 +7,6 @@
 
 {% block content %}
     {% if source_simulation_projet_id %}
-
         <a class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-arrow-left-s-line fr-mb-2w"
            href="{% url 'simulation:simulation-projet-detail' source_simulation_projet_id %}">
             Retour au projet
@@ -20,7 +19,7 @@
         <span class="blue-color">Projet :</span> {{ projet.dossier_ds.projet_intitule }}
     </h2>
 
-    <div class="form-container">
+    <div class="arrete-container">
         {% dsfr_stepper stepper_dict %}
         <h3>
             Génération de l'arrêté
@@ -55,6 +54,20 @@
             </div>
         </div>
 
+        <div class="next-step-buttons">
+            {% if source_simulation_projet_id %}
+                {% url 'simulation:simulation-projet-detail' source_simulation_projet_id as go_back_url %}
+            {% else %}
+                {% url 'projet:list' as go_back_url %}
+            {% endif %}
+            <a class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-save-line"
+               href="{{ go_back_url }}">
+                Enregistrer et revenir plus tard
+            </a>
+            <button class="fr-btn fr-btn--icon-right fr-icon-arrow-right-s-line" disabled>
+                Suivant
+            </button>
+        </div>
     </div>
 {% endblock content %}
 

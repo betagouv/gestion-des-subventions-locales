@@ -1,10 +1,10 @@
-.form-container {
+.arrete-container {
   border: 1px solid var(--background-action-low-blue-france-active);
-  padding: 4vw;
+  padding: 2rem 4rem;
 }
 
 #arrete-signe-form {
-  margin-top: 2vw;
+  margin-top: 2rem;
 }
 
 .hidden {
@@ -26,4 +26,12 @@
   max-width: 150px;
   max-height: fit-content;
   margin-bottom: 1rem;
+}
+
+.next-step-buttons {
+  display: flex;
+  justify-content: end;
+  gap: 8px;
+  align-items: center;
+  margin-top:1rem;
 }
