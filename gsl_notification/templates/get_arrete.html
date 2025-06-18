@@ -43,7 +43,8 @@
                  src="{% static 'img/arrete_vignette.png' %}"
                  alt="Image d'un arrêté">
             <div>
-                <a class="fr-link fr-link--download" href="{{ arrete_signe.file.url }}">
+                <a class="fr-link fr-link--download"
+                   href="{% url 'notification:arrete_signe_download' arrete_signe.id %}">
                     {{ arrete_signe.name }} -
                     {{ arrete_signe.type|upper }} -
                     {{ arrete_signe.size|filesizeformat }}

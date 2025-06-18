@@ -1,6 +1,9 @@
+import boto3
+from django.http import Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
+from gsl import settings
 from gsl_notification.forms import ArreteSigneForm
 from gsl_notification.models import ArreteSigne
 from gsl_notification.utils import (
@@ -84,6 +87,35 @@ def get_arrete_view(request, programmation_projet_id):
         },
     }
     return render(request, "get_arrete.html", context=context)
+
+
+# TODO add restrictions !
+def download_arrete_signe(request, arrete_signe_id):
+    from gsl_notification.models import ArreteSigne
+
+    arrete = ArreteSigne.objects.get(id=arrete_signe_id)
+    s3 = boto3.client(
+        "s3",
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        region_name=settings.AWS_S3_REGION_NAME,
+        endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+    )
+    bucket = settings.AWS_STORAGE_BUCKET_NAME
+    key = arrete.file.name
+
+    try:
+        s3_response = s3.get_object(Bucket=bucket, Key=key)
+        response = StreamingHttpResponse(
+            iter(s3_response["Body"].iter_chunks()),
+            content_type=s3_response["ContentType"],
+        )
+        response["Content-Disposition"] = (
+            f'attachment; filename="{arrete.file.name.split("/")[-1]}"'
+        )
+        return response
+    except s3.exceptions.NoSuchKey:
+        raise Http404("Fichier non trouvé")
 
 
 def _redirect_to_get_arrete_view(
