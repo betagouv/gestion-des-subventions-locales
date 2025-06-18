@@ -2,6 +2,7 @@ import boto3
 from django.http import Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.views.decorators.http import require_GET
 
 from gsl import settings
 from gsl_notification.forms import ArreteSigneForm
@@ -10,8 +11,55 @@ from gsl_notification.utils import (
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
 from gsl_programmation.models import ProgrammationProjet
+from gsl_projet.models import Projet
+
+## decorators (to move ??)
 
 
+def programmation_projet_visible_by_user(func):
+    def wrapper(*args, **kwargs):
+        user = args[0].user
+        if user.is_staff:
+            return func(*args, **kwargs)
+
+        programmation_projet = get_object_or_404(
+            ProgrammationProjet, id=kwargs["programmation_projet_id"]
+        )
+        projet = programmation_projet.projet
+        is_projet_visible_by_user = (
+            Projet.objects.for_user(user).filter(id=projet.id).exists()
+        )
+        if not is_projet_visible_by_user:
+            raise Http404("No %s matches the given query." % Projet._meta.object_name)
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+def arrete_visible_by_user(func):
+    def wrapper(*args, **kwargs):
+        user = args[0].user
+        if user.is_staff:
+            return func(*args, **kwargs)
+
+        arrete = get_object_or_404(ArreteSigne, id=kwargs["arrete_signe_id"])
+        projet = arrete.programmation_projet.projet
+        is_projet_visible_by_user = (
+            Projet.objects.for_user(user).filter(id=projet.id).exists()
+        )
+        if not is_projet_visible_by_user:
+            raise Http404("No %s matches the given query." % Projet._meta.object_name)
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+## views
+
+
+@programmation_projet_visible_by_user
 def create_arrete_view(request, programmation_projet_id):
     programmation_projet = get_object_or_404(
         ProgrammationProjet,
@@ -60,6 +108,8 @@ def create_arrete_view(request, programmation_projet_id):
     return render(request, "create_arrete.html", context=context)
 
 
+@programmation_projet_visible_by_user
+@require_GET
 def get_arrete_view(request, programmation_projet_id):
     programmation_projet = get_object_or_404(
         ProgrammationProjet,
@@ -89,11 +139,12 @@ def get_arrete_view(request, programmation_projet_id):
     return render(request, "get_arrete.html", context=context)
 
 
-# TODO add restrictions !
+@arrete_visible_by_user
+@require_GET
 def download_arrete_signe(request, arrete_signe_id):
     from gsl_notification.models import ArreteSigne
 
-    arrete = ArreteSigne.objects.get(id=arrete_signe_id)
+    arrete = get_object_or_404(ArreteSigne, id=arrete_signe_id)
     s3 = boto3.client(
         "s3",
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,

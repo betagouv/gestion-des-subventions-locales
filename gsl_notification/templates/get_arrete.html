@@ -44,14 +44,14 @@
                  alt="Image d'un arrêté">
             <div>
                 <a class="fr-link fr-link--download"
-                   href="{% url 'notification:arrete_signe_download' arrete_signe.id %}">
+                   href="{% url 'notification:arrete-signe-download' arrete_signe.id %}">
                     {{ arrete_signe.name }} -
                     {{ arrete_signe.type|upper }} -
                     {{ arrete_signe.size|filesizeformat }}
                 </a>
             </div>
             <div>
-                Ajoutée le {{ arrete_signe.uploaded_at|date:"d/m/Y" }} à {{ arrete_signe.uploaded_at|time:"H:i" }} par {{ arrete_signe.created_by }}
+                Ajoutée le {{ arrete_signe.created_at|date:"d/m/Y" }} à {{ arrete_signe.created_at|time:"H:i" }} par {{ arrete_signe.created_by }}
             </div>
         </div>
 
