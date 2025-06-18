@@ -98,7 +98,7 @@ class DotationProjetForm(ModelForm):
         if departement is not None:
             self.fields[
                 "detr_categories"
-            ].queryset = CategorieDetr.objects.most_recent_for_departement(departement)
+            ].queryset = CategorieDetr.objects.current_for_departement(departement)
         else:
             self.fields["detr_categories"].queryset = CategorieDetr.objects.none()
         self.fields["detr_categories"].label_from_instance = lambda obj: obj.label

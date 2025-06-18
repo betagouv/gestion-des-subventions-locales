@@ -40,7 +40,7 @@ def test_get_current_categories_for_departement(departement, some_categories_det
 
 def test_categorie_detr_label():
     categorie = CategorieDetrFactory.build(libelle="Test Category", rang=1)
-    assert categorie.label() == "1 - Test Category"
+    assert categorie.label == "1 - Test Category"
 
     categorie = CategorieDetrFactory.build(libelle="2° Test Category", rang=1)
-    assert categorie.label() == "2° Test Category"
+    assert categorie.label == "2° Test Category"
