@@ -26,8 +26,9 @@ def create_arrete_view(request, programmation_projet_id):
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
+    source_simulation_projet_id = request.GET.get("source_simulation_projet_id")
+
     if hasattr(programmation_projet, "arrete_signe"):
-        source_simulation_projet_id = request.GET.get("source_simulation_projet_id")
         return _redirect_to_get_arrete_view(
             request, programmation_projet.id, source_simulation_projet_id
         )
@@ -42,9 +43,6 @@ def create_arrete_view(request, programmation_projet_id):
             )
             form.save()
 
-            source_simulation_projet_id = request.POST.get(
-                "source_simulation_projet_id"
-            )
             return _redirect_to_get_arrete_view(
                 request, programmation_projet.id, source_simulation_projet_id
             )
@@ -57,7 +55,7 @@ def create_arrete_view(request, programmation_projet_id):
     context = _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
     )
-    return render(request, "create_arrete.html", context=context)
+    return render(request, "gsl_notification/create_arrete.html", context=context)
 
 
 @programmation_projet_visible_by_user
@@ -74,11 +72,11 @@ def get_arrete_view(request, programmation_projet_id):
             "gsl_notification:create-arrete",
             programmation_projet_id=programmation_projet.id,
         )
-    context = {"arrete_signe": arrete_signe}
+    context = {"arrete_signe": arrete_signe, "disabled_create_arrete_buttons": True}
     context = _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
     )
-    return render(request, "get_arrete.html", context=context)
+    return render(request, "gsl_notification/get_arrete.html", context=context)
 
 
 @arrete_visible_by_user
