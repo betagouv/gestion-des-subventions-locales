@@ -316,8 +316,8 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
     def _get_other_dotations_simulation_projet(
         self, projets: QuerySet[Projet], current_dotation: str
     ) -> dict[int, SimulationProjet]:
-        projet_ids = list(projets.values_list("id", flat=True))
-        ids_of_double_dotation_projet = (
+        projet_ids = set(projets.values_list("id", flat=True))
+        ids_of_double_dotation_projet = set(
             Projet.objects.annotate(dotation_projet_count=Count("dotationprojet"))
             .filter(dotation_projet_count__gt=1, id__in=projet_ids)
             .values_list("id", flat=True)
@@ -344,12 +344,13 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             other_simulation_projets = other_simulation_projets.prefetch_related(
                 "dotation_projet__projet__dossier_ds__demande_eligibilite_dsil",
             )
-
         # On ne garde que le SimulationProjet le plus récent pour chaque projet_id
-        projet_id_to_last_updated_other_dotation_simulation_projet = {}
+        projet_id_to_last_updated_other_dotation_simulation_projet = {
+            pid: None for pid in ids_of_double_dotation_projet
+        }
         for sp in other_simulation_projets:
             pid = sp.dotation_projet.projet_id
-            if pid not in projet_id_to_last_updated_other_dotation_simulation_projet:
+            if not projet_id_to_last_updated_other_dotation_simulation_projet[pid]:
                 projet_id_to_last_updated_other_dotation_simulation_projet[pid] = sp
 
         return projet_id_to_last_updated_other_dotation_simulation_projet
