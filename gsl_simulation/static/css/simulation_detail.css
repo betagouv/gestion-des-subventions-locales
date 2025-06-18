@@ -32,6 +32,19 @@
   padding-right: 16px;
 }
 
+.projet__to_notify {
+  color: var(--text-default-error);
+  text-transform: uppercase;
+  font-weight: 700;
+  font-style: italic;
+  margin-top: 4px;
+  display: inline-block;
+}
+
+.simulation-status {
+  text-align: right;
+}
+
 .dotation-dropdown > button {
   line-height: inherit;
 }
@@ -71,6 +84,20 @@
 .gsl-projet-table table tbody td.other-simulation-status {
   text-align: end;
   padding-right: 26px;
+}
+
+.gsl-projet-table table tbody td.other-simulation-status.to_notify {
+  text-align: end;
+  padding-right: 8px;
+}
+
+.other-simulation-status > b {
+  font-weight: 500;
+}
+
+.other-simulation-status > .projet__to_notify {
+  margin-left: 10px;
+  font-weight: 500;
 }
 
 /* colors */

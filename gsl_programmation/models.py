@@ -140,6 +140,10 @@ class ProgrammationProjet(models.Model):
     def taux(self):
         return compute_taux(self.montant, self.dotation_projet.assiette_or_cout_total)
 
+    @property
+    def to_notify(self):
+        return self.notified_at is None and self.status == self.STATUS_ACCEPTED
+
     def clean(self):
         errors = {}
         self._validate_montant(errors)

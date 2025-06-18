@@ -12,10 +12,6 @@ html {
 
 /* Utils */
 
-.gsl-pull-right {
-    float: right;
-}
-
 .gsl-nowrap {
     white-space: nowrap;
 }
@@ -342,4 +338,12 @@ gsl-dropdown > button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.projet__to_notify {
+  margin-top: 4px;
+  color: var(--text-default-error);
+  text-transform: uppercase;
+  font-weight: 700;
+  font-style: italic;
 }

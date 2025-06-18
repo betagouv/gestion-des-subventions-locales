@@ -228,14 +228,13 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                     dotation=simulation.enveloppe.dotation
                 ),
                 to_attr="dotation_projet",
-            )
-        )
-        qs = qs.prefetch_related(
+            ),
             Prefetch(
                 "dotation_projet__simulationprojet_set",
                 queryset=SimulationProjet.objects.filter(simulation=simulation),
                 to_attr="simu",
-            )
+            ),
+            "dotation_projet__programmation_projet",
         )
         qs.distinct()
         return qs

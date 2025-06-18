@@ -100,7 +100,12 @@
                         </td>
                         <td class="dotation_attribute">
                             {% for dp in dotation_projets %}
-                                <span class="projet_status__{{ dp.status }}">{{ dp.get_status_display }}</span>
+                                <div>
+                                    <span class="projet_status__{{ dp.status }}">{{ dp.get_status_display }}</span>
+                                    {% if dp.status == 'accepted' and dp.programmation_projet.to_notify %}
+                                        <span class="projet__to_notify">À notifier</span>
+                                    {% endif %}
+                                </div>
                             {% endfor %}
                         </td>
                         <td class="fr-cell--right">
