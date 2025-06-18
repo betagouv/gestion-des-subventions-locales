@@ -278,19 +278,8 @@ DQC_PYGMENTS_STYLE = os.getenv("DQC_PYGMENTS_STYLE", "monokai")
 
 
 # Storage
-USE_S3 = (
-    os.getenv("SCALEWAY_S3_KEY")
-    and os.getenv("SCALEWAY_S3_SECRET")
-    and os.getenv("SCALEWAY_BUCKET")
-)
-
-if USE_S3:
-    AWS_ACCESS_KEY_ID = os.getenv("SCALEWAY_S3_KEY")
-    AWS_SECRET_ACCESS_KEY = os.getenv("SCALEWAY_S3_SECRET")
-    AWS_STORAGE_BUCKET_NAME = os.getenv("SCALEWAY_BUCKET")
-    AWS_S3_REGION_NAME = os.getenv("SCALEWAY_S3_REGION", "fr-par")
-    AWS_S3_ENDPOINT_URL = f"https://s3.{AWS_S3_REGION_NAME}.scw.cloud"
-    # AWS_S3_ADDRESSING_STYLE = "path"
-    # AWS_QUERYSTRING_AUTH = False
-else:
-    print("⚠️  Stockage S3 désactivé : variables Scaleway manquantes.")
+AWS_ACCESS_KEY_ID = os.getenv("SCALEWAY_S3_KEY")
+AWS_SECRET_ACCESS_KEY = os.getenv("SCALEWAY_S3_SECRET")
+AWS_STORAGE_BUCKET_NAME = os.getenv("SCALEWAY_BUCKET")
+AWS_S3_REGION_NAME = os.getenv("SCALEWAY_S3_REGION", "fr-par")
+AWS_S3_ENDPOINT_URL = f"https://s3.{AWS_S3_REGION_NAME}.scw.cloud"
