@@ -20,7 +20,7 @@
         </h1>
         <div class="projet-header__status">
             {% block status_badge %}
-                <span class="fr-badge fr-text--xl fr-mt-2v fr-ml-5w badge-projet-status__{{ projet.status }}">{{ projet.get_status_display|remove_first_word }}</span>
+                <span class="fr-badge fr-text--xl fr-mt-2v fr-ml-5w badge-projet-status badge-projet-status__{{ projet.status }}">{{ projet.get_status_display|remove_first_word }}</span>
                 {% if projet.to_notify %}
                     <span class="fr-text--xl fr-mt-2v projet__to_notify">À notifier <span class="fr-icon-mail-fill"></span></span>
                 {% endif %}
