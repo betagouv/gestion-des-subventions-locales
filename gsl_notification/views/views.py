@@ -11,6 +11,7 @@ from gsl_notification.utils import (
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
 from gsl_notification.views.decorators import (
+    arrete_signe_visible_by_user,
     arrete_visible_by_user,
     programmation_projet_visible_by_user,
 )
@@ -62,6 +63,7 @@ def get_arrete_view(request, programmation_projet_id):
     programmation_projet = get_object_or_404(
         ProgrammationProjet,
         id=programmation_projet_id,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
     )
     try:
         arrete = programmation_projet.arrete_signe
@@ -97,6 +99,7 @@ def download_arrete(request, arrete_id):
 ### ArreteSigne
 
 
+@programmation_projet_visible_by_user
 @require_POST
 def create_arrete_signe_view(request, programmation_projet_id):
     programmation_projet = get_object_or_404(
@@ -126,6 +129,8 @@ def create_arrete_signe_view(request, programmation_projet_id):
     return render(request, "gsl_notification/create_arrete.html", context=context)
 
 
+@arrete_visible_by_user
+@require_GET
 def get_arrete_signe_view(request, programmation_projet_id):
     programmation_projet = get_object_or_404(
         ProgrammationProjet,
@@ -145,7 +150,7 @@ def get_arrete_signe_view(request, programmation_projet_id):
     return render(request, "gsl_notification/get_arrete.html", context=context)
 
 
-@arrete_visible_by_user
+@arrete_signe_visible_by_user
 @require_GET
 def download_arrete_signe(request, arrete_signe_id):
     arrete = get_object_or_404(ArreteSigne, id=arrete_signe_id)

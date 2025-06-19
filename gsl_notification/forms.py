@@ -10,6 +10,7 @@ class ArreteForm(forms.ModelForm, DsfrBaseForm):
     content = forms.JSONField(
         required=True,
         help_text="Contenu JSON de l'arrêté, utilisé pour les exports.",
+        widget=forms.TextInput(attrs={"type": "hidden"}),
     )
 
     class Meta:

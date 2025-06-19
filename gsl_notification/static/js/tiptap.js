@@ -7,12 +7,12 @@ const editor = new Editor({
   content: "<p>Mon arrêté</p>",
   onCreate({ editor }) {
     const json = editor.getJSON();
-    document.querySelector('textarea[name="content"]').value =
+    document.querySelector('input[name="content"]').value =
       JSON.stringify(json);
   },
   onUpdate({ editor }) {
     const json = editor.getJSON();
-    document.querySelector('textarea[name="content"]').value =
+    document.querySelector('input[name="content"]').value =
       JSON.stringify(json);
   },
 });
