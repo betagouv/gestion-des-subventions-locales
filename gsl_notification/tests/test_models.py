@@ -52,5 +52,5 @@ def test_arrete_signe_properties():
     assert arrete.type == "pdf"
     assert arrete.size == len(file_content)
     assert arrete.created_at is not None
-    assert arrete.created_by is not collegue
+    assert arrete.created_by is collegue
     assert arrete.programmation_projet == programmation_projet
