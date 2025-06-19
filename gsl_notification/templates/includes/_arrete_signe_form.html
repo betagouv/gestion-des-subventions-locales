@@ -1,14 +1,15 @@
 <form method="post"
       enctype="multipart/form-data"
       id="arrete-signe-form"
-      class="{% if not form.errors %}hidden{% endif %}">
+      class="{% if not arrete_signe_form.errors %}hidden{% endif %}"
+      action="{% url 'gsl_notification:create-arrete-signe' programmation_projet.id %}">
     {% if source_simulation_projet_id %}
         <input type="hidden"
                name="source_simulation_projet_id"
                value="{{ source_simulation_projet_id }}">
     {% endif %}
 
-    {% if form.errors %}
+    {% if arrete_signe_form.errors %}
         <div class="fr-alert fr-alert--error fr-mb-1w">
             <p class="fr-alert__title">
                 Erreur dans le formulaire
@@ -34,9 +35,12 @@
             Taille maximale : 20 Mo. Formats acceptés : jpg, png, pdf.
         </span>
 
-        {{ form.file }}
-
+        {{ arrete_signe_form.file }}
     </div>
+    <input type="hidden" name="created_by" value="{{ user.id }}">
+    <input type="hidden"
+           name="programmation_projet"
+           value="{{ programmation_projet.id }}">
     <button class="fr-btn" type="submit" id="submit-arrete-signe-form" disabled>
         Envoyer
     </button>

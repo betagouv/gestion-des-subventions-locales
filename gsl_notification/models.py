@@ -3,6 +3,43 @@ from django.db import models
 from gsl_core.models import Collegue
 
 
+class Arrete(models.Model):
+    programmation_projet = models.OneToOneField(
+        "gsl_programmation.ProgrammationProjet",
+        on_delete=models.CASCADE,
+        verbose_name="Programmation projet",
+        related_name="arrete",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
+    updated_at = models.DateTimeField(auto_now=True)
+    content = models.JSONField(
+        verbose_name="Contenu de l'arrêté",
+        blank=True,
+        null=True,
+        help_text="Contenu JSON de l'arrêté, utilisé pour les exports.",
+    )
+
+    class Meta:
+        verbose_name = "Arrêté"
+        verbose_name_plural = "Arrêtés"
+
+    def __str__(self):
+        return f"Arrêté #{self.id}"
+
+    @property
+    def name(self):  # TODO: Implement a proper name logic
+        return "Example.pdf"
+
+    @property
+    def type(self):  # TODO: Implement a proper name logic
+        return "pdf"
+
+    @property
+    def size(self):  # TODO: Implement a proper name logic
+        return 12345
+
+
 class ArreteSigne(models.Model):
     file = models.FileField(upload_to="arrete_signe/")
     created_at = models.DateTimeField(auto_now_add=True)
