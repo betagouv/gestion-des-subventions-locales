@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
 from django.urls import reverse
 
@@ -172,8 +174,21 @@ def test_arrete_signe_download_url_with_correct_perimetre_and_with_arrete(
         kwargs={"arrete_signe_id": arrete_signe.id},
     )
     assert url == f"/notification/arrete/{arrete_signe.id}/download/"
-    response = correct_perimetre_client_with_user_logged.get(url)
-    assert response.status_code == 200
+
+    # Mock boto3.client().get_object
+    with patch("boto3.client") as mock_boto_client:
+        mock_s3 = MagicMock()
+        mock_body = MagicMock()
+        mock_body.iter_chunks.return_value = [b"dummy data"]
+        mock_s3.get_object.return_value = {
+            "Body": mock_body,
+            "ContentType": "application/pdf",
+        }
+        mock_boto_client.return_value = mock_s3
+
+        response = correct_perimetre_client_with_user_logged.get(url)
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/pdf"
 
 
 def test_arrete_signe_download_url_without_correct_perimetre_and_without_arrete(
