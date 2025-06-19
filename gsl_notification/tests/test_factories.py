@@ -1,15 +1,20 @@
 import pytest
 
 from ..models import (
+    Arrete,
     ArreteSigne,
 )
 from .factories import (
+    ArreteFactory,
     ArreteSigneFactory,
 )
 
 pytestmark = pytest.mark.django_db
 
-test_data = ((ArreteSigneFactory, ArreteSigne),)
+test_data = (
+    (ArreteFactory, Arrete),
+    (ArreteSigneFactory, ArreteSigne),
+)
 
 
 @pytest.mark.parametrize("factory,expected_class", test_data)
