@@ -36,9 +36,21 @@
             {% include "includes/table_forms/_taux_form.html" %}
         </td>
         <td>
-            {% for c in projet.categories_doperation %}
-                {{ c }}
-            {% endfor %}
+            <ul class="no-list-style">
+                {% if dotation_projet.dotation == "DETR" %}
+                    {% for c in dotation_projet.detr_categories.all %}
+                        <li>
+                            {{ c.label }}
+                        </li>
+                    {% endfor %}
+                {% else %}
+                    {% for c in projet.dossier_ds.demande_eligibilite_dsil.all %}
+                        <li>
+                            {{ c }}
+                        </li>
+                    {% endfor %}
+                {% endif %}
+            </ul>
         </td>
         <td class="simulation-status">
             {% include "includes/table_forms/_status_form.html" %}
@@ -71,9 +83,21 @@
                 </div>
             </td>
             <td>
-                <div class="gsl-money">
-                    Catégorie d'opération {{ other_simu.dotation_projet.dotation }}
-                </div>
+                <ul class="no-list-style">
+                    {% if other_simu.dotation_projet.dotation == "DETR" %}
+                        {% for c in other_simu.dotation_projet.detr_categories.all %}
+                            <li>
+                                {{ c.label }}
+                            </li>
+                        {% endfor %}
+                    {% else %}
+                        {% for c in other_simu.dotation_projet.projet.dossier_ds.demande_eligibilite_dsil.all %}
+                            <li>
+                                {{ c }}
+                            </li>
+                        {% endfor %}
+                    {% endif %}
+                </ul>
             </td>
             {% if other_simu.status == "valid" and other_simu.dotation_projet.programmation_projet.to_notify %}
                 <td colspan=2 class="other-simulation-status to_notify">

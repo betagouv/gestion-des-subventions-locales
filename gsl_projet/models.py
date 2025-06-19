@@ -60,6 +60,12 @@ class CategorieDetr(models.Model):
     def __str__(self):
         return f"Catégorie DETR {self.id} - {self.libelle}"
 
+    @property
+    def label(self):
+        if self.libelle[0].isdigit():
+            return self.libelle
+        return f"{self.rang} - {self.libelle}"
+
 
 class Demandeur(models.Model):
     siret = models.CharField("Siret", unique=True)

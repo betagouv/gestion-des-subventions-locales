@@ -66,3 +66,14 @@
 #projet_note_form {
   display:none
 }
+
+
+#categorie-detr-select {
+  max-height: 500px;
+  scroll-behavior: auto;
+  overflow: auto;
+}
+
+#categorie-detr-select-button {
+  text-align: start;
+}

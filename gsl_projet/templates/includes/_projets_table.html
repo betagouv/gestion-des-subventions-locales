@@ -93,7 +93,11 @@
                             <ul class="no-list-style">
                                 {% for categorie in projet.categories_doperation %}
                                     <li>
-                                        {{ categorie }}
+                                        {% if categorie.class == CategorieDetr %}
+                                            {{ categorie.label }}
+                                        {% else %}
+                                            {{ categorie }}
+                                        {% endif %}
                                     </li>
                                 {% endfor %}
                             </ul>

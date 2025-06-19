@@ -21,7 +21,7 @@
                                id="id_categorie_detr_{{ forloop.counter }}"
                                {% if categorie.id in categorie_detr_selected %}checked{% endif %}>
                         <label for="id_categorie_detr_{{ forloop.counter }}" class="fr-label">
-                            {{ categorie.libelle }}
+                            {{ categorie.label }}
                         </label>
                     </div>
                 {% endfor %}

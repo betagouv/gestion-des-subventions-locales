@@ -47,6 +47,7 @@ def _get_projet_context_info(projet_id):
         },
         "menu_dict": PROJET_MENU,
         "projet_notes": projet.notes.all(),
+        "dotation_projets": projet.dotationprojet_set.all(),
     }
     return context
 
@@ -112,6 +113,7 @@ class ProjetListViewFilters(ProjetFilters):
         ).prefetch_related(
             "dossier_ds__demande_eligibilite_detr",
             "dossier_ds__demande_eligibilite_dsil",
+            "dotationprojet_set__detr_categories",
             Prefetch(
                 "dotationprojet_set__programmation_projet",
                 queryset=ProgrammationProjet.objects.filter(
