@@ -14,6 +14,14 @@ asttokens==3.0.0
     # via stack-data
 billiard==4.2.1
     # via celery
+boto3==1.38.39
+    # via
+    #   django-storages
+    #   gsl (pyproject.toml)
+botocore==1.38.39
+    # via
+    #   boto3
+    #   s3transfer
 build==1.2.2.post1
     # via pip-tools
 celery==5.5.2
@@ -85,6 +93,7 @@ django==5.2.2
     #   django-htmx
     #   django-import-export
     #   django-referrer-policy
+    #   django-storages
     #   django-timezone-field
     #   gsl (pyproject.toml)
     #   mozilla-django-oidc
@@ -111,6 +120,8 @@ django-import-export==4.3.7
 django-query-counter==0.4.1
     # via gsl (pyproject.toml)
 django-referrer-policy==1.0
+    # via gsl (pyproject.toml)
+django-storages[s3]==1.14.6
     # via gsl (pyproject.toml)
 django-timezone-field==7.1
     # via django-celery-beat
@@ -152,6 +163,10 @@ jedi==0.19.2
     # via ipython
 jinja2==3.1.6
     # via diff-cover
+jmespath==1.0.1
+    # via
+    #   boto3
+    #   botocore
 josepy==2.0.0
     # via mozilla-django-oidc
 jsbeautifier==1.15.4
@@ -238,6 +253,7 @@ python-crontab==3.2.0
     # via django-celery-beat
 python-dateutil==2.9.0.post0
     # via
+    #   botocore
     #   celery
     #   freezegun
     #   python-crontab
@@ -260,6 +276,8 @@ ruff==0.11.10
     # via
     #   gsl (pyproject.toml)
     #   pytest-ruff
+s3transfer==0.13.0
+    # via boto3
 sentry-sdk==2.29.1
     # via gsl (pyproject.toml)
 six==1.17.0
@@ -292,6 +310,7 @@ tzdata==2025.2
     #   kombu
 urllib3==2.4.0
     # via
+    #   botocore
     #   requests
     #   sentry-sdk
 vine==5.1.0
