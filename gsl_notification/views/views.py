@@ -37,7 +37,7 @@ def create_arrete_view(request, programmation_projet_id):
         )
 
     if request.method == "POST":
-        form = ArreteForm(request.POST, request.FILES)
+        form = ArreteForm(request.POST)
         if form.is_valid():
             form.save()
 
@@ -127,27 +127,6 @@ def create_arrete_signe_view(request, programmation_projet_id):
         context, programmation_projet, request
     )
     return render(request, "gsl_notification/create_arrete.html", context=context)
-
-
-@arrete_visible_by_user
-@require_GET
-def get_arrete_signe_view(request, programmation_projet_id):
-    programmation_projet = get_object_or_404(
-        ProgrammationProjet,
-        id=programmation_projet_id,
-    )
-    try:
-        arrete_signe = programmation_projet.arrete_signe
-    except ArreteSigne.DoesNotExist:
-        return redirect(
-            "gsl_notification:create-arrete",
-            programmation_projet_id=programmation_projet.id,
-        )
-    context = {"arrete": arrete_signe, "disabled_create_arrete_buttons": True}
-    context = _enrich_context_for_create_or_get_arrete_view(
-        context, programmation_projet, request
-    )
-    return render(request, "gsl_notification/get_arrete.html", context=context)
 
 
 @arrete_signe_visible_by_user
