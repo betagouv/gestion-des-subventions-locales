@@ -77,3 +77,10 @@
 #categorie-detr-select-button {
   text-align: start;
 }
+
+.status_action_header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}

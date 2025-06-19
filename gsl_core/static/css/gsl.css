@@ -239,6 +239,10 @@ ul.no-list-style li {
 }
 
 /* projet detail */
+.badge-projet-status{
+    min-width: max-content;
+}
+
 .badge-projet-status__accepted,
 .badge-projet-status__valid {
     background-color: var(--background-contrast-success);

@@ -22,10 +22,15 @@
 
 {% block status_action %}
     <div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-container fr-pb-1w fr-pt-3w fr-px-3w">
-        <h2 class="fr-callout__title">
-            <i class="fr-icon-coin-fill blue-color" aria-hidden="true"></i>
-            Décision de financement du projet
-        </h2>
+        <div class='status_action_header'>
+            <h2 class="fr-callout__title">
+                <i class="fr-icon-coin-fill blue-color" aria-hidden="true"></i>
+                Décision de financement du projet
+            </h2>
+            {% if dotation_projet.programmation_projet.to_notify %}
+                <span class="fr-text--xl projet__to_notify">À notifier <span class="fr-icon-mail-fill"></span></span>
+            {% endif %}
+        </div>
 
         {% include "includes/forms/_status_form.html" %}
 
