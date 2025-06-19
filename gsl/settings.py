@@ -79,7 +79,6 @@ INSTALLED_APPS = [
     "django_htmx",
     "django_filters",
     "django_extensions",
-    "storages",
     # gsl apps:
     "gsl_core",
     "gsl_demarches_simplifiees",
