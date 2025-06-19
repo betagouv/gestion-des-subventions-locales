@@ -24,7 +24,9 @@ def test_arrete_signe_properties():
     )
 
     assert str(arrete) == f"Arrêté signé #{arrete.id} "
-    assert arrete.name == "test_file.pdf"
+    assert arrete.name.startswith(
+        "test_file"
+    )  # Filename can be changed with a suffix to avoid conflicts
     assert arrete.type == "pdf"
     assert arrete.size == len(file_content)
     assert arrete.created_at is not None
