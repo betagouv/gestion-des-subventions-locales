@@ -29,7 +29,7 @@ class Arrete(models.Model):
 
     @property
     def name(self):  # TODO: Implement a proper name logic
-        return "Example.pdf"
+        return f"arrêté-attributif-{self.created_at.strftime('%Y-%m-%d')}.pdf"
 
     @property
     def type(self):  # TODO: Implement a proper name logic
