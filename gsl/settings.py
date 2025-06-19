@@ -31,9 +31,9 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG")
 ENV = os.getenv("ENV")
-if ENV not in ("dev", "staging", "prod"):
+if ENV not in ("dev", "test", "staging", "prod"):
     raise ValueError(
-        f"ENV must be one of 'dev', 'staging' or 'prod'. Got {ENV} instead."
+        f"ENV must be one of 'dev', 'test', 'staging' or 'prod'. Got {ENV} instead."
     )
 
 # We support a comma-separated list of allowed hosts.
@@ -136,16 +136,16 @@ TEMPLATES = [
         },
     },
 ]
-
-STORAGES = {
-    "default": {
-        "BACKEND": "storages.backends.s3.S3Storage",
-        "OPTIONS": {},
-    },
-    "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-    },
-}
+if ENV != "test":
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {},
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
 
 
 WSGI_APPLICATION = "gsl.wsgi.application"
@@ -259,11 +259,8 @@ CONTENT_SECURITY_POLICY = {
         "default-src": [SELF],
         "img-src": [SELF, "data:", "stats.beta.gouv.fr"],
         "style-src": [SELF, NONCE],
-        "script-src": [SELF, NONCE, "stats.beta.gouv.fr"],
-        "connect-src": [
-            SELF,
-            "https://stats.beta.gouv.fr",
-        ],
+        "script-src": [SELF, NONCE, "stats.beta.gouv.fr", "https://esm.sh"],
+        "connect-src": [SELF, "https://stats.beta.gouv.fr", "https://esm.sh"],
     },
 }
 

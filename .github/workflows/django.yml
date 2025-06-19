@@ -30,7 +30,7 @@ jobs:
     env:
       DATABASE_URL: "postgres://${{ vars.DATABASE_USER }}:${{ vars.DATABASE_PASSWORD }}@${{ vars.DATABASE_HOST }}:${{ vars.DATABASE_PORT }}/${{ vars.DATABASE_NAME }}"
       SECRET_KEY: ${{ vars.SECRET_KEY }}
-      ENV: dev
+      ENV: test
 
     steps:
     - uses: actions/checkout@v4
