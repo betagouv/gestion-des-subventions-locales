@@ -12,10 +12,6 @@ html {
 
 /* Utils */
 
-.gsl-pull-right {
-    float: right;
-}
-
 .gsl-nowrap {
     white-space: nowrap;
 }
@@ -36,6 +32,11 @@ ul.no-list-style li {
 
 .gsl-no-underline {
     background-image: none;
+}
+
+.stick-to-bottom {
+    position: sticky;
+    bottom: 1em;
 }
 
 /* Colors */
@@ -238,6 +239,10 @@ ul.no-list-style li {
 }
 
 /* projet detail */
+.badge-projet-status{
+    min-width: max-content;
+}
+
 .badge-projet-status__accepted,
 .badge-projet-status__valid {
     background-color: var(--background-contrast-success);
@@ -307,4 +312,56 @@ ul.no-list-style li {
 
 .callout-without-left-border {
   background-image: none;
+}
+
+/* dropdown */
+.gsl-dropdown > button {
+  text-align: start;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gsl-dropdown > .fr-input {
+  display: flex;
+}
+
+.gsl-dropdown > button > span {
+  margin-top: 1px; /* Alignement vertical de l'icône */
+}
+
+.gsl-dropdown .gsl-dropdown-content {
+  gap: 6px;
+  min-width: auto;
+}
+
+.gsl-dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: white;
+  min-width: 260px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  z-index: 1000;
+  gap: 1rem;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.gsl-dropdown-content:has(.stick-to-bottom) div:last-of-type {
+    padding-bottom: 2em;
+}
+
+.gsl-dropdown > button {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projet__to_notify {
+  margin-top: 4px;
+  color: var(--text-default-error);
+  text-transform: uppercase;
+  font-weight: 700;
+  font-style: italic;
 }

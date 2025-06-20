@@ -1,13 +1,13 @@
 from datetime import UTC, date, datetime
 from datetime import timezone as tz
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterator, Union
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q, UniqueConstraint
-from django.forms import ValidationError
 from django_fsm import FSMField, transition
 
-from gsl_core.models import Adresse, Collegue, Departement, Perimetre
+from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.constants import (
     DOTATION_CHOICES,
@@ -23,7 +23,13 @@ from gsl_projet.constants import (
 )
 
 if TYPE_CHECKING:
+    from gsl_demarches_simplifiees.models import CritereEligibiliteDsil, Dossier
     from gsl_programmation.models import Enveloppe
+
+
+class CategorieDetrQueryset(models.QuerySet):
+    def current_for_departement(self, departement: Departement):
+        return self.filter(departement=departement, is_current=True)
 
 
 class CategorieDetr(models.Model):
@@ -33,6 +39,13 @@ class CategorieDetr(models.Model):
     departement = models.ForeignKey(
         Departement, verbose_name="Département", on_delete=models.PROTECT
     )
+    is_current = models.BooleanField(
+        "Actuelle",
+        help_text="Indique si cette catégorie est utilisable sur la campagne actuelle ou non",
+        default=False,
+    )
+
+    objects = CategorieDetrQueryset.as_manager()
 
     class Meta:
         verbose_name = "Catégorie DETR"
@@ -46,6 +59,12 @@ class CategorieDetr(models.Model):
 
     def __str__(self):
         return f"Catégorie DETR {self.id} - {self.libelle}"
+
+    @property
+    def label(self):
+        if self.libelle[0].isdigit():
+            return self.libelle
+        return f"{self.rang} - {self.libelle}"
 
 
 class Demandeur(models.Model):
@@ -174,9 +193,11 @@ class Projet(models.Model):
         )
 
     @property
-    def categorie_doperation(self):
-        if DOTATION_DETR in self.dossier_ds.demande_dispositif_sollicite:
-            yield from self.dossier_ds.demande_eligibilite_detr.all()
+    def categories_doperation(
+        self,
+    ) -> Iterator[Union["CategorieDetr", "CritereEligibiliteDsil"]]:
+        if self.dotation_detr:
+            yield from self.dotation_detr.detr_categories.all()
         if DOTATION_DSIL in self.dossier_ds.demande_dispositif_sollicite:
             yield from self.dossier_ds.demande_eligibilite_dsil.all()
 
@@ -194,17 +215,25 @@ class Projet(models.Model):
 
     @property
     def dotation_detr(self):
-        try:
-            return self.dotationprojet_set.get(dotation=DOTATION_DETR)
-        except DotationProjet.DoesNotExist:
-            return None
+        for dp in self.dotationprojet_set.all():
+            if dp.dotation == DOTATION_DETR:
+                return dp
 
     @property
     def dotation_dsil(self):
-        try:
-            return self.dotationprojet_set.get(dotation=DOTATION_DSIL)
-        except DotationProjet.DoesNotExist:
-            return None
+        for dp in self.dotationprojet_set.all():
+            if dp.dotation == DOTATION_DSIL:
+                return dp
+
+    @property
+    def to_notify(self) -> bool:
+        from gsl_programmation.models import ProgrammationProjet
+
+        return ProgrammationProjet.objects.filter(
+            dotation_projet__projet=self,
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            notified_at__isnull=True,
+        ).exists()
 
 
 class DotationProjet(models.Model):
@@ -241,6 +270,7 @@ class DotationProjet(models.Model):
 
     def clean(self):
         errors = {}
+
         if self.detr_avis_commission is not None:
             if self.dotation == DOTATION_DSIL:
                 errors["detr_avis_commission"] = (
@@ -263,6 +293,23 @@ class DotationProjet(models.Model):
             errors["assiette"] = (
                 "L'assiette ne doit pas être supérieure au coût total du projet."
             )
+
+        if self.dotation != DOTATION_DETR:
+            if self.detr_categories.exists():
+                errors["detr_categories"] = (
+                    "Les catégories DETR ne doivent être renseignées que pour les projets DETR."
+                )
+        else:
+            projet_departement = (
+                self.projet.perimetre.departement
+                if self.projet and self.projet.perimetre
+                else None
+            )
+            for categorie in self.detr_categories.all():
+                if categorie.departement != projet_departement:
+                    errors["detr_categories"] = (
+                        f"La catégorie DETR « {categorie.libelle} » n'appartient pas au même département que le projet."
+                    )
 
         if errors:
             raise ValidationError(errors)
@@ -378,3 +425,10 @@ class DotationProjet(models.Model):
         )
 
         ProgrammationProjet.objects.filter(dotation_projet=self).delete()
+
+
+class ProjetNote(BaseModel):
+    projet = models.ForeignKey(Projet, on_delete=models.CASCADE, related_name="notes")
+    title = models.CharField(max_length=100)
+    content = models.TextField()
+    created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)

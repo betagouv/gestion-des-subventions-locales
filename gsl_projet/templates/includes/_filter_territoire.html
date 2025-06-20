@@ -1,6 +1,6 @@
 {% if territoire_choices|length != 0 and territoire_choices|length != 1 %}
     <div class="filter-field fr-col-12 fr-col-md-4 fr-col-lg-2">
-        <div class="filter-dropdown">
+        <div class="gsl-dropdown">
             <label class="fr-label" id="filter_territoire_label">
                 <span class="fr-sr-only">Filtrer par</span>
                 Territoire
@@ -10,7 +10,7 @@
                 {{ territoire_placeholder }}
             </button>
             <div id="filter-territoire"
-                 class="filter-content"
+                 class="gsl-dropdown-content"
                  role="group"
                  aria-describedby="filter_territoire_label">
                 {% for perimetre in territoire_choices %}

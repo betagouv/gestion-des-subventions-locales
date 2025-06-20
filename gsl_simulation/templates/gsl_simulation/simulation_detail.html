@@ -10,10 +10,24 @@
         {{ title }}
     </h1>
     {% include "includes/_status_summary.html" %}
-    <a class="fr-btn fr-btn--secondary fr-mt-2w"
-       href="{% url 'gsl_simulation:simulation-projets-export' slug=simulation.slug %}?{{ filter_params }}">
-        Exporter le tableau en csv
-    </a>
+    <div class="gsl-dropdown fr-mt-2w fr-mb-2w">
+        <button class="fr-btn fr-btn--secondary"
+                aria-haspopup="menu"
+                aria-expanded="false">
+            Exporter le tableau
+            <span class="fr-icon-arrow-down-s-line fr-btn--icon-right"></span>
+        </button>
+        <div class="gsl-dropdown-content fr-p-0 export-btn-container" role="menu">
+            {% for export_type in export_types %}
+                <a class="fr-btn fr-btn--secondary export-btn"
+                   href="{% url 'gsl_simulation:simulation-projets-export' slug=simulation.slug type=export_type %}?{{ filter_params }}"
+                   role="menuitem">
+                    format .{{ export_type }} <span class="fr-icon-download-line fr-icon--sm fr-btn--icon-right"
+       aria-hidden="true"></span>
+                </a>
+            {% endfor %}
+        </div>
+    </div>
     {% include "includes/_enveloppe_summary.html" %}
     {% include "includes/_projet_list_filters.html" %}
 
@@ -56,7 +70,7 @@
                         Taux de subvention
                     </th>
                     <th class="max_160_width">
-                        Choix de la catégorie d’opération
+                        Catégorie d’opération
                     </th>
                     <th class="max_160_width">
                         Statut

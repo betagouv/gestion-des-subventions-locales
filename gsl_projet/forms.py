@@ -3,7 +3,7 @@ from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
 from gsl_projet.constants import DOTATION_CHOICES
-from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.models import CategorieDetr, DotationProjet, Projet, ProjetNote
 from gsl_projet.services.projet_services import ProjetService
 
 
@@ -67,7 +67,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         return instance
 
 
-class DotationProjetForm(ModelForm, DsfrBaseForm):
+class DotationProjetForm(ModelForm):
     DETR_AVIS_CHOICES = [
         (None, "En cours"),
         (True, "Oui"),
@@ -78,11 +78,61 @@ class DotationProjetForm(ModelForm, DsfrBaseForm):
         label="Sélectionner l'avis de la commission d'élus DETR :",
         choices=DETR_AVIS_CHOICES,
         required=False,
-        widget=forms.Select(attrs={"form": "dotation_projet_form"}),
+        widget=forms.Select(
+            attrs={"form": "dotation_projet_form", "class": "fr-select"}
+        ),
     )
+
+    detr_categories = forms.ModelMultipleChoiceField(
+        queryset=CategorieDetr.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={"form": "dotation_projet_form"}),
+        label="Catégories d'opération DETR",
+    )
+
+    def __init__(self, *args, departement=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        departement = (
+            self.instance.projet.perimetre.departement if self.instance.projet else None
+        )
+        if departement is not None:
+            self.fields[
+                "detr_categories"
+            ].queryset = CategorieDetr.objects.current_for_departement(departement)
+        else:
+            self.fields["detr_categories"].queryset = CategorieDetr.objects.none()
+        self.fields["detr_categories"].label_from_instance = lambda obj: obj.label
+
+    def clean_detr_avis_commission(self):
+        value = self.cleaned_data.get("detr_avis_commission")
+        if value == "":
+            return None
+        if value == "True":
+            return True
+        if value == "False":
+            return False
+        return value
 
     class Meta:
         model = DotationProjet
         fields = [
             "detr_avis_commission",
+            "detr_categories",
+        ]
+
+
+class ProjetNoteForm(ModelForm, DsfrBaseForm):
+    title = forms.CharField(
+        label="Titre de la note",
+    )
+    content = forms.CharField(
+        label="Note",
+        widget=forms.Textarea(attrs={"rows": 6}),
+    )
+
+    class Meta:
+        model = ProjetNote
+        fields = [
+            "title",
+            "content",
         ]

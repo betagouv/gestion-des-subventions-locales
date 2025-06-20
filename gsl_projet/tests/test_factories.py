@@ -4,18 +4,14 @@ from gsl_core.models import Perimetre
 from gsl_core.tests.factories import DepartementFactory
 from gsl_demarches_simplifiees.tests.factories import PersonneMoraleFactory
 
-from ..models import (
-    CategorieDetr,
-    Demandeur,
-    DotationProjet,
-    Projet,
-)
+from ..models import CategorieDetr, Demandeur, DotationProjet, Projet, ProjetNote
 from .factories import (
     CategorieDetrFactory,
     DemandeurFactory,
     DotationProjetFactory,
     ProcessedProjetFactory,
     ProjetFactory,
+    ProjetNoteFactory,
     SubmittedProjetFactory,
 )
 
@@ -28,6 +24,7 @@ test_data = (
     (ProcessedProjetFactory, Projet),
     (DotationProjetFactory, DotationProjet),
     (CategorieDetrFactory, CategorieDetr),
+    (ProjetNoteFactory, ProjetNote),
 )
 
 

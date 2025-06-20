@@ -1,5 +1,7 @@
 import pytest
 
+from gsl_programmation.models import ProgrammationProjet
+from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
@@ -74,3 +76,27 @@ def test_dotation_dsil():
 
     dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
     assert projet.dotation_dsil == dotation
+
+
+@pytest.mark.parametrize(
+    "status, notified_at, expected",
+    (
+        (ProgrammationProjet.STATUS_ACCEPTED, None, True),
+        (ProgrammationProjet.STATUS_ACCEPTED, "2023-01-01", False),
+        (ProgrammationProjet.STATUS_REFUSED, None, False),
+        (ProgrammationProjet.STATUS_REFUSED, "2023-01-01", False),
+    ),
+)
+@pytest.mark.django_db
+def test_to_notify_true_and_false(status, notified_at, expected):
+    projet = ProjetFactory()
+    dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+
+    assert projet.to_notify is False
+
+    ProgrammationProjetFactory(
+        dotation_projet=dotation,
+        status=status,
+        notified_at=notified_at,
+    )
+    assert projet.to_notify is expected

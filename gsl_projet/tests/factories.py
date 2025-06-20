@@ -2,6 +2,7 @@ import factory
 
 from gsl_core.tests.factories import (
     AdresseFactory,
+    CollegueFactory,
     DepartementFactory,
     PerimetreArrondissementFactory,
 )
@@ -15,7 +16,7 @@ from gsl_projet.constants import (
     PROJET_STATUS_PROCESSING,
 )
 
-from ..models import CategorieDetr, Demandeur, DotationProjet, Projet
+from ..models import CategorieDetr, Demandeur, DotationProjet, Projet, ProjetNote
 
 
 class DemandeurFactory(factory.django.DjangoModelFactory):
@@ -90,3 +91,13 @@ class CategorieDetrFactory(factory.django.DjangoModelFactory):
     annee = factory.Faker("random_int", min=2024, max=2027)
     rang = factory.Faker("random_int", min=1, max=20)
     libelle = factory.Faker("sentence", locale="fr_FR")
+
+
+class ProjetNoteFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = ProjetNote
+
+    projet = factory.SubFactory(ProjetFactory)
+    title = factory.Faker("sentence", locale="fr_FR")
+    content = factory.Faker("text", locale="fr_FR")
+    created_by = factory.SubFactory(CollegueFactory)

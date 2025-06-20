@@ -174,17 +174,17 @@ def test_add_ordering_to_projets_qs():
     projet1 = ProjetFactory(
         dossier_ds__finance_cout_total=100,
         dossier_ds__ds_date_depot=timezone.datetime(2023, 1, 1, tzinfo=UTC),
-        address__commune__name="Beaune",
+        demandeur__name="Beaune",
     )
     projet2 = ProjetFactory(
         dossier_ds__finance_cout_total=200,
         dossier_ds__ds_date_depot=timezone.datetime(2023, 1, 2, tzinfo=UTC),
-        address__commune__name="Dijon",
+        demandeur__name="Dijon",
     )
     projet3 = ProjetFactory(
         dossier_ds__finance_cout_total=150,
         dossier_ds__ds_date_depot=timezone.datetime(2023, 1, 3, tzinfo=UTC),
-        address__commune__name="Auxonne",
+        demandeur__name="Auxonne",
     )
 
     ordering = "date_desc"
@@ -208,11 +208,11 @@ def test_add_ordering_to_projets_qs():
 
     assert list(ordered_qs) == [projet1, projet3, projet2]
 
-    ordering = "commune_desc"
+    ordering = "demandeur_desc"
     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
     assert list(ordered_qs) == [projet2, projet1, projet3]
 
-    ordering = "commune_asc"
+    ordering = "demandeur_asc"
     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
     assert list(ordered_qs) == [projet3, projet1, projet2]
 

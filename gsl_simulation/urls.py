@@ -5,6 +5,11 @@ from gsl_simulation.views.decorators import (
     simulation_must_be_visible_by_user,
     simulation_projet_must_be_visible_by_user,
 )
+from gsl_simulation.views.simulation_projet_annotations_views import (
+    ProjetNoteEditView,
+    SimulationProjetAnnotationsView,
+    get_note_card,
+)
 from gsl_simulation.views.simulation_projet_views import (
     SimulationProjetDetailView,
     patch_dotation_projet,
@@ -28,9 +33,9 @@ urlpatterns = [
         name="simulation-detail",
     ),
     path(
-        "voir/<slug:slug>/csv",
+        "voir/<slug:slug>/<str:type>/",
         simulation_must_be_visible_by_user(
-            simulation_views.FilteredProjetsCSVExportView.as_view()
+            simulation_views.FilteredProjetsExportView.as_view()
         ),
         name="simulation-projets-export",
     ),
@@ -38,6 +43,13 @@ urlpatterns = [
         "projet-detail/<int:pk>/",
         simulation_projet_must_be_visible_by_user(SimulationProjetDetailView.as_view()),
         name="simulation-projet-detail",
+    ),
+    path(
+        "projet-detail/<int:pk>/annotations/",
+        simulation_projet_must_be_visible_by_user(
+            SimulationProjetAnnotationsView.as_view()
+        ),
+        name="simulation-projet-annotations",
     ),
     path(
         "projet-detail/<int:pk>/<str:tab>/",
@@ -73,5 +85,16 @@ urlpatterns = [
         "modifier-le-projet-de-dotation-d-un-projet-de-simulation/<int:pk>/",
         patch_dotation_projet,
         name="patch-dotation-projet",
+    ),
+    # Annotations
+    path(
+        "simulation_projet/<int:pk>/annotations/<int:note_id>/edit",
+        ProjetNoteEditView.as_view(),
+        name="get-edit-projet-note",
+    ),
+    path(
+        "simulation_projet/<int:pk>/annotations/<int:note_id>",
+        simulation_projet_must_be_visible_by_user(get_note_card),
+        name="get-note-card",
     ),
 ]

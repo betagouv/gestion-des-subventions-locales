@@ -5,11 +5,12 @@
   font-weight: 500;
 }
 
-td.dotation_attribute > span {
+td.dotation_attribute span {
   display: block;
   font-weight: bold;
 }
 
+td.dotation_attribute > div:not(:last-child),
 td.dotation_attribute > span:not(:last-child) {
   margin-bottom: 1rem;
 }

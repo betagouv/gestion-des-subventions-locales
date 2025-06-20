@@ -1,5 +1,43 @@
 {% extends "gsl_simulation/simulation_projet_detail.html" %}
+{% load static %}
 
 {% block tab_projet %}
     {% include "includes/_annotations_detail.html" %}
+    {% block block_projet_notes %}
+        {% if projet_notes %}
+            <h3>
+                Annotations créées ici
+            </h3>
+            {% for note in projet_notes %}
+                {% include "includes/_note_card.html" with allow_update=True %}
+            {% endfor %}
+        {% endif %}
+
+        <div class="fr-mt-2w">
+            <button class="fr-btn fr-btn--primary fr-btn--icon-left fr-icon-add-line fr-icon--lg"
+                    id="add_note_button">
+                Ajouter une nouvelle note
+            </button>
+        </div>
+        <form class="fr-mt-4w" method="post" id="projet_note_form">
+            {% csrf_token %}
+            {{ projet_note_form }}
+            <div class="fr-mt-2w submit-projet-note-form-container">
+                <button type="submit" class="fr-btn fr-btn--primary">
+                    Ajouter
+                </button>
+            </div>
+        </form>
+    {% endblock block_projet_notes %}
 {% endblock tab_projet %}
+
+{% block modal %}
+    {% include "includes/modals/_delete_note_confirmation_modal.html" %}
+    {% include "includes/modals/_cancel_update_note_confirmation_modal.html" %}
+{% endblock modal %}
+
+{% block extra_js %}
+    <script type="module" src="{% static 'js/htmx.min.js' %}"></script>
+    <script type="module"
+            src="{% static 'js/handleInteractionInSimulationProjetAnnotations.js' %}"></script>
+{% endblock extra_js %}

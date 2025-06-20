@@ -57,3 +57,30 @@
 #id_is_budget_vert {
   width:180px
 }
+
+.submit-projet-note-form-container {
+  display: flex;
+  justify-content: end;
+}
+
+#projet_note_form {
+  display:none
+}
+
+
+#categorie-detr-select {
+  max-height: 500px;
+  scroll-behavior: auto;
+  overflow: auto;
+}
+
+#categorie-detr-select-button {
+  text-align: start;
+}
+
+.status_action_header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}

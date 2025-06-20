@@ -187,6 +187,15 @@ class ProjetFilters(FilterSet):
                 perimetres.add(child)
         return queryset.filter(perimetre__in=perimetres)
 
+    categorie_detr = MultipleChoiceFilter(
+        method="filter_categorie_detr",
+        choices=[],
+        widget=CustomCheckboxSelectMultiple(),
+    )
+
+    def filter_categorie_detr(self, queryset, _name, values: list[int]):
+        return queryset.filter(dotationprojet__detr_categories__in=values)
+
     class Meta:
         model = Projet
         fields = (
@@ -200,6 +209,7 @@ class ProjetFilters(FilterSet):
             "montant_retenu_max",
             "status",
             "territoire",
+            "categorie_detr",
         )
 
     @property

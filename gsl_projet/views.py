@@ -1,3 +1,5 @@
+from functools import cached_property
+
 from django.db.models import Prefetch
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
@@ -12,7 +14,7 @@ from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_filters import ProjetFilters
 from gsl_projet.utils.projet_page import PROJET_MENU
 
-from .models import Projet
+from .models import CategorieDetr, Projet
 
 
 def visible_by_user(func):
@@ -44,6 +46,8 @@ def _get_projet_context_info(projet_id):
             "current": title,
         },
         "menu_dict": PROJET_MENU,
+        "projet_notes": projet.notes.all(),
+        "dotation_projets": projet.dotationprojet_set.all(),
     }
     return context
 
@@ -55,7 +59,7 @@ def get_projet(request, projet_id):
     return render(request, "gsl_projet/projet.html", context)
 
 
-PROJET_TABS = {"annotations", "demandeur", "historique"}
+PROJET_TABS = {"annotations", "historique"}
 
 
 @visible_by_user
@@ -75,6 +79,13 @@ class ProjetListViewFilters(ProjetFilters):
             self.filters["territoire"].extra["choices"] = tuple(
                 (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
             )
+            if perimetre.departement:
+                self.filters["categorie_detr"].extra["choices"] = tuple(
+                    (c.id, c.libelle)
+                    for c in CategorieDetr.objects.current_for_departement(
+                        perimetre.departement
+                    )
+                )
 
     filterset = (
         "territoire",
@@ -84,6 +95,7 @@ class ProjetListViewFilters(ProjetFilters):
         "cout_total",
         "montant_demande",
         "montant_retenu",
+        "categorie_detr",
     )
 
     @property
@@ -101,6 +113,7 @@ class ProjetListViewFilters(ProjetFilters):
         ).prefetch_related(
             "dossier_ds__demande_eligibilite_detr",
             "dossier_ds__demande_eligibilite_dsil",
+            "dotationprojet_set__detr_categories",
             Prefetch(
                 "dotationprojet_set__programmation_projet",
                 queryset=ProgrammationProjet.objects.filter(
@@ -131,7 +144,7 @@ class ProjetListView(FilterView, ListView, FilterUtils):
         qs_global = (
             self.filterset.qs
         )  # utile pour ne pas avoir la pagination de context["object_list"]
-        context["title"] = "Projets 2025"
+        context["title"] = "Projets 2025"  # todo année hardcodée
         context["breadcrumb_dict"] = {}
         context["total_cost"] = ProjetService.get_total_cost(qs_global)
         context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs_global)
@@ -152,3 +165,14 @@ class ProjetListView(FilterView, ListView, FilterUtils):
             return ()
 
         return (perimetre, *perimetre.children())
+
+    @cached_property
+    def categorie_detr_choices(self):
+        perimetre = self._get_perimetre()
+        if not perimetre:
+            return ()
+
+        if not perimetre.departement:
+            return ()
+
+        return CategorieDetr.objects.current_for_departement(perimetre.departement)
