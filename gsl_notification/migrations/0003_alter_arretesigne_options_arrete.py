@@ -8,7 +8,6 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
     dependencies = [
         ("gsl_notification", "0002_rename_uploaded_at_arretesigne_created_at"),
-        ("gsl_programmation", "0019_delete_arrete"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
