@@ -1,16 +1,20 @@
 import { Editor } from "https://esm.sh/@tiptap/core";
 import StarterKit from "https://esm.sh/@tiptap/starter-kit";
 
-// const editor = new Editor({
-new Editor({
+const editor = new Editor({
   element: document.querySelector("#editor"),
   extensions: [StarterKit],
   content: "<p>Mon arrêté</p>",
-  // onUpdate({ editor }) {
-  //   const json = editor.getJSON();
-  //   document.querySelector('input[name="content"]').value =
-  //     JSON.stringify(json);
-  // },
+  onCreate({ editor }) {
+    const json = editor.getJSON();
+    document.querySelector('input[name="content"]').value =
+      JSON.stringify(json);
+  },
+  onUpdate({ editor }) {
+    const json = editor.getJSON();
+    document.querySelector('input[name="content"]').value =
+      JSON.stringify(json);
+  },
 });
 
 // Gestion des boutons de la toolbar
