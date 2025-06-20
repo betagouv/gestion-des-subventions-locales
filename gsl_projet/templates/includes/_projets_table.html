@@ -66,7 +66,7 @@
                             {{ projet.demandeur.name | format_demandeur_nom }}
                         </td>
                         <td>
-                            {{ projet.dossier_ds.ds_number|stringformat:"s" }}
+                            {{ projet.dossier_ds.ds_number }}
                         </td>
                         <td class="dotation_attribute">
                             {% for dp in dotation_projets %}
