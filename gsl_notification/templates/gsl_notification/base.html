@@ -25,6 +25,7 @@
             Génération de l'arrêté
         </h3>
         <button class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-file-text-line"
+                id="show-arrete-form"
                 {% if disabled_create_arrete_buttons %} disabled {% endif %}>
             Créer l'arrêté
         </button>
@@ -45,4 +46,5 @@
 
 {% block extra_js %}
     <script type="module" src="{% static 'js/notification.js' %}"></script>
+    <script type="module" src="{% static 'js/tiptap.js' %}"></script>
 {% endblock extra_js %}
