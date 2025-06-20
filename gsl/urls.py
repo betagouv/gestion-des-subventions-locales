@@ -24,6 +24,10 @@ urlpatterns = [
         "simulation/",
         include(("gsl_simulation.urls", "gsl_simulation"), "simulation"),
     ),
+    path(
+        "programmation/",
+        include(("gsl_programmation.urls", "gsl_programmation"), "programmation"),
+    ),
 ]
 
 if settings.DEBUG:

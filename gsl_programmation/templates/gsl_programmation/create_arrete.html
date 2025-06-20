@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+    <h1>
+        Créer un Arrêté
+    </h1>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% if form.errors %}
+            <div class="alert alert-danger">
+                <strong>Erreur !</strong> Veuillez corriger les erreurs ci-dessous.
+            </div>
+            {% for field in form %}
+                {% if field.errors %}
+                    <div class="alert alert-danger">
+                        <strong>{{ field.label }} :</strong> {{ field.errors }}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+        {{ form.programmation.label_tag }}
+
+        {{ form.programmation_projet.label_tag }}
+        <br>
+        {{ form.programmation_projet }}
+        <br>
+        <br>
+
+        {{ form.numero.label_tag }}
+        <br>
+        {{ form.numero }}
+        <br>
+        <br>
+
+        {{ form.date.label_tag }}
+        <br>
+        {{ form.date }}
+        <br>
+        <br>
+
+        {{ form.document.label_tag }}
+        <br>
+        {{ form.document }}
+        <br>
+        <br>
+
+        <label for="editor">
+            Contenu de l'arrêté :
+        </label>
+        <div id="toolbar">
+            <button data-action="bold"  type="button">
+                <b>Gras</b>
+            </button>
+            <button data-action="italic" type="button">
+                <i>Italique</i>
+            </button>
+            <button data-action="undo" type="button">
+                Annuler
+            </button>
+            <button data-action="redo" type="button">
+                Rétablir
+            </button>
+        </div>
+        <div id="editor">
+        </div>
+        {{ form.content }}  <!-- Champ JSON caché -->
+
+        <br>
+        <br>
+        <button type="button" id="export-pdf">
+            Exorter en PDF
+        </button>
+        <button type="submit">
+            Enregistrer
+        </button>
+    </form>
+{% endblock content %}
+
+{% block extra_css %}
+    {% comment %} <link rel="stylesheet" href="https://unpkg.com/@tiptap/pm@latest/style.css" nonce="{{ request.csp_nonce }}">
+    </link> {% endcomment %}
+{% endblock extra_css %}
+
+{% block extra_js %}
+    <script type="module" src="{% static 'js/test_tip_tap.js' %}"></script>
+{% endblock extra_js %}
