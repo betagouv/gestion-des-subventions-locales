@@ -1,4 +1,6 @@
 import boto3
+from csp.constants import SELF, UNSAFE_INLINE
+from csp.decorators import csp_update
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -20,6 +22,7 @@ from gsl_programmation.models import ProgrammationProjet
 ### Arrete
 
 
+@csp_update({"style-src": [SELF, UNSAFE_INLINE]})
 @programmation_projet_visible_by_user
 def create_arrete_view(request, programmation_projet_id):
     programmation_projet = get_object_or_404(
