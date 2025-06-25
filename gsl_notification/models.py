@@ -14,6 +14,10 @@ class ArreteSigne(models.Model):
         related_name="arrete_signe",
     )
 
+    class Meta:
+        verbose_name = "Arrêté signé"
+        verbose_name_plural = "Arrêtés signés"
+
     def __str__(self):
         return f"Arrêté signé #{self.id} "
 
