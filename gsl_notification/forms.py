@@ -26,9 +26,10 @@ class ArreteSigneForm(forms.ModelForm, DsfrBaseForm):
                 "Seuls les fichiers PDF, PNG ou JPEG sont acceptés."
             )
 
-        max_size = 20 * 1024 * 1024  # 20 Mo
+        max_size_in_mo = 20
+        max_size = max_size_in_mo * 1024 * 1024  # 20 Mo
         if file.size > max_size:
             raise forms.ValidationError(
-                "La taille du fichier ne doit pas dépasser 20 Mo."
+                f"La taille du fichier ne doit pas dépasser {max_size_in_mo} Mo."
             )
         return file
