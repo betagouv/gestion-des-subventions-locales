@@ -31,9 +31,9 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG")
 ENV = os.getenv("ENV")
-if ENV not in ("dev", "staging", "prod"):
+if ENV not in ("dev", "test", "staging", "prod"):
     raise ValueError(
-        f"ENV must be one of 'dev', 'staging' or 'prod'. Got {ENV} instead."
+        f"ENV must be one of 'dev', 'test', 'staging' or 'prod'. Got {ENV} instead."
     )
 
 # We support a comma-separated list of allowed hosts.
@@ -85,6 +85,7 @@ INSTALLED_APPS = [
     "gsl_projet",
     "gsl_programmation",
     "gsl_simulation",
+    "gsl_notification",
     "gsl_pages",
     "gsl_oidc",
 ]
@@ -135,6 +136,17 @@ TEMPLATES = [
         },
     },
 ]
+
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {},
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
 
 WSGI_APPLICATION = "gsl.wsgi.application"
 
@@ -187,9 +199,6 @@ TIME_ZONE = "Europe/Paris"
 USE_I18N = True
 
 USE_TZ = True
-
-USE_THOUSAND_SEPARATOR = True
-THOUSAND_SEPARATOR = " "
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
@@ -250,11 +259,8 @@ CONTENT_SECURITY_POLICY = {
         "default-src": [SELF],
         "img-src": [SELF, "data:", "stats.beta.gouv.fr"],
         "style-src": [SELF, NONCE],
-        "script-src": [SELF, NONCE, "stats.beta.gouv.fr"],
-        "connect-src": [
-            SELF,
-            "https://stats.beta.gouv.fr",
-        ],
+        "script-src": [SELF, NONCE, "stats.beta.gouv.fr", "https://esm.sh"],
+        "connect-src": [SELF, "https://stats.beta.gouv.fr", "https://esm.sh"],
     },
 }
 
@@ -265,3 +271,13 @@ CONTENT_SECURITY_POLICY_REPORT_ONLY = {}
 # syntax coloring queries in django-query-counters.
 # see https://pygments.org/demo/
 DQC_PYGMENTS_STYLE = os.getenv("DQC_PYGMENTS_STYLE", "monokai")
+
+
+# Storage
+AWS_ACCESS_KEY_ID = os.getenv("SCALEWAY_S3_KEY")
+AWS_SECRET_ACCESS_KEY = os.getenv("SCALEWAY_S3_SECRET")
+AWS_STORAGE_BUCKET_NAME = os.getenv("SCALEWAY_BUCKET")
+AWS_S3_REGION_NAME = os.getenv("SCALEWAY_S3_REGION", "fr-par")
+AWS_S3_ENDPOINT_URL = os.getenv(
+    "AWS_S3_ENDPOINT_URL", f"https://s3.{AWS_S3_REGION_NAME}.scw.cloud"
+)

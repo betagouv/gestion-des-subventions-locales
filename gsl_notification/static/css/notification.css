@@ -1,0 +1,37 @@
+.arrete-container {
+  border: 1px solid var(--background-action-low-blue-france-active);
+  padding: 2rem 4rem;
+}
+
+#arrete-signe-form {
+  margin-top: 2rem;
+}
+
+.hidden {
+  display: none;
+}
+
+.arrete-card {
+  border: 1px solid var(--border-default-grey);
+  padding: 1rem;
+  width: fit-content;
+  max-width: 300px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.arrete-card > img {
+  max-width: 150px;
+  max-height: fit-content;
+  margin-bottom: 1rem;
+}
+
+.next-step-buttons {
+  display: flex;
+  justify-content: end;
+  gap: 8px;
+  align-items: center;
+  margin-top:1rem;
+}
