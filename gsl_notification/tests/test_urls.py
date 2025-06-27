@@ -94,7 +94,7 @@ def test_get_arrete_url_with_correct_perimetre_and_with_arrete(
 def test_get_arrete_url_without_correct_perimetre_and_without_arrete(
     programmation_projet, different_perimetre_client_with_user_logged, with_arrete
 ):
-    for class_name in [ArreteFactory, ArreteSigneFactory]:
+    for class_name in (ArreteFactory, ArreteSigneFactory):
         if with_arrete:
             class_name(programmation_projet=programmation_projet)
 

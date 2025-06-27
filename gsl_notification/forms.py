@@ -15,7 +15,7 @@ class ArreteForm(forms.ModelForm, DsfrBaseForm):
 
     class Meta:
         model = Arrete
-        fields = ["content", "created_by", "programmation_projet"]
+        fields = ("content", "created_by", "programmation_projet")
 
 
 class ArreteSigneForm(forms.ModelForm, DsfrBaseForm):
@@ -25,7 +25,7 @@ class ArreteSigneForm(forms.ModelForm, DsfrBaseForm):
 
     class Meta:
         model = ArreteSigne
-        fields = ["file", "created_by", "programmation_projet"]
+        fields = ("file", "created_by", "programmation_projet")
 
     def clean_file(self):
         file = self.cleaned_data["file"]
