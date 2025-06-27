@@ -11,6 +11,18 @@ register = template.Library()
 
 
 @register.filter
+def get_class(value):
+    return value.__class__.__name__
+
+
+@register.simple_tag
+def define(val=None):
+    """Useful to create conditional variables in templates.
+    cf https://stackoverflow.com/a/37755722/11207718"""
+    return val
+
+
+@register.filter
 def percent(value, decimals=0):
     if value is None or value == "":
         return "— %"

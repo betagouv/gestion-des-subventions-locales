@@ -1,16 +1,21 @@
 {% extends "gsl_notification/base.html" %}
-{% load static dsfr_tags %}
+{% load static dsfr_tags gsl_filters %}
 {% block arrete_content %}
     <div class="arrete-card fr-mt-4w">
         <img class="arrete-card__image"
              src="{% static 'img/arrete_vignette.png' %}"
              alt="Image d'un arrêté">
         <div>
+            {% if arrete|get_class == "ArreteSigne" %}
+                {% define "notification:arrete-signe-download" as download_url %}
+            {% else %}
+                {% define "notification:arrete-download" as download_url %}
+            {% endif %}
             <a class="fr-link fr-link--download"
-               href="{% url 'notification:arrete-signe-download' arrete_signe.id %}">
-                {{ arrete_signe.name }} -
-                {{ arrete_signe.type|upper }} -
-                {{ arrete_signe.size|filesizeformat }}
+               href="{% url download_url arrete.id %}">
+                {{ arrete.name }} -
+                {{ arrete.type|upper }} -
+                {{ arrete.size|filesizeformat }}
             </a>
         </div>
         <div>

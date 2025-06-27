@@ -2,6 +2,13 @@
       enctype="multipart/form-data"
       id="arrete-form"
       class="hidden fr-mt-4w">
+    {% csrf_token %}
+    {% if source_simulation_projet_id %}
+        <input type="hidden"
+               name="source_simulation_projet_id"
+               value="{{ source_simulation_projet_id }}">
+    {% endif %}
+
     <label for="editor" class="fr-label fr-mb-2w">
         <b>
             Création de l'arrêté sur Turgot :
@@ -24,14 +31,19 @@
     <div id="editor">
 
     </div>
-    {% comment %} {{ form.content }}   {% endcomment %}
+    {{ arrete_form.content }}
+    <input type="hidden" name="created_by" value="{{ user.id }}">
+    <input type="hidden"
+           name="programmation_projet"
+           value="{{ programmation_projet.id }}">
+
     <div class="next-step-buttons">
         <button type="button"
                 id="cancel-arrete-form"
                 class="fr-btn fr-btn--secondary">
             Annuler
         </button>
-        <button type="button" id="cancel-arrete-form" class="fr-btn">
+        <button type="submit" id="cancel-arrete-form" class="fr-btn">
             Enregistrer les modifications
         </button>
     </div>

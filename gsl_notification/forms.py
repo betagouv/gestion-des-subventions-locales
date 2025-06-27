@@ -3,7 +3,19 @@ import os
 from django import forms
 from dsfr.forms import DsfrBaseForm
 
-from gsl_notification.models import ArreteSigne
+from gsl_notification.models import Arrete, ArreteSigne
+
+
+class ArreteForm(forms.ModelForm, DsfrBaseForm):
+    content = forms.JSONField(
+        required=True,
+        help_text="Contenu JSON de l'arrêté, utilisé pour les exports.",
+        widget=forms.TextInput(attrs={"type": "hidden"}),
+    )
+
+    class Meta:
+        model = Arrete
+        fields = ("content", "created_by", "programmation_projet")
 
 
 class ArreteSigneForm(forms.ModelForm, DsfrBaseForm):
@@ -13,7 +25,7 @@ class ArreteSigneForm(forms.ModelForm, DsfrBaseForm):
 
     class Meta:
         model = ArreteSigne
-        fields = ["file"]
+        fields = ("file", "created_by", "programmation_projet")
 
     def clean_file(self):
         file = self.cleaned_data["file"]
