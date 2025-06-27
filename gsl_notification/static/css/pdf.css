@@ -1,0 +1,21 @@
+#weasy .fr-header__logo {
+    padding: 0;
+}
+.fr-header__brand-top {
+    width: 20%;
+}
+.fr-header__service {
+    text-align: right;
+    margin-left: auto;
+}
+.fr-header__service > p {
+    margin: 0;
+}
+
+.fr-header__brand {
+    display: flex;
+    flex-direction: row;
+}
+.fr-header__brand:after {
+    display: none;
+}
