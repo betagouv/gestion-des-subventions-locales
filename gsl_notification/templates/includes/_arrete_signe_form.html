@@ -1,0 +1,43 @@
+<form method="post"
+      enctype="multipart/form-data"
+      id="arrete-signe-form"
+      class="{% if not form.errors %}hidden{% endif %}">
+    {% if source_simulation_projet_id %}
+        <input type="hidden"
+               name="source_simulation_projet_id"
+               value="{{ source_simulation_projet_id }}">
+    {% endif %}
+
+    {% if form.errors %}
+        <div class="fr-alert fr-alert--error fr-mb-1w">
+            <p class="fr-alert__title">
+                Erreur dans le formulaire
+            </p>
+            <ul>
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <li>
+                            {{ error }}
+                        </li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {% csrf_token %}
+    <div class="fr-input-group">
+        <label class="fr-label" for="id_file">
+            Ajouter l'arrêté signé
+        </label>
+        <span class="fr-hint-text fr-mb-1w" id="id_file_helptext">
+            Taille maximale : 20 Mo. Formats acceptés : jpg, png, pdf.
+        </span>
+
+        {{ form.file }}
+
+    </div>
+    <button class="fr-btn" type="submit" id="submit-arrete-signe-form" disabled>
+        Envoyer
+    </button>
+</form>
