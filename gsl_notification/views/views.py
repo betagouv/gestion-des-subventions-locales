@@ -3,6 +3,7 @@ from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
 from django.http import Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_POST
@@ -93,6 +94,13 @@ def get_arrete_view(request, programmation_projet_id):
 def download_arrete(request, arrete_id):
     arrete = get_object_or_404(Arrete, id=arrete_id)
     context = {"content": mark_safe(BaseDoc({}).render(arrete.content))}
+    if settings.DEBUG and request.GET.get("debug", False):
+        return TemplateResponse(
+            template="gsl_notification/pdf/arrete.html",
+            context=context,
+            request=request,
+            # filename=f"arrete-{arrete.id}.pdf",
+        )
 
     return WeasyTemplateResponse(
         template="gsl_notification/pdf/arrete.html",

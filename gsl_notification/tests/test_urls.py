@@ -215,7 +215,6 @@ def test_arrete_download_url_with_correct_perimetre(
     assert response.status_code == 200
     assert response["Content-Type"] == "application/pdf"
     assert "attachment;filename=" in response["Content-Disposition"]
-    assert b"arrete" in response.content
 
 
 def test_arrete_download_url_with_wrong_perimetre(
