@@ -1,10 +1,13 @@
 import boto3
 from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
-from django.http import Http404, HttpResponse, StreamingHttpResponse
+from django.http import Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_POST
+from django_weasyprint.views import WeasyTemplateResponse
+from tiptapy import BaseDoc
 
 from gsl import settings
 from gsl_notification.forms import ArreteForm, ArreteSigneForm
@@ -89,14 +92,14 @@ def get_arrete_view(request, programmation_projet_id):
 @require_GET
 def download_arrete(request, arrete_id):
     arrete = get_object_or_404(Arrete, id=arrete_id)
-    pdf_content = f"arrete {arrete.id}, {arrete.content}".encode()
+    context = {"content": mark_safe(BaseDoc({}).render(arrete.content))}
 
-    response = HttpResponse(
-        pdf_content,
-        content_type="application/pdf",
+    return WeasyTemplateResponse(
+        template="gsl_notification/pdf/arrete.html",
+        context=context,
+        request=request,
+        filename=f"arrete-{arrete.id}.pdf",
     )
-    response["Content-Disposition"] = 'attachment; filename="test.pdf"'
-    return response
 
 
 ### ArreteSigne
