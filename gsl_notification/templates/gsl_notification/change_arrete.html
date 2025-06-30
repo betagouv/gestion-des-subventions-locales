@@ -1,0 +1,10 @@
+{% extends "gsl_notification/base.html" %}
+{% load static dsfr_tags %}
+{% block upper_content %}
+    <h3>
+        Modifier l'arrêté
+    </h3>
+{% endblock upper_content %}
+{% block arrete_content %}
+    {% include "includes/_arrete_form.html" %}
+{% endblock arrete_content %}

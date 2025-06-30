@@ -21,6 +21,9 @@
         <div>
             Ajouté le {{ arrete.created_at|date:"d/m/Y" }} à {{ arrete.created_at|time:"H:i" }} par {{ arrete.created_by }}
         </div>
+        <div>
+            <a href="{% url "notification:modifier-arrete" programmation_projet_id %}">Modifier</a>
+        </div>
     </div>
 
     <div class="next-step-buttons">

@@ -21,6 +21,9 @@ document.addEventListener('DOMContentLoaded', function() {
             arreteSigneForm.classList.add('hidden');
         });
     }
+    if (arreteForm && !showArreteForm) {
+        arreteForm.classList.remove('hidden');
+    }
 
     if (fileInput && submitBtn) {
         fileInput.addEventListener('change', function() {
