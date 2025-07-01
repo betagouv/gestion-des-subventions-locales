@@ -8,7 +8,6 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_POST
 from django_weasyprint.views import WeasyTemplateResponse
-from tiptapy import BaseDoc
 
 from gsl import settings
 from gsl_notification.forms import ArreteForm, ArreteSigneForm
@@ -142,13 +141,12 @@ def get_arrete_view(request, programmation_projet_id):
 @require_GET
 def download_arrete(request, arrete_id):
     arrete = get_object_or_404(Arrete, id=arrete_id)
-    context = {"content": mark_safe(BaseDoc({}).render(arrete.content))}
+    context = {"content": mark_safe(arrete.content)}
     if settings.DEBUG and request.GET.get("debug", False):
         return TemplateResponse(
             template="gsl_notification/pdf/arrete.html",
             context=context,
             request=request,
-            # filename=f"arrete-{arrete.id}.pdf",
         )
 
     return WeasyTemplateResponse(

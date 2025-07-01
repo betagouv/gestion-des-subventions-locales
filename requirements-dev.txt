@@ -14,11 +14,11 @@ asttokens==3.0.0
     # via stack-data
 billiard==4.2.1
     # via celery
-boto3==1.38.43
+boto3==1.39.0
     # via
     #   django-storages
     #   gsl (pyproject.toml)
-botocore==1.38.43
+botocore==1.39.0
     # via
     #   boto3
     #   s3transfer
@@ -120,7 +120,7 @@ django-filter==25.1
     # via gsl (pyproject.toml)
 django-fsm-2==4.0.0
     # via gsl (pyproject.toml)
-django-htmx==1.23.1
+django-htmx==1.23.2
     # via gsl (pyproject.toml)
 django-import-export==4.3.8
     # via gsl (pyproject.toml)
@@ -166,7 +166,7 @@ idna==3.10
     # via requests
 iniconfig==2.1.0
     # via pytest
-ipython==9.3.0
+ipython==9.4.0
     # via gsl (pyproject.toml)
 ipython-pygments-lexers==1.1.1
     # via ipython
@@ -213,7 +213,7 @@ pathspec==0.12.1
     # via djlint
 pexpect==4.9.0
     # via ipython
-pillow==11.2.1
+pillow==11.3.0
     # via weasyprint
 pip-tools==7.4.1
     # via gsl (pyproject.toml)
@@ -267,7 +267,7 @@ pytest-django==4.11.1
     # via gsl (pyproject.toml)
 pytest-ruff==0.5
     # via gsl (pyproject.toml)
-pytest-xdist==3.7.0
+pytest-xdist==3.8.0
     # via gsl (pyproject.toml)
 python-crontab==3.2.0
     # via django-celery-beat
@@ -292,13 +292,13 @@ requests==2.32.4
     #   django-dsfr
     #   gsl (pyproject.toml)
     #   mozilla-django-oidc
-ruff==0.12.0
+ruff==0.12.1
     # via
     #   gsl (pyproject.toml)
     #   pytest-ruff
 s3transfer==0.13.0
     # via boto3
-sentry-sdk==2.31.0
+sentry-sdk==2.32.0
     # via gsl (pyproject.toml)
 six==1.17.0
     # via
@@ -321,8 +321,6 @@ tinycss2==1.4.0
     #   weasyprint
 tinyhtml5==2.0.0
     # via weasyprint
-tiptapy==0.21.0
-    # via gsl (pyproject.toml)
 tqdm==4.67.1
     # via djlint
 traitlets==5.14.3
