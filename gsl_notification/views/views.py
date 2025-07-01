@@ -86,8 +86,10 @@ def change_arrete_view(request, programmation_projet_id):
         )
         return redirect(url)
 
+    arrete = programmation_projet.arrete
+
     if request.method == "POST":
-        form = ArreteForm(request.POST)
+        form = ArreteForm(request.POST, instance=arrete)
         if form.is_valid():
             form.save()
 
@@ -95,12 +97,12 @@ def change_arrete_view(request, programmation_projet_id):
                 request, programmation_projet.id, source_simulation_projet_id
             )
     else:
-        arrete = programmation_projet.arrete
         form = ArreteForm(instance=arrete)
 
     context = {
         "arrete_form": form,
         "arrete_signe_form": ArreteSigneForm(),
+        "arrete_initial_content": mark_safe(arrete.content),
     }
     context = _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
@@ -221,10 +223,13 @@ def download_arrete_signe(request, arrete_signe_id):
 def _redirect_to_get_arrete_view(
     request, programmation_projet_id, source_simulation_projet_id=None
 ):
+    query = None
+    if source_simulation_projet_id:
+        query = {"source_simulation_projet_id": source_simulation_projet_id}
     url = reverse(
         "gsl_notification:get-arrete",
         kwargs={"programmation_projet_id": programmation_projet_id},
-        query={"source_simulation_projet_id": source_simulation_projet_id},
+        query=query,
     )
     return redirect(url)
 
