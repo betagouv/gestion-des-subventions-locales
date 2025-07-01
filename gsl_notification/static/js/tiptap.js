@@ -21,18 +21,13 @@ const EXTENSIONS = [
 const editor = new Editor({
   element: document.querySelector("#editor"),
   extensions: EXTENSIONS,
-  content: "<p>Mon arrêté</p>",
   onCreate({ editor }) {
-    const json = editor.getJSON();
-    document.querySelector('input[name="content"]').value =
-      JSON.stringify(json);
-
+    editor.commands.setContent(document.getElementById("initial_content").innerHTML);
+    document.querySelector('input[name="content"]').value = editor.getHTML();
   },
   onUpdate({ editor }) {
-    const json = editor.getJSON();
-    document.querySelector('input[name="content"]').value =
-      JSON.stringify(json);
-  },
+    document.querySelector('input[name="content"]').value = editor.getHTML();
+  }
 });
 
 // Gestion des boutons de la toolbar
