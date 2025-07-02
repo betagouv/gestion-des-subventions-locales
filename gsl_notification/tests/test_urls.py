@@ -126,6 +126,22 @@ def test_create_arrete_url_with_correct_perimetre_and_without_arrete(
     assert response.status_code == 200
 
 
+def test_modify_arrete_url_with_correct_perimetre_and_without_arrete(
+    programmation_projet, correct_perimetre_client_with_user_logged
+):
+    ArreteFactory(
+        programmation_projet=programmation_projet, content="<p>Contenu de l’arrêté</p>"
+    )
+    url = reverse(
+        "notification:modifier-arrete",
+        kwargs={"programmation_projet_id": programmation_projet.id},
+    )
+    assert url == f"/notification/{programmation_projet.id}/modifier-arrete/"
+    response = correct_perimetre_client_with_user_logged.get(url)
+    assert response.status_code == 200
+    assert response.context["arrete_initial_content"] == "<p>Contenu de l’arrêté</p>"
+
+
 def test_create_arrete_url_with_correct_perimetre_and_with_arrete(
     programmation_projet, correct_perimetre_client_with_user_logged
 ):
@@ -177,7 +193,7 @@ def test_create_arrete_view_valid(
     data = {
         "created_by": correct_perimetre_client_with_user_logged.user.id,
         "programmation_projet": programmation_projet.id,
-        "content": '{"key": "value"}',
+        "content": "<p>Le contenu</p>",
     }
     response = correct_perimetre_client_with_user_logged.post(url, data)
     assert response.status_code == 302
@@ -191,6 +207,53 @@ def test_create_arrete_view_invalid(
 ):
     url = reverse(
         "notification:create-arrete",
+        kwargs={"programmation_projet_id": programmation_projet.id},
+    )
+    response = correct_perimetre_client_with_user_logged.post(url, {})
+    assert response.status_code == 200
+    assert response.context["arrete_form"].errors == {
+        "created_by": ["Ce champ est obligatoire."],
+        "programmation_projet": ["Ce champ est obligatoire."],
+        "content": ["Ce champ est obligatoire."],
+    }
+
+
+##### POST
+
+
+def test_change_arrete_view_valid(
+    programmation_projet, correct_perimetre_client_with_user_logged
+):
+    arrete = ArreteFactory(
+        programmation_projet=programmation_projet, content="<p>Ancien contenu</p>"
+    )
+    url = reverse(
+        "notification:modifier-arrete",
+        kwargs={"programmation_projet_id": programmation_projet.id},
+    )
+    data = {
+        "created_by": correct_perimetre_client_with_user_logged.user.id,
+        "programmation_projet": programmation_projet.id,
+        "content": "<p>Le contenu</p>",
+    }
+    response = correct_perimetre_client_with_user_logged.post(url, data)
+    assert response.status_code == 302
+    assert (
+        response["Location"] == f"/notification/{programmation_projet.id}/arrete-signe/"
+    )
+    arrete.refresh_from_db()
+    assert arrete.content == "<p>Le contenu</p>"
+
+
+def test_change_arrete_view_invalid(
+    programmation_projet, correct_perimetre_client_with_user_logged
+):
+    ArreteFactory(
+        programmation_projet=programmation_projet, content="<p>Ancien contenu</p>"
+    )
+
+    url = reverse(
+        "notification:modifier-arrete",
         kwargs={"programmation_projet_id": programmation_projet.id},
     )
     response = correct_perimetre_client_with_user_logged.post(url, {})

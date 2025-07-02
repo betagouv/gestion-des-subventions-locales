@@ -13,11 +13,11 @@ class Arrete(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
     updated_at = models.DateTimeField(auto_now=True)
-    content = models.JSONField(
+    content = models.TextField(
         verbose_name="Contenu de l'arrêté",
         blank=True,
-        null=True,
-        help_text="Contenu JSON de l'arrêté, utilisé pour les exports.",
+        default="",
+        help_text="Contenu HTML de l'arrêté, utilisé pour les exports.",
     )
 
     class Meta:

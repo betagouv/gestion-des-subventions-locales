@@ -31,7 +31,6 @@ dependencies = [
     "tablib[ods]",
     "tablib[xls]",
     "tablib[xlsx]",
-    "tiptapy",
     "whitenoise",
     "django-weasyprint",
 ]

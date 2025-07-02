@@ -7,7 +7,7 @@ from gsl_notification.models import Arrete, ArreteSigne
 
 
 class ArreteForm(forms.ModelForm, DsfrBaseForm):
-    content = forms.JSONField(
+    content = forms.CharField(
         required=True,
         help_text="Contenu JSON de l'arrêté, utilisé pour les exports.",
         widget=forms.TextInput(attrs={"type": "hidden"}),

@@ -1,4 +1,4 @@
-import { Editor } from "https://esm.sh/@tiptap/core";
+import { Editor, generateHTML } from "https://esm.sh/@tiptap/core";
 import StarterKit from "https://esm.sh/@tiptap/starter-kit";
 import Heading from "https://esm.sh/@tiptap/extension-heading";
 import BulletList from "https://esm.sh/@tiptap/extension-bullet-list";
@@ -7,9 +7,7 @@ import ListItem from "https://esm.sh/@tiptap/extension-list-item";
 import TextAlign from "https://esm.sh/@tiptap/extension-text-align";
 import Underline from "https://esm.sh/@tiptap/extension-underline";
 
-const editor = new Editor({
-  element: document.querySelector("#editor"),
-  extensions: [
+const EXTENSIONS = [
     StarterKit,
     Heading.configure({ levels: [1, 2] }),
     BulletList,
@@ -19,18 +17,17 @@ const editor = new Editor({
       types: ['heading', 'paragraph'],
     }),
     Underline,
-  ],
-  content: "<p>Mon arrêté</p>",
+  ]
+const editor = new Editor({
+  element: document.querySelector("#editor"),
+  extensions: EXTENSIONS,
   onCreate({ editor }) {
-    const json = editor.getJSON();
-    document.querySelector('input[name="content"]').value =
-      JSON.stringify(json);
+    editor.commands.setContent(document.getElementById("initial_content").innerHTML);
+    document.querySelector('input[name="content"]').value = editor.getHTML();
   },
   onUpdate({ editor }) {
-    const json = editor.getJSON();
-    document.querySelector('input[name="content"]').value =
-      JSON.stringify(json);
-  },
+    document.querySelector('input[name="content"]').value = editor.getHTML();
+  }
 });
 
 // Gestion des boutons de la toolbar

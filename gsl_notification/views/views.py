@@ -8,7 +8,6 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_POST
 from django_weasyprint.views import WeasyTemplateResponse
-from tiptapy import BaseDoc
 
 from gsl import settings
 from gsl_notification.forms import ArreteForm, ArreteSigneForm
@@ -64,6 +63,53 @@ def create_arrete_view(request, programmation_projet_id):
     return render(request, "gsl_notification/create_arrete.html", context=context)
 
 
+@csp_update({"style-src": [SELF, UNSAFE_INLINE]})
+@programmation_projet_visible_by_user
+def change_arrete_view(request, programmation_projet_id):
+    programmation_projet = get_object_or_404(
+        ProgrammationProjet,
+        id=programmation_projet_id,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+    )
+    source_simulation_projet_id = request.GET.get("source_simulation_projet_id")
+
+    if hasattr(programmation_projet, "arrete_signe"):
+        return _redirect_to_get_arrete_view(
+            request, programmation_projet.id, source_simulation_projet_id
+        )
+
+    if not hasattr(programmation_projet, "arrete"):
+        url = reverse(
+            "gsl_notification:create-arrete",
+            kwargs={"programmation_projet_id": programmation_projet_id},
+            query={"source_simulation_projet_id": source_simulation_projet_id},
+        )
+        return redirect(url)
+
+    arrete = programmation_projet.arrete
+
+    if request.method == "POST":
+        form = ArreteForm(request.POST, instance=arrete)
+        if form.is_valid():
+            form.save()
+
+            return _redirect_to_get_arrete_view(
+                request, programmation_projet.id, source_simulation_projet_id
+            )
+    else:
+        form = ArreteForm(instance=arrete)
+
+    context = {
+        "arrete_form": form,
+        "arrete_signe_form": ArreteSigneForm(),
+        "arrete_initial_content": mark_safe(arrete.content),
+    }
+    context = _enrich_context_for_create_or_get_arrete_view(
+        context, programmation_projet, request
+    )
+    return render(request, "gsl_notification/change_arrete.html", context=context)
+
+
 @programmation_projet_visible_by_user
 @require_GET
 def get_arrete_view(request, programmation_projet_id):
@@ -82,7 +128,11 @@ def get_arrete_view(request, programmation_projet_id):
                 "gsl_notification:create-arrete",
                 programmation_projet_id=programmation_projet.id,
             )
-    context = {"arrete": arrete, "disabled_create_arrete_buttons": True}
+    context = {
+        "arrete": arrete,
+        "disabled_create_arrete_buttons": True,
+        "programmation_projet_id": programmation_projet.id,
+    }
     context = _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
     )
@@ -93,13 +143,12 @@ def get_arrete_view(request, programmation_projet_id):
 @require_GET
 def download_arrete(request, arrete_id):
     arrete = get_object_or_404(Arrete, id=arrete_id)
-    context = {"content": mark_safe(BaseDoc({}).render(arrete.content))}
+    context = {"content": mark_safe(arrete.content)}
     if settings.DEBUG and request.GET.get("debug", False):
         return TemplateResponse(
             template="gsl_notification/pdf/arrete.html",
             context=context,
             request=request,
-            # filename=f"arrete-{arrete.id}.pdf",
         )
 
     return WeasyTemplateResponse(
@@ -174,12 +223,14 @@ def download_arrete_signe(request, arrete_signe_id):
 def _redirect_to_get_arrete_view(
     request, programmation_projet_id, source_simulation_projet_id=None
 ):
+    query = None
+    if source_simulation_projet_id:
+        query = {"source_simulation_projet_id": source_simulation_projet_id}
     url = reverse(
         "gsl_notification:get-arrete",
         kwargs={"programmation_projet_id": programmation_projet_id},
+        query=query,
     )
-    if source_simulation_projet_id:
-        url += f"?source_simulation_projet_id={source_simulation_projet_id}"
     return redirect(url)
 
 

@@ -9,6 +9,7 @@
                value="{{ source_simulation_projet_id }}">
     {% endif %}
 
+    {{ arrete_form.errors }}
     <label for="editor" class="fr-label fr-mb-2w">
         <b>
             Création de l'arrêté sur Turgot :
@@ -53,14 +54,15 @@
         </button>
     </div>
     <div id="editor">
-
     </div>
     {{ arrete_form.content }}
     <input type="hidden" name="created_by" value="{{ user.id }}">
     <input type="hidden"
            name="programmation_projet"
            value="{{ programmation_projet.id }}">
-
+    <div id="initial_content" hidden>
+        {{ arrete_initial_content }}
+    </div>
     <div class="next-step-buttons">
         <button type="button"
                 id="cancel-arrete-form"
