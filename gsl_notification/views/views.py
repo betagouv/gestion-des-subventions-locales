@@ -21,6 +21,7 @@ from gsl_notification.views.decorators import (
     programmation_projet_visible_by_user,
 )
 from gsl_programmation.models import ProgrammationProjet
+from gsl_simulation.models import SimulationProjet
 
 ### Arrete
 
@@ -108,6 +109,48 @@ def change_arrete_view(request, programmation_projet_id):
         context, programmation_projet, request
     )
     return render(request, "gsl_notification/change_arrete.html", context=context)
+
+
+@programmation_projet_visible_by_user
+@require_GET
+def documents_view_in_simulation(
+    request, programmation_projet_id, simulation_projet_id
+):
+    programmation_projet = get_object_or_404(
+        ProgrammationProjet,
+        id=programmation_projet_id,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+    )
+    simulation_projet = get_object_or_404(
+        SimulationProjet,
+        id=simulation_projet_id,
+        dotation_projet_id=programmation_projet.dotation_projet_id,
+    )
+    arrete_signe = None
+    try:
+        arrete_signe = programmation_projet.arrete_signe
+    except ArreteSigne.DoesNotExist:
+        pass
+    arrete = None
+    try:
+        arrete = programmation_projet.arrete
+    except Arrete.DoesNotExist:
+        pass
+
+    context = {
+        "arrete": arrete,
+        "arrete_signe": arrete_signe,
+        "programmation_projet_id": programmation_projet.id,
+        "simu": simulation_projet,
+    }
+    context = _enrich_context_for_create_or_get_arrete_view(
+        context, programmation_projet, request
+    )
+    return render(
+        request,
+        "gsl_notification/tab_simulation_projet/tab_notifications.html",
+        context=context,
+    )
 
 
 @programmation_projet_visible_by_user

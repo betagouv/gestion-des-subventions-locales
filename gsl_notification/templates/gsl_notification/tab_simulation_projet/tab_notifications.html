@@ -1,0 +1,29 @@
+{% extends "gsl_simulation/simulation_projet_detail.html" %}
+{% load static gsl_filters %}
+
+{% block tab_projet %}
+    <h1>
+        Génération des documents et envoi de la notification au demandeur
+    </h1>
+
+    <div class="fond-gris">
+        <h2>
+            Documents de notification
+        </h2>
+        <p>
+            <a href=""
+               class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-folder-2-fill ">
+                Générer un document
+            </a>
+            <a href=""
+               class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-upload-line">
+                Importer un document
+            </a>
+            <a href=""
+               class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-printer-line">
+                Imprimer tous les documents
+            </a>
+        </p>
+
+    </div>
+{% endblock tab_projet %}

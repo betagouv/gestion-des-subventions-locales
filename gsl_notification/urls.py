@@ -4,12 +4,18 @@ from gsl_notification.views.views import (
     change_arrete_view,
     create_arrete_signe_view,
     create_arrete_view,
+    documents_view_in_simulation,
     download_arrete,
     download_arrete_signe,
     get_arrete_view,
 )
 
 urlpatterns = [
+    path(
+        "<int:programmation_projet_id>/documents/simulation/<int:simulation_projet_id>",
+        documents_view_in_simulation,
+        name="documents",
+    ),
     path(
         "<int:programmation_projet_id>/arrete-signe/",
         get_arrete_view,

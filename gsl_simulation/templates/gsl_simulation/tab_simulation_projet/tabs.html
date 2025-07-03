@@ -23,7 +23,7 @@
         </li>
         {% if dotation_projet.programmation_projet %}
             <li>
-                {% url 'gsl_notification:create-arrete' dotation_projet.programmation_projet.id as notifications_url %}
+                {% url 'gsl_notification:documents' dotation_projet.programmation_projet.id simu.id as notifications_url %}
                 <a href="{{ notifications_url }}"
                    {% if request.path == notifications_url %}aria-selected="true"{% endif %}
                    class="fr-tabs__tab fr-icon-archive-line fr-tabs__tab--icon-left">Notifications du demandeur</a>
