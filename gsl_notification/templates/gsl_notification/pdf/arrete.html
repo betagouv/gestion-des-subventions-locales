@@ -4,32 +4,25 @@
         <title>Arrêté d'attribution</title>
         <meta name="description" content="">
         <meta name="keywords" content="">
-        {% dsfr_css %}
+        <link rel="stylesheet"
+              href="{% static 'dsfr/dist/dsfr/dsfr.print.min.css' %}">
         <link rel="stylesheet" href="{% static 'css/pdf.css' %}">
     </head>
     <body id="weasy">
-        <div class="fr-header__brand">
-            <div class="fr-header__brand-top">
-                <div class="fr-header__logo">
-                    {% block brand %}
-                        <p class="fr-logo">
-                            Préfète du Rhône
-                        </p>
-                    {% endblock brand %}
-                </div>
-                {% block operator_logo %}
-                {% endblock operator_logo %}
+        <header class="header">
+            <div class="head-left">
+                <img class="logo"
+                     src="{% static 'img/logo-exemple.png' %}"
+                     alt="À compléter"
+                     width="120">
 
             </div>
-            <div class="fr-header__service">
-                <p class="fr-header__service-title">
-                    Titre
-                </p>
-                <p class="fr-header__service-tagline">
-                    Tagline
-                </p>
+            <div class="head-right">
+                Ligne 1
+                <br>
+                Ligne 2
             </div>
-        </div>
+        </header>
         <main>
             <div>
                 {{ content }}
