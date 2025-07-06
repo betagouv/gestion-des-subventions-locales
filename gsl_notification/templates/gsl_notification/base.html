@@ -14,14 +14,15 @@
         </a>
     {% endif %}
     <h1>
-        Génération des documents et envoi de la notification au demandeur
+        {% block notif_page_title %}
+            Notification
+        {% endblock notif_page_title %}
     </h1>
     <h2>
         <span class="blue-color">Projet :</span> {{ projet.dossier_ds.projet_intitule }}
     </h2>
 
     <div class="arrete-container">
-        {% dsfr_stepper stepper_dict %}
         {% block upper_content %}
         {% endblock upper_content %}
         {% block arrete_content %}

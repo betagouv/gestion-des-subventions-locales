@@ -36,11 +36,13 @@ def create_arrete_view(request, programmation_projet_id):
     )
     source_simulation_projet_id = request.GET.get("source_simulation_projet_id")
 
-    if hasattr(programmation_projet, "arrete") or hasattr(
-        programmation_projet, "arrete_signe"
-    ):
-        return _redirect_to_get_arrete_view(
-            request, programmation_projet.id, source_simulation_projet_id
+    if hasattr(programmation_projet, "arrete"):
+        return redirect(
+            reverse(
+                "gsl_notification:modifier-arrete",
+                kwargs={"programmation_projet_id": programmation_projet_id},
+                query={"source_simulation_projet_id": source_simulation_projet_id},
+            )
         )
 
     if request.method == "POST":
@@ -126,20 +128,20 @@ def documents_view_in_simulation(
         id=simulation_projet_id,
         dotation_projet_id=programmation_projet.dotation_projet_id,
     )
-    arrete_signe = None
+    documents = {}
+
     try:
-        arrete_signe = programmation_projet.arrete_signe
-    except ArreteSigne.DoesNotExist:
-        pass
-    arrete = None
-    try:
-        arrete = programmation_projet.arrete
+        documents["arrete"] = programmation_projet.arrete
     except Arrete.DoesNotExist:
         pass
 
+    try:
+        documents["arrete_signe"] = programmation_projet.arrete_signe
+    except ArreteSigne.DoesNotExist:
+        pass
+
     context = {
-        "arrete": arrete,
-        "arrete_signe": arrete_signe,
+        "documents": documents,
         "programmation_projet_id": programmation_projet.id,
         "simu": simulation_projet,
     }
@@ -266,13 +268,19 @@ def download_arrete_signe(request, arrete_signe_id):
 def _redirect_to_get_arrete_view(
     request, programmation_projet_id, source_simulation_projet_id=None
 ):
-    query = None
     if source_simulation_projet_id:
-        query = {"source_simulation_projet_id": source_simulation_projet_id}
+        return redirect(
+            reverse(
+                "gsl_notification:documents",
+                kwargs={
+                    "programmation_projet_id": programmation_projet_id,
+                    "simulation_projet_id": source_simulation_projet_id,
+                },
+            )
+        )
     url = reverse(
         "gsl_notification:get-arrete",
         kwargs={"programmation_projet_id": programmation_projet_id},
-        query=query,
     )
     return redirect(url)
 
