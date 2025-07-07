@@ -1,9 +1,12 @@
+from functools import cached_property
+
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Sum
 
 from gsl_core.models import Perimetre
 from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.models import DotationProjet
+from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.utils.utils import compute_taux
 
 
@@ -45,6 +48,51 @@ class Enveloppe(models.Model):
     @property
     def is_deleguee(self):
         return self.deleguee_by is not None
+
+    # TODO test all these properties
+
+    @cached_property
+    def enveloppe_projets_included(self):
+        return Projet.objects.included_in_enveloppe(self)
+
+    @property
+    def montant_asked(self):
+        return self.enveloppe_projets_included.aggregate(
+            Sum("dossier_ds__demande_montant")
+        )["dossier_ds__demande_montant__sum"]
+
+    @cached_property
+    def enveloppe_projets_processed(self):
+        return ProgrammationProjet.objects.filter(enveloppe=self)
+
+    @property
+    def accepted_montant(self):
+        return (
+            self.enveloppe_projets_processed.filter(
+                status=ProgrammationProjet.STATUS_ACCEPTED
+            ).aggregate(Sum("montant"))["montant__sum"]
+            or 0
+        )
+
+    @property
+    def validated_projets_count(self):
+        return self.enveloppe_projets_processed.filter(
+            status=ProgrammationProjet.STATUS_ACCEPTED
+        ).count()
+
+    @property
+    def refused_projets_count(self):
+        return self.enveloppe_projets_processed.filter(
+            status=ProgrammationProjet.STATUS_REFUSED
+        ).count()
+
+    @property
+    def demandeurs_count(self):
+        return self.enveloppe_projets_included.distinct("demandeur").count()
+
+    @property
+    def projets_count(self):
+        return self.enveloppe_projets_included.count()
 
     def clean(self):
         if self.dotation == DOTATION_DETR:  # scope "département"
