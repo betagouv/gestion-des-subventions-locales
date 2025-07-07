@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from django.views.decorators.http import require_GET, require_http_methods, require_POST
+from django.views.decorators.http import require_GET, require_http_methods
 from django_weasyprint.views import WeasyTemplateResponse
 
 from gsl import settings
@@ -175,7 +175,7 @@ def change_arrete_view(request, programmation_projet_id):
 
 
 @programmation_projet_visible_by_user
-@require_POST
+@require_http_methods(["GET", "POST"])
 def create_arrete_signe_view(request, programmation_projet_id):
     programmation_projet = get_object_or_404(
         ProgrammationProjet,
@@ -184,16 +184,19 @@ def create_arrete_signe_view(request, programmation_projet_id):
     )
     source_simulation_projet_id = request.GET.get("source_simulation_projet_id")
 
-    form = ArreteSigneForm(request.POST, request.FILES)
-    if form.is_valid():
-        update_file_name_to_put_it_in_a_programmation_projet_folder(
-            form.instance.file, programmation_projet.id
-        )
-        form.save()
+    if request.method == "POST":
+        form = ArreteSigneForm(request.POST, request.FILES)
+        if form.is_valid():
+            update_file_name_to_put_it_in_a_programmation_projet_folder(
+                form.instance.file, programmation_projet.id
+            )
+            form.save()
 
-        return _redirect_to_get_arrete_view(
-            request, programmation_projet.id, source_simulation_projet_id
-        )
+            return _redirect_to_get_arrete_view(
+                request, programmation_projet.id, source_simulation_projet_id
+            )
+    else:
+        form = ArreteSigneForm()
 
     context = {
         "arrete_signe_form": form,
@@ -201,7 +204,8 @@ def create_arrete_signe_view(request, programmation_projet_id):
     context = _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
     )
-    return render(request, "gsl_notification/create_arrete.html", context=context)
+
+    return render(request, "gsl_notification/upload_arrete_signe.html", context=context)
 
 
 # Download views -----------------------------------------------------------------------
@@ -277,9 +281,13 @@ def _redirect_to_get_arrete_view(
 def _enrich_context_for_create_or_get_arrete_view(
     context, programmation_projet, request
 ):
-    context["programmation_projet"] = programmation_projet
-    context["projet"] = programmation_projet.projet
-    context["source_simulation_projet_id"] = request.GET.get(
-        "source_simulation_projet_id", None
+    context.update(
+        {
+            "programmation_projet": programmation_projet,
+            "projet": programmation_projet.projet,
+            "source_simulation_projet_id": request.GET.get(
+                "source_simulation_projet_id", None
+            ),
+        }
     )
     return context
