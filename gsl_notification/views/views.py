@@ -53,6 +53,7 @@ def _generic_documents_view(
             "documents": documents,
             "programmation_projet_id": programmation_projet.id,
             "source_url": source_url,
+            "dossier": programmation_projet.projet.dossier_ds,
         }
     )
 
@@ -78,11 +79,33 @@ def documents_view_in_simulation(
         id=simulation_projet_id,
         dotation_projet_id=programmation_projet.dotation_projet_id,
     )
+    projet = programmation_projet.projet
+    title = simulation_projet.projet.dossier_ds.projet_intitule
     context = {
         "simu": simulation_projet,
         "programmation_projet": programmation_projet,
-        "projet": programmation_projet.projet,
+        "dotation_projet": programmation_projet.dotation_projet,
+        "projet": projet,
+        "dossier": projet.dossier_ds,
+        "title": title,
+        "breadcrumb_dict": {
+            "links": [
+                {
+                    "url": reverse("simulation:simulation-list"),
+                    "title": "Mes simulations de programmation",
+                },
+                {
+                    "url": reverse(
+                        "simulation:simulation-detail",
+                        kwargs={"slug": simulation_projet.simulation.slug},
+                    ),
+                    "title": simulation_projet.simulation.title,
+                },
+            ],
+            "current": title,
+        },
     }
+
     context = _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
     )

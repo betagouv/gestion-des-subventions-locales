@@ -15,6 +15,11 @@
   background: #f7f7f7;
 }
 
+.empty-list {
+  text-align: center;
+  list-style: none;
+}
+
 .arrete-card {
   border: 1px solid var(--border-default-grey);
   background: #fff;

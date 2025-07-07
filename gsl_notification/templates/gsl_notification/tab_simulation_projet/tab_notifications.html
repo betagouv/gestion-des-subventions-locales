@@ -1,6 +1,7 @@
 {% extends "gsl_simulation/simulation_projet_detail.html" %}
 {% load static gsl_filters %}
 {% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/projet_detail.css' %}">
     <link rel="stylesheet" href="{% static 'css/notification.css' %}">
 {% endblock extra_css %}
 {% block tab_projet %}
@@ -50,7 +51,21 @@
                         <a href="{% url "notification:modifier-arrete" programmation_projet_id %}">Modifier</a>
                     </div>
                 </li>
+            {% empty %}
+                <li class="empty-list">
+                    Il n’y a pas de document pour le moment.
+                </li>
             {% endfor %}
         </ul>
     </div>
+
+    <h2 class="fr-mt-6w">
+        <i class="fr-icon-mail-fill blue-color" aria-hidden="true"></i>
+        Message de notification
+    </h2>
+    <p>
+        <button disabled class="fr-btn fr-icon-check-line fr-btn--icon-left">
+            Envoyer le message de notification
+        </button>
+    </p>
 {% endblock tab_projet %}
