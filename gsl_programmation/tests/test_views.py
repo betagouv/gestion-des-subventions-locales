@@ -1,16 +1,26 @@
 import pytest
+from django.http import Http404
 from django.test import Client
 from django.urls import reverse
 
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
+    PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
+    PerimetreRegionalFactory,
 )
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
+from gsl_programmation.models import Enveloppe
+from gsl_programmation.tests.factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
+    ProgrammationProjetFactory,
+)
 from gsl_programmation.views import (
     ProgrammationProjetDetailView,
+    ProgrammationProjetListView,
 )
+from gsl_projet.constants import DOTATION_DETR
 
 pytestmark = pytest.mark.django_db
 
@@ -37,6 +47,197 @@ def programmation_projet(user_with_perimetre):
 def other_programmation_projet():
     """Projet programmé dans un autre périmètre"""
     return ProgrammationProjetFactory()
+
+
+class TestProgrammationProjetListViewGetEnveloppe:
+    """Tests pour la méthode _get_enveloppe_from_user_perimetre"""
+
+    def test_get_enveloppe_with_no_user_perimetre(self):
+        """
+        Si l'utilisateur n'a pas de périmètre, retourne la première enveloppe
+        """
+        # Créer plusieurs enveloppes
+        enveloppe1 = DetrEnveloppeFactory(annee=2024)
+        DetrEnveloppeFactory(annee=2023)  # Enveloppe plus ancienne
+
+        # Queryset d'enveloppes ordonné par année décroissante
+        enveloppe_qs = Enveloppe.objects.filter(dotation=DOTATION_DETR).order_by(
+            "-annee"
+        )
+
+        view = ProgrammationProjetListView()
+        result = view._get_enveloppe_from_user_perimetre(None, enveloppe_qs)
+
+        assert result == enveloppe1  # La plus récente
+
+    def test_get_enveloppe_exact_perimetre_match(self):
+        """
+        Si une enveloppe correspond exactement au périmètre de l'utilisateur, la retourner
+        """
+        perimetre = PerimetreDepartementalFactory()
+        enveloppe_matching = DetrEnveloppeFactory(perimetre=perimetre, annee=2024)
+        # Créer une autre enveloppe plus récente mais qui ne correspond pas
+        DetrEnveloppeFactory(annee=2025)
+
+        enveloppe_qs = Enveloppe.objects.filter(dotation=DOTATION_DETR).order_by(
+            "-annee"
+        )
+
+        view = ProgrammationProjetListView()
+        result = view._get_enveloppe_from_user_perimetre(perimetre, enveloppe_qs)
+
+        assert result == enveloppe_matching
+
+    def test_get_enveloppe_departement_match(self):
+        """
+        Si aucune enveloppe ne correspond exactement au périmètre,
+        chercher une enveloppe avec le même département
+        """
+        # Créer un périmètre arrondissement
+        perimetre_arrondissement = PerimetreArrondissementFactory()
+
+        # Créer une enveloppe départementale pour le même département
+        perimetre_departement = PerimetreDepartementalFactory(
+            departement=perimetre_arrondissement.departement,
+            region=perimetre_arrondissement.region,
+        )
+        enveloppe_dept = DetrEnveloppeFactory(
+            perimetre=perimetre_departement, annee=2024
+        )
+
+        # Créer une autre enveloppe plus récente mais qui ne correspond pas
+        DetrEnveloppeFactory(annee=2025)
+
+        enveloppe_qs = Enveloppe.objects.filter(dotation=DOTATION_DETR).order_by(
+            "-annee"
+        )
+
+        view = ProgrammationProjetListView()
+        result = view._get_enveloppe_from_user_perimetre(
+            perimetre_arrondissement, enveloppe_qs
+        )
+
+        assert result == enveloppe_dept
+
+    def test_get_enveloppe_region_match(self):
+        """
+        Si aucune enveloppe ne correspond au périmètre ou au département,
+        chercher une enveloppe avec la même région
+        """
+        # Créer un périmètre départemental
+        perimetre_dept = PerimetreDepartementalFactory()
+
+        # Créer une enveloppe régionale pour la même région
+        perimetre_region = PerimetreRegionalFactory(region=perimetre_dept.region)
+        enveloppe_region = DsilEnveloppeFactory(perimetre=perimetre_region, annee=2024)
+
+        # Créer une autre enveloppe qui ne correspond pas
+        DsilEnveloppeFactory(annee=2025)
+
+        enveloppe_qs = Enveloppe.objects.filter(dotation=DOTATION_DETR).order_by(
+            "-annee"
+        )
+
+        view = ProgrammationProjetListView()
+        result = view._get_enveloppe_from_user_perimetre(perimetre_dept, enveloppe_qs)
+
+        assert result == enveloppe_region
+
+    def test_get_enveloppe_no_match_raises_404(self):
+        """
+        Si aucune enveloppe ne correspond au périmètre de l'utilisateur,
+        lever une erreur Http404
+        """
+        # Créer un périmètre
+        perimetre = PerimetreDepartementalFactory()
+
+        # Créer une enveloppe qui ne correspond pas du tout (autre région)
+        autre_perimetre = PerimetreDepartementalFactory()
+        DetrEnveloppeFactory(perimetre=autre_perimetre, annee=2024)
+
+        enveloppe_qs = Enveloppe.objects.filter(dotation=DOTATION_DETR).order_by(
+            "-annee"
+        )
+
+        view = ProgrammationProjetListView()
+
+        with pytest.raises(Http404) as exc_info:
+            view._get_enveloppe_from_user_perimetre(perimetre, enveloppe_qs)
+
+        assert "Aucune enveloppe trouvée pour le périmètre de l'utilisateur" in str(
+            exc_info.value
+        )
+
+    def test_get_enveloppe_priority_order(self):
+        """
+        Vérifier l'ordre de priorité : périmètre exact > département > région
+        """
+        # Créer un périmètre départemental
+        perimetre_dept = PerimetreDepartementalFactory()
+
+        # Créer plusieurs enveloppes avec différents niveaux de correspondance
+        # 1. Enveloppe exacte (même périmètre)
+        enveloppe_exacte = DetrEnveloppeFactory(perimetre=perimetre_dept, annee=2024)
+
+        # 2. Enveloppe régionale (même région)
+        perimetre_region = PerimetreRegionalFactory(region=perimetre_dept.region)
+        DetrEnveloppeFactory(
+            perimetre=perimetre_region, annee=2025
+        )  # Enveloppe régionale
+
+        enveloppe_qs = Enveloppe.objects.filter(dotation=DOTATION_DETR).order_by(
+            "-annee"
+        )
+
+        view = ProgrammationProjetListView()
+        result = view._get_enveloppe_from_user_perimetre(perimetre_dept, enveloppe_qs)
+
+        # Doit retourner l'enveloppe exacte, pas la régionale
+        assert result == enveloppe_exacte
+
+    def test_get_enveloppe_multiple_matches_returns_first(self):
+        """
+        Si plusieurs enveloppes correspondent au même niveau,
+        retourner la première (selon l'ordre du queryset)
+        """
+        perimetre = PerimetreDepartementalFactory()
+
+        # Créer deux enveloppes avec le même périmètre
+        DetrEnveloppeFactory(perimetre=perimetre, annee=2023)  # Enveloppe plus ancienne
+        enveloppe2 = DetrEnveloppeFactory(perimetre=perimetre, annee=2024)
+
+        enveloppe_qs = Enveloppe.objects.filter(dotation=DOTATION_DETR).order_by(
+            "-annee"
+        )
+
+        view = ProgrammationProjetListView()
+        result = view._get_enveloppe_from_user_perimetre(perimetre, enveloppe_qs)
+
+        # Doit retourner la plus récente (2024)
+        assert result == enveloppe2
+
+    def test_get_enveloppe_with_arrondissement_perimetre(self):
+        """
+        Test spécifique pour un périmètre arrondissement qui doit chercher
+        d'abord par département, puis par région
+        """
+        # Créer un périmètre arrondissement
+        perimetre_arr = PerimetreArrondissementFactory()
+
+        # Créer une enveloppe régionale pour la même région
+        perimetre_region = PerimetreRegionalFactory(region=perimetre_arr.region)
+        enveloppe_region = DetrEnveloppeFactory(perimetre=perimetre_region, annee=2024)
+
+        # Pas d'enveloppe départementale correspondante
+
+        enveloppe_qs = Enveloppe.objects.filter(dotation=DOTATION_DETR).order_by(
+            "-annee"
+        )
+
+        view = ProgrammationProjetListView()
+        result = view._get_enveloppe_from_user_perimetre(perimetre_arr, enveloppe_qs)
+
+        assert result == enveloppe_region
 
 
 class TestProgrammationProjetListView:

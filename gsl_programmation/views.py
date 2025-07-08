@@ -9,7 +9,6 @@ from gsl_projet.constants import DOTATION_DETR
 from gsl_projet.utils.projet_page import PROJET_MENU
 
 
-# TODO adapt CorrectUserPerimeterRequiredMixin !
 class ProgrammationProjetDetailView(DetailView):
     model = ProgrammationProjet
 
@@ -89,14 +88,16 @@ class ProgrammationProjetListView(ListView):
             .filter(dotation=DOTATION_DETR)
             .order_by("-annee")
         )
-        if self.perimetre:
-            enveloppe_qs = enveloppe_qs.filter(perimetre=self.perimetre)
-        self.enveloppe = enveloppe_qs.first()
+
+        self.enveloppe = self._get_enveloppe_from_user_perimetre(
+            self.perimetre, enveloppe_qs
+        )
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
         return (
-            ProgrammationProjet.objects.select_related(
+            ProgrammationProjet.objects.for_enveloppe(enveloppe=self.enveloppe)
+            .select_related(
                 "dotation_projet",
                 "dotation_projet__projet",
                 "dotation_projet__projet__dossier_ds",
@@ -106,7 +107,6 @@ class ProgrammationProjetListView(ListView):
                 "enveloppe__perimetre",
             )
             .prefetch_related("dotation_projet__detr_categories")
-            .filter(enveloppe=self.enveloppe)
             .order_by(self.ordering[0])
         )
 
@@ -126,3 +126,30 @@ class ProgrammationProjetListView(ListView):
         )
 
         return context
+
+    def _get_enveloppe_from_user_perimetre(self, perimetre, enveloppe_qs):
+        """
+        Returns the enveloppe corresponding to the user's perimetre.
+        If no enveloppe is found, it returns None.
+        """
+        if not perimetre:
+            return enveloppe_qs.first()
+
+        perimetre_enveloppe_qs = enveloppe_qs.filter(perimetre=perimetre)
+        enveloppe = perimetre_enveloppe_qs.first()
+        if enveloppe is not None:
+            return enveloppe
+
+        perimetre_enveloppe_qs = enveloppe_qs.filter(
+            perimetre__departement=perimetre.departement
+        )
+        enveloppe = perimetre_enveloppe_qs.first()
+        if enveloppe is not None:
+            return enveloppe
+
+        perimetre_enveloppe_qs = enveloppe_qs.filter(perimetre__region=perimetre.region)
+        enveloppe = perimetre_enveloppe_qs.first()
+        if enveloppe is not None:
+            return enveloppe
+
+        raise Http404("Aucune enveloppe trouvée pour le périmètre de l'utilisateur.")

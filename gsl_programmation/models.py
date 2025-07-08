@@ -130,6 +130,36 @@ class Enveloppe(models.Model):
             )
 
 
+class ProgrammationProjetQuerySet(models.QuerySet):
+    def for_enveloppe(self, enveloppe: Enveloppe):
+        if enveloppe.deleguee_by is None:
+            return self.filter(enveloppe=enveloppe)
+
+        if enveloppe.perimetre is None:
+            return self.filter(enveloppe=enveloppe.deleguee_by)
+
+        if enveloppe.perimetre.arrondissement:
+            return self.filter(
+                enveloppe=enveloppe.deleguee_by,
+                dotation_projet__projet__perimetre__arrondissement=enveloppe.perimetre.arrondissement,
+            )
+
+        if enveloppe.perimetre.departement:
+            return self.filter(
+                enveloppe=enveloppe.deleguee_by,
+                dotation_projet__projet__perimetre__departement=enveloppe.perimetre.departement,
+            )
+        raise ValueError(
+            "L'enveloppe déléguée doit avoir un périmètre arrondissement ou département."
+        )
+
+
+class ProgrammationProjetManager(
+    models.Manager.from_queryset(ProgrammationProjetQuerySet)
+):
+    pass
+
+
 class ProgrammationProjet(models.Model):
     """
     Class used to store information about a Projet that is
@@ -172,6 +202,8 @@ class ProgrammationProjet(models.Model):
     updated_at = models.DateTimeField(
         verbose_name="Date de dernière modification", auto_now=True
     )
+
+    objects = ProgrammationProjetManager()
 
     class Meta:
         verbose_name = "Programmation projet"

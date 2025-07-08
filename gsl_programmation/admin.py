@@ -14,6 +14,7 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
     resource_classes = (EnveloppeDETRResource, EnveloppeDSILResource)
     list_display = (
         "__str__",
+        "deleguee_by",
         "formatted_amount",
         "dotation",
         "annee",
