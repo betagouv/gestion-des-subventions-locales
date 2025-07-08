@@ -1,5 +1,6 @@
 from django.urls import path
 
+from gsl_notification.views.decorators import programmation_projet_visible_by_user
 from gsl_programmation.views import (
     ProgrammationProjetDetailView,
     ProgrammationProjetListView,
@@ -15,12 +16,12 @@ urlpatterns = [
     ),
     path(
         "voir/<int:programmation_projet_id>/",
-        ProgrammationProjetDetailView.as_view(),
+        programmation_projet_visible_by_user(ProgrammationProjetDetailView.as_view()),
         name="programmation-projet-detail",
     ),
     path(
         "voir/<int:programmation_projet_id>/<str:tab>/",
-        ProgrammationProjetDetailView.as_view(),
+        programmation_projet_visible_by_user(ProgrammationProjetDetailView.as_view()),
         name="programmation-projet-tab",
     ),
 ]
