@@ -20,7 +20,7 @@ from gsl_programmation.views import (
     ProgrammationProjetDetailView,
     ProgrammationProjetListView,
 )
-from gsl_projet.constants import DOTATION_DETR
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 
 pytestmark = pytest.mark.django_db
 
@@ -134,7 +134,7 @@ class TestProgrammationProjetListViewGetEnveloppe:
         # Créer une autre enveloppe qui ne correspond pas
         DsilEnveloppeFactory(annee=2025)
 
-        enveloppe_qs = Enveloppe.objects.filter(dotation=DOTATION_DETR).order_by(
+        enveloppe_qs = Enveloppe.objects.filter(dotation=DOTATION_DSIL).order_by(
             "-annee"
         )
 
@@ -250,6 +250,7 @@ class TestProgrammationProjetListView:
     def test_list_view_with_authenticated_user(self, user_with_perimetre):
         """Un utilisateur authentifié peut accéder à la liste"""
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
+        DetrEnveloppeFactory(perimetre=user_with_perimetre.perimetre, annee=2024)
         url = reverse("gsl_programmation:programmation-projet-list")
         response = client.get(url)
         assert response.status_code == 200
