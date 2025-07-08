@@ -1,12 +1,15 @@
 {% extends "gsl_notification/tab_simulation_projet/tab_notifications.html" %}
 
 {% block notification_content %}
-    <a class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-arrow-left-line"
-       href="{% url 'gsl_notification:documents-in-simulation' programmation_projet.id simu.id %}">
+    <a class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-arrow-left-s-line fr-mb-4w"
+       href="{% url 'gsl_notification:documents-in-simulation' programmation_projet.id %}">
         Annuler la génération
     </a>
 
     <div class="arrete-container">
+        <h2 class="fr-mb-3w">
+            Ajouter un document
+        </h2>
         {% include "includes/_arrete_signe_form.html" %}
     </div>
 {% endblock notification_content %}

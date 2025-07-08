@@ -90,7 +90,7 @@ def documents_view_in_simulation(request, programmation_projet_id):
         },
     }
 
-    context = _enrich_context_for_create_or_get_arrete_view(
+    _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
     )
     return _generic_documents_view(
@@ -121,13 +121,11 @@ def change_arrete_view(request, programmation_projet_id):
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
-    source_simulation_projet_id = request.GET.get("source_simulation_projet_id")
 
     if not hasattr(programmation_projet, "arrete"):
         url = reverse(
             "gsl_notification:create-arrete",
             kwargs={"programmation_projet_id": programmation_projet_id},
-            query={"source_simulation_projet_id": source_simulation_projet_id},
         )
         return redirect(url)
 
@@ -138,9 +136,7 @@ def change_arrete_view(request, programmation_projet_id):
         if form.is_valid():
             form.save()
 
-            return _redirect_to_get_arrete_view(
-                request, programmation_projet.id, source_simulation_projet_id
-            )
+            return _redirect_to_documents_view(request, programmation_projet.id)
     else:
         form = ArreteForm(instance=arrete)
 
@@ -166,7 +162,6 @@ def create_arrete_signe_view(request, programmation_projet_id):
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
-    source_simulation_projet_id = request.GET.get("source_simulation_projet_id")
 
     if request.method == "POST":
         form = ArreteSigneForm(request.POST, request.FILES)
@@ -176,16 +171,14 @@ def create_arrete_signe_view(request, programmation_projet_id):
             )
             form.save()
 
-            return _redirect_to_get_arrete_view(
-                request, programmation_projet.id, source_simulation_projet_id
-            )
+            return _redirect_to_documents_view(request, programmation_projet.id)
     else:
         form = ArreteSigneForm()
 
     context = {
         "arrete_signe_form": form,
     }
-    context = _enrich_context_for_create_or_get_arrete_view(
+    _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
     )
 
@@ -246,20 +239,13 @@ def download_arrete_signe(request, arrete_signe_id):
 # utils --------------------------------------------------------------------------------
 
 
-def _redirect_to_get_arrete_view(
-    request, programmation_projet_id, source_simulation_projet_id=None
-):
-    if source_simulation_projet_id:
-        return redirect(
-            reverse(
-                "gsl_notification:documents-in-simulation",
-                kwargs={
-                    "programmation_projet_id": programmation_projet_id,
-                    "simulation_projet_id": source_simulation_projet_id,
-                },
-            )
+def _redirect_to_documents_view(request, programmation_projet_id):
+    return redirect(
+        reverse(
+            "gsl_notification:documents-in-simulation",
+            kwargs={"programmation_projet_id": programmation_projet_id},
         )
-    return None
+    )
 
 
 def _enrich_context_for_create_or_get_arrete_view(
@@ -269,9 +255,7 @@ def _enrich_context_for_create_or_get_arrete_view(
         {
             "programmation_projet": programmation_projet,
             "projet": programmation_projet.projet,
-            "source_simulation_projet_id": request.GET.get(
-                "source_simulation_projet_id", None
-            ),
+            "dossier": programmation_projet.projet.dossier_ds,
+            "current_tab": "notifications",
         }
     )
-    return context

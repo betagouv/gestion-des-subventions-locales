@@ -12,7 +12,7 @@ from gsl_projet.utils.projet_page import PROJET_MENU
 class ProgrammationProjetDetailView(DetailView):
     model = ProgrammationProjet
 
-    ALLOWED_TABS = {"annotations", "historique", "notifications"}
+    ALLOWED_TABS = {"annotations", "historique"}
 
     def get_template_names(self):
         if "tab" in self.kwargs:
@@ -41,7 +41,7 @@ class ProgrammationProjetDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         tab = self.kwargs.get("tab", "projet")
-        title = f"Programmation - {self.programmation_projet.projet.dossier_ds.projet_intitule}"
+        title = self.programmation_projet.projet.dossier_ds.projet_intitule
         context = {
             "title": title,
             "programmation_projet": self.programmation_projet,

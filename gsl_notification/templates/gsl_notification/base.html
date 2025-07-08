@@ -7,12 +7,6 @@
 {% endblock extra_css %}
 
 {% block content %}
-    {% if source_simulation_projet_id %}
-        <a class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-arrow-left-s-line fr-mb-2w"
-           href="{% url 'simulation:simulation-projet-detail' source_simulation_projet_id %}">
-            Retour au projet
-        </a>
-    {% endif %}
     <h1>
         {% block notif_page_title %}
             Notification

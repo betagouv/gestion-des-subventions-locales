@@ -27,11 +27,7 @@
     </div>
 
     <div class="next-step-buttons">
-        {% if source_simulation_projet_id %}
-            {% url 'simulation:simulation-projet-detail' source_simulation_projet_id as go_back_url %}
-        {% else %}
-            {% url 'projet:list' as go_back_url %}
-        {% endif %}
+        {% url 'programmation_projet:programmation_projet-list' as go_back_url %}
         <a class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-save-line"
            href="{{ go_back_url }}">
             Enregistrer et revenir plus tard

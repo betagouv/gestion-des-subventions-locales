@@ -3,11 +3,6 @@
       id="arrete-form"
       class="hidden fr-mt-4w">
     {% csrf_token %}
-    {% if source_simulation_projet_id %}
-        <input type="hidden"
-               name="source_simulation_projet_id"
-               value="{{ source_simulation_projet_id }}">
-    {% endif %}
 
     {{ arrete_form.errors }}
     <label for="editor" class="fr-label fr-mb-2w">

@@ -1,10 +1,6 @@
 .arrete-container {
-  border: 1px solid var(--background-action-low-blue-france-active);
+  border: 1px solid var(--border-default-grey);
   padding: 2rem 4rem;
-}
-
-#arrete-signe-form {
-  margin-top: 2rem;
 }
 
 .hidden {

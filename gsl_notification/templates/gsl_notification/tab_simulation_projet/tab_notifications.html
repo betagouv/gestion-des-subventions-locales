@@ -17,18 +17,32 @@
                 Documents de notification
             </h2>
             <p>
-                <a href="{% url 'gsl_notification:create-arrete' programmation_projet.id %}?source_simulation_projet_id={{ simu.id }}"
+                <a href="{% url 'gsl_notification:create-arrete' programmation_projet.id %}"
                    class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line">
                     Générer un document
                 </a>
-                <a href="{% url 'gsl_notification:create-arrete-signe' programmation_projet.id %}?source_simulation_projet_id={{ simu.id }}"
-                   class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-upload-line">
-                    Importer un document
-                </a>
-                <a href=""
-                   class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-printer-line">
+                {% if programmation_projet.arrete_signe %}
+                    <button class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-upload-line"
+                            disabled
+                            aria-describedby="tooltip-import-arrete-signe">
+                        Importer un document
+                    </button>
+                    <span class="fr-tooltip fr-placement"
+                          id="tooltip-import-arrete-signe"
+                          role="tooltip">
+                        Un arrêté signé a déjà été importé pour ce projet.
+                    </span>
+                {% else %}
+                    <a href="{% url 'gsl_notification:create-arrete-signe' programmation_projet.id %}"
+                       class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-upload-line">
+                        Importer un document
+                    </a>
+                {% endif %}
+                <button class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-printer-line"
+                        title="Cette action sera disponible une fois les documents générés."
+                        disabled>
                     Imprimer tous les documents
-                </a>
+                </button>
             </p>
             <ul>
                 {% for k, document in documents.items %}
@@ -72,3 +86,7 @@
         </p>
     {% endblock notification_content %}
 {% endblock tab_projet %}
+
+{% block extra_js %}
+    <script type="module" src="{% static 'js/notification.js' %}"></script>
+{% endblock extra_js %}
