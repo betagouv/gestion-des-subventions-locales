@@ -17,7 +17,7 @@
                 Documents de notification
             </h2>
             <p>
-                <a href="{% url 'gsl_notification:create-arrete' programmation_projet.id %}"
+                <a href="{% url 'gsl_notification:modifier-arrete' programmation_projet.id %}"
                    class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line">
                     Générer un document
                 </a>
@@ -44,7 +44,7 @@
                     Imprimer tous les documents
                 </button>
             </p>
-            <ul>
+            <ul class="arrete-list">
                 {% for k, document in documents.items %}
                     <li class="arrete-card fr-mt-4w">
                         <div class="fr-enlarge-link">
@@ -63,9 +63,11 @@
                             Ajouté le {{ document.created_at|date:"d/m/Y" }} à {{ document.created_at|time:"H:i" }}
                             par {{ document.created_by }}
                         </div>
-                        <div>
-                            <a href="{% url "notification:modifier-arrete" programmation_projet_id %}">Modifier</a>
-                        </div>
+                        {% if document|get_class == "Arrete" %}
+                            <div>
+                                <a href="{% url "notification:modifier-arrete" programmation_projet_id %}">Modifier</a>
+                            </div>
+                        {% endif %}
                     </li>
                 {% empty %}
                     <li class="empty-list">

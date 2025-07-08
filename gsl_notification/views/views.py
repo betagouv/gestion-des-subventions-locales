@@ -103,12 +103,12 @@ def documents_view_in_simulation(request, programmation_projet_id):
 
 
 # Creation view from a model -----------------------------------------------------------
-@require_http_methods(["GET", "POST"])
-@programmation_projet_visible_by_user
-def create_arrete_view(request, programmation_projet_id):
-    # GET: list available models
-    # POST: create arrete instance from model and redirect to edit form
-    pass
+# @require_http_methods(["GET", "POST"])
+# @programmation_projet_visible_by_user
+# def create_arrete_view(request, programmation_projet_id):
+#     # GET: list available models
+#     # POST: create arrete instance from model and redirect to edit form
+#     pass
 
 
 # Edition form for arrêté --------------------------------------------------------------
@@ -122,14 +122,12 @@ def change_arrete_view(request, programmation_projet_id):
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
 
-    if not hasattr(programmation_projet, "arrete"):
-        url = reverse(
-            "gsl_notification:create-arrete",
-            kwargs={"programmation_projet_id": programmation_projet_id},
-        )
-        return redirect(url)
-
-    arrete = programmation_projet.arrete
+    if hasattr(programmation_projet, "arrete"):
+        arrete = programmation_projet.arrete
+        title = "Modification de l'arrêté"
+    else:
+        arrete = Arrete()
+        title = "Création de l'arrêté"
 
     if request.method == "POST":
         form = ArreteForm(request.POST, instance=arrete)
@@ -137,15 +135,17 @@ def change_arrete_view(request, programmation_projet_id):
             form.save()
 
             return _redirect_to_documents_view(request, programmation_projet.id)
+        else:
+            arrete = form.instance
     else:
         form = ArreteForm(instance=arrete)
 
     context = {
         "arrete_form": form,
-        "arrete_signe_form": ArreteSigneForm(),
         "arrete_initial_content": mark_safe(arrete.content),
+        "page_title": title,
     }
-    context = _enrich_context_for_create_or_get_arrete_view(
+    _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
     )
     return render(request, "gsl_notification/change_arrete.html", context=context)

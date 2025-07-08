@@ -3,7 +3,7 @@ from django.urls import path
 from gsl_notification.views.views import (
     change_arrete_view,
     create_arrete_signe_view,
-    create_arrete_view,
+    # create_arrete_view,
     documents_view_in_simulation,
     download_arrete,
     download_arrete_signe,
@@ -15,11 +15,11 @@ urlpatterns = [
         documents_view_in_simulation,
         name="documents-in-simulation",
     ),
-    path(
-        "<int:programmation_projet_id>/creer-arrete/",
-        create_arrete_view,
-        name="create-arrete",
-    ),
+    # path(
+    #     "<int:programmation_projet_id>/creer-arrete/",
+    #     create_arrete_view,
+    #     name="create-arrete",
+    # ),
     path(
         "<int:programmation_projet_id>/modifier-arrete/",
         change_arrete_view,
