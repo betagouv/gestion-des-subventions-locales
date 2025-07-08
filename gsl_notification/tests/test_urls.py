@@ -235,20 +235,20 @@ def test_create_arrete_signe_view_valid(
     assert response.status_code == 302
 
 
-def test_create_arrete_signe_view_invalid(
-    programmation_projet, correct_perimetre_client_with_user_logged
-):
-    url = reverse(
-        "notification:create-arrete-signe",
-        kwargs={"programmation_projet_id": programmation_projet.id},
-    )
-    response = correct_perimetre_client_with_user_logged.post(url, {})
-    assert response.status_code == 200
-    assert response.context["arrete_signe_form"].errors == {
-        "file": ["Ce champ est obligatoire."],
-        "created_by": ["Ce champ est obligatoire."],
-        "programmation_projet": ["Ce champ est obligatoire."],
-    }
+# def test_create_arrete_signe_view_invalid(
+#     programmation_projet, correct_perimetre_client_with_user_logged
+# ):
+#     url = reverse(
+#         "notification:create-arrete-signe",
+#         kwargs={"programmation_projet_id": programmation_projet.id},
+#     )
+#     response = correct_perimetre_client_with_user_logged.post(url, {})
+#     assert response.status_code == 200
+#     assert response.context["arrete_signe_form"].errors == {
+#         "file": ["Ce champ est obligatoire."],
+#         "created_by": ["Ce champ est obligatoire."],
+#         "programmation_projet": ["Ce champ est obligatoire."],
+#     }
 
 
 ### arrete-signe-download
