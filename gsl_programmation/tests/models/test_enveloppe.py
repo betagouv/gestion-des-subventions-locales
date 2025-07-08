@@ -1,8 +1,6 @@
 from datetime import UTC, datetime
 
 import pytest
-from django.test import RequestFactory
-from django.urls import reverse
 
 from gsl_core.tests.factories import PerimetreDepartementalFactory
 from gsl_programmation.models import ProgrammationProjet
@@ -15,7 +13,6 @@ from gsl_projet.models import Projet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.tests.factories import DotationProjetFactory, SubmittedProjetFactory
 from gsl_simulation.tests.factories import SimulationFactory
-from gsl_simulation.views.simulation_views import SimulationDetailView
 
 
 @pytest.fixture
@@ -84,18 +81,9 @@ def programmation_projets(perimetre_departemental, detr_enveloppe):
 
 
 @pytest.mark.django_db
-def test_get_enveloppe_data(
+def test_enveloppe_properties(
     detr_enveloppe, simulation, programmation_projets, submitted_projets
 ):
-    req = RequestFactory()
-    view = SimulationDetailView()
-    view.kwargs = {"slug": simulation.slug}
-    view.request = req.get(
-        reverse("simulation:simulation-detail", kwargs={"slug": simulation.slug})
-    )
-    view.object = simulation
-    enveloppe_data = view._get_enveloppe_data(simulation)
-
     assert Projet.objects.count() == 4 + 3 + 2  # = 9
 
     projet_filter_by_perimetre = Projet.objects.for_perimetre(detr_enveloppe.perimetre)
@@ -115,12 +103,11 @@ def test_get_enveloppe_data(
     )
     assert projet_qs_submitted_before_the_end_of_the_year.count() == 4 + 3 + 2  # = 9
 
-    assert enveloppe_data["dotation"] == "DETR"
-    assert enveloppe_data["montant"] == 1_000_000
-    assert enveloppe_data["perimetre"] == detr_enveloppe.perimetre
-    assert enveloppe_data["validated_projets_count"] == 2
-    assert enveloppe_data["refused_projets_count"] == 3
-    assert enveloppe_data["projets_count"] == 9
-    assert enveloppe_data["demandeurs"] == 9
-    assert enveloppe_data["montant_asked"] == 20_000 * 4 + 30_000 * 3 + 40_000 * 2
-    assert enveloppe_data["montant_accepte"] == 200_000 + 300_000
+    assert detr_enveloppe.dotation == "DETR"
+    assert detr_enveloppe.montant == 1_000_000
+    assert detr_enveloppe.validated_projets_count == 2
+    assert detr_enveloppe.refused_projets_count == 3
+    assert detr_enveloppe.projets_count == 9
+    assert detr_enveloppe.demandeurs_count == 9
+    assert detr_enveloppe.montant_asked == 20_000 * 4 + 30_000 * 3 + 40_000 * 2
+    assert detr_enveloppe.accepted_montant == 200_000 + 300_000

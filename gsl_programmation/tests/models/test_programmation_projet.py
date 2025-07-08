@@ -8,6 +8,7 @@ from django.db import IntegrityError
 from gsl_core.models import Perimetre
 from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
+    PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
@@ -230,3 +231,130 @@ def test_programmation_projet_with_a_projet_in_enveloppe_perimetre_must_be_okay(
     )
 
     pp.full_clean()
+
+
+@pytest.mark.django_db
+class TestProgrammationProjetQuerySet:
+    def test_for_enveloppe_with_non_delegated_enveloppe(self):
+        enveloppe = DetrEnveloppeFactory(deleguee_by=None)
+
+        programmation_projet_1 = ProgrammationProjetFactory(enveloppe=enveloppe)
+        programmation_projet_2 = ProgrammationProjetFactory(enveloppe=enveloppe)
+        other_programmation_projet = ProgrammationProjetFactory()
+
+        result = ProgrammationProjet.objects.for_enveloppe(enveloppe)
+
+        assert programmation_projet_1 in result
+        assert programmation_projet_2 in result
+        assert other_programmation_projet not in result
+        assert result.count() == 2
+
+    def test_for_enveloppe_with_delegated_enveloppe(self):
+        """Test de for_enveloppe avec une enveloppe déléguée DETR"""
+        # Créer un périmètre départemental et un périmètre d'arrondissement
+        perimetre_arrondissement = PerimetreArrondissementFactory()
+        perimetre_departement = PerimetreDepartementalFactory(
+            departement=perimetre_arrondissement.departement
+        )
+
+        # Créer une enveloppe mère (départementale)
+        enveloppe_mere = DetrEnveloppeFactory(
+            perimetre=perimetre_departement, deleguee_by=None
+        )
+
+        # Créer une enveloppe déléguée (arrondissement)
+        enveloppe_deleguee = DetrEnveloppeFactory(
+            perimetre=perimetre_arrondissement, deleguee_by=enveloppe_mere
+        )
+
+        # Créer des projets programmés
+        # Projet dans l'arrondissement, programmé sur l'enveloppe mère
+        projet_arrondissement = ProjetFactory(perimetre=perimetre_arrondissement)
+        dotation_projet_arrondissement = DotationProjetFactory(
+            projet=projet_arrondissement, dotation=DOTATION_DETR
+        )
+        programmation_projet_arrondissement = ProgrammationProjetFactory(
+            dotation_projet=dotation_projet_arrondissement, enveloppe=enveloppe_mere
+        )
+
+        # Projet dans un autre arrondissement, programmé sur l'enveloppe mère
+        autre_arrondissement = PerimetreArrondissementFactory(
+            arrondissement__departement=perimetre_departement.departement,
+            departement=perimetre_departement.departement,
+        )
+        projet_autre_arrondissement = ProjetFactory(perimetre=autre_arrondissement)
+        dotation_projet_autre = DotationProjetFactory(
+            projet=projet_autre_arrondissement, dotation=DOTATION_DETR
+        )
+        programmation_projet_autre = ProgrammationProjetFactory(
+            dotation_projet=dotation_projet_autre, enveloppe=enveloppe_mere
+        )
+
+        # Tester la méthode for_enveloppe avec l'enveloppe déléguée
+        result = ProgrammationProjet.objects.for_enveloppe(enveloppe_deleguee)
+
+        # Vérifier que seuls les projets du périmètre de l'enveloppe déléguée sont retournés
+        assert programmation_projet_arrondissement in result
+        assert programmation_projet_autre not in result
+        assert result.count() == 1
+
+    def test_for_enveloppe_with_dsil_delegated_enveloppe(self):
+        """Test de for_enveloppe avec une enveloppe déléguée DSIL"""
+        perimetre_arrondissement = PerimetreArrondissementFactory()
+        perimetre_departement = PerimetreDepartementalFactory(
+            departement=perimetre_arrondissement.departement,
+            region=perimetre_arrondissement.region,
+        )
+        perimetre_region = PerimetreRegionalFactory(
+            region=perimetre_arrondissement.region
+        )
+
+        # Création d'une enveloppe mère et une enveloppe déléguée
+        enveloppe_mere = DsilEnveloppeFactory(
+            perimetre=perimetre_region, deleguee_by=None
+        )
+        enveloppe_deleguee = DsilEnveloppeFactory(
+            perimetre=perimetre_departement, deleguee_by=enveloppe_mere
+        )
+        assert (
+            perimetre_arrondissement.departement
+            == enveloppe_deleguee.perimetre.departement
+        )
+
+        # Création d'un projet au niveau départemental
+        projet_departement = ProjetFactory(perimetre=perimetre_departement)
+        dotation_projet_departement = DotationProjetFactory(
+            projet=projet_departement, dotation=DOTATION_DSIL
+        )
+        programmation_projet_departement = ProgrammationProjetFactory(
+            dotation_projet=dotation_projet_departement, enveloppe=enveloppe_mere
+        )
+
+        # Création d'un projet au niveau d'arrondissement
+        projet_arrondissement = ProjetFactory(perimetre=perimetre_arrondissement)
+        dotation_projet_arrondissement = DotationProjetFactory(
+            projet=projet_arrondissement, dotation=DOTATION_DSIL
+        )
+        programmation_projet_arrondissement = ProgrammationProjetFactory(
+            dotation_projet=dotation_projet_arrondissement, enveloppe=enveloppe_mere
+        )
+
+        # Création d'un projet dans un autre département
+        autre_departement = PerimetreDepartementalFactory(
+            departement__region=perimetre_departement.region,
+            region=perimetre_departement.region,
+        )
+        projet_autre = ProjetFactory(perimetre=autre_departement)
+        dotation_projet_autre = DotationProjetFactory(
+            projet=projet_autre, dotation=DOTATION_DSIL
+        )
+        ProgrammationProjetFactory(
+            dotation_projet=dotation_projet_autre, enveloppe=enveloppe_mere
+        )
+
+        # Test de la méthode for_enveloppe avec l'enveloppe déléguée
+        result = ProgrammationProjet.objects.for_enveloppe(enveloppe_deleguee)
+
+        assert programmation_projet_departement in result
+        assert programmation_projet_arrondissement in result
+        assert result.count() == 2
