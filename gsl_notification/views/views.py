@@ -21,7 +21,6 @@ from gsl_notification.views.decorators import (
     programmation_projet_visible_by_user,
 )
 from gsl_programmation.models import ProgrammationProjet
-from gsl_simulation.models import SimulationProjet
 
 # Views for listing notification documents on a programmationProjet, -------------------
 # in various contexts
@@ -66,23 +65,15 @@ def _generic_documents_view(
 
 @programmation_projet_visible_by_user
 @require_GET
-def documents_view_in_simulation(
-    request, programmation_projet_id, simulation_projet_id
-):
+def documents_view_in_simulation(request, programmation_projet_id):
     programmation_projet = get_object_or_404(
         ProgrammationProjet,
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
-    simulation_projet = get_object_or_404(
-        SimulationProjet,
-        id=simulation_projet_id,
-        dotation_projet_id=programmation_projet.dotation_projet_id,
-    )
     projet = programmation_projet.projet
-    title = simulation_projet.projet.dossier_ds.projet_intitule
+    title = projet.dossier_ds.projet_intitule
     context = {
-        "simu": simulation_projet,
         "programmation_projet": programmation_projet,
         "dotation_projet": programmation_projet.dotation_projet,
         "projet": projet,
@@ -91,15 +82,8 @@ def documents_view_in_simulation(
         "breadcrumb_dict": {
             "links": [
                 {
-                    "url": reverse("simulation:simulation-list"),
-                    "title": "Mes simulations de programmation",
-                },
-                {
-                    "url": reverse(
-                        "simulation:simulation-detail",
-                        kwargs={"slug": simulation_projet.simulation.slug},
-                    ),
-                    "title": simulation_projet.simulation.title,
+                    "url": reverse("gsl_programmation:programmation-projet-list"),
+                    "title": "Programmation en cours",
                 },
             ],
             "current": title,
@@ -112,7 +96,7 @@ def documents_view_in_simulation(
     return _generic_documents_view(
         request,
         programmation_projet_id,
-        simulation_projet.get_absolute_url(),
+        programmation_projet.get_absolute_url(),
         "gsl_notification/tab_simulation_projet/tab_notifications.html",
         context,
     )

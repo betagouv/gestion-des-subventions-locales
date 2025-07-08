@@ -11,7 +11,7 @@ from gsl_notification.views.views import (
 
 urlpatterns = [
     path(
-        "<int:programmation_projet_id>/documents/simulation/<int:simulation_projet_id>",
+        "<int:programmation_projet_id>/documents/",
         documents_view_in_simulation,
         name="documents-in-simulation",
     ),

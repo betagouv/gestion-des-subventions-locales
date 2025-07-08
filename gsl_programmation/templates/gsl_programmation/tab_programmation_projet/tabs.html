@@ -18,5 +18,11 @@
                {% if current_tab == "historique" %}aria-selected="true"{% endif %}
                class="fr-tabs__tab fr-icon-archive-line fr-tabs__tab--icon-left">Historique du demandeur</a>
         </li>
+        <li>
+            {% url 'gsl_notification:documents-in-simulation' programmation_projet.id as notifications_url %}
+            <a href="{{ notifications_url }}"
+               {% if request.path == notifications_url %}aria-selected="true"{% endif %}
+               class="fr-tabs__tab fr-icon-mail-fill fr-tabs__tab--icon-left">Notifications du demandeur</a>
+        </li>
     </ul>
 </nav>
