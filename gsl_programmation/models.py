@@ -180,6 +180,14 @@ class ProgrammationProjet(models.Model):
     def __str__(self):
         return f"Projet programmé {self.pk}"
 
+    def get_absolute_url(self):
+        from django.urls import reverse
+
+        return reverse(
+            "gsl_programmation:programmation-projet-detail",
+            kwargs={"programmation_projet_id": self.pk},
+        )
+
     @property
     def projet(self):
         return self.dotation_projet.projet

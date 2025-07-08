@@ -31,7 +31,7 @@
                        {% if "/simulation/" in request.path %}aria-current="true"{% endif %}>2 - Simulations</a>
                 </li>
                 <li class="fr-nav__item">
-                    {% url 'programmation:programmation-projets-list' as programmations_url %}
+                    {% url 'programmation:programmation-projet-list' as programmations_url %}
                     <a class="fr-nav__link"
                        href="{{ programmations_url }}"
                        target="_self"

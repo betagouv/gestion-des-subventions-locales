@@ -1,0 +1,16 @@
+{% extends "gsl_programmation/programmation_projet_detail.html" %}
+{% load static %}
+
+{% block tab_projet %}
+    {% include "includes/_annotations_detail.html" %}
+    {% block block_projet_notes %}
+        {% if projet_notes %}
+            <h3>
+                Annotations créées ici
+            </h3>
+            {% for note in projet_notes %}
+                {% include "includes/_note_card.html" with allow_update=False %}
+            {% endfor %}
+        {% endif %}
+    {% endblock block_projet_notes %}
+{% endblock tab_projet %}

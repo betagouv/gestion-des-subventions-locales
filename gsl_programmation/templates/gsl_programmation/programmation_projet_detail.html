@@ -1,0 +1,42 @@
+{% extends "gsl_projet/projet.html" %}
+{% load static gsl_filters dsfr_tags %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static "css/projet_detail.css" %}">
+    <link rel="stylesheet" href="{% static 'css/annotations.css' %}">
+{% endblock extra_css %}
+
+{% block go_back_button %}
+    <div class="fr-mb-4w">
+        <a href="{% url "programmation:programmation-projet-list" %}"
+           class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+            Retour à la liste des projets programmés
+        </a>
+    </div>
+{% endblock go_back_button %}
+
+{% block status_badge %}
+    <span class="fr-badge fr-text--xl fr-mt-2v fr-ml-5w badge-projet-status badge-projet-status__{{ programmation_projet.status }}">{{ programmation_projet.get_status_display|remove_first_word }}</span>
+{% endblock status_badge %}
+
+{% block tabs_list %}
+    {% include "gsl_programmation/tab_programmation_projet/tabs.html" %}
+{% endblock tabs_list %}
+
+{% block tab_projet %}
+    {% include "gsl_programmation/tab_programmation_projet/tab_projet.html" %}
+{% endblock tab_projet %}
+{% comment %} 
+{% block modal %}
+    {% include "includes/modals/_go_back_to_provisionally_accepted_modal.html" %}
+    {% include "includes/modals/_go_back_to_provisionally_refused_modal.html" %}
+    {% include "includes/modals/_go_back_to_processing_modal.html" %}
+    {% include "includes/modals/_accept_confirmation_modal.html" %}
+    {% include "includes/modals/_refuse_confirmation_modal.html" %}
+    {% include "includes/modals/_dismiss_confirmation_modal.html" %}
+    {% include "includes/modals/_dotation_update_confirmation_modal.html" %}
+{% endblock modal %} {% endcomment %}
+
+{% comment %} {% block extra_js %}
+    <script src="{% static 'js/simulationProjetStatusConfirmation.js' %}"></script>
+    <script type="module" src="{% static 'js/handleInteractionInSimulationProjet.js' %}"></script>
+{% endblock extra_js %} {% endcomment %}
