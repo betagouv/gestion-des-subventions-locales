@@ -202,6 +202,7 @@ def test_modify_arrete_url_with_correct_perimetre_and_with_arrete(
 def test_change_arrete_view_valid_but_with_wrong_perimetre(
     programmation_projet, different_perimetre_client_with_user_logged
 ):
+    assert not hasattr(programmation_projet, "arrete")
     url = reverse(
         "notification:modifier-arrete",
         kwargs={"programmation_projet_id": programmation_projet.id},
@@ -213,6 +214,7 @@ def test_change_arrete_view_valid_but_with_wrong_perimetre(
     }
     response = different_perimetre_client_with_user_logged.post(url, data)
     assert response.status_code == 404
+    assert not hasattr(programmation_projet, "arrete")
 
 
 def test_change_arrete_view_valid(
@@ -235,6 +237,8 @@ def test_change_arrete_view_valid(
     assert response["Location"] == f"/notification/{programmation_projet.id}/documents/"
     arrete.refresh_from_db()
     assert arrete.content == "<p>Le contenu</p>"
+    assert arrete.created_by == correct_perimetre_client_with_user_logged.user
+    assert arrete.programmation_projet == programmation_projet
 
 
 def test_change_arrete_view_invalid(
@@ -358,6 +362,16 @@ def test_create_arrete_signe_view_valid(
     }
     response = correct_perimetre_client_with_user_logged.post(url, data)
     assert response.status_code == 302
+    assert response["Location"] == f"/notification/{programmation_projet.id}/documents/"
+    assert programmation_projet.arrete_signe is not None
+    assert (
+        f"programmation_projet_{programmation_projet.id}/test"
+        in programmation_projet.arrete_signe.file.name
+    )
+    assert (
+        programmation_projet.arrete_signe.created_by
+        == correct_perimetre_client_with_user_logged.user
+    )
 
 
 def test_create_arrete_signe_view_invalid(
