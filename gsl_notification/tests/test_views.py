@@ -435,3 +435,52 @@ def test_arrete_signe_download_url_without_correct_perimetre_and_without_arrete(
     assert url == f"/notification/arrete-signe/{arrete_signe.id}/download/"
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
+
+
+### delete_arrete --------------------------------
+
+
+def test_delete_arrete_with_correct_perimetre(
+    correct_perimetre_client_with_user_logged, programmation_projet
+):
+    arrete = ArreteFactory(programmation_projet=programmation_projet)
+    url = reverse("gsl_notification:delete-arrete", args=[arrete.id])
+
+    assert hasattr(programmation_projet, "arrete")
+
+    response = correct_perimetre_client_with_user_logged.post(url)
+
+    expected_redirect_url = reverse(
+        "gsl_notification:documents", args=[programmation_projet.id]
+    )
+    assert response.status_code == 302
+    assert response.url == expected_redirect_url
+
+    programmation_projet.refresh_from_db()
+    assert not hasattr(programmation_projet, "arrete")
+
+
+def test_delete_arrete_with_incorrect_perimetre(
+    different_perimetre_client_with_user_logged, programmation_projet
+):
+    arrete = ArreteFactory(programmation_projet=programmation_projet)
+    url = reverse("gsl_notification:delete-arrete", args=[arrete.id])
+
+    response = different_perimetre_client_with_user_logged.post(url)
+    assert response.status_code == 404
+
+
+def test_delete_arrete_with_get_method_not_allowed(
+    correct_perimetre_client_with_user_logged, programmation_projet
+):
+    arrete = ArreteFactory(programmation_projet=programmation_projet)
+    url = reverse("gsl_notification:delete-arrete", args=[arrete.id])
+
+    response = correct_perimetre_client_with_user_logged.get(url)
+    assert response.status_code == 405  # Method Not Allowed
+
+
+def test_delete_nonexistent_arrete(correct_perimetre_client_with_user_logged):
+    url = reverse("gsl_notification:delete-arrete", args=[99999])
+    response = correct_perimetre_client_with_user_logged.post(url)
+    assert response.status_code == 404

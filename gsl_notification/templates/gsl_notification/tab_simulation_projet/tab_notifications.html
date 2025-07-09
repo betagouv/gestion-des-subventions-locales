@@ -70,9 +70,15 @@
                                                 </a>
                                             </li>
                                             <li>
-                                                <button class="fr-btn fr-btn--secondary arrete-card__action" disabled>
-                                                    Supprimer
-                                                </button>
+                                                <form method="post"
+                                                      action="{% url 'gsl_notification:delete-arrete' document.id %}">
+                                                    {% csrf_token %}
+                                                    <button type="submit"
+                                                            class="fr-btn fr-btn--secondary arrete-card__action"
+                                                            onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet arrêté ?');">
+                                                        Supprimer
+                                                    </button>
+                                                </form>
                                             </li>
                                         </ul>
                                     </div>
