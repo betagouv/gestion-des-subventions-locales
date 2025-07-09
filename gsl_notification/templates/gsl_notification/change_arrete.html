@@ -1,8 +1,22 @@
-{% extends "gsl_notification/base.html" %}
-{% load static dsfr_tags %}
-{% block notif_page_title %}
-    {{ page_title|default:"Modification de l'arrêté" }}
-{% endblock notif_page_title %}
-{% block arrete_content %}
-    {% include "includes/_arrete_form.html" %}
-{% endblock arrete_content %}
+
+{% extends "gsl_notification/tab_simulation_projet/tab_notifications.html" %}
+{% load static gsl_filters %}
+{% block notification_content %}
+    <a class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-arrow-left-s-line fr-mb-4w"
+       href="{% url 'gsl_notification:documents' programmation_projet.id %}">
+        Annuler la génération
+    </a>
+
+    <div class="arrete-container">
+        <h2 class="fr-mb-3w">
+            {{ page_title|default:"Modification de l'arrêté" }}
+        </h2>
+        {% include "includes/_arrete_form.html" %}
+    </div>
+{% endblock notification_content %}
+
+{% block extra_js %}
+    <script type="module" src="{% static 'js/tiptap.js' %}"></script>
+    <script type="module" src="{% static 'js/notification.js' %}"></script>
+
+{% endblock extra_js %}
