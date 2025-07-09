@@ -9,7 +9,7 @@
     <h1>
         Step {{ wizard.steps.step1 }} of {{ wizard.steps.count }}
     </h1>
-    <form action="" method="post">
+    <form action="" method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <table>
             {{ wizard.management_form }}

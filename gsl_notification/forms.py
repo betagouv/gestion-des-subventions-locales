@@ -56,7 +56,7 @@ class ModeleArreteStepOneForm(forms.ModelForm, DsfrBaseForm):
 class ModeleArreteStepTwoForm(forms.ModelForm, DsfrBaseForm):
     class Meta:
         model = ModeleArrete
-        fields = ("logo_alt_text", "top_right_text")
+        fields = ("logo", "logo_alt_text", "top_right_text")
 
 
 class ModeleArreteStepThreeForm(forms.ModelForm, DsfrBaseForm):

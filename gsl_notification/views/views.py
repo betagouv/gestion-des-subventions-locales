@@ -298,7 +298,7 @@ class CreateModelArreteWizard(SessionWizardView):
     template_name = "gsl_notification/modele_arrete/model_form.html"
     # Temporary storage
     file_storage = FileSystemStorage(
-        location=os.path.join(settings.MEDIA_ROOT, "photos")
+        location=os.path.join(settings.MEDIA_ROOT, "logos_modeles_arretes")
     )
 
     def dispatch(self, request, dotation, *args, **kwargs):
