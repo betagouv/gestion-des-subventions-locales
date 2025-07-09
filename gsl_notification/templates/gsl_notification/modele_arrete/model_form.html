@@ -22,16 +22,19 @@
                 {{ wizard.form }}
             {% endif %}
         </table>
-        {% if wizard.steps.prev %}
-            <button name="wizard_goto_step"
-                    type="submit"
-                    value="{{ wizard.steps.first }}">
-                {% translate "first step" %}
+        <div class="mt-3w text-align-right">
+            {% if wizard.steps.prev %}
+                <button name="wizard_goto_step"
+                        class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line"
+                        type="submit"
+                        value="{{ wizard.steps.prev }}">
+                    Étape précédente
+                </button>
+            {% endif %}
+            <button class="fr-btn fr-btn--icon-right fr-icon-arrow-right-s-line"
+                    type="submit">
+                Étape suivante
             </button>
-            <button name="wizard_goto_step" type="submit" value="{{ wizard.steps.prev }}">
-                {% translate "prev step" %}
-            </button>
-        {% endif %}
-        <input type="submit" value="{% translate "submit" %}" />
+        </div>
     </form>
 {% endblock content %}

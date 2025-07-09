@@ -39,6 +39,10 @@ ul.no-list-style li {
     bottom: 1em;
 }
 
+.text-align-right {
+    text-align: right;
+}
+
 /* Colors */
 
 .color-red {
