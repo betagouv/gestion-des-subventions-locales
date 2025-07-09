@@ -9,6 +9,20 @@
 
 {% block content %}
     <div class="fr-container">
+        <nav aria-label="Sous-menu Programmation">
+            <ul>
+                <li>
+                    <a href="">
+                        Projets programmés
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url "notification:modele-arrete-creer" enveloppe.dotation %}">
+                        Modèles de publipostage
+                    </a>
+                </li>
+            </ul>
+        </nav>
         <h1>
             Programmations en cours
         </h1>

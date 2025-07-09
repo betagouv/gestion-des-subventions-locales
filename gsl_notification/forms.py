@@ -3,7 +3,7 @@ import os
 from django import forms
 from dsfr.forms import DsfrBaseForm
 
-from gsl_notification.models import Arrete, ArreteSigne
+from gsl_notification.models import Arrete, ArreteSigne, ModeleArrete
 
 
 class ArreteForm(forms.ModelForm, DsfrBaseForm):
@@ -45,3 +45,21 @@ class ArreteSigneForm(forms.ModelForm, DsfrBaseForm):
                 f"La taille du fichier ne doit pas dépasser {max_size_in_mo} Mo."
             )
         return file
+
+
+class ModeleArreteStepOneForm(forms.ModelForm, DsfrBaseForm):
+    class Meta:
+        model = ModeleArrete
+        fields = ("name", "description")
+
+
+class ModeleArreteStepTwoForm(forms.ModelForm, DsfrBaseForm):
+    class Meta:
+        model = ModeleArrete
+        fields = ("logo_alt_text", "top_right_text")
+
+
+class ModeleArreteStepThreeForm(forms.ModelForm, DsfrBaseForm):
+    class Meta:
+        model = ModeleArrete
+        fields = ("content",)

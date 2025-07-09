@@ -20,6 +20,7 @@ dependencies = [
     "django-referrer-policy",
     "django-storages[s3]",
     "django",
+    "django-formtools",
     "gunicorn",
     "ipython",
     "mozilla-django-oidc",

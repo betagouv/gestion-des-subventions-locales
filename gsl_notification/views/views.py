@@ -1,17 +1,27 @@
+import os
+
 import boto3
 from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
-from django.http import Http404, StreamingHttpResponse
+from django.core.files.storage import FileSystemStorage
+from django.http import Http404, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_http_methods
 from django_weasyprint.views import WeasyTemplateResponse
+from formtools.wizard.views import SessionWizardView
 
 from gsl import settings
-from gsl_notification.forms import ArreteForm, ArreteSigneForm
-from gsl_notification.models import Arrete, ArreteSigne
+from gsl_notification.forms import (
+    ArreteForm,
+    ArreteSigneForm,
+    ModeleArreteStepOneForm,
+    ModeleArreteStepThreeForm,
+    ModeleArreteStepTwoForm,
+)
+from gsl_notification.models import Arrete, ArreteSigne, ModeleArrete
 from gsl_notification.utils import (
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
@@ -21,6 +31,7 @@ from gsl_notification.views.decorators import (
     programmation_projet_visible_by_user,
 )
 from gsl_programmation.models import ProgrammationProjet
+from gsl_projet.constants import DOTATIONS
 
 # Views for listing notification documents on a programmationProjet, -------------------
 # in various contexts
@@ -273,3 +284,54 @@ def _enrich_context_for_create_or_get_arrete_view(
             "current_tab": "notifications",
         }
     )
+
+
+# Create new ModeleArrete --------------------------------------------------------------
+
+
+class CreateModelArreteWizard(SessionWizardView):
+    form_list = (
+        ModeleArreteStepOneForm,
+        ModeleArreteStepTwoForm,
+        ModeleArreteStepThreeForm,
+    )
+    template_name = "gsl_notification/modele_arrete/model_form.html"
+    # Temporary storage
+    file_storage = FileSystemStorage(
+        location=os.path.join(settings.MEDIA_ROOT, "photos")
+    )
+
+    def dispatch(self, request, dotation, *args, **kwargs):
+        if dotation not in DOTATIONS:
+            return Http404("Dotation inconnue")
+        perimetre = self.get_modele_perimetre(dotation, request.user.perimetre)
+        self.instance = ModeleArrete(
+            dotation=dotation, perimetre=perimetre, created_by=request.user
+        )
+        response = super().dispatch(request, *args, **kwargs)
+        return response
+
+    def get_modele_perimetre(self, dotation, user_perimetre):
+        return user_perimetre  # todo
+
+    def done(self, form_list, **kwargs):
+        instance: ModeleArrete = self.instance
+
+        for form in form_list:
+            print(form.cleaned_data)
+            for key, value in form.cleaned_data.items():
+                instance.__setattr__(key, value)
+
+        instance.save()
+
+        return HttpResponseRedirect("/page-to-redirect-to-when-done/")
+
+    def get_form_instance(self, step):
+        return self.instance
+
+    def get_context_data(self, form, **kwargs):
+        context = super().get_context_data(form=form, **kwargs)
+
+        if self.steps.current == "my_step_name":
+            context.update({"another_var": True})
+        return context
