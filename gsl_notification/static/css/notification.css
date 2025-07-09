@@ -53,6 +53,34 @@
   display: block;
 }
 
+.arrete-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.arrete-card__actions {
+  width: 200px;
+  padding: 0px;
+}
+
+.arrete-card__actions-button {
+  box-shadow: none;
+}
+
+.arrete-card__action {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  box-shadow: none;
+}
+
+.arrete-card__actions li:not(:first-of-type) {
+  box-shadow: 0 0 0 1px var(--border-default-grey);
+}
+
 .next-step-buttons {
   display: flex;
   justify-content: end;
