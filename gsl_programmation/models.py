@@ -49,8 +49,6 @@ class Enveloppe(models.Model):
     def is_deleguee(self):
         return self.deleguee_by is not None
 
-    # TODO test all these properties
-
     @cached_property
     def enveloppe_projets_included(self):
         return Projet.objects.included_in_enveloppe(self)

@@ -370,7 +370,6 @@ class TestProgrammationProjetTabView:
         response = Client().get(url)
         assert response.status_code == 302  # Redirection vers login
 
-    # TODO add test for notifications tab when implemented
     @pytest.mark.parametrize(
         "tab",
         ("annotations", "historique"),
@@ -420,7 +419,6 @@ class TestProgrammationProjetTabView:
         response = client.get(url)
         assert response.status_code == 404
 
-    # TODO add notifications tab test when implemented
     @pytest.mark.parametrize(
         "tab",
         ("annotations", "historique"),
@@ -463,7 +461,7 @@ class TestProgrammationProjetTabView:
 class TestTabConstants:
     def test_programmation_projet_tabs_constant(self):
         """Test que la constante ALLOWED_TABS contient les bons onglets"""
-        expected_tabs = {"annotations", "historique", "notifications"}
+        expected_tabs = {"annotations", "historique"}
         assert ProgrammationProjetDetailView.ALLOWED_TABS == expected_tabs
 
 
