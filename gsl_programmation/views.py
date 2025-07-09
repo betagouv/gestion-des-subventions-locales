@@ -1,5 +1,4 @@
 from django.http import Http404
-from django.shortcuts import redirect
 from django.urls import reverse
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
@@ -74,9 +73,6 @@ class ProgrammationProjetListView(ListView):
     ordering = ["-created_at"]
 
     def get(self, request, *args, **kwargs):
-        if "reset_filters" in request.GET:
-            return redirect(request.path)
-
         self.perimetre = self.request.user.perimetre
         enveloppe_qs = (
             Enveloppe.objects.select_related(
