@@ -285,6 +285,7 @@ ul.no-list-style li {
     color: var(--text-default-success);
 }
 
+.refuse-color,
 .red-color {
     color: var(--text-default-error);
 }
@@ -292,7 +293,16 @@ ul.no-list-style li {
 .grey-color {
     color: var(--text-default-grey);
 }
-  
+
+.processing-color {
+  color: var(--text-mention-grey);
+}
+
+.dismiss-color {
+    color: var(--text-default-warning);
+}
+
+
 /* detail projet */
 
 .fr-tabs__list.fake {
@@ -371,4 +381,13 @@ ul.no-list-style li {
     flex-direction: column;
     align-items: center;
     font-weight: 700;
+}
+
+
+/* modal */
+
+.confirmation-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1em;
 }
