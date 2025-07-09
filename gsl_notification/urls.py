@@ -4,7 +4,7 @@ from gsl_notification.views.views import (
     change_arrete_view,
     create_arrete_signe_view,
     # create_arrete_view,
-    documents_view_in_simulation,
+    documents_view,
     download_arrete,
     download_arrete_signe,
 )
@@ -12,8 +12,8 @@ from gsl_notification.views.views import (
 urlpatterns = [
     path(
         "<int:programmation_projet_id>/documents/",
-        documents_view_in_simulation,
-        name="documents-in-simulation",
+        documents_view,
+        name="documents",
     ),
     # path(
     #     "<int:programmation_projet_id>/creer-arrete/",
@@ -26,14 +26,14 @@ urlpatterns = [
         name="modifier-arrete",
     ),
     path(
-        "<int:programmation_projet_id>/creer-arrete-signe/",
-        create_arrete_signe_view,
-        name="create-arrete-signe",
-    ),
-    path(
         "arrete/<int:arrete_id>/download/",
         download_arrete,
         name="arrete-download",
+    ),
+    path(
+        "<int:programmation_projet_id>/creer-arrete-signe/",
+        create_arrete_signe_view,
+        name="create-arrete-signe",
     ),
     path(
         "arrete-signe/<int:arrete_signe_id>/download/",

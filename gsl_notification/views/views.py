@@ -65,7 +65,7 @@ def _generic_documents_view(
 
 @programmation_projet_visible_by_user
 @require_GET
-def documents_view_in_simulation(request, programmation_projet_id):
+def documents_view(request, programmation_projet_id):
     programmation_projet = get_object_or_404(
         ProgrammationProjet,
         id=programmation_projet_id,
@@ -242,7 +242,7 @@ def download_arrete_signe(request, arrete_signe_id):
 def _redirect_to_documents_view(request, programmation_projet_id):
     return redirect(
         reverse(
-            "gsl_notification:documents-in-simulation",
+            "gsl_notification:documents",
             kwargs={"programmation_projet_id": programmation_projet_id},
         )
     )

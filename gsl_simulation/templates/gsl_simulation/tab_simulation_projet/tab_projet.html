@@ -37,7 +37,7 @@
         {% if dotation_projet.programmation_projet.to_notify %}
             <a class="fr-mb-2w fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
                id="to_notify_button"
-               href="{% url 'gsl_notification:documents-in-simulation' dotation_projet.programmation_projet.id %}">
+               href="{% url 'gsl_notification:documents' dotation_projet.programmation_projet.id %}">
                 Notifier le demandeur
             </a>
         {% endif %}

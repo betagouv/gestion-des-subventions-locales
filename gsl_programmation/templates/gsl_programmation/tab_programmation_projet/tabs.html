@@ -19,7 +19,7 @@
                class="fr-tabs__tab fr-icon-archive-line fr-tabs__tab--icon-left">Historique du demandeur</a>
         </li>
         <li>
-            {% url 'gsl_notification:documents-in-simulation' programmation_projet.id as notifications_url %}
+            {% url 'gsl_notification:documents' programmation_projet.id as notifications_url %}
             <a href="{{ notifications_url }}"
                {% if "/notification/" in request.path %}aria-selected="true"{% endif %}
                class="fr-tabs__tab fr-icon-mail-fill fr-tabs__tab--icon-left">Notifications du demandeur</a>
