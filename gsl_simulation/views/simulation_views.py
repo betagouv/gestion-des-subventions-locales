@@ -2,7 +2,7 @@ from datetime import date
 from functools import cached_property
 
 from django.core.paginator import Paginator
-from django.db.models import Count, Prefetch, QuerySet, Sum
+from django.db.models import Count, Prefetch, QuerySet
 from django.forms import NumberInput
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
@@ -13,7 +13,6 @@ from django_filters import MultipleChoiceFilter, NumberFilter
 from django_filters.views import FilterView
 
 from gsl_core.models import Perimetre
-from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, DOTATIONS
 from gsl_projet.models import CategorieDetr, DotationProjet, Projet
@@ -209,7 +208,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                 ),
                 "available_states": SimulationProjet.STATUS_CHOICES,
                 "filter_params": self.request.GET.urlencode(),
-                "enveloppe": self._get_enveloppe_data(simulation),
+                "enveloppe": simulation.enveloppe,
                 "dotations": DOTATIONS,
                 "other_dotations_simu": self._get_other_dotations_simulation_projet(
                     current_page.object_list, simulation.enveloppe.dotation
@@ -259,40 +258,6 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
 
         qs.distinct()
         return qs
-
-    def _get_enveloppe_data(self, simulation):
-        enveloppe = simulation.enveloppe
-        enveloppe_projets_included = Projet.objects.included_in_enveloppe(enveloppe)
-        montant_asked = enveloppe_projets_included.aggregate(
-            Sum("dossier_ds__demande_montant")
-        )["dossier_ds__demande_montant__sum"]
-
-        enveloppe_projets_processed = ProgrammationProjet.objects.filter(
-            enveloppe=enveloppe
-        )
-        montant_accepte = (
-            enveloppe_projets_processed.filter(
-                status=ProgrammationProjet.STATUS_ACCEPTED
-            ).aggregate(Sum("montant"))["montant__sum"]
-            or 0
-        )
-
-        return {
-            "dotation": simulation.enveloppe.dotation,
-            "annee": simulation.enveloppe.annee,
-            "montant": simulation.enveloppe.montant,
-            "perimetre": simulation.enveloppe.perimetre,
-            "montant_asked": montant_asked,
-            "validated_projets_count": enveloppe_projets_processed.filter(
-                status=ProgrammationProjet.STATUS_ACCEPTED
-            ).count(),
-            "montant_accepte": montant_accepte,
-            "refused_projets_count": enveloppe_projets_processed.filter(
-                status=ProgrammationProjet.STATUS_REFUSED
-            ).count(),
-            "demandeurs": enveloppe_projets_included.distinct("demandeur").count(),
-            "projets_count": enveloppe_projets_included.count(),
-        }
 
     def _get_perimetre(self) -> Perimetre:
         return self.perimetre

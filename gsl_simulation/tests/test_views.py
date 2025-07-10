@@ -21,11 +21,9 @@ from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     NaturePorteurProjetFactory,
 )
-from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
-    ProgrammationProjetFactory,
 )
 from gsl_projet.constants import (
     DOTATION_DETR,
@@ -184,74 +182,6 @@ def test_simulation_list_view(req, view, simulations):
     assert (
         view.get_queryset().first().created_at > view.get_queryset().last().created_at
     )
-
-
-def test_get_enveloppe_data(req, simulation, projets, perimetre_departemental):
-    detr_enveloppe_2024 = DetrEnveloppeFactory(
-        perimetre=perimetre_departemental, annee=2024, montant=1_000_000
-    )
-    simulation_2024 = SimulationFactory(enveloppe=detr_enveloppe_2024)
-    view = SimulationDetailView()
-    view.kwargs = {"slug": simulation_2024.slug}
-    view.request = req.get(
-        reverse("simulation:simulation-detail", kwargs={"slug": simulation_2024.slug})
-    )
-    view.object = simulation_2024
-
-    enveloppe_data = view._get_enveloppe_data(simulation_2024)
-
-    assert Projet.objects.count() == 40
-
-    projet_filter_by_perimetre = Projet.objects.for_perimetre(perimetre_departemental)
-    assert projet_filter_by_perimetre.count() == 20
-
-    projet_filter_by_perimetre_and_dotation = projet_filter_by_perimetre.filter(
-        dossier_ds__demande_dispositif_sollicite="DETR"
-    )
-    assert projet_filter_by_perimetre_and_dotation.count() == 10
-
-    projet_qs_submitted_before_the_end_of_the_year = (
-        projet_filter_by_perimetre_and_dotation.filter(
-            dossier_ds__ds_date_depot__lt=datetime(
-                simulation_2024.enveloppe.annee + 1, 1, 1, tzinfo=UTC
-            ),
-        )
-    )
-    assert projet_qs_submitted_before_the_end_of_the_year.count() == 5
-
-    assert enveloppe_data["dotation"] == "DETR"
-    assert enveloppe_data["montant"] == 1_000_000
-    assert enveloppe_data["perimetre"] == perimetre_departemental
-    assert enveloppe_data["validated_projets_count"] == 0
-    assert enveloppe_data["refused_projets_count"] == 0
-    assert enveloppe_data["projets_count"] == 5
-    assert enveloppe_data["demandeurs"] == 2
-    assert enveloppe_data["montant_asked"] == 200_000 * 3 + 400_000 * 2
-    assert enveloppe_data["montant_accepte"] == 0
-
-
-def test_get_validated_and_refused_projets_count_enveloppe_data(req, simulation):
-    for montant in [100_000, 200_000, 300_000]:
-        ProgrammationProjetFactory.create(
-            enveloppe=simulation.enveloppe,
-            status=ProgrammationProjet.STATUS_ACCEPTED,
-            montant=montant,
-        )
-
-    ProgrammationProjetFactory.create_batch(
-        2, enveloppe=simulation.enveloppe, status=ProgrammationProjet.STATUS_REFUSED
-    )
-
-    view = SimulationDetailView()
-    view.request = req.get(
-        reverse("simulation:simulation-detail", kwargs={"slug": simulation.slug})
-    )
-    view.object = simulation
-    enveloppe_data = view._get_enveloppe_data(simulation)
-
-    assert enveloppe_data["validated_projets_count"] == 3
-    assert enveloppe_data["montant_accepte"] == 600_000
-    assert enveloppe_data["refused_projets_count"] == 2
 
 
 @pytest.fixture

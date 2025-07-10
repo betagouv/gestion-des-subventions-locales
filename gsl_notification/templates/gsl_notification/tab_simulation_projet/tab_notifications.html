@@ -1,0 +1,95 @@
+{% extends "gsl_programmation/programmation_projet_detail.html" %}
+{% load static gsl_filters %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/projet_detail.css' %}">
+    <link rel="stylesheet" href="{% static 'css/notification.css' %}">
+    <link rel="stylesheet" href="{% static 'css/tiptap.css' %}">
+{% endblock extra_css %}
+{% block tab_projet %}
+    <h1>
+        Génération des documents et envoi de la notification au demandeur
+    </h1>
+
+    {% block notification_content %}
+
+        <div class="fond-gris fr-p-4w">
+            <h2>
+                <i class="fr-icon-folder-2-fill blue-color" aria-hidden="true"></i>
+                Documents de notification
+            </h2>
+            <p>
+                <a href="{% url 'gsl_notification:modifier-arrete' programmation_projet.id %}"
+                   class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line">
+                    Générer un document
+                </a>
+                {% if programmation_projet.arrete_signe %}
+                    <button class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-upload-line"
+                            disabled
+                            aria-describedby="tooltip-import-arrete-signe">
+                        Importer un document
+                    </button>
+                    <span class="fr-tooltip fr-placement"
+                          id="tooltip-import-arrete-signe"
+                          role="tooltip">
+                        Un arrêté signé a déjà été importé pour ce projet.
+                    </span>
+                {% else %}
+                    <a href="{% url 'gsl_notification:create-arrete-signe' programmation_projet.id %}"
+                       class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-upload-line">
+                        Importer un document
+                    </a>
+                {% endif %}
+                <button class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-printer-line"
+                        title="Cette action sera disponible une fois les documents générés."
+                        disabled>
+                    Imprimer tous les documents
+                </button>
+            </p>
+            <ul class="arrete-list">
+                {% for k, document in documents.items %}
+                    <li class="arrete-card fr-mt-4w">
+                        <div class="fr-enlarge-link">
+                            <img class="arrete-card__image"
+                                 src="{% static 'img/arrete_vignette.png' %}"
+                                 alt="Image d'un arrêté">
+                            <span class="show-on-hover fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-eye-line">Visualiser</span>
+                            <a class="fr-link fr-link--download"
+                               href="{{ document.get_absolute_url }}">
+                                {{ document.name }} -
+                                {{ document.type|upper }} -
+                                {{ document.size|filesizeformat }}
+                            </a>
+                        </div>
+                        <div>
+                            Ajouté le {{ document.created_at|date:"d/m/Y" }} à {{ document.created_at|time:"H:i" }}
+                            par {{ document.created_by }}
+                        </div>
+                        {% if document|get_class == "Arrete" %}
+                            <div>
+                                <a href="{% url "notification:modifier-arrete" programmation_projet_id %}">Modifier</a>
+                            </div>
+                        {% endif %}
+                    </li>
+                {% empty %}
+                    <li class="empty-list">
+                        Il n’y a pas de document pour le moment.
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <h2 class="fr-mt-6w">
+            <i class="fr-icon-mail-fill blue-color" aria-hidden="true"></i>
+            Message de notification
+        </h2>
+        <p>
+            <button disabled class="fr-btn fr-icon-check-line fr-btn--icon-left">
+                Envoyer le message de notification
+            </button>
+        </p>
+    {% endblock notification_content %}
+{% endblock tab_projet %}
+
+{% block extra_js %}
+    <script type="module" src="{% static 'js/notification.js' %}"></script>
+{% endblock extra_js %}

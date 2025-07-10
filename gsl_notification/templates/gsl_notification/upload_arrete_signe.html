@@ -1,6 +1,5 @@
-
 {% extends "gsl_notification/tab_simulation_projet/tab_notifications.html" %}
-{% load static gsl_filters %}
+
 {% block notification_content %}
     <a class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-arrow-left-s-line fr-mb-4w"
        href="{% url 'gsl_notification:documents' programmation_projet.id %}">
@@ -9,13 +8,8 @@
 
     <div class="arrete-container">
         <h2 class="fr-mb-3w">
-            {{ page_title|default:"Modification de l'arrêté" }}
+            Ajouter un document
         </h2>
-        {% include "includes/_arrete_form.html" %}
+        {% include "includes/_arrete_signe_form.html" %}
     </div>
 {% endblock notification_content %}
-
-{% block extra_js %}
-    <script type="module" src="{% static 'js/tiptap.js' %}"></script>
-    <script type="module" src="{% static 'js/notification.js' %}"></script>
-{% endblock extra_js %}

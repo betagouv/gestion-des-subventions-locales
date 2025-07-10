@@ -1,0 +1,28 @@
+<nav aria-label="sections projet programmé">
+    <ul class="fake fr-tabs__list ul-list">
+        <li>
+            {% url "programmation:programmation-projet-detail" programmation_projet_id=programmation_projet.id as projet_url %}
+            <a href="{{ projet_url }}"
+               {% if current_tab == "projet" %}aria-selected="true"{% endif %}
+               class="fr-tabs__tab fr-icon-article-line fr-tabs__tab--icon-left">Programmation</a>
+        </li>
+        <li>
+            {% url "programmation:programmation-projet-tab" programmation_projet_id=programmation_projet.id tab="annotations" as annotations_url %}
+            <a href="{{ annotations_url }}"
+               {% if current_tab == "annotations" %}aria-selected="true"{% endif %}
+               class="fr-tabs__tab fr-icon-edit-line fr-tabs__tab--icon-left">Annotations</a>
+        </li>
+        <li role="presentation">
+            {% url "programmation:programmation-projet-tab" programmation_projet_id=programmation_projet.id tab="historique" as historique_url %}
+            <a href="{{ historique_url }}"
+               {% if current_tab == "historique" %}aria-selected="true"{% endif %}
+               class="fr-tabs__tab fr-icon-archive-line fr-tabs__tab--icon-left">Historique du demandeur</a>
+        </li>
+        <li>
+            {% url 'gsl_notification:documents' programmation_projet.id as notifications_url %}
+            <a href="{{ notifications_url }}"
+               {% if "/notification/" in request.path %}aria-selected="true"{% endif %}
+               class="fr-tabs__tab fr-icon-mail-fill fr-tabs__tab--icon-left">Notifications du demandeur</a>
+        </li>
+    </ul>
+</nav>

@@ -1,18 +1,32 @@
 .arrete-container {
-  border: 1px solid var(--background-action-low-blue-france-active);
+  border: 1px solid var(--border-default-grey);
   padding: 2rem 4rem;
-}
-
-#arrete-signe-form {
-  margin-top: 2rem;
 }
 
 .hidden {
   display: none;
 }
 
+.fond-gris {
+  background: #f7f7f7;
+}
+
+.empty-list {
+  text-align: center;
+  list-style: none;
+}
+
+.arrete-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+}
+
 .arrete-card {
   border: 1px solid var(--border-default-grey);
+  background: #fff;
   padding: 1rem;
   width: fit-content;
   max-width: 300px;
@@ -21,11 +35,22 @@
   flex-direction: column;
   align-items: center;
 }
-
-.arrete-card > img {
-  max-width: 150px;
-  max-height: fit-content;
-  margin-bottom: 1rem;
+.arrete-card__image {
+  border: 1px solid var(--border-default-grey);
+}
+.show-on-hover {
+  display: none;
+  position: absolute;
+  width: 50%;
+  left: 25%;
+  top: 15%;
+  background: #fff;
+}
+.arrete-card:hover .show-on-hover {
+  display: flex;
+}
+.arrete-card .fr-enlarge-link a {
+  display: block;
 }
 
 .next-step-buttons {

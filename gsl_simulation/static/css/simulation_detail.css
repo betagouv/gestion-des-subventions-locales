@@ -32,15 +32,6 @@
   padding-right: 16px;
 }
 
-.projet__to_notify {
-  color: var(--text-default-error);
-  text-transform: uppercase;
-  font-weight: 700;
-  font-style: italic;
-  margin-top: 4px;
-  display: inline-block;
-}
-
 .simulation-status {
   text-align: right;
 }

@@ -273,7 +273,6 @@ def _enrich_simulation_projet_context_with_specific_info_for_main_tab(
     dotation_field = projet_form.fields.get("dotations")
     context.update(
         {
-            "dotation_projet": simulation_projet.dotation_projet,
             "enveloppe": simulation_projet.simulation.enveloppe,
             "menu_dict": PROJET_MENU,
             "projet_form": projet_form,
@@ -317,6 +316,7 @@ def _enrich_simulation_projet_context_with_generic_info_for_all_tabs(
             },
             "simu": simulation_projet,
             "projet": simulation_projet.projet,
+            "dotation_projet": simulation_projet.dotation_projet,
             "dossier": simulation_projet.projet.dossier_ds,
         }
     )

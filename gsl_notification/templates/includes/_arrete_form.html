@@ -1,18 +1,13 @@
 <form method="post"
       enctype="multipart/form-data"
       id="arrete-form"
-      class="hidden fr-mt-4w">
+      class="fr-mt-4w">
     {% csrf_token %}
-    {% if source_simulation_projet_id %}
-        <input type="hidden"
-               name="source_simulation_projet_id"
-               value="{{ source_simulation_projet_id }}">
-    {% endif %}
 
     {{ arrete_form.errors }}
     <label for="editor" class="fr-label fr-mb-2w">
         <b>
-            Création de l'arrêté sur Turgot :
+            {{ page_title|default:"Création de l'arrêté" }} sur Turgot :
         </b>
     </label>
     <div id="toolbar">
@@ -43,6 +38,9 @@
         <button data-action="align" data-align="center" type="button">
             Centrer
         </button>
+        <button data-action="align" data-align="justify" type="button">
+            Justifier
+        </button>
         <button data-action="align" data-align="right" type="button">
             Droite
         </button>
@@ -64,12 +62,13 @@
         {{ arrete_initial_content }}
     </div>
     <div class="next-step-buttons">
-        <button type="button"
-                id="cancel-arrete-form"
-                class="fr-btn fr-btn--secondary">
+        <a type="button"
+           id="cancel-arrete-form"
+           class="fr-btn fr-btn--secondary"
+           href="{% url 'gsl_notification:documents' programmation_projet.id %}">
             Annuler
-        </button>
-        <button type="submit" id="cancel-arrete-form" class="fr-btn">
+        </a>
+        <button type="submit" id="submit-arrete-form" class="fr-btn">
             Enregistrer les modifications
         </button>
     </div>

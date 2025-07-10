@@ -1,4 +1,4 @@
-import { Editor, generateHTML } from "https://esm.sh/@tiptap/core";
+import { Editor } from "https://esm.sh/@tiptap/core";
 import StarterKit from "https://esm.sh/@tiptap/starter-kit";
 import Heading from "https://esm.sh/@tiptap/extension-heading";
 import BulletList from "https://esm.sh/@tiptap/extension-bullet-list";

@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_http_methods
 from django_weasyprint.views import WeasyTemplateResponse
 
 from gsl import settings
@@ -22,48 +22,98 @@ from gsl_notification.views.decorators import (
 )
 from gsl_programmation.models import ProgrammationProjet
 
-### Arrete
+# Views for listing notification documents on a programmationProjet, -------------------
+# in various contexts
 
 
-@csp_update({"style-src": [SELF, UNSAFE_INLINE]})
-@programmation_projet_visible_by_user
-def create_arrete_view(request, programmation_projet_id):
+def _generic_documents_view(
+    request, programmation_projet_id, source_url, template, context
+):
     programmation_projet = get_object_or_404(
         ProgrammationProjet,
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
-    source_simulation_projet_id = request.GET.get("source_simulation_projet_id")
 
-    if hasattr(programmation_projet, "arrete") or hasattr(
-        programmation_projet, "arrete_signe"
-    ):
-        return _redirect_to_get_arrete_view(
-            request, programmation_projet.id, source_simulation_projet_id
-        )
+    documents = {}
 
-    if request.method == "POST":
-        form = ArreteForm(request.POST)
-        if form.is_valid():
-            form.save()
+    try:
+        documents["arrete"] = programmation_projet.arrete
+    except Arrete.DoesNotExist:
+        pass
 
-            return _redirect_to_get_arrete_view(
-                request, programmation_projet.id, source_simulation_projet_id
-            )
-    else:
-        form = ArreteForm()
+    try:
+        documents["arrete_signe"] = programmation_projet.arrete_signe
+    except ArreteSigne.DoesNotExist:
+        pass
 
+    context.update(
+        {
+            "documents": documents,
+            "programmation_projet_id": programmation_projet.id,
+            "source_url": source_url,
+            "dossier": programmation_projet.projet.dossier_ds,
+        }
+    )
+
+    return render(
+        request,
+        template,
+        context=context,
+    )
+
+
+@programmation_projet_visible_by_user
+@require_GET
+def documents_view(request, programmation_projet_id):
+    programmation_projet = get_object_or_404(
+        ProgrammationProjet,
+        id=programmation_projet_id,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+    )
+    projet = programmation_projet.projet
+    title = projet.dossier_ds.projet_intitule
     context = {
-        "arrete_form": form,
-        "arrete_signe_form": ArreteSigneForm(),
+        "programmation_projet": programmation_projet,
+        "dotation_projet": programmation_projet.dotation_projet,
+        "projet": projet,
+        "dossier": projet.dossier_ds,
+        "title": title,
+        "breadcrumb_dict": {
+            "links": [
+                {
+                    "url": reverse("gsl_programmation:programmation-projet-list"),
+                    "title": "Programmation en cours",
+                },
+            ],
+            "current": title,
+        },
     }
-    context = _enrich_context_for_create_or_get_arrete_view(
+
+    _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
     )
-    return render(request, "gsl_notification/create_arrete.html", context=context)
+    return _generic_documents_view(
+        request,
+        programmation_projet_id,
+        programmation_projet.get_absolute_url(),
+        "gsl_notification/tab_simulation_projet/tab_notifications.html",
+        context,
+    )
 
 
+# Creation view from a model -----------------------------------------------------------
+# @require_http_methods(["GET", "POST"])
+# @programmation_projet_visible_by_user
+# def create_arrete_view(request, programmation_projet_id):
+#     # GET: list available models
+#     # POST: create arrete instance from model and redirect to edit form
+#     pass
+
+
+# Edition form for arrêté --------------------------------------------------------------
 @csp_update({"style-src": [SELF, UNSAFE_INLINE]})
+@require_http_methods(["GET", "POST"])
 @programmation_projet_visible_by_user
 def change_arrete_view(request, programmation_projet_id):
     programmation_projet = get_object_or_404(
@@ -71,72 +121,71 @@ def change_arrete_view(request, programmation_projet_id):
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
-    source_simulation_projet_id = request.GET.get("source_simulation_projet_id")
 
-    if hasattr(programmation_projet, "arrete_signe"):
-        return _redirect_to_get_arrete_view(
-            request, programmation_projet.id, source_simulation_projet_id
-        )
-
-    if not hasattr(programmation_projet, "arrete"):
-        url = reverse(
-            "gsl_notification:create-arrete",
-            kwargs={"programmation_projet_id": programmation_projet_id},
-            query={"source_simulation_projet_id": source_simulation_projet_id},
-        )
-        return redirect(url)
-
-    arrete = programmation_projet.arrete
+    if hasattr(programmation_projet, "arrete"):
+        arrete = programmation_projet.arrete
+        title = "Modification de l'arrêté"
+    else:
+        arrete = Arrete()
+        title = "Création de l'arrêté"
 
     if request.method == "POST":
         form = ArreteForm(request.POST, instance=arrete)
         if form.is_valid():
             form.save()
 
-            return _redirect_to_get_arrete_view(
-                request, programmation_projet.id, source_simulation_projet_id
-            )
+            return _redirect_to_documents_view(request, programmation_projet.id)
+        else:
+            arrete = form.instance
     else:
         form = ArreteForm(instance=arrete)
 
     context = {
         "arrete_form": form,
-        "arrete_signe_form": ArreteSigneForm(),
         "arrete_initial_content": mark_safe(arrete.content),
+        "page_title": title,
     }
-    context = _enrich_context_for_create_or_get_arrete_view(
+    _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
     )
     return render(request, "gsl_notification/change_arrete.html", context=context)
 
 
+# Upload arrêté signé ------------------------------------------------------------------
+
+
 @programmation_projet_visible_by_user
-@require_GET
-def get_arrete_view(request, programmation_projet_id):
+@require_http_methods(["GET", "POST"])
+def create_arrete_signe_view(request, programmation_projet_id):
     programmation_projet = get_object_or_404(
         ProgrammationProjet,
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
-    try:
-        arrete = programmation_projet.arrete_signe
-    except ArreteSigne.DoesNotExist:
-        try:
-            arrete = programmation_projet.arrete
-        except Arrete.DoesNotExist:
-            return redirect(
-                "gsl_notification:create-arrete",
-                programmation_projet_id=programmation_projet.id,
+
+    if request.method == "POST":
+        form = ArreteSigneForm(request.POST, request.FILES)
+        if form.is_valid():
+            update_file_name_to_put_it_in_a_programmation_projet_folder(
+                form.instance.file, programmation_projet.id
             )
+            form.save()
+
+            return _redirect_to_documents_view(request, programmation_projet.id)
+    else:
+        form = ArreteSigneForm()
+
     context = {
-        "arrete": arrete,
-        "disabled_create_arrete_buttons": True,
-        "programmation_projet_id": programmation_projet.id,
+        "arrete_signe_form": form,
     }
-    context = _enrich_context_for_create_or_get_arrete_view(
+    _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
     )
-    return render(request, "gsl_notification/get_arrete.html", context=context)
+
+    return render(request, "gsl_notification/upload_arrete_signe.html", context=context)
+
+
+# Download views -----------------------------------------------------------------------
 
 
 @arrete_visible_by_user
@@ -157,39 +206,6 @@ def download_arrete(request, arrete_id):
         request=request,
         filename=f"arrete-{arrete.id}.pdf",
     )
-
-
-### ArreteSigne
-
-
-@programmation_projet_visible_by_user
-@require_POST
-def create_arrete_signe_view(request, programmation_projet_id):
-    programmation_projet = get_object_or_404(
-        ProgrammationProjet,
-        id=programmation_projet_id,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-    )
-    source_simulation_projet_id = request.GET.get("source_simulation_projet_id")
-
-    form = ArreteSigneForm(request.POST, request.FILES)
-    if form.is_valid():
-        update_file_name_to_put_it_in_a_programmation_projet_folder(
-            form.instance.file, programmation_projet.id
-        )
-        form.save()
-
-        return _redirect_to_get_arrete_view(
-            request, programmation_projet.id, source_simulation_projet_id
-        )
-
-    context = {
-        "arrete_signe_form": form,
-    }
-    context = _enrich_context_for_create_or_get_arrete_view(
-        context, programmation_projet, request
-    )
-    return render(request, "gsl_notification/create_arrete.html", context=context)
 
 
 @arrete_signe_visible_by_user
@@ -220,32 +236,26 @@ def download_arrete_signe(request, arrete_signe_id):
         raise Http404("Fichier non trouvé")
 
 
-def _redirect_to_get_arrete_view(
-    request, programmation_projet_id, source_simulation_projet_id=None
-):
-    query = None
-    if source_simulation_projet_id:
-        query = {"source_simulation_projet_id": source_simulation_projet_id}
-    url = reverse(
-        "gsl_notification:get-arrete",
-        kwargs={"programmation_projet_id": programmation_projet_id},
-        query=query,
+# utils --------------------------------------------------------------------------------
+
+
+def _redirect_to_documents_view(request, programmation_projet_id):
+    return redirect(
+        reverse(
+            "gsl_notification:documents",
+            kwargs={"programmation_projet_id": programmation_projet_id},
+        )
     )
-    return redirect(url)
 
 
 def _enrich_context_for_create_or_get_arrete_view(
     context, programmation_projet, request
 ):
-    context["stepper_dict"] = {
-        "current_step_id": 1,
-        "current_step_title": "1 - Création de l’arrêté",
-        "next_step_title": "Ajout de la lettre de notification",
-        "total_steps": 5,
-    }
-    context["programmation_projet"] = programmation_projet
-    context["projet"] = programmation_projet.projet
-    context["source_simulation_projet_id"] = request.GET.get(
-        "source_simulation_projet_id", None
+    context.update(
+        {
+            "programmation_projet": programmation_projet,
+            "projet": programmation_projet.projet,
+            "dossier": programmation_projet.projet.dossier_ds,
+            "current_tab": "notifications",
+        }
     )
-    return context

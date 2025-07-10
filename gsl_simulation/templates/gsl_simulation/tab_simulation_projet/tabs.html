@@ -4,22 +4,30 @@
             {% url "simulation:simulation-projet-detail" pk=simu.id as projet_url %}
             <a href="{{ projet_url }}"
                {% if request.path == projet_url %}aria-selected="true"{% endif %}
-               class="fr-tabs__tab fr-icon-article-line fr-tabs__tab--icon-left">Projet</a>
+               class="fr-tabs__tab fr-icon-article-fill fr-tabs__tab--icon-left">Projet</a>
         </li>
         <li>
             {% url "simulation:simulation-projet-tab" pk=simu.id tab="annotations" as annotations_url %}
             <a href="{{ annotations_url }}"
                {% if request.path == annotations_url %}aria-selected="true"{% endif %}
-               class="fr-tabs__tab fr-icon-edit-line fr-tabs__tab--icon-left">Annotations</a>
+               class="fr-tabs__tab fr-icon-edit-fill fr-tabs__tab--icon-left">Annotations</a>
         </li>
         <li role="presentation">
             {% url "simulation:simulation-projet-tab" pk=simu.id tab="historique" as historique_url %}
 
             <a href="{{ historique_url }}"
                {% if request.path == historique_url %}aria-selected="true"{% endif %}
-               class="fr-tabs__tab fr-icon-archive-line fr-tabs__tab--icon-left">Historique du
+               class="fr-tabs__tab fr-icon-archive-fill fr-tabs__tab--icon-left">Historique du
             demandeur</a>
 
         </li>
+        {% if dotation_projet.programmation_projet %}
+            <li>
+                {% url 'gsl_notification:documents' dotation_projet.programmation_projet.id as notifications_url %}
+                <a href="{{ notifications_url }}"
+                   {% if request.path == notifications_url %}aria-selected="true"{% endif %}
+                   class="fr-tabs__tab fr-icon-mail-fill fr-tabs__tab--icon-left">Notifications du demandeur</a>
+            </li>
+        {% endif %}
     </ul>
 </nav>
