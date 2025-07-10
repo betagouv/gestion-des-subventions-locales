@@ -151,6 +151,20 @@ def change_arrete_view(request, programmation_projet_id):
     return render(request, "gsl_notification/change_arrete.html", context=context)
 
 
+# Suppression d'arrêté -----------------------------------------------------------------
+
+
+@arrete_visible_by_user
+@require_http_methods(["POST"])
+def delete_arrete_view(request, arrete_id):
+    arrete = get_object_or_404(Arrete, id=arrete_id)
+    programmation_projet_id = arrete.programmation_projet.id
+
+    arrete.delete()
+
+    return _redirect_to_documents_view(request, programmation_projet_id)
+
+
 # Upload arrêté signé ------------------------------------------------------------------
 
 

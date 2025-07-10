@@ -70,9 +70,14 @@
                                                 </a>
                                             </li>
                                             <li>
-                                                <button class="fr-btn fr-btn--secondary arrete-card__action" disabled>
-                                                    Supprimer
-                                                </button>
+                                                <form method="post"
+                                                      action="{% url 'gsl_notification:delete-arrete' document.id %}">
+                                                    {% csrf_token %}
+                                                    <button type="submit"
+                                                            class="fr-btn fr-btn--secondary arrete-card__action arrete-delete-button">
+                                                        Supprimer
+                                                    </button>
+                                                </form>
                                             </li>
                                         </ul>
                                     </div>
@@ -124,3 +129,7 @@
 {% block extra_js %}
     <script type="module" src="{% static 'js/notification.js' %}"></script>
 {% endblock extra_js %}
+
+{% block modal %}
+    {% include "includes/_delete_arrete_confirmation_modal.html" %}
+{% endblock modal %}

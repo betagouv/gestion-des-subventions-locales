@@ -91,31 +91,6 @@
   font-weight: 500;
 }
 
-/* colors */
-
-.success-color {
-  color: var(--text-default-success);
-}
-
-.refuse-color {
-  color: var(--text-default-error);
-}
-
-.processing-color {
-  color: var(--text-mention-grey);
-}
-
-.dismiss-color {
-  color: var(--text-default-warning);
-}
-
-/* modal */
-
-.confirmation-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1em;
-}
 
 /* buttons */
 
