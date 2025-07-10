@@ -253,31 +253,94 @@ class TestProgrammationProjetListView:
         DetrEnveloppeFactory(perimetre=user_with_perimetre.perimetre, annee=2024)
         url = reverse("gsl_programmation:programmation-projet-list")
         response = client.get(url)
-        assert response.status_code == 200
-        assert "programmation_projets" in response.context
-
-    def test_list_view_shows_only_user_perimeter_projects(
-        self, user_with_perimetre, programmation_projet, other_programmation_projet
-    ):
-        """La liste n'affiche que les projets du périmètre de l'utilisateur"""
-        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
-        url = reverse("gsl_programmation:programmation-projet-list")
-        response = client.get(url)
-
-        assert programmation_projet in response.context["programmation_projets"]
-        assert (
-            other_programmation_projet not in response.context["programmation_projets"]
+        assert response.status_code == 302
+        assert response.url == reverse(
+            "gsl_programmation:programmation-projet-list-dotation",
+            kwargs={"dotation": "DETR"},
         )
 
-    def test_list_view_context_data(self, user_with_perimetre, programmation_projet):
-        """Test du contexte de la vue liste"""
-        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
-        url = reverse("gsl_programmation:programmation-projet-list")
-        response = client.get(url)
 
-        assert "title" in response.context
-        assert "enveloppe" in response.context
-        assert "breadcrumb_dict" in response.context
+class TestProgrammationProjetListViewWithDotation:
+    @pytest.fixture
+    def dsil_programmation_projet(self, user_with_perimetre):
+        dsil_enveloppe = DsilEnveloppeFactory(
+            perimetre=user_with_perimetre.perimetre, annee=2024
+        )
+        return ProgrammationProjetFactory(
+            dotation_projet__projet__perimetre=user_with_perimetre.perimetre,
+            enveloppe=dsil_enveloppe,
+        )
+
+    @pytest.fixture
+    def detr_programmation_projet(self, user_with_perimetre):
+        detr_enveloppe = DetrEnveloppeFactory(
+            perimetre=user_with_perimetre.perimetre, annee=2024
+        )
+        return ProgrammationProjetFactory(
+            dotation_projet__projet__perimetre=user_with_perimetre.perimetre,
+            enveloppe=detr_enveloppe,
+        )
+
+    def test_list_view_with_detr(
+        self, user_with_perimetre, detr_programmation_projet, dsil_programmation_projet
+    ):
+        """Un utilisateur avec un périmètre peut accéder à la liste des projets"""
+        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
+        url = reverse(
+            "gsl_programmation:programmation-projet-list-dotation",
+            kwargs={"dotation": "DETR"},
+        )
+        response = client.get(url)
+        assert response.status_code == 200
+        assert "programmation_projets" in response.context
+        assert response.context["programmation_projets"].count() == 1
+        assert (
+            response.context["programmation_projets"].first()
+            == detr_programmation_projet
+        )
+
+    def test_list_view_with_dsil(
+        self, user_with_perimetre, detr_programmation_projet, dsil_programmation_projet
+    ):
+        """Un utilisateur avec un périmètre peut accéder à la liste des projets DSIL"""
+        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
+        url = reverse(
+            "gsl_programmation:programmation-projet-list-dotation",
+            kwargs={"dotation": "DSIL"},
+        )
+        response = client.get(url)
+        assert response.status_code == 200
+        assert "programmation_projets" in response.context
+        assert response.context["programmation_projets"].count() == 1
+        assert (
+            response.context["programmation_projets"].first()
+            == dsil_programmation_projet
+        )
+
+    @pytest.fixture
+    def user_with_regional_perimetre(self):
+        """Utilisateur avec un périmètre régional"""
+        collegue = CollegueFactory()
+        perimetre = PerimetreRegionalFactory()
+        collegue.perimetre = perimetre
+        collegue.save()
+        return collegue
+
+    def test_list_view_with_regional_user_redirect_detr_to_dsil(
+        self, user_with_regional_perimetre
+    ):
+        """Un utilisateur avec un périmètre régional est rediriger d'office vers la liste DSIL"""
+        client = ClientWithLoggedUserFactory(user=user_with_regional_perimetre)
+        url = reverse(
+            "gsl_programmation:programmation-projet-list-dotation",
+            kwargs={"dotation": "DETR"},
+        )
+        response = client.get(url)
+        assert response.status_code == 302
+        assert response.url == reverse(
+            "gsl_programmation:programmation-projet-list-dotation",
+            kwargs={"dotation": "DSIL"},
+        )
 
 
 class TestProgrammationProjetDetailView:

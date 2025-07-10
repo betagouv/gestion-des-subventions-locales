@@ -90,7 +90,7 @@ class ProgrammationProjetListView(ListView):
             and self.perimetre.type == Perimetre.TYPE_REGION
         ):
             return redirect(
-                "gsl_programmation:programmation-projet-list", dotation="DSIL"
+                "gsl_programmation:programmation-projet-list-dotation", dotation="DSIL"
             )
 
         enveloppe_qs = (
