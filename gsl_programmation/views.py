@@ -1,10 +1,12 @@
 from django.http import Http404
+from django.shortcuts import redirect
 from django.urls import reverse
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 
+from gsl_core.models import Perimetre
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
-from gsl_projet.constants import DOTATION_DETR
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.utils.projet_page import PROJET_MENU
 
 
@@ -73,7 +75,24 @@ class ProgrammationProjetListView(ListView):
     ordering = ["-created_at"]
 
     def get(self, request, *args, **kwargs):
-        self.perimetre = self.request.user.perimetre
+        self.perimetre: Perimetre = self.request.user.perimetre
+        self.dotation = kwargs.get("dotation")
+        if self.dotation is None:
+            return redirect(
+                "gsl_programmation:programmation-projet-list-dotation",
+                dotation=DOTATION_DETR,
+            )
+        if self.dotation not in (DOTATION_DETR, DOTATION_DSIL):
+            raise Http404("Dotation non reconnue.")
+
+        if (
+            self.dotation == DOTATION_DETR
+            and self.perimetre.type == Perimetre.TYPE_REGION
+        ):
+            return redirect(
+                "gsl_programmation:programmation-projet-list", dotation="DSIL"
+            )
+
         enveloppe_qs = (
             Enveloppe.objects.select_related(
                 "perimetre",
@@ -81,7 +100,7 @@ class ProgrammationProjetListView(ListView):
                 "perimetre__departement",
                 "perimetre__arrondissement",
             )
-            .filter(dotation=DOTATION_DETR)
+            .filter(dotation=self.dotation)
             .order_by("-annee")
         )
 
@@ -108,7 +127,7 @@ class ProgrammationProjetListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        title = "Projets programmés"
+        title = "Programmation en cours"
         if self.enveloppe:
             title = f"Programmation {self.enveloppe.dotation} {self.enveloppe.annee}"
         context.update(
@@ -118,6 +137,8 @@ class ProgrammationProjetListView(ListView):
                 "breadcrumb_dict": {
                     "current": "Programmation en cours",
                 },
+                "current_tab": self.dotation,
+                "is_detr_disabled": self.perimetre.type == Perimetre.TYPE_REGION,
             }
         )
 

@@ -15,6 +15,11 @@ urlpatterns = [
         name="programmation-projet-list",
     ),
     path(
+        "liste/<str:dotation>/",
+        ProgrammationProjetListView.as_view(),
+        name="programmation-projet-list-dotation",
+    ),
+    path(
         "voir/<int:programmation_projet_id>/",
         programmation_projet_visible_by_user(ProgrammationProjetDetailView.as_view()),
         name="programmation-projet-detail",
