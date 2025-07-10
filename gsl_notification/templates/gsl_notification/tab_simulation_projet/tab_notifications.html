@@ -74,8 +74,7 @@
                                                       action="{% url 'gsl_notification:delete-arrete' document.id %}">
                                                     {% csrf_token %}
                                                     <button type="submit"
-                                                            class="fr-btn fr-btn--secondary arrete-card__action arrete-delete-button"
-                                                            onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet arrêté ?');">
+                                                            class="fr-btn fr-btn--secondary arrete-card__action arrete-delete-button">
                                                         Supprimer
                                                     </button>
                                                 </form>
