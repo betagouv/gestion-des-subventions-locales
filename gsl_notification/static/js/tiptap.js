@@ -1,23 +1,156 @@
 import { Editor } from "https://esm.sh/@tiptap/core";
 import StarterKit from "https://esm.sh/@tiptap/starter-kit";
-import Heading from "https://esm.sh/@tiptap/extension-heading";
-import BulletList from "https://esm.sh/@tiptap/extension-bullet-list";
-import OrderedList from "https://esm.sh/@tiptap/extension-ordered-list";
-import ListItem from "https://esm.sh/@tiptap/extension-list-item";
 import TextAlign from "https://esm.sh/@tiptap/extension-text-align";
 import Underline from "https://esm.sh/@tiptap/extension-underline";
+import Mention from "https://esm.sh/@tiptap/extension-mention";
+
+const CUSTOM_MENTION = Mention.configure({
+  HTMLAttributes: {
+    class: 'mention'
+  },
+  suggestion: {
+    char: '@',
+    startOfLine: false,
+    items: ({ query }) => {
+      const users = [
+        { id: 1, label: 'Nom du bénéficiaire' },
+        { id: 2, label: 'Inititulé du projet' },
+        { id: 3, label: 'Nom du département' },
+        { id: 4, label: 'Montant prévisionnel de la subvention' },
+        { id: 5, label: 'Taux de subvention' },
+      ];
+      return users
+        .filter(user => user.label.toLowerCase().startsWith(query.toLowerCase()))
+        .slice(0, 5);
+    },
+    render: () => {
+      let popup;
+      let selectedIndex = 0;
+      let items = [];
+      function updateSelection(newIndex) {
+            items[selectedIndex].classList.remove('selected');
+            selectedIndex = newIndex;
+            items[selectedIndex].classList.add('selected');
+            items[selectedIndex].scrollIntoView({
+              block: 'nearest',
+            });
+          }
+      function reinitializeVariables() {
+        selectedIndex = 0;
+        items = [];
+      }
+
+      let selectItem;
+
+      return {
+        onStart: props => {
+          reinitializeVariables();
+
+          // Créer le conteneur
+          popup = document.createElement('div');
+          popup.className = 'mention-list';
+          popup.setAttribute('tabindex', '-1'); // Rendre focusable
+
+          // Ajouter les éléments
+          props.items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'mention-item';
+            div.textContent = item.label;
+            div.dataset.id = item.id;
+            div.addEventListener('click', () => {
+              props.command(item);
+            });
+            div.addEventListener('mouseover', () => {
+              let index = items.indexOf(div);
+              updateSelection(index);
+            });
+            popup.appendChild(div);
+            items.push(div);
+          });
+
+          updateSelection(0);
+
+          selectItem = (item) => {
+              props.command({ id: item.dataset.id, label: item.textContent });
+
+          };
+
+          // Positionner le popup
+          const rect = props.clientRect();
+          if (rect) {
+            popup.style.top = `${rect.bottom + window.scrollY}px`;
+            popup.style.left = `${rect.left + window.scrollX}px`;
+          }
+
+          document.body.appendChild(popup);
+        },
+        onUpdate: props => {
+          reinitializeVariables();
+
+          while (popup.firstChild) {
+            popup.removeChild(popup.firstChild);
+          }
+          
+          props.items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'mention-item';
+            div.textContent = item.label;
+            div.dataset.id = item.id;
+            div.addEventListener('click', () => {
+              props.command(item);
+            });
+            popup.appendChild(div);
+            items.push(div);
+          });
+          updateSelection(0);
+        },
+        onKeyDown(props) {
+          if (props.event.key === 'Escape') {
+            popup.style.display = 'none';
+            return true;
+          }
+          if (props.event.key === 'ArrowDown') {
+            if (selectedIndex < items.length - 1) {
+              updateSelection(selectedIndex + 1);
+            }
+            return true;
+          }
+          if (props.event.key === 'ArrowUp') {
+            if (selectedIndex > 0) {
+              updateSelection(selectedIndex - 1);
+            }
+            return true;
+          }
+          if (props.event.key === 'Enter') {
+            if (items[selectedIndex]) {
+              selectItem(items[selectedIndex]);
+            }
+            return true;
+          }
+          return false;
+        },
+        onExit() {
+          if (popup) {
+            popup.remove();
+            popup = null;
+          }
+        },
+      };
+    }
+  }
+});
+
+
 
 const EXTENSIONS = [
     StarterKit,
-    Heading.configure({ levels: [1, 2] }),
-    BulletList,
-    OrderedList,
-    ListItem,
     TextAlign.configure({
       types: ['heading', 'paragraph'],
     }),
     Underline,
+    CUSTOM_MENTION
   ]
+
 const editor = new Editor({
   element: document.querySelector("#editor"),
   extensions: EXTENSIONS,

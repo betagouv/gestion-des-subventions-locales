@@ -121,3 +121,32 @@
   flex:1 1;
   min-width:0
 }
+
+
+.mention {
+  color: #0066cc;
+  background-color: #e6f0ff;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.mention-list {
+  overflow: hidden;
+  position: absolute;
+  z-index: 1000;
+  background: white;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  padding: 4px 0;
+
+}
+
+.mention-item {
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.mention-item.selected {
+  background: #d9e6ff;
+}
