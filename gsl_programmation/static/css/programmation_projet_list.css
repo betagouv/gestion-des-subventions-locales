@@ -1,0 +1,14 @@
+.programmation-projet-fake-tab {
+  border: 1px solid var(--background-action-low-green-menthe-active);
+}
+
+.fr-tabs__tab[aria-selected="true"]:not(:disabled).programmation-projet-active-tab {
+  color: var(--background-action-high-success);
+  background-image: linear-gradient(0deg,var(--background-action-high-success),var(--background-action-high-success)),linear-gradient(0deg,var(--border-default-grey),var(--border-default-grey)),linear-gradient(0deg,var(--border-default-grey),var(--border-default-grey)),linear-gradient(0deg,var(--border-default-grey),var(--border-default-grey));
+}
+
+.fr-tabs__tab.programmation-projet-inactive-tab {
+  background: var(--artwork-background-green-emeraude);
+  color: var(--background-action-high-success);
+  border-bottom: 1px solid var(--background-action-low-green-menthe-active);
+}

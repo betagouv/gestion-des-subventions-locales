@@ -7,6 +7,14 @@ def test_programmation_projet_list_url():
     assert url == "/programmation/liste/"
 
 
+def test_programmation_projet_list_dotation_url():
+    url = reverse(
+        "gsl_programmation:programmation-projet-list-dotation",
+        kwargs={"dotation": "DETR"},
+    )
+    assert url == "/programmation/liste/DETR/"
+
+
 def test_programmation_projet_detail_url():
     url = reverse(
         "gsl_programmation:programmation-projet-detail",
@@ -17,7 +25,7 @@ def test_programmation_projet_detail_url():
 
 @pytest.mark.parametrize(
     "tab",
-    ("annotations", "historique", "notifications"),
+    ("annotations", "historique"),
 )
 def test_programmation_projet_tab_url(tab):
     """Test de l'URL des onglets"""

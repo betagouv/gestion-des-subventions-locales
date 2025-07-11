@@ -7,7 +7,7 @@
 
 {% block go_back_button %}
     <div class="fr-mb-4w">
-        <a href="{% url "programmation:programmation-projet-list" %}"
+        <a href="{% url "programmation:programmation-projet-list-dotation" dotation=programmation_projet.dotation_projet.dotation %}"
            class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
             Retour à la liste des projets programmés
         </a>
