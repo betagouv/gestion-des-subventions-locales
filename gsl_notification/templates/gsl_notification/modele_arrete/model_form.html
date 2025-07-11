@@ -1,7 +1,8 @@
-{% extends "gsl_notification/base.html" %}
-{% load i18n %}
+{% extends "base.html" %}
+{% load static dsfr_tags gsl_filters %}
 
 {% block extra_css %}
+    <link rel="stylesheet" href="{% static "css/gsl.css" %}">
     {{ wizard.form.media }}
 {% endblock extra_css %}
 
@@ -9,6 +10,7 @@
     <h1>
         Step {{ wizard.steps.step1 }} of {{ wizard.steps.count }}
     </h1>
+    {% dsfr_stepper current_step_id=wizard.steps.step1 total_steps=wizard.steps.count current_step_title=current_step_title next_step_title=next_step_title %}
     <form action="" method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <table>
