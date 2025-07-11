@@ -26,25 +26,31 @@ const CUSTOM_MENTION = Mention.configure({
     render: () => {
       let popup;
       let selectedIndex = 0;
-      let items = [];
+      let originalItems = [];
+      let divItems = [];
       function updateSelection(newIndex) {
-            items[selectedIndex].classList.remove('selected');
+            divItems[selectedIndex].classList.remove('selected');
             selectedIndex = newIndex;
-            items[selectedIndex].classList.add('selected');
-            items[selectedIndex].scrollIntoView({
+            divItems[selectedIndex].classList.add('selected');
+            divItems[selectedIndex].scrollIntoView({
               block: 'nearest',
             });
           }
       function reinitializeVariables() {
         selectedIndex = 0;
-        items = [];
+        divItems = [];
       }
 
       let selectItem;
 
       return {
         onStart: props => {
+          originalItems = props.items;
           reinitializeVariables();
+
+          selectItem = (item) => {
+            props.command(item);
+          };
 
           // Créer le conteneur
           popup = document.createElement('div');
@@ -61,19 +67,14 @@ const CUSTOM_MENTION = Mention.configure({
               props.command(item);
             });
             div.addEventListener('mouseover', () => {
-              let index = items.indexOf(div);
+              let index = divItems.indexOf(div);
               updateSelection(index);
             });
             popup.appendChild(div);
-            items.push(div);
+            divItems.push(div);
           });
 
           updateSelection(0);
-
-          selectItem = (item) => {
-              props.command({ id: item.dataset.id, label: item.textContent });
-
-          };
 
           // Positionner le popup
           const rect = props.clientRect();
@@ -99,8 +100,12 @@ const CUSTOM_MENTION = Mention.configure({
             div.addEventListener('click', () => {
               props.command(item);
             });
+            div.addEventListener('mouseover', () => {
+              let index = divItems.indexOf(div);
+              updateSelection(index);
+            });
             popup.appendChild(div);
-            items.push(div);
+            divItems.push(div);
           });
           updateSelection(0);
         },
@@ -110,7 +115,7 @@ const CUSTOM_MENTION = Mention.configure({
             return true;
           }
           if (props.event.key === 'ArrowDown') {
-            if (selectedIndex < items.length - 1) {
+            if (selectedIndex < divItems.length - 1) {
               updateSelection(selectedIndex + 1);
             }
             return true;
@@ -122,8 +127,17 @@ const CUSTOM_MENTION = Mention.configure({
             return true;
           }
           if (props.event.key === 'Enter') {
-            if (items[selectedIndex]) {
-              selectItem(items[selectedIndex]);
+            if (divItems[selectedIndex]) {
+              // Astuce pour supprimer le texte tappé
+              const { state, dispatch } = props.view;
+              const { from, to } = props.range;
+              dispatch(
+                state.tr.delete(from, to)
+              );
+              //
+              const divItem = divItems[selectedIndex];
+              const item = originalItems.find(i => i.id === Number(divItem.dataset.id));
+              selectItem(item); 
             }
             return true;
           }
