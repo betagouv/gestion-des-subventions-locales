@@ -395,3 +395,21 @@ ul.no-list-style li {
   justify-content: flex-end;
   gap: 1em;
 }
+
+/* programmation */
+.tab-submenu ul {
+    display: flex;
+}
+.tab-submenu ul li + li {
+    margin-left: 2em;
+}
+.tab-submenu .active-link {
+    color: var(--text-title-blue-france);
+}
+/* ce serait peut-être mieux de garder le souligné sur ces liens: */
+.secondary-link {
+    --underline-thickness: 0px;
+}
+.secondary-link:hover {
+    --underline-thickness: calc(0.0625em + 0.25px)
+}

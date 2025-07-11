@@ -308,6 +308,7 @@ class CreateModelArreteWizard(SessionWizardView):
         self.instance = ModeleArrete(
             dotation=dotation, perimetre=perimetre, created_by=request.user
         )
+        self.dotation = dotation
         response = super().dispatch(request, *args, **kwargs)
         return response
 
@@ -331,7 +332,21 @@ class CreateModelArreteWizard(SessionWizardView):
 
     def get_context_data(self, form, **kwargs):
         context = super().get_context_data(form=form, **kwargs)
-
-        if self.steps.current == "my_step_name":
-            context.update({"another_var": True})
+        context.update(
+            {
+                "dotation": self.dotation,
+                "current_tab": self.dotation,
+            }
+        )
+        step_titles = {
+            "0": "Titre du modèle",
+            "1": "En-tête du modèle",
+            "2": "Contenu de l’arrêté pour le publipostage",
+        }
+        context.update(
+            {
+                "step_title": step_titles.get(self.steps.current, ""),
+                "next_step_title": step_titles.get(self.steps.next, ""),
+            }
+        )
         return context
