@@ -92,6 +92,33 @@
                                 <span class="fr-tag">
                                     Fichier importé
                                 </span>
+
+                                <div class="gsl-dropdown">
+                                    <button class="fr-btn fr-btn--tertiary fr-btn--icon-only fr-icon-more-fill arrete-card__actions-button"
+                                            data-fr-opened="false"
+                                            aria-controls="document-menu-{{ forloop.counter }}"
+                                            aria-expanded="false"
+                                            title="Actions du document">
+                                    </button>
+                                    <div class="gsl-dropdown-content arrete-card__actions"
+                                         id="document-menu-{{ forloop.counter }}">
+                                        <ul class="no-list-style fr-m-0">
+                                            <li>
+                                                <form method="post"
+                                                      id="delete-arrete-signe"
+                                                      action="{% url 'gsl_notification:delete-arrete-signe' document.id %}">
+                                                    {% csrf_token %}
+                                                    <button type="button"
+                                                            class="fr-btn fr-btn--secondary arrete-card__action arrete-delete-button"
+                                                            aria-controls="delete-arrete-signe-confirmation-modal"
+                                                            data-fr-opened="false">
+                                                        Supprimer
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
                             {% endif %}
                         </div>
                         <div class="fr-enlarge-link">
@@ -138,4 +165,5 @@
 
 {% block modal %}
     {% ui_confirmation_modal modal_id="delete-arrete-confirmation-modal" title="Suppression de l'arrêté créé avec Turgot" text="Êtes-vous sûr(e) de vouloir supprimer cet arrêté ?<br>Cette action est irréversible." form="delete-arrete" action_text="Supprimer" %}
+    {% ui_confirmation_modal modal_id="delete-arrete-signe-confirmation-modal" title="Suppression de l'arrêté importé" text="Êtes-vous sûr(e) de vouloir supprimer cet arrêté ?<br>Cette action est irréversible." form="delete-arrete-signe" action_text="Supprimer" %}
 {% endblock modal %}

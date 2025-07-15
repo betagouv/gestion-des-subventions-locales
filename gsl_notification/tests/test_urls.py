@@ -33,9 +33,25 @@ def test_arrete_download_url():
     assert url == "/notification/arrete/456/download/"
 
 
+def test_arrete_delete_url():
+    url = reverse(
+        "gsl_notification:delete-arrete",
+        kwargs={"arrete_id": 789},
+    )
+    assert url == "/notification/arrete/789/delete/"
+
+
 def test_arrete_signe_download_url():
     url = reverse(
         "gsl_notification:arrete-signe-download",
         kwargs={"arrete_signe_id": 789},
     )
     assert url == "/notification/arrete-signe/789/download/"
+
+
+def test_arrete_signe_delete_url():
+    url = reverse(
+        "gsl_notification:delete-arrete-signe",
+        kwargs={"arrete_signe_id": 789},
+    )
+    assert url == "/notification/arrete-signe/789/delete/"
