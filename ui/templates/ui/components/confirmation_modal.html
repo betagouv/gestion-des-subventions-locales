@@ -1,0 +1,41 @@
+<dialog id="{{ self.modal_id }}" class="fr-modal confirmation-modal">
+    <div class="fr-container fr-container--fluid fr-container-md">
+        <div class="fr-grid-row fr-grid-row--center">
+            <div class="fr-col-12 fr-col-md-8 fr-col-lg-6 confirmation-modal-container">
+                <div class="fr-modal__body">
+                    <div class="fr-modal__header">
+                        <button aria-controls="{{ self.modal_id }}"
+                                title="Fermer"
+                                type="button"
+                                class="fr-btn--close fr-btn close-modal">
+                            Fermer
+                        </button>
+                    </div>
+                    <div class="fr-modal__content">
+                        <h1 class="fr-modal__title refuse-color">
+                            <span class="fr-icon-delete-fill fr-icon--lg" aria-hidden="true"></span> <span id="delete-arrete-modal-title">Suppression de l'arrêté créé avec Turgot</span>
+                        </h1>
+                        <p>
+                            Êtes-vous sûr(e) de vouloir supprimer cet arrêté ?
+                            Cette action est irréversible.
+                        </p>
+                    </div>
+
+                    <div class="fr-modal__footer confirmation-modal-footer">
+                        <button class="fr-btn fr-btn--secondary close-modal"
+                                aria-controls="{{ self.modal_id }}">
+                            Annuler
+                        </button>
+
+                        <button class="fr-btn fr-btn--primary"
+                                id="confirm-delete-arrete"
+                                form="delete-arrete"
+                                type="submit">
+                            Supprimer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</dialog>

@@ -1,5 +1,8 @@
 {% extends "gsl_programmation/programmation_projet_detail.html" %}
-{% load static gsl_filters %}
+{% load static gsl_filters dsfr_tags %}
+{% dsfr_theme_modale %}
+{% load dsfr_tags static ui_tags %}
+
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/projet_detail.css' %}">
     <link rel="stylesheet" href="{% static 'css/notification.css' %}">
@@ -71,10 +74,13 @@
                                             </li>
                                             <li>
                                                 <form method="post"
+                                                      id="delete-arrete"
                                                       action="{% url 'gsl_notification:delete-arrete' document.id %}">
                                                     {% csrf_token %}
-                                                    <button type="submit"
-                                                            class="fr-btn fr-btn--secondary arrete-card__action arrete-delete-button">
+                                                    <button type="button"
+                                                            class="fr-btn fr-btn--secondary arrete-card__action arrete-delete-button"
+                                                            aria-controls="delete-arrete-confirmation-modal"
+                                                            data-fr-opened="false">
                                                         Supprimer
                                                     </button>
                                                 </form>
@@ -131,5 +137,5 @@
 {% endblock extra_js %}
 
 {% block modal %}
-    {% include "includes/_delete_arrete_confirmation_modal.html" %}
+    {% ui_confirmation_modal modal_id="delete-arrete-confirmation-modal" %}
 {% endblock modal %}

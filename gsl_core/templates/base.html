@@ -41,6 +41,13 @@
 
         {% block opengraph %}
         {% endblock opengraph %}
+
+        {% if ENV == "prod" %}
+            <script src="{% static "js/matomo.js" %}" nonce="{{request.csp_nonce}}" defer></script>
+        {% endif %}
+
+        {% block extra_head_js %}
+        {% endblock extra_head_js %}
     </head>
     <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
         {% block skiplinks %}
@@ -94,9 +101,6 @@
         {% endblock modal %}
 
         <script src="{% static "js/gsl.js" %}" defer></script>
-        {% if ENV == "prod" %}
-            <script src="{% static "js/matomo.js" %}" nonce="{{request.csp_nonce}}" defer></script>
-        {% endif %}
         {% block extra_js %}
         {% endblock extra_js %}
     </body>
