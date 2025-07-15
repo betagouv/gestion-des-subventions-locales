@@ -13,7 +13,7 @@
                     </div>
                     <div class="fr-modal__content">
                         <h1 class="fr-modal__title refuse-color">
-                            <span class="fr-icon-delete-fill fr-icon--lg" aria-hidden="true"></span> <span id="modal-title">{{ self.title }}</span>
+                            <span class="fr-icon-delete-fill fr-icon--lg" aria-hidden="true"></span> <span class="modal-title">{{ self.title }}</span>
                         </h1>
                         <p>
                             {{ self.text }}
@@ -26,8 +26,7 @@
                             Annuler
                         </button>
 
-                        <button class="fr-btn fr-btn--primary"
-                                id="confirm"
+                        <button class="fr-btn fr-btn--primary confirm"
                                 {% if self.form %}form="{{ self.form }}" type="submit"{% endif %}>
                             {{ self.action_text|default:"Confirmer" }}
                         </button>

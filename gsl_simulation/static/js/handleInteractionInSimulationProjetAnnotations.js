@@ -31,7 +31,7 @@ function openDeleteConfirmationDialog() {
     if (!selectedForm) return;
     selectedModal = deleteModal;
     const noteTitle = selectedForm.dataset.noteTitle || '';
-    deleteModal.querySelector('#modal-title').textContent = `Suppression de ${noteTitle}`;
+    deleteModal.querySelector('.modal-title').textContent = `Suppression de ${noteTitle}`;
     ensureButtonsAreEnabled(deleteModal);
     dsfr(deleteModal).modal.disclose();
 }
@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (deleteModal) {
-        const confirmDeleteButton = deleteModal.querySelector('#confirm');
+        const confirmDeleteButton = deleteModal.querySelector('.confirm');
         if (confirmDeleteButton) {
             confirmDeleteButton.addEventListener('click', () => {
                 disableAllModalButtons(deleteModal);
@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (cancelModal) {
-        const confirmCancelButton = cancelModal.querySelector('#confirm');
+        const confirmCancelButton = cancelModal.querySelector('.confirm');
         if (confirmCancelButton) {
             confirmCancelButton.addEventListener('click', evt => {
                 evt.preventDefault();
