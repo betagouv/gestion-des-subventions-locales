@@ -76,6 +76,9 @@
   justify-content: center;
   box-shadow: none;
 }
+.arrete-card__action:focus-visible {
+  outline-offset: -2px;
+}
 
 .arrete-card__actions li:not(:first-of-type) {
   box-shadow: 0 0 0 1px var(--border-default-grey);

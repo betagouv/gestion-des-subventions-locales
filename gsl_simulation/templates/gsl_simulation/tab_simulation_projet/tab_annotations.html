@@ -1,5 +1,5 @@
 {% extends "gsl_simulation/simulation_projet_detail.html" %}
-{% load static %}
+{% load static ui_tags %}
 
 {% block tab_projet %}
     {% include "includes/_annotations_detail.html" %}
@@ -32,7 +32,10 @@
 {% endblock tab_projet %}
 
 {% block modal %}
-    {% include "includes/modals/_delete_note_confirmation_modal.html" %}
+    {% ui_confirmation_modal modal_id="delete-confirmation-modal" title="Annuler la mise à jour de la note" text="Êtes-vous sûr(e) de vouloir supprimer cette note ? Personne ne pourra plus la voir dans Turgot. Cette action est irréversible." %}
+    {% comment %} {% ui_confirmation_modal modal_id="cancel-update-confirmation-modal" %} {% endcomment %}
+
+    {% comment %} {% include "includes/modals/_delete_note_confirmation_modal.html" %} {% endcomment %}
     {% include "includes/modals/_cancel_update_note_confirmation_modal.html" %}
 {% endblock modal %}
 

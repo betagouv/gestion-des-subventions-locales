@@ -13,11 +13,10 @@
                     </div>
                     <div class="fr-modal__content">
                         <h1 class="fr-modal__title refuse-color">
-                            <span class="fr-icon-delete-fill fr-icon--lg" aria-hidden="true"></span> <span id="delete-arrete-modal-title">Suppression de l'arrêté créé avec Turgot</span>
+                            <span class="fr-icon-delete-fill fr-icon--lg" aria-hidden="true"></span> <span id="modal-title">{{ self.title }}</span>
                         </h1>
                         <p>
-                            Êtes-vous sûr(e) de vouloir supprimer cet arrêté ?
-                            Cette action est irréversible.
+                            {{ self.text }}
                         </p>
                     </div>
 
@@ -28,8 +27,8 @@
                         </button>
 
                         <button class="fr-btn fr-btn--primary"
-                                id="confirm-delete-arrete"
-                                form="delete-arrete"
+                                id="confirm-delete"
+                                {% if form %}form="{{ self.form }}"{% endif %}
                                 type="submit">
                             Supprimer
                         </button>
