@@ -321,7 +321,6 @@ class CreateModelArreteWizard(SessionWizardView):
         instance: ModeleArrete = self.instance
 
         for form in form_list:
-            print(form.cleaned_data)
             for key, value in form.cleaned_data.items():
                 instance.__setattr__(key, value)
 
