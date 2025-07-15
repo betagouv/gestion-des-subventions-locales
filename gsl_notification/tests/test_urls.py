@@ -1,8 +1,37 @@
+import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
+from gsl_core.tests.factories import (
+    ClientWithLoggedUserFactory,
+    CollegueFactory,
+    PerimetreFactory,
+)
 from gsl_notification.models import ModeleArrete
+from gsl_notification.tests.factories import ArreteSigneFactory
+from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import DOTATION_DETR
+
+
+@pytest.fixture
+def perimetre():
+    return PerimetreFactory()
+
+
+@pytest.fixture
+def programmation_projet(perimetre):
+    return ProgrammationProjetFactory(dotation_projet__projet__perimetre=perimetre)
+
+
+@pytest.fixture
+def arrete_signe(programmation_projet):
+    return ArreteSigneFactory(programmation_projet=programmation_projet)
+
+
+@pytest.fixture
+def correct_perimetre_client_with_user_logged(perimetre):
+    user = CollegueFactory(perimetre=perimetre)
+    return ClientWithLoggedUserFactory(user)
 
 
 def test_documents_url():
@@ -48,6 +77,7 @@ def test_arrete_signe_download_url():
 # Modèles d'arrêté
 
 
+@pytest.mark.django_db
 def test_create_arrete_views(correct_perimetre_client_with_user_logged):
     assert not ModeleArrete.objects.exists()
     url = reverse(
