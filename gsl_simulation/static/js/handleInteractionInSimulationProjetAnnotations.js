@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (deleteModal) {
-        const confirmDeleteButton = deleteModal.querySelector('#confirm-delete');
+        const confirmDeleteButton = deleteModal.querySelector('#confirm');
         if (confirmDeleteButton) {
             confirmDeleteButton.addEventListener('click', () => {
                 disableAllModalButtons(deleteModal);
@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (cancelModal) {
-        const confirmCancelButton = cancelModal.querySelector('#confirm-cancel-update');
+        const confirmCancelButton = cancelModal.querySelector('#confirm');
         if (confirmCancelButton) {
             confirmCancelButton.addEventListener('click', evt => {
                 evt.preventDefault();

@@ -27,10 +27,9 @@
                         </button>
 
                         <button class="fr-btn fr-btn--primary"
-                                id="confirm-delete"
-                                {% if form %}form="{{ self.form }}"{% endif %}
-                                type="submit">
-                            Supprimer
+                                id="confirm"
+                                {% if self.form %}form="{{ self.form }}" type="submit"{% endif %}>
+                            {{ self.action_text|default:"Confirmer" }}
                         </button>
                     </div>
                 </div>
