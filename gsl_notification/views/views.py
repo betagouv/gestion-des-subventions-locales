@@ -8,6 +8,7 @@ from django.http import Http404, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_http_methods
 from django_weasyprint.views import WeasyTemplateResponse
@@ -301,6 +302,7 @@ class CreateModelArreteWizard(SessionWizardView):
         location=os.path.join(settings.MEDIA_ROOT, "logos_modeles_arretes")
     )
 
+    @method_decorator(csp_update({"style-src": [SELF, UNSAFE_INLINE]}))
     def dispatch(self, request, dotation, *args, **kwargs):
         if dotation not in DOTATIONS:
             return Http404("Dotation inconnue")
@@ -350,3 +352,6 @@ class CreateModelArreteWizard(SessionWizardView):
             }
         )
         return context
+
+    def get_template_names(self):
+        return f"gsl_notification/modele_arrete/modelearrete_form_step_{self.steps.current}.html"

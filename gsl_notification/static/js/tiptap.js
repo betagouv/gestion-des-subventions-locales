@@ -23,10 +23,10 @@ const editor = new Editor({
   extensions: EXTENSIONS,
   onCreate({ editor }) {
     editor.commands.setContent(document.getElementById("initial_content").innerHTML);
-    document.querySelector('input[name="content"]').value = editor.getHTML();
+    document.querySelector('input[name="'+CONTENT_FIELD_NAME+'"]').value = editor.getHTML();
   },
   onUpdate({ editor }) {
-    document.querySelector('input[name="content"]').value = editor.getHTML();
+    document.querySelector('input[name="'+CONTENT_FIELD_NAME+'"]').value = editor.getHTML();
   }
 });
 

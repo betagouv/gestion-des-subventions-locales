@@ -16,6 +16,7 @@
 {% endblock notification_content %}
 
 {% block extra_js %}
+    <script nonce="{{request.csp_nonce}}">const CONTENT_FIELD_NAME="content"</script>
     <script type="module" src="{% static 'js/tiptap.js' %}"></script>
     <script type="module" src="{% static 'js/notification.js' %}"></script>
 {% endblock extra_js %}

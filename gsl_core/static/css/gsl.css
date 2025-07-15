@@ -413,3 +413,17 @@ ul.no-list-style li {
 .secondary-link:hover {
     --underline-thickness: calc(0.0625em + 0.25px)
 }
+.modelearrete-form-wrapper {
+    display: flex;
+}
+.modelearrete-form-wrapper > form {
+    flex-grow: 1;
+}
+.arrete-step-1-more-info {
+    width: 50%;
+    text-align: right;
+    padding: 2em 0 0 2em;
+}
+.arrete-step-1-more-info img {
+    max-width: 80%;
+}

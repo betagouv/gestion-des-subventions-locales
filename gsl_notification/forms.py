@@ -9,8 +9,8 @@ from gsl_notification.models import Arrete, ArreteSigne, ModeleArrete
 class ArreteForm(forms.ModelForm, DsfrBaseForm):
     content = forms.CharField(
         required=True,
-        help_text="Contenu JSON de l'arrêté, utilisé pour les exports.",
-        widget=forms.TextInput(attrs={"type": "hidden"}),
+        help_text="Contenu HTML de l'arrêté, utilisé pour les exports.",
+        widget=forms.HiddenInput(),
     )
 
     class Meta:
@@ -60,6 +60,12 @@ class ModeleArreteStepTwoForm(forms.ModelForm, DsfrBaseForm):
 
 
 class ModeleArreteStepThreeForm(forms.ModelForm, DsfrBaseForm):
+    content = forms.CharField(
+        required=True,
+        help_text="Contenu HTML de l'arrêté, utilisé pour les exports.",
+        widget=forms.HiddenInput(),
+    )
+
     class Meta:
         model = ModeleArrete
         fields = ("content",)
