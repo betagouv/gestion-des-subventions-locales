@@ -4,7 +4,7 @@ import TextAlign from "https://esm.sh/@tiptap/extension-text-align";
 import Underline from "https://esm.sh/@tiptap/extension-underline";
 import Mention from "https://esm.sh/@tiptap/extension-mention";
 
-const CUSTOM_MENTION = Mention.configure({
+const MENTION = Mention.configure({
   HTMLAttributes: {
     class: 'mention'
   },
@@ -12,16 +12,20 @@ const CUSTOM_MENTION = Mention.configure({
     char: '@',
     startOfLine: false,
     items: ({ query }) => {
-      const users = [
+      const fields = [
         { id: 1, label: 'Nom du bénéficiaire' },
-        { id: 2, label: 'Inititulé du projet' },
+        { id: 2, label: 'Intitulé du projet' },
         { id: 3, label: 'Nom du département' },
         { id: 4, label: 'Montant prévisionnel de la subvention' },
         { id: 5, label: 'Taux de subvention' },
+        { id: 6, label: 'Intitulé du projet' },
+        { id: 7, label: 'Date de commencement' },
+        { id: 8, label: "Date d'achèvement" },
+
       ];
-      return users
-        .filter(user => user.label.toLowerCase().startsWith(query.toLowerCase()))
-        .slice(0, 5);
+      return fields
+        .filter(field => field.label.toLowerCase().startsWith(query.toLowerCase()))
+        .slice(0, 10);
     },
     render: () => {
       let popup;
@@ -162,7 +166,7 @@ const EXTENSIONS = [
       types: ['heading', 'paragraph'],
     }),
     Underline,
-    CUSTOM_MENTION
+    MENTION
   ]
 
 const editor = new Editor({
@@ -211,42 +215,4 @@ document.addEventListener('DOMContentLoaded', function () {
         break;
     }
   }))
-
-
-  // document.querySelector("#export-pdf").addEventListener("click", () => {
-  //   const htmlContent = editor.getHTML();
-
-  //   fetch('/programmation/export-pdf/', {
-  //     method: 'POST',
-  //     headers: {
-  //       'Content-Type': 'application/json',
-  //       'X-CSRFToken': getCookie('csrftoken'),
-  //     },
-  //     body: JSON.stringify({ html: htmlContent })
-  //   })
-  //   .then(response => response.blob())
-  //   .then(blob => {
-  //     const url = window.URL.createObjectURL(blob);
-  //     const a = document.createElement('a');
-  //     a.href = url;
-  //     a.download = 'export.pdf';
-  //     a.click();
-  //   });
-  // });
-})
-
-// function getCookie(name) {
-//   let cookieValue = null;
-//   if (document.cookie && document.cookie !== '') {
-//     const cookies = document.cookie.split(';');
-//     for (let i = 0; i < cookies.length; i++) {
-//       const cookie = cookies[i].trim();
-//       // Ce cookie commence-t-il par le nom recherché ?
-//       if (cookie.substring(0, name.length + 1) === (name + '=')) {
-//         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-//         break;
-//       }
-//     }
-//   }
-//   return cookieValue;
-// }
+});
