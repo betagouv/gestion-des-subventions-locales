@@ -114,6 +114,10 @@ def test_create_arrete_views(correct_perimetre_client_with_user_logged):
     }
     response = correct_perimetre_client_with_user_logged.post(url, data_step_3)
     assert response.status_code == 302
+    assert response["Location"] == reverse(
+        "notification:modele-arrete-liste",
+        kwargs={"dotation": DOTATION_DETR},
+    )
 
     modele_en_base = ModeleArrete.objects.first()
     assert modele_en_base

@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_http_methods
+from django.views.generic import ListView
 from django_weasyprint.views import WeasyTemplateResponse
 from formtools.wizard.views import SessionWizardView
 
@@ -290,13 +291,36 @@ def _enrich_context_for_create_or_get_arrete_view(
 # Create new ModeleArrete --------------------------------------------------------------
 
 
+class ModeleArreteListView(ListView):
+    template_name = "gsl_notification/modele_arrete/list.html"
+
+    def get_queryset(self):
+        # TODO filtrer par périmètre et dotation
+        return ModeleArrete.objects.all()
+
+    def dispatch(self, request, dotation, *args, **kwargs):
+        if dotation not in DOTATIONS:
+            return Http404("Dotation inconnue")
+        self.perimetre = self.get_modele_perimetre(dotation, request.user.perimetre)
+        self.dotation = dotation
+        response = super().dispatch(request, *args, **kwargs)
+        return response
+
+    def get_modele_perimetre(self, dotation, user_perimetre):
+        return user_perimetre  # todo
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(object_list=object_list, **kwargs)
+        context.update({"dotation": self.dotation, "current_tab": self.dotation})
+        return context
+
+
 class CreateModelArreteWizard(SessionWizardView):
     form_list = (
         ModeleArreteStepOneForm,
         ModeleArreteStepTwoForm,
         ModeleArreteStepThreeForm,
     )
-    template_name = "gsl_notification/modele_arrete/model_form.html"
     # Temporary storage
     file_storage = FileSystemStorage(
         location=os.path.join(settings.MEDIA_ROOT, "logos_modeles_arretes")
@@ -326,7 +350,12 @@ class CreateModelArreteWizard(SessionWizardView):
 
         instance.save()
 
-        return HttpResponseRedirect("/page-to-redirect-to-when-done/")
+        return HttpResponseRedirect(
+            reverse(
+                "gsl_notification:modele-arrete-liste",
+                kwargs={"dotation": self.dotation},
+            )
+        )
 
     def get_form_instance(self, step):
         return self.instance
