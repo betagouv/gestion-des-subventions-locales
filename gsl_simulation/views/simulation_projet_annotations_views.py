@@ -161,5 +161,6 @@ def get_note_card(request, pk: int, note_id: int):
         {
             "note": get_object_or_404(ProjetNote, id=note_id),
             "simu": get_object_or_404(SimulationProjet, id=pk),
+            "allow_update": True,
         },
     )

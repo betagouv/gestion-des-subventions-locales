@@ -31,7 +31,7 @@ function openDeleteConfirmationDialog() {
     if (!selectedForm) return;
     selectedModal = deleteModal;
     const noteTitle = selectedForm.dataset.noteTitle || '';
-    deleteModal.querySelector('#delete-note-modal-title').textContent = `Suppression de ${noteTitle}`;
+    deleteModal.querySelector('.modal-title').textContent = `Suppression de ${noteTitle}`;
     ensureButtonsAreEnabled(deleteModal);
     dsfr(deleteModal).modal.disclose();
 }
@@ -55,7 +55,6 @@ function handleFormKeydown(event) {
     // Maj+Entrée ou Cmd+Entrée pour soumettre
     if (event.key === "Enter" && (event.shiftKey || event.metaKey)) {
         event.preventDefault();
-        isFormDirty = false;
         event.target.form.submit();
     }
 }
@@ -85,11 +84,6 @@ function initFormChangeWatcher() {
         formElem.addEventListener('input', () => handleFormInput(formElem.id));
         formElem.addEventListener('submit', () => handleFormSubmit(formElem.id));
     });
-    const isThereNoFormDisplayed = forms.length === 0;
-    const isProjetNoteFormHidden = addForm && window.getComputedStyle(addForm).display === "none";
-    if (isThereNoFormDisplayed && isProjetNoteFormHidden) {
-        isFormDirty = false;
-    }
 }
 
 function isAnyDirtyForm() {
@@ -125,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (deleteModal) {
-        const confirmDeleteButton = deleteModal.querySelector('#confirm-delete-note');
+        const confirmDeleteButton = deleteModal.querySelector('.confirm');
         if (confirmDeleteButton) {
             confirmDeleteButton.addEventListener('click', () => {
                 disableAllModalButtons(deleteModal);
@@ -142,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (cancelModal) {
-        const confirmCancelButton = cancelModal.querySelector('#confirm-cancel-update');
+        const confirmCancelButton = cancelModal.querySelector('.confirm');
         if (confirmCancelButton) {
             confirmCancelButton.addEventListener('click', evt => {
                 evt.preventDefault();

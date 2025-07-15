@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     "django_filters",
     "django_extensions",
     # gsl apps:
+    "ui",
     "gsl_core",
     "gsl_demarches_simplifiees",
     "gsl_projet",
