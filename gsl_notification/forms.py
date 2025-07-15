@@ -58,6 +58,23 @@ class ModeleArreteStepTwoForm(forms.ModelForm, DsfrBaseForm):
         model = ModeleArrete
         fields = ("logo", "logo_alt_text", "top_right_text")
 
+    def clean_logo(self):
+        file = self.cleaned_data["logo"]
+        valid_mime_types = ["image/png", "image/jpeg"]
+        valid_extensions = [".png", ".jpg", ".jpeg"]
+
+        ext = os.path.splitext(file.name)[1].lower()
+        if file.content_type not in valid_mime_types or ext not in valid_extensions:
+            raise forms.ValidationError("Seuls les fichiers PNG ou JPEG sont acceptés.")
+
+        max_size_in_mo = 20
+        max_size = max_size_in_mo * 1024 * 1024  # 20 Mo
+        if file.size > max_size:
+            raise forms.ValidationError(
+                f"La taille du fichier ne doit pas dépasser {max_size_in_mo} Mo."
+            )
+        return file
+
 
 class ModeleArreteStepThreeForm(forms.ModelForm, DsfrBaseForm):
     content = forms.CharField(

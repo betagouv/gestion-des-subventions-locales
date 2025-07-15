@@ -25,7 +25,7 @@ class ModeleArrete(models.Model):
     # Header
     logo = models.FileField(
         verbose_name="Logo situé en haut à gauche",
-        help_text="Taille maximale : xx Mo. Formats supportés : jpg, png, pdf. ",
+        help_text="Taille maximale : 20 Mo. Formats acceptés : jpg, png.",
     )
     logo_alt_text = models.CharField(
         verbose_name="Texte alternatif du logo",
