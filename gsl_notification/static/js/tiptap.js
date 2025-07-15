@@ -18,10 +18,8 @@ const MENTION = Mention.configure({
         { id: 3, label: 'Nom du département' },
         { id: 4, label: 'Montant prévisionnel de la subvention' },
         { id: 5, label: 'Taux de subvention' },
-        { id: 6, label: 'Intitulé du projet' },
-        { id: 7, label: 'Date de commencement' },
-        { id: 8, label: "Date d'achèvement" },
-
+        { id: 6, label: 'Date de commencement' },
+        { id: 7, label: "Date d'achèvement" },
       ];
       return fields
         .filter(field => field.label.toLowerCase().startsWith(query.toLowerCase()))
@@ -157,7 +155,6 @@ const MENTION = Mention.configure({
     }
   }
 });
-
 
 
 const EXTENSIONS = [
