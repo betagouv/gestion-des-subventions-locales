@@ -3,166 +3,168 @@ import StarterKit from "https://esm.sh/@tiptap/starter-kit";
 import TextAlign from "https://esm.sh/@tiptap/extension-text-align";
 import Mention from "https://esm.sh/@tiptap/extension-mention";
 
-const MENTION = Mention.configure({
-  HTMLAttributes: {
-    class: 'mention'
-  },
-  suggestion: {
-    char: '@',
-    startOfLine: false,
-    items: ({ query }) => {
-      const fields = [
-        { id: 1, label: 'Nom du bénéficiaire' },
-        { id: 2, label: 'Intitulé du projet' },
-        { id: 3, label: 'Nom du département' },
-        { id: 4, label: 'Montant prévisionnel de la subvention' },
-        { id: 5, label: 'Taux de subvention' },
-        { id: 6, label: 'Date de commencement' },
-        { id: 7, label: "Date d'achèvement" },
-      ];
-      return fields
-        .filter(field => field.label.toLowerCase().startsWith(query.toLowerCase()))
-        .slice(0, 10);
-    },
-    render: () => {
-      let popup;
-      let selectedIndex = 0;
-      let originalItems = [];
-      let divItems = [];
-      function updateSelection(newIndex) {
-            divItems[selectedIndex].classList.remove('selected');
-            selectedIndex = newIndex;
-            divItems[selectedIndex].classList.add('selected');
-            divItems[selectedIndex].scrollIntoView({
-              block: 'nearest',
-            });
-          }
-      function reinitializeVariables() {
-        selectedIndex = 0;
-        divItems = [];
-      }
-
-      let selectItem;
-
-      return {
-        onStart: props => {
-          originalItems = props.items;
-          reinitializeVariables();
-
-          selectItem = (item) => {
-            props.command(item);
-          };
-
-          // Créer le conteneur
-          popup = document.createElement('div');
-          popup.className = 'mention-list';
-          popup.setAttribute('tabindex', '-1'); // Rendre focusable
-
-          // Ajouter les éléments
-          props.items.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'mention-item';
-            div.textContent = item.label;
-            div.dataset.id = item.id;
-            div.addEventListener('click', () => {
-              props.command(item);
-            });
-            div.addEventListener('mouseover', () => {
-              let index = divItems.indexOf(div);
-              updateSelection(index);
-            });
-            popup.appendChild(div);
-            divItems.push(div);
-          });
-
-          updateSelection(0);
-
-          // Positionner le popup
-          const rect = props.clientRect();
-          if (rect) {
-            popup.style.top = `${rect.bottom + window.scrollY}px`;
-            popup.style.left = `${rect.left + window.scrollX}px`;
-          }
-
-          document.body.appendChild(popup);
-        },
-        onUpdate: props => {
-          reinitializeVariables();
-
-          while (popup.firstChild) {
-            popup.removeChild(popup.firstChild);
-          }
-          
-          props.items.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'mention-item';
-            div.textContent = item.label;
-            div.dataset.id = item.id;
-            div.addEventListener('click', () => {
-              props.command(item);
-            });
-            div.addEventListener('mouseover', () => {
-              let index = divItems.indexOf(div);
-              updateSelection(index);
-            });
-            popup.appendChild(div);
-            divItems.push(div);
-          });
-          updateSelection(0);
-        },
-        onKeyDown(props) {
-          if (props.event.key === 'Escape') {
-            popup.style.display = 'none';
-            return true;
-          }
-          if (props.event.key === 'ArrowDown') {
-            if (selectedIndex < divItems.length - 1) {
-              updateSelection(selectedIndex + 1);
-            }
-            return true;
-          }
-          if (props.event.key === 'ArrowUp') {
-            if (selectedIndex > 0) {
-              updateSelection(selectedIndex - 1);
-            }
-            return true;
-          }
-          if (props.event.key === 'Enter') {
-            if (divItems[selectedIndex]) {
-              // Astuce pour supprimer le texte tappé
-              const { state, dispatch } = props.view;
-              const { from, to } = props.range;
-              dispatch(
-                state.tr.delete(from, to)
-              );
-              //
-              const divItem = divItems[selectedIndex];
-              const item = originalItems.find(i => i.id === Number(divItem.dataset.id));
-              selectItem(item); 
-            }
-            return true;
-          }
-          return false;
-        },
-        onExit() {
-          if (popup) {
-            popup.remove();
-            popup = null;
-          }
-        },
-      };
-    }
-  }
-});
-
-
 const EXTENSIONS = [
     StarterKit,
     TextAlign.configure({
       types: ['heading', 'paragraph'],
     }),
-    MENTION
   ]
+
+if (WITH_MENTION) {
+  const MENTION = Mention.configure({
+    HTMLAttributes: {
+      class: 'mention'
+    },
+    suggestion: {
+      char: '@',
+      startOfLine: false,
+      items: ({ query }) => {
+        const fields = [
+          { id: 1, label: 'Nom du bénéficiaire' },
+          { id: 2, label: 'Intitulé du projet' },
+          { id: 3, label: 'Nom du département' },
+          { id: 4, label: 'Montant prévisionnel de la subvention' },
+          { id: 5, label: 'Taux de subvention' },
+          { id: 6, label: 'Date de commencement' },
+          { id: 7, label: "Date d'achèvement" },
+        ];
+        return fields
+          .filter(field => field.label.toLowerCase().startsWith(query.toLowerCase()))
+          .slice(0, 10);
+      },
+      render: () => {
+        let popup;
+        let selectedIndex = 0;
+        let originalItems = [];
+        let divItems = [];
+        function updateSelection(newIndex) {
+              divItems[selectedIndex].classList.remove('selected');
+              selectedIndex = newIndex;
+              divItems[selectedIndex].classList.add('selected');
+              divItems[selectedIndex].scrollIntoView({
+                block: 'nearest',
+              });
+            }
+        function reinitializeVariables() {
+          selectedIndex = 0;
+          divItems = [];
+        }
+
+        let selectItem;
+
+        return {
+          onStart: props => {
+            originalItems = props.items;
+            reinitializeVariables();
+
+            selectItem = (item) => {
+              props.command(item);
+            };
+
+            // Créer le conteneur
+            popup = document.createElement('div');
+            popup.className = 'mention-list';
+            popup.setAttribute('tabindex', '-1'); // Rendre focusable
+
+            // Ajouter les éléments
+            props.items.forEach(item => {
+              const div = document.createElement('div');
+              div.className = 'mention-item';
+              div.textContent = item.label;
+              div.dataset.id = item.id;
+              div.addEventListener('click', () => {
+                props.command(item);
+              });
+              div.addEventListener('mouseover', () => {
+                let index = divItems.indexOf(div);
+                updateSelection(index);
+              });
+              popup.appendChild(div);
+              divItems.push(div);
+            });
+
+            updateSelection(0);
+
+            // Positionner le popup
+            const rect = props.clientRect();
+            if (rect) {
+              popup.style.top = `${rect.bottom + window.scrollY}px`;
+              popup.style.left = `${rect.left + window.scrollX}px`;
+            }
+
+            document.body.appendChild(popup);
+          },
+          onUpdate: props => {
+            reinitializeVariables();
+
+            while (popup.firstChild) {
+              popup.removeChild(popup.firstChild);
+            }
+            
+            props.items.forEach(item => {
+              const div = document.createElement('div');
+              div.className = 'mention-item';
+              div.textContent = item.label;
+              div.dataset.id = item.id;
+              div.addEventListener('click', () => {
+                props.command(item);
+              });
+              div.addEventListener('mouseover', () => {
+                let index = divItems.indexOf(div);
+                updateSelection(index);
+              });
+              popup.appendChild(div);
+              divItems.push(div);
+            });
+            updateSelection(0);
+          },
+          onKeyDown(props) {
+            if (props.event.key === 'Escape') {
+              popup.style.display = 'none';
+              return true;
+            }
+            if (props.event.key === 'ArrowDown') {
+              if (selectedIndex < divItems.length - 1) {
+                updateSelection(selectedIndex + 1);
+              }
+              return true;
+            }
+            if (props.event.key === 'ArrowUp') {
+              if (selectedIndex > 0) {
+                updateSelection(selectedIndex - 1);
+              }
+              return true;
+            }
+            if (props.event.key === 'Enter') {
+              if (divItems[selectedIndex]) {
+                // Astuce pour supprimer le texte tappé
+                const { state, dispatch } = props.view;
+                const { from, to } = props.range;
+                dispatch(
+                  state.tr.delete(from, to)
+                );
+                //
+                const divItem = divItems[selectedIndex];
+                const item = originalItems.find(i => i.id === Number(divItem.dataset.id));
+                selectItem(item); 
+              }
+              return true;
+            }
+            return false;
+          },
+          onExit() {
+            if (popup) {
+              popup.remove();
+              popup = null;
+            }
+          },
+        };
+      }
+    }
+  });
+
+  EXTENSIONS.push(MENTION);
+}
 
 const editor = new Editor({
   element: document.querySelector("#editor"),
