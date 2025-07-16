@@ -48,21 +48,27 @@ def _generic_documents_view(
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
 
-    documents = {}
-
     try:
-        documents["arrete"] = programmation_projet.arrete
+        arrete = programmation_projet.arrete
+        context["arrete"] = programmation_projet.arrete
+        context["arrete_modal_title"] = (
+            f"Suppression de l'arrêté {arrete.name} créé avec Turgot"
+        )
     except Arrete.DoesNotExist:
-        pass
+        context["arrete"] = None
 
     try:
-        documents["arrete_signe"] = programmation_projet.arrete_signe
+        arrete_signe = programmation_projet.arrete_signe
+        context["arrete_signe"] = arrete_signe
+        context["arrete_signe_modal_title"] = (
+            f"Suppression de l'arrêté {arrete_signe.name} créé par {arrete_signe.created_by}"
+        )
+
     except ArreteSigne.DoesNotExist:
-        pass
+        context["arrete_signe"] = None
 
     context.update(
         {
-            "documents": documents,
             "programmation_projet_id": programmation_projet.id,
             "source_url": source_url,
             "dossier": programmation_projet.projet.dossier_ds,

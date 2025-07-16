@@ -48,102 +48,17 @@
                 </button>
             </p>
             <ul class="arrete-list">
-                {% for k, document in documents.items %}
-                    <li class="arrete-card fr-mt-4w">
-                        <div class="arrete-card__header">
-                            {% if document|get_class == "Arrete" %}
-                                <span class="fr-tag">
-                                    Créé sur Turgot
-                                </span>
-
-                                <div class="gsl-dropdown">
-                                    <button class="fr-btn fr-btn--tertiary fr-btn--icon-only fr-icon-more-fill arrete-card__actions-button"
-                                            data-fr-opened="false"
-                                            aria-controls="document-menu-{{ forloop.counter }}"
-                                            aria-expanded="false"
-                                            title="Actions du document">
-                                    </button>
-                                    <div class="gsl-dropdown-content arrete-card__actions"
-                                         id="document-menu-{{ forloop.counter }}">
-                                        <ul class="no-list-style fr-m-0">
-                                            <li>
-                                                <a href="{% url "notification:modifier-arrete" programmation_projet_id %}"
-                                                   class="fr-btn fr-btn--secondary arrete-card__action">
-                                                    Modifier
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <form method="post"
-                                                      id="delete-arrete"
-                                                      action="{% url 'gsl_notification:delete-arrete' document.id %}">
-                                                    {% csrf_token %}
-                                                    <button type="button"
-                                                            class="fr-btn fr-btn--secondary arrete-card__action arrete-delete-button"
-                                                            aria-controls="delete-arrete-confirmation-modal"
-                                                            data-fr-opened="false">
-                                                        Supprimer
-                                                    </button>
-                                                </form>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            {% else %}
-                                <span class="fr-tag">
-                                    Fichier importé
-                                </span>
-
-                                <div class="gsl-dropdown">
-                                    <button class="fr-btn fr-btn--tertiary fr-btn--icon-only fr-icon-more-fill arrete-card__actions-button"
-                                            data-fr-opened="false"
-                                            aria-controls="document-menu-{{ forloop.counter }}"
-                                            aria-expanded="false"
-                                            title="Actions du document">
-                                    </button>
-                                    <div class="gsl-dropdown-content arrete-card__actions"
-                                         id="document-menu-{{ forloop.counter }}">
-                                        <ul class="no-list-style fr-m-0">
-                                            <li>
-                                                <form method="post"
-                                                      id="delete-arrete-signe"
-                                                      action="{% url 'gsl_notification:delete-arrete-signe' document.id %}">
-                                                    {% csrf_token %}
-                                                    <button type="button"
-                                                            class="fr-btn fr-btn--secondary arrete-card__action arrete-delete-button"
-                                                            aria-controls="delete-arrete-signe-confirmation-modal"
-                                                            data-fr-opened="false">
-                                                        Supprimer
-                                                    </button>
-                                                </form>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            {% endif %}
-                        </div>
-                        <div class="fr-enlarge-link">
-                            <img class="arrete-card__image"
-                                 src="{% static 'img/arrete_vignette.png' %}"
-                                 alt="Image d'un arrêté">
-                            <span class="show-on-hover fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-eye-line">Visualiser</span>
-                            <a class="fr-link fr-link--download"
-                               href="{{ document.get_absolute_url }}">
-                                {{ document.name }} -
-                                {{ document.type|upper }} -
-                                {{ document.size|filesizeformat }}
-                            </a>
-                        </div>
-                        <div>
-                            Ajouté le {{ document.created_at|date:"d/m/Y" }} à {{ document.created_at|time:"H:i" }}
-                            par {{ document.created_by }}
-                        </div>
-
-                    </li>
-                {% empty %}
+                {% if arrete %}
+                    {% include "includes/_arrete_card.html" %}
+                {% endif %}
+                {% if arrete_signe %}
+                    {% include "includes/_arrete_signe_card.html" %}
+                {% endif %}
+                {% if not arrete and not arrete_signe %}
                     <li class="empty-list">
                         Il n’y a pas de document pour le moment.
                     </li>
-                {% endfor %}
+                {% endif %}
             </ul>
         </div>
 
@@ -164,6 +79,10 @@
 {% endblock extra_js %}
 
 {% block modal %}
-    {% ui_confirmation_modal modal_id="delete-arrete-confirmation-modal" title="Suppression de l'arrêté créé avec Turgot" text="Êtes-vous sûr(e) de vouloir supprimer cet arrêté ?<br>Cette action est irréversible." form="delete-arrete" action_text="Supprimer" %}
-    {% ui_confirmation_modal modal_id="delete-arrete-signe-confirmation-modal" title="Suppression de l'arrêté importé" text="Êtes-vous sûr(e) de vouloir supprimer cet arrêté ?<br>Cette action est irréversible." form="delete-arrete-signe" action_text="Supprimer" %}
+    {% if arrete %}
+        {% ui_confirmation_modal modal_id="delete-arrete-confirmation-modal" title=arrete_modal_title text="Êtes-vous sûr(e) de vouloir supprimer cet arrêté ?<br>Cette action est irréversible." form="delete-arrete" action_text="Supprimer" %}
+    {% endif %}
+    {% if arrete_signe %}
+        {% ui_confirmation_modal modal_id="delete-arrete-signe-confirmation-modal" title=arrete_signe_modal_title text="Êtes-vous sûr(e) de vouloir supprimer cet arrêté ?<br>Cette action est irréversible." form="delete-arrete-signe" action_text="Supprimer" %}
+    {% endif %}
 {% endblock modal %}

@@ -9,41 +9,37 @@
 
 {% block content %}
     <div class="fr-container">
-        <h1>
-            Programmations en cours
-        </h1>
-        <nav aria-label="sections projet programmé">
-            <ul class="fake fr-tabs__list ul-list">
-                <li>
-                    {% if is_detr_disabled %}
-                        <button href="{{ detr_projets_programmes }}"
-                                class="fr-tabs__tab fr-icon-check-line fr-tabs__tab--icon-left"
-                                aria-disabled="true"
-                                disabled>
-                            Programmation DETR
-                        </button>
-                    {% else %}
+        {% if is_detr_disabled %}
+            <h1>
+                Programmation {{ enveloppe.dotation }} {{ enveloppe.annee }}
+            </h1>
+        {% else %}
+            <h1>
+                Programmations en cours
+            </h1>
+            <nav aria-label="sections projet programmé">
+                <ul class="fake fr-tabs__list ul-list">
+                    <li>
                         {% url "programmation:programmation-projet-list-dotation" dotation="DETR" as detr_projets_programmes %}
                         <a href="{{ detr_projets_programmes }}"
                            {% if current_tab == "DETR" %}aria-selected="true"{% endif %}
                            class="fr-tabs__tab fr-icon-check-line fr-tabs__tab--icon-left programmation-projet-{% if current_tab != "DETR" %}in{% endif %}active-tab">Programmation
                         DETR</a>
-                    {% endif %}
-                </li>
-                <li>
-                    {% url "programmation:programmation-projet-list-dotation" dotation="DSIL" as dsil_projets_programmes %}
-                    <a href="{{ dsil_projets_programmes }}"
-                       {% if current_tab == "DSIL" %}aria-selected="true"{% endif %}
-                       class="fr-tabs__tab fr-icon-check-line fr-tabs__tab--icon-left programmation-projet-{% if current_tab != "DSIL" %}in{% endif %}active-tab">Programmation
-                    DSIL</a>
-                </li>
-            </ul>
-        </nav>
+                    </li>
+                    <li>
+                        {% url "programmation:programmation-projet-list-dotation" dotation="DSIL" as dsil_projets_programmes %}
+                        <a href="{{ dsil_projets_programmes }}"
+                           {% if current_tab == "DSIL" %}aria-selected="true"{% endif %}
+                           class="fr-tabs__tab fr-icon-check-line fr-tabs__tab--icon-left programmation-projet-{% if current_tab != "DSIL" %}in{% endif %}active-tab">Programmation
+                        DSIL</a>
+                    </li>
+                </ul>
+            </nav>
 
-        <div class="fake-tab-panel programmation-projet-fake-tab fr-p-0"
-             role="tabpanel"
-             tabindex="0">
-
+            <div class="fake-tab-panel programmation-projet-fake-tab fr-p-0"
+                 role="tabpanel"
+                 tabindex="0">
+            {% endif %}
             {% block tab_submenu %}
                 <nav class="tab-submenu"
                      aria-label="Sous-menu Programmation {{ enveloppe.dotation }} {{ enveloppe.annee }}">
@@ -63,11 +59,14 @@
                     </ul>
                 </nav>
             {% endblock tab_submenu %}
+
             {% block tab_content %}
-                <div class="fr-m-4w">
-                    <h2>
-                        Programmation {{ enveloppe.dotation }} {{ enveloppe.annee }}
-                    </h2>
+                {% if not is_detr_disabled %}
+                    <div class="fr-m-4w">
+                        <h2>
+                            Programmation {{ enveloppe.dotation }} {{ enveloppe.annee }}
+                        </h2>
+                    {% endif %}
                     <p>
                         Les projets acceptés et refusés de vos simulations {{ enveloppe.dotation }} apparaissent ici.
                         {% comment %}Pour générer un lot d’arrêtés, sélectionnez les projets concernés par le même modèle d’arrêté et cliquez sur la flèche d’action multiples dans l’en-tête du tableau.{% endcomment %}
@@ -194,7 +193,9 @@
                         </p>
                     </div>
                 {% endif %}
+            {% endblock tab_content %}
+            {% if not is_detr_disabled %}
             </div>
-        {% endblock tab_content %}
-    </div>
+        </div>
+    {% endif %}
 {% endblock content %}
