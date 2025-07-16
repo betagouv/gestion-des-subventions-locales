@@ -55,7 +55,7 @@ def _generic_documents_view(
             f"Suppression de l'arrêté {arrete.name} créé avec Turgot"
         )
     except Arrete.DoesNotExist:
-        context["arrete"] = None
+        pass
 
     try:
         arrete_signe = programmation_projet.arrete_signe
@@ -65,7 +65,7 @@ def _generic_documents_view(
         )
 
     except ArreteSigne.DoesNotExist:
-        context["arrete_signe"] = None
+        pass
 
     context.update(
         {
@@ -227,6 +227,7 @@ def delete_arrete_signe_view(request, arrete_signe_id):
     arrete_signe = get_object_or_404(ArreteSigne, id=arrete_signe_id)
     programmation_projet_id = arrete_signe.programmation_projet.id
 
+    arrete_signe.file.delete()
     arrete_signe.delete()
 
     return _redirect_to_documents_view(request, programmation_projet_id)
