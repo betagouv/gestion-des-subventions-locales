@@ -9,8 +9,10 @@ from gsl_core.tests.factories import (
     CollegueFactory,
     PerimetreFactory,
 )
+from gsl_notification.models import ModeleArrete
 from gsl_notification.tests.factories import ArreteFactory, ArreteSigneFactory
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
+from gsl_projet.constants import DOTATION_DETR
 
 ## FIXTURES
 
@@ -484,3 +486,54 @@ def test_delete_nonexistent_arrete(correct_perimetre_client_with_user_logged):
     url = reverse("gsl_notification:delete-arrete", args=[99999])
     response = correct_perimetre_client_with_user_logged.post(url)
     assert response.status_code == 404
+
+
+# Modèles d'arrêté
+
+
+@pytest.mark.django_db
+def test_create_arrete_views(correct_perimetre_client_with_user_logged):
+    assert not ModeleArrete.objects.exists()
+    url = reverse(
+        "notification:modele-arrete-creer",
+        kwargs={"dotation": DOTATION_DETR},
+    )
+    data_step_1 = {
+        "0-name": "Nom de l’arrêté",
+        "0-description": "Description de l’arrêté",
+        "create_model_arrete_wizard-current_step": 0,
+    }
+    response = correct_perimetre_client_with_user_logged.post(url, data_step_1)
+
+    assert response.status_code == 200
+    assert not response.context["form"].errors, (
+        f"Errors in step 1 - {response.context['form'].errors}"
+    )
+
+    data_step_2 = {
+        "1-logo": SimpleUploadedFile("test.png", b"youpi", content_type="image/png"),
+        "1-logo_alt_text": "Texte alternatif du logo",
+        "1-top_right_text": "Il fait froid<br>Oui<br>Je n'ai pas honte de cette blague",
+        "create_model_arrete_wizard-current_step": 1,
+    }
+    response = correct_perimetre_client_with_user_logged.post(url, data_step_2)
+    assert response.status_code == 200
+    assert not response.context["form"].errors, (
+        f"Errors in step 2 - {response.context['form'].errors}"
+    )
+
+    data_step_3 = {
+        "2-content": "<p>Le contenu HTML du modèle d’arrêté</p>",
+        "create_model_arrete_wizard-current_step": 2,
+    }
+    response = correct_perimetre_client_with_user_logged.post(url, data_step_3)
+    assert response.status_code == 302
+    assert response["Location"] == reverse(
+        "notification:modele-arrete-liste",
+        kwargs={"dotation": DOTATION_DETR},
+    )
+
+    modele_en_base = ModeleArrete.objects.first()
+    assert modele_en_base
+    assert modele_en_base.created_by == correct_perimetre_client_with_user_logged.user
+    assert modele_en_base.logo_alt_text == "Texte alternatif du logo"
