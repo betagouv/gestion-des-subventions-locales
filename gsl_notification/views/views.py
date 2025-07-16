@@ -1,5 +1,4 @@
 import os
-from typing import List
 
 import boto3
 from csp.constants import SELF, UNSAFE_INLINE
@@ -27,6 +26,7 @@ from gsl_notification.forms import (
 )
 from gsl_notification.models import Arrete, ArreteSigne, ModeleArrete
 from gsl_notification.utils import (
+    get_modele_perimetres,
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
 from gsl_notification.views.decorators import (
@@ -35,7 +35,7 @@ from gsl_notification.views.decorators import (
     programmation_projet_visible_by_user,
 )
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import DOTATION_DETR, DOTATIONS
+from gsl_projet.constants import DOTATIONS
 
 # Views for listing notification documents on a programmationProjet, -------------------
 # in various contexts
@@ -304,47 +304,13 @@ class ModeleArreteListView(ListView):
     def dispatch(self, request, dotation, *args, **kwargs):
         if dotation not in DOTATIONS:
             return Http404("Dotation inconnue")
-        self.perimetres = self.get_modele_perimetre(dotation, request.user.perimetre)
+        self.perimetres = self.get_modele_perimetres(dotation, request.user.perimetre)
         self.dotation = dotation
         response = super().dispatch(request, *args, **kwargs)
         return response
 
-    # TODO test
-    def get_modele_perimetre(self, dotation, user_perimetre) -> List[Perimetre]:
-        if dotation == DOTATION_DETR:
-            if user_perimetre.type == Perimetre.TYPE_ARRONDISSEMENT:
-                return [
-                    user_perimetre,
-                    Perimetre.objects.get(
-                        arrondissement=None, departement=user_perimetre.departement
-                    ),
-                ]
-            elif user_perimetre.type == Perimetre.TYPE_DEPARTEMENT:
-                return [user_perimetre]
-            else:
-                raise ValueError(
-                    "Les modèles de la dotation DETR ne sont pas accessibles pour les utilisateurs dont le périmètre n'est pas de type arrondissement ou départemental"
-                )
-
-        if user_perimetre.type == Perimetre.TYPE_ARRONDISSEMENT:
-            return [
-                user_perimetre,
-                Perimetre.objects.get(
-                    arrondissement=None, departement=user_perimetre.departement
-                ),
-                Perimetre.objects.get(
-                    arrondissement=None, departement=None, region=user_perimetre.region
-                ),
-            ]
-        elif user_perimetre.type == Perimetre.TYPE_DEPARTEMENT:
-            return [
-                user_perimetre,
-                Perimetre.objects.get(
-                    arrondissement=None, departement=None, region=user_perimetre.region
-                ),
-            ]
-
-        return [user_perimetre]
+    def get_modele_perimetres(self, dotation, user_perimetre) -> list[Perimetre]:
+        return get_modele_perimetres(dotation, user_perimetre)
 
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(object_list=object_list, **kwargs)
@@ -376,7 +342,7 @@ class CreateModelArreteWizard(SessionWizardView):
         return response
 
     def get_modele_perimetre(self, dotation, user_perimetre):
-        return user_perimetre  # todo
+        return user_perimetre
 
     def done(self, form_list, **kwargs):
         instance: ModeleArrete = self.instance
