@@ -34,7 +34,6 @@
 {% block modal %}
     {% ui_confirmation_modal modal_id="delete-confirmation-modal" title="Annuler la mise à jour de la note" text="Êtes-vous sûr(e) de vouloir supprimer cette note ? Personne ne pourra plus la voir dans Turgot. Cette action est irréversible." action_text="Supprimer" %}
     {% ui_confirmation_modal modal_id="cancel-update-confirmation-modal" title="Annuler la mise à jour de la note" text="Êtes-vous sûr(e) de vouloir annuler la mise à jour de cette note ?" %}
-    {% include "includes/modals/_cancel_update_note_confirmation_modal.html" %}
 {% endblock modal %}
 
 {% block extra_js %}
