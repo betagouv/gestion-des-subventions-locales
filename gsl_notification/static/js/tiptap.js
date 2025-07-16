@@ -1,7 +1,6 @@
 import { Editor } from "https://esm.sh/@tiptap/core";
 import StarterKit from "https://esm.sh/@tiptap/starter-kit";
 import TextAlign from "https://esm.sh/@tiptap/extension-text-align";
-import Underline from "https://esm.sh/@tiptap/extension-underline";
 import Mention from "https://esm.sh/@tiptap/extension-mention";
 
 const MENTION = Mention.configure({
@@ -162,7 +161,6 @@ const EXTENSIONS = [
     TextAlign.configure({
       types: ['heading', 'paragraph'],
     }),
-    Underline,
     MENTION
   ]
 
