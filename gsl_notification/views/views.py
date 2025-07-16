@@ -199,7 +199,7 @@ def create_arrete_signe_view(request, programmation_projet_id):
     return render(request, "gsl_notification/upload_arrete_signe.html", context=context)
 
 
-# Suppresion d'arrêté signé -----------------------------------------------------------
+# Suppression d'arrêté signé ----------------------------------------------------------
 
 
 @arrete_signe_visible_by_user
