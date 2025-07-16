@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{% static 'css/tiptap.css' %}">
 {% endblock extra_css %}
 {% block tab_projet %}
-    <h1>
+    <h1 class="fr-mt-4w fr-mb-8w">
         Génération des documents et envoi de la notification au demandeur
     </h1>
 
@@ -19,7 +19,7 @@
                 <i class="fr-icon-folder-2-fill blue-color" aria-hidden="true"></i>
                 Documents de notification
             </h2>
-            <p>
+            <div class="notification-btns">
                 <a href="{% url 'gsl_notification:modifier-arrete' programmation_projet.id %}"
                    class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line">
                     Générer un document
@@ -46,7 +46,7 @@
                         disabled>
                     Imprimer tous les documents
                 </button>
-            </p>
+            </div>
             <ul class="arrete-list">
                 {% if arrete %}
                     {% include "includes/_arrete_card.html" %}

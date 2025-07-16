@@ -11,6 +11,11 @@
   background: #f7f7f7;
 }
 
+.notification-btns {
+  display: flex;
+  gap: 16px;
+}
+
 .empty-list {
   text-align: center;
   list-style: none;
