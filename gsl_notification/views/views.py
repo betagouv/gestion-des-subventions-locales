@@ -199,6 +199,20 @@ def create_arrete_signe_view(request, programmation_projet_id):
     return render(request, "gsl_notification/upload_arrete_signe.html", context=context)
 
 
+# Suppression d'arrêté signé ----------------------------------------------------------
+
+
+@arrete_signe_visible_by_user
+@require_http_methods(["POST"])
+def delete_arrete_signe_view(request, arrete_signe_id):
+    arrete_signe = get_object_or_404(ArreteSigne, id=arrete_signe_id)
+    programmation_projet_id = arrete_signe.programmation_projet.id
+
+    arrete_signe.delete()
+
+    return _redirect_to_documents_view(request, programmation_projet_id)
+
+
 # Download views -----------------------------------------------------------------------
 
 
