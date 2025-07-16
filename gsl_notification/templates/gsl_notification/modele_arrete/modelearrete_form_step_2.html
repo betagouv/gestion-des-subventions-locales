@@ -5,6 +5,7 @@
     Enregistrer le modèle
 {% endblock submit_button_text %}
 {% block extra_js %}
+    <script src="{% static 'js/form-on-several-pages.js' %}"></script>
     <script nonce="{{request.csp_nonce}}">const CONTENT_FIELD_NAME="{{ wizard.form.prefix }}-content"</script>
     <script type="module" src="{% static 'js/tiptap.js' %}"></script>
 {% endblock extra_js %}

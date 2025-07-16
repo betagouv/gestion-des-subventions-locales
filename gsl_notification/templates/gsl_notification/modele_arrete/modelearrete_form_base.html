@@ -7,6 +7,10 @@
     <link rel="stylesheet" href="{% static "css/notification.css" %}">
 {% endblock extra_css %}
 
+{% block extra_js %}
+    <script src="{% static 'js/form-on-several-pages.js' %}"></script>
+{% endblock extra_js %}
+
 {% block tab_submenu %}
 {% endblock tab_submenu %}
 
@@ -17,7 +21,7 @@
         </h1>
         {% dsfr_stepper current_step_id=wizard.steps.step1 total_steps=wizard.steps.count current_step_title=step_title next_step_title=next_step_title %}
         <div class="modelearrete-form-wrapper modelearrete-form-wrapper__step-{{ wizard.steps.step0 }}">
-            <form method="post" enctype="multipart/form-data">
+            <form method="post" enctype="multipart/form-data" id="multipage_form">
                 {% csrf_token %}
                 {{ wizard.management_form }}
                 {% if wizard.form.forms %}
@@ -35,6 +39,7 @@
                 <div class="mt-3w text-align-right">
                     {% if wizard.steps.prev %}
                         <button name="wizard_goto_step"
+                                id="previous_button"
                                 class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line"
                                 type="submit"
                                 value="{{ wizard.steps.prev }}">
