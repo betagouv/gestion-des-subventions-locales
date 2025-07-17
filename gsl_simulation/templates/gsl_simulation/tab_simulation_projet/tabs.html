@@ -21,7 +21,7 @@
             demandeur</a>
 
         </li>
-        {% if dotation_projet.programmation_projet %}
+        {% if dotation_projet.programmation_projet and dotation_projet.programmation_projet.status == "accepted" %}
             <li>
                 {% url 'gsl_notification:documents' dotation_projet.programmation_projet.id as notifications_url %}
                 <a href="{{ notifications_url }}"
