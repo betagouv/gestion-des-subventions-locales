@@ -61,8 +61,8 @@
             {% endblock tab_submenu %}
 
             {% block tab_content %}
-                {% if not is_detr_disabled %}
-                    <div class="fr-m-4w">
+                <div class="fr-m-4w">
+                    {% if not is_detr_disabled %}
                         <h2>
                             Programmation {{ enveloppe.dotation }} {{ enveloppe.annee }}
                         </h2>
@@ -196,6 +196,6 @@
             {% endblock tab_content %}
             {% if not is_detr_disabled %}
             </div>
-        </div>
-    {% endif %}
+        {% endif %}
+    </div>
 {% endblock content %}
