@@ -9,6 +9,6 @@ def delete_file_after_instance_deletion(sender, instance: ArreteSigne, *args, **
     if not instance.file:
         return
     try:
-        instance.file.delete()
+        instance.file.delete(save=False)
     except FileNotFoundError:  # ou l'exception S3 adéquate
         pass
