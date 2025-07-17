@@ -1,0 +1,25 @@
+
+{% extends "gsl_notification/tab_simulation_projet/tab_notifications.html" %}
+{% load static gsl_filters %}
+{% block notification_content %}
+    <a class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-arrow-left-s-line fr-mb-4w"
+       href="{% url 'gsl_notification:documents' programmation_projet.id %}">
+        Annuler la génération
+    </a>
+
+    <div class="arrete-container">
+        <h2 class="fr-mb-3w">
+            {{ page_title }}
+        </h2>
+        <p>
+            Sélectionner un modèle d’arrêté qui va être utilisé pour générer le publipostage
+        </p>
+        <ul class="no-list-style arrete-modele-list">
+            {% for modele in modeles_list %}
+                <li>
+                    {% include "includes/_modele_arrete_card.html" %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock notification_content %}

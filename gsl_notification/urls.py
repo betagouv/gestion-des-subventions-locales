@@ -7,10 +7,10 @@ from gsl_notification.views.views import (
     create_arrete_signe_view,
     delete_arrete_signe_view,
     delete_arrete_view,
-    # create_arrete_view,
     documents_view,
     download_arrete,
     download_arrete_signe,
+    select_modele,
 )
 
 urlpatterns = [
@@ -19,11 +19,11 @@ urlpatterns = [
         documents_view,
         name="documents",
     ),
-    # path(
-    #     "<int:programmation_projet_id>/creer-arrete/",
-    #     create_arrete_view,
-    #     name="create-arrete",
-    # ),
+    path(
+        "<int:programmation_projet_id>/selection-d-un-modele/",
+        select_modele,
+        name="select-modele",
+    ),
     path(
         "<int:programmation_projet_id>/modifier-arrete/",
         change_arrete_view,
