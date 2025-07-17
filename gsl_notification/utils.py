@@ -18,13 +18,16 @@ def get_nested_attribute(obj, attribute_path):
 
 
 MENTION_TO_ATTRIBUTES = {
-    "Nom du bénéficiaire": "dossier.ds_demandeur",
-    "Intitulé du projet": "dossier.projet_intitule",
-    "Nom du département": "projet.perimetre.departement.name",
-    "Montant prévisionnel de la subvention": "montant",
-    "Taux de subvention": "taux",
-    "Date de commencement": "dossier.date_debut",
-    "Date d'achèvement": "dossier.date_achevement",
+    1: {"label": "Nom du bénéficiaire", "attribute": "dossier.ds_demandeur"},
+    2: {"label": "Intitulé du projet", "attribute": "dossier.projet_intitule"},
+    3: {
+        "label": "Nom du département",
+        "attribute": "projet.perimetre.departement.name",
+    },
+    4: {"label": "Montant prévisionnel de la subvention", "attribute": "montant"},
+    5: {"label": "Taux de subvention", "attribute": "taux"},
+    6: {"label": "Date de commencement", "attribute": "dossier.date_debut"},
+    7: {"label": "Date d'achèvement", "attribute": "dossier.date_achevement"},
 }
 
 
@@ -34,19 +37,19 @@ def replace_mentions_in_html(
     soup = BeautifulSoup(htmlContent, "html.parser")
 
     for span in soup.find_all("span", class_="mention"):
-        label = span.get("data-label")
-        if label not in MENTION_TO_ATTRIBUTES.keys():
-            raise ValueError(f"Mention {label} inconnue.")
+        id = int(span.get("data-id"))
+        if id not in MENTION_TO_ATTRIBUTES.keys():
+            raise ValueError(f"Mention {id} inconnue.")
         value = get_nested_attribute(
             programmation_projet,
-            MENTION_TO_ATTRIBUTES[label],
+            MENTION_TO_ATTRIBUTES.get(id)["attribute"],
         )
-        if label == "Montant prévisionnel de la subvention":
+        if id == 4:
             value = f"{value:,.2f} €".replace(",", " ").replace(".", ",")
-        elif label in ["Date de commencement", "Date d'achèvement"]:
-            value = value.strftime("%d/%m/%Y") if value else "N/A"
-        elif label == "Taux de subvention":
+        elif id == 5:
             value = f"{value:,.3f} %".replace(".", ",")
+        elif id in [6, 7]:
+            value = value.strftime("%d/%m/%Y") if value else "N/A"
 
         span.replace_with(f"{value}")
 

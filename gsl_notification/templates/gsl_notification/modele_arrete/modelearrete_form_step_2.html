@@ -5,6 +5,7 @@
     Enregistrer le modèle
 {% endblock submit_button_text %}
 {% block extra_js %}
+    {{ mention_items|json_script:"mention-items-data" }}
     <script src="{% static 'js/form-on-several-pages.js' %}"></script>
     <script nonce="{{request.csp_nonce}}">
         const CONTENT_FIELD_NAME="{{ wizard.form.prefix }}-content";

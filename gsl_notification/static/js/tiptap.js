@@ -19,15 +19,7 @@ if (WITH_MENTION) {
       char: '@',
       startOfLine: false,
       items: ({ query }) => {
-        const fields = [
-          { id: 1, label: 'Nom du bénéficiaire' },
-          { id: 2, label: 'Intitulé du projet' },
-          { id: 3, label: 'Nom du département' },
-          { id: 4, label: 'Montant prévisionnel de la subvention' },
-          { id: 5, label: 'Taux de subvention' },
-          { id: 6, label: 'Date de commencement' },
-          { id: 7, label: "Date d'achèvement" },
-        ];
+        const fields = JSON.parse(document.getElementById("mention-items-data").text);
         return fields
           .filter(field => field.label.toLowerCase().startsWith(query.toLowerCase()))
           .slice(0, 10);
