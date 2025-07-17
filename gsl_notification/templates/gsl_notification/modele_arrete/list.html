@@ -4,6 +4,7 @@
 {% block extra_css %}
     <link rel="stylesheet" href="{% static "css/gsl.css" %}">
     <link rel="stylesheet" href="{% static "css/programmation_projet_list.css" %}">
+    <link rel="stylesheet" href="{% static "css/notification.css" %}">
 {% endblock extra_css %}
 
 {% block tab_submenu %}
@@ -18,10 +19,10 @@
             <a class="fr-btn fr-btn--icon-left fr-icon-add-line"
                href="{% url "notification:modele-arrete-creer" dotation %}">Créer un modèle d’arrêté {{ dotation }}</a>
         </div>
-        <ul>
+        <ul class="no-list-style arrete-modele-list">
             {% for obj in object_list %}
                 <li>
-                    {{ obj }}
+                    {% include "includes/_modele_arrete_card.html" %}
                 </li>
             {% endfor %}
         </ul>
