@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from gsl_core.admin import AllPermsForStaffUser
 
-from .models import Arrete, ArreteSigne
+from .models import Arrete, ArreteSigne, ModeleArrete
 
 
 @admin.register(Arrete)
@@ -25,3 +25,8 @@ class ArreteSigneAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "created_by",
         "created_at",
     )
+
+
+@admin.register(ModeleArrete)
+class ModeleArreteAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    list_display = ("__str__", "perimetre", "created_by")

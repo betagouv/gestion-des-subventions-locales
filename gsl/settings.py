@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     "widget_tweaks",
     "dsfr",
     "import_export",
+    "formtools",
     "django_htmx",
     "django_filters",
     "django_extensions",
