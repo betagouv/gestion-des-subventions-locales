@@ -35,7 +35,7 @@
                     <a class="fr-nav__link"
                        href="{{ programmations_url }}"
                        target="_self"
-                       {% if "/programmation/" in request.path %}aria-current="true"{% endif %}>3 - Programmations</a>
+                       {% if "/programmation/" in request.path or "/notification/" in request.path %}aria-current="true"{% endif %}>3 - Programmations</a>
                 </li>
                 <li class="fr-nav__item">
                     {% url 'coming-features' as coming_features_url %}
