@@ -227,7 +227,6 @@ def delete_arrete_signe_view(request, arrete_signe_id):
     arrete_signe = get_object_or_404(ArreteSigne, id=arrete_signe_id)
     programmation_projet_id = arrete_signe.programmation_projet.id
 
-    arrete_signe.file.delete()
     arrete_signe.delete()
 
     return _redirect_to_documents_view(request, programmation_projet_id)
