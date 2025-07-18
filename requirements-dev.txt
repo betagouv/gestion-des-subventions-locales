@@ -12,6 +12,8 @@ asgiref==3.9.1
     #   django-htmx
 asttokens==3.0.0
     # via stack-data
+beautifulsoup4==4.13.4
+    # via bs4
 billiard==4.2.1
     # via celery
 boto3==1.39.3
@@ -24,6 +26,8 @@ botocore==1.39.3
     #   s3transfer
 brotli==1.1.0
     # via fonttools
+bs4==0.0.2
+    # via gsl (pyproject.toml)
 build==1.2.2.post1
     # via pip-tools
 celery==5.5.3
@@ -308,6 +312,8 @@ six==1.17.0
     #   cssbeautifier
     #   jsbeautifier
     #   python-dateutil
+soupsieve==2.7
+    # via beautifulsoup4
 sqlparse==0.5.3
     # via django
 stack-data==0.6.3
@@ -330,6 +336,8 @@ traitlets==5.14.3
     # via
     #   ipython
     #   matplotlib-inline
+typing-extensions==4.14.1
+    # via beautifulsoup4
 tzdata==2025.2
     # via
     #   django-celery-beat

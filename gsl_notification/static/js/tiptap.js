@@ -1,23 +1,164 @@
 import { Editor } from "https://esm.sh/@tiptap/core";
 import StarterKit from "https://esm.sh/@tiptap/starter-kit";
-import Heading from "https://esm.sh/@tiptap/extension-heading";
-import BulletList from "https://esm.sh/@tiptap/extension-bullet-list";
-import OrderedList from "https://esm.sh/@tiptap/extension-ordered-list";
-import ListItem from "https://esm.sh/@tiptap/extension-list-item";
 import TextAlign from "https://esm.sh/@tiptap/extension-text-align";
-import Underline from "https://esm.sh/@tiptap/extension-underline";
+import Mention from "https://esm.sh/@tiptap/extension-mention";
 
 const EXTENSIONS = [
     StarterKit,
-    Heading.configure({ levels: [1, 2] }),
-    BulletList,
-    OrderedList,
-    ListItem,
     TextAlign.configure({
       types: ['heading', 'paragraph'],
     }),
-    Underline,
   ]
+
+if (WITH_MENTION) {
+  const ITEMS = JSON.parse(document.getElementById("mention-items-data").text);
+  const MENTION = Mention.configure({
+    HTMLAttributes: {
+      class: 'mention'
+    },
+    suggestion: {
+      char: '@',
+      startOfLine: false,
+      items: ({ query }) => {
+        const fields = ITEMS
+        return fields
+          .filter(field => field.label.toLowerCase().startsWith(query.toLowerCase()))
+          .slice(0, 10);
+      },
+      render: () => {
+        let popup;
+        let selectedIndex = 0;
+        let originalItems = [];
+        let divItems = [];
+        function updateSelection(newIndex) {
+              divItems[selectedIndex].classList.remove('selected');
+              selectedIndex = newIndex;
+              divItems[selectedIndex].classList.add('selected');
+              divItems[selectedIndex].scrollIntoView({
+                block: 'nearest',
+              });
+            }
+        function reinitializeVariables() {
+          selectedIndex = 0;
+          divItems = [];
+        }
+
+        let selectItem;
+
+        return {
+          onStart: props => {
+            originalItems = props.items;
+            reinitializeVariables();
+
+            selectItem = (item) => {
+              props.command(item);
+            };
+
+            // Créer le conteneur
+            popup = document.createElement('div');
+            popup.className = 'mention-list';
+            popup.setAttribute('tabindex', '-1'); // Rendre focusable
+
+            // Ajouter les éléments
+            props.items.forEach(item => {
+              const div = document.createElement('div');
+              div.className = 'mention-item';
+              div.textContent = item.label;
+              div.dataset.id = item.id;
+              div.addEventListener('click', () => {
+                props.command(item);
+              });
+              div.addEventListener('mouseover', () => {
+                let index = divItems.indexOf(div);
+                updateSelection(index);
+              });
+              popup.appendChild(div);
+              divItems.push(div);
+            });
+
+            updateSelection(0);
+
+            // Positionner le popup
+            const rect = props.clientRect();
+            if (rect) {
+              popup.style.top = `${rect.bottom + window.scrollY}px`;
+              popup.style.left = `${rect.left + window.scrollX}px`;
+            }
+
+            document.body.appendChild(popup);
+          },
+          onUpdate: props => {
+            reinitializeVariables();
+
+            while (popup.firstChild) {
+              popup.removeChild(popup.firstChild);
+            }
+            
+            props.items.forEach(item => {
+              const div = document.createElement('div');
+              div.className = 'mention-item';
+              div.textContent = item.label;
+              div.dataset.id = item.id;
+              div.addEventListener('click', () => {
+                props.command(item);
+              });
+              div.addEventListener('mouseover', () => {
+                let index = divItems.indexOf(div);
+                updateSelection(index);
+              });
+              popup.appendChild(div);
+              divItems.push(div);
+            });
+            updateSelection(0);
+          },
+          onKeyDown(props) {
+            if (props.event.key === 'Escape') {
+              popup.style.display = 'none';
+              return true;
+            }
+            if (props.event.key === 'ArrowDown') {
+              if (selectedIndex < divItems.length - 1) {
+                updateSelection(selectedIndex + 1);
+              }
+              return true;
+            }
+            if (props.event.key === 'ArrowUp') {
+              if (selectedIndex > 0) {
+                updateSelection(selectedIndex - 1);
+              }
+              return true;
+            }
+            if (props.event.key === 'Enter') {
+              if (divItems[selectedIndex]) {
+                // Astuce pour supprimer le texte tapé
+                const { state, dispatch } = props.view;
+                const { from, to } = props.range;
+                dispatch(
+                  state.tr.delete(from, to)
+                );
+                //
+                const divItem = divItems[selectedIndex];
+                const item = originalItems.find(i => i.id === Number(divItem.dataset.id));
+                selectItem(item); 
+              }
+              return true;
+            }
+            return false;
+          },
+          onExit() {
+            if (popup) {
+              popup.remove();
+              popup = null;
+            }
+          },
+        };
+      }
+    }
+  });
+
+  EXTENSIONS.push(MENTION);
+}
+
 const editor = new Editor({
   element: document.querySelector("#editor"),
   extensions: EXTENSIONS,
@@ -64,42 +205,4 @@ document.addEventListener('DOMContentLoaded', function () {
         break;
     }
   }))
-
-
-  // document.querySelector("#export-pdf").addEventListener("click", () => {
-  //   const htmlContent = editor.getHTML();
-
-  //   fetch('/programmation/export-pdf/', {
-  //     method: 'POST',
-  //     headers: {
-  //       'Content-Type': 'application/json',
-  //       'X-CSRFToken': getCookie('csrftoken'),
-  //     },
-  //     body: JSON.stringify({ html: htmlContent })
-  //   })
-  //   .then(response => response.blob())
-  //   .then(blob => {
-  //     const url = window.URL.createObjectURL(blob);
-  //     const a = document.createElement('a');
-  //     a.href = url;
-  //     a.download = 'export.pdf';
-  //     a.click();
-  //   });
-  // });
-})
-
-// function getCookie(name) {
-//   let cookieValue = null;
-//   if (document.cookie && document.cookie !== '') {
-//     const cookies = document.cookie.split(';');
-//     for (let i = 0; i < cookies.length; i++) {
-//       const cookie = cookies[i].trim();
-//       // Ce cookie commence-t-il par le nom recherché ?
-//       if (cookie.substring(0, name.length + 1) === (name + '=')) {
-//         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-//         break;
-//       }
-//     }
-//   }
-//   return cookieValue;
-// }
+});

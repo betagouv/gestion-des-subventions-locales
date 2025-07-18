@@ -26,6 +26,7 @@ from gsl_notification.forms import (
 )
 from gsl_notification.models import Arrete, ArreteSigne, ModeleArrete
 from gsl_notification.utils import (
+    MENTION_TO_ATTRIBUTES,
     get_modele_perimetres,
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
@@ -400,6 +401,10 @@ class CreateModelArreteWizard(SessionWizardView):
             {
                 "step_title": step_titles.get(self.steps.current, ""),
                 "next_step_title": step_titles.get(self.steps.next, ""),
+                "mention_items": [
+                    {"id": id, "label": MENTION_TO_ATTRIBUTES[id]["label"]}
+                    for id in MENTION_TO_ATTRIBUTES.keys()
+                ],
             }
         )
         return context

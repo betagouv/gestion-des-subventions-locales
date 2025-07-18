@@ -223,6 +223,10 @@ class ProgrammationProjet(models.Model):
         return self.dotation_projet.projet
 
     @property
+    def dossier(self):
+        return self.projet.dossier_ds
+
+    @property
     def taux(self):
         return compute_taux(self.montant, self.dotation_projet.assiette_or_cout_total)
 

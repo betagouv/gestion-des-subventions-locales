@@ -1,5 +1,61 @@
+from bs4 import BeautifulSoup
+
 from gsl_core.models import Perimetre
+from gsl_core.templatetags.gsl_filters import euro, percent
+from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import DOTATION_DETR, POSSIBLE_DOTATIONS
+
+
+def get_nested_attribute(obj, attribute_path):
+    """
+    Récupère un attribut imbriqué en utilisant la notation en points.
+    Par exemple: get_nested_attribute(programmation_projet, "dossier.date_achevement")
+    """
+    attributes = attribute_path.split(".")
+    current_obj = obj
+    for attr in attributes:
+        current_obj = getattr(current_obj, attr)
+    return current_obj
+
+
+MENTION_TO_ATTRIBUTES = {
+    1: {"label": "Nom du bénéficiaire", "attribute": "dossier.ds_demandeur"},
+    2: {"label": "Intitulé du projet", "attribute": "dossier.projet_intitule"},
+    3: {
+        "label": "Nom du département",
+        "attribute": "projet.perimetre.departement.name",
+    },
+    4: {"label": "Montant prévisionnel de la subvention", "attribute": "montant"},
+    5: {"label": "Taux de subvention", "attribute": "taux"},
+    6: {"label": "Date de commencement", "attribute": "dossier.date_debut"},
+    7: {"label": "Date d'achèvement", "attribute": "dossier.date_achevement"},
+}
+
+
+def replace_mentions_in_html(
+    htmlContent: str, programmation_projet: ProgrammationProjet
+):
+    soup = BeautifulSoup(htmlContent, "html.parser")
+
+    for span in soup.find_all("span", class_="mention"):
+        id = int(span.get("data-id"))
+        if id not in MENTION_TO_ATTRIBUTES:
+            raise ValueError(f"Mention {id} inconnue.")
+        value = get_nested_attribute(
+            programmation_projet,
+            MENTION_TO_ATTRIBUTES.get(id)["attribute"],
+        )
+        if id == 4:
+            value = euro(value, 2)
+        elif id == 5:
+            value = percent(value, 3)
+        elif id in [6, 7]:
+            value = value.strftime("%d/%m/%Y") if value else "N/A"
+
+        span.replace_with(f"{value}")
+
+    new_text = str(soup)
+    return new_text
 
 
 def update_file_name_to_put_it_in_a_programmation_projet_folder(

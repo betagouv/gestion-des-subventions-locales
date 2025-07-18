@@ -5,12 +5,25 @@
     Enregistrer le modèle
 {% endblock submit_button_text %}
 {% block extra_js %}
+    {{ mention_items|json_script:"mention-items-data" }}
     <script src="{% static 'js/form-on-several-pages.js' %}"></script>
-    <script nonce="{{request.csp_nonce}}">const CONTENT_FIELD_NAME="{{ wizard.form.prefix }}-content"</script>
+    <script nonce="{{request.csp_nonce}}">
+        const CONTENT_FIELD_NAME="{{ wizard.form.prefix }}-content";
+        const WITH_MENTION=true;
+    </script>
     <script type="module" src="{% static 'js/tiptap.js' %}"></script>
 {% endblock extra_js %}
 
 {% block more_content_in_form %}
+    <div>
+        <h4>
+            Rédiger le contenu de ce modèle d’arrêté
+        </h4>
+        <p>
+            Veuillez remplir le contenu de votre arrêté. Pour ajouter des variables des valeurs de remplissage automatique pour le publipostage, merci d’utiliser le signe "@".
+        </p>
+    </div>
+
     <div id="toolbar">
         <button data-action="bold" type="button">
             <b>Gras</b>
@@ -52,11 +65,11 @@
             Rétablir
         </button>
     </div>
-    <div id="initial_content">
+    <div id="editor">
+    </div>
+    <div id="initial_content" hidden>
         <p>
             Écrivez ici le contenu de votre arrêté
         </p>
-    </div>
-    <div id="editor">
     </div>
 {% endblock more_content_in_form %}

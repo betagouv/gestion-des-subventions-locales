@@ -1,3 +1,4 @@
+import datetime
 import io
 
 import pytest
@@ -7,10 +8,51 @@ from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
+from gsl_demarches_simplifiees.tests.factories import PersonneMoraleFactory
 from gsl_notification.utils import (
     get_modele_perimetres,
+    replace_mentions_in_html,
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
+from gsl_programmation.tests.factories import ProgrammationProjetFactory
+
+
+@pytest.fixture
+def programmation_projet():
+    perimetre = PerimetreDepartementalFactory(
+        departement__name="Haute-Garonne",
+    )
+    return ProgrammationProjetFactory(
+        dotation_projet__projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
+            raison_sociale="Commune de Bagnères-de-Luchon"
+        ),
+        dotation_projet__projet__dossier_ds__projet_intitule="Nouvelle plaque d'égoûts",
+        dotation_projet__projet__perimetre=perimetre,
+        dotation_projet__projet__dossier_ds__date_debut=datetime.date(1998, 7, 12),
+        dotation_projet__projet__dossier_ds__date_achevement=datetime.date(2024, 7, 31),
+        montant=2_000.50,
+        dotation_projet__assiette=20_000,
+    )
+
+
+@pytest.mark.parametrize(
+    "id, label, expected_value",
+    (
+        (1, "Nom du bénéficiaire", "Commune de Bagnères-de-Luchon"),
+        (2, "Intitulé du projet", "Nouvelle plaque d'égoûts"),
+        (3, "Nom du département", "Haute-Garonne"),
+        (4, "Montant prévisionnel de la subvention", "2 000,50 €"),
+        (5, "Taux de subvention", "10,002 %"),
+        (6, "Date de commencement", "12/07/1998"),
+        (7, "Date d'achèvement", "31/07/2024"),
+    ),
+)
+@pytest.mark.django_db
+def test_replace_mentions_in_html(id, label, expected_value, programmation_projet):
+    html_content = f'<p>Voici le mot: <span class="mention" data-type="mention" data-id="{id}" data-label="{label}" data-mention-suggestion-char="@">@{label}</span> vous octroie une subvention</p><p>Bravo et merci !</p>'
+    expected_text = f"<p>Voici le mot: {expected_value} vous octroie une subvention</p><p>Bravo et merci !</p>"
+
+    assert expected_text == replace_mentions_in_html(html_content, programmation_projet)
 
 
 def test_update_file_name_to_put_it_in_a_programmation_projet_folder():
