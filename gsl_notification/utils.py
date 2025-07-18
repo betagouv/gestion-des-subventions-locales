@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 
 from gsl_core.models import Perimetre
+from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import DOTATION_DETR, POSSIBLE_DOTATIONS
 
@@ -38,16 +39,16 @@ def replace_mentions_in_html(
 
     for span in soup.find_all("span", class_="mention"):
         id = int(span.get("data-id"))
-        if id not in MENTION_TO_ATTRIBUTES.keys():
+        if id not in MENTION_TO_ATTRIBUTES:
             raise ValueError(f"Mention {id} inconnue.")
         value = get_nested_attribute(
             programmation_projet,
             MENTION_TO_ATTRIBUTES.get(id)["attribute"],
         )
         if id == 4:
-            value = f"{value:,.2f} €".replace(",", " ").replace(".", ",")
+            value = euro(value, 2)
         elif id == 5:
-            value = f"{value:,.3f} %".replace(".", ",")
+            value = percent(value, 3)
         elif id in [6, 7]:
             value = value.strftime("%d/%m/%Y") if value else "N/A"
 

@@ -11,6 +11,7 @@ const EXTENSIONS = [
   ]
 
 if (WITH_MENTION) {
+  const ITEMS = JSON.parse(document.getElementById("mention-items-data").text);
   const MENTION = Mention.configure({
     HTMLAttributes: {
       class: 'mention'
@@ -19,7 +20,7 @@ if (WITH_MENTION) {
       char: '@',
       startOfLine: false,
       items: ({ query }) => {
-        const fields = JSON.parse(document.getElementById("mention-items-data").text);
+        const fields = ITEMS
         return fields
           .filter(field => field.label.toLowerCase().startsWith(query.toLowerCase()))
           .slice(0, 10);
@@ -129,7 +130,7 @@ if (WITH_MENTION) {
             }
             if (props.event.key === 'Enter') {
               if (divItems[selectedIndex]) {
-                // Astuce pour supprimer le texte tappé
+                // Astuce pour supprimer le texte tapé
                 const { state, dispatch } = props.view;
                 const { from, to } = props.range;
                 dispatch(
