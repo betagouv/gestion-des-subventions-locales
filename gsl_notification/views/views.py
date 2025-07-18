@@ -134,7 +134,7 @@ def select_modele(request, programmation_projet_id):
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
-    is_creating = programmation_projet.arrete_signe is None
+    is_creating = not hasattr(programmation_projet, "arrete")
     page_title = (
         f"{'Création' if is_creating else 'Modification'} de l'arrêté attributif"
     )
@@ -178,6 +178,7 @@ def change_arrete_view(request, programmation_projet_id):
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
+    modele = None
 
     if hasattr(programmation_projet, "arrete"):
         arrete = programmation_projet.arrete
@@ -188,8 +189,18 @@ def change_arrete_view(request, programmation_projet_id):
         title = "Création de l'arrêté attributif"
 
     if request.GET.get("modele_id"):
-        modele = get_object_or_404(ModeleArrete, id=request.GET.get("modele_id"))
+        dotation = programmation_projet.dotation_projet.dotation
+        perimetres = get_modele_perimetres(dotation, request.user.perimetre)
+        modele = get_object_or_404(
+            ModeleArrete,
+            id=request.GET.get("modele_id"),
+            dotation=dotation,
+            perimetre__in=perimetres,
+        )
         arrete.content = replace_mentions_in_html(modele.content, programmation_projet)
+
+    if modele is None:
+        raise Http404("Il n'y a pas de modèle sélectionné.")
 
     if request.method == "POST":
         form = ArreteForm(request.POST, instance=arrete)

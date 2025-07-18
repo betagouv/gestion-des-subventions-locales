@@ -12,13 +12,13 @@ class ModeleArreteFactory(factory.django.DjangoModelFactory):
         model = ModeleArrete
 
     name = factory.Sequence(lambda n: f"Modele {n}")
-    description = factory.Faker("sentences")
+    description = "La description du modèle"
     perimetre = factory.SubFactory("gsl_core.tests.factories.PerimetreFactory")
     dotation = factory.Iterator([DOTATION_DETR, DOTATION_DSIL])
     logo = factory.django.ImageField(filename="logo.png")
     logo_alt_text = factory.Faker("word")
-    top_right_text = factory.Faker("sentence")
-    content = factory.Faker("sentences")
+    top_right_text = "Le texte en haut à droite du modèle"
+    content = "<p>Contenu du modèle</p>"
     created_at = factory.Faker("date_time")
     created_by = factory.SubFactory("gsl_core.tests.factories.CollegueFactory")
     updated_at = factory.Faker("date_time")
@@ -35,7 +35,7 @@ class ArreteFactory(factory.django.DjangoModelFactory):
     created_by = factory.SubFactory("gsl_core.tests.factories.CollegueFactory")
     created_at = datetime.datetime.now(datetime.UTC)
     updated_at = datetime.datetime.now(datetime.UTC)
-    content = factory.Faker("sentences")
+    content = "<p>Contenu de l'arrêté</p>"
 
 
 class ArreteSigneFactory(factory.django.DjangoModelFactory):

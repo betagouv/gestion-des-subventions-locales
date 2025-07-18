@@ -19,6 +19,7 @@ urlpatterns = [
         documents_view,
         name="documents",
     ),
+    # Arretes
     path(
         "<int:programmation_projet_id>/selection-d-un-modele/",
         select_modele,
@@ -39,11 +40,7 @@ urlpatterns = [
         delete_arrete_view,
         name="delete-arrete",
     ),
-    path(
-        "arrete-signe/<int:arrete_signe_id>/delete/",
-        delete_arrete_signe_view,
-        name="delete-arrete-signe",
-    ),
+    # Arretes signés
     path(
         "<int:programmation_projet_id>/creer-arrete-signe/",
         create_arrete_signe_view,
@@ -54,6 +51,12 @@ urlpatterns = [
         download_arrete_signe,
         name="arrete-signe-download",
     ),
+    path(
+        "arrete-signe/<int:arrete_signe_id>/delete/",
+        delete_arrete_signe_view,
+        name="delete-arrete-signe",
+    ),
+    # Modèles d'arrêtés
     path(
         "modeles/liste/<str:dotation>",
         ModeleArreteListView.as_view(),
