@@ -68,6 +68,7 @@ class Arrete(models.Model):
         verbose_name="Programmation projet",
         related_name="arrete",
     )
+    modele = models.ForeignKey(ModeleArrete, on_delete=models.PROTECT, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
     updated_at = models.DateTimeField(auto_now=True)
