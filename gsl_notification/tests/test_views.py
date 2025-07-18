@@ -171,7 +171,7 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele():
     assert response.context["modeles_list"][0] == {
         "actions": [
             {
-                "href": f"/notification/1/modifier-arrete/?modele_id={detr_modele_dep_1.id}",
+                "href": f"/notification/{programmation_projet.id}/modifier-arrete/?modele_id={detr_modele_dep_1.id}",
                 "label": "Sélectionner",
             },
         ],
