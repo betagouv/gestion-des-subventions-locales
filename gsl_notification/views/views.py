@@ -28,6 +28,7 @@ from gsl_notification.models import Arrete, ArreteSigne, ModeleArrete
 from gsl_notification.utils import (
     MENTION_TO_ATTRIBUTES,
     get_modele_perimetres,
+    replace_mentions_in_html,
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
 from gsl_notification.views.decorators import (
@@ -134,15 +135,16 @@ def select_modele(request, programmation_projet_id):
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
     is_creating = programmation_projet.arrete_signe is None
+    page_title = (
+        f"{'Création' if is_creating else 'Modification'} de l'arrêté attributif"
+    )
     dotation = programmation_projet.dotation_projet.dotation
     perimetres = get_modele_perimetres(dotation, request.user.perimetre)
     modeles = ModeleArrete.objects.filter(dotation=dotation, perimetre__in=perimetres)
 
     context = {
         "programmation_projet": programmation_projet,
-        "page_title": "Création de l'arrêté attributif"
-        if is_creating
-        else "Modification de l'arrêté attributif",
+        "page_title": page_title,
         "modeles_list": [
             {
                 "name": obj.name,
@@ -179,10 +181,15 @@ def change_arrete_view(request, programmation_projet_id):
 
     if hasattr(programmation_projet, "arrete"):
         arrete = programmation_projet.arrete
-        title = "Modification de l'arrêté"
+        modele = arrete.modele
+        title = "Modification de l'arrêté attributif"
     else:
         arrete = Arrete()
-        title = "Création de l'arrêté"
+        title = "Création de l'arrêté attributif"
+
+    if request.GET.get("modele_id"):
+        modele = get_object_or_404(ModeleArrete, id=request.GET.get("modele_id"))
+        arrete.content = replace_mentions_in_html(modele.content, programmation_projet)
 
     if request.method == "POST":
         form = ArreteForm(request.POST, instance=arrete)
@@ -199,6 +206,7 @@ def change_arrete_view(request, programmation_projet_id):
         "arrete_form": form,
         "arrete_initial_content": mark_safe(arrete.content),
         "page_title": title,
+        "modele": modele,
     }
     _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request

@@ -5,11 +5,6 @@
     {% csrf_token %}
 
     {{ arrete_form.errors }}
-    <label for="editor" class="fr-label fr-mb-2w">
-        <b>
-            {{ page_title|default:"Création de l'arrêté" }} sur Turgot :
-        </b>
-    </label>
     <div id="toolbar">
         <button data-action="bold" type="button">
             <b>Gras</b>
@@ -58,6 +53,7 @@
     <input type="hidden"
            name="programmation_projet"
            value="{{ programmation_projet.id }}">
+    <input type="hidden" name="modele" value="{{ modele.id }}">
     <div id="initial_content" hidden>
         {{ arrete_initial_content }}
     </div>
