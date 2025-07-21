@@ -6,6 +6,7 @@ from csp.decorators import csp_update
 from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
 from django.db.models import ProtectedError
+from django.db.models.fields import files
 from django.http import Http404, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
@@ -29,6 +30,7 @@ from gsl_notification.forms import (
 from gsl_notification.models import Arrete, ArreteSigne, ModeleArrete
 from gsl_notification.utils import (
     MENTION_TO_ATTRIBUTES,
+    duplicate_field_file,
     get_modele_perimetres,
     replace_mentions_in_html,
     update_file_name_to_put_it_in_a_programmation_projet_folder,
@@ -545,6 +547,29 @@ class DuplicateModeleArete(CreateModelArreteWizard):
                     "content": self.modele_duplicated.content,
                 },
             )
+
+    def done(self, form_list, **kwargs):
+        instance: ModeleArrete = self.instance
+
+        for form in form_list:
+            for key, value in form.cleaned_data.items():
+                instance.__setattr__(key, value)
+                if key == "logo":
+                    # Si logo est un FieldFile appartenant à l'instance dupliquée,
+                    # on veut créer une *copie*, pas juste pointer vers le même fichier.
+                    if isinstance(value, files.FieldFile):
+                        new_name, file_obj = duplicate_field_file(value)
+                        if file_obj:
+                            instance.logo.save(new_name, file_obj, save=False)
+
+        instance.save()
+
+        return HttpResponseRedirect(
+            reverse(
+                "gsl_notification:modele-arrete-liste",
+                kwargs={"dotation": self.dotation},
+            )
+        )
 
 
 @modele_arrete_visible_by_user
