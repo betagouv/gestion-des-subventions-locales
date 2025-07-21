@@ -1,1 +1,32 @@
 {% extends "gsl_projet/projet/tab_projet.html" %}
+{% load gsl_filters %}
+
+{% block status_action %}
+    <div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-container fr-pb-2w fr-pt-3w fr-px-3w">
+        <div class='status_action_header'>
+            <h2 class="fr-callout__title">
+                <i class="fr-icon-coin-fill blue-color" aria-hidden="true"></i>
+                Décision de financement du projet
+            </h2>
+            {% if programmation_projet.to_notify %}
+                <span class="fr-text--xl projet__to_notify red-color">À notifier <span class="fr-icon-mail-fill"></span></span>
+            {% else %}
+                <span class="fr-text--xl projet__to_notify blue-color">Notifié <span class="fr-icon-checkbox-fill"></span></span>
+            {% endif %}
+        </div>
+
+        {% if programmation_projet.status == "accepted" %}
+            <b class="fr-mr-4w fr-icon-check-line green-color">{{ programmation_projet.get_status_display|remove_first_word }}</b>
+        {% else %}
+            <b class="fr-mr-4w fr-icon-close-line red-color">{{ programmation_projet.get_status_display|remove_first_word }}</b>
+        {% endif %}
+
+        {% if programmation_projet.to_notify %}
+            <a class="fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
+               id="to_notify_button"
+               href="{% url 'gsl_notification:documents' programmation_projet.id %}">
+                Notifier le demandeur
+            </a>
+        {% endif %}
+    </div>
+{% endblock status_action %}
