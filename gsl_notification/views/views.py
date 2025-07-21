@@ -400,7 +400,10 @@ class ModeleArreteListView(ListView):
                             {"label": "Modifier le modèle", "href": "#"},
                             {
                                 "label": "Dupliquer le modèle",
-                                "href": "#",
+                                "href": reverse(
+                                    "gsl_notification:modele-arrete-dupliquer",
+                                    kwargs={"modele_arrete_id": obj.id},
+                                ),
                                 "class": "fr-btn--secondary",
                             },
                             {
@@ -432,16 +435,13 @@ class CreateModelArreteWizard(SessionWizardView):
     def dispatch(self, request, dotation, *args, **kwargs):
         if dotation not in DOTATIONS:
             return Http404("Dotation inconnue")
-        perimetre = self.get_modele_perimetre(dotation, request.user.perimetre)
+        perimetre = request.user.perimetre
         self.instance = ModeleArrete(
             dotation=dotation, perimetre=perimetre, created_by=request.user
         )
         self.dotation = dotation
         response = super().dispatch(request, *args, **kwargs)
         return response
-
-    def get_modele_perimetre(self, dotation, user_perimetre):
-        return user_perimetre
 
     def done(self, form_list, **kwargs):
         instance: ModeleArrete = self.instance
@@ -461,6 +461,13 @@ class CreateModelArreteWizard(SessionWizardView):
 
     def get_form_instance(self, step):
         return self.instance
+
+    def get_form_initial(self, step):
+        if step == "2":
+            return self.initial_dict.get(
+                step,
+                {"content": mark_safe("<p>Écrivez ici le contenu de votre arrêté</p>")},
+            )
 
     def get_context_data(self, form, **kwargs):
         context = super().get_context_data(form=form, **kwargs)
@@ -489,6 +496,55 @@ class CreateModelArreteWizard(SessionWizardView):
 
     def get_template_names(self):
         return f"gsl_notification/modele_arrete/modelearrete_form_step_{self.steps.current}.html"
+
+
+class DuplicateModeleArete(CreateModelArreteWizard):
+    @method_decorator(csp_update({"style-src": [SELF, UNSAFE_INLINE]}))
+    def dispatch(self, request, modele_arrete_id, *args, **kwargs):
+        perimetre = request.user.perimetre
+        self.modele_duplicated = get_object_or_404(
+            ModeleArrete,
+            id=modele_arrete_id,
+        )
+        dotation = self.modele_duplicated.dotation
+        self.possible_modele_perimetres = get_modele_perimetres(
+            dotation, request.user.perimetre
+        )
+        if self.modele_duplicated.perimetre not in self.possible_modele_perimetres:
+            raise Http404("Modèle non existant")
+
+        self.instance = ModeleArrete(
+            dotation=dotation, perimetre=perimetre, created_by=request.user
+        )
+        self.dotation = dotation
+        response = super().dispatch(request, dotation=self.dotation, *args, **kwargs)
+        return response
+
+    def get_form_initial(self, step):
+        if step == "0":
+            return self.initial_dict.get(
+                step,
+                {
+                    "name": self.modele_duplicated.name,
+                    "description": self.modele_duplicated.description,
+                },
+            )
+        if step == "1":
+            return self.initial_dict.get(
+                step,
+                {
+                    "logo": self.modele_duplicated.logo,
+                    "logo_alt_text": self.modele_duplicated.logo_alt_text,
+                    "top_right_text": self.modele_duplicated.top_right_text,
+                },
+            )
+        if step == "2":
+            return self.initial_dict.get(
+                step,
+                {
+                    "content": self.modele_duplicated.content,
+                },
+            )
 
 
 @modele_arrete_visible_by_user

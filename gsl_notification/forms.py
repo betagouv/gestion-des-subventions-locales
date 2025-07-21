@@ -1,6 +1,7 @@
 import os
 
 from django import forms
+from django.db.models.fields import files
 from dsfr.forms import DsfrBaseForm
 
 from gsl_notification.models import Arrete, ArreteSigne, ModeleArrete
@@ -64,8 +65,17 @@ class ModeleArreteStepTwoForm(forms.ModelForm, DsfrBaseForm):
         valid_extensions = [".png", ".jpg", ".jpeg"]
 
         ext = os.path.splitext(file.name)[1].lower()
-        if file.content_type not in valid_mime_types or ext not in valid_extensions:
-            raise forms.ValidationError("Seuls les fichiers PNG ou JPEG sont acceptés.")
+
+        if isinstance(file, files.FieldFile):  # Useful for duplicate
+            if ext not in valid_extensions:
+                raise forms.ValidationError(
+                    "Seuls les fichiers PNG ou JPEG sont acceptés."
+                )
+        else:
+            if file.content_type not in valid_mime_types or ext not in valid_extensions:
+                raise forms.ValidationError(
+                    "Seuls les fichiers PNG ou JPEG sont acceptés."
+                )
 
         max_size_in_mo = 20
         max_size = max_size_in_mo * 1024 * 1024  # 20 Mo
