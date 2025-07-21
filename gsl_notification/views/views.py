@@ -34,6 +34,7 @@ from gsl_notification.utils import (
 from gsl_notification.views.decorators import (
     arrete_signe_visible_by_user,
     arrete_visible_by_user,
+    modele_arrete_visible_by_user,
     programmation_projet_visible_by_user,
 )
 from gsl_programmation.models import ProgrammationProjet
@@ -390,6 +391,7 @@ class ModeleArreteListView(ListView):
                 "current_tab": self.dotation,
                 "modeles_list": [
                     {
+                        "id": obj.id,
                         "name": obj.name,
                         "description": obj.description,
                         "actions": [
@@ -401,8 +403,8 @@ class ModeleArreteListView(ListView):
                             },
                             {
                                 "label": "Supprimer",
-                                "href": "#",
                                 "class": "fr-btn--tertiary",
+                                "aria_controls": "delete-modele-arrete",
                             },
                         ],
                     }
@@ -485,3 +487,16 @@ class CreateModelArreteWizard(SessionWizardView):
 
     def get_template_names(self):
         return f"gsl_notification/modele_arrete/modelearrete_form_step_{self.steps.current}.html"
+
+
+@modele_arrete_visible_by_user
+@require_http_methods(["POST"])
+def delete_modele_arrete_view(request, modele_arrete_id):
+    modele_arrete = get_object_or_404(ModeleArrete, id=modele_arrete_id)
+    dotation = modele_arrete.dotation
+
+    modele_arrete.delete()
+
+    return redirect(
+        reverse("gsl_notification:modele-arrete-liste", kwargs={"dotation": dotation})
+    )

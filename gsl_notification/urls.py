@@ -7,6 +7,7 @@ from gsl_notification.views.views import (
     create_arrete_signe_view,
     delete_arrete_signe_view,
     delete_arrete_view,
+    delete_modele_arrete_view,
     documents_view,
     download_arrete,
     download_arrete_signe,
@@ -66,5 +67,10 @@ urlpatterns = [
         "modeles/nouveau/<str:dotation>/",
         CreateModelArreteWizard.as_view(),
         name="modele-arrete-creer",
+    ),
+    path(
+        "modele/<str:modele_arrete_id>/",
+        delete_modele_arrete_view,
+        name="delete-modele-arrete",
     ),
 ]

@@ -453,7 +453,7 @@ def test_arrete_download_url_with_wrong_perimetre(
 
 # ArreteSigne
 
-### create-arrete-signe -----------------------------------
+### create-arrete-signe -----------------------------
 
 
 ##### GET
@@ -642,7 +642,9 @@ def test_delete_nonexistent_arrete(correct_perimetre_client_with_user_logged):
     assert response.status_code == 404
 
 
-# Modèles d'arrêté
+# Modèles d'arrêté ---------------------------------
+
+### modele-arrete-create
 
 
 @pytest.mark.django_db
@@ -691,3 +693,43 @@ def test_create_arrete_views(correct_perimetre_client_with_user_logged):
     assert modele_en_base
     assert modele_en_base.created_by == correct_perimetre_client_with_user_logged.user
     assert modele_en_base.logo_alt_text == "Texte alternatif du logo"
+
+
+### delete-modele-arrete
+
+
+def test_delete_modele_arrete_with_correct_perimetre():
+    departement_perimetre = PerimetreDepartementalFactory()
+    user = CollegueFactory(perimetre=departement_perimetre)
+    client = ClientWithLoggedUserFactory(user)
+    modele_arrete = ModeleArreteFactory(perimetre=departement_perimetre)
+    url = reverse("gsl_notification:delete-modele-arrete", args=[modele_arrete.id])
+
+    response = client.post(url)
+
+    expected_redirect_url = reverse(
+        "gsl_notification:modele-arrete-liste", args=[modele_arrete.dotation]
+    )
+    assert response.status_code == 302
+    assert response.url == expected_redirect_url
+
+    assert ModeleArrete.objects.count() == 0
+
+
+def test_delete_modele_arrete_with_wrong_perimetre():
+    user = CollegueFactory(perimetre=PerimetreDepartementalFactory())
+    client = ClientWithLoggedUserFactory(user)
+    modele_arrete = ModeleArreteFactory(perimetre=PerimetreDepartementalFactory())
+    url = reverse("gsl_notification:delete-modele-arrete", args=[modele_arrete.id])
+
+    response = client.post(url)
+
+    assert response.status_code == 404
+
+    assert ModeleArrete.objects.count() == 1
+
+
+def test_delete_nonexistent_modele_arrete(correct_perimetre_client_with_user_logged):
+    url = reverse("gsl_notification:delete-modele-arrete", args=[99999])
+    response = correct_perimetre_client_with_user_logged.post(url)
+    assert response.status_code == 404
