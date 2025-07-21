@@ -11,16 +11,10 @@
     <body id="weasy">
         <header class="header">
             <div class="head-left">
-                <img class="logo"
-                     src="{% static 'img/logo-exemple.png' %}"
-                     alt="À compléter"
-                     width="120">
-
+                <img class="logo" src={{ logo.url }} alt={{ alt_logo }} width="120">
             </div>
             <div class="head-right">
-                Ligne 1
-                <br>
-                Ligne 2
+                {{ top_right_text }}
             </div>
         </header>
         <main>
