@@ -3,6 +3,7 @@ import os
 import boto3
 from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
+from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
 from django.http import Http404, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -494,8 +495,15 @@ class CreateModelArreteWizard(SessionWizardView):
 def delete_modele_arrete_view(request, modele_arrete_id):
     modele_arrete = get_object_or_404(ModeleArrete, id=modele_arrete_id)
     dotation = modele_arrete.dotation
+    name = modele_arrete.name
 
     modele_arrete.delete()
+
+    messages.info(
+        request,
+        f"Le modèle d’arrêté “{name}” a été supprimé",
+        extra_tags="delete-modele-arrete",
+    )
 
     return redirect(
         reverse("gsl_notification:modele-arrete-liste", kwargs={"dotation": dotation})
