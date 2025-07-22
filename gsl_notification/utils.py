@@ -2,6 +2,7 @@ import os
 
 from bs4 import BeautifulSoup
 from django.core.files import File
+from django.db.models.fields.files import FieldFile
 
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
@@ -119,7 +120,7 @@ def get_modele_perimetres(
         return [perimetre]
 
 
-def duplicate_field_file(field_file, *, suffix="_copy"):
+def duplicate_field_file(field_file: FieldFile, suffix="_copy"):
     """
     Retourne (nouveau_nom, file_obj)
     Copie le contenu du fichier stocké derrière `field_file`.
