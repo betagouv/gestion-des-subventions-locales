@@ -32,16 +32,20 @@
             </div>
         </div>
     </div>
-    <div class="fr-enlarge-link">
-        <img class="arrete-card__image"
-             src="{% static 'img/arrete_vignette.png' %}"
-             alt="Image d'un arrêté">
-        <span class="show-on-hover fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-eye-line">Visualiser</span>
+    <div>
+        <div class="fr-enlarge-link">
+            <a href="{{ arrete.get_view_url }}" class="arrete-card__image-container">
+                <img class="arrete-card__image"
+                     src="{% static 'img/arrete_vignette.png' %}"
+                     alt="Image d'un arrêté">
+                <span class="show-on-hover fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-eye-line">Visualiser</span>
+            </a>
+        </div>
         <a class="fr-link fr-link--download"
-           href="{{ arrete_signe.get_absolute_url }}">
-            {{ arrete_signe.name }} -
-            {{ arrete_signe.type|upper }} -
-            {{ arrete_signe.size|filesizeformat }}
+           href="{{ arrete.get_download_url }}">
+            {{ arrete.name }} -
+            {{ arrete.type|upper }} -
+            {{ arrete.size|filesizeformat }}
         </a>
     </div>
     <div>

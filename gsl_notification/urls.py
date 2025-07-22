@@ -8,6 +8,7 @@ from gsl_notification.views.modele_arrete_views import (
     delete_modele_arrete_view,
 )
 from gsl_notification.views.views import (
+    PrintView,
     change_arrete_view,
     create_arrete_signe_view,
     delete_arrete_signe_view,
@@ -16,6 +17,7 @@ from gsl_notification.views.views import (
     download_arrete,
     download_arrete_signe,
     select_modele,
+    view_arrete_signe,
 )
 
 urlpatterns = [
@@ -41,6 +43,11 @@ urlpatterns = [
         name="arrete-download",
     ),
     path(
+        "arrete/<int:arrete_id>/view/",
+        PrintView.as_view(),
+        name="arrete-view",
+    ),
+    path(
         "arrete/<int:arrete_id>/delete/",
         delete_arrete_view,
         name="delete-arrete",
@@ -55,6 +62,11 @@ urlpatterns = [
         "arrete-signe/<int:arrete_signe_id>/download/",
         download_arrete_signe,
         name="arrete-signe-download",
+    ),
+    path(
+        "arrete-signe/<int:arrete_signe_id>/view/",
+        view_arrete_signe,
+        name="arrete-signe-view",
     ),
     path(
         "arrete-signe/<int:arrete_signe_id>/delete/",

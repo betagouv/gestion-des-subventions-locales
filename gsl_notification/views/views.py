@@ -1,12 +1,13 @@
-import boto3
 from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
-from django.http import Http404, StreamingHttpResponse
+from django.http import FileResponse, Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_http_methods
+from django.views.generic import DetailView
+from django_weasyprint import WeasyTemplateResponseMixin
 from django_weasyprint.views import WeasyTemplateResponse
 
 from gsl import settings
@@ -17,6 +18,7 @@ from gsl_notification.forms import (
 from gsl_notification.models import Arrete, ArreteSigne, ModeleArrete
 from gsl_notification.utils import (
     get_modele_perimetres,
+    get_s3_object,
     replace_mentions_in_html,
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
@@ -272,7 +274,7 @@ def delete_arrete_signe_view(request, arrete_signe_id):
     return _redirect_to_documents_view(request, programmation_projet_id)
 
 
-# Download views -----------------------------------------------------------------------
+# View and Download views -----------------------------------------------------------------------
 
 
 @arrete_visible_by_user
@@ -295,32 +297,43 @@ def download_arrete(request, arrete_id):
     )
 
 
+class PrintView(WeasyTemplateResponseMixin, DetailView):
+    model = Arrete
+    template_name = "gsl_notification/pdf/arrete.html"
+    pk_url_kwarg = "arrete_id"
+
+    # show pdf in-line (default: True, show download dialog)
+    pdf_attachment = False
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["content"] = mark_safe(self.get_object().content)
+        return context
+
+
 @arrete_signe_visible_by_user
 @require_GET
 def download_arrete_signe(request, arrete_signe_id):
     arrete = get_object_or_404(ArreteSigne, id=arrete_signe_id)
-    s3 = boto3.client(
-        "s3",
-        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-        region_name=settings.AWS_S3_REGION_NAME,
-        endpoint_url=settings.AWS_S3_ENDPOINT_URL,
-    )
-    bucket = settings.AWS_STORAGE_BUCKET_NAME
-    key = arrete.file.name
+    s3_object = get_s3_object(arrete.file.name)
 
-    try:
-        s3_response = s3.get_object(Bucket=bucket, Key=key)
-        response = StreamingHttpResponse(
-            iter(s3_response["Body"].iter_chunks()),
-            content_type=s3_response["ContentType"],
-        )
-        response["Content-Disposition"] = (
-            f'attachment; filename="{arrete.file.name.split("/")[-1]}"'
-        )
-        return response
-    except s3.exceptions.NoSuchKey:
-        raise Http404("Fichier non trouvé")
+    response = StreamingHttpResponse(
+        iter(s3_object["Body"].iter_chunks()),
+        content_type=s3_object["ContentType"],
+    )
+    response["Content-Disposition"] = (
+        f'attachment; filename="{arrete.file.name.split("/")[-1]}"'
+    )
+    return response
+
+
+@arrete_signe_visible_by_user
+@require_GET
+def view_arrete_signe(request, arrete_signe_id):
+    arrete = get_object_or_404(ArreteSigne, id=arrete_signe_id)
+    s3_object = get_s3_object(arrete.file.name)
+
+    return FileResponse(open(s3_object.path, "rb"), content_type="application/pdf")
 
 
 # utils --------------------------------------------------------------------------------
