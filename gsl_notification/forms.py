@@ -15,7 +15,7 @@ class ArreteForm(forms.ModelForm, DsfrBaseForm):
 
     class Meta:
         model = Arrete
-        fields = ("content", "created_by", "programmation_projet")
+        fields = ("content", "created_by", "programmation_projet", "modele")
 
 
 class ArreteSigneForm(forms.ModelForm, DsfrBaseForm):

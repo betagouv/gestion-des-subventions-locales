@@ -4,6 +4,7 @@
 {% load dsfr_tags static ui_tags %}
 
 {% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/gsl.css' %}">
     <link rel="stylesheet" href="{% static 'css/projet_detail.css' %}">
     <link rel="stylesheet" href="{% static 'css/notification.css' %}">
     <link rel="stylesheet" href="{% static 'css/tiptap.css' %}">
@@ -32,7 +33,7 @@
                         Un arrêté a déjà été généré pour ce projet.
                     </span>
                 {% else %}
-                    <a href="{% url 'gsl_notification:modifier-arrete' programmation_projet.id %}"
+                    <a href="{% url 'gsl_notification:select-modele' programmation_projet.id %}"
                        class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line">
                         Générer un document
                     </a>

@@ -28,6 +28,7 @@ from gsl_notification.models import Arrete, ArreteSigne, ModeleArrete
 from gsl_notification.utils import (
     MENTION_TO_ATTRIBUTES,
     get_modele_perimetres,
+    replace_mentions_in_html,
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
 from gsl_notification.views.decorators import (
@@ -124,16 +125,47 @@ def documents_view(request, programmation_projet_id):
     )
 
 
-# Creation view from a model -----------------------------------------------------------
-# @require_http_methods(["GET", "POST"])
-# @programmation_projet_visible_by_user
-# def create_arrete_view(request, programmation_projet_id):
-#     # GET: list available models
-#     # POST: create arrete instance from model and redirect to edit form
-#     pass
-
-
 # Edition form for arrêté --------------------------------------------------------------
+@require_http_methods(["GET"])
+@programmation_projet_visible_by_user
+def select_modele(request, programmation_projet_id):
+    programmation_projet = get_object_or_404(
+        ProgrammationProjet,
+        id=programmation_projet_id,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+    )
+    is_creating = not hasattr(programmation_projet, "arrete")
+    page_title = (
+        f"{'Création' if is_creating else 'Modification'} de l'arrêté attributif"
+    )
+    dotation = programmation_projet.dotation_projet.dotation
+    perimetres = get_modele_perimetres(dotation, request.user.perimetre)
+    modeles = ModeleArrete.objects.filter(dotation=dotation, perimetre__in=perimetres)
+
+    context = {
+        "programmation_projet": programmation_projet,
+        "page_title": page_title,
+        "modeles_list": [
+            {
+                "name": obj.name,
+                "description": obj.description,
+                "actions": [
+                    {
+                        "label": "Sélectionner",
+                        "href": reverse(
+                            "notification:modifier-arrete",
+                            kwargs={"programmation_projet_id": programmation_projet.id},
+                            query={"modele_id": obj.id},
+                        ),
+                    },
+                ],
+            }
+            for obj in modeles
+        ],
+    }
+    return render(request, "gsl_notification/select_modele.html", context=context)
+
+
 @csp_update({"style-src": [SELF, UNSAFE_INLINE]})
 @require_http_methods(["GET", "POST"])
 @programmation_projet_visible_by_user
@@ -143,13 +175,29 @@ def change_arrete_view(request, programmation_projet_id):
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
+    modele = None
 
     if hasattr(programmation_projet, "arrete"):
         arrete = programmation_projet.arrete
-        title = "Modification de l'arrêté"
+        modele = arrete.modele
+        title = "Modification de l'arrêté attributif"
     else:
         arrete = Arrete()
-        title = "Création de l'arrêté"
+        title = "Création de l'arrêté attributif"
+
+    if request.GET.get("modele_id"):
+        dotation = programmation_projet.dotation_projet.dotation
+        perimetres = get_modele_perimetres(dotation, request.user.perimetre)
+        modele = get_object_or_404(
+            ModeleArrete,
+            id=request.GET.get("modele_id"),
+            dotation=dotation,
+            perimetre__in=perimetres,
+        )
+        arrete.content = replace_mentions_in_html(modele.content, programmation_projet)
+
+    if modele is None:
+        raise Http404("Il n'y a pas de modèle sélectionné.")
 
     if request.method == "POST":
         form = ArreteForm(request.POST, instance=arrete)
@@ -166,6 +214,7 @@ def change_arrete_view(request, programmation_projet_id):
         "arrete_form": form,
         "arrete_initial_content": mark_safe(arrete.content),
         "page_title": title,
+        "modele": modele,
     }
     _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
@@ -335,7 +384,32 @@ class ModeleArreteListView(ListView):
 
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(object_list=object_list, **kwargs)
-        context.update({"dotation": self.dotation, "current_tab": self.dotation})
+        context.update(
+            {
+                "dotation": self.dotation,
+                "current_tab": self.dotation,
+                "modeles_list": [
+                    {
+                        "name": obj.name,
+                        "description": obj.description,
+                        "actions": [
+                            {"label": "Modifier le modèle", "href": "#"},
+                            {
+                                "label": "Dupliquer le modèle",
+                                "href": "#",
+                                "class": "fr-btn--secondary",
+                            },
+                            {
+                                "label": "Supprimer",
+                                "href": "#",
+                                "class": "fr-btn--tertiary",
+                            },
+                        ],
+                    }
+                    for obj in self.object_list
+                ],
+            }
+        )
         return context
 
 

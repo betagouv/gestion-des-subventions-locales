@@ -3,6 +3,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from gsl_core.tests.factories import CollegueFactory
 from gsl_notification.forms import ArreteForm, ArreteSigneForm, ModeleArreteStepTwoForm
+from gsl_notification.tests.factories import ModeleArreteFactory
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 # Arrête
@@ -12,10 +13,12 @@ from gsl_programmation.tests.factories import ProgrammationProjetFactory
 def test_arrete_form_valid():
     collegue = CollegueFactory()
     programmation_projet = ProgrammationProjetFactory()
+    modele = ModeleArreteFactory()
     data = {
         "content": {"foo": "bar"},
         "created_by": collegue.id,
         "programmation_projet": programmation_projet.id,
+        "modele": modele.id,
     }
     form = ArreteForm(data)
     assert form.is_valid()
@@ -28,6 +31,7 @@ def test_arrete_form_invalid_missing_fields():
     assert "content" in form.errors
     assert "created_by" in form.errors
     assert "programmation_projet" in form.errors
+    assert "modele" in form.errors
 
 
 # ArrêteSigneForm

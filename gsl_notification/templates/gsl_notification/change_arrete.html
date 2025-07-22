@@ -11,6 +11,15 @@
         <h2 class="fr-mb-3w">
             {{ page_title|default:"Modification de l'arrêté" }}
         </h2>
+        <h4>
+            2 - Publipostage de l'arrêté
+        </h4>
+        <p>
+            <b>Modèle choisi :</b> {{ modele.name }}
+        </p>
+        <button class="fr-btn fr-btn--secondary">
+            <a href="{% url 'gsl_notification:select-modele' programmation_projet.id %}">Modifier le modèle</a>
+        </button>
         {% include "includes/_arrete_form.html" %}
     </div>
 {% endblock notification_content %}
