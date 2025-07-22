@@ -20,10 +20,23 @@
                 Documents de notification
             </h2>
             <div class="notification-btns">
-                <a href="{% url 'gsl_notification:modifier-arrete' programmation_projet.id %}"
-                   class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line">
-                    Générer un document
-                </a>
+                {% if programmation_projet.arrete %}
+                    <button class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line"
+                            disabled
+                            aria-describedby="tooltip-import-arrete">
+                        Générer un document
+                    </button>
+                    <span class="fr-tooltip fr-placement"
+                          id="tooltip-import-arrete"
+                          role="tooltip">
+                        Un arrêté a déjà été généré pour ce projet.
+                    </span>
+                {% else %}
+                    <a href="{% url 'gsl_notification:modifier-arrete' programmation_projet.id %}"
+                       class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line">
+                        Générer un document
+                    </a>
+                {% endif %}
                 {% if programmation_projet.arrete_signe %}
                     <button class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-upload-line"
                             disabled
