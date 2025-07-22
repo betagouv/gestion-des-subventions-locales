@@ -399,7 +399,13 @@ class ModeleArreteListView(ListView):
                         "name": obj.name,
                         "description": obj.description,
                         "actions": [
-                            {"label": "Modifier le modèle", "href": "#"},
+                            {
+                                "label": "Modifier le modèle",
+                                "href": reverse(
+                                    "gsl_notification:modele-arrete-modifier",
+                                    kwargs={"modele_arrete_id": obj.id},
+                                ),
+                            },
                             {
                                 "label": "Dupliquer le modèle",
                                 "href": reverse(
@@ -434,13 +440,16 @@ class CreateModelArreteWizard(SessionWizardView):
     )
 
     @method_decorator(csp_update({"style-src": [SELF, UNSAFE_INLINE]}))
-    def dispatch(self, request, dotation, *args, **kwargs):
+    def dispatch(
+        self, request, dotation: str, instanciate_new_modele=True, *args, **kwargs
+    ):
         if dotation not in DOTATIONS:
             return Http404("Dotation inconnue")
         perimetre = request.user.perimetre
-        self.instance = ModeleArrete(
-            dotation=dotation, perimetre=perimetre, created_by=request.user
-        )
+        if instanciate_new_modele:
+            self.instance = ModeleArrete(
+                dotation=dotation, perimetre=perimetre, created_by=request.user
+            )
         self.dotation = dotation
         response = super().dispatch(request, *args, **kwargs)
         return response
@@ -500,6 +509,84 @@ class CreateModelArreteWizard(SessionWizardView):
         return f"gsl_notification/modele_arrete/modelearrete_form_step_{self.steps.current}.html"
 
 
+class UpdateModeleArrete(CreateModelArreteWizard):
+    @method_decorator(csp_update({"style-src": [SELF, UNSAFE_INLINE]}))
+    def dispatch(self, request, modele_arrete_id, *args, **kwargs):
+        # TODO factorize this function too ?
+        self.instance = get_object_or_404(
+            ModeleArrete,
+            id=modele_arrete_id,
+        )
+        dotation = self.instance.dotation
+        self.possible_modele_perimetres = get_modele_perimetres(
+            dotation, request.user.perimetre
+        )
+        if self.instance.perimetre not in self.possible_modele_perimetres:
+            raise Http404("Modèle non existant")
+
+        self.dotation = dotation
+        response = super().dispatch(
+            request,
+            dotation=self.dotation,
+            instanciate_new_modele=False,
+            *args,
+            **kwargs,
+        )
+        return response
+
+    def get_form_initial(self, step):
+        # TODO factorize this function
+        if step == "0":
+            return self.initial_dict.get(
+                step,
+                {
+                    "name": self.instance.name,
+                    "description": self.instance.description,
+                },
+            )
+        if step == "1":
+            return self.initial_dict.get(
+                step,
+                {
+                    "logo": self.instance.logo,
+                    "logo_alt_text": self.instance.logo_alt_text,
+                    "top_right_text": self.instance.top_right_text,
+                },
+            )
+        if step == "2":
+            return self.initial_dict.get(
+                step,
+                {
+                    "content": self.instance.content,
+                },
+            )
+
+    def done(self, form_list, **kwargs):
+        # TODO factorize with a yield ??
+        instance: ModeleArrete = self.instance
+
+        for form in form_list:
+            for key, value in form.cleaned_data.items():
+                if key == "logo":
+                    # Si logo n'est pas un FieldFile alors, c'est un nouveau logo.
+                    # on veut alors supprimer l'ancien.
+                    if not isinstance(value, files.FieldFile):
+                        old_instance = ModeleArrete.objects.get(pk=instance.pk)
+                        old_file = old_instance.logo
+                        old_file.delete(save=False)
+
+                instance.__setattr__(key, value)
+
+        instance.save()
+
+        return HttpResponseRedirect(
+            reverse(
+                "gsl_notification:modele-arrete-liste",
+                kwargs={"dotation": self.dotation},
+            )
+        )
+
+
 class DuplicateModeleArete(CreateModelArreteWizard):
     @method_decorator(csp_update({"style-src": [SELF, UNSAFE_INLINE]}))
     def dispatch(self, request, modele_arrete_id, *args, **kwargs):
@@ -509,9 +596,7 @@ class DuplicateModeleArete(CreateModelArreteWizard):
             id=modele_arrete_id,
         )
         dotation = self.modele_duplicated.dotation
-        self.possible_modele_perimetres = get_modele_perimetres(
-            dotation, request.user.perimetre
-        )
+        self.possible_modele_perimetres = get_modele_perimetres(dotation, perimetre)
         if self.modele_duplicated.perimetre not in self.possible_modele_perimetres:
             raise Http404("Modèle non existant")
 
