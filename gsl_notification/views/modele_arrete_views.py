@@ -44,7 +44,7 @@ class ModeleArreteListView(ListView):
 
     def dispatch(self, request, dotation, *args, **kwargs):
         if dotation not in DOTATIONS:
-            return Http404("Dotation inconnue")
+            raise Http404("Dotation inconnue")
         self.perimetres = self.get_modele_perimetres(dotation, request.user.perimetre)
         self.dotation = dotation
         response = super().dispatch(request, *args, **kwargs)
@@ -110,7 +110,7 @@ class CreateModelArreteWizard(SessionWizardView):
         self, request, dotation: str, instanciate_new_modele=True, *args, **kwargs
     ):
         if dotation not in DOTATIONS:
-            return Http404("Dotation inconnue")
+            raise Http404("Dotation inconnue")
         perimetre = request.user.perimetre
         if instanciate_new_modele:
             self.instance = ModeleArrete(
@@ -237,7 +237,7 @@ class UpdateModeleArrete(CreateModelArreteWizard):
             dotation, request.user.perimetre
         )
         if self.instance.perimetre not in self.possible_modele_perimetres:
-            return Http404("Modèle non existant")
+            raise Http404("Modèle non existant")
 
         self.initial_instance = self.instance
         response = super().dispatch(
