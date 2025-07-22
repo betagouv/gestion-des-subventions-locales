@@ -262,7 +262,7 @@ class UpdateModeleArrete(CreateModelArreteWizard):
         )
 
 
-class DuplicateModeleArete(UpdateModeleArrete):
+class DuplicateModeleArrete(UpdateModeleArrete):
     @method_decorator(csp_update({"style-src": [SELF, UNSAFE_INLINE]}))
     def dispatch(self, request, modele_arrete_id, *args, **kwargs):
         response = super().dispatch(

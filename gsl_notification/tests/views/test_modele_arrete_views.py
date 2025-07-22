@@ -1,6 +1,7 @@
 import pytest
 from django.contrib.messages import get_messages
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db.models.fields.files import FieldFile
 from django.urls import reverse
 
 from gsl_core.tests.factories import (
@@ -43,7 +44,7 @@ def client(perimetre):
 pytestmark = pytest.mark.django_db
 
 
-### modele-arrete-create
+# CREATE
 
 
 def test_create_arrete_views(client):
@@ -100,31 +101,7 @@ def test_create_arrete_views(client):
 # UPDATE
 
 
-def test_update_modele_arrete_view_get_initial_data(client, perimetre):
-    """Test that the update view displays initial data correctly"""
-    modele_arrete = ModeleArreteFactory(
-        name="The Name",
-        description="The Description",
-        logo_alt_text="The Alt Text",
-        top_right_text="The Top Right",
-        content="<p>The Content</p>",
-        perimetre=perimetre,
-        dotation=DOTATION_DETR,
-    )
-    url = reverse(
-        "gsl_notification:modele-arrete-modifier",
-        kwargs={"modele_arrete_id": modele_arrete.id},
-    )
-
-    # Test step 0 (title and description)
-    response = client.get(url)
-    assert response.status_code == 200
-    assert response.context["form"]["name"].value() == "The Name"
-    assert response.context["form"]["description"].value() == "The Description"
-
-
 def test_update_modele_arrete_view_complete_workflow(client, perimetre):
-    """Test complete update workflow through all steps"""
     initial_logo = SimpleUploadedFile(
         "initial_logo.png", b"initial logo content", content_type="image/png"
     )
@@ -145,6 +122,12 @@ def test_update_modele_arrete_view_complete_workflow(client, perimetre):
         kwargs={"modele_arrete_id": modele_arrete.id},
     )
 
+    # Test step 0 (title and description)
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.context["form"]["name"].value() == "The Name"
+    assert response.context["form"]["description"].value() == "The Description"
+
     # Step 1: Update name and description
     data_step_1 = {
         "0-name": "Updated Name",
@@ -160,7 +143,7 @@ def test_update_modele_arrete_view_complete_workflow(client, perimetre):
     # Step 2: Update logo and header info
     data_step_2 = {
         "1-logo": SimpleUploadedFile(
-            "new_test.png", b"new content", content_type="image/png"
+            "new_logo.png", b"new content", content_type="image/png"
         ),
         "1-logo_alt_text": "Updated Alt Text",
         "1-top_right_text": "Updated Top Right<br>Text",
@@ -191,7 +174,7 @@ def test_update_modele_arrete_view_complete_workflow(client, perimetre):
     assert modele_arrete.top_right_text == "Updated Top Right<br>Text"
     assert modele_arrete.content == "<p>Updated HTML content</p>"
     assert modele_arrete.logo.name != initial_logo_name
-    assert modele_arrete.logo.name.startswith("new_test")
+    assert modele_arrete.logo.name.startswith("new_logo")
 
 
 def test_update_modele_arrete_view_wrong_perimetre(client):
@@ -220,7 +203,112 @@ def test_update_nonexistent_modele_arrete(client):
     assert response.status_code == 404
 
 
-### delete-modele-arrete
+# DUPLICATE
+
+
+def test_duplicate_modele_arrete_view_complete_workflow(client, perimetre):
+    initial_logo = SimpleUploadedFile(
+        "initial_logo.png", b"initial logo content", content_type="image/png"
+    )
+    initial_logo_name = initial_logo.name
+
+    initial_modele_arrete = ModeleArreteFactory(
+        name="The Name",
+        description="The Description",
+        logo=initial_logo,
+        logo_alt_text="The Alt Text",
+        top_right_text="The Top Right",
+        content="<p>The Content</p>",
+        perimetre=perimetre,
+        dotation=DOTATION_DETR,
+        created_by=CollegueFactory(perimetre=perimetre),
+    )
+    url = reverse(
+        "gsl_notification:modele-arrete-dupliquer",
+        kwargs={"modele_arrete_id": initial_modele_arrete.id},
+    )
+
+    # Step 1: Update name and description
+    data_step_1 = {
+        "0-name": "Updated Name",
+        "0-description": "Updated Description",
+        "duplicate_modele_arrete-current_step": 0,
+    }
+    response = client.post(url, data_step_1)
+    assert response.status_code == 200
+    assert not response.context["form"].errors
+    assert isinstance(response.context["form"]["logo"].value(), FieldFile)
+    assert response.context["form"]["logo"].value().name.startswith("initial_logo")
+    assert response.context["form"]["logo_alt_text"].value() == "The Alt Text"
+    assert response.context["form"]["top_right_text"].value() == "The Top Right"
+
+    # Step 2: Update logo and header info
+    data_step_2 = {
+        "1-logo": SimpleUploadedFile(
+            "new_logo.png", b"new content", content_type="image/png"
+        ),
+        "1-logo_alt_text": "Updated Alt Text",
+        "1-top_right_text": "Updated Top Right<br>Text",
+        "duplicate_modele_arrete-current_step": 1,
+    }
+    response = client.post(url, data_step_2)
+    assert response.status_code == 200
+    assert not response.context["form"].errors
+    assert response.context["form"]["content"].value() == "<p>The Content</p>"
+
+    # Step 3: Update content and complete
+    data_step_3 = {
+        "2-content": "<p>Updated HTML content</p>",
+        "duplicate_modele_arrete-current_step": 2,
+    }
+    response = client.post(url, data_step_3)
+    assert response.status_code == 302
+    assert response["Location"] == reverse(
+        "gsl_notification:modele-arrete-liste",
+        kwargs={"dotation": DOTATION_DETR},
+    )
+
+    # Verify the model was updated
+    new_modele = ModeleArrete.objects.last()
+    assert new_modele.name == "Updated Name"
+    assert new_modele.description == "Updated Description"
+    assert new_modele.logo_alt_text == "Updated Alt Text"
+    assert new_modele.top_right_text == "Updated Top Right<br>Text"
+    assert new_modele.content == "<p>Updated HTML content</p>"
+    assert new_modele.logo.name != initial_logo_name
+    assert new_modele.logo.name.startswith("new_logo")
+    assert new_modele.dotation == DOTATION_DETR
+    assert new_modele.perimetre == perimetre
+    assert new_modele.created_by == client.user
+
+
+def test_duplicate_modele_arrete_view_wrong_perimetre(client):
+    """Test that users cannot update models from different perimeters"""
+    different_perimetre = PerimetreDepartementalFactory()
+    modele_arrete = ModeleArreteFactory(
+        perimetre=different_perimetre, dotation=DOTATION_DETR
+    )
+    url = reverse(
+        "gsl_notification:modele-arrete-dupliquer",
+        kwargs={"modele_arrete_id": modele_arrete.id},
+    )
+
+    response = client.get(url)
+    assert response.status_code == 404
+
+
+def test_duplicate_nonexistent_modele_arrete(client):
+    """Test updating a non-existent model returns 404"""
+    url = reverse(
+        "gsl_notification:modele-arrete-dupliquer",
+        kwargs={"modele_arrete_id": 99999},
+    )
+
+    response = client.get(url)
+    assert response.status_code == 404
+
+
+# DELETE
 
 
 def test_delete_modele_arrete_with_correct_perimetre():
