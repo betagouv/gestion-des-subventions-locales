@@ -374,7 +374,6 @@ ul.no-list-style li {
 
 .projet__to_notify {
   margin-top: 4px;
-  color: var(--text-default-error);
   text-transform: uppercase;
   font-weight: 700;
   font-style: italic;
