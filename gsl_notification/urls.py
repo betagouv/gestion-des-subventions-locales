@@ -1,5 +1,8 @@
 from django.urls import path
 
+from gsl_notification.views.decorators import (
+    arrete_visible_by_user,
+)
 from gsl_notification.views.modele_arrete_views import (
     CreateModelArreteWizard,
     DuplicateModeleArrete,
@@ -44,7 +47,7 @@ urlpatterns = [
     ),
     path(
         "arrete/<int:arrete_id>/view/",
-        PrintView.as_view(),
+        arrete_visible_by_user(PrintView.as_view()),
         name="arrete-view",
     ),
     path(
