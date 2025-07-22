@@ -146,7 +146,7 @@ class CreateModelArreteWizard(SessionWizardView):
     def _set_success_message(self, instance):
         messages.success(
             self.request,
-            f"Le modèle d’arrêté “{instance.name}” a bien été créé",
+            f"Le modèle d’arrêté “{instance.name}” a bien été créé.",
         )
 
     def get_form_instance(self, step):
@@ -258,7 +258,7 @@ class UpdateModeleArrete(CreateModelArreteWizard):
     def _set_success_message(self, instance):
         messages.success(
             self.request,
-            f"Le modèle d’arrêté “{instance.name}” a bien été modifié",
+            f"Le modèle d’arrêté “{instance.name}” a bien été modifié.",
         )
 
 
