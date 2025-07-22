@@ -63,6 +63,18 @@ def test_arrete_signe_properties():
     assert arrete.programmation_projet == programmation_projet
 
 
+@pytest.mark.django_db
 def test_modele_arrete_properties():
-    # todo
-    pass
+    collegue = CollegueFactory()
+    file_content = {"key": "value"}
+    perimetre = collegue.perimetre
+    modele = ModeleArreteFactory(
+        created_by=collegue, content=file_content, perimetre=perimetre
+    )
+
+    assert str(modele) == f"Modèle d’arrêté {modele.id} - {modele.name}"
+    assert modele.content == file_content
+    assert modele.created_by == collegue
+    assert modele.created_at is not None
+    assert modele.updated_at is not None
+    assert modele.perimetre == perimetre

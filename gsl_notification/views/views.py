@@ -152,14 +152,11 @@ def select_modele(request, programmation_projet_id):
                 "actions": [
                     {
                         "label": "Sélectionner",
-                        "href": f"{
-                            reverse(
-                                'notification:modifier-arrete',
-                                kwargs={
-                                    'programmation_projet_id': programmation_projet.id
-                                },
-                            )
-                        }?modele_id={obj.id}",
+                        "href": reverse(
+                            "notification:modifier-arrete",
+                            kwargs={"programmation_projet_id": programmation_projet.id},
+                            query={"modele_id": obj.id},
+                        ),
                     },
                 ],
             }

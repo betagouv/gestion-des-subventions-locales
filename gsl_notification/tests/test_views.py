@@ -167,7 +167,9 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele():
         kwargs={"programmation_projet_id": programmation_projet.id},
     )
     response = client.get(url)
-    assert len(response.context["modeles_list"]) == 1
+    assert len(response.context["modeles_list"]) == 1, (
+        "Seul le modèle avec le bon périmètre doit être proposé"
+    )
     assert response.context["modeles_list"][0] == {
         "actions": [
             {
