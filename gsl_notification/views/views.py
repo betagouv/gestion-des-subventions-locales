@@ -460,8 +460,12 @@ class CreateModelArreteWizard(SessionWizardView):
         for form in form_list:
             for key, value in form.cleaned_data.items():
                 instance.__setattr__(key, value)
+                if key == "logo":
+                    self._handle_logo(instance, value)
 
         instance.save()
+
+        self._set_success_message(instance)
 
         return HttpResponseRedirect(
             reverse(
@@ -470,14 +474,58 @@ class CreateModelArreteWizard(SessionWizardView):
             )
         )
 
+    def _handle_logo(self, instance, logo):
+        pass
+
+    def _set_success_message(self, instance):
+        messages.success(
+            self.request,
+            f"Le modèle d’arrêté “{instance.name}” a bien été créé",
+        )
+
     def get_form_instance(self, step):
         return self.instance
 
-    def get_form_initial(self, step):
+    def get_form_initial(
+        self,
+        step,
+    ):
+        if not hasattr(self, "initial_instance"):
+            if step == "2":
+                return self.initial_dict.get(
+                    step,
+                    {
+                        "content": mark_safe(
+                            "<p>Écrivez ici le contenu de votre arrêté</p>"
+                        )
+                    },
+                )
+            return
+
+        # if there is an initial_instance
+        if step == "0":
+            return self.initial_dict.get(
+                step,
+                {
+                    "name": self.initial_instance.name,
+                    "description": self.initial_instance.description,
+                },
+            )
+        if step == "1":
+            return self.initial_dict.get(
+                step,
+                {
+                    "logo": self.initial_instance.logo,
+                    "logo_alt_text": self.initial_instance.logo_alt_text,
+                    "top_right_text": self.initial_instance.top_right_text,
+                },
+            )
         if step == "2":
             return self.initial_dict.get(
                 step,
-                {"content": mark_safe("<p>Écrivez ici le contenu de votre arrêté</p>")},
+                {
+                    "content": self.initial_instance.content,
+                },
             )
 
     def get_context_data(self, form, **kwargs):
@@ -511,8 +559,9 @@ class CreateModelArreteWizard(SessionWizardView):
 
 class UpdateModeleArrete(CreateModelArreteWizard):
     @method_decorator(csp_update({"style-src": [SELF, UNSAFE_INLINE]}))
-    def dispatch(self, request, modele_arrete_id, *args, **kwargs):
-        # TODO factorize this function too ?
+    def dispatch(
+        self, request, modele_arrete_id, instanciate_new_modele=False, *args, **kwargs
+    ):
         self.instance = get_object_or_404(
             ModeleArrete,
             id=modele_arrete_id,
@@ -522,139 +571,44 @@ class UpdateModeleArrete(CreateModelArreteWizard):
             dotation, request.user.perimetre
         )
         if self.instance.perimetre not in self.possible_modele_perimetres:
-            raise Http404("Modèle non existant")
+            return Http404("Modèle non existant")
 
-        self.dotation = dotation
+        self.initial_instance = self.instance
         response = super().dispatch(
             request,
-            dotation=self.dotation,
-            instanciate_new_modele=False,
+            dotation=dotation,
+            instanciate_new_modele=instanciate_new_modele,
             *args,
             **kwargs,
         )
         return response
 
-    def get_form_initial(self, step):
-        # TODO factorize this function
-        if step == "0":
-            return self.initial_dict.get(
-                step,
-                {
-                    "name": self.instance.name,
-                    "description": self.instance.description,
-                },
-            )
-        if step == "1":
-            return self.initial_dict.get(
-                step,
-                {
-                    "logo": self.instance.logo,
-                    "logo_alt_text": self.instance.logo_alt_text,
-                    "top_right_text": self.instance.top_right_text,
-                },
-            )
-        if step == "2":
-            return self.initial_dict.get(
-                step,
-                {
-                    "content": self.instance.content,
-                },
-            )
+    def _handle_logo(self, instance, logo):
+        if not isinstance(logo, files.FieldFile):
+            old_instance = ModeleArrete.objects.get(pk=instance.pk)
+            old_file = old_instance.logo
+            old_file.delete(save=False)
 
-    def done(self, form_list, **kwargs):
-        # TODO factorize with a yield ??
-        instance: ModeleArrete = self.instance
-
-        for form in form_list:
-            for key, value in form.cleaned_data.items():
-                if key == "logo":
-                    # Si logo n'est pas un FieldFile alors, c'est un nouveau logo.
-                    # on veut alors supprimer l'ancien.
-                    if not isinstance(value, files.FieldFile):
-                        old_instance = ModeleArrete.objects.get(pk=instance.pk)
-                        old_file = old_instance.logo
-                        old_file.delete(save=False)
-
-                instance.__setattr__(key, value)
-
-        instance.save()
-
-        return HttpResponseRedirect(
-            reverse(
-                "gsl_notification:modele-arrete-liste",
-                kwargs={"dotation": self.dotation},
-            )
+    def _set_success_message(self, instance):
+        messages.success(
+            self.request,
+            f"Le modèle d’arrêté “{instance.name}” a bien été modifié",
         )
 
 
-class DuplicateModeleArete(CreateModelArreteWizard):
+class DuplicateModeleArete(UpdateModeleArrete):
     @method_decorator(csp_update({"style-src": [SELF, UNSAFE_INLINE]}))
     def dispatch(self, request, modele_arrete_id, *args, **kwargs):
-        perimetre = request.user.perimetre
-        self.modele_duplicated = get_object_or_404(
-            ModeleArrete,
-            id=modele_arrete_id,
+        response = super().dispatch(
+            request, modele_arrete_id, instanciate_new_modele=True, *args, **kwargs
         )
-        dotation = self.modele_duplicated.dotation
-        self.possible_modele_perimetres = get_modele_perimetres(dotation, perimetre)
-        if self.modele_duplicated.perimetre not in self.possible_modele_perimetres:
-            raise Http404("Modèle non existant")
-
-        self.instance = ModeleArrete(
-            dotation=dotation, perimetre=perimetre, created_by=request.user
-        )
-        self.dotation = dotation
-        response = super().dispatch(request, dotation=self.dotation, *args, **kwargs)
         return response
 
-    def get_form_initial(self, step):
-        if step == "0":
-            return self.initial_dict.get(
-                step,
-                {
-                    "name": self.modele_duplicated.name,
-                    "description": self.modele_duplicated.description,
-                },
-            )
-        if step == "1":
-            return self.initial_dict.get(
-                step,
-                {
-                    "logo": self.modele_duplicated.logo,
-                    "logo_alt_text": self.modele_duplicated.logo_alt_text,
-                    "top_right_text": self.modele_duplicated.top_right_text,
-                },
-            )
-        if step == "2":
-            return self.initial_dict.get(
-                step,
-                {
-                    "content": self.modele_duplicated.content,
-                },
-            )
-
-    def done(self, form_list, **kwargs):
-        instance: ModeleArrete = self.instance
-
-        for form in form_list:
-            for key, value in form.cleaned_data.items():
-                instance.__setattr__(key, value)
-                if key == "logo":
-                    # Si logo est un FieldFile appartenant à l'instance dupliquée,
-                    # on veut créer une *copie*, pas juste pointer vers le même fichier.
-                    if isinstance(value, files.FieldFile):
-                        new_name, file_obj = duplicate_field_file(value)
-                        if file_obj:
-                            instance.logo.save(new_name, file_obj, save=False)
-
-        instance.save()
-
-        return HttpResponseRedirect(
-            reverse(
-                "gsl_notification:modele-arrete-liste",
-                kwargs={"dotation": self.dotation},
-            )
-        )
+    def _handle_logo(self, instance, logo):
+        if isinstance(logo, files.FieldFile):
+            new_name, file_obj = duplicate_field_file(logo)
+            if file_obj:
+                instance.logo.save(new_name, file_obj, save=False)
 
 
 @modele_arrete_visible_by_user
