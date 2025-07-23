@@ -1,14 +1,17 @@
 from django.urls import path
 
-from gsl_notification.views.views import (
+from gsl_notification.views.modele_arrete_views import (
     CreateModelArreteWizard,
-    DuplicateModeleArete,
+    DuplicateModeleArrete,
     ModeleArreteListView,
+    UpdateModeleArrete,
+    delete_modele_arrete_view,
+)
+from gsl_notification.views.views import (
     change_arrete_view,
     create_arrete_signe_view,
     delete_arrete_signe_view,
     delete_arrete_view,
-    delete_modele_arrete_view,
     documents_view,
     download_arrete,
     download_arrete_signe,
@@ -70,8 +73,13 @@ urlpatterns = [
         name="modele-arrete-creer",
     ),
     path(
+        "modeles/modifier/<str:modele_arrete_id>/",
+        UpdateModeleArrete.as_view(),
+        name="modele-arrete-modifier",
+    ),
+    path(
         "modeles/dupliquer/<str:modele_arrete_id>/",
-        DuplicateModeleArete.as_view(),
+        DuplicateModeleArrete.as_view(),
         name="modele-arrete-dupliquer",
     ),
     path(

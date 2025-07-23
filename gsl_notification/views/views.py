@@ -1,36 +1,21 @@
-import os
-
 import boto3
 from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
-from django.contrib import messages
-from django.core.files.storage import FileSystemStorage
-from django.db.models import ProtectedError
-from django.db.models.fields import files
-from django.http import Http404, HttpResponseRedirect, StreamingHttpResponse
+from django.http import Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
 from django.urls import reverse
-from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_http_methods
-from django.views.generic import ListView
 from django_weasyprint.views import WeasyTemplateResponse
-from formtools.wizard.views import SessionWizardView
 
 from gsl import settings
-from gsl_core.models import Perimetre
 from gsl_notification.forms import (
     ArreteForm,
     ArreteSigneForm,
-    ModeleArreteStepOneForm,
-    ModeleArreteStepThreeForm,
-    ModeleArreteStepTwoForm,
 )
 from gsl_notification.models import Arrete, ArreteSigne, ModeleArrete
 from gsl_notification.utils import (
-    MENTION_TO_ATTRIBUTES,
-    duplicate_field_file,
     get_modele_perimetres,
     replace_mentions_in_html,
     update_file_name_to_put_it_in_a_programmation_projet_folder,
@@ -38,11 +23,9 @@ from gsl_notification.utils import (
 from gsl_notification.views.decorators import (
     arrete_signe_visible_by_user,
     arrete_visible_by_user,
-    modele_arrete_visible_by_user,
     programmation_projet_visible_by_user,
 )
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import DOTATIONS
 
 # Views for listing notification documents on a programmationProjet, -------------------
 # in various contexts
@@ -362,238 +345,4 @@ def _enrich_context_for_create_or_get_arrete_view(
             "dossier": programmation_projet.projet.dossier_ds,
             "current_tab": "notifications",
         }
-    )
-
-
-# Create new ModeleArrete --------------------------------------------------------------
-
-
-class ModeleArreteListView(ListView):
-    template_name = "gsl_notification/modele_arrete/list.html"
-
-    def get_queryset(self):
-        return ModeleArrete.objects.filter(
-            dotation=self.dotation, perimetre__in=self.perimetres
-        )
-
-    def dispatch(self, request, dotation, *args, **kwargs):
-        if dotation not in DOTATIONS:
-            return Http404("Dotation inconnue")
-        self.perimetres = self.get_modele_perimetres(dotation, request.user.perimetre)
-        self.dotation = dotation
-        response = super().dispatch(request, *args, **kwargs)
-        return response
-
-    def get_modele_perimetres(self, dotation, user_perimetre) -> list[Perimetre]:
-        return get_modele_perimetres(dotation, user_perimetre)
-
-    def get_context_data(self, *, object_list=None, **kwargs):
-        context = super().get_context_data(object_list=object_list, **kwargs)
-        context.update(
-            {
-                "dotation": self.dotation,
-                "current_tab": self.dotation,
-                "modeles_list": [
-                    {
-                        "id": obj.id,
-                        "name": obj.name,
-                        "description": obj.description,
-                        "actions": [
-                            {"label": "Modifier le modèle", "href": "#"},
-                            {
-                                "label": "Dupliquer le modèle",
-                                "href": reverse(
-                                    "gsl_notification:modele-arrete-dupliquer",
-                                    kwargs={"modele_arrete_id": obj.id},
-                                ),
-                                "class": "fr-btn--secondary",
-                            },
-                            {
-                                "label": "Supprimer",
-                                "class": "fr-btn--tertiary",
-                                "aria_controls": "delete-modele-arrete",
-                            },
-                        ],
-                    }
-                    for obj in self.object_list
-                ],
-            }
-        )
-        return context
-
-
-class CreateModelArreteWizard(SessionWizardView):
-    form_list = (
-        ModeleArreteStepOneForm,
-        ModeleArreteStepTwoForm,
-        ModeleArreteStepThreeForm,
-    )
-    # Temporary storage
-    file_storage = FileSystemStorage(
-        location=os.path.join(settings.MEDIA_ROOT, "logos_modeles_arretes")
-    )
-
-    @method_decorator(csp_update({"style-src": [SELF, UNSAFE_INLINE]}))
-    def dispatch(self, request, dotation, *args, **kwargs):
-        if dotation not in DOTATIONS:
-            return Http404("Dotation inconnue")
-        perimetre = request.user.perimetre
-        self.instance = ModeleArrete(
-            dotation=dotation, perimetre=perimetre, created_by=request.user
-        )
-        self.dotation = dotation
-        response = super().dispatch(request, *args, **kwargs)
-        return response
-
-    def done(self, form_list, **kwargs):
-        instance: ModeleArrete = self.instance
-
-        for form in form_list:
-            for key, value in form.cleaned_data.items():
-                instance.__setattr__(key, value)
-
-        instance.save()
-
-        return HttpResponseRedirect(
-            reverse(
-                "gsl_notification:modele-arrete-liste",
-                kwargs={"dotation": self.dotation},
-            )
-        )
-
-    def get_form_instance(self, step):
-        return self.instance
-
-    def get_form_initial(self, step):
-        if step == "2":
-            return self.initial_dict.get(
-                step,
-                {"content": mark_safe("<p>Écrivez ici le contenu de votre arrêté</p>")},
-            )
-
-    def get_context_data(self, form, **kwargs):
-        context = super().get_context_data(form=form, **kwargs)
-        context.update(
-            {
-                "dotation": self.dotation,
-                "current_tab": self.dotation,
-            }
-        )
-        step_titles = {
-            "0": "Titre du modèle",
-            "1": "En-tête du modèle",
-            "2": "Contenu de l’arrêté pour le publipostage",
-        }
-        context.update(
-            {
-                "step_title": step_titles.get(self.steps.current, ""),
-                "next_step_title": step_titles.get(self.steps.next, ""),
-                "mention_items": [
-                    {"id": id, "label": MENTION_TO_ATTRIBUTES[id]["label"]}
-                    for id in MENTION_TO_ATTRIBUTES.keys()
-                ],
-            }
-        )
-        return context
-
-    def get_template_names(self):
-        return f"gsl_notification/modele_arrete/modelearrete_form_step_{self.steps.current}.html"
-
-
-class DuplicateModeleArete(CreateModelArreteWizard):
-    @method_decorator(csp_update({"style-src": [SELF, UNSAFE_INLINE]}))
-    def dispatch(self, request, modele_arrete_id, *args, **kwargs):
-        perimetre = request.user.perimetre
-        self.modele_duplicated = get_object_or_404(
-            ModeleArrete,
-            id=modele_arrete_id,
-        )
-        dotation = self.modele_duplicated.dotation
-        self.possible_modele_perimetres = get_modele_perimetres(
-            dotation, request.user.perimetre
-        )
-        if self.modele_duplicated.perimetre not in self.possible_modele_perimetres:
-            raise Http404("Modèle non existant")
-
-        self.instance = ModeleArrete(
-            dotation=dotation, perimetre=perimetre, created_by=request.user
-        )
-        self.dotation = dotation
-        response = super().dispatch(request, dotation=self.dotation, *args, **kwargs)
-        return response
-
-    def get_form_initial(self, step):
-        if step == "0":
-            return self.initial_dict.get(
-                step,
-                {
-                    "name": self.modele_duplicated.name,
-                    "description": self.modele_duplicated.description,
-                },
-            )
-        if step == "1":
-            return self.initial_dict.get(
-                step,
-                {
-                    "logo": self.modele_duplicated.logo,
-                    "logo_alt_text": self.modele_duplicated.logo_alt_text,
-                    "top_right_text": self.modele_duplicated.top_right_text,
-                },
-            )
-        if step == "2":
-            return self.initial_dict.get(
-                step,
-                {
-                    "content": self.modele_duplicated.content,
-                },
-            )
-
-    def done(self, form_list, **kwargs):
-        instance: ModeleArrete = self.instance
-
-        for form in form_list:
-            for key, value in form.cleaned_data.items():
-                instance.__setattr__(key, value)
-                if key == "logo":
-                    # Si logo est un FieldFile appartenant à l'instance dupliquée,
-                    # on veut créer une *copie*, pas juste pointer vers le même fichier.
-                    if isinstance(value, files.FieldFile):
-                        new_name, file_obj = duplicate_field_file(value)
-                        if file_obj:
-                            instance.logo.save(new_name, file_obj, save=False)
-
-        instance.save()
-
-        return HttpResponseRedirect(
-            reverse(
-                "gsl_notification:modele-arrete-liste",
-                kwargs={"dotation": self.dotation},
-            )
-        )
-
-
-@modele_arrete_visible_by_user
-@require_http_methods(["POST"])
-def delete_modele_arrete_view(request, modele_arrete_id):
-    modele_arrete = get_object_or_404(ModeleArrete, id=modele_arrete_id)
-    dotation = modele_arrete.dotation
-    name = modele_arrete.name
-
-    try:
-        modele_arrete.delete()
-        messages.info(
-            request,
-            f"Le modèle d’arrêté “{name}” a été supprimé.",
-            extra_tags="delete-modele-arrete",
-        )
-
-    except ProtectedError:
-        messages.error(
-            request,
-            f"Le modèle n'a pas été supprimé car il est utilisé par {modele_arrete.arrete_set.count()} arrêté(s).",
-            extra_tags="alert",
-        )
-
-    return redirect(
-        reverse("gsl_notification:modele-arrete-liste", kwargs={"dotation": dotation})
     )
