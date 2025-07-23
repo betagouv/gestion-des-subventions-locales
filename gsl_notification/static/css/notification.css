@@ -54,6 +54,7 @@
 .arrete-card__image-container:hover .show-on-hover {
   display: flex;
 }
+.arrete-card >div,
 .arrete-card .fr-enlarge-link{
   max-width: 100%;
 }
