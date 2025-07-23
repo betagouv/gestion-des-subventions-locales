@@ -2,15 +2,12 @@ from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
 from django.http import Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_http_methods
 from django.views.generic import DetailView
 from django_weasyprint import WeasyTemplateResponseMixin
-from django_weasyprint.views import WeasyTemplateResponse
 
-from gsl import settings
 from gsl_notification.forms import (
     ArreteForm,
     ArreteSigneForm,
@@ -317,27 +314,7 @@ def delete_arrete_signe_view(request, arrete_signe_id):
 # View and Download views -----------------------------------------------------------------------
 
 
-@arrete_visible_by_user
-@require_GET
-def download_arrete(request, arrete_id):
-    arrete = get_object_or_404(Arrete, id=arrete_id)
-    context = {"content": mark_safe(arrete.content)}
-    if settings.DEBUG and request.GET.get("debug", False):
-        return TemplateResponse(
-            template="gsl_notification/pdf/arrete.html",
-            context=context,
-            request=request,
-        )
-
-    return WeasyTemplateResponse(
-        template="gsl_notification/pdf/arrete.html",
-        context=context,
-        request=request,
-        filename=f"arrete-{arrete.id}.pdf",
-    )
-
-
-class PrintView(WeasyTemplateResponseMixin, DetailView):
+class PrintArreteView(WeasyTemplateResponseMixin, DetailView):
     model = Arrete
     template_name = "gsl_notification/pdf/arrete.html"
     pk_url_kwarg = "arrete_id"
@@ -345,10 +322,17 @@ class PrintView(WeasyTemplateResponseMixin, DetailView):
     # show pdf in-line (default: True, show download dialog)
     pdf_attachment = False
 
+    def get_pdf_filename(self):
+        return self.get_object().name
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["content"] = mark_safe(self.get_object().content)
         return context
+
+
+class DownloadArreteView(PrintArreteView):
+    pdf_attachment = True
 
 
 @arrete_signe_visible_by_user
