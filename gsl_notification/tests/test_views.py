@@ -721,7 +721,7 @@ def test_delete_modele_arrete_with_correct_perimetre():
     assert len(messages) == 1
     message = list(messages)[0]
     assert message.level == 20
-    assert message.message == "Le modèle d’arrêté “Mon modèle” a été supprimé"
+    assert message.message == "Le modèle d’arrêté “Mon modèle” a été supprimé."
 
 
 def test_delete_modele_arrete_with_modele_used_by_an_arrete():
@@ -749,7 +749,7 @@ def test_delete_modele_arrete_with_modele_used_by_an_arrete():
     assert message.level == 40
     assert (
         message.message
-        == "Le modèle n'a pas été supprimé car il est utilisé par 1 arrêté(s)"
+        == "Le modèle n'a pas été supprimé car il est utilisé par 1 arrêté(s)."
     )
     assert message.extra_tags == "alert"
 

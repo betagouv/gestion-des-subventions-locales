@@ -502,14 +502,14 @@ def delete_modele_arrete_view(request, modele_arrete_id):
         modele_arrete.delete()
         messages.info(
             request,
-            f"Le modèle d’arrêté “{name}” a été supprimé",
+            f"Le modèle d’arrêté “{name}” a été supprimé.",
             extra_tags="delete-modele-arrete",
         )
 
     except ProtectedError:
         messages.error(
             request,
-            f"Le modèle n'a pas été supprimé car il est utilisé par {modele_arrete.arrete_set.count()} arrêté(s)",
+            f"Le modèle n'a pas été supprimé car il est utilisé par {modele_arrete.arrete_set.count()} arrêté(s).",
             extra_tags="alert",
         )
 
