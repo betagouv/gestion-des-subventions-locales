@@ -9,6 +9,7 @@ from django.http import Http404
 from gsl import settings
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
+from gsl_notification.models import Arrete, ArreteSigne
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import DOTATION_DETR, POSSIBLE_DOTATIONS
 
@@ -156,3 +157,15 @@ def get_s3_object(file_name):
         return s3.get_object(Bucket=bucket, Key=file_name)
     except s3.exceptions.NoSuchKey:
         raise Http404("Fichier non trouvé")
+
+
+def return_document_as_a_dict(document: Arrete | ArreteSigne):
+    return {
+        "name": document.name,
+        "type": document.type,
+        "size": document.size,
+        "created_at": document.created_at,
+        "created_by": document.created_by,
+        "get_view_url": document.get_view_url,
+        "get_download_url": document.get_download_url,
+    }

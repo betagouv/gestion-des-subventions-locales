@@ -18,11 +18,11 @@
                     {% for action in document.actions %}
                         <li>
                             {% if action.name == "delete" %}
-                                <form method="post" id="delete-arrete-signe" action="{{ action.action }}">
+                                <form method="post" id="{{ action.form_id }}" action="{{ action.action }}">
                                     {% csrf_token %}
                                     <button type="button"
                                             class="fr-btn fr-btn--secondary arrete-card__action"
-                                            aria-controls="delete-arrete-signe-confirmation-modal"
+                                            aria-controls="{{ action.aria_controls }}"
                                             data-fr-opened="false">
                                         {{ action.label }}
                                     </button>

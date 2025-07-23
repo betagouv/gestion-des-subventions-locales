@@ -20,6 +20,7 @@ from gsl_notification.utils import (
     get_modele_perimetres,
     get_s3_object,
     replace_mentions_in_html,
+    return_document_as_a_dict,
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
 from gsl_notification.views.decorators import (
@@ -48,13 +49,7 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
         )
         documents.append(
             {
-                "name": arrete.name,
-                "type": arrete.type,
-                "size": arrete.size,
-                "created_at": arrete.created_at,
-                "created_by": arrete.created_by,
-                "get_view_url": arrete.get_view_url,
-                "get_download_url": arrete.get_download_url,
+                **return_document_as_a_dict(arrete),
                 "tag": "Créé sur Turgot",
                 "actions": [
                     {
@@ -68,7 +63,11 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
                     {
                         "name": "delete",
                         "label": "Supprimer",
-                        "href": reverse("notification:delete-arrete", args=[arrete.id]),
+                        "form_id": "delete-arrete",
+                        "aria_controls": "delete-arrete-confirmation-modal",
+                        "action": reverse(
+                            "notification:delete-arrete", args=[arrete.id]
+                        ),
                     },
                 ],
             }
@@ -83,20 +82,15 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
         )
         documents.append(
             {
-                # **arrete_signe,
-                "name": arrete_signe.name,
-                "type": arrete_signe.type,
-                "size": arrete_signe.size,
-                "created_at": arrete_signe.created_at,
-                "created_by": arrete_signe.created_by,
-                "get_view_url": arrete_signe.get_view_url,
-                "get_download_url": arrete_signe.get_download_url,
+                **return_document_as_a_dict(arrete_signe),
                 "tag": "Fichier importé",
                 "actions": [
                     {
                         "name": "delete",
                         "label": "Supprimer",
-                        "href": reverse(
+                        "form_id": "delete-arrete-signe",
+                        "aria_controls": "delete-arrete-signe-confirmation-modal",
+                        "action": reverse(
                             "notification:delete-arrete-signe", args=[arrete_signe.id]
                         ),
                     },
