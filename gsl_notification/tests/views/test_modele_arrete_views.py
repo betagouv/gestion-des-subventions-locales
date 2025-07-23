@@ -174,7 +174,7 @@ def test_update_modele_arrete_view_complete_workflow(client, perimetre):
     assert modele_arrete.top_right_text == "Updated Top Right<br>Text"
     assert modele_arrete.content == "<p>Updated HTML content</p>"
     assert modele_arrete.logo.name != initial_logo_name
-    assert modele_arrete.logo.name.startswith("new_logo")
+    assert "new_logo" in modele_arrete.logo.name
 
 
 def test_update_modele_arrete_view_wrong_perimetre(client):
@@ -238,7 +238,7 @@ def test_duplicate_modele_arrete_view_complete_workflow(client, perimetre):
     assert response.status_code == 200
     assert not response.context["form"].errors
     assert isinstance(response.context["form"]["logo"].value(), FieldFile)
-    assert response.context["form"]["logo"].value().name.startswith("initial_logo")
+    assert "initial_logo" in response.context["form"]["logo"].value().name
     assert response.context["form"]["logo_alt_text"].value() == "The Alt Text"
     assert response.context["form"]["top_right_text"].value() == "The Top Right"
 
@@ -275,8 +275,8 @@ def test_duplicate_modele_arrete_view_complete_workflow(client, perimetre):
     assert new_modele.logo_alt_text == "Updated Alt Text"
     assert new_modele.top_right_text == "Updated Top Right<br>Text"
     assert new_modele.content == "<p>Updated HTML content</p>"
-    assert new_modele.logo.name != initial_logo_name
-    assert new_modele.logo.name.startswith("new_logo")
+    assert initial_logo_name not in new_modele.logo.name
+    assert "new_logo" in new_modele.logo.name
     assert new_modele.dotation == DOTATION_DETR
     assert new_modele.perimetre == perimetre
     assert new_modele.created_by == client.user

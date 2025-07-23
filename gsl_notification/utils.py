@@ -120,7 +120,7 @@ def get_modele_perimetres(
         return [perimetre]
 
 
-def duplicate_field_file(field_file: FieldFile, suffix="_copy"):
+def duplicate_field_file(field_file: FieldFile):
     """
     Retourne (nouveau_nom, file_obj)
     Copie le contenu du fichier stocké derrière `field_file`.
@@ -130,9 +130,15 @@ def duplicate_field_file(field_file: FieldFile, suffix="_copy"):
 
     base_name = os.path.basename(field_file.name)
     root, ext = os.path.splitext(base_name)
-    new_name = f"{root}{suffix}{ext}"
 
-    # Ou copie efficace sans tout lire en mémoire (streaming)
+    # remove token (underscore + 11 random characters at the end):
+    # a new one will be added (see tokenized_file_in_timestamped_folder)
+    root_without_token = root[:-12]
+    root = root_without_token if root_without_token else root
+
+    new_name = f"{root}{ext}"
+
+    # Copie efficace sans tout lire en mémoire (streaming)
     storage = field_file.storage
     with storage.open(field_file.name, "rb") as src:
         # File() wrappe le descripteur ouvert pour Django

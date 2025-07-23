@@ -1,8 +1,18 @@
+import os
+from secrets import token_urlsafe
+
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 
 from gsl_core.models import Collegue, Perimetre
 from gsl_projet.constants import DOTATION_CHOICES
+
+
+def tokenized_file_in_timestamped_folder(_, filename):
+    base_filename, extension = os.path.splitext(filename)
+    time_path = timezone.now().strftime("%Y/%m/%d")
+    return f"modeles_logos/{time_path}/{base_filename}_{token_urlsafe(8)}{extension}"
 
 
 class ModeleArrete(models.Model):
@@ -26,6 +36,7 @@ class ModeleArrete(models.Model):
     logo = models.FileField(
         verbose_name="Logo situé en haut à gauche",
         help_text="Taille maximale : 20 Mo. Formats acceptés : jpg, png.",
+        upload_to=tokenized_file_in_timestamped_folder,
     )
     logo_alt_text = models.CharField(
         verbose_name="Texte alternatif du logo",
