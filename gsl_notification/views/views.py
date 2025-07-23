@@ -1,6 +1,6 @@
 from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
-from django.http import FileResponse, Http404, StreamingHttpResponse
+from django.http import Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
 from django.urls import reverse
@@ -33,29 +33,75 @@ from gsl_programmation.models import ProgrammationProjet
 # in various contexts
 
 
-def _generic_documents_view(
-    request, programmation_projet_id, source_url, template, context
-):
+def _generic_documents_view(request, programmation_projet_id, source_url, context):
     programmation_projet = get_object_or_404(
         ProgrammationProjet,
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
+    documents = []
 
     try:
         arrete = programmation_projet.arrete
-        context["arrete"] = programmation_projet.arrete
         context["arrete_modal_title"] = (
             f"Suppression de l'arrêté {arrete.name} créé avec Turgot"
+        )
+        documents.append(
+            {
+                "name": arrete.name,
+                "type": arrete.type,
+                "size": arrete.size,
+                "created_at": arrete.created_at,
+                "created_by": arrete.created_by,
+                "get_view_url": arrete.get_view_url,
+                "get_download_url": arrete.get_download_url,
+                "tag": "Créé sur Turgot",
+                "actions": [
+                    {
+                        "name": "update",
+                        "label": "Modifier",
+                        "href": reverse(
+                            "notification:modifier-arrete",
+                            args=[programmation_projet.id],
+                        ),
+                    },
+                    {
+                        "name": "delete",
+                        "label": "Supprimer",
+                        "href": reverse("notification:delete-arrete", args=[arrete.id]),
+                    },
+                ],
+            }
         )
     except Arrete.DoesNotExist:
         pass
 
     try:
         arrete_signe = programmation_projet.arrete_signe
-        context["arrete_signe"] = arrete_signe
         context["arrete_signe_modal_title"] = (
             f"Suppression de l'arrêté {arrete_signe.name} créé par {arrete_signe.created_by}"
+        )
+        documents.append(
+            {
+                # **arrete_signe,
+                "name": arrete_signe.name,
+                "type": arrete_signe.type,
+                "size": arrete_signe.size,
+                "created_at": arrete_signe.created_at,
+                "created_by": arrete_signe.created_by,
+                "get_view_url": arrete_signe.get_view_url,
+                "get_download_url": arrete_signe.get_download_url,
+                "tag": "Fichier importé",
+                "actions": [
+                    {
+                        "name": "delete",
+                        "label": "Supprimer",
+                        "href": reverse(
+                            "notification:delete-arrete-signe", args=[arrete_signe.id]
+                        ),
+                    },
+                ],
+            }
         )
 
     except ArreteSigne.DoesNotExist:
@@ -66,12 +112,13 @@ def _generic_documents_view(
             "programmation_projet_id": programmation_projet.id,
             "source_url": source_url,
             "dossier": programmation_projet.projet.dossier_ds,
+            "documents": documents,
         }
     )
 
     return render(
         request,
-        template,
+        "gsl_notification/tab_simulation_projet/tab_notifications.html",
         context=context,
     )
 
@@ -110,7 +157,6 @@ def documents_view(request, programmation_projet_id):
         request,
         programmation_projet_id,
         programmation_projet.get_absolute_url(),
-        "gsl_notification/tab_simulation_projet/tab_notifications.html",
         context,
     )
 
@@ -313,7 +359,7 @@ class PrintView(WeasyTemplateResponseMixin, DetailView):
 
 @arrete_signe_visible_by_user
 @require_GET
-def download_arrete_signe(request, arrete_signe_id):
+def download_arrete_signe(request, arrete_signe_id, download=True):
     arrete = get_object_or_404(ArreteSigne, id=arrete_signe_id)
     s3_object = get_s3_object(arrete.file.name)
 
@@ -322,7 +368,7 @@ def download_arrete_signe(request, arrete_signe_id):
         content_type=s3_object["ContentType"],
     )
     response["Content-Disposition"] = (
-        f'attachment; filename="{arrete.file.name.split("/")[-1]}"'
+        f'{"attachment" if download else "inline"}; filename="{arrete.file.name.split("/")[-1]}"'
     )
     return response
 
@@ -330,10 +376,7 @@ def download_arrete_signe(request, arrete_signe_id):
 @arrete_signe_visible_by_user
 @require_GET
 def view_arrete_signe(request, arrete_signe_id):
-    arrete = get_object_or_404(ArreteSigne, id=arrete_signe_id)
-    s3_object = get_s3_object(arrete.file.name)
-
-    return FileResponse(open(s3_object.path, "rb"), content_type="application/pdf")
+    return download_arrete_signe(request, arrete_signe_id, False)
 
 
 # utils --------------------------------------------------------------------------------

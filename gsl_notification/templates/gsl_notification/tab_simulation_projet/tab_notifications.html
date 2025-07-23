@@ -62,17 +62,13 @@
                 </button>
             </div>
             <ul class="arrete-list">
-                {% if arrete %}
-                    {% include "includes/_arrete_card.html" %}
-                {% endif %}
-                {% if arrete_signe %}
-                    {% include "includes/_arrete_signe_card.html" %}
-                {% endif %}
-                {% if not arrete and not arrete_signe %}
+                {% for document in documents %}
+                    {% include "includes/_document_card.html" %}
+                {% empty %}
                     <li class="empty-list">
                         Il n’y a pas de document pour le moment.
                     </li>
-                {% endif %}
+                {% endfor %}
             </ul>
         </div>
 

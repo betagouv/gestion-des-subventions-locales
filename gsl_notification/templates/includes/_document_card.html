@@ -1,0 +1,63 @@
+{% load static %}
+<li class="arrete-card fr-mt-4w">
+    <div class="arrete-card__header">
+        <span class="fr-tag">
+            {{ document.tag }}
+        </span>
+
+        <div class="gsl-dropdown">
+            <button class="fr-btn fr-btn--tertiary fr-btn--icon-only fr-icon-more-fill arrete-card__actions-button"
+                    data-fr-opened="false"
+                    aria-controls="document-menu-arrete-signe"
+                    aria-expanded="false"
+                    title="Actions du document">
+            </button>
+            <div class="gsl-dropdown-content arrete-card__actions"
+                 id="document-menu-arrete-signe">
+                <ul class="no-list-style fr-m-0">
+                    {% for action in document.actions %}
+                        <li>
+                            {% if action.name == "delete" %}
+                                <form method="post" id="delete-arrete-signe" action="{{ action.action }}">
+                                    {% csrf_token %}
+                                    <button type="button"
+                                            class="fr-btn fr-btn--secondary arrete-card__action"
+                                            aria-controls="delete-arrete-signe-confirmation-modal"
+                                            data-fr-opened="false">
+                                        {{ action.label }}
+                                    </button>
+                                </form>
+                            {% else %}
+                                <a href="{{ action.href }}"
+                                   class="fr-btn fr-btn--secondary arrete-card__action">
+                                    {{ action.label }}
+                                </a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div>
+        <div class="fr-enlarge-link">
+            <a href="{{ document.get_view_url }}"
+               class="arrete-card__image-container">
+                <img class="arrete-card__image"
+                     src="{% static 'img/arrete_vignette.png' %}"
+                     alt="Image d'un arrêté">
+                <span class="show-on-hover fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-eye-line">Visualiser</span>
+            </a>
+        </div>
+        <a class="fr-link fr-link--download"
+           href="{{ document.get_download_url }}">
+            {{ document.name }} -
+            {{ document.type|upper }} -
+            {{ document.size|filesizeformat }}
+        </a>
+    </div>
+    <div>
+        Ajouté le {{ document.created_at|date:"d/m/Y" }} à {{ document.created_at|time:"H:i" }}
+        par {{ document.created_by }}
+    </div>
+</li>
