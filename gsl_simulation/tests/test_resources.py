@@ -1,6 +1,7 @@
-from datetime import date, datetime
+from datetime import UTC, date
 
 import pytest
+from django.utils import timezone
 
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
@@ -79,7 +80,7 @@ def test_detr_meta_fields():
 @pytest.fixture
 def projet():
     dossier_ds = DossierFactory(
-        ds_date_depot=datetime(2024, 12, 1),
+        ds_date_depot=timezone.datetime(2024, 12, 1, 17, 45, tzinfo=UTC),
         ds_number=12345678,
         projet_intitule="Intitulé",
         porteur_de_projet_nom="Jean-Marc",
