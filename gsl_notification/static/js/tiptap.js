@@ -163,7 +163,7 @@ const editor = new Editor({
   element: document.querySelector("#editor"),
   extensions: EXTENSIONS,
   onCreate({ editor }) {
-    editor.commands.setContent(document.getElementById("initial_content").innerHTML);
+    editor.commands.setContent(document.querySelector('input[name="'+CONTENT_FIELD_NAME+'"]').value);
     document.querySelector('input[name="'+CONTENT_FIELD_NAME+'"]').value = editor.getHTML();
   },
   onUpdate({ editor }) {

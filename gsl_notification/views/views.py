@@ -6,6 +6,7 @@ from csp.decorators import csp_update
 from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
 from django.db.models import ProtectedError
+from django.db.models.fields import files
 from django.http import Http404, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
@@ -29,6 +30,7 @@ from gsl_notification.forms import (
 from gsl_notification.models import Arrete, ArreteSigne, ModeleArrete
 from gsl_notification.utils import (
     MENTION_TO_ATTRIBUTES,
+    duplicate_field_file,
     get_modele_perimetres,
     replace_mentions_in_html,
     update_file_name_to_put_it_in_a_programmation_projet_folder,
@@ -400,7 +402,10 @@ class ModeleArreteListView(ListView):
                             {"label": "Modifier le modèle", "href": "#"},
                             {
                                 "label": "Dupliquer le modèle",
-                                "href": "#",
+                                "href": reverse(
+                                    "gsl_notification:modele-arrete-dupliquer",
+                                    kwargs={"modele_arrete_id": obj.id},
+                                ),
                                 "class": "fr-btn--secondary",
                             },
                             {
@@ -432,16 +437,13 @@ class CreateModelArreteWizard(SessionWizardView):
     def dispatch(self, request, dotation, *args, **kwargs):
         if dotation not in DOTATIONS:
             return Http404("Dotation inconnue")
-        perimetre = self.get_modele_perimetre(dotation, request.user.perimetre)
+        perimetre = request.user.perimetre
         self.instance = ModeleArrete(
             dotation=dotation, perimetre=perimetre, created_by=request.user
         )
         self.dotation = dotation
         response = super().dispatch(request, *args, **kwargs)
         return response
-
-    def get_modele_perimetre(self, dotation, user_perimetre):
-        return user_perimetre
 
     def done(self, form_list, **kwargs):
         instance: ModeleArrete = self.instance
@@ -461,6 +463,13 @@ class CreateModelArreteWizard(SessionWizardView):
 
     def get_form_instance(self, step):
         return self.instance
+
+    def get_form_initial(self, step):
+        if step == "2":
+            return self.initial_dict.get(
+                step,
+                {"content": mark_safe("<p>Écrivez ici le contenu de votre arrêté</p>")},
+            )
 
     def get_context_data(self, form, **kwargs):
         context = super().get_context_data(form=form, **kwargs)
@@ -489,6 +498,78 @@ class CreateModelArreteWizard(SessionWizardView):
 
     def get_template_names(self):
         return f"gsl_notification/modele_arrete/modelearrete_form_step_{self.steps.current}.html"
+
+
+class DuplicateModeleArete(CreateModelArreteWizard):
+    @method_decorator(csp_update({"style-src": [SELF, UNSAFE_INLINE]}))
+    def dispatch(self, request, modele_arrete_id, *args, **kwargs):
+        perimetre = request.user.perimetre
+        self.modele_duplicated = get_object_or_404(
+            ModeleArrete,
+            id=modele_arrete_id,
+        )
+        dotation = self.modele_duplicated.dotation
+        self.possible_modele_perimetres = get_modele_perimetres(
+            dotation, request.user.perimetre
+        )
+        if self.modele_duplicated.perimetre not in self.possible_modele_perimetres:
+            raise Http404("Modèle non existant")
+
+        self.instance = ModeleArrete(
+            dotation=dotation, perimetre=perimetre, created_by=request.user
+        )
+        self.dotation = dotation
+        response = super().dispatch(request, dotation=self.dotation, *args, **kwargs)
+        return response
+
+    def get_form_initial(self, step):
+        if step == "0":
+            return self.initial_dict.get(
+                step,
+                {
+                    "name": self.modele_duplicated.name,
+                    "description": self.modele_duplicated.description,
+                },
+            )
+        if step == "1":
+            return self.initial_dict.get(
+                step,
+                {
+                    "logo": self.modele_duplicated.logo,
+                    "logo_alt_text": self.modele_duplicated.logo_alt_text,
+                    "top_right_text": self.modele_duplicated.top_right_text,
+                },
+            )
+        if step == "2":
+            return self.initial_dict.get(
+                step,
+                {
+                    "content": self.modele_duplicated.content,
+                },
+            )
+
+    def done(self, form_list, **kwargs):
+        instance: ModeleArrete = self.instance
+
+        for form in form_list:
+            for key, value in form.cleaned_data.items():
+                instance.__setattr__(key, value)
+                if key == "logo":
+                    # Si logo est un FieldFile appartenant à l'instance dupliquée,
+                    # on veut créer une *copie*, pas juste pointer vers le même fichier.
+                    if isinstance(value, files.FieldFile):
+                        new_name, file_obj = duplicate_field_file(value)
+                        if file_obj:
+                            instance.logo.save(new_name, file_obj, save=False)
+
+        instance.save()
+
+        return HttpResponseRedirect(
+            reverse(
+                "gsl_notification:modele-arrete-liste",
+                kwargs={"dotation": self.dotation},
+            )
+        )
 
 
 @modele_arrete_visible_by_user

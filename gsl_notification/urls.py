@@ -2,6 +2,7 @@ from django.urls import path
 
 from gsl_notification.views.views import (
     CreateModelArreteWizard,
+    DuplicateModeleArete,
     ModeleArreteListView,
     change_arrete_view,
     create_arrete_signe_view,
@@ -67,6 +68,11 @@ urlpatterns = [
         "modeles/nouveau/<str:dotation>/",
         CreateModelArreteWizard.as_view(),
         name="modele-arrete-creer",
+    ),
+    path(
+        "modeles/dupliquer/<str:modele_arrete_id>/",
+        DuplicateModeleArete.as_view(),
+        name="modele-arrete-dupliquer",
     ),
     path(
         "modele/<str:modele_arrete_id>/",

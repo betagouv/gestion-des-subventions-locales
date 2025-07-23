@@ -1,4 +1,8 @@
+import os
+
 from bs4 import BeautifulSoup
+from django.core.files import File
+from django.db.models.fields.files import FieldFile
 
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
@@ -114,3 +118,22 @@ def get_modele_perimetres(
 
     except Perimetre.DoesNotExist:
         return [perimetre]
+
+
+def duplicate_field_file(field_file: FieldFile, suffix="_copy"):
+    """
+    Retourne (nouveau_nom, file_obj)
+    Copie le contenu du fichier stocké derrière `field_file`.
+    """
+    if not field_file:
+        return None, None
+
+    base_name = os.path.basename(field_file.name)
+    root, ext = os.path.splitext(base_name)
+    new_name = f"{root}{suffix}{ext}"
+
+    # Ou copie efficace sans tout lire en mémoire (streaming)
+    storage = field_file.storage
+    with storage.open(field_file.name, "rb") as src:
+        # File() wrappe le descripteur ouvert pour Django
+        return new_name, File(src, name=new_name)
