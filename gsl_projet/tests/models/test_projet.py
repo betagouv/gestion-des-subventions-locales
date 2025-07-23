@@ -82,9 +82,13 @@ def test_dotation_dsil():
     "status, notified_at, expected",
     (
         (ProgrammationProjet.STATUS_ACCEPTED, None, True),
-        (ProgrammationProjet.STATUS_ACCEPTED, "2023-01-01", False),
+        (
+            ProgrammationProjet.STATUS_ACCEPTED,
+            "2023-07-23 13:05:03.837825+00:00",
+            False,
+        ),
         (ProgrammationProjet.STATUS_REFUSED, None, False),
-        (ProgrammationProjet.STATUS_REFUSED, "2023-01-01", False),
+        (ProgrammationProjet.STATUS_REFUSED, "2023-07-23 13:05:03.837825+00:00", False),
     ),
 )
 @pytest.mark.django_db
