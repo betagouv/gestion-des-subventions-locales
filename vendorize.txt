@@ -1,0 +1,2 @@
+@hotwired/stimulus/dist/stimulus.js
+htmx.org/dist/htmx.esm.js

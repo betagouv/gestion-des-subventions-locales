@@ -1,0 +1,35 @@
+set dotenv-load
+
+default:
+    just --list
+
+# Install Javascript dependencies
+install-js:
+    npm install
+    # For JS deps that distribute a bundle, just vendorize it
+    while read jsfile; do cp "node_modules/$jsfile" "static/vendor/"; echo "Vendorized $jsfile"; done <vendorize.txt
+
+manage command:
+    python manage.py {{command}}
+
+
+# Django shorthands
+runserver: (manage "runserver")
+migrate: (manage "migrate")
+shell: (manage "shell")
+makemigrations: (manage "makemigrations")
+    ruff format apps/*/migrations/*.py
+
+test:
+    DJANGO_SETTINGS_MODULE=conf.settings.testing uv run pytest --cov
+
+# Scalingo: SSH
+scalingo-django-ssh environment:
+    scalingo run --app aides-agri-{{environment}} bash
+
+# Scalingo: run Django command
+scalingo-django-command environment command:
+    scalingo run --app gsl-{{environment}} {{ if environment == "prod" { "--region osc-secnum-fr1" } else { "" } }} python manage.py {{command}}
+
+# Scalingo: login to Django shell
+scalingo-django-shell environment: (scalingo-django-command environment "shell")
