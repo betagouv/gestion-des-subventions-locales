@@ -1,5 +1,5 @@
 {% extends "gsl_programmation/programmation_projet_list.html" %}
-{% load static dsfr_tags gsl_filters %}
+{% load static dsfr_tags gsl_filters ui_tags %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static "css/gsl.css" %}">
@@ -28,3 +28,14 @@
         </ul>
     </div>
 {% endblock tab_content %}
+
+{% block modal %}
+    {% ui_confirmation_modal modal_id="delete-modele-arrete" title="Suppression du modèle d’arrêté" text="Êtes-vous sûr de vouloir supprimer ce modèle d’arrêté ?<br><b>⚠️ Les autres utilisateurs ayant accès à ce modèle ne pourront plus l’utiliser ni le voir.</b>" form="delete-modele-arrete-form" action_text="Supprimer" %}
+    <form method="post" id="delete-modele-arrete-form">
+        {% csrf_token %}
+    </form>
+{% endblock modal %}
+
+{% block extra_js %}
+    <script src="{% static 'js/updateModalName.js' %}"></script>
+{% endblock extra_js %}

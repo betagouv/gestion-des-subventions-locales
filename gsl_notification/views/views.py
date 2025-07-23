@@ -3,7 +3,9 @@ import os
 import boto3
 from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
+from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
+from django.db.models import ProtectedError
 from django.http import Http404, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
@@ -34,6 +36,7 @@ from gsl_notification.utils import (
 from gsl_notification.views.decorators import (
     arrete_signe_visible_by_user,
     arrete_visible_by_user,
+    modele_arrete_visible_by_user,
     programmation_projet_visible_by_user,
 )
 from gsl_programmation.models import ProgrammationProjet
@@ -390,6 +393,7 @@ class ModeleArreteListView(ListView):
                 "current_tab": self.dotation,
                 "modeles_list": [
                     {
+                        "id": obj.id,
                         "name": obj.name,
                         "description": obj.description,
                         "actions": [
@@ -401,8 +405,8 @@ class ModeleArreteListView(ListView):
                             },
                             {
                                 "label": "Supprimer",
-                                "href": "#",
                                 "class": "fr-btn--tertiary",
+                                "aria_controls": "delete-modele-arrete",
                             },
                         ],
                     }
@@ -485,3 +489,30 @@ class CreateModelArreteWizard(SessionWizardView):
 
     def get_template_names(self):
         return f"gsl_notification/modele_arrete/modelearrete_form_step_{self.steps.current}.html"
+
+
+@modele_arrete_visible_by_user
+@require_http_methods(["POST"])
+def delete_modele_arrete_view(request, modele_arrete_id):
+    modele_arrete = get_object_or_404(ModeleArrete, id=modele_arrete_id)
+    dotation = modele_arrete.dotation
+    name = modele_arrete.name
+
+    try:
+        modele_arrete.delete()
+        messages.info(
+            request,
+            f"Le modèle d’arrêté “{name}” a été supprimé.",
+            extra_tags="delete-modele-arrete",
+        )
+
+    except ProtectedError:
+        messages.error(
+            request,
+            f"Le modèle n'a pas été supprimé car il est utilisé par {modele_arrete.arrete_set.count()} arrêté(s).",
+            extra_tags="alert",
+        )
+
+    return redirect(
+        reverse("gsl_notification:modele-arrete-liste", kwargs={"dotation": dotation})
+    )
