@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.contrib.messages import get_messages
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
@@ -702,7 +703,9 @@ def test_delete_modele_arrete_with_correct_perimetre():
     departement_perimetre = PerimetreDepartementalFactory()
     user = CollegueFactory(perimetre=departement_perimetre)
     client = ClientWithLoggedUserFactory(user)
-    modele_arrete = ModeleArreteFactory(perimetre=departement_perimetre)
+    modele_arrete = ModeleArreteFactory(
+        perimetre=departement_perimetre, name="Mon modèle"
+    )
     url = reverse("gsl_notification:delete-modele-arrete", args=[modele_arrete.id])
 
     response = client.post(url)
@@ -714,6 +717,41 @@ def test_delete_modele_arrete_with_correct_perimetre():
     assert response.url == expected_redirect_url
 
     assert ModeleArrete.objects.count() == 0
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 20
+    assert message.message == "Le modèle d’arrêté “Mon modèle” a été supprimé"
+
+
+def test_delete_modele_arrete_with_modele_used_by_an_arrete():
+    departement_perimetre = PerimetreDepartementalFactory()
+    user = CollegueFactory(perimetre=departement_perimetre)
+    client = ClientWithLoggedUserFactory(user)
+    modele_arrete = ModeleArreteFactory(perimetre=departement_perimetre)
+    ArreteFactory(modele=modele_arrete)
+    url = reverse("gsl_notification:delete-modele-arrete", args=[modele_arrete.id])
+
+    response = client.post(url)
+
+    expected_redirect_url = reverse(
+        "gsl_notification:modele-arrete-liste", args=[modele_arrete.dotation]
+    )
+    assert response.status_code == 302
+    assert response.url == expected_redirect_url
+
+    assert ModeleArrete.objects.count() == 1, (
+        "On s'attend à ce que le ModeleArrete ne soit pas supprimé"
+    )
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 40
+    assert (
+        message.message
+        == "Le modèle n'a pas été supprimé car il est utilisé par 1 arrêté(s)"
+    )
+    assert message.extra_tags == "alert"
 
 
 def test_delete_modele_arrete_with_wrong_perimetre():

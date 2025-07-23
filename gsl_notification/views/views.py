@@ -5,6 +5,7 @@ from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
 from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
+from django.db.models import ProtectedError
 from django.http import Http404, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
@@ -497,13 +498,20 @@ def delete_modele_arrete_view(request, modele_arrete_id):
     dotation = modele_arrete.dotation
     name = modele_arrete.name
 
-    modele_arrete.delete()
+    try:
+        modele_arrete.delete()
+        messages.info(
+            request,
+            f"Le modèle d’arrêté “{name}” a été supprimé",
+            extra_tags="delete-modele-arrete",
+        )
 
-    messages.info(
-        request,
-        f"Le modèle d’arrêté “{name}” a été supprimé",
-        extra_tags="delete-modele-arrete",
-    )
+    except ProtectedError:
+        messages.error(
+            request,
+            f"Le modèle n'a pas été supprimé car il est utilisé par {modele_arrete.arrete_set.count()} arrêté(s)",
+            extra_tags="alert",
+        )
 
     return redirect(
         reverse("gsl_notification:modele-arrete-liste", kwargs={"dotation": dotation})
