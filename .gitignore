@@ -1,6 +1,5 @@
 # static and media folders
 /media/
-/static/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
