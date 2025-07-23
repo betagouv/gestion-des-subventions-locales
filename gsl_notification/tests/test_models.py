@@ -1,7 +1,8 @@
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from gsl_core.tests.factories import CollegueFactory
+from gsl_core.tests.factories import CollegueFactory, PerimetreDepartementalFactory
+from gsl_notification.models import ModeleArrete
 from gsl_notification.tests.factories import (
     ArreteFactory,
     ArreteSigneFactory,
@@ -9,6 +10,7 @@ from gsl_notification.tests.factories import (
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
+from gsl_projet.constants import DOTATION_DETR
 
 
 @pytest.mark.django_db
@@ -78,3 +80,31 @@ def test_modele_arrete_properties():
     assert modele.created_at is not None
     assert modele.updated_at is not None
     assert modele.perimetre == perimetre
+
+
+@pytest.mark.django_db
+def test_two_models_have_different_logos():
+    updated_logo = SimpleUploadedFile("my_logo.png", b"logo content", "image/png")
+
+    form_data = {
+        "name": "Nom du modèle",
+        "description": "Description du modèle",
+        "perimetre": PerimetreDepartementalFactory(),
+        "dotation": DOTATION_DETR,
+        "logo": updated_logo,
+        "logo_alt_text": "texte alternatif",
+        "top_right_text": "Texte en haut à droite",
+        "content": "<p>Contenu</p>",
+        "created_by": CollegueFactory(),
+    }
+
+    first_modele = ModeleArrete(**form_data)
+    first_modele.save()
+    second_modele = ModeleArrete(**form_data)
+    second_modele.save()
+
+    assert first_modele.id != second_modele.id
+    assert first_modele.name == second_modele.name
+    assert first_modele.logo.name != second_modele.logo.name
+    assert "my_logo" in first_modele.logo.name
+    assert "my_logo" in second_modele.logo.name
