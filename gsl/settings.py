@@ -152,8 +152,11 @@ STORAGES = {
 
 WSGI_APPLICATION = "gsl.wsgi.application"
 
-STATIC_URL = "/static/"
-STATIC_ROOT = os.getenv("STATIC_ROOT", BASE_DIR / "static")
+STATIC_URL = "static/"
+STATIC_ROOT = "staticfiles"
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.getenv("MEDIA_ROOT", BASE_DIR / "media")

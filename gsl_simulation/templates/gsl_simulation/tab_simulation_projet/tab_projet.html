@@ -4,7 +4,8 @@
 {% block form_for_simulation_projet %}
     <form method="post"
           id="projet_form"
-          action="{% url 'gsl_simulation:patch-projet' simu.id %}">
+          action="{% url 'gsl_simulation:patch-projet' simu.id %}"
+          data-double-dotation-target="form">
         {% csrf_token %}
     </form>
     <form method="post"

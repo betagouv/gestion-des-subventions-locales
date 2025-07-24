@@ -26,14 +26,14 @@ document.querySelectorAll(".form-disabled-before-value-change").forEach((elt) =>
 
 // Dotation Update
 
-document.querySelector("#submit-dotation").addEventListener("click", (ev) => {
-  ev.preventDefault();
-  selectedElement = ev.target
-  let form = document.querySelector("form#projet_form").closest("form")
-  let fieldset = document.querySelector("#dotation-fieldset")
-  const initalDotationValues = selectedElement.dataset.initialDotations.split(",")
-  handleDotationChange(form, fieldset, initalDotationValues)
-});
+// document.querySelector("#submit-dotation").addEventListener("click", (ev) => {
+//   ev.preventDefault();
+//   selectedElement = ev.target
+//   let form = document.querySelector("form#projet_form").closest("form")
+//   let fieldset = document.querySelector("#dotation-fieldset")
+//   const initalDotationValues = selectedElement.dataset.initialDotations.split(",")
+//   handleDotationChange(form, fieldset, initalDotationValues)
+// });
 
 
 document.querySelectorAll("#confirm-dotation-update").forEach(elt => {

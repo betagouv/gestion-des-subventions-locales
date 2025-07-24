@@ -1,3 +1,5 @@
+import json
+
 from django.contrib import messages
 from django.http import Http404, HttpRequest
 from django.http.request import QueryDict
@@ -280,7 +282,7 @@ def _enrich_simulation_projet_context_with_specific_info_for_main_tab(
             "dotation_projet_form": DotationProjetForm(
                 instance=simulation_projet.dotation_projet,
             ),
-            "initial_dotations": ",".join(dotation_field.initial)
+            "initial_dotations": json.dumps(dotation_field.initial)
             if dotation_field
             else [],
             "other_dotation_simu": _get_other_dotation_simulation_projet(
