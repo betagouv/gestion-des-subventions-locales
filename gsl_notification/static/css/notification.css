@@ -73,10 +73,14 @@
 .arrete-card__actions {
   width: 200px;
   padding: 0px;
+  gap: 0;
+  min-width: 0;
 }
 
 .arrete-card__actions-button {
   box-shadow: none;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .arrete-card__action {
@@ -84,7 +88,9 @@
   display: flex;
   justify-content: center;
   box-shadow: none;
+  padding: 0;
 }
+
 .arrete-card__action:focus-visible {
   outline-offset: -2px;
 }

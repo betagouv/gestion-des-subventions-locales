@@ -366,10 +366,31 @@ ul.no-list-style li {
     padding-bottom: 2em;
 }
 
+
 .gsl-dropdown > button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+
+/* New gsl-dropdown without JS ! Migrate to this then, remove gsl-dropdown-content (or rename the new to the old)*/
+
+.new-gsl-dropdown-content {
+  display: grid;
+  position: absolute;
+  background-color: white;
+  min-width: 260px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  z-index: 1000;
+  gap: 1rem;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.new-gsl-dropdown-content:has(.stick-to-bottom) div:last-of-type {
+    padding-bottom: 2em;
 }
 
 .projet__to_notify {
