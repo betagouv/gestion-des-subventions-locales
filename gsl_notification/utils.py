@@ -1,11 +1,15 @@
 import os
 
+import boto3
 from bs4 import BeautifulSoup
 from django.core.files import File
 from django.db.models.fields.files import FieldFile
+from django.http import Http404
 
+from gsl import settings
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
+from gsl_notification.models import Arrete, ArreteSigne
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import DOTATION_DETR, POSSIBLE_DOTATIONS
 
@@ -143,3 +147,31 @@ def duplicate_field_file(field_file: FieldFile):
     with storage.open(field_file.name, "rb") as src:
         # File() wrappe le descripteur ouvert pour Django
         return new_name, File(src, name=new_name)
+
+
+def get_s3_object(file_name):
+    s3 = boto3.client(
+        "s3",
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        region_name=settings.AWS_S3_REGION_NAME,
+        endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+    )
+    bucket = settings.AWS_STORAGE_BUCKET_NAME
+
+    try:
+        return s3.get_object(Bucket=bucket, Key=file_name)
+    except s3.exceptions.NoSuchKey:
+        raise Http404("Fichier non trouvé")
+
+
+def return_document_as_a_dict(document: Arrete | ArreteSigne):
+    return {
+        "name": document.name,
+        "type": document.type,
+        "size": document.size,
+        "created_at": document.created_at,
+        "created_by": document.created_by,
+        "get_view_url": document.get_view_url,
+        "get_download_url": document.get_download_url,
+    }

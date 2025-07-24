@@ -1,5 +1,8 @@
 from django.urls import path
 
+from gsl_notification.views.decorators import (
+    arrete_visible_by_user,
+)
 from gsl_notification.views.modele_arrete_views import (
     CreateModelArreteWizard,
     DuplicateModeleArrete,
@@ -8,14 +11,16 @@ from gsl_notification.views.modele_arrete_views import (
     delete_modele_arrete_view,
 )
 from gsl_notification.views.views import (
+    DownloadArreteView,
+    PrintArreteView,
     change_arrete_view,
     create_arrete_signe_view,
     delete_arrete_signe_view,
     delete_arrete_view,
     documents_view,
-    download_arrete,
     download_arrete_signe,
     select_modele,
+    view_arrete_signe,
 )
 
 urlpatterns = [
@@ -37,8 +42,13 @@ urlpatterns = [
     ),
     path(
         "arrete/<int:arrete_id>/download/",
-        download_arrete,
+        arrete_visible_by_user(DownloadArreteView.as_view()),
         name="arrete-download",
+    ),
+    path(
+        "arrete/<int:arrete_id>/view/",
+        arrete_visible_by_user(PrintArreteView.as_view()),
+        name="arrete-view",
     ),
     path(
         "arrete/<int:arrete_id>/delete/",
@@ -55,6 +65,11 @@ urlpatterns = [
         "arrete-signe/<int:arrete_signe_id>/download/",
         download_arrete_signe,
         name="arrete-signe-download",
+    ),
+    path(
+        "arrete-signe/<int:arrete_signe_id>/view/",
+        view_arrete_signe,
+        name="arrete-signe-view",
     ),
     path(
         "arrete-signe/<int:arrete_signe_id>/delete/",

@@ -97,8 +97,11 @@ class Arrete(models.Model):
     def __str__(self):
         return f"Arrêté #{self.id}"
 
-    def get_absolute_url(self):
+    def get_download_url(self):
         return reverse("notification:arrete-download", kwargs={"arrete_id": self.id})
+
+    def get_view_url(self):
+        return reverse("notification:arrete-view", kwargs={"arrete_id": self.id})
 
     @property
     def name(self):  # TODO: Implement a proper name logic
@@ -131,9 +134,14 @@ class ArreteSigne(models.Model):
     def __str__(self):
         return f"Arrêté signé #{self.id} "
 
-    def get_absolute_url(self):
+    def get_download_url(self):
         return reverse(
             "notification:arrete-signe-download", kwargs={"arrete_signe_id": self.id}
+        )
+
+    def get_view_url(self):
+        return reverse(
+            "notification:arrete-signe-view", kwargs={"arrete_signe_id": self.id}
         )
 
     @property

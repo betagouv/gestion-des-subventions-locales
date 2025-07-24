@@ -1,15 +1,13 @@
-import boto3
 from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
 from django.http import Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_http_methods
-from django_weasyprint.views import WeasyTemplateResponse
+from django.views.generic import DetailView
+from django_weasyprint import WeasyTemplateResponseMixin
 
-from gsl import settings
 from gsl_notification.forms import (
     ArreteForm,
     ArreteSigneForm,
@@ -17,7 +15,9 @@ from gsl_notification.forms import (
 from gsl_notification.models import Arrete, ArreteSigne, ModeleArrete
 from gsl_notification.utils import (
     get_modele_perimetres,
+    get_s3_object,
     replace_mentions_in_html,
+    return_document_as_a_dict,
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
 from gsl_notification.views.decorators import (
@@ -31,29 +31,68 @@ from gsl_programmation.models import ProgrammationProjet
 # in various contexts
 
 
-def _generic_documents_view(
-    request, programmation_projet_id, source_url, template, context
-):
+def _generic_documents_view(request, programmation_projet_id, source_url, context):
     programmation_projet = get_object_or_404(
         ProgrammationProjet,
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
+    documents = []
 
     try:
         arrete = programmation_projet.arrete
-        context["arrete"] = programmation_projet.arrete
         context["arrete_modal_title"] = (
             f"Suppression de l'arrêté {arrete.name} créé avec Turgot"
+        )
+        documents.append(
+            {
+                **return_document_as_a_dict(arrete),
+                "tag": "Créé sur Turgot",
+                "actions": [
+                    {
+                        "name": "update",
+                        "label": "Modifier",
+                        "href": reverse(
+                            "notification:modifier-arrete",
+                            args=[programmation_projet.id],
+                        ),
+                    },
+                    {
+                        "name": "delete",
+                        "label": "Supprimer",
+                        "form_id": "delete-arrete",
+                        "aria_controls": "delete-arrete-confirmation-modal",
+                        "action": reverse(
+                            "notification:delete-arrete", args=[arrete.id]
+                        ),
+                    },
+                ],
+            }
         )
     except Arrete.DoesNotExist:
         pass
 
     try:
         arrete_signe = programmation_projet.arrete_signe
-        context["arrete_signe"] = arrete_signe
         context["arrete_signe_modal_title"] = (
             f"Suppression de l'arrêté {arrete_signe.name} créé par {arrete_signe.created_by}"
+        )
+        documents.append(
+            {
+                **return_document_as_a_dict(arrete_signe),
+                "tag": "Fichier importé",
+                "actions": [
+                    {
+                        "name": "delete",
+                        "label": "Supprimer",
+                        "form_id": "delete-arrete-signe",
+                        "aria_controls": "delete-arrete-signe-confirmation-modal",
+                        "action": reverse(
+                            "notification:delete-arrete-signe", args=[arrete_signe.id]
+                        ),
+                    },
+                ],
+            }
         )
 
     except ArreteSigne.DoesNotExist:
@@ -64,12 +103,13 @@ def _generic_documents_view(
             "programmation_projet_id": programmation_projet.id,
             "source_url": source_url,
             "dossier": programmation_projet.projet.dossier_ds,
+            "documents": documents,
         }
     )
 
     return render(
         request,
-        template,
+        "gsl_notification/tab_simulation_projet/tab_notifications.html",
         context=context,
     )
 
@@ -108,7 +148,6 @@ def documents_view(request, programmation_projet_id):
         request,
         programmation_projet_id,
         programmation_projet.get_absolute_url(),
-        "gsl_notification/tab_simulation_projet/tab_notifications.html",
         context,
     )
 
@@ -272,55 +311,50 @@ def delete_arrete_signe_view(request, arrete_signe_id):
     return _redirect_to_documents_view(request, programmation_projet_id)
 
 
-# Download views -----------------------------------------------------------------------
+# View and Download views -----------------------------------------------------------------------
 
 
-@arrete_visible_by_user
-@require_GET
-def download_arrete(request, arrete_id):
-    arrete = get_object_or_404(Arrete, id=arrete_id)
-    context = {"content": mark_safe(arrete.content)}
-    if settings.DEBUG and request.GET.get("debug", False):
-        return TemplateResponse(
-            template="gsl_notification/pdf/arrete.html",
-            context=context,
-            request=request,
-        )
+class PrintArreteView(WeasyTemplateResponseMixin, DetailView):
+    model = Arrete
+    template_name = "gsl_notification/pdf/arrete.html"
+    pk_url_kwarg = "arrete_id"
 
-    return WeasyTemplateResponse(
-        template="gsl_notification/pdf/arrete.html",
-        context=context,
-        request=request,
-        filename=f"arrete-{arrete.id}.pdf",
-    )
+    # show pdf in-line (default: True, show download dialog)
+    pdf_attachment = False
+
+    def get_pdf_filename(self):
+        return self.get_object().name
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["content"] = mark_safe(self.get_object().content)
+        return context
+
+
+class DownloadArreteView(PrintArreteView):
+    pdf_attachment = True
 
 
 @arrete_signe_visible_by_user
 @require_GET
-def download_arrete_signe(request, arrete_signe_id):
+def download_arrete_signe(request, arrete_signe_id, download=True):
     arrete = get_object_or_404(ArreteSigne, id=arrete_signe_id)
-    s3 = boto3.client(
-        "s3",
-        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-        region_name=settings.AWS_S3_REGION_NAME,
-        endpoint_url=settings.AWS_S3_ENDPOINT_URL,
-    )
-    bucket = settings.AWS_STORAGE_BUCKET_NAME
-    key = arrete.file.name
+    s3_object = get_s3_object(arrete.file.name)
 
-    try:
-        s3_response = s3.get_object(Bucket=bucket, Key=key)
-        response = StreamingHttpResponse(
-            iter(s3_response["Body"].iter_chunks()),
-            content_type=s3_response["ContentType"],
-        )
-        response["Content-Disposition"] = (
-            f'attachment; filename="{arrete.file.name.split("/")[-1]}"'
-        )
-        return response
-    except s3.exceptions.NoSuchKey:
-        raise Http404("Fichier non trouvé")
+    response = StreamingHttpResponse(
+        iter(s3_object["Body"].iter_chunks()),
+        content_type=s3_object["ContentType"],
+    )
+    response["Content-Disposition"] = (
+        f'{"attachment" if download else "inline"}; filename="{arrete.file.name.split("/")[-1]}"'
+    )
+    return response
+
+
+@arrete_signe_visible_by_user
+@require_GET
+def view_arrete_signe(request, arrete_signe_id):
+    return download_arrete_signe(request, arrete_signe_id, False)
 
 
 # utils --------------------------------------------------------------------------------

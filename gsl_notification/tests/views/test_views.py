@@ -450,6 +450,38 @@ def test_arrete_download_url_with_wrong_perimetre(
     assert response.status_code == 404
 
 
+### arrete-view
+
+
+def test_arrete_view_url_with_correct_perimetre(
+    programmation_projet, correct_perimetre_client_with_user_logged
+):
+    arrete = ArreteFactory(programmation_projet=programmation_projet)
+    url = reverse("notification:arrete-view", kwargs={"arrete_id": arrete.id})
+    assert url == f"/notification/arrete/{arrete.id}/view/"
+    response = correct_perimetre_client_with_user_logged.get(url)
+    assert response.status_code == 200
+    assert response["Content-Type"] == "application/pdf"
+
+
+def test_arrete_view_url_with_correct_perimetre_and_without_arrete(
+    correct_perimetre_client_with_user_logged,
+):
+    url = reverse("notification:arrete-view", kwargs={"arrete_id": 1000})
+    assert url == "/notification/arrete/1000/view/"
+    response = correct_perimetre_client_with_user_logged.get(url)
+    assert response.status_code == 404
+
+
+def test_arrete_view_url_with_wrong_perimetre(
+    programmation_projet, different_perimetre_client_with_user_logged
+):
+    arrete = ArreteFactory(programmation_projet=programmation_projet)
+    url = reverse("notification:arrete-view", kwargs={"arrete_id": arrete.id})
+    response = different_perimetre_client_with_user_logged.get(url)
+    assert response.status_code == 404
+
+
 # ArreteSigne
 
 ### create-arrete-signe -----------------------------
@@ -564,7 +596,7 @@ def test_arrete_signe_download_url_with_correct_perimetre_and_without_arrete(
 def test_arrete_signe_download_url_with_correct_perimetre_and_with_arrete(
     arrete_signe, correct_perimetre_client_with_user_logged
 ):
-    url = arrete_signe.get_absolute_url()
+    url = arrete_signe.get_download_url()
     assert url == f"/notification/arrete-signe/{arrete_signe.id}/download/"
 
     # Mock boto3.client().get_object
@@ -580,14 +612,37 @@ def test_arrete_signe_download_url_with_correct_perimetre_and_with_arrete(
 
         response = correct_perimetre_client_with_user_logged.get(url)
         assert response.status_code == 200
-        assert response["Content-Type"] == "application/pdf"
 
 
 def test_arrete_signe_download_url_without_correct_perimetre_and_without_arrete(
     arrete_signe, different_perimetre_client_with_user_logged
 ):
-    url = arrete_signe.get_absolute_url()
+    url = arrete_signe.get_download_url()
     assert url == f"/notification/arrete-signe/{arrete_signe.id}/download/"
+    response = different_perimetre_client_with_user_logged.get(url)
+    assert response.status_code == 404
+
+
+### arrete-signe-view
+
+
+def test_arrete_signe_view_url_with_correct_perimetre_and_without_arrete(
+    correct_perimetre_client_with_user_logged,
+):
+    url = reverse(
+        "notification:arrete-signe-view",
+        kwargs={"arrete_signe_id": 1000},
+    )
+    assert url == "/notification/arrete-signe/1000/view/"
+    response = correct_perimetre_client_with_user_logged.get(url)
+    assert response.status_code == 404
+
+
+def test_arrete_signe_view_url_without_correct_perimetre_and_without_arrete(
+    arrete_signe, different_perimetre_client_with_user_logged
+):
+    url = arrete_signe.get_view_url()
+    assert url == f"/notification/arrete-signe/{arrete_signe.id}/view/"
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 

@@ -48,12 +48,13 @@
   position: absolute;
   width: 50%;
   left: 25%;
-  top: 15%;
+  top: 30%;
   background: #fff;
 }
-.arrete-card:hover .show-on-hover {
+.arrete-card__image-container:hover .show-on-hover {
   display: flex;
 }
+.arrete-card >div,
 .arrete-card .fr-enlarge-link{
   max-width: 100%;
 }
