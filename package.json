@@ -9,8 +9,7 @@
   "private": true,
   "dependencies": {
     "@hotwired/stimulus": "^3",
-    "htmx.org": "^2",
-    "@sentry/browser": "^9"
+    "htmx.org": "^2"
   },
   "devDependencies": {
   }

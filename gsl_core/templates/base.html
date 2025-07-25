@@ -115,8 +115,7 @@
         {% endblock modal %}
 
         <script src="{% static "js/gsl.js" %}" defer></script>
-        {% comment %} TODO => retirer "type=module" ?? {% endcomment %}
-        <script type="module" nonce="{{ request.csp_nonce }}">
+        <script nonce="{{ request.csp_nonce }}">
             import { Application } from "stimulus"
             import { DoubleDotation } from "doubleDotation"
             import { Modal } from "modal"
