@@ -49,7 +49,7 @@
             {
                 "imports": {
                     "stimulus": "/static/vendor/stimulus.js",
-                    "modal": "/static/js/controllers/modal.js",
+                    "modal": "/static/ui/components/modal.js",
                     "doubleDotation": "/static/js/controllers/doubleDotation.js"
                 }
             }
@@ -119,10 +119,12 @@
         <script type="module" nonce="{{ request.csp_nonce }}">
             import { Application } from "stimulus"
             import { DoubleDotation } from "doubleDotation"
+            import { Modal } from "modal"
 
             window.Stimulus = Application.start()
 
             Stimulus.register("double-dotation", DoubleDotation)
+            Stimulus.register("modal", Modal)
         </script>
 
         {% block extra_js %}

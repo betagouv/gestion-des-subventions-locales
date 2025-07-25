@@ -9,9 +9,6 @@ export class DoubleDotation extends Controller {
 
   initialize(){
     this.updateSelectedDotations()
-    // this.formValue = document.querySelector("form#projet_form").closest("form")
-    // console.log(this.formTarget)
-    console.log(this.hasFormTarget)
   }
 
   updateSelectedDotations(){
@@ -23,11 +20,11 @@ export class DoubleDotation extends Controller {
       }
     });
     this.selectedDotationsValue = newSelectedDotations;
-    console.log("Updated !", newSelectedDotations)
   }
 
 
   mustOpenConfirmationModal(){
+    this.updateSelectedDotations();
     if (this.selectedDotationsValue.length === 0) {
       return false
     }
@@ -43,8 +40,7 @@ export class DoubleDotation extends Controller {
   sumbit(evt){
     evt.preventDefault();
     if (this.mustOpenConfirmationModal()) {
-      this.openConfirmatioModal()
-      // formButton = document.querySelector("button[type='submit']#submit-dotation")
+      this._openConfirmatioModal()
     } else {
       let form = document.querySelector("form#projet_form").closest("form")
       form.submit()
@@ -53,29 +49,29 @@ export class DoubleDotation extends Controller {
 
   // Private
 
-  openConfirmatioModal() {
+  _openConfirmatioModal() {
     modalId = "dotation-confirmation-modal-content"
     let modal = document.getElementById(modalId)
-    let message = modal.querySelector("#modal-body")
-    let title = modal.querySelector("#modal-title")
+    let message = modal.querySelector(".modal-body")
+    let title = modal.querySelector(".modal-title")
 
-    const newTitle = this.getTitle()
+    const newTitle = this._getTitle()
     if (newTitle) {
       title.innerText = newTitle
     }
-    message.innerHTML = this.getMessage()
+    message.innerHTML = this._getMessage()
 
     dsfr(modal).modal.disclose()
   }
 
-  getTitle() {
+  _getTitle() {
     if (this.selectedDotationsValue.length === 2) {
       return "Double dotation"
     }
     return "Modification de la dotation"
   }
 
-  getMessage() {
+  _getMessage() {
     if (this.initialDotationsValue.length === 2) {
       if (this.selectedDotationsValue.length === 1) {
         let dotationToRemove = this.initialDotationsValue.filter(dotation => !this.selectedDotationsValue.includes(dotation)).pop()

@@ -14,9 +14,22 @@ def ui_confirmation_modal(*args, **kwargs) -> dict:
         "text": "Text content",
         "action_text": "(Optional) Text of the confirmation button, 'Confirmer' by default",
         "form": "(Optional) Reference to the form id. If defined, the confirmation button type will be 'submit'",
+        "icon": "(Optional) Icon at the title left. 'fr-icon-delete-fill' by default",
+        "class": "(Optional) Icon at the title left. 'fr-icon-delete-fill' by default",
+        "is_title_red": "(Optional) Give to the title a red color. True by default"
     }
     ```"""
-    allowed_keys = ["modal_id", "title", "text", "form", "action_text"]
+    allowed_keys = [
+        "modal_id",
+        "title",
+        "text",
+        "form",
+        "action_text",
+        "icon",
+        "is_title_red",
+    ]
     tag_data = parse_tag_args(args, kwargs, allowed_keys)
+    if "is_title_red" not in tag_data:
+        tag_data["is_title_red"] = True
 
     return {"self": tag_data}
