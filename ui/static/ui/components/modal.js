@@ -28,8 +28,7 @@ export class Modal extends Controller {
   // Private
   _getForm() {
     if (this.hasFormIdValue){
-      const selector = `#${this.formIdValue}`
-      const form = document.querySelector(selector) 
+      const form = document.getElementById(`#${this.formIdValue}`)
       if (!Boolean(form)){
         throw new Error("No form found with formId : " + this.formIdValue)
       }
@@ -43,7 +42,7 @@ export class Modal extends Controller {
 
   _getDialog() {
     if (this.hasDialogIdValue){
-      const dialog = document.querySelector(`#${this.dialogIdValue}`) 
+      const dialog = document.getElementById(`#${this.dialogIdValue}`)
       if (!Boolean(dialog)){
         throw new Error("No dialog found with dialogId : " + this.dialogIdValue)
       }

@@ -21,11 +21,16 @@ makemigrations: (manage "makemigrations")
     ruff format apps/*/migrations/*.py
 
 test:
-    DJANGO_SETTINGS_MODULE=conf.settings.testing uv run pytest --cov
+    pytest
+
+# Watch the repo and launch pytest on files save
+test-watching folder_or_file:
+    git ls-files | entr -c pytest -vv {{folder_or_file}}
+
 
 # Scalingo: SSH
 scalingo-django-ssh environment:
-    scalingo run --app aides-agri-{{environment}} bash
+    scalingo run --app gsl-{{environment}} bash
 
 # Scalingo: run Django command
 scalingo-django-command environment command:
