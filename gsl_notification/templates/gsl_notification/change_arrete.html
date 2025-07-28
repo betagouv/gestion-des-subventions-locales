@@ -25,9 +25,5 @@
 {% endblock notification_content %}
 
 {% block extra_js %}
-    <script nonce="{{request.csp_nonce}}">
-        const CONTENT_FIELD_NAME="content";
-        const WITH_MENTION=false;
-    </script>
     <script type="module" src="{% static 'js/notification.js' %}"></script>
 {% endblock extra_js %}
