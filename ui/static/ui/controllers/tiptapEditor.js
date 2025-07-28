@@ -2,17 +2,16 @@ import { Editor } from "https://esm.sh/@tiptap/core";
 import Highlight from "https://esm.sh/@tiptap/extension-highlight";
 import Mention from "https://esm.sh/@tiptap/extension-mention";
 import StarterKit from "https://esm.sh/@tiptap/starter-kit";
-import { Controller } from "stimulus"
 import TextAlign from "https://esm.sh/@tiptap/extension-text-align";
+import { Controller } from "stimulus"
 
 
 const EXTENSIONS = [
     StarterKit,
-    Highlight,
     TextAlign.configure({
       types: ['heading', 'paragraph'],
     }),
-      Highlight.configure({ multicolor: false }),
+    Highlight.configure({ multicolor: false }),
   ]
 
 export class TipTapEditor extends Controller {
