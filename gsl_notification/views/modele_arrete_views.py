@@ -7,11 +7,11 @@ from django.core.files.storage import FileSystemStorage
 from django.db.models import ProtectedError
 from django.db.models.fields import files
 from django.http import Http404, HttpResponseRedirect
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_GET, require_http_methods
 from django.views.generic import ListView
 from formtools.wizard.views import SessionWizardView
 
@@ -31,7 +31,7 @@ from gsl_notification.utils import (
 from gsl_notification.views.decorators import (
     modele_arrete_visible_by_user,
 )
-from gsl_projet.constants import DOTATIONS
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, DOTATIONS
 
 
 class ModeleArreteListView(ListView):
@@ -302,3 +302,16 @@ def delete_modele_arrete_view(request, modele_arrete_id):
     return redirect(
         reverse("gsl_notification:modele-arrete-liste", kwargs={"dotation": dotation})
     )
+
+
+@require_GET
+def get_generic_modele(request, dotation):
+    if dotation == DOTATION_DETR:
+        return render(
+            request, "gsl_notification/modele_arrete/generique/detr_modele.html"
+        )
+    elif dotation == DOTATION_DSIL:
+        return render(
+            request, "gsl_notification/modele_arrete/generique/dsil_modele.html"
+        )
+    raise Http404("Dotation inconnue")

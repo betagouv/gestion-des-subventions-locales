@@ -4,6 +4,7 @@
 {% block submit_button_text %}
     Enregistrer le modèle
 {% endblock submit_button_text %}
+
 {% block extra_js %}
     {{ mention_items|json_script:"mention-items-data" }}
     <script src="{% static 'js/formOnSeveralPages.js' %}"></script>
@@ -15,13 +16,20 @@
 {% endblock extra_js %}
 
 {% block more_content_in_form %}
-    <div>
+    <div class="fr-mb-4w">
         <h4>
             Rédiger le contenu de ce modèle d’arrêté
         </h4>
         <p>
             Veuillez remplir le contenu de votre arrêté. Pour ajouter des variables des valeurs de remplissage automatique pour le publipostage, merci d’utiliser le signe "@".
         </p>
+        <button class="fr-btn fr-btn--tertiary fr-btn--icon-left fr-icon-file-text-line"
+                type="button"
+                hx-get="{% url 'gsl_notification:get-generic-modele-template' dotation %}"
+                hx-target="#editor > .tiptap"
+                hx-swap="innerHTML">
+            Remplir avec le modèle générique
+        </button>
     </div>
 
     <div id="toolbar">
