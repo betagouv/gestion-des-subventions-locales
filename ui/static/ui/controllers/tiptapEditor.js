@@ -227,9 +227,9 @@ export class TipTapEditor extends Controller {
                   const { state, dispatch } = props.view;
                   const { from, to } = props.range;
                   dispatch(
-                    state.tr.delete(from, to)
+                    state.tr.delete(from, to - 1)
                   );
-                  //
+
                   const divItem = divItems[selectedIndex];
                   const item = originalItems.find(i => i.id === Number(divItem.dataset.id));
                   selectItem(item); 
