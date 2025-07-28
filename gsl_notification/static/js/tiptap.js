@@ -1,10 +1,12 @@
 import { Editor } from "https://esm.sh/@tiptap/core";
 import StarterKit from "https://esm.sh/@tiptap/starter-kit";
+import Highlight from "https://esm.sh/@tiptap/extension-highlight";
 import TextAlign from "https://esm.sh/@tiptap/extension-text-align";
 import Mention from "https://esm.sh/@tiptap/extension-mention";
 
 const EXTENSIONS = [
     StarterKit,
+    Highlight.configure({ multicolor: false }),
     TextAlign.configure({
       types: ['heading', 'paragraph'],
     }),
