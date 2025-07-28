@@ -150,3 +150,18 @@
 .mention-item.selected {
   background: #d9e6ff;
 }
+
+mark {
+  background-color: var(--background-contrast-yellow-tournesol);
+  color: var(--text-label-yellow-tournesol);
+}
+
+#editor h1 {
+  font-weight: bold;
+  font-size: 1.2em;
+}
+
+#editor h2 {
+  font-weight: bold;
+  font-size: 1.1em;
+}
