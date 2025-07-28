@@ -25,45 +25,66 @@
     </div>
 
     <div id="toolbar">
-        <button data-action="bold" type="button">
-            <b>Gras</b>
-        </button>
-        <button data-action="italic" type="button">
-            <i>Italique</i>
-        </button>
-        <button data-action="underline" type="button">
-            <u>Souligné</u>
-        </button>
-        <button data-action="heading" data-level="1" type="button">
-            Titre 1
-        </button>
-        <button data-action="heading" data-level="2" type="button">
-            Titre 2
-        </button>
-        <button data-action="bulletList" type="button">
-            Liste à puces
-        </button>
-        <button data-action="orderedList" type="button">
-            Liste numérotée
-        </button>
-        <button data-action="align" data-align="left" type="button">
-            Gauche
-        </button>
-        <button data-action="align" data-align="center" type="button">
-            Centrer
-        </button>
-        <button data-action="align" data-align="justify" type="button">
-            Justifier
-        </button>
-        <button data-action="align" data-align="right" type="button">
-            Droite
-        </button>
-        <button data-action="undo" type="button">
-            Annuler
-        </button>
-        <button data-action="redo" type="button">
-            Rétablir
-        </button>
+        <div class="toolbar-buttons-group">
+            <button class="fr-icon-arrow-go-back-line" data-action="undo" type="button">
+            </button>
+            <button class="fr-icon-arrow-go-forward-line"
+                    data-action="redo"
+                    type="button">
+            </button>
+        </div>
+
+        <div class="toolbar-buttons-group">
+            <button class="fr-icon-h-1"
+                    data-action="heading"
+                    data-level="1"
+                    type="button">
+            </button>
+            <button class="fr-icon-h-2"
+                    data-action="heading"
+                    data-level="2"
+                    type="button">
+            </button>
+        </div>
+
+        <div class="toolbar-buttons-group">
+            <button class="fr-icon-bold" data-action="bold" type="button">
+            </button>
+            <button class="fr-icon-italic" data-action="italic" type="button">
+            </button>
+            <button class="fr-icon-underline" data-action="underline" type="button">
+            </button>
+        </div>
+
+        <div class="toolbar-buttons-group">
+            <button class="fr-icon-list-unordered" data-action="bulletList" type="button">
+            </button>
+            <button class="fr-icon-list-ordered" data-action="orderedList" type="button">
+            </button>
+        </div>
+
+        <div class="toolbar-buttons-group">
+            <button class="fr-icon-align-left"
+                    data-action="align"
+                    data-align="left"
+                    type="button">
+            </button>
+            <button class="fr-icon-align-center"
+                    data-action="align"
+                    data-align="center"
+                    type="button">
+            </button>
+            <button class="fr-icon-align-justify"
+                    data-action="align"
+                    data-align="justify"
+                    type="button">
+            </button>
+            <button class="fr-icon-align-right"
+                    data-action="align"
+                    data-align="right"
+                    type="button">
+            </button>
+        </div>
     </div>
     <div id="editor">
     </div>
