@@ -1,3 +1,4 @@
+import json
 import os
 
 from csp.constants import SELF, UNSAFE_INLINE
@@ -211,10 +212,12 @@ class CreateModelArreteWizard(SessionWizardView):
             {
                 "step_title": step_titles.get(self.steps.current, ""),
                 "next_step_title": step_titles.get(self.steps.next, ""),
-                "mention_items": [
-                    {"id": id, "label": MENTION_TO_ATTRIBUTES[id]["label"]}
-                    for id in MENTION_TO_ATTRIBUTES.keys()
-                ],
+                "mention_items": json.dumps(
+                    [
+                        {"id": id, "label": MENTION_TO_ATTRIBUTES[id]["label"]}
+                        for id in MENTION_TO_ATTRIBUTES.keys()
+                    ]
+                ),
             }
         )
         return context

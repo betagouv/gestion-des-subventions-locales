@@ -40,11 +40,12 @@ def ui_tiptap_editor(*args, **kwargs) -> dict:
     """
     ```python
     data_dict = {
+        "content_field_name": "Name of the content input field which will contain the data to store",
         "with_mention": "(Optional) Useful if we want mentions triggered by @. False by default",
         "mentions": "(Optionnal) Used if `with_mention` is True",
     }
     ```"""
-    allowed_keys = ["with_mention", "mentions"]
+    allowed_keys = ["content_field_name", "with_mention", "mentions"]
     tag_data = parse_tag_args(args, kwargs, allowed_keys)
     if "with_mention" not in tag_data:
         tag_data["with_mention"] = False

@@ -1,5 +1,7 @@
 <div data-controller="tiptap-editor"
-     data-tiptap-editor-content-field-name-value="content">
+     data-tiptap-editor-content-field-name-value="{{ self.content_field_name }}"
+     data-tiptap-editor-with-mention-value="{{ self.with_mention }}"
+     data-tiptap-editor-mentions-value="{{ self.mentions }}">
     <div id="toolbar">
         <div class="toolbar-buttons-group">
             <button class="fr-icon-arrow-go-back-line"
