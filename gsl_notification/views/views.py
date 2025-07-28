@@ -332,7 +332,7 @@ class PrintArreteView(WeasyTemplateResponseMixin, DetailView):
             {
                 "logo": arrete.modele.logo,
                 "alt_logo": arrete.modele.logo_alt_text,
-                "top_right_text": arrete.modele.top_right_text,
+                "top_right_text": arrete.modele.top_right_text.strip(),
                 "content": mark_safe(arrete.content),
             }
         )
