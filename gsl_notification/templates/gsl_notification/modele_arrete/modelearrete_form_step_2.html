@@ -1,17 +1,11 @@
 {% extends "gsl_notification/modele_arrete/modelearrete_form_base.html" %}
-{% load static dsfr_tags gsl_filters csp %}
+{% load static dsfr_tags gsl_filters csp ui_tags %}
 
 {% block submit_button_text %}
     Enregistrer le modèle
 {% endblock submit_button_text %}
 {% block extra_js %}
-    {{ mention_items|json_script:"mention-items-data" }}
     <script src="{% static 'js/formOnSeveralPages.js' %}"></script>
-    <script nonce="{{request.csp_nonce}}">
-        const CONTENT_FIELD_NAME="{{ wizard.form.prefix }}-content";
-        const WITH_MENTION=true;
-    </script>
-    <script type="module" src="{% static 'js/tiptap.js' %}"></script>
 {% endblock extra_js %}
 
 {% block more_content_in_form %}
@@ -24,68 +18,5 @@
         </p>
     </div>
 
-    <div id="toolbar">
-        <div class="toolbar-buttons-group">
-            <button class="fr-icon-arrow-go-back-line" data-action="undo" type="button">
-            </button>
-            <button class="fr-icon-arrow-go-forward-line"
-                    data-action="redo"
-                    type="button">
-            </button>
-        </div>
-
-        <div class="toolbar-buttons-group">
-            <button class="fr-icon-h-1"
-                    data-action="heading"
-                    data-level="1"
-                    type="button">
-            </button>
-            <button class="fr-icon-h-2"
-                    data-action="heading"
-                    data-level="2"
-                    type="button">
-            </button>
-        </div>
-
-        <div class="toolbar-buttons-group">
-            <button class="fr-icon-bold" data-action="bold" type="button">
-            </button>
-            <button class="fr-icon-italic" data-action="italic" type="button">
-            </button>
-            <button class="fr-icon-underline" data-action="underline" type="button">
-            </button>
-        </div>
-
-        <div class="toolbar-buttons-group">
-            <button class="fr-icon-list-unordered" data-action="bulletList" type="button">
-            </button>
-            <button class="fr-icon-list-ordered" data-action="orderedList" type="button">
-            </button>
-        </div>
-
-        <div class="toolbar-buttons-group">
-            <button class="fr-icon-align-left"
-                    data-action="align"
-                    data-align="left"
-                    type="button">
-            </button>
-            <button class="fr-icon-align-center"
-                    data-action="align"
-                    data-align="center"
-                    type="button">
-            </button>
-            <button class="fr-icon-align-justify"
-                    data-action="align"
-                    data-align="justify"
-                    type="button">
-            </button>
-            <button class="fr-icon-align-right"
-                    data-action="align"
-                    data-align="right"
-                    type="button">
-            </button>
-        </div>
-    </div>
-    <div id="editor">
-    </div>
+    {% ui_tiptap_editor content_field_name=wizard.form.prefix|add:"-content" with_mention=True mentions=mention_items %}
 {% endblock more_content_in_form %}

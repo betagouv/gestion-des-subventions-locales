@@ -7,7 +7,7 @@
     {% csrf_token %}
 
     {{ arrete_form.errors }}
-    {% ui_tiptap_editor %}
+    {% ui_tiptap_editor content_field_name="content" %}
     {{ arrete_form.content }}
     <input type="hidden" name="created_by" value="{{ user.id }}">
     <input type="hidden"
