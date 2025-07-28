@@ -33,3 +33,21 @@ def ui_confirmation_modal(*args, **kwargs) -> dict:
         tag_data["is_title_red"] = True
 
     return {"self": tag_data}
+
+
+@register.inclusion_tag("ui/components/tiptap_editor.html")
+def ui_tiptap_editor(*args, **kwargs) -> dict:
+    """
+    ```python
+    data_dict = {
+        "with_mention": "(Optional) Useful if we want mentions triggered by @. False by default",
+        "mentions": "(Optionnal) Used if `with_mention` is True",
+    }
+    ```"""
+    allowed_keys = ["with_mention", "mentions"]
+    tag_data = parse_tag_args(args, kwargs, allowed_keys)
+    if "with_mention" not in tag_data:
+        tag_data["with_mention"] = False
+        tag_data["mentions"] = []
+
+    return {"self": tag_data}
