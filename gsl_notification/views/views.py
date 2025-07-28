@@ -327,7 +327,15 @@ class PrintArreteView(WeasyTemplateResponseMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["content"] = mark_safe(self.get_object().content)
+        arrete = self.get_object()
+        context.update(
+            {
+                "logo": arrete.modele.logo,
+                "alt_logo": arrete.modele.logo_alt_text,
+                "top_right_text": arrete.modele.top_right_text.strip(),
+                "content": mark_safe(arrete.content),
+            }
+        )
         return context
 
 
