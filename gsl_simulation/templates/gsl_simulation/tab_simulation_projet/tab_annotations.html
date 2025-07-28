@@ -1,10 +1,6 @@
 {% extends "gsl_simulation/simulation_projet_detail.html" %}
 {% load static ui_tags %}
 
-{% block extra_head_js %}
-    <script src="{% static 'vendor/htmx.esm.js' %}"></script>
-{% endblock extra_head_js %}
-
 {% block tab_projet %}
     {% include "includes/_annotations_detail.html" %}
     {% block block_projet_notes %}

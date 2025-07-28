@@ -7,8 +7,6 @@
         <meta charset="utf-8" />
         <meta name="viewport"
               content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <meta name="htmx-config"
-              content='{"includeIndicatorStyles":false,"allowScriptTags":false,"allowEval":false}'>
 
         {% dsfr_css %}
         {% dsfr_favicon %}
@@ -55,6 +53,9 @@
             }
             </script>
         {% endblock importmap %}
+        <script type="module" src="{% static 'vendor/htmx.esm.js' %}"></script>
+        <meta name="htmx-config"
+              content='{"includeIndicatorStyles":false,"allowScriptTags":false,"allowEval":false}'>
 
         {% if ENV == "prod" %}
             <script src="{% static "js/matomo.js" %}" nonce="{{request.csp_nonce}}" defer></script>
@@ -115,7 +116,7 @@
         {% endblock modal %}
 
         <script src="{% static "js/gsl.js" %}" defer></script>
-        <script nonce="{{ request.csp_nonce }}">
+        <script type="module" nonce="{{ request.csp_nonce }}">
             import { Application } from "stimulus"
             import { DoubleDotation } from "doubleDotation"
             import { Modal } from "modal"
