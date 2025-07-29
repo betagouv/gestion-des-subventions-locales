@@ -3,14 +3,16 @@
      data-tiptap-editor-with-mention-value="{{ self.with_mention }}"
      data-tiptap-editor-mentions-value="{{ self.json_mention_items }}">
     {% if self.with_mention %}
-        <details class="new-gsl-dropdown">
-            <summary class="fr-btn fr-btn--tertiary"
+        <details class="new-gsl-dropdown fr-mb-3w"
+                 data-tiptap-editor-target="mentionDropdown"
+                 data-action="click->tiptap-editor#toggleMentionDropdown">
+            <summary class="fr-btn fr-btn--tertiary fr-btn--icon-right fr-icon-arrow-down-s-line"
                      aria-label="Bouton pour ajouter une mention dans le document">
-                Insérer une variable
+                Insérer une variable de publipostage
             </summary>
-            <ul class="new-gsl-dropdown-content no-list-style fr-m-0">
+            <ul class="new-gsl-dropdown-content no-list-style mention-list fr-m-0">
                 {% for mention in self.mentions %}
-                    <li>
+                    <li class="mention-item">
                         <button data-action="click->tiptap-editor#insertMention"
                                 data-id="{{ mention.id }}"
                                 type="button">
