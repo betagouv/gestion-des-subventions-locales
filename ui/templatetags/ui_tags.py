@@ -1,3 +1,5 @@
+import json
+
 from django import template
 from dsfr.utils import parse_tag_args
 
@@ -50,5 +52,8 @@ def ui_tiptap_editor(*args, **kwargs) -> dict:
     if "with_mention" not in tag_data:
         tag_data["with_mention"] = False
         tag_data["mentions"] = []
+
+    if "mentions" in tag_data:
+        tag_data["json_mention_items"] = json.dumps(tag_data["mentions"])
 
     return {"self": tag_data}

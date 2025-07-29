@@ -1,7 +1,27 @@
 <div data-controller="tiptap-editor"
      data-tiptap-editor-content-field-name-value="{{ self.content_field_name }}"
      data-tiptap-editor-with-mention-value="{{ self.with_mention }}"
-     data-tiptap-editor-mentions-value="{{ self.mentions }}">
+     data-tiptap-editor-mentions-value="{{ self.json_mention_items }}">
+    {% if self.with_mention %}
+        <details class="new-gsl-dropdown">
+            <summary class="fr-btn fr-btn--tertiary"
+                     aria-label="Bouton pour ajouter une mention dans le document">
+                Insérer une variable
+            </summary>
+            <ul class="new-gsl-dropdown-content no-list-style fr-m-0">
+                {% for mention in self.mentions %}
+                    <li>
+                        <button data-action="click->tiptap-editor#insertMention"
+                                data-id="{{ mention.id }}"
+                                type="button">
+                            {{ mention.label }}
+                        </button>
+                    </li>
+                {% endfor %}
+            </ul>
+        </details>
+    {% endif %}
+
     <div id="toolbar">
         <div class="toolbar-buttons-group">
             <button class="fr-icon-arrow-go-back-line"
