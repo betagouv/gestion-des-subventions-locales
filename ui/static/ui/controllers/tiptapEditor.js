@@ -31,6 +31,24 @@ export class TipTapEditor extends Controller {
     this._setEditor();
   }
 
+  insertMention(event){
+    if (!this.editor) return
+
+    const mentionId = event.target.dataset.id
+    const mentionLabel = event.target.innerHTML
+
+    this.editor.commands.insertContentAt(
+      this.editor.state.selection.anchor, // position actuelle du curseur
+      {
+        type: 'mention',
+        attrs: {
+          id: mentionId,
+          label: mentionLabel,
+        },
+      }
+    )
+  }
+
   // Private
 
   _setEditor(){
