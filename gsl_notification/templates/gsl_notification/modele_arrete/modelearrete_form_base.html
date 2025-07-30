@@ -9,7 +9,6 @@
 {% endblock extra_css %}
 
 {% block extra_js %}
-    <script src="{% static 'js/formOnSeveralPages.js' %}"></script>
     <script src="{% static 'js/modeleArreteForm.js' %}"></script>
 {% endblock extra_js %}
 
@@ -29,7 +28,10 @@
         {% block form_content %}
             {% dsfr_stepper current_step_id=wizard.steps.step1 total_steps=wizard.steps.count current_step_title=step_title next_step_title=next_step_title %}
             <div class="modelearrete-form-wrapper modelearrete-form-wrapper__step-{{ wizard.steps.step0 }}">
-                <form method="post" enctype="multipart/form-data" id="multipage_form">
+                <form method="post"
+                      enctype="multipart/form-data"
+                      id="multipage_form"
+                      data-modele-arrete-form-target="form">
                     {% csrf_token %}
                     {{ wizard.management_form }}
                     {% if wizard.form.forms %}
@@ -50,7 +52,8 @@
                                     id="previous_button"
                                     class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line"
                                     type="submit"
-                                    value="{{ wizard.steps.prev }}">
+                                    value="{{ wizard.steps.prev }}"
+                                    data-action="modele-arrete-form#removeRequiredWhenGoingAtPreviousStep">
                                 Étape précédente
                             </button>
                         {% endif %}
