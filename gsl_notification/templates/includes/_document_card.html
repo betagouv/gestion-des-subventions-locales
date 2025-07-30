@@ -17,8 +17,9 @@
                                 {% csrf_token %}
                                 <button type="button"
                                         class="fr-btn fr-btn--secondary arrete-card__action"
+                                        data-fr-opened="false"
                                         aria-controls="{{ action.aria_controls }}"
-                                        data-toggle="false">
+                                        aria-expanded="false">
                                     {{ action.label }}
                                 </button>
                             </form>
