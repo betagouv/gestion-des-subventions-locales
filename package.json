@@ -1,0 +1,16 @@
+{
+  "name": "gsl",
+  "version": "1.0.0",
+  "description": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/betagouv/gestion-des-subventions-locales.git"
+  },
+  "private": true,
+  "dependencies": {
+    "@hotwired/stimulus": "^3",
+    "htmx.org": "^2"
+  },
+  "devDependencies": {
+  }
+}
