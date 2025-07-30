@@ -9,6 +9,7 @@ from gsl_notification.views.modele_arrete_views import (
     ModeleArreteListView,
     UpdateModeleArrete,
     delete_modele_arrete_view,
+    get_generic_modele,
 )
 from gsl_notification.views.views import (
     DownloadArreteView,
@@ -101,5 +102,10 @@ urlpatterns = [
         "modele/<str:modele_arrete_id>/",
         delete_modele_arrete_view,
         name="delete-modele-arrete",
+    ),
+    path(
+        "modele/generique/<str:dotation>",
+        get_generic_modele,
+        name="get-generic-modele-template",
     ),
 ]

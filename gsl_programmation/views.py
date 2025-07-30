@@ -133,6 +133,7 @@ class ProgrammationProjetListView(ListView):
         context.update(
             {
                 "enveloppe": self.enveloppe,
+                "dotation": self.enveloppe.dotation,
                 "title": title,
                 "breadcrumb_dict": {
                     "current": "Programmation en cours",

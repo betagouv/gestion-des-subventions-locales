@@ -42,18 +42,16 @@
             {% endif %}
             {% block tab_submenu %}
                 <nav class="tab-submenu"
-                     aria-label="Sous-menu Programmation {{ enveloppe.dotation }} {{ enveloppe.annee }}">
+                     aria-label="Sous-menu Programmation {{ dotation }}">
                     <ul class="no-list-style fr-m-4w">
                         <li>
-                            <a class="active-link"
-                               href="{% url "programmation:programmation-projet-list-dotation" enveloppe.dotation %}">
+                            <a class="{% if "/programmation/" in request.path %}active-link{% else %}secondary-link{% endif %}" href="{% url "programmation:programmation-projet-list-dotation" dotation %}">
                                 Projets programmés
                             </a>
                         </li>
                         <li>
-                            <a class="secondary-link"
-                               href="{% url "notification:modele-arrete-liste" enveloppe.dotation %}">
-                                Modèles de publipostage {{ enveloppe.dotation }}
+                            <a class="{% if "/notification/" in request.path %}active-link{% else %}secondary-link{% endif %}" href="{% url "notification:modele-arrete-liste" dotation %}">
+                                Modèles de publipostage {{ dotation }}
                             </a>
                         </li>
                     </ul>
