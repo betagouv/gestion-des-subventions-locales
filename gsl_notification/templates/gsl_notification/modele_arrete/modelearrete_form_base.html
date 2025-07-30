@@ -17,6 +17,9 @@
 
 {% block tab_content %}
     <div class="fr-m-4w">
+        <a href="{% url "gsl_notification:modele-arrete-liste" dotation %}"
+           class='fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-arrow-left-s-line fr-mb-4w'>Annuler</a>
+
         <h1>
             Création d’un nouveau modèle d’arrêté {{ dotation }}
         </h1>
