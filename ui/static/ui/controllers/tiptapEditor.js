@@ -26,11 +26,22 @@ export class TipTapEditor extends Controller {
     },
     contentFieldName: String
   }
-  static targets = ["editor", "toolbarButton"]
+  static targets = ["editor", "toolbarButton", "mentionDropdown"]
 
   connect(){
     this._setToolbar()
     this._setEditor();
+    if (this.withMention){
+      this.boundClickOutside = this.clickOutside.bind(this)
+      document.addEventListener("click", this.boundClickOutside)
+
+    }
+  }
+
+  disconnect() {
+    if (this.boundClickOutside){
+      document.removeEventListener("click", this.boundClickOutside)
+    }
   }
 
   insertMention(event){
@@ -49,7 +60,16 @@ export class TipTapEditor extends Controller {
         },
       }
     )
+    this.mentionDropdownTarget.removeAttribute("open")
+
   }
+
+  clickOutside(event) {
+    if (!this.element.contains(event.target)) {
+      this.mentionDropdownTarget.removeAttribute("open")
+    }
+  }
+
 
   // Private
 
