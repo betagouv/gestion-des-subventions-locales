@@ -93,8 +93,8 @@
                     type="button">
             </button>
         </div>
-        <div class="toolbar-buttons-group">
-            {% if self.with_mention %}
+        {% if self.with_mention %}
+            <div class="toolbar-buttons-group">
                 <details class="new-gsl-dropdown"
                          data-tiptap-editor-target="mentionDropdown"
                          data-action="click@document->tiptap-editor#clickOutside">
@@ -115,8 +115,8 @@
                         {% endfor %}
                     </ul>
                 </details>
-            {% endif %}
-        </div>
+            </div>
+        {% endif %}
     </div>
     <div id="editor" data-tiptap-editor-target="editor">
     </div>
