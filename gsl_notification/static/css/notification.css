@@ -124,6 +124,13 @@
   gap: 24px
 }
 
+.no-documents-info {
+  width: 100%;
+  text-align: center;
+  margin-top: 4rem;
+  margin-bottom: 4rem
+}
+
 /* Modeles arrêtés */
 
 .modele-arrete-form-btns {

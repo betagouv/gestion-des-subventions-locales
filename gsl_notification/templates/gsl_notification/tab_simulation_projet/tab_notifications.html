@@ -61,15 +61,17 @@
                     Imprimer tous les documents
                 </button>
             </div>
-            <ul class="arrete-list">
-                {% for document in documents %}
-                    {% include "includes/_document_card.html" %}
-                {% empty %}
-                    <li class="empty-list">
-                        Il n’y a pas de document pour le moment.
-                    </li>
-                {% endfor %}
-            </ul>
+            {% if documents %}
+                <ul class="arrete-list">
+                    {% for document in documents %}
+                        {% include "includes/_document_card.html" %}
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="no-documents-info">
+                    Il n’y a pas de document pour le moment.
+                </div>
+            {% endif %}
         </div>
 
         <h2 class="fr-mt-6w">
