@@ -1,13 +1,14 @@
 import { Editor } from "https://esm.sh/@tiptap/core";
-import StarterKit from "https://esm.sh/@tiptap/starter-kit";
-import TextAlign from "https://esm.sh/@tiptap/extension-text-align";
-import Mention from "https://esm.sh/@tiptap/extension-mention";
 import Highlight from "https://esm.sh/@tiptap/extension-highlight";
+import Mention from "https://esm.sh/@tiptap/extension-mention";
+import StarterKit from "https://esm.sh/@tiptap/starter-kit";
 import { Controller } from "stimulus"
+import TextAlign from "https://esm.sh/@tiptap/extension-text-align";
 
 
 const EXTENSIONS = [
     StarterKit,
+    Highlight,
     TextAlign.configure({
       types: ['heading', 'paragraph'],
     }),
@@ -76,6 +77,9 @@ export class TipTapEditor extends Controller {
           break;
         case "underline":
           this.editor.chain().focus().toggleUnderline().run();
+          break;
+        case "highlight":
+          this.editor.chain().focus().toggleHighlight().run();
           break;
         case "heading":
           this.editor.chain().focus().toggleHeading({ level: parseInt(btn.dataset.level) }).run();
