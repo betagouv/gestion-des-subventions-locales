@@ -84,5 +84,14 @@ header .head-right {
     align-content: center;
     flex-grow: 1;
     text-align: right;
-    font-size: 1.25em;
+    font-size: 1em;
+    font-weight: bold;
+}
+
+h1 {
+    font-size: 18px
+}
+
+h2 {
+    font-size: 16px
 }
