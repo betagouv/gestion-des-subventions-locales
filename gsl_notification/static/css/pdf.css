@@ -68,6 +68,7 @@ html {
 
 p {
     margin: 1em 0;
+    font-size: 10px;
 }
 /* Header */
 .logo {
@@ -84,5 +85,14 @@ header .head-right {
     align-content: center;
     flex-grow: 1;
     text-align: right;
-    font-size: 1.25em;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+h1 {
+    font-size: 16px
+}
+
+h2 {
+    font-size: 14px
 }

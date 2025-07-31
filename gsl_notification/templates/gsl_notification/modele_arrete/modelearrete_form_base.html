@@ -8,55 +8,62 @@
     <link rel="stylesheet" href="{% static 'ui/components/tiptap.css' %}">
 {% endblock extra_css %}
 
-{% block extra_js %}
-    <script src="{% static 'js/formOnSeveralPages.js' %}"></script>
-{% endblock extra_js %}
-
 {% block tab_submenu %}
 {% endblock tab_submenu %}
 
 {% block tab_content %}
-    <div class="fr-m-4w">
+    <div class="fr-m-4w" data-controller="modele-arrete-form">
+        <a href="{% url "gsl_notification:modele-arrete-liste" dotation %}"
+           class='fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-arrow-left-s-line fr-mb-4w'
+           data-action="click->modele-arrete-form#confirmaCancel">Annuler</a>
+
         <h1>
             Création d’un nouveau modèle d’arrêté {{ dotation }}
         </h1>
-        {% dsfr_stepper current_step_id=wizard.steps.step1 total_steps=wizard.steps.count current_step_title=step_title next_step_title=next_step_title %}
-        <div class="modelearrete-form-wrapper modelearrete-form-wrapper__step-{{ wizard.steps.step0 }}">
-            <form method="post" enctype="multipart/form-data" id="multipage_form">
-                {% csrf_token %}
-                {{ wizard.management_form }}
-                {% if wizard.form.forms %}
-                    {{ wizard.form.management_form }}
-                    {% for form in wizard.form.forms %}
-                        {{ form.errors }}
-                        {{ form.as_table }}
-                    {% endfor %}
-                {% else %}
-                    {{ wizard.form.errors }}
-                    {{ wizard.form }}
-                {% endif %}
-                {% block more_content_in_form %}
-                {% endblock more_content_in_form %}
-                <div class="fr-mt-3w modele-arrete-form-btns">
-                    {% if wizard.steps.prev %}
-                        <button name="wizard_goto_step"
-                                id="previous_button"
-                                class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line"
-                                type="submit"
-                                value="{{ wizard.steps.prev }}">
-                            Étape précédente
-                        </button>
+
+        {% block form_content %}
+            {% dsfr_stepper current_step_id=wizard.steps.step1 total_steps=wizard.steps.count current_step_title=step_title next_step_title=next_step_title %}
+            <div class="modelearrete-form-wrapper modelearrete-form-wrapper__step-{{ wizard.steps.step0 }}">
+                <form method="post"
+                      enctype="multipart/form-data"
+                      id="multipage_form"
+                      data-modele-arrete-form-target="form">
+                    {% csrf_token %}
+                    {{ wizard.management_form }}
+                    {% if wizard.form.forms %}
+                        {{ wizard.form.management_form }}
+                        {% for form in wizard.form.forms %}
+                            {{ form.errors }}
+                            {{ form.as_table }}
+                        {% endfor %}
+                    {% else %}
+                        {{ wizard.form.errors }}
+                        {{ wizard.form }}
                     {% endif %}
-                    <button class="fr-btn fr-btn--icon-right fr-icon-arrow-right-s-line"
-                            type="submit">
-                        {% block submit_button_text %}
-                            Étape suivante
-                        {% endblock submit_button_text %}
-                    </button>
-                </div>
-            </form>
-            {% block next_to_form %}
-            {% endblock next_to_form %}
-        </div>
+                    {% block more_content_in_form %}
+                    {% endblock more_content_in_form %}
+                    <div class="fr-mt-3w modele-arrete-form-btns">
+                        {% if wizard.steps.prev %}
+                            <button name="wizard_goto_step"
+                                    id="previous_button"
+                                    class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line"
+                                    type="submit"
+                                    value="{{ wizard.steps.prev }}"
+                                    data-action="modele-arrete-form#removeRequiredWhenGoingAtPreviousStep">
+                                Étape précédente
+                            </button>
+                        {% endif %}
+                        <button class="fr-btn fr-btn--icon-right fr-icon-arrow-right-s-line"
+                                type="submit">
+                            {% block submit_button_text %}
+                                Étape suivante
+                            {% endblock submit_button_text %}
+                        </button>
+                    </div>
+                </form>
+                {% block next_to_form %}
+                {% endblock next_to_form %}
+            </div>
+        {% endblock form_content %}
     </div>
 {% endblock tab_content %}
