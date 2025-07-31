@@ -48,7 +48,7 @@
                 "imports": {
                     "stimulus": "/static/vendor/stimulus.js",
                     "tiptapEditor": "/static/ui/controllers/tiptapEditor.js",
-                    "modal": "/static/ui/components/modal.js",
+                    "modal": "/static/ui/controllers/modal.js",
                     "doubleDotation": "/static/js/controllers/doubleDotation.js",
                     "modeleArreteForm": "/static/js/modeleArreteForm.js"
                 }
@@ -122,21 +122,15 @@
             import { Application } from "stimulus"
             import { DoubleDotation } from "doubleDotation"
             import { Modal } from "modal"
-<<<<<<< HEAD
             import { TipTapEditor } from "tiptapEditor"
-=======
             import { ModeleArreteForm } from "modeleArreteForm"
->>>>>>> 4ce84341 (fix: don't set stimulus in confirmation modal if there is no form)
 
             window.Stimulus = Application.start()
 
             Stimulus.register("double-dotation", DoubleDotation)
             Stimulus.register("modal", Modal)
-<<<<<<< HEAD
             Stimulus.register("tiptap-editor", TipTapEditor)
-=======
             Stimulus.register("modele-arrete-form", ModeleArreteForm)
->>>>>>> 4ce84341 (fix: don't set stimulus in confirmation modal if there is no form)
         </script>
 
         {% block extra_js %}
