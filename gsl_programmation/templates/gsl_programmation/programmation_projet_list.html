@@ -72,6 +72,9 @@
                 </div>
 
                 {% include "includes/_enveloppe_summary.html" %}
+                {% with component_included_in_parent=True %}
+                    {% include "includes/_projet_list_filters.html" %}
+                {% endwith %}
 
                 {% if programmation_projets %}
                     <div class="fr-table--lg gsl-projet-table" id="programmation-projet-table">

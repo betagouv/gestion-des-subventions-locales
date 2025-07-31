@@ -13,7 +13,8 @@
     {% endcomment %}
     <button type="submit" hidden>
     </button>
-    <div class="projets-filters-layout fr-container--fluid">
+
+    <div class="projets-filters-layout {% if component_included_in_parent %} projet-filters-in-parent{% endif %} fr-container--fluid">
         <div class="fr-grid-row fr-grid-row--gutters">
             <div class="fr-col-12 fr-col-md-4 fr-col-lg-3 reinit-filters">
                 <button class="fr-btn fr-btn--tertiary"
