@@ -1,8 +1,6 @@
 <dialog id="{{ self.modal_id }}"
         class="fr-modal confirmation-modal"
-        data-controller="modal"
-        data-modal-dialog-id-value="{{ self.modal_id }}"
-        {% if self.form %}data-modal-form-id-value="{{ self.form }}"{% endif %}>
+        {% if self.form %} data-controller="modal" data-modal-dialog-id-value="{{ self.modal_id }}" data-modal-form-id-value="{{ self.form }}"{% endif %}>
     <div class="fr-container fr-container--fluid fr-container-md">
         <div class="fr-grid-row fr-grid-row--center">
             <div class="fr-col-12 fr-col-md-8 fr-col-lg-6 confirmation-modal-container">
@@ -12,7 +10,7 @@
                                 title="Fermer"
                                 type="button"
                                 class="fr-btn--close fr-btn close-modal"
-                                data-action="modal#close">
+                                {% if self.form %}data-action="modal#close"{% endif %}>
                             Fermer
                         </button>
                     </div>
@@ -29,7 +27,7 @@
                     <div class="fr-modal__footer confirmation-modal-footer">
                         <button class="fr-btn fr-btn--secondary close-modal"
                                 aria-controls="{{ self.modal_id }}"
-                                data-action="modal#close">
+                                {% if self.form %} data-action="modal#close"{% endif %}>
                             Annuler
                         </button>
 

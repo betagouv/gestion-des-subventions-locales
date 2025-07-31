@@ -1,0 +1,99 @@
+<div data-controller="tiptap-editor"
+     data-tiptap-editor-content-field-name-value="{{ self.content_field_name }}"
+     data-tiptap-editor-with-mention-value="{{ self.with_mention }}"
+     data-tiptap-editor-mentions-value="{{ self.mentions }}">
+    <div id="toolbar">
+        <div class="toolbar-buttons-group">
+            <button class="fr-icon-arrow-go-back-line"
+                    data-tiptap-editor-target="toolbarButton"
+                    data-action="undo"
+                    type="button">
+            </button>
+            <button class="fr-icon-arrow-go-forward-line"
+                    data-tiptap-editor-target="toolbarButton"
+                    data-action="redo"
+                    type="button">
+            </button>
+        </div>
+
+        <div class="toolbar-buttons-group">
+            <button class="fr-icon-h-1"
+                    data-tiptap-editor-target="toolbarButton"
+                    data-action="heading"
+                    data-level="1"
+                    type="button">
+            </button>
+            <button class="fr-icon-h-2"
+                    data-tiptap-editor-target="toolbarButton"
+                    data-action="heading"
+                    data-level="2"
+                    type="button">
+            </button>
+        </div>
+
+        <div class="toolbar-buttons-group">
+            <button class="fr-icon-bold"
+                    data-tiptap-editor-target="toolbarButton"
+                    data-action="bold"
+                    type="button">
+            </button>
+            <button class="fr-icon-italic"
+                    data-tiptap-editor-target="toolbarButton"
+                    data-action="italic"
+                    type="button">
+            </button>
+            <button class="fr-icon-underline"
+                    data-tiptap-editor-target="toolbarButton"
+                    data-action="underline"
+                    type="button">
+            </button>
+            <button class="fr-icon-mark-pen-line"
+                    data-tiptap-editor-target="toolbarButton"
+                    data-action="highlight"
+                    type="button">
+            </button>
+        </div>
+
+        <div class="toolbar-buttons-group">
+            <button class="fr-icon-list-unordered"
+                    data-tiptap-editor-target="toolbarButton"
+                    data-action="bulletList"
+                    type="button">
+            </button>
+            <button class="fr-icon-list-ordered"
+                    data-tiptap-editor-target="toolbarButton"
+                    data-action="orderedList"
+                    type="button">
+            </button>
+        </div>
+
+        <div class="toolbar-buttons-group">
+            <button class="fr-icon-align-left"
+                    data-tiptap-editor-target="toolbarButton"
+                    data-action="align"
+                    data-align="left"
+                    type="button">
+            </button>
+            <button class="fr-icon-align-center"
+                    data-tiptap-editor-target="toolbarButton"
+                    data-action="align"
+                    data-align="center"
+                    type="button">
+            </button>
+            <button class="fr-icon-align-justify"
+                    data-tiptap-editor-target="toolbarButton"
+                    data-action="align"
+                    data-align="justify"
+                    type="button">
+            </button>
+            <button class="fr-icon-align-right"
+                    data-tiptap-editor-target="toolbarButton"
+                    data-action="align"
+                    data-align="right"
+                    type="button">
+            </button>
+        </div>
+    </div>
+    <div id="editor" data-tiptap-editor-target="editor">
+    </div>
+</div>

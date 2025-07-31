@@ -47,7 +47,8 @@
             {
                 "imports": {
                     "stimulus": "/static/vendor/stimulus.js",
-                    "modal": "/static/ui/components/modal.js",
+                    "modal": "/static/ui/controllers/modal.js",
+                    "tiptapEditor": "/static/ui/controllers/tiptapEditor.js",
                     "doubleDotation": "/static/js/controllers/doubleDotation.js"
                 }
             }
@@ -120,11 +121,13 @@
             import { Application } from "stimulus"
             import { DoubleDotation } from "doubleDotation"
             import { Modal } from "modal"
+            import { TipTapEditor } from "tiptapEditor"
 
             window.Stimulus = Application.start()
 
             Stimulus.register("double-dotation", DoubleDotation)
             Stimulus.register("modal", Modal)
+            Stimulus.register("tiptap-editor", TipTapEditor)
         </script>
 
         {% block extra_js %}
