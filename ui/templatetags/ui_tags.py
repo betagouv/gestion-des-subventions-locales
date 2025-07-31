@@ -16,6 +16,7 @@ def ui_multiselect(*args, **kwargs) -> dict:
         "label": "Field label",
         "placeholder": "Placeholder in button",
         "is_active": "(Optional) If true, we give a blue border to button. False by default",
+        "size" "(Optional) S, M or L. Define the width. M by default"
     }
     ```"""
     allowed_keys = [
@@ -24,11 +25,16 @@ def ui_multiselect(*args, **kwargs) -> dict:
         "label",
         "placeholder",
         "is_active",
-    ]  # TODO add size ?
-    # TODO use field.id instead of id ?
+        "size",
+    ]
     tag_data = parse_tag_args(args, kwargs, allowed_keys)
-    # if "is_active" not in tag_data:
-    #     tag_data["is_active"] = False
+
+    tag_data["width"] = "fr-col-lg-3"
+    if "size" in tag_data:
+        if tag_data["size"] == "S":
+            tag_data["width"] = "fr-col-lg-2"
+        elif tag_data["size"] == "L":
+            tag_data["width"] = "fr-col-lg-4"
 
     return {"self": tag_data}
 
