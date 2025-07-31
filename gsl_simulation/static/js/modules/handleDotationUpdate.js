@@ -1,3 +1,4 @@
+// TODO => use doubleDotation Controller for simulationDetail page, then remove this file !
 let newDotationValues = undefined
 let initialDotationValues = undefined
 

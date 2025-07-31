@@ -1,5 +1,5 @@
 {% extends "gsl_projet/projet.html" %}
-{% load static gsl_filters dsfr_tags %}
+{% load static gsl_filters dsfr_tags ui_tags %}
 {% block extra_css %}
     <link rel="stylesheet" href="{% static "css/projet_detail.css" %}">
     <link rel="stylesheet" href="{% static 'css/simulation_detail.css' %}">
@@ -36,7 +36,7 @@
     {% include "includes/modals/_accept_confirmation_modal.html" %}
     {% include "includes/modals/_refuse_confirmation_modal.html" %}
     {% include "includes/modals/_dismiss_confirmation_modal.html" %}
-    {% include "includes/modals/_dotation_update_confirmation_modal.html" %}
+    {% ui_confirmation_modal modal_id="dotation-confirmation-modal-content" title="Modification de la dotation" icon="fr-icon-arrow-right-line" text="Ce projet sera aussi affiché dans les simulations DSIL." action_text="Je confirme" form="projet_form" is_title_red=False %}
 {% endblock modal %}
 
 {% block extra_js %}

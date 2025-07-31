@@ -1,0 +1,43 @@
+<dialog id="{{ self.modal_id }}"
+        class="fr-modal confirmation-modal"
+        {% if self.form %} data-controller="modal" data-modal-dialog-id-value="{{ self.modal_id }}" data-modal-form-id-value="{{ self.form }}"{% endif %}>
+    <div class="fr-container fr-container--fluid fr-container-md">
+        <div class="fr-grid-row fr-grid-row--center">
+            <div class="fr-col-12 fr-col-md-8 fr-col-lg-6 confirmation-modal-container">
+                <div class="fr-modal__body">
+                    <div class="fr-modal__header">
+                        <button aria-controls="{{ self.modal_id }}"
+                                title="Fermer"
+                                type="button"
+                                class="fr-btn--close fr-btn close-modal"
+                                {% if self.form %}data-action="modal#close"{% endif %}>
+                            Fermer
+                        </button>
+                    </div>
+                    <div class="fr-modal__content">
+                        <h1 class="fr-modal__title {% if self.is_title_red %}refuse-color{% endif %}">
+                            <span class="{{ self.icon|default:"fr-icon-delete-fill" }} fr-icon--lg"
+                                  aria-hidden="true"></span> <span class="modal-title">{{ self.title }}</span>
+                        </h1>
+                        <p class="modal-body">
+                            {{ self.text }}
+                        </p>
+                    </div>
+
+                    <div class="fr-modal__footer confirmation-modal-footer">
+                        <button class="fr-btn fr-btn--secondary close-modal"
+                                aria-controls="{{ self.modal_id }}"
+                                {% if self.form %} data-action="modal#close"{% endif %}>
+                            Annuler
+                        </button>
+
+                        <button class="fr-btn fr-btn--primary confirm"
+                                {% if self.form %}data-action="modal#submit" form="{{ self.form }}" type="submit" {% endif %}>
+                            {{ self.action_text|default:"Confirmer" }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</dialog>

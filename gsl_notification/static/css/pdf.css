@@ -1,0 +1,98 @@
+@font-face {
+    font-display: swap;
+    font-family: Marianne;
+    font-style: normal;
+    font-weight: 300;
+    src: url('../fonts/Marianne-Light.woff2') format("woff2");
+}
+
+@font-face {
+    font-display: swap;
+    font-family: Marianne;
+    font-style: italic;
+    font-weight: 300;
+    src: url('../fonts/Marianne-Light_Italic.woff2') format("woff2");
+}
+
+@font-face {
+    font-display: swap;
+    font-family: Marianne;
+    font-style: normal;
+    font-weight: 400;
+    src: url('../fonts/Marianne-Regular.woff2') format("woff2");
+}
+
+@font-face {
+    font-display: swap;
+    font-family: Marianne;
+    font-style: italic;
+    font-weight: 400;
+    src: url('../fonts/Marianne-Regular_Italic.woff2') format("woff2");
+}
+
+@font-face {
+    font-display: swap;
+    font-family: Marianne;
+    font-style: normal;
+    font-weight: 500;
+    src: url('../fonts/Marianne-Medium.woff2') format("woff2");
+}
+
+@font-face {
+    font-display: swap;
+    font-family: Marianne;
+    font-style: italic;
+    font-weight: 500;
+    src: url('../fonts/Marianne-Medium_Italic.woff2') format("woff2");
+}
+
+@font-face {
+    font-display: swap;
+    font-family: Marianne;
+    font-style: normal;
+    font-weight: 700;
+    src: url('../fonts/Marianne-Bold.woff2') format("woff2");
+}
+
+@font-face {
+    font-display: swap;
+    font-family: Marianne;
+    font-style: italic;
+    font-weight: 700;
+    src: url('../fonts/Marianne-Bold_Italic.woff2') format("woff2");
+}
+
+html {
+    font-family: "Marianne";
+}
+
+p {
+    margin: 1em 0;
+    font-size: 10px;
+}
+/* Header */
+.logo {
+    width: 3cm;
+}
+header {
+    display: flex;
+}
+header .head-left {
+    width: 3cm;
+    margin-right: 1cm;
+}
+header .head-right {
+    align-content: center;
+    flex-grow: 1;
+    text-align: right;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+h1 {
+    font-size: 16px
+}
+
+h2 {
+    font-size: 14px
+}

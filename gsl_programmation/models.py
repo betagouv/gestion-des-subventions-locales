@@ -1,9 +1,12 @@
+from functools import cached_property
+
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Sum
 
 from gsl_core.models import Perimetre
 from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.models import DotationProjet
+from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.utils.utils import compute_taux
 
 
@@ -46,6 +49,49 @@ class Enveloppe(models.Model):
     def is_deleguee(self):
         return self.deleguee_by is not None
 
+    @cached_property
+    def enveloppe_projets_included(self):
+        return Projet.objects.included_in_enveloppe(self)
+
+    @property
+    def montant_asked(self):
+        return self.enveloppe_projets_included.aggregate(
+            Sum("dossier_ds__demande_montant")
+        )["dossier_ds__demande_montant__sum"]
+
+    @cached_property
+    def enveloppe_projets_processed(self):
+        return ProgrammationProjet.objects.filter(enveloppe=self)
+
+    @property
+    def accepted_montant(self):
+        return (
+            self.enveloppe_projets_processed.filter(
+                status=ProgrammationProjet.STATUS_ACCEPTED
+            ).aggregate(Sum("montant"))["montant__sum"]
+            or 0
+        )
+
+    @property
+    def validated_projets_count(self):
+        return self.enveloppe_projets_processed.filter(
+            status=ProgrammationProjet.STATUS_ACCEPTED
+        ).count()
+
+    @property
+    def refused_projets_count(self):
+        return self.enveloppe_projets_processed.filter(
+            status=ProgrammationProjet.STATUS_REFUSED
+        ).count()
+
+    @property
+    def demandeurs_count(self):
+        return self.enveloppe_projets_included.distinct("demandeur").count()
+
+    @property
+    def projets_count(self):
+        return self.enveloppe_projets_included.count()
+
     def clean(self):
         if self.dotation == DOTATION_DETR:  # scope "département"
             if self.perimetre.type == Perimetre.TYPE_REGION:
@@ -80,6 +126,36 @@ class Enveloppe(models.Model):
             raise ValidationError(
                 "Le périmètre de l'enveloppe délégante est incohérent avec celui de l'enveloppe déléguée."
             )
+
+
+class ProgrammationProjetQuerySet(models.QuerySet):
+    def for_enveloppe(self, enveloppe: Enveloppe):
+        if enveloppe.deleguee_by is None:
+            return self.filter(enveloppe=enveloppe)
+
+        if enveloppe.perimetre is None:
+            return self.filter(enveloppe=enveloppe.deleguee_by)
+
+        if enveloppe.perimetre.arrondissement:
+            return self.filter(
+                enveloppe=enveloppe.deleguee_by,
+                dotation_projet__projet__perimetre__arrondissement=enveloppe.perimetre.arrondissement,
+            )
+
+        if enveloppe.perimetre.departement:
+            return self.filter(
+                enveloppe=enveloppe.deleguee_by,
+                dotation_projet__projet__perimetre__departement=enveloppe.perimetre.departement,
+            )
+        raise ValueError(
+            "L'enveloppe déléguée doit avoir un périmètre arrondissement ou département."
+        )
+
+
+class ProgrammationProjetManager(
+    models.Manager.from_queryset(ProgrammationProjetQuerySet)
+):
+    pass
 
 
 class ProgrammationProjet(models.Model):
@@ -125,6 +201,8 @@ class ProgrammationProjet(models.Model):
         verbose_name="Date de dernière modification", auto_now=True
     )
 
+    objects = ProgrammationProjetManager()
+
     class Meta:
         verbose_name = "Programmation projet"
         verbose_name_plural = "Programmations projet"
@@ -132,9 +210,21 @@ class ProgrammationProjet(models.Model):
     def __str__(self):
         return f"Projet programmé {self.pk}"
 
+    def get_absolute_url(self):
+        from django.urls import reverse
+
+        return reverse(
+            "gsl_programmation:programmation-projet-detail",
+            kwargs={"programmation_projet_id": self.pk},
+        )
+
     @property
     def projet(self):
         return self.dotation_projet.projet
+
+    @property
+    def dossier(self):
+        return self.projet.dossier_ds
 
     @property
     def taux(self):

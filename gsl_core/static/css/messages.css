@@ -14,6 +14,7 @@
   color: var(--text-default-warning);
 }
 
+.message--delete-modele-arrete > .fr-notice,
 .message--draft > .fr-notice {
   background-color: var(--background-alt-grey);
   color: var(--text-default-grey);

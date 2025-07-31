@@ -1,5 +1,7 @@
 <div class="form-disabled-before-value-change fr-mb-4w"
-     id="dotations-form-container">
+     id="dotations-form-container"
+     data-controller="double-dotation"
+     data-double-dotation-initial-dotations-value="{{ initial_dotations }}">
     {% csrf_token %}
     <fieldset id="dotation-fieldset"
               class=" fr-fieldset fr-callout fr-background-alt--blue-france fr-py-2w fr-px-2w"
@@ -25,7 +27,9 @@
         {% endif %}
 
         {% for df in projet_form.dotations %}
-            <div class="fr-fieldset__element fr-mb-1w">
+            <div class="fr-fieldset__element fr-mb-1w"
+                 data-action="click->double-dotation#updateSelectedDotations"
+                 data-double-dotation-target="input">
                 {{ df }}
             </div>
         {% endfor %}
@@ -35,7 +39,7 @@
             class="fr-btn"
             type="submit"
             form="projet_form"
-            data-initial-dotations="{{ initial_dotations }}"
+            data-action="double-dotation#sumbit"
             disabled>
         Enregistrer
     </button>

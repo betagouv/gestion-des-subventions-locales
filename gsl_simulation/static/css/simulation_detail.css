@@ -32,15 +32,6 @@
   padding-right: 16px;
 }
 
-.projet__to_notify {
-  color: var(--text-default-error);
-  text-transform: uppercase;
-  font-weight: 700;
-  font-style: italic;
-  margin-top: 4px;
-  display: inline-block;
-}
-
 .simulation-status {
   text-align: right;
 }
@@ -100,31 +91,6 @@
   font-weight: 500;
 }
 
-/* colors */
-
-.success-color {
-  color: var(--text-default-success);
-}
-
-.refuse-color {
-  color: var(--text-default-error);
-}
-
-.processing-color {
-  color: var(--text-mention-grey);
-}
-
-.dismiss-color {
-  color: var(--text-default-warning);
-}
-
-/* modal */
-
-.confirmation-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1em;
-}
 
 /* buttons */
 

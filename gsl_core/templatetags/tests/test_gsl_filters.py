@@ -29,9 +29,9 @@ def test_euro():
 
 
 def test_percent():
-    assert percent(Decimal("12.34")) == "12 %"
-    assert percent(Decimal("12.34"), 2) == "12,34 %"
-    assert percent(None) == "— %"
+    assert percent(Decimal("12.34")) == "12 %"
+    assert percent(Decimal("12.34"), 2) == "12,34 %"
+    assert percent(None) == "— %"
     assert percent("Pouet") == "Pouet"
 
 

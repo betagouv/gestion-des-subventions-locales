@@ -10,3 +10,14 @@
   flex-direction: column;
   align-items: flex-end;
 }
+
+#projet-panel {
+  padding: 4rem
+}
+
+.status_action_header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}

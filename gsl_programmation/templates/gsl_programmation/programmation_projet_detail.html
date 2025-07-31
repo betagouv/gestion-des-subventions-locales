@@ -1,0 +1,28 @@
+{% extends "gsl_projet/projet.html" %}
+{% load static gsl_filters dsfr_tags %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static "css/projet_detail.css" %}">
+    <link rel="stylesheet" href="{% static "css/programmation_projet_detail.css" %}">
+    <link rel="stylesheet" href="{% static 'css/annotations.css' %}">
+{% endblock extra_css %}
+
+{% block go_back_button %}
+    <div class="fr-mb-4w">
+        <a href="{% url "programmation:programmation-projet-list-dotation" dotation=programmation_projet.dotation_projet.dotation %}"
+           class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+            Retour à la liste des projets programmés
+        </a>
+    </div>
+{% endblock go_back_button %}
+
+{% block status_badge %}
+    <span class="fr-badge fr-text--xl fr-mt-2v fr-ml-5w badge-projet-status badge-projet-status__{{ programmation_projet.status }}">{{ programmation_projet.get_status_display|remove_first_word }}</span>
+{% endblock status_badge %}
+
+{% block tabs_list %}
+    {% include "gsl_programmation/tab_programmation_projet/tabs.html" %}
+{% endblock tabs_list %}
+
+{% block tab_projet %}
+    {% include "gsl_programmation/tab_programmation_projet/tab_projet.html" %}
+{% endblock tab_projet %}

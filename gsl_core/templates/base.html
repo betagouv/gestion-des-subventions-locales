@@ -7,8 +7,6 @@
         <meta charset="utf-8" />
         <meta name="viewport"
               content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <meta name="htmx-config"
-              content='{"includeIndicatorStyles":false,"allowScriptTags":false,"allowEval":false}'>
 
         {% dsfr_css %}
         {% dsfr_favicon %}
@@ -27,13 +25,15 @@
                 {% endif %}
             </title>
         {% endblock title %}
+
         {% block meta_description %}
             <meta name="description"
                   content="La plateforme Gestion des Subventions Locales (GSL) est un outil numérique qui permet aux services des préfectures françaises de gérer les subventions locales.">
         {% endblock meta_description %}
+
         {% block meta_keywords %}
             <meta name="keywords"
-                  content="GSL, subventions, locales, préfectures, gestion, numérique">
+                  content="GSL, subventions, locales, préfectures, gestion, numérique, turgot">
         {% endblock meta_keywords %}
 
         <meta name="format-detection"
@@ -41,6 +41,30 @@
 
         {% block opengraph %}
         {% endblock opengraph %}
+
+        {% block importmap %}
+            <script type="importmap" nonce="{{ request.csp_nonce }}">
+            {
+                "imports": {
+                    "stimulus": "/static/vendor/stimulus.js",
+                    "tiptapEditor": "/static/ui/controllers/tiptapEditor.js",
+                    "modal": "/static/ui/controllers/modal.js",
+                    "doubleDotation": "/static/js/controllers/doubleDotation.js",
+                    "modeleArreteForm": "/static/js/modeleArreteForm.js"
+                }
+            }
+            </script>
+        {% endblock importmap %}
+        <script type="module" src="{% static 'vendor/htmx.esm.js' %}"></script>
+        <meta name="htmx-config"
+              content='{"includeIndicatorStyles":false,"allowScriptTags":false,"allowEval":false}'>
+
+        {% if ENV == "prod" %}
+            <script src="{% static "js/matomo.js" %}" nonce="{{request.csp_nonce}}" defer></script>
+        {% endif %}
+
+        {% block extra_head_js %}
+        {% endblock extra_head_js %}
     </head>
     <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
         {% block skiplinks %}
@@ -94,9 +118,21 @@
         {% endblock modal %}
 
         <script src="{% static "js/gsl.js" %}" defer></script>
-        {% if ENV == "prod" %}
-            <script src="{% static "js/matomo.js" %}" nonce="{{request.csp_nonce}}" defer></script>
-        {% endif %}
+        <script type="module" nonce="{{ request.csp_nonce }}">
+            import { Application } from "stimulus"
+            import { DoubleDotation } from "doubleDotation"
+            import { Modal } from "modal"
+            import { TipTapEditor } from "tiptapEditor"
+            import { ModeleArreteForm } from "modeleArreteForm"
+
+            window.Stimulus = Application.start()
+
+            Stimulus.register("double-dotation", DoubleDotation)
+            Stimulus.register("modal", Modal)
+            Stimulus.register("tiptap-editor", TipTapEditor)
+            Stimulus.register("modele-arrete-form", ModeleArreteForm)
+        </script>
+
         {% block extra_js %}
         {% endblock extra_js %}
     </body>

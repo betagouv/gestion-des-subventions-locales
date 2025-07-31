@@ -5,6 +5,8 @@ authors = [{ name = "Agnès Haasser", email = "agnes.haasser@beta.gouv.fr" }]
 readme = "README.md"
 license = { file = "LICENSE" }
 dependencies = [
+    "boto3",
+    "bs4",
     "celery",
     "dj-database-url",
     "django_celery_results",
@@ -17,7 +19,9 @@ dependencies = [
     "django-htmx",
     "django-import-export",
     "django-referrer-policy",
+    "django-storages[s3]",
     "django",
+    "django-formtools",
     "gunicorn",
     "ipython",
     "mozilla-django-oidc",
@@ -26,10 +30,11 @@ dependencies = [
     "redis",
     "requests",
     "sentry-sdk",
+    "tablib[ods]",
     "tablib[xls]",
     "tablib[xlsx]",
-    "tablib[ods]",
     "whitenoise",
+    "django-weasyprint",
 ]
 
 [tool.setuptools]

@@ -1,0 +1,30 @@
+{% extends "gsl_notification/modele_arrete/modelearrete_form_base.html" %}
+{% load static dsfr_tags gsl_filters csp ui_tags %}
+
+{% block submit_button_text %}
+    Enregistrer le modèle
+{% endblock submit_button_text %}
+
+{% block extra_js %}
+    <script src="{% static 'js/formOnSeveralPages.js' %}"></script>
+{% endblock extra_js %}
+
+{% block more_content_in_form %}
+    <div class="fr-mb-4w">
+        <h4>
+            Rédiger le contenu de ce modèle d’arrêté
+        </h4>
+        <p>
+            Veuillez remplir le contenu de votre arrêté. Pour ajouter des variables des valeurs de remplissage automatique pour le publipostage, merci d’utiliser le signe "@".
+        </p>
+        <button class="fr-btn fr-btn--tertiary fr-btn--icon-left fr-icon-file-text-line"
+                type="button"
+                hx-get="{% url 'gsl_notification:get-generic-modele-template' dotation %}"
+                hx-target="#editor > .tiptap"
+                hx-swap="innerHTML">
+            Remplir avec le modèle générique
+        </button>
+    </div>
+
+    {% ui_tiptap_editor content_field_name=wizard.form.prefix|add:"-content" with_mention=True mentions=mention_items %}
+{% endblock more_content_in_form %}

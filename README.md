@@ -84,3 +84,18 @@ python -m celery -A gsl worker --beat --scheduler django -l INFO
 ```bash
 python manage.py shell_plus --ipython
 ```
+
+
+## Utiliser just
+
+Il est possible d'utiliser [just](https://just.systems/) pour faire tourner l'app.
+
+```shell
+just manage COMMAND
+```
+
+Les raccourcis suivants existent :
+- `just runserver`
+- `just shell`
+- `just makemigrations`
+- `just migrate`

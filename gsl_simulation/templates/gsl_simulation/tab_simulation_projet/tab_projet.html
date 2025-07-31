@@ -4,7 +4,8 @@
 {% block form_for_simulation_projet %}
     <form method="post"
           id="projet_form"
-          action="{% url 'gsl_simulation:patch-projet' simu.id %}">
+          action="{% url 'gsl_simulation:patch-projet' simu.id %}"
+          data-double-dotation-target="form">
         {% csrf_token %}
     </form>
     <form method="post"
@@ -35,10 +36,11 @@
         {% include "includes/forms/_status_form.html" %}
 
         {% if dotation_projet.programmation_projet.to_notify %}
-            <button class="fr-mb-2w fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
-                    id="to_notify_button">
+            <a class="fr-mb-2w fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
+               id="to_notify_button"
+               href="{% url 'gsl_notification:documents' dotation_projet.programmation_projet.id %}">
                 Notifier le demandeur
-            </button>
+            </a>
         {% endif %}
     </div>
 {% endblock status_action %}

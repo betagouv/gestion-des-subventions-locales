@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% load static dsfr_tags gsl_filters %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static "css/gsl.css" %}">
+    <link rel="stylesheet" href="{% static "css/projet_list.css" %}">
+    <link rel="stylesheet" href="{% static "css/programmation_projet_list.css" %}">
+{% endblock extra_css %}
+
+{% block content %}
+    <div class="fr-container">
+        {% if is_detr_disabled %}
+            <h1>
+                Programmation {{ enveloppe.dotation }} {{ enveloppe.annee }}
+            </h1>
+        {% else %}
+            <h1>
+                Programmations en cours
+            </h1>
+            <nav aria-label="sections projet programmé">
+                <ul class="fake fr-tabs__list ul-list">
+                    <li>
+                        {% url "programmation:programmation-projet-list-dotation" dotation="DETR" as detr_projets_programmes %}
+                        <a href="{{ detr_projets_programmes }}"
+                           {% if current_tab == "DETR" %}aria-selected="true"{% endif %}
+                           class="fr-tabs__tab fr-icon-check-line fr-tabs__tab--icon-left programmation-projet-{% if current_tab != "DETR" %}in{% endif %}active-tab">Programmation
+                        DETR</a>
+                    </li>
+                    <li>
+                        {% url "programmation:programmation-projet-list-dotation" dotation="DSIL" as dsil_projets_programmes %}
+                        <a href="{{ dsil_projets_programmes }}"
+                           {% if current_tab == "DSIL" %}aria-selected="true"{% endif %}
+                           class="fr-tabs__tab fr-icon-check-line fr-tabs__tab--icon-left programmation-projet-{% if current_tab != "DSIL" %}in{% endif %}active-tab">Programmation
+                        DSIL</a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="fake-tab-panel programmation-projet-fake-tab fr-p-0"
+                 role="tabpanel"
+                 tabindex="0">
+            {% endif %}
+            {% block tab_submenu %}
+                <nav class="tab-submenu"
+                     aria-label="Sous-menu Programmation {{ dotation }}">
+                    <ul class="no-list-style fr-m-4w">
+                        <li>
+                            <a class="{% if "/programmation/" in request.path %}active-link{% else %}secondary-link{% endif %}" href="{% url "programmation:programmation-projet-list-dotation" dotation %}">
+                                Projets programmés
+                            </a>
+                        </li>
+                        <li>
+                            <a class="{% if "/notification/" in request.path %}active-link{% else %}secondary-link{% endif %}" href="{% url "notification:modele-arrete-liste" dotation %}">
+                                Modèles de publipostage {{ dotation }}
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            {% endblock tab_submenu %}
+
+            {% block tab_content %}
+                <div class="fr-m-4w">
+                    {% if not is_detr_disabled %}
+                        <h2>
+                            Programmation {{ enveloppe.dotation }} {{ enveloppe.annee }}
+                        </h2>
+                    {% endif %}
+                    <p>
+                        Les projets acceptés et refusés de vos simulations {{ enveloppe.dotation }} apparaissent ici.
+                        {% comment %}Pour générer un lot d’arrêtés, sélectionnez les projets concernés par le même modèle d’arrêté et cliquez sur la flèche d’action multiples dans l’en-tête du tableau.{% endcomment %}
+                    </p>
+                </div>
+
+                {% include "includes/_enveloppe_summary.html" %}
+
+                {% if programmation_projets %}
+                    <div class="fr-table--lg gsl-projet-table" id="programmation-projet-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>
+                                        Initulé du projet
+                                    </th>
+                                    <th>
+                                        Demandeur
+                                    </th>
+                                    <th>
+                                        Coût total du projet
+                                    </th>
+                                    <th>
+                                        Montant et taux demandés
+                                    </th>
+                                    <th>
+                                        Montant prévisionnel accodé
+                                    </th>
+                                    <th>
+                                        Taux de subvention
+                                    </th>
+                                    <th>
+                                        Catégorie d'opération
+                                    </th>
+                                    <th>
+                                        Statut
+                                    </th>
+                                    <th>
+                                        Documents ajoutés
+                                    </th>
+                                    <th>
+                                        Notification
+                                    </th>
+                                    <th>
+                                        <span class="fr-sr-only">Actions</span>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="projet-list">
+                                {% for programmation_projet in programmation_projets %}
+                                    <tr>
+                                        <td>
+                                            {{ programmation_projet.projet.dossier_ds.projet_intitule }}
+                                        </td>
+                                        <td>
+                                            {{ programmation_projet.projet.demandeur.name | format_demandeur_nom }}
+                                        </td>
+                                        <td class="gsl-money">
+                                            {{ programmation_projet.projet.dossier_ds.finance_cout_total|euro }}
+                                        </td>
+                                        <td class="gsl-money">
+                                            {{ programmation_projet.projet.dossier_ds.demande_montant|euro }}
+                                            <br>
+                                            {{ programmation_projet.dotation_projet.taux_de_subvention_sollicite|percent }}
+                                        </td>
+                                        <td class="gsl-money">
+                                            {{ programmation_projet.montant|euro }}
+                                        </td>
+                                        <td class="gsl-money">
+                                            {{ programmation_projet.taux|percent }}
+                                        </td>
+                                        <td>
+                                            <ul class="no-list-style">
+                                                {% for categorie in programmation_projet.dotation_projet.detr_categories.all %}
+                                                    <li>
+                                                        {{ categorie.label }}
+                                                    </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </td>
+                                        <td>
+                                            {{ programmation_projet.get_status_display }}
+
+                                        </td>
+                                        <td>
+                                            Pas de documents ajoutés
+                                        </td>
+                                        <td>
+                                            {% if programmation_projet.to_notify %}
+                                                <span class="projet__to_notify">À notifier</span>
+                                            {% else %}
+                                                <span class="blue-color projet__notified">
+                                                    <span class="fr-icon-checkbox-fill" aria-hidden="true"></span>
+                                                    Notifié
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a class="fr-btn--tertiary-no-outline gsl-no-underline"
+                                               href="{{ programmation_projet.get_absolute_url }}">
+                                                <span class="fr-sr-only">Voir le projet programmé {{ programmation_projet.projet.dossier_ds.ds_number }}</span>
+                                                <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if is_paginated %}
+                        <div class="fr-table__footer">
+                            <div class="fr-table__footer--middle">
+                                {% dsfr_pagination page_obj %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                {% else %}
+                    <div class="fr-alert fr-alert--info">
+                        <p>
+                            Aucun projet programmé pour le moment.
+                        </p>
+                    </div>
+                {% endif %}
+            {% endblock tab_content %}
+            {% if not is_detr_disabled %}
+            </div>
+        {% endif %}
+    </div>
+{% endblock content %}

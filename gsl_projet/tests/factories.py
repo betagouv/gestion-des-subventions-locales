@@ -89,7 +89,7 @@ class CategorieDetrFactory(factory.django.DjangoModelFactory):
 
     departement = factory.SubFactory(DepartementFactory)
     annee = factory.Faker("random_int", min=2024, max=2027)
-    rang = factory.Faker("random_int", min=1, max=20)
+    rang = factory.Sequence(lambda n: n)
     libelle = factory.Faker("sentence", locale="fr_FR")
 
 

@@ -1,0 +1,141 @@
+.arrete-container {
+  border: 1px solid var(--border-default-grey);
+  padding: 2rem 4rem;
+}
+
+.hidden {
+  display: none;
+}
+
+.fond-gris {
+  background: #f7f7f7;
+}
+
+.notification-btns {
+  display: flex;
+  gap: 16px;
+}
+
+.empty-list {
+  text-align: center;
+  list-style: none;
+}
+
+.arrete-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+}
+
+.arrete-card {
+  border: 1px solid var(--border-default-grey);
+  background: #fff;
+  padding: 1rem;
+  width: fit-content;
+  max-width: 300px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.arrete-card__image {
+  border: 1px solid var(--border-default-grey);
+}
+.show-on-hover {
+  display: none;
+  position: absolute;
+  width: 50%;
+  left: 25%;
+  top: 30%;
+  background: #fff;
+}
+.arrete-card__image-container:hover .show-on-hover {
+  display: flex;
+}
+.arrete-card >div,
+.arrete-card .fr-enlarge-link{
+  max-width: 100%;
+}
+.arrete-card .fr-enlarge-link a {
+  display: block;
+}
+
+.arrete-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.arrete-card__actions {
+  width: 200px;
+  padding: 0px;
+  gap: 0;
+  min-width: 0;
+}
+
+.arrete-card__actions-button {
+  box-shadow: none;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.arrete-card__action {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  box-shadow: none;
+  padding: 0;
+}
+
+.arrete-card__action:focus-visible {
+  outline-offset: -2px;
+}
+
+.arrete-card__actions li:not(:first-of-type) {
+  box-shadow: 0 0 0 1px var(--border-default-grey);
+}
+
+.next-step-buttons {
+  display: flex;
+  justify-content: end;
+  gap: 8px;
+  align-items: center;
+  margin-top:1rem;
+}
+
+#editor > div {
+  border: 1px solid var(--border-default-grey);
+  padding: 1rem;
+  min-height: 200px;
+  overflow-y: auto;
+}
+
+.keep-breaklines {
+  white-space: pre-line;
+  margin-top: -4px;
+}
+
+.arrete-modele-list {
+  display: grid;
+  gap: 24px
+}
+
+.no-documents-info {
+  width: 100%;
+  text-align: center;
+  margin-top: 4rem;
+  margin-bottom: 4rem
+}
+
+/* Modeles arrêtés */
+
+.modele-arrete-form-btns {
+  display: flex;
+  align-items: end;
+  justify-content: end;
+  gap: 10px;
+}

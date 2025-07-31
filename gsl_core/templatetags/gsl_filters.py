@@ -11,13 +11,25 @@ register = template.Library()
 
 
 @register.filter
+def get_class(value):
+    return value.__class__.__name__
+
+
+@register.simple_tag
+def define(val=None):
+    """Useful to create conditional variables in templates.
+    cf https://stackoverflow.com/a/37755722/11207718"""
+    return val
+
+
+@register.filter
 def percent(value, decimals=0):
     if value is None or value == "":
-        return "— %"
+        return "— %"
     if not isinstance(value, Decimal):
         return value
     """Removes all values of arg from the given string"""
-    return floatformat(value, decimals) + " %"
+    return floatformat(value, decimals) + " %"
 
 
 @register.filter
@@ -66,6 +78,9 @@ def create_alert_data(message: Any) -> dict[str, str | bool]:
         data_dict["title"] = STATUS_TO_ALERT_TITLE[message.extra_tags]
     if message.extra_tags == "projet_note_deletion":
         data_dict["title"] = "Suppression de la note"
+    if message.extra_tags == "delete-modele-arrete":
+        data_dict["title"] = "Modèle supprimé"
+        data_dict["icon"] = "fr-icon-delete-bin-fill"
     elif message.extra_tags in ["info", "alert"]:
         data_dict["type"] = message.extra_tags
 

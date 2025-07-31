@@ -1,0 +1,31 @@
+{% load ui_tags %}
+
+<form method="post"
+      enctype="multipart/form-data"
+      id="arrete-form"
+      class="fr-mt-4w">
+    {% csrf_token %}
+
+    {{ arrete_form.errors }}
+    {% ui_tiptap_editor content_field_name="content" %}
+    {{ arrete_form.content }}
+    <input type="hidden" name="created_by" value="{{ user.id }}">
+    <input type="hidden"
+           name="programmation_projet"
+           value="{{ programmation_projet.id }}">
+    <input type="hidden" name="modele" value="{{ modele.id }}">
+    <div id="initial_content" hidden>
+        {{ arrete_initial_content }}
+    </div>
+    <div class="next-step-buttons">
+        <a type="button"
+           id="cancel-arrete-form"
+           class="fr-btn fr-btn--secondary"
+           href="{% url 'gsl_notification:documents' programmation_projet.id %}">
+            Annuler
+        </a>
+        <button type="submit" id="submit-arrete-form" class="fr-btn">
+            Enregistrer les modifications
+        </button>
+    </div>
+</form>
