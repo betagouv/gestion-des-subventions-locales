@@ -3,10 +3,15 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
+from django_filters.views import FilterView
 
 from gsl_core.models import Perimetre
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
+from gsl_programmation.utils.programmation_projet_filters import (
+    ProgrammationProjetFilters,
+)
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_page import PROJET_MENU
 
 
@@ -67,8 +72,9 @@ class ProgrammationProjetDetailView(DetailView):
         return context
 
 
-class ProgrammationProjetListView(ListView):
+class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
     model = ProgrammationProjet
+    filterset_class = ProgrammationProjetFilters
     template_name = "gsl_programmation/programmation_projet_list.html"
     context_object_name = "programmation_projets"
     paginate_by = 25
@@ -108,22 +114,6 @@ class ProgrammationProjetListView(ListView):
             self.perimetre, enveloppe_qs
         )
         return super().get(request, *args, **kwargs)
-
-    def get_queryset(self):
-        return (
-            ProgrammationProjet.objects.for_enveloppe(enveloppe=self.enveloppe)
-            .select_related(
-                "dotation_projet",
-                "dotation_projet__projet",
-                "dotation_projet__projet__dossier_ds",
-                "dotation_projet__projet__perimetre",
-                "dotation_projet__projet__demandeur",
-                "enveloppe",
-                "enveloppe__perimetre",
-            )
-            .prefetch_related("dotation_projet__detr_categories")
-            .order_by(self.ordering[0])
-        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

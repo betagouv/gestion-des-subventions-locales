@@ -1,6 +1,7 @@
 from django import forms
 from django.utils.safestring import mark_safe
 
+from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
@@ -22,6 +23,8 @@ class CustomCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
             PROJET_STATUS_PROCESSING: "",
             PROJET_STATUS_REFUSED: "red",
             PROJET_STATUS_DISMISSED: "",
+            ProgrammationProjet.STATUS_ACCEPTED: "green",
+            ProgrammationProjet.STATUS_REFUSED: "red",
         }.get(option_value, "")
 
     def render(self, name, value, attrs=None, renderer=None):
