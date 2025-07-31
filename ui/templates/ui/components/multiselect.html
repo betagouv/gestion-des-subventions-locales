@@ -1,0 +1,17 @@
+<div class="filter-field fr-col-12 fr-col-md-4 fr-col-lg-2">
+    <div class="gsl-dropdown">
+        <label class="fr-label" for="{{ self.id }}">
+            {{ self.label }}
+        </label>
+        <button type="button"
+                class="fr-select {% if self.is_active %}filter-dropdown-button-active{% endif %}">
+            {{ self.placeholder }}
+        </button>
+        <div class="gsl-dropdown-content">
+            {{ self.field }}
+            <button type="submit" class="fr-btn fr-btn--sm">
+                Filtrer
+            </button>
+        </div>
+    </div>
+</div>

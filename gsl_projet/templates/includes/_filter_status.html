@@ -1,17 +1,3 @@
-<div class="filter-field fr-col-12 fr-col-md-4 fr-col-lg-2">
-    <div class="gsl-dropdown">
-        <label class="fr-label" for="id_status">
-            Statut
-        </label>
-        <button type="button"
-                class="fr-select {% if is_status_active %}filter-dropdown-button-active{% endif %}">
-            {{ status_placeholder }}
-        </button>
-        <div class="gsl-dropdown-content">
-            {{ filter.form.status }}
-            <button type="submit" class="fr-btn fr-btn--sm">
-                Filtrer
-            </button>
-        </div>
-    </div>
-</div>
+{% load ui_tags %}
+
+{% ui_multiselect id="id_status" field=filter.form.status label="Statut" placeholder=status_placeholder is_active=is_status_active %}
