@@ -2,17 +2,16 @@ import { Editor } from "https://esm.sh/@tiptap/core";
 import Highlight from "https://esm.sh/@tiptap/extension-highlight";
 import Mention from "https://esm.sh/@tiptap/extension-mention";
 import StarterKit from "https://esm.sh/@tiptap/starter-kit";
-import { Controller } from "stimulus"
 import TextAlign from "https://esm.sh/@tiptap/extension-text-align";
+import { Controller } from "stimulus"
 
 
 const EXTENSIONS = [
     StarterKit,
-    Highlight,
     TextAlign.configure({
       types: ['heading', 'paragraph'],
     }),
-      Highlight.configure({ multicolor: false }),
+    Highlight.configure({ multicolor: false }),
   ]
 
 export class TipTapEditor extends Controller {
@@ -27,12 +26,50 @@ export class TipTapEditor extends Controller {
     },
     contentFieldName: String
   }
-  static targets = ["editor", "toolbarButton"]
+  static targets = ["editor", "toolbarButton", "mentionDropdown"]
 
   connect(){
     this._setToolbar()
     this._setEditor();
+    if (this.withMention){
+      this.boundClickOutside = this.clickOutside.bind(this)
+      document.addEventListener("click", this.boundClickOutside)
+
+    }
   }
+
+  disconnect() {
+    if (this.boundClickOutside){
+      document.removeEventListener("click", this.boundClickOutside)
+    }
+  }
+
+  insertMention(event){
+    if (!this.editor) return
+
+    const mentionId = event.target.dataset.id
+    const mentionLabel = event.target.innerHTML
+
+    this.editor.commands.insertContentAt(
+      this.editor.state.selection.anchor, // position actuelle du curseur
+      {
+        type: 'mention',
+        attrs: {
+          id: mentionId,
+          label: mentionLabel,
+        },
+      }
+    )
+    this.mentionDropdownTarget.removeAttribute("open")
+
+  }
+
+  clickOutside(event) {
+    if (!this.element.contains(event.target)) {
+      this.mentionDropdownTarget.removeAttribute("open")
+    }
+  }
+
 
   // Private
 

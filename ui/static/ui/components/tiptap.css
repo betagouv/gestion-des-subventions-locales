@@ -139,8 +139,9 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border-radius: 4px;
   padding: 4px 0;
-
+  gap: 0px
 }
+
 
 .mention-item {
   padding: 6px 12px;
@@ -164,6 +165,21 @@ mark {
 #editor h2 {
   font-weight: bold;
   font-size: 1.1em;
+}
+
+.mention-item > button {
+  width: 100%;
+  text-align: left;
+  height: 100%;
+  min-height: 30px;
+  box-sizing: border-box;
+  padding: 8px;
+}
+
+.mention-item > button:hover,
+.mention-item > button:focus {
+  background: #d9e6ff;
+  outline-offset: -2px;
 }
 
 #toolbar {
