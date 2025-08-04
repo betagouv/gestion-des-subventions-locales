@@ -214,7 +214,7 @@ class ProgrammationProjetFilters(FilterSet):
             )
             .prefetch_related("dotation_projet__detr_categories")
         )
-        if self.request.GET.get("order") in ["", None]:
+        if not qs.query.order_by:
             qs = qs.order_by("-created_at")
 
         return qs

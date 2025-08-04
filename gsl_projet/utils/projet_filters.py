@@ -236,6 +236,6 @@ class ProjetFilters(FilterSet):
     def qs(self):
         self.queryset = Projet.objects.all()
         qs = super().qs
-        if self.request.GET.get("order") in [None, ""]:
+        if not qs.query.order_by:
             qs = qs.order_by("-dossier_ds__ds_date_depot")
         return qs
