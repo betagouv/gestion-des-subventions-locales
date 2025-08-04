@@ -1,3 +1,5 @@
+from functools import cached_property
+
 from django.http import Http404
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -11,6 +13,7 @@ from gsl_programmation.utils.programmation_projet_filters import (
     ProgrammationProjetFilters,
 )
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.models import CategorieDetr
 from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_page import PROJET_MENU
 
@@ -79,6 +82,7 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
     context_object_name = "programmation_projets"
     paginate_by = 25
     ordering = ["-created_at"]
+    STATE_MAPPINGS = {key: value for key, value in ProgrammationProjet.STATUS_CHOICES}
 
     def get(self, request, *args, **kwargs):
         self.perimetre: Perimetre = self.request.user.perimetre
@@ -132,6 +136,7 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
                 "is_detr_disabled": self.perimetre.type == Perimetre.TYPE_REGION,
             }
         )
+        self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
 
         return context
 
@@ -161,3 +166,26 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
             return enveloppe
 
         raise Http404("Aucune enveloppe trouvée pour le périmètre de l'utilisateur.")
+
+    # Filter functions
+
+    def _get_perimetre(self):
+        return self.perimetre
+
+    def _get_territoire_choices(self):
+        perimetre = self._get_perimetre()
+        if not perimetre:
+            return ()
+
+        return (perimetre, *perimetre.children())
+
+    @cached_property
+    def categorie_detr_choices(self):
+        perimetre = self._get_perimetre()
+        if not perimetre:
+            return ()
+
+        if not perimetre.departement:
+            return ()
+
+        return CategorieDetr.objects.current_for_departement(perimetre.departement)
