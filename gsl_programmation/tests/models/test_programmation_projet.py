@@ -11,6 +11,7 @@ from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
+from gsl_notification.tests.factories import ArreteFactory, ArreteSigneFactory
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
@@ -358,3 +359,28 @@ class TestProgrammationProjetQuerySet:
         assert programmation_projet_departement in result
         assert programmation_projet_arrondissement in result
         assert result.count() == 2
+
+
+@pytest.mark.django_db
+def test_documents_summary_no_document():
+    programmation_projet = ProgrammationProjetFactory()
+    assert programmation_projet.documents_summary == []
+
+
+@pytest.mark.django_db
+def test_documents_summary_arrete_genere():
+    programmation_projet = ProgrammationProjetFactory()
+    ArreteFactory(programmation_projet=programmation_projet)
+
+    summary = programmation_projet.documents_summary
+    assert summary == ["1 arrêté généré"]
+
+
+@pytest.mark.django_db
+def test_documents_summary_arrete_signe_hides_arrete_genere():
+    programmation_projet = ProgrammationProjetFactory()
+    ArreteSigneFactory(programmation_projet=programmation_projet)
+    ArreteFactory(programmation_projet=programmation_projet)
+
+    summary = programmation_projet.documents_summary
+    assert summary == ["1 arrêté signé"]

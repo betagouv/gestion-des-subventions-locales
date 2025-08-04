@@ -279,3 +279,13 @@ class ProgrammationProjet(models.Model):
         if self.status == self.STATUS_REFUSED:
             if self.montant != 0:
                 errors["montant"] = {"Un projet refusé doit avoir un montant nul."}
+
+    @cached_property
+    def documents_summary(self):
+        summary = list()
+        if hasattr(self, "arrete_signe"):
+            summary.append("1 arrêté signé")
+        elif hasattr(self, "arrete"):
+            summary.append("1 arrêté généré")
+
+        return summary
