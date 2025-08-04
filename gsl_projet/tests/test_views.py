@@ -83,7 +83,7 @@ def test_get_ordering(req, view, tri_param, expected_ordering):
     """Test que get_ordering retourne le bon ordre selon le paramètre 'tri'"""
     request = req.get("/")
     if tri_param is not None:
-        request = req.get("/", data={"tri": tri_param})
+        request = req.get("/", data={"order": tri_param})
 
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs

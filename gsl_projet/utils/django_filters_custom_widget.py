@@ -40,3 +40,10 @@ class CustomCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
                 f'<div class="fr-checkbox-group fr-checkbox-group--sm">{checkbox} {label}</div>'
             )
         return mark_safe("\n".join(output))
+
+
+class CustomSelectWidget(forms.Select):
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        context["widget"]["attrs"]["class"] = "fr-select"
+        return context

@@ -1,23 +1,23 @@
 from django.forms import NumberInput, Select
-from django_filters import ChoiceFilter, FilterSet, MultipleChoiceFilter, NumberFilter
+from django_filters import (
+    ChoiceFilter,
+    FilterSet,
+    MultipleChoiceFilter,
+    NumberFilter,
+    OrderingFilter,
+)
 
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
 from gsl_projet.models import CategorieDetr
-from gsl_projet.services.projet_services import ProjetService
-from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
+from gsl_projet.utils.django_filters_custom_widget import (
+    CustomCheckboxSelectMultiple,
+    CustomSelectWidget,
+)
 
 
 class ProgrammationProjetFilters(FilterSet):
-    ORDERING_MAP = {
-        "date_desc": "-dotation_projet__projet__dossier_ds__ds_date_depot",
-        "date_asc": "dotation_projet__projet__dossier_ds__ds_date_depot",
-        "cout_desc": "-dotation_projet__projet__dossier_ds__finance_cout_total",
-        "cout_asc": "dotation_projet__projet__dossier_ds__finance_cout_total",
-        "demandeur_desc": "-dotation_projet__projet__demandeur__name",
-        "demandeur_asc": "dotation_projet__projet__demandeur__name",
-    }
     filterset = (
         "territoire",
         "porteur",
@@ -117,7 +117,7 @@ class ProgrammationProjetFilters(FilterSet):
         choices=(("yes", "Oui"), ("no", "Non")),
         empty_label="Tous",
         widget=Select(
-            attrs={"class": "fr-select", "placeholder": "POuet"},
+            attrs={"class": "fr-select"},
         ),
     )
 
@@ -132,6 +132,23 @@ class ProgrammationProjetFilters(FilterSet):
             )
         else:
             return queryset
+
+    ORDERING_MAP = {
+        "montant": "montant",
+        "dotation_projet__projet__dossier_ds__finance_cout_total": "cout",
+        "dotation_projet__projet__demandeur__name": "demandeur",
+    }
+
+    order = OrderingFilter(
+        fields=ORDERING_MAP,
+        field_labels={
+            "montant": "Montant",
+            "dotation_projet__projet__dossier_ds__finance_cout_total": "Coût",
+            "dotation_projet__projet__demandeur__name": "Demandeur",
+        },
+        empty_label="Tri",
+        widget=CustomSelectWidget,
+    )
 
     class Meta:
         model = ProgrammationProjet
@@ -197,9 +214,8 @@ class ProgrammationProjetFilters(FilterSet):
             )
             .prefetch_related("dotation_projet__detr_categories")
         )
-        qs = ProjetService.add_ordering_to_projets_qs(
-            qs, self.request.GET.get("tri"), self.ORDERING_MAP, "-created_at"
-        )
+        if self.request.GET.get("order") in ["", None]:
+            qs = qs.order_by("-created_at")
 
         return qs
 

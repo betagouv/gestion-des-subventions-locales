@@ -15,15 +15,6 @@ from gsl_projet.models import Demandeur, DotationProjet, Projet
 
 
 class ProjetService:
-    ORDERING_MAP = {
-        "date_desc": "-dossier_ds__ds_date_depot",
-        "date_asc": "dossier_ds__ds_date_depot",
-        "cout_desc": "-dossier_ds__finance_cout_total",
-        "cout_asc": "dossier_ds__finance_cout_total",
-        "demandeur_desc": "-demandeur__name",
-        "demandeur_asc": "demandeur__name",
-    }
-
     @classmethod
     def create_or_update_from_ds_dossier(cls, ds_dossier: Dossier):
         try:
@@ -69,21 +60,6 @@ class ProjetService:
             dotation_projet__projet__in=projet_ids,
             status=ProgrammationProjet.STATUS_ACCEPTED,
         ).aggregate(total=Sum("montant"))["total"]
-
-    @classmethod
-    def add_ordering_to_projets_qs(
-        cls,
-        qs,
-        ordering,
-        ordering_map=ORDERING_MAP,
-        default_ordering="-dossier_ds__ds_date_depot",
-    ):
-        qs = qs.order_by(default_ordering)
-
-        ordering_arg = ordering_map.get(ordering, None)
-        if ordering_arg:
-            qs = qs.order_by(ordering_arg)
-        return qs
 
     @classmethod
     def get_is_in_qpv(cls, ds_dossier: Dossier) -> bool:
