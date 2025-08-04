@@ -1,5 +1,5 @@
-from django.forms import NumberInput
-from django_filters import FilterSet, MultipleChoiceFilter, NumberFilter
+from django.forms import NumberInput, Select
+from django_filters import ChoiceFilter, FilterSet, MultipleChoiceFilter, NumberFilter
 
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
@@ -21,11 +21,12 @@ class ProgrammationProjetFilters(FilterSet):
     filterset = (
         "territoire",
         "porteur",
-        "status",
+        "categorie_detr",
+        "to_notify",
         "cout_total",
         "montant_demande",
         "montant_retenu",
-        "categorie_detr",
+        "status",
     )
 
     porteur = MultipleChoiceFilter(
@@ -111,6 +112,27 @@ class ProgrammationProjetFilters(FilterSet):
     def filter_categorie_detr(self, queryset, _name, values: list[int]):
         return queryset.filter(dotation_projet__detr_categories__in=values)
 
+    to_notify = ChoiceFilter(
+        method="filter_to_notify",
+        choices=(("yes", "Oui"), ("no", "Non")),
+        empty_label="Tous",
+        widget=Select(
+            attrs={"class": "fr-select", "placeholder": "POuet"},
+        ),
+    )
+
+    def filter_to_notify(self, queryset, _name, value: str):
+        if value == "yes":
+            return queryset.filter(
+                notified_at=None, status=ProgrammationProjet.STATUS_ACCEPTED
+            )
+        elif value == "no":
+            return queryset.exclude(
+                notified_at=None, status=ProgrammationProjet.STATUS_ACCEPTED
+            )
+        else:
+            return queryset
+
     class Meta:
         model = ProgrammationProjet
         fields = (
@@ -124,6 +146,7 @@ class ProgrammationProjetFilters(FilterSet):
             "status",
             "territoire",
             "categorie_detr",
+            "to_notify",
         )
 
     def __init__(self, *args, **kwargs):
