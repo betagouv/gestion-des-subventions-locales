@@ -147,10 +147,19 @@
                                         </td>
                                         <td>
                                             {{ programmation_projet.get_status_display }}
-
                                         </td>
                                         <td>
-                                            Pas de documents ajoutés
+                                            {% if programmation_projet.documents_summary %}
+                                                <ul>
+                                                    {% for document in programmation_projet.documents_summary %}
+                                                        <li>
+                                                            {{ document }}
+                                                        </li>
+                                                    {% endfor %}
+                                                </ul>
+                                            {% else %}
+                                                Pas de documents ajoutés
+                                            {% endif %}
                                         </td>
                                         <td>
                                             {% if programmation_projet.to_notify %}
