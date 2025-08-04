@@ -2,6 +2,7 @@ from django.forms import NumberInput
 from django_filters import FilterSet, MultipleChoiceFilter, NumberFilter
 
 from gsl_core.models import Perimetre
+from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
@@ -18,42 +19,36 @@ class ProgrammationProjetFilters(FilterSet):
     }
     filterset = (
         # "territoire",
-        # "porteur",
+        "porteur",
         # "dotation",
         "status",
-        # "cout_total",
+        "cout_total",
         "montant_demande",
         "montant_retenu",
         # "categorie_detr",
     )
 
-    # porteur = MultipleChoiceFilter(
-    #     # field_name="dotation_projet__projet__dossier_ds__porteur_de_projet_nature__type__in",
-    #     method="filter_porteur",
-    #     choices=NaturePorteurProjet.TYPE_CHOICES,
-    #     widget=CustomCheckboxSelectMultiple(),
-    # )
+    porteur = MultipleChoiceFilter(
+        field_name="dotation_projet__projet__dossier_ds__porteur_de_projet_nature__type",
+        choices=NaturePorteurProjet.TYPE_CHOICES,
+        widget=CustomCheckboxSelectMultiple(),
+    )
 
-    # def filter_porteur(self, queryset, _name, values: list[int]):
-    #     return queryset.filter(
-    #         dotation_projet__projet__dossier_ds__porteur_de_projet_nature__type__in=values
-    #     )
+    cout_min = NumberFilter(
+        field_name="dotation_projet__projet__dossier_ds__finance_cout_total",
+        lookup_expr="gte",
+        widget=NumberInput(
+            attrs={"class": "fr-input", "min": "0"},
+        ),
+    )
 
-    # cout_min = NumberFilter(
-    #     field_name="dotation_projet__projet__dossier_ds__finance_cout_total",
-    #     lookup_expr="gte",
-    #     widget=NumberInput(
-    #         attrs={"class": "fr-input", "min": "0"},
-    #     ),
-    # )
-
-    # cout_max = NumberFilter(
-    #     field_name="dotation_projet__projet__dossier_ds__finance_cout_total",
-    #     lookup_expr="lte",
-    #     widget=NumberInput(
-    #         attrs={"class": "fr-input", "min": "0"},
-    #     ),
-    # )
+    cout_max = NumberFilter(
+        field_name="dotation_projet__projet__dossier_ds__finance_cout_total",
+        lookup_expr="lte",
+        widget=NumberInput(
+            attrs={"class": "fr-input", "min": "0"},
+        ),
+    )
 
     montant_demande_max = NumberFilter(
         field_name="dotation_projet__projet__dossier_ds__demande_montant",
@@ -119,9 +114,9 @@ class ProgrammationProjetFilters(FilterSet):
     class Meta:
         model = ProgrammationProjet
         fields = (
-            # "porteur",
-            # "cout_min",
-            # "cout_max",
+            "porteur",
+            "cout_min",
+            "cout_max",
             "montant_demande_min",
             "montant_demande_max",
             "montant_retenu_min",
