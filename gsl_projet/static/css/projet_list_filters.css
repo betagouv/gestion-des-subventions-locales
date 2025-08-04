@@ -139,3 +139,9 @@
   gap: 8px;
   justify-content: center;
 }
+
+#filter-categorie_detr > div {
+  max-height: 400px;
+  scroll-behavior: auto;
+  overflow: auto;
+}

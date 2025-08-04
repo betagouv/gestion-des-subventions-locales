@@ -350,11 +350,6 @@ ul.no-list-style li {
   overflow-y: auto;
 }
 
-.gsl-dropdown-content:has(.stick-to-bottom) div:last-of-type {
-    padding-bottom: 2em;
-}
-
-
 .gsl-dropdown > button {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -375,10 +370,6 @@ ul.no-list-style li {
   gap: 1rem;
   max-height: 80vh;
   overflow-y: auto;
-}
-
-.new-gsl-dropdown-content:has(.stick-to-bottom) div:last-of-type {
-    padding-bottom: 2em;
 }
 
 .projet__to_notify {

@@ -4,6 +4,7 @@ from django_filters import FilterSet, MultipleChoiceFilter, NumberFilter
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
+from gsl_projet.models import CategorieDetr
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
 
@@ -18,14 +19,13 @@ class ProgrammationProjetFilters(FilterSet):
         "demandeur_asc": "dotation_projet__projet__demandeur__name",
     }
     filterset = (
-        # "territoire",
+        "territoire",
         "porteur",
-        # "dotation",
         "status",
         "cout_total",
         "montant_demande",
         "montant_retenu",
-        # "categorie_detr",
+        "categorie_detr",
     )
 
     porteur = MultipleChoiceFilter(
@@ -88,28 +88,28 @@ class ProgrammationProjetFilters(FilterSet):
         widget=CustomCheckboxSelectMultiple(),
     )
 
-    # territoire = MultipleChoiceFilter(
-    #     method="filter_territoire",
-    #     choices=[],
-    #     widget=CustomCheckboxSelectMultiple(),
-    # )
+    territoire = MultipleChoiceFilter(
+        method="filter_territoire",
+        choices=[],
+        widget=CustomCheckboxSelectMultiple(),
+    )
 
-    # def filter_territoire(self, queryset, _name, values: list[int]):
-    #     perimetres = set()
-    #     for perimetre in Perimetre.objects.filter(id__in=values):
-    #         perimetres.add(perimetre)
-    #         for child in perimetre.children():
-    #             perimetres.add(child)
-    #     return queryset.filter(perimetre__in=perimetres)
+    def filter_territoire(self, queryset, _name, values: list[int]):
+        perimetres = set()
+        for perimetre in Perimetre.objects.filter(id__in=values):
+            perimetres.add(perimetre)
+            for child in perimetre.children():
+                perimetres.add(child)
+        return queryset.filter(dotation_projet__projet__perimetre__in=perimetres)
 
-    # categorie_detr = MultipleChoiceFilter(
-    #     method="filter_categorie_detr",
-    #     choices=[],
-    #     widget=CustomCheckboxSelectMultiple(),
-    # )
+    categorie_detr = MultipleChoiceFilter(
+        method="filter_categorie_detr",
+        choices=[],
+        widget=CustomCheckboxSelectMultiple(),
+    )
 
-    # def filter_categorie_detr(self, queryset, _name, values: list[int]):
-    # return queryset.filter(dotationprojet__detr_categories__in=values)
+    def filter_categorie_detr(self, queryset, _name, values: list[int]):
+        return queryset.filter(dotation_projet__detr_categories__in=values)
 
     class Meta:
         model = ProgrammationProjet
@@ -122,24 +122,24 @@ class ProgrammationProjetFilters(FilterSet):
             "montant_retenu_min",
             "montant_retenu_max",
             "status",
-            # "territoire",
-            # "categorie_detr",
+            "territoire",
+            "categorie_detr",
         )
 
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     if hasattr(self.request, "user") and self.request.user.perimetre:
-    #         perimetre = self.request.user.perimetre
-    #         self.filters["territoire"].extra["choices"] = tuple(
-    #             (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
-    #         )
-    #         if perimetre.departement:
-    #             self.filters["categorie_detr"].extra["choices"] = tuple(
-    #                 (c.id, c.libelle)
-    #                 for c in CategorieDetr.objects.current_for_departement(
-    #                     perimetre.departement
-    #                 )
-    #             )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if hasattr(self.request, "user") and self.request.user.perimetre:
+            perimetre = self.request.user.perimetre
+            self.filters["territoire"].extra["choices"] = tuple(
+                (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
+            )
+            if perimetre.departement:
+                self.filters["categorie_detr"].extra["choices"] = tuple(
+                    (c.id, c.libelle)
+                    for c in CategorieDetr.objects.current_for_departement(
+                        perimetre.departement
+                    )
+                )
 
     @property
     def qs(self):
