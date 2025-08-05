@@ -15,10 +15,13 @@ def tokenized_file_in_timestamped_folder(_, filename):
     return f"modeles_logos/{time_path}/{base_filename}_{token_urlsafe(8)}{extension}"
 
 
-class ModeleArrete(models.Model):
+class ModeleDocument(models.Model):
+    TYPE_ARRETE = "arrete"
+    TYPE_LETTRE = "lettre"
+
     # Metadata
     name = models.CharField(
-        verbose_name="Nom du modèle", help_text="Exemple : “Modèle d’arrêté DSIL 2025”"
+        verbose_name="Nom du modèle", help_text="Exemple : “Modèle DSIL 2025”"
     )
     description = models.TextField(
         verbose_name="Description du modèle",
@@ -52,13 +55,38 @@ class ModeleArrete(models.Model):
         verbose_name="Contenu",
         blank=True,
         default="",
-        help_text="Contenu HTML de l'arrêté, utilisé pour les exports.",
+        help_text="Contenu HTML du modèle.",
     )
 
     # Technical metadata
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Modèle de document"
+        verbose_name_plural = "Modèles de document"
+        abstract = True
+
+    def __str__(self):
+        return f"Modèle d’arrêté {self.id} - {self.name}"
+
+    @property
+    def annee(self):
+        return self.created_at.year
+
+    @property
+    def type(self):
+        raise NotImplementedError
+
+
+class ModeleArrete(ModeleDocument):
+    perimetre = models.ForeignKey(
+        Perimetre,
+        on_delete=models.PROTECT,
+        verbose_name="Périmètre",
+        related_name="modeles_arrete",
+    )
 
     class Meta:
         verbose_name = "Modèle d’arrêté"
@@ -68,8 +96,28 @@ class ModeleArrete(models.Model):
         return f"Modèle d’arrêté {self.id} - {self.name}"
 
     @property
-    def annee(self):
-        return self.created_at.year
+    def type(self):
+        return ModeleDocument.TYPE_ARRETE
+
+
+class ModeleLettreNotification(ModeleDocument):
+    perimetre = models.ForeignKey(
+        Perimetre,
+        on_delete=models.PROTECT,
+        verbose_name="Périmètre",
+        related_name="modeles_lettre_notification",
+    )
+
+    class Meta:
+        verbose_name = "Modèle de lettre de notification"
+        verbose_name_plural = "Modèles de lettre de notification"
+
+    def __str__(self):
+        return f"Modèle de lettre de notification {self.id} - {self.name}"
+
+    @property
+    def type(self):
+        return ModeleDocument.TYPE_LETTRE
 
 
 class Arrete(models.Model):
