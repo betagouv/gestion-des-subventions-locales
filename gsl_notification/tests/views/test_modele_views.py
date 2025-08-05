@@ -80,7 +80,7 @@ def test_list_modele_view(client, perimetre):
 def test_create_modele_arrete_views(client):
     assert not ModeleArrete.objects.exists()
     url = reverse(
-        "notification:modele-arrete-creer",
+        "notification:modele-creer",
         kwargs={"dotation": DOTATION_DETR},
     )
     data_step_1 = {

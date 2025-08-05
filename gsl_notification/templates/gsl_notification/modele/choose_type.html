@@ -1,0 +1,23 @@
+{% extends "gsl_notification/modele/modele_form_base.html" %}
+{% block tab_content %}
+    <div class="fr-m-4w" data-controller="modele-arrete-form">
+        <a href="{% url "gsl_notification:modele-liste" dotation %}"
+           class='fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-arrow-left-s-line fr-mb-4w'
+           data-action="click->modele-arrete-form#confirmaCancel">Annuler</a>
+
+        <h1>
+            Création d’un nouveau modèle {{ dotation }}
+        </h1>
+
+        <form class="choose-type-form" method="post">
+            {% csrf_token %}
+
+            {{ form.type }}
+
+            <button class="fr-btn fr-btn--icon-left fr-icon-file-text-line fr-mt-4w"
+                    type="submit">
+                Créer le modèle
+            </button>
+        </form>
+    </div>
+{% endblock tab_content %}

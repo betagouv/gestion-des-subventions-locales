@@ -84,7 +84,7 @@ def test_modele_arrete_liste_url():
 
 
 def test_create_modele_arrete_wizard_url():
-    url = reverse("gsl_notification:modele-arrete-creer", kwargs={"dotation": "DETR"})
+    url = reverse("gsl_notification:modele-creer", kwargs={"dotation": "DETR"})
     assert url == "/notification/modeles/nouveau/DETR/"
 
 

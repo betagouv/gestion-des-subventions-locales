@@ -4,7 +4,8 @@ from gsl_notification.views.decorators import (
     arrete_visible_by_user,
 )
 from gsl_notification.views.modele_views import (
-    CreateModelArreteWizard,
+    ChooseModeleDocumentType,
+    CreateModelDocumentWizard,
     DuplicateModeleArrete,
     ModeleListView,
     UpdateModeleArrete,
@@ -85,8 +86,13 @@ urlpatterns = [
     ),
     path(
         "modeles/nouveau/<str:dotation>/",
-        CreateModelArreteWizard.as_view(),
-        name="modele-arrete-creer",
+        ChooseModeleDocumentType.as_view(),
+        name="modele-creer-choix-du-type",
+    ),
+    path(
+        "modeles/nouveau/<str:modele_type>/<str:dotation>/",
+        CreateModelDocumentWizard.as_view(),
+        name="modele-creer",
     ),
     path(
         "modeles/modifier/<str:modele_arrete_id>/",

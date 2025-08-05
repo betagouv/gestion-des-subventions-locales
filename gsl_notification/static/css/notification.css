@@ -133,6 +133,10 @@
 
 /* Modeles arrêtés */
 
+.choose-type-form > .fr-radio-group:not(:last-child) {
+  margin-bottom: 12px;
+}
+
 .modele-arrete-form-btns {
   display: flex;
   align-items: end;
