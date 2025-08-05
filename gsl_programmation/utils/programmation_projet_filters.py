@@ -211,6 +211,8 @@ class ProgrammationProjetFilters(FilterSet):
                 "dotation_projet__projet__demandeur",
                 "enveloppe",
                 "enveloppe__perimetre",
+                "arrete",
+                "arrete_signe",
             )
             .prefetch_related("dotation_projet__detr_categories")
         )

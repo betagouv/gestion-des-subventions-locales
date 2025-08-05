@@ -103,6 +103,12 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
                 "gsl_programmation:programmation-projet-list-dotation", dotation="DSIL"
             )
 
+        if "reset_filters" in request.GET:
+            if request.path.startswith("/programmation/liste/"):
+                return redirect(request.path)
+            else:
+                return redirect("/")
+
         enveloppe_qs = (
             Enveloppe.objects.select_related(
                 "perimetre",
