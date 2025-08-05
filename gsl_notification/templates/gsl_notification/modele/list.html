@@ -10,7 +10,7 @@
 {% block tab_content %}
     <div class="fr-m-4w">
         <h2>
-            Modèles d’arrêtés {{ dotation }}
+            Modèles {{ dotation }}
         </h2>
         <div class="text-align-right fr-mt-4v fr-mb-4v">
             <a class="fr-btn fr-btn--icon-left fr-icon-add-line"
@@ -24,7 +24,8 @@
             {% empty %}
                 <p>
                     Vous n'avez pas encore de modèles. Vous pouvez en créer
-                    <a href="{% url "notification:modele-creer" dotation %}" class="fr-link">en cliquant ici.</a>
+                    <a href="{% url "notification:modele-creer-choix-du-type" dotation %}"
+                       class="fr-link">en cliquant ici.</a>
                 </p>
             {% endfor %}
         </ul>

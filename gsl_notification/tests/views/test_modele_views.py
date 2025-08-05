@@ -81,12 +81,12 @@ def test_create_modele_arrete_views(client):
     assert not ModeleArrete.objects.exists()
     url = reverse(
         "notification:modele-creer",
-        kwargs={"dotation": DOTATION_DETR},
+        kwargs={"modele_type": "arrete", "dotation": DOTATION_DETR},
     )
     data_step_1 = {
         "0-name": "Nom de l’arrêté",
         "0-description": "Description de l’arrêté",
-        "create_model_arrete_wizard-current_step": 0,
+        "create_model_document_wizard-current_step": 0,
     }
     response = client.post(url, data_step_1)
 
@@ -99,7 +99,7 @@ def test_create_modele_arrete_views(client):
         "1-logo": SimpleUploadedFile("test.png", b"youpi", content_type="image/png"),
         "1-logo_alt_text": "Texte alternatif du logo",
         "1-top_right_text": "Il fait froid<br>Oui<br>Je n'ai pas honte de cette blague",
-        "create_model_arrete_wizard-current_step": 1,
+        "create_model_document_wizard-current_step": 1,
     }
     response = client.post(url, data_step_2)
     assert response.status_code == 200
@@ -108,12 +108,12 @@ def test_create_modele_arrete_views(client):
     )
     assert (
         response.context["form"]["content"].value()
-        == "<p>Écrivez ici le contenu de votre arrêté</p>"
+        == "<p>Écrivez ici le contenu de votre modèle</p>"
     )
 
     data_step_3 = {
-        "2-content": "<p>Le contenu HTML du modèle d’arrêté</p>",
-        "create_model_arrete_wizard-current_step": 2,
+        "2-content": "<p>Le contenu HTML du modèle</p>",
+        "create_model_document_wizard-current_step": 2,
     }
     response = client.post(url, data_step_3)
     assert response.status_code == 302

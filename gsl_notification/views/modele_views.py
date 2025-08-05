@@ -145,12 +145,6 @@ class ChooseModeleDocumentType(FormView):
         return context
 
 
-FORMS = [
-    ("step_zero", ModeleDocumentStepOneForm),
-    ("step_one", ModeleDocumentStepTwoForm),
-    ("step_two", ModeleDocumentStepThreeForm),
-]
-
 TEMPLATES = {
     "step_zero": "gsl_notification/modele/modele_form_step_1.html",
     "step_one": "gsl_notification/modele/modele_form_step_2.html",
@@ -159,7 +153,11 @@ TEMPLATES = {
 
 
 class CreateModelDocumentWizard(SessionWizardView):
-    form_list = FORMS
+    form_list = (
+        ModeleDocumentStepOneForm,
+        ModeleDocumentStepTwoForm,
+        ModeleDocumentStepThreeForm,
+    )
 
     # Temporary storage
     file_storage = FileSystemStorage(
@@ -220,9 +218,14 @@ class CreateModelDocumentWizard(SessionWizardView):
         pass
 
     def _set_success_message(self, instance):
+        type_and_article = (
+            "d’arrêté"
+            if self.modele_type == ModeleDocument.TYPE_ARRETE
+            else "de lettre de notification"
+        )
         messages.success(
             self.request,
-            f"Le modèle d’arrêté “{instance.name}” a bien été créé.",
+            f"Le modèle {type_and_article} “{instance.name}” a bien été créé.",
         )  # TODO update
 
     def get_form_instance(self, step):
@@ -277,6 +280,7 @@ class CreateModelDocumentWizard(SessionWizardView):
                 "type": self.modele_type,
                 "dotation": self.dotation,
                 "current_tab": self.dotation,
+                "title": self._get_form_title(),
             }
         )
         step_titles = {
@@ -297,7 +301,12 @@ class CreateModelDocumentWizard(SessionWizardView):
         return context
 
     def get_template_names(self):
-        return TEMPLATES[self.steps.current]
+        return f"gsl_notification/modele/modele_form_step_{self.steps.current}.html"
+
+    def _get_form_title(self):
+        if self.modele_type == ModeleDocument.TYPE_ARRETE:
+            return f"Création d’un nouveau modèle d'arrêté {self.dotation}"
+        return f"Création d’un nouveau modèle de lettre de notification {self.dotation}"
 
 
 class UpdateModeleArrete(CreateModelDocumentWizard):
@@ -320,6 +329,7 @@ class UpdateModeleArrete(CreateModelDocumentWizard):
         response = super().dispatch(
             request,
             dotation=dotation,
+            modele_type=self.instance.type,
             instanciate_new_modele=instanciate_new_modele,
             *args,
             **kwargs,
