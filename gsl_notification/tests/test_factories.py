@@ -4,11 +4,13 @@ from ..models import (
     Arrete,
     ArreteSigne,
     ModeleArrete,
+    ModeleLettreNotification,
 )
 from .factories import (
     ArreteFactory,
     ArreteSigneFactory,
     ModeleArreteFactory,
+    ModeleLettreNotificationFactory,
 )
 
 pytestmark = pytest.mark.django_db
@@ -16,6 +18,7 @@ pytestmark = pytest.mark.django_db
 test_data = (
     (ArreteFactory, Arrete),
     (ArreteSigneFactory, ArreteSigne),
+    (ModeleLettreNotificationFactory, ModeleLettreNotification),
     (ModeleArreteFactory, ModeleArrete),
 )
 

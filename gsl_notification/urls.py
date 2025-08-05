@@ -81,7 +81,7 @@ urlpatterns = [
     path(
         "modeles/liste/<str:dotation>",
         ModeleListView.as_view(),
-        name="modele-arrete-liste",
+        name="modele-liste",
     ),
     path(
         "modeles/nouveau/<str:dotation>/",

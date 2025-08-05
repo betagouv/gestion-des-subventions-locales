@@ -74,7 +74,7 @@ def test_arrete_signe_delete_url():
 # Modele Arrete URLs
 def test_modele_arrete_liste_url():
     url = reverse(
-        "gsl_notification:modele-arrete-liste",
+        "gsl_notification:modele-liste",
         kwargs={"dotation": "DSIL"},
     )
     assert url == "/notification/modeles/liste/DSIL"
@@ -83,3 +83,15 @@ def test_modele_arrete_liste_url():
 def test_create_modele_arrete_wizard_url():
     url = reverse("gsl_notification:modele-arrete-creer", kwargs={"dotation": "DETR"})
     assert url == "/notification/modeles/nouveau/DETR/"
+
+
+def test_update_modele_url():
+    pass  # TODO
+
+
+def test_duplicate_modele_url():
+    pass  # TODO
+
+
+def test_delete_modele_url():
+    pass  # TODO

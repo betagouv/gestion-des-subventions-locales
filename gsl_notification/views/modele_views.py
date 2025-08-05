@@ -151,7 +151,7 @@ class CreateModelArreteWizard(SessionWizardView):
 
         return HttpResponseRedirect(
             reverse(
-                "gsl_notification:modele-arrete-liste",
+                "gsl_notification:modele-liste",
                 kwargs={"dotation": self.dotation},
             )
         )
@@ -318,7 +318,7 @@ def delete_modele_arrete_view(request, modele_arrete_id):
         )
 
     return redirect(
-        reverse("gsl_notification:modele-arrete-liste", kwargs={"dotation": dotation})
+        reverse("gsl_notification:modele-liste", kwargs={"dotation": dotation})
     )
 
 

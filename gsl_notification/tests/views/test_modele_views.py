@@ -15,9 +15,10 @@ from gsl_notification.tests.factories import (
     ArreteFactory,
     ArreteSigneFactory,
     ModeleArreteFactory,
+    ModeleLettreNotificationFactory,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import DOTATION_DETR
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 
 
 @pytest.fixture
@@ -43,11 +44,40 @@ def client(perimetre):
 
 pytestmark = pytest.mark.django_db
 
+# LIST
+
+
+def test_list_modele_view(client, perimetre):
+    # Must be in context
+    ModeleArreteFactory.create_batch(2, perimetre=perimetre, dotation=DOTATION_DETR)
+    ModeleLettreNotificationFactory.create_batch(
+        3, perimetre=perimetre, dotation=DOTATION_DETR
+    )
+
+    # Must NOT be in context
+    ModeleArreteFactory.create_batch(
+        6, perimetre=PerimetreDepartementalFactory(), dotation=DOTATION_DETR
+    )
+    ModeleArreteFactory.create_batch(8, perimetre=perimetre, dotation=DOTATION_DSIL)
+    ModeleLettreNotificationFactory.create_batch(
+        7, perimetre=PerimetreDepartementalFactory(), dotation=DOTATION_DETR
+    )
+    ModeleLettreNotificationFactory.create_batch(
+        9, perimetre=perimetre, dotation=DOTATION_DSIL
+    )
+
+    url = reverse(
+        "notification:modele-liste",
+        kwargs={"dotation": DOTATION_DETR},
+    )
+    response = client.get(url)
+    assert len(response.context["object_list"]) == 5  # = 3 + 2
+
 
 # CREATE
 
 
-def test_create_arrete_views(client):
+def test_create_modele_arrete_views(client):
     assert not ModeleArrete.objects.exists()
     url = reverse(
         "notification:modele-arrete-creer",
@@ -88,7 +118,7 @@ def test_create_arrete_views(client):
     response = client.post(url, data_step_3)
     assert response.status_code == 302
     assert response["Location"] == reverse(
-        "notification:modele-arrete-liste",
+        "notification:modele-liste",
         kwargs={"dotation": DOTATION_DETR},
     )
 
@@ -162,7 +192,7 @@ def test_update_modele_arrete_view_complete_workflow(client, perimetre):
     response = client.post(url, data_step_3)
     assert response.status_code == 302
     assert response["Location"] == reverse(
-        "gsl_notification:modele-arrete-liste",
+        "gsl_notification:modele-liste",
         kwargs={"dotation": DOTATION_DETR},
     )
 
@@ -264,7 +294,7 @@ def test_duplicate_modele_arrete_view_complete_workflow(client, perimetre):
     response = client.post(url, data_step_3)
     assert response.status_code == 302
     assert response["Location"] == reverse(
-        "gsl_notification:modele-arrete-liste",
+        "gsl_notification:modele-liste",
         kwargs={"dotation": DOTATION_DETR},
     )
 
@@ -323,7 +353,7 @@ def test_delete_modele_arrete_with_correct_perimetre():
     response = client.post(url)
 
     expected_redirect_url = reverse(
-        "gsl_notification:modele-arrete-liste", args=[modele_arrete.dotation]
+        "gsl_notification:modele-liste", args=[modele_arrete.dotation]
     )
     assert response.status_code == 302
     assert response.url == expected_redirect_url
@@ -347,7 +377,7 @@ def test_delete_modele_arrete_with_modele_used_by_an_arrete():
     response = client.post(url)
 
     expected_redirect_url = reverse(
-        "gsl_notification:modele-arrete-liste", args=[modele_arrete.dotation]
+        "gsl_notification:modele-liste", args=[modele_arrete.dotation]
     )
     assert response.status_code == 302
     assert response.url == expected_redirect_url
