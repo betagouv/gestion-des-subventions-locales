@@ -8,7 +8,7 @@
 {% endblock extra_css %}
 
 {% block tab_content %}
-    <div class="fr-m-4w">
+    <div class="fr-m-4w" data-controller="delete-modele-modal">
         <h2>
             Modèles {{ dotation }}
         </h2>
@@ -38,7 +38,3 @@
         {% csrf_token %}
     </form>
 {% endblock modal %}
-
-{% block extra_js %}
-    <script src="{% static 'js/updateModalName.js' %}"></script>
-{% endblock extra_js %}
