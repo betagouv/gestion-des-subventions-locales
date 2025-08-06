@@ -22,7 +22,7 @@ class ProgrammationProjetFilters(FilterSet):
         "territoire",
         "porteur",
         "categorie_detr",
-        "to_notify",
+        "notified",
         "cout_total",
         "montant_demande",
         "montant_retenu",
@@ -112,8 +112,8 @@ class ProgrammationProjetFilters(FilterSet):
     def filter_categorie_detr(self, queryset, _name, values: list[int]):
         return queryset.filter(dotation_projet__detr_categories__in=values)
 
-    to_notify = ChoiceFilter(
-        method="filter_to_notify",
+    notified = ChoiceFilter(
+        method="filter_notified",
         choices=(("yes", "Oui"), ("no", "Non")),
         empty_label="Tous",
         widget=Select(
@@ -121,13 +121,13 @@ class ProgrammationProjetFilters(FilterSet):
         ),
     )
 
-    def filter_to_notify(self, queryset, _name, value: str):
+    def filter_notified(self, queryset, _name, value: str):
         if value == "yes":
-            return queryset.filter(
+            return queryset.exclude(
                 notified_at=None, status=ProgrammationProjet.STATUS_ACCEPTED
             )
         elif value == "no":
-            return queryset.exclude(
+            return queryset.filter(
                 notified_at=None, status=ProgrammationProjet.STATUS_ACCEPTED
             )
         else:
@@ -163,7 +163,7 @@ class ProgrammationProjetFilters(FilterSet):
             "status",
             "territoire",
             "categorie_detr",
-            "to_notify",
+            "notified",
         )
 
     def __init__(self, *args, **kwargs):

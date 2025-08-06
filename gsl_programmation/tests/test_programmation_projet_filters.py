@@ -423,23 +423,23 @@ class TestProgrammationProjetFilters:
             notified_at=None,
         )
 
-        # Test filtre "à notifier"
+        # Test filtre "Notifié"
         filterset = ProgrammationProjetFilters(
-            data={"to_notify": "yes"}, request=mock_request
-        )
-        result = list(filterset.qs)
-        assert prog_to_notify in result
-        assert prog_notified not in result
-        assert prog_refused not in result
-
-        # Test filtre "pas à notifier"
-        filterset = ProgrammationProjetFilters(
-            data={"to_notify": "no"}, request=mock_request
+            data={"notified": "yes"}, request=mock_request
         )
         result = list(filterset.qs)
         assert prog_to_notify not in result
         assert prog_notified in result
         assert prog_refused in result
+
+        # Test filtre "pas notifié"
+        filterset = ProgrammationProjetFilters(
+            data={"notified": "no"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert prog_to_notify in result
+        assert prog_notified not in result
+        assert prog_refused not in result
 
     def test_order_filter(self, mock_request, enveloppe, arrondissement):
         """Test le filtre de tri"""
