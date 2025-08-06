@@ -1,7 +1,11 @@
 import pytest
 from django.urls import reverse
 
-from gsl_notification.tests.factories import ModeleArreteFactory
+from gsl_notification.models import ModeleDocument
+from gsl_notification.tests.factories import (
+    ModeleArreteFactory,
+    ModeleLettreNotificationFactory,
+)
 
 
 def test_documents_url():
@@ -91,24 +95,38 @@ def test_create_modele_arrete_wizard_url():
     assert url == "/notification/modeles/nouveau/arrete/DETR/"
 
 
+@pytest.mark.parametrize(
+    ("modele_type, factory"),
+    (
+        (ModeleDocument.TYPE_ARRETE, ModeleArreteFactory),
+        (ModeleDocument.TYPE_LETTRE, ModeleLettreNotificationFactory),
+    ),
+)
 @pytest.mark.django_db
-def test_update_modele_url():
-    modele = ModeleArreteFactory()
+def test_update_modele_url(modele_type, factory):
+    modele = factory()
     url = reverse(
-        "gsl_notification:modele-arrete-modifier",
-        kwargs={"modele_arrete_id": modele.id},
+        "gsl_notification:modele-modifier",
+        kwargs={"modele_type": modele_type, "modele_id": modele.id},
     )
-    assert url == f"/notification/modeles/modifier/{modele.id}/"
+    assert url == f"/notification/modeles/modifier/{modele_type}/{modele.id}/"
 
 
+@pytest.mark.parametrize(
+    ("modele_type, factory"),
+    (
+        (ModeleDocument.TYPE_ARRETE, ModeleArreteFactory),
+        (ModeleDocument.TYPE_LETTRE, ModeleLettreNotificationFactory),
+    ),
+)
 @pytest.mark.django_db
-def test_duplicate_modele_url():
-    modele = ModeleArreteFactory()
+def test_duplicate_modele_url(modele_type, factory):
+    modele = factory()
     url = reverse(
-        "gsl_notification:modele-arrete-dupliquer",
-        kwargs={"modele_arrete_id": modele.id},
+        "gsl_notification:modele-dupliquer",
+        kwargs={"modele_type": modele_type, "modele_id": modele.id},
     )
-    assert url == f"/notification/modeles/dupliquer/{modele.id}/"
+    assert url == f"/notification/modeles/dupliquer/{modele_type}/{modele.id}/"
 
 
 @pytest.mark.django_db

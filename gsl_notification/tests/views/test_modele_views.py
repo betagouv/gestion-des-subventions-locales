@@ -142,13 +142,22 @@ def test_create_modele_arrete_views(client, modele_type, _class):
 # UPDATE
 
 
-def test_update_modele_arrete_view_complete_workflow(client, perimetre):
+@pytest.mark.parametrize(
+    ("modele_type, factory"),
+    (
+        (ModeleDocument.TYPE_ARRETE, ModeleArreteFactory),
+        (ModeleDocument.TYPE_LETTRE, ModeleLettreNotificationFactory),
+    ),
+)
+def test_update_modele_arrete_view_complete_workflow(
+    client, perimetre, modele_type, factory
+):
     initial_logo = SimpleUploadedFile(
         "initial_logo.png", b"initial logo content", content_type="image/png"
     )
     initial_logo_name = initial_logo.name
 
-    modele_arrete = ModeleArreteFactory(
+    modele_document = factory(
         name="The Name",
         description="The Description",
         logo=initial_logo,
@@ -159,8 +168,8 @@ def test_update_modele_arrete_view_complete_workflow(client, perimetre):
         dotation=DOTATION_DETR,
     )
     url = reverse(
-        "gsl_notification:modele-arrete-modifier",
-        kwargs={"modele_arrete_id": modele_arrete.id},
+        "gsl_notification:modele-modifier",
+        kwargs={"modele_type": modele_type, "modele_id": modele_document.id},
     )
 
     # Test step 0 (title and description)
@@ -173,7 +182,7 @@ def test_update_modele_arrete_view_complete_workflow(client, perimetre):
     data_step_1 = {
         "0-name": "Updated Name",
         "0-description": "Updated Description",
-        "update_modele_arrete-current_step": 0,
+        "update_modele-current_step": 0,
     }
     response = client.post(url, data_step_1)
     assert response.status_code == 200
@@ -188,7 +197,7 @@ def test_update_modele_arrete_view_complete_workflow(client, perimetre):
         ),
         "1-logo_alt_text": "Updated Alt Text",
         "1-top_right_text": "Updated Top Right<br>Text",
-        "update_modele_arrete-current_step": 1,
+        "update_modele-current_step": 1,
     }
     response = client.post(url, data_step_2)
     assert response.status_code == 200
@@ -198,7 +207,7 @@ def test_update_modele_arrete_view_complete_workflow(client, perimetre):
     # Step 3: Update content and complete
     data_step_3 = {
         "2-content": "<p>Updated HTML content</p>",
-        "update_modele_arrete-current_step": 2,
+        "update_modele-current_step": 2,
     }
     response = client.post(url, data_step_3)
     assert response.status_code == 302
@@ -208,36 +217,48 @@ def test_update_modele_arrete_view_complete_workflow(client, perimetre):
     )
 
     # Verify the model was updated
-    modele_arrete.refresh_from_db()
-    assert modele_arrete.name == "Updated Name"
-    assert modele_arrete.description == "Updated Description"
-    assert modele_arrete.logo_alt_text == "Updated Alt Text"
-    assert modele_arrete.top_right_text == "Updated Top Right<br>Text"
-    assert modele_arrete.content == "<p>Updated HTML content</p>"
-    assert modele_arrete.logo.name != initial_logo_name
-    assert "new_logo" in modele_arrete.logo.name
+    modele_document.refresh_from_db()
+    assert modele_document.name == "Updated Name"
+    assert modele_document.description == "Updated Description"
+    assert modele_document.logo_alt_text == "Updated Alt Text"
+    assert modele_document.top_right_text == "Updated Top Right<br>Text"
+    assert modele_document.content == "<p>Updated HTML content</p>"
+    assert modele_document.logo.name != initial_logo_name
+    assert "new_logo" in modele_document.logo.name
 
 
-def test_update_modele_arrete_view_wrong_perimetre(client):
+@pytest.mark.parametrize(
+    ("modele_type, factory"),
+    (
+        (ModeleDocument.TYPE_ARRETE, ModeleArreteFactory),
+        (ModeleDocument.TYPE_LETTRE, ModeleLettreNotificationFactory),
+    ),
+)
+def test_update_modele_arrete_view_wrong_perimetre(client, modele_type, factory):
     """Test that users cannot update models from different perimeters"""
     different_perimetre = PerimetreDepartementalFactory()
-    modele_arrete = ModeleArreteFactory(
-        perimetre=different_perimetre, dotation=DOTATION_DETR
-    )
+    modele_document = factory(perimetre=different_perimetre, dotation=DOTATION_DETR)
     url = reverse(
-        "gsl_notification:modele-arrete-modifier",
-        kwargs={"modele_arrete_id": modele_arrete.id},
+        "gsl_notification:modele-modifier",
+        kwargs={"modele_type": modele_type, "modele_id": modele_document.id},
     )
 
     response = client.get(url)
     assert response.status_code == 404
 
 
-def test_update_nonexistent_modele_arrete(client):
+@pytest.mark.parametrize(
+    ("modele_type"),
+    (
+        ModeleDocument.TYPE_ARRETE,
+        ModeleDocument.TYPE_LETTRE,
+    ),
+)
+def test_update_nonexistent_modele_arrete(client, modele_type):
     """Test updating a non-existent model returns 404"""
     url = reverse(
-        "gsl_notification:modele-arrete-modifier",
-        kwargs={"modele_arrete_id": 99999},
+        "gsl_notification:modele-modifier",
+        kwargs={"modele_type": modele_type, "modele_id": 99999},
     )
 
     response = client.get(url)
@@ -247,13 +268,26 @@ def test_update_nonexistent_modele_arrete(client):
 # DUPLICATE
 
 
-def test_duplicate_modele_arrete_view_complete_workflow(client, perimetre):
+@pytest.mark.parametrize(
+    ("modele_type, _class, factory"),
+    (
+        (ModeleDocument.TYPE_ARRETE, ModeleArrete, ModeleArreteFactory),
+        (
+            ModeleDocument.TYPE_LETTRE,
+            ModeleLettreNotification,
+            ModeleLettreNotificationFactory,
+        ),
+    ),
+)
+def test_duplicate_modele_arrete_view_complete_workflow(
+    client, perimetre, modele_type, _class, factory
+):
     initial_logo = SimpleUploadedFile(
         "initial_logo.png", b"initial logo content", content_type="image/png"
     )
     initial_logo_name = initial_logo.name
 
-    initial_modele_arrete = ModeleArreteFactory(
+    initial_modele = factory(
         name="The Name",
         description="The Description",
         logo=initial_logo,
@@ -265,15 +299,15 @@ def test_duplicate_modele_arrete_view_complete_workflow(client, perimetre):
         created_by=CollegueFactory(perimetre=perimetre),
     )
     url = reverse(
-        "gsl_notification:modele-arrete-dupliquer",
-        kwargs={"modele_arrete_id": initial_modele_arrete.id},
+        "gsl_notification:modele-dupliquer",
+        kwargs={"modele_type": modele_type, "modele_id": initial_modele.id},
     )
 
     # Step 1: Update name and description
     data_step_1 = {
         "0-name": "Updated Name",
         "0-description": "Updated Description",
-        "duplicate_modele_arrete-current_step": 0,
+        "duplicate_modele-current_step": 0,
     }
     response = client.post(url, data_step_1)
     assert response.status_code == 200
@@ -290,7 +324,7 @@ def test_duplicate_modele_arrete_view_complete_workflow(client, perimetre):
         ),
         "1-logo_alt_text": "Updated Alt Text",
         "1-top_right_text": "Updated Top Right<br>Text",
-        "duplicate_modele_arrete-current_step": 1,
+        "duplicate_modele-current_step": 1,
     }
     response = client.post(url, data_step_2)
     assert response.status_code == 200
@@ -300,7 +334,7 @@ def test_duplicate_modele_arrete_view_complete_workflow(client, perimetre):
     # Step 3: Update content and complete
     data_step_3 = {
         "2-content": "<p>Updated HTML content</p>",
-        "duplicate_modele_arrete-current_step": 2,
+        "duplicate_modele-current_step": 2,
     }
     response = client.post(url, data_step_3)
     assert response.status_code == 302
@@ -310,7 +344,7 @@ def test_duplicate_modele_arrete_view_complete_workflow(client, perimetre):
     )
 
     # Verify the model was updated
-    new_modele = ModeleArrete.objects.last()
+    new_modele = _class.objects.last()
     assert new_modele.name == "Updated Name"
     assert new_modele.description == "Updated Description"
     assert new_modele.logo_alt_text == "Updated Alt Text"
@@ -323,26 +357,38 @@ def test_duplicate_modele_arrete_view_complete_workflow(client, perimetre):
     assert new_modele.created_by == client.user
 
 
-def test_duplicate_modele_arrete_view_wrong_perimetre(client):
+@pytest.mark.parametrize(
+    ("modele_type, factory"),
+    (
+        (ModeleDocument.TYPE_ARRETE, ModeleArreteFactory),
+        (ModeleDocument.TYPE_LETTRE, ModeleLettreNotificationFactory),
+    ),
+)
+def test_duplicate_modele_arrete_view_wrong_perimetre(client, modele_type, factory):
     """Test that users cannot update models from different perimeters"""
     different_perimetre = PerimetreDepartementalFactory()
-    modele_arrete = ModeleArreteFactory(
-        perimetre=different_perimetre, dotation=DOTATION_DETR
-    )
+    modele = factory(perimetre=different_perimetre, dotation=DOTATION_DETR)
     url = reverse(
-        "gsl_notification:modele-arrete-dupliquer",
-        kwargs={"modele_arrete_id": modele_arrete.id},
+        "gsl_notification:modele-dupliquer",
+        kwargs={"modele_type": modele_type, "modele_id": modele.id},
     )
 
     response = client.get(url)
     assert response.status_code == 404
 
 
-def test_duplicate_nonexistent_modele_arrete(client):
+@pytest.mark.parametrize(
+    ("modele_type"),
+    (
+        ModeleDocument.TYPE_ARRETE,
+        ModeleDocument.TYPE_LETTRE,
+    ),
+)
+def test_duplicate_nonexistent_modele_arrete(client, modele_type):
     """Test updating a non-existent model returns 404"""
     url = reverse(
-        "gsl_notification:modele-arrete-dupliquer",
-        kwargs={"modele_arrete_id": 99999},
+        "gsl_notification:modele-dupliquer",
+        kwargs={"modele_type": modele_type, "modele_id": 99999},
     )
 
     response = client.get(url)
