@@ -79,7 +79,7 @@ urlpatterns = [
     ),
     # Modèles d'arrêtés
     path(
-        "modeles/liste/<str:dotation>",
+        "modeles/liste/<str:dotation>/",
         ModeleListView.as_view(),
         name="modele-liste",
     ),
@@ -99,12 +99,12 @@ urlpatterns = [
         name="modele-arrete-dupliquer",
     ),
     path(
-        "modele/<str:modele_arrete_id>/",
+        "modeles/<str:modele_arrete_id>/",
         delete_modele_arrete_view,
         name="delete-modele-arrete",
     ),
     path(
-        "modele/generique/<str:dotation>",
+        "modeles/generique/<str:dotation>/",
         get_generic_modele,
         name="get-generic-modele-template",
     ),
