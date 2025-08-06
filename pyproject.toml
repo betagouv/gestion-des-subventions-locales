@@ -11,7 +11,7 @@ dependencies = [
     "dj-database-url",
     "django_celery_results",
     "django-celery-beat",
-    "django-csp==4.0b5",
+    "django-csp",
     "django-dsfr",
     "django-extensions",
     "django-filter",
