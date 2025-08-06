@@ -9,7 +9,13 @@ from django.http import Http404
 from gsl import settings
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
-from gsl_notification.models import Arrete, ArreteSigne
+from gsl_notification.models import (
+    Arrete,
+    ArreteSigne,
+    ModeleArrete,
+    ModeleDocument,
+    ModeleLettreNotification,
+)
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import DOTATION_DETR, POSSIBLE_DOTATIONS
 
@@ -175,3 +181,11 @@ def return_document_as_a_dict(document: Arrete | ArreteSigne):
         "get_view_url": document.get_view_url,
         "get_download_url": document.get_download_url,
     }
+
+
+def get_modele_class(modele_type):
+    if modele_type not in [ModeleDocument.TYPE_ARRETE, ModeleDocument.TYPE_LETTRE]:
+        raise Http404("Type inconnu")
+    if modele_type == ModeleDocument.TYPE_LETTRE:
+        return ModeleLettreNotification
+    return ModeleArrete

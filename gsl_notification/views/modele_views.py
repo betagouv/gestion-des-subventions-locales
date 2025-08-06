@@ -31,11 +31,10 @@ from gsl_notification.models import (
 from gsl_notification.utils import (
     MENTION_TO_ATTRIBUTES,
     duplicate_field_file,
+    get_modele_class,
     get_modele_perimetres,
 )
-from gsl_notification.views.decorators import (
-    modele_arrete_visible_by_user,
-)
+from gsl_notification.views.decorators import modele_visible_by_user
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, DOTATIONS
 
 TAG_LABEL_MAPPING = {
@@ -185,7 +184,7 @@ class CreateModelDocumentWizard(SessionWizardView):
             raise Http404("Dotation inconnue")
         self.dotation = dotation
         self.modele_type = modele_type
-        self._class = _get_class(modele_type)
+        self._class = get_modele_class(modele_type)
 
         perimetre = request.user.perimetre
         if instanciate_new_modele:
@@ -321,7 +320,7 @@ class UpdateModele(CreateModelDocumentWizard):
         *args,
         **kwargs,
     ):
-        self._class = _get_class(modele_type)
+        self._class = get_modele_class(modele_type)
         self.instance = get_object_or_404(
             self._class,
             id=modele_id,
@@ -377,10 +376,10 @@ class DuplicateModele(UpdateModele):
         super()._set_success_message(instance, verbe="créé")
 
 
-@modele_arrete_visible_by_user
+@modele_visible_by_user
 @require_http_methods(["POST"])
 def delete_modele_view(request, modele_type, modele_id):
-    _class = _get_class(modele_type)
+    _class = get_modele_class(modele_type)
     modele = get_object_or_404(_class, id=modele_id)
     dotation = modele.dotation
     name = modele.name
@@ -419,11 +418,3 @@ def get_generic_modele(request, dotation):
     elif dotation == DOTATION_DSIL:
         return render(request, "gsl_notification/modele/generique/dsil_modele.html")
     raise Http404("Dotation inconnue")
-
-
-def _get_class(modele_type):
-    if modele_type not in [ModeleDocument.TYPE_ARRETE, ModeleDocument.TYPE_LETTRE]:
-        raise Http404("Type inconnu")
-    if modele_type == ModeleDocument.TYPE_LETTRE:
-        return ModeleLettreNotification
-    return ModeleArrete

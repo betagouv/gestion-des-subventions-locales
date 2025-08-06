@@ -129,13 +129,21 @@ def test_duplicate_modele_url(modele_type, factory):
     assert url == f"/notification/modeles/dupliquer/{modele_type}/{modele.id}/"
 
 
+@pytest.mark.parametrize(
+    ("modele_type, factory"),
+    (
+        (ModeleDocument.TYPE_ARRETE, ModeleArreteFactory),
+        (ModeleDocument.TYPE_LETTRE, ModeleLettreNotificationFactory),
+    ),
+)
 @pytest.mark.django_db
-def test_delete_modele_url():
-    modele = ModeleArreteFactory()
+def test_delete_modele_url(modele_type, factory):
+    modele = factory()
     url = reverse(
-        "gsl_notification:delete-modele-arrete", kwargs={"modele_arrete_id": modele.id}
+        "gsl_notification:delete-modele",
+        kwargs={"modele_type": modele_type, "modele_id": modele.id},
     )
-    assert url == f"/notification/modeles/{modele.id}/"
+    assert url == f"/notification/modeles/{modele_type}/{modele.id}/"
 
 
 def test_get_generic_modele_url():
