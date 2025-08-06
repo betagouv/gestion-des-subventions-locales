@@ -4,6 +4,7 @@ from django import forms
 from django.db.models.fields import files
 from dsfr.forms import DsfrBaseForm
 
+from gsl.settings import MAX_POST_FILE_SIZE_IN_MO
 from gsl_notification.models import (
     Arrete,
     ArreteSigne,
@@ -43,8 +44,8 @@ class ArreteSigneForm(forms.ModelForm, DsfrBaseForm):
                 "Seuls les fichiers PDF, PNG ou JPEG sont acceptés."
             )
 
-        max_size_in_mo = 20
-        max_size = max_size_in_mo * 1024 * 1024  # 20 Mo
+        max_size_in_mo = MAX_POST_FILE_SIZE_IN_MO
+        max_size = max_size_in_mo * 1024 * 1024
         if file.size > max_size:
             raise forms.ValidationError(
                 f"La taille du fichier ne doit pas dépasser {max_size_in_mo} Mo."
@@ -91,8 +92,8 @@ class ModeleDocumentStepTwoForm(forms.ModelForm, DsfrBaseForm):
                     "Seuls les fichiers PNG ou JPEG sont acceptés."
                 )
 
-        max_size_in_mo = 20
-        max_size = max_size_in_mo * 1024 * 1024  # 20 Mo
+        max_size_in_mo = MAX_POST_FILE_SIZE_IN_MO
+        max_size = max_size_in_mo * 1024 * 1024
         if file.size > max_size:
             raise forms.ValidationError(
                 f"La taille du fichier ne doit pas dépasser {max_size_in_mo} Mo."
