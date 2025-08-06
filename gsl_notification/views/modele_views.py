@@ -175,7 +175,7 @@ class CreateModelDocumentWizard(SessionWizardView):
         **kwargs,
     ):
         if modele_type not in [ModeleDocument.TYPE_ARRETE, ModeleDocument.TYPE_LETTRE]:
-            raise Http404("Type inconnue")
+            raise Http404("Type inconnu")
         if dotation not in DOTATIONS:
             raise Http404("Dotation inconnue")
         self.modele_type = modele_type
