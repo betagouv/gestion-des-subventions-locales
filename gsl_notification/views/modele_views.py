@@ -22,7 +22,11 @@ from gsl_notification.forms import (
     ModeleArreteStepThreeForm,
     ModeleArreteStepTwoForm,
 )
-from gsl_notification.models import ModeleArrete
+from gsl_notification.models import (
+    ModeleArrete,
+    ModeleDocument,
+    ModeleLettreNotification,
+)
 from gsl_notification.utils import (
     MENTION_TO_ATTRIBUTES,
     duplicate_field_file,
@@ -33,13 +37,24 @@ from gsl_notification.views.decorators import (
 )
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, DOTATIONS
 
+TAG_LABEL_MAPPING = {
+    ModeleDocument.TYPE_ARRETE: "Arrêté",
+    ModeleDocument.TYPE_LETTRE: "Lettre de notification",
+}
 
-class ModeleArreteListView(ListView):
-    template_name = "gsl_notification/modele_arrete/list.html"
+
+class ModeleListView(ListView):
+    template_name = "gsl_notification/modele/list.html"
 
     def get_queryset(self):
-        return ModeleArrete.objects.filter(
-            dotation=self.dotation, perimetre__in=self.perimetres
+        return list(
+            ModeleArrete.objects.filter(
+                dotation=self.dotation, perimetre__in=self.perimetres
+            )
+        ) + list(
+            ModeleLettreNotification.objects.filter(
+                dotation=self.dotation, perimetre__in=self.perimetres
+            )
         )
 
     def dispatch(self, request, dotation, *args, **kwargs):
@@ -64,6 +79,7 @@ class ModeleArreteListView(ListView):
                         "id": obj.id,
                         "name": obj.name,
                         "description": obj.description,
+                        "type": TAG_LABEL_MAPPING[obj.type],
                         "actions": [
                             {
                                 "label": "Modifier le modèle",
@@ -135,7 +151,7 @@ class CreateModelArreteWizard(SessionWizardView):
 
         return HttpResponseRedirect(
             reverse(
-                "gsl_notification:modele-arrete-liste",
+                "gsl_notification:modele-liste",
                 kwargs={"dotation": self.dotation},
             )
         )
@@ -220,7 +236,9 @@ class CreateModelArreteWizard(SessionWizardView):
         return context
 
     def get_template_names(self):
-        return f"gsl_notification/modele_arrete/modelearrete_form_step_{self.steps.current}.html"
+        return (
+            f"gsl_notification/modele/modelearrete_form_step_{self.steps.current}.html"
+        )
 
 
 class UpdateModeleArrete(CreateModelArreteWizard):
@@ -300,18 +318,14 @@ def delete_modele_arrete_view(request, modele_arrete_id):
         )
 
     return redirect(
-        reverse("gsl_notification:modele-arrete-liste", kwargs={"dotation": dotation})
+        reverse("gsl_notification:modele-liste", kwargs={"dotation": dotation})
     )
 
 
 @require_GET
 def get_generic_modele(request, dotation):
     if dotation == DOTATION_DETR:
-        return render(
-            request, "gsl_notification/modele_arrete/generique/detr_modele.html"
-        )
+        return render(request, "gsl_notification/modele/generique/detr_modele.html")
     elif dotation == DOTATION_DSIL:
-        return render(
-            request, "gsl_notification/modele_arrete/generique/dsil_modele.html"
-        )
+        return render(request, "gsl_notification/modele/generique/dsil_modele.html")
     raise Http404("Dotation inconnue")

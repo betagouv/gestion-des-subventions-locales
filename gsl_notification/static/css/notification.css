@@ -139,3 +139,9 @@
   justify-content: end;
   gap: 10px;
 }
+
+.modele-card-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+}

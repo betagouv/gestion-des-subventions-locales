@@ -3,10 +3,10 @@ from django.urls import path
 from gsl_notification.views.decorators import (
     arrete_visible_by_user,
 )
-from gsl_notification.views.modele_arrete_views import (
+from gsl_notification.views.modele_views import (
     CreateModelArreteWizard,
     DuplicateModeleArrete,
-    ModeleArreteListView,
+    ModeleListView,
     UpdateModeleArrete,
     delete_modele_arrete_view,
     get_generic_modele,
@@ -79,9 +79,9 @@ urlpatterns = [
     ),
     # Modèles d'arrêtés
     path(
-        "modeles/liste/<str:dotation>",
-        ModeleArreteListView.as_view(),
-        name="modele-arrete-liste",
+        "modeles/liste/<str:dotation>/",
+        ModeleListView.as_view(),
+        name="modele-liste",
     ),
     path(
         "modeles/nouveau/<str:dotation>/",
@@ -99,12 +99,12 @@ urlpatterns = [
         name="modele-arrete-dupliquer",
     ),
     path(
-        "modele/<str:modele_arrete_id>/",
+        "modeles/<str:modele_arrete_id>/",
         delete_modele_arrete_view,
         name="delete-modele-arrete",
     ),
     path(
-        "modele/generique/<str:dotation>",
+        "modeles/generique/<str:dotation>/",
         get_generic_modele,
         name="get-generic-modele-template",
     ),

@@ -1,4 +1,7 @@
+import pytest
 from django.urls import reverse
+
+from gsl_notification.tests.factories import ModeleArreteFactory
 
 
 def test_documents_url():
@@ -74,12 +77,48 @@ def test_arrete_signe_delete_url():
 # Modele Arrete URLs
 def test_modele_arrete_liste_url():
     url = reverse(
-        "gsl_notification:modele-arrete-liste",
+        "gsl_notification:modele-liste",
         kwargs={"dotation": "DSIL"},
     )
-    assert url == "/notification/modeles/liste/DSIL"
+    assert url == "/notification/modeles/liste/DSIL/"
 
 
 def test_create_modele_arrete_wizard_url():
     url = reverse("gsl_notification:modele-arrete-creer", kwargs={"dotation": "DETR"})
     assert url == "/notification/modeles/nouveau/DETR/"
+
+
+@pytest.mark.django_db
+def test_update_modele_url():
+    modele = ModeleArreteFactory()
+    url = reverse(
+        "gsl_notification:modele-arrete-modifier",
+        kwargs={"modele_arrete_id": modele.id},
+    )
+    assert url == f"/notification/modeles/modifier/{modele.id}/"
+
+
+@pytest.mark.django_db
+def test_duplicate_modele_url():
+    modele = ModeleArreteFactory()
+    url = reverse(
+        "gsl_notification:modele-arrete-dupliquer",
+        kwargs={"modele_arrete_id": modele.id},
+    )
+    assert url == f"/notification/modeles/dupliquer/{modele.id}/"
+
+
+@pytest.mark.django_db
+def test_delete_modele_url():
+    modele = ModeleArreteFactory()
+    url = reverse(
+        "gsl_notification:delete-modele-arrete", kwargs={"modele_arrete_id": modele.id}
+    )
+    assert url == f"/notification/modeles/{modele.id}/"
+
+
+def test_get_generic_modele_url():
+    url = reverse(
+        "gsl_notification:get-generic-modele-template", kwargs={"dotation": "DETR"}
+    )
+    assert url == "/notification/modeles/generique/DETR/"

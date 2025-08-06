@@ -4,7 +4,7 @@ import factory
 
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 
-from ..models import Arrete, ArreteSigne, ModeleArrete
+from ..models import Arrete, ArreteSigne, ModeleArrete, ModeleLettreNotification
 
 
 class ModeleArreteFactory(factory.django.DjangoModelFactory):
@@ -22,6 +22,11 @@ class ModeleArreteFactory(factory.django.DjangoModelFactory):
     created_at = factory.Faker("date_time")
     created_by = factory.SubFactory("gsl_core.tests.factories.CollegueFactory")
     updated_at = factory.Faker("date_time")
+
+
+class ModeleLettreNotificationFactory(ModeleArreteFactory):
+    class Meta:
+        model = ModeleLettreNotification
 
 
 class ArreteFactory(factory.django.DjangoModelFactory):
