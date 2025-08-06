@@ -22,8 +22,8 @@
                         {% else %}
                             <button class="fr-btn {{ action.class }}"
                                     type="button"
-                                    {% if action.aria_controls %} aria-controls="{{ action.aria_controls }}" data-fr-opened="false" data-modele-name="{{ modele.name }}" {% endif %}
-                                    data-action-form="{% url 'gsl_notification:delete-modele-arrete' modele.id %}">
+                                    {% if action.aria_controls %} aria-controls="{{ action.aria_controls }}" data-fr-opened="false" data-modele-name="{{ modele.name }}" data-modele-type="{{ modele.type }}"{% endif %}
+                                    data-action-form="{% url 'gsl_notification:delete-modele' modele.type modele.id %}">
                                 {{ action.label }}
                             </button>
                         {% endif %}
@@ -36,7 +36,7 @@
     <div class="fr-card__header">
         <div class="fr-card__img">
             <img class="fr-responsive-img " src="{% static "img/placeholder.1x1.svg" %}" alt="placeholder">
-            <span class="fr-tag modele-card-badge">{{ modele.type }}</span>
+            <span class="fr-tag modele-card-badge">{{ modele.type_label }}</span>
         </div>
     </div>
 </div>
