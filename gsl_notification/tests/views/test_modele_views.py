@@ -10,7 +10,11 @@ from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreFactory,
 )
-from gsl_notification.models import ModeleArrete
+from gsl_notification.models import (
+    ModeleArrete,
+    ModeleDocument,
+    ModeleLettreNotification,
+)
 from gsl_notification.tests.factories import (
     ArreteFactory,
     ArreteSigneFactory,
@@ -77,11 +81,18 @@ def test_list_modele_view(client, perimetre):
 # CREATE
 
 
-def test_create_modele_arrete_views(client):
-    assert not ModeleArrete.objects.exists()
+@pytest.mark.parametrize(
+    ("modele_type, _class"),
+    (
+        (ModeleDocument.TYPE_ARRETE, ModeleArrete),
+        (ModeleDocument.TYPE_LETTRE, ModeleLettreNotification),
+    ),
+)
+def test_create_modele_arrete_views(client, modele_type, _class):
+    assert not _class.objects.exists()
     url = reverse(
         "notification:modele-creer",
-        kwargs={"modele_type": "arrete", "dotation": DOTATION_DETR},
+        kwargs={"modele_type": modele_type, "dotation": DOTATION_DETR},
     )
     data_step_1 = {
         "0-name": "Nom de l’arrêté",
@@ -122,7 +133,7 @@ def test_create_modele_arrete_views(client):
         kwargs={"dotation": DOTATION_DETR},
     )
 
-    modele_en_base = ModeleArrete.objects.first()
+    modele_en_base = _class.objects.first()
     assert modele_en_base
     assert modele_en_base.created_by == client.user
     assert modele_en_base.logo_alt_text == "Texte alternatif du logo"
