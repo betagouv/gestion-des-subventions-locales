@@ -10,7 +10,11 @@ from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreFactory,
 )
-from gsl_notification.models import ModeleArrete
+from gsl_notification.models import (
+    ModeleArrete,
+    ModeleDocument,
+    ModeleLettreNotification,
+)
 from gsl_notification.tests.factories import (
     ArreteFactory,
     ArreteSigneFactory,
@@ -77,16 +81,23 @@ def test_list_modele_view(client, perimetre):
 # CREATE
 
 
-def test_create_modele_arrete_views(client):
-    assert not ModeleArrete.objects.exists()
+@pytest.mark.parametrize(
+    ("modele_type, _class"),
+    (
+        (ModeleDocument.TYPE_ARRETE, ModeleArrete),
+        (ModeleDocument.TYPE_LETTRE, ModeleLettreNotification),
+    ),
+)
+def test_create_modele_arrete_views(client, modele_type, _class):
+    assert not _class.objects.exists()
     url = reverse(
-        "notification:modele-arrete-creer",
-        kwargs={"dotation": DOTATION_DETR},
+        "notification:modele-creer",
+        kwargs={"modele_type": modele_type, "dotation": DOTATION_DETR},
     )
     data_step_1 = {
         "0-name": "Nom de l’arrêté",
         "0-description": "Description de l’arrêté",
-        "create_model_arrete_wizard-current_step": 0,
+        "create_model_document_wizard-current_step": 0,
     }
     response = client.post(url, data_step_1)
 
@@ -99,7 +110,7 @@ def test_create_modele_arrete_views(client):
         "1-logo": SimpleUploadedFile("test.png", b"youpi", content_type="image/png"),
         "1-logo_alt_text": "Texte alternatif du logo",
         "1-top_right_text": "Il fait froid<br>Oui<br>Je n'ai pas honte de cette blague",
-        "create_model_arrete_wizard-current_step": 1,
+        "create_model_document_wizard-current_step": 1,
     }
     response = client.post(url, data_step_2)
     assert response.status_code == 200
@@ -108,12 +119,12 @@ def test_create_modele_arrete_views(client):
     )
     assert (
         response.context["form"]["content"].value()
-        == "<p>Écrivez ici le contenu de votre arrêté</p>"
+        == "<p>Écrivez ici le contenu de votre modèle</p>"
     )
 
     data_step_3 = {
-        "2-content": "<p>Le contenu HTML du modèle d’arrêté</p>",
-        "create_model_arrete_wizard-current_step": 2,
+        "2-content": "<p>Le contenu HTML du modèle</p>",
+        "create_model_document_wizard-current_step": 2,
     }
     response = client.post(url, data_step_3)
     assert response.status_code == 302
@@ -122,7 +133,7 @@ def test_create_modele_arrete_views(client):
         kwargs={"dotation": DOTATION_DETR},
     )
 
-    modele_en_base = ModeleArrete.objects.first()
+    modele_en_base = _class.objects.first()
     assert modele_en_base
     assert modele_en_base.created_by == client.user
     assert modele_en_base.logo_alt_text == "Texte alternatif du logo"

@@ -2,7 +2,12 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from gsl_core.tests.factories import CollegueFactory
-from gsl_notification.forms import ArreteForm, ArreteSigneForm, ModeleArreteStepTwoForm
+from gsl_notification.forms import (
+    ArreteForm,
+    ArreteSigneForm,
+    ModeleDocumentStepTwoForm,
+)
+from gsl_notification.models import ModeleArrete
 from gsl_notification.tests.factories import ModeleArreteFactory
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
@@ -120,6 +125,12 @@ def test_arrete_signe_form_rejects_large_file(file_size, is_valid):
 
 
 # Test modele arrêté step 2 (form upload)
+
+
+class ModeleArreteStepTwoForm(ModeleDocumentStepTwoForm):
+    class Meta:
+        model = ModeleArrete
+        fields = ModeleDocumentStepTwoForm.Meta.fields
 
 
 def test_modele_arrete_step_2_valid_form_upload():

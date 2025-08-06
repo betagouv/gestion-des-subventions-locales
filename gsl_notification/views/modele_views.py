@@ -12,15 +12,16 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_http_methods
-from django.views.generic import ListView
+from django.views.generic import FormView, ListView
 from formtools.wizard.views import SessionWizardView
 
 from gsl import settings
 from gsl_core.models import Perimetre
 from gsl_notification.forms import (
-    ModeleArreteStepOneForm,
-    ModeleArreteStepThreeForm,
-    ModeleArreteStepTwoForm,
+    ModeleDocumentStepOneForm,
+    ModeleDocumentStepThreeForm,
+    ModeleDocumentStepTwoForm,
+    ModeleDocumentStepZeroForm,
 )
 from gsl_notification.models import (
     ModeleArrete,
@@ -47,14 +48,18 @@ class ModeleListView(ListView):
     template_name = "gsl_notification/modele/list.html"
 
     def get_queryset(self):
-        return list(
-            ModeleArrete.objects.filter(
-                dotation=self.dotation, perimetre__in=self.perimetres
+        return sorted(
+            list(
+                ModeleArrete.objects.filter(
+                    dotation=self.dotation, perimetre__in=self.perimetres
+                )
             )
-        ) + list(
-            ModeleLettreNotification.objects.filter(
-                dotation=self.dotation, perimetre__in=self.perimetres
-            )
+            + list(
+                ModeleLettreNotification.objects.filter(
+                    dotation=self.dotation, perimetre__in=self.perimetres
+                )
+            ),
+            key=lambda modele: modele.created_at,
         )
 
     def dispatch(self, request, dotation, *args, **kwargs):
@@ -110,12 +115,50 @@ class ModeleListView(ListView):
         return context
 
 
-class CreateModelArreteWizard(SessionWizardView):
+class ChooseModeleDocumentType(FormView):
+    template_name = "gsl_notification/modele/choose_type.html"
+    form_class = ModeleDocumentStepZeroForm
+
+    def dispatch(self, request, dotation, *args, **kwargs):
+        if dotation not in DOTATIONS:
+            raise Http404("Dotation inconnue")
+        self.dotation = dotation
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        modele_type = form.cleaned_data["type"]
+        return redirect(
+            reverse(
+                "gsl_notification:modele-creer",
+                kwargs={"modele_type": modele_type, "dotation": self.dotation},
+            )
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(
+            {
+                "dotation": self.dotation,
+                "current_tab": self.dotation,
+            }
+        )
+        return context
+
+
+TEMPLATES = {
+    "step_zero": "gsl_notification/modele/modele_form_step_1.html",
+    "step_one": "gsl_notification/modele/modele_form_step_2.html",
+    "step_two": "gsl_notification/modele/modele_form_step_3.html",
+}
+
+
+class CreateModelDocumentWizard(SessionWizardView):
     form_list = (
-        ModeleArreteStepOneForm,
-        ModeleArreteStepTwoForm,
-        ModeleArreteStepThreeForm,
+        ModeleDocumentStepOneForm,
+        ModeleDocumentStepTwoForm,
+        ModeleDocumentStepThreeForm,
     )
+
     # Temporary storage
     file_storage = FileSystemStorage(
         location=os.path.join(settings.MEDIA_ROOT, "logos_modeles_arretes")
@@ -123,13 +166,28 @@ class CreateModelArreteWizard(SessionWizardView):
 
     @method_decorator(csp_update({"style-src": [SELF, UNSAFE_INLINE]}))
     def dispatch(
-        self, request, dotation: str, instanciate_new_modele=True, *args, **kwargs
+        self,
+        request,
+        modele_type: str,
+        dotation: str,
+        instanciate_new_modele=True,
+        *args,
+        **kwargs,
     ):
+        if modele_type not in [ModeleDocument.TYPE_ARRETE, ModeleDocument.TYPE_LETTRE]:
+            raise Http404("Type inconnu")
         if dotation not in DOTATIONS:
             raise Http404("Dotation inconnue")
+        self.modele_type = modele_type
+        self._class = (
+            ModeleLettreNotification
+            if self.modele_type == ModeleDocument.TYPE_LETTRE
+            else ModeleArrete
+        )
+
         perimetre = request.user.perimetre
         if instanciate_new_modele:
-            self.instance = ModeleArrete(
+            self.instance = self._class(
                 dotation=dotation, perimetre=perimetre, created_by=request.user
             )
         self.dotation = dotation
@@ -137,7 +195,7 @@ class CreateModelArreteWizard(SessionWizardView):
         return response
 
     def done(self, form_list, **kwargs):
-        instance: ModeleArrete = self.instance
+        instance: ModeleLettreNotification | ModeleArrete = self.instance
 
         for form in form_list:
             for key, value in form.cleaned_data.items():
@@ -160,10 +218,15 @@ class CreateModelArreteWizard(SessionWizardView):
         pass
 
     def _set_success_message(self, instance):
+        type_and_article = (
+            "d’arrêté"
+            if self.modele_type == ModeleDocument.TYPE_ARRETE
+            else "de lettre de notification"
+        )
         messages.success(
             self.request,
-            f"Le modèle d’arrêté “{instance.name}” a bien été créé.",
-        )
+            f"Le modèle {type_and_article} “{instance.name}” a bien été créé.",
+        )  # TODO update
 
     def get_form_instance(self, step):
         return self.instance
@@ -178,7 +241,7 @@ class CreateModelArreteWizard(SessionWizardView):
                     step,
                     {
                         "content": mark_safe(
-                            "<p>Écrivez ici le contenu de votre arrêté</p>"
+                            "<p>Écrivez ici le contenu de votre modèle</p>"
                         )
                     },
                 )
@@ -214,8 +277,10 @@ class CreateModelArreteWizard(SessionWizardView):
         context = super().get_context_data(form=form, **kwargs)
         context.update(
             {
+                "type": self.modele_type,
                 "dotation": self.dotation,
                 "current_tab": self.dotation,
+                "title": self._get_form_title(),
             }
         )
         step_titles = {
@@ -236,12 +301,15 @@ class CreateModelArreteWizard(SessionWizardView):
         return context
 
     def get_template_names(self):
-        return (
-            f"gsl_notification/modele/modelearrete_form_step_{self.steps.current}.html"
-        )
+        return f"gsl_notification/modele/modele_form_step_{self.steps.current}.html"
+
+    def _get_form_title(self):
+        if self.modele_type == ModeleDocument.TYPE_ARRETE:
+            return f"Création d’un nouveau modèle d'arrêté {self.dotation}"
+        return f"Création d’un nouveau modèle de lettre de notification {self.dotation}"
 
 
-class UpdateModeleArrete(CreateModelArreteWizard):
+class UpdateModeleArrete(CreateModelDocumentWizard):
     @method_decorator(csp_update({"style-src": [SELF, UNSAFE_INLINE]}))
     def dispatch(
         self, request, modele_arrete_id, instanciate_new_modele=False, *args, **kwargs
@@ -261,6 +329,7 @@ class UpdateModeleArrete(CreateModelArreteWizard):
         response = super().dispatch(
             request,
             dotation=dotation,
+            modele_type=self.instance.type,
             instanciate_new_modele=instanciate_new_modele,
             *args,
             **kwargs,

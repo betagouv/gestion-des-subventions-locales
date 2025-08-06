@@ -4,7 +4,11 @@ from django import forms
 from django.db.models.fields import files
 from dsfr.forms import DsfrBaseForm
 
-from gsl_notification.models import Arrete, ArreteSigne, ModeleArrete
+from gsl_notification.models import (
+    Arrete,
+    ArreteSigne,
+    ModeleDocument,
+)
 
 
 class ArreteForm(forms.ModelForm, DsfrBaseForm):
@@ -48,15 +52,25 @@ class ArreteSigneForm(forms.ModelForm, DsfrBaseForm):
         return file
 
 
-class ModeleArreteStepOneForm(forms.ModelForm, DsfrBaseForm):
+class ModeleDocumentStepZeroForm(DsfrBaseForm):
+    TYPE_CHOICES = (
+        (ModeleDocument.TYPE_ARRETE, "Modèle d'arrêté"),
+        (ModeleDocument.TYPE_LETTRE, "Lettre de notification"),
+    )
+    type = forms.ChoiceField(
+        label="Type de document", choices=TYPE_CHOICES, widget=forms.RadioSelect
+    )
+
+
+class ModeleDocumentStepOneForm(forms.ModelForm, DsfrBaseForm):
     class Meta:
-        model = ModeleArrete
+        model = ModeleDocument
         fields = ("name", "description")
 
 
-class ModeleArreteStepTwoForm(forms.ModelForm, DsfrBaseForm):
+class ModeleDocumentStepTwoForm(forms.ModelForm, DsfrBaseForm):
     class Meta:
-        model = ModeleArrete
+        model = ModeleDocument
         fields = ("logo", "logo_alt_text", "top_right_text")
 
     def clean_logo(self):
@@ -86,7 +100,7 @@ class ModeleArreteStepTwoForm(forms.ModelForm, DsfrBaseForm):
         return file
 
 
-class ModeleArreteStepThreeForm(forms.ModelForm, DsfrBaseForm):
+class ModeleDocumentStepThreeForm(forms.ModelForm, DsfrBaseForm):
     content = forms.CharField(
         required=True,
         help_text="Contenu HTML de l'arrêté, utilisé pour les exports.",
@@ -94,5 +108,5 @@ class ModeleArreteStepThreeForm(forms.ModelForm, DsfrBaseForm):
     )
 
     class Meta:
-        model = ModeleArrete
+        model = ModeleDocument
         fields = ("content",)
