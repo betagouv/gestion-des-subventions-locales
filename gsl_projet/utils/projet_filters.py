@@ -4,6 +4,7 @@ from django_filters import (
     FilterSet,
     MultipleChoiceFilter,
     NumberFilter,
+    OrderingFilter,
 )
 
 from gsl_core.models import Perimetre
@@ -18,12 +19,31 @@ from gsl_projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.models import DotationProjet, Projet
-from gsl_projet.services.projet_services import ProjetService
-from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
+from gsl_projet.utils.django_filters_custom_widget import (
+    CustomCheckboxSelectMultiple,
+    CustomSelectWidget,
+)
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 
 
 class ProjetFilters(FilterSet):
+    ORDERING_MAP = {
+        "dossier_ds__ds_date_depot": "date",
+        "dossier_ds__finance_cout_total": "cout",
+        "demandeur__name": "demandeur",
+    }
+
+    order = OrderingFilter(
+        fields=ORDERING_MAP,
+        field_labels={
+            "dossier_ds__ds_date_depot": "Date",
+            "dossier_ds__finance_cout_total": "Coût total",
+            "demandeur__name": "Demandeur",
+        },
+        empty_label="Tri",
+        widget=CustomSelectWidget,
+    )
+
     DOTATION_CHOICES = (
         (DOTATION_DETR, DOTATION_DETR),
         (DOTATION_DSIL, DOTATION_DSIL),
@@ -216,5 +236,6 @@ class ProjetFilters(FilterSet):
     def qs(self):
         self.queryset = Projet.objects.all()
         qs = super().qs
-        qs = ProjetService.add_ordering_to_projets_qs(qs, self.request.GET.get("tri"))
+        if not qs.query.order_by:
+            qs = qs.order_by("-dossier_ds__ds_date_depot")
         return qs

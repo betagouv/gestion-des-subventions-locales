@@ -1,9 +1,7 @@
 import logging
-from datetime import UTC
 from unittest import mock
 
 import pytest
-from django.utils import timezone
 
 from gsl_core.tests.factories import AdresseFactory, PerimetreArrondissementFactory
 from gsl_demarches_simplifiees.tests.factories import (
@@ -169,52 +167,52 @@ def create_projets():
         )
 
 
-@pytest.mark.django_db
-def test_add_ordering_to_projets_qs():
-    projet1 = ProjetFactory(
-        dossier_ds__finance_cout_total=100,
-        dossier_ds__ds_date_depot=timezone.datetime(2023, 1, 1, tzinfo=UTC),
-        demandeur__name="Beaune",
-    )
-    projet2 = ProjetFactory(
-        dossier_ds__finance_cout_total=200,
-        dossier_ds__ds_date_depot=timezone.datetime(2023, 1, 2, tzinfo=UTC),
-        demandeur__name="Dijon",
-    )
-    projet3 = ProjetFactory(
-        dossier_ds__finance_cout_total=150,
-        dossier_ds__ds_date_depot=timezone.datetime(2023, 1, 3, tzinfo=UTC),
-        demandeur__name="Auxonne",
-    )
+# @pytest.mark.django_db
+# def test_add_ordering_to_projets_qs():
+#     projet1 = ProjetFactory(
+#         dossier_ds__finance_cout_total=100,
+#         dossier_ds__ds_date_depot=timezone.datetime(2023, 1, 1, tzinfo=UTC),
+#         demandeur__name="Beaune",
+#     )
+#     projet2 = ProjetFactory(
+#         dossier_ds__finance_cout_total=200,
+#         dossier_ds__ds_date_depot=timezone.datetime(2023, 1, 2, tzinfo=UTC),
+#         demandeur__name="Dijon",
+#     )
+#     projet3 = ProjetFactory(
+#         dossier_ds__finance_cout_total=150,
+#         dossier_ds__ds_date_depot=timezone.datetime(2023, 1, 3, tzinfo=UTC),
+#         demandeur__name="Auxonne",
+#     )
 
-    ordering = "date_desc"
-    qs = Projet.objects.all()
-    ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
+#     ordering = "date_desc"
+#     qs = Projet.objects.all()
+#     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
 
-    assert list(ordered_qs) == [projet3, projet2, projet1]
+#     assert list(ordered_qs) == [projet3, projet2, projet1]
 
-    ordering = "date_asc"
-    ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
+#     ordering = "date_asc"
+#     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
 
-    assert list(ordered_qs) == [projet1, projet2, projet3]
+#     assert list(ordered_qs) == [projet1, projet2, projet3]
 
-    ordering = "cout_desc"
-    ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
+#     ordering = "cout_desc"
+#     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
 
-    assert list(ordered_qs) == [projet2, projet3, projet1]
+#     assert list(ordered_qs) == [projet2, projet3, projet1]
 
-    ordering = "cout_asc"
-    ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
+#     ordering = "cout_asc"
+#     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
 
-    assert list(ordered_qs) == [projet1, projet3, projet2]
+#     assert list(ordered_qs) == [projet1, projet3, projet2]
 
-    ordering = "demandeur_desc"
-    ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
-    assert list(ordered_qs) == [projet2, projet1, projet3]
+#     ordering = "demandeur_desc"
+#     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
+#     assert list(ordered_qs) == [projet2, projet1, projet3]
 
-    ordering = "demandeur_asc"
-    ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
-    assert list(ordered_qs) == [projet3, projet1, projet2]
+#     ordering = "demandeur_asc"
+#     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
+#     assert list(ordered_qs) == [projet3, projet1, projet2]
 
 
 @pytest.mark.parametrize(

@@ -16,6 +16,7 @@ class FilterUtils:
         "montant_previsionnel": "includes/_filter_montant_previsionnel.html",
         "territoire": "includes/_filter_territoire.html",
         "categorie_detr": "includes/_filter_categorie_detr.html",
+        "notified": "includes/_filter_notified.html",
     }
 
     DOTATION_MAPPING = dict(ProjetFilters.DOTATION_CHOICES)

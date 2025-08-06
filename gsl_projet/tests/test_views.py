@@ -69,12 +69,12 @@ def view() -> ProjetListView:
 @pytest.mark.parametrize(
     "tri_param,expected_ordering",
     [
-        ("date_desc", ("-dossier_ds__ds_date_depot",)),
-        ("date_asc", ("dossier_ds__ds_date_depot",)),
-        ("cout_desc", ("-dossier_ds__finance_cout_total",)),
-        ("cout_asc", ("dossier_ds__finance_cout_total",)),
-        ("demandeur_desc", ("-demandeur__name",)),
-        ("demandeur_asc", ("demandeur__name",)),
+        ("-date", ("-dossier_ds__ds_date_depot",)),
+        ("date", ("dossier_ds__ds_date_depot",)),
+        ("-cout", ("-dossier_ds__finance_cout_total",)),
+        ("cout", ("dossier_ds__finance_cout_total",)),
+        ("-demandeur", ("-demandeur__name",)),
+        ("demandeur", ("demandeur__name",)),
         (None, ("-dossier_ds__ds_date_depot",)),  # Test valeur par défaut
         ("invalid_value", ("-dossier_ds__ds_date_depot",)),  # Test valeur invalide
     ],
@@ -83,7 +83,7 @@ def test_get_ordering(req, view, tri_param, expected_ordering):
     """Test que get_ordering retourne le bon ordre selon le paramètre 'tri'"""
     request = req.get("/")
     if tri_param is not None:
-        request = req.get("/", data={"tri": tri_param})
+        request = req.get("/", data={"order": tri_param})
 
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
@@ -109,18 +109,18 @@ def projets(demandeur) -> list[Projet]:
 @pytest.mark.parametrize(
     "tri_param,expected_ordering",
     [
-        ("date_desc", "1-0"),
-        ("date_asc", "0-1"),
-        ("cout_desc", "1-0"),
-        ("cout_asc", "0-1"),
-        ("demandeur_desc", "1-0"),
-        ("demandeur_asc", "0-1"),
+        ("-date", "1-0"),
+        ("date", "0-1"),
+        ("-cout", "1-0"),
+        ("cout", "0-1"),
+        ("-demandeur", "1-0"),
+        ("demandeur", "0-1"),
         ("", "1-0"),
         ("invalid_value", "1-0"),
     ],
 )
 def test_projets_ordering(req, view, projets, tri_param, expected_ordering):
-    request = req.get("/", data={"tri": tri_param})
+    request = req.get("/", data={"order": tri_param})
     view.request = request
     qs = view.get_filterset(ProjetFilters).qs
     projets_lis = [projets[1], projets[0]] if expected_ordering == "1-0" else projets

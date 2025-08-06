@@ -91,6 +91,7 @@ class CategorieDetrFactory(factory.django.DjangoModelFactory):
     annee = factory.Faker("random_int", min=2024, max=2027)
     rang = factory.Sequence(lambda n: n)
     libelle = factory.Faker("sentence", locale="fr_FR")
+    is_current = True
 
 
 class ProjetNoteFactory(factory.django.DjangoModelFactory):

@@ -1,8 +1,26 @@
+.projets-filters-layout {
+    background: var(--background-alt-blue-france);
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+    padding: 1rem max(calc((100vw - 1200px) / 2), 1.5rem);
+}
+
+@media (max-width: 768px) {
+    .projets-filters-layout {
+        padding: 1rem;
+    }
+}
+
 .projets-filters-layout,
 .projets-filters-layout .fr-select,
 .projets-filters-layout .fr-input,
 .projets-filters-layout .fr-label {
   font-size: calc(1rem * 14 / 16);
+}
+
+.projets-filters-layout.projet-filters-in-parent {
+  margin: 0;
+  padding: 1rem;
 }
    
 .filter-field .gsl-dropdown-content {
@@ -120,4 +138,10 @@
   width: 100%;
   gap: 8px;
   justify-content: center;
+}
+
+#filter-categorie_detr > div {
+  max-height: 400px;
+  scroll-behavior: auto;
+  overflow: auto;
 }
