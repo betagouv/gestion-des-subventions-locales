@@ -174,7 +174,7 @@ def get_s3_object(file_name):
 def return_document_as_a_dict(document: Arrete | ArreteSigne):
     return {
         "name": document.name,
-        "type": document.type,
+        "type": document.file_type,
         "size": document.size,
         "created_at": document.created_at,
         "created_by": document.created_by,

@@ -54,7 +54,7 @@ class ArreteSigneForm(forms.ModelForm, DsfrBaseForm):
 
 class ModeleDocumentStepZeroForm(DsfrBaseForm):
     TYPE_CHOICES = (
-        (ModeleDocument.TYPE_ARRETE, "Modèle d'arrêté"),
+        (ModeleDocument.TYPE_ARRETE, "Arrêté attributif"),
         (ModeleDocument.TYPE_LETTRE, "Lettre de notification"),
     )
     type = forms.ChoiceField(
