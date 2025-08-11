@@ -89,15 +89,21 @@ class ModeleListView(ListView):
                             {
                                 "label": "Modifier le modèle",
                                 "href": reverse(
-                                    "gsl_notification:modele-arrete-modifier",
-                                    kwargs={"modele_arrete_id": obj.id},
+                                    "gsl_notification:modele-modifier",
+                                    kwargs={
+                                        "modele_type": obj.type,
+                                        "modele_id": obj.id,
+                                    },
                                 ),
                             },
                             {
                                 "label": "Dupliquer le modèle",
                                 "href": reverse(
-                                    "gsl_notification:modele-arrete-dupliquer",
-                                    kwargs={"modele_arrete_id": obj.id},
+                                    "gsl_notification:modele-dupliquer",
+                                    kwargs={
+                                        "modele_type": obj.type,
+                                        "modele_id": obj.id,
+                                    },
                                 ),
                                 "class": "fr-btn--secondary",
                             },
@@ -174,23 +180,17 @@ class CreateModelDocumentWizard(SessionWizardView):
         *args,
         **kwargs,
     ):
-        if modele_type not in [ModeleDocument.TYPE_ARRETE, ModeleDocument.TYPE_LETTRE]:
-            raise Http404("Type inconnu")
         if dotation not in DOTATIONS:
             raise Http404("Dotation inconnue")
+        self.dotation = dotation
         self.modele_type = modele_type
-        self._class = (
-            ModeleLettreNotification
-            if self.modele_type == ModeleDocument.TYPE_LETTRE
-            else ModeleArrete
-        )
+        self._class = self._get_class(modele_type)
 
         perimetre = request.user.perimetre
         if instanciate_new_modele:
             self.instance = self._class(
                 dotation=dotation, perimetre=perimetre, created_by=request.user
             )
-        self.dotation = dotation
         response = super().dispatch(request, *args, **kwargs)
         return response
 
@@ -217,7 +217,7 @@ class CreateModelDocumentWizard(SessionWizardView):
     def _handle_logo(self, instance, logo):
         pass
 
-    def _set_success_message(self, instance):
+    def _set_success_message(self, instance, verbe="créé"):
         type_and_article = (
             "d’arrêté"
             if self.modele_type == ModeleDocument.TYPE_ARRETE
@@ -225,8 +225,8 @@ class CreateModelDocumentWizard(SessionWizardView):
         )
         messages.success(
             self.request,
-            f"Le modèle {type_and_article} “{instance.name}” a bien été créé.",
-        )  # TODO update
+            f"Le modèle {type_and_article} “{instance.name}” a bien été {verbe}.",
+        )
 
     def get_form_instance(self, step):
         return self.instance
@@ -303,20 +303,34 @@ class CreateModelDocumentWizard(SessionWizardView):
     def get_template_names(self):
         return f"gsl_notification/modele/modele_form_step_{self.steps.current}.html"
 
+    def _get_class(self, modele_type):
+        if modele_type not in [ModeleDocument.TYPE_ARRETE, ModeleDocument.TYPE_LETTRE]:
+            raise Http404("Type inconnu")
+        if modele_type == ModeleDocument.TYPE_LETTRE:
+            return ModeleLettreNotification
+        return ModeleArrete
+
     def _get_form_title(self):
         if self.modele_type == ModeleDocument.TYPE_ARRETE:
             return f"Création d’un nouveau modèle d'arrêté {self.dotation}"
         return f"Création d’un nouveau modèle de lettre de notification {self.dotation}"
 
 
-class UpdateModeleArrete(CreateModelDocumentWizard):
+class UpdateModele(CreateModelDocumentWizard):
     @method_decorator(csp_update({"style-src": [SELF, UNSAFE_INLINE]}))
     def dispatch(
-        self, request, modele_arrete_id, instanciate_new_modele=False, *args, **kwargs
+        self,
+        request,
+        modele_type,
+        modele_id,
+        instanciate_new_modele=False,
+        *args,
+        **kwargs,
     ):
+        self._class = self._get_class(modele_type)
         self.instance = get_object_or_404(
-            ModeleArrete,
-            id=modele_arrete_id,
+            self._class,
+            id=modele_id,
         )
         dotation = self.instance.dotation
         self.possible_modele_perimetres = get_modele_perimetres(
@@ -338,22 +352,24 @@ class UpdateModeleArrete(CreateModelDocumentWizard):
 
     def _handle_logo(self, instance, logo):
         if not isinstance(logo, files.FieldFile):
-            old_instance = ModeleArrete.objects.get(pk=instance.pk)
+            old_instance = self._class.objects.get(pk=instance.pk)
             old_file = old_instance.logo
             old_file.delete(save=False)
 
-    def _set_success_message(self, instance):
-        messages.success(
-            self.request,
-            f"Le modèle d’arrêté “{instance.name}” a bien été modifié.",
-        )
+    def _set_success_message(self, instance, verbe="modifié"):
+        super()._set_success_message(instance, verbe)
 
 
-class DuplicateModeleArrete(UpdateModeleArrete):
+class DuplicateModele(UpdateModele):
     @method_decorator(csp_update({"style-src": [SELF, UNSAFE_INLINE]}))
-    def dispatch(self, request, modele_arrete_id, *args, **kwargs):
+    def dispatch(self, request, modele_type, modele_id, *args, **kwargs):
         response = super().dispatch(
-            request, modele_arrete_id, instanciate_new_modele=True, *args, **kwargs
+            request,
+            modele_type,
+            modele_id,
+            instanciate_new_modele=True,
+            *args,
+            **kwargs,
         )
         return response
 
@@ -362,6 +378,9 @@ class DuplicateModeleArrete(UpdateModeleArrete):
             new_name, file_obj = duplicate_field_file(logo)
             if file_obj:
                 instance.logo.save(new_name, file_obj, save=False)
+
+    def _set_success_message(self, instance):
+        super()._set_success_message(instance, verbe="créé")
 
 
 @modele_arrete_visible_by_user

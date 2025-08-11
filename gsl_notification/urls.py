@@ -6,9 +6,9 @@ from gsl_notification.views.decorators import (
 from gsl_notification.views.modele_views import (
     ChooseModeleDocumentType,
     CreateModelDocumentWizard,
-    DuplicateModeleArrete,
+    DuplicateModele,
     ModeleListView,
-    UpdateModeleArrete,
+    UpdateModele,
     delete_modele_arrete_view,
     get_generic_modele,
 )
@@ -95,14 +95,14 @@ urlpatterns = [
         name="modele-creer",
     ),
     path(
-        "modeles/modifier/<str:modele_arrete_id>/",
-        UpdateModeleArrete.as_view(),
-        name="modele-arrete-modifier",
+        "modeles/modifier/<str:modele_type>/<str:modele_id>/",
+        UpdateModele.as_view(),
+        name="modele-modifier",
     ),
     path(
-        "modeles/dupliquer/<str:modele_arrete_id>/",
-        DuplicateModeleArrete.as_view(),
-        name="modele-arrete-dupliquer",
+        "modeles/dupliquer/<str:modele_type>/<str:modele_id>/",
+        DuplicateModele.as_view(),
+        name="modele-dupliquer",
     ),
     path(
         "modeles/<str:modele_arrete_id>/",
