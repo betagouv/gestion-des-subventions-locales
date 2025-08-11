@@ -19,6 +19,7 @@
                    dsfr="dsfr"
                    id="arrete"
                    {% if programmation_projet.arrete %}disabled {% endif %}
+                   data-choose-document-type-target="radio"
                    data-action="click->choose-document-type#setSelectedValue">
             <label class="fr-label" for="arrete">
                 Arrêté attributif
@@ -40,7 +41,8 @@
                    dsfr="dsfr"
                    id="lettre"
                    {% if programmation_projet.lettre_notification %}disabled{% endif %}
-                   data-action="click->choose-document-type#setSelectedValue">
+                   data-choose-document-type-target="radio"
+                   data-action="choose-document-type#setSelectedValue">
             <label class="fr-label" for="lettre">
                 Lettre de notification
             </label>
