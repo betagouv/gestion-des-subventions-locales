@@ -19,20 +19,31 @@ def test_documents_url():
 # Arrete URLs
 
 
-def test_select_modele_url():
+@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
+def test_choose_type_for_document_generation_url(document_type):
+    url = reverse(
+        "gsl_notification:choose-generated-document-type",
+        kwargs={"programmation_projet_id": 123},
+    )
+    assert url == "/notification/123/choix-du-type/"
+
+
+@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
+def test_select_modele_url(document_type):
     url = reverse(
         "gsl_notification:select-modele",
-        kwargs={"programmation_projet_id": 123},
+        kwargs={"programmation_projet_id": 123, "document_type": document_type},
     )
-    assert url == "/notification/123/selection-d-un-modele/"
+    assert url == f"/notification/123/selection-d-un-modele/{document_type}"
 
 
-def test_modifier_arrete_url():
+@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
+def test_modifier_document_url(document_type):
     url = reverse(
         "gsl_notification:modifier-document",
-        kwargs={"programmation_projet_id": 123},
+        kwargs={"programmation_projet_id": 123, "document_type": document_type},
     )
-    assert url == "/notification/123/modifier-document/"
+    assert url == f"/notification/123/modifier-document/{document_type}"
 
 
 def test_arrete_download_url():

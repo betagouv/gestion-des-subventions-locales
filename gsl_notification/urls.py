@@ -36,7 +36,7 @@ urlpatterns = [
     path(
         "<int:programmation_projet_id>/choix-du-type/",
         choose_type_for_document_generation,
-        name="choose-generated-docuemnt-type",
+        name="choose-generated-document-type",
     ),
     path(
         "<int:programmation_projet_id>/selection-d-un-modele/<str:document_type>",

@@ -300,7 +300,7 @@ def change_document_view(request, programmation_projet_id, document_type):
             _add_success_message(request, is_creating, document_type, document.name)
             return _redirect_to_documents_view(request, programmation_projet.id)
         else:
-            messages.error("Erreur dans le formulaire")
+            messages.error(request, "Erreur dans le formulaire")
             document = form.instance
     else:
         form = form_class(instance=document)
