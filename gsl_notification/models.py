@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from gsl_core.models import Collegue, Perimetre
-from gsl_projet.constants import DOTATION_CHOICES
+from gsl_projet.constants import ARRETE, DOTATION_CHOICES, LETTRE
 
 
 def tokenized_file_in_timestamped_folder(_, filename):
@@ -97,7 +97,7 @@ class ModeleArrete(ModeleDocument):
 
     @property
     def type(self):
-        return ModeleDocument.TYPE_ARRETE
+        return ARRETE
 
 
 class ModeleLettreNotification(ModeleDocument):
@@ -117,7 +117,7 @@ class ModeleLettreNotification(ModeleDocument):
 
     @property
     def type(self):
-        return ModeleDocument.TYPE_LETTRE
+        return LETTRE
 
 
 class GeneratedDocument(models.Model):

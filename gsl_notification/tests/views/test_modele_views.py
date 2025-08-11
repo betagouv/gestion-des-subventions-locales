@@ -12,7 +12,6 @@ from gsl_core.tests.factories import (
 )
 from gsl_notification.models import (
     ModeleArrete,
-    ModeleDocument,
     ModeleLettreNotification,
 )
 from gsl_notification.tests.factories import (
@@ -22,7 +21,7 @@ from gsl_notification.tests.factories import (
     ModeleLettreNotificationFactory,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.constants import ARRETE, DOTATION_DETR, DOTATION_DSIL, LETTRE
 
 
 @pytest.fixture
@@ -84,8 +83,8 @@ def test_list_modele_view(client, perimetre):
 @pytest.mark.parametrize(
     ("modele_type, _class"),
     (
-        (ModeleDocument.TYPE_ARRETE, ModeleArrete),
-        (ModeleDocument.TYPE_LETTRE, ModeleLettreNotification),
+        (ARRETE, ModeleArrete),
+        (LETTRE, ModeleLettreNotification),
     ),
 )
 def test_create_modele_arrete_views(client, modele_type, _class):
@@ -145,8 +144,8 @@ def test_create_modele_arrete_views(client, modele_type, _class):
 @pytest.mark.parametrize(
     ("modele_type, factory"),
     (
-        (ModeleDocument.TYPE_ARRETE, ModeleArreteFactory),
-        (ModeleDocument.TYPE_LETTRE, ModeleLettreNotificationFactory),
+        (ARRETE, ModeleArreteFactory),
+        (LETTRE, ModeleLettreNotificationFactory),
     ),
 )
 def test_update_modele_arrete_view_complete_workflow(
@@ -230,8 +229,8 @@ def test_update_modele_arrete_view_complete_workflow(
 @pytest.mark.parametrize(
     ("modele_type, factory"),
     (
-        (ModeleDocument.TYPE_ARRETE, ModeleArreteFactory),
-        (ModeleDocument.TYPE_LETTRE, ModeleLettreNotificationFactory),
+        (ARRETE, ModeleArreteFactory),
+        (LETTRE, ModeleLettreNotificationFactory),
     ),
 )
 def test_update_modele_arrete_view_wrong_perimetre(client, modele_type, factory):
@@ -250,8 +249,8 @@ def test_update_modele_arrete_view_wrong_perimetre(client, modele_type, factory)
 @pytest.mark.parametrize(
     ("modele_type"),
     (
-        ModeleDocument.TYPE_ARRETE,
-        ModeleDocument.TYPE_LETTRE,
+        ARRETE,
+        LETTRE,
     ),
 )
 def test_update_nonexistent_modele_arrete(client, modele_type):
@@ -271,9 +270,9 @@ def test_update_nonexistent_modele_arrete(client, modele_type):
 @pytest.mark.parametrize(
     ("modele_type, _class, factory"),
     (
-        (ModeleDocument.TYPE_ARRETE, ModeleArrete, ModeleArreteFactory),
+        (ARRETE, ModeleArrete, ModeleArreteFactory),
         (
-            ModeleDocument.TYPE_LETTRE,
+            LETTRE,
             ModeleLettreNotification,
             ModeleLettreNotificationFactory,
         ),
@@ -360,8 +359,8 @@ def test_duplicate_modele_arrete_view_complete_workflow(
 @pytest.mark.parametrize(
     ("modele_type, factory"),
     (
-        (ModeleDocument.TYPE_ARRETE, ModeleArreteFactory),
-        (ModeleDocument.TYPE_LETTRE, ModeleLettreNotificationFactory),
+        (ARRETE, ModeleArreteFactory),
+        (LETTRE, ModeleLettreNotificationFactory),
     ),
 )
 def test_duplicate_modele_arrete_view_wrong_perimetre(client, modele_type, factory):
@@ -380,8 +379,8 @@ def test_duplicate_modele_arrete_view_wrong_perimetre(client, modele_type, facto
 @pytest.mark.parametrize(
     ("modele_type"),
     (
-        ModeleDocument.TYPE_ARRETE,
-        ModeleDocument.TYPE_LETTRE,
+        ARRETE,
+        LETTRE,
     ),
 )
 def test_duplicate_nonexistent_modele_arrete(client, modele_type):
@@ -401,9 +400,9 @@ def test_duplicate_nonexistent_modele_arrete(client, modele_type):
 @pytest.mark.parametrize(
     ("modele_type, _class, factory"),
     (
-        (ModeleDocument.TYPE_ARRETE, ModeleArrete, ModeleArreteFactory),
+        (ARRETE, ModeleArrete, ModeleArreteFactory),
         (
-            ModeleDocument.TYPE_LETTRE,
+            LETTRE,
             ModeleLettreNotification,
             ModeleLettreNotificationFactory,
         ),
@@ -432,7 +431,7 @@ def test_delete_modele_with_correct_perimetre(modele_type, _class, factory):
     assert len(messages) == 1
     message = list(messages)[0]
     assert message.level == 20
-    if modele_type == ModeleDocument.TYPE_ARRETE:
+    if modele_type == ARRETE:
         assert message.message == "Le modèle d’arrêté “Mon modèle” a été supprimé."
     else:
         assert (
@@ -450,7 +449,7 @@ def test_delete_modele_with_modele_used_by_an_arrete():
     ArreteFactory(modele=modele)
     url = reverse(
         "gsl_notification:delete-modele",
-        kwargs={"modele_type": ModeleDocument.TYPE_ARRETE, "modele_id": modele.id},
+        kwargs={"modele_type": ARRETE, "modele_id": modele.id},
     )
 
     response = client.post(url)
@@ -478,9 +477,9 @@ def test_delete_modele_with_modele_used_by_an_arrete():
 @pytest.mark.parametrize(
     ("modele_type, _class, factory"),
     (
-        (ModeleDocument.TYPE_ARRETE, ModeleArrete, ModeleArreteFactory),
+        (ARRETE, ModeleArrete, ModeleArreteFactory),
         (
-            ModeleDocument.TYPE_LETTRE,
+            LETTRE,
             ModeleLettreNotification,
             ModeleLettreNotificationFactory,
         ),
@@ -505,8 +504,8 @@ def test_delete_modele_with_wrong_perimetre(modele_type, _class, factory):
 @pytest.mark.parametrize(
     ("modele_type"),
     (
-        ModeleDocument.TYPE_ARRETE,
-        ModeleDocument.TYPE_LETTRE,
+        ARRETE,
+        LETTRE,
     ),
 )
 def test_delete_nonexistent_modele_arrete(client, modele_type):

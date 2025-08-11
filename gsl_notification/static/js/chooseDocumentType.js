@@ -8,12 +8,6 @@ export class ChooseDocumentType extends Controller {
 
   setSelectedValue(evt){
     this.radioSelectedValue = evt.target.value;
-    console.log(this.radioSelectedValue)
-    this.buttonTarget.href = this.buttonTarget.dataset.href + this.radioSelectedValue
+    this.buttonTarget.href = this.buttonTarget.dataset.href.replace("type", this.radioSelectedValue)
   }
-
-  // next() {
-  //   console.log(this.buttonTarget.dataset.href)
-  //   window.location.href = this.buttonTarget.dataset.href
-  // }
 }

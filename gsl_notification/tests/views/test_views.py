@@ -172,7 +172,7 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele():
     assert response.context["modeles_list"][0] == {
         "actions": [
             {
-                "href": f"/notification/{programmation_projet.id}/modifier-arrete/?modele_id={detr_modele_dep_1.id}",
+                "href": f"/notification/{programmation_projet.id}/modifier-document/?modele_id={detr_modele_dep_1.id}",
                 "label": "Sélectionner",
             },
         ],
@@ -182,7 +182,7 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele():
     assert url == f"/notification/{programmation_projet.id}/selection-d-un-modele/"
 
 
-### modifier-arrete -----------------------------------
+### modifier-document -----------------------------------
 
 ##### GET
 
@@ -204,10 +204,10 @@ def test_modify_arrete_url_with_not_correct_perimetre(
     else:
         assert not hasattr(programmation_projet, "arrete")
     url = reverse(
-        "notification:modifier-arrete",
+        "notification:modifier-document",
         kwargs={"programmation_projet_id": programmation_projet.id},
     )
-    assert url == f"/notification/{programmation_projet.id}/modifier-arrete/"
+    assert url == f"/notification/{programmation_projet.id}/modifier-document/"
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
@@ -220,10 +220,10 @@ def test_modify_arrete_url_without_arrete(
     programmation_projet, correct_perimetre_client_with_user_logged
 ):
     url = reverse(
-        "notification:modifier-arrete",
+        "notification:modifier-document",
         kwargs={"programmation_projet_id": programmation_projet.id},
     )
-    assert url == f"/notification/{programmation_projet.id}/modifier-arrete/"
+    assert url == f"/notification/{programmation_projet.id}/modifier-document/"
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
@@ -238,10 +238,10 @@ def test_modify_arrete_url_with_arrete(
         programmation_projet=programmation_projet, content="<p>Contenu de l’arrêté</p>"
     )
     url = reverse(
-        "notification:modifier-arrete",
+        "notification:modifier-document",
         kwargs={"programmation_projet_id": programmation_projet.id},
     )
-    assert url == f"/notification/{programmation_projet.id}/modifier-arrete/"
+    assert url == f"/notification/{programmation_projet.id}/modifier-document/"
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 200
     assert response.context["arrete_initial_content"] == "<p>Contenu de l’arrêté</p>"
@@ -263,11 +263,11 @@ def test_modify_arrete_url_without_arrete_and_with_modele_id(
         dotation=programmation_projet.dotation_projet.dotation,
     )
     url = reverse(
-        "notification:modifier-arrete",
+        "notification:modifier-document",
         kwargs={"programmation_projet_id": programmation_projet.id},
     )
     data = {"modele_id": modele.id}
-    assert url == f"/notification/{programmation_projet.id}/modifier-arrete/"
+    assert url == f"/notification/{programmation_projet.id}/modifier-document/"
     response = correct_perimetre_client_with_user_logged.get(url, data)
     assert response.status_code == 200
     assert response.context["arrete_initial_content"] == modele.content
@@ -287,11 +287,11 @@ def test_modify_arrete_url_without_arrete_and_with_wrong_modele_id(
     )
 
     url = reverse(
-        "notification:modifier-arrete",
+        "notification:modifier-document",
         kwargs={"programmation_projet_id": programmation_projet.id},
     )
     data = {"modele_id": modele.id}
-    assert url == f"/notification/{programmation_projet.id}/modifier-arrete/"
+    assert url == f"/notification/{programmation_projet.id}/modifier-document/"
     response = correct_perimetre_client_with_user_logged.get(url, data)
     assert response.status_code == 404
 
@@ -309,11 +309,11 @@ def test_modify_arrete_url_with_arrete_and_with_correct_modele_id(
         programmation_projet=programmation_projet, content="<p>Contenu de l’arrêté</p>"
     )
     url = reverse(
-        "notification:modifier-arrete",
+        "notification:modifier-document",
         kwargs={"programmation_projet_id": programmation_projet.id},
     )
     data = {"modele_id": modele.id}
-    assert url == f"/notification/{programmation_projet.id}/modifier-arrete/"
+    assert url == f"/notification/{programmation_projet.id}/modifier-document/"
     response = correct_perimetre_client_with_user_logged.get(url, data=data)
     assert response.status_code == 200
     assert response.context["arrete_initial_content"] == "<p>Contenu du modèle</p>"
@@ -338,11 +338,11 @@ def test_modify_arrete_url_with_arrete_and_with_wrong_modele_id(
         programmation_projet=programmation_projet, content="<p>Contenu de l’arrêté</p>"
     )
     url = reverse(
-        "notification:modifier-arrete",
+        "notification:modifier-document",
         kwargs={"programmation_projet_id": programmation_projet.id},
     )
     data = {"modele_id": modele.id}
-    assert url == f"/notification/{programmation_projet.id}/modifier-arrete/"
+    assert url == f"/notification/{programmation_projet.id}/modifier-document/"
     response = correct_perimetre_client_with_user_logged.get(url, data=data)
     assert response.status_code == 404
 
@@ -355,7 +355,7 @@ def test_change_arrete_view_valid_but_with_wrong_perimetre(
 ):
     assert not hasattr(programmation_projet, "arrete")
     url = reverse(
-        "notification:modifier-arrete",
+        "notification:modifier-document",
         kwargs={"programmation_projet_id": programmation_projet.id},
     )
     data = {
@@ -376,7 +376,7 @@ def test_change_arrete_view_valid(
     )
     new_modele = ModeleArreteFactory()
     url = reverse(
-        "notification:modifier-arrete",
+        "notification:modifier-document",
         kwargs={"programmation_projet_id": programmation_projet.id},
     )
     data = {
@@ -403,7 +403,7 @@ def test_change_arrete_view_invalid(
     )
 
     url = reverse(
-        "notification:modifier-arrete",
+        "notification:modifier-document",
         kwargs={"programmation_projet_id": programmation_projet.id},
     )
     response = correct_perimetre_client_with_user_logged.post(url, {})

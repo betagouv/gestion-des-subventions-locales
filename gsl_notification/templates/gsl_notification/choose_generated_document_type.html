@@ -36,9 +36,8 @@
         </div>
 
         <a class="fr-btn fr-btn--icon-left fr-icon-file-text-line fr-mt-4w"
-           data-href="{% url 'gsl_notification:select-modele' programmation_projet.id %}"
-           data-choose-document-type-target="button"
-           data-action="click->choose-document-type#next">
+           data-href="{% url 'gsl_notification:select-modele' programmation_projet.id "type" %}"
+           data-choose-document-type-target="button">
             Créer sur Turgot
         </a>
     </div>

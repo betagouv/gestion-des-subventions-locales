@@ -1,11 +1,11 @@
 import pytest
 from django.urls import reverse
 
-from gsl_notification.models import ModeleDocument
 from gsl_notification.tests.factories import (
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
+from gsl_projet.constants import ARRETE, LETTRE
 
 
 def test_documents_url():
@@ -29,10 +29,10 @@ def test_select_modele_url():
 
 def test_modifier_arrete_url():
     url = reverse(
-        "gsl_notification:modifier-arrete",
+        "gsl_notification:modifier-document",
         kwargs={"programmation_projet_id": 123},
     )
-    assert url == "/notification/123/modifier-arrete/"
+    assert url == "/notification/123/modifier-document/"
 
 
 def test_arrete_download_url():
@@ -98,8 +98,8 @@ def test_create_modele_arrete_wizard_url():
 @pytest.mark.parametrize(
     ("modele_type, factory"),
     (
-        (ModeleDocument.TYPE_ARRETE, ModeleArreteFactory),
-        (ModeleDocument.TYPE_LETTRE, ModeleLettreNotificationFactory),
+        (ARRETE, ModeleArreteFactory),
+        (LETTRE, ModeleLettreNotificationFactory),
     ),
 )
 @pytest.mark.django_db
@@ -115,8 +115,8 @@ def test_update_modele_url(modele_type, factory):
 @pytest.mark.parametrize(
     ("modele_type, factory"),
     (
-        (ModeleDocument.TYPE_ARRETE, ModeleArreteFactory),
-        (ModeleDocument.TYPE_LETTRE, ModeleLettreNotificationFactory),
+        (ARRETE, ModeleArreteFactory),
+        (LETTRE, ModeleLettreNotificationFactory),
     ),
 )
 @pytest.mark.django_db
@@ -132,8 +132,8 @@ def test_duplicate_modele_url(modele_type, factory):
 @pytest.mark.parametrize(
     ("modele_type, factory"),
     (
-        (ModeleDocument.TYPE_ARRETE, ModeleArreteFactory),
-        (ModeleDocument.TYPE_LETTRE, ModeleLettreNotificationFactory),
+        (ARRETE, ModeleArreteFactory),
+        (LETTRE, ModeleLettreNotificationFactory),
     ),
 )
 @pytest.mark.django_db

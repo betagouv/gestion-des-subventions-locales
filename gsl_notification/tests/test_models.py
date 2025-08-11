@@ -2,7 +2,7 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from gsl_core.tests.factories import CollegueFactory, PerimetreDepartementalFactory
-from gsl_notification.models import ModeleArrete, ModeleDocument
+from gsl_notification.models import ModeleArrete
 from gsl_notification.tests.factories import (
     ArreteFactory,
     ArreteSigneFactory,
@@ -12,15 +12,15 @@ from gsl_notification.tests.factories import (
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import DOTATION_DETR
+from gsl_projet.constants import ARRETE, DOTATION_DETR, LETTRE
 
 
 @pytest.mark.parametrize(
     "type, modele_factory, factory",
     (
-        (ModeleDocument.TYPE_ARRETE, ModeleArreteFactory, ArreteFactory),
+        (ARRETE, ModeleArreteFactory, ArreteFactory),
         (
-            ModeleDocument.TYPE_LETTRE,
+            LETTRE,
             ModeleLettreNotificationFactory,
             LettreNotificationFactory,
         ),
@@ -42,7 +42,7 @@ def test_arrete_properties(type, modele_factory, factory):
         modele=modele,
     )
 
-    if type == ModeleDocument.TYPE_ARRETE:
+    if type == ARRETE:
         assert str(arrete) == f"Arrêté #{arrete.id}"
     else:
         assert str(arrete) == f"Lettre de notification #{arrete.id}"

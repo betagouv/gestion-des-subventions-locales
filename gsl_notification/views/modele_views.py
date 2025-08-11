@@ -25,7 +25,6 @@ from gsl_notification.forms import (
 )
 from gsl_notification.models import (
     ModeleArrete,
-    ModeleDocument,
     ModeleLettreNotification,
 )
 from gsl_notification.utils import (
@@ -35,11 +34,11 @@ from gsl_notification.utils import (
     get_modele_perimetres,
 )
 from gsl_notification.views.decorators import modele_visible_by_user
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, DOTATIONS
+from gsl_projet.constants import ARRETE, DOTATION_DETR, DOTATION_DSIL, DOTATIONS, LETTRE
 
 TAG_LABEL_MAPPING = {
-    ModeleDocument.TYPE_ARRETE: "Arrêté",
-    ModeleDocument.TYPE_LETTRE: "Lettre de notification",
+    ARRETE: "Arrêté",
+    LETTRE: "Lettre de notification",
 }
 
 
@@ -219,9 +218,7 @@ class CreateModelDocumentWizard(SessionWizardView):
 
     def _set_success_message(self, instance, verbe="créé"):
         type_and_article = (
-            "d’arrêté"
-            if self.modele_type == ModeleDocument.TYPE_ARRETE
-            else "de lettre de notification"
+            "d’arrêté" if self.modele_type == ARRETE else "de lettre de notification"
         )
         messages.success(
             self.request,
@@ -304,7 +301,7 @@ class CreateModelDocumentWizard(SessionWizardView):
         return f"gsl_notification/modele/modele_form_step_{self.steps.current}.html"
 
     def _get_form_title(self):
-        if self.modele_type == ModeleDocument.TYPE_ARRETE:
+        if self.modele_type == ARRETE:
             return f"Création d’un nouveau modèle d'arrêté {self.dotation}"
         return f"Création d’un nouveau modèle de lettre de notification {self.dotation}"
 
@@ -387,9 +384,7 @@ def delete_modele_view(request, modele_type, modele_id):
     try:
         modele.delete()
         type_and_article = (
-            "d’arrêté"
-            if modele_type == ModeleDocument.TYPE_ARRETE
-            else "de lettre de notification"
+            "d’arrêté" if modele_type == ARRETE else "de lettre de notification"
         )
 
         messages.info(

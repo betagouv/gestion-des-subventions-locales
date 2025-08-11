@@ -15,7 +15,7 @@ from gsl_notification.views.modele_views import (
 from gsl_notification.views.views import (
     DownloadArreteView,
     PrintArreteView,
-    change_arrete_view,
+    change_document_view,
     choose_type_for_document_generation,
     create_arrete_signe_view,
     delete_arrete_signe_view,
@@ -39,14 +39,14 @@ urlpatterns = [
         name="choose-generated-docuemnt-type",
     ),
     path(
-        "<int:programmation_projet_id>/selection-d-un-modele/",
+        "<int:programmation_projet_id>/selection-d-un-modele/<str:document_type>",
         select_modele,
         name="select-modele",
     ),
     path(
-        "<int:programmation_projet_id>/modifier-arrete/",
-        change_arrete_view,
-        name="modifier-arrete",
+        "<int:programmation_projet_id>/modifier-document/<str:document_type>",
+        change_document_view,
+        name="modifier-document",
     ),
     path(
         "arrete/<int:arrete_id>/download/",
