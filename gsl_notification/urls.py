@@ -9,7 +9,7 @@ from gsl_notification.views.modele_views import (
     DuplicateModele,
     ModeleListView,
     UpdateModele,
-    delete_modele_arrete_view,
+    delete_modele_view,
     get_generic_modele,
 )
 from gsl_notification.views.views import (
@@ -105,9 +105,9 @@ urlpatterns = [
         name="modele-dupliquer",
     ),
     path(
-        "modeles/<str:modele_arrete_id>/",
-        delete_modele_arrete_view,
-        name="delete-modele-arrete",
+        "modeles/<str:modele_type>/<str:modele_id>/",
+        delete_modele_view,
+        name="delete-modele",
     ),
     path(
         "modeles/generique/<str:dotation>/",

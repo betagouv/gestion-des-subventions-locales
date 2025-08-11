@@ -31,11 +31,10 @@ from gsl_notification.models import (
 from gsl_notification.utils import (
     MENTION_TO_ATTRIBUTES,
     duplicate_field_file,
+    get_modele_class,
     get_modele_perimetres,
 )
-from gsl_notification.views.decorators import (
-    modele_arrete_visible_by_user,
-)
+from gsl_notification.views.decorators import modele_visible_by_user
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, DOTATIONS
 
 TAG_LABEL_MAPPING = {
@@ -84,7 +83,8 @@ class ModeleListView(ListView):
                         "id": obj.id,
                         "name": obj.name,
                         "description": obj.description,
-                        "type": TAG_LABEL_MAPPING[obj.type],
+                        "type_label": TAG_LABEL_MAPPING[obj.type],
+                        "type": obj.type,
                         "actions": [
                             {
                                 "label": "Modifier le modèle",
@@ -184,7 +184,7 @@ class CreateModelDocumentWizard(SessionWizardView):
             raise Http404("Dotation inconnue")
         self.dotation = dotation
         self.modele_type = modele_type
-        self._class = self._get_class(modele_type)
+        self._class = get_modele_class(modele_type)
 
         perimetre = request.user.perimetre
         if instanciate_new_modele:
@@ -303,13 +303,6 @@ class CreateModelDocumentWizard(SessionWizardView):
     def get_template_names(self):
         return f"gsl_notification/modele/modele_form_step_{self.steps.current}.html"
 
-    def _get_class(self, modele_type):
-        if modele_type not in [ModeleDocument.TYPE_ARRETE, ModeleDocument.TYPE_LETTRE]:
-            raise Http404("Type inconnu")
-        if modele_type == ModeleDocument.TYPE_LETTRE:
-            return ModeleLettreNotification
-        return ModeleArrete
-
     def _get_form_title(self):
         if self.modele_type == ModeleDocument.TYPE_ARRETE:
             return f"Création d’un nouveau modèle d'arrêté {self.dotation}"
@@ -327,7 +320,7 @@ class UpdateModele(CreateModelDocumentWizard):
         *args,
         **kwargs,
     ):
-        self._class = self._get_class(modele_type)
+        self._class = get_modele_class(modele_type)
         self.instance = get_object_or_404(
             self._class,
             id=modele_id,
@@ -383,25 +376,33 @@ class DuplicateModele(UpdateModele):
         super()._set_success_message(instance, verbe="créé")
 
 
-@modele_arrete_visible_by_user
+@modele_visible_by_user
 @require_http_methods(["POST"])
-def delete_modele_arrete_view(request, modele_arrete_id):
-    modele_arrete = get_object_or_404(ModeleArrete, id=modele_arrete_id)
-    dotation = modele_arrete.dotation
-    name = modele_arrete.name
+def delete_modele_view(request, modele_type, modele_id):
+    _class = get_modele_class(modele_type)
+    modele = get_object_or_404(_class, id=modele_id)
+    dotation = modele.dotation
+    name = modele.name
 
     try:
-        modele_arrete.delete()
+        modele.delete()
+        type_and_article = (
+            "d’arrêté"
+            if modele_type == ModeleDocument.TYPE_ARRETE
+            else "de lettre de notification"
+        )
+
         messages.info(
             request,
-            f"Le modèle d’arrêté “{name}” a été supprimé.",
+            f"Le modèle {type_and_article} “{name}” a été supprimé.",
             extra_tags="delete-modele-arrete",
         )
 
     except ProtectedError:
         messages.error(
             request,
-            f"Le modèle n'a pas été supprimé car il est utilisé par {modele_arrete.arrete_set.count()} arrêté(s).",
+            # f"Le modèle n'a pas été supprimé car il est utilisé par {modele.arrete_set.count()} arrêté(s).", TODO => adapt to the model
+            "Le modèle n'a pas été supprimé car il est utilisé par X arrêté(s).",
             extra_tags="alert",
         )
 

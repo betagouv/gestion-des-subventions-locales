@@ -398,43 +398,65 @@ def test_duplicate_nonexistent_modele_arrete(client, modele_type):
 # DELETE
 
 
-def test_delete_modele_arrete_with_correct_perimetre():
+@pytest.mark.parametrize(
+    ("modele_type, _class, factory"),
+    (
+        (ModeleDocument.TYPE_ARRETE, ModeleArrete, ModeleArreteFactory),
+        (
+            ModeleDocument.TYPE_LETTRE,
+            ModeleLettreNotification,
+            ModeleLettreNotificationFactory,
+        ),
+    ),
+)
+def test_delete_modele_with_correct_perimetre(modele_type, _class, factory):
     departement_perimetre = PerimetreDepartementalFactory()
     user = CollegueFactory(perimetre=departement_perimetre)
     client = ClientWithLoggedUserFactory(user)
-    modele_arrete = ModeleArreteFactory(
-        perimetre=departement_perimetre, name="Mon modèle"
+    modele = factory(perimetre=departement_perimetre, name="Mon modèle")
+    url = reverse(
+        "gsl_notification:delete-modele",
+        kwargs={"modele_type": modele_type, "modele_id": modele.id},
     )
-    url = reverse("gsl_notification:delete-modele-arrete", args=[modele_arrete.id])
 
     response = client.post(url)
 
     expected_redirect_url = reverse(
-        "gsl_notification:modele-liste", args=[modele_arrete.dotation]
+        "gsl_notification:modele-liste", args=[modele.dotation]
     )
     assert response.status_code == 302
     assert response.url == expected_redirect_url
 
-    assert ModeleArrete.objects.count() == 0
+    assert _class.objects.count() == 0
     messages = get_messages(response.wsgi_request)
     assert len(messages) == 1
     message = list(messages)[0]
     assert message.level == 20
-    assert message.message == "Le modèle d’arrêté “Mon modèle” a été supprimé."
+    if modele_type == ModeleDocument.TYPE_ARRETE:
+        assert message.message == "Le modèle d’arrêté “Mon modèle” a été supprimé."
+    else:
+        assert (
+            message.message
+            == "Le modèle de lettre de notification “Mon modèle” a été supprimé."
+        )
 
 
-def test_delete_modele_arrete_with_modele_used_by_an_arrete():
+# TODO test it for modele lettre notification once relation with lettre notification created
+def test_delete_modele_with_modele_used_by_an_arrete():
     departement_perimetre = PerimetreDepartementalFactory()
     user = CollegueFactory(perimetre=departement_perimetre)
     client = ClientWithLoggedUserFactory(user)
-    modele_arrete = ModeleArreteFactory(perimetre=departement_perimetre)
-    ArreteFactory(modele=modele_arrete)
-    url = reverse("gsl_notification:delete-modele-arrete", args=[modele_arrete.id])
+    modele = ModeleArreteFactory(perimetre=departement_perimetre)
+    ArreteFactory(modele=modele)
+    url = reverse(
+        "gsl_notification:delete-modele",
+        kwargs={"modele_type": ModeleDocument.TYPE_ARRETE, "modele_id": modele.id},
+    )
 
     response = client.post(url)
 
     expected_redirect_url = reverse(
-        "gsl_notification:modele-liste", args=[modele_arrete.dotation]
+        "gsl_notification:modele-liste", args=[modele.dotation]
     )
     assert response.status_code == 302
     assert response.url == expected_redirect_url
@@ -448,25 +470,49 @@ def test_delete_modele_arrete_with_modele_used_by_an_arrete():
     assert message.level == 40
     assert (
         message.message
-        == "Le modèle n'a pas été supprimé car il est utilisé par 1 arrêté(s)."
+        == "Le modèle n'a pas été supprimé car il est utilisé par X arrêté(s)."  # TODO replace X by 1 once relation with lettre notification created
     )
     assert message.extra_tags == "alert"
 
 
-def test_delete_modele_arrete_with_wrong_perimetre():
+@pytest.mark.parametrize(
+    ("modele_type, _class, factory"),
+    (
+        (ModeleDocument.TYPE_ARRETE, ModeleArrete, ModeleArreteFactory),
+        (
+            ModeleDocument.TYPE_LETTRE,
+            ModeleLettreNotification,
+            ModeleLettreNotificationFactory,
+        ),
+    ),
+)
+def test_delete_modele_with_wrong_perimetre(modele_type, _class, factory):
     user = CollegueFactory(perimetre=PerimetreDepartementalFactory())
     client = ClientWithLoggedUserFactory(user)
-    modele_arrete = ModeleArreteFactory(perimetre=PerimetreDepartementalFactory())
-    url = reverse("gsl_notification:delete-modele-arrete", args=[modele_arrete.id])
+    modele = factory(perimetre=PerimetreDepartementalFactory())
+    url = reverse(
+        "gsl_notification:delete-modele",
+        kwargs={"modele_type": modele_type, "modele_id": modele.id},
+    )
 
     response = client.post(url)
 
     assert response.status_code == 404
 
-    assert ModeleArrete.objects.count() == 1
+    assert _class.objects.count() == 1
 
 
-def test_delete_nonexistent_modele_arrete(client):
-    url = reverse("gsl_notification:delete-modele-arrete", args=[99999])
+@pytest.mark.parametrize(
+    ("modele_type"),
+    (
+        ModeleDocument.TYPE_ARRETE,
+        ModeleDocument.TYPE_LETTRE,
+    ),
+)
+def test_delete_nonexistent_modele_arrete(client, modele_type):
+    url = reverse(
+        "gsl_notification:delete-modele",
+        kwargs={"modele_type": modele_type, "modele_id": 99999},
+    )
     response = client.post(url)
     assert response.status_code == 404
