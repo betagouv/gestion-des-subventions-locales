@@ -1,5 +1,6 @@
 from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
+from django.contrib import messages
 from django.http import Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -28,7 +29,7 @@ from gsl_notification.views.decorators import (
     programmation_projet_visible_by_user,
 )
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import ARRETE, LETTRE
+from gsl_projet.constants import ARRETE, LETTRE, POSSIBLE_DOCUMENT
 
 # Views for listing notification documents on a programmationProjet, -------------------
 # in various contexts
@@ -57,7 +58,7 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
                         "label": "Modifier",
                         "href": reverse(
                             "notification:modifier-document",
-                            args=[programmation_projet.id, ARRETE],  # TODO update this
+                            args=[programmation_projet.id, ARRETE],
                         ),
                     },
                     {
@@ -75,7 +76,7 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
     except Arrete.DoesNotExist:
         pass
 
-    try:
+    try:  # TODO factorize it when handling deletion
         lettre = programmation_projet.lettre_notification
         # context["arrete_modal_title"] = (
         #     f"Suppression de l'arrêté {arrete.name} créé avec Turgot"
@@ -211,8 +212,10 @@ def select_modele(request, programmation_projet_id, document_type):
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
-    _, page_title, page_step_title = get_pp_attribute_page_title_and_page_step_title(
-        document_type, programmation_projet, step=1
+    _, page_title, page_step_title, _ = (
+        _get_pp_attribute_page_title_and_page_step_title(
+            document_type, programmation_projet, step=1
+        )
     )
 
     dotation = programmation_projet.dotation_projet.dotation
@@ -258,8 +261,8 @@ def change_document_view(request, programmation_projet_id, document_type):
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
     modele = None
-    pp_attribute, page_title, page_step_title = (
-        get_pp_attribute_page_title_and_page_step_title(
+    pp_attribute, page_title, page_step_title, is_creating = (
+        _get_pp_attribute_page_title_and_page_step_title(
             document_type, programmation_projet, step=1
         )
     )
@@ -294,8 +297,10 @@ def change_document_view(request, programmation_projet_id, document_type):
         if form.is_valid():
             form.save()
 
+            _add_success_message(request, is_creating, document_type, document.name)
             return _redirect_to_documents_view(request, programmation_projet.id)
         else:
+            messages.error("Erreur dans le formulaire")
             document = form.instance
     else:
         form = form_class(instance=document)
@@ -314,7 +319,7 @@ def change_document_view(request, programmation_projet_id, document_type):
     return render(request, "gsl_notification/change_document.html", context=context)
 
 
-def get_pp_attribute_page_title_and_page_step_title(
+def _get_pp_attribute_page_title_and_page_step_title(
     document_type, programmation_projet: ProgrammationProjet, step=1
 ):
     pp_attribute = "arrete" if document_type == ARRETE else "lettre_notification"
@@ -335,7 +340,21 @@ def get_pp_attribute_page_title_and_page_step_title(
     else:
         page_step_title += "la lettre de notification"
 
-    return pp_attribute, page_title, page_step_title
+    return pp_attribute, page_title, page_step_title, is_creating
+
+
+def _add_success_message(
+    request, is_creating: bool, document_type: POSSIBLE_DOCUMENT, document_name: str
+):
+    verbe = "créé" if is_creating else "modifié"
+    type_and_article = (
+        "L'arrêté" if document_type == ARRETE else "La lettre de notification"
+    )
+    accord = "e" if document_type == LETTRE else ""
+    messages.info(
+        request,
+        f"{type_and_article} “{document_name}” a bien été {verbe}{accord}.",
+    )
 
 
 # Suppression d'arrêté -----------------------------------------------------------------

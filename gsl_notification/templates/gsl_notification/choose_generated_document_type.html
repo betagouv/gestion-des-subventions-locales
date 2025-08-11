@@ -18,6 +18,7 @@
                    value="arrete"
                    dsfr="dsfr"
                    id="arrete"
+                   {% if not programmation_projet.arrete and programmation_projet.lettre_notification %}checked{% endif %}
                    {% if programmation_projet.arrete %}disabled {% endif %}
                    data-choose-document-type-target="radio"
                    data-action="click->choose-document-type#setSelectedValue">
@@ -40,6 +41,7 @@
                    value="lettre"
                    dsfr="dsfr"
                    id="lettre"
+                   {% if programmation_projet.arrete and not programmation_projet.lettre_notification %}checked{% endif %}
                    {% if programmation_projet.lettre_notification %}disabled{% endif %}
                    data-choose-document-type-target="radio"
                    data-action="choose-document-type#setSelectedValue">
