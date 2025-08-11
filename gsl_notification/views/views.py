@@ -11,7 +11,7 @@ from django_weasyprint import WeasyTemplateResponseMixin
 from gsl_notification.forms import (
     ArreteSigneForm,
 )
-from gsl_notification.models import Arrete, ArreteSigne
+from gsl_notification.models import Arrete, ArreteSigne, LettreNotification
 from gsl_notification.utils import (
     get_document_class,
     get_form_class,
@@ -73,6 +73,39 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
             }
         )
     except Arrete.DoesNotExist:
+        pass
+
+    try:
+        lettre = programmation_projet.lettre_notification
+        # context["arrete_modal_title"] = (
+        #     f"Suppression de l'arrêté {arrete.name} créé avec Turgot"
+        # )
+        documents.append(
+            {
+                **return_document_as_a_dict(lettre),
+                "tag": "Créé sur Turgot",
+                "actions": [
+                    {
+                        "name": "update",
+                        "label": "Modifier",
+                        "href": reverse(
+                            "notification:modifier-document",
+                            args=[programmation_projet.id, LETTRE],
+                        ),
+                    },
+                    # {
+                    #     "name": "delete",
+                    #     "label": "Supprimer",
+                    #     "form_id": "delete-arrete",
+                    #     "aria_controls": "delete-arrete-confirmation-modal",
+                    #     "action": reverse(
+                    #         "notification:delete-arrete", args=[arrete.id]
+                    #     ),
+                    # },
+                ],
+            }
+        )
+    except LettreNotification.DoesNotExist:
         pass
 
     try:
@@ -235,7 +268,7 @@ def change_document_view(request, programmation_projet_id, document_type):
     form_class = get_form_class(document_type)
 
     if hasattr(programmation_projet, pp_attribute):
-        document = programmation_projet.get(pp_attribute)
+        document = getattr(programmation_projet, pp_attribute)
         modele = document.modele
     else:
         document = document_class()

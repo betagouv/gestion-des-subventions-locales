@@ -21,7 +21,7 @@
                 Documents de notification
             </h2>
             <div class="notification-btns">
-                {% if programmation_projet.arrete %}
+                {% if programmation_projet.arrete and programmation_projet.lettre_notification %}
                     <button class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line"
                             disabled
                             aria-describedby="tooltip-import-arrete">
@@ -30,7 +30,7 @@
                     <span class="fr-tooltip fr-placement"
                           id="tooltip-import-arrete"
                           role="tooltip">
-                        Un arrêté a déjà été généré pour ce projet.
+                        Un arrêté et une lettre de notification ont déjà été générés pour ce projet.
                     </span>
                 {% else %}
                     <a href="{% url 'gsl_notification:choose-generated-docuemnt-type' programmation_projet.id %}"
