@@ -33,7 +33,7 @@
                         Un arrêté a déjà été généré pour ce projet.
                     </span>
                 {% else %}
-                    <a href="{% url 'gsl_notification:select-modele' programmation_projet.id %}"
+                    <a href="{% url 'gsl_notification:choose-generated-docuemnt-type' programmation_projet.id %}"
                        class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line">
                         Générer un document
                     </a>

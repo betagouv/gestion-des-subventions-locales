@@ -1,0 +1,39 @@
+{% extends "gsl_notification/tab_simulation_projet/tab_notifications.html" %}
+{% load static gsl_filters %}
+{% block notification_content %}
+    <a class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-arrow-left-s-line fr-mb-4w"
+       href="{% url 'gsl_notification:documents' programmation_projet.id %}">
+        Annuler la génération
+    </a>
+
+    <div class="arrete-container">
+        <h2 class="fr-mb-3w">
+            Générer un document
+        </h2>
+
+        <div class="fr-radio-group fr-mb-2w">
+            <input type="radio" name="type" value="arrete" dsfr="dsfr" id="arrete">
+            <label class="fr-label" for="arrete">
+                Arrêté attributif
+            </label>
+        </div>
+
+        <div class="fr-radio-group">
+            <input type="radio" name="type" value="lettre" dsfr="dsfr" id="lettre">
+            <label class="fr-label" for="lettre">
+                Lettre de notification
+            </label>
+        </div>
+
+        <button class="fr-btn fr-btn--icon-left fr-icon-file-text-line fr-mt-4w">
+            Créer sur Turgot
+        </button>
+        {% comment %} <button class="fr-btn fr-btn--secondary">
+      <a href="{% url 'gsl_notification:select-modele' programmation_projet.id %}">Modifier le modèle</a>
+        </button> {% endcomment %}
+    </div>
+{% endblock notification_content %}
+{% comment %} 
+{% block extra_js %}
+  <script type="module" src="{% static 'js/notification.js' %}"></script>
+{% endblock extra_js %} {% endcomment %}

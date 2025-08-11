@@ -16,6 +16,7 @@ from gsl_notification.views.views import (
     DownloadArreteView,
     PrintArreteView,
     change_arrete_view,
+    choose_type_for_document_generation,
     create_arrete_signe_view,
     delete_arrete_signe_view,
     delete_arrete_view,
@@ -32,6 +33,11 @@ urlpatterns = [
         name="documents",
     ),
     # Arretes
+    path(
+        "<int:programmation_projet_id>/choix-du-type/",
+        choose_type_for_document_generation,
+        name="choose-generated-docuemnt-type",
+    ),
     path(
         "<int:programmation_projet_id>/selection-d-un-modele/",
         select_modele,

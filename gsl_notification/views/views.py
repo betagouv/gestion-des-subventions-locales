@@ -155,6 +155,20 @@ def documents_view(request, programmation_projet_id):
 # Edition form for arrêté --------------------------------------------------------------
 @require_http_methods(["GET"])
 @programmation_projet_visible_by_user
+def choose_type_for_document_generation(request, programmation_projet_id):
+    programmation_projet = get_object_or_404(
+        ProgrammationProjet,
+        id=programmation_projet_id,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+    )
+    context = {"programmation_projet": programmation_projet}
+    return render(
+        request, "gsl_notification/choose_generated_document_type.html", context=context
+    )
+
+
+@require_http_methods(["GET"])
+@programmation_projet_visible_by_user
 def select_modele(request, programmation_projet_id):
     programmation_projet = get_object_or_404(
         ProgrammationProjet,
