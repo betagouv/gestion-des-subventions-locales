@@ -12,18 +12,20 @@ from gsl_notification.views.modele_views import (
     delete_modele_view,
     get_generic_modele,
 )
+from gsl_notification.views.upload_document_views import (
+    create_arrete_signe_view,
+    delete_arrete_signe_view,
+    download_arrete_signe,
+    view_arrete_signe,
+)
 from gsl_notification.views.views import (
     DownloadArreteView,
     PrintDocumentView,
     change_document_view,
     choose_type_for_document_generation,
-    create_arrete_signe_view,
-    delete_arrete_signe_view,
     delete_document_view,
     documents_view,
-    download_arrete_signe,
     select_modele,
-    view_arrete_signe,
 )
 
 urlpatterns = [

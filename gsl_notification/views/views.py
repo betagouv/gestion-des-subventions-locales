@@ -3,7 +3,7 @@ from typing import Union
 from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
 from django.contrib import messages
-from django.http import Http404, StreamingHttpResponse
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -11,9 +11,6 @@ from django.views.decorators.http import require_GET, require_http_methods
 from django.views.generic import DetailView
 from django_weasyprint import WeasyTemplateResponseMixin
 
-from gsl_notification.forms import (
-    ArreteSigneForm,
-)
 from gsl_notification.models import (
     Arrete,
     ArreteSigne,
@@ -26,13 +23,10 @@ from gsl_notification.utils import (
     get_form_class,
     get_modele_class,
     get_modele_perimetres,
-    get_s3_object,
     replace_mentions_in_html,
     return_document_as_a_dict,
-    update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
 from gsl_notification.views.decorators import (
-    arrete_signe_visible_by_user,
     document_visible_by_user,
     programmation_projet_visible_by_user,
 )
@@ -371,54 +365,6 @@ def delete_document_view(request, document_type, document_id):
     return _redirect_to_documents_view(request, programmation_projet_id)
 
 
-# Upload arrêté signé ------------------------------------------------------------------
-
-
-@programmation_projet_visible_by_user
-@require_http_methods(["GET", "POST"])
-def create_arrete_signe_view(request, programmation_projet_id):
-    programmation_projet = get_object_or_404(
-        ProgrammationProjet,
-        id=programmation_projet_id,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-    )
-
-    if request.method == "POST":
-        form = ArreteSigneForm(request.POST, request.FILES)
-        if form.is_valid():
-            update_file_name_to_put_it_in_a_programmation_projet_folder(
-                form.instance.file, programmation_projet.id
-            )
-            form.save()
-
-            return _redirect_to_documents_view(request, programmation_projet.id)
-    else:
-        form = ArreteSigneForm()
-
-    context = {
-        "arrete_signe_form": form,
-    }
-    _enrich_context_for_create_or_get_arrete_view(
-        context, programmation_projet, request
-    )
-
-    return render(request, "gsl_notification/upload_arrete_signe.html", context=context)
-
-
-# Suppression d'arrêté signé ----------------------------------------------------------
-
-
-@arrete_signe_visible_by_user
-@require_http_methods(["POST"])
-def delete_arrete_signe_view(request, arrete_signe_id):
-    arrete_signe = get_object_or_404(ArreteSigne, id=arrete_signe_id)
-    programmation_projet_id = arrete_signe.programmation_projet.id
-
-    arrete_signe.delete()
-
-    return _redirect_to_documents_view(request, programmation_projet_id)
-
-
 # View and Download views -----------------------------------------------------------------------
 
 
@@ -457,28 +403,6 @@ class PrintDocumentView(WeasyTemplateResponseMixin, DetailView):
 
 class DownloadArreteView(PrintDocumentView):
     pdf_attachment = True
-
-
-@arrete_signe_visible_by_user
-@require_GET
-def download_arrete_signe(request, arrete_signe_id, download=True):
-    arrete = get_object_or_404(ArreteSigne, id=arrete_signe_id)
-    s3_object = get_s3_object(arrete.file.name)
-
-    response = StreamingHttpResponse(
-        iter(s3_object["Body"].iter_chunks()),
-        content_type=s3_object["ContentType"],
-    )
-    response["Content-Disposition"] = (
-        f'{"attachment" if download else "inline"}; filename="{arrete.file.name.split("/")[-1]}"'
-    )
-    return response
-
-
-@arrete_signe_visible_by_user
-@require_GET
-def view_arrete_signe(request, arrete_signe_id):
-    return download_arrete_signe(request, arrete_signe_id, False)
 
 
 # utils --------------------------------------------------------------------------------
