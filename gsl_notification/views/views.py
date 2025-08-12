@@ -14,8 +14,14 @@ from django_weasyprint import WeasyTemplateResponseMixin
 from gsl_notification.forms import (
     ArreteSigneForm,
 )
-from gsl_notification.models import Arrete, ArreteSigne, LettreNotification
+from gsl_notification.models import (
+    Arrete,
+    ArreteSigne,
+    GeneratedDocument,
+    LettreNotification,
+)
 from gsl_notification.utils import (
+    get_doc_title,
     get_document_class,
     get_form_class,
     get_modele_class,
@@ -31,7 +37,7 @@ from gsl_notification.views.decorators import (
     programmation_projet_visible_by_user,
 )
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import ARRETE, LETTRE, POSSIBLE_DOCUMENT
+from gsl_projet.constants import ARRETE, LETTRE, POSSIBLE_DOCUMENTS
 
 # Views for listing notification documents on a programmationProjet, -------------------
 # in various contexts
@@ -149,7 +155,7 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
 
 def _get_doc_card_attributes(
     doc: Union[Arrete, LettreNotification],
-    doc_type: POSSIBLE_DOCUMENT,
+    doc_type: POSSIBLE_DOCUMENTS,
     programmation_projet_id: int,
 ):
     return {
@@ -179,6 +185,8 @@ def _get_doc_card_attributes(
 
 
 # Edition form for arrêté --------------------------------------------------------------
+
+
 @require_http_methods(["GET"])
 @programmation_projet_visible_by_user
 def choose_type_for_document_generation(request, programmation_projet_id):
@@ -333,7 +341,7 @@ def _get_pp_attribute_page_title_and_page_step_title(
 
 
 def _add_success_message(
-    request, is_creating: bool, document_type: POSSIBLE_DOCUMENT, document_name: str
+    request, is_creating: bool, document_type: POSSIBLE_DOCUMENTS, document_name: str
 ):
     verbe = "créé" if is_creating else "modifié"
     type_and_article = (
@@ -414,32 +422,40 @@ def delete_arrete_signe_view(request, arrete_signe_id):
 # View and Download views -----------------------------------------------------------------------
 
 
-class PrintArreteView(WeasyTemplateResponseMixin, DetailView):
-    model = Arrete
-    template_name = "gsl_notification/pdf/arrete.html"
-    pk_url_kwarg = "arrete_id"
+class PrintDocumentView(WeasyTemplateResponseMixin, DetailView):
+    model = GeneratedDocument
+    template_name = "gsl_notification/pdf/document.html"
+    pk_url_kwarg = "document_id"
 
     # show pdf in-line (default: True, show download dialog)
     pdf_attachment = False
+
+    def get_object(self, queryset=None):
+        self.document_type = self.request.resolver_match.kwargs["document_type"]
+        document_id = self.request.resolver_match.kwargs["document_id"]
+        document_class = get_document_class(self.document_type)
+        doc = get_object_or_404(document_class, id=document_id)
+        return doc
 
     def get_pdf_filename(self):
         return self.get_object().name
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        arrete = self.get_object()
+        document = self.get_object()
         context.update(
             {
-                "logo": arrete.modele.logo,
-                "alt_logo": arrete.modele.logo_alt_text,
-                "top_right_text": arrete.modele.top_right_text.strip(),
-                "content": mark_safe(arrete.content),
+                "doc_title": get_doc_title(self.document_type),
+                "logo": document.modele.logo,
+                "alt_logo": document.modele.logo_alt_text,
+                "top_right_text": document.modele.top_right_text.strip(),
+                "content": mark_safe(document.content),
             }
         )
         return context
 
 
-class DownloadArreteView(PrintArreteView):
+class DownloadArreteView(PrintDocumentView):
     pdf_attachment = True
 
 

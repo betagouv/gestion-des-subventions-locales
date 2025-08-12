@@ -1,7 +1,7 @@
 from django.urls import path
 
 from gsl_notification.views.decorators import (
-    arrete_visible_by_user,
+    document_visible_by_user,
 )
 from gsl_notification.views.modele_views import (
     ChooseModeleDocumentType,
@@ -14,7 +14,7 @@ from gsl_notification.views.modele_views import (
 )
 from gsl_notification.views.views import (
     DownloadArreteView,
-    PrintArreteView,
+    PrintDocumentView,
     change_document_view,
     choose_type_for_document_generation,
     create_arrete_signe_view,
@@ -49,14 +49,14 @@ urlpatterns = [
         name="modifier-document",
     ),
     path(
-        "arrete/<int:arrete_id>/download/",
-        arrete_visible_by_user(DownloadArreteView.as_view()),
-        name="arrete-download",
+        "document/<str:document_type>/<int:document_id>/download/",
+        document_visible_by_user(DownloadArreteView.as_view()),
+        name="document-download",
     ),
     path(
-        "arrete/<int:arrete_id>/view/",
-        arrete_visible_by_user(PrintArreteView.as_view()),
-        name="arrete-view",
+        "document/<str:document_type>/<int:document_id>/view/",
+        document_visible_by_user(PrintDocumentView.as_view()),
+        name="document-view",
     ),
     path(
         "document/<str:document_type>/<int:document_id>/delete/",

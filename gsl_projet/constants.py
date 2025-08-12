@@ -21,6 +21,6 @@ PROJET_STATUS_CHOICES = (
 
 ARRETE = "arrete"
 LETTRE = "lettre"
-POSSIBLE_DOCUMENT = Literal["arrete", "lettre"]
+POSSIBLE_DOCUMENTS = Literal["arrete", "lettre"]
 
 MIN_DEMANDE_MONTANT_FOR_AVIS_DETR = 100_000

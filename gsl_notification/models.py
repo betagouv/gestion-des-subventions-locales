@@ -134,14 +134,24 @@ class GeneratedDocument(models.Model):
     class Meta:
         abstract = True
 
-    def get_download_url(self):  # TODO : update name here + add a kwarg
-        return reverse("notification:arrete-download", kwargs={"arrete_id": self.id})
+    def get_download_url(self):
+        return reverse(
+            "notification:document-download",
+            kwargs={"document_type": self.document_type, "document_id": self.id},
+        )
 
-    def get_view_url(self):  # TODO : update name here + add a kwarg
-        return reverse("notification:arrete-view", kwargs={"arrete_id": self.id})
+    def get_view_url(self):
+        return reverse(
+            "notification:document-view",
+            kwargs={"document_type": self.document_type, "document_id": self.id},
+        )
 
     @property
     def name(self):
+        raise NotImplementedError
+
+    @property
+    def document_type(self):
         raise NotImplementedError
 
     @property
@@ -170,6 +180,10 @@ class Arrete(GeneratedDocument):
         return f"Arrêté #{self.id}"
 
     @property
+    def document_type(self):
+        return ARRETE
+
+    @property
     def name(self):
         return f"arrêté-attributif-{self.created_at.strftime('%Y-%m-%d')}.pdf"
 
@@ -189,6 +203,10 @@ class LettreNotification(GeneratedDocument):
 
     def __str__(self):
         return f"Lettre de notification #{self.id}"
+
+    @property
+    def document_type(self):
+        return LETTRE
 
     @property
     def name(self):

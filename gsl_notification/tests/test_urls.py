@@ -46,12 +46,22 @@ def test_modifier_document_url(document_type):
     assert url == f"/notification/123/modifier-document/{document_type}"
 
 
-def test_arrete_download_url():
+@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
+def test_document_download_url(document_type):
     url = reverse(
-        "gsl_notification:arrete-download",
-        kwargs={"arrete_id": 456},
+        "gsl_notification:document-download",
+        kwargs={"document_type": document_type, "document_id": 456},
     )
-    assert url == "/notification/arrete/456/download/"
+    assert url == f"/notification/document/{document_type}/456/download/"
+
+
+@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
+def test_document_view_url(document_type):
+    url = reverse(
+        "gsl_notification:document-view",
+        kwargs={"document_type": document_type, "document_id": 456},
+    )
+    assert url == f"/notification/document/{document_type}/456/view/"
 
 
 @pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
