@@ -12,10 +12,21 @@
 {% block more_content_in_form %}
     <div class="fr-mb-4w">
         <h4>
-            Rédiger le contenu de ce modèle d’arrêté
+            Rédiger le contenu de ce modèle
+            {% if type == "arrete" %}
+                d'arrêté
+            {% else %}
+                de lettre de notification
+            {% endif %}
         </h4>
         <p>
-            Veuillez remplir le contenu de votre arrêté. Pour ajouter des variables des valeurs de remplissage automatique pour le publipostage, merci d’utiliser le signe "@".
+            Veuillez remplir le contenu de votre
+            {% if type == "arrete" %}
+                arrêté
+            {% else %}
+                lettre de notification
+            {% endif %}
+            . Pour ajouter des variables des valeurs de remplissage automatique pour le publipostage, merci d’utiliser le signe "@".
         </p>
         {% if type == "arrete" %}
             <button class="fr-btn fr-btn--tertiary fr-btn--icon-left fr-icon-file-text-line"
