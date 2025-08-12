@@ -16,7 +16,7 @@ def test_documents_url():
     assert url == "/notification/123/documents/"
 
 
-# Arrete URLs
+# Document URLs
 
 
 @pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
@@ -46,20 +46,31 @@ def test_modifier_document_url(document_type):
     assert url == f"/notification/123/modifier-document/{document_type}"
 
 
-def test_arrete_download_url():
+@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
+def test_document_download_url(document_type):
     url = reverse(
-        "gsl_notification:arrete-download",
-        kwargs={"arrete_id": 456},
+        "gsl_notification:document-download",
+        kwargs={"document_type": document_type, "document_id": 456},
     )
-    assert url == "/notification/arrete/456/download/"
+    assert url == f"/notification/document/{document_type}/456/download/"
 
 
-def test_arrete_delete_url():
+@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
+def test_document_view_url(document_type):
     url = reverse(
-        "gsl_notification:delete-arrete",
-        kwargs={"arrete_id": 789},
+        "gsl_notification:document-view",
+        kwargs={"document_type": document_type, "document_id": 456},
     )
-    assert url == "/notification/arrete/789/delete/"
+    assert url == f"/notification/document/{document_type}/456/view/"
+
+
+@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
+def test_document_delete_url(document_type):
+    url = reverse(
+        "gsl_notification:delete-document",
+        kwargs={"document_type": document_type, "document_id": 789},
+    )
+    assert url == f"/notification/document/{document_type}/789/delete/"
 
 
 # Arrete signés URLs

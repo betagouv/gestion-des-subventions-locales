@@ -1,3 +1,5 @@
+from typing import Union
+
 from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
 from django.contrib import messages
@@ -12,8 +14,14 @@ from django_weasyprint import WeasyTemplateResponseMixin
 from gsl_notification.forms import (
     ArreteSigneForm,
 )
-from gsl_notification.models import Arrete, ArreteSigne, LettreNotification
+from gsl_notification.models import (
+    Arrete,
+    ArreteSigne,
+    GeneratedDocument,
+    LettreNotification,
+)
 from gsl_notification.utils import (
+    get_doc_title,
     get_document_class,
     get_form_class,
     get_modele_class,
@@ -25,14 +33,52 @@ from gsl_notification.utils import (
 )
 from gsl_notification.views.decorators import (
     arrete_signe_visible_by_user,
-    arrete_visible_by_user,
+    document_visible_by_user,
     programmation_projet_visible_by_user,
 )
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import ARRETE, LETTRE, POSSIBLE_DOCUMENT
+from gsl_projet.constants import ARRETE, LETTRE, POSSIBLE_DOCUMENTS
 
 # Views for listing notification documents on a programmationProjet, -------------------
 # in various contexts
+
+
+@programmation_projet_visible_by_user
+@require_GET
+def documents_view(request, programmation_projet_id):
+    programmation_projet = get_object_or_404(
+        ProgrammationProjet,
+        id=programmation_projet_id,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+    )
+    projet = programmation_projet.projet
+    title = projet.dossier_ds.projet_intitule
+    context = {
+        "programmation_projet": programmation_projet,
+        "dotation_projet": programmation_projet.dotation_projet,
+        "projet": projet,
+        "dossier": projet.dossier_ds,
+        "title": title,
+        "breadcrumb_dict": {
+            "links": [
+                {
+                    "url": reverse("gsl_programmation:programmation-projet-list"),
+                    "title": "Programmation en cours",
+                },
+            ],
+            "current": title,
+        },
+    }
+
+    _enrich_context_for_create_or_get_arrete_view(
+        context, programmation_projet, request
+    )
+    return _generic_documents_view(
+        request,
+        programmation_projet_id,
+        programmation_projet.get_absolute_url(),
+        context,
+    )
 
 
 def _generic_documents_view(request, programmation_projet_id, source_url, context):
@@ -49,62 +95,18 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
             f"Suppression de l'arrêté {arrete.name} créé avec Turgot"
         )
         documents.append(
-            {
-                **return_document_as_a_dict(arrete),
-                "tag": "Créé sur Turgot",
-                "actions": [
-                    {
-                        "name": "update",
-                        "label": "Modifier",
-                        "href": reverse(
-                            "notification:modifier-document",
-                            args=[programmation_projet.id, ARRETE],
-                        ),
-                    },
-                    {
-                        "name": "delete",
-                        "label": "Supprimer",
-                        "form_id": "delete-arrete",
-                        "aria_controls": "delete-arrete-confirmation-modal",
-                        "action": reverse(
-                            "notification:delete-arrete", args=[arrete.id]
-                        ),
-                    },
-                ],
-            }
+            _get_doc_card_attributes(arrete, ARRETE, programmation_projet_id)
         )
     except Arrete.DoesNotExist:
         pass
 
-    try:  # TODO factorize it when handling deletion
+    try:
         lettre = programmation_projet.lettre_notification
-        # context["arrete_modal_title"] = (
-        #     f"Suppression de l'arrêté {arrete.name} créé avec Turgot"
-        # )
+        context["lettre_modal_title"] = (
+            f"Suppression de la lettre de notification {lettre.name} créé avec Turgot"
+        )
         documents.append(
-            {
-                **return_document_as_a_dict(lettre),
-                "tag": "Créé sur Turgot",
-                "actions": [
-                    {
-                        "name": "update",
-                        "label": "Modifier",
-                        "href": reverse(
-                            "notification:modifier-document",
-                            args=[programmation_projet.id, LETTRE],
-                        ),
-                    },
-                    # {
-                    #     "name": "delete",
-                    #     "label": "Supprimer",
-                    #     "form_id": "delete-arrete",
-                    #     "aria_controls": "delete-arrete-confirmation-modal",
-                    #     "action": reverse(
-                    #         "notification:delete-arrete", args=[arrete.id]
-                    #     ),
-                    # },
-                ],
-            }
+            _get_doc_card_attributes(lettre, LETTRE, programmation_projet_id)
         )
     except LettreNotification.DoesNotExist:
         pass
@@ -151,45 +153,40 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
     )
 
 
-@programmation_projet_visible_by_user
-@require_GET
-def documents_view(request, programmation_projet_id):
-    programmation_projet = get_object_or_404(
-        ProgrammationProjet,
-        id=programmation_projet_id,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-    )
-    projet = programmation_projet.projet
-    title = projet.dossier_ds.projet_intitule
-    context = {
-        "programmation_projet": programmation_projet,
-        "dotation_projet": programmation_projet.dotation_projet,
-        "projet": projet,
-        "dossier": projet.dossier_ds,
-        "title": title,
-        "breadcrumb_dict": {
-            "links": [
-                {
-                    "url": reverse("gsl_programmation:programmation-projet-list"),
-                    "title": "Programmation en cours",
-                },
-            ],
-            "current": title,
-        },
+def _get_doc_card_attributes(
+    doc: Union[Arrete, LettreNotification],
+    doc_type: POSSIBLE_DOCUMENTS,
+    programmation_projet_id: int,
+):
+    return {
+        **return_document_as_a_dict(doc),
+        "tag": "Créé sur Turgot",
+        "actions": [
+            {
+                "name": "update",
+                "label": "Modifier",
+                "href": reverse(
+                    "notification:modifier-document",
+                    args=[programmation_projet_id, doc_type],
+                ),
+            },
+            {
+                "name": "delete",
+                "label": "Supprimer",
+                "form_id": f"delete-{doc_type}",
+                "aria_controls": f"delete-{doc_type}-confirmation-modal",
+                "action": reverse(
+                    "notification:delete-document",
+                    kwargs={"document_type": doc_type, "document_id": doc.id},
+                ),
+            },
+        ],
     }
-
-    _enrich_context_for_create_or_get_arrete_view(
-        context, programmation_projet, request
-    )
-    return _generic_documents_view(
-        request,
-        programmation_projet_id,
-        programmation_projet.get_absolute_url(),
-        context,
-    )
 
 
 # Edition form for arrêté --------------------------------------------------------------
+
+
 @require_http_methods(["GET"])
 @programmation_projet_visible_by_user
 def choose_type_for_document_generation(request, programmation_projet_id):
@@ -344,7 +341,7 @@ def _get_pp_attribute_page_title_and_page_step_title(
 
 
 def _add_success_message(
-    request, is_creating: bool, document_type: POSSIBLE_DOCUMENT, document_name: str
+    request, is_creating: bool, document_type: POSSIBLE_DOCUMENTS, document_name: str
 ):
     verbe = "créé" if is_creating else "modifié"
     type_and_article = (
@@ -360,13 +357,16 @@ def _add_success_message(
 # Suppression d'arrêté -----------------------------------------------------------------
 
 
-@arrete_visible_by_user
+@document_visible_by_user
 @require_http_methods(["POST"])
-def delete_arrete_view(request, arrete_id):
-    arrete = get_object_or_404(Arrete, id=arrete_id)
-    programmation_projet_id = arrete.programmation_projet.id
+def delete_document_view(request, document_type, document_id):
+    document_class = get_document_class(document_type)
+    document = get_object_or_404(document_class, id=document_id)
+    programmation_projet_id = document.programmation_projet.id
 
-    arrete.delete()
+    document.delete()
+
+    messages.success(request, "Le document a bien été supprimé.")
 
     return _redirect_to_documents_view(request, programmation_projet_id)
 
@@ -422,32 +422,40 @@ def delete_arrete_signe_view(request, arrete_signe_id):
 # View and Download views -----------------------------------------------------------------------
 
 
-class PrintArreteView(WeasyTemplateResponseMixin, DetailView):
-    model = Arrete
-    template_name = "gsl_notification/pdf/arrete.html"
-    pk_url_kwarg = "arrete_id"
+class PrintDocumentView(WeasyTemplateResponseMixin, DetailView):
+    model = GeneratedDocument
+    template_name = "gsl_notification/pdf/document.html"
+    pk_url_kwarg = "document_id"
 
     # show pdf in-line (default: True, show download dialog)
     pdf_attachment = False
+
+    def get_object(self, queryset=None):
+        self.document_type = self.request.resolver_match.kwargs["document_type"]
+        document_id = self.request.resolver_match.kwargs["document_id"]
+        document_class = get_document_class(self.document_type)
+        doc = get_object_or_404(document_class, id=document_id)
+        return doc
 
     def get_pdf_filename(self):
         return self.get_object().name
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        arrete = self.get_object()
+        document = self.get_object()
         context.update(
             {
-                "logo": arrete.modele.logo,
-                "alt_logo": arrete.modele.logo_alt_text,
-                "top_right_text": arrete.modele.top_right_text.strip(),
-                "content": mark_safe(arrete.content),
+                "doc_title": get_doc_title(self.document_type),
+                "logo": document.modele.logo,
+                "alt_logo": document.modele.logo_alt_text,
+                "top_right_text": document.modele.top_right_text.strip(),
+                "content": mark_safe(document.content),
             }
         )
         return context
 
 
-class DownloadArreteView(PrintArreteView):
+class DownloadArreteView(PrintDocumentView):
     pdf_attachment = True
 
 

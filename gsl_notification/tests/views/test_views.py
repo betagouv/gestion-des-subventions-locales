@@ -649,67 +649,127 @@ def test_change_document_view_invalid(
     assert message.message == "Erreur dans le formulaire"
 
 
-### arrete-download
+### document-download
 
 
-def test_arrete_download_url_with_correct_perimetre(
-    programmation_projet, correct_perimetre_client_with_user_logged
+@pytest.mark.parametrize(
+    "document_type, factory",
+    (
+        (ARRETE, ArreteFactory),
+        (LETTRE, LettreNotificationFactory),
+    ),
+)
+def test_document_download_url_with_correct_perimetre(
+    programmation_projet,
+    correct_perimetre_client_with_user_logged,
+    document_type,
+    factory,
 ):
-    arrete = ArreteFactory(programmation_projet=programmation_projet)
-    url = reverse("notification:arrete-download", kwargs={"arrete_id": arrete.id})
-    assert url == f"/notification/arrete/{arrete.id}/download/"
+    doc = factory(programmation_projet=programmation_projet)
+    url = reverse(
+        "notification:document-download",
+        kwargs={"document_type": document_type, "document_id": doc.id},
+    )
+    assert url == f"/notification/document/{document_type}/{doc.id}/download/"
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 200
     assert response["Content-Type"] == "application/pdf"
     assert "attachment;filename=" in response["Content-Disposition"]
 
 
-def test_arrete_download_url_with_correct_perimetre_and_without_arrete(
-    correct_perimetre_client_with_user_logged,
+@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
+def test_document_download_url_with_correct_perimetre_and_without_document(
+    correct_perimetre_client_with_user_logged, document_type
 ):
-    url = reverse("notification:arrete-download", kwargs={"arrete_id": 1000})
-    assert url == "/notification/arrete/1000/download/"
+    url = reverse(
+        "notification:document-download",
+        kwargs={"document_type": document_type, "document_id": 1000},
+    )
+    assert url == f"/notification/document/{document_type}/1000/download/"
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
 
-def test_arrete_download_url_with_wrong_perimetre(
-    programmation_projet, different_perimetre_client_with_user_logged
+@pytest.mark.parametrize(
+    "document_type, factory",
+    (
+        (ARRETE, ArreteFactory),
+        (LETTRE, LettreNotificationFactory),
+    ),
+)
+def test_document_download_url_with_wrong_perimetre(
+    programmation_projet,
+    different_perimetre_client_with_user_logged,
+    document_type,
+    factory,
 ):
-    arrete = ArreteFactory(programmation_projet=programmation_projet)
-    url = reverse("notification:arrete-download", kwargs={"arrete_id": arrete.id})
+    document = factory(programmation_projet=programmation_projet)
+    url = reverse(
+        "notification:document-download",
+        kwargs={"document_type": document_type, "document_id": document.id},
+    )
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
 
-### arrete-view
+### document-view
 
 
-def test_arrete_view_url_with_correct_perimetre(
-    programmation_projet, correct_perimetre_client_with_user_logged
+@pytest.mark.parametrize(
+    "document_type, factory",
+    (
+        (ARRETE, ArreteFactory),
+        (LETTRE, LettreNotificationFactory),
+    ),
+)
+def test_document_view_url_with_correct_perimetre(
+    programmation_projet,
+    correct_perimetre_client_with_user_logged,
+    document_type,
+    factory,
 ):
-    arrete = ArreteFactory(programmation_projet=programmation_projet)
-    url = reverse("notification:arrete-view", kwargs={"arrete_id": arrete.id})
-    assert url == f"/notification/arrete/{arrete.id}/view/"
+    document = factory(programmation_projet=programmation_projet)
+    url = reverse(
+        "notification:document-view",
+        kwargs={"document_type": document_type, "document_id": document.id},
+    )
+    assert url == f"/notification/document/{document_type}/{document.id}/view/"
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 200
     assert response["Content-Type"] == "application/pdf"
 
 
-def test_arrete_view_url_with_correct_perimetre_and_without_arrete(
-    correct_perimetre_client_with_user_logged,
+@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
+def test_document_view_url_with_correct_perimetre_and_without_document(
+    correct_perimetre_client_with_user_logged, document_type
 ):
-    url = reverse("notification:arrete-view", kwargs={"arrete_id": 1000})
-    assert url == "/notification/arrete/1000/view/"
+    url = reverse(
+        "notification:document-view",
+        kwargs={"document_type": document_type, "document_id": 1000},
+    )
+    assert url == f"/notification/document/{document_type}/1000/view/"
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
 
-def test_arrete_view_url_with_wrong_perimetre(
-    programmation_projet, different_perimetre_client_with_user_logged
+@pytest.mark.parametrize(
+    "document_type, factory",
+    (
+        (ARRETE, ArreteFactory),
+        (LETTRE, LettreNotificationFactory),
+    ),
+)
+def test_document_view_url_with_wrong_perimetre(
+    programmation_projet,
+    different_perimetre_client_with_user_logged,
+    document_type,
+    factory,
 ):
-    arrete = ArreteFactory(programmation_projet=programmation_projet)
-    url = reverse("notification:arrete-view", kwargs={"arrete_id": arrete.id})
+    document = factory(programmation_projet=programmation_projet)
+    url = reverse(
+        "notification:document-view",
+        kwargs={"document_type": document_type, "document_id": document.id},
+    )
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
@@ -882,13 +942,27 @@ def test_arrete_signe_view_url_without_correct_perimetre_and_without_arrete(
 ### delete_arrete --------------------------------
 
 
-def test_delete_arrete_with_correct_perimetre(
-    correct_perimetre_client_with_user_logged, programmation_projet
+@pytest.mark.parametrize(
+    "document_type, factory",
+    (
+        (ARRETE, ArreteFactory),
+        (LETTRE, LettreNotificationFactory),
+    ),
+)
+def test_delete_document_with_correct_perimetre(
+    correct_perimetre_client_with_user_logged,
+    programmation_projet,
+    document_type,
+    factory,
 ):
-    arrete = ArreteFactory(programmation_projet=programmation_projet)
-    url = reverse("gsl_notification:delete-arrete", args=[arrete.id])
+    document = factory(programmation_projet=programmation_projet)
+    url = reverse(
+        "gsl_notification:delete-document",
+        kwargs={"document_type": document_type, "document_id": document.id},
+    )
 
-    assert hasattr(programmation_projet, "arrete")
+    attr = ARRETE if document_type == ARRETE else "lettre_notification"
+    assert hasattr(programmation_projet, attr)
 
     response = correct_perimetre_client_with_user_logged.post(url)
 
@@ -899,30 +973,62 @@ def test_delete_arrete_with_correct_perimetre(
     assert response.url == expected_redirect_url
 
     programmation_projet.refresh_from_db()
-    assert not hasattr(programmation_projet, "arrete")
+    assert not hasattr(programmation_projet, attr)
 
 
-def test_delete_arrete_with_incorrect_perimetre(
-    different_perimetre_client_with_user_logged, programmation_projet
+@pytest.mark.parametrize(
+    "document_type, factory",
+    (
+        (ARRETE, ArreteFactory),
+        (LETTRE, LettreNotificationFactory),
+    ),
+)
+def test_delete_document_with_incorrect_perimetre(
+    different_perimetre_client_with_user_logged,
+    programmation_projet,
+    document_type,
+    factory,
 ):
-    arrete = ArreteFactory(programmation_projet=programmation_projet)
-    url = reverse("gsl_notification:delete-arrete", args=[arrete.id])
+    doc = factory(programmation_projet=programmation_projet)
+    url = reverse(
+        "gsl_notification:delete-document",
+        kwargs={"document_type": document_type, "document_id": doc.id},
+    )
 
     response = different_perimetre_client_with_user_logged.post(url)
     assert response.status_code == 404
 
 
-def test_delete_arrete_with_get_method_not_allowed(
-    correct_perimetre_client_with_user_logged, programmation_projet
+@pytest.mark.parametrize(
+    "document_type, factory",
+    (
+        (ARRETE, ArreteFactory),
+        (LETTRE, LettreNotificationFactory),
+    ),
+)
+def test_delete_document_with_get_method_not_allowed(
+    correct_perimetre_client_with_user_logged,
+    programmation_projet,
+    document_type,
+    factory,
 ):
-    arrete = ArreteFactory(programmation_projet=programmation_projet)
-    url = reverse("gsl_notification:delete-arrete", args=[arrete.id])
+    doc = factory(programmation_projet=programmation_projet)
+    url = reverse(
+        "gsl_notification:delete-document",
+        kwargs={"document_type": document_type, "document_id": doc.id},
+    )
 
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 405  # Method Not Allowed
 
 
-def test_delete_nonexistent_arrete(correct_perimetre_client_with_user_logged):
-    url = reverse("gsl_notification:delete-arrete", args=[99999])
+@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
+def test_delete_nonexistent_document(
+    correct_perimetre_client_with_user_logged, document_type
+):
+    url = reverse(
+        "gsl_notification:delete-document",
+        kwargs={"document_type": document_type, "document_id": 99999},
+    )
     response = correct_perimetre_client_with_user_logged.post(url)
     assert response.status_code == 404

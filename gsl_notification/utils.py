@@ -18,7 +18,13 @@ from gsl_notification.models import (
     ModeleLettreNotification,
 )
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import ARRETE, DOTATION_DETR, LETTRE, POSSIBLE_DOTATIONS
+from gsl_projet.constants import (
+    ARRETE,
+    DOTATION_DETR,
+    LETTRE,
+    POSSIBLE_DOCUMENTS,
+    POSSIBLE_DOTATIONS,
+)
 
 
 def get_nested_attribute(obj, attribute_path):
@@ -206,3 +212,11 @@ def get_form_class(document_type):
     if document_type == LETTRE:
         return LettreNotificationForm
     return ArreteForm
+
+
+def get_doc_title(document_type: POSSIBLE_DOCUMENTS):
+    if document_type not in [ARRETE, LETTRE]:
+        raise ValueError(f"Document type {document_type} inconnu")
+    if document_type == LETTRE:
+        return "Lettre de notification"
+    return "Arrêté d'attribution"
