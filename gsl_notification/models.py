@@ -213,30 +213,19 @@ class LettreNotification(GeneratedDocument):
         return f"lettre-notification-{self.created_at.strftime('%Y-%m-%d')}.pdf"
 
 
-class ArreteSigne(models.Model):
-    file = models.FileField(upload_to="arrete_signe/")
+class UploadedDocument(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
 
-    programmation_projet = models.OneToOneField(
-        "gsl_programmation.ProgrammationProjet",
-        on_delete=models.CASCADE,
-        related_name="arrete_signe",
-    )
-
     class Meta:
-        verbose_name = "Arrêté signé"
-        verbose_name_plural = "Arrêtés signés"
+        abstract = True
 
-    def __str__(self):
-        return f"Arrêté signé #{self.id} "
-
-    def get_download_url(self):
+    def get_download_url(self):  # TODO update
         return reverse(
             "notification:arrete-signe-download", kwargs={"arrete_signe_id": self.id}
         )
 
-    def get_view_url(self):
+    def get_view_url(self):  # TODO update
         return reverse(
             "notification:arrete-signe-view", kwargs={"arrete_signe_id": self.id}
         )
@@ -252,3 +241,37 @@ class ArreteSigne(models.Model):
     @property
     def size(self):
         return self.file.size
+
+
+class ArreteSigne(UploadedDocument):
+    file = models.FileField(upload_to="arrete_signe/")
+
+    programmation_projet = models.OneToOneField(
+        "gsl_programmation.ProgrammationProjet",
+        on_delete=models.CASCADE,
+        related_name="arrete_signe",
+    )
+
+    class Meta:
+        verbose_name = "Arrêté signé"
+        verbose_name_plural = "Arrêtés signés"
+
+    def __str__(self):
+        return f"Arrêté signé #{self.id} "
+
+
+class Annexe(UploadedDocument):
+    file = models.FileField(upload_to="annexe/")
+
+    programmation_projet = models.ForeignKey(
+        "gsl_programmation.ProgrammationProjet",
+        on_delete=models.CASCADE,
+        related_name="annexes",
+    )
+
+    class Meta:
+        verbose_name = "Annexe"
+        verbose_name_plural = "Annexes"
+
+    def __str__(self):
+        return f"Annexe #{self.id} "
