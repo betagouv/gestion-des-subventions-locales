@@ -89,8 +89,24 @@ def replace_mentions_in_html(
 
 
 def update_file_name_to_put_it_in_a_programmation_projet_folder(
-    file, programmation_projet_id: int
+    file, programmation_projet_id: int, is_annexe=False
 ):
+    original_name = file.name
+    base_name, extension = os.path.splitext(original_name)
+
+    if is_annexe:
+        pp = ProgrammationProjet.objects.get(pk=programmation_projet_id)
+        existing_names = [annexe.name for annexe in pp.annexes.all()]
+
+        # Check for duplicates and add version number if needed
+        counter = 1
+        new_name = original_name
+        while new_name in existing_names:
+            counter += 1
+            new_name = f"{base_name}_{counter}{extension}"
+
+        file.name = new_name
+
     new_file_name = f"programmation_projet_{programmation_projet_id}/{file.name}"
     file.name = new_file_name
 

@@ -131,12 +131,31 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
     except ArreteSigne.DoesNotExist:
         pass
 
+    for annexe in programmation_projet.annexes.all():
+        documents.append(
+            {
+                **return_document_as_a_dict(annexe),
+                "tag": "Fichier importé",
+                "actions": [
+                    {
+                        "name": "delete",
+                        "label": "Supprimer",
+                        "form_id": "delete-arrete-signe",  # TODO update
+                        "aria_controls": "delete-arrete-signe-confirmation-modal",  # TODO update
+                        "action": reverse(
+                            "notification:delete-arrete-signe", args=[annexe.id]
+                        ),
+                    },
+                ],
+            }
+        )
+
     context.update(
         {
             "programmation_projet_id": programmation_projet.id,
             "source_url": source_url,
             "dossier": programmation_projet.projet.dossier_ds,
-            "documents": documents,
+            "documents": sorted(documents, key=lambda d: d["created_at"]),
         }
     )
 

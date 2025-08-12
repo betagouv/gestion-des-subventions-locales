@@ -3,10 +3,12 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET, require_http_methods
 
 from gsl_notification.models import (
+    Annexe,
     ArreteSigne,
 )
 from gsl_notification.utils import (
     get_s3_object,
+    get_uploaded_document_class,
     get_uploaded_form_class,
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
@@ -48,14 +50,16 @@ def create_arrete_signe_view(request, programmation_projet_id, document_type):
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
-    # uploaded_doc_class = get_uploaded_document_class(document_type)
+    uploaded_doc_class = get_uploaded_document_class(document_type)
     uploaded_doc_form = get_uploaded_form_class(document_type)
 
     if request.method == "POST":
         form = uploaded_doc_form(request.POST, request.FILES)
         if form.is_valid():
             update_file_name_to_put_it_in_a_programmation_projet_folder(
-                form.instance.file, programmation_projet.id
+                form.instance.file,
+                programmation_projet.id,
+                is_annexe=uploaded_doc_class == Annexe,
             )
             form.save()
 
