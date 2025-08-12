@@ -16,7 +16,7 @@ def test_documents_url():
     assert url == "/notification/123/documents/"
 
 
-# Arrete URLs
+# Document URLs
 
 
 @pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
@@ -54,12 +54,13 @@ def test_arrete_download_url():
     assert url == "/notification/arrete/456/download/"
 
 
-def test_arrete_delete_url():
+@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
+def test_document_delete_url(document_type):
     url = reverse(
-        "gsl_notification:delete-arrete",
-        kwargs={"arrete_id": 789},
+        "gsl_notification:delete-document",
+        kwargs={"document_type": document_type, "document_id": 789},
     )
-    assert url == "/notification/arrete/789/delete/"
+    assert url == f"/notification/document/{document_type}/789/delete/"
 
 
 # Arrete signés URLs

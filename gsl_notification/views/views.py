@@ -1,3 +1,5 @@
+from typing import Union
+
 from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
 from django.contrib import messages
@@ -25,7 +27,7 @@ from gsl_notification.utils import (
 )
 from gsl_notification.views.decorators import (
     arrete_signe_visible_by_user,
-    arrete_visible_by_user,
+    document_visible_by_user,
     programmation_projet_visible_by_user,
 )
 from gsl_programmation.models import ProgrammationProjet
@@ -33,6 +35,44 @@ from gsl_projet.constants import ARRETE, LETTRE, POSSIBLE_DOCUMENT
 
 # Views for listing notification documents on a programmationProjet, -------------------
 # in various contexts
+
+
+@programmation_projet_visible_by_user
+@require_GET
+def documents_view(request, programmation_projet_id):
+    programmation_projet = get_object_or_404(
+        ProgrammationProjet,
+        id=programmation_projet_id,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+    )
+    projet = programmation_projet.projet
+    title = projet.dossier_ds.projet_intitule
+    context = {
+        "programmation_projet": programmation_projet,
+        "dotation_projet": programmation_projet.dotation_projet,
+        "projet": projet,
+        "dossier": projet.dossier_ds,
+        "title": title,
+        "breadcrumb_dict": {
+            "links": [
+                {
+                    "url": reverse("gsl_programmation:programmation-projet-list"),
+                    "title": "Programmation en cours",
+                },
+            ],
+            "current": title,
+        },
+    }
+
+    _enrich_context_for_create_or_get_arrete_view(
+        context, programmation_projet, request
+    )
+    return _generic_documents_view(
+        request,
+        programmation_projet_id,
+        programmation_projet.get_absolute_url(),
+        context,
+    )
 
 
 def _generic_documents_view(request, programmation_projet_id, source_url, context):
@@ -49,62 +89,18 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
             f"Suppression de l'arrêté {arrete.name} créé avec Turgot"
         )
         documents.append(
-            {
-                **return_document_as_a_dict(arrete),
-                "tag": "Créé sur Turgot",
-                "actions": [
-                    {
-                        "name": "update",
-                        "label": "Modifier",
-                        "href": reverse(
-                            "notification:modifier-document",
-                            args=[programmation_projet.id, ARRETE],
-                        ),
-                    },
-                    {
-                        "name": "delete",
-                        "label": "Supprimer",
-                        "form_id": "delete-arrete",
-                        "aria_controls": "delete-arrete-confirmation-modal",
-                        "action": reverse(
-                            "notification:delete-arrete", args=[arrete.id]
-                        ),
-                    },
-                ],
-            }
+            _get_doc_card_attributes(arrete, ARRETE, programmation_projet_id)
         )
     except Arrete.DoesNotExist:
         pass
 
-    try:  # TODO factorize it when handling deletion
+    try:
         lettre = programmation_projet.lettre_notification
-        # context["arrete_modal_title"] = (
-        #     f"Suppression de l'arrêté {arrete.name} créé avec Turgot"
-        # )
+        context["lettre_modal_title"] = (
+            f"Suppression de la lettre de notification {lettre.name} créé avec Turgot"
+        )
         documents.append(
-            {
-                **return_document_as_a_dict(lettre),
-                "tag": "Créé sur Turgot",
-                "actions": [
-                    {
-                        "name": "update",
-                        "label": "Modifier",
-                        "href": reverse(
-                            "notification:modifier-document",
-                            args=[programmation_projet.id, LETTRE],
-                        ),
-                    },
-                    # {
-                    #     "name": "delete",
-                    #     "label": "Supprimer",
-                    #     "form_id": "delete-arrete",
-                    #     "aria_controls": "delete-arrete-confirmation-modal",
-                    #     "action": reverse(
-                    #         "notification:delete-arrete", args=[arrete.id]
-                    #     ),
-                    # },
-                ],
-            }
+            _get_doc_card_attributes(lettre, LETTRE, programmation_projet_id)
         )
     except LettreNotification.DoesNotExist:
         pass
@@ -151,42 +147,35 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
     )
 
 
-@programmation_projet_visible_by_user
-@require_GET
-def documents_view(request, programmation_projet_id):
-    programmation_projet = get_object_or_404(
-        ProgrammationProjet,
-        id=programmation_projet_id,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-    )
-    projet = programmation_projet.projet
-    title = projet.dossier_ds.projet_intitule
-    context = {
-        "programmation_projet": programmation_projet,
-        "dotation_projet": programmation_projet.dotation_projet,
-        "projet": projet,
-        "dossier": projet.dossier_ds,
-        "title": title,
-        "breadcrumb_dict": {
-            "links": [
-                {
-                    "url": reverse("gsl_programmation:programmation-projet-list"),
-                    "title": "Programmation en cours",
-                },
-            ],
-            "current": title,
-        },
+def _get_doc_card_attributes(
+    doc: Union[Arrete, LettreNotification],
+    doc_type: POSSIBLE_DOCUMENT,
+    programmation_projet_id: int,
+):
+    return {
+        **return_document_as_a_dict(doc),
+        "tag": "Créé sur Turgot",
+        "actions": [
+            {
+                "name": "update",
+                "label": "Modifier",
+                "href": reverse(
+                    "notification:modifier-document",
+                    args=[programmation_projet_id, doc_type],
+                ),
+            },
+            {
+                "name": "delete",
+                "label": "Supprimer",
+                "form_id": f"delete-{doc_type}",
+                "aria_controls": f"delete-{doc_type}-confirmation-modal",
+                "action": reverse(
+                    "notification:delete-document",
+                    kwargs={"document_type": doc_type, "document_id": doc.id},
+                ),
+            },
+        ],
     }
-
-    _enrich_context_for_create_or_get_arrete_view(
-        context, programmation_projet, request
-    )
-    return _generic_documents_view(
-        request,
-        programmation_projet_id,
-        programmation_projet.get_absolute_url(),
-        context,
-    )
 
 
 # Edition form for arrêté --------------------------------------------------------------
@@ -360,13 +349,16 @@ def _add_success_message(
 # Suppression d'arrêté -----------------------------------------------------------------
 
 
-@arrete_visible_by_user
+@document_visible_by_user
 @require_http_methods(["POST"])
-def delete_arrete_view(request, arrete_id):
-    arrete = get_object_or_404(Arrete, id=arrete_id)
-    programmation_projet_id = arrete.programmation_projet.id
+def delete_document_view(request, document_type, document_id):
+    document_class = get_document_class(document_type)
+    document = get_object_or_404(document_class, id=document_id)
+    programmation_projet_id = document.programmation_projet.id
 
-    arrete.delete()
+    document.delete()
+
+    messages.success(request, "Le document a bien été supprimé.")
 
     return _redirect_to_documents_view(request, programmation_projet_id)
 

@@ -19,7 +19,7 @@ from gsl_notification.views.views import (
     choose_type_for_document_generation,
     create_arrete_signe_view,
     delete_arrete_signe_view,
-    delete_arrete_view,
+    delete_document_view,
     documents_view,
     download_arrete_signe,
     select_modele,
@@ -59,9 +59,9 @@ urlpatterns = [
         name="arrete-view",
     ),
     path(
-        "arrete/<int:arrete_id>/delete/",
-        delete_arrete_view,
-        name="delete-arrete",
+        "document/<str:document_type>/<int:document_id>/delete/",
+        delete_document_view,
+        name="delete-document",
     ),
     # Arretes signés
     path(
