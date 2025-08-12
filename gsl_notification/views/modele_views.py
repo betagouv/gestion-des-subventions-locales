@@ -216,13 +216,14 @@ class CreateModelDocumentWizard(SessionWizardView):
     def _handle_logo(self, instance, logo):
         pass
 
-    def _set_success_message(self, instance, verbe="créé"):
+    def _set_success_message(self, instance, verbe="créé", extra_tags="success"):
         type_and_article = (
             "d’arrêté" if self.modele_type == ARRETE else "de lettre de notification"
         )
         messages.success(
             self.request,
             f"Le modèle {type_and_article} “{instance.name}” a bien été {verbe}.",
+            extra_tags=extra_tags,
         )
 
     def get_form_instance(self, step):
@@ -280,11 +281,13 @@ class CreateModelDocumentWizard(SessionWizardView):
                 "title": self._get_form_title(),
             }
         )
+
         step_titles = {
             "0": "Titre du modèle",
             "1": "En-tête du modèle",
-            "2": "Contenu de l’arrêté pour le publipostage",
+            "2": self._get_step_2_title(),
         }
+
         context.update(
             {
                 "step_title": step_titles.get(self.steps.current, ""),
@@ -304,6 +307,11 @@ class CreateModelDocumentWizard(SessionWizardView):
         if self.modele_type == ARRETE:
             return f"Création d’un nouveau modèle d'arrêté {self.dotation}"
         return f"Création d’un nouveau modèle de lettre de notification {self.dotation}"
+
+    def _get_step_2_title(self):
+        if self.modele_type == LETTRE:
+            return "Contenu de la lettre de notification pour le publipostage"
+        return "Contenu de l’arrêté pour le publipostage"
 
 
 class UpdateModele(CreateModelDocumentWizard):
@@ -346,8 +354,8 @@ class UpdateModele(CreateModelDocumentWizard):
             old_file = old_instance.logo
             old_file.delete(save=False)
 
-    def _set_success_message(self, instance, verbe="modifié"):
-        super()._set_success_message(instance, verbe)
+    def _set_success_message(self, instance, verbe="modifié", extra_tags=""):
+        super()._set_success_message(instance, verbe, extra_tags=extra_tags)
 
 
 class DuplicateModele(UpdateModele):
@@ -370,7 +378,7 @@ class DuplicateModele(UpdateModele):
                 instance.logo.save(new_name, file_obj, save=False)
 
     def _set_success_message(self, instance):
-        super()._set_success_message(instance, verbe="créé")
+        super()._set_success_message(instance, verbe="créé", extra_tags="success")
 
 
 @modele_visible_by_user

@@ -4,6 +4,7 @@
   color: var(--text-default-error);
 }
 
+.message--success > .fr-notice,
 .message--valid > .fr-notice {
   background-color: var(--background-alt-green-emeraude);
   color: var(--text-default-success);
