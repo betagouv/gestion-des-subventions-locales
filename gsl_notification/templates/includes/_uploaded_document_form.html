@@ -2,18 +2,18 @@
       enctype="multipart/form-data"
       action="{% url 'gsl_notification:upload-a-document' programmation_projet.id document_type %}">
 
-    {% if arrete_signe_form.errors %}
+    {% if form.errors %}
         <div class="fr-alert fr-alert--error fr-mb-1w">
             <p class="fr-alert__title">
                 Erreur dans le formulaire
             </p>
             <ul>
-                {% for error in arrete_signe_form.non_field_errors %}
+                {% for error in form.non_field_errors %}
                     <li>
                         {{ error }}
                     </li>
                 {% endfor %}
-                {% for field in arrete_signe_form %}
+                {% for field in form %}
                     {% for error in field.errors %}
                         <li>
                             {{ error }}

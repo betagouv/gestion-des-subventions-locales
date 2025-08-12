@@ -31,7 +31,7 @@ from gsl_notification.views.decorators import (
     programmation_projet_visible_by_user,
 )
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import ARRETE, LETTRE, POSSIBLE_DOCUMENTS
+from gsl_projet.constants import ARRETE, LETTRE, POSSIBLES_DOCUMENTS
 
 # Views for listing notification documents on a programmationProjet, -------------------
 # in various contexts
@@ -149,7 +149,7 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
 
 def _get_doc_card_attributes(
     doc: Union[Arrete, LettreNotification],
-    doc_type: POSSIBLE_DOCUMENTS,
+    doc_type: POSSIBLES_DOCUMENTS,
     programmation_projet_id: int,
 ):
     return {
@@ -345,7 +345,7 @@ def _get_pp_attribute_page_title_and_page_step_title(
 
 
 def _add_success_message(
-    request, is_creating: bool, document_type: POSSIBLE_DOCUMENTS, document_name: str
+    request, is_creating: bool, document_type: POSSIBLES_DOCUMENTS, document_name: str
 ):
     verbe = "créé" if is_creating else "modifié"
     type_and_article = (

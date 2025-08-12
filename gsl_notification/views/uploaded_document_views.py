@@ -2,15 +2,12 @@ from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET, require_http_methods
 
-from gsl_notification.forms import (
-    ArreteSigneForm,
-)
 from gsl_notification.models import (
     ArreteSigne,
 )
 from gsl_notification.utils import (
     get_s3_object,
-    get_uploaded_document_class,
+    get_uploaded_form_class,
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
 from gsl_notification.views.decorators import (
@@ -40,7 +37,7 @@ def choose_type_for_document_upload(request, programmation_projet_id):
     )
 
 
-# Upload arrêté signé ------------------------------------------------------------------
+# Upload document ------------------------------------------------------------------
 
 
 @programmation_projet_visible_by_user
@@ -51,10 +48,11 @@ def create_arrete_signe_view(request, programmation_projet_id, document_type):
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
-    _uploaded_doc_class = get_uploaded_document_class(document_type)
+    # uploaded_doc_class = get_uploaded_document_class(document_type)
+    uploaded_doc_form = get_uploaded_form_class(document_type)
 
     if request.method == "POST":
-        form = ArreteSigneForm(request.POST, request.FILES)
+        form = uploaded_doc_form(request.POST, request.FILES)
         if form.is_valid():
             update_file_name_to_put_it_in_a_programmation_projet_folder(
                 form.instance.file, programmation_projet.id
@@ -63,9 +61,9 @@ def create_arrete_signe_view(request, programmation_projet_id, document_type):
 
             return _redirect_to_documents_view(request, programmation_projet.id)
     else:
-        form = ArreteSigneForm()
+        form = uploaded_doc_form()
 
-    context = {"arrete_signe_form": form, "document_type": document_type}
+    context = {"form": form, "document_type": document_type}
     _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
     )

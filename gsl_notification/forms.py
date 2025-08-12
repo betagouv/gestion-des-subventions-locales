@@ -6,6 +6,7 @@ from dsfr.forms import DsfrBaseForm
 
 from gsl.settings import MAX_POST_FILE_SIZE_IN_MO
 from gsl_notification.models import (
+    Annexe,
     Arrete,
     ArreteSigne,
     LettreNotification,
@@ -32,14 +33,13 @@ class LettreNotificationForm(ArreteForm):
         fields = ("content", "created_by", "programmation_projet", "modele")
 
 
-class ArreteSigneForm(forms.ModelForm, DsfrBaseForm):
+class UploadedDocumentForm(forms.ModelForm, DsfrBaseForm):
     file = forms.FileField(
         required=True,
     )
 
     class Meta:
-        model = ArreteSigne
-        fields = ("file", "created_by", "programmation_projet")
+        abstract = True
 
     def clean_file(self):
         file = self.cleaned_data["file"]
@@ -59,6 +59,18 @@ class ArreteSigneForm(forms.ModelForm, DsfrBaseForm):
                 f"La taille du fichier ne doit pas dépasser {max_size_in_mo} Mo."
             )
         return file
+
+
+class ArreteSigneForm(UploadedDocumentForm):
+    class Meta:
+        model = ArreteSigne
+        fields = ("file", "created_by", "programmation_projet")
+
+
+class AnnexeForm(UploadedDocumentForm):
+    class Meta:
+        model = Annexe
+        fields = ("file", "created_by", "programmation_projet")
 
 
 class ModeleDocumentStepZeroForm(DsfrBaseForm):

@@ -9,8 +9,14 @@ from django.http import Http404
 from gsl import settings
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
-from gsl_notification.forms import ArreteForm, LettreNotificationForm
+from gsl_notification.forms import (
+    AnnexeForm,
+    ArreteForm,
+    ArreteSigneForm,
+    LettreNotificationForm,
+)
 from gsl_notification.models import (
+    Annexe,
     Arrete,
     ArreteSigne,
     LettreNotification,
@@ -19,12 +25,14 @@ from gsl_notification.models import (
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
+    ANNEXE,
     ARRETE,
     ARRETE_ET_LETTRE_SIGNE,
     DOTATION_DETR,
     LETTRE,
-    POSSIBLE_DOCUMENTS,
     POSSIBLE_DOTATIONS,
+    POSSIBLES_DOCUMENTS,
+    POSSIBLES_DOCUMENTS_TELEVERSABLES,
 )
 
 
@@ -215,7 +223,7 @@ def get_form_class(document_type):
     return ArreteForm
 
 
-def get_doc_title(document_type: POSSIBLE_DOCUMENTS):
+def get_doc_title(document_type: POSSIBLES_DOCUMENTS):
     if document_type not in [ARRETE, LETTRE]:
         raise ValueError(f"Document type {document_type} inconnu")
     if document_type == LETTRE:
@@ -223,7 +231,17 @@ def get_doc_title(document_type: POSSIBLE_DOCUMENTS):
     return "Arrêté d'attribution"
 
 
-def get_uploaded_document_class(document_type):
-    if document_type not in [ARRETE_ET_LETTRE_SIGNE]:
+def get_uploaded_document_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES):
+    if document_type not in [ARRETE_ET_LETTRE_SIGNE, ANNEXE]:
         raise ValueError(f"Document type {document_type} inconnu")
+    if document_type == ANNEXE:
+        return Annexe
     return ArreteSigne
+
+
+def get_uploaded_form_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES):
+    if document_type not in [ARRETE_ET_LETTRE_SIGNE, ANNEXE]:
+        raise ValueError(f"Document type {document_type} inconnu")
+    if document_type == ANNEXE:
+        return AnnexeForm
+    return ArreteSigneForm
