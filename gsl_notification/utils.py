@@ -20,6 +20,7 @@ from gsl_notification.models import (
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
     ARRETE,
+    ARRETE_ET_LETTRE_SIGNE,
     DOTATION_DETR,
     LETTRE,
     POSSIBLE_DOCUMENTS,
@@ -220,3 +221,9 @@ def get_doc_title(document_type: POSSIBLE_DOCUMENTS):
     if document_type == LETTRE:
         return "Lettre de notification"
     return "Arrêté d'attribution"
+
+
+def get_uploaded_document_class(document_type):
+    if document_type not in [ARRETE_ET_LETTRE_SIGNE]:
+        raise ValueError(f"Document type {document_type} inconnu")
+    return ArreteSigne

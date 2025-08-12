@@ -22,5 +22,6 @@ PROJET_STATUS_CHOICES = (
 ARRETE = "arrete"
 LETTRE = "lettre"
 POSSIBLE_DOCUMENTS = Literal["arrete", "lettre"]
+ARRETE_ET_LETTRE_SIGNE = "arrete_signe"  # TODO a mettre à jour
 
 MIN_DEMANDE_MONTANT_FOR_AVIS_DETR = 100_000

@@ -49,7 +49,7 @@ def different_perimetre_client_with_user_logged():
 
 # ArreteSigne
 
-### create-arrete-signe -----------------------------
+### upload-a-document -----------------------------
 
 
 ##### GET
@@ -57,7 +57,7 @@ def test_create_arrete_signe_view_with_not_correct_perimetre_and_without_arrete(
     programmation_projet, different_perimetre_client_with_user_logged
 ):
     url = reverse(
-        "notification:create-arrete-signe",
+        "notification:upload-a-document",
         kwargs={"programmation_projet_id": programmation_projet.id},
     )
     assert url == f"/notification/{programmation_projet.id}/creer-arrete-signe/"
@@ -69,7 +69,7 @@ def test_create_arrete_signe_view_with_correct_perimetre_and_without_arrete(
     programmation_projet, correct_perimetre_client_with_user_logged
 ):
     url = reverse(
-        "notification:create-arrete-signe",
+        "notification:upload-a-document",
         kwargs={"programmation_projet_id": programmation_projet.id},
     )
     assert url == f"/notification/{programmation_projet.id}/creer-arrete-signe/"
@@ -86,7 +86,7 @@ def test_create_arrete_signe_view_valid_but_with_invalid_user_perimetre(
     programmation_projet, different_perimetre_client_with_user_logged
 ):
     url = reverse(
-        "notification:create-arrete-signe",
+        "notification:upload-a-document",
         kwargs={"programmation_projet_id": programmation_projet.id},
     )
     file = SimpleUploadedFile("test.pdf", b"dummy", content_type="application/pdf")
@@ -103,7 +103,7 @@ def test_create_arrete_signe_view_valid(
     programmation_projet, correct_perimetre_client_with_user_logged
 ):
     url = reverse(
-        "notification:create-arrete-signe",
+        "notification:upload-a-document",
         kwargs={"programmation_projet_id": programmation_projet.id},
     )
     file = SimpleUploadedFile("test.pdf", b"dummy", content_type="application/pdf")
@@ -130,7 +130,7 @@ def test_create_arrete_signe_view_invalid(
     programmation_projet, correct_perimetre_client_with_user_logged
 ):
     url = reverse(
-        "notification:create-arrete-signe",
+        "notification:upload-a-document",
         kwargs={"programmation_projet_id": programmation_projet.id},
     )
     response = correct_perimetre_client_with_user_logged.post(url, {})

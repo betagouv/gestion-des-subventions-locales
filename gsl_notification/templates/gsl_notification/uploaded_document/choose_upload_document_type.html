@@ -15,13 +15,13 @@
              {% if programmation_projet.arrete_et_lettre_signes %}aria-describedby="tooltip-import-arrete-et-lettre-signes"{% endif %}>
             <input type="radio"
                    name="type"
-                   value="arrete-et-lettre-signes"
+                   value="arrete_signe"
                    dsfr="dsfr"
-                   id="arrete-et-lettre-signes"
+                   id="arrete_signe"
                    {% if programmation_projet.arrete_et_lettre_signes %}disabled {% endif %}
                    data-choose-document-type-target="radio"
                    data-action="click->choose-document-type#setSelectedValue">
-            <label class="fr-label" for="arrete-et-lettre-signes">
+            <label class="fr-label" for="arrete_signe">
                 Arrêté et lettre de notification signés
             </label>
             {% if programmation_projet.arrete_et_lettre_signes %}

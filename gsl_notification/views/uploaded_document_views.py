@@ -10,6 +10,7 @@ from gsl_notification.models import (
 )
 from gsl_notification.utils import (
     get_s3_object,
+    get_uploaded_document_class,
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
 from gsl_notification.views.decorators import (
@@ -22,17 +23,35 @@ from gsl_notification.views.views import (
 )
 from gsl_programmation.models import ProgrammationProjet
 
-# Upload arrêté signé ------------------------------------------------------------------
 
-
+@require_http_methods(["GET"])
 @programmation_projet_visible_by_user
-@require_http_methods(["GET", "POST"])
-def create_arrete_signe_view(request, programmation_projet_id):
+def choose_type_for_document_upload(request, programmation_projet_id):
     programmation_projet = get_object_or_404(
         ProgrammationProjet,
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
+    context = {"programmation_projet": programmation_projet}
+    return render(
+        request,
+        "gsl_notification/uploaded_document/choose_upload_document_type.html",
+        context=context,
+    )
+
+
+# Upload arrêté signé ------------------------------------------------------------------
+
+
+@programmation_projet_visible_by_user
+@require_http_methods(["GET", "POST"])
+def create_arrete_signe_view(request, programmation_projet_id, document_type):
+    programmation_projet = get_object_or_404(
+        ProgrammationProjet,
+        id=programmation_projet_id,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+    )
+    _uploaded_doc_class = get_uploaded_document_class(document_type)
 
     if request.method == "POST":
         form = ArreteSigneForm(request.POST, request.FILES)
@@ -46,14 +65,16 @@ def create_arrete_signe_view(request, programmation_projet_id):
     else:
         form = ArreteSigneForm()
 
-    context = {
-        "arrete_signe_form": form,
-    }
+    context = {"arrete_signe_form": form, "document_type": document_type}
     _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
     )
 
-    return render(request, "gsl_notification/upload_arrete_signe.html", context=context)
+    return render(
+        request,
+        "gsl_notification/uploaded_document/upload_document.html",
+        context=context,
+    )
 
 
 # Suppression d'arrêté signé ----------------------------------------------------------

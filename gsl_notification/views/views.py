@@ -191,7 +191,9 @@ def choose_type_for_document_generation(request, programmation_projet_id):
     )
     context = {"programmation_projet": programmation_projet}
     return render(
-        request, "gsl_notification/choose_generated_document_type.html", context=context
+        request,
+        "gsl_notification/generated_document/choose_generated_document_type.html",
+        context=context,
     )
 
 
@@ -239,7 +241,11 @@ def select_modele(request, programmation_projet_id, document_type):
             for obj in modeles
         ],
     }
-    return render(request, "gsl_notification/select_modele.html", context=context)
+    return render(
+        request,
+        "gsl_notification/generated_document/select_modele.html",
+        context=context,
+    )
 
 
 @csp_update({"style-src": [SELF, UNSAFE_INLINE]})
@@ -307,7 +313,11 @@ def change_document_view(request, programmation_projet_id, document_type):
     _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
     )
-    return render(request, "gsl_notification/change_document.html", context=context)
+    return render(
+        request,
+        "gsl_notification/generated_document/change_document.html",
+        context=context,
+    )
 
 
 def _get_pp_attribute_page_title_and_page_step_title(

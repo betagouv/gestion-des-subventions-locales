@@ -78,7 +78,7 @@ def test_document_delete_url(document_type):
 
 def test_create_arrete_signe_url():
     url = reverse(
-        "gsl_notification:create-arrete-signe",
+        "gsl_notification:upload-a-document",
         kwargs={"programmation_projet_id": 123},
     )
     assert url == "/notification/123/creer-arrete-signe/"
