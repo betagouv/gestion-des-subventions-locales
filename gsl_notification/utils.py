@@ -9,15 +9,16 @@ from django.http import Http404
 from gsl import settings
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
+from gsl_notification.forms import ArreteForm, LettreNotificationForm
 from gsl_notification.models import (
     Arrete,
     ArreteSigne,
+    LettreNotification,
     ModeleArrete,
-    ModeleDocument,
     ModeleLettreNotification,
 )
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import DOTATION_DETR, POSSIBLE_DOTATIONS
+from gsl_projet.constants import ARRETE, DOTATION_DETR, LETTRE, POSSIBLE_DOTATIONS
 
 
 def get_nested_attribute(obj, attribute_path):
@@ -174,7 +175,7 @@ def get_s3_object(file_name):
 def return_document_as_a_dict(document: Arrete | ArreteSigne):
     return {
         "name": document.name,
-        "type": document.type,
+        "type": document.file_type,
         "size": document.size,
         "created_at": document.created_at,
         "created_by": document.created_by,
@@ -184,8 +185,24 @@ def return_document_as_a_dict(document: Arrete | ArreteSigne):
 
 
 def get_modele_class(modele_type):
-    if modele_type not in [ModeleDocument.TYPE_ARRETE, ModeleDocument.TYPE_LETTRE]:
+    if modele_type not in [ARRETE, LETTRE]:
         raise Http404("Type inconnu")
-    if modele_type == ModeleDocument.TYPE_LETTRE:
+    if modele_type == LETTRE:
         return ModeleLettreNotification
     return ModeleArrete
+
+
+def get_document_class(document_type):
+    if document_type not in [ARRETE, LETTRE]:
+        raise Http404("Type inconnu")
+    if document_type == LETTRE:
+        return LettreNotification
+    return Arrete
+
+
+def get_form_class(document_type):
+    if document_type not in [ARRETE, LETTRE]:
+        raise Http404("Type inconnu")
+    if document_type == LETTRE:
+        return LettreNotificationForm
+    return ArreteForm

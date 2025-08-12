@@ -1,8 +1,10 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.contrib.messages import get_messages
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from freezegun import freeze_time
 
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -12,14 +14,17 @@ from gsl_core.tests.factories import (
     PerimetreFactory,
     PerimetreRegionalFactory,
 )
+from gsl_notification.models import Arrete, LettreNotification
 from gsl_notification.tests.factories import (
     ArreteFactory,
     ArreteSigneFactory,
+    LettreNotificationFactory,
     ModeleArreteFactory,
+    ModeleLettreNotificationFactory,
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.constants import ARRETE, DOTATION_DETR, DOTATION_DSIL, LETTRE
 
 ## FIXTURES
 
@@ -56,8 +61,6 @@ pytestmark = pytest.mark.django_db
 
 
 ### documents -----------------------------------
-
-
 def test_get_documents_with_not_correct_perimetre_and_without_arrete(
     programmation_projet, different_perimetre_client_with_user_logged
 ):
@@ -95,7 +98,16 @@ def test_get_documents_with_correct_perimetre_and_without_arrete(
 ####### Without correct perimetre
 
 
-def test_get_select_modele_gives_correct_perimetre_and_dotation_modele():
+@pytest.mark.parametrize(
+    "modele_factory, document_type",
+    (
+        (ModeleArreteFactory, ARRETE),
+        (ModeleLettreNotificationFactory, LETTRE),
+    ),
+)
+def test_get_select_modele_gives_correct_perimetre_and_dotation_modele(
+    modele_factory, document_type
+):
     # Périmètres
     arrondissement_11 = PerimetreArrondissementFactory()
     departement_1 = PerimetreDepartementalFactory(
@@ -118,37 +130,29 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele():
     )
 
     # Modèles DETR
-    _detr_modele_arr_11 = ModeleArreteFactory(
+    _detr_modele_arr_11 = modele_factory(
         dotation=DOTATION_DETR, perimetre=arrondissement_11
     )
-    detr_modele_dep_1 = ModeleArreteFactory(
-        dotation=DOTATION_DETR, perimetre=departement_1
-    )
-    _detr_modele_arr_12 = ModeleArreteFactory(
+    detr_modele_dep_1 = modele_factory(dotation=DOTATION_DETR, perimetre=departement_1)
+    _detr_modele_arr_12 = modele_factory(
         dotation=DOTATION_DETR, perimetre=arrondissement_12
     )
-    _detr_modele_dep_2 = ModeleArreteFactory(
-        dotation=DOTATION_DETR, perimetre=departement_2
-    )
-    _detr_modele__arr_21 = ModeleArreteFactory(
+    _detr_modele_dep_2 = modele_factory(dotation=DOTATION_DETR, perimetre=departement_2)
+    _detr_modele__arr_21 = modele_factory(
         dotation=DOTATION_DETR, perimetre=_arrondissement_21
     )
 
     # Modèles DSIL
-    _dsil_modele_arr_11 = ModeleArreteFactory(
+    _dsil_modele_arr_11 = modele_factory(
         dotation=DOTATION_DSIL, perimetre=arrondissement_11
     )
-    _dsil_modele_dep_1 = ModeleArreteFactory(
-        dotation=DOTATION_DSIL, perimetre=departement_1
-    )
-    _dsil_modele_reg = ModeleArreteFactory(dotation=DOTATION_DSIL, perimetre=region)
-    _dsil_modele_arr_12 = ModeleArreteFactory(
+    _dsil_modele_dep_1 = modele_factory(dotation=DOTATION_DSIL, perimetre=departement_1)
+    _dsil_modele_reg = modele_factory(dotation=DOTATION_DSIL, perimetre=region)
+    _dsil_modele_arr_12 = modele_factory(
         dotation=DOTATION_DSIL, perimetre=arrondissement_12
     )
-    _dsil_modele_dep_2 = ModeleArreteFactory(
-        dotation=DOTATION_DSIL, perimetre=departement_2
-    )
-    _dsil_modele__arr_21 = ModeleArreteFactory(
+    _dsil_modele_dep_2 = modele_factory(dotation=DOTATION_DSIL, perimetre=departement_2)
+    _dsil_modele__arr_21 = modele_factory(
         dotation=DOTATION_DSIL, perimetre=_arrondissement_21
     )
 
@@ -163,7 +167,10 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele():
 
     url = reverse(
         "notification:select-modele",
-        kwargs={"programmation_projet_id": programmation_projet.id},
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": document_type,
+        },
     )
     response = client.get(url)
     assert len(response.context["modeles_list"]) == 1, (
@@ -172,17 +179,20 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele():
     assert response.context["modeles_list"][0] == {
         "actions": [
             {
-                "href": f"/notification/{programmation_projet.id}/modifier-arrete/?modele_id={detr_modele_dep_1.id}",
+                "href": f"/notification/{programmation_projet.id}/modifier-document/{document_type}?modele_id={detr_modele_dep_1.id}",
                 "label": "Sélectionner",
             },
         ],
         "description": detr_modele_dep_1.description,
         "name": detr_modele_dep_1.name,
     }
-    assert url == f"/notification/{programmation_projet.id}/selection-d-un-modele/"
+    assert (
+        url
+        == f"/notification/{programmation_projet.id}/selection-d-un-modele/{document_type}"
+    )
 
 
-### modifier-arrete -----------------------------------
+### modifier-document -----------------------------------
 
 ##### GET
 
@@ -190,159 +200,271 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele():
 
 
 @pytest.mark.parametrize(
-    "with_arrete",
+    "factory, document_type",
+    (
+        (ArreteFactory, ARRETE),
+        (LettreNotificationFactory, LETTRE),
+    ),
+)
+@pytest.mark.parametrize(
+    "with_document_already_created",
     (False, True),
 )
 def test_modify_arrete_url_with_not_correct_perimetre(
-    programmation_projet, different_perimetre_client_with_user_logged, with_arrete
+    programmation_projet,
+    different_perimetre_client_with_user_logged,
+    factory,
+    document_type,
+    with_document_already_created,
 ):
-    if with_arrete:
-        ArreteFactory(
+    if with_document_already_created:
+        factory(
             programmation_projet=programmation_projet,
             content="<p>Contenu de l’arrêté</p>",
         )
     else:
         assert not hasattr(programmation_projet, "arrete")
     url = reverse(
-        "notification:modifier-arrete",
-        kwargs={"programmation_projet_id": programmation_projet.id},
+        "notification:modifier-document",
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": document_type,
+        },
     )
-    assert url == f"/notification/{programmation_projet.id}/modifier-arrete/"
+    assert (
+        url
+        == f"/notification/{programmation_projet.id}/modifier-document/{document_type}"
+    )
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
 
 ####### Without modele_id
-######### Without an existing arrete
+######### Without an existing document
 
 
-def test_modify_arrete_url_without_arrete(
-    programmation_projet, correct_perimetre_client_with_user_logged
+@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
+def test_modify_document_url_without_arrete(
+    programmation_projet, correct_perimetre_client_with_user_logged, document_type
 ):
     url = reverse(
-        "notification:modifier-arrete",
-        kwargs={"programmation_projet_id": programmation_projet.id},
+        "notification:modifier-document",
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": document_type,
+        },
     )
-    assert url == f"/notification/{programmation_projet.id}/modifier-arrete/"
+    assert (
+        url
+        == f"/notification/{programmation_projet.id}/modifier-document/{document_type}"
+    )
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
 
-######### With an existing arrete
+######### With an existing document
 
 
+@pytest.mark.parametrize(
+    "document_type, factory",
+    ((ARRETE, ArreteFactory), (LETTRE, LettreNotificationFactory)),
+)
 def test_modify_arrete_url_with_arrete(
-    programmation_projet, correct_perimetre_client_with_user_logged
+    programmation_projet,
+    correct_perimetre_client_with_user_logged,
+    document_type,
+    factory,
 ):
-    arrete = ArreteFactory(
+    document = factory(
         programmation_projet=programmation_projet, content="<p>Contenu de l’arrêté</p>"
     )
     url = reverse(
-        "notification:modifier-arrete",
-        kwargs={"programmation_projet_id": programmation_projet.id},
+        "notification:modifier-document",
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": document_type,
+        },
     )
-    assert url == f"/notification/{programmation_projet.id}/modifier-arrete/"
+    assert (
+        url
+        == f"/notification/{programmation_projet.id}/modifier-document/{document_type}"
+    )
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 200
     assert response.context["arrete_initial_content"] == "<p>Contenu de l’arrêté</p>"
-    assert response.context["page_title"] == "Modification de l'arrêté attributif"
-    assert response.context["modele"] == arrete.modele
-    assert response.templates[0].name == "gsl_notification/change_arrete.html"
+    if document_type == ARRETE:
+        assert response.context["page_title"] == "Modification de l'arrêté attributif"
+    else:
+        assert (
+            response.context["page_title"]
+            == "Modification de la lettre de notification"
+        )
+    assert response.context["modele"] == document.modele
+    assert response.templates[0].name == "gsl_notification/change_document.html"
 
 
 ####### With modele_id
-######### Without an existing arrete
+######### Without an existing document
 ########### With correct modele_perimetre
 
 
-def test_modify_arrete_url_without_arrete_and_with_modele_id(
-    programmation_projet, correct_perimetre_client_with_user_logged
+@pytest.mark.parametrize(
+    "document_type, modele_factory",
+    ((ARRETE, ModeleArreteFactory), (LETTRE, ModeleLettreNotificationFactory)),
+)
+def test_modify_arrete_url_without_document_and_with_modele_id(
+    programmation_projet,
+    correct_perimetre_client_with_user_logged,
+    document_type,
+    modele_factory,
 ):
-    modele = ModeleArreteFactory(
+    modele = modele_factory(
         perimetre=correct_perimetre_client_with_user_logged.user.perimetre,
         dotation=programmation_projet.dotation_projet.dotation,
     )
     url = reverse(
-        "notification:modifier-arrete",
-        kwargs={"programmation_projet_id": programmation_projet.id},
+        "notification:modifier-document",
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": document_type,
+        },
     )
     data = {"modele_id": modele.id}
-    assert url == f"/notification/{programmation_projet.id}/modifier-arrete/"
+    assert (
+        url
+        == f"/notification/{programmation_projet.id}/modifier-document/{document_type}"
+    )
     response = correct_perimetre_client_with_user_logged.get(url, data)
     assert response.status_code == 200
     assert response.context["arrete_initial_content"] == modele.content
-    assert response.context["page_title"] == "Création de l'arrêté attributif"
+    if document_type == ARRETE:
+        assert response.context["page_title"] == "Création de l'arrêté attributif"
+    else:
+        assert response.context["page_title"] == "Création de la lettre de notification"
     assert response.context["modele"] == modele
-    assert response.templates[0].name == "gsl_notification/change_arrete.html"
+    assert response.templates[0].name == "gsl_notification/change_document.html"
 
 
 ########### With wrong modele_perimetre
 
 
-def test_modify_arrete_url_without_arrete_and_with_wrong_modele_id(
-    programmation_projet, correct_perimetre_client_with_user_logged
+@pytest.mark.parametrize(
+    "document_type, modele_factory",
+    ((ARRETE, ModeleArreteFactory), (LETTRE, ModeleLettreNotificationFactory)),
+)
+def test_modify_arrete_url_without_document_and_with_wrong_modele_id(
+    programmation_projet,
+    correct_perimetre_client_with_user_logged,
+    document_type,
+    modele_factory,
 ):
-    modele = ModeleArreteFactory(
+    modele = modele_factory(
         dotation=programmation_projet.dotation_projet.dotation,
     )
 
     url = reverse(
-        "notification:modifier-arrete",
-        kwargs={"programmation_projet_id": programmation_projet.id},
+        "notification:modifier-document",
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": document_type,
+        },
     )
     data = {"modele_id": modele.id}
-    assert url == f"/notification/{programmation_projet.id}/modifier-arrete/"
+    assert (
+        url
+        == f"/notification/{programmation_projet.id}/modifier-document/{document_type}"
+    )
     response = correct_perimetre_client_with_user_logged.get(url, data)
     assert response.status_code == 404
 
 
-######### With an existing arrete
+######### With an existing document
 ########### With correct dotation
-def test_modify_arrete_url_with_arrete_and_with_correct_modele_id(
-    programmation_projet, correct_perimetre_client_with_user_logged
+
+
+@pytest.mark.parametrize(
+    "document_type, factory, modele_factory",
+    (
+        (ARRETE, ArreteFactory, ModeleArreteFactory),
+        (LETTRE, LettreNotificationFactory, ModeleLettreNotificationFactory),
+    ),
+)
+def test_modify_arrete_url_with_document_and_with_correct_modele_id(
+    programmation_projet,
+    correct_perimetre_client_with_user_logged,
+    document_type,
+    factory,
+    modele_factory,
 ):
-    modele = ModeleArreteFactory(
+    modele = modele_factory(
         perimetre=correct_perimetre_client_with_user_logged.user.perimetre,
         dotation=programmation_projet.dotation_projet.dotation,
     )
-    ArreteFactory(
+    factory(
         programmation_projet=programmation_projet, content="<p>Contenu de l’arrêté</p>"
     )
     url = reverse(
-        "notification:modifier-arrete",
-        kwargs={"programmation_projet_id": programmation_projet.id},
+        "notification:modifier-document",
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": document_type,
+        },
     )
     data = {"modele_id": modele.id}
-    assert url == f"/notification/{programmation_projet.id}/modifier-arrete/"
+    assert (
+        url
+        == f"/notification/{programmation_projet.id}/modifier-document/{document_type}"
+    )
     response = correct_perimetre_client_with_user_logged.get(url, data=data)
     assert response.status_code == 200
     assert response.context["arrete_initial_content"] == "<p>Contenu du modèle</p>"
-    assert response.context["page_title"] == "Modification de l'arrêté attributif"
+    if document_type == ARRETE:
+        expected_title = "Modification de l'arrêté attributif"
+    else:
+        expected_title = "Modification de la lettre de notification"
+    assert response.context["page_title"] == expected_title
     assert response.context["modele"] == modele
-    assert response.templates[0].name == "gsl_notification/change_arrete.html"
+    assert response.templates[0].name == "gsl_notification/change_document.html"
 
 
 ########### With wrong dotation
 
 
-def test_modify_arrete_url_with_arrete_and_with_wrong_modele_id(
-    programmation_projet, correct_perimetre_client_with_user_logged
+@pytest.mark.parametrize(
+    "document_type, factory, modele_factory",
+    (
+        (ARRETE, ArreteFactory, ModeleArreteFactory),
+        (LETTRE, LettreNotificationFactory, ModeleLettreNotificationFactory),
+    ),
+)
+def test_modify_arrete_url_with_document_and_with_wrong_modele_id(
+    programmation_projet,
+    correct_perimetre_client_with_user_logged,
+    document_type,
+    factory,
+    modele_factory,
 ):
-    modele = ModeleArreteFactory(
+    modele = modele_factory(
         perimetre=correct_perimetre_client_with_user_logged.user.perimetre,
         dotation="DSIL"
         if programmation_projet.dotation_projet.dotation == "DETR"
         else "DETR",
     )
-    ArreteFactory(
+    factory(
         programmation_projet=programmation_projet, content="<p>Contenu de l’arrêté</p>"
     )
     url = reverse(
-        "notification:modifier-arrete",
-        kwargs={"programmation_projet_id": programmation_projet.id},
+        "notification:modifier-document",
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": document_type,
+        },
     )
     data = {"modele_id": modele.id}
-    assert url == f"/notification/{programmation_projet.id}/modifier-arrete/"
+    assert (
+        url
+        == f"/notification/{programmation_projet.id}/modifier-document/{document_type}"
+    )
     response = correct_perimetre_client_with_user_logged.get(url, data=data)
     assert response.status_code == 404
 
@@ -350,13 +472,20 @@ def test_modify_arrete_url_with_arrete_and_with_wrong_modele_id(
 ##### POST
 
 
-def test_change_arrete_view_valid_but_with_wrong_perimetre(
-    programmation_projet, different_perimetre_client_with_user_logged
+@pytest.mark.parametrize(
+    "document_type",
+    (ARRETE, LETTRE),
+)
+def test_change_document_view_valid_but_with_wrong_perimetre(
+    programmation_projet, different_perimetre_client_with_user_logged, document_type
 ):
     assert not hasattr(programmation_projet, "arrete")
     url = reverse(
-        "notification:modifier-arrete",
-        kwargs={"programmation_projet_id": programmation_projet.id},
+        "notification:modifier-document",
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": document_type,
+        },
     )
     data = {
         "created_by": different_perimetre_client_with_user_logged.user.id,
@@ -365,19 +494,92 @@ def test_change_arrete_view_valid_but_with_wrong_perimetre(
     }
     response = different_perimetre_client_with_user_logged.post(url, data)
     assert response.status_code == 404
-    assert not hasattr(programmation_projet, "arrete")
+    assert not hasattr(programmation_projet, document_type)
 
 
-def test_change_arrete_view_valid(
-    programmation_projet, correct_perimetre_client_with_user_logged
+@freeze_time("2025-08-11")
+@pytest.mark.parametrize(
+    "document_type, document_model, modele_factory",
+    (
+        (ARRETE, Arrete, ModeleArreteFactory),
+        (LETTRE, LettreNotification, ModeleLettreNotificationFactory),
+    ),
+)
+def test_change_document_view_valid_without_existing_document(
+    programmation_projet,
+    correct_perimetre_client_with_user_logged,
+    document_type,
+    document_model,
+    modele_factory,
 ):
-    arrete = ArreteFactory(
+    modele = modele_factory(
+        dotation=programmation_projet.dotation,
+        perimetre=programmation_projet.projet.perimetre,
+    )
+    url = reverse(
+        "notification:modifier-document",
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": document_type,
+        },
+    )
+    url += f"?modele_id={modele.id}"
+    data = {
+        "created_by": correct_perimetre_client_with_user_logged.user.id,
+        "programmation_projet": programmation_projet.id,
+        "content": "<p>Le contenu</p>",
+        "modele": modele.id,
+    }
+    response = correct_perimetre_client_with_user_logged.post(url, data)
+    assert response.status_code == 302
+    assert response["Location"] == f"/notification/{programmation_projet.id}/documents/"
+    assert document_model.objects.count() == 1
+    document = document_model.objects.first()
+    assert document.content == "<p>Le contenu</p>"
+    assert document.created_by == correct_perimetre_client_with_user_logged.user
+    assert document.programmation_projet == programmation_projet
+    assert document.modele == modele
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 20
+    if document_type == ARRETE:
+        assert (
+            message.message
+            == "L'arrêté “arrêté-attributif-2025-08-11.pdf” a bien été créé."
+        )
+    else:
+        assert (
+            message.message
+            == "La lettre de notification “lettre-notification-2025-08-11.pdf” a bien été créée."
+        )
+
+
+@freeze_time("2025-08-11")
+@pytest.mark.parametrize(
+    "document_type, factory, modele_factory",
+    (
+        (ARRETE, ArreteFactory, ModeleArreteFactory),
+        (LETTRE, LettreNotificationFactory, ModeleLettreNotificationFactory),
+    ),
+)
+def test_change_document_view_valid_with_existing_document(
+    programmation_projet,
+    correct_perimetre_client_with_user_logged,
+    document_type,
+    factory,
+    modele_factory,
+):
+    document = factory(
         programmation_projet=programmation_projet, content="<p>Ancien contenu</p>"
     )
-    new_modele = ModeleArreteFactory()
+    new_modele = modele_factory()
     url = reverse(
-        "notification:modifier-arrete",
-        kwargs={"programmation_projet_id": programmation_projet.id},
+        "notification:modifier-document",
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": document_type,
+        },
     )
     data = {
         "created_by": correct_perimetre_client_with_user_logged.user.id,
@@ -388,23 +590,48 @@ def test_change_arrete_view_valid(
     response = correct_perimetre_client_with_user_logged.post(url, data)
     assert response.status_code == 302
     assert response["Location"] == f"/notification/{programmation_projet.id}/documents/"
-    arrete.refresh_from_db()
-    assert arrete.content == "<p>Le contenu</p>"
-    assert arrete.created_by == correct_perimetre_client_with_user_logged.user
-    assert arrete.programmation_projet == programmation_projet
-    assert arrete.modele == new_modele
+    document.refresh_from_db()
+    assert document.content == "<p>Le contenu</p>"
+    assert document.created_by == correct_perimetre_client_with_user_logged.user
+    assert document.programmation_projet == programmation_projet
+    assert document.modele == new_modele
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 20
+    if document_type == ARRETE:
+        assert (
+            message.message
+            == "L'arrêté “arrêté-attributif-2025-08-11.pdf” a bien été modifié."
+        )
+    else:
+        assert (
+            message.message
+            == "La lettre de notification “lettre-notification-2025-08-11.pdf” a bien été modifiée."
+        )
 
 
-def test_change_arrete_view_invalid(
-    programmation_projet, correct_perimetre_client_with_user_logged
+@pytest.mark.parametrize(
+    "document_type, factory",
+    (
+        (ARRETE, ArreteFactory),
+        (LETTRE, LettreNotificationFactory),
+    ),
+)
+def test_change_document_view_invalid(
+    programmation_projet,
+    correct_perimetre_client_with_user_logged,
+    document_type,
+    factory,
 ):
-    ArreteFactory(
-        programmation_projet=programmation_projet, content="<p>Ancien contenu</p>"
-    )
+    factory(programmation_projet=programmation_projet, content="<p>Ancien contenu</p>")
 
     url = reverse(
-        "notification:modifier-arrete",
-        kwargs={"programmation_projet_id": programmation_projet.id},
+        "notification:modifier-document",
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": document_type,
+        },
     )
     response = correct_perimetre_client_with_user_logged.post(url, {})
     assert response.status_code == 200
@@ -414,7 +641,12 @@ def test_change_arrete_view_invalid(
         "modele": ["Ce champ est obligatoire."],
         "content": ["Ce champ est obligatoire."],
     }
-    assert response.templates[0].name == "gsl_notification/change_arrete.html"
+    assert response.templates[0].name == "gsl_notification/change_document.html"
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 40
+    assert message.message == "Erreur dans le formulaire"
 
 
 ### arrete-download

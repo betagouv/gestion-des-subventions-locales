@@ -234,6 +234,10 @@ class ProgrammationProjet(models.Model):
     def to_notify(self):
         return self.notified_at is None and self.status == self.STATUS_ACCEPTED
 
+    @property
+    def dotation(self):
+        return self.dotation_projet.dotation
+
     def clean(self):
         errors = {}
         self._validate_montant(errors)

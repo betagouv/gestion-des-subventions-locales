@@ -51,7 +51,8 @@
                     "modal": "/static/ui/controllers/modal.js",
                     "doubleDotation": "/static/js/controllers/doubleDotation.js",
                     "modeleArreteForm": "/static/js/modeleArreteForm.js",
-                    "deleteModeleModal": "/static/js/deleteModeleModal.js"
+                    "deleteModeleModal": "/static/js/deleteModeleModal.js",
+                    "chooseDocumentType": "/static/js/chooseDocumentType.js"
                 }
             }
             </script>
@@ -126,6 +127,7 @@
             import { TipTapEditor } from "tiptapEditor"
             import { ModeleArreteForm } from "modeleArreteForm"
             import { DeleteModeleModal } from "deleteModeleModal"
+            import { ChooseDocumentType } from "chooseDocumentType"
 
             window.Stimulus = Application.start()
 
@@ -134,6 +136,7 @@
             Stimulus.register("tiptap-editor", TipTapEditor)
             Stimulus.register("modele-arrete-form", ModeleArreteForm)
             Stimulus.register("delete-modele-modal", DeleteModeleModal)
+            Stimulus.register("choose-document-type", ChooseDocumentType)
         </script>
 
         {% block extra_js %}

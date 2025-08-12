@@ -8,8 +8,10 @@ from gsl.settings import MAX_POST_FILE_SIZE_IN_MO
 from gsl_notification.models import (
     Arrete,
     ArreteSigne,
+    LettreNotification,
     ModeleDocument,
 )
+from gsl_projet.constants import ARRETE, LETTRE
 
 
 class ArreteForm(forms.ModelForm, DsfrBaseForm):
@@ -21,6 +23,12 @@ class ArreteForm(forms.ModelForm, DsfrBaseForm):
 
     class Meta:
         model = Arrete
+        fields = ("content", "created_by", "programmation_projet", "modele")
+
+
+class LettreNotificationForm(ArreteForm):
+    class Meta:
+        model = LettreNotification
         fields = ("content", "created_by", "programmation_projet", "modele")
 
 
@@ -55,8 +63,8 @@ class ArreteSigneForm(forms.ModelForm, DsfrBaseForm):
 
 class ModeleDocumentStepZeroForm(DsfrBaseForm):
     TYPE_CHOICES = (
-        (ModeleDocument.TYPE_ARRETE, "Modèle d'arrêté"),
-        (ModeleDocument.TYPE_LETTRE, "Lettre de notification"),
+        (ARRETE, "Arrêté attributif"),
+        (LETTRE, "Lettre de notification"),
     )
     type = forms.ChoiceField(
         label="Type de document", choices=TYPE_CHOICES, widget=forms.RadioSelect

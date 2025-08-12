@@ -19,5 +19,8 @@ PROJET_STATUS_CHOICES = (
     (PROJET_STATUS_DISMISSED, "⛔️ Classé sans suite"),
 )
 
+ARRETE = "arrete"
+LETTRE = "lettre"
+POSSIBLE_DOCUMENT = Literal["arrete", "lettre"]
 
 MIN_DEMANDE_MONTANT_FOR_AVIS_DETR = 100_000
