@@ -13,6 +13,7 @@ from gsl_notification.tests.factories import (
     ArreteSigneFactory,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
+from gsl_projet.constants import ANNEXE, ARRETE_ET_LETTRE_SIGNE
 
 pytestmark = pytest.mark.django_db
 
@@ -47,47 +48,66 @@ def different_perimetre_client_with_user_logged():
     return ClientWithLoggedUserFactory(user)
 
 
-# ArreteSigne
-
 ### upload-a-document -----------------------------
 
 
 ##### GET
-def test_create_arrete_signe_view_with_not_correct_perimetre_and_without_arrete(
-    programmation_projet, different_perimetre_client_with_user_logged
+@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNE, ANNEXE))
+def test_create_uploaded_document_view_with_not_correct_perimetre_and_without_arrete(
+    programmation_projet, different_perimetre_client_with_user_logged, doc_type
 ):
     url = reverse(
         "notification:upload-a-document",
-        kwargs={"programmation_projet_id": programmation_projet.id},
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": doc_type,
+        },
     )
-    assert url == f"/notification/{programmation_projet.id}/creer-arrete-signe/"
+    assert (
+        url
+        == f"/notification/{programmation_projet.id}/televersement/{doc_type}/creer/"
+    )
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
 
-def test_create_arrete_signe_view_with_correct_perimetre_and_without_arrete(
-    programmation_projet, correct_perimetre_client_with_user_logged
+@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNE, ANNEXE))
+def test_create_uploaded_document_view_with_correct_perimetre_and_without_arrete(
+    programmation_projet, correct_perimetre_client_with_user_logged, doc_type
 ):
     url = reverse(
         "notification:upload-a-document",
-        kwargs={"programmation_projet_id": programmation_projet.id},
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": doc_type,
+        },
     )
-    assert url == f"/notification/{programmation_projet.id}/creer-arrete-signe/"
+    assert (
+        url
+        == f"/notification/{programmation_projet.id}/televersement/{doc_type}/creer/"
+    )
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 200
-    assert "arrete_signe_form" in response.context
-    assert response.templates[0].name == "gsl_notification/upload_arrete_signe.html"
+    assert "form" in response.context
+    assert (
+        response.templates[0].name
+        == "gsl_notification/uploaded_document/upload_document.html"
+    )
 
 
 ##### POST
 
 
-def test_create_arrete_signe_view_valid_but_with_invalid_user_perimetre(
-    programmation_projet, different_perimetre_client_with_user_logged
+@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNE, ANNEXE))
+def test_create_uploaded_document_view_valid_but_with_invalid_user_perimetre(
+    programmation_projet, different_perimetre_client_with_user_logged, doc_type
 ):
     url = reverse(
         "notification:upload-a-document",
-        kwargs={"programmation_projet_id": programmation_projet.id},
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": doc_type,
+        },
     )
     file = SimpleUploadedFile("test.pdf", b"dummy", content_type="application/pdf")
     data = {
@@ -99,12 +119,16 @@ def test_create_arrete_signe_view_valid_but_with_invalid_user_perimetre(
     assert response.status_code == 404
 
 
-def test_create_arrete_signe_view_valid(
-    programmation_projet, correct_perimetre_client_with_user_logged
+@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNE, ANNEXE))
+def test_create_uploaded_document_view_valid(
+    programmation_projet, correct_perimetre_client_with_user_logged, doc_type
 ):
     url = reverse(
         "notification:upload-a-document",
-        kwargs={"programmation_projet_id": programmation_projet.id},
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": doc_type,
+        },
     )
     file = SimpleUploadedFile("test.pdf", b"dummy", content_type="application/pdf")
     data = {
@@ -115,32 +139,39 @@ def test_create_arrete_signe_view_valid(
     response = correct_perimetre_client_with_user_logged.post(url, data)
     assert response.status_code == 302
     assert response["Location"] == f"/notification/{programmation_projet.id}/documents/"
-    assert programmation_projet.arrete_signe is not None
-    assert (
-        f"programmation_projet_{programmation_projet.id}/test"
-        in programmation_projet.arrete_signe.file.name
-    )
-    assert (
-        programmation_projet.arrete_signe.created_by
-        == correct_perimetre_client_with_user_logged.user
-    )
+    if doc_type == ARRETE_ET_LETTRE_SIGNE:
+        assert programmation_projet.arrete_signe is not None
+        doc = programmation_projet.arrete_signe
+    else:
+        assert programmation_projet.annexes.count() == 1
+        doc = programmation_projet.annexes.first()
+
+    assert f"programmation_projet_{programmation_projet.id}/test" in doc.file.name
+    assert doc.created_by == correct_perimetre_client_with_user_logged.user
 
 
-def test_create_arrete_signe_view_invalid(
-    programmation_projet, correct_perimetre_client_with_user_logged
+@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNE, ANNEXE))
+def test_create_uploaded_document_view_invalid(
+    programmation_projet, correct_perimetre_client_with_user_logged, doc_type
 ):
     url = reverse(
         "notification:upload-a-document",
-        kwargs={"programmation_projet_id": programmation_projet.id},
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": doc_type,
+        },
     )
     response = correct_perimetre_client_with_user_logged.post(url, {})
     assert response.status_code == 200
-    assert response.context["arrete_signe_form"].errors == {
+    assert response.context["form"].errors == {
         "file": ["Ce champ est obligatoire."],
         "created_by": ["Ce champ est obligatoire."],
         "programmation_projet": ["Ce champ est obligatoire."],
     }
-    assert response.templates[0].name == "gsl_notification/upload_arrete_signe.html"
+    assert (
+        response.templates[0].name
+        == "gsl_notification/uploaded_document/upload_document.html"
+    )
 
 
 ### arrete-signe-download

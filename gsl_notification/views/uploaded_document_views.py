@@ -44,7 +44,7 @@ def choose_type_for_document_upload(request, programmation_projet_id):
 
 @programmation_projet_visible_by_user
 @require_http_methods(["GET", "POST"])
-def create_arrete_signe_view(request, programmation_projet_id, document_type):
+def create_uploaded_document_view(request, programmation_projet_id, document_type):
     programmation_projet = get_object_or_404(
         ProgrammationProjet,
         id=programmation_projet_id,

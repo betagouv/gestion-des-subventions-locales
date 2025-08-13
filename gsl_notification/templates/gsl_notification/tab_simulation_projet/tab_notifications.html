@@ -85,14 +85,4 @@
     <form method="post" id="delete-document-form">
         {% csrf_token %}
     </form>
-
-    {% comment %} {% if arrete_modal_title %}
-        {% ui_confirmation_modal modal_id="delete-arrete-confirmation-modal" title=arrete_modal_title text="Êtes-vous sûr(e) de vouloir supprimer cet arrêté ?<br>Cette action est irréversible." form="delete-arrete" action_text="Supprimer" %}
-    {% endif %}
-    {% if lettre_modal_title %}
-        {% ui_confirmation_modal modal_id="delete-lettre-confirmation-modal" title=lettre_modal_title text="Êtes-vous sûr(e) de vouloir supprimer cette lettre de notification ?<br>Cette action est irréversible." form="delete-lettre" action_text="Supprimer" %}
-    {% endif %}
-    {% if arrete_signe_modal_title %}
-        {% ui_confirmation_modal modal_id="delete-uploaded-document-confirmation-modal" title=arrete_signe_modal_title text="Êtes-vous sûr(e) de vouloir supprimer cet arrêté ?<br>Cette action est irréversible." form="delete-uploaded-document" action_text="Supprimer" %}
-    {% endif %} {% endcomment %}
 {% endblock modal %}

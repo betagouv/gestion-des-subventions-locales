@@ -14,7 +14,7 @@ from gsl_notification.views.modele_views import (
 )
 from gsl_notification.views.uploaded_document_views import (
     choose_type_for_document_upload,
-    create_arrete_signe_view,
+    create_uploaded_document_view,
     delete_uploaded_document_view,
     download_arrete_signe,
     view_arrete_signe,
@@ -68,13 +68,13 @@ urlpatterns = [
     ),
     # Arretes signés
     path(
-        "<int:programmation_projet_id>/téléversement/choix-du-type/",
+        "<int:programmation_projet_id>/televersement/choix-du-type/",
         choose_type_for_document_upload,
         name="choose-uploaded-document-type",
     ),
     path(
-        "<int:programmation_projet_id>/téléversement/<str:document_type>/creer-arrete-signe/",
-        create_arrete_signe_view,
+        "<int:programmation_projet_id>/televersement/<str:document_type>/creer/",
+        create_uploaded_document_view,
         name="upload-a-document",
     ),
     path(

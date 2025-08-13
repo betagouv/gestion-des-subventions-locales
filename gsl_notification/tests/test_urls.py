@@ -76,12 +76,13 @@ def test_document_delete_url(document_type):
 # Arrete signés URLs
 
 
-def test_create_arrete_signe_url():
+@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNE, ANNEXE))
+def test_create_arrete_signe_url(doc_type):
     url = reverse(
         "gsl_notification:upload-a-document",
-        kwargs={"programmation_projet_id": 123},
+        kwargs={"programmation_projet_id": 123, "document_type": doc_type},
     )
-    assert url == "/notification/123/creer-arrete-signe/"
+    assert url == f"/notification/123/televersement/{doc_type}/creer/"
 
 
 def test_arrete_signe_download_url():

@@ -297,7 +297,10 @@ def test_modify_arrete_url_with_arrete(
             == "Modification de la lettre de notification"
         )
     assert response.context["modele"] == document.modele
-    assert response.templates[0].name == "gsl_notification/change_document.html"
+    assert (
+        response.templates[0].name
+        == "gsl_notification/generated_document/change_document.html"
+    )
 
 
 ####### With modele_id
@@ -339,7 +342,10 @@ def test_modify_arrete_url_without_document_and_with_modele_id(
     else:
         assert response.context["page_title"] == "Création de la lettre de notification"
     assert response.context["modele"] == modele
-    assert response.templates[0].name == "gsl_notification/change_document.html"
+    assert (
+        response.templates[0].name
+        == "gsl_notification/generated_document/change_document.html"
+    )
 
 
 ########### With wrong modele_perimetre
@@ -421,7 +427,10 @@ def test_modify_arrete_url_with_document_and_with_correct_modele_id(
         expected_title = "Modification de la lettre de notification"
     assert response.context["page_title"] == expected_title
     assert response.context["modele"] == modele
-    assert response.templates[0].name == "gsl_notification/change_document.html"
+    assert (
+        response.templates[0].name
+        == "gsl_notification/generated_document/change_document.html"
+    )
 
 
 ########### With wrong dotation
@@ -638,7 +647,10 @@ def test_change_document_view_invalid(
         "modele": ["Ce champ est obligatoire."],
         "content": ["Ce champ est obligatoire."],
     }
-    assert response.templates[0].name == "gsl_notification/change_document.html"
+    assert (
+        response.templates[0].name
+        == "gsl_notification/generated_document/change_document.html"
+    )
     messages = get_messages(response.wsgi_request)
     assert len(messages) == 1
     message = list(messages)[0]
