@@ -1,11 +1,11 @@
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 
-from gsl_notification.models import ArreteSigne
 from gsl_notification.utils import (
     get_document_class,
     get_modele_class,
     get_modele_perimetres,
+    get_uploaded_document_class,
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.models import Projet
@@ -39,12 +39,6 @@ programmation_projet_visible_by_user = _visible_by_user(
     lambda obj: obj.projet,
 )
 
-arrete_signe_visible_by_user = _visible_by_user(
-    ArreteSigne,
-    "arrete_signe_id",
-    lambda obj: obj.programmation_projet.projet,
-)
-
 
 def modele_visible_by_user(func):
     def wrapper(*args, **kwargs):
@@ -68,6 +62,24 @@ def document_visible_by_user(func):
         if user.is_staff:
             return func(*args, **kwargs)
         obj_class = get_document_class(kwargs["document_type"])
+        obj = get_object_or_404(obj_class, id=kwargs["document_id"])
+        projet = obj.programmation_projet.projet
+        is_projet_visible_by_user = (
+            Projet.objects.for_user(user).filter(id=projet.id).exists()
+        )
+        if not is_projet_visible_by_user:
+            raise Http404("No %s matches the given query." % Projet._meta.object_name)
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+def uploaded_document_visible_by_user(func):
+    def wrapper(*args, **kwargs):
+        user = args[0].user
+        if user.is_staff:
+            return func(*args, **kwargs)
+        obj_class = get_uploaded_document_class(kwargs["document_type"])
         obj = get_object_or_404(obj_class, id=kwargs["document_id"])
         projet = obj.programmation_projet.projet
         is_projet_visible_by_user = (

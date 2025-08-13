@@ -16,8 +16,8 @@ from gsl_notification.views.uploaded_document_views import (
     choose_type_for_document_upload,
     create_uploaded_document_view,
     delete_uploaded_document_view,
-    download_arrete_signe,
-    view_arrete_signe,
+    download_uploaded_document,
+    view_uploaded_document,
 )
 from gsl_notification.views.views import (
     DownloadArreteView,
@@ -78,17 +78,17 @@ urlpatterns = [
         name="upload-a-document",
     ),
     path(
-        "arrete-signe/<int:arrete_signe_id>/download/",
-        download_arrete_signe,
-        name="arrete-signe-download",
+        "document-televerse/<str:document_type>/<int:document_id>/download/",
+        download_uploaded_document,
+        name="uploaded-document-download",
     ),
     path(
-        "arrete-signe/<int:arrete_signe_id>/view/",
-        view_arrete_signe,
-        name="arrete-signe-view",
+        "document-televerse/<str:document_type>/<int:document_id>/view/",
+        view_uploaded_document,
+        name="uploaded-document-view",
     ),
     path(
-        "document_televerse/<str:document_type>/<int:document_id>/delete/",
+        "document-televerse/<str:document_type>/<int:document_id>/delete/",
         delete_uploaded_document_view,
         name="delete-uploaded-document",
     ),

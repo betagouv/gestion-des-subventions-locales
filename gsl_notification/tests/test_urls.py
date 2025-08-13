@@ -85,9 +85,9 @@ def test_create_arrete_signe_url(doc_type):
     assert url == f"/notification/123/televersement/{doc_type}/creer/"
 
 
-def test_arrete_signe_download_url():
+def test_uploaded_document_download_url():
     url = reverse(
-        "gsl_notification:arrete-signe-download",
+        "gsl_notification:uploaded-document-download",
         kwargs={"arrete_signe_id": 789},
     )
     assert url == "/notification/arrete-signe/789/download/"

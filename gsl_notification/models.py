@@ -226,14 +226,16 @@ class UploadedDocument(models.Model):
     class Meta:
         abstract = True
 
-    def get_download_url(self):  # TODO update
+    def get_download_url(self):
         return reverse(
-            "notification:arrete-signe-download", kwargs={"arrete_signe_id": self.id}
+            "notification:uploaded-document-download",
+            kwargs={"document_type": self.document_type, "document_id": self.id},
         )
 
-    def get_view_url(self):  # TODO update
+    def get_view_url(self):
         return reverse(
-            "notification:arrete-signe-view", kwargs={"arrete_signe_id": self.id}
+            "notification:uploaded-document-view",
+            kwargs={"document_type": self.document_type, "document_id": self.id},
         )
 
     @property

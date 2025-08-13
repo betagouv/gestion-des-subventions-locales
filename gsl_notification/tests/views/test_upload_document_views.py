@@ -10,6 +10,7 @@ from gsl_core.tests.factories import (
     PerimetreFactory,
 )
 from gsl_notification.tests.factories import (
+    AnnexeFactory,
     ArreteSigneFactory,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
@@ -29,11 +30,6 @@ def perimetre():
 @pytest.fixture
 def programmation_projet(perimetre):
     return ProgrammationProjetFactory(dotation_projet__projet__perimetre=perimetre)
-
-
-@pytest.fixture
-def arrete_signe(programmation_projet):
-    return ArreteSigneFactory(programmation_projet=programmation_projet)
 
 
 @pytest.fixture
@@ -174,26 +170,32 @@ def test_create_uploaded_document_view_invalid(
     )
 
 
-### arrete-signe-download
+### uploaded-document-download
 
 
-def test_arrete_signe_download_url_with_correct_perimetre_and_without_arrete(
-    correct_perimetre_client_with_user_logged,
+@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNE, ANNEXE))
+def test_uploaded_document_download_url_with_correct_perimetre_and_without_arrete(
+    correct_perimetre_client_with_user_logged, doc_type
 ):
     url = reverse(
-        "notification:arrete-signe-download",
-        kwargs={"arrete_signe_id": 1000},
+        "notification:uploaded-document-download",
+        kwargs={"document_type": doc_type, "document_id": 1000},
     )
-    assert url == "/notification/arrete-signe/1000/download/"
+    assert url == f"/notification/document-televerse/{doc_type}/1000/download/"
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
 
-def test_arrete_signe_download_url_with_correct_perimetre_and_with_arrete(
-    arrete_signe, correct_perimetre_client_with_user_logged
+@pytest.mark.parametrize(
+    "doc_type, factory",
+    ((ARRETE_ET_LETTRE_SIGNE, ArreteSigneFactory), (ANNEXE, AnnexeFactory)),
+)
+def test_uploaded_document_download_url_with_correct_perimetre_and_with_arrete(
+    correct_perimetre_client_with_user_logged, programmation_projet, doc_type, factory
 ):
-    url = arrete_signe.get_download_url()
-    assert url == f"/notification/arrete-signe/{arrete_signe.id}/download/"
+    doc = factory(programmation_projet=programmation_projet)
+    url = doc.get_download_url()
+    assert url == f"/notification/document-televerse/{doc_type}/{doc.id}/download/"
 
     # Mock boto3.client().get_object
     with patch("boto3.client") as mock_boto_client:
@@ -210,34 +212,45 @@ def test_arrete_signe_download_url_with_correct_perimetre_and_with_arrete(
         assert response.status_code == 200
 
 
-def test_arrete_signe_download_url_without_correct_perimetre_and_without_arrete(
-    arrete_signe, different_perimetre_client_with_user_logged
+@pytest.mark.parametrize(
+    "doc_type, factory",
+    ((ARRETE_ET_LETTRE_SIGNE, ArreteSigneFactory), (ANNEXE, AnnexeFactory)),
+)
+def test_uploaded_document_download_url_without_correct_perimetre_and_without_arrete(
+    different_perimetre_client_with_user_logged, doc_type, factory
 ):
-    url = arrete_signe.get_download_url()
-    assert url == f"/notification/arrete-signe/{arrete_signe.id}/download/"
+    doc = factory()
+    url = doc.get_download_url()
+    assert url == f"/notification/document-televerse/{doc_type}/{doc.id}/download/"
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
 
-### arrete-signe-view
+### uploaded-document-view
 
 
-def test_arrete_signe_view_url_with_correct_perimetre_and_without_arrete(
-    correct_perimetre_client_with_user_logged,
+@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNE, ANNEXE))
+def test_uploaded_document_view_url_with_correct_perimetre_and_without_arrete(
+    correct_perimetre_client_with_user_logged, doc_type
 ):
     url = reverse(
-        "notification:arrete-signe-view",
-        kwargs={"arrete_signe_id": 1000},
+        "notification:uploaded-document-view",
+        kwargs={"document_type": doc_type, "document_id": 1000},
     )
-    assert url == "/notification/arrete-signe/1000/view/"
+    assert url == f"/notification/document-televerse/{doc_type}/1000/view/"
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
 
-def test_arrete_signe_view_url_without_correct_perimetre_and_without_arrete(
-    arrete_signe, different_perimetre_client_with_user_logged
+@pytest.mark.parametrize(
+    "doc_type, factory",
+    ((ARRETE_ET_LETTRE_SIGNE, ArreteSigneFactory), (ANNEXE, AnnexeFactory)),
+)
+def test_uploaded_document_view_url_without_correct_perimetre_and_without_arrete(
+    different_perimetre_client_with_user_logged, doc_type, factory
 ):
-    url = arrete_signe.get_view_url()
-    assert url == f"/notification/arrete-signe/{arrete_signe.id}/view/"
+    doc = factory()
+    url = doc.get_view_url()
+    assert url == f"/notification/document-televerse/{doc_type}/{doc.id}/view/"
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
