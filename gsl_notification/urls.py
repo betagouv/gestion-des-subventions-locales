@@ -15,7 +15,7 @@ from gsl_notification.views.modele_views import (
 from gsl_notification.views.uploaded_document_views import (
     choose_type_for_document_upload,
     create_arrete_signe_view,
-    delete_arrete_signe_view,
+    delete_uploaded_document_view,
     download_arrete_signe,
     view_arrete_signe,
 )
@@ -88,9 +88,9 @@ urlpatterns = [
         name="arrete-signe-view",
     ),
     path(
-        "arrete-signe/<int:arrete_signe_id>/delete/",
-        delete_arrete_signe_view,
-        name="delete-arrete-signe",
+        "document_televerse/<str:document_type>/<int:document_id>/delete/",
+        delete_uploaded_document_view,
+        name="delete-uploaded-document",
     ),
     # Modèles d'arrêtés
     path(

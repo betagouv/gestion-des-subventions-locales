@@ -121,7 +121,8 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
                         "form_id": "delete-document-form",
                         "aria_controls": "delete-document-confirmation-modal",
                         "action": reverse(
-                            "notification:delete-arrete-signe", args=[arrete_signe.id]
+                            "notification:delete-uploaded-document",
+                            args=[arrete_signe.id],
                         ),
                     },
                 ],
@@ -144,7 +145,7 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
                         "form_id": "delete-document-form",
                         "aria_controls": "delete-document-confirmation-modal",
                         "action": reverse(
-                            "notification:delete-arrete-signe", args=[annexe.id]
+                            "notification:delete-uploaded-document", args=[annexe.id]
                         ),
                     },
                 ],

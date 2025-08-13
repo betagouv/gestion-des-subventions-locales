@@ -5,7 +5,7 @@ from gsl_notification.tests.factories import (
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl_projet.constants import ARRETE, LETTRE
+from gsl_projet.constants import ANNEXE, ARRETE, ARRETE_ET_LETTRE_SIGNE, LETTRE
 
 
 def test_documents_url():
@@ -92,12 +92,13 @@ def test_arrete_signe_download_url():
     assert url == "/notification/arrete-signe/789/download/"
 
 
-def test_arrete_signe_delete_url():
+@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNE, ANNEXE))
+def test_uploaded_document_delete_url(doc_type):
     url = reverse(
-        "gsl_notification:delete-arrete-signe",
-        kwargs={"arrete_signe_id": 789},
+        "gsl_notification:delete-uploaded-document",
+        kwargs={"document_type": doc_type, "document_id": 789},
     )
-    assert url == "/notification/arrete-signe/789/delete/"
+    assert url == f"/notification/document_televerse/{doc_type}/789/delete/"
 
 
 # Modele Arrete URLs

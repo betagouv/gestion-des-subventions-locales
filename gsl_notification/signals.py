@@ -1,9 +1,15 @@
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 
-from gsl_notification.models import ArreteSigne, ModeleArrete
+from gsl_notification.models import (
+    Annexe,
+    ArreteSigne,
+    ModeleArrete,
+    ModeleLettreNotification,
+)
 
 
+@receiver(post_delete, sender=Annexe)
 @receiver(post_delete, sender=ArreteSigne)
 def delete_file_after_instance_deletion(sender, instance: ArreteSigne, *args, **kwargs):
     if not instance.file:
@@ -14,6 +20,7 @@ def delete_file_after_instance_deletion(sender, instance: ArreteSigne, *args, **
         pass
 
 
+@receiver(post_delete, sender=ModeleLettreNotification)
 @receiver(post_delete, sender=ModeleArrete)
 def delete_logo_file_after_instance_deletion(
     sender, instance: ModeleArrete, *args, **kwargs

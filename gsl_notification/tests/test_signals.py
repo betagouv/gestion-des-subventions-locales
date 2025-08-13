@@ -1,40 +1,60 @@
 import pytest
 
-from gsl_notification.models import ArreteSigne, ModeleArrete
-from gsl_notification.tests.factories import ArreteSigneFactory, ModeleArreteFactory
+from gsl_notification.models import (
+    Annexe,
+    ArreteSigne,
+    ModeleArrete,
+    ModeleLettreNotification,
+)
+from gsl_notification.tests.factories import (
+    AnnexeFactory,
+    ArreteSigneFactory,
+    ModeleArreteFactory,
+    ModeleLettreNotificationFactory,
+)
 
 
+@pytest.mark.parametrize(
+    "klass, factory", ((ArreteSigne, ArreteSigneFactory), (Annexe, AnnexeFactory))
+)
 @pytest.mark.django_db
-def test_delete_file_on_post_delete(settings, tmp_path):
+def test_delete_file_on_post_delete(settings, tmp_path, klass, factory):
     # Isoler MEDIA_ROOT pour ne pas polluer les vrais fichiers.
     settings.MEDIA_ROOT = tmp_path
 
-    arrete_signe = ArreteSigneFactory()
-    storage = arrete_signe.file.storage
-    name = arrete_signe.file.name
+    doc = factory()
+    storage = doc.file.storage
+    name = doc.file.name
 
     assert storage.exists(name)
 
-    arrete_signe.delete()
+    doc.delete()
 
     assert not storage.exists(name)
-    with pytest.raises(ArreteSigne.DoesNotExist):
-        arrete_signe.refresh_from_db()
+    with pytest.raises(klass.DoesNotExist):
+        doc.refresh_from_db()
 
 
+@pytest.mark.parametrize(
+    "klass, factory",
+    (
+        (ModeleArrete, ModeleArreteFactory),
+        (ModeleLettreNotification, ModeleLettreNotificationFactory),
+    ),
+)
 @pytest.mark.django_db
-def test_delete_logo_on_modele_arrete_post_delete(settings, tmp_path):
+def test_delete_logo_on_modele_post_delete(settings, tmp_path, klass, factory):
     # Isoler MEDIA_ROOT pour ne pas polluer les vrais fichiers.
     settings.MEDIA_ROOT = tmp_path
 
-    modele_arrete = ModeleArreteFactory()
-    storage = modele_arrete.logo.storage
-    name = modele_arrete.logo.name
+    modele = factory()
+    storage = modele.logo.storage
+    name = modele.logo.name
 
     assert storage.exists(name)
 
-    modele_arrete.delete()
+    modele.delete()
 
     assert not storage.exists(name)
-    with pytest.raises(ModeleArrete.DoesNotExist):
-        modele_arrete.refresh_from_db()
+    with pytest.raises(klass.DoesNotExist):
+        modele.refresh_from_db()
