@@ -14,6 +14,7 @@ from gsl_notification.utils import (
 )
 from gsl_notification.views.decorators import (
     arrete_signe_visible_by_user,
+    document_visible_by_user,
     programmation_projet_visible_by_user,
 )
 from gsl_notification.views.views import (
@@ -82,7 +83,7 @@ def create_uploaded_document_view(request, programmation_projet_id, document_typ
 # Suppression d'arrêté signé ----------------------------------------------------------
 
 
-@arrete_signe_visible_by_user
+@document_visible_by_user
 @require_http_methods(["POST"])
 def delete_uploaded_document_view(request, document_type, document_id):
     doc_class = get_uploaded_document_class(document_type)
@@ -94,6 +95,7 @@ def delete_uploaded_document_view(request, document_type, document_id):
     return _redirect_to_documents_view(request, programmation_projet_id)
 
 
+# TODO remove arrete_signe_visible_by_user
 @arrete_signe_visible_by_user
 @require_GET
 def download_arrete_signe(request, arrete_signe_id, download=True):

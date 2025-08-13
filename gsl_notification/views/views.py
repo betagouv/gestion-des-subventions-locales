@@ -12,6 +12,7 @@ from django.views.generic import DetailView
 from django_weasyprint import WeasyTemplateResponseMixin
 
 from gsl_notification.models import (
+    Annexe,
     Arrete,
     ArreteSigne,
     GeneratedDocument,
@@ -31,7 +32,14 @@ from gsl_notification.views.decorators import (
     programmation_projet_visible_by_user,
 )
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import ARRETE, LETTRE, POSSIBLES_DOCUMENTS
+from gsl_projet.constants import (
+    ANNEXE,
+    ARRETE,
+    ARRETE_ET_LETTRE_SIGNE,
+    LETTRE,
+    POSSIBLES_DOCUMENTS,
+    POSSIBLES_DOCUMENTS_TELEVERSABLES,
+)
 
 # Views for listing notification documents on a programmationProjet, -------------------
 # in various contexts
@@ -85,9 +93,6 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
 
     try:
         arrete = programmation_projet.arrete
-        context["arrete_modal_title"] = (
-            f"Suppression de l'arrêté {arrete.name} créé avec Turgot"
-        )
         documents.append(
             _get_doc_card_attributes(arrete, ARRETE, programmation_projet_id)
         )
@@ -96,9 +101,6 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
 
     try:
         lettre = programmation_projet.lettre_notification
-        context["lettre_modal_title"] = (
-            f"Suppression de la lettre de notification {lettre.name} créé avec Turgot"
-        )
         documents.append(
             _get_doc_card_attributes(lettre, LETTRE, programmation_projet_id)
         )
@@ -107,50 +109,14 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
 
     try:
         arrete_signe = programmation_projet.arrete_signe
-        context["arrete_signe_modal_title"] = (
-            f"Suppression de l'arrêté {arrete_signe.name} créé par {arrete_signe.created_by}"
-        )
         documents.append(
-            {
-                **return_document_as_a_dict(arrete_signe),
-                "tag": "Fichier importé",
-                "actions": [
-                    {
-                        "name": "delete",
-                        "label": "Supprimer",
-                        "form_id": "delete-document-form",
-                        "aria_controls": "delete-document-confirmation-modal",
-                        "action": reverse(
-                            "notification:delete-uploaded-document",
-                            args=[arrete_signe.id],
-                        ),
-                    },
-                ],
-            }
+            _get_uploaded_doc_card_attributes(arrete_signe, ARRETE_ET_LETTRE_SIGNE)
         )
-
     except ArreteSigne.DoesNotExist:
         pass
 
-    # TODO factorize it
     for annexe in programmation_projet.annexes.prefetch_related("created_by").all():
-        documents.append(
-            {
-                **return_document_as_a_dict(annexe),
-                "tag": "Fichier importé",
-                "actions": [
-                    {
-                        "name": "delete",
-                        "label": "Supprimer",
-                        "form_id": "delete-document-form",
-                        "aria_controls": "delete-document-confirmation-modal",
-                        "action": reverse(
-                            "notification:delete-uploaded-document", args=[annexe.id]
-                        ),
-                    },
-                ],
-            }
-        )
+        documents.append(_get_uploaded_doc_card_attributes(annexe, ANNEXE))
 
     context.update(
         {
@@ -193,6 +159,27 @@ def _get_doc_card_attributes(
                 "action": reverse(
                     "notification:delete-document",
                     kwargs={"document_type": doc_type, "document_id": doc.id},
+                ),
+            },
+        ],
+    }
+
+
+def _get_uploaded_doc_card_attributes(
+    doc: Union[ArreteSigne, Annexe],
+    doc_type: POSSIBLES_DOCUMENTS_TELEVERSABLES,
+):
+    return {
+        **return_document_as_a_dict(doc),
+        "tag": "Fichier importé",
+        "actions": [
+            {
+                "name": "delete",
+                "label": "Supprimer",
+                "form_id": "delete-document-form",
+                "aria_controls": "delete-document-confirmation-modal",
+                "action": reverse(
+                    "notification:delete-uploaded-document", args=[doc_type, doc.id]
                 ),
             },
         ],
