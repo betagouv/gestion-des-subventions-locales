@@ -5,7 +5,14 @@ from gsl_notification.tests.factories import (
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl_projet.constants import ANNEXE, ARRETE, ARRETE_ET_LETTRE_SIGNE, LETTRE
+from gsl_projet.constants import (
+    ANNEXE,
+    ARRETE,
+    ARRETE_ET_LETTRE_SIGNE,
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    LETTRE,
+)
 
 
 def test_documents_url():
@@ -170,8 +177,9 @@ def test_delete_modele_url(modele_type, factory):
     assert url == f"/notification/modeles/{modele_type}/{modele.id}/"
 
 
-def test_get_generic_modele_url():
+@pytest.mark.parametrize("dotation", (DOTATION_DETR, DOTATION_DSIL))
+def test_get_generic_modele_url(dotation):
     url = reverse(
-        "gsl_notification:get-generic-modele-template", kwargs={"dotation": "DETR"}
+        "gsl_notification:get-generic-modele-template", kwargs={"dotation": dotation}
     )
-    assert url == "/notification/modeles/generique/DETR/"
+    assert url == f"/notification/modeles/generique/{dotation}/"

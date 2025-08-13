@@ -119,13 +119,13 @@ urlpatterns = [
         name="modele-dupliquer",
     ),
     path(
-        "modeles/<str:modele_type>/<str:modele_id>/",
-        delete_modele_view,
-        name="delete-modele",
-    ),
-    path(
         "modeles/generique/<str:dotation>/",
         get_generic_modele,
         name="get-generic-modele-template",
+    ),
+    path(
+        "modeles/<str:modele_type>/<str:modele_id>/",
+        delete_modele_view,
+        name="delete-modele",
     ),
 ]
