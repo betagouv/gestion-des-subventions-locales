@@ -203,7 +203,9 @@ def get_s3_object(file_name):
         raise Http404("Fichier non trouvé")
 
 
-def return_document_as_a_dict(document: Arrete | ArreteSigne):
+def return_document_as_a_dict(
+    document: Arrete | ArreteSigne | LettreNotification | Annexe,
+):
     return {
         "name": document.name,
         "file_type": document.file_type,
@@ -212,6 +214,7 @@ def return_document_as_a_dict(document: Arrete | ArreteSigne):
         "created_by": document.created_by,
         "get_view_url": document.get_view_url,
         "get_download_url": document.get_download_url,
+        "document_type": document.document_type,
     }
 
 

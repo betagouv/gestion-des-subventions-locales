@@ -6,7 +6,13 @@ from django.urls import reverse
 from django.utils import timezone
 
 from gsl_core.models import Collegue, Perimetre
-from gsl_projet.constants import ARRETE, DOTATION_CHOICES, LETTRE
+from gsl_projet.constants import (
+    ANNEXE,
+    ARRETE,
+    ARRETE_ET_LETTRE_SIGNE,
+    DOTATION_CHOICES,
+    LETTRE,
+)
 
 
 def tokenized_file_in_timestamped_folder(_, filename):
@@ -242,6 +248,10 @@ class UploadedDocument(models.Model):
     def size(self):
         return self.file.size
 
+    @property
+    def document_type(self):
+        raise NotImplementedError
+
 
 class ArreteSigne(UploadedDocument):
     file = models.FileField(upload_to="arrete_signe/")
@@ -257,7 +267,11 @@ class ArreteSigne(UploadedDocument):
         verbose_name_plural = "Arrêtés signés"
 
     def __str__(self):
-        return f"Arrêté signé #{self.id} "
+        return f"Arrêté signé #{self.id}"
+
+    @property
+    def document_type(self):
+        return ARRETE_ET_LETTRE_SIGNE
 
 
 class Annexe(UploadedDocument):
@@ -274,4 +288,8 @@ class Annexe(UploadedDocument):
         verbose_name_plural = "Annexes"
 
     def __str__(self):
-        return f"Annexe #{self.id} "
+        return f"Annexe #{self.id}"
+
+    @property
+    def document_type(self):
+        return ANNEXE

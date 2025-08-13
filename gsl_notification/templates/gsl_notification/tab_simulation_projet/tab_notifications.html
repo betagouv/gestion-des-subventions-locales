@@ -49,7 +49,10 @@
                 </button>
             </div>
             {% if documents %}
-                <ul class="arrete-list">
+                <ul class="arrete-list"
+                    data-controller="delete-notification-document-modal"
+                    data-delete-notification-document-modal-modal-id-value="delete-document-confirmation-modal"
+                    data-delete-notification-document-modal-form-id-value="delete-document-form">
                     {% for document in documents %}
                         {% include "includes/_document_card.html" %}
                     {% endfor %}
@@ -78,7 +81,12 @@
 {% endblock extra_js %}
 
 {% block modal %}
-    {% if arrete_modal_title %}
+    {% ui_confirmation_modal modal_id="delete-document-confirmation-modal" title=arrete_modal_title text="Êtes-vous sûr(e) de vouloir supprimer cet arrêté ?<br>Cette action est irréversible." form="delete-document-form" action_text="Supprimer" %}
+    <form method="post" id="delete-document-form">
+        {% csrf_token %}
+    </form>
+
+    {% comment %} {% if arrete_modal_title %}
         {% ui_confirmation_modal modal_id="delete-arrete-confirmation-modal" title=arrete_modal_title text="Êtes-vous sûr(e) de vouloir supprimer cet arrêté ?<br>Cette action est irréversible." form="delete-arrete" action_text="Supprimer" %}
     {% endif %}
     {% if lettre_modal_title %}
@@ -86,5 +94,5 @@
     {% endif %}
     {% if arrete_signe_modal_title %}
         {% ui_confirmation_modal modal_id="delete-arrete-signe-confirmation-modal" title=arrete_signe_modal_title text="Êtes-vous sûr(e) de vouloir supprimer cet arrêté ?<br>Cette action est irréversible." form="delete-arrete-signe" action_text="Supprimer" %}
-    {% endif %}
+    {% endif %} {% endcomment %}
 {% endblock modal %}

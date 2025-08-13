@@ -118,8 +118,8 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
                     {
                         "name": "delete",
                         "label": "Supprimer",
-                        "form_id": "delete-arrete-signe",
-                        "aria_controls": "delete-arrete-signe-confirmation-modal",
+                        "form_id": "delete-document-form",
+                        "aria_controls": "delete-document-confirmation-modal",
                         "action": reverse(
                             "notification:delete-arrete-signe", args=[arrete_signe.id]
                         ),
@@ -131,7 +131,8 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
     except ArreteSigne.DoesNotExist:
         pass
 
-    for annexe in programmation_projet.annexes.all():
+    # TODO factorize it
+    for annexe in programmation_projet.annexes.prefetch_related("created_by").all():
         documents.append(
             {
                 **return_document_as_a_dict(annexe),
@@ -140,8 +141,8 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
                     {
                         "name": "delete",
                         "label": "Supprimer",
-                        "form_id": "delete-arrete-signe",  # TODO update
-                        "aria_controls": "delete-arrete-signe-confirmation-modal",  # TODO update
+                        "form_id": "delete-document-form",
+                        "aria_controls": "delete-document-confirmation-modal",
                         "action": reverse(
                             "notification:delete-arrete-signe", args=[annexe.id]
                         ),
@@ -186,8 +187,8 @@ def _get_doc_card_attributes(
             {
                 "name": "delete",
                 "label": "Supprimer",
-                "form_id": f"delete-{doc_type}",
-                "aria_controls": f"delete-{doc_type}-confirmation-modal",
+                "form_id": "delete-document-form",
+                "aria_controls": "delete-document-confirmation-modal",
                 "action": reverse(
                     "notification:delete-document",
                     kwargs={"document_type": doc_type, "document_id": doc.id},
