@@ -92,12 +92,13 @@ def test_create_arrete_signe_url(doc_type):
     assert url == f"/notification/123/televersement/{doc_type}/creer/"
 
 
-def test_uploaded_document_download_url():
+@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNE, ANNEXE))
+def test_uploaded_document_download_url(doc_type):
     url = reverse(
         "gsl_notification:uploaded-document-download",
-        kwargs={"arrete_signe_id": 789},
+        kwargs={"document_type": doc_type, "document_id": 789},
     )
-    assert url == "/notification/arrete-signe/789/download/"
+    assert url == f"/notification/document-televerse/{doc_type}/789/download/"
 
 
 @pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNE, ANNEXE))
@@ -106,7 +107,7 @@ def test_uploaded_document_delete_url(doc_type):
         "gsl_notification:delete-uploaded-document",
         kwargs={"document_type": doc_type, "document_id": 789},
     )
-    assert url == f"/notification/document_televerse/{doc_type}/789/delete/"
+    assert url == f"/notification/document-televerse/{doc_type}/789/delete/"
 
 
 # Modele Arrete URLs
