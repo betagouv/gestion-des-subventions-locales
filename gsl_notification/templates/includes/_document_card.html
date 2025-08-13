@@ -13,7 +13,6 @@
                 {% for action in document.actions %}
                     <li>
                         {% if action.name == "delete" %}
-                            {% comment %} <form method="post" id="{{ action.form_id }}" action="{{ action.action }}"> {% endcomment %}
                             <button type="button"
                                     class="fr-btn fr-btn--secondary arrete-card__action"
                                     data-fr-opened="false"
@@ -21,7 +20,7 @@
                                     aria-expanded="false"
                                     data-name="{{ document.name }}"
                                     data-type="{{ document.document_type }}"
-                                    data-action-form="{{ action.action }}"
+                                    data-form-action="{{ action.action }}"
                                     data-action="delete-notification-document-modal#updateModaleTitleAndSubmitAction">
                                 {{ action.label }}
                             </button>

@@ -27,26 +27,20 @@ export class DeleteNotificationDocumentModal extends Controller {
   }
 
   connect(){
-    console.log("this.modalIdValue", this.modalIdValue)
-    console.log("this.formIdValue", this.formIdValue)
     this.modal = document.getElementById(this.modalIdValue)
     this.form = document.getElementById(this.formIdValue)
-    console.log(this.modal)
-    console.log(this.form)
   }
 
   updateModaleTitleAndSubmitAction(evt){
     let btn = evt.target
     if (this.modal){
       let type = btn.dataset.type;
-      console.log(type)
       let title = "Suppression " + TYPE_TO_TITLE[type] + " “" + btn.dataset.name + "“"
       this.modal.querySelector(".modal-title").innerText = title;
       this.modal.querySelector(".modal-body").innerHTML = TYPE_TO_BODY[type]
     }
     if (this.form){
-      console.log(btn.dataset.actionForm)
-      this.form.setAttribute("action", btn.dataset.actionForm)
+      this.form.setAttribute("action", btn.dataset.formAction)
     }
   }
 }
