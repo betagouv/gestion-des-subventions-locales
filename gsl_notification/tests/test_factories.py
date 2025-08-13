@@ -3,15 +3,15 @@ import pytest
 from ..models import (
     Annexe,
     Arrete,
-    ArreteSigne,
+    ArreteEtLettreSignes,
     LettreNotification,
     ModeleArrete,
     ModeleLettreNotification,
 )
 from .factories import (
     AnnexeFactory,
+    ArreteEtLettreSignesFactory,
     ArreteFactory,
-    ArreteSigneFactory,
     LettreNotificationFactory,
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
@@ -22,7 +22,7 @@ pytestmark = pytest.mark.django_db
 test_data = (
     (ArreteFactory, Arrete),
     (LettreNotificationFactory, LettreNotification),
-    (ArreteSigneFactory, ArreteSigne),
+    (ArreteEtLettreSignesFactory, ArreteEtLettreSignes),
     (AnnexeFactory, Annexe),
     (ModeleLettreNotificationFactory, ModeleLettreNotification),
     (ModeleArreteFactory, ModeleArrete),

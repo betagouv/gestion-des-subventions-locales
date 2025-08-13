@@ -11,7 +11,7 @@ from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
-from gsl_notification.tests.factories import ArreteFactory, ArreteSigneFactory
+from gsl_notification.tests.factories import ArreteEtLettreSignesFactory, ArreteFactory
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
@@ -377,10 +377,10 @@ def test_documents_summary_arrete_genere():
 
 
 @pytest.mark.django_db
-def test_documents_summary_arrete_signe_hides_arrete_genere():
+def test_documents_summary_arrete_et_lettre_signes_hides_arrete_genere():
     programmation_projet = ProgrammationProjetFactory()
-    ArreteSigneFactory(programmation_projet=programmation_projet)
+    ArreteEtLettreSignesFactory(programmation_projet=programmation_projet)
     ArreteFactory(programmation_projet=programmation_projet)
 
     summary = programmation_projet.documents_summary
-    assert summary == ["1 arrêté signé"]
+    assert summary == ["1 arrêté et lettre signés"]

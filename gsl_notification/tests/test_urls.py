@@ -8,7 +8,7 @@ from gsl_notification.tests.factories import (
 from gsl_projet.constants import (
     ANNEXE,
     ARRETE,
-    ARRETE_ET_LETTRE_SIGNE,
+    ARRETE_ET_LETTRE_SIGNES,
     DOTATION_DETR,
     DOTATION_DSIL,
     LETTRE,
@@ -83,8 +83,8 @@ def test_document_delete_url(document_type):
 # Arrete signés URLs
 
 
-@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNE, ANNEXE))
-def test_create_arrete_signe_url(doc_type):
+@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNES, ANNEXE))
+def test_create_arrete_et_lettre_signes_url(doc_type):
     url = reverse(
         "gsl_notification:upload-a-document",
         kwargs={"programmation_projet_id": 123, "document_type": doc_type},
@@ -92,7 +92,7 @@ def test_create_arrete_signe_url(doc_type):
     assert url == f"/notification/123/televersement/{doc_type}/creer/"
 
 
-@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNE, ANNEXE))
+@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNES, ANNEXE))
 def test_uploaded_document_download_url(doc_type):
     url = reverse(
         "gsl_notification:uploaded-document-download",
@@ -101,7 +101,7 @@ def test_uploaded_document_download_url(doc_type):
     assert url == f"/notification/document-televerse/{doc_type}/789/download/"
 
 
-@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNE, ANNEXE))
+@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNES, ANNEXE))
 def test_uploaded_document_delete_url(doc_type):
     url = reverse(
         "gsl_notification:delete-uploaded-document",
