@@ -6,7 +6,13 @@ from django.urls import reverse
 from django.utils import timezone
 
 from gsl_core.models import Collegue, Perimetre
-from gsl_projet.constants import ARRETE, DOTATION_CHOICES, LETTRE
+from gsl_projet.constants import (
+    ANNEXE,
+    ARRETE,
+    ARRETE_ET_LETTRE_SIGNE,
+    DOTATION_CHOICES,
+    LETTRE,
+)
 
 
 def tokenized_file_in_timestamped_folder(_, filename):
@@ -213,32 +219,23 @@ class LettreNotification(GeneratedDocument):
         return f"lettre-notification-{self.created_at.strftime('%Y-%m-%d')}.pdf"
 
 
-class ArreteSigne(models.Model):
-    file = models.FileField(upload_to="arrete_signe/")
+class UploadedDocument(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
 
-    programmation_projet = models.OneToOneField(
-        "gsl_programmation.ProgrammationProjet",
-        on_delete=models.CASCADE,
-        related_name="arrete_signe",
-    )
-
     class Meta:
-        verbose_name = "Arrêté signé"
-        verbose_name_plural = "Arrêtés signés"
-
-    def __str__(self):
-        return f"Arrêté signé #{self.id} "
+        abstract = True
 
     def get_download_url(self):
         return reverse(
-            "notification:arrete-signe-download", kwargs={"arrete_signe_id": self.id}
+            "notification:uploaded-document-download",
+            kwargs={"document_type": self.document_type, "document_id": self.id},
         )
 
     def get_view_url(self):
         return reverse(
-            "notification:arrete-signe-view", kwargs={"arrete_signe_id": self.id}
+            "notification:uploaded-document-view",
+            kwargs={"document_type": self.document_type, "document_id": self.id},
         )
 
     @property
@@ -252,3 +249,49 @@ class ArreteSigne(models.Model):
     @property
     def size(self):
         return self.file.size
+
+    @property
+    def document_type(self):
+        raise NotImplementedError
+
+
+class ArreteSigne(UploadedDocument):
+    file = models.FileField(upload_to="arrete_signe/")
+
+    programmation_projet = models.OneToOneField(
+        "gsl_programmation.ProgrammationProjet",
+        on_delete=models.CASCADE,
+        related_name="arrete_signe",
+    )
+
+    class Meta:
+        verbose_name = "Arrêté signé"
+        verbose_name_plural = "Arrêtés signés"
+
+    def __str__(self):
+        return f"Arrêté signé #{self.id}"
+
+    @property
+    def document_type(self):
+        return ARRETE_ET_LETTRE_SIGNE
+
+
+class Annexe(UploadedDocument):
+    file = models.FileField(upload_to="annexe/")
+
+    programmation_projet = models.ForeignKey(
+        "gsl_programmation.ProgrammationProjet",
+        on_delete=models.CASCADE,
+        related_name="annexes",
+    )
+
+    class Meta:
+        verbose_name = "Annexe"
+        verbose_name_plural = "Annexes"
+
+    def __str__(self):
+        return f"Annexe #{self.id}"
+
+    @property
+    def document_type(self):
+        return ANNEXE

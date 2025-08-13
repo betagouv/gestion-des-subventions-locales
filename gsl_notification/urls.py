@@ -12,18 +12,21 @@ from gsl_notification.views.modele_views import (
     delete_modele_view,
     get_generic_modele,
 )
+from gsl_notification.views.uploaded_document_views import (
+    choose_type_for_document_upload,
+    create_uploaded_document_view,
+    delete_uploaded_document_view,
+    download_uploaded_document,
+    view_uploaded_document,
+)
 from gsl_notification.views.views import (
     DownloadArreteView,
     PrintDocumentView,
     change_document_view,
     choose_type_for_document_generation,
-    create_arrete_signe_view,
-    delete_arrete_signe_view,
     delete_document_view,
     documents_view,
-    download_arrete_signe,
     select_modele,
-    view_arrete_signe,
 )
 
 urlpatterns = [
@@ -65,24 +68,29 @@ urlpatterns = [
     ),
     # Arretes signés
     path(
-        "<int:programmation_projet_id>/creer-arrete-signe/",
-        create_arrete_signe_view,
-        name="create-arrete-signe",
+        "<int:programmation_projet_id>/televersement/choix-du-type/",
+        choose_type_for_document_upload,
+        name="choose-uploaded-document-type",
     ),
     path(
-        "arrete-signe/<int:arrete_signe_id>/download/",
-        download_arrete_signe,
-        name="arrete-signe-download",
+        "<int:programmation_projet_id>/televersement/<str:document_type>/creer/",
+        create_uploaded_document_view,
+        name="upload-a-document",
     ),
     path(
-        "arrete-signe/<int:arrete_signe_id>/view/",
-        view_arrete_signe,
-        name="arrete-signe-view",
+        "document-televerse/<str:document_type>/<int:document_id>/download/",
+        download_uploaded_document,
+        name="uploaded-document-download",
     ),
     path(
-        "arrete-signe/<int:arrete_signe_id>/delete/",
-        delete_arrete_signe_view,
-        name="delete-arrete-signe",
+        "document-televerse/<str:document_type>/<int:document_id>/view/",
+        view_uploaded_document,
+        name="uploaded-document-view",
+    ),
+    path(
+        "document-televerse/<str:document_type>/<int:document_id>/delete/",
+        delete_uploaded_document_view,
+        name="delete-uploaded-document",
     ),
     # Modèles d'arrêtés
     path(
@@ -111,13 +119,13 @@ urlpatterns = [
         name="modele-dupliquer",
     ),
     path(
-        "modeles/<str:modele_type>/<str:modele_id>/",
-        delete_modele_view,
-        name="delete-modele",
-    ),
-    path(
         "modeles/generique/<str:dotation>/",
         get_generic_modele,
         name="get-generic-modele-template",
+    ),
+    path(
+        "modeles/<str:modele_type>/<str:modele_id>/",
+        delete_modele_view,
+        name="delete-modele",
     ),
 ]

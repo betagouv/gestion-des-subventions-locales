@@ -1,8 +1,5 @@
-from unittest.mock import MagicMock, patch
-
 import pytest
 from django.contrib.messages import get_messages
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from freezegun import freeze_time
 
@@ -300,7 +297,10 @@ def test_modify_arrete_url_with_arrete(
             == "Modification de la lettre de notification"
         )
     assert response.context["modele"] == document.modele
-    assert response.templates[0].name == "gsl_notification/change_document.html"
+    assert (
+        response.templates[0].name
+        == "gsl_notification/generated_document/change_document.html"
+    )
 
 
 ####### With modele_id
@@ -342,7 +342,10 @@ def test_modify_arrete_url_without_document_and_with_modele_id(
     else:
         assert response.context["page_title"] == "Création de la lettre de notification"
     assert response.context["modele"] == modele
-    assert response.templates[0].name == "gsl_notification/change_document.html"
+    assert (
+        response.templates[0].name
+        == "gsl_notification/generated_document/change_document.html"
+    )
 
 
 ########### With wrong modele_perimetre
@@ -424,7 +427,10 @@ def test_modify_arrete_url_with_document_and_with_correct_modele_id(
         expected_title = "Modification de la lettre de notification"
     assert response.context["page_title"] == expected_title
     assert response.context["modele"] == modele
-    assert response.templates[0].name == "gsl_notification/change_document.html"
+    assert (
+        response.templates[0].name
+        == "gsl_notification/generated_document/change_document.html"
+    )
 
 
 ########### With wrong dotation
@@ -641,7 +647,10 @@ def test_change_document_view_invalid(
         "modele": ["Ce champ est obligatoire."],
         "content": ["Ce champ est obligatoire."],
     }
-    assert response.templates[0].name == "gsl_notification/change_document.html"
+    assert (
+        response.templates[0].name
+        == "gsl_notification/generated_document/change_document.html"
+    )
     messages = get_messages(response.wsgi_request)
     assert len(messages) == 1
     message = list(messages)[0]
@@ -770,171 +779,6 @@ def test_document_view_url_with_wrong_perimetre(
         "notification:document-view",
         kwargs={"document_type": document_type, "document_id": document.id},
     )
-    response = different_perimetre_client_with_user_logged.get(url)
-    assert response.status_code == 404
-
-
-# ArreteSigne
-
-### create-arrete-signe -----------------------------
-
-
-##### GET
-def test_create_arrete_signe_view_with_not_correct_perimetre_and_without_arrete(
-    programmation_projet, different_perimetre_client_with_user_logged
-):
-    url = reverse(
-        "notification:create-arrete-signe",
-        kwargs={"programmation_projet_id": programmation_projet.id},
-    )
-    assert url == f"/notification/{programmation_projet.id}/creer-arrete-signe/"
-    response = different_perimetre_client_with_user_logged.get(url)
-    assert response.status_code == 404
-
-
-def test_create_arrete_signe_view_with_correct_perimetre_and_without_arrete(
-    programmation_projet, correct_perimetre_client_with_user_logged
-):
-    url = reverse(
-        "notification:create-arrete-signe",
-        kwargs={"programmation_projet_id": programmation_projet.id},
-    )
-    assert url == f"/notification/{programmation_projet.id}/creer-arrete-signe/"
-    response = correct_perimetre_client_with_user_logged.get(url)
-    assert response.status_code == 200
-    assert "arrete_signe_form" in response.context
-    assert response.templates[0].name == "gsl_notification/upload_arrete_signe.html"
-
-
-##### POST
-
-
-def test_create_arrete_signe_view_valid_but_with_invalid_user_perimetre(
-    programmation_projet, different_perimetre_client_with_user_logged
-):
-    url = reverse(
-        "notification:create-arrete-signe",
-        kwargs={"programmation_projet_id": programmation_projet.id},
-    )
-    file = SimpleUploadedFile("test.pdf", b"dummy", content_type="application/pdf")
-    data = {
-        "file": file,
-        "created_by": different_perimetre_client_with_user_logged.user.id,
-        "programmation_projet": programmation_projet.id,
-    }
-    response = different_perimetre_client_with_user_logged.post(url, data)
-    assert response.status_code == 404
-
-
-def test_create_arrete_signe_view_valid(
-    programmation_projet, correct_perimetre_client_with_user_logged
-):
-    url = reverse(
-        "notification:create-arrete-signe",
-        kwargs={"programmation_projet_id": programmation_projet.id},
-    )
-    file = SimpleUploadedFile("test.pdf", b"dummy", content_type="application/pdf")
-    data = {
-        "file": file,
-        "created_by": correct_perimetre_client_with_user_logged.user.id,
-        "programmation_projet": programmation_projet.id,
-    }
-    response = correct_perimetre_client_with_user_logged.post(url, data)
-    assert response.status_code == 302
-    assert response["Location"] == f"/notification/{programmation_projet.id}/documents/"
-    assert programmation_projet.arrete_signe is not None
-    assert (
-        f"programmation_projet_{programmation_projet.id}/test"
-        in programmation_projet.arrete_signe.file.name
-    )
-    assert (
-        programmation_projet.arrete_signe.created_by
-        == correct_perimetre_client_with_user_logged.user
-    )
-
-
-def test_create_arrete_signe_view_invalid(
-    programmation_projet, correct_perimetre_client_with_user_logged
-):
-    url = reverse(
-        "notification:create-arrete-signe",
-        kwargs={"programmation_projet_id": programmation_projet.id},
-    )
-    response = correct_perimetre_client_with_user_logged.post(url, {})
-    assert response.status_code == 200
-    assert response.context["arrete_signe_form"].errors == {
-        "file": ["Ce champ est obligatoire."],
-        "created_by": ["Ce champ est obligatoire."],
-        "programmation_projet": ["Ce champ est obligatoire."],
-    }
-    assert response.templates[0].name == "gsl_notification/upload_arrete_signe.html"
-
-
-### arrete-signe-download
-
-
-def test_arrete_signe_download_url_with_correct_perimetre_and_without_arrete(
-    correct_perimetre_client_with_user_logged,
-):
-    url = reverse(
-        "notification:arrete-signe-download",
-        kwargs={"arrete_signe_id": 1000},
-    )
-    assert url == "/notification/arrete-signe/1000/download/"
-    response = correct_perimetre_client_with_user_logged.get(url)
-    assert response.status_code == 404
-
-
-def test_arrete_signe_download_url_with_correct_perimetre_and_with_arrete(
-    arrete_signe, correct_perimetre_client_with_user_logged
-):
-    url = arrete_signe.get_download_url()
-    assert url == f"/notification/arrete-signe/{arrete_signe.id}/download/"
-
-    # Mock boto3.client().get_object
-    with patch("boto3.client") as mock_boto_client:
-        mock_s3 = MagicMock()
-        mock_body = MagicMock()
-        mock_body.iter_chunks.return_value = [b"dummy data"]
-        mock_s3.get_object.return_value = {
-            "Body": mock_body,
-            "ContentType": "application/pdf",
-        }
-        mock_boto_client.return_value = mock_s3
-
-        response = correct_perimetre_client_with_user_logged.get(url)
-        assert response.status_code == 200
-
-
-def test_arrete_signe_download_url_without_correct_perimetre_and_without_arrete(
-    arrete_signe, different_perimetre_client_with_user_logged
-):
-    url = arrete_signe.get_download_url()
-    assert url == f"/notification/arrete-signe/{arrete_signe.id}/download/"
-    response = different_perimetre_client_with_user_logged.get(url)
-    assert response.status_code == 404
-
-
-### arrete-signe-view
-
-
-def test_arrete_signe_view_url_with_correct_perimetre_and_without_arrete(
-    correct_perimetre_client_with_user_logged,
-):
-    url = reverse(
-        "notification:arrete-signe-view",
-        kwargs={"arrete_signe_id": 1000},
-    )
-    assert url == "/notification/arrete-signe/1000/view/"
-    response = correct_perimetre_client_with_user_logged.get(url)
-    assert response.status_code == 404
-
-
-def test_arrete_signe_view_url_without_correct_perimetre_and_without_arrete(
-    arrete_signe, different_perimetre_client_with_user_logged
-):
-    url = arrete_signe.get_view_url()
-    assert url == f"/notification/arrete-signe/{arrete_signe.id}/view/"
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 

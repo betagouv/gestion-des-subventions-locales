@@ -13,16 +13,17 @@
                 {% for action in document.actions %}
                     <li>
                         {% if action.name == "delete" %}
-                            <form method="post" id="{{ action.form_id }}" action="{{ action.action }}">
-                                {% csrf_token %}
-                                <button type="button"
-                                        class="fr-btn fr-btn--secondary arrete-card__action"
-                                        data-fr-opened="false"
-                                        aria-controls="{{ action.aria_controls }}"
-                                        aria-expanded="false">
-                                    {{ action.label }}
-                                </button>
-                            </form>
+                            <button type="button"
+                                    class="fr-btn fr-btn--secondary arrete-card__action"
+                                    data-fr-opened="false"
+                                    aria-controls="{{ action.aria_controls }}"
+                                    aria-expanded="false"
+                                    data-name="{{ document.name }}"
+                                    data-type="{{ document.document_type }}"
+                                    data-form-action="{{ action.action }}"
+                                    data-action="delete-notification-document-modal#updateModaleTitleAndSubmitAction">
+                                {{ action.label }}
+                            </button>
                         {% else %}
                             <a href="{{ action.href }}"
                                class="fr-btn fr-btn--secondary arrete-card__action">

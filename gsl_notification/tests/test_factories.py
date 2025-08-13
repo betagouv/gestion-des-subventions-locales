@@ -1,6 +1,7 @@
 import pytest
 
 from ..models import (
+    Annexe,
     Arrete,
     ArreteSigne,
     LettreNotification,
@@ -8,6 +9,7 @@ from ..models import (
     ModeleLettreNotification,
 )
 from .factories import (
+    AnnexeFactory,
     ArreteFactory,
     ArreteSigneFactory,
     LettreNotificationFactory,
@@ -21,6 +23,7 @@ test_data = (
     (ArreteFactory, Arrete),
     (LettreNotificationFactory, LettreNotification),
     (ArreteSigneFactory, ArreteSigne),
+    (AnnexeFactory, Annexe),
     (ModeleLettreNotificationFactory, ModeleLettreNotification),
     (ModeleArreteFactory, ModeleArrete),
 )

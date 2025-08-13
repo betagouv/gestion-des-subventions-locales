@@ -5,7 +5,14 @@ from gsl_notification.tests.factories import (
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl_projet.constants import ARRETE, LETTRE
+from gsl_projet.constants import (
+    ANNEXE,
+    ARRETE,
+    ARRETE_ET_LETTRE_SIGNE,
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    LETTRE,
+)
 
 
 def test_documents_url():
@@ -76,28 +83,31 @@ def test_document_delete_url(document_type):
 # Arrete signés URLs
 
 
-def test_create_arrete_signe_url():
+@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNE, ANNEXE))
+def test_create_arrete_signe_url(doc_type):
     url = reverse(
-        "gsl_notification:create-arrete-signe",
-        kwargs={"programmation_projet_id": 123},
+        "gsl_notification:upload-a-document",
+        kwargs={"programmation_projet_id": 123, "document_type": doc_type},
     )
-    assert url == "/notification/123/creer-arrete-signe/"
+    assert url == f"/notification/123/televersement/{doc_type}/creer/"
 
 
-def test_arrete_signe_download_url():
+@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNE, ANNEXE))
+def test_uploaded_document_download_url(doc_type):
     url = reverse(
-        "gsl_notification:arrete-signe-download",
-        kwargs={"arrete_signe_id": 789},
+        "gsl_notification:uploaded-document-download",
+        kwargs={"document_type": doc_type, "document_id": 789},
     )
-    assert url == "/notification/arrete-signe/789/download/"
+    assert url == f"/notification/document-televerse/{doc_type}/789/download/"
 
 
-def test_arrete_signe_delete_url():
+@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNE, ANNEXE))
+def test_uploaded_document_delete_url(doc_type):
     url = reverse(
-        "gsl_notification:delete-arrete-signe",
-        kwargs={"arrete_signe_id": 789},
+        "gsl_notification:delete-uploaded-document",
+        kwargs={"document_type": doc_type, "document_id": 789},
     )
-    assert url == "/notification/arrete-signe/789/delete/"
+    assert url == f"/notification/document-televerse/{doc_type}/789/delete/"
 
 
 # Modele Arrete URLs
@@ -168,8 +178,9 @@ def test_delete_modele_url(modele_type, factory):
     assert url == f"/notification/modeles/{modele_type}/{modele.id}/"
 
 
-def test_get_generic_modele_url():
+@pytest.mark.parametrize("dotation", (DOTATION_DETR, DOTATION_DSIL))
+def test_get_generic_modele_url(dotation):
     url = reverse(
-        "gsl_notification:get-generic-modele-template", kwargs={"dotation": "DETR"}
+        "gsl_notification:get-generic-modele-template", kwargs={"dotation": dotation}
     )
-    assert url == "/notification/modeles/generique/DETR/"
+    assert url == f"/notification/modeles/generique/{dotation}/"

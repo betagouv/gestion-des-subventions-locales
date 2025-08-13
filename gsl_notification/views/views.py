@@ -3,7 +3,7 @@ from typing import Union
 from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
 from django.contrib import messages
-from django.http import Http404, StreamingHttpResponse
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -11,10 +11,8 @@ from django.views.decorators.http import require_GET, require_http_methods
 from django.views.generic import DetailView
 from django_weasyprint import WeasyTemplateResponseMixin
 
-from gsl_notification.forms import (
-    ArreteSigneForm,
-)
 from gsl_notification.models import (
+    Annexe,
     Arrete,
     ArreteSigne,
     GeneratedDocument,
@@ -26,18 +24,22 @@ from gsl_notification.utils import (
     get_form_class,
     get_modele_class,
     get_modele_perimetres,
-    get_s3_object,
     replace_mentions_in_html,
     return_document_as_a_dict,
-    update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
 from gsl_notification.views.decorators import (
-    arrete_signe_visible_by_user,
     document_visible_by_user,
     programmation_projet_visible_by_user,
 )
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import ARRETE, LETTRE, POSSIBLE_DOCUMENTS
+from gsl_projet.constants import (
+    ANNEXE,
+    ARRETE,
+    ARRETE_ET_LETTRE_SIGNE,
+    LETTRE,
+    POSSIBLES_DOCUMENTS,
+    POSSIBLES_DOCUMENTS_TELEVERSABLES,
+)
 
 # Views for listing notification documents on a programmationProjet, -------------------
 # in various contexts
@@ -91,9 +93,6 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
 
     try:
         arrete = programmation_projet.arrete
-        context["arrete_modal_title"] = (
-            f"Suppression de l'arrêté {arrete.name} créé avec Turgot"
-        )
         documents.append(
             _get_doc_card_attributes(arrete, ARRETE, programmation_projet_id)
         )
@@ -102,9 +101,6 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
 
     try:
         lettre = programmation_projet.lettre_notification
-        context["lettre_modal_title"] = (
-            f"Suppression de la lettre de notification {lettre.name} créé avec Turgot"
-        )
         documents.append(
             _get_doc_card_attributes(lettre, LETTRE, programmation_projet_id)
         )
@@ -113,36 +109,21 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
 
     try:
         arrete_signe = programmation_projet.arrete_signe
-        context["arrete_signe_modal_title"] = (
-            f"Suppression de l'arrêté {arrete_signe.name} créé par {arrete_signe.created_by}"
-        )
         documents.append(
-            {
-                **return_document_as_a_dict(arrete_signe),
-                "tag": "Fichier importé",
-                "actions": [
-                    {
-                        "name": "delete",
-                        "label": "Supprimer",
-                        "form_id": "delete-arrete-signe",
-                        "aria_controls": "delete-arrete-signe-confirmation-modal",
-                        "action": reverse(
-                            "notification:delete-arrete-signe", args=[arrete_signe.id]
-                        ),
-                    },
-                ],
-            }
+            _get_uploaded_doc_card_attributes(arrete_signe, ARRETE_ET_LETTRE_SIGNE)
         )
-
     except ArreteSigne.DoesNotExist:
         pass
+
+    for annexe in programmation_projet.annexes.prefetch_related("created_by").all():
+        documents.append(_get_uploaded_doc_card_attributes(annexe, ANNEXE))
 
     context.update(
         {
             "programmation_projet_id": programmation_projet.id,
             "source_url": source_url,
             "dossier": programmation_projet.projet.dossier_ds,
-            "documents": documents,
+            "documents": sorted(documents, key=lambda d: d["created_at"]),
         }
     )
 
@@ -155,7 +136,7 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
 
 def _get_doc_card_attributes(
     doc: Union[Arrete, LettreNotification],
-    doc_type: POSSIBLE_DOCUMENTS,
+    doc_type: POSSIBLES_DOCUMENTS,
     programmation_projet_id: int,
 ):
     return {
@@ -173,11 +154,32 @@ def _get_doc_card_attributes(
             {
                 "name": "delete",
                 "label": "Supprimer",
-                "form_id": f"delete-{doc_type}",
-                "aria_controls": f"delete-{doc_type}-confirmation-modal",
+                "form_id": "delete-document-form",
+                "aria_controls": "delete-document-confirmation-modal",
                 "action": reverse(
                     "notification:delete-document",
                     kwargs={"document_type": doc_type, "document_id": doc.id},
+                ),
+            },
+        ],
+    }
+
+
+def _get_uploaded_doc_card_attributes(
+    doc: Union[ArreteSigne, Annexe],
+    doc_type: POSSIBLES_DOCUMENTS_TELEVERSABLES,
+):
+    return {
+        **return_document_as_a_dict(doc),
+        "tag": "Fichier importé",
+        "actions": [
+            {
+                "name": "delete",
+                "label": "Supprimer",
+                "form_id": "delete-document-form",
+                "aria_controls": "delete-document-confirmation-modal",
+                "action": reverse(
+                    "notification:delete-uploaded-document", args=[doc_type, doc.id]
                 ),
             },
         ],
@@ -197,7 +199,9 @@ def choose_type_for_document_generation(request, programmation_projet_id):
     )
     context = {"programmation_projet": programmation_projet}
     return render(
-        request, "gsl_notification/choose_generated_document_type.html", context=context
+        request,
+        "gsl_notification/generated_document/choose_generated_document_type.html",
+        context=context,
     )
 
 
@@ -245,7 +249,11 @@ def select_modele(request, programmation_projet_id, document_type):
             for obj in modeles
         ],
     }
-    return render(request, "gsl_notification/select_modele.html", context=context)
+    return render(
+        request,
+        "gsl_notification/generated_document/select_modele.html",
+        context=context,
+    )
 
 
 @csp_update({"style-src": [SELF, UNSAFE_INLINE]})
@@ -313,7 +321,11 @@ def change_document_view(request, programmation_projet_id, document_type):
     _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
     )
-    return render(request, "gsl_notification/change_document.html", context=context)
+    return render(
+        request,
+        "gsl_notification/generated_document/change_document.html",
+        context=context,
+    )
 
 
 def _get_pp_attribute_page_title_and_page_step_title(
@@ -341,7 +353,7 @@ def _get_pp_attribute_page_title_and_page_step_title(
 
 
 def _add_success_message(
-    request, is_creating: bool, document_type: POSSIBLE_DOCUMENTS, document_name: str
+    request, is_creating: bool, document_type: POSSIBLES_DOCUMENTS, document_name: str
 ):
     verbe = "créé" if is_creating else "modifié"
     type_and_article = (
@@ -367,54 +379,6 @@ def delete_document_view(request, document_type, document_id):
     document.delete()
 
     messages.success(request, "Le document a bien été supprimé.")
-
-    return _redirect_to_documents_view(request, programmation_projet_id)
-
-
-# Upload arrêté signé ------------------------------------------------------------------
-
-
-@programmation_projet_visible_by_user
-@require_http_methods(["GET", "POST"])
-def create_arrete_signe_view(request, programmation_projet_id):
-    programmation_projet = get_object_or_404(
-        ProgrammationProjet,
-        id=programmation_projet_id,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-    )
-
-    if request.method == "POST":
-        form = ArreteSigneForm(request.POST, request.FILES)
-        if form.is_valid():
-            update_file_name_to_put_it_in_a_programmation_projet_folder(
-                form.instance.file, programmation_projet.id
-            )
-            form.save()
-
-            return _redirect_to_documents_view(request, programmation_projet.id)
-    else:
-        form = ArreteSigneForm()
-
-    context = {
-        "arrete_signe_form": form,
-    }
-    _enrich_context_for_create_or_get_arrete_view(
-        context, programmation_projet, request
-    )
-
-    return render(request, "gsl_notification/upload_arrete_signe.html", context=context)
-
-
-# Suppression d'arrêté signé ----------------------------------------------------------
-
-
-@arrete_signe_visible_by_user
-@require_http_methods(["POST"])
-def delete_arrete_signe_view(request, arrete_signe_id):
-    arrete_signe = get_object_or_404(ArreteSigne, id=arrete_signe_id)
-    programmation_projet_id = arrete_signe.programmation_projet.id
-
-    arrete_signe.delete()
 
     return _redirect_to_documents_view(request, programmation_projet_id)
 
@@ -457,28 +421,6 @@ class PrintDocumentView(WeasyTemplateResponseMixin, DetailView):
 
 class DownloadArreteView(PrintDocumentView):
     pdf_attachment = True
-
-
-@arrete_signe_visible_by_user
-@require_GET
-def download_arrete_signe(request, arrete_signe_id, download=True):
-    arrete = get_object_or_404(ArreteSigne, id=arrete_signe_id)
-    s3_object = get_s3_object(arrete.file.name)
-
-    response = StreamingHttpResponse(
-        iter(s3_object["Body"].iter_chunks()),
-        content_type=s3_object["ContentType"],
-    )
-    response["Content-Disposition"] = (
-        f'{"attachment" if download else "inline"}; filename="{arrete.file.name.split("/")[-1]}"'
-    )
-    return response
-
-
-@arrete_signe_visible_by_user
-@require_GET
-def view_arrete_signe(request, arrete_signe_id):
-    return download_arrete_signe(request, arrete_signe_id, False)
 
 
 # utils --------------------------------------------------------------------------------

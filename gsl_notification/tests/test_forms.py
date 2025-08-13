@@ -3,6 +3,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from gsl_core.tests.factories import CollegueFactory
 from gsl_notification.forms import (
+    AnnexeForm,
     ArreteForm,
     ArreteSigneForm,
     ModeleDocumentStepTwoForm,
@@ -39,18 +40,19 @@ def test_arrete_form_invalid_missing_fields():
     assert "modele" in form.errors
 
 
-# ArrêteSigneForm
+# UploadedDocumentForm
 
 
+@pytest.mark.parametrize("form_class", (ArreteSigneForm, AnnexeForm))
 @pytest.mark.django_db
-def test_arrete_signe_form_valid():
+def test_arrete_signe_form_valid(form_class):
     collegue = CollegueFactory()
     programmation_projet = ProgrammationProjetFactory()
     data = {
         "created_by": collegue.id,
         "programmation_projet": programmation_projet.id,
     }
-    form = ArreteSigneForm(
+    form = form_class(
         data,
         files={
             "file": SimpleUploadedFile(
@@ -61,15 +63,17 @@ def test_arrete_signe_form_valid():
     assert form.is_valid()
 
 
+@pytest.mark.parametrize("form_class", (ArreteSigneForm, AnnexeForm))
 @pytest.mark.django_db
-def test_arrete_signe_form_invalid_missing_fields():
-    form = ArreteSigneForm({})
+def test_arrete_signe_form_invalid_missing_fields(form_class):
+    form = form_class({})
     assert not form.is_valid()
     assert "file" in form.errors
     assert "created_by" in form.errors
     assert "programmation_projet" in form.errors
 
 
+@pytest.mark.parametrize("form_class", (ArreteSigneForm, AnnexeForm))
 @pytest.mark.parametrize(
     "file_name, content_type, is_valid",
     [
@@ -81,11 +85,13 @@ def test_arrete_signe_form_invalid_missing_fields():
     ],
 )
 @pytest.mark.django_db
-def test_arrete_signe_form_accepts_valid_pdf(file_name, content_type, is_valid):
+def test_arrete_signe_form_accepts_valid_pdf(
+    form_class, file_name, content_type, is_valid
+):
     collegue = CollegueFactory()
     programmation_projet = ProgrammationProjetFactory()
     file = SimpleUploadedFile(file_name, b"dummy content", content_type=content_type)
-    form = ArreteSigneForm(
+    form = form_class(
         files={"file": file},
         data={
             "created_by": collegue.id,
@@ -100,17 +106,18 @@ def test_arrete_signe_form_accepts_valid_pdf(file_name, content_type, is_valid):
         )
 
 
+@pytest.mark.parametrize("form_class", (ArreteSigneForm, AnnexeForm))
 @pytest.mark.parametrize(
     "file_size, is_valid", [(20 * 1024 * 1024, True), (21 * 1024 * 1024, False)]
 )
 @pytest.mark.django_db
-def test_arrete_signe_form_rejects_large_file(file_size, is_valid):
+def test_arrete_signe_form_rejects_large_file(form_class, file_size, is_valid):
     collegue = CollegueFactory()
     programmation_projet = ProgrammationProjetFactory()
     file = SimpleUploadedFile(
         "test.pdf", b"x" * file_size, content_type="application/pdf"
     )
-    form = ArreteSigneForm(
+    form = form_class(
         files={"file": file},
         data={
             "created_by": collegue,

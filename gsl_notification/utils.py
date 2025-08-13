@@ -9,8 +9,14 @@ from django.http import Http404
 from gsl import settings
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
-from gsl_notification.forms import ArreteForm, LettreNotificationForm
+from gsl_notification.forms import (
+    AnnexeForm,
+    ArreteForm,
+    ArreteSigneForm,
+    LettreNotificationForm,
+)
 from gsl_notification.models import (
+    Annexe,
     Arrete,
     ArreteSigne,
     LettreNotification,
@@ -19,11 +25,14 @@ from gsl_notification.models import (
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
+    ANNEXE,
     ARRETE,
+    ARRETE_ET_LETTRE_SIGNE,
     DOTATION_DETR,
     LETTRE,
-    POSSIBLE_DOCUMENTS,
     POSSIBLE_DOTATIONS,
+    POSSIBLES_DOCUMENTS,
+    POSSIBLES_DOCUMENTS_TELEVERSABLES,
 )
 
 
@@ -80,8 +89,24 @@ def replace_mentions_in_html(
 
 
 def update_file_name_to_put_it_in_a_programmation_projet_folder(
-    file, programmation_projet_id: int
+    file, programmation_projet_id: int, is_annexe=False
 ):
+    original_name = file.name
+    base_name, extension = os.path.splitext(original_name)
+
+    if is_annexe:
+        pp = ProgrammationProjet.objects.get(pk=programmation_projet_id)
+        existing_names = [annexe.name for annexe in pp.annexes.all()]
+
+        # Check for duplicates and add version number if needed
+        counter = 1
+        new_name = original_name
+        while new_name in existing_names:
+            counter += 1
+            new_name = f"{base_name}_{counter}{extension}"
+
+        file.name = new_name
+
     new_file_name = f"programmation_projet_{programmation_projet_id}/{file.name}"
     file.name = new_file_name
 
@@ -178,15 +203,18 @@ def get_s3_object(file_name):
         raise Http404("Fichier non trouvé")
 
 
-def return_document_as_a_dict(document: Arrete | ArreteSigne):
+def return_document_as_a_dict(
+    document: Arrete | ArreteSigne | LettreNotification | Annexe,
+):
     return {
         "name": document.name,
-        "type": document.file_type,
+        "file_type": document.file_type,
         "size": document.size,
         "created_at": document.created_at,
         "created_by": document.created_by,
         "get_view_url": document.get_view_url,
         "get_download_url": document.get_download_url,
+        "document_type": document.document_type,
     }
 
 
@@ -214,9 +242,25 @@ def get_form_class(document_type):
     return ArreteForm
 
 
-def get_doc_title(document_type: POSSIBLE_DOCUMENTS):
+def get_doc_title(document_type: POSSIBLES_DOCUMENTS):
     if document_type not in [ARRETE, LETTRE]:
         raise ValueError(f"Document type {document_type} inconnu")
     if document_type == LETTRE:
         return "Lettre de notification"
     return "Arrêté d'attribution"
+
+
+def get_uploaded_document_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES):
+    if document_type not in [ARRETE_ET_LETTRE_SIGNE, ANNEXE]:
+        raise ValueError(f"Document type {document_type} inconnu")
+    if document_type == ANNEXE:
+        return Annexe
+    return ArreteSigne
+
+
+def get_uploaded_form_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES):
+    if document_type not in [ARRETE_ET_LETTRE_SIGNE, ANNEXE]:
+        raise ValueError(f"Document type {document_type} inconnu")
+    if document_type == ANNEXE:
+        return AnnexeForm
+    return ArreteSigneForm

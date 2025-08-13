@@ -4,6 +4,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from gsl_core.tests.factories import CollegueFactory, PerimetreDepartementalFactory
 from gsl_notification.models import ModeleArrete
 from gsl_notification.tests.factories import (
+    AnnexeFactory,
     ArreteFactory,
     ArreteSigneFactory,
     LettreNotificationFactory,
@@ -55,8 +56,9 @@ def test_arrete_properties(type, modele_factory, factory):
     assert arrete.modele == modele
 
 
+@pytest.mark.parametrize("factory", (ArreteSigneFactory, AnnexeFactory))
 @pytest.mark.django_db
-def test_arrete_signe_properties():
+def test_arrete_signe_properties(factory):
     collegue = CollegueFactory()
     programmation_projet = ProgrammationProjetFactory(
         status=ProgrammationProjet.STATUS_ACCEPTED
@@ -67,19 +69,23 @@ def test_arrete_signe_properties():
         "arrete/test_file.pdf", file_content, content_type="application/pdf"
     )
 
-    arrete = ArreteSigneFactory(
+    doc = factory(
         file=file, created_by=collegue, programmation_projet=programmation_projet
     )
 
-    assert str(arrete) == f"Arrêté signé #{arrete.id} "
-    assert arrete.name.startswith(
+    if factory == ArreteSigneFactory:
+        assert str(doc) == f"Arrêté signé #{doc.id}"
+    else:
+        assert str(doc) == f"Annexe #{doc.id}"
+
+    assert doc.name.startswith(
         "test_file"
     )  # Filename can be changed with a suffix to avoid conflicts
-    assert arrete.file_type == "pdf"
-    assert arrete.size == len(file_content)
-    assert arrete.created_at is not None
-    assert arrete.created_by is collegue
-    assert arrete.programmation_projet == programmation_projet
+    assert doc.file_type == "pdf"
+    assert doc.size == len(file_content)
+    assert doc.created_at is not None
+    assert doc.created_by is collegue
+    assert doc.programmation_projet == programmation_projet
 
 
 @pytest.mark.parametrize(

@@ -5,6 +5,7 @@ import factory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 
 from ..models import (
+    Annexe,
     Arrete,
     ArreteSigne,
     LettreNotification,
@@ -70,3 +71,8 @@ class ArreteSigneFactory(factory.django.DjangoModelFactory):
     )
     created_by = factory.SubFactory("gsl_core.tests.factories.CollegueFactory")
     created_at = datetime.datetime.now(datetime.UTC)
+
+
+class AnnexeFactory(ArreteSigneFactory):
+    class Meta:
+        model = Annexe

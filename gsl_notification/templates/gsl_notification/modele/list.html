@@ -8,7 +8,10 @@
 {% endblock extra_css %}
 
 {% block tab_content %}
-    <div class="fr-m-4w" data-controller="delete-modele-modal">
+    <div class="fr-m-4w"
+         data-controller="delete-notification-document-modal"
+         data-delete-notification-document-modal-modal-id-value="delete-modele-arrete"
+         data-delete-notification-document-modal-form-id-value="delete-modele-arrete-form">
         <h2>
             Modèles {{ dotation }}
         </h2>
