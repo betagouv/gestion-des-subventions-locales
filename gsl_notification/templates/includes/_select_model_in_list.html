@@ -1,0 +1,23 @@
+<a class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-arrow-left-s-line fr-mb-4w"
+   href="{{ cancel_link }}">
+    Annuler la génération
+</a>
+
+<div class="arrete-container">
+    <h2 class="fr-mb-3w">
+        {{ page_title }}
+    </h2>
+    <h4>
+        {{ page_step_title }}
+    </h4>
+    <p>
+        Sélectionner un modèle d’arrêté qui va être utilisé pour générer le publipostage
+    </p>
+    <ul class="no-list-style arrete-modele-list">
+        {% for modele in modeles_list %}
+            <li>
+                {% include "includes/_modele_card.html" %}
+            </li>
+        {% endfor %}
+    </ul>
+</div>

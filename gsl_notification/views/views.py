@@ -3,8 +3,8 @@ from typing import Union
 from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
 from django.contrib import messages
-from django.http import Http404, HttpResponseForbidden
-from django.shortcuts import get_list_or_404, get_object_or_404, redirect, render
+from django.http import Http404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_http_methods
@@ -40,7 +40,6 @@ from gsl_projet.constants import (
     POSSIBLES_DOCUMENTS,
     POSSIBLES_DOCUMENTS_TELEVERSABLES,
 )
-from gsl_projet.models import Projet
 
 # Views for listing notification documents on a programmationProjet, -------------------
 # in various contexts
@@ -217,61 +216,6 @@ def choose_type_for_document_generation(request, programmation_projet_id):
     )
 
 
-@require_http_methods(["GET"])  # TODO test it
-def choose_type_for_multiple_document_generation(request, dotation):
-    print("GIROUD", dotation)
-    ids_str = request.GET.get("ids")
-    if not ids_str:
-        return HttpResponseForbidden("Aucun identifiant fourni.")
-
-    ids = [int(i) for i in ids_str.split(",") if i.strip().isdigit()]
-    print(ids)
-    if len(ids) == 1:  # TODO test it
-        return redirect(
-            reverse(
-                "gsl_notification:choose-generated-document-type",
-                kwargs={"programmation_projet_id": ids[0]},
-            )
-        )
-
-    programmation_projets = get_list_or_404(
-        ProgrammationProjet,
-        id__in=ids,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-        notified_at=None,
-    )
-    projet_ids = [pp.projet.id for pp in programmation_projets]
-    projet_ids_visible_by_user = Projet.objects.for_user(request.user).filter(
-        id__in=projet_ids
-    )
-
-    if len(projet_ids) != len(projet_ids_visible_by_user):
-        return HttpResponseForbidden(
-            "Un ou plusieurs projets sont hors de votre périmètre."
-        )
-
-    title = f"{len(programmation_projets)} projets {dotation} sélectionnés"
-    go_back_link = reverse(
-        "gsl_programmation:programmation-projet-list-dotation",
-        kwargs={"dotation": dotation},
-    )
-    context = {
-        "programmation_projets": programmation_projets,
-        "page_title": title,
-        "go_back_link": go_back_link,
-        "cancel_link": go_back_link,
-        "next_step_link": reverse(
-            "gsl_notification:select-modele",
-            args=[programmation_projets[0].id, "type"],  # TODO update
-        ),
-    }
-    return render(
-        request,
-        "gsl_notification/generated_document/choose_generated_document_type_multiple.html",
-        context=context,
-    )
-
-
 @require_http_methods(["GET"])
 @programmation_projet_visible_by_user
 def select_modele(request, programmation_projet_id, document_type):
@@ -295,6 +239,9 @@ def select_modele(request, programmation_projet_id, document_type):
         "programmation_projet": programmation_projet,
         "page_title": page_title,
         "page_step_title": page_step_title,
+        "cancel_link": reverse(
+            "gsl_notification:documents", args=[programmation_projet_id]
+        ),
         "modeles_list": [
             {
                 "name": obj.name,

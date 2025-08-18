@@ -3,6 +3,10 @@ from django.urls import path
 from gsl_notification.views.decorators import (
     document_visible_by_user,
 )
+from gsl_notification.views.generate_document_for_multiple_projets import (
+    choose_type_for_multiple_document_generation,
+    select_modele_multiple,
+)
 from gsl_notification.views.modele_views import (
     ChooseModeleDocumentType,
     CreateModelDocumentWizard,
@@ -24,7 +28,6 @@ from gsl_notification.views.views import (
     PrintDocumentView,
     change_document_view,
     choose_type_for_document_generation,
-    choose_type_for_multiple_document_generation,
     delete_document_view,
     documents_view,
     select_modele,
@@ -41,11 +44,6 @@ urlpatterns = [
         "<int:programmation_projet_id>/choix-du-type/",
         choose_type_for_document_generation,
         name="choose-generated-document-type",
-    ),
-    path(
-        "<str:dotation>/choix-du-type/",
-        choose_type_for_multiple_document_generation,
-        name="choose-generated-document-type-multiple",
     ),
     path(
         "<int:programmation_projet_id>/selection-d-un-modele/<str:document_type>",
@@ -71,6 +69,17 @@ urlpatterns = [
         "document/<str:document_type>/<int:document_id>/delete/",
         delete_document_view,
         name="delete-document",
+    ),
+    # Generated files for multiple projets
+    path(
+        "<str:dotation>/choix-du-type/",
+        choose_type_for_multiple_document_generation,
+        name="choose-generated-document-type-multiple",
+    ),
+    path(
+        "<str:dotation>/selection-d-un-modele/<str:document_type>",
+        select_modele_multiple,
+        name="select-modele-multiple",
     ),
     # Uploaded files
     path(
