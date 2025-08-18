@@ -8,13 +8,11 @@ export class CheckboxSelection extends Controller {
   static targets = [ "globalButton", "button" ]
 
   connect(){
-    console.log("Connect, this.globalButtonTarget.checked :", this.globalButtonTarget.checked)
     this.allCheckboxesSelectedValue = this.globalButtonTarget.checked
   }
 
   toggle(){
     const newValue = !this.allCheckboxesSelectedValue
-    console.log("TOGGLE ", this.allCheckboxesSelectedValue, " => ", newValue)
     this.allCheckboxesSelectedValue = newValue
     if (newValue) {
       this._updateAllCheckboxes(true)
@@ -38,12 +36,10 @@ export class CheckboxSelection extends Controller {
   }
 
   allCheckboxesSelectedValueChanged() {
-    console.log("allCheckboxesSelectedValueChanged", this.allCheckboxesSelectedValue)
     this._updateACheckbox(this.globalButtonTarget, this.allCheckboxesSelectedValue)
   }
 
   _updateAllCheckboxes(value) {
-    console.log("_updateAllCheckboxes", value)
     this.buttonTargets.forEach(element => this._updateACheckbox(element, value));
   }
 

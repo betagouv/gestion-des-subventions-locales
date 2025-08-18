@@ -22,7 +22,18 @@
 .action-button {
   position: absolute;
   left: 32px;
-  top: 17px;
+  top: 2px;
+}
+.action-button > summary {
+  padding: 1rem 0.5rem;
+}
+
+.action-button > summary::marker {
+  content: "";
+}
+
+.action-button > ul {
+  text-transform: none;
 }
 
 .fix-checkbox-position {
