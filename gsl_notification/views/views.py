@@ -14,7 +14,7 @@ from django_weasyprint import WeasyTemplateResponseMixin
 from gsl_notification.models import (
     Annexe,
     Arrete,
-    ArreteSigne,
+    ArreteEtLettreSignes,
     GeneratedDocument,
     LettreNotification,
 )
@@ -35,7 +35,7 @@ from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
     ANNEXE,
     ARRETE,
-    ARRETE_ET_LETTRE_SIGNE,
+    ARRETE_ET_LETTRE_SIGNES,
     LETTRE,
     POSSIBLES_DOCUMENTS,
     POSSIBLES_DOCUMENTS_TELEVERSABLES,
@@ -108,11 +108,13 @@ def _generic_documents_view(request, programmation_projet_id, source_url, contex
         pass
 
     try:
-        arrete_signe = programmation_projet.arrete_signe
+        arrete_et_lettre_signes = programmation_projet.arrete_et_lettre_signes
         documents.append(
-            _get_uploaded_doc_card_attributes(arrete_signe, ARRETE_ET_LETTRE_SIGNE)
+            _get_uploaded_doc_card_attributes(
+                arrete_et_lettre_signes, ARRETE_ET_LETTRE_SIGNES
+            )
         )
-    except ArreteSigne.DoesNotExist:
+    except ArreteEtLettreSignes.DoesNotExist:
         pass
 
     for annexe in programmation_projet.annexes.prefetch_related("created_by").all():
@@ -166,7 +168,7 @@ def _get_doc_card_attributes(
 
 
 def _get_uploaded_doc_card_attributes(
-    doc: Union[ArreteSigne, Annexe],
+    doc: Union[ArreteEtLettreSignes, Annexe],
     doc_type: POSSIBLES_DOCUMENTS_TELEVERSABLES,
 ):
     return {

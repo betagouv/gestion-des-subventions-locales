@@ -8,7 +8,7 @@ from gsl.settings import MAX_POST_FILE_SIZE_IN_MO
 from gsl_notification.models import (
     Annexe,
     Arrete,
-    ArreteSigne,
+    ArreteEtLettreSignes,
     LettreNotification,
     ModeleDocument,
 )
@@ -61,9 +61,9 @@ class UploadedDocumentForm(forms.ModelForm, DsfrBaseForm):
         return file
 
 
-class ArreteSigneForm(UploadedDocumentForm):
+class ArreteEtLettreSigneForm(UploadedDocumentForm):
     class Meta:
-        model = ArreteSigne
+        model = ArreteEtLettreSignes
         fields = ("file", "created_by", "programmation_projet")
 
 

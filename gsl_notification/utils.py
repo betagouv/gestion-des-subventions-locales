@@ -11,14 +11,14 @@ from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_notification.forms import (
     AnnexeForm,
+    ArreteEtLettreSigneForm,
     ArreteForm,
-    ArreteSigneForm,
     LettreNotificationForm,
 )
 from gsl_notification.models import (
     Annexe,
     Arrete,
-    ArreteSigne,
+    ArreteEtLettreSignes,
     LettreNotification,
     ModeleArrete,
     ModeleLettreNotification,
@@ -27,7 +27,7 @@ from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
     ANNEXE,
     ARRETE,
-    ARRETE_ET_LETTRE_SIGNE,
+    ARRETE_ET_LETTRE_SIGNES,
     DOTATION_DETR,
     LETTRE,
     POSSIBLE_DOTATIONS,
@@ -204,7 +204,7 @@ def get_s3_object(file_name):
 
 
 def return_document_as_a_dict(
-    document: Arrete | ArreteSigne | LettreNotification | Annexe,
+    document: Arrete | ArreteEtLettreSignes | LettreNotification | Annexe,
 ):
     return {
         "name": document.name,
@@ -251,16 +251,16 @@ def get_doc_title(document_type: POSSIBLES_DOCUMENTS):
 
 
 def get_uploaded_document_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES):
-    if document_type not in [ARRETE_ET_LETTRE_SIGNE, ANNEXE]:
+    if document_type not in [ARRETE_ET_LETTRE_SIGNES, ANNEXE]:
         raise ValueError(f"Document type {document_type} inconnu")
     if document_type == ANNEXE:
         return Annexe
-    return ArreteSigne
+    return ArreteEtLettreSignes
 
 
 def get_uploaded_form_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES):
-    if document_type not in [ARRETE_ET_LETTRE_SIGNE, ANNEXE]:
+    if document_type not in [ARRETE_ET_LETTRE_SIGNES, ANNEXE]:
         raise ValueError(f"Document type {document_type} inconnu")
     if document_type == ANNEXE:
         return AnnexeForm
-    return ArreteSigneForm
+    return ArreteEtLettreSigneForm

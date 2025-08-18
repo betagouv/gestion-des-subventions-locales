@@ -12,19 +12,19 @@
         </h2>
 
         <div class="fr-radio-group fr-mb-2w"
-             {% if programmation_projet.arrete_signe %}aria-describedby="tooltip-import-arrete-et-lettre-signes"{% endif %}>
+             {% if programmation_projet.arrete_et_lettre_signes %}aria-describedby="tooltip-import-arrete-et-lettre-signes"{% endif %}>
             <input type="radio"
                    name="type"
-                   value="arrete_signe"
+                   value="arrete_et_lettre_signes"
                    dsfr="dsfr"
-                   id="arrete_signe"
-                   {% if programmation_projet.arrete_signe %}disabled {% endif %}
+                   id="arrete_et_lettre_signes"
+                   {% if programmation_projet.arrete_et_lettre_signes %}disabled {% endif %}
                    data-choose-document-type-target="radio"
                    data-action="click->choose-document-type#setSelectedValue">
-            <label class="fr-label" for="arrete_signe">
+            <label class="fr-label" for="arrete_et_lettre_signes">
                 Arrêté et lettre de notification signés
             </label>
-            {% if programmation_projet.arrete_signe %}
+            {% if programmation_projet.arrete_et_lettre_signes %}
                 <span class="fr-tooltip fr-placement"
                       id="tooltip-import-arrete-et-lettre-signes"
                       role="tooltip">
@@ -39,7 +39,7 @@
                    value="annexe"
                    dsfr="dsfr"
                    id="annexe"
-                   {% if programmation_projet.arrete_signe %}checked {% endif %}
+                   {% if programmation_projet.arrete_et_lettre_signes %}checked {% endif %}
                    data-choose-document-type-target="radio"
                    data-action="choose-document-type#setSelectedValue">
             <label class="fr-label" for="annexe">

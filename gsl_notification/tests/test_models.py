@@ -5,8 +5,8 @@ from gsl_core.tests.factories import CollegueFactory, PerimetreDepartementalFact
 from gsl_notification.models import ModeleArrete
 from gsl_notification.tests.factories import (
     AnnexeFactory,
+    ArreteEtLettreSignesFactory,
     ArreteFactory,
-    ArreteSigneFactory,
     LettreNotificationFactory,
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
@@ -56,9 +56,9 @@ def test_arrete_properties(type, modele_factory, factory):
     assert arrete.modele == modele
 
 
-@pytest.mark.parametrize("factory", (ArreteSigneFactory, AnnexeFactory))
+@pytest.mark.parametrize("factory", (ArreteEtLettreSignesFactory, AnnexeFactory))
 @pytest.mark.django_db
-def test_arrete_signe_properties(factory):
+def test_arrete_et_lettre_signes_properties(factory):
     collegue = CollegueFactory()
     programmation_projet = ProgrammationProjetFactory(
         status=ProgrammationProjet.STATUS_ACCEPTED
@@ -73,8 +73,8 @@ def test_arrete_signe_properties(factory):
         file=file, created_by=collegue, programmation_projet=programmation_projet
     )
 
-    if factory == ArreteSigneFactory:
-        assert str(doc) == f"Arrêté signé #{doc.id}"
+    if factory == ArreteEtLettreSignesFactory:
+        assert str(doc) == f"Arrêté et lettre signés #{doc.id}"
     else:
         assert str(doc) == f"Annexe #{doc.id}"
 

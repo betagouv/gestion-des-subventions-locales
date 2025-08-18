@@ -78,7 +78,7 @@ def create_uploaded_document_view(request, programmation_projet_id, document_typ
     )
 
 
-# Suppression d'arrêté signé ----------------------------------------------------------
+# Suppression d'arrêté et lettre signés ----------------------------------------------------------
 
 
 @uploaded_document_visible_by_user

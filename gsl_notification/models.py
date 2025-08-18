@@ -9,7 +9,7 @@ from gsl_core.models import Collegue, Perimetre
 from gsl_projet.constants import (
     ANNEXE,
     ARRETE,
-    ARRETE_ET_LETTRE_SIGNE,
+    ARRETE_ET_LETTRE_SIGNES,
     DOTATION_CHOICES,
     LETTRE,
 )
@@ -255,25 +255,25 @@ class UploadedDocument(models.Model):
         raise NotImplementedError
 
 
-class ArreteSigne(UploadedDocument):
-    file = models.FileField(upload_to="arrete_signe/")
+class ArreteEtLettreSignes(UploadedDocument):
+    file = models.FileField(upload_to="arrete_et_lettre_signes/")
 
     programmation_projet = models.OneToOneField(
         "gsl_programmation.ProgrammationProjet",
         on_delete=models.CASCADE,
-        related_name="arrete_signe",
+        related_name="arrete_et_lettre_signes",
     )
 
     class Meta:
-        verbose_name = "Arrêté signé"
-        verbose_name_plural = "Arrêtés signés"
+        verbose_name = "Arrêté et lettre signés"
+        verbose_name_plural = "Arrêtés et lettres signés"
 
     def __str__(self):
-        return f"Arrêté signé #{self.id}"
+        return f"Arrêté et lettre signés #{self.id}"
 
     @property
     def document_type(self):
-        return ARRETE_ET_LETTRE_SIGNE
+        return ARRETE_ET_LETTRE_SIGNES
 
 
 class Annexe(UploadedDocument):

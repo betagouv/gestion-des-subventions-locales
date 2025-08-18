@@ -287,8 +287,8 @@ class ProgrammationProjet(models.Model):
     @cached_property
     def documents_summary(self):
         summary = list()
-        if hasattr(self, "arrete_signe"):
-            summary.append("1 arrêté signé")
+        if hasattr(self, "arrete_et_lettre_signes"):
+            summary.append("1 arrêté et lettre signés")
         elif hasattr(self, "arrete"):
             summary.append("1 arrêté généré")
 

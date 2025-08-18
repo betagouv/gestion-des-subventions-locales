@@ -212,7 +212,7 @@ class ProgrammationProjetFilters(FilterSet):
                 "enveloppe",
                 "enveloppe__perimetre",
                 "arrete",
-                "arrete_signe",
+                "arrete_et_lettre_signes",
             )
             .prefetch_related("dotation_projet__detr_categories")
         )
