@@ -1,0 +1,62 @@
+<a class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-arrow-left-s-line fr-mb-4w"
+   href="{{ cancel_link }}">
+    Annuler la génération
+</a>
+
+<div class="arrete-container" data-controller="choose-document-type">
+    <h2 class="fr-mb-3w">
+        Générer un document
+    </h2>
+
+    <div class="fr-radio-group fr-mb-2w"
+         {% if programmation_projet.arrete %}aria-describedby="tooltip-import-arrete"{% endif %}>
+        <input type="radio"
+               name="type"
+               value="arrete"
+               dsfr="dsfr"
+               id="arrete"
+               {% if not programmation_projet.arrete and programmation_projet.lettre_notification %}checked{% endif %}
+               {% if programmation_projet.arrete %}disabled {% endif %}
+               data-choose-document-type-target="radio"
+               data-action="click->choose-document-type#setSelectedValue">
+        <label class="fr-label" for="arrete">
+            Arrêté attributif
+        </label>
+        {% if programmation_projet.arrete %}
+            <span class="fr-tooltip fr-placement"
+                  id="tooltip-import-arrete"
+                  role="tooltip">
+                Un arrêté a déjà été généré pour ce projet.
+            </span>
+        {% endif %}
+    </div>
+
+    <div class="fr-radio-group"
+         {% if programmation_projet.lettre_notification %}aria-describedby="tooltip-import-lettre"{% endif %}>
+        <input type="radio"
+               name="type"
+               value="lettre"
+               dsfr="dsfr"
+               id="lettre"
+               {% if programmation_projet.arrete and not programmation_projet.lettre_notification %}checked{% endif %}
+               {% if programmation_projet.lettre_notification %}disabled{% endif %}
+               data-choose-document-type-target="radio"
+               data-action="choose-document-type#setSelectedValue">
+        <label class="fr-label" for="lettre">
+            Lettre de notification
+        </label>
+    </div>
+    {% if programmation_projet.lettre_notification %}
+        <span class="fr-tooltip fr-placement"
+              id="tooltip-import-lettre"
+              role="tooltip">
+            Une lettre de notification a déjà été générée pour ce projet.
+        </span>
+    {% endif %}
+
+    <a class="fr-btn fr-btn--icon-left fr-icon-file-text-line fr-mt-4w"
+       data-href="{{ next_step_link }}"
+       data-choose-document-type-target="button">
+        Créer sur Turgot
+    </a>
+</div>

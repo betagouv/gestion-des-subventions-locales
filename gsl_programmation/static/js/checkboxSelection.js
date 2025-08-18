@@ -5,10 +5,11 @@ export class CheckboxSelection extends Controller {
    allCheckboxesSelected: {type:Boolean, default: false},
   }
 
-  static targets = [ "globalButton", "button" ]
+  static targets = [ "globalButton", "button", "link" ]
 
-  connect(){
+  connect() {
     this.allCheckboxesSelectedValue = this.globalButtonTarget.checked
+    this._updateHref()
   }
 
   toggle(){
@@ -20,6 +21,7 @@ export class CheckboxSelection extends Controller {
     else {
       this._updateAllCheckboxes(false)
     }
+      this._updateHref()
   }
 
   updateAllCheckboxesSelected(evt){
@@ -32,19 +34,36 @@ export class CheckboxSelection extends Controller {
         this.allCheckboxesSelectedValue = true
       }
     }
-    
+    this._updateHref()
   }
 
   allCheckboxesSelectedValueChanged() {
     this._updateACheckbox(this.globalButtonTarget, this.allCheckboxesSelectedValue)
   }
 
+  // Private
+
+  _updateHref() {
+    const selectedIds = this.buttonTargets
+      .filter((b) => b.checked)
+      .map((b) => b.id.split("-")[1])
+
+    const baseUrl = this.linkTarget.dataset.baseUrl
+
+    if (selectedIds.length > 0) {
+      this.linkTarget.href = `${baseUrl}?ids=${selectedIds.join(",")}`
+    } else {
+      this.linkTarget.removeAttribute("href")
+    }
+  }
+
+
   _updateAllCheckboxes(value) {
     this.buttonTargets.forEach(element => this._updateACheckbox(element, value));
   }
 
   _updateACheckbox(elt, value){
-    elt.checked= value
-    elt.setAttribute("data-fr-js-checkbox-input", value)
+    elt.checked = value;
+    elt.setAttribute("data-fr-js-checkbox-input", value);
   }
 }

@@ -24,6 +24,7 @@ from gsl_notification.views.views import (
     PrintDocumentView,
     change_document_view,
     choose_type_for_document_generation,
+    choose_type_for_multiple_document_generation,
     delete_document_view,
     documents_view,
     select_modele,
@@ -35,11 +36,16 @@ urlpatterns = [
         documents_view,
         name="documents",
     ),
-    # Arretes
+    # Generated files
     path(
         "<int:programmation_projet_id>/choix-du-type/",
         choose_type_for_document_generation,
         name="choose-generated-document-type",
+    ),
+    path(
+        "<str:dotation>/choix-du-type/",
+        choose_type_for_multiple_document_generation,
+        name="choose-generated-document-type-multiple",
     ),
     path(
         "<int:programmation_projet_id>/selection-d-un-modele/<str:document_type>",
@@ -66,7 +72,7 @@ urlpatterns = [
         delete_document_view,
         name="delete-document",
     ),
-    # Arretes signés
+    # Uploaded files
     path(
         "<int:programmation_projet_id>/televersement/choix-du-type/",
         choose_type_for_document_upload,

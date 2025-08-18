@@ -99,13 +99,11 @@
                                         <summary class="fr-icon--sm fr-icon-arrow-down-s-line blue-color"
                                                  aria-label="Ouvrir les actions">
                                         </summary>
-                                        {% comment %} <button type="button" class="action-button">
-                                       <span class="fr-icon--sm fr-icon-arrow-down-s-line blue-color"></span>
-                                        </button> {% endcomment %}
                                         <ul class="new-gsl-dropdown-content arrete-card__actions no-list-style fr-m-0">
                                             <li>
-                                                <a href="https://reporterre.net"
-                                                   class="fr-btn fr-btn--secondary arrete-card__action">
+                                                <a class="fr-btn fr-btn--secondary arrete-card__action"
+                                                   data-checkbox-selection-target="link"
+                                                   data-base-url="{% url "gsl_notification:choose-generated-document-type-multiple" dotation %}">
                                                     Générer des documents
                                                 </a>
                                             </li>
