@@ -170,7 +170,7 @@ def save_documents(
         return HttpResponseBadRequest(str(e))
 
     pp_count = len(ids)
-    if pp_count == 1:  # TODO test it
+    if pp_count == 1:
         return redirect(
             reverse(
                 "gsl_notification:modifier-document",
@@ -198,7 +198,7 @@ def save_documents(
     perimetres = get_modele_perimetres(dotation, request.user.perimetre)
     modele = get_object_or_404(
         modele_class,
-        id=modele_id,  # TODO test if modele not in user perimetre
+        id=modele_id,
         dotation=dotation,
         perimetre__in=perimetres,
     )
