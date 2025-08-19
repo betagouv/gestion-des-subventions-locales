@@ -4,7 +4,8 @@
 {% block extra_css %}
     <link rel="stylesheet" href="{% static "css/gsl.css" %}">
     <link rel="stylesheet" href="{% static "css/projet_list.css" %}">
-    <link rel="stylesheet" href="{% static "css/programmation_projet_list.css" %}">
+    <link rel="stylesheet"
+          href="{% static "css/programmation_projet_list.css" %}">
     {% comment %} TODO move arrete-card__action and remove this notification.css ?? {% endcomment %}
     <link rel="stylesheet" href="{% static "css/notification.css" %}">
 {% endblock extra_css %}
@@ -47,12 +48,14 @@
                      aria-label="Sous-menu Programmation {{ dotation }}">
                     <ul class="no-list-style fr-m-4w">
                         <li>
-                            <a class="{% if "/programmation/" in request.path %}active-link{% else %}secondary-link{% endif %}" href="{% url "programmation:programmation-projet-list-dotation" dotation %}">
+                            <a class="{% if "/programmation/" in request.path %}active-link{% else %}secondary-link{% endif %}"
+                               href="{% url "programmation:programmation-projet-list-dotation" dotation %}">
                                 Projets programmés
                             </a>
                         </li>
                         <li>
-                            <a class="{% if "/notification/" in request.path %}active-link{% else %}secondary-link{% endif %}" href="{% url "notification:modele-liste" dotation %}">
+                            <a class="{% if "/notification/" in request.path %}active-link{% else %}secondary-link{% endif %}"
+                               href="{% url "notification:modele-liste" dotation %}">
                                 Modèles de publipostage {{ dotation }}
                             </a>
                         </li>
