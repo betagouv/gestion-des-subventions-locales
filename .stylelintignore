@@ -1,0 +1,5 @@
+node_modules
+venv
+static/vendor
+ui/static/ui/components/tiptap.css
+tmp_maxime/

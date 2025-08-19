@@ -342,7 +342,7 @@ ul.no-list-style li {
   position: absolute;
   background-color: white;
   min-width: 260px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 20%);
   padding: 10px;
   z-index: 1000;
   gap: 1rem;
@@ -350,21 +350,15 @@ ul.no-list-style li {
   overflow-y: auto;
 }
 
-.gsl-dropdown > button {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
-
-/* New gsl-dropdown without JS ! Migrate to this then, remove gsl-dropdown-content (or rename the new to the old)*/
+/* New gsl-dropdown without JS ! Migrate to this then, remove gsl-dropdown-content (or rename the new to the old) */
 
 .new-gsl-dropdown-content {
   display: grid;
   position: absolute;
   background-color: white;
   min-width: 260px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 20%);
   padding: 10px;
   z-index: 1000;
   gap: 1rem;
@@ -406,6 +400,7 @@ ul.no-list-style li {
 .tab-submenu .active-link {
     color: var(--text-title-blue-france);
 }
+
 /* ce serait peut-être mieux de garder le souligné sur ces liens: */
 .secondary-link {
     --underline-thickness: 0px;
