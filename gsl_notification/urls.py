@@ -5,6 +5,7 @@ from gsl_notification.views.decorators import (
 )
 from gsl_notification.views.generate_document_for_multiple_projets import (
     choose_type_for_multiple_document_generation,
+    save_documents,
     select_modele_multiple,
 )
 from gsl_notification.views.modele_views import (
@@ -80,6 +81,11 @@ urlpatterns = [
         "<str:dotation>/selection-d-un-modele/<str:document_type>",
         select_modele_multiple,
         name="select-modele-multiple",
+    ),
+    path(
+        "<str:dotation>/sauvegarde/<str:document_type>/<int:modele_id>",
+        save_documents,
+        name="save-documents",
     ),
     # Uploaded files
     path(
