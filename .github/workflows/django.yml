@@ -62,7 +62,7 @@ jobs:
     - uses: bahmutov/npm-install@v1
 
     - name: Check css format
-      run : npx run lint:css
+      run : npm run lint:css
 
     - name: Check templates format
       run: djlint . --check
