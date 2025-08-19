@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import get_list_or_404, get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods, require_POST
@@ -13,14 +13,27 @@ from gsl_notification.utils import (
 )
 from gsl_notification.views.views import DownloadArreteView
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import ARRETE, LETTRE, POSSIBLE_DOTATIONS, POSSIBLES_DOCUMENTS
+from gsl_projet.constants import (
+    ARRETE,
+    DOTATIONS,
+    LETTRE,
+    POSSIBLE_DOTATIONS,
+    POSSIBLES_DOCUMENTS,
+)
 from gsl_projet.models import Projet
 
 
-@require_http_methods(["GET"])  # TODO test it
+@require_http_methods(["GET"])
 def choose_type_for_multiple_document_generation(request, dotation):
-    ids = _get_pp_ids(request)
-    if len(ids) == 1:  # TODO test it
+    if dotation not in DOTATIONS:
+        return HttpResponseBadRequest("Dotation inconnue")
+
+    try:
+        ids = _get_pp_ids(request)
+    except ValueError as e:
+        return HttpResponseBadRequest(str(e))
+
+    if len(ids) == 1:
         return redirect(
             reverse(
                 "gsl_notification:choose-generated-document-type",
@@ -34,7 +47,11 @@ def choose_type_for_multiple_document_generation(request, dotation):
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=None,
     )
-    _check_if_projets_are_accessible_for_user(request, programmation_projets)
+
+    try:
+        _check_if_projets_are_accessible_for_user(request, programmation_projets)
+    except ValueError as e:
+        return HttpResponseForbidden(str(e))
 
     title = f"{len(programmation_projets)} projets {dotation} sélectionnés"
     go_back_link = _get_go_back_link(dotation)
@@ -58,10 +75,18 @@ def choose_type_for_multiple_document_generation(request, dotation):
 
 @require_http_methods(["GET"])
 def select_modele_multiple(request, dotation, document_type):
-    ids = _get_pp_ids(request)
-    pp_count = len(ids)
+    if dotation not in DOTATIONS:
+        return HttpResponseBadRequest("Dotation inconnue")
+    if document_type not in [ARRETE, LETTRE]:
+        return HttpResponseBadRequest("Type de document inconnu")
 
-    if pp_count == 1:  # TODO test it
+    try:
+        ids = _get_pp_ids(request)
+    except ValueError as e:
+        return HttpResponseBadRequest(str(e))
+
+    pp_count = len(ids)
+    if pp_count == 1:
         return redirect(
             reverse(
                 "gsl_notification:select-modele",
@@ -78,7 +103,10 @@ def select_modele_multiple(request, dotation, document_type):
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=None,
     )
-    _check_if_projets_are_accessible_for_user(request, programmation_projets)
+    try:
+        _check_if_projets_are_accessible_for_user(request, programmation_projets)
+    except ValueError as e:
+        return HttpResponseForbidden(e)
 
     page_title, page_step_title = _get_attribute_page_title_and_page_step_title(
         document_type, pp_count, step=1
@@ -131,9 +159,17 @@ def save_documents(
     document_type: POSSIBLES_DOCUMENTS,
     modele_id: int,
 ):
-    ids = _get_pp_ids(request)
-    pp_count = len(ids)
+    if dotation not in DOTATIONS:
+        return HttpResponseBadRequest("Dotation inconnue")
+    if document_type not in [ARRETE, LETTRE]:
+        return HttpResponseBadRequest("Type de document inconnu")
 
+    try:
+        ids = _get_pp_ids(request)
+    except ValueError as e:
+        return HttpResponseBadRequest(str(e))
+
+    pp_count = len(ids)
     if pp_count == 1:  # TODO test it
         return redirect(
             reverse(
@@ -151,7 +187,11 @@ def save_documents(
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=None,
     )
-    _check_if_projets_are_accessible_for_user(request, programmation_projets)
+    try:
+        _check_if_projets_are_accessible_for_user(request, programmation_projets)
+    except ValueError as e:
+        return HttpResponseForbidden(e)
+
     document_class = get_document_class(document_type)
 
     modele_class = get_modele_class(document_type)
@@ -233,10 +273,10 @@ def save_documents(
 def _get_pp_ids(request):
     ids_str = request.GET.get("ids")
     if not ids_str:
-        return HttpResponseForbidden("Aucun identifiant fourni.")
+        raise ValueError("Aucun id de programmation projet")
 
     ids = [int(i) for i in ids_str.split(",") if i.strip().isdigit()]
-    return set(ids)
+    return ids
 
 
 def _check_if_projets_are_accessible_for_user(
@@ -248,9 +288,7 @@ def _check_if_projets_are_accessible_for_user(
     )
 
     if len(projet_ids) != len(projet_ids_visible_by_user):
-        return HttpResponseForbidden(
-            "Un ou plusieurs projets sont hors de votre périmètre."
-        )
+        raise ValueError("Un ou plusieurs projets sont hors de votre périmètre.")
 
 
 def _get_attribute_page_title_and_page_step_title(
