@@ -21,7 +21,7 @@
     <li>
         {% if user.is_authenticated %}
             <span class="fr-btn--display fr-btn fr-icon-user-fill">{{ user.first_name }} {{ user.last_name }}</span>
-            <form action="{% url 'oidc_logout' %}" method="post" class="sr-only">
+            <form action="{% url 'oidc_logout' %}" method="post" class="fr-sr-only">
                 {% csrf_token %}
                 <button class="fr-btn--display fr-btn fr-icon-lock-unlock-fill" type="submit">
                     Déconnexion
