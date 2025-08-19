@@ -50,6 +50,9 @@ jobs:
       run: |
         ruff check
         ruff format --check
+    - name: Check templates format
+      run: |
+        djlint . --check
     - name: Check migrations
       run: python manage.py makemigrations --check --dry-run
     - name: Run Tests
