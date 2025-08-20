@@ -282,6 +282,7 @@ def _get_pp_ids(request):
 def _check_if_projets_are_accessible_for_user(
     request, programmation_projets
 ):  # TODO test it, event with multiple same ids
+    raise ValueError("Un ou plusieurs projets sont hors de votre périmètre.")
     projet_ids = set(pp.projet.id for pp in programmation_projets)
     projet_ids_visible_by_user = Projet.objects.for_user(request.user).filter(
         id__in=projet_ids

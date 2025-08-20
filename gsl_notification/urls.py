@@ -3,7 +3,7 @@ from django.urls import path
 from gsl_notification.views.decorators import (
     document_visible_by_user,
 )
-from gsl_notification.views.generate_document_for_multiple_projets import (
+from gsl_notification.views.generate_document_for_multiple_projets_views import (
     choose_type_for_multiple_document_generation,
     save_documents,
     select_modele_multiple,

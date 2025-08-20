@@ -8,7 +8,7 @@ export class CheckboxSelection extends Controller {
   static targets = ['globalButton', 'button', 'link']
 
   connect () {
-    this.allCheckboxesSelectedValue = this.globalButtonTarget.checked
+    this._checkIfAllCheckboxesAreSelected()
     this._updateHref()
   }
 
@@ -28,9 +28,7 @@ export class CheckboxSelection extends Controller {
     if (eltValue === false) {
       this.allCheckboxesSelectedValue = false
     } else {
-      if (this.buttonTargets.every(b => b.checked)) {
-        this.allCheckboxesSelectedValue = true
-      }
+      this._checkIfAllCheckboxesAreSelected()
     }
     this._updateHref()
   }
@@ -62,5 +60,11 @@ export class CheckboxSelection extends Controller {
   _updateACheckbox (elt, value) {
     elt.checked = value
     elt.setAttribute('data-fr-js-checkbox-input', value)
+  }
+
+  _checkIfAllCheckboxesAreSelected () {
+    if (this.buttonTargets.every(b => b.checked)) {
+      this.allCheckboxesSelectedValue = true
+    }
   }
 }
