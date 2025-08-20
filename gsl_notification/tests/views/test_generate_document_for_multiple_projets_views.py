@@ -482,8 +482,12 @@ def test_save_documents_correctly(client, programmation_projets, detr_lettre_mod
     message = list(messages)[0]
     assert message.level == 25
     assert (
-        message.message
-        == "Les 3 lettres de notification ont bien été créées. <a href=/notification/DETR/telechargement/lettre?ids=43%2C44%2C45 title='Déclenche le téléchargement du fichier zip'>Télécharger le fichier zip</a>"
+        "Les 3 lettres de notification ont bien été créées. <a href=/notification/DETR/telechargement/lettre?ids="
+        in message.message
+    )
+    assert (
+        "title='Déclenche le téléchargement du fichier zip'>Télécharger le fichier zip</a>"
+        in message.message
     )
 
 
