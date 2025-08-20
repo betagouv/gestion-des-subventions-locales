@@ -1,35 +1,33 @@
-import { Controller } from "stimulus"
+import { Controller } from 'stimulus'
 
 export class CheckboxSelection extends Controller {
   static values = {
-   allCheckboxesSelected: {type:Boolean, default: false},
+    allCheckboxesSelected: { type: Boolean, default: false }
   }
 
-  static targets = [ "globalButton", "button", "link" ]
+  static targets = ['globalButton', 'button', 'link' ]
 
-  connect() {
+  connect () {
     this.allCheckboxesSelectedValue = this.globalButtonTarget.checked
     this._updateHref()
   }
 
-  toggle(){
+  toggle () {
     const newValue = !this.allCheckboxesSelectedValue
     this.allCheckboxesSelectedValue = newValue
     if (newValue) {
       this._updateAllCheckboxes(true)
-    }
-    else {
+    } else {
       this._updateAllCheckboxes(false)
     }
       this._updateHref()
   }
 
-  updateAllCheckboxesSelected(evt){
+  updateAllCheckboxesSelected (evt) {
     const eltValue = evt.target.checked
-    if (eltValue == false){
+    if (eltValue === false) {
       this.allCheckboxesSelectedValue = false
-    }
-    else {
+    } else {
       if (this.buttonTargets.every(b => b.checked)) {
         this.allCheckboxesSelectedValue = true
       }
@@ -37,16 +35,16 @@ export class CheckboxSelection extends Controller {
     this._updateHref()
   }
 
-  allCheckboxesSelectedValueChanged() {
+  allCheckboxesSelectedValueChanged () {
     this._updateACheckbox(this.globalButtonTarget, this.allCheckboxesSelectedValue)
   }
 
   // Private
 
-  _updateHref() {
+  _updateHref () {
     const selectedIds = this.buttonTargets
       .filter((b) => b.checked)
-      .map((b) => b.id.split("-")[1])
+      .map((b) => b.id.split('-')[1])
 
     const baseUrl = this.linkTarget.dataset.baseUrl
 
@@ -58,12 +56,12 @@ export class CheckboxSelection extends Controller {
   }
 
 
-  _updateAllCheckboxes(value) {
+  _updateAllCheckboxes (value) {
     this.buttonTargets.forEach(element => this._updateACheckbox(element, value));
   }
 
-  _updateACheckbox(elt, value){
+  _updateACheckbox (elt, value){
     elt.checked = value;
-    elt.setAttribute("data-fr-js-checkbox-input", value);
+    elt.setAttribute('data-fr-js-checkbox-input', value);
   }
 }
