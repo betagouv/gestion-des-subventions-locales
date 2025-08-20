@@ -15,7 +15,7 @@
   border: 1px solid #ddd;
   padding: 1em !important;
   display: flex;
-  box-shadow: 2px 3px 8px 0px #0000001A;
+  box-shadow: 2px 3px 8px 0 #0000001A;
   gap: 16px;
   background-image: none;
 }

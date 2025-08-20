@@ -77,7 +77,7 @@
 
 .arrete-card__actions {
   width: 200px;
-  padding: 0px;
+  padding: 0;
   gap: 0;
   min-width: 0;
 }

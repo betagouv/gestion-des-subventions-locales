@@ -9,13 +9,32 @@
       }
     ],
     "selector-id-pattern": null,
-    "property-no-deprecated": null,
-    "length-zero-no-unit": null,
-    "declaration-property-value-no-unknown": null,
+    "property-no-deprecated": [
+      true,
+      {
+        "severity": "warning"
+      }
+    ],
+    "declaration-property-value-no-unknown": [
+      true,
+      {
+        "severity": "warning"
+      }
+    ],
     "color-function-alias-notation": null,
     "color-function-notation": null,
     "font-family-name-quotes": null,
-    "property-no-vendor-prefix": null,
-    "font-family-no-missing-generic-family-keyword": null
+    "property-no-vendor-prefix": [
+      true,
+      {
+        "severity": "warning"
+      }
+    ],
+    "font-family-no-missing-generic-family-keyword": [
+      true,
+      {
+        "severity": "warning"
+      }
+    ]
   }
 }
