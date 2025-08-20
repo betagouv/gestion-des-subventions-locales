@@ -220,7 +220,7 @@ def return_document_as_a_dict(
 
 def get_modele_class(modele_type):
     if modele_type not in [ARRETE, LETTRE]:
-        raise Http404("Type inconnu")
+        raise ValueError("Type inconnu")
     if modele_type == LETTRE:
         return ModeleLettreNotification
     return ModeleArrete
@@ -228,7 +228,7 @@ def get_modele_class(modele_type):
 
 def get_document_class(document_type):
     if document_type not in [ARRETE, LETTRE]:
-        raise Http404("Type inconnu")
+        raise ValueError("Type inconnu")
     if document_type == LETTRE:
         return LettreNotification
     return Arrete
@@ -236,7 +236,7 @@ def get_document_class(document_type):
 
 def get_form_class(document_type):
     if document_type not in [ARRETE, LETTRE]:
-        raise Http404("Type inconnu")
+        raise ValueError("Type inconnu")
     if document_type == LETTRE:
         return LettreNotificationForm
     return ArreteForm

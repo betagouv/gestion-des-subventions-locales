@@ -3,6 +3,11 @@ from django.urls import path
 from gsl_notification.views.decorators import (
     document_visible_by_user,
 )
+from gsl_notification.views.generate_document_for_multiple_projets import (
+    choose_type_for_multiple_document_generation,
+    save_documents,
+    select_modele_multiple,
+)
 from gsl_notification.views.modele_views import (
     ChooseModeleDocumentType,
     CreateModelDocumentWizard,
@@ -35,7 +40,7 @@ urlpatterns = [
         documents_view,
         name="documents",
     ),
-    # Arretes
+    # Generated files
     path(
         "<int:programmation_projet_id>/choix-du-type/",
         choose_type_for_document_generation,
@@ -66,7 +71,23 @@ urlpatterns = [
         delete_document_view,
         name="delete-document",
     ),
-    # Arretes signés
+    # Generated files for multiple projets
+    path(
+        "<str:dotation>/choix-du-type/",
+        choose_type_for_multiple_document_generation,
+        name="choose-generated-document-type-multiple",
+    ),
+    path(
+        "<str:dotation>/selection-d-un-modele/<str:document_type>",
+        select_modele_multiple,
+        name="select-modele-multiple",
+    ),
+    path(
+        "<str:dotation>/sauvegarde/<str:document_type>/<int:modele_id>",
+        save_documents,
+        name="save-documents",
+    ),
+    # Uploaded files
     path(
         "<int:programmation_projet_id>/televersement/choix-du-type/",
         choose_type_for_document_upload,

@@ -199,7 +199,16 @@ def choose_type_for_document_generation(request, programmation_projet_id):
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
-    context = {"programmation_projet": programmation_projet}
+    context = {
+        "programmation_projet": programmation_projet,
+        "dossier": programmation_projet.dossier,
+        "cancel_link": reverse(
+            "gsl_notification:documents", args=[programmation_projet_id]
+        ),
+        "next_step_link": reverse(
+            "gsl_notification:select-modele", args=[programmation_projet.id, "type"]
+        ),
+    }
     return render(
         request,
         "gsl_notification/generated_document/choose_generated_document_type.html",
@@ -230,6 +239,9 @@ def select_modele(request, programmation_projet_id, document_type):
         "programmation_projet": programmation_projet,
         "page_title": page_title,
         "page_step_title": page_step_title,
+        "cancel_link": reverse(
+            "gsl_notification:documents", args=[programmation_projet_id]
+        ),
         "modeles_list": [
             {
                 "name": obj.name,

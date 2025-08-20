@@ -1,0 +1,485 @@
+import pytest
+from django.contrib.messages import get_messages
+from django.urls import reverse
+
+from gsl_core.tests.factories import (
+    ClientWithLoggedUserFactory,
+    CollegueFactory,
+    PerimetreFactory,
+)
+from gsl_notification.tests.factories import (
+    ModeleLettreNotificationFactory,
+)
+from gsl_programmation.tests.factories import ProgrammationProjetFactory
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, LETTRE
+
+pytestmark = pytest.mark.django_db
+
+
+## FIXTURES
+
+
+@pytest.fixture
+def perimetre():
+    return PerimetreFactory()
+
+
+@pytest.fixture
+def programmation_projet(perimetre):
+    return ProgrammationProjetFactory(dotation_projet__projet__perimetre=perimetre)
+
+
+@pytest.fixture
+def programmation_projets(perimetre):
+    return ProgrammationProjetFactory.create_batch(
+        3, dotation_projet__projet__perimetre=perimetre
+    )
+
+
+@pytest.fixture
+def detr_lettre_modele(perimetre):
+    return ModeleLettreNotificationFactory(dotation=DOTATION_DETR, perimetre=perimetre)
+
+
+# @pytest.fixture
+# def arrete_et_lettre_signes(programmation_projet):
+#     return ArreteEtLettreSignesFactory(programmation_projet=programmation_projet)
+
+
+@pytest.fixture
+def client(perimetre):
+    user = CollegueFactory(perimetre=perimetre)
+    return ClientWithLoggedUserFactory(user)
+
+
+# @pytest.fixture
+# def different_perimetre_client_with_user_logged():
+#     user = CollegueFactory()
+#     return ClientWithLoggedUserFactory(user)
+
+
+## choose_type_for_multiple_document_generation
+
+
+def test_choose_type_for_multiple_document_generation_method_allowed(
+    client,
+):
+    url = reverse(
+        "notification:choose-generated-document-type-multiple",
+        kwargs={
+            "dotation": DOTATION_DETR,
+        },
+    )
+    assert url == f"/notification/{DOTATION_DETR}/choix-du-type/"
+    response = client.post(url)
+    assert response.status_code == 405
+
+
+def test_choose_type_for_multiple_document_generation_with_wrong_dotation(client):
+    url = reverse("notification:choose-generated-document-type-multiple", args=["raté"])
+    response = client.get(url)
+    assert response.status_code == 400
+
+
+def test_choose_type_for_multiple_document_generation_no_id(client):
+    url = reverse(
+        "notification:choose-generated-document-type-multiple", args=[DOTATION_DETR]
+    )
+    response = client.get(url)
+    assert response.status_code == 400
+    assert response.content == b"Aucun id de programmation projet"
+
+
+def test_choose_type_for_multiple_document_generation_one_id(
+    client, programmation_projet
+):
+    url = (
+        reverse(
+            "notification:choose-generated-document-type-multiple", args=[DOTATION_DETR]
+        )
+        + f"?ids={programmation_projet.id}"
+    )
+    response = client.get(url)
+    assert response.status_code == 302
+    assert response["Location"] == reverse(
+        "gsl_notification:choose-generated-document-type",
+        kwargs={"programmation_projet_id": programmation_projet.id},
+    )
+
+
+def test_choose_type_with_one_wrong_perimetre_pp(client, programmation_projets):
+    wrong_perimetre_pp = ProgrammationProjetFactory()
+    programmation_projets.append(wrong_perimetre_pp)
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    url = (
+        reverse(
+            "notification:choose-generated-document-type-multiple", args=[DOTATION_DETR]
+        )
+        + f"?ids={ids}"
+    )
+    response = client.get(url)
+    assert response.status_code == 403
+    assert (
+        response.content
+        == b"Un ou plusieurs projets sont hors de votre p\xc3\xa9rim\xc3\xa8tre."
+    )
+
+
+def test_choose_type_with_one_wrong_dotation_pp(client, programmation_projets):
+    wrong_perimetre_pp = ProgrammationProjetFactory(
+        dotation_projet__dotation=DOTATION_DSIL
+    )
+    programmation_projets.append(wrong_perimetre_pp)
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    url = (
+        reverse(
+            "notification:choose-generated-document-type-multiple", args=[DOTATION_DETR]
+        )
+        + f"?ids={ids}"
+    )
+    response = client.get(url)
+    assert response.status_code == 403
+    assert (
+        response.content
+        == b"Un ou plusieurs projets sont hors de votre p\xc3\xa9rim\xc3\xa8tre."
+    )
+
+
+def test_choose_type_correctly(client, programmation_projets):
+    pp_ids = [str(pp.id) for pp in programmation_projets]
+    ids = ",".join(pp_ids)
+    url = (
+        reverse(
+            "notification:choose-generated-document-type-multiple", args=[DOTATION_DETR]
+        )
+        + f"?ids={ids}"
+    )
+    response = client.get(url)
+    assert response.status_code == 200
+    assert (
+        response.templates[0].name
+        == "gsl_notification/generated_document/multiple/choose_generated_document_type.html"
+    )
+    assert response.context["programmation_projets"] == programmation_projets
+    assert response.context["page_title"] == "3 projets DETR sélectionnés"
+    assert response.context["go_back_link"] == "/programmation/liste/DETR/"
+    assert response.context["cancel_link"] == "/programmation/liste/DETR/"
+    assert (
+        response.context["next_step_link"]
+        == reverse(
+            "gsl_notification:select-modele-multiple",
+            args=[DOTATION_DETR, "type"],
+        )
+        + f"?ids={'%2C'.join(pp_ids)}"
+    )
+
+
+## select_modele_multiple
+
+
+def test_select_modele_multiple_method_allowed(
+    client,
+):
+    url = reverse(
+        "notification:select-modele-multiple",
+        kwargs={"dotation": DOTATION_DETR, "document_type": LETTRE},
+    )
+    assert url == f"/notification/{DOTATION_DETR}/selection-d-un-modele/lettre"
+    response = client.post(url)
+    assert response.status_code == 405
+
+
+def test_select_modele_multiple_with_wrong_dotation(client):
+    url = reverse("notification:select-modele-multiple", args=["raté", LETTRE])
+    response = client.get(url)
+    assert response.status_code == 400
+    assert response.content == b"Dotation inconnue"
+
+
+def test_select_modele_multiple_with_wrong_document_type(client):
+    url = reverse("notification:select-modele-multiple", args=[DOTATION_DETR, "raté"])
+    response = client.get(url)
+    assert response.status_code == 400
+    assert response.content == b"Type de document inconnu"
+
+
+def test_select_modele_multiple_no_id(client):
+    url = reverse("notification:select-modele-multiple", args=[DOTATION_DETR, LETTRE])
+    response = client.get(url)
+    assert response.status_code == 400
+    assert response.content == b"Aucun id de programmation projet"
+
+
+def test_select_modele_multiple_one_id(client, programmation_projet):
+    url = (
+        reverse(
+            "notification:select-modele-multiple",
+            args=[DOTATION_DETR, LETTRE],
+        )
+        + f"?ids={programmation_projet.id}"
+    )
+    response = client.get(url)
+    assert response.status_code == 302
+    assert response["Location"] == reverse(
+        "gsl_notification:select-modele",
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": LETTRE,
+        },
+    )
+
+
+def test_select_modele_multiple_with_one_wrong_perimetre_pp(
+    client, programmation_projets
+):
+    wrong_perimetre_pp = ProgrammationProjetFactory()
+    programmation_projets.append(wrong_perimetre_pp)
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    url = (
+        reverse("notification:select-modele-multiple", args=[DOTATION_DETR, LETTRE])
+        + f"?ids={ids}"
+    )
+    response = client.get(url)
+    assert response.status_code == 403
+    assert (
+        response.content
+        == b"Un ou plusieurs projets sont hors de votre p\xc3\xa9rim\xc3\xa8tre."
+    )
+
+
+def test_select_modele_multiple_with_one_wrong_dotation_pp(
+    client, programmation_projets
+):
+    wrong_perimetre_pp = ProgrammationProjetFactory(
+        dotation_projet__dotation=DOTATION_DSIL
+    )
+    programmation_projets.append(wrong_perimetre_pp)
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    url = (
+        reverse("notification:select-modele-multiple", args=[DOTATION_DETR, LETTRE])
+        + f"?ids={ids}"
+    )
+    response = client.get(url)
+    assert response.status_code == 403
+    assert (
+        response.content
+        == b"Un ou plusieurs projets sont hors de votre p\xc3\xa9rim\xc3\xa8tre."
+    )
+
+
+def test_select_modele_multiple_correctly(client, programmation_projets):
+    modeles = ModeleLettreNotificationFactory.create_batch(
+        2,
+        dotation=DOTATION_DETR,
+        perimetre=client.user.perimetre,
+        name="Nom de modèle",
+        description="Description de modèle",
+    )
+    pp_ids = [str(pp.id) for pp in programmation_projets]
+    ids = ",".join(pp_ids)
+    url = (
+        reverse("notification:select-modele-multiple", args=[DOTATION_DETR, LETTRE])
+        + f"?ids={ids}"
+    )
+    response = client.get(url)
+    assert response.status_code == 200
+    assert (
+        response.templates[0].name
+        == "gsl_notification/generated_document/multiple/select_modele.html"
+    )
+    assert len(response.context["modeles_list"]) == 2
+    modele = response.context["modeles_list"][0]
+    assert modele["name"] == "Nom de modèle"
+    assert modele["description"] == "Description de modèle"
+    assert len(modele["actions"]) == 1
+    assert modele["actions"][0] == {
+        "label": "S\xe9lectionner",
+        "type": "submit",
+        "href": f"/notification/{DOTATION_DETR}/sauvegarde/{LETTRE}/{modeles[0].id}?ids={'%2C'.join(pp_ids)}",
+    }
+
+    assert response.context["page_super_title"] == "3 projets DETR sélectionnés"
+    assert response.context["page_title"] == "Création de 3 lettres de notification"
+    assert response.context["cancel_link"] == "/programmation/liste/DETR/"
+
+
+## save_documents
+
+
+def test_save_documents_method_allowed(client, detr_lettre_modele):
+    url = reverse(
+        "notification:save-documents",
+        kwargs={
+            "dotation": DOTATION_DETR,
+            "document_type": LETTRE,
+            "modele_id": detr_lettre_modele.id,
+        },
+    )
+    assert (
+        url
+        == f"/notification/{DOTATION_DETR}/sauvegarde/lettre/{detr_lettre_modele.id}"
+    )
+    response = client.get(url)
+    assert response.status_code == 405
+
+
+def test_save_documents_with_wrong_dotation(client, detr_lettre_modele):
+    url = reverse(
+        "notification:save-documents", args=["raté", LETTRE, detr_lettre_modele.id]
+    )
+    response = client.post(url)
+    assert response.status_code == 400
+    assert response.content == b"Dotation inconnue"
+
+
+def test_save_documents_with_wrong_document_type(client, detr_lettre_modele):
+    url = reverse(
+        "notification:save-documents",
+        args=[DOTATION_DETR, "raté", detr_lettre_modele.id],
+    )
+    response = client.post(url)
+    assert response.status_code == 400
+    assert response.content == b"Type de document inconnu"
+
+
+def test_save_documents_no_id(client, detr_lettre_modele):
+    url = reverse(
+        "notification:save-documents",
+        args=[DOTATION_DETR, LETTRE, detr_lettre_modele.id],
+    )
+    response = client.post(url)
+    assert response.status_code == 400
+    assert response.content == b"Aucun id de programmation projet"
+
+
+def test_save_documents_one_id(client, detr_lettre_modele, programmation_projet):
+    url = (
+        reverse(
+            "notification:save-documents",
+            args=[DOTATION_DETR, LETTRE, detr_lettre_modele.id],
+        )
+        + f"?ids={programmation_projet.id}"
+    )
+    response = client.post(url)
+    assert response.status_code == 302
+    assert response["Location"] == reverse(
+        "gsl_notification:modifier-document",
+        kwargs={
+            "programmation_projet_id": programmation_projet.id,
+            "document_type": LETTRE,
+        },
+    )
+
+
+def test_save_documents_with_modele_not_in_perimetre(client, programmation_projets):
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    modele = ModeleLettreNotificationFactory(dotation=DOTATION_DETR)
+    url = (
+        reverse(
+            "notification:save-documents",
+            args=[DOTATION_DETR, LETTRE, modele.id],
+        )
+        + f"?ids={ids}"
+    )
+    response = client.post(url)
+    assert response.status_code == 404
+
+
+def test_save_documents_with_modele_with_wrong_dotation(client, programmation_projets):
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    modele = ModeleLettreNotificationFactory(
+        dotation=DOTATION_DSIL, perimetre=client.user.perimetre
+    )
+    url = (
+        reverse(
+            "notification:save-documents",
+            args=[DOTATION_DETR, LETTRE, modele.id],
+        )
+        + f"?ids={ids}"
+    )
+    response = client.post(url)
+    assert response.status_code == 404
+
+
+def test_save_documents_with_not_existing_modele_id(client, programmation_projets):
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    url = (
+        reverse(
+            "notification:save-documents",
+            args=[DOTATION_DETR, LETTRE, 9999],
+        )
+        + f"?ids={ids}"
+    )
+    response = client.post(url)
+    assert response.status_code == 404
+
+
+def test_save_documents_with_one_wrong_perimetre_pp(
+    client, programmation_projets, detr_lettre_modele
+):
+    wrong_perimetre_pp = ProgrammationProjetFactory()
+    programmation_projets.append(wrong_perimetre_pp)
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    url = (
+        reverse(
+            "notification:save-documents",
+            args=[DOTATION_DETR, LETTRE, detr_lettre_modele.id],
+        )
+        + f"?ids={ids}"
+    )
+    response = client.post(url)
+    assert response.status_code == 403
+    assert (
+        response.content
+        == b"Un ou plusieurs projets sont hors de votre p\xc3\xa9rim\xc3\xa8tre."
+    )
+
+
+def test_save_documents_with_one_wrong_dotation_pp(
+    client, programmation_projets, detr_lettre_modele
+):
+    wrong_perimetre_pp = ProgrammationProjetFactory(
+        dotation_projet__dotation=DOTATION_DSIL
+    )
+    programmation_projets.append(wrong_perimetre_pp)
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    url = (
+        reverse(
+            "notification:save-documents",
+            args=[DOTATION_DETR, LETTRE, detr_lettre_modele.id],
+        )
+        + f"?ids={ids}"
+    )
+    response = client.post(url)
+    assert response.status_code == 403
+    assert (
+        response.content
+        == b"Un ou plusieurs projets sont hors de votre p\xc3\xa9rim\xc3\xa8tre."
+    )
+
+
+def test_save_documents_correctly(client, programmation_projets, detr_lettre_modele):
+    pp_ids = [str(pp.id) for pp in programmation_projets]
+    ids = ",".join(pp_ids)
+    url = (
+        reverse(
+            "notification:save-documents",
+            args=[DOTATION_DETR, LETTRE, detr_lettre_modele.id],
+        )
+        + f"?ids={ids}"
+    )
+    response = client.post(url)
+    assert response.status_code == 302
+    assert response["Location"] == reverse(
+        "gsl_programmation:programmation-projet-list-dotation", args=[DOTATION_DETR]
+    )
+    for pp in programmation_projets:
+        assert hasattr(pp, "lettre_notification")
+        assert pp.lettre_notification.modele == detr_lettre_modele
+        assert pp.lettre_notification.created_by == client.user
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 25
+    assert message.extra_tags == "success"
+    assert message.message == "Les 3 lettres de notification ont bien été créées."

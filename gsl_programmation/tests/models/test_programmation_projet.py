@@ -11,7 +11,12 @@ from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
-from gsl_notification.tests.factories import ArreteEtLettreSignesFactory, ArreteFactory
+from gsl_notification.tests.factories import (
+    AnnexeFactory,
+    ArreteEtLettreSignesFactory,
+    ArreteFactory,
+    LettreNotificationFactory,
+)
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
@@ -371,16 +376,30 @@ def test_documents_summary_no_document():
 def test_documents_summary_arrete_genere():
     programmation_projet = ProgrammationProjetFactory()
     ArreteFactory(programmation_projet=programmation_projet)
+    LettreNotificationFactory(programmation_projet=programmation_projet)
 
     summary = programmation_projet.documents_summary
-    assert summary == ["1 arrêté généré"]
+    assert summary == ["1 arrêté généré", "1 lettre générée"]
+
+
+@pytest.mark.parametrize(
+    "annexes_count, expected_summary", ((0, []), (1, ["1 annexe"]), (2, ["2 annexes"]))
+)
+@pytest.mark.django_db
+def test_documents_summary_annexes(annexes_count, expected_summary):
+    programmation_projet = ProgrammationProjetFactory()
+    AnnexeFactory.create_batch(annexes_count, programmation_projet=programmation_projet)
+
+    summary = programmation_projet.documents_summary
+    assert summary == expected_summary
 
 
 @pytest.mark.django_db
-def test_documents_summary_arrete_et_lettre_signes_hides_arrete_genere():
+def test_documents_summary_arrete_et_lettre_signes_hides_arrete_and_lettre_generes():
     programmation_projet = ProgrammationProjetFactory()
     ArreteEtLettreSignesFactory(programmation_projet=programmation_projet)
     ArreteFactory(programmation_projet=programmation_projet)
+    LettreNotificationFactory(programmation_projet=programmation_projet)
 
     summary = programmation_projet.documents_summary
     assert summary == ["1 arrêté et lettre signés"]

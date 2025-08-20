@@ -212,9 +212,10 @@ class ProgrammationProjetFilters(FilterSet):
                 "enveloppe",
                 "enveloppe__perimetre",
                 "arrete",
+                "lettre_notification",
                 "arrete_et_lettre_signes",
             )
-            .prefetch_related("dotation_projet__detr_categories")
+            .prefetch_related("dotation_projet__detr_categories", "annexes")
         )
         if not qs.query.order_by:
             qs = qs.order_by("-created_at")
