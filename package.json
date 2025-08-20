@@ -26,7 +26,6 @@
       "static/vendor",
       "gsl_core/static/js/matomo.js",
       "gsl_core",
-      "gsl_programmation",
       "gsl_projet",
       "gsl_simulation"
     ]

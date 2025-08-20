@@ -64,6 +64,9 @@ jobs:
     - name: Check css format
       run : npm run lint:css
 
+    - name: Check js format
+      run : npm run format:js
+
     - name: Check templates format
       run: djlint . --check
 
