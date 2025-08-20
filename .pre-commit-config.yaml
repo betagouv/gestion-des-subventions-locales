@@ -11,3 +11,8 @@ repos:
   hooks:
     - id: djlint-reformat-django
     - id: djlint-django
+- repo: https://github.com/thibaudcolas/pre-commit-stylelint
+  rev: v16.23.1
+  hooks:
+    - id: stylelint
+      args: [--fix]
