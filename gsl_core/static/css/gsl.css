@@ -394,31 +394,38 @@ ul.no-list-style li {
 .tab-submenu ul {
     display: flex;
 }
+
 .tab-submenu ul li + li {
     margin-left: 2em;
 }
+
 .tab-submenu .active-link {
     color: var(--text-title-blue-france);
 }
 
 /* ce serait peut-être mieux de garder le souligné sur ces liens: */
 .secondary-link {
-    --underline-thickness: 0px;
+    --underline-thickness: 0;
 }
+
 .secondary-link:hover {
     --underline-thickness: calc(0.0625em + 0.25px)
 }
+
 .modelearrete-form-wrapper {
     display: flex;
 }
+
 .modelearrete-form-wrapper > form {
     flex-grow: 1;
 }
+
 .arrete-step-1-more-info {
     width: 50%;
     text-align: right;
     padding: 2em 0 0 2em;
 }
+
 .arrete-step-1-more-info img {
     max-width: 80%;
 }

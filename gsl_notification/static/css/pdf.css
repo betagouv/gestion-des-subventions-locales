@@ -75,13 +75,16 @@ p {
 .logo {
     width: 3cm;
 }
+
 header {
     display: flex;
 }
+
 header .head-left {
     width: 3cm;
     margin-right: 1cm;
 }
+
 header .head-right {
     align-content: center;
     flex-grow: 1;
