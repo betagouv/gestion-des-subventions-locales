@@ -61,7 +61,7 @@ export class DoubleDotation extends Controller {
     }
     message.innerHTML = this._getMessage()
 
-    dsfr(modal).modal.disclose() // eslint-disable-line
+    dsfr(modal).modal.disclose()
   }
 
   _getTitle () {
