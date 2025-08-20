@@ -16,3 +16,7 @@ repos:
   hooks:
     - id: stylelint
       args: [--fix]
+- repo: https://github.com/standard/standard
+  rev: master
+  hooks:
+    - id: standard

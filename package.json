@@ -12,10 +12,19 @@
     "htmx.org": "^2"
   },
   "devDependencies": {
+    "standard": "^17.1.2",
     "stylelint": "^16.23.1",
     "stylelint-config-standard": "^39.0.0"
   },
   "scripts": {
-    "lint:css": "stylelint \"**/*.css\""
+    "lint:css": "stylelint \"**/*.css\"",
+    "format:js": "standard \"gsl_*/**/*.js\"",
+    "format-fix:js": "standard --fix \"gsl_*/**/*.js\""
+  },
+  "standard": {
+    "ignore": [
+      "static/vendor",
+      "gsl_core/static/js/matomo.js"
+    ]
   }
 }
