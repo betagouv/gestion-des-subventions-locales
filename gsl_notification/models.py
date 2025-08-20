@@ -191,7 +191,7 @@ class Arrete(GeneratedDocument):
 
     @property
     def name(self):
-        return f"arrêté-attributif-{self.created_at.strftime('%Y-%m-%d')}.pdf"
+        return f"arrêté-attributif-{self.created_at.strftime('%Y-%m-%d')} - N°{self.programmation_projet.dossier.ds_number}.pdf"
 
 
 class LettreNotification(GeneratedDocument):
@@ -216,7 +216,7 @@ class LettreNotification(GeneratedDocument):
 
     @property
     def name(self):
-        return f"lettre-notification-{self.created_at.strftime('%Y-%m-%d')}.pdf"
+        return f"lettre-notification-{self.created_at.strftime('%Y-%m-%d')} - N°{self.programmation_projet.dossier.ds_number}.pdf"
 
 
 class UploadedDocument(models.Model):

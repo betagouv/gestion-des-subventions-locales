@@ -250,6 +250,14 @@ def get_doc_title(document_type: POSSIBLES_DOCUMENTS):
     return "Arrêté d'attribution"
 
 
+def get_programmation_projet_attribute(document_type: POSSIBLES_DOCUMENTS):
+    if document_type not in [ARRETE, LETTRE]:
+        raise ValueError(f"Document type {document_type} inconnu")
+    if document_type == LETTRE:
+        return "lettre_notification"
+    return "arrete"
+
+
 def get_uploaded_document_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES):
     if document_type not in [ARRETE_ET_LETTRE_SIGNES, ANNEXE]:
         raise ValueError(f"Document type {document_type} inconnu")
