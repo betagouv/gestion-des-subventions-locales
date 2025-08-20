@@ -1,16 +1,21 @@
 {
   "extends": "stylelint-config-standard",
-  "rules":{
+  "rules": {
     "selector-class-pattern": null,
-    "no-descending-specificity": null,
+    "no-descending-specificity": [
+      true,
+      {
+        "severity": "warning"
+      }
+    ],
     "selector-id-pattern": null,
-    "property-no-deprecated":null,
-    "length-zero-no-unit":null,
-    "declaration-property-value-no-unknown":null,
-    "color-function-alias-notation":null,
-    "color-function-notation":null,
-    "font-family-name-quotes":null,
-    "property-no-vendor-prefix":null,
+    "property-no-deprecated": null,
+    "length-zero-no-unit": null,
+    "declaration-property-value-no-unknown": null,
+    "color-function-alias-notation": null,
+    "color-function-notation": null,
+    "font-family-name-quotes": null,
+    "property-no-vendor-prefix": null,
     "font-family-no-missing-generic-family-keyword": null
   }
 }

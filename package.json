@@ -23,7 +23,10 @@
     "format-fix:js": "standard --fix \"gsl_*/**/*.js\""
   },
   "standard": {
-    "globals": ["dsfr", "htmx"],
+    "globals": [
+      "dsfr",
+      "htmx"
+    ],
     "ignore": [
       "static/vendor",
       "gsl_core/static/js/matomo.js"
