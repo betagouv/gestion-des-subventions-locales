@@ -56,6 +56,10 @@ def choose_type_for_multiple_document_generation(request, dotation):
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=None,
     )
+    if len(programmation_projets) < len(ids):
+        return HttpResponseBadRequest(
+            "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, projet déjà notifié ou refusé, projet associé à une autre dotation)."
+        )
 
     try:
         _check_if_projets_are_accessible_for_user(request, programmation_projets)
@@ -112,6 +116,11 @@ def select_modele_multiple(request, dotation, document_type):
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=None,
     )
+    if len(programmation_projets) < len(ids):
+        return HttpResponseBadRequest(
+            "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, projet déjà notifié ou refusé, projet associé à une autre dotation)."
+        )
+
     try:
         _check_if_projets_are_accessible_for_user(request, programmation_projets)
     except ValueError as e:
@@ -194,8 +203,14 @@ def save_documents(
         ProgrammationProjet,
         id__in=ids,
         status=ProgrammationProjet.STATUS_ACCEPTED,
+        dotation_projet__dotation=dotation,
         notified_at=None,
     )
+    if len(programmation_projets) < len(ids):
+        return HttpResponseBadRequest(
+            "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, projet déjà notifié ou refusé, projet associé à une autre dotation)."
+        )
+
     try:
         _check_if_projets_are_accessible_for_user(request, programmation_projets)
     except ValueError as e:
@@ -248,22 +263,15 @@ def save_documents(
 
 @require_GET
 def download_documents(request, dotation, document_type):
+    if dotation not in DOTATIONS:
+        return HttpResponseBadRequest("Dotation inconnue")
+    if document_type not in [ARRETE, LETTRE]:
+        return HttpResponseBadRequest("Type de document inconnu")
+
     try:
         ids = _get_pp_ids(request)
     except ValueError as e:
         return HttpResponseBadRequest(str(e))
-
-    pp_count = len(ids)
-    if pp_count == 1:  # TODO test it
-        return redirect(
-            reverse(
-                "gsl_notification:modifier-document",
-                kwargs={
-                    "programmation_projet_id": ids[0],
-                    "document_type": document_type,
-                },
-            )
-        )
 
     pp_attr = get_programmation_projet_attribute(document_type)
 
@@ -276,16 +284,27 @@ def download_documents(request, dotation, document_type):
             f"{pp_attr}__modele",
         ),
         id__in=ids,
-        dotation_projet__dotation=dotation,  # TODO test it
+        dotation_projet__dotation=dotation,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=None,
     )
+    if len(programmation_projets) < len(ids):
+        return HttpResponseBadRequest(
+            "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, projet déjà notifié ou refusé, projet associé à une autre dotation)."
+        )
+
     try:
         _check_if_projets_are_accessible_for_user(request, programmation_projets)
     except ValueError as e:
         return HttpResponseForbidden(e)
 
-    documents = set(getattr(pp, pp_attr) for pp in programmation_projets)
+    try:
+        documents = set(getattr(pp, pp_attr) for pp in programmation_projets)
+    except (
+        ProgrammationProjet.lettre_notification.RelatedObjectDoesNotExist,
+        ProgrammationProjet.arrete.RelatedObjectDoesNotExist,
+    ):
+        return HttpResponseBadRequest("Un des projets n'a pas le document demandé.")
 
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
@@ -313,7 +332,7 @@ def _get_pp_ids(request):
 
 def _check_if_projets_are_accessible_for_user(
     request, programmation_projets
-):  # TODO test it, event with multiple same ids
+):  # TODO test it, even with multiple same ids
     projet_ids = set(pp.projet.id for pp in programmation_projets)
     projet_ids_visible_by_user = Projet.objects.for_user(request.user).filter(
         id__in=projet_ids

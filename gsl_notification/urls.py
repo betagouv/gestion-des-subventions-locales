@@ -89,7 +89,7 @@ urlpatterns = [
         name="save-documents",
     ),
     path(
-        "<str:dotation>/téléchargement/<str:document_type>",
+        "<str:dotation>/telechargement/<str:document_type>",
         download_documents,
         name="download-documents",
     ),
