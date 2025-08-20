@@ -18,6 +18,7 @@
   },
   "scripts": {
     "lint:css": "stylelint \"**/*.css\"",
+    "lint-fix:css": "stylelint --fix \"**/*.css\"",
     "format:js": "standard \"gsl_*/**/*.js\"",
     "format-fix:js": "standard --fix \"gsl_*/**/*.js\""
   },
