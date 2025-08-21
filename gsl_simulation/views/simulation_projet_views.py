@@ -88,7 +88,6 @@ def patch_dotation_projet(request, pk):
         messages.success(
             request,
             "Les modifications ont été enregistrées avec succès.",
-            extra_tags="info",
         )
         return redirect_to_same_page_or_to_simulation_detail_by_default(
             request, simulation_projet
@@ -97,7 +96,6 @@ def patch_dotation_projet(request, pk):
     messages.error(
         request,
         "Une erreur s'est produite lors de la soumission du formulaire.",
-        extra_tags="alert",
     )
 
     return redirect_to_same_page_or_to_simulation_detail_by_default(
@@ -116,7 +114,6 @@ def patch_projet(request, pk):
         messages.success(
             request,
             "Les modifications ont été enregistrées avec succès.",
-            extra_tags="info",
         )
         try:
             simulation_projet.refresh_from_db()
@@ -133,7 +130,6 @@ def patch_projet(request, pk):
     messages.error(
         request,
         "Une erreur s'est produite lors de la soumission du formulaire. Veuillez sélectionner au moins une dotation.",
-        extra_tags="alert",
     )
 
     return redirect_to_same_page_or_to_simulation_detail_by_default(
@@ -185,7 +181,6 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
             messages.success(
                 request,
                 "Les modifications ont été enregistrées avec succès.",
-                extra_tags="info",
             )
             return redirect_to_same_page_or_to_simulation_detail_by_default(
                 request, simulation_projet
@@ -194,7 +189,6 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
         messages.error(
             request,
             "Une erreur s'est produite lors de la soumission du formulaire.",
-            extra_tags="alert",
         )
         self.object = simulation_projet
         self.simulation_projet = simulation_projet
