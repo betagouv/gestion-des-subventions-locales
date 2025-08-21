@@ -1,4 +1,5 @@
 import pytest
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from gsl_core.tests.factories import CollegueFactory, PerimetreDepartementalFactory
@@ -13,9 +14,10 @@ from gsl_notification.tests.factories import (
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import ARRETE, DOTATION_DETR, LETTRE
+from gsl_projet.constants import ARRETE, DOTATION_DETR, DOTATION_DSIL, LETTRE
 
 
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     "type, modele_factory, factory",
     (
@@ -27,8 +29,7 @@ from gsl_projet.constants import ARRETE, DOTATION_DETR, LETTRE
         ),
     ),
 )
-@pytest.mark.django_db
-def test_arrete_properties(type, modele_factory, factory):
+def generated_document_properties(type, modele_factory, factory):
     collegue = CollegueFactory()
     programmation_projet = ProgrammationProjetFactory(
         status=ProgrammationProjet.STATUS_ACCEPTED
@@ -54,6 +55,31 @@ def test_arrete_properties(type, modele_factory, factory):
     assert arrete.updated_at is not None
     assert arrete.programmation_projet == programmation_projet
     assert arrete.modele == modele
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "modele_factory, factory",
+    (
+        (ModeleArreteFactory, ArreteFactory),
+        (
+            ModeleLettreNotificationFactory,
+            LettreNotificationFactory,
+        ),
+    ),
+)
+def test_generate_document_validation_error_when_pp_and_model_have_different_dotation(
+    modele_factory, factory
+):
+    pp = ProgrammationProjetFactory(dotation_projet__dotation=DOTATION_DSIL)
+    modele = modele_factory(dotation=DOTATION_DETR)
+    document = factory(programmation_projet=pp, modele=modele)
+    with pytest.raises(ValidationError) as exc_info:
+        document.clean()
+
+    assert exc_info.value.message == (
+        "Le mod\xe8le doit avoir la m\xeame dotation que le projet de programmation."
+    )
 
 
 @pytest.mark.parametrize("factory", (ArreteEtLettreSignesFactory, AnnexeFactory))

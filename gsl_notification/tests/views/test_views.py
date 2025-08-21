@@ -579,7 +579,7 @@ def test_change_document_view_valid_with_existing_document(
     document = factory(
         programmation_projet=programmation_projet, content="<p>Ancien contenu</p>"
     )
-    new_modele = modele_factory()
+    new_modele = modele_factory(dotation=programmation_projet.dotation)
     url = reverse(
         "notification:modifier-document",
         kwargs={
@@ -630,7 +630,11 @@ def test_change_document_view_invalid(
     document_type,
     factory,
 ):
-    factory(programmation_projet=programmation_projet, content="<p>Ancien contenu</p>")
+    factory(
+        programmation_projet=programmation_projet,
+        modele__dotation=programmation_projet.dotation,
+        content="<p>Ancien contenu</p>",
+    )
 
     url = reverse(
         "notification:modifier-document",

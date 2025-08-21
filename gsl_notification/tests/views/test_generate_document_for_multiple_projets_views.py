@@ -13,6 +13,9 @@ from gsl_notification.tests.factories import (
     LettreNotificationFactory,
     ModeleLettreNotificationFactory,
 )
+from gsl_notification.views.generate_document_for_multiple_projets_views import (
+    _generate_pdf_for_document,
+)
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, LETTRE
@@ -454,7 +457,7 @@ def test_save_documents_with_one_wrong_dotation_pp(
     assert response.status_code == 400
     assert (
         response.content
-        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
+        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
     )
 
 
@@ -489,6 +492,30 @@ def test_save_documents_correctly(client, programmation_projets, detr_lettre_mod
         "title='Déclenche le téléchargement du fichier zip'>Télécharger le fichier zip</a>"
         in message.message
     )
+
+
+def test_save_documents_with_pp_which_already_have_a_lettre(
+    client, programmation_projets, detr_lettre_modele
+):
+    pp = programmation_projets[0]
+    lettre = LettreNotificationFactory(programmation_projet=pp)
+
+    pp_ids = [str(pp.id) for pp in programmation_projets]
+    ids = ",".join(pp_ids)
+    url = (
+        reverse(
+            "notification:save-documents",
+            args=[DOTATION_DETR, LETTRE, detr_lettre_modele.id],
+        )
+        + f"?ids={ids}"
+    )
+    response = client.post(url)
+    assert response.status_code == 302
+    assert response["Location"] == reverse(
+        "gsl_programmation:programmation-projet-list-dotation", args=[DOTATION_DETR]
+    )
+    pp.refresh_from_db()
+    assert pp.lettre_notification != lettre
 
 
 ## download_documents
@@ -580,7 +607,7 @@ def test_download_documents_with_one_wrong_dotation_pp(client, programmation_pro
     assert response.status_code == 400
     assert (
         response.content
-        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
+        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
     )
 
 
@@ -603,7 +630,7 @@ def test_download_documents_with_one_already_notified(client, programmation_proj
     assert response.status_code == 400
     assert (
         response.content
-        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
+        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
     )
 
 
@@ -626,7 +653,7 @@ def test_download_documents_with_one_refused(client, programmation_projets):
     assert response.status_code == 400
     assert (
         response.content
-        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
+        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
     )
 
 
@@ -650,7 +677,28 @@ def test_download_documents_with_missing_doc(client, programmation_projets):
     assert response.status_code == 400
     assert (
         response.content
-        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
+        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
+    )
+
+
+def test_download_documents_with_duplicate_id(client, programmation_projets):
+    for pp in programmation_projets:
+        LettreNotificationFactory(programmation_projet=pp)
+
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    ids += f",{str(programmation_projets[0].id)}"
+    url = (
+        reverse(
+            "notification:download-documents",
+            args=[DOTATION_DETR, LETTRE],
+        )
+        + f"?ids={ids}"
+    )
+    response = client.get(url)
+    assert response.status_code == 400
+    assert (
+        response.content
+        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
     )
 
 
@@ -669,3 +717,15 @@ def test_download_documents_correctly(client, programmation_projets):
     response = client.get(url)
     assert response.status_code == 200
     assert response["Content-Disposition"] == 'attachment; filename="documents.zip"'
+
+
+def test_generate_pdf_for_document_unit(detr_lettre_modele, programmation_projet):
+    document = LettreNotificationFactory(
+        programmation_projet=programmation_projet,
+        modele=detr_lettre_modele,
+        content="<p>Test PDF</p>",
+    )
+    pdf_bytes = _generate_pdf_for_document(document, LETTRE)
+    assert isinstance(pdf_bytes, bytes)
+    assert pdf_bytes[:4] == b"%PDF"
+    assert len(pdf_bytes) > 100

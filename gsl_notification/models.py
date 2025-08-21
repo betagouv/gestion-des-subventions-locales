@@ -1,6 +1,7 @@
 import os
 from secrets import token_urlsafe
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
@@ -167,6 +168,17 @@ class GeneratedDocument(models.Model):
     @property
     def size(self):  # TODO: Implement a proper name logic
         return 12345
+
+    def clean(self):
+        if (
+            hasattr(self, "programmation_projet")
+            and hasattr(self, "modele")
+            and self.programmation_projet.dotation != self.modele.dotation
+        ):
+            raise ValidationError(
+                "Le modèle doit avoir la même dotation que le projet de programmation."
+            )
+        return super().clean()
 
 
 class Arrete(GeneratedDocument):

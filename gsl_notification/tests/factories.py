@@ -43,7 +43,11 @@ class ArreteFactory(factory.django.DjangoModelFactory):
     programmation_projet = factory.SubFactory(
         "gsl_programmation.tests.factories.ProgrammationProjetFactory"
     )
-    modele = factory.SubFactory(ModeleArreteFactory)
+    modele = factory.LazyAttribute(
+        lambda obj: ModeleArreteFactory(
+            dotation=obj.programmation_projet.dotation,
+        )
+    )
     created_by = factory.SubFactory("gsl_core.tests.factories.CollegueFactory")
     created_at = datetime.datetime.now(datetime.UTC)
     updated_at = datetime.datetime.now(datetime.UTC)
@@ -54,7 +58,11 @@ class LettreNotificationFactory(ArreteFactory):
     class Meta:
         model = LettreNotification
 
-    modele = factory.SubFactory(ModeleLettreNotificationFactory)
+    modele = factory.LazyAttribute(
+        lambda obj: ModeleLettreNotificationFactory(
+            dotation=obj.programmation_projet.dotation,
+        )
+    )
 
 
 class ArreteEtLettreSignesFactory(factory.django.DjangoModelFactory):

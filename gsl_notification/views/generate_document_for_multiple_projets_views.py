@@ -31,6 +31,8 @@ from gsl_projet.constants import (
 )
 from gsl_projet.models import Projet
 
+DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR = "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
+
 
 @require_GET
 def choose_type_for_multiple_document_generation(request, dotation):
@@ -58,7 +60,7 @@ def choose_type_for_multiple_document_generation(request, dotation):
     )
     if len(programmation_projets) < len(ids):
         return HttpResponseBadRequest(
-            "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, projet déjà notifié ou refusé, projet associé à une autre dotation)."
+            DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
         )
 
     try:
@@ -118,7 +120,7 @@ def select_modele_multiple(request, dotation, document_type):
     )
     if len(programmation_projets) < len(ids):
         return HttpResponseBadRequest(
-            "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, projet déjà notifié ou refusé, projet associé à une autre dotation)."
+            DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
         )
 
     try:
@@ -208,7 +210,7 @@ def save_documents(
     )
     if len(programmation_projets) < len(ids):
         return HttpResponseBadRequest(
-            "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, projet déjà notifié ou refusé, projet associé à une autre dotation)."
+            DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
         )
 
     try:
@@ -290,7 +292,7 @@ def download_documents(request, dotation, document_type):
     )
     if len(programmation_projets) < len(ids):
         return HttpResponseBadRequest(
-            "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, projet déjà notifié ou refusé, projet associé à une autre dotation)."
+            DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
         )
 
     try:
@@ -309,7 +311,7 @@ def download_documents(request, dotation, document_type):
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for document in documents:
-            pdf_content = generate_pdf_for_document(document, document_type)
+            pdf_content = _generate_pdf_for_document(document, document_type)
             filename = f"{document.name}"
             zip_file.writestr(filename, pdf_content)
     zip_buffer.seek(0)
@@ -318,7 +320,7 @@ def download_documents(request, dotation, document_type):
     return response
 
 
-# Private
+# Utils
 
 
 def _get_pp_ids(request):
@@ -330,9 +332,7 @@ def _get_pp_ids(request):
     return ids
 
 
-def _check_if_projets_are_accessible_for_user(
-    request, programmation_projets
-):  # TODO test it, even with multiple same ids
+def _check_if_projets_are_accessible_for_user(request, programmation_projets):
     projet_ids = set(pp.projet.id for pp in programmation_projets)
     projet_ids_visible_by_user = Projet.objects.for_user(request.user).filter(
         id__in=projet_ids
@@ -371,7 +371,7 @@ def _get_go_back_link(dotation: str):
     )
 
 
-def generate_pdf_for_document(document: Arrete | LettreNotification, document_type):
+def _generate_pdf_for_document(document: Arrete | LettreNotification, document_type):
     context = {
         "doc_title": get_doc_title(document_type),
         "logo": document.modele.logo,
