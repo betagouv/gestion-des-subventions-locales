@@ -3,8 +3,9 @@ from django.urls import path
 from gsl_notification.views.decorators import (
     document_visible_by_user,
 )
-from gsl_notification.views.generate_document_for_multiple_projets import (
+from gsl_notification.views.generate_document_for_multiple_projets_views import (
     choose_type_for_multiple_document_generation,
+    download_documents,
     save_documents,
     select_modele_multiple,
 )
@@ -25,7 +26,7 @@ from gsl_notification.views.uploaded_document_views import (
     view_uploaded_document,
 )
 from gsl_notification.views.views import (
-    DownloadArreteView,
+    DownloadDocumentView,
     PrintDocumentView,
     change_document_view,
     choose_type_for_document_generation,
@@ -58,7 +59,7 @@ urlpatterns = [
     ),
     path(
         "document/<str:document_type>/<int:document_id>/download/",
-        document_visible_by_user(DownloadArreteView.as_view()),
+        document_visible_by_user(DownloadDocumentView.as_view()),
         name="document-download",
     ),
     path(
@@ -86,6 +87,11 @@ urlpatterns = [
         "<str:dotation>/sauvegarde/<str:document_type>/<int:modele_id>",
         save_documents,
         name="save-documents",
+    ),
+    path(
+        "<str:dotation>/telechargement/<str:document_type>",
+        download_documents,
+        name="download-documents",
     ),
     # Uploaded files
     path(

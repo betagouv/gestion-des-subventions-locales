@@ -1,17 +1,26 @@
-from django.contrib import messages
-from django.http import HttpResponseBadRequest, HttpResponseForbidden
-from django.shortcuts import get_list_or_404, get_object_or_404, redirect, render
-from django.urls import reverse
-from django.views.decorators.http import require_http_methods, require_POST
+import io
+import zipfile
 
-from gsl_core.tests.factories import RequestFactory
+from django.contrib import messages
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.shortcuts import get_list_or_404, get_object_or_404, redirect, render
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils.safestring import mark_safe
+from django.views.decorators.http import require_GET, require_POST
+from django_weasyprint.utils import django_url_fetcher
+from weasyprint import HTML
+
+from gsl import settings
+from gsl_notification.models import Arrete, LettreNotification
 from gsl_notification.utils import (
+    get_doc_title,
     get_document_class,
     get_modele_class,
     get_modele_perimetres,
+    get_programmation_projet_attribute,
     replace_mentions_in_html,
 )
-from gsl_notification.views.views import DownloadArreteView
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
     ARRETE,
@@ -22,8 +31,10 @@ from gsl_projet.constants import (
 )
 from gsl_projet.models import Projet
 
+DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR = "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
 
-@require_http_methods(["GET"])
+
+@require_GET
 def choose_type_for_multiple_document_generation(request, dotation):
     if dotation not in DOTATIONS:
         return HttpResponseBadRequest("Dotation inconnue")
@@ -47,6 +58,10 @@ def choose_type_for_multiple_document_generation(request, dotation):
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=None,
     )
+    if len(programmation_projets) < len(ids):
+        return HttpResponseBadRequest(
+            DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+        )
 
     try:
         _check_if_projets_are_accessible_for_user(request, programmation_projets)
@@ -73,7 +88,7 @@ def choose_type_for_multiple_document_generation(request, dotation):
     )
 
 
-@require_http_methods(["GET"])
+@require_GET
 def select_modele_multiple(request, dotation, document_type):
     if dotation not in DOTATIONS:
         return HttpResponseBadRequest("Dotation inconnue")
@@ -103,6 +118,11 @@ def select_modele_multiple(request, dotation, document_type):
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=None,
     )
+    if len(programmation_projets) < len(ids):
+        return HttpResponseBadRequest(
+            DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+        )
+
     try:
         _check_if_projets_are_accessible_for_user(request, programmation_projets)
     except ValueError as e:
@@ -185,8 +205,14 @@ def save_documents(
         ProgrammationProjet,
         id__in=ids,
         status=ProgrammationProjet.STATUS_ACCEPTED,
+        dotation_projet__dotation=dotation,
         notified_at=None,
     )
+    if len(programmation_projets) < len(ids):
+        return HttpResponseBadRequest(
+            DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+        )
+
     try:
         _check_if_projets_are_accessible_for_user(request, programmation_projets)
     except ValueError as e:
@@ -222,52 +248,79 @@ def save_documents(
     doc_name = "arrêtés" if document_type == ARRETE else "lettres de notification"
     accord = "s" if document_type == ARRETE else "es"
 
-    # download_url = reverse()
+    download_url = reverse(
+        "gsl_notification:download-documents",
+        kwargs={
+            "dotation": dotation,
+            "document_type": document_type,
+        },
+        query=request.GET,
+    )
     messages.success(
         request,
-        f"Les {len(documents_list)} {doc_name} ont bien été créé{accord}.",
-        extra_tags="success",
+        f"Les {len(documents_list)} {doc_name} ont bien été créé{accord}. <a href={download_url} title='Déclenche le téléchargement du fichier zip'>Télécharger le fichier zip</a>",
     )
     return redirect(_get_go_back_link(dotation))
 
 
-# def download_documents(request, dotation, document_type):
-#     ids = _get_pp_ids(request)
-#     pp_count = len(ids)
+@require_GET
+def download_documents(request, dotation, document_type):
+    if dotation not in DOTATIONS:
+        return HttpResponseBadRequest("Dotation inconnue")
+    if document_type not in [ARRETE, LETTRE]:
+        return HttpResponseBadRequest("Type de document inconnu")
 
-#     if pp_count == 1:  # TODO test it
-#         return redirect(
-#             reverse(
-#                 "gsl_notification:modifier-document",
-#                 kwargs={
-#                     "programmation_projet_id": ids[0],
-#                     "document_type": document_type,
-#                 },
-#             )
-#         )
+    try:
+        ids = _get_pp_ids(request)
+    except ValueError as e:
+        return HttpResponseBadRequest(str(e))
 
-#     programmation_projets = get_list_or_404(
-#         ProgrammationProjet,
-#         id__in=ids,
-#         status=ProgrammationProjet.STATUS_ACCEPTED,
-#         notified_at=None,
-#     )
-#     _check_if_projets_are_accessible_for_user(request, programmation_projets)
-#     pp_attr = get_programmation_projet_attribute(document_type)
-#     documents = set(getattr(pp, pp_attr) for pp in programmation_projets)
+    pp_attr = get_programmation_projet_attribute(document_type)
 
-#     zip_buffer = io.BytesIO()
-#     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-#         for document in documents:
-#             pdf_content = generate_pdf_for_document(document, document_type)
-#             filename = f"{document.programmation_projet.id}_{document.modele.name}.pdf"
-#             zip_file.writestr(filename, pdf_content)
-#     zip_buffer.seek(0)
-#     response = HttpResponse(zip_buffer, content_type="application/zip")
-#     response["Content-Disposition"] = 'attachment; filename="documents.zip"'
+    programmation_projets = get_list_or_404(
+        ProgrammationProjet.objects.select_related(
+            "dotation_projet",
+            "dotation_projet__projet",
+            "dotation_projet__projet__dossier_ds",
+            pp_attr,
+            f"{pp_attr}__modele",
+        ),
+        id__in=ids,
+        dotation_projet__dotation=dotation,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        notified_at=None,
+    )
+    if len(programmation_projets) < len(ids):
+        return HttpResponseBadRequest(
+            DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+        )
+
+    try:
+        _check_if_projets_are_accessible_for_user(request, programmation_projets)
+    except ValueError as e:
+        return HttpResponseForbidden(e)
+
+    try:
+        documents = set(getattr(pp, pp_attr) for pp in programmation_projets)
+    except (
+        ProgrammationProjet.lettre_notification.RelatedObjectDoesNotExist,
+        ProgrammationProjet.arrete.RelatedObjectDoesNotExist,
+    ):
+        return HttpResponseBadRequest("Un des projets n'a pas le document demandé.")
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+        for document in documents:
+            pdf_content = _generate_pdf_for_document(document, document_type)
+            filename = f"{document.name}"
+            zip_file.writestr(filename, pdf_content)
+    zip_buffer.seek(0)
+    response = HttpResponse(zip_buffer, content_type="application/zip")
+    response["Content-Disposition"] = 'attachment; filename="documents.zip"'
+    return response
 
 
-# Private
+# Utils
 
 
 def _get_pp_ids(request):
@@ -279,9 +332,7 @@ def _get_pp_ids(request):
     return ids
 
 
-def _check_if_projets_are_accessible_for_user(
-    request, programmation_projets
-):  # TODO test it, event with multiple same ids
+def _check_if_projets_are_accessible_for_user(request, programmation_projets):
     projet_ids = set(pp.projet.id for pp in programmation_projets)
     projet_ids_visible_by_user = Projet.objects.for_user(request.user).filter(
         id__in=projet_ids
@@ -320,20 +371,21 @@ def _get_go_back_link(dotation: str):
     )
 
 
-def generate_pdf_for_document(document, document_type):
-    # Crée une requête factice pour la vue
-    factory = RequestFactory()
-    request = factory.get("/")
-    request.user = document.created_by  # ou l'utilisateur courant
+def _generate_pdf_for_document(document: Arrete | LettreNotification, document_type):
+    context = {
+        "doc_title": get_doc_title(document_type),
+        "logo": document.modele.logo,
+        "alt_logo": document.modele.logo_alt_text,
+        "top_right_text": document.modele.top_right_text.strip(),
+        "content": mark_safe(document.content),
+    }
 
-    # Instancie la vue
-    view = DownloadArreteView()
-    view.request = request
-    view.kwargs = {"document_type": document_type, "document_id": document.id}
-    view.object = document
+    html_string = render_to_string("gsl_notification/pdf/document.html", context)
 
-    # Génère le PDF
-    response = view.render_to_response(view.get_context_data())
-    pdf_content = response.rendered_content  # ou response.content selon le type
+    pdf_content = HTML(
+        string=html_string,
+        url_fetcher=django_url_fetcher,
+        base_url=settings.STATIC_ROOT,
+    ).write_pdf()
 
     return pdf_content

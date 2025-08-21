@@ -552,12 +552,12 @@ def test_change_document_view_valid_without_existing_document(
     if document_type == ARRETE:
         assert (
             message.message
-            == "L'arrêté “arrêté-attributif-2025-08-11.pdf” a bien été créé."
+            == f"L'arrêté “arrêté-attributif-2025-08-11 - N°{programmation_projet.dossier.ds_number}.pdf” a bien été créé."
         )
     else:
         assert (
             message.message
-            == "La lettre de notification “lettre-notification-2025-08-11.pdf” a bien été créée."
+            == f"La lettre de notification “lettre-notification-2025-08-11 - N°{programmation_projet.dossier.ds_number}.pdf” a bien été créée."
         )
 
 
@@ -579,7 +579,7 @@ def test_change_document_view_valid_with_existing_document(
     document = factory(
         programmation_projet=programmation_projet, content="<p>Ancien contenu</p>"
     )
-    new_modele = modele_factory()
+    new_modele = modele_factory(dotation=programmation_projet.dotation)
     url = reverse(
         "notification:modifier-document",
         kwargs={
@@ -608,12 +608,12 @@ def test_change_document_view_valid_with_existing_document(
     if document_type == ARRETE:
         assert (
             message.message
-            == "L'arrêté “arrêté-attributif-2025-08-11.pdf” a bien été modifié."
+            == f"L'arrêté “arrêté-attributif-2025-08-11 - N°{programmation_projet.dossier.ds_number}.pdf” a bien été modifié."
         )
     else:
         assert (
             message.message
-            == "La lettre de notification “lettre-notification-2025-08-11.pdf” a bien été modifiée."
+            == f"La lettre de notification “lettre-notification-2025-08-11 - N°{programmation_projet.dossier.ds_number}.pdf” a bien été modifiée."
         )
 
 
@@ -630,7 +630,11 @@ def test_change_document_view_invalid(
     document_type,
     factory,
 ):
-    factory(programmation_projet=programmation_projet, content="<p>Ancien contenu</p>")
+    factory(
+        programmation_projet=programmation_projet,
+        modele__dotation=programmation_projet.dotation,
+        content="<p>Ancien contenu</p>",
+    )
 
     url = reverse(
         "notification:modifier-document",

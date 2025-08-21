@@ -409,8 +409,8 @@ class PrintDocumentView(WeasyTemplateResponseMixin, DetailView):
     pdf_attachment = False
 
     def get_object(self, queryset=None):
-        self.document_type = self.request.resolver_match.kwargs["document_type"]
-        document_id = self.request.resolver_match.kwargs["document_id"]
+        self.document_type = self.kwargs["document_type"]
+        document_id = self.kwargs["document_id"]
         document_class = get_document_class(self.document_type)
         doc = get_object_or_404(document_class, id=document_id)
         return doc
@@ -433,7 +433,7 @@ class PrintDocumentView(WeasyTemplateResponseMixin, DetailView):
         return context
 
 
-class DownloadArreteView(PrintDocumentView):
+class DownloadDocumentView(PrintDocumentView):
     pdf_attachment = True
 
 

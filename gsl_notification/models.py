@@ -1,6 +1,7 @@
 import os
 from secrets import token_urlsafe
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
@@ -168,6 +169,17 @@ class GeneratedDocument(models.Model):
     def size(self):  # TODO: Implement a proper name logic
         return 12345
 
+    def clean(self):
+        if (
+            hasattr(self, "programmation_projet")
+            and hasattr(self, "modele")
+            and self.programmation_projet.dotation != self.modele.dotation
+        ):
+            raise ValidationError(
+                "Le modèle doit avoir la même dotation que le projet de programmation."
+            )
+        return super().clean()
+
 
 class Arrete(GeneratedDocument):
     programmation_projet = models.OneToOneField(
@@ -191,7 +203,7 @@ class Arrete(GeneratedDocument):
 
     @property
     def name(self):
-        return f"arrêté-attributif-{self.created_at.strftime('%Y-%m-%d')}.pdf"
+        return f"arrêté-attributif-{self.created_at.strftime('%Y-%m-%d')} - N°{self.programmation_projet.dossier.ds_number}.pdf"
 
 
 class LettreNotification(GeneratedDocument):
@@ -216,7 +228,7 @@ class LettreNotification(GeneratedDocument):
 
     @property
     def name(self):
-        return f"lettre-notification-{self.created_at.strftime('%Y-%m-%d')}.pdf"
+        return f"lettre-notification-{self.created_at.strftime('%Y-%m-%d')} - N°{self.programmation_projet.dossier.ds_number}.pdf"
 
 
 class UploadedDocument(models.Model):
