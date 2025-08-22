@@ -142,7 +142,11 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
                 "is_detr_disabled": self.perimetre.type == Perimetre.TYPE_REGION,
             }
         )
-        self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
+
+        ignore_categories_detr = bool(self.dotation == DOTATION_DSIL)
+        self.enrich_context_with_filter_utils(
+            context, self.STATE_MAPPINGS, ignore_categories_detr=ignore_categories_detr
+        )
 
         return context
 

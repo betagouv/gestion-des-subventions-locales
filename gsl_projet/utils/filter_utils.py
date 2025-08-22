@@ -22,7 +22,9 @@ class FilterUtils:
     DOTATION_MAPPING = dict(ProjetFilters.DOTATION_CHOICES)
     PORTEUR_MAPPING = dict(NaturePorteurProjet.TYPE_CHOICES)
 
-    def enrich_context_with_filter_utils(self, context, state_mappings):
+    def enrich_context_with_filter_utils(
+        self, context, state_mappings, ignore_categories_detr=False
+    ):
         context["is_dotation_active"] = self._get_is_one_field_active("dotation")
         context["dotation_placeholder"] = self._get_dotation_placeholder()
         context["is_status_active"] = self._get_is_one_field_active("status")
@@ -54,7 +56,7 @@ class FilterUtils:
         )
         context["categorie_detr_choices"] = self.categorie_detr_choices
 
-        context["filter_templates"] = self._get_filter_templates()
+        context["filter_templates"] = self._get_filter_templates(ignore_categories_detr)
 
         return context
 
@@ -68,10 +70,16 @@ class FilterUtils:
             if dotation in FilterUtils.DOTATION_MAPPING
         )
 
-    def _get_filter_templates(self):
+    def _get_filter_templates(self, ignore_categories_detr=False):
         try:
             filters = self.get_filterset(self.filterset_class).filterset
-            return (self.FILTER_TEMPLATE_MAPPINGS[filter] for filter in filters)
+            templates = []
+            for filter in filters:
+                if ignore_categories_detr and filter == "categorie_detr":
+                    pass
+                else:
+                    templates.append(self.FILTER_TEMPLATE_MAPPINGS[filter])
+            return templates
         except AttributeError:  # no filterset => we display all filters
             return self.FILTER_TEMPLATE_MAPPINGS.values()
 
