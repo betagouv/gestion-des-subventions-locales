@@ -22,6 +22,9 @@ from gsl_notification.utils import (
     replace_mentions_in_html,
 )
 from gsl_programmation.models import ProgrammationProjet
+from gsl_programmation.utils.programmation_projet_filters import (
+    ProgrammationProjetFilters,
+)
 from gsl_projet.constants import (
     ARRETE,
     DOTATIONS,
@@ -41,32 +44,34 @@ def choose_type_for_multiple_document_generation(request, dotation):
 
     try:
         ids = _get_pp_ids(request)
-    except ValueError as e:
-        return HttpResponseBadRequest(str(e))
-
-    if len(ids) == 1:
-        return redirect(
-            reverse(
-                "gsl_notification:choose-generated-document-type",
-                kwargs={"programmation_projet_id": ids[0]},
+        if len(ids) == 1:
+            return redirect(
+                reverse(
+                    "gsl_notification:choose-generated-document-type",
+                    kwargs={"programmation_projet_id": ids[0]},
+                )
             )
+        programmation_projets = get_list_or_404(
+            ProgrammationProjet,
+            id__in=ids,
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            notified_at=None,
+            dotation_projet__dotation=dotation,
         )
+        if len(programmation_projets) < len(ids):
+            return HttpResponseBadRequest(
+                DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+            )
+        try:
+            _check_if_projets_are_accessible_for_user(request, programmation_projets)
+        except ValueError as e:
+            return HttpResponseForbidden(str(e))
 
-    programmation_projets = get_list_or_404(
-        ProgrammationProjet,
-        id__in=ids,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-        notified_at=None,
-    )
-    if len(programmation_projets) < len(ids):
-        return HttpResponseBadRequest(
-            DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
-        )
-
-    try:
-        _check_if_projets_are_accessible_for_user(request, programmation_projets)
-    except ValueError as e:
-        return HttpResponseForbidden(str(e))
+    except ValueError:
+        filterset = ProgrammationProjetFilters(request=request)
+        programmation_projets = filterset.qs.filter(
+            status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None
+        )  # TODO use the class filter
 
     title = f"{len(programmation_projets)} projets {dotation} sélectionnés"
     go_back_link = _get_go_back_link(dotation)
@@ -97,36 +102,39 @@ def select_modele_multiple(request, dotation, document_type):
 
     try:
         ids = _get_pp_ids(request)
-    except ValueError as e:
-        return HttpResponseBadRequest(str(e))
-
-    pp_count = len(ids)
-    if pp_count == 1:
-        return redirect(
-            reverse(
-                "gsl_notification:select-modele",
-                kwargs={
-                    "programmation_projet_id": ids[0],
-                    "document_type": document_type,
-                },
+        pp_count = len(ids)
+        if pp_count == 1:
+            return redirect(
+                reverse(
+                    "gsl_notification:select-modele",
+                    kwargs={
+                        "programmation_projet_id": ids[0],
+                        "document_type": document_type,
+                    },
+                )
             )
+        programmation_projets = get_list_or_404(
+            ProgrammationProjet,
+            id__in=ids,
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            notified_at=None,
+            dotation_projet__dotation=dotation,
         )
+        if len(programmation_projets) < len(ids):
+            return HttpResponseBadRequest(
+                DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+            )
+        try:
+            _check_if_projets_are_accessible_for_user(request, programmation_projets)
+        except ValueError as e:
+            return HttpResponseForbidden(str(e))
 
-    programmation_projets = get_list_or_404(
-        ProgrammationProjet,
-        id__in=ids,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-        notified_at=None,
-    )
-    if len(programmation_projets) < len(ids):
-        return HttpResponseBadRequest(
-            DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
-        )
-
-    try:
-        _check_if_projets_are_accessible_for_user(request, programmation_projets)
-    except ValueError as e:
-        return HttpResponseForbidden(e)
+    except ValueError:
+        filterset = ProgrammationProjetFilters(request=request)
+        programmation_projets = filterset.qs.filter(
+            status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None
+        )  # TODO use the class filter
+        pp_count = programmation_projets.count()
 
     page_title, page_step_title = _get_attribute_page_title_and_page_step_title(
         document_type, pp_count, step=1
@@ -186,37 +194,34 @@ def save_documents(
 
     try:
         ids = _get_pp_ids(request)
-    except ValueError as e:
-        return HttpResponseBadRequest(str(e))
-
-    pp_count = len(ids)
-    if pp_count == 1:
-        return redirect(
-            reverse(
-                "gsl_notification:modifier-document",
-                kwargs={
-                    "programmation_projet_id": ids[0],
-                    "document_type": document_type,
-                },
+        pp_count = len(ids)
+        if pp_count == 1:
+            return redirect(
+                reverse(
+                    "gsl_notification:choose-generated-document-type",
+                    kwargs={"programmation_projet_id": ids[0]},
+                )
             )
+        programmation_projets = get_list_or_404(
+            ProgrammationProjet,
+            id__in=ids,
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            notified_at=None,
         )
+        if len(programmation_projets) < len(ids):
+            return HttpResponseBadRequest(
+                DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+            )
+        try:
+            _check_if_projets_are_accessible_for_user(request, programmation_projets)
+        except ValueError as e:
+            return HttpResponseForbidden(str(e))
 
-    programmation_projets = get_list_or_404(
-        ProgrammationProjet,
-        id__in=ids,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-        dotation_projet__dotation=dotation,
-        notified_at=None,
-    )
-    if len(programmation_projets) < len(ids):
-        return HttpResponseBadRequest(
-            DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
-        )
-
-    try:
-        _check_if_projets_are_accessible_for_user(request, programmation_projets)
-    except ValueError as e:
-        return HttpResponseForbidden(e)
+    except ValueError:
+        filterset = ProgrammationProjetFilters(request=request)
+        programmation_projets = filterset.qs.filter(
+            status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None
+        )  # TODO use the class filter
 
     document_class = get_document_class(document_type)
 
@@ -270,35 +275,49 @@ def download_documents(request, dotation, document_type):
     if document_type not in [ARRETE, LETTRE]:
         return HttpResponseBadRequest("Type de document inconnu")
 
+    pp_attr = get_programmation_projet_attribute(document_type)
     try:
         ids = _get_pp_ids(request)
-    except ValueError as e:
-        return HttpResponseBadRequest(str(e))
-
-    pp_attr = get_programmation_projet_attribute(document_type)
-
-    programmation_projets = get_list_or_404(
-        ProgrammationProjet.objects.select_related(
+        pp_count = len(ids)
+        if pp_count == 1:
+            return redirect(
+                reverse(
+                    "gsl_notification:choose-generated-document-type",
+                    kwargs={"programmation_projet_id": ids[0]},
+                )
+            )
+        programmation_projets = get_list_or_404(
+            ProgrammationProjet.objects.select_related(
+                "dotation_projet",
+                "dotation_projet__projet",
+                "dotation_projet__projet__dossier_ds",
+                pp_attr,
+                f"{pp_attr}__modele",
+            ),
+            id__in=ids,
+            dotation_projet__dotation=dotation,
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            notified_at=None,
+        )
+        if len(programmation_projets) < len(ids):
+            return HttpResponseBadRequest(
+                DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+            )
+        try:
+            _check_if_projets_are_accessible_for_user(request, programmation_projets)
+        except ValueError as e:
+            return HttpResponseForbidden(str(e))
+    except ValueError:
+        filterset = ProgrammationProjetFilters(request=request)
+        programmation_projets = filterset.qs.filter(
+            status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None
+        ).select_related(
             "dotation_projet",
             "dotation_projet__projet",
             "dotation_projet__projet__dossier_ds",
             pp_attr,
             f"{pp_attr}__modele",
-        ),
-        id__in=ids,
-        dotation_projet__dotation=dotation,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-        notified_at=None,
-    )
-    if len(programmation_projets) < len(ids):
-        return HttpResponseBadRequest(
-            DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
-        )
-
-    try:
-        _check_if_projets_are_accessible_for_user(request, programmation_projets)
-    except ValueError as e:
-        return HttpResponseForbidden(e)
+        )  # TODO use the class filter
 
     try:
         documents = set(getattr(pp, pp_attr) for pp in programmation_projets)
