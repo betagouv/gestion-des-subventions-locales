@@ -1,4 +1,5 @@
 import io
+import logging
 import zipfile
 
 from django.contrib import messages
@@ -69,9 +70,7 @@ def choose_type_for_multiple_document_generation(request, dotation):
 
     except ValueError:
         filterset = ProgrammationProjetFilters(request=request)
-        programmation_projets = filterset.qs.filter(
-            status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None
-        )  # TODO use the class filter
+        programmation_projets = filterset.qs.to_notify()
 
     title = f"{len(programmation_projets)} projets {dotation} sélectionnés"
     go_back_link = _get_go_back_link(dotation)
@@ -131,9 +130,7 @@ def select_modele_multiple(request, dotation, document_type):
 
     except ValueError:
         filterset = ProgrammationProjetFilters(request=request)
-        programmation_projets = filterset.qs.filter(
-            status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None
-        )  # TODO use the class filter
+        programmation_projets = filterset.qs.to_notify()
         pp_count = programmation_projets.count()
 
     page_title, page_step_title = _get_attribute_page_title_and_page_step_title(
@@ -219,9 +216,7 @@ def save_documents(
 
     except ValueError:
         filterset = ProgrammationProjetFilters(request=request)
-        programmation_projets = filterset.qs.filter(
-            status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None
-        )  # TODO use the class filter
+        programmation_projets = filterset.qs.to_notify()
 
     document_class = get_document_class(document_type)
 
@@ -309,15 +304,13 @@ def download_documents(request, dotation, document_type):
             return HttpResponseForbidden(str(e))
     except ValueError:
         filterset = ProgrammationProjetFilters(request=request)
-        programmation_projets = filterset.qs.filter(
-            status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None
-        ).select_related(
+        programmation_projets = filterset.qs.to_notify().select_related(
             "dotation_projet",
             "dotation_projet__projet",
             "dotation_projet__projet__dossier_ds",
             pp_attr,
             f"{pp_attr}__modele",
-        )  # TODO use the class filter
+        )
 
     try:
         documents = set(getattr(pp, pp_attr) for pp in programmation_projets)
@@ -329,10 +322,13 @@ def download_documents(request, dotation, document_type):
 
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+        i = 1
         for document in documents:
             pdf_content = _generate_pdf_for_document(document, document_type)
             filename = f"{document.name}"
             zip_file.writestr(filename, pdf_content)
+            logging.info(f"#{i} {document} généré")
+            i += 1
     zip_buffer.seek(0)
     response = HttpResponse(zip_buffer, content_type="application/zip")
     response["Content-Disposition"] = 'attachment; filename="documents.zip"'

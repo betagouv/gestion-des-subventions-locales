@@ -151,6 +151,9 @@ class ProgrammationProjetQuerySet(models.QuerySet):
             "L'enveloppe déléguée doit avoir un périmètre arrondissement ou département."
         )
 
+    def to_notify(self):
+        return self.filter(status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None)
+
 
 class ProgrammationProjetManager(
     models.Manager.from_queryset(ProgrammationProjetQuerySet)
