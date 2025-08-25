@@ -17,6 +17,7 @@ from gsl_notification.models import Arrete, LettreNotification
 from gsl_notification.utils import (
     get_doc_title,
     get_document_class,
+    get_logo_base64,
     get_modele_class,
     get_modele_perimetres,
     get_programmation_projet_attribute,
@@ -332,11 +333,16 @@ def download_documents(request, dotation, document_type):
     ):
         return HttpResponseBadRequest("Un des projets n'a pas le document demandé.")
 
+    if documents:
+        logo = get_logo_base64(next(iter(documents)).modele.logo.url)
+    else:
+        logo = None
+
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         i = 1
         for document in documents:
-            pdf_content = _generate_pdf_for_document(document, document_type)
+            pdf_content = _generate_pdf_for_document(document, document_type, logo)
             filename = f"{document.name}"
             zip_file.writestr(filename, pdf_content)
             logging.info(f"#{i} {document} généré")
@@ -398,10 +404,12 @@ def _get_go_back_link(dotation: str):
     )
 
 
-def _generate_pdf_for_document(document: Arrete | LettreNotification, document_type):
+def _generate_pdf_for_document(
+    document: Arrete | LettreNotification, document_type, logo_b64=None
+):
     context = {
         "doc_title": get_doc_title(document_type),
-        "logo": document.modele.logo,
+        "logo": logo_b64 or get_logo_base64(document.modele.logo.url),
         "alt_logo": document.modele.logo_alt_text,
         "top_right_text": document.modele.top_right_text.strip(),
         "content": mark_safe(document.content),
