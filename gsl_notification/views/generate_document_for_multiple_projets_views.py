@@ -271,6 +271,14 @@ def download_documents(request, dotation, document_type):
         return HttpResponseBadRequest("Type de document inconnu")
 
     pp_attr = get_programmation_projet_attribute(document_type)
+    attr_select_related = [
+        "dotation_projet",
+        "dotation_projet__projet",
+        "dotation_projet__projet__dossier_ds",
+        pp_attr,
+        f"{pp_attr}__modele",
+    ]
+
     try:
         ids = _get_pp_ids(request)
         pp_count = len(ids)
@@ -282,13 +290,7 @@ def download_documents(request, dotation, document_type):
                 )
             )
         programmation_projets = get_list_or_404(
-            ProgrammationProjet.objects.select_related(
-                "dotation_projet",
-                "dotation_projet__projet",
-                "dotation_projet__projet__dossier_ds",
-                pp_attr,
-                f"{pp_attr}__modele",
-            ),
+            ProgrammationProjet.objects.select_related(*attr_select_related),
             id__in=ids,
             dotation_projet__dotation=dotation,
             status=ProgrammationProjet.STATUS_ACCEPTED,
@@ -305,11 +307,7 @@ def download_documents(request, dotation, document_type):
     except ValueError:
         filterset = ProgrammationProjetFilters(request=request)
         programmation_projets = filterset.qs.to_notify().select_related(
-            "dotation_projet",
-            "dotation_projet__projet",
-            "dotation_projet__projet__dossier_ds",
-            pp_attr,
-            f"{pp_attr}__modele",
+            *attr_select_related
         )
 
     try:
