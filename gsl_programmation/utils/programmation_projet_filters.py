@@ -18,6 +18,20 @@ from gsl_projet.utils.django_filters_custom_widget import (
 
 
 class ProgrammationProjetFilters(FilterSet):
+    DEFAULT_SELECT_RELATED_OBJS = [
+        "dotation_projet",
+        "dotation_projet__projet",
+        "dotation_projet__projet__dossier_ds",
+        "dotation_projet__projet__perimetre",
+        "dotation_projet__projet__demandeur",
+        "enveloppe",
+        "enveloppe__perimetre",
+        "arrete",
+        "lettre_notification",
+        "arrete_et_lettre_signes",
+    ]
+
+    DEFAULT_PREFETCH_RELATED_OBJS = ["dotation_projet__detr_categories", "annexes"]
     filterset = (
         "territoire",
         "porteur",
@@ -167,6 +181,12 @@ class ProgrammationProjetFilters(FilterSet):
         )
 
     def __init__(self, *args, **kwargs):
+        select_related_objs = kwargs.pop(
+            "select_related_objs", self.DEFAULT_SELECT_RELATED_OBJS
+        )
+        prefetch_related_objs = kwargs.pop(
+            "prefetch_related_objs", self.DEFAULT_PREFETCH_RELATED_OBJS
+        )
         super().__init__(*args, **kwargs)
         if hasattr(self.request, "user") and self.request.user.perimetre:
             perimetre = self.request.user.perimetre
@@ -180,6 +200,8 @@ class ProgrammationProjetFilters(FilterSet):
                         perimetre.departement
                     )
                 )
+        self.select_related_objs = select_related_objs
+        self.prefetch_related_objs = prefetch_related_objs
 
     @property
     def qs(self):
@@ -203,19 +225,8 @@ class ProgrammationProjetFilters(FilterSet):
         qs = (
             super()
             .qs.for_enveloppe(enveloppe=self.enveloppe)
-            .select_related(
-                "dotation_projet",
-                "dotation_projet__projet",
-                "dotation_projet__projet__dossier_ds",
-                "dotation_projet__projet__perimetre",
-                "dotation_projet__projet__demandeur",
-                "enveloppe",
-                "enveloppe__perimetre",
-                "arrete",
-                "lettre_notification",
-                "arrete_et_lettre_signes",
-            )
-            .prefetch_related("dotation_projet__detr_categories", "annexes")
+            .select_related(*self.select_related_objs)
+            .prefetch_related(*self.prefetch_related_objs)
         )
         if not qs.query.order_by:
             qs = qs.order_by("-created_at")

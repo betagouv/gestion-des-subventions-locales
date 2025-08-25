@@ -69,7 +69,9 @@ def choose_type_for_multiple_document_generation(request, dotation):
             return HttpResponseForbidden(str(e))
 
     except ValueError:
-        filterset = ProgrammationProjetFilters(request=request)
+        filterset = ProgrammationProjetFilters(
+            request=request, select_related_objs=[], prefetch_related_objs=[]
+        )
         programmation_projets = filterset.qs.to_notify()
 
     title = f"{len(programmation_projets)} projets {dotation} sélectionnés"
@@ -129,7 +131,9 @@ def select_modele_multiple(request, dotation, document_type):
             return HttpResponseForbidden(str(e))
 
     except ValueError:
-        filterset = ProgrammationProjetFilters(request=request)
+        filterset = ProgrammationProjetFilters(
+            request=request, select_related_objs=[], prefetch_related_objs=[]
+        )
         programmation_projets = filterset.qs.to_notify()
         pp_count = programmation_projets.count()
 
@@ -215,7 +219,15 @@ def save_documents(
             return HttpResponseForbidden(str(e))
 
     except ValueError:
-        filterset = ProgrammationProjetFilters(request=request)
+        filterset = ProgrammationProjetFilters(
+            request=request,
+            select_related_objs=[
+                "dotation_projet__projet__dossier_ds",
+                "dotation_projet__projet__dossier_ds__ds_demandeur",
+                "dotation_projet__projet__perimetre__departement",
+            ],
+            prefetch_related_objs=[],
+        )
         programmation_projets = filterset.qs.to_notify()
 
     document_class = get_document_class(document_type)
@@ -231,7 +243,7 @@ def save_documents(
 
     documents_list = []
 
-    for pp in programmation_projets:  # TODO test if pp already have this document
+    for pp in programmation_projets:
         try:
             document_class.objects.get(programmation_projet_id=pp.id).delete()
         except document_class.DoesNotExist:
@@ -305,7 +317,9 @@ def download_documents(request, dotation, document_type):
         except ValueError as e:
             return HttpResponseForbidden(str(e))
     except ValueError:
-        filterset = ProgrammationProjetFilters(request=request)
+        filterset = ProgrammationProjetFilters(
+            request=request, select_related_objs=[], prefetch_related_objs=[]
+        )
         programmation_projets = filterset.qs.to_notify().select_related(
             *attr_select_related
         )
