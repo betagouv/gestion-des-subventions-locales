@@ -41,3 +41,14 @@
   position: absolute;
   top: -14px;
 }
+
+.select-all-projet-notice {
+  font-size: 1rem;
+  text-align: center;
+  font-style: italic;
+  display: none;
+}
+
+.select-all-projet-notice > td {
+  background-color: var(--background-contrast-green-tilleul-verveine);
+}
