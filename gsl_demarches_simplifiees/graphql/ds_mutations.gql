@@ -1,0 +1,33 @@
+ mutation dossierRepasserEnInstruction($input: DossierRepasserEnInstructionInput!) {
+  dossierRepasserEnInstruction(input: $input) {
+    clientMutationId
+    dossier {
+      archived
+      connectionUsager
+      dateDepot
+      dateDerniereCorrectionEnAttente
+      dateDerniereModification
+      dateDerniereModificationAnnotations
+      dateDerniereModificationChamps
+      dateExpiration
+      datePassageEnConstruction
+      datePassageEnInstruction
+      datePrevisionnelleDecisionSVASVR
+      dateSuppressionParAdministration
+      dateSuppressionParUsager
+      dateTraitement
+      dateTraitementSVASVR
+      deposeParUnTiers
+      id
+      motivation
+      nomMandataire
+      number
+      prefilled
+      prenomMandataire
+      state
+    }
+    errors {
+      message
+    }
+  }
+}
