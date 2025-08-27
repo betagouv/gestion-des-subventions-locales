@@ -5,12 +5,14 @@ import requests
 from django.conf import settings
 
 
-class DsClient:
+class DsClientBase:
+    filename = ""
+
     def __init__(self):
         self.token = settings.DS_API_TOKEN
         self.url = settings.DS_API_URL
         with open(
-            Path(__file__).resolve().parent / "graphql" / "ds_queries.gql"
+            Path(__file__).resolve().parent / "graphql" / self.filename
         ) as query_file:
             self.query = query_file.read()
 
@@ -35,6 +37,10 @@ class DsClient:
                 f"HTTP Error while running query. Status code: {response.status_code}. "
                 f"Error: {response.text}"
             )
+
+
+class DsClient(DsClientBase):
+    filename = "ds_queries.gql"
 
     def get_demarche(self, demarche_number) -> dict:
         """
@@ -81,3 +87,22 @@ class DsClient:
         }
         result = self.launch_graphql_query("getDossier", variables)
         return result["data"]["dossier"]
+
+
+class DsMutator(DsClientBase):
+    filename = "ds_mutations.gql"
+
+    def dossier_repasser_en_instruction(
+        self, dossierId, instructeurId, disable_notification=False
+    ):
+        variables = {
+            "input": {
+                "clientMutationId": settings.DS_CLIENT_ID,
+                "disableNotification": disable_notification,
+                "dossierId": dossierId,
+                "instructeurId": instructeurId,
+            }
+        }
+        return self.launch_graphql_query(
+            "dossierRepasserEnInstruction", variables=variables
+        )
