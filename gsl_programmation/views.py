@@ -135,9 +135,9 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
                 "enveloppe": self.enveloppe,
                 "dotation": self.enveloppe.dotation,
                 "title": title,
-                "to_notify_projets_count": self.object_list.filter(
-                    status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None
-                ).count(),  # TODO create a manager
+                "to_notify_projets_count": self.object_list.to_notify().count(),
+                "activate_all_projets_selection": self.object_list.count()
+                > ProgrammationProjetListView.paginate_by,
                 "breadcrumb_dict": {
                     "current": "Programmation en cours",
                 },

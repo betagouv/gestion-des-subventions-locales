@@ -4,7 +4,8 @@ export class CheckboxSelection extends Controller {
   static values = {
     allCheckboxesSelected: { type: Boolean, default: false }, // todo rename allPageProjetsSelected
     allProjetsSelected: { type: Boolean, default: false },
-    toNotifyProjetsCount: Number
+    toNotifyProjetsCount: Number,
+    activateAllProjetsSelection: { type: Boolean, default: false }
   }
 
   static targets = ['globalButton', 'button', 'link', 'selectAllRow', 'selectAllRowText', 'selectAllButton']
@@ -60,12 +61,12 @@ export class CheckboxSelection extends Controller {
 
   allProjetsSelectedValueChanged () {
     if (this.allProjetsSelectedValue) {
-      this.selectAllRowTextTarget.innerText = `Les ${this.toNotifyProjetsCountValue} projets à notifier ont été sélectionnés.`
+      this.selectAllRowTextTarget.innerText = `Les ${this.toNotifyProjetsCountValue} projets "à notifier" ont été sélectionnés.`
       this.selectAllButtonTarget.innerText = 'Effacer la sélection'
     } else {
       this.allCheckboxesSelectedValue = false
-      this.selectAllRowTextTarget.innerText = `Les ${this.buttonTargets.length} projets à notifier de la page ont été sélectionnés.`
-      this.selectAllButtonTarget.innerText = `Sélectionner l'ensemble des projets à notifier (${this.toNotifyProjetsCountValue})` // todo update this count
+      this.selectAllRowTextTarget.innerText = `Les ${this.buttonTargets.length} projets "à notifier" de la page ont été sélectionnés.`
+      this.selectAllButtonTarget.innerText = `Sélectionner l'ensemble des projets "à notifier" (${this.toNotifyProjetsCountValue})`
     }
   }
 
@@ -105,7 +106,9 @@ export class CheckboxSelection extends Controller {
   }
 
   _displaySelectAllRow () {
-    this.selectAllRowTarget.style.display = 'contents'
+    if (this.activateAllProjetsSelectionValue) {
+      this.selectAllRowTarget.style.display = 'contents'
+    }
   }
 
   _hideSelectAllRow () {
