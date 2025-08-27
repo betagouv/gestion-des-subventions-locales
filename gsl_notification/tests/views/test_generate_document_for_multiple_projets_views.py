@@ -1,3 +1,5 @@
+import io
+import zipfile
 from datetime import UTC, datetime
 from unittest.mock import patch
 
@@ -762,13 +764,89 @@ def test_download_documents_with_wrong_document_type(client):
 
 
 def test_download_documents_no_id(client):
+    pps = []
+    # Must be selected (good perimetre, status and notified_at)
+    pps += ProgrammationProjetFactory.create_batch(
+        3,
+        dotation_projet__dotation=DOTATION_DETR,
+        dotation_projet__projet__perimetre=client.user.perimetre,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        notified_at=None,
+    )
+
+    # Must not be selected
+    pps += ProgrammationProjetFactory.create_batch(
+        5,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        notified_at=None,
+    )
+
+    pps += ProgrammationProjetFactory.create_batch(
+        4,
+        dotation_projet__projet__perimetre=client.user.perimetre,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        notified_at=datetime.now(UTC),
+    )
+
+    pps += ProgrammationProjetFactory.create_batch(
+        2,
+        dotation_projet__projet__perimetre=client.user.perimetre,
+        status=ProgrammationProjet.STATUS_REFUSED,
+    )
+
+    for pp in pps:
+        LettreNotificationFactory(programmation_projet=pp)
+
     url = reverse(
         "notification:download-documents",
         args=[DOTATION_DETR, LETTRE],
     )
-    response = client.get(url)
+    with patch(
+        "gsl_notification.views.generate_document_for_multiple_projets_views.get_logo_base64",
+        return_value="mocked_base64",
+    ):
+        response = client.get(url)
+
     assert response.status_code == 200
     assert response["Content-Disposition"] == 'attachment; filename="documents.zip"'
+
+    with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
+        assert len(zf.namelist()) == 3
+
+
+def test_download_documents_no_id_with_filters(client):
+    data = {"montant_demande_min": "100000"}
+
+    pps = []
+    for amount in [50_000, 100_000, 150_000]:
+        pps.append(
+            ProgrammationProjetFactory(
+                dotation_projet__dotation=DOTATION_DETR,
+                dotation_projet__projet__perimetre=client.user.perimetre,
+                dotation_projet__projet__dossier_ds__demande_montant=amount,
+                status=ProgrammationProjet.STATUS_ACCEPTED,
+                notified_at=None,
+            )
+        )
+
+    for pp in pps:
+        LettreNotificationFactory(programmation_projet=pp)
+
+    url = reverse(
+        "notification:download-documents",
+        args=[DOTATION_DETR, LETTRE],
+    )
+    with patch(
+        "gsl_notification.views.generate_document_for_multiple_projets_views.get_logo_base64",
+        return_value="mocked_base64",
+    ):
+        response = client.get(url, data)
+
+    assert response.status_code == 200
+    assert response["Content-Disposition"] == 'attachment; filename="documents.zip"'
+
+    with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
+        assert len(zf.namelist()) == 2
 
 
 def test_download_documents_with_one_wrong_perimetre_pp(client, programmation_projets):
@@ -929,11 +1007,12 @@ def test_download_documents_correctly(client, programmation_projets):
         return_value="mocked_base64",
     ):
         response = client.get(url)
-        assert response.status_code == 200
+
+    assert response.status_code == 200
     assert response["Content-Disposition"] == 'attachment; filename="documents.zip"'
 
-
-# TODO add test with filters
+    with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
+        assert len(zf.namelist()) == 3
 
 
 def test_generate_pdf_for_document_unit(detr_lettre_modele, programmation_projet):
