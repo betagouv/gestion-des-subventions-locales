@@ -6,33 +6,58 @@ from gsl_notification.forms import (
     AnnexeForm,
     ArreteEtLettreSigneForm,
     ArreteForm,
+    LettreNotificationForm,
     ModeleDocumentStepTwoForm,
 )
 from gsl_notification.models import ModeleArrete
-from gsl_notification.tests.factories import ModeleArreteFactory
+from gsl_notification.tests.factories import (
+    ModeleArreteFactory,
+    ModeleLettreNotificationFactory,
+)
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 
-# Arrête
+# GeneratedDocumentForm
 
 
+@pytest.mark.parametrize(
+    "form_class, modele_factory",
+    (
+        (ArreteForm, ModeleArreteFactory),
+        (LettreNotificationForm, ModeleLettreNotificationFactory),
+    ),
+)
+@pytest.mark.parametrize(
+    "dotation",
+    (DOTATION_DETR, DOTATION_DSIL),
+)
 @pytest.mark.django_db
-def test_arrete_form_valid():
+def test_arrete_form_valid(form_class, modele_factory, dotation):
     collegue = CollegueFactory()
-    programmation_projet = ProgrammationProjetFactory()
-    modele = ModeleArreteFactory()
+    programmation_projet = ProgrammationProjetFactory(
+        dotation_projet__dotation=dotation
+    )
+    modele = modele_factory(dotation=dotation)
     data = {
         "content": {"foo": "bar"},
         "created_by": collegue.id,
         "programmation_projet": programmation_projet.id,
         "modele": modele.id,
     }
-    form = ArreteForm(data)
+    form = form_class(data)
     assert form.is_valid()
 
 
+@pytest.mark.parametrize(
+    "form_class",
+    (
+        ArreteForm,
+        LettreNotificationForm,
+    ),
+)
 @pytest.mark.django_db
-def test_arrete_form_invalid_missing_fields():
-    form = ArreteForm({})
+def test_arrete_form_invalid_missing_fields(form_class):
+    form = form_class({})
     assert not form.is_valid()
     assert "content" in form.errors
     assert "created_by" in form.errors
