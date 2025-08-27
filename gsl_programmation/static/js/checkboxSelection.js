@@ -8,8 +8,8 @@ export class CheckboxSelection extends Controller {
     activateAllProjetsSelection: { type: Boolean, default: false }
   }
 
-  static targets = ['globalButton', 'button', 'link', 'selectAllRow', 'selectAllRowText', 'selectAllButton']
-  // todo rename globalButton to globalCheckbox or pageButton ?
+  static targets = ['pageCheckbox', 'button', 'link', 'selectAllRow', 'selectAllRowText', 'selectAllButton']
+
   connect () {
     this._checkIfAllCheckboxesAreSelected()
     this._updateHref()
@@ -44,17 +44,15 @@ export class CheckboxSelection extends Controller {
     this._updateHref()
   }
 
-  // Hook sur la valeur
+  // Hook sur les valeurs
 
   allCheckboxesSelectedValueChanged () {
-    console.log('allCheckboxesSelectedValueChanged')
-    this._updateACheckbox(this.globalButtonTarget, this.allCheckboxesSelectedValue)
+    this._updateACheckbox(this.pageCheckboxTarget, this.allCheckboxesSelectedValue)
     if (this.allCheckboxesSelectedValue === true) {
       this._displaySelectAllRow()
     } else {
       this._hideSelectAllRow()
       this.allProjetsSelectedValue = false
-      console.log('this.allProjetsSelectedValue = false')
       this._updateHref()
     }
   }
@@ -74,7 +72,7 @@ export class CheckboxSelection extends Controller {
 
   _updateHref () {
     const baseUrl = this.linkTarget.dataset.baseUrl
-    console.log(this.allProjetsSelectedValue)
+
     if (this.allProjetsSelectedValue) {
       this.linkTarget.href = `${baseUrl}${window.location.search}`
       return
