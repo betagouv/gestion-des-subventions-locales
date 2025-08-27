@@ -129,8 +129,8 @@ class Enveloppe(models.Model):
 
 
 class ProgrammationProjetQuerySet(models.QuerySet):
-    def for_enveloppe(self, enveloppe: Enveloppe):
-        if enveloppe.deleguee_by is None:
+    def for_enveloppe(self, enveloppe: Enveloppe | None):
+        if enveloppe is None or enveloppe.deleguee_by is None:
             return self.filter(enveloppe=enveloppe)
 
         if enveloppe.perimetre is None:

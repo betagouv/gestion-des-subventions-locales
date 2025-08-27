@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import UTC, datetime
+from unittest.mock import patch
 
 import pytest
 from django.contrib.messages import get_messages
@@ -82,12 +83,69 @@ def test_choose_type_for_multiple_document_generation_with_wrong_dotation(client
 
 
 def test_choose_type_for_multiple_document_generation_no_id(client):
+    # Must be selected (good perimetre, status and notified_at)
+    ProgrammationProjetFactory.create_batch(
+        3,
+        dotation_projet__projet__perimetre=client.user.perimetre,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        notified_at=None,
+    )
+
+    # Must not be selected
+    ProgrammationProjetFactory.create_batch(
+        5,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        notified_at=None,
+    )
+    ProgrammationProjetFactory.create_batch(
+        4,
+        dotation_projet__projet__perimetre=client.user.perimetre,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        notified_at=datetime.now(UTC),
+    )
+    ProgrammationProjetFactory.create_batch(
+        2,
+        dotation_projet__projet__perimetre=client.user.perimetre,
+        status=ProgrammationProjet.STATUS_REFUSED,
+    )
+
     url = reverse(
         "notification:choose-generated-document-type-multiple", args=[DOTATION_DETR]
     )
     response = client.get(url)
-    assert response.status_code == 400
-    assert response.content == b"Aucun id de programmation projet"
+    assert response.status_code == 200
+    assert len(response.context["programmation_projets"]) == 3
+    assert (
+        response.templates[0].name
+        == "gsl_notification/generated_document/multiple/choose_generated_document_type.html"
+    )
+
+
+def test_choose_type_for_multiple_document_generation_no_id_and_with_filter_args(
+    client,
+):
+    data = {"cout_min": "100000"}
+    # Only two must be selected (100k and 150k)
+    for amount in [50_000, 100_000, 150_000]:
+        ProgrammationProjetFactory(
+            dotation_projet__projet__dossier_ds__finance_cout_total=amount,
+            dotation_projet__projet__perimetre=client.user.perimetre,
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            notified_at=None,
+        )
+
+    url = reverse(
+        "notification:choose-generated-document-type-multiple", args=[DOTATION_DETR]
+    )
+    response = client.get(url, data)
+    assert response.status_code == 200
+    assert len(response.context["programmation_projets"]) == 2
+    for pp in response.context["programmation_projets"]:
+        assert pp.dotation_projet.projet.dossier_ds.finance_cout_total >= 100_000
+    assert (
+        response.templates[0].name
+        == "gsl_notification/generated_document/multiple/choose_generated_document_type.html"
+    )
 
 
 def test_choose_type_for_multiple_document_generation_one_id(
@@ -108,7 +166,9 @@ def test_choose_type_for_multiple_document_generation_one_id(
 
 
 def test_choose_type_with_one_wrong_perimetre_pp(client, programmation_projets):
-    wrong_perimetre_pp = ProgrammationProjetFactory()
+    wrong_perimetre_pp = ProgrammationProjetFactory(
+        dotation_projet__dotation=DOTATION_DETR
+    )
     programmation_projets.append(wrong_perimetre_pp)
     ids = ",".join([str(pp.id) for pp in programmation_projets])
     url = (
@@ -138,10 +198,10 @@ def test_choose_type_with_one_wrong_dotation_pp(client, programmation_projets):
         + f"?ids={ids}"
     )
     response = client.get(url)
-    assert response.status_code == 403
+    assert response.status_code == 400
     assert (
         response.content
-        == b"Un ou plusieurs projets sont hors de votre p\xc3\xa9rim\xc3\xa8tre."
+        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
     )
 
 
@@ -204,10 +264,63 @@ def test_select_modele_multiple_with_wrong_document_type(client):
 
 
 def test_select_modele_multiple_no_id(client):
+    # Must be selected (good perimetre, status and notified_at)
+    ProgrammationProjetFactory.create_batch(
+        3,
+        dotation_projet__projet__perimetre=client.user.perimetre,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        notified_at=None,
+    )
+
+    # Must not be selected
+    ProgrammationProjetFactory.create_batch(
+        5,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        notified_at=None,
+    )
+    ProgrammationProjetFactory.create_batch(
+        4,
+        dotation_projet__projet__perimetre=client.user.perimetre,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        notified_at=datetime.now(UTC),
+    )
+    ProgrammationProjetFactory.create_batch(
+        2,
+        dotation_projet__projet__perimetre=client.user.perimetre,
+        status=ProgrammationProjet.STATUS_REFUSED,
+    )
+
     url = reverse("notification:select-modele-multiple", args=[DOTATION_DETR, LETTRE])
     response = client.get(url)
-    assert response.status_code == 400
-    assert response.content == b"Aucun id de programmation projet"
+    assert (
+        response.templates[0].name
+        == "gsl_notification/generated_document/multiple/select_modele.html"
+    )
+    assert response.context["page_super_title"] == "3 projets DETR sélectionnés"
+    assert response.context["page_title"] == "Création de 3 lettres de notification"
+    assert response.context["cancel_link"] == "/programmation/liste/DETR/"
+
+
+def test_select_modele_multiple_no_id_and_with_filter_args(client):
+    data = {"montant_retenu_max": "100000"}
+    # Only two must be selected (50k and 100k)
+    for amount in [50_000, 100_000, 150_000]:
+        ProgrammationProjetFactory(
+            montant=amount,
+            dotation_projet__projet__perimetre=client.user.perimetre,
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            notified_at=None,
+        )
+
+    url = reverse("notification:select-modele-multiple", args=[DOTATION_DETR, LETTRE])
+    response = client.get(url, data)
+    assert (
+        response.templates[0].name
+        == "gsl_notification/generated_document/multiple/select_modele.html"
+    )
+    assert response.context["page_super_title"] == "2 projets DETR sélectionnés"
+    assert response.context["page_title"] == "Création de 2 lettres de notification"
+    assert response.context["cancel_link"] == "/programmation/liste/DETR/"
 
 
 def test_select_modele_multiple_one_id(client, programmation_projet):
@@ -232,7 +345,9 @@ def test_select_modele_multiple_one_id(client, programmation_projet):
 def test_select_modele_multiple_with_one_wrong_perimetre_pp(
     client, programmation_projets
 ):
-    wrong_perimetre_pp = ProgrammationProjetFactory()
+    wrong_perimetre_pp = ProgrammationProjetFactory(
+        dotation_projet__dotation=DOTATION_DETR
+    )
     programmation_projets.append(wrong_perimetre_pp)
     ids = ",".join([str(pp.id) for pp in programmation_projets])
     url = (
@@ -260,10 +375,10 @@ def test_select_modele_multiple_with_one_wrong_dotation_pp(
         + f"?ids={ids}"
     )
     response = client.get(url)
-    assert response.status_code == 403
+    assert response.status_code == 400
     assert (
         response.content
-        == b"Un ou plusieurs projets sont hors de votre p\xc3\xa9rim\xc3\xa8tre."
+        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
     )
 
 
@@ -343,13 +458,108 @@ def test_save_documents_with_wrong_document_type(client, detr_lettre_modele):
 
 
 def test_save_documents_no_id(client, detr_lettre_modele):
+    # Must be selected (good perimetre, status and notified_at)
+    pps = ProgrammationProjetFactory.create_batch(
+        3,
+        dotation_projet__projet__perimetre=client.user.perimetre,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        notified_at=None,
+    )
+
+    # Must not be selected
+    ProgrammationProjetFactory.create_batch(
+        5,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        notified_at=None,
+    )
+    ProgrammationProjetFactory.create_batch(
+        4,
+        dotation_projet__projet__perimetre=client.user.perimetre,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        notified_at=datetime.now(UTC),
+    )
+    ProgrammationProjetFactory.create_batch(
+        2,
+        dotation_projet__projet__perimetre=client.user.perimetre,
+        status=ProgrammationProjet.STATUS_REFUSED,
+    )
+
     url = reverse(
         "notification:save-documents",
         args=[DOTATION_DETR, LETTRE, detr_lettre_modele.id],
     )
     response = client.post(url)
-    assert response.status_code == 400
-    assert response.content == b"Aucun id de programmation projet"
+
+    assert response.status_code == 302
+    assert response["Location"] == reverse(
+        "gsl_programmation:programmation-projet-list-dotation", args=[DOTATION_DETR]
+    )
+
+    for pp in pps:
+        assert hasattr(pp, "lettre_notification")
+        assert pp.lettre_notification.modele == detr_lettre_modele
+        assert pp.lettre_notification.created_by == client.user
+
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 25
+    assert (
+        "Les 3 lettres de notification ont bien été créées. <a href=/notification/DETR/telechargement/lettre"
+        in message.message
+    )
+    assert (
+        "title='Déclenche le téléchargement du fichier zip'>Télécharger le fichier zip</a>"
+        in message.message
+    )
+
+
+def test_save_documents_no_id_and_with_filter_args(client, detr_lettre_modele):
+    data = {"montant_retenu_max": "100000"}
+    pps = []
+    # Only two must be selected (50k and 100k)
+    for amount in [50_000, 100_000, 150_000]:
+        pps.append(
+            ProgrammationProjetFactory(
+                montant=amount,
+                dotation_projet__projet__perimetre=client.user.perimetre,
+                status=ProgrammationProjet.STATUS_ACCEPTED,
+                notified_at=None,
+            )
+        )
+
+    url = reverse(
+        "notification:save-documents",
+        args=[DOTATION_DETR, LETTRE, detr_lettre_modele.id],
+    )
+    response = client.post(url, data)
+
+    assert response.status_code == 302
+    assert response["Location"] == reverse(
+        "gsl_programmation:programmation-projet-list-dotation", args=[DOTATION_DETR]
+    )
+
+    for pp in pps:
+        pp.refresh_from_db()
+        if pp.montant <= 100_000:
+            assert hasattr(pp, "lettre_notification")
+            assert pp.lettre_notification.modele == detr_lettre_modele
+            assert pp.lettre_notification.created_by == client.user
+        else:
+            assert not hasattr(pp, "lettre_notification")
+
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 25
+    assert (
+        "Les 2 lettres de notification ont bien été créées. <a href=/notification/DETR/telechargement/lettre"
+        in message.message
+    )
+    assert (
+        "title='Déclenche le téléchargement du fichier zip'>Télécharger le fichier zip</a>"
+        in message.message
+    )
 
 
 def test_save_documents_one_id(client, detr_lettre_modele, programmation_projet):
@@ -557,8 +767,8 @@ def test_download_documents_no_id(client):
         args=[DOTATION_DETR, LETTRE],
     )
     response = client.get(url)
-    assert response.status_code == 400
-    assert response.content == b"Aucun id de programmation projet"
+    assert response.status_code == 200
+    assert response["Content-Disposition"] == 'attachment; filename="documents.zip"'
 
 
 def test_download_documents_with_one_wrong_perimetre_pp(client, programmation_projets):
@@ -612,7 +822,7 @@ def test_download_documents_with_one_wrong_dotation_pp(client, programmation_pro
 
 
 def test_download_documents_with_one_already_notified(client, programmation_projets):
-    already_notified_pp = ProgrammationProjetFactory(notified_at=datetime.now())
+    already_notified_pp = ProgrammationProjetFactory(notified_at=datetime.now(UTC))
     programmation_projets.append(already_notified_pp)
 
     for pp in programmation_projets:
@@ -714,9 +924,16 @@ def test_download_documents_correctly(client, programmation_projets):
         )
         + f"?ids={ids}"
     )
-    response = client.get(url)
-    assert response.status_code == 200
+    with patch(
+        "gsl_notification.views.generate_document_for_multiple_projets_views.get_logo_base64",
+        return_value="mocked_base64",
+    ):
+        response = client.get(url)
+        assert response.status_code == 200
     assert response["Content-Disposition"] == 'attachment; filename="documents.zip"'
+
+
+# TODO add test with filters
 
 
 def test_generate_pdf_for_document_unit(detr_lettre_modele, programmation_projet):
@@ -725,7 +942,11 @@ def test_generate_pdf_for_document_unit(detr_lettre_modele, programmation_projet
         modele=detr_lettre_modele,
         content="<p>Test PDF</p>",
     )
-    pdf_bytes = _generate_pdf_for_document(document, LETTRE)
+    with patch(
+        "gsl_notification.views.generate_document_for_multiple_projets_views.get_logo_base64",
+        return_value="mocked_base64",
+    ):
+        pdf_bytes = _generate_pdf_for_document(document, LETTRE)
     assert isinstance(pdf_bytes, bytes)
     assert pdf_bytes[:4] == b"%PDF"
     assert len(pdf_bytes) > 100

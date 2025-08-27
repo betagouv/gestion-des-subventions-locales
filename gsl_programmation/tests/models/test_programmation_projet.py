@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -371,13 +371,13 @@ class TestProgrammationProjetQuerySet:
             status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None
         )
         _accepted_and_notified_at = ProgrammationProjetFactory(
-            status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=datetime.now()
+            status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=datetime.now(UTC)
         )
         _refused_and_no_notified_at = ProgrammationProjetFactory(
             status=ProgrammationProjet.STATUS_REFUSED, notified_at=None
         )
         _refused_and_notified_at = ProgrammationProjetFactory(
-            status=ProgrammationProjet.STATUS_REFUSED, notified_at=datetime.now()
+            status=ProgrammationProjet.STATUS_REFUSED, notified_at=datetime.now(UTC)
         )
 
         result = ProgrammationProjet.objects.to_notify()

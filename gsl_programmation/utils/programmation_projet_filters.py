@@ -258,4 +258,4 @@ class ProgrammationProjetFilters(FilterSet):
         if enveloppe is not None:
             return enveloppe
 
-        return Enveloppe.objects.none()
+        return None

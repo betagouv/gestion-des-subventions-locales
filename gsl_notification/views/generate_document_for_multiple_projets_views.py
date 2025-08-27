@@ -71,7 +71,10 @@ def choose_type_for_multiple_document_generation(request, dotation):
 
     except ValueError:
         filterset = ProgrammationProjetFilters(
-            request=request, select_related_objs=[], prefetch_related_objs=[]
+            data=request.GET,
+            request=request,
+            select_related_objs=[],
+            prefetch_related_objs=[],
         )
         programmation_projets = filterset.qs.to_notify()
 
@@ -133,7 +136,10 @@ def select_modele_multiple(request, dotation, document_type):
 
     except ValueError:
         filterset = ProgrammationProjetFilters(
-            request=request, select_related_objs=[], prefetch_related_objs=[]
+            data=request.GET,
+            request=request,
+            select_related_objs=[],
+            prefetch_related_objs=[],
         )
         programmation_projets = filterset.qs.to_notify()
         pp_count = programmation_projets.count()
@@ -200,8 +206,11 @@ def save_documents(
         if pp_count == 1:
             return redirect(
                 reverse(
-                    "gsl_notification:choose-generated-document-type",
-                    kwargs={"programmation_projet_id": ids[0]},
+                    "gsl_notification:modifier-document",
+                    kwargs={
+                        "programmation_projet_id": ids[0],
+                        "document_type": document_type,
+                    },
                 )
             )
         programmation_projets = get_list_or_404(
@@ -209,6 +218,7 @@ def save_documents(
             id__in=ids,
             status=ProgrammationProjet.STATUS_ACCEPTED,
             notified_at=None,
+            dotation_projet__dotation=dotation,
         )
         if len(programmation_projets) < len(ids):
             return HttpResponseBadRequest(
@@ -221,6 +231,7 @@ def save_documents(
 
     except ValueError:
         filterset = ProgrammationProjetFilters(
+            data=request.POST,
             request=request,
             select_related_objs=[
                 "dotation_projet__projet__dossier_ds",
@@ -319,7 +330,10 @@ def download_documents(request, dotation, document_type):
             return HttpResponseForbidden(str(e))
     except ValueError:
         filterset = ProgrammationProjetFilters(
-            request=request, select_related_objs=[], prefetch_related_objs=[]
+            data=request.GET,
+            request=request,
+            select_related_objs=[],
+            prefetch_related_objs=[],
         )
         programmation_projets = filterset.qs.to_notify().select_related(
             *attr_select_related

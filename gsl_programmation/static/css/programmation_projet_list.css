@@ -50,5 +50,6 @@
 }
 
 .select-all-projet-notice > td {
-  background-color: var(--background-contrast-green-tilleul-verveine);
+  background-color: var(--background-alt-grey);
+  color: var(--text-default-grey);
 }
