@@ -424,7 +424,7 @@ class PrintDocumentView(WeasyTemplateResponseMixin, DetailView):
         context.update(
             {
                 "doc_title": get_doc_title(self.document_type),
-                "logo": document.modele.logo,  # TODO update here !!
+                "logo": document.modele.logo.url,
                 "alt_logo": document.modele.logo_alt_text,
                 "top_right_text": document.modele.top_right_text.strip(),
                 "content": mark_safe(document.content),
