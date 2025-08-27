@@ -93,16 +93,70 @@ class DsMutator(DsClientBase):
     filename = "ds_mutations.gql"
 
     def dossier_repasser_en_instruction(
-        self, dossierId, instructeurId, disable_notification=False
+        self, dossier_id, instructeur_id, disable_notification=False
     ):
         variables = {
             "input": {
                 "clientMutationId": settings.DS_CLIENT_ID,
                 "disableNotification": disable_notification,
-                "dossierId": dossierId,
-                "instructeurId": instructeurId,
+                "dossierId": dossier_id,
+                "instructeurId": instructeur_id,
             }
         }
         return self.launch_graphql_query(
             "dossierRepasserEnInstruction", variables=variables
+        )
+
+    def dossier_passer_en_instruction(
+        self, dossier_id, instructeur_id, disable_notification=False
+    ):
+        variables = {
+            "input": {
+                "clientMutationId": settings.DS_CLIENT_ID,
+                "disableNotification": disable_notification,
+                "dossierId": dossier_id,
+                "instructeurId": instructeur_id,
+            }
+        }
+        return self.launch_graphql_query(
+            "dossierPasserEnInstruction", variables=variables
+        )
+
+    def mutate_with_justificatif_and_motivation(
+        self,
+        action,
+        dossier_id,
+        instructeur_id,
+        motivation="",
+        justificatif_id=None,
+        disable_notification=False,
+    ):
+        variables = {
+            "input": {
+                "clientMutationId": settings.DS_CLIENT_ID,
+                "disableNotification": disable_notification,
+                "dossierId": dossier_id,
+                "instructeurId": instructeur_id,
+            }
+        }
+        if motivation:
+            variables["input"]["motivation"] = motivation
+
+        if justificatif_id:
+            variables["input"]["justificatif"] = justificatif_id
+        return self.launch_graphql_query(action, variables=variables)
+
+    def dossier_accepter(self, *args, **kwargs):
+        return self.mutate_with_justificatif_and_motivation(
+            "dossierAccepter", *args, **kwargs
+        )
+
+    def dossier_classer_sans_suite(self, *args, **kwargs):
+        return self.mutate_with_justificatif_and_motivation(
+            "dossierClasserSansSuite", *args, **kwargs
+        )
+
+    def dossier_refuser(self, *args, **kwargs):
+        return self.mutate_with_justificatif_and_motivation(
+            "dossierRefuser", *args, **kwargs
         )
