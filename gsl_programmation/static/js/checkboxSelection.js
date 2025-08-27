@@ -2,7 +2,7 @@ import { Controller } from 'stimulus'
 
 export class CheckboxSelection extends Controller {
   static values = {
-    allCheckboxesSelected: { type: Boolean, default: false }, // todo rename allPageProjetsSelected
+    allPageProjetsSelected: { type: Boolean, default: false },
     allProjetsSelected: { type: Boolean, default: false },
     toNotifyProjetsCount: Number,
     activateAllProjetsSelection: { type: Boolean, default: false }
@@ -16,8 +16,8 @@ export class CheckboxSelection extends Controller {
   }
 
   toggleSelectAllAPageProjets () {
-    const newValue = !this.allCheckboxesSelectedValue
-    this.allCheckboxesSelectedValue = newValue
+    const newValue = !this.allPageProjetsSelectedValue
+    this.allPageProjetsSelectedValue = newValue
     if (newValue) {
       this._updateAllCheckboxes(true)
     } else {
@@ -37,7 +37,7 @@ export class CheckboxSelection extends Controller {
   toggleProjetCheckbox (evt) {
     const eltValue = evt.target.checked
     if (eltValue === false) {
-      this.allCheckboxesSelectedValue = false
+      this.allPageProjetsSelectedValue = false
     } else {
       this._checkIfAllCheckboxesAreSelected()
     }
@@ -46,9 +46,9 @@ export class CheckboxSelection extends Controller {
 
   // Hook sur les valeurs
 
-  allCheckboxesSelectedValueChanged () {
-    this._updateACheckbox(this.pageCheckboxTarget, this.allCheckboxesSelectedValue)
-    if (this.allCheckboxesSelectedValue === true) {
+  allPageProjetsSelectedValueChanged () {
+    this._updateACheckbox(this.pageCheckboxTarget, this.allPageProjetsSelectedValue)
+    if (this.allPageProjetsSelectedValue === true) {
       this._displaySelectAllRow()
     } else {
       this._hideSelectAllRow()
@@ -62,7 +62,7 @@ export class CheckboxSelection extends Controller {
       this.selectAllRowTextTarget.innerText = `Les ${this.toNotifyProjetsCountValue} projets "à notifier" ont été sélectionnés.`
       this.selectAllButtonTarget.innerText = 'Effacer la sélection'
     } else {
-      this.allCheckboxesSelectedValue = false
+      this.allPageProjetsSelectedValue = false
       this.selectAllRowTextTarget.innerText = `Les ${this.buttonTargets.length} projets "à notifier" de la page ont été sélectionnés.`
       this.selectAllButtonTarget.innerText = `Sélectionner l'ensemble des projets "à notifier" (${this.toNotifyProjetsCountValue})`
     }
@@ -99,7 +99,7 @@ export class CheckboxSelection extends Controller {
 
   _checkIfAllCheckboxesAreSelected () {
     if (this.buttonTargets.every(b => b.checked)) {
-      this.allCheckboxesSelectedValue = true
+      this.allPageProjetsSelectedValue = true
     }
   }
 
