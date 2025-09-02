@@ -129,8 +129,8 @@ class Enveloppe(models.Model):
 
 
 class ProgrammationProjetQuerySet(models.QuerySet):
-    def for_enveloppe(self, enveloppe: Enveloppe):
-        if enveloppe.deleguee_by is None:
+    def for_enveloppe(self, enveloppe: Enveloppe | None):
+        if enveloppe is None or enveloppe.deleguee_by is None:
             return self.filter(enveloppe=enveloppe)
 
         if enveloppe.perimetre is None:
@@ -150,6 +150,9 @@ class ProgrammationProjetQuerySet(models.QuerySet):
         raise ValueError(
             "L'enveloppe déléguée doit avoir un périmètre arrondissement ou département."
         )
+
+    def to_notify(self):
+        return self.filter(status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None)
 
 
 class ProgrammationProjetManager(

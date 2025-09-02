@@ -1,6 +1,9 @@
+import base64
 import os
+from functools import lru_cache
 
 import boto3
+import requests
 from bs4 import BeautifulSoup
 from django.core.files import File
 from django.db.models.fields.files import FieldFile
@@ -272,3 +275,10 @@ def get_uploaded_form_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES):
     if document_type == ANNEXE:
         return AnnexeForm
     return ArreteEtLettreSigneForm
+
+
+@lru_cache(maxsize=32)
+def get_logo_base64(url):
+    response = requests.get(url)
+    response.raise_for_status()
+    return "data:image/png;base64," + base64.b64encode(response.content).decode("utf-8")

@@ -1,4 +1,5 @@
 import re
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -364,6 +365,25 @@ class TestProgrammationProjetQuerySet:
         assert programmation_projet_departement in result
         assert programmation_projet_arrondissement in result
         assert result.count() == 2
+
+    def test_to_notify(self):
+        accepted_and_no_notified_at = ProgrammationProjetFactory(
+            status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None
+        )
+        _accepted_and_notified_at = ProgrammationProjetFactory(
+            status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=datetime.now(UTC)
+        )
+        _refused_and_no_notified_at = ProgrammationProjetFactory(
+            status=ProgrammationProjet.STATUS_REFUSED, notified_at=None
+        )
+        _refused_and_notified_at = ProgrammationProjetFactory(
+            status=ProgrammationProjet.STATUS_REFUSED, notified_at=datetime.now(UTC)
+        )
+
+        result = ProgrammationProjet.objects.to_notify()
+
+        assert accepted_and_no_notified_at in result
+        assert result.count() == 1
 
 
 @pytest.mark.django_db

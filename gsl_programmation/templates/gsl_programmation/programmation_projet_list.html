@@ -81,15 +81,17 @@
                 {% endwith %}
 
                 <div class="fr-table--lg gsl-projet-table" id="programmation-projet-table">
-                    <table data-controller="checkbox-selection">
+                    <table data-controller="checkbox-selection"
+                           data-checkbox-selection-to-notify-projets-count-value="{{ to_notify_projets_count }}"
+                           data-checkbox-selection-activate-all-projets-selection-value="{{ activate_all_projets_selection }}">
                         <thead>
                             <tr>
                                 <th class="checkbox-header">
                                     <div class="fr-checkbox-group fr-checkbox-group--sm">
                                         <input id="checkbox-{{ programmation_projet.id }}"
                                                type="checkbox"
-                                               data-checkbox-selection-target="globalButton"
-                                               data-action="click->checkbox-selection#toggle">
+                                               data-checkbox-selection-target="pageCheckbox"
+                                               data-action="click->checkbox-selection#toggleSelectAllAPageProjets">
                                         <label class="fr-label" for="checkbox-{{ programmation_projet.id }}">
                                             <span class="fr-sr-only fr-hint-text">Cocher le projet N°{{ programmation_projet.projet.dossier_ds.ds_number }}</span>
                                         </label>
@@ -145,6 +147,17 @@
                             </tr>
                         </thead>
                         <tbody id="projet-list">
+                            <tr data-checkbox-selection-target="selectAllRow"
+                                class="select-all-projet-notice">
+                                <td colspan="12">
+                                    <span data-checkbox-selection-target="selectAllRowText"></span>
+                                    <button class='fr-btn fr-btn--tertiary'
+                                            data-action="click->checkbox-selection#toggleSelectAllProjets"
+                                            data-checkbox-selection-target="selectAllButton">
+                                        Sélectionner l'ensemble des projets à notifier ({{ to_notify_projets_count }})
+                                    </button>
+                                </td>
+                            </tr>
                             {% for programmation_projet in programmation_projets %}
                                 <tr>
                                     <td>
@@ -153,7 +166,7 @@
                                                 <input id="checkbox-{{ programmation_projet.id }}"
                                                        type="checkbox"
                                                        data-checkbox-selection-target="button"
-                                                       data-action="click->checkbox-selection#updateAllCheckboxesSelected">
+                                                       data-action="click->checkbox-selection#toggleProjetCheckbox">
                                                 <label class="fr-label fix-checkbox-position"
                                                        for="checkbox-{{ programmation_projet.id }}">
                                                     <span class="fr-sr-only fr-hint-text">Cocher le projet N°{{ programmation_projet.projet.dossier_ds.ds_number }}</span>

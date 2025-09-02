@@ -4,14 +4,13 @@
         <title>{{ doc_title }}</title>
         <meta name="description" content="">
         <meta name="keywords" content="">
-        <link rel="stylesheet"
-              href="{% static 'dsfr/dist/dsfr/dsfr.print.min.css' %}">
+        <link rel="stylesheet" href="{% static 'dsfr/dist/dsfr.print.min.css' %}">
         <link rel="stylesheet" href="{% static 'css/pdf.css' %}">
     </head>
     <body id="weasy">
         <header class="header">
             <div class="head-left">
-                <img class="logo" src="{{ logo.url }}" alt="{{ alt_logo }}" width="120">
+                <img class="logo" src="{{ logo }}" alt="{{ alt_logo }}" width="120">
             </div>
             <div class="head-right">
                 {{ top_right_text|linebreaksbr }}
