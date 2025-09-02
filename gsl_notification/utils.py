@@ -1,5 +1,6 @@
 import base64
 import os
+from functools import lru_cache
 
 import boto3
 import requests
@@ -276,6 +277,7 @@ def get_uploaded_form_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES):
     return ArreteEtLettreSigneForm
 
 
+@lru_cache(maxsize=32)
 def get_logo_base64(url):
     response = requests.get(url)
     response.raise_for_status()

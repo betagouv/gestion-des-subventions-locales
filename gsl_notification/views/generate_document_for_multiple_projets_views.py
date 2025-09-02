@@ -347,20 +347,13 @@ def download_documents(request, dotation, document_type):
     ):
         return HttpResponseBadRequest("Un des projets n'a pas le document demandé.")
 
-    if documents:
-        logo = get_logo_base64(next(iter(documents)).modele.logo.url)
-    else:
-        logo = None
-
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-        i = 1
-        for document in documents:
-            pdf_content = _generate_pdf_for_document(document, document_type, logo)
+        for i, document in enumerate(documents, start=1):
+            pdf_content = _generate_pdf_for_document(document, document_type)
             filename = f"{document.name}"
             zip_file.writestr(filename, pdf_content)
             logging.info(f"#{i} {document} généré")
-            i += 1
     zip_buffer.seek(0)
     response = HttpResponse(zip_buffer, content_type="application/zip")
     response["Content-Disposition"] = 'attachment; filename="documents.zip"'
@@ -418,12 +411,10 @@ def _get_go_back_link(dotation: str):
     )
 
 
-def _generate_pdf_for_document(
-    document: Arrete | LettreNotification, document_type, logo_b64=None
-):
+def _generate_pdf_for_document(document: Arrete | LettreNotification, document_type):
     context = {
         "doc_title": get_doc_title(document_type),
-        "logo": logo_b64 or get_logo_base64(document.modele.logo.url),
+        "logo": get_logo_base64(document.modele.logo.url),
         "alt_logo": document.modele.logo_alt_text,
         "top_right_text": document.modele.top_right_text.strip(),
         "content": mark_safe(document.content),
