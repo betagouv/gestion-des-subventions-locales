@@ -4,7 +4,7 @@ from django import forms
 from django.db.models.fields import files
 from dsfr.forms import DsfrBaseForm
 
-from gsl.settings import MAX_POST_FILE_SIZE_IN_MO
+from config.settings import MAX_POST_FILE_SIZE_IN_MO
 from gsl_notification.models import (
     Annexe,
     Arrete,

@@ -1,4 +1,4 @@
-from gsl import settings
+from config import settings
 
 
 def export_vars(request):

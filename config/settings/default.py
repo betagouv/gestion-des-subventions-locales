@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 load_dotenv()  # take environment variables from .env.
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -28,8 +28,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG")
+DEBUG = False
+
 ENV = os.getenv("ENV")
 if ENV not in ("dev", "test", "staging", "prod"):
     raise ValueError(
@@ -108,17 +108,13 @@ MIDDLEWARE = [
     "django_htmx.middleware.HtmxMiddleware",
 ]
 
-if DEBUG:
-    INSTALLED_APPS.append("query_counter")
-    MIDDLEWARE.append("query_counter.middleware.DjangoQueryCounterMiddleware")
-
 AUTHENTICATION_BACKENDS = [
     "gsl_oidc.backends.OIDCAuthenticationBackend",
     "django.contrib.auth.backends.ModelBackend",
 ]
 
 AUTH_USER_MODEL = "gsl_core.Collegue"
-ROOT_URLCONF = "gsl.urls"
+ROOT_URLCONF = "config.urls"
 LANGUAGE_CODE = "fr"
 
 TEMPLATES = [
@@ -133,7 +129,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "dsfr.context_processors.site_config",
-                "gsl.utils.context_processors.export_vars",
+                "config.utils.context_processors.export_vars",
             ],
         },
     },
@@ -150,7 +146,7 @@ STORAGES = {
 }
 
 
-WSGI_APPLICATION = "gsl.wsgi.application"
+WSGI_APPLICATION = "config.wsgi.application"
 
 
 # Static files (CSS, JavaScript, Images)

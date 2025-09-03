@@ -10,7 +10,7 @@ install-js:
     while read jsfile; do cp "node_modules/$jsfile" "static/vendor/"; echo "Vendorized $jsfile"; done <vendorize.txt
 
 manage command:
-    python manage.py {{command}}
+    DJANGO_SETTINGS_MODULE=config.settings.dev python manage.py {{command}}
 
 
 # Django shorthands

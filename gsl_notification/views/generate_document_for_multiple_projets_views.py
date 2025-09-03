@@ -12,7 +12,7 @@ from django.views.decorators.http import require_GET, require_POST
 from django_weasyprint.utils import django_url_fetcher
 from weasyprint import HTML
 
-from gsl import settings
+from config import settings
 from gsl_notification.models import Arrete, LettreNotification
 from gsl_notification.utils import (
     get_doc_title,
