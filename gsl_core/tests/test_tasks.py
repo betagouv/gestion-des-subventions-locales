@@ -25,7 +25,8 @@ def test_associate_or_update_ds_id_to_users():
         }
     )
 
-    associate_or_update_ds_id_to_users(Collegue.objects.all())
+    user_ids = set(Collegue.objects.values_list("id", flat=True))
+    associate_or_update_ds_id_to_users(user_ids)
 
     user_without_id.refresh_from_db()
     assert user_without_id.ds_id == "123456789"
