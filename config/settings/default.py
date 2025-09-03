@@ -118,7 +118,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 AUTH_USER_MODEL = "gsl_core.Collegue"
-ROOT_URLCONF = "gsl.urls"
+ROOT_URLCONF = "config.urls"
 LANGUAGE_CODE = "fr"
 
 TEMPLATES = [
@@ -133,7 +133,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "dsfr.context_processors.site_config",
-                "gsl.utils.context_processors.export_vars",
+                "config.utils.context_processors.export_vars",
             ],
         },
     },
