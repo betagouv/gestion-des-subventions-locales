@@ -18,7 +18,7 @@ runserver: (manage "runserver")
 migrate: (manage "migrate")
 shell: (manage "shell")
 makemigrations: (manage "makemigrations")
-    ruff format apps/*/migrations/*.py
+    ruff format */migrations/*.py
 
 test:
     pytest

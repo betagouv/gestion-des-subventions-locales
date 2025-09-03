@@ -49,6 +49,7 @@ class CollegueAdmin(AllPermsForStaffUser, UserAdmin, admin.ModelAdmin):
         "is_staff",
         "perimetre",
         "last_login",
+        "ds_id",
     )
     fieldsets = (
         (None, {"fields": ("username", "password")}),
@@ -64,6 +65,10 @@ class CollegueAdmin(AllPermsForStaffUser, UserAdmin, admin.ModelAdmin):
                     "proconnect_chorusdt",
                 )
             },
+        ),
+        (
+            "Démarches Simplifiées",
+            {"fields": ("ds_id",)},
         ),
         (
             "Gestion des droits",
