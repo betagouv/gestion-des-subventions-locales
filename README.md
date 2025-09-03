@@ -40,6 +40,14 @@ ALTER USER gsl_team CREATEDB;
 
 Tapez `\q` pour quitter l'invite de commandes PostgreSQL.
 
+Veillez à ce que la variable d'environnement `DJANGO_SETTINGS_MODULE` soit initialisée
+pour que le fichier de configuration de développement soit bien chargé.
+Ajouter cette ligne dans votre .bashrc
+
+```bash
+export DJANGO_SETTINGS_MODULE=config.settings.dev
+```
+
 Ensuite, il est temps de procéder à l'installation du code et de ses dépendances :
 
 ```bash
