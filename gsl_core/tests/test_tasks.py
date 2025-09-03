@@ -1,12 +1,13 @@
 import pytest
 
-from gsl_core.tasks import associate_or_update_ds_id_to_user
+from gsl_core.models import Collegue
+from gsl_core.tasks import associate_or_update_ds_id_to_users
 from gsl_core.tests.factories import CollegueFactory
 from gsl_demarches_simplifiees.tests.factories import DemarcheFactory
 
 
 @pytest.mark.django_db
-def test_associate_or_update_ds_id_to_user():
+def test_associate_or_update_ds_id_to_users():
     user_without_id = CollegueFactory(email="user1@example.com")
     user_with_id = CollegueFactory(email="user2@example.com", ds_id="azertyui")
     user_not_in_demarche = CollegueFactory(email="user3@example.com")
@@ -24,7 +25,7 @@ def test_associate_or_update_ds_id_to_user():
         }
     )
 
-    associate_or_update_ds_id_to_user()
+    associate_or_update_ds_id_to_users(Collegue.objects.all())
 
     user_without_id.refresh_from_db()
     assert user_without_id.ds_id == "123456789"
