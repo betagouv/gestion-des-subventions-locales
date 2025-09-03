@@ -112,6 +112,13 @@ if DEBUG:
     INSTALLED_APPS.append("query_counter")
     MIDDLEWARE.append("query_counter.middleware.DjangoQueryCounterMiddleware")
 
+    INSTALLED_APPS.append("debug_toolbar")
+    MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
+
+    INTERNAL_IPS = [
+        "127.0.0.1",
+    ]
+
 AUTHENTICATION_BACKENDS = [
     "gsl_oidc.backends.OIDCAuthenticationBackend",
     "django.contrib.auth.backends.ModelBackend",

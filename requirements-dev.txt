@@ -6,6 +6,8 @@
 #
 amqp==5.3.1
     # via kombu
+annotated-types==0.7.0
+    # via pydantic
 asgiref==3.9.1
     # via
     #   django
@@ -213,6 +215,7 @@ packaging==25.0
     #   django-csp
     #   gunicorn
     #   kombu
+    #   pyproject-toml
     #   pytest
 parso==0.8.4
     # via jedi
@@ -247,6 +250,10 @@ pure-eval==0.2.3
     # via stack-data
 pycparser==2.22
     # via cffi
+pydantic==2.11.7
+    # via pyproject-toml
+pydantic-core==2.33.2
+    # via pydantic
 pydyf==0.11.0
     # via weasyprint
 pygments==2.19.2
@@ -261,6 +268,8 @@ pyproject-hooks==1.2.0
     # via
     #   build
     #   pip-tools
+pyproject-toml==0.1.0
+    # via gsl (pyproject.toml)
 pytest==8.4.1
     # via
     #   gsl (pyproject.toml)
@@ -336,7 +345,13 @@ traitlets==5.14.3
     #   ipython
     #   matplotlib-inline
 typing-extensions==4.14.1
-    # via beautifulsoup4
+    # via
+    #   beautifulsoup4
+    #   pydantic
+    #   pydantic-core
+    #   typing-inspection
+typing-inspection==0.4.1
+    # via pydantic
 tzdata==2025.2
     # via
     #   django-celery-beat
@@ -364,7 +379,9 @@ webencodings==0.5.1
     #   tinycss2
     #   tinyhtml5
 wheel==0.45.1
-    # via pip-tools
+    # via
+    #   pip-tools
+    #   pyproject-toml
 whitenoise==6.9.0
     # via gsl (pyproject.toml)
 xlrd==2.0.2
