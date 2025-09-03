@@ -9,7 +9,7 @@ from django.core.files import File
 from django.db.models.fields.files import FieldFile
 from django.http import Http404
 
-from gsl import settings
+from config import settings
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_notification.forms import (

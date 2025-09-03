@@ -15,7 +15,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 from django.views.generic import FormView, ListView
 from formtools.wizard.views import SessionWizardView
 
-from gsl import settings
+from config import settings
 from gsl_core.models import Perimetre
 from gsl_notification.forms import (
     ModeleDocumentStepOneForm,

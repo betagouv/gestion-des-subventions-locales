@@ -7,7 +7,8 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 
 from django.contrib import admin
 from django.urls import include, path
-from gsl import settings
+
+from config import settings
 
 urlpatterns = [
     path("admin/", admin.site.urls),

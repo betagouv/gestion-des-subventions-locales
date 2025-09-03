@@ -28,8 +28,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG")
+DEBUG = False
+
 ENV = os.getenv("ENV")
 if ENV not in ("dev", "test", "staging", "prod"):
     raise ValueError(
@@ -108,10 +108,6 @@ MIDDLEWARE = [
     "django_htmx.middleware.HtmxMiddleware",
 ]
 
-if DEBUG:
-    INSTALLED_APPS.append("query_counter")
-    MIDDLEWARE.append("query_counter.middleware.DjangoQueryCounterMiddleware")
-
 AUTHENTICATION_BACKENDS = [
     "gsl_oidc.backends.OIDCAuthenticationBackend",
     "django.contrib.auth.backends.ModelBackend",
@@ -150,7 +146,7 @@ STORAGES = {
 }
 
 
-WSGI_APPLICATION = "gsl.wsgi.application"
+WSGI_APPLICATION = "config.wsgi.application"
 
 
 # Static files (CSS, JavaScript, Images)
