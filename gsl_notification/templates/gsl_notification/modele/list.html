@@ -3,28 +3,32 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static "css/gsl.css" %}">
-    <link rel="stylesheet" href="{% static "css/programmation_projet_list.css" %}">
+    <link rel="stylesheet"
+          href="{% static "css/programmation_projet_list.css" %}">
     <link rel="stylesheet" href="{% static "css/notification.css" %}">
 {% endblock extra_css %}
 
 {% block tab_content %}
-    <div class="fr-m-4w">
+    <div class="fr-m-4w"
+         data-controller="delete-notification-document-modal"
+         data-delete-notification-document-modal-modal-id-value="delete-modele-arrete"
+         data-delete-notification-document-modal-form-id-value="delete-modele-arrete-form">
         <h2>
-            Modèles d’arrêtés {{ dotation }}
+            Modèles {{ dotation }}
         </h2>
         <div class="text-align-right fr-mt-4v fr-mb-4v">
             <a class="fr-btn fr-btn--icon-left fr-icon-add-line"
-               href="{% url "notification:modele-arrete-creer" dotation %}">Créer un modèle d’arrêté {{ dotation }}</a>
+               href="{% url "notification:modele-creer-choix-du-type" dotation %}">Créer un modèle {{ dotation }}</a>
         </div>
         <ul class="no-list-style arrete-modele-list">
             {% for modele in modeles_list %}
                 <li>
-                    {% include "includes/_modele_arrete_card.html" %}
+                    {% include "includes/_modele_card.html" %}
                 </li>
             {% empty %}
                 <p>
                     Vous n'avez pas encore de modèles. Vous pouvez en créer
-                    <a href="{% url "notification:modele-arrete-creer" dotation %}"
+                    <a href="{% url "notification:modele-creer-choix-du-type" dotation %}"
                        class="fr-link">en cliquant ici.</a>
                 </p>
             {% endfor %}
@@ -33,12 +37,8 @@
 {% endblock tab_content %}
 
 {% block modal %}
-    {% ui_confirmation_modal modal_id="delete-modele-arrete" title="Suppression du modèle d’arrêté" text="Êtes-vous sûr de vouloir supprimer ce modèle d’arrêté ?<br><b>⚠️ Les autres utilisateurs ayant accès à ce modèle ne pourront plus l’utiliser ni le voir.</b>" form="delete-modele-arrete-form" action_text="Supprimer" %}
+    {% ui_confirmation_modal modal_id="delete-modele-arrete" title="Suppression du modèle d’arrêté" text="Êtes-vous sûr de vouloir supprimer ce modèle ?<br><b>⚠️ Les autres utilisateurs ayant accès à ce modèle ne pourront plus l’utiliser ni le voir.</b>" form="delete-modele-arrete-form" action_text="Supprimer" %}
     <form method="post" id="delete-modele-arrete-form">
         {% csrf_token %}
     </form>
 {% endblock modal %}
-
-{% block extra_js %}
-    <script src="{% static 'js/updateModalName.js' %}"></script>
-{% endblock extra_js %}

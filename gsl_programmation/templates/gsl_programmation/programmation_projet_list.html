@@ -2,9 +2,11 @@
 {% load static dsfr_tags gsl_filters %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static "css/gsl.css" %}">
     <link rel="stylesheet" href="{% static "css/projet_list.css" %}">
-    <link rel="stylesheet" href="{% static "css/programmation_projet_list.css" %}">
+    <link rel="stylesheet"
+          href="{% static "css/programmation_projet_list.css" %}">
+    {% comment %} TODO move arrete-card__action and remove this notification.css ?? {% endcomment %}
+    <link rel="stylesheet" href="{% static "css/notification.css" %}">
 {% endblock extra_css %}
 
 {% block content %}
@@ -45,12 +47,14 @@
                      aria-label="Sous-menu Programmation {{ dotation }}">
                     <ul class="no-list-style fr-m-4w">
                         <li>
-                            <a class="{% if "/programmation/" in request.path %}active-link{% else %}secondary-link{% endif %}" href="{% url "programmation:programmation-projet-list-dotation" dotation %}">
+                            <a class="{% if "/programmation/" in request.path %}active-link{% else %}secondary-link{% endif %}"
+                               href="{% url "programmation:programmation-projet-list-dotation" dotation %}">
                                 Projets programmés
                             </a>
                         </li>
                         <li>
-                            <a class="{% if "/notification/" in request.path %}active-link{% else %}secondary-link{% endif %}" href="{% url "notification:modele-arrete-liste" dotation %}">
+                            <a class="{% if "/notification/" in request.path %}active-link{% else %}secondary-link{% endif %}"
+                               href="{% url "notification:modele-liste" dotation %}">
                                 Modèles de publipostage {{ dotation }}
                             </a>
                         </li>
@@ -72,125 +76,187 @@
                 </div>
 
                 {% include "includes/_enveloppe_summary.html" %}
+                {% with component_included_in_parent=True %}
+                    {% include "includes/_projet_list_filters.html" %}
+                {% endwith %}
 
-                {% if programmation_projets %}
-                    <div class="fr-table--lg gsl-projet-table" id="programmation-projet-table">
-                        <table>
-                            <thead>
+                <div class="fr-table--lg gsl-projet-table" id="programmation-projet-table">
+                    <table data-controller="checkbox-selection"
+                           data-checkbox-selection-to-notify-projets-count-value="{{ to_notify_projets_count }}"
+                           data-checkbox-selection-activate-all-projets-selection-value="{{ activate_all_projets_selection }}">
+                        <thead>
+                            <tr>
+                                <th class="checkbox-header">
+                                    <div class="fr-checkbox-group fr-checkbox-group--sm">
+                                        <input id="checkbox-{{ programmation_projet.id }}"
+                                               type="checkbox"
+                                               data-checkbox-selection-target="pageCheckbox"
+                                               data-action="click->checkbox-selection#toggleSelectAllAPageProjets">
+                                        <label class="fr-label" for="checkbox-{{ programmation_projet.id }}">
+                                            <span class="fr-sr-only fr-hint-text">Cocher le projet N°{{ programmation_projet.projet.dossier_ds.ds_number }}</span>
+                                        </label>
+                                    </div>
+                                    <details class="action-button" name="document-actions">
+                                        <summary class="fr-icon--sm fr-icon-arrow-down-s-line blue-color"
+                                                 aria-label="Ouvrir les actions">
+                                        </summary>
+                                        <ul class="new-gsl-dropdown-content arrete-card__actions no-list-style fr-m-0">
+                                            <li>
+                                                <a class="fr-btn fr-btn--secondary arrete-card__action"
+                                                   data-checkbox-selection-target="link"
+                                                   data-base-url="{% url "gsl_notification:choose-generated-document-type-multiple" dotation %}">
+                                                    Générer des documents
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </details>
+                                </th>
+                                <th>
+                                    Initulé du projet
+                                </th>
+                                <th>
+                                    Demandeur
+                                </th>
+                                <th>
+                                    Coût total du projet
+                                </th>
+                                <th>
+                                    Montant et taux demandés
+                                </th>
+                                <th>
+                                    Montant prévisionnel accordé
+                                </th>
+                                <th>
+                                    Taux de subvention
+                                </th>
+                                <th>
+                                    Catégorie d'opération
+                                </th>
+                                <th class="max_80_width">
+                                    Statut
+                                </th>
+                                <th class="max_120_width">
+                                    Documents ajoutés
+                                </th>
+                                <th>
+                                    Notification
+                                </th>
+                                <th>
+                                    <span class="fr-sr-only">Actions</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="projet-list">
+                            <tr data-checkbox-selection-target="selectAllRow"
+                                class="select-all-projet-notice">
+                                <td colspan="12">
+                                    <span data-checkbox-selection-target="selectAllRowText"></span>
+                                    <button class='fr-btn fr-btn--tertiary'
+                                            data-action="click->checkbox-selection#toggleSelectAllProjets"
+                                            data-checkbox-selection-target="selectAllButton">
+                                        Sélectionner l'ensemble des projets à notifier ({{ to_notify_projets_count }})
+                                    </button>
+                                </td>
+                            </tr>
+                            {% for programmation_projet in programmation_projets %}
                                 <tr>
-                                    <th>
-                                        Initulé du projet
-                                    </th>
-                                    <th>
-                                        Demandeur
-                                    </th>
-                                    <th>
-                                        Coût total du projet
-                                    </th>
-                                    <th>
-                                        Montant et taux demandés
-                                    </th>
-                                    <th>
-                                        Montant prévisionnel accodé
-                                    </th>
-                                    <th>
-                                        Taux de subvention
-                                    </th>
-                                    <th>
-                                        Catégorie d'opération
-                                    </th>
-                                    <th>
-                                        Statut
-                                    </th>
-                                    <th>
-                                        Documents ajoutés
-                                    </th>
-                                    <th>
-                                        Notification
-                                    </th>
-                                    <th>
-                                        <span class="fr-sr-only">Actions</span>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody id="projet-list">
-                                {% for programmation_projet in programmation_projets %}
-                                    <tr>
-                                        <td>
-                                            {{ programmation_projet.projet.dossier_ds.projet_intitule }}
-                                        </td>
-                                        <td>
-                                            {{ programmation_projet.projet.demandeur.name | format_demandeur_nom }}
-                                        </td>
-                                        <td class="gsl-money">
-                                            {{ programmation_projet.projet.dossier_ds.finance_cout_total|euro }}
-                                        </td>
-                                        <td class="gsl-money">
-                                            {{ programmation_projet.projet.dossier_ds.demande_montant|euro }}
-                                            <br>
-                                            {{ programmation_projet.dotation_projet.taux_de_subvention_sollicite|percent }}
-                                        </td>
-                                        <td class="gsl-money">
-                                            {{ programmation_projet.montant|euro }}
-                                        </td>
-                                        <td class="gsl-money">
-                                            {{ programmation_projet.taux|percent }}
-                                        </td>
-                                        <td>
-                                            <ul class="no-list-style">
-                                                {% for categorie in programmation_projet.dotation_projet.detr_categories.all %}
+                                    <td>
+                                        {% if programmation_projet.to_notify %}
+                                            <div class="fr-checkbox-group fr-checkbox-group--sm">
+                                                <input id="checkbox-{{ programmation_projet.id }}"
+                                                       type="checkbox"
+                                                       data-checkbox-selection-target="button"
+                                                       data-action="click->checkbox-selection#toggleProjetCheckbox">
+                                                <label class="fr-label fix-checkbox-position"
+                                                       for="checkbox-{{ programmation_projet.id }}">
+                                                    <span class="fr-sr-only fr-hint-text">Cocher le projet N°{{ programmation_projet.projet.dossier_ds.ds_number }}</span>
+                                                </label>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ programmation_projet.projet.dossier_ds.projet_intitule }}
+                                    </td>
+                                    <td>
+                                        {{ programmation_projet.projet.demandeur.name | format_demandeur_nom }}
+                                    </td>
+                                    <td class="gsl-money">
+                                        {{ programmation_projet.projet.dossier_ds.finance_cout_total|euro }}
+                                    </td>
+                                    <td class="gsl-money">
+                                        {{ programmation_projet.projet.dossier_ds.demande_montant|euro }}
+                                        <br>
+                                        {{ programmation_projet.dotation_projet.taux_de_subvention_sollicite|percent }}
+                                    </td>
+                                    <td class="gsl-money">
+                                        {{ programmation_projet.montant|euro }}
+                                    </td>
+                                    <td class="gsl-money">
+                                        {{ programmation_projet.taux|percent }}
+                                    </td>
+                                    <td>
+                                        <ul class="no-list-style">
+                                            {% for categorie in programmation_projet.dotation_projet.detr_categories.all %}
+                                                <li>
+                                                    {{ categorie.label }}
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </td>
+                                    <td>
+                                        {{ programmation_projet.get_status_display }}
+
+                                    </td>
+                                    <td>
+                                        {% if programmation_projet.documents_summary %}
+                                            <ul>
+                                                {% for document in programmation_projet.documents_summary %}
                                                     <li>
-                                                        {{ categorie.label }}
+                                                        {{ document }}
                                                     </li>
                                                 {% endfor %}
                                             </ul>
-                                        </td>
-                                        <td>
-                                            {{ programmation_projet.get_status_display }}
-
-                                        </td>
-                                        <td>
+                                        {% else %}
                                             Pas de documents ajoutés
-                                        </td>
-                                        <td>
-                                            {% if programmation_projet.to_notify %}
-                                                <span class="projet__to_notify">À notifier</span>
-                                            {% else %}
-                                                <span class="blue-color projet__notified">
-                                                    <span class="fr-icon-checkbox-fill" aria-hidden="true"></span>
-                                                    Notifié
-                                                </span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <a class="fr-btn--tertiary-no-outline gsl-no-underline"
-                                               href="{{ programmation_projet.get_absolute_url }}">
-                                                <span class="fr-sr-only">Voir le projet programmé {{ programmation_projet.projet.dossier_ds.ds_number }}</span>
-                                                <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Pagination -->
-                    {% if is_paginated %}
-                        <div class="fr-table__footer">
-                            <div class="fr-table__footer--middle">
-                                {% dsfr_pagination page_obj %}
-                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if programmation_projet.to_notify %}
+                                            <span class="projet__to_notify">À notifier</span>
+                                        {% else %}
+                                            <span class="blue-color projet__notified">
+                                                <span class="fr-icon-checkbox-fill" aria-hidden="true"></span>
+                                                Notifié
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a class="fr-btn--tertiary-no-outline gsl-no-underline"
+                                           href="{{ programmation_projet.get_absolute_url }}">
+                                            <span class="fr-sr-only">Voir le projet programmé {{ programmation_projet.projet.dossier_ds.ds_number }}</span>
+                                            <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="12">
+                                        Liste vide.
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination -->
+                {% if is_paginated %}
+                    <div class="fr-table__footer">
+                        <div class="fr-table__footer--middle">
+                            {% dsfr_pagination page_obj %}
                         </div>
-                    {% endif %}
-
-                {% else %}
-                    <div class="fr-alert fr-alert--info">
-                        <p>
-                            Aucun projet programmé pour le moment.
-                        </p>
                     </div>
                 {% endif %}
+
             {% endblock tab_content %}
             {% if not is_detr_disabled %}
             </div>

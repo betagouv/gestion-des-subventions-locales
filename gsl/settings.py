@@ -284,3 +284,5 @@ AWS_S3_REGION_NAME = os.getenv("SCALEWAY_S3_REGION", "fr-par")
 AWS_S3_ENDPOINT_URL = os.getenv(
     "AWS_S3_ENDPOINT_URL", f"https://s3.{AWS_S3_REGION_NAME}.scw.cloud"
 )
+
+MAX_POST_FILE_SIZE_IN_MO = os.getenv("MAX_POST_FILE_SIZE_IN_MO", 20)

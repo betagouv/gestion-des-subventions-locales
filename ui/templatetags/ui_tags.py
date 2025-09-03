@@ -6,6 +6,39 @@ from dsfr.utils import parse_tag_args
 register = template.Library()
 
 
+@register.inclusion_tag("ui/components/multiselect.html")
+def ui_multiselect(*args, **kwargs) -> dict:
+    """
+    ```python
+    data_dict = {
+        "id": "The field id",
+        "field": "Multiple Choice Filter field form",
+        "label": "Field label",
+        "placeholder": "Placeholder in button",
+        "is_active": "(Optional) If true, we give a blue border to button. False by default",
+        "size" "(Optional) S, M or L. Define the width. M by default"
+    }
+    ```"""
+    allowed_keys = [
+        "id",
+        "field",
+        "label",
+        "placeholder",
+        "is_active",
+        "size",
+    ]
+    tag_data = parse_tag_args(args, kwargs, allowed_keys)
+
+    tag_data["width"] = "fr-col-lg-3"
+    if "size" in tag_data:
+        if tag_data["size"] == "S":
+            tag_data["width"] = "fr-col-lg-2"
+        elif tag_data["size"] == "L":
+            tag_data["width"] = "fr-col-lg-4"
+
+    return {"self": tag_data}
+
+
 @register.inclusion_tag("ui/components/confirmation_modal.html")
 def ui_confirmation_modal(*args, **kwargs) -> dict:
     """

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/notification.css' %}">
+{% endblock extra_css %}
+
+{% block content %}
+    <h1>
+        {{ page_title }}
+    </h1>
+    {% include "includes/_generated_document_type_form.html" %}
+{% endblock content %}

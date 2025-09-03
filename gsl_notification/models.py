@@ -1,12 +1,19 @@
 import os
 from secrets import token_urlsafe
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
 from gsl_core.models import Collegue, Perimetre
-from gsl_projet.constants import DOTATION_CHOICES
+from gsl_projet.constants import (
+    ANNEXE,
+    ARRETE,
+    ARRETE_ET_LETTRE_SIGNES,
+    DOTATION_CHOICES,
+    LETTRE,
+)
 
 
 def tokenized_file_in_timestamped_folder(_, filename):
@@ -15,10 +22,13 @@ def tokenized_file_in_timestamped_folder(_, filename):
     return f"modeles_logos/{time_path}/{base_filename}_{token_urlsafe(8)}{extension}"
 
 
-class ModeleArrete(models.Model):
+class ModeleDocument(models.Model):
+    TYPE_ARRETE = "arrete"
+    TYPE_LETTRE = "lettre"
+
     # Metadata
     name = models.CharField(
-        verbose_name="Nom du modèle", help_text="Exemple : “Modèle d’arrêté DSIL 2025”"
+        verbose_name="Nom du modèle", help_text="Exemple : “Modèle DSIL 2025”"
     )
     description = models.TextField(
         verbose_name="Description du modèle",
@@ -52,13 +62,38 @@ class ModeleArrete(models.Model):
         verbose_name="Contenu",
         blank=True,
         default="",
-        help_text="Contenu HTML de l'arrêté, utilisé pour les exports.",
+        help_text="Contenu HTML du modèle.",
     )
 
     # Technical metadata
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Modèle de document"
+        verbose_name_plural = "Modèles de document"
+        abstract = True
+
+    def __str__(self):
+        return f"Modèle d’arrêté {self.id} - {self.name}"
+
+    @property
+    def annee(self):
+        return self.created_at.year
+
+    @property
+    def type(self):
+        raise NotImplementedError
+
+
+class ModeleArrete(ModeleDocument):
+    perimetre = models.ForeignKey(
+        Perimetre,
+        on_delete=models.PROTECT,
+        verbose_name="Périmètre",
+        related_name="modeles_arrete",
+    )
 
     class Meta:
         verbose_name = "Modèle d’arrêté"
@@ -68,11 +103,85 @@ class ModeleArrete(models.Model):
         return f"Modèle d’arrêté {self.id} - {self.name}"
 
     @property
-    def annee(self):
-        return self.created_at.year
+    def type(self):
+        return ARRETE
 
 
-class Arrete(models.Model):
+class ModeleLettreNotification(ModeleDocument):
+    perimetre = models.ForeignKey(
+        Perimetre,
+        on_delete=models.PROTECT,
+        verbose_name="Périmètre",
+        related_name="modeles_lettre_notification",
+    )
+
+    class Meta:
+        verbose_name = "Modèle de lettre de notification"
+        verbose_name_plural = "Modèles de lettre de notification"
+
+    def __str__(self):
+        return f"Modèle de lettre de notification {self.id} - {self.name}"
+
+    @property
+    def type(self):
+        return LETTRE
+
+
+class GeneratedDocument(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
+    updated_at = models.DateTimeField(auto_now=True)
+    content = models.TextField(
+        verbose_name="Contenu du document",
+        blank=True,
+        default="",
+        help_text="Contenu HTML du document, utilisé pour les exports.",
+    )
+
+    class Meta:
+        abstract = True
+
+    def get_download_url(self):
+        return reverse(
+            "notification:document-download",
+            kwargs={"document_type": self.document_type, "document_id": self.id},
+        )
+
+    def get_view_url(self):
+        return reverse(
+            "notification:document-view",
+            kwargs={"document_type": self.document_type, "document_id": self.id},
+        )
+
+    @property
+    def name(self):
+        raise NotImplementedError
+
+    @property
+    def document_type(self):
+        raise NotImplementedError
+
+    @property
+    def file_type(self):
+        return "pdf"
+
+    @property
+    def size(self):  # TODO: Implement a proper name logic
+        return 12345
+
+    def clean(self):
+        if (
+            hasattr(self, "programmation_projet")
+            and hasattr(self, "modele")
+            and self.programmation_projet.dotation != self.modele.dotation
+        ):
+            raise ValidationError(
+                "Le modèle doit avoir la même dotation que le projet de programmation."
+            )
+        return super().clean()
+
+
+class Arrete(GeneratedDocument):
     programmation_projet = models.OneToOneField(
         "gsl_programmation.ProgrammationProjet",
         on_delete=models.CASCADE,
@@ -80,15 +189,6 @@ class Arrete(models.Model):
         related_name="arrete",
     )
     modele = models.ForeignKey(ModeleArrete, on_delete=models.PROTECT)
-    created_at = models.DateTimeField(auto_now_add=True)
-    created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
-    updated_at = models.DateTimeField(auto_now=True)
-    content = models.TextField(
-        verbose_name="Contenu de l'arrêté",
-        blank=True,
-        default="",
-        help_text="Contenu HTML de l'arrêté, utilisé pour les exports.",
-    )
 
     class Meta:
         verbose_name = "Arrêté"
@@ -97,51 +197,57 @@ class Arrete(models.Model):
     def __str__(self):
         return f"Arrêté #{self.id}"
 
-    def get_download_url(self):
-        return reverse("notification:arrete-download", kwargs={"arrete_id": self.id})
-
-    def get_view_url(self):
-        return reverse("notification:arrete-view", kwargs={"arrete_id": self.id})
+    @property
+    def document_type(self):
+        return ARRETE
 
     @property
-    def name(self):  # TODO: Implement a proper name logic
-        return f"arrêté-attributif-{self.created_at.strftime('%Y-%m-%d')}.pdf"
-
-    @property
-    def type(self):  # TODO: Implement a proper name logic
-        return "pdf"
-
-    @property
-    def size(self):  # TODO: Implement a proper name logic
-        return 12345
+    def name(self):
+        return f"arrêté-attributif-{self.created_at.strftime('%Y-%m-%d')} - N°{self.programmation_projet.dossier.ds_number}.pdf"
 
 
-class ArreteSigne(models.Model):
-    file = models.FileField(upload_to="arrete_signe/")
-    created_at = models.DateTimeField(auto_now_add=True)
-    created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
-
+class LettreNotification(GeneratedDocument):
     programmation_projet = models.OneToOneField(
         "gsl_programmation.ProgrammationProjet",
         on_delete=models.CASCADE,
-        related_name="arrete_signe",
+        verbose_name="Programmation projet",
+        related_name="lettre_notification",
     )
+    modele = models.ForeignKey(ModeleLettreNotification, on_delete=models.PROTECT)
 
     class Meta:
-        verbose_name = "Arrêté signé"
-        verbose_name_plural = "Arrêtés signés"
+        verbose_name = "Lettre de notification"
+        verbose_name_plural = "Lettres de notification"
 
     def __str__(self):
-        return f"Arrêté signé #{self.id} "
+        return f"Lettre de notification #{self.id}"
+
+    @property
+    def document_type(self):
+        return LETTRE
+
+    @property
+    def name(self):
+        return f"lettre-notification-{self.created_at.strftime('%Y-%m-%d')} - N°{self.programmation_projet.dossier.ds_number}.pdf"
+
+
+class UploadedDocument(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
+
+    class Meta:
+        abstract = True
 
     def get_download_url(self):
         return reverse(
-            "notification:arrete-signe-download", kwargs={"arrete_signe_id": self.id}
+            "notification:uploaded-document-download",
+            kwargs={"document_type": self.document_type, "document_id": self.id},
         )
 
     def get_view_url(self):
         return reverse(
-            "notification:arrete-signe-view", kwargs={"arrete_signe_id": self.id}
+            "notification:uploaded-document-view",
+            kwargs={"document_type": self.document_type, "document_id": self.id},
         )
 
     @property
@@ -149,9 +255,55 @@ class ArreteSigne(models.Model):
         return self.file.name.split("/")[-1]
 
     @property
-    def type(self):
+    def file_type(self):
         return self.file.name.split(".")[-1]
 
     @property
     def size(self):
         return self.file.size
+
+    @property
+    def document_type(self):
+        raise NotImplementedError
+
+
+class ArreteEtLettreSignes(UploadedDocument):
+    file = models.FileField(upload_to="arrete_et_lettre_signes/")
+
+    programmation_projet = models.OneToOneField(
+        "gsl_programmation.ProgrammationProjet",
+        on_delete=models.CASCADE,
+        related_name="arrete_et_lettre_signes",
+    )
+
+    class Meta:
+        verbose_name = "Arrêté et lettre signés"
+        verbose_name_plural = "Arrêtés et lettres signés"
+
+    def __str__(self):
+        return f"Arrêté et lettre signés #{self.id}"
+
+    @property
+    def document_type(self):
+        return ARRETE_ET_LETTRE_SIGNES
+
+
+class Annexe(UploadedDocument):
+    file = models.FileField(upload_to="annexe/")
+
+    programmation_projet = models.ForeignKey(
+        "gsl_programmation.ProgrammationProjet",
+        on_delete=models.CASCADE,
+        related_name="annexes",
+    )
+
+    class Meta:
+        verbose_name = "Annexe"
+        verbose_name_plural = "Annexes"
+
+    def __str__(self):
+        return f"Annexe #{self.id}"
+
+    @property
+    def document_type(self):
+        return ANNEXE

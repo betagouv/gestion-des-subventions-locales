@@ -4,7 +4,15 @@ from django import forms
 from django.db.models.fields import files
 from dsfr.forms import DsfrBaseForm
 
-from gsl_notification.models import Arrete, ArreteSigne, ModeleArrete
+from gsl.settings import MAX_POST_FILE_SIZE_IN_MO
+from gsl_notification.models import (
+    Annexe,
+    Arrete,
+    ArreteEtLettreSignes,
+    LettreNotification,
+    ModeleDocument,
+)
+from gsl_projet.constants import ARRETE, LETTRE
 
 
 class ArreteForm(forms.ModelForm, DsfrBaseForm):
@@ -19,14 +27,19 @@ class ArreteForm(forms.ModelForm, DsfrBaseForm):
         fields = ("content", "created_by", "programmation_projet", "modele")
 
 
-class ArreteSigneForm(forms.ModelForm, DsfrBaseForm):
+class LettreNotificationForm(ArreteForm):
+    class Meta:
+        model = LettreNotification
+        fields = ("content", "created_by", "programmation_projet", "modele")
+
+
+class UploadedDocumentForm(forms.ModelForm, DsfrBaseForm):
     file = forms.FileField(
         required=True,
     )
 
     class Meta:
-        model = ArreteSigne
-        fields = ("file", "created_by", "programmation_projet")
+        abstract = True
 
     def clean_file(self):
         file = self.cleaned_data["file"]
@@ -39,8 +52,8 @@ class ArreteSigneForm(forms.ModelForm, DsfrBaseForm):
                 "Seuls les fichiers PDF, PNG ou JPEG sont acceptés."
             )
 
-        max_size_in_mo = 20
-        max_size = max_size_in_mo * 1024 * 1024  # 20 Mo
+        max_size_in_mo = MAX_POST_FILE_SIZE_IN_MO
+        max_size = max_size_in_mo * 1024 * 1024
         if file.size > max_size:
             raise forms.ValidationError(
                 f"La taille du fichier ne doit pas dépasser {max_size_in_mo} Mo."
@@ -48,15 +61,37 @@ class ArreteSigneForm(forms.ModelForm, DsfrBaseForm):
         return file
 
 
-class ModeleArreteStepOneForm(forms.ModelForm, DsfrBaseForm):
+class ArreteEtLettreSigneForm(UploadedDocumentForm):
     class Meta:
-        model = ModeleArrete
+        model = ArreteEtLettreSignes
+        fields = ("file", "created_by", "programmation_projet")
+
+
+class AnnexeForm(UploadedDocumentForm):
+    class Meta:
+        model = Annexe
+        fields = ("file", "created_by", "programmation_projet")
+
+
+class ModeleDocumentStepZeroForm(DsfrBaseForm):
+    TYPE_CHOICES = (
+        (ARRETE, "Arrêté attributif"),
+        (LETTRE, "Lettre de notification"),
+    )
+    type = forms.ChoiceField(
+        label="Type de document", choices=TYPE_CHOICES, widget=forms.RadioSelect
+    )
+
+
+class ModeleDocumentStepOneForm(forms.ModelForm, DsfrBaseForm):
+    class Meta:
+        model = ModeleDocument
         fields = ("name", "description")
 
 
-class ModeleArreteStepTwoForm(forms.ModelForm, DsfrBaseForm):
+class ModeleDocumentStepTwoForm(forms.ModelForm, DsfrBaseForm):
     class Meta:
-        model = ModeleArrete
+        model = ModeleDocument
         fields = ("logo", "logo_alt_text", "top_right_text")
 
     def clean_logo(self):
@@ -77,8 +112,8 @@ class ModeleArreteStepTwoForm(forms.ModelForm, DsfrBaseForm):
                     "Seuls les fichiers PNG ou JPEG sont acceptés."
                 )
 
-        max_size_in_mo = 20
-        max_size = max_size_in_mo * 1024 * 1024  # 20 Mo
+        max_size_in_mo = MAX_POST_FILE_SIZE_IN_MO
+        max_size = max_size_in_mo * 1024 * 1024
         if file.size > max_size:
             raise forms.ValidationError(
                 f"La taille du fichier ne doit pas dépasser {max_size_in_mo} Mo."
@@ -86,7 +121,7 @@ class ModeleArreteStepTwoForm(forms.ModelForm, DsfrBaseForm):
         return file
 
 
-class ModeleArreteStepThreeForm(forms.ModelForm, DsfrBaseForm):
+class ModeleDocumentStepThreeForm(forms.ModelForm, DsfrBaseForm):
     content = forms.CharField(
         required=True,
         help_text="Contenu HTML de l'arrêté, utilisé pour les exports.",
@@ -94,5 +129,5 @@ class ModeleArreteStepThreeForm(forms.ModelForm, DsfrBaseForm):
     )
 
     class Meta:
-        model = ModeleArrete
+        model = ModeleDocument
         fields = ("content",)

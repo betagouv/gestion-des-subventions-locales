@@ -1,8 +1,26 @@
+.projets-filters-layout {
+    background: var(--background-alt-blue-france);
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+    padding: 1rem max(calc((100vw - 1200px) / 2), 1.5rem);
+}
+
+@media (width <= 768px) {
+    .projets-filters-layout {
+        padding: 1rem;
+    }
+}
+
 .projets-filters-layout,
 .projets-filters-layout .fr-select,
 .projets-filters-layout .fr-input,
 .projets-filters-layout .fr-label {
   font-size: calc(1rem * 14 / 16);
+}
+
+.projets-filters-layout.projet-filters-in-parent {
+  margin: 0;
+  padding: 1rem;
 }
    
 .filter-field .gsl-dropdown-content {
@@ -33,6 +51,7 @@
   position: relative;
   display: inline-block;
 }
+
 .euro-input-wrap > input {
   text-align: right;
   max-width: 130px;
@@ -105,6 +124,7 @@
 
 #filter-territoire input[type="checkbox"]:indeterminate  ~ label::before {
   background-color: var(--background-alt-blue-france-active);
+
   --data-uri-svg: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23f5f5fe' d='m10 15.17 9.2-9.2 1.4 1.42L10 18l-6.36-6.36 1.4-1.42z'/%3E%3C/svg%3E");
 }
 
@@ -120,4 +140,10 @@
   width: 100%;
   gap: 8px;
   justify-content: center;
+}
+
+#filter-categorie_detr > div {
+  max-height: 400px;
+  scroll-behavior: auto;
+  overflow: auto;
 }

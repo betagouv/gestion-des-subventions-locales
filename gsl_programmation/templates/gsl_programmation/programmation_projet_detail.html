@@ -2,13 +2,14 @@
 {% load static gsl_filters dsfr_tags %}
 {% block extra_css %}
     <link rel="stylesheet" href="{% static "css/projet_detail.css" %}">
-    <link rel="stylesheet" href="{% static "css/programmation_projet_detail.css" %}">
+    <link rel="stylesheet"
+          href="{% static "css/programmation_projet_detail.css" %}">
     <link rel="stylesheet" href="{% static 'css/annotations.css' %}">
 {% endblock extra_css %}
 
 {% block go_back_button %}
     <div class="fr-mb-4w">
-        <a href="{% url "programmation:programmation-projet-list-dotation" dotation=programmation_projet.dotation_projet.dotation %}"
+        <a href="{% if go_back_link %}{{ go_back_link }}{% else %}{% url 'programmation:programmation-projet-list-dotation' dotation=programmation_projet.dotation_projet.dotation %}{% endif %}"
            class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
             Retour à la liste des projets programmés
         </a>

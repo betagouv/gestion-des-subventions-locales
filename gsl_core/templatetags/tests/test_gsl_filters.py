@@ -77,10 +77,10 @@ def test_remove_first_word():
             None,
         ),
         ("projet_note_deletion", "Suppression de la note", "Test description", None),
-        ("info", None, "Test description", "info"),
-        ("alert", None, "Test description", "alert"),
-        ("other", None, "Test description", None),
-        (None, None, "Test description", None),
+        ("info", None, True, "info"),
+        ("alert", None, True, "alert"),
+        ("other", None, True, None),
+        (None, None, True, None),
     ),
 )
 def test_create_alert_data(extra_tags, title_expected, has_message, type_expected):

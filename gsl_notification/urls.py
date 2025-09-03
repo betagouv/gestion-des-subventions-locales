@@ -1,27 +1,38 @@
 from django.urls import path
 
 from gsl_notification.views.decorators import (
-    arrete_visible_by_user,
+    document_visible_by_user,
 )
-from gsl_notification.views.modele_arrete_views import (
-    CreateModelArreteWizard,
-    DuplicateModeleArrete,
-    ModeleArreteListView,
-    UpdateModeleArrete,
-    delete_modele_arrete_view,
+from gsl_notification.views.generate_document_for_multiple_projets_views import (
+    choose_type_for_multiple_document_generation,
+    download_documents,
+    save_documents,
+    select_modele_multiple,
+)
+from gsl_notification.views.modele_views import (
+    ChooseModeleDocumentType,
+    CreateModelDocumentWizard,
+    DuplicateModele,
+    ModeleListView,
+    UpdateModele,
+    delete_modele_view,
     get_generic_modele,
 )
+from gsl_notification.views.uploaded_document_views import (
+    choose_type_for_document_upload,
+    create_uploaded_document_view,
+    delete_uploaded_document_view,
+    download_uploaded_document,
+    view_uploaded_document,
+)
 from gsl_notification.views.views import (
-    DownloadArreteView,
-    PrintArreteView,
-    change_arrete_view,
-    create_arrete_signe_view,
-    delete_arrete_signe_view,
-    delete_arrete_view,
+    DownloadDocumentView,
+    PrintDocumentView,
+    change_document_view,
+    choose_type_for_document_generation,
+    delete_document_view,
     documents_view,
-    download_arrete_signe,
     select_modele,
-    view_arrete_signe,
 )
 
 urlpatterns = [
@@ -30,82 +41,118 @@ urlpatterns = [
         documents_view,
         name="documents",
     ),
-    # Arretes
+    # Generated files
     path(
-        "<int:programmation_projet_id>/selection-d-un-modele/",
+        "<int:programmation_projet_id>/choix-du-type/",
+        choose_type_for_document_generation,
+        name="choose-generated-document-type",
+    ),
+    path(
+        "<int:programmation_projet_id>/selection-d-un-modele/<str:document_type>",
         select_modele,
         name="select-modele",
     ),
     path(
-        "<int:programmation_projet_id>/modifier-arrete/",
-        change_arrete_view,
-        name="modifier-arrete",
+        "<int:programmation_projet_id>/modifier-document/<str:document_type>",
+        change_document_view,
+        name="modifier-document",
     ),
     path(
-        "arrete/<int:arrete_id>/download/",
-        arrete_visible_by_user(DownloadArreteView.as_view()),
-        name="arrete-download",
+        "document/<str:document_type>/<int:document_id>/download/",
+        document_visible_by_user(DownloadDocumentView.as_view()),
+        name="document-download",
     ),
     path(
-        "arrete/<int:arrete_id>/view/",
-        arrete_visible_by_user(PrintArreteView.as_view()),
-        name="arrete-view",
+        "document/<str:document_type>/<int:document_id>/view/",
+        document_visible_by_user(PrintDocumentView.as_view()),
+        name="document-view",
     ),
     path(
-        "arrete/<int:arrete_id>/delete/",
-        delete_arrete_view,
-        name="delete-arrete",
+        "document/<str:document_type>/<int:document_id>/delete/",
+        delete_document_view,
+        name="delete-document",
     ),
-    # Arretes signés
+    # Generated files for multiple projets
     path(
-        "<int:programmation_projet_id>/creer-arrete-signe/",
-        create_arrete_signe_view,
-        name="create-arrete-signe",
-    ),
-    path(
-        "arrete-signe/<int:arrete_signe_id>/download/",
-        download_arrete_signe,
-        name="arrete-signe-download",
+        "<str:dotation>/choix-du-type/",
+        choose_type_for_multiple_document_generation,
+        name="choose-generated-document-type-multiple",
     ),
     path(
-        "arrete-signe/<int:arrete_signe_id>/view/",
-        view_arrete_signe,
-        name="arrete-signe-view",
+        "<str:dotation>/selection-d-un-modele/<str:document_type>",
+        select_modele_multiple,
+        name="select-modele-multiple",
     ),
     path(
-        "arrete-signe/<int:arrete_signe_id>/delete/",
-        delete_arrete_signe_view,
-        name="delete-arrete-signe",
+        "<str:dotation>/sauvegarde/<str:document_type>/<int:modele_id>",
+        save_documents,
+        name="save-documents",
+    ),
+    path(
+        "<str:dotation>/telechargement/<str:document_type>",
+        download_documents,
+        name="download-documents",
+    ),
+    # Uploaded files
+    path(
+        "<int:programmation_projet_id>/televersement/choix-du-type/",
+        choose_type_for_document_upload,
+        name="choose-uploaded-document-type",
+    ),
+    path(
+        "<int:programmation_projet_id>/televersement/<str:document_type>/creer/",
+        create_uploaded_document_view,
+        name="upload-a-document",
+    ),
+    path(
+        "document-televerse/<str:document_type>/<int:document_id>/download/",
+        download_uploaded_document,
+        name="uploaded-document-download",
+    ),
+    path(
+        "document-televerse/<str:document_type>/<int:document_id>/view/",
+        view_uploaded_document,
+        name="uploaded-document-view",
+    ),
+    path(
+        "document-televerse/<str:document_type>/<int:document_id>/delete/",
+        delete_uploaded_document_view,
+        name="delete-uploaded-document",
     ),
     # Modèles d'arrêtés
     path(
-        "modeles/liste/<str:dotation>",
-        ModeleArreteListView.as_view(),
-        name="modele-arrete-liste",
+        "modeles/liste/<str:dotation>/",
+        ModeleListView.as_view(),
+        name="modele-liste",
     ),
     path(
         "modeles/nouveau/<str:dotation>/",
-        CreateModelArreteWizard.as_view(),
-        name="modele-arrete-creer",
+        ChooseModeleDocumentType.as_view(),
+        name="modele-creer-choix-du-type",
     ),
     path(
-        "modeles/modifier/<str:modele_arrete_id>/",
-        UpdateModeleArrete.as_view(),
-        name="modele-arrete-modifier",
+        "modeles/nouveau/<str:modele_type>/<str:dotation>/",
+        CreateModelDocumentWizard.as_view(),
+        name="modele-creer",
     ),
     path(
-        "modeles/dupliquer/<str:modele_arrete_id>/",
-        DuplicateModeleArrete.as_view(),
-        name="modele-arrete-dupliquer",
+        "modeles/modifier/<str:modele_type>/<str:modele_id>/",
+        UpdateModele.as_view(),
+        name="modele-modifier",
     ),
     path(
-        "modele/<str:modele_arrete_id>/",
-        delete_modele_arrete_view,
-        name="delete-modele-arrete",
+        "modeles/dupliquer/<str:modele_type>/<str:modele_id>/",
+        DuplicateModele.as_view(),
+        name="modele-dupliquer",
     ),
     path(
-        "modele/generique/<str:dotation>",
+        "modeles/generique/<str:dotation>/",
         get_generic_modele,
         name="get-generic-modele-template",
+    ),
+    path(
+        "modeles/<str:modele_type>/<str:modele_id>/",
+        delete_modele_view,
+        name="delete-modele",
     ),
 ]

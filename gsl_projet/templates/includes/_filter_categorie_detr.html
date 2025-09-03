@@ -13,19 +13,21 @@
                  class="gsl-dropdown-content"
                  role="group"
                  aria-describedby="filter_categorie_detr_label">
-                {% for categorie in categorie_detr_choices %}
-                    <div class="fr-checkbox-group fr-checkbox-group--sm">
-                        <input type="checkbox"
-                               name="categorie_detr"
-                               value="{{ categorie.id }}"
-                               id="id_categorie_detr_{{ forloop.counter }}"
-                               {% if categorie.id in categorie_detr_selected %}checked{% endif %}>
-                        <label for="id_categorie_detr_{{ forloop.counter }}" class="fr-label">
-                            {{ categorie.label }}
-                        </label>
-                    </div>
-                {% endfor %}
-                <button type="submit" class="fr-btn fr-btn--sm stick-to-bottom">
+                <div>
+                    {% for categorie in categorie_detr_choices %}
+                        <div class="fr-checkbox-group fr-checkbox-group--sm">
+                            <input type="checkbox"
+                                   name="categorie_detr"
+                                   value="{{ categorie.id }}"
+                                   id="id_categorie_detr_{{ forloop.counter }}"
+                                   {% if categorie.id in categorie_detr_selected %}checked{% endif %}>
+                            <label for="id_categorie_detr_{{ forloop.counter }}" class="fr-label">
+                                {{ categorie.label }}
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
+                <button type="submit" class="fr-btn fr-btn--sm stick-to-bottom fr-mt-2w">
                     Filtrer
                 </button>
             </div>

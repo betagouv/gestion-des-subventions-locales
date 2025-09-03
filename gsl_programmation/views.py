@@ -1,12 +1,20 @@
+from functools import cached_property
+
 from django.http import Http404
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
+from django_filters.views import FilterView
 
 from gsl_core.models import Perimetre
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
+from gsl_programmation.utils.programmation_projet_filters import (
+    ProgrammationProjetFilters,
+)
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.models import CategorieDetr
+from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_page import PROJET_MENU
 
 
@@ -67,12 +75,14 @@ class ProgrammationProjetDetailView(DetailView):
         return context
 
 
-class ProgrammationProjetListView(ListView):
+class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
     model = ProgrammationProjet
+    filterset_class = ProgrammationProjetFilters
     template_name = "gsl_programmation/programmation_projet_list.html"
     context_object_name = "programmation_projets"
     paginate_by = 25
     ordering = ["-created_at"]
+    STATE_MAPPINGS = {key: value for key, value in ProgrammationProjet.STATUS_CHOICES}
 
     def get(self, request, *args, **kwargs):
         self.perimetre: Perimetre = self.request.user.perimetre
@@ -93,6 +103,12 @@ class ProgrammationProjetListView(ListView):
                 "gsl_programmation:programmation-projet-list-dotation", dotation="DSIL"
             )
 
+        if "reset_filters" in request.GET:
+            if request.path.startswith("/programmation/liste/"):
+                return redirect(request.path)
+            else:
+                return redirect("/")
+
         enveloppe_qs = (
             Enveloppe.objects.select_related(
                 "perimetre",
@@ -109,22 +125,6 @@ class ProgrammationProjetListView(ListView):
         )
         return super().get(request, *args, **kwargs)
 
-    def get_queryset(self):
-        return (
-            ProgrammationProjet.objects.for_enveloppe(enveloppe=self.enveloppe)
-            .select_related(
-                "dotation_projet",
-                "dotation_projet__projet",
-                "dotation_projet__projet__dossier_ds",
-                "dotation_projet__projet__perimetre",
-                "dotation_projet__projet__demandeur",
-                "enveloppe",
-                "enveloppe__perimetre",
-            )
-            .prefetch_related("dotation_projet__detr_categories")
-            .order_by(self.ordering[0])
-        )
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         title = "Programmation en cours"
@@ -135,12 +135,20 @@ class ProgrammationProjetListView(ListView):
                 "enveloppe": self.enveloppe,
                 "dotation": self.enveloppe.dotation,
                 "title": title,
+                "to_notify_projets_count": self.object_list.to_notify().count(),
+                "activate_all_projets_selection": self.object_list.count()
+                > ProgrammationProjetListView.paginate_by,
                 "breadcrumb_dict": {
                     "current": "Programmation en cours",
                 },
                 "current_tab": self.dotation,
                 "is_detr_disabled": self.perimetre.type == Perimetre.TYPE_REGION,
             }
+        )
+
+        ignore_categories_detr = bool(self.dotation == DOTATION_DSIL)
+        self.enrich_context_with_filter_utils(
+            context, self.STATE_MAPPINGS, ignore_categories_detr=ignore_categories_detr
         )
 
         return context
@@ -171,3 +179,26 @@ class ProgrammationProjetListView(ListView):
             return enveloppe
 
         raise Http404("Aucune enveloppe trouvée pour le périmètre de l'utilisateur.")
+
+    # Filter functions
+
+    def _get_perimetre(self):
+        return self.perimetre
+
+    def _get_territoire_choices(self):
+        perimetre = self._get_perimetre()
+        if not perimetre:
+            return ()
+
+        return (perimetre, *perimetre.children())
+
+    @cached_property
+    def categorie_detr_choices(self):
+        perimetre = self._get_perimetre()
+        if not perimetre:
+            return ()
+
+        if not perimetre.departement:
+            return ()
+
+        return CategorieDetr.objects.current_for_departement(perimetre.departement)

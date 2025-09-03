@@ -1,17 +1,3 @@
-<div class="filter-field fr-col-12 fr-col-md-4 fr-col-lg-3">
-    <div class="gsl-dropdown">
-        <label class="fr-label" for="dotation">
-            Dotation
-        </label>
-        <button type="button"
-                class="fr-select {% if is_dotation_active %}filter-dropdown-button-active{% endif %}">
-            {{ dotation_placeholder }}
-        </button>
-        <div class="gsl-dropdown-content">
-            {{ filter.form.dotation }}
-            <button type="submit" class="fr-btn fr-btn--sm">
-                Filtrer
-            </button>
-        </div>
-    </div>
-</div>
+{% load ui_tags %}
+
+{% ui_multiselect id="id_dotation" field=filter.form.dotation label="Dotation" placeholder=dotation_placeholder is_active=is_dotation_active %}

@@ -1,5 +1,6 @@
 import datetime
 import io
+import os
 
 import pytest
 
@@ -9,6 +10,7 @@ from gsl_core.tests.factories import (
     PerimetreRegionalFactory,
 )
 from gsl_demarches_simplifiees.tests.factories import PersonneMoraleFactory
+from gsl_notification.tests.factories import AnnexeFactory
 from gsl_notification.utils import (
     get_modele_perimetres,
     replace_mentions_in_html,
@@ -70,6 +72,28 @@ def test_update_file_name_to_put_it_in_a_programmation_projet_folder():
     )
 
     assert file.name == "programmation_projet_42/document.pdf"
+
+
+@pytest.mark.django_db
+def test_update_file_name_to_put_it_in_a_programmation_projet_folder_with_annexe():
+    pp = ProgrammationProjetFactory()
+    annexe = AnnexeFactory(programmation_projet=pp)
+    assert pp.annexes.count() == 1
+
+    class DummyFile(io.BytesIO):
+        def __init__(self, name):
+            super().__init__()
+            self.name = name
+
+    file_name = annexe.name
+    base_name, _extension = os.path.splitext(file_name)
+    file_2 = DummyFile(file_name)
+
+    update_file_name_to_put_it_in_a_programmation_projet_folder(
+        file_2, pp.id, is_annexe=True
+    )
+
+    assert file_2.name == f"programmation_projet_{pp.id}/{base_name}_2.pdf"
 
 
 @pytest.mark.django_db

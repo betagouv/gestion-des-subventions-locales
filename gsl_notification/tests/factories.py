@@ -4,7 +4,14 @@ import factory
 
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 
-from ..models import Arrete, ArreteSigne, ModeleArrete
+from ..models import (
+    Annexe,
+    Arrete,
+    ArreteEtLettreSignes,
+    LettreNotification,
+    ModeleArrete,
+    ModeleLettreNotification,
+)
 
 
 class ModeleArreteFactory(factory.django.DjangoModelFactory):
@@ -24,6 +31,11 @@ class ModeleArreteFactory(factory.django.DjangoModelFactory):
     updated_at = factory.Faker("date_time")
 
 
+class ModeleLettreNotificationFactory(ModeleArreteFactory):
+    class Meta:
+        model = ModeleLettreNotification
+
+
 class ArreteFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Arrete
@@ -31,16 +43,31 @@ class ArreteFactory(factory.django.DjangoModelFactory):
     programmation_projet = factory.SubFactory(
         "gsl_programmation.tests.factories.ProgrammationProjetFactory"
     )
-    modele = factory.SubFactory(ModeleArreteFactory)
+    modele = factory.LazyAttribute(
+        lambda obj: ModeleArreteFactory(
+            dotation=obj.programmation_projet.dotation,
+        )
+    )
     created_by = factory.SubFactory("gsl_core.tests.factories.CollegueFactory")
     created_at = datetime.datetime.now(datetime.UTC)
     updated_at = datetime.datetime.now(datetime.UTC)
-    content = "<p>Contenu de l'arrêté</p>"
+    content = "<p>Contenu du doc</p>"
 
 
-class ArreteSigneFactory(factory.django.DjangoModelFactory):
+class LettreNotificationFactory(ArreteFactory):
     class Meta:
-        model = ArreteSigne
+        model = LettreNotification
+
+    modele = factory.LazyAttribute(
+        lambda obj: ModeleLettreNotificationFactory(
+            dotation=obj.programmation_projet.dotation,
+        )
+    )
+
+
+class ArreteEtLettreSignesFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = ArreteEtLettreSignes
 
     file = factory.django.FileField(
         filename="test_file.pdf",
@@ -52,3 +79,8 @@ class ArreteSigneFactory(factory.django.DjangoModelFactory):
     )
     created_by = factory.SubFactory("gsl_core.tests.factories.CollegueFactory")
     created_at = datetime.datetime.now(datetime.UTC)
+
+
+class AnnexeFactory(ArreteEtLettreSignesFactory):
+    class Meta:
+        model = Annexe

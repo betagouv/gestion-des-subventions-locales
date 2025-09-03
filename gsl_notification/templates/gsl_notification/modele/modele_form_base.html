@@ -3,7 +3,8 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static "css/gsl.css" %}">
-    <link rel="stylesheet" href="{% static "css/programmation_projet_list.css" %}">
+    <link rel="stylesheet"
+          href="{% static "css/programmation_projet_list.css" %}">
     <link rel="stylesheet" href="{% static "css/notification.css" %}">
     <link rel="stylesheet" href="{% static 'ui/components/tiptap.css' %}">
 {% endblock extra_css %}
@@ -12,13 +13,13 @@
 {% endblock tab_submenu %}
 
 {% block tab_content %}
-    <div class="fr-m-4w" data-controller="modele-arrete-form">
-        <a href="{% url "gsl_notification:modele-arrete-liste" dotation %}"
+    <div class="fr-m-6w" data-controller="modele-arrete-form">
+        <a href="{% url "gsl_notification:modele-liste" dotation %}"
            class='fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-arrow-left-s-line fr-mb-4w'
            data-action="click->modele-arrete-form#confirmaCancel">Annuler</a>
 
         <h1>
-            Création d’un nouveau modèle d’arrêté {{ dotation }}
+            {{ title }}
         </h1>
 
         {% block form_content %}

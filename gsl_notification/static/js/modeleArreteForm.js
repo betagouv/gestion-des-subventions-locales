@@ -1,18 +1,18 @@
-import { Controller } from "stimulus"
+import { Controller } from 'stimulus'
 
 export class ModeleArreteForm extends Controller {
-  static targets = ["form"];
+  static targets = ['form']
 
-  confirmaCancel(){
+  confirmaCancel () {
     window.addEventListener('beforeunload', e => {
-        e.preventDefault();
-        e.returnValue = '';
-    });
+      e.preventDefault()
+      e.returnValue = ''
+    })
   }
 
-  removeRequiredWhenGoingAtPreviousStep() {
-    this.formTarget.querySelectorAll("[required]").forEach(function (element) {
-        element.required = false;
+  removeRequiredWhenGoingAtPreviousStep () {
+    this.formTarget.querySelectorAll('[required]').forEach(function (element) {
+      element.required = false
     })
   }
 }

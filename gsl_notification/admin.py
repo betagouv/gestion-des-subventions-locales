@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from gsl_core.admin import AllPermsForStaffUser
 
-from .models import Arrete, ArreteSigne, ModeleArrete
+from .models import Arrete, ArreteEtLettreSignes, ModeleArrete, ModeleLettreNotification
 
 
 @admin.register(Arrete)
@@ -16,8 +16,8 @@ class ArreteAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     )
 
 
-@admin.register(ArreteSigne)
-class ArreteSigneAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+@admin.register(ArreteEtLettreSignes)
+class ArreteEtLettreSignesAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = (
         "__str__",
         "programmation_projet",
@@ -29,4 +29,9 @@ class ArreteSigneAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
 @admin.register(ModeleArrete)
 class ModeleArreteAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    list_display = ("__str__", "perimetre", "created_by")
+
+
+@admin.register(ModeleLettreNotification)
+class ModeleLettreNotificationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = ("__str__", "perimetre", "created_by")

@@ -34,24 +34,45 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
     - name: Check variables
       run: |
         echo "db URL : $DATABASE_URL"
         echo "secret key : $SECRET_KEY"
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
+
     - name: Check linting
       run: |
         ruff check
         ruff format --check
+
+    - name: Check templates format
+      run: |
+        djlint . --check
+
+    - uses: bahmutov/npm-install@v1
+
+    - name: Check css format
+      run : npm run lint:css
+
+    - name: Check js format
+      run : npm run format:js
+
+    - name: Check templates format
+      run: djlint . --check
+
     - name: Check migrations
       run: python manage.py makemigrations --check --dry-run
+
     - name: Run Tests
       run: |
         python -m pytest --create-db

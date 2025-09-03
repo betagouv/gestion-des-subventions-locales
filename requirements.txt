@@ -16,11 +16,11 @@ beautifulsoup4==4.13.4
     # via bs4
 billiard==4.2.1
     # via celery
-boto3==1.39.3
+boto3==1.40.3
     # via
     #   django-storages
     #   gsl (pyproject.toml)
-botocore==1.39.3
+botocore==1.40.3
     # via
     #   boto3
     #   s3transfer
@@ -33,7 +33,7 @@ celery==5.5.3
     #   django-celery-beat
     #   django-celery-results
     #   gsl (pyproject.toml)
-certifi==2025.6.15
+certifi==2025.8.3
     # via
     #   requests
     #   sentry-sdk
@@ -57,7 +57,7 @@ click-repl==0.3.0
     # via celery
 cron-descriptor==1.4.5
     # via django-celery-beat
-cryptography==45.0.5
+cryptography==45.0.6
     # via
     #   josepy
     #   mozilla-django-oidc
@@ -71,7 +71,7 @@ diff-match-patch==20241021
     # via django-import-export
 dj-database-url==3.0.1
     # via gsl (pyproject.toml)
-django==5.2.4
+django==5.2.5
     # via
     #   dj-database-url
     #   django-celery-beat
@@ -97,9 +97,9 @@ django-celery-results==2.6.0
     # via gsl (pyproject.toml)
 django-crispy-forms==2.4
     # via django-dsfr
-django-csp==4.0b5
+django-csp==4.0
     # via gsl (pyproject.toml)
-django-dsfr==2.4.0
+django-dsfr==3.0.0
     # via gsl (pyproject.toml)
 django-extensions==4.1
     # via gsl (pyproject.toml)
@@ -111,7 +111,7 @@ django-fsm-2==4.0.0
     # via gsl (pyproject.toml)
 django-htmx==1.23.2
     # via gsl (pyproject.toml)
-django-import-export==4.3.8
+django-import-export==4.3.9
     # via gsl (pyproject.toml)
 django-referrer-policy==1.0
     # via gsl (pyproject.toml)
@@ -127,7 +127,7 @@ et-xmlfile==2.0.0
     # via openpyxl
 executing==2.2.0
     # via stack-data
-fonttools[woff]==4.58.5
+fonttools[woff]==4.59.0
     # via weasyprint
 gunicorn==23.0.0
     # via gsl (pyproject.toml)
@@ -143,7 +143,7 @@ jmespath==1.0.1
     # via
     #   boto3
     #   botocore
-josepy==2.0.0
+josepy==2.1.0
     # via mozilla-django-oidc
 kombu==5.5.4
     # via celery
@@ -188,25 +188,24 @@ pygments==2.19.2
     #   ipython-pygments-lexers
 pyphen==0.17.2
     # via weasyprint
-python-crontab==3.2.0
+python-crontab==3.3.0
     # via django-celery-beat
 python-dateutil==2.9.0.post0
     # via
     #   botocore
     #   celery
-    #   python-crontab
 python-dotenv==1.1.1
     # via gsl (pyproject.toml)
-redis==6.2.0
+redis==6.3.0
     # via gsl (pyproject.toml)
 requests==2.32.4
     # via
     #   django-dsfr
     #   gsl (pyproject.toml)
     #   mozilla-django-oidc
-s3transfer==0.13.0
+s3transfer==0.13.1
     # via boto3
-sentry-sdk==2.32.0
+sentry-sdk==2.34.1
     # via gsl (pyproject.toml)
 six==1.17.0
     # via python-dateutil
@@ -248,7 +247,7 @@ vine==5.1.0
     #   kombu
 wcwidth==0.2.13
     # via prompt-toolkit
-weasyprint==65.1
+weasyprint==66.0
     # via django-weasyprint
 webencodings==0.5.1
     # via

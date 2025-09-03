@@ -2,7 +2,7 @@
   padding-left: 4.375em !important;
 }
 
-.fr-connect:before {
+.fr-connect::before {
   width: 3.375em !important;
   background-size: 3.375em 3em !important;
   left: 0.625em !important;

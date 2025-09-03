@@ -40,9 +40,11 @@
   flex-direction: column;
   align-items: center;
 }
+
 .arrete-card__image {
   border: 1px solid var(--border-default-grey);
 }
+
 .show-on-hover {
   display: none;
   position: absolute;
@@ -51,13 +53,16 @@
   top: 30%;
   background: #fff;
 }
+
 .arrete-card__image-container:hover .show-on-hover {
   display: flex;
 }
+
 .arrete-card >div,
 .arrete-card .fr-enlarge-link{
   max-width: 100%;
 }
+
 .arrete-card .fr-enlarge-link a {
   display: block;
 }
@@ -72,7 +77,7 @@
 
 .arrete-card__actions {
   width: 200px;
-  padding: 0px;
+  padding: 0;
   gap: 0;
   min-width: 0;
 }
@@ -133,9 +138,19 @@
 
 /* Modeles arrêtés */
 
+.choose-type-form > .fr-radio-group:not(:last-child) {
+  margin-bottom: 12px;
+}
+
 .modele-arrete-form-btns {
   display: flex;
   align-items: end;
   justify-content: end;
   gap: 10px;
+}
+
+.modele-card-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
 }

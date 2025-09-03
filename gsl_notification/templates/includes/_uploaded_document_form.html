@@ -1,13 +1,18 @@
 <form method="post"
       enctype="multipart/form-data"
-      action="{% url 'gsl_notification:create-arrete-signe' programmation_projet.id %}">
+      action="{% url 'gsl_notification:upload-a-document' programmation_projet.id document_type %}">
 
-    {% if arrete_signe_form.errors %}
+    {% if form.errors %}
         <div class="fr-alert fr-alert--error fr-mb-1w">
             <p class="fr-alert__title">
                 Erreur dans le formulaire
             </p>
             <ul>
+                {% for error in form.non_field_errors %}
+                    <li>
+                        {{ error }}
+                    </li>
+                {% endfor %}
                 {% for field in form %}
                     {% for error in field.errors %}
                         <li>
@@ -22,7 +27,7 @@
     {% csrf_token %}
     <div class="fr-upload-group fr-mb-4w">
         <label class="fr-label" for="id_file">
-            Ajouter l'arrêté signé
+            Importer un document
         </label>
         <span class="fr-hint-text fr-mb-1w" id="id_file_helptext">
             Taille maximale : 20 Mo. Formats acceptés : jpg, png, pdf.
@@ -34,7 +39,10 @@
     <input type="hidden"
            name="programmation_projet"
            value="{{ programmation_projet.id }}">
-    <button class="fr-btn" type="submit" id="submit-arrete-signe-form" disabled>
+    <button class="fr-btn"
+            type="submit"
+            id="submit-arrete-et-lettre-signes-form"
+            disabled>
         Envoyer
     </button>
 </form>

@@ -12,3 +12,44 @@
   color: var(--background-action-high-success);
   border-bottom: 1px solid var(--background-action-low-green-menthe-active);
 }
+
+.checkbox-header {
+  height: 30px;
+  display: flex;
+  align-items: center;
+}
+
+.action-button {
+  position: absolute;
+  left: 32px;
+  top: 2px;
+}
+
+.action-button > summary {
+  padding: 1rem 0.5rem;
+}
+
+.action-button > summary::marker {
+  content: "";
+}
+
+.action-button > ul {
+  text-transform: none;
+}
+
+.fix-checkbox-position {
+  position: absolute;
+  top: -14px;
+}
+
+.select-all-projet-notice {
+  font-size: 1rem;
+  text-align: center;
+  font-style: italic;
+  display: none;
+}
+
+.select-all-projet-notice > td {
+  background-color: var(--background-alt-grey);
+  color: var(--text-default-grey);
+}

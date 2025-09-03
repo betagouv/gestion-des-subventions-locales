@@ -129,8 +129,8 @@ class Enveloppe(models.Model):
 
 
 class ProgrammationProjetQuerySet(models.QuerySet):
-    def for_enveloppe(self, enveloppe: Enveloppe):
-        if enveloppe.deleguee_by is None:
+    def for_enveloppe(self, enveloppe: Enveloppe | None):
+        if enveloppe is None or enveloppe.deleguee_by is None:
             return self.filter(enveloppe=enveloppe)
 
         if enveloppe.perimetre is None:
@@ -150,6 +150,9 @@ class ProgrammationProjetQuerySet(models.QuerySet):
         raise ValueError(
             "L'enveloppe déléguée doit avoir un périmètre arrondissement ou département."
         )
+
+    def to_notify(self):
+        return self.filter(status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None)
 
 
 class ProgrammationProjetManager(
@@ -234,6 +237,10 @@ class ProgrammationProjet(models.Model):
     def to_notify(self):
         return self.notified_at is None and self.status == self.STATUS_ACCEPTED
 
+    @property
+    def dotation(self):
+        return self.dotation_projet.dotation
+
     def clean(self):
         errors = {}
         self._validate_montant(errors)
@@ -279,3 +286,21 @@ class ProgrammationProjet(models.Model):
         if self.status == self.STATUS_REFUSED:
             if self.montant != 0:
                 errors["montant"] = {"Un projet refusé doit avoir un montant nul."}
+
+    @cached_property
+    def documents_summary(self):
+        summary = list()
+        if hasattr(self, "arrete_et_lettre_signes"):
+            summary.append("1 arrêté et lettre signés")
+        else:
+            if hasattr(self, "arrete"):
+                summary.append("1 arrêté généré")
+            if hasattr(self, "lettre_notification"):
+                summary.append("1 lettre générée")
+
+        annexes_count = self.annexes.count()
+        if annexes_count != 0:
+            plural = "s" if annexes_count > 1 else ""
+            summary.append(f"{annexes_count} annexe{plural}")
+
+        return summary

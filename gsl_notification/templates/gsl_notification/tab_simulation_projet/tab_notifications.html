@@ -4,11 +4,11 @@
 {% load dsfr_tags static ui_tags %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/gsl.css' %}">
     <link rel="stylesheet" href="{% static 'css/projet_detail.css' %}">
     <link rel="stylesheet" href="{% static 'css/notification.css' %}">
     <link rel="stylesheet" href="{% static 'ui/components/tiptap.css' %}">
 {% endblock extra_css %}
+
 {% block tab_projet %}
     <h1 class="fr-mb-8w fr-mr-10w">
         Génération des documents et envoi de la notification au demandeur
@@ -21,7 +21,7 @@
                 Documents de notification
             </h2>
             <div class="notification-btns">
-                {% if programmation_projet.arrete %}
+                {% if programmation_projet.arrete and programmation_projet.lettre_notification %}
                     <button class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line"
                             disabled
                             aria-describedby="tooltip-import-arrete">
@@ -30,31 +30,18 @@
                     <span class="fr-tooltip fr-placement"
                           id="tooltip-import-arrete"
                           role="tooltip">
-                        Un arrêté a déjà été généré pour ce projet.
+                        Un arrêté et une lettre de notification ont déjà été générés pour ce projet.
                     </span>
                 {% else %}
-                    <a href="{% url 'gsl_notification:select-modele' programmation_projet.id %}"
+                    <a href="{% url 'gsl_notification:choose-generated-document-type' programmation_projet.id %}"
                        class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line">
                         Générer un document
                     </a>
                 {% endif %}
-                {% if programmation_projet.arrete_signe %}
-                    <button class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-upload-line"
-                            disabled
-                            aria-describedby="tooltip-import-arrete-signe">
-                        Importer un document
-                    </button>
-                    <span class="fr-tooltip fr-placement"
-                          id="tooltip-import-arrete-signe"
-                          role="tooltip">
-                        Un arrêté signé a déjà été importé pour ce projet.
-                    </span>
-                {% else %}
-                    <a href="{% url 'gsl_notification:create-arrete-signe' programmation_projet.id %}"
-                       class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-upload-line">
-                        Importer un document
-                    </a>
-                {% endif %}
+                <a href="{% url 'gsl_notification:choose-uploaded-document-type' programmation_projet.id %}"
+                   class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-upload-line">
+                    Importer un document
+                </a>
                 <button class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-printer-line"
                         title="Cette action sera disponible une fois les documents générés."
                         disabled>
@@ -62,7 +49,10 @@
                 </button>
             </div>
             {% if documents %}
-                <ul class="arrete-list">
+                <ul class="arrete-list"
+                    data-controller="delete-notification-document-modal"
+                    data-delete-notification-document-modal-modal-id-value="delete-document-confirmation-modal"
+                    data-delete-notification-document-modal-form-id-value="delete-document-form">
                     {% for document in documents %}
                         {% include "includes/_document_card.html" %}
                     {% endfor %}
@@ -91,10 +81,8 @@
 {% endblock extra_js %}
 
 {% block modal %}
-    {% if arrete_modal_title %}
-        {% ui_confirmation_modal modal_id="delete-arrete-confirmation-modal" title=arrete_modal_title text="Êtes-vous sûr(e) de vouloir supprimer cet arrêté ?<br>Cette action est irréversible." form="delete-arrete" action_text="Supprimer" %}
-    {% endif %}
-    {% if arrete_signe_modal_title %}
-        {% ui_confirmation_modal modal_id="delete-arrete-signe-confirmation-modal" title=arrete_signe_modal_title text="Êtes-vous sûr(e) de vouloir supprimer cet arrêté ?<br>Cette action est irréversible." form="delete-arrete-signe" action_text="Supprimer" %}
-    {% endif %}
+    {% ui_confirmation_modal modal_id="delete-document-confirmation-modal" title=arrete_modal_title text="Êtes-vous sûr(e) de vouloir supprimer cet arrêté ?<br>Cette action est irréversible." form="delete-document-form" action_text="Supprimer" %}
+    <form method="post" id="delete-document-form">
+        {% csrf_token %}
+    </form>
 {% endblock modal %}

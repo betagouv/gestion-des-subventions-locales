@@ -50,7 +50,10 @@
                     "tiptapEditor": "/static/ui/controllers/tiptapEditor.js",
                     "modal": "/static/ui/controllers/modal.js",
                     "doubleDotation": "/static/js/controllers/doubleDotation.js",
-                    "modeleArreteForm": "/static/js/modeleArreteForm.js"
+                    "modeleArreteForm": "/static/js/modeleArreteForm.js",
+                    "deleteNotificationDocumentModal": "/static/js/deleteNotificationDocumentModal.js",
+                    "chooseDocumentType": "/static/js/chooseDocumentType.js",
+                    "checkboxSelection": "/static/js/checkboxSelection.js"
                 }
             }
             </script>
@@ -124,6 +127,9 @@
             import { Modal } from "modal"
             import { TipTapEditor } from "tiptapEditor"
             import { ModeleArreteForm } from "modeleArreteForm"
+            import { DeleteNotificationDocumentModal } from "deleteNotificationDocumentModal"
+            import { ChooseDocumentType } from "chooseDocumentType"
+            import { CheckboxSelection } from "checkboxSelection"
 
             window.Stimulus = Application.start()
 
@@ -131,6 +137,9 @@
             Stimulus.register("modal", Modal)
             Stimulus.register("tiptap-editor", TipTapEditor)
             Stimulus.register("modele-arrete-form", ModeleArreteForm)
+            Stimulus.register("delete-notification-document-modal", DeleteNotificationDocumentModal)
+            Stimulus.register("choose-document-type", ChooseDocumentType)
+            Stimulus.register("checkbox-selection", CheckboxSelection)
         </script>
 
         {% block extra_js %}

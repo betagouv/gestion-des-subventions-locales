@@ -9,20 +9,21 @@
 
     <div class="arrete-container">
         <h2 class="fr-mb-3w">
-            {{ page_title }}
+            {{ page_title|default:"Modification de l'arrêté" }}
         </h2>
         <h4>
-            1 - Choix du modèle de l'arrêté
+            {{ page_step_title }}
         </h4>
         <p>
-            Sélectionner un modèle d’arrêté qui va être utilisé pour générer le publipostage
+            <b>Modèle choisi :</b> {{ modele.name }}
         </p>
-        <ul class="no-list-style arrete-modele-list">
-            {% for modele in modeles_list %}
-                <li>
-                    {% include "includes/_modele_arrete_card.html" %}
-                </li>
-            {% endfor %}
-        </ul>
+        <button class="fr-btn fr-btn--secondary">
+            <a href="{% url 'gsl_notification:select-modele' programmation_projet.id document_type %}">Modifier le modèle</a>
+        </button>
+        {% include "includes/_arrete_form.html" %}
     </div>
 {% endblock notification_content %}
+
+{% block extra_js %}
+    <script type="module" src="{% static 'js/notification.js' %}"></script>
+{% endblock extra_js %}

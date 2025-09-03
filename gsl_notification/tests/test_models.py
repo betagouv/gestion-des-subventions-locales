@@ -1,35 +1,54 @@
 import pytest
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from gsl_core.tests.factories import CollegueFactory, PerimetreDepartementalFactory
 from gsl_notification.models import ModeleArrete
 from gsl_notification.tests.factories import (
+    AnnexeFactory,
+    ArreteEtLettreSignesFactory,
     ArreteFactory,
-    ArreteSigneFactory,
+    LettreNotificationFactory,
     ModeleArreteFactory,
+    ModeleLettreNotificationFactory,
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import DOTATION_DETR
+from gsl_projet.constants import ARRETE, DOTATION_DETR, DOTATION_DSIL, LETTRE
 
 
 @pytest.mark.django_db
-def test_arrete_properties():
+@pytest.mark.parametrize(
+    "type, modele_factory, factory",
+    (
+        (ARRETE, ModeleArreteFactory, ArreteFactory),
+        (
+            LETTRE,
+            ModeleLettreNotificationFactory,
+            LettreNotificationFactory,
+        ),
+    ),
+)
+def generated_document_properties(type, modele_factory, factory):
     collegue = CollegueFactory()
     programmation_projet = ProgrammationProjetFactory(
         status=ProgrammationProjet.STATUS_ACCEPTED
     )
-    modele = ModeleArreteFactory()
+    modele = modele_factory()
 
     file_content = {"key": "value"}
-    arrete = ArreteFactory(
+    arrete = factory(
         created_by=collegue,
         programmation_projet=programmation_projet,
         content=file_content,
         modele=modele,
     )
 
-    assert str(arrete) == f"Arrêté #{arrete.id}"
+    if type == ARRETE:
+        assert str(arrete) == f"Arrêté #{arrete.id}"
+    else:
+        assert str(arrete) == f"Lettre de notification #{arrete.id}"
+
     assert arrete.content == file_content
     assert arrete.created_by == collegue
     assert arrete.created_at is not None
@@ -39,7 +58,33 @@ def test_arrete_properties():
 
 
 @pytest.mark.django_db
-def test_arrete_signe_properties():
+@pytest.mark.parametrize(
+    "modele_factory, factory",
+    (
+        (ModeleArreteFactory, ArreteFactory),
+        (
+            ModeleLettreNotificationFactory,
+            LettreNotificationFactory,
+        ),
+    ),
+)
+def test_generate_document_validation_error_when_pp_and_model_have_different_dotation(
+    modele_factory, factory
+):
+    pp = ProgrammationProjetFactory(dotation_projet__dotation=DOTATION_DSIL)
+    modele = modele_factory(dotation=DOTATION_DETR)
+    document = factory(programmation_projet=pp, modele=modele)
+    with pytest.raises(ValidationError) as exc_info:
+        document.clean()
+
+    assert exc_info.value.message == (
+        "Le mod\xe8le doit avoir la m\xeame dotation que le projet de programmation."
+    )
+
+
+@pytest.mark.parametrize("factory", (ArreteEtLettreSignesFactory, AnnexeFactory))
+@pytest.mark.django_db
+def test_arrete_et_lettre_signes_properties(factory):
     collegue = CollegueFactory()
     programmation_projet = ProgrammationProjetFactory(
         status=ProgrammationProjet.STATUS_ACCEPTED
@@ -50,31 +95,43 @@ def test_arrete_signe_properties():
         "arrete/test_file.pdf", file_content, content_type="application/pdf"
     )
 
-    arrete = ArreteSigneFactory(
+    doc = factory(
         file=file, created_by=collegue, programmation_projet=programmation_projet
     )
 
-    assert str(arrete) == f"Arrêté signé #{arrete.id} "
-    assert arrete.name.startswith(
+    if factory == ArreteEtLettreSignesFactory:
+        assert str(doc) == f"Arrêté et lettre signés #{doc.id}"
+    else:
+        assert str(doc) == f"Annexe #{doc.id}"
+
+    assert doc.name.startswith(
         "test_file"
     )  # Filename can be changed with a suffix to avoid conflicts
-    assert arrete.type == "pdf"
-    assert arrete.size == len(file_content)
-    assert arrete.created_at is not None
-    assert arrete.created_by is collegue
-    assert arrete.programmation_projet == programmation_projet
+    assert doc.file_type == "pdf"
+    assert doc.size == len(file_content)
+    assert doc.created_at is not None
+    assert doc.created_by is collegue
+    assert doc.programmation_projet == programmation_projet
 
 
+@pytest.mark.parametrize(
+    "factory", (ModeleArreteFactory, ModeleLettreNotificationFactory)
+)
 @pytest.mark.django_db
-def test_modele_arrete_properties():
+def test_modele_properties(factory):
     collegue = CollegueFactory()
     file_content = {"key": "value"}
     perimetre = collegue.perimetre
-    modele = ModeleArreteFactory(
-        created_by=collegue, content=file_content, perimetre=perimetre
-    )
+    modele = factory(created_by=collegue, content=file_content, perimetre=perimetre)
 
-    assert str(modele) == f"Modèle d’arrêté {modele.id} - {modele.name}"
+    if factory == ModeleArreteFactory:
+        assert str(modele) == f"Modèle d’arrêté {modele.id} - {modele.name}"
+    else:
+        assert (
+            str(modele)
+            == f"Modèle de lettre de notification {modele.id} - {modele.name}"
+        )
+
     assert modele.content == file_content
     assert modele.created_by == collegue
     assert modele.created_at is not None
