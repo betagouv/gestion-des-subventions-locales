@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 
 import dj_database_url
@@ -43,20 +44,17 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(ENV_SEPARATOR)
 # Init Sentry if the DSN is defined
 SENTRY_DSN = os.getenv("SENTRY_DSN", None)
 if SENTRY_DSN:
-    import logging
-
     import sentry_sdk
     from sentry_sdk.integrations.django import DjangoIntegration
-    from sentry_sdk.integrations.logging import LoggingIntegration
 
     SENTRY_ENV = os.getenv("SENTRY_ENV", "unknown")
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         integrations=[
             DjangoIntegration(),
-            LoggingIntegration(level=logging.ERROR, event_level=logging.ERROR),
         ],
         environment=SENTRY_ENV,
+        enable_logs=True,
     )
 
 # Application definition
@@ -221,6 +219,33 @@ LOGIN_URL = "/comptes/login/"
 
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
+
+# Logs
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "stream": sys.stdout,
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": True,
+        },
+    },
+}
 
 # Connection to "Pro Connect" (OIDC)
 PROCONNECT_DOMAIN = os.getenv("PROCONNECT_DOMAIN", "fca.integ01.dev-agentconnect.fr")
