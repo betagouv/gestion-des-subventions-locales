@@ -16,7 +16,7 @@ def associate_or_update_ds_id_to_user():
             f"{user_without_email_count} utilisateurs n'ont pas d'adresse mail"
         )
 
-    user_emails = list(
+    user_emails = set(
         Collegue.objects.exclude(email="").values_list("email", flat=True)
     )
     demarches = Demarche.objects.all()
@@ -35,5 +35,5 @@ def associate_or_update_ds_id_to_user():
     logging.info("Association d'id DS avec les utilisateurs : fin")
     if user_emails != []:
         logging.info(
-            f"Ces emails n'ont pas été trouvé dans les groupes instructeurs des démarches : {','.join(user_emails)}"
+            f"Ces emails n'ont pas été trouvés dans les groupes instructeurs des démarches : {','.join(user_emails)}"
         )
