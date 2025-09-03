@@ -126,18 +126,18 @@ class SimulationProjet(BaseModel):
     def _validate_montant(self, errors):
         if self.dotation_projet.assiette is not None:
             if self.montant and self.montant > self.dotation_projet.assiette:
-                errors["montant"] = {
-                    f"Le montant de la simulation ne peut pas être supérieur à l'assiette du projet ({self.projet.pk})."
-                }
+                errors["montant"] = (
+                    "Le montant de la simulation ne peut pas être supérieur à l'assiette du projet."
+                )
         else:
             if (
                 self.montant
                 and self.projet.dossier_ds.finance_cout_total
                 and self.montant > self.projet.dossier_ds.finance_cout_total
             ):
-                errors["montant"] = {
-                    f"Le montant de la simulation ne peut pas être supérieur au coût total du projet ({self.projet.pk})."
-                }
+                errors["montant"] = (
+                    "Le montant de la simulation ne peut pas être supérieur au coût total du projet."
+                )
 
     def _validate_dotation(self, errors):
         if self.dotation_projet.dotation != self.simulation.enveloppe.dotation:
