@@ -4,7 +4,7 @@ from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import pytest
-from django.contrib.messages import get_messages
+from django.contrib.messages import INFO, get_messages
 from django.urls import reverse
 
 from gsl_core.templatetags.gsl_filters import percent
@@ -213,7 +213,7 @@ def test_patch_status_simulation_projet_gives_message(
     assert len(messages) == 1
 
     message = list(messages)[0]
-    assert message.level == 20
+    assert message.level == INFO
     assert message.message == expected_message
     assert message.extra_tags == expected_tag
 

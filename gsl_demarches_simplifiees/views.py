@@ -1,16 +1,70 @@
-# Create your views here.
+import logging
+
 from celery import states
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import ngettext
 from django.views.decorators.http import require_GET, require_POST
 from django.views.generic.list import ListView
 from django_celery_results.models import TaskResult
 
+from gsl_projet.models import Projet
+
+from .exceptions import DsServiceException
+from .importer.dossier import save_one_dossier_from_ds
 from .models import Demarche, Dossier, FieldMappingForComputer
 from .tasks import task_save_demarche_dossiers_from_ds, task_save_demarche_from_ds
+
+logger = logging.getLogger(__name__)
+
+
+def dossier_visible_by_user(func):
+    def wrapper(*args, **kwargs):
+        request = args[0]
+        user = request.user
+        if user.is_staff:
+            return func(*args, **kwargs)
+        dossier_number = kwargs.get("dossier_ds_number")
+
+        is_projet_visible_by_user = (
+            Projet.objects.for_user(user)
+            .filter(dossier_ds__ds_number=dossier_number)
+            .exists()
+        )
+        if not is_projet_visible_by_user:
+            raise Http404("No %s matches the given query." % Projet._meta.object_name)
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+@dossier_visible_by_user
+@require_POST
+def refresh_one_dossier(request, dossier_ds_number):
+    dossier = get_object_or_404(Dossier, ds_number=dossier_ds_number)
+
+    try:
+        level, message = save_one_dossier_from_ds(dossier)
+        messages.add_message(request, level, message)
+    except DsServiceException as e:
+        messages.error(
+            request,
+            (
+                "Une erreur s’est produite lors de l’appel à Démarches Simplifiées. "
+                "Essayez à nouveau dans quelques instants."
+            ),
+        )
+        logger.exception("DsServiceException while refreshing one dossier: %r", e)
+
+    next = request.POST.get("next", "/")
+    is_next_safe = url_has_allowed_host_and_scheme(next, "", True)
+    if not is_next_safe:
+        next = "/"
+    return redirect(next)
 
 
 @staff_member_required

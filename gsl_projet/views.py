@@ -18,7 +18,7 @@ from gsl_projet.utils.projet_page import PROJET_MENU
 from .models import CategorieDetr, Projet
 
 
-def visible_by_user(func):
+def projet_visible_by_user(func):
     def wrapper(*args, **kwargs):
         user = args[0].user
         if user.is_staff:
@@ -53,7 +53,7 @@ def _get_projet_context_info(projet_id):
     return context
 
 
-@visible_by_user
+@projet_visible_by_user
 @require_GET
 def get_projet(request, projet_id):
     context = _get_projet_context_info(projet_id)
@@ -63,7 +63,7 @@ def get_projet(request, projet_id):
 PROJET_TABS = {"annotations", "historique"}
 
 
-@visible_by_user
+@projet_visible_by_user
 @require_GET
 def get_projet_tab(request, projet_id, tab):
     if tab not in PROJET_TABS:
