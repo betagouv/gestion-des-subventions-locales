@@ -13,6 +13,7 @@ from gsl_demarches_simplifiees.models import (
 
 IMPORTED_DS_FIELDS = (
     "AddressChampDescriptor",
+    "CheckboxChampDescriptor",
     "DateChampDescriptor",
     "DecimalNumberChampDescriptor",
     "DropDownListChampDescriptor",
