@@ -31,6 +31,15 @@ def save_demarche_dossiers_from_ds(demarche_number):
             )
 
 
+def save_one_dossier_from_ds(dossier: Dossier):
+    client = DsClient()
+    dossier_data = client.get_one_dossier(dossier.ds_number)
+    if dossier_data["dateDerniereModification"] > dossier.ds_date_derniere_modification:
+        dossier.raw_ds_data = dossier_data
+        dossier.save()
+    refresh_dossier_from_saved_data(dossier.ds_number)
+
+
 @shared_task
 def refresh_dossier_from_saved_data(dossier_ds_number):
     dossier = Dossier.objects.get(ds_number=dossier_ds_number)
