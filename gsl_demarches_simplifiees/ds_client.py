@@ -1,8 +1,11 @@
 from collections.abc import Iterator
+from logging import getLogger
 from pathlib import Path
 
 import requests
 from django.conf import settings
+
+logger = getLogger(__name__)
 
 
 class DsClient:
@@ -27,7 +30,7 @@ class DsClient:
         if response.status_code == 200:
             results = response.json()
             if "errors" in results.keys() and results.get("data", None) is None:
-                print(results["errors"])  # @todo loguer ça bien
+                logger.error(results["errors"])
                 raise Exception(f"Query failed to run: {results['errors']}")
             return results
         else:
