@@ -1,4 +1,18 @@
- mutation dossierRepasserEnInstruction($input: DossierRepasserEnInstructionInput!) {
+mutation modifierAnnotationCheckbox($input: DossierModifierAnnotationCheckboxInput!) {
+  dossierModifierAnnotationCheckbox(input: $input) {
+    clientMutationId
+    annotation{
+      id
+      label
+      stringValue
+    }
+    errors {
+      message
+    }
+  }
+}
+
+mutation dossierRepasserEnInstruction($input: DossierRepasserEnInstructionInput!) {
   dossierRepasserEnInstruction(input: $input) {
     clientMutationId
     dossier {
