@@ -1,6 +1,7 @@
 import json
 
 from django.contrib import messages
+from django.db import transaction
 from django.http import Http404, HttpRequest
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
@@ -10,6 +11,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DetailView
 
 from gsl.settings import ALLOWED_HOSTS
+from gsl_demarches_simplifiees.services import DsService
 from gsl_projet.forms import DotationProjetForm, ProjetForm
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
@@ -110,7 +112,17 @@ def patch_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     form = ProjetForm(request.POST, instance=simulation_projet.projet)
     if form.is_valid():
-        form.save()
+        with transaction.atomic():
+            if "is_in_qpv" in form.changed_data:
+                ds_service = DsService()
+
+                ds_service.update_ds_is_qpv(
+                    simulation_projet.projet.dossier_ds,
+                    request.user,
+                    form.cleaned_data["is_in_qpv"],
+                )
+            form.save()
+
         messages.success(
             request,
             "Les modifications ont été enregistrées avec succès.",
