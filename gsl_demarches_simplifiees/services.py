@@ -73,7 +73,7 @@ class DsService:
 
             raise FieldError(
                 f'Le champs "{field_name}" n\'existe pas dans la démarche.'
-            )  # TODO test it
+            )
 
         ds_field_id = ds_field.ds_field_id
         results = self.mutator.dossier_modifier_annotation_checkbox(
@@ -99,6 +99,6 @@ class DsService:
                         raise UserRightsError
                     raise DsServiceException(
                         DsServiceException.DEFAULT_MESSAGE, *messages
-                    )  # TODO test it
+                    )
 
         return results

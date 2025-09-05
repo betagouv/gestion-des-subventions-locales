@@ -93,25 +93,25 @@ def test_update_boolean_field_instructeur_unknown(dossier):
 
 
 @pytest.mark.parametrize(
-    "function, field_name",
+    "field, field_name",
     (
-        ("update_ds_is_qpv", "Projet situé en QPV"),
-        ("update_ds_is_crte", "Projet rattaché à un CRTE"),
+        ("annotations_is_qpv", "Projet situé en QPV"),
+        ("annotations_is_crte", "Projet rattaché à un CRTE"),
         (
-            "update_ds_is_budget_vert",
+            "annotations_is_budget_vert",
             "Projet concourant à la transition écologique au sens budget vert",
         ),
+        ("field_unknown", "field_unknown"),
     ),
 )
-def test_update_update_boolean_field_field_error(user, dossier, function, field_name):
+def test_update_update_boolean_field_field_error(user, dossier, field, field_name):
     ds_service = DsService()
     with patch(
         "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
         side_effect=FieldMappingForComputer.DoesNotExist,
     ):
         with pytest.raises(FieldError) as exc_info:
-            ds_service_function = getattr(ds_service, function)
-            ds_service_function(dossier, user, "true")
+            ds_service._update_boolean_field(dossier, user, "true", field)
 
     assert (
         str(exc_info.value)
@@ -145,7 +145,9 @@ def test_update_boolean_field_rights_error(user, dossier, ds_field):
             )
 
 
-def test_update_boolean_field_ds_service_exception(user, dossier, ds_field):
+def test_update_boolean_field_paylod_not_found_ds_service_exception(
+    user, dossier, ds_field
+):
     ds_service = DsService()
     with (
         patch(
@@ -159,7 +161,36 @@ def test_update_boolean_field_ds_service_exception(user, dossier, ds_field):
                 {"message": "DossierModifierAnnotationCheckboxPayload not found"}
             ]
         }
-        with pytest.raises(DsServiceException):
+        with pytest.raises(DsServiceException) as exc_info:
             ds_service._update_boolean_field(
                 dossier, user, "true", field="boolean_field"
             )
+        assert str(exc_info.value) == (
+            "Erreur lors de la requête avec Démarches Simplifiées"
+        )
+
+
+def test_update_boolean_field_other_ds_service_exception(user, dossier, ds_field):
+    ds_service = DsService()
+    with (
+        patch(
+            "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
+            return_value=ds_field,
+        ),
+        patch.object(ds_service, "mutator") as mock_mutator,
+    ):
+        mock_mutator.dossier_modifier_annotation_checkbox.return_value = {
+            "data": {
+                "dossierModifierAnnotationCheckbox": {
+                    "errors": [{"message": "Une erreur"}]
+                }
+            }
+        }
+        with pytest.raises(DsServiceException) as exc_info:
+            ds_service._update_boolean_field(
+                dossier, user, "true", field="boolean_field"
+            )
+        assert (
+            str(exc_info.value)
+            == "('Erreur lors de la requête avec Démarches Simplifiées', 'Une erreur')"
+        )
