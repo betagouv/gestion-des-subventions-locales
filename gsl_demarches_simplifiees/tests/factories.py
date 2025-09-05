@@ -8,12 +8,15 @@ from gsl_core.tests.factories import AdresseFactory
 from gsl_core.tests.factories import ArrondissementFactory as CoreArrondissementFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 
-from ..models import Arrondissement as DsArrondissement
+from ..models import (
+    Arrondissement as DsArrondissement,
+)
 from ..models import (
     CritereEligibiliteDetr,
     Demarche,
     Dossier,
     DsChoiceLibelle,
+    FieldMappingForComputer,
     NaturePorteurProjet,
     PersonneMorale,
 )
@@ -88,3 +91,14 @@ class DossierFactory(factory.django.DjangoModelFactory):
             DOTATION_DSIL,
         ]
     )
+
+
+CHOICES = [field.name for field in Dossier.MAPPED_FIELDS]
+
+
+class FieldMappingForComputerFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = FieldMappingForComputer
+
+    demarche = factory.SubFactory(DemarcheFactory)
+    django_field = factory.fuzzy.FuzzyChoice(CHOICES)

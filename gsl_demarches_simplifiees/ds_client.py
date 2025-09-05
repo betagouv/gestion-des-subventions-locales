@@ -5,12 +5,14 @@ import requests
 from django.conf import settings
 
 
-class DsClient:
+class DsClientBase:
+    filename = ""
+
     def __init__(self):
         self.token = settings.DS_API_TOKEN
         self.url = settings.DS_API_URL
         with open(
-            Path(__file__).resolve().parent / "graphql" / "ds_queries.gql"
+            Path(__file__).resolve().parent / "graphql" / self.filename
         ) as query_file:
             self.query = query_file.read()
 
@@ -35,6 +37,10 @@ class DsClient:
                 f"HTTP Error while running query. Status code: {response.status_code}. "
                 f"Error: {response.text}"
             )
+
+
+class DsClient(DsClientBase):
+    filename = "ds_queries.gql"
 
     def get_demarche(self, demarche_number) -> dict:
         """
@@ -81,3 +87,92 @@ class DsClient:
         }
         result = self.launch_graphql_query("getDossier", variables)
         return result["data"]["dossier"]
+
+
+class DsMutator(DsClientBase):
+    filename = "ds_mutations.gql"
+
+    def dossier_modifier_annotation_checkbox(
+        self, dossier_id: str, instructeur_id: str, field_id: str, value: bool
+    ):
+        variables = {
+            "input": {
+                "clientMutationId": settings.DS_CLIENT_ID,
+                "annotationId": field_id,
+                "dossierId": dossier_id,
+                "instructeurId": instructeur_id,
+                "value": value,
+            }
+        }
+        return self.launch_graphql_query(
+            "modifierAnnotationCheckbox", variables=variables
+        )
+
+    def dossier_repasser_en_instruction(
+        self, dossier_id, instructeur_id, disable_notification=False
+    ):
+        variables = {
+            "input": {
+                "clientMutationId": settings.DS_CLIENT_ID,
+                "disableNotification": disable_notification,
+                "dossierId": dossier_id,
+                "instructeurId": instructeur_id,
+            }
+        }
+        return self.launch_graphql_query(
+            "dossierRepasserEnInstruction", variables=variables
+        )
+
+    def dossier_passer_en_instruction(
+        self, dossier_id, instructeur_id, disable_notification=False
+    ):
+        variables = {
+            "input": {
+                "clientMutationId": settings.DS_CLIENT_ID,
+                "disableNotification": disable_notification,
+                "dossierId": dossier_id,
+                "instructeurId": instructeur_id,
+            }
+        }
+        return self.launch_graphql_query(
+            "dossierPasserEnInstruction", variables=variables
+        )
+
+    def mutate_with_justificatif_and_motivation(
+        self,
+        action,
+        dossier_id,
+        instructeur_id,
+        motivation="",
+        justificatif_id=None,
+        disable_notification=False,
+    ):
+        variables = {
+            "input": {
+                "clientMutationId": settings.DS_CLIENT_ID,
+                "disableNotification": disable_notification,
+                "dossierId": dossier_id,
+                "instructeurId": instructeur_id,
+            }
+        }
+        if motivation:
+            variables["input"]["motivation"] = motivation
+
+        if justificatif_id:
+            variables["input"]["justificatif"] = justificatif_id
+        return self.launch_graphql_query(action, variables=variables)
+
+    def dossier_accepter(self, *args, **kwargs):
+        return self.mutate_with_justificatif_and_motivation(
+            "dossierAccepter", *args, **kwargs
+        )
+
+    def dossier_classer_sans_suite(self, *args, **kwargs):
+        return self.mutate_with_justificatif_and_motivation(
+            "dossierClasserSansSuite", *args, **kwargs
+        )
+
+    def dossier_refuser(self, *args, **kwargs):
+        return self.mutate_with_justificatif_and_motivation(
+            "dossierRefuser", *args, **kwargs
+        )

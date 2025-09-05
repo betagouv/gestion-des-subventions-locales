@@ -109,7 +109,7 @@ def test_new_human_mapping_is_created_if_ds_label_is_unknown(
 
     save_field_mappings(demarche_data_without_dossier, demarche)
 
-    assert FieldMappingForHuman.objects.count() == 2, (
+    assert FieldMappingForHuman.objects.count() == 3, (
         "Two human mappings should be created."
     )
     assert FieldMappingForHuman.objects.filter(label="Commentaire libre").exists()
@@ -117,6 +117,12 @@ def test_new_human_mapping_is_created_if_ds_label_is_unknown(
         label="Un champ qui ne porte pas ce nom-là dans Django"
     ).exists()
 
+    assert (
+        FieldMappingForComputer.objects.filter(
+            ds_field_type="CheckboxChampDescriptor"
+        ).count()
+        == 4
+    )
     assert (
         FieldMappingForComputer.objects.filter(
             ds_field_type="DecimalNumberChampDescriptor"
@@ -153,11 +159,11 @@ def test_new_human_mapping_is_created_if_ds_label_is_unknown(
         ).count()
         == 1
     )
-    assert FieldMappingForComputer.objects.count() == 13, (
-        "13 computer mappings should have been created."
+    assert FieldMappingForComputer.objects.count() == 17, (
+        "17 computer mappings should have been created."
     )
-    assert FieldMappingForComputer.objects.exclude(django_field="").count() == 11, (
-        "Only 11 mappings should be associated with an existing field."
+    assert FieldMappingForComputer.objects.exclude(django_field="").count() == 14, (
+        "Only 14 mappings should be associated with an existing field."
     )
 
 
