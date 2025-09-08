@@ -8,7 +8,7 @@
 {% block content %}
     {% block go_back_button %}
         <div class="fr-mb-4w">
-            <a href="{% url "projet:list" %}"
+            <a href="{% url "projet:list" %}{% querystring %}"
                class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
                 Retour à la liste des projets
             </a>
