@@ -53,6 +53,7 @@ dev = [
     "freezegun",
     "pip-tools",
     "pre-commit",
+    "pyproject.toml",
     "pytest-cov",
     "pytest-django",
     "pytest-ruff",
