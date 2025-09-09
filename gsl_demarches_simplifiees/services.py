@@ -4,31 +4,15 @@ from django.core.exceptions import FieldDoesNotExist
 
 from gsl_core.models import Collegue
 from gsl_demarches_simplifiees.ds_client import DsMutator
+from gsl_demarches_simplifiees.exceptions import (
+    DsServiceException,
+    FieldError,
+    InstructeurUnknown,
+    UserRightsError,
+)
 from gsl_demarches_simplifiees.models import Dossier, FieldMappingForComputer
 
 logger = getLogger(__name__)
-
-
-# TODO peaufiner cette erreur ? Elle peut venir d'un dossier non trouvé, d'un champs non trouvé ou d'un instructeur non trouvé
-class DsServiceException(Exception):
-    DEFAULT_MESSAGE = "Erreur lors de la requête avec Démarches Simplifiées"
-
-    def __init__(self, message=None, *args):
-        if message is None:
-            message = self.DEFAULT_MESSAGE
-        super().__init__(message, *args)
-
-
-class InstructeurUnknown(DsServiceException):
-    DEFAULT_MESSAGE = "L'instructeur n'a pas d'id DS."
-
-
-class FieldError(DsServiceException):
-    DEFAULT_MESSAGE = "Le champs n'existe pas dans la démarche."
-
-
-class UserRightsError(DsServiceException):
-    DEFAULT_MESSAGE = "Vous n'avez pas les droits suffisants pour modifier ce champs."
 
 
 class DsService:
@@ -55,6 +39,7 @@ class DsService:
     ):
         instructeur_id = user.ds_id
         if not bool(instructeur_id):
+            logger.error("User does not have DS id.", extra={"user_id": user.id})
             raise InstructeurUnknown
 
         try:
@@ -72,20 +57,36 @@ class DsService:
                 pass
 
             raise FieldError(
-                f'Le champs "{field_name}" n\'existe pas dans la démarche.'
+                f'Le champs "{field_name}" n\'existe pas dans la démarche {dossier.ds_demarche.ds_number}.'
             )
 
         ds_field_id = ds_field.ds_field_id
+
         results = self.mutator.dossier_modifier_annotation_checkbox(
             dossier.ds_id, instructeur_id, ds_field_id, value
         )
         data = results.get("data", None)
-        if data is None:
+
+        if (
+            data is None
+            or "dossierModifierAnnotationCheckbox" in data
+            and data["dossierModifierAnnotationCheckbox"] is None
+        ):
             if "errors" in results.keys():
                 errors = results["errors"]
                 messages = [error["message"] for error in errors]
-                if "DossierModifierAnnotationCheckboxPayload not found" in messages:
-                    raise DsServiceException
+                logger.error(
+                    "Error in DS boolean mutation",
+                    extra={
+                        "dossier_id": dossier.id,
+                        "user_id": user.id,
+                        "field": field,
+                        "value": value,
+                        "error": messages,
+                    },
+                )
+                raise DsServiceException
+
         else:
             mutation_data = data["dossierModifierAnnotationCheckbox"]
             if "errors" in mutation_data:
@@ -97,8 +98,6 @@ class DsService:
                         in messages
                     ):
                         raise UserRightsError
-                    raise DsServiceException(
-                        DsServiceException.DEFAULT_MESSAGE, *messages
-                    )
+                    raise DsServiceException(*messages)
 
         return results

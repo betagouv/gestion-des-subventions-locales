@@ -1,4 +1,5 @@
 import json
+import logging
 
 from django.contrib import messages
 from django.db import transaction
@@ -28,6 +29,8 @@ from gsl_simulation.views.decorators import (
 )
 from gsl_simulation.views.mixins import CorrectUserPerimeterRequiredMixin
 from gsl_simulation.views.simulation_views import SimulationDetailView
+
+logger = logging.getLogger(__name__)
 
 
 @projet_must_be_in_user_perimetre
@@ -116,11 +119,20 @@ def patch_projet(request, pk):
             if "is_in_qpv" in form.changed_data:
                 ds_service = DsService()
 
-                ds_service.update_ds_is_qpv(
-                    simulation_projet.projet.dossier_ds,
-                    request.user,
-                    form.cleaned_data["is_in_qpv"],
-                )
+                try:
+                    ds_service.update_ds_is_qpv(
+                        simulation_projet.projet.dossier_ds,
+                        request.user,
+                        form.cleaned_data["is_in_qpv"],
+                    )
+                except Exception as e:
+                    messages.error(
+                        request,
+                        f"Une erreur est survenue lors de la mise à jour du champ QPV dans Démarches Simplifiées. {str(e)}",
+                    )
+                    return redirect_to_same_page_or_to_simulation_detail_by_default(
+                        request, simulation_projet, add_message=False
+                    )
             form.save()
 
         messages.success(

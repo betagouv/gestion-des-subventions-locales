@@ -1,8 +1,13 @@
 from collections.abc import Iterator
+from logging import getLogger
 from pathlib import Path
 
 import requests
 from django.conf import settings
+
+from gsl_demarches_simplifiees.exceptions import DsServiceException
+
+logger = getLogger(__name__)
 
 
 class DsClientBase:
@@ -24,15 +29,32 @@ class DsClientBase:
         data = {"query": self.query, "operationName": operation_name}
         if variables:
             data["variables"] = variables
+        try:
+            response = requests.post(self.url, json=data, headers=headers)
 
-        response = requests.post(self.url, json=data, headers=headers)
+        except requests.exceptions.ConnectionError as e:
+            logger.warning("DS connection error", extra={"erreur": e})
+            raise Exception("Erreur de connexion à Démarches Simplifiées")
+
         if response.status_code == 200:
             results = response.json()
             if "errors" in results.keys() and results.get("data", None) is None:
-                print(results["errors"])  # @todo loguer ça bien
-                raise Exception(f"Query failed to run: {results['errors']}")
+                logger.error(
+                    "DS request error", extra={**variables, "error": results["errors"]}
+                )
+                raise DsServiceException
             return results
         else:
+            if response.status_code == 403:
+                logger.critical(
+                    "DS forbidden access : token problem ?",
+                    extra={"error": response.text},
+                )
+            else:
+                logger.error(
+                    "DS request error",
+                    extra={"status_code": response.status_code, "error": response.text},
+                )
             raise Exception(
                 f"HTTP Error while running query. Status code: {response.status_code}. "
                 f"Error: {response.text}"

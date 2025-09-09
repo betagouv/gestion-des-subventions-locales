@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from gsl_core.tests.factories import CollegueFactory
-from gsl_demarches_simplifiees.models import FieldMappingForComputer
+from gsl_demarches_simplifiees.models import Dossier, FieldMappingForComputer
 from gsl_demarches_simplifiees.services import (
     DsService,
     DsServiceException,
@@ -104,7 +104,9 @@ def test_update_boolean_field_instructeur_unknown(dossier):
         ("field_unknown", "field_unknown"),
     ),
 )
-def test_update_update_boolean_field_field_error(user, dossier, field, field_name):
+def test_update_update_boolean_field_field_error(
+    user, dossier: Dossier, field, field_name
+):
     ds_service = DsService()
     with patch(
         "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
@@ -115,20 +117,14 @@ def test_update_update_boolean_field_field_error(user, dossier, field, field_nam
 
     assert (
         str(exc_info.value)
-        == f'Le champs "{field_name}" n\'existe pas dans la démarche.'
+        == f'Le champs "{field_name}" n\'existe pas dans la démarche {dossier.ds_demarche.ds_number}.'
     )
 
 
-def test_update_boolean_field_rights_error(user, dossier, ds_field):
-    ds_service = DsService()
-    with (
-        patch(
-            "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
-            return_value=ds_field,
-        ),
-        patch.object(ds_service, "mutator") as mock_mutator,
-    ):
-        mock_mutator.dossier_modifier_annotation_checkbox.return_value = {
+possible_responses = [
+    # Instructeur has no rights
+    (
+        {
             "data": {
                 "dossierModifierAnnotationCheckbox": {
                     "errors": [
@@ -138,15 +134,87 @@ def test_update_boolean_field_rights_error(user, dossier, ds_field):
                     ]
                 }
             }
-        }
-        with pytest.raises(UserRightsError):
-            ds_service._update_boolean_field(
-                dossier, user, "true", field="boolean_field"
-            )
+        },
+        UserRightsError,
+        "Vous n'avez pas les droits suffisants pour modifier ce champs.",
+    ),
+    # Invalid payload (ex: wrong dossier id)
+    (
+        {
+            "errors": [
+                {
+                    "message": "DossierModifierAnnotationCheckboxPayload not found",
+                    "locations": [{"line": 2, "column": 3}],
+                    "path": ["dossierModifierAnnotationCheckbox"],
+                    "extensions": {"code": "not_found"},
+                }
+            ],
+            "data": {"dossierModifierAnnotationCheckbox": None},
+        },
+        DsServiceException,
+        "",
+    ),
+    # Invalid field id
+    (
+        {
+            "errors": [
+                {
+                    "message": 'Invalid input: "field_NUL"',
+                    "locations": [{"line": 2, "column": 3}],
+                    "path": ["dossierModifierAnnotationCheckbox"],
+                }
+            ],
+            "data": {"dossierModifierAnnotationCheckbox": None},
+        },
+        DsServiceException,
+        "",
+    ),
+    # Invalid value
+    (
+        {
+            "errors": [
+                {
+                    "message": 'Variable $input of type DossierModifierAnnotationCheckboxInput! was provided invalid value for value (Could not coerce value "RIGOLO" to Boolean)',
+                    "locations": [{"line": 1, "column": 37}],
+                    "extensions": {
+                        "value": {
+                            "clientMutationId": "test",
+                            "annotationId": "ZZZ",
+                            "dossierId": "YYY",
+                            "instructeurId": "XXX",
+                            "value": "RIGOLO",
+                        },
+                        "problems": [
+                            {
+                                "path": ["value"],
+                                "explanation": 'Could not coerce value "RIGOLO" to Boolean',
+                            }
+                        ],
+                    },
+                }
+            ]
+        },
+        DsServiceException,
+        "",
+    ),
+    # Other error
+    (
+        {
+            "data": {
+                "dossierModifierAnnotationCheckbox": {
+                    "errors": [{"message": "Une erreur"}]
+                }
+            }
+        },
+        DsServiceException,
+        "Une erreur",
+    ),
+]
 
 
-def test_update_boolean_field_paylod_not_found_ds_service_exception(
-    user, dossier, ds_field
+@pytest.mark.parametrize("mocked_response, exception, msg", possible_responses)
+def test_update_boolean_field_error(
+    user, dossier, ds_field, mocked_response, exception, msg
 ):
     ds_service = DsService()
     with (
@@ -156,41 +224,10 @@ def test_update_boolean_field_paylod_not_found_ds_service_exception(
         ),
         patch.object(ds_service, "mutator") as mock_mutator,
     ):
-        mock_mutator.dossier_modifier_annotation_checkbox.return_value = {
-            "errors": [
-                {"message": "DossierModifierAnnotationCheckboxPayload not found"}
-            ]
-        }
-        with pytest.raises(DsServiceException) as exc_info:
+        mock_mutator.dossier_modifier_annotation_checkbox.return_value = mocked_response
+        with pytest.raises(exception) as exc_info:
             ds_service._update_boolean_field(
                 dossier, user, "true", field="boolean_field"
             )
-        assert str(exc_info.value) == (
-            "Erreur lors de la requête avec Démarches Simplifiées"
-        )
 
-
-def test_update_boolean_field_other_ds_service_exception(user, dossier, ds_field):
-    ds_service = DsService()
-    with (
-        patch(
-            "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
-            return_value=ds_field,
-        ),
-        patch.object(ds_service, "mutator") as mock_mutator,
-    ):
-        mock_mutator.dossier_modifier_annotation_checkbox.return_value = {
-            "data": {
-                "dossierModifierAnnotationCheckbox": {
-                    "errors": [{"message": "Une erreur"}]
-                }
-            }
-        }
-        with pytest.raises(DsServiceException) as exc_info:
-            ds_service._update_boolean_field(
-                dossier, user, "true", field="boolean_field"
-            )
-        assert (
-            str(exc_info.value)
-            == "('Erreur lors de la requête avec Démarches Simplifiées', 'Une erreur')"
-        )
+        assert str(exc_info.value) == msg
