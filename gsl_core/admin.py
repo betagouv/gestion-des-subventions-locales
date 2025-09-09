@@ -88,7 +88,8 @@ class CollegueAdmin(AllPermsForStaffUser, UserAdmin, admin.ModelAdmin):
 
     @admin.action(description="Association des identifiants de DS aux utilisateurs")
     def associate_ds_id_to_users(self, request, queryset):
-        associate_or_update_ds_id_to_users(queryset)
+        user_ids = list(queryset.values_list("id", flat=True))
+        associate_or_update_ds_id_to_users(user_ids)
 
 
 @admin.register(Adresse)

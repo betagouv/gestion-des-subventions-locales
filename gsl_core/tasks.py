@@ -1,21 +1,22 @@
 import logging
+from typing import List
 
 from celery import shared_task
-from django.db.models import QuerySet
 
 from gsl_core.models import Collegue
 from gsl_demarches_simplifiees.models import Demarche
 
+logger = logging.getLogger(__name__)
+
 
 @shared_task
-def associate_or_update_ds_id_to_users(users: QuerySet[Collegue]):
-    logging.info("Association d'id DS avec les utilisateurs : début")
+def associate_or_update_ds_id_to_users(user_ids: List[int]):
+    users = Collegue.objects.filter(pk__in=user_ids)
+    logger.info("Association d'id DS avec les utilisateurs : début")
 
     user_without_email_count = users.filter(email="").count()
     if user_without_email_count > 0:
-        logging.info(
-            f"{user_without_email_count} utilisateurs n'ont pas d'adresse mail"
-        )
+        logger.info(f"{user_without_email_count} utilisateurs n'ont pas d'adresse mail")
 
     user_emails = set(users.exclude(email="").values_list("email", flat=True))
     demarches = Demarche.objects.all()
@@ -31,8 +32,8 @@ def associate_or_update_ds_id_to_users(users: QuerySet[Collegue]):
                     )
                     user_emails.remove(instructeur_email)
 
-    logging.info("Association d'id DS avec les utilisateurs : fin")
-    if user_emails != []:
-        logging.info(
+    logger.info("Association d'id DS avec les utilisateurs : fin")
+    if len(user_emails) > 0:
+        logger.info(
             f"Ces emails n'ont pas été trouvés dans les groupes instructeurs des démarches : {','.join(user_emails)}"
         )
