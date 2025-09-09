@@ -19,7 +19,7 @@ import dj_database_url
 from csp.constants import NONCE, SELF
 from dotenv import load_dotenv
 
-from config.settings.apps.sentry import *  # noqa F401
+from gsl.apps.sentry import *  # noqa F401
 
 load_dotenv()  # take environment variables from .env.
 
