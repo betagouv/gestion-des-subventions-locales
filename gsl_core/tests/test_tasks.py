@@ -1,3 +1,4 @@
+import kombu
 import pytest
 
 from gsl_core.models import Collegue
@@ -25,7 +26,7 @@ def test_associate_or_update_ds_id_to_users():
         }
     )
 
-    user_ids = set(Collegue.objects.values_list("id", flat=True))
+    user_ids = list(Collegue.objects.values_list("id", flat=True))
     associate_or_update_ds_id_to_users(user_ids)
 
     user_without_id.refresh_from_db()
@@ -36,3 +37,32 @@ def test_associate_or_update_ds_id_to_users():
 
     user_not_in_demarche.refresh_from_db()
     assert user_not_in_demarche.ds_id == ""
+
+
+@pytest.mark.django_db(transaction=True)
+def test_associate_or_update_ds_id_to_users_async_task():
+    CollegueFactory(email="user1@example.com")
+    CollegueFactory(email="user2@example.com", ds_id="azertyui")
+    CollegueFactory(email="user3@example.com")
+
+    DemarcheFactory(
+        raw_ds_data={
+            "groupeInstructeurs": [
+                {
+                    "instructeurs": [
+                        {"email": "user1@example.com", "id": "123456789"},
+                        {"email": "user2@example.com", "id": "abcdefgh"},
+                    ]
+                }
+            ]
+        }
+    )
+
+    user_ids_qs = Collegue.objects.values_list("id", flat=True)
+    with pytest.raises(kombu.exceptions.EncodeError):
+        associate_or_update_ds_id_to_users.delay(user_ids_qs)
+
+    with pytest.raises(kombu.exceptions.EncodeError):
+        associate_or_update_ds_id_to_users.delay(set(user_ids_qs))
+
+    associate_or_update_ds_id_to_users.delay(list(user_ids_qs))
