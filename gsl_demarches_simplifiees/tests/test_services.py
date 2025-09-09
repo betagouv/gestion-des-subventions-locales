@@ -1,3 +1,4 @@
+import logging
 from unittest import mock
 from unittest.mock import patch
 
@@ -85,11 +86,14 @@ def test_update_boolean_field_success(user, dossier, ds_field):
         assert "data" in result
 
 
-def test_update_boolean_field_instructeur_unknown(dossier):
+def test_update_boolean_field_instructeur_unknown(dossier, caplog):
+    caplog.set_level(logging.ERROR)
     user = CollegueFactory(ds_id="")
     service = DsService()
+
     with pytest.raises(InstructeurUnknown):
         service.update_ds_is_qpv(dossier, user, "true")
+    assert "User does not have DS id." in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -105,8 +109,9 @@ def test_update_boolean_field_instructeur_unknown(dossier):
     ),
 )
 def test_update_update_boolean_field_field_error(
-    user, dossier: Dossier, field, field_name
+    user, dossier: Dossier, field, field_name, caplog
 ):
+    caplog.set_level(logging.WARNING)
     ds_service = DsService()
     with patch(
         "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
@@ -118,6 +123,10 @@ def test_update_update_boolean_field_field_error(
     assert (
         str(exc_info.value)
         == f'Le champs "{field_name}" n\'existe pas dans la démarche {dossier.ds_demarche.ds_number}.'
+    )
+    assert (
+        f'Demarche #{dossier.ds_demarche_id} doesn\'t have field "{field}".'
+        in caplog.text
     )
 
 
@@ -137,6 +146,8 @@ possible_responses = [
         },
         UserRightsError,
         "Vous n'avez pas les droits suffisants pour modifier ce champs.",
+        logging.INFO,
+        "Instructeur has no rights on the dossier",
     ),
     # Invalid payload (ex: wrong dossier id)
     (
@@ -153,6 +164,8 @@ possible_responses = [
         },
         DsServiceException,
         "",
+        logging.ERROR,
+        "Error in DS boolean mutation",
     ),
     # Invalid field id
     (
@@ -168,6 +181,8 @@ possible_responses = [
         },
         DsServiceException,
         "",
+        logging.ERROR,
+        "Error in DS boolean mutation",
     ),
     # Invalid value
     (
@@ -196,6 +211,8 @@ possible_responses = [
         },
         DsServiceException,
         "",
+        logging.ERROR,
+        "Error in DS boolean mutation",
     ),
     # Other error
     (
@@ -208,14 +225,19 @@ possible_responses = [
         },
         DsServiceException,
         "Une erreur",
+        logging.ERROR,
+        "Error in DS boolean mutation",
     ),
 ]
 
 
-@pytest.mark.parametrize("mocked_response, exception, msg", possible_responses)
+@pytest.mark.parametrize(
+    "mocked_response, exception, msg, log_level, log_msg", possible_responses
+)
 def test_update_boolean_field_error(
-    user, dossier, ds_field, mocked_response, exception, msg
+    user, dossier, ds_field, mocked_response, exception, msg, log_level, log_msg, caplog
 ):
+    caplog.set_level(log_level)
     ds_service = DsService()
     with (
         patch(
@@ -231,3 +253,4 @@ def test_update_boolean_field_error(
             )
 
         assert str(exc_info.value) == msg
+        assert log_msg in caplog.text

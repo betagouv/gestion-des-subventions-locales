@@ -46,7 +46,7 @@ class DsService:
             ds_field = FieldMappingForComputer.objects.get(
                 demarche=dossier.ds_demarche_id, django_field=field
             )
-        except FieldMappingForComputer.DoesNotExist:  # TODO test
+        except FieldMappingForComputer.DoesNotExist:
             logger.warning(
                 f'Demarche #{dossier.ds_demarche_id} doesn\'t have field "{field}".'
             )
@@ -97,7 +97,25 @@ class DsService:
                         "L’instructeur n’a pas les droits d’accès à ce dossier"
                         in messages
                     ):
+                        logger.info(
+                            "Instructeur has no rights on the dossier",
+                            extra={
+                                "dossier_id": dossier.id,
+                                "user_id": user.id,
+                            },
+                        )
                         raise UserRightsError
+
+                    logger.error(
+                        "Error in DS boolean mutation",
+                        extra={
+                            "dossier_id": dossier.id,
+                            "user_id": user.id,
+                            "field": field,
+                            "value": value,
+                            "error": messages,
+                        },
+                    )
                     raise DsServiceException(*messages)
 
         return results
