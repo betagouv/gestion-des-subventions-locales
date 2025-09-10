@@ -98,6 +98,7 @@ django==5.2.5
     #   django-celery-results
     #   django-crispy-forms
     #   django-csp
+    #   django-debug-toolbar
     #   django-dsfr
     #   django-extensions
     #   django-filter
@@ -119,6 +120,8 @@ django-crispy-forms==2.4
     # via django-dsfr
 django-csp==4.0
     # via gsl (pyproject.toml)
+django-debug-toolbar==6.0.0
+    # via gsl (pyproject.toml)
 django-dsfr==3.0.0
     # via gsl (pyproject.toml)
 django-extensions==4.1
@@ -132,8 +135,6 @@ django-fsm-2==4.0.0
 django-htmx==1.23.2
     # via gsl (pyproject.toml)
 django-import-export==4.3.9
-    # via gsl (pyproject.toml)
-django-query-counter==0.4.1
     # via gsl (pyproject.toml)
 django-referrer-policy==1.0
     # via gsl (pyproject.toml)
@@ -323,15 +324,15 @@ six==1.17.0
 soupsieve==2.7
     # via beautifulsoup4
 sqlparse==0.5.3
-    # via django
+    # via
+    #   django
+    #   django-debug-toolbar
 stack-data==0.6.3
     # via ipython
 tablib[ods,xls,xlsx]==3.8.0
     # via
     #   django-import-export
     #   gsl (pyproject.toml)
-tabulate==0.9.0
-    # via django-query-counter
 tinycss2==1.4.0
     # via
     #   cssselect2
