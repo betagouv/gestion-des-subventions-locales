@@ -109,9 +109,6 @@ MIDDLEWARE = [
 ]
 
 if DEBUG:
-    INSTALLED_APPS.append("query_counter")
-    MIDDLEWARE.append("query_counter.middleware.DjangoQueryCounterMiddleware")
-
     INSTALLED_APPS.append("debug_toolbar")
     MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
 
@@ -277,10 +274,6 @@ CONTENT_SECURITY_POLICY = {
 CONTENT_SECURITY_POLICY_REPORT_ONLY = {}
 
 # Dev configuration
-
-# syntax coloring queries in django-query-counters.
-# see https://pygments.org/demo/
-DQC_PYGMENTS_STYLE = os.getenv("DQC_PYGMENTS_STYLE", "monokai")
 
 
 # Storage
