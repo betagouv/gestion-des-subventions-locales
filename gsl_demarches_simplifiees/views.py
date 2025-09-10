@@ -9,8 +9,18 @@ from django.views.decorators.http import require_GET, require_POST
 from django.views.generic.list import ListView
 from django_celery_results.models import TaskResult
 
+from .importer.dossier import save_one_dossier_from_ds
 from .models import Demarche, Dossier, FieldMappingForComputer
 from .tasks import task_save_demarche_dossiers_from_ds, task_save_demarche_from_ds
+
+
+@require_POST
+def refresh_one_dossier(request, dossier_ds_number):
+    dossier = get_object_or_404(Dossier, ds_number=dossier_ds_number)
+    save_one_dossier_from_ds(dossier)
+    return render(
+        request, "gsl_demarches_simplifiees/confirmation_dossier_refreshed.html"
+    )
 
 
 @staff_member_required
