@@ -49,13 +49,15 @@ def ds_field():
 )
 @mock.patch.object(DsService, "_update_boolean_field")
 def test_update_boolean_field_functions_call_generic_function_success(
-    mocker, user, dossier, ds_field, function, field_name
+    update_boolean_field_mocker, user, dossier, function, field_name
 ):
     ds_service = DsService()
 
     ds_service_function = getattr(ds_service, function)
     ds_service_function(dossier, user, "true")
-    mocker.assert_called_once_with(dossier, user, "true", field=field_name)
+    update_boolean_field_mocker.assert_called_once_with(
+        dossier, user, "true", field=field_name
+    )
 
 
 def test_update_boolean_field_success(user, dossier, ds_field):

@@ -18,11 +18,12 @@ IMPORTED_DS_FIELDS = (
     "DecimalNumberChampDescriptor",
     "DropDownListChampDescriptor",
     "IntegerNumberChampDescriptor",
+    "LinkedDropdownListChampDescriptor",
     "MultipleDropDownListChampDescriptor",
     "PhoneChampDescriptor",
     "SiretChampDescriptor",
-    "TextChampDescriptor",
     "TextareaChampDescriptor",
+    "TextChampDescriptor",
     "YesNoChampDescriptor",
 )
 

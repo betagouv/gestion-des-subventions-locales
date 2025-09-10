@@ -1,5 +1,4 @@
 import json
-import logging
 
 from django.contrib import messages
 from django.db import transaction
@@ -29,8 +28,6 @@ from gsl_simulation.views.decorators import (
 )
 from gsl_simulation.views.mixins import CorrectUserPerimeterRequiredMixin
 from gsl_simulation.views.simulation_views import SimulationDetailView
-
-logger = logging.getLogger(__name__)
 
 
 @projet_must_be_in_user_perimetre
