@@ -47,7 +47,7 @@ build-backend = "setuptools.build_meta"
 [project.optional-dependencies]
 dev = [
     "diff-cover",
-    "django-query-counter",
+    "django-debug-toolbar",
     "djlint",
     "factory_boy",
     "freezegun",
