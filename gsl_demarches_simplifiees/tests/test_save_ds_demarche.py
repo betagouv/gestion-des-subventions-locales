@@ -83,6 +83,32 @@ def test_get_new_demarche_prefills_ds_fields(demarche_data_without_dossier):
     assert demarche.raw_ds_data == demarche_data_without_dossier
 
 
+def test_get_or_create_demarche_with_no_active_revision():
+    demarche_data = {
+        "id": "un-id-qui-nest-pas-un-vrai==",
+        "number": 123456,
+        "title": "Titre de la démarche",
+        "state": "brouillon",
+        "dateCreation": "2023-10-07T14:47:24+02:00",
+        "dateFermeture": None,
+        "activeRevision": {
+            "id": "UHJvY2VkdXJlUmV2aXNpb24tMjEzMjk4",
+            "datePublication": None,
+            "champDesciptors": [],
+        },
+        "groupeInstructeurs": [],
+        "champs": [],
+    }
+    demarche = get_or_create_demarche(demarche_data)
+    assert demarche.ds_id == "un-id-qui-nest-pas-un-vrai=="
+    assert demarche.ds_number == 123456
+    assert demarche.ds_title == "Titre de la démarche"
+    assert demarche.ds_state == "brouillon"
+    assert demarche.active_revision_date is None
+    assert demarche.active_revision_id == "UHJvY2VkdXJlUmV2aXNpb24tMjEzMjk4"
+    assert demarche.raw_ds_data == demarche_data
+
+
 def test_save_groupe_instructeurs(demarche, demarche_data_without_dossier):
     save_groupe_instructeurs(demarche_data_without_dossier, demarche)
     assert Profile.objects.count() == 2
