@@ -891,12 +891,221 @@ def test_patch_projet(
             follow=True,
         )
 
-    accepted_simulation_projet.projet.refresh_from_db()
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 25
+    assert (
+        "Les modifications ont \xe9t\xe9 enregistr\xe9es avec succ\xe8s."
+        in message.message
+    )
 
-    # TODO test errors messages + success ones
+    accepted_simulation_projet.projet.refresh_from_db()
 
     assert response.status_code == 200
     assert accepted_simulation_projet.projet.__getattribute__(field) is expected_value
+
+
+possible_responses = [
+    # Instructeur has no rights
+    (
+        {
+            "data": {
+                "dossierModifierAnnotationCheckbox": {
+                    "errors": [
+                        {
+                            "message": "L’instructeur n’a pas les droits d’accès à ce dossier"
+                        }
+                    ]
+                }
+            }
+        },
+        "Vous n'avez pas les droits suffisants pour modifier ce champ.",
+    ),
+    # Invalid payload (ex: wrong dossier id)
+    (
+        {
+            "errors": [
+                {
+                    "message": "DossierModifierAnnotationCheckboxPayload not found",
+                    "locations": [{"line": 2, "column": 3}],
+                    "path": ["dossierModifierAnnotationCheckbox"],
+                    "extensions": {"code": "not_found"},
+                }
+            ],
+            "data": {"dossierModifierAnnotationCheckbox": None},
+        },
+        "",
+    ),
+    # Invalid field id
+    (
+        {
+            "errors": [
+                {
+                    "message": 'Invalid input: "field_NUL"',
+                    "locations": [{"line": 2, "column": 3}],
+                    "path": ["dossierModifierAnnotationCheckbox"],
+                }
+            ],
+            "data": {"dossierModifierAnnotationCheckbox": None},
+        },
+        "",
+    ),
+    # Invalid value
+    (
+        {
+            "errors": [
+                {
+                    "message": 'Variable $input of type DossierModifierAnnotationCheckboxInput! was provided invalid value for value (Could not coerce value "RIGOLO" to Boolean)',
+                    "locations": [{"line": 1, "column": 37}],
+                    "extensions": {
+                        "value": {
+                            "clientMutationId": "test",
+                            "annotationId": "ZZZ",
+                            "dossierId": "YYY",
+                            "instructeurId": "XXX",
+                            "value": "RIGOLO",
+                        },
+                        "problems": [
+                            {
+                                "path": ["value"],
+                                "explanation": 'Could not coerce value "RIGOLO" to Boolean',
+                            }
+                        ],
+                    },
+                }
+            ]
+        },
+        "",
+    ),
+    # Other error
+    (
+        {
+            "data": {
+                "dossierModifierAnnotationCheckbox": {
+                    "errors": [{"message": "Une erreur"}]
+                }
+            }
+        },
+        "Une erreur",
+    ),
+]
+
+
+@pytest.mark.parametrize("mocked_response, msg", possible_responses)
+@pytest.mark.parametrize(
+    "field, data, initial_value",
+    (
+        # ("is_budget_vert", {"is_budget_vert": "True"}, False),
+        # ("is_budget_vert", {"is_budget_vert": "False"}, None),
+        # ("is_budget_vert", {"is_budget_vert": ""}, True),
+        # ("is_attached_to_a_crte", {"is_attached_to_a_crte": "on"}, False),
+        # ("is_attached_to_a_crte", {}, True),
+        ("is_in_qpv", {"is_in_qpv": "on"}, False),
+        ("is_in_qpv", {}, True),
+    ),
+)
+def test_patch_projet_with_ds_service_exception_send_correct_error_msg_to_user_and_cancel_update(
+    client_with_user_logged,
+    accepted_simulation_projet,
+    mocked_response,
+    msg,
+    field,
+    data,
+    initial_value,
+    ds_field,
+):
+    accepted_simulation_projet.projet.__setattr__(field, initial_value)
+    accepted_simulation_projet.projet.save()
+
+    data["dotations"] = [DOTATION_DSIL]
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = mocked_response
+
+    with (
+        patch(
+            "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
+            return_value=ds_field,
+        ),
+        patch("requests.post", return_value=mock_resp),
+    ):
+        url = reverse(
+            "simulation:patch-projet",
+            args=[accepted_simulation_projet.id],
+        )
+        response = client_with_user_logged.post(
+            url,
+            data,
+            follow=True,
+        )
+
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 40  # Error
+    assert (
+        f"Une erreur est survenue lors de la mise \xe0 jour du champ QPV dans D\xe9marches Simplifi\xe9es. {msg}"
+        == message.message
+    )
+
+    accepted_simulation_projet.projet.refresh_from_db()
+
+    assert response.status_code == 200
+    assert accepted_simulation_projet.projet.__getattribute__(field) is initial_value
+
+
+# TODO factorize this list in next PR
+@pytest.mark.parametrize(
+    "field, data, initial_value",
+    (
+        # ("is_budget_vert", {"is_budget_vert": "True"}, False),
+        # ("is_budget_vert", {"is_budget_vert": "False"}, None),
+        # ("is_budget_vert", {"is_budget_vert": ""}, True),
+        # ("is_attached_to_a_crte", {"is_attached_to_a_crte": "on"}, False),
+        # ("is_attached_to_a_crte", {}, True),
+        ("is_in_qpv", {"is_in_qpv": "on"}, False),
+        ("is_in_qpv", {}, True),
+    ),
+)
+def test_patch_projet_with_user_without_ds_id(
+    perimetre_departemental,
+    accepted_simulation_projet,
+    field,
+    data,
+    initial_value,
+):
+    collegue = CollegueFactory(perimetre=perimetre_departemental, ds_id="")
+    client = ClientWithLoggedUserFactory(collegue)
+    accepted_simulation_projet.projet.__setattr__(field, initial_value)
+    accepted_simulation_projet.projet.save()
+
+    data["dotations"] = [DOTATION_DSIL]
+
+    url = reverse(
+        "simulation:patch-projet",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client.post(
+        url,
+        data,
+        follow=True,
+    )
+
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 40  # Error
+    assert (
+        "Une erreur est survenue lors de la mise \xe0 jour du champ QPV dans D\xe9marches Simplifi\xe9es. Nous ne connaissons pas votre identifiant DS."
+        == message.message
+    )
+
+    accepted_simulation_projet.projet.refresh_from_db()
+
+    assert response.status_code == 200
+    assert accepted_simulation_projet.projet.__getattribute__(field) is initial_value
 
 
 def test_get_projet_queryset_calls_prefetch(req, simulation, create_simulation_projets):

@@ -8,12 +8,12 @@ class DsServiceException(Exception):
 
 
 class InstructeurUnknown(DsServiceException):
-    DEFAULT_MESSAGE = "L'instructeur n'a pas d'id DS."
+    DEFAULT_MESSAGE = "Nous ne connaissons pas votre identifiant DS."
 
 
 class FieldError(DsServiceException):
-    DEFAULT_MESSAGE = "Le champs n'existe pas dans la démarche."
+    DEFAULT_MESSAGE = "Le champ n'existe pas dans la démarche."
 
 
 class UserRightsError(DsServiceException):
-    DEFAULT_MESSAGE = "Vous n'avez pas les droits suffisants pour modifier ce champs."
+    DEFAULT_MESSAGE = "Vous n'avez pas les droits suffisants pour modifier ce champ."

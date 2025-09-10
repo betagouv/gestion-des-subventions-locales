@@ -122,7 +122,7 @@ def test_update_update_boolean_field_field_error(
 
     assert (
         str(exc_info.value)
-        == f'Le champs "{field_name}" n\'existe pas dans la démarche {dossier.ds_demarche.ds_number}.'
+        == f'Le champ "{field_name}" n\'existe pas dans la démarche {dossier.ds_demarche.ds_number}.'
     )
     assert (
         f'Demarche #{dossier.ds_demarche_id} doesn\'t have field "{field}".'
@@ -145,7 +145,7 @@ possible_responses = [
             }
         },
         UserRightsError,
-        "Vous n'avez pas les droits suffisants pour modifier ce champs.",
+        "Vous n'avez pas les droits suffisants pour modifier ce champ.",
         logging.INFO,
         "Instructeur has no rights on the dossier",
     ),

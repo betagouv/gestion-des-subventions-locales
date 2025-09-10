@@ -57,7 +57,7 @@ class DsService:
                 pass
 
             raise FieldError(
-                f'Le champs "{field_name}" n\'existe pas dans la démarche {dossier.ds_demarche.ds_number}.'
+                f'Le champ "{field_name}" n\'existe pas dans la démarche {dossier.ds_demarche.ds_number}.'
             )
 
         ds_field_id = ds_field.ds_field_id
