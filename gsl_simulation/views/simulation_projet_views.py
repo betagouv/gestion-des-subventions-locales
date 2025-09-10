@@ -105,6 +105,15 @@ def patch_dotation_projet(request, pk):
     )
 
 
+# FIELDS_UPDATABLE_ON_DS = ["is_in_qpv", "is_attached_to_a_crte"]
+FIELDS_UPDATABLE_ON_DS = ["is_in_qpv", "is_attached_to_a_crte", "is_budget_vert"]
+FIELD_TO_LABEL_MAP = {
+    "is_in_qpv": "QPV",
+    "is_attached_to_a_crte": "CRTE",
+    "is_budget_vert": "Budget vert",
+}
+
+
 @projet_must_be_in_user_perimetre
 @exception_handler_decorator
 @require_POST
@@ -113,23 +122,26 @@ def patch_projet(request, pk):
     form = ProjetForm(request.POST, instance=simulation_projet.projet)
     if form.is_valid():
         with transaction.atomic():
-            if "is_in_qpv" in form.changed_data:
-                ds_service = DsService()
+            for field in FIELDS_UPDATABLE_ON_DS:
+                print("COUCOU", form.changed_data)
+                if field in form.changed_data:
+                    ds_service = DsService()
+                    update_function = getattr(ds_service, f"update_ds_{field}")
 
-                try:
-                    ds_service.update_ds_is_qpv(
-                        simulation_projet.projet.dossier_ds,
-                        request.user,
-                        form.cleaned_data["is_in_qpv"],
-                    )
-                except Exception as e:
-                    messages.error(
-                        request,
-                        f"Une erreur est survenue lors de la mise à jour du champ QPV dans Démarches Simplifiées. {str(e)}",
-                    )
-                    return redirect_to_same_page_or_to_simulation_detail_by_default(
-                        request, simulation_projet, add_message=False
-                    )
+                    try:
+                        update_function(
+                            simulation_projet.projet.dossier_ds,
+                            request.user,
+                            form.cleaned_data[field],
+                        )
+                    except Exception as e:
+                        messages.error(
+                            request,
+                            f"Une erreur est survenue lors de la mise à jour du champ {FIELD_TO_LABEL_MAP[field]} dans Démarches Simplifiées. {str(e)}",
+                        )
+                        return redirect_to_same_page_or_to_simulation_detail_by_default(
+                            request, simulation_projet, add_message=False
+                        )
             form.save()
 
         messages.success(

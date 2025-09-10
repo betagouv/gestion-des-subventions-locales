@@ -39,7 +39,7 @@ def ds_field():
 @pytest.mark.parametrize(
     "function, field_name",
     (
-        ("update_ds_is_qpv", "annotations_is_qpv"),
+        ("update_ds_is_in_qpv", "annotations_is_qpv"),
         ("update_ds_is_crte", "annotations_is_crte"),
         (
             "update_ds_is_budget_vert",
@@ -94,7 +94,7 @@ def test_update_boolean_field_instructeur_unknown(dossier, caplog):
     service = DsService()
 
     with pytest.raises(InstructeurUnknown):
-        service.update_ds_is_qpv(dossier, user, "true")
+        service.update_ds_is_in_qpv(dossier, user, "true")
     assert "User does not have DS id." in caplog.text
 
 
