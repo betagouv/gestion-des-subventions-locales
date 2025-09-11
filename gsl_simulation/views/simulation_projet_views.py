@@ -123,7 +123,6 @@ def patch_projet(request, pk):
     if form.is_valid():
         with transaction.atomic():
             for field in FIELDS_UPDATABLE_ON_DS:
-                print("COUCOU", form.changed_data)
                 if field in form.changed_data:
                     ds_service = DsService()
                     update_function = getattr(ds_service, f"update_ds_{field}")
