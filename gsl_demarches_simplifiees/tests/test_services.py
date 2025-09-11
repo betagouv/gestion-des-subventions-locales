@@ -57,7 +57,7 @@ def test_update_boolean_field_functions_call_generic_function_success(
 
 
 @pytest.mark.parametrize(
-    "value, expected_param", (("True", True), ("False", False), ("", False))
+    "value, expected_param", ((True, True), (False, False), ("", False))
 )
 @mock.patch.object(DsService, "_update_boolean_field")
 def test_update_ds_is_budget_vert_functions_call_generic_function_success(
@@ -131,7 +131,7 @@ def test_update_update_boolean_field_field_error(
         side_effect=FieldMappingForComputer.DoesNotExist,
     ):
         with pytest.raises(FieldError) as exc_info:
-            ds_service._update_boolean_field(dossier, user, "true", field)
+            ds_service._update_boolean_field(dossier, user, True, field)
 
     assert (
         str(exc_info.value)
@@ -158,7 +158,7 @@ possible_responses = [
             }
         },
         UserRightsError,
-        "Vous n'avez pas les droits suffisants pour modifier ce champ.",
+        "Vous n'avez pas les droits suffisants pour modifier ce dossier.",
         logging.INFO,
         "Instructeur has no rights on the dossier",
     ),

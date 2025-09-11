@@ -722,6 +722,7 @@ def accepted_simulation_projet(collegue, simulation) -> SimulationProjet:
         status=PROJET_STATUS_PROCESSING,
         assiette=10_000,
         projet__perimetre=collegue.perimetre,
+        projet__is_budget_vert=None,
         dotation=DOTATION_DETR,
     )
 
@@ -921,7 +922,7 @@ possible_responses = [
                 }
             }
         },
-        "Vous n'avez pas les droits suffisants pour modifier ce champ.",
+        "Une erreur est survenue lors de la mise \xe0 jour des informations sur D\xe9marches Simplifi\xe9es. Vous n'avez pas les droits suffisants pour modifier ce dossier.",
     ),
     # Invalid payload (ex: wrong dossier id)
     (
@@ -936,7 +937,7 @@ possible_responses = [
             ],
             "data": {"dossierModifierAnnotationCheckbox": None},
         },
-        "",
+        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field}). Ces modifications n'ont pas été enregistrées.",
     ),
     # Invalid field id
     (
@@ -950,7 +951,7 @@ possible_responses = [
             ],
             "data": {"dossierModifierAnnotationCheckbox": None},
         },
-        "",
+        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field}). Ces modifications n'ont pas été enregistrées.",
     ),
     # Invalid value
     (
@@ -977,7 +978,7 @@ possible_responses = [
                 }
             ]
         },
-        "",
+        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field}). Ces modifications n'ont pas été enregistrées.",
     ),
     # Other error
     (
@@ -988,7 +989,7 @@ possible_responses = [
                 }
             }
         },
-        "Une erreur",
+        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field} => Une erreur). Ces modifications n'ont pas été enregistrées.",
     ),
 ]
 # field, data, initial_value, field_label
@@ -1046,10 +1047,8 @@ def test_patch_projet_with_ds_service_exception_send_correct_error_msg_to_user_a
     assert len(messages) == 1
     message = list(messages)[0]
     assert message.level == 40  # Error
-    assert (
-        f"Une erreur est survenue lors de la mise \xe0 jour du champ {field_label} dans D\xe9marches Simplifi\xe9es. {msg}"
-        == message.message
-    )
+    final_msg = msg.replace("{field}", field_label)
+    assert message.message == final_msg
 
     accepted_simulation_projet.projet.refresh_from_db()
 
@@ -1057,14 +1056,16 @@ def test_patch_projet_with_ds_service_exception_send_correct_error_msg_to_user_a
     assert accepted_simulation_projet.projet.__getattribute__(field) is initial_value
 
 
-@pytest.mark.parametrize("field, data, initial_value, field_label", boolean_fields_data)
+@pytest.mark.parametrize(
+    "field, data, initial_value, _field_label", boolean_fields_data
+)
 def test_patch_projet_with_user_without_ds_id(
     perimetre_departemental,
     accepted_simulation_projet,
     field,
     data,
     initial_value,
-    field_label,
+    _field_label,
 ):
     collegue = CollegueFactory(perimetre=perimetre_departemental, ds_id="")
     client = ClientWithLoggedUserFactory(collegue)
@@ -1088,7 +1089,7 @@ def test_patch_projet_with_user_without_ds_id(
     message = list(messages)[0]
     assert message.level == 40  # Error
     assert (
-        f"Une erreur est survenue lors de la mise \xe0 jour du champ {field_label} dans D\xe9marches Simplifi\xe9es. Nous ne connaissons pas votre identifiant DS."
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarches Simplifiées. Nous ne connaissons pas votre identifiant DS."
         == message.message
     )
 
@@ -1137,7 +1138,7 @@ def test_two_fields_update_and_only_one_error(
     message = list(messages)[0]
     assert message.level == 40  # Error
     assert (
-        "Une erreur est survenue lors de la mise \xe0 jour du champ CRTE dans D\xe9marches Simplifi\xe9es. Erreur !"
+        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées (CRTE => Erreur !). Ces modifications n'ont pas été enregistrées."
         == message.message
     )
 
@@ -1145,10 +1146,9 @@ def test_two_fields_update_and_only_one_error(
 
     assert response.status_code == 200
 
-    # Both are false because the first update succeeded and the second failed
-    # So that the form has not been saved
-    # Even if is_in_qpv is now True in DS
-    assert accepted_simulation_projet.projet.is_in_qpv is False
+    assert (
+        accepted_simulation_projet.projet.is_in_qpv is True
+    )  # Only this field has been updated
     assert accepted_simulation_projet.projet.is_attached_to_a_crte is False
 
 

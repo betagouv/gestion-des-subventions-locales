@@ -24,17 +24,11 @@ class DsService:
             dossier, user, value, field="annotations_is_qpv"
         )
 
-    def update_ds_is_budget_vert(self, dossier: Dossier, user: Collegue, value: str):
-        # Here, we do this because DS API only accepts a boolean field for checkbox
-        # It does not consider "Oui/Non/Non renseigné fields"
-        if value == "True":
-            bool_value = True
-        elif value == "False":
-            bool_value = False
-        else:
-            bool_value = False
+    def update_ds_is_budget_vert(
+        self, dossier: Dossier, user: Collegue, value: bool | str
+    ):
         return self._update_boolean_field(
-            dossier, user, bool_value, field="annotations_is_budget_vert"
+            dossier, user, bool(value), field="annotations_is_budget_vert"
         )
 
     def update_ds_is_attached_to_a_crte(

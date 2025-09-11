@@ -14,10 +14,11 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         (False, "Non"),
     ]
 
-    is_budget_vert = forms.ChoiceField(
+    is_budget_vert = forms.TypedChoiceField(
         label="Transition écologique",
         choices=BUDGET_VERT_CHOICES,
         required=False,
+        coerce=lambda x: {"True": True, "False": False, "": None}.get(x, None),
         widget=forms.Select(attrs={"form": "projet_form"}),
     )
 
@@ -58,8 +59,14 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             valid = False
         return valid
 
-    def save(self, commit=True):
-        instance = super().save(commit=commit)
+    def save(self, commit=True, field_exceptions=None):
+        instance = super().save(commit=False)
+        if field_exceptions is not None:
+            for field in field_exceptions:
+                setattr(instance, field, self.initial[field])
+        if commit:
+            instance.save()
+
         dotations = self.cleaned_data.get("dotations")
         if dotations:
             ProjetService.update_dotation(instance, dotations)

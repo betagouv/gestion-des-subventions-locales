@@ -1,7 +1,6 @@
 import json
 
 from django.contrib import messages
-from django.db import transaction
 from django.http import Http404, HttpRequest
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
@@ -11,17 +10,21 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DetailView
 
 from gsl.settings import ALLOWED_HOSTS
-from gsl_demarches_simplifiees.services import DsService
 from gsl_projet.forms import DotationProjetForm, ProjetForm
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.forms import SimulationProjetForm
 from gsl_simulation.models import SimulationProjet
+from gsl_simulation.services.projet_updater import process_projet_update
 from gsl_simulation.services.simulation_projet_service import (
     SimulationProjetService,
 )
 from gsl_simulation.services.simulation_service import SimulationService
-from gsl_simulation.utils import add_success_message, replace_comma_by_dot
+from gsl_simulation.utils import (
+    add_success_message,
+    build_error_message,
+    replace_comma_by_dot,
+)
 from gsl_simulation.views.decorators import (
     exception_handler_decorator,
     projet_must_be_in_user_perimetre,
@@ -105,68 +108,57 @@ def patch_dotation_projet(request, pk):
     )
 
 
-# FIELDS_UPDATABLE_ON_DS = ["is_in_qpv", "is_attached_to_a_crte"]
-FIELDS_UPDATABLE_ON_DS = ["is_in_qpv", "is_attached_to_a_crte", "is_budget_vert"]
-FIELD_TO_LABEL_MAP = {
-    "is_in_qpv": "QPV",
-    "is_attached_to_a_crte": "CRTE",
-    "is_budget_vert": "Budget vert",
-}
-
-
 @projet_must_be_in_user_perimetre
 @exception_handler_decorator
 @require_POST
 def patch_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     form = ProjetForm(request.POST, instance=simulation_projet.projet)
-    if form.is_valid():
-        with transaction.atomic():
-            for field in FIELDS_UPDATABLE_ON_DS:
-                if field in form.changed_data:
-                    ds_service = DsService()
-                    update_function = getattr(ds_service, f"update_ds_{field}")
 
-                    try:
-                        update_function(
-                            simulation_projet.projet.dossier_ds,
-                            request.user,
-                            form.cleaned_data[field],
-                        )
-                    except Exception as e:
-                        messages.error(
-                            request,
-                            f"Une erreur est survenue lors de la mise à jour du champ {FIELD_TO_LABEL_MAP[field]} dans Démarches Simplifiées. {str(e)}",
-                        )
-                        return redirect_to_same_page_or_to_simulation_detail_by_default(
-                            request, simulation_projet, add_message=False
-                        )
-            form.save()
-
-        messages.success(
+    if not form.is_valid():
+        messages.error(
             request,
-            "Les modifications ont été enregistrées avec succès.",
+            "Une erreur s'est produite lors de la soumission du formulaire. "
+            "Veuillez sélectionner au moins une dotation.",
         )
-        try:
-            simulation_projet.refresh_from_db()
-            return redirect_to_same_page_or_to_simulation_detail_by_default(
-                request, simulation_projet
-            )
-        except SimulationProjet.DoesNotExist:
-            # Handle the case where the simulation_projet no longer exists
-            return redirect(
-                "simulation:simulation-detail",
-                slug=simulation_projet.simulation.slug,
-            )
+        return redirect_to_same_page_or_to_simulation_detail_by_default(
+            request, simulation_projet, add_message=False
+        )
 
-    messages.error(
-        request,
-        "Une erreur s'est produite lors de la soumission du formulaire. Veuillez sélectionner au moins une dotation.",
+    errors, blocking = process_projet_update(
+        form, simulation_projet.projet, request.user
     )
 
-    return redirect_to_same_page_or_to_simulation_detail_by_default(
-        request, simulation_projet, add_message=False
-    )
+    if blocking:
+        messages.error(
+            request,
+            "Une erreur est survenue lors de la mise à jour des informations "
+            f"sur Démarches Simplifiées. {errors['all']}",
+        )
+        return redirect_to_same_page_or_to_simulation_detail_by_default(
+            request, simulation_projet
+        )
+
+    if errors:
+        msg = build_error_message(errors)
+        messages.error(
+            request,
+            f"Une erreur est survenue lors de la mise à jour de certaines "
+            f"informations sur Démarches Simplifiées ({msg}). "
+            "Ces modifications n'ont pas été enregistrées.",
+        )
+    else:
+        messages.success(request, "Les modifications ont été enregistrées avec succès.")
+
+    try:
+        simulation_projet.refresh_from_db()
+        return redirect_to_same_page_or_to_simulation_detail_by_default(
+            request, simulation_projet
+        )
+    except SimulationProjet.DoesNotExist:
+        return redirect(
+            "simulation:simulation-detail", slug=simulation_projet.simulation.slug
+        )
 
 
 class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):

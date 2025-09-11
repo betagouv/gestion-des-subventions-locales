@@ -9,7 +9,7 @@ from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 @pytest.fixture
 def projet():
-    projet = ProjetFactory()
+    projet = ProjetFactory(is_budget_vert=None)
     DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
     return projet
 
@@ -107,4 +107,22 @@ def test_projet_form_save(projet):
     assert projet.is_in_qpv is True
     assert projet.is_attached_to_a_crte is True
     assert projet.is_budget_vert is False
+    assert projet.dotations == [DOTATION_DSIL]
+
+
+@pytest.mark.django_db
+def test_projet_form_save_with_field_exceptions(projet):
+    data = {
+        "is_in_qpv": True,
+        "is_attached_to_a_crte": True,
+        "is_budget_vert": False,
+        "dotations": [DOTATION_DSIL],
+    }
+    form = ProjetForm(instance=projet, data=data)
+    assert form.is_valid()
+    projet = form.save(commit=True, field_exceptions=["is_budget_vert"])
+    assert isinstance(projet, Projet)
+    assert projet.is_in_qpv is True
+    assert projet.is_attached_to_a_crte is True
+    assert projet.is_budget_vert is None  # Default value
     assert projet.dotations == [DOTATION_DSIL]
