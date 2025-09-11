@@ -10,14 +10,14 @@ from gsl_projet.constants import (
 )
 from gsl_projet.models import DotationProjet
 
-from .tasks import update_projet_from_dossier
+from .tasks import create_or_update_projet_and_co_from_dossier
 
 
 @receiver(post_save, sender=Dossier, dispatch_uid="create_projet")
 def create_projet_from_valid_dossier(sender, instance: Dossier, *args, **kwargs):
     if not instance.ds_state:
         return
-    update_projet_from_dossier.delay(instance.ds_number)
+    create_or_update_projet_and_co_from_dossier.delay(instance.ds_number)
 
 
 @receiver(

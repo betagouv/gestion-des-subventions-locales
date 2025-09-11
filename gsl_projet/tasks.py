@@ -14,23 +14,23 @@ from .services.projet_services import ProjetService
 
 
 @shared_task
-def create_or_update_projets_and_its_simulation_and_programmation_projets_from_all_dossiers(
+def create_or_update_projets_and_co_from_all_dossiers(
     batch_size=500,
 ):
     dossiers = Dossier.objects.exclude(ds_state="").values_list("ds_number", flat=True)
 
     for batch in batched(dossiers, batch_size):
-        create_or_update_projets_batch.delay(batch)
+        create_or_update_projets_and_co_batch.delay(batch)
 
 
 @shared_task
-def create_or_update_projets_batch(dossier_numbers: tuple[int]):
+def create_or_update_projets_and_co_batch(dossier_numbers: tuple[int]):
     for ds_number in dossier_numbers:
-        update_projet_from_dossier.delay(ds_number)
+        create_or_update_projet_and_co_from_dossier.delay(ds_number)
 
 
 @shared_task
-def update_projet_from_dossier(
+def create_or_update_projet_and_co_from_dossier(
     ds_dossier_number,
 ):
     ds_dossier = Dossier.objects.get(ds_number=ds_dossier_number)
