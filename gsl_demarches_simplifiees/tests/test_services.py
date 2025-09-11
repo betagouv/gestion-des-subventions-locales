@@ -40,11 +40,7 @@ def ds_field():
     "function, field_name",
     (
         ("update_ds_is_in_qpv", "annotations_is_qpv"),
-        ("update_ds_is_crte", "annotations_is_crte"),
-        (
-            "update_ds_is_budget_vert",
-            "annotations_is_budget_vert",
-        ),
+        ("update_ds_is_attached_to_a_crte", "annotations_is_crte"),
     ),
 )
 @mock.patch.object(DsService, "_update_boolean_field")
@@ -57,6 +53,21 @@ def test_update_boolean_field_functions_call_generic_function_success(
     ds_service_function(dossier, user, "true")
     update_boolean_field_mocker.assert_called_once_with(
         dossier, user, "true", field=field_name
+    )
+
+
+@pytest.mark.parametrize(
+    "value, expected_param", (("True", True), ("False", False), ("", False))
+)
+@mock.patch.object(DsService, "_update_boolean_field")
+def test_update_ds_is_budget_vert_functions_call_generic_function_success(
+    update_boolean_field_mocker, user, dossier, value, expected_param
+):
+    ds_service = DsService()
+
+    ds_service.update_ds_is_budget_vert(dossier, user, value)
+    update_boolean_field_mocker.assert_called_once_with(
+        dossier, user, expected_param, field="annotations_is_budget_vert"
     )
 
 
