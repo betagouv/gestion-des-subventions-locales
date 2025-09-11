@@ -19,8 +19,6 @@ import dj_database_url
 from csp.constants import NONCE, SELF
 from dotenv import load_dotenv
 
-from gsl.apps.sentry import *  # noqa F401
-
 load_dotenv()  # take environment variables from .env.
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -43,6 +41,22 @@ if ENV not in ("dev", "test", "staging", "prod"):
 # We support a comma-separated list of allowed hosts.
 ENV_SEPARATOR = ","
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(ENV_SEPARATOR)
+
+# Init Sentry if the DSN is defined
+SENTRY_DSN = os.getenv("SENTRY_DSN", None)
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+
+    SENTRY_ENV = os.getenv("SENTRY_ENV", "unknown")
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            DjangoIntegration(),
+        ],
+        environment=SENTRY_ENV,
+        enable_logs=True,
+    )
 
 # Application definition
 
