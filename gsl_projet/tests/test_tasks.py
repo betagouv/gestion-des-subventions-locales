@@ -23,23 +23,13 @@ from gsl_projet.constants import (
 )
 from gsl_projet.models import DotationProjet
 from gsl_projet.tasks import (
-    create_all_projets_from_dossiers,
-    create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier,
-    create_or_update_projets_and_its_simulation_and_programmation_projets_from_all_dossiers,
-    create_or_update_projets_batch,
+    create_or_update_projet_and_co_from_dossier,
+    create_or_update_projets_and_co_batch,
+    create_or_update_projets_and_co_from_all_dossiers,
 )
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationProjetFactory
-
-
-@pytest.mark.django_db
-def test_create_all_projets():
-    dossier_en_construction = DossierFactory(ds_state=Dossier.STATE_EN_CONSTRUCTION)
-    DossierFactory(ds_state="")
-    with mock.patch("gsl_projet.tasks.update_projet_from_dossier.delay") as task_mock:
-        create_all_projets_from_dossiers()
-        task_mock.assert_called_once_with(dossier_en_construction.ds_number)
 
 
 @pytest.fixture
@@ -83,9 +73,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
 
-    create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(
-        dossier.ds_number
-    )
+    create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     dotation_projets = DotationProjet.objects.filter(projet=projet)
     assert dotation_projets.count() == 2
@@ -136,9 +124,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
 
-    create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(
-        dossier.ds_number
-    )
+    create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     dotation_projets = DotationProjet.objects.filter(projet=projet)
     assert dotation_projets.count() == 1
@@ -184,9 +170,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         status=ProgrammationProjet.STATUS_REFUSED,
         enveloppe=detr_enveloppe,
     )
-    create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(
-        dossier.ds_number
-    )
+    create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
 
@@ -233,9 +217,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         enveloppe=detr_enveloppe,
         montant=500,
     )
-    create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(
-        dossier.ds_number
-    )
+    create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
 
@@ -263,11 +245,9 @@ def test_create_or_update_projets_and_its_simulation_and_programmation_projets_f
         DossierFactory(ds_number=i, ds_state="state")
 
     with mock.patch(
-        "gsl_projet.tasks.create_or_update_projets_batch.delay"
+        "gsl_projet.tasks.create_or_update_projets_and_co_batch.delay"
     ) as mock_create_or_update_projets_batch:
-        create_or_update_projets_and_its_simulation_and_programmation_projets_from_all_dossiers(
-            batch_size=5
-        )
+        create_or_update_projets_and_co_from_all_dossiers(batch_size=5)
 
         assert mock_create_or_update_projets_batch.call_count == 2
 
@@ -278,11 +258,9 @@ def test_create_or_update_projets_and_its_simulation_and_programmation_projets_f
 @pytest.mark.django_db
 def test_create_or_update_projets_and_its_simulation_and_programmation_projets_from_all_dossiers_with_no_dossiers():
     with mock.patch(
-        "gsl_projet.tasks.create_or_update_projets_batch.delay"
+        "gsl_projet.tasks.create_or_update_projets_and_co_batch.delay"
     ) as mock_delay:
-        create_or_update_projets_and_its_simulation_and_programmation_projets_from_all_dossiers(
-            batch_size=5
-        )
+        create_or_update_projets_and_co_from_all_dossiers(batch_size=5)
 
         mock_delay.assert_not_called()
 
@@ -290,9 +268,9 @@ def test_create_or_update_projets_and_its_simulation_and_programmation_projets_f
 @pytest.mark.django_db
 def test_create_or_update_projets_batch():
     with mock.patch(
-        "gsl_projet.tasks.create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier.delay"
+        "gsl_projet.tasks.create_or_update_projet_and_co_from_dossier.delay"
     ) as mock_delay:
-        create_or_update_projets_batch((1, 2, 3))
+        create_or_update_projets_and_co_batch((1, 2, 3))
         assert mock_delay.call_count == 3
 
         mock_delay.assert_any_call(1)

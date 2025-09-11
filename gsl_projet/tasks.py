@@ -14,21 +14,23 @@ from .services.projet_services import ProjetService
 
 
 @shared_task
-def update_projet_from_dossier(ds_dossier_number):
-    ds_dossier = Dossier.objects.get(ds_number=ds_dossier_number)
-    projet = ProjetService.create_or_update_from_ds_dossier(ds_dossier)
-    DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
+def create_or_update_projets_and_co_from_all_dossiers(
+    batch_size=500,
+):
+    dossiers = Dossier.objects.exclude(ds_state="").values_list("ds_number", flat=True)
+
+    for batch in batched(dossiers, batch_size):
+        create_or_update_projets_and_co_batch.delay(batch)
 
 
 @shared_task
-def create_all_projets_from_dossiers():
-    dossiers = Dossier.objects.exclude(ds_state="")
-    for dossier in dossiers.all():
-        update_projet_from_dossier.delay(dossier.ds_number)
+def create_or_update_projets_and_co_batch(dossier_numbers: tuple[int]):
+    for ds_number in dossier_numbers:
+        create_or_update_projet_and_co_from_dossier.delay(ds_number)
 
 
 @shared_task
-def create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier(
+def create_or_update_projet_and_co_from_dossier(
     ds_dossier_number,
 ):
     ds_dossier = Dossier.objects.get(ds_number=ds_dossier_number)
@@ -42,24 +44,6 @@ def create_or_update_projet_and_its_simulation_and_programmation_projets_from_do
         )
         SimulationProjetService.update_simulation_projets_from_dotation_projet(
             dotation_projet
-        )
-
-
-@shared_task
-def create_or_update_projets_and_its_simulation_and_programmation_projets_from_all_dossiers(
-    batch_size=500,
-):
-    dossiers = Dossier.objects.exclude(ds_state="").values_list("ds_number", flat=True)
-
-    for batch in batched(dossiers, batch_size):
-        create_or_update_projets_batch.delay(batch)
-
-
-@shared_task
-def create_or_update_projets_batch(dossier_numbers: tuple[int]):
-    for ds_number in dossier_numbers:
-        create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier.delay(
-            ds_number
         )
 
 
