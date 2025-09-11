@@ -1,0 +1,149 @@
+mutation modifierAnnotationCheckbox($input: DossierModifierAnnotationCheckboxInput!) {
+  dossierModifierAnnotationCheckbox(input: $input) {
+    clientMutationId
+    annotation{
+      id
+      label
+      stringValue
+    }
+    errors {
+      message
+    }
+  }
+}
+
+mutation dossierRepasserEnInstruction($input: DossierRepasserEnInstructionInput!) {
+  dossierRepasserEnInstruction(input: $input) {
+    clientMutationId
+    dossier {
+      archived
+      connectionUsager
+      dateDepot
+      dateDerniereCorrectionEnAttente
+      dateDerniereModification
+      dateDerniereModificationAnnotations
+      dateDerniereModificationChamps
+      dateExpiration
+      datePassageEnConstruction
+      datePassageEnInstruction
+      datePrevisionnelleDecisionSVASVR
+      dateSuppressionParAdministration
+      dateSuppressionParUsager
+      dateTraitement
+      dateTraitementSVASVR
+      deposeParUnTiers
+      id
+      motivation
+      nomMandataire
+      number
+      prefilled
+      prenomMandataire
+      state
+    }
+    errors {
+      message
+    }
+  }
+}
+
+mutation dossierAccepter($input: DossierAccepterInput!) {
+  dossierAccepter(input: $input) {
+    clientMutationId
+    dossier {
+      archived
+      connectionUsager
+      dateDepot
+      dateDerniereCorrectionEnAttente
+      dateDerniereModification
+      dateDerniereModificationAnnotations
+      dateDerniereModificationChamps
+      dateExpiration
+      datePassageEnConstruction
+      datePassageEnInstruction
+      datePrevisionnelleDecisionSVASVR
+      dateSuppressionParAdministration
+      dateSuppressionParUsager
+      dateTraitement
+      dateTraitementSVASVR
+      deposeParUnTiers
+      id
+      motivation
+      nomMandataire
+      number
+      prefilled
+      prenomMandataire
+      state
+    }
+    errors {
+      message
+    }
+  }
+}
+
+  mutation dossierRefuser($input: DossierRefuserInput!) {
+  dossierRefuser(input: $input) {
+    clientMutationId
+    dossier {
+      archived
+      connectionUsager
+      dateDepot
+      dateDerniereCorrectionEnAttente
+      dateDerniereModification
+      dateDerniereModificationAnnotations
+      dateDerniereModificationChamps
+      dateExpiration
+      datePassageEnConstruction
+      datePassageEnInstruction
+      datePrevisionnelleDecisionSVASVR
+      dateSuppressionParAdministration
+      dateSuppressionParUsager
+      dateTraitement
+      dateTraitementSVASVR
+      deposeParUnTiers
+      id
+      motivation
+      nomMandataire
+      number
+      prefilled
+      prenomMandataire
+      state
+    }
+    errors {
+      message
+    }
+  }
+}
+
+ mutation dossierPasserEnInstruction($input: DossierPasserEnInstructionInput!) {
+  dossierPasserEnInstruction(input: $input) {
+    clientMutationId
+    dossier {
+      archived
+      connectionUsager
+      dateDepot
+      dateDerniereCorrectionEnAttente
+      dateDerniereModification
+      dateDerniereModificationAnnotations
+      dateDerniereModificationChamps
+      dateExpiration
+      datePassageEnConstruction
+      datePassageEnInstruction
+      datePrevisionnelleDecisionSVASVR
+      dateSuppressionParAdministration
+      dateSuppressionParUsager
+      dateTraitement
+      dateTraitementSVASVR
+      deposeParUnTiers
+      id
+      motivation
+      nomMandataire
+      number
+      prefilled
+      prenomMandataire
+      state
+    }
+    errors {
+      message
+    }
+  }
+}

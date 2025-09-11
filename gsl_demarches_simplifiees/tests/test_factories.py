@@ -4,6 +4,7 @@ from gsl_demarches_simplifiees.models import (
     Arrondissement,
     Demarche,
     Dossier,
+    FieldMappingForComputer,
     NaturePorteurProjet,
     PersonneMorale,
 )
@@ -12,6 +13,7 @@ from .factories import (
     DemarcheFactory,
     DossierFactory,
     DsArrondissementFactory,
+    FieldMappingForComputerFactory,
     NaturePorteurProjetFactory,
     PersonneMoraleFactory,
 )
@@ -24,6 +26,7 @@ test_data = (
     (NaturePorteurProjetFactory, NaturePorteurProjet),
     (DsArrondissementFactory, Arrondissement),
     (PersonneMoraleFactory, PersonneMorale),
+    (FieldMappingForComputerFactory, FieldMappingForComputer),
 )
 
 
