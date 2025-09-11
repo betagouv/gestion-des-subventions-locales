@@ -17,10 +17,14 @@ from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, DOTATIONS
 from gsl_projet.models import CategorieDetr, DotationProjet, Projet
 from gsl_projet.services.projet_services import ProjetService
-from gsl_projet.utils.django_filters_custom_widget import CustomCheckboxSelectMultiple
+from gsl_projet.utils.django_filters_custom_widget import (
+    CustomCheckboxSelectMultiple,
+    CustomSelectWidget,
+)
 from gsl_projet.utils.filter_utils import FilterUtils
+from gsl_projet.utils.projet_filters import ProjetOrderingFilter
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
-from gsl_projet.views import ProjetFilters
+from gsl_projet.views import BaseProjetFilters
 from gsl_simulation.forms import SimulationForm
 from gsl_simulation.models import Simulation, SimulationProjet
 from gsl_simulation.resources import (
@@ -61,7 +65,7 @@ class SimulationListView(ListView):
         return qs
 
 
-class SimulationProjetListViewFilters(ProjetFilters):
+class SimulationProjetListViewFilters(BaseProjetFilters):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.slug = self.request.resolver_match.kwargs.get("slug")
@@ -94,6 +98,23 @@ class SimulationProjetListViewFilters(ProjetFilters):
         "montant_demande",
         "montant_previsionnel",
         "categorie_detr",
+    )
+
+    ORDERING_MAP = {
+        **BaseProjetFilters.ORDERING_MAP,
+        "dotationprojet__simulationprojet__montant": "montant_previsionnel",
+    }
+
+    ORDERING_LABELS = {
+        **BaseProjetFilters.ORDERING_LABELS,
+        "dotationprojet__simulationprojet__montant": "Montant prévisionnel",
+    }
+
+    order = ProjetOrderingFilter(
+        fields=ORDERING_MAP,
+        field_labels=ORDERING_LABELS,
+        empty_label="Tri",
+        widget=CustomSelectWidget,
     )
 
     ordered_status = (
