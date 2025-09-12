@@ -85,6 +85,19 @@ def test_update_decimal_field_functions_call_generic_function_success(
     )
 
 
+@mock.patch.object(DsService, "_update_decimal_field")
+def test_update_decimal_field_functions_with_None(
+    update_boolean_field_mocker, user, dossier
+):
+    ds_service = DsService()
+    ds_service_function = getattr(ds_service, "update_ds_assiette")
+
+    ds_service_function(dossier, user, None)
+    update_boolean_field_mocker.assert_called_once_with(
+        dossier, user, 0, "annotations_assiette"
+    )
+
+
 @pytest.mark.parametrize(
     "function, mutation_type",
     (("_update_boolean_field", "checkbox"), ("_update_decimal_field", "decimal")),

@@ -121,7 +121,6 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         dotation_projet.clean()
         return cleaned_data
 
-    # TODO test it
     def save(self, commit=True, field_exceptions=None):
         instance = super().save(commit=False)
         save_assiette = True

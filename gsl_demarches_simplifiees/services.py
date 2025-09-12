@@ -46,7 +46,9 @@ class DsService:
     ):
         return self._update_boolean_field(dossier, user, value, "annotations_is_crte")
 
-    def update_ds_assiette(self, dossier: Dossier, user: Collegue, value: float):
+    def update_ds_assiette(self, dossier: Dossier, user: Collegue, value: float | None):
+        if value is None:
+            value = 0
         return self._update_decimal_field(dossier, user, value, "annotations_assiette")
 
     # Private
@@ -59,7 +61,6 @@ class DsService:
     def _update_decimal_field(
         self, dossier: Dossier, user: Collegue, value: float | Decimal, field: str
     ):
-        # TODO if decimal => float, but if text => error !!
         return self._update_annotation_field(
             dossier, user, float(value), field, "decimal"
         )
