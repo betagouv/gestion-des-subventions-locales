@@ -1,11 +1,11 @@
 from datetime import UTC
 
 import pytest
-from django.db.models import Count, Q
+from django.db.models import Count, F, Q
 from django.urls import reverse
 from django.utils import timezone
 
-from gsl_core.models import Collegue, Departement
+from gsl_core.models import Collegue, Departement, Perimetre
 from gsl_core.tests.factories import (
     ArrondissementFactory,
     ClientWithLoggedUserFactory,
@@ -28,8 +28,13 @@ from gsl_projet.tests.factories import (
     DsilProjetFactory,
     ProjetFactory,
 )
-from gsl_projet.utils.projet_filters import ProjetFilters
-from gsl_projet.views import ProjetListView, ProjetListViewFilters
+from gsl_projet.views import (
+    BaseProjetFilters as ProjetFilters,
+)
+from gsl_projet.views import (
+    ProjetListView,
+    ProjetListViewFilters,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -39,10 +44,14 @@ def dep_finistere() -> Departement:
     return DepartementFactory(name="Finistère")
 
 
+@pytest.fixture()
+def perimetre(dep_finistere) -> Perimetre:
+    return PerimetreFactory(departement=dep_finistere)
+
+
 @pytest.fixture
-def finisterien(dep_finistere) -> Collegue:
+def finisterien(perimetre) -> Collegue:
     collegue = CollegueFactory()
-    perimetre = PerimetreFactory(departement=dep_finistere)
     collegue.perimetre = perimetre
     collegue.save()
     return collegue
@@ -69,14 +78,20 @@ def view() -> ProjetListView:
 @pytest.mark.parametrize(
     "tri_param,expected_ordering",
     [
-        ("-date", ("-dossier_ds__ds_date_depot",)),
-        ("date", ("dossier_ds__ds_date_depot",)),
-        ("-cout", ("-dossier_ds__finance_cout_total",)),
-        ("cout", ("dossier_ds__finance_cout_total",)),
-        ("-demandeur", ("-demandeur__name",)),
-        ("demandeur", ("demandeur__name",)),
-        (None, ("-dossier_ds__ds_date_depot",)),  # Test valeur par défaut
-        ("invalid_value", ("-dossier_ds__ds_date_depot",)),  # Test valeur invalide
+        ("-date", (F("dossier_ds__ds_date_depot").desc(nulls_last=True),)),
+        ("date", (F("dossier_ds__ds_date_depot").asc(nulls_last=True),)),
+        ("-cout", (F("dossier_ds__finance_cout_total").desc(nulls_last=True),)),
+        ("cout", (F("dossier_ds__finance_cout_total").asc(nulls_last=True),)),
+        ("-demandeur", (F("demandeur__name").desc(nulls_last=True),)),
+        ("demandeur", (F("demandeur__name").asc(nulls_last=True),)),
+        (
+            None,
+            (F("dossier_ds__ds_date_depot").desc(nulls_last=True),),
+        ),  # Test valeur par défaut
+        (
+            "invalid_value",
+            (F("dossier_ds__ds_date_depot").desc(nulls_last=True),),
+        ),  # Test valeur invalide
     ],
 )
 def test_get_ordering(req, view, tri_param, expected_ordering):
@@ -502,7 +517,7 @@ def test_filter_with_wrong_values(
 
 
 @pytest.fixture
-def projets_with_montant_retenu(demandeur) -> list[Projet]:
+def projets_with_montant_retenu(demandeur, perimetre) -> list[Projet]:
     projets = []
     for detr_montant, dsil_montant in (
         (None, 50_000),
@@ -514,6 +529,7 @@ def projets_with_montant_retenu(demandeur) -> list[Projet]:
     ):
         projet = ProjetFactory(
             demandeur=demandeur,
+            perimetre=perimetre,
         )
         detr_projet = DetrProjetFactory(projet=projet)
         if detr_montant is not None:
@@ -620,6 +636,15 @@ def test_filter_with_wrong_montant_retenu_values(
     qs = view.get_filterset(ProjetFilters).qs
 
     assert qs.count() == 6
+
+
+def test_order_by_montant_retenu(req, view, projets_with_montant_retenu):
+    request = req.get("/", data={"order": "-montant_retenu"})
+    view.request = request
+    qs = view.get_filterset(ProjetListViewFilters).qs
+
+    assert qs.count() == 6
+    assert qs[0].dotation_detr.montant_retenu == 150_000
 
 
 ### Test du filtre par montant demandé

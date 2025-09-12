@@ -2,7 +2,7 @@ from functools import cached_property
 
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
-from gsl_projet.utils.projet_filters import ProjetFilters
+from gsl_projet.utils.projet_filters import BaseProjetFilters
 
 
 class FilterUtils:
@@ -19,7 +19,7 @@ class FilterUtils:
         "notified": "includes/_filter_notified.html",
     }
 
-    DOTATION_MAPPING = dict(ProjetFilters.DOTATION_CHOICES)
+    DOTATION_MAPPING = dict(BaseProjetFilters.DOTATION_CHOICES)
     PORTEUR_MAPPING = dict(NaturePorteurProjet.TYPE_CHOICES)
 
     def enrich_context_with_filter_utils(
