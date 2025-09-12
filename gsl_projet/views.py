@@ -1,6 +1,6 @@
 from functools import cached_property
 
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Sum
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -90,12 +90,12 @@ class ProjetListViewFilters(BaseProjetFilters):
 
     ORDERING_MAP = {
         **BaseProjetFilters.ORDERING_MAP,
-        "dotationprojet__programmation_projet__montant": "montant_retenu",
+        "montant_retenu_total": "montant_retenu",
     }
 
     ORDERING_LABELS = {
         **BaseProjetFilters.ORDERING_LABELS,
-        "dotationprojet__programmation_projet__montant": "Montant retenu",
+        "montant_retenu_total": "Montant retenu",
     }
 
     order = ProjetOrderingFilter(
@@ -121,6 +121,9 @@ class ProjetListViewFilters(BaseProjetFilters):
         from gsl_programmation.models import ProgrammationProjet
 
         qs = super().qs
+        qs = qs.annotate(
+            montant_retenu_total=Sum("dotationprojet__programmation_projet__montant")
+        )
         qs = qs.for_user(self.request.user)
         qs = qs.for_current_year()
         qs = qs.select_related(
