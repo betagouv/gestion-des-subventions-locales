@@ -1,5 +1,7 @@
 import logging
 
+from django.utils import timezone
+
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverter
 from gsl_demarches_simplifiees.models import Demarche, Dossier
@@ -34,14 +36,15 @@ def save_demarche_dossiers_from_ds(demarche_number):
 def save_one_dossier_from_ds(dossier: Dossier):
     client = DsClient()
     dossier_data = client.get_one_dossier(dossier.ds_number)
-    if dossier_data["dateDerniereModification"] > dossier.ds_date_derniere_modification:
-        dossier.raw_ds_data = dossier_data
-        dossier.save()
-    refresh_dossier_from_saved_data(dossier.ds_number)
+    date_modif_ds = dossier_data.get("dateDerniereModification", None)
+    if date_modif_ds:
+        date_modif_ds = timezone.datetime.fromisoformat(date_modif_ds)
+        if date_modif_ds > dossier.ds_date_derniere_modification:
+            dossier.raw_ds_data = dossier_data
+            refresh_dossier_from_saved_data(dossier)
 
 
-def refresh_dossier_from_saved_data(dossier_ds_number):
-    dossier = Dossier.objects.get(ds_number=dossier_ds_number)
+def refresh_dossier_from_saved_data(dossier: Dossier):
     dossier_converter = DossierConverter(dossier.raw_ds_data, dossier)
     dossier_converter.fill_unmapped_fields()
     dossier_converter.convert_all_fields()
