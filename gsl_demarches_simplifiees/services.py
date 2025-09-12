@@ -1,4 +1,5 @@
 from logging import getLogger
+from typing import Callable, Literal
 
 from django.core.exceptions import FieldDoesNotExist
 
@@ -16,6 +17,16 @@ logger = getLogger(__name__)
 
 
 class DsService:
+    MUTATION_KEYS = {
+        "checkbox": "dossierModifierAnnotationCheckbox",
+        "decimal": "dossierModifierAnnotationDecimalNumber",
+    }
+
+    MUTATION_FUNCTION = {
+        "checkbox": "dossier_modifier_annotation_checkbox",
+        "decimal": "dossier_modifier_annotation_decimal",
+    }
+
     def __init__(self):
         self.mutator = DsMutator()
 
@@ -40,6 +51,21 @@ class DsService:
 
     def _update_boolean_field(
         self, dossier: Dossier, user: Collegue, value: bool, field: str
+    ):
+        return self._update_annotation_field(dossier, user, value, field, "checkbox")
+
+    def _update_decimal_field(
+        self, dossier: Dossier, user: Collegue, value: float, field: str
+    ):
+        return self._update_annotation_field(dossier, user, value, field, "decimal")
+
+    def _update_annotation_field(
+        self,
+        dossier: Dossier,
+        user: Collegue,
+        value: float | bool,
+        field: str,
+        mutation_type: Literal["checkbox", "decimal"],
     ):
         instructeur_id = user.ds_id
         if not bool(instructeur_id):
@@ -66,16 +92,17 @@ class DsService:
 
         ds_field_id = ds_field.ds_field_id
 
-        results = self.mutator.dossier_modifier_annotation_checkbox(
-            dossier.ds_id, instructeur_id, ds_field_id, value
+        mutator_function_name = self.MUTATION_FUNCTION[mutation_type]
+        mutation_key = self.MUTATION_KEYS[mutation_type]
+
+        mutator_function: Callable[[str, str, str, bool | float], dict] = getattr(
+            self.mutator, mutator_function_name
         )
+
+        results = mutator_function(dossier.ds_id, instructeur_id, ds_field_id, value)
         data = results.get("data", None)
 
-        if (
-            data is None
-            or "dossierModifierAnnotationCheckbox" in data
-            and data["dossierModifierAnnotationCheckbox"] is None
-        ):
+        if data is None or mutation_key in data and data.get(mutation_key) is None:
             if "errors" in results.keys():
                 errors = results["errors"]
                 messages = [error["message"] for error in errors]
@@ -92,7 +119,7 @@ class DsService:
                 raise DsServiceException
 
         else:
-            mutation_data = data["dossierModifierAnnotationCheckbox"]
+            mutation_data = data.get(mutation_key)
             if "errors" in mutation_data:
                 errors = mutation_data["errors"]
                 if bool(errors):

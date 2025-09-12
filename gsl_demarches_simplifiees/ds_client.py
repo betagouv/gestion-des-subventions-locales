@@ -136,6 +136,28 @@ class DsMutator(DsClientBase):
             "modifierAnnotationCheckbox", variables=variables
         )
 
+    def dossier_modifier_annotation_decimal(
+        self,
+        dossier_id: str,
+        instructeur_id: str,
+        field_id: str,
+        value: float,
+        include_annotations=False,
+    ):
+        variables = {
+            "input": {
+                "clientMutationId": settings.DS_CLIENT_ID,
+                "annotationId": field_id,
+                "dossierId": dossier_id,
+                "instructeurId": instructeur_id,
+                "value": value,
+            },
+            "includeAnnotations": include_annotations,
+        }
+        return self.launch_graphql_query(
+            "modifierAnnotationDecimalNumber", variables=variables
+        )
+
     def dossier_repasser_en_instruction(
         self, dossier_id, instructeur_id, disable_notification=False
     ):

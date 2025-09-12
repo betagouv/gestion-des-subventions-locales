@@ -15,6 +15,23 @@ mutation modifierAnnotationCheckbox(
   }
 }
 
+mutation modifierAnnotationDecimalNumber(
+    $input: DossierModifierAnnotationDecimalNumberInput!
+    $includeAnnotations: Boolean = false
+  ) {
+  dossierModifierAnnotationDecimalNumber(input: $input) {
+    clientMutationId
+    annotation @include(if: $includeAnnotations) {
+      id
+      label
+      stringValue
+    }
+    errors {
+      message
+    }
+  }
+}
+
 mutation dossierRepasserEnInstruction($input: DossierRepasserEnInstructionInput!) {
   dossierRepasserEnInstruction(input: $input) {
     clientMutationId
