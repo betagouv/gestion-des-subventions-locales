@@ -1,7 +1,5 @@
 import logging
 
-from celery import shared_task
-
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverter
 from gsl_demarches_simplifiees.models import Demarche, Dossier
@@ -13,6 +11,8 @@ def camelcase(my_string):
 
 
 def save_demarche_dossiers_from_ds(demarche_number):
+    from gsl_demarches_simplifiees.tasks import task_refresh_dossier_from_saved_data
+
     client = DsClient()
     demarche_dossiers = client.get_demarche_dossiers(demarche_number)
     for i, dossier_data in enumerate(demarche_dossiers):
@@ -23,7 +23,7 @@ def save_demarche_dossiers_from_ds(demarche_number):
                 ds_id, ds_dossier_number, demarche_number, dossier_data
             )
             dossier.save()
-            refresh_dossier_from_saved_data.delay(dossier.ds_number)
+            task_refresh_dossier_from_saved_data.delay(dossier.ds_number)
         except Exception as e:
             logging.error(
                 f"Erreur pour le {i}ème dossier de la démarche {demarche_number}",
@@ -40,7 +40,6 @@ def save_one_dossier_from_ds(dossier: Dossier):
     refresh_dossier_from_saved_data(dossier.ds_number)
 
 
-@shared_task
 def refresh_dossier_from_saved_data(dossier_ds_number):
     dossier = Dossier.objects.get(ds_number=dossier_ds_number)
     dossier_converter = DossierConverter(dossier.raw_ds_data, dossier)
