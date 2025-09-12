@@ -121,12 +121,21 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         dotation_projet.clean()
         return cleaned_data
 
-    def save(self, commit=True):
+    # TODO test it
+    def save(self, commit=True, field_exceptions=None):
         instance = super().save(commit=False)
+        save_assiette = True
+
+        if field_exceptions is not None:
+            for field in field_exceptions:
+                if field == "assiette":
+                    save_assiette = False
+                else:
+                    setattr(instance, field, self.initial[field])
 
         dotation_projet = instance.dotation_projet
-        if dotation_projet:
-            dotation_projet.assiette = self.cleaned_data.get("assiette")
+        if dotation_projet and not (save_assiette):
+            dotation_projet.assiette = self.fields["assiette"].initial
 
         if commit:
             dotation_projet.save()

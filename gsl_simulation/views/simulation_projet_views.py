@@ -114,41 +114,11 @@ def patch_dotation_projet(request, pk):
 def patch_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     form = ProjetForm(request.POST, instance=simulation_projet.projet)
-
-    if not form.is_valid():
-        messages.error(
-            request,
-            "Une erreur s'est produite lors de la soumission du formulaire. "
-            "Veuillez sélectionner au moins une dotation.",
-        )
-        return redirect_to_same_page_or_to_simulation_detail_by_default(
-            request, simulation_projet, add_message=False
-        )
-
-    errors, blocking = process_projet_update(
-        form, simulation_projet.projet, request.user
+    result = _check_form_and_update_on_ds(
+        request, simulation_projet, form, "Veuillez sélectionner au moins une dotation."
     )
-
-    if blocking:
-        messages.error(
-            request,
-            "Une erreur est survenue lors de la mise à jour des informations "
-            f"sur Démarches Simplifiées. {errors['all']}",
-        )
-        return redirect_to_same_page_or_to_simulation_detail_by_default(
-            request, simulation_projet
-        )
-
-    if errors:
-        msg = build_error_message(errors)
-        messages.error(
-            request,
-            f"Une erreur est survenue lors de la mise à jour de certaines "
-            f"informations sur Démarches Simplifiées ({msg}). "
-            "Ces modifications n'ont pas été enregistrées.",
-        )
-    else:
-        messages.success(request, "Les modifications ont été enregistrées avec succès.")
+    if result is not None:
+        return result
 
     try:
         simulation_projet.refresh_from_db()
@@ -200,25 +170,31 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
             SimulationProjet, id=request.resolver_match.kwargs.get("pk")
         )
         form = SimulationProjetForm(request.POST, instance=simulation_projet)
-        if form.is_valid():
-            form.save()
-            messages.success(
+        if not form.is_valid():
+            messages.error(
                 request,
-                "Les modifications ont été enregistrées avec succès.",
-            )
-            return redirect_to_same_page_or_to_simulation_detail_by_default(
-                request, simulation_projet
+                "Une erreur s'est produite lors de la soumission du formulaire.",
             )
 
-        messages.error(
+            self.object = simulation_projet
+            self.simulation_projet = simulation_projet
+            context = self.get_context_data(**kwargs)
+            context["simulation_projet_form"] = form
+            return render(
+                request, "gsl_simulation/simulation_projet_detail.html", context
+            )
+
+        result = _check_form_and_update_on_ds(
             request,
-            "Une erreur s'est produite lors de la soumission du formulaire.",
+            simulation_projet,
+            form,
         )
-        self.object = simulation_projet
-        self.simulation_projet = simulation_projet
-        context = self.get_context_data(**kwargs)
-        context["simulation_projet_form"] = form
-        return render(request, "gsl_simulation/simulation_projet_detail.html", context)
+        if result is not None:
+            return result
+
+        return redirect_to_same_page_or_to_simulation_detail_by_default(
+            request, simulation_projet
+        )
 
 
 def redirect_to_same_page_or_to_simulation_detail_by_default(
@@ -371,3 +347,42 @@ def _get_other_dotation_simulation_projet(
         .order_by("-updated_at")
         .first()
     )
+
+
+def _check_form_and_update_on_ds(
+    request, simulation_projet, form, not_valid_form_complement_msg=""
+):
+    if not form.is_valid():
+        messages.error(
+            request,
+            f"Une erreur s'est produite lors de la soumission du formulaire. {not_valid_form_complement_msg}",
+        )
+
+        return redirect_to_same_page_or_to_simulation_detail_by_default(
+            request, simulation_projet, add_message=False
+        )
+
+    errors, blocking = process_projet_update(
+        form, simulation_projet.projet, request.user
+    )
+
+    if blocking:
+        messages.error(
+            request,
+            "Une erreur est survenue lors de la mise à jour des informations "
+            f"sur Démarches Simplifiées. {errors['all']}",
+        )
+        return redirect_to_same_page_or_to_simulation_detail_by_default(
+            request, simulation_projet
+        )
+
+    if errors:
+        msg = build_error_message(errors)
+        messages.error(
+            request,
+            f"Une erreur est survenue lors de la mise à jour de certaines "
+            f"informations sur Démarches Simplifiées ({msg}). "
+            "Ces modifications n'ont pas été enregistrées.",
+        )
+    else:
+        messages.success(request, "Les modifications ont été enregistrées avec succès.")

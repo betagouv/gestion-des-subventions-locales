@@ -1,3 +1,4 @@
+from decimal import Decimal
 from logging import getLogger
 from typing import Callable, Literal
 
@@ -31,23 +32,24 @@ class DsService:
         self.mutator = DsMutator()
 
     def update_ds_is_in_qpv(self, dossier: Dossier, user: Collegue, value: bool):
-        return self._update_boolean_field(
-            dossier, user, value, field="annotations_is_qpv"
-        )
+        return self._update_boolean_field(dossier, user, value, "annotations_is_qpv")
 
     def update_ds_is_budget_vert(
         self, dossier: Dossier, user: Collegue, value: bool | str
     ):
         return self._update_boolean_field(
-            dossier, user, bool(value), field="annotations_is_budget_vert"
+            dossier, user, bool(value), "annotations_is_budget_vert"
         )
 
     def update_ds_is_attached_to_a_crte(
         self, dossier: Dossier, user: Collegue, value: bool
     ):
-        return self._update_boolean_field(
-            dossier, user, value, field="annotations_is_crte"
-        )
+        return self._update_boolean_field(dossier, user, value, "annotations_is_crte")
+
+    def update_ds_assiette(self, dossier: Dossier, user: Collegue, value: float):
+        return self._update_decimal_field(dossier, user, value, "annotations_assiette")
+
+    # Private
 
     def _update_boolean_field(
         self, dossier: Dossier, user: Collegue, value: bool, field: str
@@ -55,9 +57,12 @@ class DsService:
         return self._update_annotation_field(dossier, user, value, field, "checkbox")
 
     def _update_decimal_field(
-        self, dossier: Dossier, user: Collegue, value: float, field: str
+        self, dossier: Dossier, user: Collegue, value: float | Decimal, field: str
     ):
-        return self._update_annotation_field(dossier, user, value, field, "decimal")
+        # TODO if decimal => float, but if text => error !!
+        return self._update_annotation_field(
+            dossier, user, float(value), field, "decimal"
+        )
 
     def _update_annotation_field(
         self,
@@ -98,7 +103,6 @@ class DsService:
         mutator_function: Callable[[str, str, str, bool | float], dict] = getattr(
             self.mutator, mutator_function_name
         )
-
         results = mutator_function(dossier.ds_id, instructeur_id, ds_field_id, value)
         data = results.get("data", None)
 

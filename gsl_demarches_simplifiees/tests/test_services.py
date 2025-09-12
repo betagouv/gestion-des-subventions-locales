@@ -53,7 +53,7 @@ def test_update_boolean_field_functions_call_generic_function_success(
     ds_service_function = getattr(ds_service, function)
     ds_service_function(dossier, user, "true")
     update_boolean_field_mocker.assert_called_once_with(
-        dossier, user, "true", field=field_name
+        dossier, user, "true", field_name
     )
 
 
@@ -68,7 +68,20 @@ def test_update_ds_is_budget_vert_functions_call_generic_function_success(
 
     ds_service.update_ds_is_budget_vert(dossier, user, value)
     update_boolean_field_mocker.assert_called_once_with(
-        dossier, user, expected_param, field="annotations_is_budget_vert"
+        dossier, user, expected_param, "annotations_is_budget_vert"
+    )
+
+
+@mock.patch.object(DsService, "_update_decimal_field")
+def test_update_decimal_field_functions_call_generic_function_success(
+    update_boolean_field_mocker, user, dossier
+):
+    ds_service = DsService()
+
+    ds_service_function = getattr(ds_service, "update_ds_assiette")
+    ds_service_function(dossier, user, 250.33)
+    update_boolean_field_mocker.assert_called_once_with(
+        dossier, user, 250.33, "annotations_assiette"
     )
 
 

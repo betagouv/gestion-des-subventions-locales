@@ -1,3 +1,5 @@
+from typing import List, Literal, Mapping, get_args
+
 from django.db import transaction
 
 from gsl_demarches_simplifiees.exceptions import (
@@ -7,7 +9,19 @@ from gsl_demarches_simplifiees.exceptions import (
 )
 from gsl_demarches_simplifiees.services import DsService
 
-FIELDS_UPDATABLE_ON_DS = ["is_in_qpv", "is_attached_to_a_crte", "is_budget_vert"]
+DsUpdatableFields = Literal[
+    "is_in_qpv",
+    "is_attached_to_a_crte",
+    "is_budget_vert",
+    "assiette",
+]
+FIELDS_UPDATABLE_ON_DS: List[DsUpdatableFields] = list(get_args(DsUpdatableFields))
+FIELDS_TO_DS_SERVICE_FUNCTIONS: Mapping[DsUpdatableFields, str] = {
+    "is_in_qpv": "update_ds_is_in_qpv",
+    "is_attached_to_a_crte": "update_ds_is_attached_to_a_crte",
+    "is_budget_vert": "update_ds_is_budget_vert",
+    "assiette": "update_ds_assiette",
+}
 
 
 def process_projet_update(form, projet, user):
@@ -23,7 +37,9 @@ def process_projet_update(form, projet, user):
         for field in FIELDS_UPDATABLE_ON_DS:
             if field in form.changed_data:
                 try:
-                    update_function = getattr(ds_service, f"update_ds_{field}")
+                    update_function = getattr(
+                        ds_service, FIELDS_TO_DS_SERVICE_FUNCTIONS[field]
+                    )
                     update_function(
                         projet.dossier_ds,
                         user,
