@@ -16,6 +16,7 @@ from gsl_core.tests.factories import (
     PerimetreRegionalFactory,
     RequestFactory,
 )
+from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.models import Dossier, NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
@@ -721,6 +722,7 @@ def accepted_simulation_projet(collegue, simulation) -> SimulationProjet:
         status=PROJET_STATUS_PROCESSING,
         assiette=10_000,
         projet__perimetre=collegue.perimetre,
+        projet__is_budget_vert=None,
         dotation=DOTATION_DETR,
     )
 
@@ -920,7 +922,7 @@ possible_responses = [
                 }
             }
         },
-        "Vous n'avez pas les droits suffisants pour modifier ce champ.",
+        "Une erreur est survenue lors de la mise \xe0 jour des informations sur D\xe9marches Simplifi\xe9es. Vous n'avez pas les droits suffisants pour modifier ce dossier.",
     ),
     # Invalid payload (ex: wrong dossier id)
     (
@@ -935,7 +937,7 @@ possible_responses = [
             ],
             "data": {"dossierModifierAnnotationCheckbox": None},
         },
-        "",
+        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field}). Ces modifications n'ont pas été enregistrées.",
     ),
     # Invalid field id
     (
@@ -949,7 +951,7 @@ possible_responses = [
             ],
             "data": {"dossierModifierAnnotationCheckbox": None},
         },
-        "",
+        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field}). Ces modifications n'ont pas été enregistrées.",
     ),
     # Invalid value
     (
@@ -976,7 +978,7 @@ possible_responses = [
                 }
             ]
         },
-        "",
+        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field}). Ces modifications n'ont pas été enregistrées.",
     ),
     # Other error
     (
@@ -987,24 +989,23 @@ possible_responses = [
                 }
             }
         },
-        "Une erreur",
+        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field} => Une erreur). Ces modifications n'ont pas été enregistrées.",
     ),
 ]
+# field, data, initial_value, field_label
+boolean_fields_data = (
+    ("is_budget_vert", {"is_budget_vert": "True"}, False, "Budget vert"),
+    ("is_budget_vert", {"is_budget_vert": "False"}, None, "Budget vert"),
+    ("is_budget_vert", {"is_budget_vert": ""}, True, "Budget vert"),
+    ("is_attached_to_a_crte", {"is_attached_to_a_crte": "on"}, False, "CRTE"),
+    ("is_attached_to_a_crte", {}, True, "CRTE"),
+    ("is_in_qpv", {"is_in_qpv": "on"}, False, "QPV"),
+    ("is_in_qpv", {}, True, "QPV"),
+)
 
 
 @pytest.mark.parametrize("mocked_response, msg", possible_responses)
-@pytest.mark.parametrize(
-    "field, data, initial_value",
-    (
-        # ("is_budget_vert", {"is_budget_vert": "True"}, False),
-        # ("is_budget_vert", {"is_budget_vert": "False"}, None),
-        # ("is_budget_vert", {"is_budget_vert": ""}, True),
-        # ("is_attached_to_a_crte", {"is_attached_to_a_crte": "on"}, False),
-        # ("is_attached_to_a_crte", {}, True),
-        ("is_in_qpv", {"is_in_qpv": "on"}, False),
-        ("is_in_qpv", {}, True),
-    ),
-)
+@pytest.mark.parametrize("field, data, initial_value, field_label", boolean_fields_data)
 def test_patch_projet_with_ds_service_exception_send_correct_error_msg_to_user_and_cancel_update(
     client_with_user_logged,
     accepted_simulation_projet,
@@ -1013,6 +1014,7 @@ def test_patch_projet_with_ds_service_exception_send_correct_error_msg_to_user_a
     field,
     data,
     initial_value,
+    field_label,
     ds_field,
 ):
     accepted_simulation_projet.projet.__setattr__(field, initial_value)
@@ -1045,10 +1047,8 @@ def test_patch_projet_with_ds_service_exception_send_correct_error_msg_to_user_a
     assert len(messages) == 1
     message = list(messages)[0]
     assert message.level == 40  # Error
-    assert (
-        f"Une erreur est survenue lors de la mise \xe0 jour du champ QPV dans D\xe9marches Simplifi\xe9es. {msg}"
-        == message.message
-    )
+    final_msg = msg.replace("{field}", field_label)
+    assert message.message == final_msg
 
     accepted_simulation_projet.projet.refresh_from_db()
 
@@ -1056,18 +1056,8 @@ def test_patch_projet_with_ds_service_exception_send_correct_error_msg_to_user_a
     assert accepted_simulation_projet.projet.__getattribute__(field) is initial_value
 
 
-# TODO factorize this list in next PR
 @pytest.mark.parametrize(
-    "field, data, initial_value",
-    (
-        # ("is_budget_vert", {"is_budget_vert": "True"}, False),
-        # ("is_budget_vert", {"is_budget_vert": "False"}, None),
-        # ("is_budget_vert", {"is_budget_vert": ""}, True),
-        # ("is_attached_to_a_crte", {"is_attached_to_a_crte": "on"}, False),
-        # ("is_attached_to_a_crte", {}, True),
-        ("is_in_qpv", {"is_in_qpv": "on"}, False),
-        ("is_in_qpv", {}, True),
-    ),
+    "field, data, initial_value, _field_label", boolean_fields_data
 )
 def test_patch_projet_with_user_without_ds_id(
     perimetre_departemental,
@@ -1075,6 +1065,7 @@ def test_patch_projet_with_user_without_ds_id(
     field,
     data,
     initial_value,
+    _field_label,
 ):
     collegue = CollegueFactory(perimetre=perimetre_departemental, ds_id="")
     client = ClientWithLoggedUserFactory(collegue)
@@ -1098,7 +1089,7 @@ def test_patch_projet_with_user_without_ds_id(
     message = list(messages)[0]
     assert message.level == 40  # Error
     assert (
-        "Une erreur est survenue lors de la mise \xe0 jour du champ QPV dans D\xe9marches Simplifi\xe9es. Nous ne connaissons pas votre identifiant DS."
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarches Simplifiées. Nous ne connaissons pas votre identifiant DS."
         == message.message
     )
 
@@ -1106,6 +1097,59 @@ def test_patch_projet_with_user_without_ds_id(
 
     assert response.status_code == 200
     assert accepted_simulation_projet.projet.__getattribute__(field) is initial_value
+
+
+def test_two_fields_update_and_only_one_error(
+    perimetre_departemental, accepted_simulation_projet
+):
+    collegue = CollegueFactory(perimetre=perimetre_departemental, ds_id="")
+    client = ClientWithLoggedUserFactory(collegue)
+    accepted_simulation_projet.projet.is_in_qpv = False
+    accepted_simulation_projet.projet.is_attached_to_a_crte = False
+    accepted_simulation_projet.projet.save()
+    data = {
+        "is_in_qpv": "on",
+        "is_attached_to_a_crte": "on",
+        "dotations": [DOTATION_DSIL],
+    }
+
+    with (
+        patch(
+            "gsl_demarches_simplifiees.services.DsService.update_ds_is_in_qpv",
+            return_value=True,
+        ),
+        patch(
+            "gsl_demarches_simplifiees.services.DsService.update_ds_is_attached_to_a_crte",
+            side_effect=DsServiceException("Erreur !"),
+        ),
+    ):
+        url = reverse(
+            "simulation:patch-projet",
+            args=[accepted_simulation_projet.id],
+        )
+        response = client.post(
+            url,
+            data,
+            follow=True,
+        )
+
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 40  # Error
+    assert (
+        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées (CRTE => Erreur !). Ces modifications n'ont pas été enregistrées."
+        == message.message
+    )
+
+    accepted_simulation_projet.projet.refresh_from_db()
+
+    assert response.status_code == 200
+
+    assert (
+        accepted_simulation_projet.projet.is_in_qpv is True
+    )  # Only this field has been updated
+    assert accepted_simulation_projet.projet.is_attached_to_a_crte is False
 
 
 def test_get_projet_queryset_calls_prefetch(req, simulation, create_simulation_projets):

@@ -19,23 +19,27 @@ class DsService:
     def __init__(self):
         self.mutator = DsMutator()
 
-    def update_ds_is_qpv(self, dossier: Dossier, user: Collegue, value: str):
+    def update_ds_is_in_qpv(self, dossier: Dossier, user: Collegue, value: bool):
         return self._update_boolean_field(
             dossier, user, value, field="annotations_is_qpv"
         )
 
-    def update_ds_is_budget_vert(self, dossier: Dossier, user: Collegue, value: str):
+    def update_ds_is_budget_vert(
+        self, dossier: Dossier, user: Collegue, value: bool | str
+    ):
         return self._update_boolean_field(
-            dossier, user, value, field="annotations_is_budget_vert"
+            dossier, user, bool(value), field="annotations_is_budget_vert"
         )
 
-    def update_ds_is_crte(self, dossier: Dossier, user: Collegue, value: str):
+    def update_ds_is_attached_to_a_crte(
+        self, dossier: Dossier, user: Collegue, value: bool
+    ):
         return self._update_boolean_field(
             dossier, user, value, field="annotations_is_crte"
         )
 
     def _update_boolean_field(
-        self, dossier: Dossier, user: Collegue, value: str, field: str
+        self, dossier: Dossier, user: Collegue, value: bool, field: str
     ):
         instructeur_id = user.ds_id
         if not bool(instructeur_id):
