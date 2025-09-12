@@ -148,15 +148,17 @@ class ProgrammationProjetFilters(FilterSet):
             return queryset
 
     ORDERING_MAP = {
-        "montant": "montant",
         "dotation_projet__projet__dossier_ds__finance_cout_total": "cout",
         "dotation_projet__projet__demandeur__name": "demandeur",
+        "montant": "montant",
+        "dotation_projet__programmation_projet__montant": "Montant retenu",
     }
 
     ORDERING_LABELS = {
-        "montant": "Montant accordé",
         "dotation_projet__projet__dossier_ds__finance_cout_total": "Coût total",
         "dotation_projet__projet__demandeur__name": "Demandeur",
+        "montant": "Montant accordé",
+        "dotation_projet__programmation_projet__montant": "Montant retenu",
     }
 
     order = ProjetOrderingFilter(
