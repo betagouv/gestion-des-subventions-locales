@@ -205,7 +205,7 @@ requests==2.32.4
     #   mozilla-django-oidc
 s3transfer==0.13.1
     # via boto3
-sentry-sdk==2.34.1
+sentry-sdk==2.35.2
     # via gsl (pyproject.toml)
 six==1.17.0
     # via python-dateutil
