@@ -282,6 +282,20 @@ def test_view_with_filters(req, simulation, create_simulation_projets):
         )
 
 
+def test_view_with_order(req, simulation, create_simulation_projets):
+    filter_params = {
+        "order": "-montant_previsionnel",
+    }
+    view = _get_view_with_filter(req, simulation, filter_params)
+    projets = view.get_projet_queryset()
+
+    assert projets.count() == 7
+    assert (
+        projets.first().dotationprojet_set.first().simulationprojet_set.first().montant
+        == 500_000
+    )
+
+
 ## Test with multiple simulations
 
 
