@@ -7,7 +7,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import resolve, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
-from django.views.generic import DetailView
+from django.views.generic import FormView, UpdateView
+from django.views.generic.edit import ModelFormMixin
 
 from gsl.settings import ALLOWED_HOSTS
 from gsl_projet.forms import DotationProjetForm, ProjetForm
@@ -21,7 +22,7 @@ from gsl_simulation.services.simulation_projet_service import (
 )
 from gsl_simulation.services.simulation_service import SimulationService
 from gsl_simulation.utils import (
-    add_success_message,
+    add_simulation_projet_status_success_message,
     build_error_message,
     replace_comma_by_dot,
 )
@@ -108,6 +109,7 @@ def patch_dotation_projet(request, pk):
     )
 
 
+# TODO Update this function
 @projet_must_be_in_user_perimetre
 @exception_handler_decorator
 @require_POST
@@ -131,8 +133,39 @@ def patch_projet(request, pk):
         )
 
 
-class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
+class ProjetFormView(ModelFormMixin, FormView):
     model = SimulationProjet
+    form_class = ProjetForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"instance": self.object.project})
+        return kwargs
+
+    def form_valid(self, form):
+        messages.success(
+            self.request,
+            "Les modifications ont été enregistrées avec succès.",
+        )
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(
+            self.request,
+            "Une erreur s'est produite lors de la soumission du formulaire.",
+        )  # mettre à jour ce message
+        # retirer les champs qui sont dans les erreurs puis on save
+
+        return super().form_invalid(form)
+
+    def get_success_url(self):
+        # idem
+        pass
+
+
+class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, UpdateView):
+    model = SimulationProjet
+    form_class = SimulationProjetForm
 
     ALLOWED_TABS = {"historique"}
 
@@ -163,48 +196,58 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
                 context, simulation_projet
             )
 
+        context["simulation_projet_form"] = self.get_form()
         return context
 
-    def post(self, request, *args, **kwargs):
-        simulation_projet = get_object_or_404(
-            SimulationProjet, id=request.resolver_match.kwargs.get("pk")
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user})
+        return kwargs
+
+    def form_valid(self, form):
+        messages.success(
+            self.request,
+            "Les modifications ont été enregistrées avec succès.",
         )
-        form = SimulationProjetForm(request.POST, instance=simulation_projet)
-        if not form.is_valid():
-            messages.error(
-                request,
-                "Une erreur s'est produite lors de la soumission du formulaire.",
-            )
 
-            self.object = simulation_projet
-            self.simulation_projet = simulation_projet
-            context = self.get_context_data(**kwargs)
-            context["simulation_projet_form"] = form
-            return render(
-                request, "gsl_simulation/simulation_projet_detail.html", context
-            )
-
-        result = _check_form_and_update_on_ds(
-            request,
-            simulation_projet,
-            form,
-        )
-        if result is not None:
-            return result
-
+        self.object = form.save()
         return redirect_to_same_page_or_to_simulation_detail_by_default(
-            request, simulation_projet
+            self.request,
+            self.object,
         )
 
+    def form_invalid(self, form: SimulationProjetForm):
+        error_msg = "Une erreur s'est produite lors de la soumission du formulaire."
+        if form.non_field_errors():
+            error_msg += form.non_field_errors().as_text()[
+                1:
+            ]  # remove the '* ' at the beginning
 
+        messages.error(self.request, error_msg)
+        if form.can_save:
+            form.save(commit=True)  # todo verify if it ok if not ds error
+
+        return super().form_invalid(form)
+
+    # def get_success_url(self):
+    #     return redirect_to_same_page_or_to_simulation_detail_by_default(
+    #         self.request, self.object
+    #     )
+
+
+# TODO make this function render an url ?
+# TODO rename function ?
+# TODO update functions which call it ?
 def redirect_to_same_page_or_to_simulation_detail_by_default(
-    request, simulation_projet, message_type: str | None = None, add_message=True
+    request, simulation_projet, message_type: str | None = None
 ):
     if request.htmx:
         return render_partial_simulation_projet(request, simulation_projet)
 
-    if add_message:
-        add_success_message(request, message_type, simulation_projet)
+    if message_type is not None:
+        add_simulation_projet_status_success_message(
+            request, message_type, simulation_projet
+        )
 
     referer = request.headers.get("Referer")
     if referer and url_has_allowed_host_and_scheme(
@@ -349,6 +392,7 @@ def _get_other_dotation_simulation_projet(
     )
 
 
+# TODO remove it at the end
 def _check_form_and_update_on_ds(
     request, simulation_projet, form, not_valid_form_complement_msg=""
 ):

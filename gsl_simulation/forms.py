@@ -3,11 +3,13 @@ from django.core.exceptions import ValidationError
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
-from gsl_core.models import Perimetre
+from gsl_core.models import Collegue, Perimetre
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.models import DotationProjet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.utils import compute_taux
 from gsl_simulation.models import SimulationProjet
+from gsl_simulation.services.projet_updater import process_projet_update
 
 
 class SimulationForm(DsfrBaseForm):
@@ -43,6 +45,16 @@ class SimulationForm(DsfrBaseForm):
                 )
 
         return cleaned_data
+
+
+# TODO use a Mixin
+# class DsSaveMixin:
+#     def save(self, commit=True):
+#         if commit:
+#             for fields in self.changed_fields:
+#                 if field in UNE_LISTE_DANS_CHAQUE_CLASSE:
+#                     fct = get_function
+#                     error = fct()
 
 
 class SimulationProjetForm(ModelForm, DsfrBaseForm):
@@ -84,7 +96,10 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         fields = ["montant"]
 
     def __init__(self, *args, **kwargs):
+        if "user" in kwargs:
+            self.user: Collegue = kwargs.pop("user")
         super().__init__(*args, **kwargs)
+        self.can_save = True
         self.fields["taux"].initial = self.instance.taux
 
         dotation_projet = (
@@ -102,7 +117,7 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         """
         cleaned_data = super().clean()
         simulation_projet = self.instance
-        dotation_projet = self.instance.dotation_projet
+        dotation_projet: DotationProjet = self.instance.dotation_projet
 
         if "assiette" in self.changed_data or "montant" in self.changed_data:
             computed_taux = compute_taux(
@@ -119,25 +134,50 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
 
         dotation_projet.assiette = cleaned_data.get("assiette")
         dotation_projet.clean()
+
+        if self.errors != {}:
+            self.can_save = False
+
+        if self.can_save and self.changed_data:
+            self.save_ds()
+
         return cleaned_data
 
-    def save(self, commit=True, field_exceptions=None):
+    def save(self, commit=True):
         instance = super().save(commit=False)
-        save_assiette = True
-
-        if field_exceptions is not None:
-            for field in field_exceptions:
-                if field == "assiette":
-                    save_assiette = False
-                else:
-                    setattr(instance, field, self.initial[field])
-
         dotation_projet = instance.dotation_projet
-        if dotation_projet and not (save_assiette):
-            dotation_projet.assiette = self.fields["assiette"].initial
 
         if commit:
             dotation_projet.save()
             instance.save()
 
         return instance
+
+    def save_ds(self):
+        errors, blocking = process_projet_update(
+            self, self.instance.projet.dossier_ds, self.user
+        )
+        if blocking:
+            self.add_error(None, errors["all"])
+            self.can_save = False
+            return
+
+        for field, error in errors.items():
+            self.add_error(field, error)
+            if field == "assiette":
+                self.instance.dotation_projet.assiette = self.fields["assiette"].initial
+
+        # if errors:
+        #     msg_error = build_error_message(errors)
+        #     raise SaveException(msg_error)
+
+        # si error bloquante on arrête
+        # si pas bloquante, on la stocke
+        # for field in errors :
+        # on reinitialise le field dans le form
+        # on fait un beau message d'erreur
+        # on réinit les champs qu'on a dans les erreurs
+        # raise SaveException
+        # si pas d'erreurs,
+        # alors on commit
+        # alors return instance

@@ -5,7 +5,7 @@ from pathlib import Path
 import requests
 from django.conf import settings
 
-from gsl_demarches_simplifiees.exceptions import DsServiceException
+from gsl_demarches_simplifiees.exceptions import DsConnectionError, DsServiceException
 
 logger = getLogger(__name__)
 
@@ -34,7 +34,7 @@ class DsClientBase:
 
         except requests.exceptions.ConnectionError as e:
             logger.warning("DS connection error", extra={"erreur": e})
-            raise Exception("Erreur de connexion à Démarches Simplifiées")
+            raise DsConnectionError()
 
         if response.status_code == 200:
             results = response.json()
@@ -50,6 +50,7 @@ class DsClientBase:
                     "DS forbidden access : token problem ?",
                     extra={"error": response.text},
                 )
+                raise DsConnectionError()
             else:
                 logger.error(
                     "DS request error",

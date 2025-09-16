@@ -7,6 +7,10 @@ class DsServiceException(Exception):
         super().__init__(message, *args)
 
 
+class DsConnectionError(DsServiceException):
+    DEFAULT_MESSAGE = "Erreur de connexion à Démarches Simplifiées"
+
+
 class InstructeurUnknown(DsServiceException):
     DEFAULT_MESSAGE = "Nous ne connaissons pas votre identifiant DS."
 

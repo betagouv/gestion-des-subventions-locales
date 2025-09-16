@@ -2,11 +2,14 @@ from typing import List, Literal, Mapping, get_args
 
 from django.db import transaction
 
+from gsl_core.models import Collegue
 from gsl_demarches_simplifiees.exceptions import (
+    DsConnectionError,
     DsServiceException,
     InstructeurUnknown,
     UserRightsError,
 )
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 
 DsUpdatableFields = Literal[
@@ -24,13 +27,15 @@ FIELDS_TO_DS_SERVICE_FUNCTIONS: Mapping[DsUpdatableFields, str] = {
 }
 
 
-def process_projet_update(form, projet, user):
+def process_projet_update(
+    form, dossier: Dossier, user: Collegue
+) -> tuple[dict[str, str], bool]:
     """
     Returns a tuple(errors, has_blocking_error).
     - errors: field and errors mapping
     - has_blocking_error: True if global error (ex: UserRightsError)
     """
-    errors = {}
+    errors: dict[str, str] = {}
     ds_service = DsService()
 
     with transaction.atomic():
@@ -41,15 +46,13 @@ def process_projet_update(form, projet, user):
                         ds_service, FIELDS_TO_DS_SERVICE_FUNCTIONS[field]
                     )
                     update_function(
-                        projet.dossier_ds,
+                        dossier,
                         user,
                         form.cleaned_data[field],
                     )
-                except (UserRightsError, InstructeurUnknown) as e:
-                    return {"all": e}, True  # global error -> stop
+                except (UserRightsError, InstructeurUnknown, DsConnectionError) as e:
+                    return {"all": str(e)}, True  # global error -> stop
                 except DsServiceException as e:
                     errors[field] = str(e)
-
-        form.save(field_exceptions=errors.keys())
 
     return errors, False
