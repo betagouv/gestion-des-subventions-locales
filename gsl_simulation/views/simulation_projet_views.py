@@ -174,7 +174,6 @@ class ProjetFormView(SimulationProjetFormMixin):
         )
 
 
-# TODO check if CorrectUserPerimeterRequiredMixin is used
 class SimulationProjetDetailView(SimulationProjetFormMixin):
     model = SimulationProjet
     form_class = SimulationProjetForm
