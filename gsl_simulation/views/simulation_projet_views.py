@@ -27,7 +27,6 @@ from gsl_simulation.views.decorators import (
     exception_handler_decorator,
     projet_must_be_in_user_perimetre,
 )
-from gsl_simulation.views.mixins import CorrectUserPerimeterRequiredMixin
 from gsl_simulation.views.simulation_views import SimulationDetailView
 
 
@@ -106,16 +105,19 @@ def patch_dotation_projet(request, pk):
     )
 
 
-class ProjetFormView(UpdateView):
-    model = SimulationProjet
-    form_class = ProjetForm
+class SimulationProjetFormMixin(UpdateView):
+    form_class = SimulationProjetForm
+
+    def get_object(self, queryset=None) -> SimulationProjet:
+        if not hasattr(self, "_simulation_projet"):
+            self._simulation_projet = _get_view_simulation_projet_from_pk(
+                self.kwargs.get("pk")
+            )
+        return self._simulation_projet
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        self.simulation_projet: SimulationProjet = self.get_object()
-        kwargs.update(
-            {"instance": self.simulation_projet.projet, "user": self.request.user}
-        )
+        kwargs.update({"user": self.request.user})
         return kwargs
 
     def form_valid(self, form: SimulationProjetForm):
@@ -127,20 +129,34 @@ class ProjetFormView(UpdateView):
                 self.request,
                 "Les modifications ont été enregistrées avec succès.",
             )
-
+        simulation_projet = self.get_object()
         # TODO use success_url
         return redirect_to_same_page_or_to_simulation_detail_by_default(
             self.request,
-            self.simulation_projet,
+            simulation_projet,  # TODO check if simulation_projet has been updated (montant)
         )
 
-    def form_invalid(self, form: SimulationProjetForm):
+    def set_main_error_message(self, form):
         error_msg = "Une erreur s'est produite lors de la soumission du formulaire."
         if form.non_field_errors():
             # remove the '* ' at the beginning
             error_msg += form.non_field_errors().as_text()[1:]
 
         messages.error(self.request, error_msg)
+
+
+class ProjetFormView(SimulationProjetFormMixin):
+    model = SimulationProjet
+    form_class = ProjetForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        simulation_projet = self.get_object()
+        kwargs.update({"instance": simulation_projet.projet})
+        return kwargs
+
+    def form_invalid(self, form: SimulationProjetForm):
+        self.set_main_error_message(form)
 
         simulation_projet = self.get_object()
 
@@ -158,9 +174,8 @@ class ProjetFormView(UpdateView):
         )
 
 
-class SimulationProjetDetailView(
-    CorrectUserPerimeterRequiredMixin, UpdateView
-):  # TODO check if CorrectUserPerimeterRequiredMixin is used
+# TODO check if CorrectUserPerimeterRequiredMixin is used
+class SimulationProjetDetailView(SimulationProjetFormMixin):
     model = SimulationProjet
     form_class = SimulationProjetForm
 
@@ -173,13 +188,6 @@ class SimulationProjetDetailView(
                 raise Http404
             return [f"gsl_simulation/tab_simulation_projet/tab_{tab}.html"]
         return ["gsl_simulation/simulation_projet_detail.html"]
-
-    def get_object(self, queryset=None):
-        if not hasattr(self, "_simulation_projet"):
-            self._simulation_projet = _get_view_simulation_projet_from_pk(
-                self.kwargs.get("pk")
-            )
-        return self._simulation_projet
 
     def get_context_data(self, with_specific_info_for_main_tab=True, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -195,47 +203,14 @@ class SimulationProjetDetailView(
 
         return context
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs.update({"user": self.request.user})
-        return kwargs
-
-    def form_valid(self, form: SimulationProjetForm):
-        self.object, error_msg = form.save()
-        if error_msg:
-            messages.error(self.request, error_msg)
-        else:
-            messages.success(
-                self.request,
-                "Les modifications ont été enregistrées avec succès.",
-            )
-
-        # TODO use success_url
-        return redirect_to_same_page_or_to_simulation_detail_by_default(
-            self.request,
-            self.object,
-        )
-
     def form_invalid(self, form: SimulationProjetForm):
-        error_msg = "Une erreur s'est produite lors de la soumission du formulaire."
-        if form.non_field_errors():
-            # remove the '* ' at the beginning
-            error_msg += form.non_field_errors().as_text()[1:]
-
-        messages.error(self.request, error_msg)  # TODO test
+        self.set_main_error_message(form)
 
         return render(
             self.request,
             self.get_template_names(),
             self.get_context_data(simulation_projet_form=form),
         )
-
-        return self.render_to_response()
-
-    # def get_success_url(self):
-    #     return redirect_to_same_page_or_to_simulation_detail_by_default(
-    #         self.request, self.object
-    #     )
 
 
 # TODO make this function render an url ?
