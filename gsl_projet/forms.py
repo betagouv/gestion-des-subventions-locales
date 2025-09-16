@@ -57,7 +57,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
 
     def __init__(self, *args, **kwargs):
         self.user: Collegue | None = None  # TODO, it can be in mixin function
-        if "user" in kwargs:
+        if "user" in kwargs.keys():
             self.user = kwargs.pop("user")
         super().__init__(*args, **kwargs)
         self.fields["dotations"].initial = self.instance.dotations
@@ -84,7 +84,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
                 )
                 if blocking:
                     error_msg = f"Une erreur est survenue lors de la mise à jour des informations sur Démarches Simplifiées. {errors['all']}"
-                    return self.instance, error_msg
+                    return Projet.objects.get(pk=instance.pk), error_msg
 
                 for field, _ in errors.items():
                     self._reset_field(field, instance)
