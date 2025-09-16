@@ -53,21 +53,21 @@ def simulation(detr_enveloppe):
 
 
 @pytest.fixture
-def collegue(perimetre_departemental):
+def user(perimetre_departemental):
     return CollegueFactory(perimetre=perimetre_departemental, ds_id="XXX")
 
 
 @pytest.fixture
-def client_with_user_logged(collegue):
-    return ClientWithLoggedUserFactory(collegue)
+def client_with_user_logged(user):
+    return ClientWithLoggedUserFactory(user)
 
 
 @pytest.fixture
-def accepted_simulation_projet(collegue, simulation):
+def accepted_simulation_projet(user, simulation):
     dotation_projet = DotationProjetFactory(
         status=PROJET_STATUS_PROCESSING,
         assiette=10_000,
-        projet__perimetre=collegue.perimetre,
+        projet__perimetre=user.perimetre,
         projet__is_budget_vert=None,
         dotation=DOTATION_DETR,
     )
@@ -145,6 +145,38 @@ def test_patch_projet(
 
     assert response.status_code == 200
     assert accepted_simulation_projet.projet.__getattribute__(field) is expected_value
+
+
+def test_patch_projet_with_invalid_form(
+    client_with_user_logged,
+    accepted_simulation_projet,
+):
+    data = {"is_budget_vert": "WrongValue", "dotations": []}
+
+    url = reverse(
+        "simulation:patch-projet",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.post(
+        url,
+        data,
+        follow=True,
+    )
+    assert "is_budget_vert" in response.context["projet_form"].errors
+
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 40
+    assert (
+        "Une erreur s'est produite lors de la soumission du formulaire."
+        == message.message
+    )
+    assert response.status_code == 200
+    assert response.templates[0].name == "gsl_simulation/simulation_projet_detail.html"
+
+    accepted_simulation_projet.projet.refresh_from_db()
+    assert accepted_simulation_projet.projet.is_budget_vert is None  # Default value
 
 
 possible_responses = [
@@ -285,8 +317,8 @@ def test_patch_projet_with_user_without_ds_id(
     initial_value,
     _field_label,
 ):
-    collegue = CollegueFactory(perimetre=perimetre_departemental, ds_id="")
-    client = ClientWithLoggedUserFactory(collegue)
+    user = CollegueFactory(perimetre=perimetre_departemental, ds_id="")
+    client = ClientWithLoggedUserFactory(user)
     accepted_simulation_projet.projet.__setattr__(field, initial_value)
     accepted_simulation_projet.projet.save()
 
@@ -309,6 +341,58 @@ def test_patch_projet_with_user_without_ds_id(
     assert (
         "Une erreur est survenue lors de la mise à jour des informations sur Démarches Simplifiées. Nous ne connaissons pas votre identifiant DS."
         == message.message
+    )
+
+    accepted_simulation_projet.projet.refresh_from_db()
+
+    assert response.status_code == 200
+    assert accepted_simulation_projet.projet.__getattribute__(field) is initial_value
+
+
+@pytest.mark.parametrize(
+    "field, data, initial_value, _field_label", boolean_fields_data
+)
+def test_patch_projet_with_user_with_ds_connection_error(
+    client_with_user_logged,
+    accepted_simulation_projet,
+    field,
+    data,
+    ds_field,
+    initial_value,
+    _field_label,
+):
+    accepted_simulation_projet.projet.__setattr__(field, initial_value)
+    accepted_simulation_projet.projet.save()
+
+    data["dotations"] = [DOTATION_DSIL]
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 403
+
+    with (
+        patch(
+            "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
+            return_value=ds_field,
+        ),
+        patch("requests.post", return_value=mock_resp),
+    ):
+        url = reverse(
+            "simulation:patch-projet",
+            args=[accepted_simulation_projet.id],
+        )
+        response = client_with_user_logged.post(
+            url,
+            data,
+            follow=True,
+        )
+
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 40  # Error
+    assert (
+        message.message
+        == "Une erreur est survenue lors de la mise à jour des informations sur Démarches Simplifiées. Nous n'arrivons pas à nous connecter à Démarches Simplifiées."
     )
 
     accepted_simulation_projet.projet.refresh_from_db()

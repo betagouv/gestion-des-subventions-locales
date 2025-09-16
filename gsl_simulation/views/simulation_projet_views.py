@@ -140,10 +140,22 @@ class ProjetFormView(UpdateView):
             # remove the '* ' at the beginning
             error_msg += form.non_field_errors().as_text()[1:]
 
-        messages.error(self.request, error_msg)  # TODO test
+        messages.error(self.request, error_msg)
 
-        # TODO Test it !
-        return super().form_invalid(form)
+        simulation_projet = self.get_object()
+
+        view = SimulationProjetDetailView()
+        view.request = self.request
+        view.kwargs = {"pk": simulation_projet.id}
+        view.object = simulation_projet  # nécessaire pour get_context_data
+
+        view.request = self.request
+        view.kwargs = {"pk": simulation_projet.id}
+        context = view.get_context_data(object=simulation_projet)
+        context["projet_form"] = form
+        return render(
+            self.request, "gsl_simulation/simulation_projet_detail.html", context
+        )
 
 
 class SimulationProjetDetailView(
@@ -293,14 +305,16 @@ def _get_projets_queryset_with_filters(simulation, filter_params):
 def _enrich_simulation_projet_context_with_specific_info_for_main_tab(
     context: dict, simulation_projet: SimulationProjet
 ):
-    projet_form = ProjetForm(instance=simulation_projet.projet)
+    if context.get("projet_form", None) is None:
+        projet_form = ProjetForm(instance=simulation_projet.projet)
+        context["projet_form"] = projet_form
+
     simulation_projet_form = SimulationProjetForm(instance=simulation_projet)
     dotation_field = projet_form.fields.get("dotations")
     context.update(
         {
             "enveloppe": simulation_projet.simulation.enveloppe,
             "menu_dict": PROJET_MENU,
-            "projet_form": projet_form,
             "simulation_projet_form": simulation_projet_form,
             "dotation_projet_form": DotationProjetForm(
                 instance=simulation_projet.dotation_projet,
