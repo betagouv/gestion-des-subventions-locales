@@ -157,9 +157,11 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
                     self, instance.projet.dossier_ds, self.user
                 )
                 if blocking:
-                    # raise DsServiceException(errors["all"])
                     error_msg = f"Une erreur est survenue lors de la mise à jour des informations sur Démarches Simplifiées. {errors['all']}"
-                    return self.instance, error_msg
+                    return (
+                        self.instance,
+                        error_msg,
+                    )  # TODO Test it's ok with self.instance !
 
                 for field, _ in errors.items():
                     self._reset_field(field, instance, dotation_projet)

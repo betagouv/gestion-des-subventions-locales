@@ -1,10 +1,17 @@
+from logging import getLogger
+
 from django import forms
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
+from gsl_core.models import Collegue
 from gsl_projet.constants import DOTATION_CHOICES
 from gsl_projet.models import CategorieDetr, DotationProjet, Projet, ProjetNote
 from gsl_projet.services.projet_services import ProjetService
+from gsl_simulation.services.projet_updater import process_projet_update
+from gsl_simulation.utils import build_error_message
+
+logger = getLogger(__name__)
 
 
 class ProjetForm(ModelForm, DsfrBaseForm):
@@ -49,6 +56,9 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         ]
 
     def __init__(self, *args, **kwargs):
+        self.user: Collegue | None = None  # TODO, it can be in mixin function
+        if "user" in kwargs:
+            self.user = kwargs.pop("user")
         super().__init__(*args, **kwargs)
         self.fields["dotations"].initial = self.instance.dotations
 
@@ -59,19 +69,45 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             valid = False
         return valid
 
-    def save(self, commit=True, field_exceptions=None):
-        instance = super().save(commit=False)
-        if field_exceptions is not None:
-            for field in field_exceptions:
-                setattr(instance, field, self.initial[field])
+    def save(self, commit=True) -> tuple[Projet, str | None]:
+        instance: Projet = super().save(commit=False)
+
+        error_msg = None
         if commit:
+            if self.user is None:
+                logger.warning(
+                    "No user provided to SimulationProjetForm.save, can't save to DS"
+                )
+            else:
+                errors, blocking = process_projet_update(
+                    self, instance.dossier_ds, self.user
+                )
+                if blocking:
+                    error_msg = f"Une erreur est survenue lors de la mise à jour des informations sur Démarches Simplifiées. {errors['all']}"
+                    return self.instance, error_msg
+
+                for field, _ in errors.items():
+                    self._reset_field(field, instance)
+
+                if errors:
+                    fields_msg = build_error_message(errors)
+                    error_msg = f"Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({fields_msg}). Ces modifications n'ont pas été enregistrées."
+
             instance.save()
 
         dotations = self.cleaned_data.get("dotations")
         if dotations:
             ProjetService.update_dotation(instance, dotations)
 
-        return instance
+        return instance, error_msg
+
+    # Private
+
+    def _reset_field(self, field: str, instance: Projet):
+        if field in ["is_in_qpv", "is_attached_to_a_crte", "is_budget_vert"]:
+            initial_field_value = self[field].initial
+            self.cleaned_data[field] = initial_field_value
+            setattr(instance, field, initial_field_value)
 
 
 class DotationProjetForm(ModelForm):
