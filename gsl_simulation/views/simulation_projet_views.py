@@ -7,8 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import resolve, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
-from django.views.generic import FormView, UpdateView
-from django.views.generic.edit import ModelFormMixin
+from django.views.generic import UpdateView
 
 from gsl.settings import ALLOWED_HOSTS
 from gsl_projet.forms import DotationProjetForm, ProjetForm
@@ -107,7 +106,7 @@ def patch_dotation_projet(request, pk):
     )
 
 
-class ProjetFormView(ModelFormMixin, FormView):
+class ProjetFormView(UpdateView):
     model = SimulationProjet
     form_class = ProjetForm
 
@@ -117,8 +116,6 @@ class ProjetFormView(ModelFormMixin, FormView):
         kwargs.update(
             {"instance": self.simulation_projet.projet, "user": self.request.user}
         )
-        return kwargs
-
         return kwargs
 
     def form_valid(self, form: SimulationProjetForm):
@@ -149,7 +146,9 @@ class ProjetFormView(ModelFormMixin, FormView):
         return super().form_invalid(form)
 
 
-class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, UpdateView):
+class SimulationProjetDetailView(
+    CorrectUserPerimeterRequiredMixin, UpdateView
+):  # TODO check if CorrectUserPerimeterRequiredMixin is used
     model = SimulationProjet
     form_class = SimulationProjetForm
 

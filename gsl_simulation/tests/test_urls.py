@@ -402,7 +402,12 @@ PATCH_ROUTES_AND_DATA = (
     ("simulation:patch-simulation-projet-status", {"status": "valid"}),
     (
         "simulation:patch-projet",
-        {"is_in_qpv": "on", "is_attached_to_a_crte": "on", "is_budget_vert": ""},
+        {
+            "is_in_qpv": "on",
+            "is_attached_to_a_crte": "on",
+            "is_budget_vert": "",
+            "dotations": ["DSIL"],
+        },
     ),
     ("simulation:patch-dotation-projet", {"detr_avis_commission": ""}),
 )
