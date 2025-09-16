@@ -52,16 +52,6 @@ class SimulationForm(DsfrBaseForm):
         return cleaned_data
 
 
-# TODO use a Mixin
-# class DsSaveMixin:
-#     def save(self, commit=True):
-#         if commit:
-#             for fields in self.changed_fields:
-#                 if field in UNE_LISTE_DANS_CHAQUE_CLASSE:
-#                     fct = get_function
-#                     error = fct()
-
-
 class SimulationProjetForm(ModelForm, DsfrBaseForm):
     assiette = forms.DecimalField(
         label="Montant des dépenses éligibles retenues (€)",
@@ -154,14 +144,14 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
                 )
             else:
                 errors, blocking = process_projet_update(
-                    self, instance.projet.dossier_ds, self.user
+                    self, instance.projet.dossier_ds, self.user, ["assiette"]
                 )
                 if blocking:
                     error_msg = f"Une erreur est survenue lors de la mise à jour des informations sur Démarches Simplifiées. {errors['all']}"
                     return (
                         self.instance,
                         error_msg,
-                    )  # TODO Test it's ok with self.instance !
+                    )
 
                 for field, _ in errors.items():
                     self._reset_field(field, instance, dotation_projet)

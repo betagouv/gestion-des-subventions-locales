@@ -130,10 +130,10 @@ class SimulationProjetFormMixin(UpdateView):
                 "Les modifications ont été enregistrées avec succès.",
             )
         simulation_projet = self.get_object()
-        # TODO use success_url
+
         return redirect_to_same_page_or_to_simulation_detail_by_default(
             self.request,
-            simulation_projet,  # TODO check if simulation_projet has been updated (montant)
+            simulation_projet,
         )
 
     def set_main_error_message(self, form):
@@ -212,9 +212,6 @@ class SimulationProjetDetailView(SimulationProjetFormMixin):
         )
 
 
-# TODO make this function render an url ?
-# TODO rename function ?
-# TODO update functions which call it ?
 def redirect_to_same_page_or_to_simulation_detail_by_default(
     request, simulation_projet, message_type: str | None = None
 ):

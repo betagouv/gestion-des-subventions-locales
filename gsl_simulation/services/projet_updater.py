@@ -26,7 +26,10 @@ FIELDS_TO_DS_SERVICE_FUNCTIONS: Mapping[DsUpdatableFields, str] = {
 
 
 def process_projet_update(
-    form, dossier: Dossier, user: Collegue
+    form,
+    dossier: Dossier,
+    user: Collegue,
+    fields: List[DsUpdatableFields] = FIELDS_UPDATABLE_ON_DS,
 ) -> tuple[dict[str, str], bool]:
     """
     Returns a tuple(errors, has_blocking_error).
@@ -36,7 +39,7 @@ def process_projet_update(
     errors: dict[str, str] = {}
     ds_service = DsService()
 
-    for field in FIELDS_UPDATABLE_ON_DS:  # TODO add fields as params
+    for field in fields:  # TODO add fields as params
         if field in form.changed_data:
             try:
                 update_function = getattr(

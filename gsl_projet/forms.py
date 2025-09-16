@@ -1,4 +1,5 @@
 from logging import getLogger
+from typing import List
 
 from django import forms
 from django.forms import ModelForm
@@ -8,7 +9,10 @@ from gsl_core.models import Collegue
 from gsl_projet.constants import DOTATION_CHOICES
 from gsl_projet.models import CategorieDetr, DotationProjet, Projet, ProjetNote
 from gsl_projet.services.projet_services import ProjetService
-from gsl_simulation.services.projet_updater import process_projet_update
+from gsl_simulation.services.projet_updater import (
+    DsUpdatableFields,
+    process_projet_update,
+)
 from gsl_simulation.utils import build_error_message
 
 logger = getLogger(__name__)
@@ -49,14 +53,14 @@ class ProjetForm(ModelForm, DsfrBaseForm):
 
     class Meta:
         model = Projet
-        fields = [
+        fields: List[DsUpdatableFields] = [
             "is_budget_vert",
             "is_in_qpv",
             "is_attached_to_a_crte",
         ]
 
     def __init__(self, *args, **kwargs):
-        self.user: Collegue | None = None  # TODO, it can be in mixin function
+        self.user: Collegue | None = None
         if "user" in kwargs.keys():
             self.user = kwargs.pop("user")
         super().__init__(*args, **kwargs)
@@ -80,7 +84,10 @@ class ProjetForm(ModelForm, DsfrBaseForm):
                 )
             else:
                 errors, blocking = process_projet_update(
-                    self, instance.dossier_ds, self.user
+                    self,
+                    instance.dossier_ds,
+                    self.user,
+                    self.Meta.fields,  # type: ignore
                 )
                 if blocking:
                     error_msg = f"Une erreur est survenue lors de la mise à jour des informations sur Démarches Simplifiées. {errors['all']}"
