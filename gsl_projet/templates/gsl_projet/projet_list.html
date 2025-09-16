@@ -11,6 +11,12 @@
     <a href="{% url 'gsl_simulation:simulation-list' %}"
        class="fr-btn fr-btn--secondary fr-mb-4w">Voir les simulations</a>
 
+    <h4>
+        Enveloppes de dotations
+    </h4>
+
+    {% include "includes/_enveloppe_summary.html" %}
+
     {% include "includes/_projet_list_filters.html" %}
 
     {% include "includes/_projets_table.html" %}
