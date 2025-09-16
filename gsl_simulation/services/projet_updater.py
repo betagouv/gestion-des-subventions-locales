@@ -1,7 +1,5 @@
 from typing import List, Literal, Mapping, get_args
 
-from django.db import transaction
-
 from gsl_core.models import Collegue
 from gsl_demarches_simplifiees.exceptions import (
     DsConnectionError,
@@ -38,21 +36,20 @@ def process_projet_update(
     errors: dict[str, str] = {}
     ds_service = DsService()
 
-    with transaction.atomic():
-        for field in FIELDS_UPDATABLE_ON_DS:
-            if field in form.changed_data:
-                try:
-                    update_function = getattr(
-                        ds_service, FIELDS_TO_DS_SERVICE_FUNCTIONS[field]
-                    )
-                    update_function(
-                        dossier,
-                        user,
-                        form.cleaned_data[field],
-                    )
-                except (UserRightsError, InstructeurUnknown, DsConnectionError) as e:
-                    return {"all": str(e)}, True  # global error -> stop
-                except DsServiceException as e:
-                    errors[field] = str(e)
+    for field in FIELDS_UPDATABLE_ON_DS:  # TODO add fields as params
+        if field in form.changed_data:
+            try:
+                update_function = getattr(
+                    ds_service, FIELDS_TO_DS_SERVICE_FUNCTIONS[field]
+                )
+                update_function(
+                    dossier,
+                    user,
+                    form.cleaned_data[field],
+                )
+            except (UserRightsError, InstructeurUnknown, DsConnectionError) as e:
+                return {"all": str(e)}, True  # global error -> stop
+            except DsServiceException as e:
+                errors[field] = str(e)
 
     return errors, False

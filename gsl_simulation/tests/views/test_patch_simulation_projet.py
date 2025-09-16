@@ -403,10 +403,7 @@ def test_patch_projet(
     assert len(messages) == 1
     message = list(messages)[0]
     assert message.level == 25
-    assert (
-        "Les modifications ont \xe9t\xe9 enregistr\xe9es avec succ\xe8s."
-        in message.message
-    )
+    assert "Les modifications ont été enregistrées avec succ\xe8s." in message.message
 
     accepted_simulation_projet.projet.refresh_from_db()
 
@@ -428,7 +425,7 @@ possible_responses = [
                 }
             }
         },
-        "Une erreur est survenue lors de la mise \xe0 jour des informations sur D\xe9marches Simplifi\xe9es. Vous n'avez pas les droits suffisants pour modifier ce dossier.",
+        "Une erreur est survenue lors de la mise \xe0 jour des informations sur Démarches Simplifiées. Vous n'avez pas les droits suffisants pour modifier ce dossier.",
     ),
     # Invalid payload (ex: wrong dossier id)
     (
@@ -674,10 +671,7 @@ def test_patch_simulation_projet(
     assert len(messages) == 1
     message = list(messages)[0]
     assert message.level == 25
-    assert (
-        "Les modifications ont \xe9t\xe9 enregistr\xe9es avec succ\xe8s."
-        in message.message
-    )
+    assert "Les modifications ont été enregistrées avec succ\xe8s." in message.message
 
     accepted_simulation_projet.dotation_projet.refresh_from_db()
 
@@ -699,7 +693,7 @@ possible_responses = [
                 }
             }
         },
-        "Une erreur est survenue lors de la mise \xe0 jour des informations sur D\xe9marches Simplifi\xe9es. Vous n'avez pas les droits suffisants pour modifier ce dossier.",
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarches Simplifiées. Vous n'avez pas les droits suffisants pour modifier ce dossier.",
     ),
     # Invalid payload (ex: wrong dossier id)
     (
@@ -786,6 +780,49 @@ def test_patch_simulation_projet_with_ds_error(
     assert message.level == 40
     final_msg = error_msg.replace("{field}", "assiette")
     assert final_msg == message.message
+
+    accepted_simulation_projet.dotation_projet.refresh_from_db()
+
+    assert response.status_code == 200
+    assert accepted_simulation_projet.dotation_projet.assiette == 1_000
+
+
+def test_patch_simulation_projet_with_ds_token_error(
+    client_with_user_logged, accepted_simulation_projet, ds_field
+):
+    accepted_simulation_projet.dotation_projet.assiette = 1_000
+    accepted_simulation_projet.montant = 500
+    accepted_simulation_projet.save()
+    accepted_simulation_projet.dotation_projet.save()
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 403
+
+    with (
+        patch(
+            "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
+            return_value=ds_field,
+        ),
+        patch("requests.post", return_value=mock_resp),
+    ):
+        url = reverse(
+            "simulation:simulation-projet-detail",
+            args=[accepted_simulation_projet.id],
+        )
+        response = client_with_user_logged.post(
+            url,
+            {"assiette": 2000, "montant": 500},
+            follow=True,
+        )
+
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 40
+    assert (
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarches Simplifiées. Nous n'arrivons pas à nous connecter à Démarches Simplifiées."
+        == message.message
+    )
 
     accepted_simulation_projet.dotation_projet.refresh_from_db()
 

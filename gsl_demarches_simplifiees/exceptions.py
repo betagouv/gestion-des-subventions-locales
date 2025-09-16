@@ -8,7 +8,7 @@ class DsServiceException(Exception):
 
 
 class DsConnectionError(DsServiceException):
-    DEFAULT_MESSAGE = "Erreur de connexion à Démarches Simplifiées"
+    DEFAULT_MESSAGE = "Nous n'arrivons pas à nous connecter à Démarches Simplifiées."
 
 
 class InstructeurUnknown(DsServiceException):

@@ -1,3 +1,5 @@
+from logging import getLogger
+
 from django import forms
 from django.core.exceptions import ValidationError
 from django.forms import ModelForm
@@ -10,6 +12,9 @@ from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.utils import compute_taux
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.services.projet_updater import process_projet_update
+from gsl_simulation.utils import build_error_message
+
+logger = getLogger(__name__)
 
 
 class SimulationForm(DsfrBaseForm):
@@ -96,10 +101,10 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         fields = ["montant"]
 
     def __init__(self, *args, **kwargs):
+        self.user: Collegue | None = None
         if "user" in kwargs:
-            self.user: Collegue = kwargs.pop("user")
+            self.user = kwargs.pop("user")
         super().__init__(*args, **kwargs)
-        self.can_save = True
         self.fields["taux"].initial = self.instance.taux
 
         dotation_projet = (
@@ -135,49 +140,62 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         dotation_projet.assiette = cleaned_data.get("assiette")
         dotation_projet.clean()
 
-        if self.errors != {}:
-            self.can_save = False
-
-        if self.can_save and self.changed_data:
-            self.save_ds()
-
         return cleaned_data
 
-    def save(self, commit=True):
+    def save(self, commit=True) -> tuple[SimulationProjet, str | None]:
         instance = super().save(commit=False)
         dotation_projet = instance.dotation_projet
 
+        error_msg = None
         if commit:
+            if self.user is None:
+                logger.warning(
+                    "No user provided to SimulationProjetForm.save, can't save to DS"
+                )
+            else:
+                errors, blocking = process_projet_update(
+                    self, instance.projet.dossier_ds, self.user
+                )
+                if blocking:
+                    # raise DsServiceException(errors["all"])
+                    error_msg = f"Une erreur est survenue lors de la mise à jour des informations sur Démarches Simplifiées. {errors['all']}"
+                    return self.instance, error_msg
+
+                for field, _ in errors.items():
+                    self._reset_field(field, instance, dotation_projet)
+
+                if errors:
+                    fields_msg = build_error_message(errors)
+                    error_msg = f"Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({fields_msg}). Ces modifications n'ont pas été enregistrées."
+
             dotation_projet.save()
             instance.save()
 
-        return instance
+        return instance, error_msg
 
-    def save_ds(self):
-        errors, blocking = process_projet_update(
-            self, self.instance.projet.dossier_ds, self.user
-        )
-        if blocking:
-            self.add_error(None, errors["all"])
-            self.can_save = False
-            return
+    # Private
 
-        for field, error in errors.items():
-            self.add_error(field, error)
-            if field == "assiette":
-                self.instance.dotation_projet.assiette = self.fields["assiette"].initial
+    def _reset_field(
+        self, field: str, instance: SimulationProjet, dotation_projet: DotationProjet
+    ):
+        if field == "assiette":
+            self.cleaned_data["assiette"] = self["assiette"].initial
+            dotation_projet.assiette = self["assiette"].initial
+            self.cleaned_data["taux"] = compute_taux(
+                instance.montant, dotation_projet.assiette
+            )
 
-        # if errors:
-        #     msg_error = build_error_message(errors)
-        #     raise SaveException(msg_error)
+        if field == "montant":
+            self.cleaned_data["montant"] = self["montant"].initial
+            instance.montant = self["montant"].initial
+            self.cleaned_data["taux"] = compute_taux(
+                instance.montant, dotation_projet.assiette
+            )
 
-        # si error bloquante on arrête
-        # si pas bloquante, on la stocke
-        # for field in errors :
-        # on reinitialise le field dans le form
-        # on fait un beau message d'erreur
-        # on réinit les champs qu'on a dans les erreurs
-        # raise SaveException
-        # si pas d'erreurs,
-        # alors on commit
-        # alors return instance
+        if field == "taux":
+            initial_taux = self.initial["taux"]
+            self.cleaned_data["taux"] = initial_taux
+            instance.montant = DotationProjetService.compute_montant_from_taux(
+                dotation_projet, initial_taux
+            )
+            self.cleaned_data["montant"] = instance.montant

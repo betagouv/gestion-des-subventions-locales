@@ -105,7 +105,7 @@ def patch_dotation_projet(request, pk):
     )
 
     return redirect_to_same_page_or_to_simulation_detail_by_default(
-        request, simulation_projet, add_message=False
+        request, simulation_projet
     )
 
 
@@ -204,13 +204,17 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, UpdateView):
         kwargs.update({"user": self.request.user})
         return kwargs
 
-    def form_valid(self, form):
-        messages.success(
-            self.request,
-            "Les modifications ont été enregistrées avec succès.",
-        )
+    def form_valid(self, form: SimulationProjetForm):
+        self.object, error_msg = form.save()
+        if error_msg:
+            messages.error(self.request, error_msg)
+        else:
+            messages.success(
+                self.request,
+                "Les modifications ont été enregistrées avec succès.",
+            )
 
-        self.object = form.save()
+        # TODO use success_url
         return redirect_to_same_page_or_to_simulation_detail_by_default(
             self.request,
             self.object,
@@ -219,13 +223,10 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, UpdateView):
     def form_invalid(self, form: SimulationProjetForm):
         error_msg = "Une erreur s'est produite lors de la soumission du formulaire."
         if form.non_field_errors():
-            error_msg += form.non_field_errors().as_text()[
-                1:
-            ]  # remove the '* ' at the beginning
+            # remove the '* ' at the beginning
+            error_msg += form.non_field_errors().as_text()[1:]
 
-        messages.error(self.request, error_msg)
-        if form.can_save:
-            form.save(commit=True)  # todo verify if it ok if not ds error
+        messages.error(self.request, error_msg)  # TODO test
 
         return super().form_invalid(form)
 
@@ -407,7 +408,7 @@ def _check_form_and_update_on_ds(
         )
 
     errors, blocking = process_projet_update(
-        form, simulation_projet.projet, request.user
+        form, simulation_projet.projet.dossier_ds, request.user
     )
 
     if blocking:

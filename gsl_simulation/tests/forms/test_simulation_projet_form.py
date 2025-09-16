@@ -1,9 +1,12 @@
 from typing import cast
+from unittest.mock import patch
 
 import pytest
 from django import forms
 from django.core.exceptions import ValidationError
 
+from gsl_core.models import Collegue
+from gsl_core.tests.factories import CollegueFactory
 from gsl_projet.tests.factories import DetrProjetFactory
 from gsl_simulation.forms import SimulationProjetForm
 from gsl_simulation.models import SimulationProjet
@@ -177,11 +180,21 @@ def test_montant_cant_be_higher_than_assiette(simulation_projet):
     )
 
 
-def test_save_with_assiette_field_exceptions(simulation_projet):
+@pytest.fixture
+def user() -> Collegue:
+    return cast(Collegue, CollegueFactory(ds_id="123"))
+
+
+def test_save_with_assiette_field_exceptions(simulation_projet, user):
+    mock_process_projet_update = patch(
+        "gsl_simulation.services.projet_updater.process_projet_update"
+    )
+    mock_process_projet_update.return_value = ({"assiette": "Some error"}, False)
+
     data = {"assiette": 400, "montant": 300, "taux": 75}
-    form = SimulationProjetForm(instance=simulation_projet, data=data)
+    form = SimulationProjetForm(instance=simulation_projet, data=data, user=user)
     assert form.is_valid()
-    form.save(field_exceptions=["assiette"])
+    form.save()
 
     simulation_projet.refresh_from_db()
     assert simulation_projet.dotation_projet.assiette == 1_000  # not updated
@@ -189,22 +202,32 @@ def test_save_with_assiette_field_exceptions(simulation_projet):
     assert simulation_projet.taux == 30  # computed
 
 
-def test_save_with_montant_field_exceptions(simulation_projet):
-    data = {"assiette": 400, "montant": 300, "taux": 75}
-    form = SimulationProjetForm(instance=simulation_projet, data=data)
-    assert form.is_valid()
-    form.save(field_exceptions=["montant"])
+def test_save_with_montant_field_exceptions(simulation_projet, user):
+    with patch("gsl_simulation.forms.process_projet_update") as mock_process:
+        mock_process.return_value = ({"montant": "Some error"}, False)
 
-    simulation_projet.refresh_from_db()
-    assert simulation_projet.dotation_projet.assiette == 400  # updated
-    assert simulation_projet.montant == 200  # not updated
-    assert simulation_projet.taux == 50  # computed
+        data = {"assiette": 400, "montant": 300, "taux": 75}
+        form = SimulationProjetForm(instance=simulation_projet, data=data, user=user)
+        assert form.is_valid()
+        form.save()
+
+        simulation_projet.refresh_from_db()
+        assert simulation_projet.dotation_projet.assiette == 400  # updated
+        assert simulation_projet.montant == 200  # not updated
+        assert simulation_projet.taux == 50  # computed
 
 
-def test_save_with_assiette_field_exceptions_and_montant_cleaned(simulation_projet):
+def test_save_with_assiette_field_exceptions_and_montant_cleaned(
+    simulation_projet, user
+):
+    mock_process_projet_update = patch(
+        "gsl_simulation.services.projet_updater.process_projet_update"
+    )
+    mock_process_projet_update.return_value = ({"assiette": "Some error"}, False)
+
     data = {"assiette": 2_000, "montant": 1_500, "taux": 75}
-    form = SimulationProjetForm(instance=simulation_projet, data=data)
+    form = SimulationProjetForm(instance=simulation_projet, data=data, user=user)
     assert form.is_valid()
-    # Error because assiette update is canceled (=> 1_000) and then montant is higher than assiette, so model cleans do the job
+    # Error because assiette update is cancelled (=> 1_000) and then montant is higher than assiette, so model cleans do the job
     with pytest.raises(ValidationError):
-        form.save(field_exceptions=["assiette"])
+        form.save()
