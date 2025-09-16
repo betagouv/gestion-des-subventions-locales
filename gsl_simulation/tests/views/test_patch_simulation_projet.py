@@ -445,6 +445,46 @@ def test_patch_simulation_projet(
     assert accepted_simulation_projet.dotation_projet.assiette == 2_000
 
 
+def test_patch_simulation_projet_with_invalid_form(
+    client_with_user_logged,
+    accepted_simulation_projet,
+):
+    accepted_simulation_projet.dotation_projet.assiette = 1_000
+    accepted_simulation_projet.montant = 500
+    accepted_simulation_projet.save()
+    accepted_simulation_projet.dotation_projet.save()
+
+    url = reverse(
+        "simulation:simulation-projet-detail",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.post(
+        url,
+        {"assiette": 200, "montant": 500},
+        follow=True,
+    )
+
+    assert response.context["simulation_projet_form"].errors == {
+        "montant": [
+            "Le montant de la simulation ne peut pas être supérieur à l'assiette du projet."
+        ]
+    }
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 40
+    assert (
+        "Une erreur s'est produite lors de la soumission du formulaire."
+        in message.message
+    )
+
+    accepted_simulation_projet.dotation_projet.refresh_from_db()
+
+    assert response.status_code == 200
+    assert accepted_simulation_projet.dotation_projet.assiette == 1_000
+    assert response.templates[0].name == "gsl_simulation/simulation_projet_detail.html"
+
+
 possible_responses = [
     # Instructeur has no rights
     (

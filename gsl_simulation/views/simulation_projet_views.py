@@ -193,7 +193,6 @@ class SimulationProjetDetailView(
                 context, simulation_projet
             )
 
-        context["simulation_projet_form"] = self.get_form()
         return context
 
     def get_form_kwargs(self):
@@ -225,7 +224,13 @@ class SimulationProjetDetailView(
 
         messages.error(self.request, error_msg)  # TODO test
 
-        return super().form_invalid(form)
+        return render(
+            self.request,
+            self.get_template_names(),
+            self.get_context_data(simulation_projet_form=form),
+        )
+
+        return self.render_to_response()
 
     # def get_success_url(self):
     #     return redirect_to_same_page_or_to_simulation_detail_by_default(
@@ -309,13 +314,15 @@ def _enrich_simulation_projet_context_with_specific_info_for_main_tab(
         projet_form = ProjetForm(instance=simulation_projet.projet)
         context["projet_form"] = projet_form
 
-    simulation_projet_form = SimulationProjetForm(instance=simulation_projet)
+    if context.get("simulation_projet_form", None) is None:
+        simulation_projet_form = SimulationProjetForm(instance=simulation_projet)
+        context["simulation_projet_form"] = simulation_projet_form
+
     dotation_field = projet_form.fields.get("dotations")
     context.update(
         {
             "enveloppe": simulation_projet.simulation.enveloppe,
             "menu_dict": PROJET_MENU,
-            "simulation_projet_form": simulation_projet_form,
             "dotation_projet_form": DotationProjetForm(
                 instance=simulation_projet.dotation_projet,
             ),
