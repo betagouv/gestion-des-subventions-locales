@@ -107,6 +107,16 @@ ul.no-list-style li {
     align-items: center;
 }
 
+.sync-projet-form {
+    background-color: #f1f1fa;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1em;
+    margin-bottom: 2em;
+}
+
 /* Liste de projets */
 .gsl-projet-table thead {
     background-image: linear-gradient(0, #6a6af4, #6a6af4);

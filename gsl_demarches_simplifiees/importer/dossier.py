@@ -51,7 +51,10 @@ def refresh_dossier_from_saved_data(dossier: Dossier):
     try:
         dossier.save()
     except Exception as e:
-        print(e)
+        logging.error(
+            str(e),
+        )
+        raise e
 
 
 def get_or_create_dossier(ds_dossier_id, ds_dossier_number, demarche_number, raw_data):

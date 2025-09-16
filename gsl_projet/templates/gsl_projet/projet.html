@@ -6,14 +6,37 @@
 {% endblock extra_css %}
 
 {% block content %}
-    {% block go_back_button %}
-        <div class="fr-mb-4w">
-            <a href="{% url "projet:list" %}{% querystring %}"
-               class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
-                Retour à la liste des projets
-            </a>
+    <div class="fr-container--fluid">
+        <div class="fr-grid-row">
+            <div class="fr-col">
+                {% block go_back_button %}
+                    <div class="fr-mb-4w">
+                        <a href="{% url "projet:list" %}{% querystring %}"
+                           class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+                            Retour à la liste des projets
+                        </a>
+                    </div>
+                {% endblock go_back_button %}
+            </div>
+            <div class="fr-col text-align-right">
+                <form class="sync-projet-form"
+                      action="{% url "ds:refresh-one-dossier" dossier.ds_number %}"
+                      method="post">
+                    <p>
+                        Vous avez effectué un changement sur
+                        <br>
+                        ce projet sur Démarches Simplifiées&nbsp;?
+                    </p>
+                    {% csrf_token %}
+                    {# la maquette disait fr-icon-arrow-left-right-line mais on ne l’a pas dans notre DSFR ? #}
+                    <button type="submit"
+                            class="fr-btn fr-btn--icon-left fr-icon-refresh-line fr-btn--tertiary">
+                        Synchroniser les données
+                    </button>
+                </form>
+            </div>
         </div>
-    {% endblock go_back_button %}
+    </div>
     <div class="projet-header">
         <h1>
             {{ dossier.projet_intitule|lower|capfirst }}
@@ -40,13 +63,7 @@
             </a>
         </li>
         <li>
-            <form action="{% url "ds:refresh-one-dossier" dossier.ds_number %}"
-                  method="post">
-                {% csrf_token %}
-                <button type="submit">
-                    Rafraîchir
-                </button>
-            </form>
+
         </li>
         {% comment %}
         <li>
