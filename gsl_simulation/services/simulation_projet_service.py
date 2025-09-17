@@ -1,9 +1,10 @@
 import logging
 from decimal import Decimal
 
-from gsl_core.models import Collegue, Perimetre
-from gsl_demarches_simplifiees.exceptions import DsServiceException
-from gsl_demarches_simplifiees.services import DsService
+from gsl_core.models import Collegue
+from gsl_demarches_simplifiees.exceptions import DsServiceException, NonBlockingDsError
+from gsl_demarches_simplifiees.mixins import build_error_message, process_projet_update
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
     PROJET_STATUS_ACCEPTED,
@@ -150,7 +151,7 @@ class SimulationProjetService:
         new_montant = DotationProjetService.compute_montant_from_taux(
             simulation_projet.dotation_projet, new_taux
         )
-
+        # todo verify if dsError like rights error => new_montant not save
         simulation_projet.montant = new_montant
         simulation_projet.save()
 
@@ -163,6 +164,7 @@ class SimulationProjetService:
     def update_montant(
         cls, simulation_projet: SimulationProjet, new_montant: float, user: Collegue
     ):
+        # todo verify if dsError like rights error => new_montant not save
         simulation_projet.montant = new_montant
         simulation_projet.save()
 
@@ -195,18 +197,14 @@ class SimulationProjetService:
         )
         dotation_projet.save()
 
-        # TODO challenge the position of this code, should it be here? Or in DotationProjet transition ?
-        try:
-            ds_service = DsService()
-            ds_service.update_ds_montant(
-                dossier=dotation_projet.projet.dossier_ds,
-                user=user,
-                value=float(simulation_projet.montant)
-                if simulation_projet.montant
-                else 0,
-            )
-        except DsServiceException as e:
-            raise DsServiceException("Le montant n'a pas pu être mis à jour. " + str(e))
+        error_msg = cls._update_ds_montant_and_taux(
+            dossier_ds=dotation_projet.projet.dossier_ds,
+            montant=simulation_projet.montant,
+            taux=simulation_projet.taux,
+            user=user,
+        )
+        if error_msg:
+            raise NonBlockingDsError(error_msg)
 
         updated_simulation_projet = SimulationProjet.objects.get(
             pk=simulation_projet.pk
@@ -247,17 +245,30 @@ class SimulationProjetService:
         return updated_simulation_projet
 
     @classmethod
-    def is_simulation_projet_in_perimetre(
-        cls, simulation_projet: SimulationProjet, perimetre: Perimetre
-    ):
-        simulation_projet_perimetre = simulation_projet.projet.perimetre
-        if perimetre.arrondissement is not None:
-            return (
-                perimetre.arrondissement_id
-                == simulation_projet_perimetre.arrondissement_id
+    def _update_ds_montant_and_taux(
+        cls, dossier_ds: Dossier, montant: float, taux: float, user: Collegue
+    ) -> None | str:
+        data = {
+            "montant": montant,
+            "taux": taux,
+        }
+        errors, blocking = process_projet_update(
+            data, dossier_ds, ["montant", "taux"], user
+        )
+
+        if blocking:
+            raise DsServiceException(
+                "Une erreur est survenue lors de la mise à jour des informations "
+                f"sur Démarches Simplifiées. {errors['all']}"
             )
-        if perimetre.departement is not None:
-            return (
-                perimetre.departement_id == simulation_projet_perimetre.departement_id
+
+        error_msg = None
+
+        if errors:
+            fields_msg = build_error_message(errors)
+            error_msg = (
+                "Une erreur est survenue lors de la mise à jour de certaines "
+                "informations sur Démarches Simplifiées "
+                f"({fields_msg}). Ces modifications n'ont pas été enregistrées."
             )
-        return perimetre.region_id == simulation_projet_perimetre.departement.region_id
+        return error_msg

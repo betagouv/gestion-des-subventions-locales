@@ -6,6 +6,7 @@ from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
 from gsl_core.models import Perimetre
+from gsl_demarches_simplifiees.mixins import DsUpdatableFields
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.forms import DSUpdateMixin
 from gsl_projet.models import DotationProjet
@@ -135,8 +136,10 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
     def get_dossier_ds(self, instance):
         return instance.projet.dossier_ds
 
-    def get_fields(self):
-        return ["assiette", "montant"]
+    def get_fields(self) -> list[DsUpdatableFields]:  # TODO test it !
+        if self.instance.status == SimulationProjet.STATUS_ACCEPTED:
+            return ["assiette", "montant", "taux"]
+        return ["assiette"]
 
     def reset_field(self, field, instance):
         self._reset_field(field, instance, instance.dotation_projet)

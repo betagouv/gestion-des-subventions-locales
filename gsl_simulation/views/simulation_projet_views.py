@@ -1,6 +1,7 @@
 import json
 
 from django.contrib import messages
+from django.db import transaction
 from django.http import Http404, HttpRequest
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
@@ -10,7 +11,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import UpdateView
 
 from gsl.settings import ALLOWED_HOSTS
-from gsl_demarches_simplifiees.exceptions import DsServiceException
+from gsl_demarches_simplifiees.exceptions import DsServiceException, NonBlockingDsError
 from gsl_projet.forms import DotationProjetForm, ProjetForm
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
@@ -38,13 +39,17 @@ def patch_taux_simulation_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     new_taux = replace_comma_by_dot(request.POST.get("taux"))
     try:
-        DotationProjetService.validate_taux(new_taux)
-        SimulationProjetService.update_taux(simulation_projet, new_taux, request.user)
+        with transaction.atomic():
+            DotationProjetService.validate_taux(new_taux)
+            SimulationProjetService.update_taux(
+                simulation_projet, new_taux, request.user
+            )
     except (ValueError, DsServiceException) as e:
         messages.error(
             request,
             "Une erreur est survenue lors de la mise à jour du taux. " + str(e),
         )
+        simulation_projet = SimulationProjet.objects.get(pk=simulation_projet.pk)
 
     return redirect_to_same_page_or_to_simulation_detail_by_default(
         request, simulation_projet
@@ -58,17 +63,29 @@ def patch_montant_simulation_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     new_montant = replace_comma_by_dot(request.POST.get("montant"))
     try:
-        DotationProjetService.validate_montant(
-            new_montant, simulation_projet.dotation_projet
-        )
-        SimulationProjetService.update_montant(
-            simulation_projet, new_montant, user=request.user
-        )
+        with transaction.atomic():
+            try:
+                DotationProjetService.validate_montant(
+                    new_montant, simulation_projet.dotation_projet
+                )
+                SimulationProjetService.update_montant(
+                    simulation_projet, new_montant, user=request.user
+                )
+            except NonBlockingDsError as e:  # don't rollback the transaction
+                messages.warning(
+                    request,
+                    "Une erreur est survenue lors de la mise à jour du statut dans Démarches Simplifiées. "
+                    + str(e),
+                )
+                simulation_projet = SimulationProjet.objects.get(
+                    pk=simulation_projet.pk
+                )
     except (ValueError, DsServiceException) as e:
         messages.error(
             request,
             "Une erreur est survenue lors de la mise à jour du montant. " + str(e),
         )
+        simulation_projet = SimulationProjet.objects.get(pk=simulation_projet.pk)
 
     return redirect_to_same_page_or_to_simulation_detail_by_default(
         request, simulation_projet
@@ -86,14 +103,25 @@ def patch_status_simulation_projet(request, pk):
         raise ValueError("Invalid status")
 
     try:
-        updated_simulation_projet = SimulationProjetService.update_status(
-            simulation_projet, status, request.user
-        )
-    except DsServiceException as e:
+        with transaction.atomic():
+            try:
+                updated_simulation_projet = SimulationProjetService.update_status(
+                    simulation_projet, status, request.user
+                )
+            except NonBlockingDsError as e:  # don't rollback the transaction
+                messages.warning(
+                    request,
+                    "Une erreur est survenue lors de la mise à jour du statut dans Démarches Simplifiées. "
+                    + str(e),
+                )
+                updated_simulation_projet = SimulationProjet.objects.get(
+                    pk=simulation_projet.pk
+                )
+
+    except DsServiceException as e:  # rollback the transaction + show error
         messages.error(
             request,
-            "Une erreur est survenue lors de la mise à jour du statut dans Démarches Simplifiées. "
-            + str(e),
+            str(e) + " Le statut n'a pas été modifié.",
         )
         return redirect_to_same_page_or_to_simulation_detail_by_default(
             request, simulation_projet
