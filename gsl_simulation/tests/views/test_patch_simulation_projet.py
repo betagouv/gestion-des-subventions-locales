@@ -22,7 +22,6 @@ from gsl_programmation.tests.factories import (
 )
 from gsl_projet.constants import (
     DOTATION_DETR,
-    DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
@@ -375,59 +374,6 @@ def test_patch_detr_avis_commission_simulation_projet(
     )
 
 
-def test_two_fields_update_and_only_one_error(
-    perimetre_departemental, accepted_simulation_projet
-):
-    collegue = CollegueFactory(perimetre=perimetre_departemental, ds_id="")
-    client = ClientWithLoggedUserFactory(collegue)
-    accepted_simulation_projet.projet.is_in_qpv = False
-    accepted_simulation_projet.projet.is_attached_to_a_crte = False
-    accepted_simulation_projet.projet.save()
-    data = {
-        "is_in_qpv": "on",
-        "is_attached_to_a_crte": "on",
-        "dotations": [DOTATION_DSIL],
-    }
-
-    with (
-        patch(
-            "gsl_demarches_simplifiees.services.DsService.update_ds_is_in_qpv",
-            return_value=True,
-        ),
-        patch(
-            "gsl_demarches_simplifiees.services.DsService.update_ds_is_attached_to_a_crte",
-            side_effect=DsServiceException("Erreur !"),
-        ),
-    ):
-        url = reverse(
-            "simulation:patch-projet",
-            args=[accepted_simulation_projet.id],
-        )
-        response = client.post(
-            url,
-            data,
-            follow=True,
-        )
-
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-    message = list(messages)[0]
-    assert message.level == 40  # Error
-    assert (
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées (CRTE => Erreur !). Ces modifications n'ont pas été enregistrées."
-        == message.message
-    )
-
-    accepted_simulation_projet.projet.refresh_from_db()
-
-    assert response.status_code == 200
-
-    assert (
-        accepted_simulation_projet.projet.is_in_qpv is True
-    )  # Only this field has been updated
-    assert accepted_simulation_projet.projet.is_attached_to_a_crte is False
-
-
 def test_patch_simulation_projet(
     client_with_user_logged,
     accepted_simulation_projet,
@@ -612,7 +558,7 @@ def test_patch_simulation_projet_with_ds_error(
     assert len(messages) == 1
     message = list(messages)[0]
     assert message.level == 40
-    final_msg = error_msg.replace("{field}", "assiette")
+    final_msg = error_msg.replace("{field}", "Assiette")
     assert final_msg == message.message
 
     accepted_simulation_projet.dotation_projet.refresh_from_db()
@@ -662,3 +608,53 @@ def test_patch_simulation_projet_with_ds_token_error(
 
     assert response.status_code == 200
     assert accepted_simulation_projet.dotation_projet.assiette == 1_000
+
+
+def test_two_fields_update_and_only_one_error(
+    perimetre_departemental, accepted_simulation_projet
+):
+    user = CollegueFactory(perimetre=perimetre_departemental, ds_id="")
+    client = ClientWithLoggedUserFactory(user)
+    data = {
+        "assiette": 20_000,
+        "montant": 4_000,
+    }
+
+    with (
+        patch(
+            "gsl_demarches_simplifiees.services.DsService.update_ds_assiette",
+            return_value=True,
+        ),
+        patch(
+            "gsl_demarches_simplifiees.services.DsService.update_ds_montant",
+            side_effect=DsServiceException("Erreur !"),
+        ),
+    ):
+        url = reverse(
+            "simulation:simulation-projet-detail",
+            args=[accepted_simulation_projet.id],
+        )
+        response = client.post(
+            url,
+            data,
+            follow=True,
+        )
+
+    assert response.status_code == 200
+
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 40  # Error
+    assert (
+        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées (Montant => Erreur !). Ces modifications n'ont pas été enregistrées."
+        == message.message
+    )
+
+    accepted_simulation_projet.projet.refresh_from_db()
+    accepted_simulation_projet.dotation_projet.refresh_from_db()
+
+    # Only this field has been updated
+    assert accepted_simulation_projet.dotation_projet.assiette == 20_000
+
+    assert accepted_simulation_projet.montant == 1_000  # default

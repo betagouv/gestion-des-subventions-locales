@@ -30,6 +30,9 @@ FIELD_TO_LABEL_MAP = {
     "is_in_qpv": "QPV",
     "is_attached_to_a_crte": "CRTE",
     "is_budget_vert": "Budget vert",
+    "assiette": "Assiette",
+    "montant": "Montant",
+    "taux": "Taux",
 }
 
 logger = getLogger(__name__)
