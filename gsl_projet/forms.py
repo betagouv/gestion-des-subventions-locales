@@ -5,7 +5,6 @@ from django import forms
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
-from gsl_core.models import Collegue
 from gsl_demarches_simplifiees.mixins import DsUpdatableFields, DSUpdateMixin
 from gsl_projet.constants import DOTATION_CHOICES
 from gsl_projet.models import CategorieDetr, DotationProjet, Projet, ProjetNote
@@ -56,9 +55,6 @@ class ProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
         ]
 
     def __init__(self, *args, **kwargs):
-        self.user: Collegue | None = None
-        if "user" in kwargs.keys():
-            self.user = kwargs.pop("user")
         super().__init__(*args, **kwargs)
         self.fields["dotations"].initial = self.instance.dotations
 

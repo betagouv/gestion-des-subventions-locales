@@ -121,6 +121,21 @@ def test_projet_form_save(projet):
 
 
 @pytest.mark.django_db
+def test_projet_form_save_with_multiple_dotations(projet):
+    data = {
+        "is_in_qpv": True,
+        "is_attached_to_a_crte": True,
+        "is_budget_vert": False,
+        "dotations": [DOTATION_DSIL, DOTATION_DETR],
+    }
+    form = ProjetForm(instance=projet, data=data)
+    assert form.is_valid()
+    projet, _ = form.save(commit=True)
+    assert DOTATION_DSIL in projet.dotations
+    assert DOTATION_DETR in projet.dotations
+
+
+@pytest.mark.django_db
 def test_projet_form_save_with_field_exceptions(projet, user):
     with patch(
         "gsl_demarches_simplifiees.mixins.DSUpdateMixin.process_projet_update"

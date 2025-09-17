@@ -43,6 +43,12 @@ class DSUpdateMixin:
       - post_save(instance)
     """
 
+    def __init__(self, *args, **kwargs):
+        self.user: Collegue | None = None
+        if "user" in kwargs:
+            self.user = kwargs.pop("user")
+        return super().__init__(*args, **kwargs)
+
     def _save_with_ds(self, instance, commit=True):
         error_msg = None
 
@@ -52,9 +58,7 @@ class DSUpdateMixin:
                     f"No user provided to {self.__class__.__name__}.save, can't save to DS"
                 )
             else:
-                errors, blocking = self.process_projet_update(
-                    self, self.get_dossier_ds(instance), self.user, self.get_fields()
-                )
+                errors, blocking = self.process_projet_update(instance)
 
                 if blocking:
                     error_msg = (
@@ -89,10 +93,7 @@ class DSUpdateMixin:
 
     def process_projet_update(
         self,
-        form,
-        dossier: Dossier,  # use from self
-        user: Collegue,  # use from self
-        fields: List[DsUpdatableFields] = FIELDS_UPDATABLE_ON_DS,
+        instance,
     ) -> tuple[dict[str, str], bool]:
         """
         Returns a tuple(errors, has_blocking_error).
@@ -101,17 +102,18 @@ class DSUpdateMixin:
         """
         errors: dict[str, str] = {}
         ds_service = DsService()
+        dossier: Dossier = self.get_dossier_ds(instance)  # type: ignore
 
-        for field in fields:
-            if field in form.changed_data:
+        for field in self.get_fields():
+            if field in self.changed_data:  # type: ignore
                 try:
                     update_function = getattr(
                         ds_service, FIELDS_TO_DS_SERVICE_FUNCTIONS[field]
                     )
                     update_function(
                         dossier,
-                        user,
-                        form.cleaned_data[field],
+                        self.user,
+                        self.cleaned_data[field],  # type: ignore
                     )
                 except (UserRightsError, InstructeurUnknown, DsConnectionError) as e:
                     return {"all": str(e)}, True  # global error -> stop
@@ -119,3 +121,15 @@ class DSUpdateMixin:
                     errors[field] = str(e)
 
         return errors, False
+
+    def get_dossier_ds(self, instance):
+        raise NotImplementedError
+
+    def get_fields(self):
+        raise NotImplementedError
+
+    def reset_field(self, field, instance):
+        raise NotImplementedError
+
+    def post_save(self, instance):
+        raise NotImplementedError

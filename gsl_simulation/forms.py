@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
-from gsl_core.models import Collegue, Perimetre
+from gsl_core.models import Perimetre
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.forms import DSUpdateMixin
 from gsl_projet.models import DotationProjet
@@ -90,9 +90,6 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
         fields = ["montant"]
 
     def __init__(self, *args, **kwargs):
-        self.user: Collegue | None = None
-        if "user" in kwargs:
-            self.user = kwargs.pop("user")
         super().__init__(*args, **kwargs)
         self.fields["taux"].initial = self.instance.taux
 
