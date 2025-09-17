@@ -147,7 +147,7 @@ def test_create_alert_data_icon(extra_tags, icon_expected):
     "level_tag, type_expected",
     (
         ("info", None),
-        ("warning", None),
+        ("warning", "warning"),
         (
             "success",
             None,

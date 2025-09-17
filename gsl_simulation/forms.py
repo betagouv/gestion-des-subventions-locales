@@ -136,7 +136,7 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
     def get_dossier_ds(self, instance):
         return instance.projet.dossier_ds
 
-    def get_fields(self) -> list[DsUpdatableFields]:  # TODO test it !
+    def get_fields(self) -> list[DsUpdatableFields]:
         if self.instance.status == SimulationProjet.STATUS_ACCEPTED:
             return ["assiette", "montant", "taux"]
         return ["assiette"]
@@ -165,7 +165,7 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
             )
 
         if field == "taux":
-            initial_taux = self.initial["taux"]
+            initial_taux = self.fields["taux"].initial
             self.cleaned_data["taux"] = initial_taux
             instance.montant = DotationProjetService.compute_montant_from_taux(
                 dotation_projet, initial_taux

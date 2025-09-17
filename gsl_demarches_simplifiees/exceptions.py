@@ -21,7 +21,3 @@ class FieldError(DsServiceException):
 
 class UserRightsError(DsServiceException):
     DEFAULT_MESSAGE = "Vous n'avez pas les droits suffisants pour modifier ce dossier."
-
-
-class NonBlockingDsError(DsServiceException):
-    pass

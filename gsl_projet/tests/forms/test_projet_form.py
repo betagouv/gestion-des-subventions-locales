@@ -138,7 +138,7 @@ def test_projet_form_save_with_multiple_dotations(projet):
 @pytest.mark.django_db
 def test_projet_form_save_with_field_exceptions(projet, user):
     with patch(
-        "gsl_demarches_simplifiees.mixins.DSUpdateMixin.process_projet_update"
+        "gsl_demarches_simplifiees.mixins.process_projet_update"
     ) as mock_process_projet_update:
         mock_process_projet_update.return_value = (
             {"is_budget_vert": "Some error"},

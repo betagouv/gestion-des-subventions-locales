@@ -368,8 +368,9 @@ def test_update_status_with_provisionally_accepted_remove_programmation_projet_f
     )
 
 
+@mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_taux")
 @mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_montant")
-def test_accept_a_simulation_projet(mock_update_ds_montant, user):
+def test_accept_a_simulation_projet(mock_update_ds_montant, mock_update_ds_taux, user):
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROCESSING
     )
@@ -387,6 +388,11 @@ def test_accept_a_simulation_projet(mock_update_ds_montant, user):
         dossier=simulation_projet.projet.dossier_ds,
         user=user,
         value=simulation_projet.montant,
+    )
+    mock_update_ds_taux.assert_called_once_with(
+        dossier=simulation_projet.projet.dossier_ds,
+        user=user,
+        value=simulation_projet.taux,
     )
 
     updated_simulation_projet = SimulationProjet.objects.get(pk=simulation_projet.pk)
@@ -408,9 +414,11 @@ def test_accept_a_simulation_projet(mock_update_ds_montant, user):
     assert updated_other_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
 
 
+@mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_taux")
 @mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_montant")
 def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_mother_enveloppe(
     mock_update_ds_montant,
+    mock_update_ds_taux,
     user,
 ):
     mother_enveloppe = DetrEnveloppeFactory()
@@ -430,6 +438,11 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
         user=user,
         value=simulation_projet.montant,
     )
+    mock_update_ds_taux.assert_called_once_with(
+        dossier=simulation_projet.projet.dossier_ds,
+        user=user,
+        value=simulation_projet.taux,
+    )
 
     programmation_projets_qs = ProgrammationProjet.objects.filter(
         dotation_projet=simulation_projet.dotation_projet
@@ -439,6 +452,7 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
     assert programmation_projet.enveloppe == mother_enveloppe
 
 
+@mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_taux")
 @mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_montant")
 @pytest.mark.parametrize(
     "initial_programmation_status, new_projet_status, programmation_status_expected",
@@ -457,6 +471,7 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
 )
 def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_mother_enveloppe(
     mock_update_ds_montant,
+    mock_update_ds_taux,
     initial_programmation_status,
     new_projet_status,
     programmation_status_expected,
@@ -492,6 +507,11 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
             user=user,
             value=simulation_projet.montant,
         )
+        mock_update_ds_taux.assert_called_once_with(
+            dossier=simulation_projet.projet.dossier_ds,
+            user=user,
+            value=simulation_projet.taux,
+        )
 
     programmation_projets_qs = ProgrammationProjet.objects.filter(
         dotation_projet=simulation_projet.dotation_projet
@@ -523,12 +543,15 @@ def test_update_taux(field_name, user):
     assert simulation_projet.montant == 150.0
 
 
+@mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_taux")
 @mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_montant")
 @pytest.mark.parametrize(
     "field_name",
     ("assiette", "projet__dossier_ds__finance_cout_total"),
 )
-def test_update_taux_of_accepted_montant(mock_update_ds_montant, field_name, user):
+def test_update_taux_of_accepted_montant(
+    mock_update_ds_montant, mock_update_ds_taux, field_name, user
+):
     dotation_projet = DotationProjetFactory(
         **{field_name: 1000},
     )
@@ -555,6 +578,9 @@ def test_update_taux_of_accepted_montant(mock_update_ds_montant, field_name, use
     expected_montant = 150.0
     mock_update_ds_montant.assert_called_once_with(
         dossier=simulation_projet.projet.dossier_ds, user=user, value=expected_montant
+    )
+    mock_update_ds_taux.assert_called_once_with(
+        dossier=simulation_projet.projet.dossier_ds, user=user, value=new_taux
     )
 
     assert simulation_projet.taux == new_taux
@@ -589,12 +615,15 @@ def test_update_montant(field_name, user):
     assert simulation_projet.taux == 50.0
 
 
+@mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_taux")
 @mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_montant")
 @pytest.mark.parametrize(
     "field_name",
     ("assiette", "projet__dossier_ds__finance_cout_total"),
 )
-def test_update_montant_of_accepted_montant(mock_update_ds_montant, field_name, user):
+def test_update_montant_of_accepted_montant(
+    mock_update_ds_montant, mock_update_ds_taux, field_name, user
+):
     dotation_projet = DotationProjetFactory(
         **{field_name: 1000},
     )
@@ -617,23 +646,27 @@ def test_update_montant_of_accepted_montant(mock_update_ds_montant, field_name, 
     )
 
     new_montant = 500.0
+    new_taux = 50.0
 
     SimulationProjetService.update_montant(simulation_projet, new_montant, user)
 
     mock_update_ds_montant.assert_called_once_with(
         dossier=simulation_projet.projet.dossier_ds, user=user, value=new_montant
     )
+    mock_update_ds_taux.assert_called_once_with(
+        dossier=simulation_projet.projet.dossier_ds, user=user, value=new_taux
+    )
 
     assert simulation_projet.montant == new_montant
-    assert simulation_projet.taux == 50.0
+    assert simulation_projet.taux == new_taux
 
     other_simulation_projet.refresh_from_db()
-    assert other_simulation_projet.montant == 500.0
-    assert other_simulation_projet.taux == 50.0
+    assert other_simulation_projet.montant == new_montant
+    assert other_simulation_projet.taux == new_taux
 
     programmation_projet.refresh_from_db()
-    assert programmation_projet.montant == 500.0
-    assert programmation_projet.taux == 50.0
+    assert programmation_projet.montant == new_montant
+    assert programmation_projet.taux == new_taux
 
 
 @pytest.mark.parametrize(
@@ -651,6 +684,7 @@ def test_get_simulation_projet_status(projet_status, simulation_projet_status_ex
     assert status == simulation_projet_status_expected
 
 
+@mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_taux")
 @mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_montant")
 @pytest.mark.parametrize(
     ("dotation_projet_transition, method, with_enveloppe, with_montant"),
@@ -668,6 +702,7 @@ def test_get_simulation_projet_status(projet_status, simulation_projet_status_ex
 )
 def test_simulation_projet_transition_are_called(
     mock_update_ds_montant,
+    mock_update_ds_taux,
     dotation_projet_transition,
     method,
     with_enveloppe,
@@ -692,6 +727,11 @@ def test_simulation_projet_transition_are_called(
                 dossier=simulation_projet.projet.dossier_ds,
                 user=user,
                 value=simulation_projet.montant,
+            )
+            mock_update_ds_taux.assert_called_once_with(
+                dossier=simulation_projet.projet.dossier_ds,
+                user=user,
+                value=simulation_projet.taux,
             )
         else:  # TODO it's only tmp. remove it
             method(simulation_projet)

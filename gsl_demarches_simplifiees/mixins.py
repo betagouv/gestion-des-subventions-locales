@@ -76,7 +76,7 @@ class DSUpdateMixin:
                     self.reset_field(field, instance)
 
                 if errors:
-                    fields_msg = self.build_error_message(errors)
+                    fields_msg = build_error_message(errors)
                     error_msg = (
                         "Une erreur est survenue lors de la mise à jour de certaines "
                         "informations sur Démarches Simplifiées "
@@ -115,8 +115,6 @@ def process_projet_update(
     errors: dict[str, str] = {}
     ds_service = DsService()
 
-    print("FIELDS_UPDATABLE_ON_DS", fields)
-
     for field in fields:
         if field in data.keys():
             try:
@@ -124,9 +122,9 @@ def process_projet_update(
                     ds_service, FIELDS_TO_DS_SERVICE_FUNCTIONS[field]
                 )
                 update_function(
-                    dossier,
-                    user,
-                    data[field],
+                    dossier=dossier,
+                    user=user,
+                    value=data[field],
                 )
             except (UserRightsError, InstructeurUnknown, DsConnectionError) as e:
                 return {"all": str(e)}, True  # global error -> stop

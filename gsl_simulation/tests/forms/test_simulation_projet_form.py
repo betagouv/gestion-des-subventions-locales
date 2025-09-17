@@ -191,7 +191,7 @@ def test_save_with_assiette_field_exceptions(simulation_projet, user):
     assert form.is_valid()
 
     with patch(
-        "gsl_demarches_simplifiees.mixins.DSUpdateMixin.process_projet_update"
+        "gsl_demarches_simplifiees.mixins.process_projet_update"
     ) as mock_process:
         mock_process.return_value = ({"assiette": "Some error"}, False)
         form.save()
@@ -208,7 +208,7 @@ def test_save_with_montant_field_exceptions(simulation_projet, user):
     assert form.is_valid()
 
     with patch(
-        "gsl_demarches_simplifiees.mixins.DSUpdateMixin.process_projet_update"
+        "gsl_demarches_simplifiees.mixins.process_projet_update"
     ) as mock_process:
         mock_process.return_value = ({"montant": "Some error"}, False)
         form.save()
@@ -227,10 +227,30 @@ def test_save_with_assiette_field_exceptions_and_montant_cleaned(
     assert form.is_valid()
 
     with patch(
-        "gsl_demarches_simplifiees.mixins.DSUpdateMixin.process_projet_update"
+        "gsl_demarches_simplifiees.mixins.process_projet_update"
     ) as mock_process:
         mock_process.return_value = ({"assiette": "Some error"}, False)
 
         # Error because assiette update is cancelled (=> 1_000) and then montant is higher than assiette, so model cleans do the job
         with pytest.raises(ValidationError):
             form.save()
+
+
+def test_get_fields(simulation_projet):
+    simulation_projet = SimulationProjetFactory(
+        montant=200, status=SimulationProjet.STATUS_ACCEPTED
+    )
+    form = SimulationProjetForm(instance=simulation_projet)
+    assert form.get_fields() == ["assiette", "montant", "taux"]
+
+    for status in [
+        SimulationProjet.STATUS_REFUSED,
+        SimulationProjet.STATUS_DISMISSED,
+        SimulationProjet.STATUS_PROCESSING,
+        SimulationProjet.STATUS_PROCESSING,
+        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
+        SimulationProjet.STATUS_PROVISIONALLY_REFUSED,
+    ]:
+        simulation_projet = SimulationProjetFactory(montant=200, status=status)
+        form = SimulationProjetForm(instance=simulation_projet)
+        assert form.get_fields() == ["assiette"]

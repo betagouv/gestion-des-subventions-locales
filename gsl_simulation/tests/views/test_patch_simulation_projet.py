@@ -92,12 +92,16 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
     url = reverse(
         "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
     )
-    response = client_with_user_logged.post(
-        url,
-        {"status": f"{SimulationProjet.STATUS_ACCEPTED}"},
-        follow=True,
-        headers={"HX-Request": "true"},
-    )
+    with patch(
+        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+    ) as mock_update_ds_montant:
+        mock_update_ds_montant.return_value = None
+        response = client_with_user_logged.post(
+            url,
+            {"status": f"{SimulationProjet.STATUS_ACCEPTED}"},
+            follow=True,
+            headers={"HX-Request": "true"},
+        )
 
     updated_simulation_projet = SimulationProjet.objects.get(id=simulation_projet.id)
     dotation_projet = DotationProjet.objects.get(
@@ -175,10 +179,12 @@ data_test = (
 )
 
 
+@mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_taux")
 @mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_montant")
 @pytest.mark.parametrize("status, expected_message, expected_tag", data_test)
 def test_patch_status_simulation_projet_with_refused_value_giving_message(
     mock_update_ds_montant,
+    mock_update_ds_taux,
     client_with_user_logged,
     simulation_projet,
     status,
@@ -204,7 +210,12 @@ def test_patch_status_simulation_projet_with_refused_value_giving_message(
         mock_update_ds_montant.assert_called_once_with(
             dossier=simulation_projet.projet.dossier_ds,
             user=client_with_user_logged.user,
-            value=simulation_projet.montant,
+            value=Decimal(simulation_projet.montant),
+        )
+        mock_update_ds_taux.assert_called_once_with(
+            dossier=simulation_projet.projet.dossier_ds,
+            user=client_with_user_logged.user,
+            value=Decimal(simulation_projet.taux),
         )
 
     assert response.status_code == 200
@@ -258,9 +269,13 @@ def accepted_simulation_projet(collegue, simulation):
     )
 
 
+@mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_taux")
 @mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_montant")
 def test_patch_taux_simulation_projet(
-    mock_update_ds_montant, client_with_user_logged, accepted_simulation_projet
+    mock_update_ds_montant,
+    mock_update_ds_taux,
+    client_with_user_logged,
+    accepted_simulation_projet,
 ):
     url = reverse(
         "simulation:patch-simulation-projet-taux", args=[accepted_simulation_projet.id]
@@ -280,6 +295,12 @@ def test_patch_taux_simulation_projet(
         dossier=accepted_simulation_projet.projet.dossier_ds,
         user=client_with_user_logged.user,
         value=7_500,
+    )
+
+    mock_update_ds_taux.assert_called_once_with(
+        dossier=accepted_simulation_projet.projet.dossier_ds,
+        user=client_with_user_logged.user,
+        value=75.0,
     )
 
     assert response.status_code == 200
@@ -320,9 +341,13 @@ def test_patch_taux_simulation_projet_with_wrong_value(
     assert accepted_simulation_projet.montant == 1_000
 
 
+@mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_taux")
 @mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_montant")
 def test_patch_montant_simulation_projet(
-    mock_update_ds_montant, client_with_user_logged, accepted_simulation_projet
+    mock_update_ds_montant,
+    mock_update_ds_taux,
+    client_with_user_logged,
+    accepted_simulation_projet,
 ):
     url = reverse(
         "simulation:patch-simulation-projet-montant",
@@ -343,6 +368,11 @@ def test_patch_montant_simulation_projet(
         dossier=accepted_simulation_projet.projet.dossier_ds,
         user=client_with_user_logged.user,
         value=1267.32,
+    )
+    mock_update_ds_taux.assert_called_once_with(
+        dossier=accepted_simulation_projet.projet.dossier_ds,
+        user=client_with_user_logged.user,
+        value=Decimal("12.673"),
     )
 
     assert response.status_code == 200
@@ -556,7 +586,7 @@ def test_patch_simulation_projet_with_ds_error(
         )
         response = client_with_user_logged.post(
             url,
-            {"assiette": 2000, "montant": 500},
+            {"assiette": 2000, "montant": 500, "taux": 50},
             follow=True,
         )
 
@@ -616,14 +646,15 @@ def test_patch_simulation_projet_with_ds_token_error(
     assert accepted_simulation_projet.dotation_projet.assiette == 1_000
 
 
-def test_two_fields_update_and_only_one_error(
+def test_three_fields_update_and_only_one_error(
     perimetre_departemental, accepted_simulation_projet
 ):
-    user = CollegueFactory(perimetre=perimetre_departemental, ds_id="")
+    user = CollegueFactory(perimetre=perimetre_departemental, ds_id="123")
     client = ClientWithLoggedUserFactory(user)
     data = {
         "assiette": 20_000,
         "montant": 4_000,
+        "taux": 20.0,
     }
 
     with (
@@ -634,6 +665,10 @@ def test_two_fields_update_and_only_one_error(
         patch(
             "gsl_demarches_simplifiees.services.DsService.update_ds_montant",
             side_effect=DsServiceException("Erreur !"),
+        ),
+        patch(
+            "gsl_demarches_simplifiees.services.DsService.update_ds_taux",
+            return_value=True,
         ),
     ):
         url = reverse(

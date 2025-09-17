@@ -2,7 +2,7 @@ import logging
 from decimal import Decimal
 
 from gsl_core.models import Collegue
-from gsl_demarches_simplifiees.exceptions import DsServiceException, NonBlockingDsError
+from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.mixins import build_error_message, process_projet_update
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import ProgrammationProjet
@@ -197,14 +197,12 @@ class SimulationProjetService:
         )
         dotation_projet.save()
 
-        error_msg = cls._update_ds_montant_and_taux(
+        cls._update_ds_montant_and_taux(
             dossier_ds=dotation_projet.projet.dossier_ds,
             montant=simulation_projet.montant,
             taux=simulation_projet.taux,
             user=user,
         )
-        if error_msg:
-            raise NonBlockingDsError(error_msg)
 
         updated_simulation_projet = SimulationProjet.objects.get(
             pk=simulation_projet.pk
@@ -247,7 +245,7 @@ class SimulationProjetService:
     @classmethod
     def _update_ds_montant_and_taux(
         cls, dossier_ds: Dossier, montant: float, taux: float, user: Collegue
-    ) -> None | str:
+    ) -> None:
         data = {
             "montant": montant,
             "taux": taux,
@@ -264,11 +262,13 @@ class SimulationProjetService:
 
         error_msg = None
 
-        if errors:
-            fields_msg = build_error_message(errors)
-            error_msg = (
-                "Une erreur est survenue lors de la mise à jour de certaines "
-                "informations sur Démarches Simplifiées "
-                f"({fields_msg}). Ces modifications n'ont pas été enregistrées."
-            )
-        return error_msg
+        if not errors:
+            return
+
+        fields_msg = build_error_message(errors)
+        error_msg = (
+            "Une erreur est survenue lors de la mise à jour de certaines "
+            "informations sur Démarches Simplifiées "
+            f"({fields_msg}). Ces modifications n'ont pas été enregistrées."
+        )
+        raise DsServiceException(error_msg)

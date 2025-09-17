@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import UpdateView
 
 from gsl.settings import ALLOWED_HOSTS
-from gsl_demarches_simplifiees.exceptions import DsServiceException, NonBlockingDsError
+from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_projet.forms import DotationProjetForm, ProjetForm
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
@@ -64,22 +64,12 @@ def patch_montant_simulation_projet(request, pk):
     new_montant = replace_comma_by_dot(request.POST.get("montant"))
     try:
         with transaction.atomic():
-            try:
-                DotationProjetService.validate_montant(
-                    new_montant, simulation_projet.dotation_projet
-                )
-                SimulationProjetService.update_montant(
-                    simulation_projet, new_montant, user=request.user
-                )
-            except NonBlockingDsError as e:  # don't rollback the transaction
-                messages.warning(
-                    request,
-                    "Une erreur est survenue lors de la mise à jour du statut dans Démarches Simplifiées. "
-                    + str(e),
-                )
-                simulation_projet = SimulationProjet.objects.get(
-                    pk=simulation_projet.pk
-                )
+            DotationProjetService.validate_montant(
+                new_montant, simulation_projet.dotation_projet
+            )
+            SimulationProjetService.update_montant(
+                simulation_projet, new_montant, user=request.user
+            )
     except (ValueError, DsServiceException) as e:
         messages.error(
             request,
@@ -104,19 +94,9 @@ def patch_status_simulation_projet(request, pk):
 
     try:
         with transaction.atomic():
-            try:
-                updated_simulation_projet = SimulationProjetService.update_status(
-                    simulation_projet, status, request.user
-                )
-            except NonBlockingDsError as e:  # don't rollback the transaction
-                messages.warning(
-                    request,
-                    "Une erreur est survenue lors de la mise à jour du statut dans Démarches Simplifiées. "
-                    + str(e),
-                )
-                updated_simulation_projet = SimulationProjet.objects.get(
-                    pk=simulation_projet.pk
-                )
+            updated_simulation_projet = SimulationProjetService.update_status(
+                simulation_projet, status, request.user
+            )
 
     except DsServiceException as e:  # rollback the transaction + show error
         messages.error(
