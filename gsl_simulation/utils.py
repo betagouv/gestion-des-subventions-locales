@@ -43,19 +43,3 @@ def add_simulation_projet_status_success_message(
             STATUS_TO_MESSAGE[message_type],
             extra_tags=message_type,
         )
-
-
-FIELD_TO_LABEL_MAP = {
-    "is_in_qpv": "QPV",
-    "is_attached_to_a_crte": "CRTE",
-    "is_budget_vert": "Budget vert",
-}
-
-
-def build_error_message(errors):
-    parts = []
-    for field, msg in errors.items():
-        label = FIELD_TO_LABEL_MAP.get(field, field)
-        complete_message = f"{label} => {msg}" if msg else label
-        parts.append(complete_message)
-    return " / ".join(parts)

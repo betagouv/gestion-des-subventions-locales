@@ -7,12 +7,11 @@ from dsfr.forms import DsfrBaseForm
 
 from gsl_core.models import Collegue, Perimetre
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.forms import DSUpdateMixin
 from gsl_projet.models import DotationProjet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.utils import compute_taux
 from gsl_simulation.models import SimulationProjet
-from gsl_simulation.services.projet_updater import process_projet_update
-from gsl_simulation.utils import build_error_message
 
 logger = getLogger(__name__)
 
@@ -52,7 +51,7 @@ class SimulationForm(DsfrBaseForm):
         return cleaned_data
 
 
-class SimulationProjetForm(ModelForm, DsfrBaseForm):
+class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
     assiette = forms.DecimalField(
         label="Montant des dépenses éligibles retenues (€)",
         max_digits=12,
@@ -132,40 +131,21 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
 
         return cleaned_data
 
-    def save(self, commit=True) -> tuple[SimulationProjet, str | None]:
-        instance = super().save(commit=False)
-        dotation_projet = instance.dotation_projet
+    def save(self, commit=True):
+        instance: SimulationProjet = super().save(commit=False)
+        return self._save_with_ds(instance, commit)
 
-        error_msg = None
-        if commit:
-            if self.user is None:
-                logger.warning(
-                    "No user provided to SimulationProjetForm.save, can't save to DS"
-                )
-            else:
-                errors, blocking = process_projet_update(
-                    self, instance.projet.dossier_ds, self.user, ["assiette"]
-                )
-                if blocking:
-                    error_msg = f"Une erreur est survenue lors de la mise à jour des informations sur Démarches Simplifiées. {errors['all']}"
-                    return (
-                        self.instance,
-                        error_msg,
-                    )
+    def get_dossier_ds(self, instance):
+        return instance.projet.dossier_ds
 
-                for field, _ in errors.items():
-                    self._reset_field(field, instance, dotation_projet)
+    def get_fields(self):
+        return ["assiette"]
 
-                if errors:
-                    fields_msg = build_error_message(errors)
-                    error_msg = f"Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({fields_msg}). Ces modifications n'ont pas été enregistrées."
+    def reset_field(self, field, instance):
+        self._reset_field(field, instance, instance.dotation_projet)
 
-            dotation_projet.save()
-            instance.save()
-
-        return instance, error_msg
-
-    # Private
+    def post_save(self, instance):
+        instance.dotation_projet.save()
 
     def _reset_field(
         self, field: str, instance: SimulationProjet, dotation_projet: DotationProjet

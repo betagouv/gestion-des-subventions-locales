@@ -203,7 +203,9 @@ def test_save_with_assiette_field_exceptions(simulation_projet, user):
 
 
 def test_save_with_montant_field_exceptions(simulation_projet, user):
-    with patch("gsl_simulation.forms.process_projet_update") as mock_process:
+    with patch(
+        "gsl_demarches_simplifiees.mixins.DSUpdateMixin.process_projet_update"
+    ) as mock_process:
         mock_process.return_value = ({"montant": "Some error"}, False)
 
         data = {"assiette": 400, "montant": 300, "taux": 75}
@@ -221,7 +223,7 @@ def test_save_with_assiette_field_exceptions_and_montant_cleaned(
     simulation_projet, user
 ):
     mock_process_projet_update = patch(
-        "gsl_simulation.services.projet_updater.process_projet_update"
+        "gsl_demarches_simplifiees.mixins.process_projet_update"
     )
     mock_process_projet_update.return_value = ({"assiette": "Some error"}, False)
 
