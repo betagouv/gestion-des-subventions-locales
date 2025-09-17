@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import UpdateView
 
 from gsl.settings import ALLOWED_HOSTS
+from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_projet.forms import DotationProjetForm, ProjetForm
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
@@ -52,7 +53,9 @@ def patch_montant_simulation_projet(request, pk):
     DotationProjetService.validate_montant(
         new_montant, simulation_projet.dotation_projet
     )
-    SimulationProjetService.update_montant(simulation_projet, new_montant)
+    SimulationProjetService.update_montant(
+        simulation_projet, new_montant, user=request.user
+    )
     return redirect_to_same_page_or_to_simulation_detail_by_default(
         request, simulation_projet
     )
@@ -68,9 +71,19 @@ def patch_status_simulation_projet(request, pk):
     if status not in dict(SimulationProjet.STATUS_CHOICES).keys():
         raise ValueError("Invalid status")
 
-    updated_simulation_projet = SimulationProjetService.update_status(
-        simulation_projet, status
-    )
+    try:
+        updated_simulation_projet = SimulationProjetService.update_status(
+            simulation_projet, status, request.user
+        )
+    except DsServiceException as e:
+        messages.error(
+            request,
+            "Une erreur est survenue lors de la mise à jour du statut dans Démarches Simplifiées. "
+            + str(e),
+        )
+        return redirect_to_same_page_or_to_simulation_detail_by_default(
+            request, simulation_projet
+        )
     return redirect_to_same_page_or_to_simulation_detail_by_default(
         request, updated_simulation_projet, status
     )

@@ -1,7 +1,9 @@
 import logging
 from decimal import Decimal
 
-from gsl_core.models import Perimetre
+from gsl_core.models import Collegue, Perimetre
+from gsl_demarches_simplifiees.exceptions import DsServiceException
+from gsl_demarches_simplifiees.services import DsService
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
     PROJET_STATUS_ACCEPTED,
@@ -104,9 +106,11 @@ class SimulationProjetService:
         )
 
     @classmethod
-    def update_status(cls, simulation_projet: SimulationProjet, new_status: str):
+    def update_status(
+        cls, simulation_projet: SimulationProjet, new_status: str, user: Collegue
+    ):
         if new_status == SimulationProjet.STATUS_ACCEPTED:
-            return cls._accept_a_simulation_projet(simulation_projet)
+            return cls._accept_a_simulation_projet(simulation_projet, user)
 
         if new_status == SimulationProjet.STATUS_REFUSED:
             return cls._refuse_a_simulation_projet(simulation_projet)
@@ -140,7 +144,9 @@ class SimulationProjetService:
         return simulation_projet
 
     @classmethod
-    def update_taux(cls, simulation_projet: SimulationProjet, new_taux: float):
+    def update_taux(
+        cls, simulation_projet: SimulationProjet, new_taux: float, user: Collegue
+    ):
         new_montant = DotationProjetService.compute_montant_from_taux(
             simulation_projet.dotation_projet, new_taux
         )
@@ -149,17 +155,19 @@ class SimulationProjetService:
         simulation_projet.save()
 
         if simulation_projet.status == SimulationProjet.STATUS_ACCEPTED:
-            return cls._accept_a_simulation_projet(simulation_projet)
+            return cls._accept_a_simulation_projet(simulation_projet, user)
 
         return simulation_projet
 
     @classmethod
-    def update_montant(cls, simulation_projet: SimulationProjet, new_montant: float):
+    def update_montant(
+        cls, simulation_projet: SimulationProjet, new_montant: float, user: Collegue
+    ):
         simulation_projet.montant = new_montant
         simulation_projet.save()
 
         if simulation_projet.status == SimulationProjet.STATUS_ACCEPTED:
-            return cls._accept_a_simulation_projet(simulation_projet)
+            return cls._accept_a_simulation_projet(simulation_projet, user)
 
         return simulation_projet
 
@@ -175,12 +183,28 @@ class SimulationProjetService:
         return cls.PROJET_STATUS_TO_SIMULATION_PROJET_STATUS.get(dotation_projet.status)
 
     @classmethod
-    def _accept_a_simulation_projet(cls, simulation_projet: SimulationProjet):
+    def _accept_a_simulation_projet(
+        cls, simulation_projet: SimulationProjet, user: Collegue
+    ):
         dotation_projet = simulation_projet.dotation_projet
+
         dotation_projet.accept(
             montant=simulation_projet.montant, enveloppe=simulation_projet.enveloppe
         )
         dotation_projet.save()
+
+        # TODO challenge the position of this code, should it be here? Or in DotationProjet transition ?
+        try:
+            ds_service = DsService()
+            ds_service.update_ds_montant(
+                dossier=dotation_projet.projet.dossier_ds,
+                user=user,
+                value=float(simulation_projet.montant)
+                if simulation_projet.montant
+                else 0,
+            )
+        except DsServiceException as e:
+            raise DsServiceException("Le montant n'a pas pu être mis à jour. " + str(e))
 
         updated_simulation_projet = SimulationProjet.objects.get(
             pk=simulation_projet.pk
