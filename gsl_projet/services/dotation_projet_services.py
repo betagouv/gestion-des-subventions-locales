@@ -1,6 +1,7 @@
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
+from gsl_core.templatetags.gsl_filters import euro
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import Enveloppe
 from gsl_projet.constants import (
@@ -128,10 +129,10 @@ class DotationProjetService:
             or montant > dotation_projet.assiette_or_cout_total
         ):
             raise ValueError(
-                f"Montant {montant} must be greatear or equal to 0 and less than or equal to {dotation_projet.assiette_or_cout_total}"
+                f"Le montant {euro(montant)} doit être supérieur ou égal à 0 € et inférieur ou égal à {euro(dotation_projet.assiette_or_cout_total)}."
             )
 
     @classmethod
     def validate_taux(cls, taux: float | Decimal) -> None:
         if type(taux) not in [float, Decimal, int] or taux < 0 or taux > 100:
-            raise ValueError(f"Taux {taux} must be between 0 and 100")
+            raise ValueError(f"Le taux {taux} doit être entre 0% and 100%")

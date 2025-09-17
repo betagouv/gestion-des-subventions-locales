@@ -2,6 +2,7 @@ from decimal import Decimal
 
 import pytest
 
+from gsl_core.templatetags.gsl_filters import euro
 from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
@@ -365,8 +366,8 @@ def test_validate_montant(
         with pytest.raises(
             ValueError,
             match=(
-                f"Montant {montant} must be greatear or equal to 0 and less than or "
-                f"equal to {dotation_projet.assiette_or_cout_total}"
+                f"Le montant {euro(montant)} doit être supérieur ou égal à 0 € et inférieur ou "
+                f"égal à {euro(dotation_projet.assiette_or_cout_total)}."
             ),
         ):
             DotationProjetService.validate_montant(montant, dotation_projet)

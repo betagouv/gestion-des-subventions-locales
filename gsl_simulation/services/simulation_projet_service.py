@@ -182,6 +182,8 @@ class SimulationProjetService:
     def get_simulation_projet_status(cls, dotation_projet: DotationProjet):
         return cls.PROJET_STATUS_TO_SIMULATION_PROJET_STATUS.get(dotation_projet.status)
 
+    # Private
+
     @classmethod
     def _accept_a_simulation_projet(
         cls, simulation_projet: SimulationProjet, user: Collegue
