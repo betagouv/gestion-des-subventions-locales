@@ -186,15 +186,15 @@ def user() -> Collegue:
 
 
 def test_save_with_assiette_field_exceptions(simulation_projet, user):
-    mock_process_projet_update = patch(
-        "gsl_simulation.services.projet_updater.process_projet_update"
-    )
-    mock_process_projet_update.return_value = ({"assiette": "Some error"}, False)
-
     data = {"assiette": 400, "montant": 300, "taux": 75}
     form = SimulationProjetForm(instance=simulation_projet, data=data, user=user)
     assert form.is_valid()
-    form.save()
+
+    with patch(
+        "gsl_demarches_simplifiees.mixins.DSUpdateMixin.process_projet_update"
+    ) as mock_process:
+        mock_process.return_value = ({"assiette": "Some error"}, False)
+        form.save()
 
     simulation_projet.refresh_from_db()
     assert simulation_projet.dotation_projet.assiette == 1_000  # not updated
@@ -203,33 +203,34 @@ def test_save_with_assiette_field_exceptions(simulation_projet, user):
 
 
 def test_save_with_montant_field_exceptions(simulation_projet, user):
+    data = {"assiette": 400, "montant": 300, "taux": 75}
+    form = SimulationProjetForm(instance=simulation_projet, data=data, user=user)
+    assert form.is_valid()
+
     with patch(
         "gsl_demarches_simplifiees.mixins.DSUpdateMixin.process_projet_update"
     ) as mock_process:
         mock_process.return_value = ({"montant": "Some error"}, False)
-
-        data = {"assiette": 400, "montant": 300, "taux": 75}
-        form = SimulationProjetForm(instance=simulation_projet, data=data, user=user)
-        assert form.is_valid()
         form.save()
 
-        simulation_projet.refresh_from_db()
-        assert simulation_projet.dotation_projet.assiette == 400  # updated
-        assert simulation_projet.montant == 200  # not updated
-        assert simulation_projet.taux == 50  # computed
+    simulation_projet.refresh_from_db()
+    assert simulation_projet.dotation_projet.assiette == 400  # updated
+    assert simulation_projet.montant == 200  # not updated
+    assert simulation_projet.taux == 50  # computed
 
 
 def test_save_with_assiette_field_exceptions_and_montant_cleaned(
     simulation_projet, user
 ):
-    mock_process_projet_update = patch(
-        "gsl_demarches_simplifiees.mixins.process_projet_update"
-    )
-    mock_process_projet_update.return_value = ({"assiette": "Some error"}, False)
-
     data = {"assiette": 2_000, "montant": 1_500, "taux": 75}
     form = SimulationProjetForm(instance=simulation_projet, data=data, user=user)
     assert form.is_valid()
-    # Error because assiette update is cancelled (=> 1_000) and then montant is higher than assiette, so model cleans do the job
-    with pytest.raises(ValidationError):
-        form.save()
+
+    with patch(
+        "gsl_demarches_simplifiees.mixins.DSUpdateMixin.process_projet_update"
+    ) as mock_process:
+        mock_process.return_value = ({"assiette": "Some error"}, False)
+
+        # Error because assiette update is cancelled (=> 1_000) and then montant is higher than assiette, so model cleans do the job
+        with pytest.raises(ValidationError):
+            form.save()

@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from gsl_core.templatetags.gsl_filters import euro
+from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
@@ -448,7 +448,9 @@ def test_compute_montant_from_taux_with_various_cout_total(
 )
 def test_validate_taux(taux, should_raise_exception):
     if should_raise_exception:
-        with pytest.raises(ValueError, match=f"Taux {taux} must be between 0 and 100"):
+        with pytest.raises(
+            ValueError, match=f"Le taux {percent(taux)} doit être entre 0% and 100%"
+        ):
             DotationProjetService.validate_taux(taux)
     else:
         DotationProjetService.validate_taux(taux)

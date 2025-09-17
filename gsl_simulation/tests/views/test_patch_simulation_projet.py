@@ -1,4 +1,3 @@
-import logging
 from decimal import Decimal
 from typing import cast
 from unittest import mock
@@ -8,6 +7,7 @@ import pytest
 from django.contrib.messages import get_messages
 from django.urls import reverse
 
+from gsl_core.templatetags.gsl_filters import percent
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -304,12 +304,18 @@ def test_patch_taux_simulation_projet_with_wrong_value(
         follow=True,
     )
 
-    with caplog.at_level(logging.ERROR):
-        accepted_simulation_projet.refresh_from_db()
+    assert response.status_code == 200
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 40
+    assert (
+        f"Une erreur est survenue lors de la mise à jour du taux. Le taux {percent(float(taux))} doit être entre 0% and 100%"
+        == message.message
+    )
 
-    assert response.status_code == 500
-    assert response.content == b'{"error": "An internal error has occurred."}'
-    assert "must be between 0 and 100" in caplog.text
+    accepted_simulation_projet.refresh_from_db()
+
     assert accepted_simulation_projet.taux == 10
     assert accepted_simulation_projet.montant == 1_000
 

@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
-from gsl_core.templatetags.gsl_filters import euro
+from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import Enveloppe
 from gsl_projet.constants import (
@@ -135,4 +135,4 @@ class DotationProjetService:
     @classmethod
     def validate_taux(cls, taux: float | Decimal) -> None:
         if type(taux) not in [float, Decimal, int] or taux < 0 or taux > 100:
-            raise ValueError(f"Le taux {taux} doit être entre 0% and 100%")
+            raise ValueError(f"Le taux {percent(taux)} doit être entre 0% and 100%")

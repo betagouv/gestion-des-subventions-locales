@@ -6,6 +6,8 @@ from django.shortcuts import get_object_or_404
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_simulation.models import Simulation, SimulationProjet
 
+logger = logging.getLogger(__name__)
+
 
 def simulation_projet_must_be_visible_by_user(func):
     def wrapper(*args, **kwargs):
@@ -76,7 +78,7 @@ def exception_handler_decorator(func):
         try:
             return func(*args, **kwargs)
         except Http404 as e:
-            logging.info("An error occurred: %s", str(e), exc_info=True)
+            logger.info("An error occurred: %s", str(e), exc_info=True)
             return JsonResponse(
                 {
                     "error": "Not found.",
@@ -84,7 +86,7 @@ def exception_handler_decorator(func):
                 status=404,
             )
         except Exception as e:
-            logging.error("An error occurred: %s", str(e), exc_info=True)
+            logger.error("An error occurred: %s", str(e), exc_info=True)
             return JsonResponse(
                 {
                     "error": "An internal error has occurred.",
