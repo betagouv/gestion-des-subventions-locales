@@ -16,6 +16,7 @@ DsUpdatableFields = Literal[
     "is_attached_to_a_crte",
     "is_budget_vert",
     "assiette",
+    "montant",
 ]
 FIELDS_UPDATABLE_ON_DS: List[DsUpdatableFields] = list(get_args(DsUpdatableFields))
 FIELDS_TO_DS_SERVICE_FUNCTIONS: Mapping[DsUpdatableFields, str] = {
@@ -23,6 +24,7 @@ FIELDS_TO_DS_SERVICE_FUNCTIONS: Mapping[DsUpdatableFields, str] = {
     "is_attached_to_a_crte": "update_ds_is_attached_to_a_crte",
     "is_budget_vert": "update_ds_is_budget_vert",
     "assiette": "update_ds_assiette",
+    "montant": "update_ds_montant",
 }
 FIELD_TO_LABEL_MAP = {
     "is_in_qpv": "QPV",

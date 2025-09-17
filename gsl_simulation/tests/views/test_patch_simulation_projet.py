@@ -1,6 +1,7 @@
 import logging
 from decimal import Decimal
 from typing import cast
+from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -175,9 +176,15 @@ data_test = (
 )
 
 
+@mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_montant")
 @pytest.mark.parametrize("status, expected_message, expected_tag", data_test)
 def test_patch_status_simulation_projet_with_refused_value_giving_message(
-    client_with_user_logged, simulation_projet, status, expected_message, expected_tag
+    mock_update_ds_montant,
+    client_with_user_logged,
+    simulation_projet,
+    status,
+    expected_message,
+    expected_tag,
 ):
     if status == SimulationProjet.STATUS_PROCESSING:
         simulation_projet.status = SimulationProjet.STATUS_ACCEPTED
@@ -193,6 +200,13 @@ def test_patch_status_simulation_projet_with_refused_value_giving_message(
         {"status": status},
         follow=True,
     )
+
+    if status == SimulationProjet.STATUS_ACCEPTED:
+        mock_update_ds_montant.assert_called_once_with(
+            dossier=simulation_projet.projet.dossier_ds,
+            user=client_with_user_logged.user,
+            value=simulation_projet.montant,
+        )
 
     assert response.status_code == 200
 
@@ -245,8 +259,9 @@ def accepted_simulation_projet(collegue, simulation):
     )
 
 
+@mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_montant")
 def test_patch_taux_simulation_projet(
-    client_with_user_logged, accepted_simulation_projet
+    mock_update_ds_montant, client_with_user_logged, accepted_simulation_projet
 ):
     url = reverse(
         "simulation:patch-simulation-projet-taux", args=[accepted_simulation_projet.id]
@@ -260,6 +275,12 @@ def test_patch_taux_simulation_projet(
 
     updated_simulation_projet = SimulationProjet.objects.get(
         id=accepted_simulation_projet.id
+    )
+
+    mock_update_ds_montant.assert_called_once_with(
+        dossier=accepted_simulation_projet.projet.dossier_ds,
+        user=client_with_user_logged.user,
+        value=7_500,
     )
 
     assert response.status_code == 200
@@ -294,8 +315,9 @@ def test_patch_taux_simulation_projet_with_wrong_value(
     assert accepted_simulation_projet.montant == 1_000
 
 
+@mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_montant")
 def test_patch_montant_simulation_projet(
-    client_with_user_logged, accepted_simulation_projet
+    mock_update_ds_montant, client_with_user_logged, accepted_simulation_projet
 ):
     url = reverse(
         "simulation:patch-simulation-projet-montant",
@@ -310,6 +332,12 @@ def test_patch_montant_simulation_projet(
 
     updated_simulation_projet = SimulationProjet.objects.get(
         id=accepted_simulation_projet.id
+    )
+
+    mock_update_ds_montant.assert_called_once_with(
+        dossier=accepted_simulation_projet.projet.dossier_ds,
+        user=client_with_user_logged.user,
+        value=1267.32,
     )
 
     assert response.status_code == 200

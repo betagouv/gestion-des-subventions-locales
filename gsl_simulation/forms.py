@@ -136,7 +136,7 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
         return instance.projet.dossier_ds
 
     def get_fields(self):
-        return ["assiette"]
+        return ["assiette", "montant"]
 
     def reset_field(self, field, instance):
         self._reset_field(field, instance, instance.dotation_projet)

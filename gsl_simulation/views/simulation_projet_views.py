@@ -38,7 +38,7 @@ def patch_taux_simulation_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     new_taux = replace_comma_by_dot(request.POST.get("taux"))
     DotationProjetService.validate_taux(new_taux)
-    SimulationProjetService.update_taux(simulation_projet, new_taux)
+    SimulationProjetService.update_taux(simulation_projet, new_taux, request.user)
     return redirect_to_same_page_or_to_simulation_detail_by_default(
         request, simulation_projet
     )
