@@ -179,12 +179,12 @@ data_test = (
 )
 
 
-@mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_taux")
-@mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_montant")
+@mock.patch(
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+)
 @pytest.mark.parametrize("status, expected_message, expected_tag", data_test)
 def test_patch_status_simulation_projet_with_refused_value_giving_message(
-    mock_update_ds_montant,
-    mock_update_ds_taux,
+    mock_ds_update,
     client_with_user_logged,
     simulation_projet,
     status,
@@ -207,15 +207,11 @@ def test_patch_status_simulation_projet_with_refused_value_giving_message(
     )
 
     if status == SimulationProjet.STATUS_ACCEPTED:
-        mock_update_ds_montant.assert_called_once_with(
+        mock_ds_update.assert_called_once_with(
             dossier=simulation_projet.projet.dossier_ds,
             user=client_with_user_logged.user,
-            value=Decimal(simulation_projet.montant),
-        )
-        mock_update_ds_taux.assert_called_once_with(
-            dossier=simulation_projet.projet.dossier_ds,
-            user=client_with_user_logged.user,
-            value=Decimal(simulation_projet.taux),
+            montant=Decimal(simulation_projet.montant),
+            taux=Decimal(simulation_projet.taux),
         )
 
     assert response.status_code == 200
@@ -269,11 +265,11 @@ def accepted_simulation_projet(collegue, simulation):
     )
 
 
-@mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_taux")
-@mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_montant")
+@mock.patch(
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+)
 def test_patch_taux_simulation_projet(
-    mock_update_ds_montant,
-    mock_update_ds_taux,
+    mock_ds_update,
     client_with_user_logged,
     accepted_simulation_projet,
 ):
@@ -291,18 +287,12 @@ def test_patch_taux_simulation_projet(
         id=accepted_simulation_projet.id
     )
 
-    mock_update_ds_montant.assert_called_once_with(
+    mock_ds_update.assert_called_once_with(
         dossier=accepted_simulation_projet.projet.dossier_ds,
         user=client_with_user_logged.user,
-        value=7_500,
+        montant=7_500,
+        taux=75.0,
     )
-
-    mock_update_ds_taux.assert_called_once_with(
-        dossier=accepted_simulation_projet.projet.dossier_ds,
-        user=client_with_user_logged.user,
-        value=75.0,
-    )
-
     assert response.status_code == 200
     assert updated_simulation_projet.taux == 75.0
     assert updated_simulation_projet.montant == 7_500
@@ -341,11 +331,11 @@ def test_patch_taux_simulation_projet_with_wrong_value(
     assert accepted_simulation_projet.montant == 1_000
 
 
-@mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_taux")
-@mock.patch("gsl_demarches_simplifiees.services.DsService.update_ds_montant")
+@mock.patch(
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+)
 def test_patch_montant_simulation_projet(
-    mock_update_ds_montant,
-    mock_update_ds_taux,
+    mock_ds_update,
     client_with_user_logged,
     accepted_simulation_projet,
 ):
@@ -364,15 +354,11 @@ def test_patch_montant_simulation_projet(
         id=accepted_simulation_projet.id
     )
 
-    mock_update_ds_montant.assert_called_once_with(
+    mock_ds_update.assert_called_once_with(
         dossier=accepted_simulation_projet.projet.dossier_ds,
         user=client_with_user_logged.user,
-        value=1267.32,
-    )
-    mock_update_ds_taux.assert_called_once_with(
-        dossier=accepted_simulation_projet.projet.dossier_ds,
-        user=client_with_user_logged.user,
-        value=Decimal("12.673"),
+        montant=1267.32,
+        taux=Decimal("12.673"),
     )
 
     assert response.status_code == 200

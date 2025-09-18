@@ -151,7 +151,7 @@ class SimulationProjetService:
         new_montant = DotationProjetService.compute_montant_from_taux(
             simulation_projet.dotation_projet, new_taux
         )
-        # todo verify if dsError like rights error => new_montant not save
+        # TODO verify if dsError like rights error => new_montant not save
         simulation_projet.montant = new_montant
         simulation_projet.save()
 
@@ -164,7 +164,7 @@ class SimulationProjetService:
     def update_montant(
         cls, simulation_projet: SimulationProjet, new_montant: float, user: Collegue
     ):
-        # todo verify if dsError like rights error => new_montant not save
+        # TODO verify if dsError like rights error => new_montant not save
         simulation_projet.montant = new_montant
         simulation_projet.save()
 
@@ -198,7 +198,7 @@ class SimulationProjetService:
         dotation_projet.save()
 
         cls._update_ds_montant_and_taux(
-            dossier_ds=dotation_projet.projet.dossier_ds,
+            dossier=dotation_projet.projet.dossier_ds,
             montant=simulation_projet.montant,
             taux=simulation_projet.taux,
             user=user,
@@ -244,14 +244,14 @@ class SimulationProjetService:
 
     @classmethod
     def _update_ds_montant_and_taux(
-        cls, dossier_ds: Dossier, montant: float, taux: float, user: Collegue
+        cls, dossier: Dossier, montant: float, taux: float, user: Collegue
     ) -> None:
         data = {
             "montant": montant,
             "taux": taux,
         }
         errors, blocking = process_projet_update(
-            data, dossier_ds, ["montant", "taux"], user
+            data, dossier, ["montant", "taux"], user
         )
 
         if blocking:
