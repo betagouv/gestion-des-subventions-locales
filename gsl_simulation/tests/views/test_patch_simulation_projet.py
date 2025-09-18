@@ -688,6 +688,10 @@ def test_patch_simulation_projet_with_ds_error(
             return_value=ds_field,
         ),
         patch("requests.post", return_value=mock_resp),
+        patch(
+            "gsl_demarches_simplifiees.services.DsService.update_ds_taux",
+            return_value=True,
+        ),
     ):
         url = reverse(
             "simulation:simulation-projet-detail",
@@ -695,7 +699,7 @@ def test_patch_simulation_projet_with_ds_error(
         )
         response = client_with_user_logged.post(
             url,
-            {"assiette": 2000, "montant": 500, "taux": 50},
+            {"assiette": 2000, "montant": 500, "taux": 25},
             follow=True,
         )
 
