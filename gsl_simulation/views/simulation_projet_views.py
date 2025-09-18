@@ -92,10 +92,15 @@ def patch_status_simulation_projet(request, pk):
     if status not in dict(SimulationProjet.STATUS_CHOICES).keys():
         raise ValueError("Invalid status")
 
+    if status in [SimulationProjet.STATUS_DISMISSED]:
+        motivation = request.POST.get("motivation")
+        if not isinstance(motivation, str) or len(motivation) < 1:
+            raise ValueError("Invalid motivation")
+
     try:
         with transaction.atomic():
             updated_simulation_projet = SimulationProjetService.update_status(
-                simulation_projet, status, request.user
+                simulation_projet, status, request.user, motivation
             )
 
     except DsServiceException as e:  # rollback the transaction + show error

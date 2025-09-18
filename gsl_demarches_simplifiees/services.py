@@ -21,6 +21,7 @@ class DsService:
     MUTATION_KEYS = {
         "checkbox": "dossierModifierAnnotationCheckbox",
         "decimal": "dossierModifierAnnotationDecimalNumber",
+        "dismiss": "dossierClasserSansSuite",
     }
 
     MUTATION_FUNCTION = {
@@ -28,8 +29,22 @@ class DsService:
         "decimal": "dossier_modifier_annotation_decimal",
     }
 
+    MUTATION_TYPES = Literal["checkbox", "decimal", "dismiss"]
+
     def __init__(self):
         self.mutator = DsMutator()
+
+    # Status
+
+    def dismiss(self, dossier: Dossier, user: Collegue, motivation: str):
+        instructeur_id = self._get_instructeur_id(user)
+        results = self.mutator.dossier_classer_sans_suite(
+            dossier.ds_id, instructeur_id, motivation
+        )
+        self._check_results(results, user, dossier, "dismiss", value=motivation)
+        return results
+
+    # Annotations
 
     def update_ds_is_in_qpv(self, dossier: Dossier, user: Collegue, value: bool):
         return self._update_boolean_field(dossier, user, value, "annotations_is_qpv")
@@ -83,13 +98,30 @@ class DsService:
         user: Collegue,
         value: float | bool,
         field: str,
-        mutation_type: Literal["checkbox", "decimal"],
+        mutation_type: MUTATION_TYPES,
     ):
-        instructeur_id = user.ds_id
-        if not bool(instructeur_id):
-            logger.error("User does not have DS id.", extra={"user_id": user.id})
-            raise InstructeurUnknown
+        instructeur_id = self._get_instructeur_id(user)
+        ds_field_id = self._get_ds_field_id(dossier, field)
 
+        mutator_function_name = self.MUTATION_FUNCTION[mutation_type]
+
+        mutator_function: Callable[[str, str, str, bool | float], dict] = getattr(
+            self.mutator, mutator_function_name
+        )
+        results = mutator_function(dossier.ds_id, instructeur_id, ds_field_id, value)
+
+        self._check_results(results, user, dossier, mutation_type, field, value)
+        return results
+
+    def _get_instructeur_id(self, user: Collegue) -> str:
+        instructeur_id = user.ds_id
+        if bool(instructeur_id):
+            return instructeur_id
+
+        logger.error("User does not have DS id.", extra={"user_id": user.id})
+        raise InstructeurUnknown
+
+    def _get_ds_field_id(self, dossier: Dossier, field: str) -> str:
         try:
             ds_field = FieldMappingForComputer.objects.get(
                 demarche=dossier.ds_demarche_id, django_field=field
@@ -108,15 +140,18 @@ class DsService:
                 f'Le champ "{field_name}" n\'existe pas dans la démarche {dossier.ds_demarche.ds_number}.'
             )
 
-        ds_field_id = ds_field.ds_field_id
+        return ds_field.ds_field_id
 
-        mutator_function_name = self.MUTATION_FUNCTION[mutation_type]
+    def _check_results(
+        self,
+        results: dict,
+        user: Collegue,
+        dossier: Dossier,
+        mutation_type: MUTATION_TYPES,
+        field: str | None = None,
+        value: float | bool | str | None = None,
+    ) -> None:
         mutation_key = self.MUTATION_KEYS[mutation_type]
-
-        mutator_function: Callable[[str, str, str, bool | float], dict] = getattr(
-            self.mutator, mutator_function_name
-        )
-        results = mutator_function(dossier.ds_id, instructeur_id, ds_field_id, value)
         data = results.get("data", None)
 
         if data is None or mutation_key in data and data.get(mutation_key) is None:
@@ -128,6 +163,7 @@ class DsService:
                     extra={
                         "dossier_id": dossier.id,
                         "user_id": user.id,
+                        "mutation_key": mutation_key,
                         "field": field,
                         "value": value,
                         "error": messages,
@@ -165,5 +201,3 @@ class DsService:
                         },
                     )
                     raise DsServiceException(*messages)
-
-        return results

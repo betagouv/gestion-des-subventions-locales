@@ -191,12 +191,12 @@ class DsMutator(DsClientBase):
 
     def mutate_with_justificatif_and_motivation(
         self,
-        action,
-        dossier_id,
-        instructeur_id,
-        motivation="",
-        justificatif_id=None,
-        disable_notification=False,
+        action: str,
+        dossier_id: str,
+        instructeur_id: str,
+        motivation: str = "",
+        justificatif_id: str | None = None,
+        disable_notification: bool = False,
     ):
         variables = {
             "input": {
@@ -218,9 +218,14 @@ class DsMutator(DsClientBase):
             "dossierAccepter", *args, **kwargs
         )
 
-    def dossier_classer_sans_suite(self, *args, **kwargs):
+    def dossier_classer_sans_suite(
+        self,
+        dossier_id: str,
+        instructeur_id: str,
+        motivation: str = "",
+    ):
         return self.mutate_with_justificatif_and_motivation(
-            "dossierClasserSansSuite", *args, **kwargs
+            "dossierClasserSansSuite", dossier_id, instructeur_id, motivation
         )
 
     def dossier_refuser(self, *args, **kwargs):

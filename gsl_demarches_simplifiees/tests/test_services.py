@@ -357,3 +357,33 @@ def test_update_annotation_field_error(
 
         assert str(exc_info.value) == msg
         assert log_msg in caplog.text
+
+
+def test_dismiss():
+    dossier = DossierFactory()
+    user = CollegueFactory()
+    ds_service = DsService()
+    with (
+        patch(
+            "gsl_demarches_simplifiees.services.DsService._get_instructeur_id"
+        ) as mock_get_instructeur_id,
+        patch(
+            "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_classer_sans_suite"
+        ) as mock_dossier_classer_sans_suite,
+        patch(
+            "gsl_demarches_simplifiees.services.DsService._check_results"
+        ) as mock_check_results,
+    ):
+        mock_get_instructeur_id.return_value = "instructeur_id"
+        results = {"results": {"data": {}}}
+        mock_dossier_classer_sans_suite.return_value = results
+
+        ds_service.dismiss(dossier, user, "motivation")
+
+        mock_get_instructeur_id.assert_called_once_with(user)
+        mock_dossier_classer_sans_suite.assert_called_once_with(
+            dossier.ds_id, "instructeur_id", "motivation"
+        )
+        mock_check_results.assert_called_once_with(
+            results, user, dossier, "dismiss", value="motivation"
+        )
