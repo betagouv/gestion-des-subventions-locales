@@ -112,9 +112,15 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
         dotation_projet: DotationProjet = self.instance.dotation_projet
 
         if "assiette" in self.changed_data or "montant" in self.changed_data:
-            computed_taux = compute_taux(
-                cleaned_data.get("montant"), cleaned_data.get("assiette")
-            )
+            assiette = cleaned_data.get("assiette")
+            if assiette is None:
+                assiette = dotation_projet.dossier_ds.finance_cout_total
+
+            computed_taux = compute_taux(cleaned_data.get("montant"), assiette)
+
+            if computed_taux != self.fields["taux"].initial:
+                self.changed_data.append("taux")
+
             cleaned_data["taux"] = computed_taux
 
         else:

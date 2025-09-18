@@ -254,3 +254,25 @@ def test_get_fields(simulation_projet):
         simulation_projet = SimulationProjetFactory(montant=200, status=status)
         form = SimulationProjetForm(instance=simulation_projet)
         assert form.get_fields() == ["assiette"]
+
+
+def test_remove_assiette_field():
+    simulation_projet = SimulationProjetFactory(
+        dotation_projet__projet__dossier_ds__finance_cout_total=10_000,
+        dotation_projet__assiette=1_000,
+        montant=200,
+        status=SimulationProjet.STATUS_ACCEPTED,
+    )
+
+    data = {"assiette": None, "montant": 200, "taux": 20}
+    form = SimulationProjetForm(instance=simulation_projet, data=data)
+
+    assert form.is_valid()
+    assert form.cleaned_data["assiette"] is None
+    assert form.cleaned_data["montant"] == 200
+    assert form.cleaned_data["taux"] == 2  # computed from montant and cout total
+    assert form.changed_data == ["assiette", "taux"]
+    form.save()
+    assert simulation_projet.dotation_projet.assiette is None
+    assert simulation_projet.montant == 200
+    assert simulation_projet.taux == 2
