@@ -165,13 +165,13 @@ def test_update_annotation_field_success(
         assert "data" in result
 
 
-def test_update_annotation_field_instructeur_unknown(dossier, caplog):
+def test_get_instructeur_id(caplog):
     caplog.set_level(logging.ERROR)
     user = CollegueFactory(ds_id="")
     service = DsService()
 
     with pytest.raises(InstructeurUnknown):
-        service._update_annotation_field(dossier, user, True, "field", "checkbox")
+        service._get_instructeur_id(user)
     assert "User does not have DS id." in caplog.text
 
 
@@ -199,19 +199,16 @@ def test_update_annotation_field_instructeur_unknown(dossier, caplog):
         ("field_unknown", "field_unknown"),
     ),
 )
-def test_update_annotation_field_field_field_error(
-    user, dossier: Dossier, field, field_name, caplog
-):
+def test_get_ds_field_id(dossier: Dossier, field, field_name, caplog):
     caplog.set_level(logging.WARNING)
     ds_service = DsService()
+
     with patch(
         "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
         side_effect=FieldMappingForComputer.DoesNotExist,
     ):
         with pytest.raises(FieldError) as exc_info:
-            ds_service._update_annotation_field(
-                dossier, user, True, field, "checkbox"
-            )  # mutation_type doesn't matter here => checkbox
+            ds_service._get_ds_field_id(dossier, field)
 
     assert (
         str(exc_info.value)
@@ -224,18 +221,14 @@ def test_update_annotation_field_field_field_error(
 
 
 @pytest.mark.parametrize(
-    "function, mutation_type",
-    (
-        ("dossier_modifier_annotation_checkbox", "checkbox"),
-        ("dossier_modifier_annotation_decimal", "decimal"),
-    ),
+    "mutation_type",
+    ("checkbox", "decimal", "dismiss"),
 )
-def test_update_annotation_field_with_uncorrect_user_rights(
-    dossier, user, ds_field, function, mutation_type, caplog
+def test_check_results_with_uncorrect_user_rights(
+    dossier, user, ds_field, mutation_type, caplog
 ):
     caplog.set_level(logging.INFO)
     ds_service = DsService()
-    value = True if mutation_type == "checkbox" else 1.5
     mutation_data_name = DsService.MUTATION_KEYS[mutation_type]
     response = {
         "data": {
@@ -246,24 +239,20 @@ def test_update_annotation_field_with_uncorrect_user_rights(
             }
         }
     }
-    with (
-        patch(
-            "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
-            return_value=ds_field,
-        ),
-        patch.object(ds_service, "mutator") as mock_mutator,
-    ):
-        mock_function = getattr(mock_mutator, function)
-        mock_function.return_value = response
-        with pytest.raises(UserRightsError) as exc_info:
-            ds_service._update_annotation_field(
-                dossier, user, value, "field", mutation_type
-            )
-        assert (
-            str(exc_info.value)
-            == "Vous n'avez pas les droits suffisants pour modifier ce dossier."
+
+    with pytest.raises(UserRightsError) as exc_info:
+        ds_service._check_results(
+            response,
+            dossier,
+            user,
+            mutation_type,
         )
-        assert "Instructeur has no rights on the dossier" in caplog.text
+
+    assert (
+        str(exc_info.value)
+        == "Vous n'avez pas les droits suffisants pour modifier ce dossier."
+    )
+    assert "Instructeur has no rights on the dossier" in caplog.text
 
 
 possible_responses = [
@@ -310,19 +299,11 @@ possible_responses = [
 ]
 
 
-@pytest.mark.parametrize(
-    "function, mutation_type",
-    (
-        ("dossier_modifier_annotation_checkbox", "checkbox"),
-        ("dossier_modifier_annotation_decimal", "decimal"),
-    ),
-)
+@pytest.mark.parametrize("mutation_type", ("checkbox", "decimal", "dismiss"))
 @pytest.mark.parametrize("mocked_response, exception, msg, log_msg", possible_responses)
-def test_update_annotation_field_error(
+def test_check_results(
     user,
     dossier,
-    ds_field,
-    function,
     mutation_type,
     mocked_response,
     exception,
@@ -341,22 +322,17 @@ def test_update_annotation_field_error(
     response_str = str(response).replace("__MUTATION_KEY__", mutation_data_name)
     response = eval(response_str)  # safe because we control data
 
-    with (
-        patch(
-            "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
-            return_value=ds_field,
-        ),
-        patch.object(ds_service, "mutator") as mock_mutator,
-    ):
-        mock_function = getattr(mock_mutator, function)
-        mock_function.return_value = response
-        with pytest.raises(exception) as exc_info:
-            ds_service._update_annotation_field(
-                dossier, user, value, "field", mutation_type
-            )
+    with pytest.raises(exception) as exc_info:
+        ds_service._check_results(
+            response,
+            dossier,
+            user,
+            mutation_type,
+            value,
+        )
 
-        assert str(exc_info.value) == msg
-        assert log_msg in caplog.text
+    assert str(exc_info.value) == msg
+    assert log_msg in caplog.text
 
 
 def test_dismiss():
@@ -385,5 +361,5 @@ def test_dismiss():
             dossier.ds_id, "instructeur_id", "motivation"
         )
         mock_check_results.assert_called_once_with(
-            results, user, dossier, "dismiss", value="motivation"
+            results, dossier, user, "dismiss", value="motivation"
         )

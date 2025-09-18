@@ -41,7 +41,7 @@ class DsService:
         results = self.mutator.dossier_classer_sans_suite(
             dossier.ds_id, instructeur_id, motivation
         )
-        self._check_results(results, user, dossier, "dismiss", value=motivation)
+        self._check_results(results, dossier, user, "dismiss", value=motivation)
         return results
 
     # Annotations
@@ -126,6 +126,8 @@ class DsService:
             ds_field = FieldMappingForComputer.objects.get(
                 demarche=dossier.ds_demarche_id, django_field=field
             )
+            return ds_field.ds_field_id
+
         except FieldMappingForComputer.DoesNotExist:
             logger.warning(
                 f'Demarche #{dossier.ds_demarche_id} doesn\'t have field "{field}".'
@@ -140,13 +142,11 @@ class DsService:
                 f'Le champ "{field_name}" n\'existe pas dans la démarche {dossier.ds_demarche.ds_number}.'
             )
 
-        return ds_field.ds_field_id
-
     def _check_results(
         self,
         results: dict,
-        user: Collegue,
         dossier: Dossier,
+        user: Collegue,
         mutation_type: MUTATION_TYPES,
         field: str | None = None,
         value: float | bool | str | None = None,
