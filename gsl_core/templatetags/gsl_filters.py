@@ -97,6 +97,9 @@ def create_alert_data(message: Any) -> dict[str, str | bool]:
     if message.level_tag == "error":
         data_dict["type"] = "alert"
 
+    if message.level_tag == "warning":
+        data_dict["type"] = "warning"
+
     return data_dict
 
 

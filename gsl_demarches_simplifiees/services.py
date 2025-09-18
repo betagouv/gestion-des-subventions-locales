@@ -51,6 +51,18 @@ class DsService:
             value = 0
         return self._update_decimal_field(dossier, user, value, "annotations_assiette")
 
+    def update_ds_montant(self, dossier: Dossier, user: Collegue, value: float | None):
+        if value is None:
+            value = 0
+        return self._update_decimal_field(
+            dossier, user, value, "annotations_montant_accorde"
+        )
+
+    def update_ds_taux(self, dossier: Dossier, user: Collegue, value: float | None):
+        if value is None:
+            value = 0
+        return self._update_decimal_field(dossier, user, value, "annotations_taux")
+
     # Private
 
     def _update_boolean_field(

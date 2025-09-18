@@ -85,17 +85,7 @@
         {% endif %}
 
         {% block messages %}
-            {% if messages %}
-                <div class="messages">
-                    {% for message in messages %}
-                        {% with message|create_alert_data as data_dict %}
-                            <div class="message--{% if data_dict.class %}{{ data_dict.class }}{% else %}{{ message.level_tag }}{% endif %}">
-                                {% dsfr_notice data_dict %}
-                            </div>
-                        {% endwith %}
-                    {% endfor %}
-                </div>
-            {% endif %}
+            {% include "blocks/messages.html" %}
         {% endblock messages %}
 
         <div class="fr-container fr-mt-4w fr-mb-6w">
