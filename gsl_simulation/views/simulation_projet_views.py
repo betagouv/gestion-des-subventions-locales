@@ -101,7 +101,9 @@ def patch_status_simulation_projet(request, pk):
     except DsServiceException as e:  # rollback the transaction + show error
         messages.error(
             request,
-            str(e) + " Le statut n'a pas été modifié.",
+            "Une erreur est survenue lors de la mise à jour du statut. "
+            + str(e)
+            + " Le statut n'a pas été modifié.",
         )
         return redirect_to_same_page_or_to_simulation_detail_by_default(
             request, simulation_projet

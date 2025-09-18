@@ -74,6 +74,7 @@ def simulation_projet(collegue, simulation):
         status=PROJET_STATUS_PROCESSING,
         projet__perimetre=collegue.perimetre,
         dotation=DOTATION_DETR,
+        assiette=10_000,
     )
     return cast(
         SimulationProjet,
@@ -265,6 +266,38 @@ def accepted_simulation_projet(collegue, simulation):
     )
 
 
+def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
+    client_with_user_logged, simulation_projet
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+    )
+
+    with patch(
+        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux",
+        side_effect=DsServiceException("Erreur !"),
+    ):
+        response = client_with_user_logged.post(
+            url,
+            {"status": "valid"},
+            follow=True,
+        )
+    assert response.status_code == 200
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 40
+    assert (
+        "Une erreur est survenue lors de la mise à jour du statut. Erreur ! Le statut n'a pas été modifié."
+        == message.message
+    )
+    simulation_projet.refresh_from_db()
+    assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING  # Not updated
+    assert (
+        simulation_projet.dotation_projet.status == PROJET_STATUS_PROCESSING
+    )  # Not updated
+
+
 @mock.patch(
     "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
 )
@@ -331,6 +364,37 @@ def test_patch_taux_simulation_projet_with_wrong_value(
     assert accepted_simulation_projet.montant == 1_000
 
 
+def test_patch_taux_simulation_projet_cancelling_all_when_error_in_ds_update(
+    client_with_user_logged, accepted_simulation_projet
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-taux", args=[accepted_simulation_projet.id]
+    )
+
+    with patch(
+        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux",
+        side_effect=DsServiceException("Erreur !"),
+    ):
+        response = client_with_user_logged.post(
+            url,
+            {"taux": 75},
+            follow=True,
+        )
+    assert response.status_code == 200
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 40
+    assert (
+        "Une erreur est survenue lors de la mise à jour du taux. Erreur !"
+        == message.message
+    )
+
+    accepted_simulation_projet.refresh_from_db()
+    assert accepted_simulation_projet.taux == 10.0  # Not updated
+    assert accepted_simulation_projet.montant == 1_000  # Not updated
+
+
 @mock.patch(
     "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
 )
@@ -368,6 +432,65 @@ def test_patch_montant_simulation_projet(
         '<span hx-swap-oob="innerHTML" id="total-amount-granted">1\xa0267\xa0€</span>'
         in response.content.decode()
     )
+
+
+def test_patch_montant_simulation_projet_with_wrong_value(
+    client_with_user_logged, accepted_simulation_projet, caplog
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-montant",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.post(
+        url,
+        {"montant": 12_000},
+        follow=True,
+    )
+    assert response.status_code == 200
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 40
+    assert (
+        "Une erreur est survenue lors de la mise à jour du montant. Le montant 12 000 € doit être supérieur ou égal à 0 € et inférieur ou égal à 10 000 €."
+        == message.message
+    )
+
+    accepted_simulation_projet.refresh_from_db()
+    assert accepted_simulation_projet.montant == 1_000
+    assert accepted_simulation_projet.taux == 10.0
+
+
+def test_patch_montant_simulation_projet_cancelling_all_when_error_in_ds_update(
+    client_with_user_logged, accepted_simulation_projet
+):
+    url = reverse(
+        "simulation:patch-simulation-projet-montant",
+        args=[accepted_simulation_projet.id],
+    )
+
+    with patch(
+        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux",
+        side_effect=DsServiceException("Erreur !"),
+    ):
+        response = client_with_user_logged.post(
+            url,
+            {"montant": 2_000},
+            follow=True,
+        )
+    assert response.status_code == 200
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 40
+    assert (
+        "Une erreur est survenue lors de la mise à jour du montant. Erreur !"
+        == message.message
+    )
+
+    accepted_simulation_projet.refresh_from_db()
+    assert accepted_simulation_projet.montant == 1_000
+    assert accepted_simulation_projet.taux == 10.0
 
 
 @pytest.mark.parametrize(
