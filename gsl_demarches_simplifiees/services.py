@@ -1,6 +1,6 @@
 from decimal import Decimal
 from logging import getLogger
-from typing import Callable, Literal
+from typing import Callable, List, Literal
 
 from django.core.exceptions import FieldDoesNotExist
 
@@ -158,8 +158,9 @@ class DsService:
             if "errors" in results.keys():
                 errors = results["errors"]
                 messages = [error["message"] for error in errors]
+                message = self._transform_message(messages)
                 logger.error(
-                    "Error in DS boolean mutation",
+                    "Error in DS mutation",
                     extra={
                         "dossier_id": dossier.id,
                         "user_id": user.id,
@@ -169,7 +170,7 @@ class DsService:
                         "error": messages,
                     },
                 )
-                raise DsServiceException
+                raise DsServiceException(message)
 
         else:
             mutation_data = data.get(mutation_key)
@@ -189,15 +190,32 @@ class DsService:
                             },
                         )
                         raise UserRightsError
+                    print(errors)
 
                     logger.error(
-                        "Error in DS boolean mutation",
+                        "Error in DS mutation",
                         extra={
                             "dossier_id": dossier.id,
                             "user_id": user.id,
+                            "mutation_key": mutation_key,
                             "field": field,
                             "value": value,
                             "error": messages,
                         },
                     )
-                    raise DsServiceException(*messages)
+                    message = self._transform_message(messages)
+                    raise DsServiceException(message)
+
+    def _transform_message(self, messages: List[str]) -> str:  # TODO test it
+        new_messages = []
+        for message in messages:
+            if message == "Le dossier est déjà en\xa0construction":
+                new_messages.append(
+                    "Le dossier est en construction sur Démarches Simplifiées."
+                )
+            elif message == "An object of type Dossier was hidden due to permissions":
+                new_messages.append("Vous n'avez pas accès à ce dossier.")
+            else:
+                new_messages.append(message)
+
+        return ". ".join(new_messages)

@@ -1,5 +1,6 @@
 <form action="{% url 'simulation:patch-simulation-projet-status' simu.id %}"
-      method="POST">
+      method="POST"
+      id='status-form'>
     {% csrf_token %}
     <fieldset class="fr-fieldset fr-mb-0">
         <legend class="fr-sr-only">

@@ -9,11 +9,18 @@
     </h1>
     <p>
         Ce projet va être classé sans suite dans toutes les simulations dans lesquelles il a été ajouté.
-        Le demandeur va être notifié et vous ne pourrez plus revenir en arrière.
+        Le demandeur va être notifié.
     </p>
-    <p>
-        Êtes-vous sûr(e) de classer sans suite ce projet ?
-    </p>
+    <div class="fr-input-group">
+        <label class="fr-label" for="motivation">
+            Motivation envoyé au demandeur (obligatoire). Expliquez pourquoi ce dossier est classé sans suite :
+        </label>
+        <textarea class="fr-input"
+                  id="motivation"
+                  name="motivation"
+                  form="status-form"
+                  required></textarea>
+    </div>
 {% endblock content %}
 
 {% block confirmation_button %}
