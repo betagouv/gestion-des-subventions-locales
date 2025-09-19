@@ -163,11 +163,6 @@ data_test = (
         "cancelled",
     ),
     (
-        SimulationProjet.STATUS_DISMISSED,
-        "Le projet est classé sans suite.",
-        "dismissed",
-    ),
-    (
         SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         "Le projet est accepté provisoirement dans cette simulation.",
         "provisionally_accepted",
@@ -184,7 +179,7 @@ data_test = (
     "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
 )
 @pytest.mark.parametrize("status, expected_message, expected_tag", data_test)
-def test_patch_status_simulation_projet_with_refused_value_giving_message(
+def test_patch_status_simulation_projet_gives_message(
     mock_ds_update,
     client_with_user_logged,
     simulation_projet,
@@ -198,14 +193,11 @@ def test_patch_status_simulation_projet_with_refused_value_giving_message(
         simulation_projet.dotation_projet.save()
         simulation_projet.save()
 
+    data = {"status": status}
     url = reverse(
         "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
     )
-    response = client_with_user_logged.post(
-        url,
-        {"status": status},
-        follow=True,
-    )
+    response = client_with_user_logged.post(url, data, follow=True)
 
     if status == SimulationProjet.STATUS_ACCEPTED:
         mock_ds_update.assert_called_once_with(
@@ -224,6 +216,32 @@ def test_patch_status_simulation_projet_with_refused_value_giving_message(
     assert message.level == 20
     assert message.message == expected_message
     assert message.extra_tags == expected_tag
+
+
+@mock.patch("gsl_demarches_simplifiees.services.DsService.dismiss_in_ds")
+def test_dismiss_projet(mock_dismiss_in_ds, client_with_user_logged, simulation_projet):
+    data = {"status": SimulationProjet.STATUS_DISMISSED, "motivation": "Ma motivation"}
+
+    url = reverse(
+        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+    )
+    response = client_with_user_logged.post(url, data, follow=True)
+
+    mock_dismiss_in_ds.assert_called_once_with(
+        simulation_projet.projet.dossier_ds,
+        client_with_user_logged.user,
+        "Ma motivation",
+    )
+
+    assert response.status_code == 200
+
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+
+    message = list(messages)[0]
+    assert message.level == 20
+    assert message.message == "Le projet est classé sans suite."
+    assert message.extra_tags == "dismissed"
 
 
 @pytest.mark.parametrize("data", ({"status": "invalid_status"}, {}))

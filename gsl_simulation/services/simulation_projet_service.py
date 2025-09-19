@@ -232,7 +232,7 @@ class SimulationProjetService:
         dotation_projet.save()
 
         ds_service = DsService()
-        ds_service.dismiss(simulation_projet.dossier, user, motivation)
+        ds_service.dismiss_in_ds(simulation_projet.dossier, user, motivation)
 
         updated_simulation_projet = SimulationProjet.objects.get(
             pk=simulation_projet.pk

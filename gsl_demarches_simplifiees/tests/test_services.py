@@ -335,7 +335,7 @@ def test_check_results(
     assert log_msg in caplog.text
 
 
-def test_dismiss():
+def test_dismiss_in_ds():
     dossier = DossierFactory()
     user = CollegueFactory()
     ds_service = DsService()
@@ -354,7 +354,7 @@ def test_dismiss():
         results = {"results": {"data": {}}}
         mock_dossier_classer_sans_suite.return_value = results
 
-        ds_service.dismiss(dossier, user, "motivation")
+        ds_service.dismiss_in_ds(dossier, user, "motivation")
 
         mock_get_instructeur_id.assert_called_once_with(user)
         mock_dossier_classer_sans_suite.assert_called_once_with(

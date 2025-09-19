@@ -36,7 +36,7 @@ class DsService:
 
     # Status
 
-    def dismiss(self, dossier: Dossier, user: Collegue, motivation: str):
+    def dismiss_in_ds(self, dossier: Dossier, user: Collegue, motivation: str):
         instructeur_id = self._get_instructeur_id(user)
         results = self.mutator.dossier_classer_sans_suite(
             dossier.ds_id, instructeur_id, motivation
