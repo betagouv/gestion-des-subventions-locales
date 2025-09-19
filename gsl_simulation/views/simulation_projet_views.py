@@ -105,7 +105,7 @@ def patch_dotation_projet(request, pk):
     )
 
 
-class SimulationProjetFormMixin(UpdateView):
+class BaseSimulationProjetView(UpdateView):
     form_class = SimulationProjetForm
 
     def get_object(self, queryset=None) -> SimulationProjet:
@@ -145,7 +145,7 @@ class SimulationProjetFormMixin(UpdateView):
         messages.error(self.request, error_msg)
 
 
-class ProjetFormView(SimulationProjetFormMixin):
+class ProjetFormView(BaseSimulationProjetView):
     model = SimulationProjet
     form_class = ProjetForm
 
@@ -174,7 +174,7 @@ class ProjetFormView(SimulationProjetFormMixin):
         )
 
 
-class SimulationProjetDetailView(SimulationProjetFormMixin):
+class SimulationProjetDetailView(BaseSimulationProjetView):
     model = SimulationProjet
     form_class = SimulationProjetForm
 
