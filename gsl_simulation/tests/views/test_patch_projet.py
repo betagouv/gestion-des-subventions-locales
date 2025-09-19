@@ -206,7 +206,7 @@ possible_responses = [
             ],
             "data": {"dossierModifierAnnotationCheckbox": None},
         },
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field}). Ces modifications n'ont pas été enregistrées.",
+        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field} => DossierModifierAnnotationCheckboxPayload not found). Ces modifications n'ont pas été enregistrées.",
     ),
     # Invalid field id
     (
@@ -218,7 +218,7 @@ possible_responses = [
             ],
             "data": {"dossierModifierAnnotationCheckbox": None},
         },
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field}). Ces modifications n'ont pas été enregistrées.",
+        'Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field} => Invalid input: "field_NUL"). Ces modifications n\'ont pas été enregistrées.',
     ),
     # Invalid value
     (

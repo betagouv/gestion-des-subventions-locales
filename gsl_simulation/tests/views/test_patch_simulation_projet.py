@@ -306,7 +306,7 @@ def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
     message = list(messages)[0]
     assert message.level == 40
     assert (
-        "Une erreur est survenue lors de la mise à jour du statut. Erreur ! Le statut n'a pas été modifié."
+        "Une erreur est survenue lors de la mise à jour du statut. Erreur !"
         == message.message
     )
     simulation_projet.refresh_from_db()
@@ -648,7 +648,7 @@ possible_responses = [
             ],
             "data": {"dossierModifierAnnotationDecimalNumber": None},
         },
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field}). Ces modifications n'ont pas été enregistrées.",
+        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field} => dossierModifierAnnotationDecimalNumberPayload not found). Ces modifications n'ont pas été enregistrées.",
     ),
     # Invalid field id
     (
@@ -660,7 +660,7 @@ possible_responses = [
             ],
             "data": {"dossierModifierAnnotationDecimalNumber": None},
         },
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field}). Ces modifications n'ont pas été enregistrées.",
+        'Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field} => Invalid input: "field_NUL"). Ces modifications n\'ont pas été enregistrées.',
     ),
     # Invalid value
     (

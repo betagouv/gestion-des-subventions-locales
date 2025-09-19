@@ -224,9 +224,7 @@ def test_get_ds_field_id(dossier: Dossier, field, field_name, caplog):
     "mutation_type",
     ("checkbox", "decimal", "dismiss"),
 )
-def test_check_results_with_uncorrect_user_rights(
-    dossier, user, ds_field, mutation_type, caplog
-):
+def test_check_results_with_uncorrect_user_rights(dossier, user, mutation_type, caplog):
     caplog.set_level(logging.INFO)
     ds_service = DsService()
     mutation_data_name = DsService.MUTATION_KEYS[mutation_type]
@@ -263,8 +261,8 @@ possible_responses = [
             "data": {"__MUTATION_KEY__": None},
         },
         DsServiceException,
-        "",
-        "Error in DS boolean mutation",
+        "__MUTATION_KEY__Payload not found",
+        "Error in DS mutation",
     ),
     # Invalid field id
     (
@@ -273,8 +271,8 @@ possible_responses = [
             "data": {"__MUTATION_KEY__": None},
         },
         DsServiceException,
-        "",
-        "Error in DS boolean mutation",
+        'Invalid input: "field_NUL"',
+        "Error in DS mutation",
     ),
     # Invalid value
     (
@@ -286,15 +284,15 @@ possible_responses = [
             ]
         },
         DsServiceException,
-        "",
-        "Error in DS boolean mutation",
+        'Variable $input of type __MUTATION_KEY__Input! was provided invalid value for value (Could not coerce value "RIGOLO" to Boolean)',
+        "Error in DS mutation",
     ),
     # Other error
     (
         {"data": {"__MUTATION_KEY__": {"errors": [{"message": "Une erreur"}]}}},
         DsServiceException,
         "Une erreur",
-        "Error in DS boolean mutation",
+        "Error in DS mutation",
     ),
 ]
 
@@ -331,7 +329,8 @@ def test_check_results(
             value,
         )
 
-    assert str(exc_info.value) == msg
+    final_msg = msg.replace("__MUTATION_KEY__", mutation_data_name)
+    assert str(exc_info.value) == final_msg
     assert log_msg in caplog.text
 
 
