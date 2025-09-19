@@ -1,13 +1,19 @@
+from logging import getLogger
+from typing import List
+
 from django import forms
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
+from gsl_demarches_simplifiees.mixins import DsUpdatableFields, DSUpdateMixin
 from gsl_projet.constants import DOTATION_CHOICES
 from gsl_projet.models import CategorieDetr, DotationProjet, Projet, ProjetNote
 from gsl_projet.services.projet_services import ProjetService
 
+logger = getLogger(__name__)
 
-class ProjetForm(ModelForm, DsfrBaseForm):
+
+class ProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
     BUDGET_VERT_CHOICES = [
         (None, "Non Renseigné"),
         (True, "Oui"),
@@ -42,7 +48,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
 
     class Meta:
         model = Projet
-        fields = [
+        fields: List[DsUpdatableFields] = [
             "is_budget_vert",
             "is_in_qpv",
             "is_attached_to_a_crte",
@@ -59,19 +65,29 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             valid = False
         return valid
 
-    def save(self, commit=True, field_exceptions=None):
-        instance = super().save(commit=False)
-        if field_exceptions is not None:
-            for field in field_exceptions:
-                setattr(instance, field, self.initial[field])
-        if commit:
-            instance.save()
+    def save(self, commit=True):
+        instance: Projet = super().save(commit=False)
+        return self._save_with_ds(instance, commit)
 
+    def get_dossier_ds(self, instance):
+        return instance.dossier_ds
+
+    def get_fields(self):
+        return self.Meta.fields
+
+    def reset_field(self, field, instance):
+        self._reset_field(field, instance)
+
+    def post_save(self, instance):
         dotations = self.cleaned_data.get("dotations")
         if dotations:
             ProjetService.update_dotation(instance, dotations)
 
-        return instance
+    def _reset_field(self, field: str, projet: Projet):
+        if field in ["is_in_qpv", "is_attached_to_a_crte", "is_budget_vert"]:
+            initial_field_value = self[field].initial
+            self.cleaned_data[field] = initial_field_value
+            setattr(projet, field, initial_field_value)
 
 
 class DotationProjetForm(ModelForm):

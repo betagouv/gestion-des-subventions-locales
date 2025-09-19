@@ -1,6 +1,3 @@
-# TODO move all tests from ../test_views.py in this file or directory
-
-
 import pytest
 from django.urls import reverse
 

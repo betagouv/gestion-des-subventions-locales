@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import resolve, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
-from django.views.generic import DetailView
+from django.views.generic import UpdateView
 
 from gsl.settings import ALLOWED_HOSTS
 from gsl_projet.forms import DotationProjetForm, ProjetForm
@@ -15,21 +15,18 @@ from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.forms import SimulationProjetForm
 from gsl_simulation.models import SimulationProjet
-from gsl_simulation.services.projet_updater import process_projet_update
 from gsl_simulation.services.simulation_projet_service import (
     SimulationProjetService,
 )
 from gsl_simulation.services.simulation_service import SimulationService
 from gsl_simulation.utils import (
-    add_success_message,
-    build_error_message,
+    add_simulation_projet_status_success_message,
     replace_comma_by_dot,
 )
 from gsl_simulation.views.decorators import (
     exception_handler_decorator,
     projet_must_be_in_user_perimetre,
 )
-from gsl_simulation.views.mixins import CorrectUserPerimeterRequiredMixin
 from gsl_simulation.views.simulation_views import SimulationDetailView
 
 
@@ -104,65 +101,82 @@ def patch_dotation_projet(request, pk):
     )
 
     return redirect_to_same_page_or_to_simulation_detail_by_default(
-        request, simulation_projet, add_message=False
+        request, simulation_projet
     )
 
 
-@projet_must_be_in_user_perimetre
-@exception_handler_decorator
-@require_POST
-def patch_projet(request, pk):
-    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
-    form = ProjetForm(request.POST, instance=simulation_projet.projet)
+class BaseSimulationProjetView(UpdateView):
+    form_class = SimulationProjetForm
 
-    if not form.is_valid():
-        messages.error(
-            request,
-            "Une erreur s'est produite lors de la soumission du formulaire. "
-            "Veuillez sélectionner au moins une dotation.",
-        )
+    def get_object(self, queryset=None) -> SimulationProjet:
+        if not hasattr(self, "_simulation_projet"):
+            self._simulation_projet = _get_view_simulation_projet_from_pk(
+                self.kwargs.get("pk")
+            )
+        return self._simulation_projet
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user})
+        return kwargs
+
+    def form_valid(self, form: SimulationProjetForm):
+        _, error_msg = form.save()
+        if error_msg:
+            messages.error(self.request, error_msg)
+        else:
+            messages.success(
+                self.request,
+                "Les modifications ont été enregistrées avec succès.",
+            )
+        simulation_projet = self.get_object()
+
         return redirect_to_same_page_or_to_simulation_detail_by_default(
-            request, simulation_projet, add_message=False
+            self.request,
+            simulation_projet,
         )
 
-    errors, blocking = process_projet_update(
-        form, simulation_projet.projet, request.user
-    )
+    def set_main_error_message(self, form):
+        error_msg = "Une erreur s'est produite lors de la soumission du formulaire."
+        if form.non_field_errors():
+            # remove the '* ' at the beginning
+            error_msg += form.non_field_errors().as_text()[1:]
 
-    if blocking:
-        messages.error(
-            request,
-            "Une erreur est survenue lors de la mise à jour des informations "
-            f"sur Démarches Simplifiées. {errors['all']}",
-        )
-        return redirect_to_same_page_or_to_simulation_detail_by_default(
-            request, simulation_projet
-        )
-
-    if errors:
-        msg = build_error_message(errors)
-        messages.error(
-            request,
-            f"Une erreur est survenue lors de la mise à jour de certaines "
-            f"informations sur Démarches Simplifiées ({msg}). "
-            "Ces modifications n'ont pas été enregistrées.",
-        )
-    else:
-        messages.success(request, "Les modifications ont été enregistrées avec succès.")
-
-    try:
-        simulation_projet.refresh_from_db()
-        return redirect_to_same_page_or_to_simulation_detail_by_default(
-            request, simulation_projet
-        )
-    except SimulationProjet.DoesNotExist:
-        return redirect(
-            "simulation:simulation-detail", slug=simulation_projet.simulation.slug
-        )
+        messages.error(self.request, error_msg)
 
 
-class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
+class ProjetFormView(BaseSimulationProjetView):
     model = SimulationProjet
+    form_class = ProjetForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        simulation_projet = self.get_object()
+        kwargs.update({"instance": simulation_projet.projet})
+        return kwargs
+
+    def form_invalid(self, form: SimulationProjetForm):
+        self.set_main_error_message(form)
+
+        simulation_projet = self.get_object()
+
+        view = SimulationProjetDetailView()
+        view.request = self.request
+        view.kwargs = {"pk": simulation_projet.id}
+        view.object = simulation_projet  # nécessaire pour get_context_data
+
+        view.request = self.request
+        view.kwargs = {"pk": simulation_projet.id}
+        context = view.get_context_data(object=simulation_projet)
+        context["projet_form"] = form
+        return render(
+            self.request, "gsl_simulation/simulation_projet_detail.html", context
+        )
+
+
+class SimulationProjetDetailView(BaseSimulationProjetView):
+    model = SimulationProjet
+    form_class = SimulationProjetForm
 
     ALLOWED_TABS = {"historique"}
 
@@ -173,13 +187,6 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
                 raise Http404
             return [f"gsl_simulation/tab_simulation_projet/tab_{tab}.html"]
         return ["gsl_simulation/simulation_projet_detail.html"]
-
-    def get_object(self, queryset=None):
-        if not hasattr(self, "_simulation_projet"):
-            self._simulation_projet = _get_view_simulation_projet_from_pk(
-                self.kwargs.get("pk")
-            )
-        return self._simulation_projet
 
     def get_context_data(self, with_specific_info_for_main_tab=True, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -195,40 +202,26 @@ class SimulationProjetDetailView(CorrectUserPerimeterRequiredMixin, DetailView):
 
         return context
 
-    def post(self, request, *args, **kwargs):
-        simulation_projet = get_object_or_404(
-            SimulationProjet, id=request.resolver_match.kwargs.get("pk")
-        )
-        form = SimulationProjetForm(request.POST, instance=simulation_projet)
-        if form.is_valid():
-            form.save()
-            messages.success(
-                request,
-                "Les modifications ont été enregistrées avec succès.",
-            )
-            return redirect_to_same_page_or_to_simulation_detail_by_default(
-                request, simulation_projet
-            )
+    def form_invalid(self, form: SimulationProjetForm):
+        self.set_main_error_message(form)
 
-        messages.error(
-            request,
-            "Une erreur s'est produite lors de la soumission du formulaire.",
+        return render(
+            self.request,
+            self.get_template_names(),
+            self.get_context_data(simulation_projet_form=form),
         )
-        self.object = simulation_projet
-        self.simulation_projet = simulation_projet
-        context = self.get_context_data(**kwargs)
-        context["simulation_projet_form"] = form
-        return render(request, "gsl_simulation/simulation_projet_detail.html", context)
 
 
 def redirect_to_same_page_or_to_simulation_detail_by_default(
-    request, simulation_projet, message_type: str | None = None, add_message=True
+    request, simulation_projet, message_type: str | None = None
 ):
     if request.htmx:
         return render_partial_simulation_projet(request, simulation_projet)
 
-    if add_message:
-        add_success_message(request, message_type, simulation_projet)
+    if message_type is not None:
+        add_simulation_projet_status_success_message(
+            request, message_type, simulation_projet
+        )
 
     referer = request.headers.get("Referer")
     if referer and url_has_allowed_host_and_scheme(
@@ -288,15 +281,19 @@ def _get_projets_queryset_with_filters(simulation, filter_params):
 def _enrich_simulation_projet_context_with_specific_info_for_main_tab(
     context: dict, simulation_projet: SimulationProjet
 ):
-    projet_form = ProjetForm(instance=simulation_projet.projet)
-    simulation_projet_form = SimulationProjetForm(instance=simulation_projet)
+    if context.get("projet_form", None) is None:
+        projet_form = ProjetForm(instance=simulation_projet.projet)
+        context["projet_form"] = projet_form
+
+    if context.get("simulation_projet_form", None) is None:
+        simulation_projet_form = SimulationProjetForm(instance=simulation_projet)
+        context["simulation_projet_form"] = simulation_projet_form
+
     dotation_field = projet_form.fields.get("dotations")
     context.update(
         {
             "enveloppe": simulation_projet.simulation.enveloppe,
             "menu_dict": PROJET_MENU,
-            "projet_form": projet_form,
-            "simulation_projet_form": simulation_projet_form,
             "dotation_projet_form": DotationProjetForm(
                 instance=simulation_projet.dotation_projet,
             ),
