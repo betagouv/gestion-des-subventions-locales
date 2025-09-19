@@ -21,7 +21,6 @@ def accessibility_view(request):
     )
 
 
-@login_not_required
 def coming_features_view(request):
     return render(
         request,
