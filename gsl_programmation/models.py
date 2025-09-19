@@ -34,6 +34,7 @@ class Enveloppe(models.Model):
         constraints = (
             models.UniqueConstraint(
                 name="unicity_by_perimeter_and_dotation",
+                violation_error_message="Cette enveloppe est déjà programmée pour ce territoire et cette dotation.",
                 fields=(
                     "annee",
                     "dotation",
@@ -91,6 +92,10 @@ class Enveloppe(models.Model):
     @property
     def projets_count(self):
         return self.enveloppe_projets_included.count()
+
+    def validate_constraints(self, exclude=None):
+        # Force ignoring the exclude parameter : we want to always test unique constraints before saving to base
+        return super().validate_constraints(exclude=None)
 
     def clean(self):
         if self.dotation == DOTATION_DETR:  # scope "département"

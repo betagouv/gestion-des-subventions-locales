@@ -1,5 +1,7 @@
 from django.urls import path
 
+from gsl_programmation.views import EnveloppeCreateView
+
 from . import views
 
 urlpatterns = [
@@ -14,4 +16,9 @@ urlpatterns = [
         name="get-projet-tab",
     ),
     path("liste", views.ProjetListView.as_view(), name="list"),
+    path(
+        "enveloppe/ajouter/",
+        EnveloppeCreateView.as_view(),
+        name="enveloppe-create",
+    ),
 ]
