@@ -190,7 +190,6 @@ class DsService:
                             },
                         )
                         raise UserRightsError
-                    print(errors)
 
                     logger.error(
                         "Error in DS mutation",

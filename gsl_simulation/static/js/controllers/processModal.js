@@ -8,7 +8,6 @@ export class ProcessModal extends Controller {
   }
 
   updateButton (event) {
-    console.log(event)
     if (event.target.value.length > 0) {
       this.enableButton()
     } else {
