@@ -134,6 +134,40 @@ mutation dossierAccepter($input: DossierAccepterInput!) {
   }
 }
 
+  mutation dossierClasserSansSuite($input: DossierClasserSansSuiteInput!) {
+  dossierClasserSansSuite(input: $input) {
+    clientMutationId
+    dossier {
+      archived
+      connectionUsager
+      dateDepot
+      dateDerniereCorrectionEnAttente
+      dateDerniereModification
+      dateDerniereModificationAnnotations
+      dateDerniereModificationChamps
+      dateExpiration
+      datePassageEnConstruction
+      datePassageEnInstruction
+      datePrevisionnelleDecisionSVASVR
+      dateSuppressionParAdministration
+      dateSuppressionParUsager
+      dateTraitement
+      dateTraitementSVASVR
+      deposeParUnTiers
+      id
+      motivation
+      nomMandataire
+      number
+      prefilled
+      prenomMandataire
+      state
+    }
+    errors {
+      message
+    }
+  }
+}
+
  mutation dossierPasserEnInstruction($input: DossierPasserEnInstructionInput!) {
   dossierPasserEnInstruction(input: $input) {
     clientMutationId

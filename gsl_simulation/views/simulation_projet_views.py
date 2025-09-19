@@ -88,22 +88,25 @@ def patch_montant_simulation_projet(request, pk):
 def patch_status_simulation_projet(request, pk):
     simulation_projet = get_object_or_404(SimulationProjet, id=pk)
     status = request.POST.get("status")
+    motivation = request.POST.get("motivation")
 
     if status not in dict(SimulationProjet.STATUS_CHOICES).keys():
         raise ValueError("Invalid status")
 
+    if status in [SimulationProjet.STATUS_DISMISSED]:
+        if not isinstance(motivation, str) or len(motivation) < 1:
+            raise ValueError("Invalid motivation")
+
     try:
         with transaction.atomic():
             updated_simulation_projet = SimulationProjetService.update_status(
-                simulation_projet, status, request.user
+                simulation_projet, status, request.user, motivation
             )
 
     except DsServiceException as e:  # rollback the transaction + show error
         messages.error(
             request,
-            "Une erreur est survenue lors de la mise à jour du statut. "
-            + str(e)
-            + " Le statut n'a pas été modifié.",
+            f"Une erreur est survenue lors de la mise à jour du statut. {str(e)}",
         )
         return redirect_to_same_page_or_to_simulation_detail_by_default(
             request, simulation_projet

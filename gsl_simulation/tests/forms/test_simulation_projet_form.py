@@ -260,6 +260,7 @@ def test_remove_assiette_field():
     simulation_projet = SimulationProjetFactory(
         dotation_projet__projet__dossier_ds__finance_cout_total=10_000,
         dotation_projet__assiette=1_000,
+        dotation_projet__detr_avis_commission=None,
         montant=200,
         status=SimulationProjet.STATUS_ACCEPTED,
     )
