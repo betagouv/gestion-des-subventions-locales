@@ -9,7 +9,7 @@ from django.views.generic.list import ListView
 from django_filters.views import FilterView
 
 from gsl_core.models import Perimetre
-from gsl_programmation.forms import EnveloppeForm
+from gsl_programmation.forms import SubEnveloppeForm
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
 from gsl_programmation.utils.programmation_projet_filters import (
     ProgrammationProjetFilters,
@@ -208,12 +208,12 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
 
 class EnveloppeCreateView(CreateView):
     model = Enveloppe
-    form_class = EnveloppeForm
+    form_class = SubEnveloppeForm
     success_url = reverse_lazy("gsl_projet:list")
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs["perimetres_qs"] = self.get_perimetres_qs()
+        kwargs["user_perimetre"] = self.request.user.perimetre
         return kwargs
 
     def get_perimetres_qs(self):
