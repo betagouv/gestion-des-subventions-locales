@@ -18,23 +18,25 @@
                     </div>
                 {% endblock go_back_button %}
             </div>
-            <div class="fr-col text-align-right">
-                <form class="sync-projet-form"
-                      action="{% url "ds:refresh-one-dossier" dossier.ds_number %}"
-                      method="post">
-                    <p>
-                        Vous avez effectué un changement sur
-                        <br>
-                        ce projet sur Démarches Simplifiées&nbsp;?
-                    </p>
-                    {% csrf_token %}
-                    {# la maquette disait fr-icon-arrow-left-right-line mais on ne l’a pas dans notre DSFR ? #}
-                    <button type="submit"
-                            class="fr-btn fr-btn--icon-left fr-icon-refresh-line fr-btn--tertiary">
-                        Synchroniser les données
-                    </button>
-                </form>
-            </div>
+            {% if dossier.ds_number %}
+                <div class="fr-col text-align-right">
+                    <form class="sync-projet-form"
+                          action="{% url "ds:refresh-one-dossier" dossier.ds_number %}"
+                          method="post">
+                        <p>
+                            Vous avez effectué un changement sur
+                            <br>
+                            ce projet sur Démarches Simplifiées&nbsp;?
+                        </p>
+                        {% csrf_token %}
+                        {# la maquette disait fr-icon-arrow-left-right-line mais on ne l’a pas dans notre DSFR ? #}
+                        <button type="submit"
+                                class="fr-btn fr-btn--icon-left fr-icon-refresh-line fr-btn--tertiary">
+                            Synchroniser les données
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
         </div>
     </div>
     <div class="projet-header">
@@ -61,9 +63,6 @@
                 Voir le dossier sur Démarches Simplifiées
                 <span class="fr-sr-only">(nouvelle fenêtre)</span>
             </a>
-        </li>
-        <li>
-
         </li>
         {% comment %}
         <li>
