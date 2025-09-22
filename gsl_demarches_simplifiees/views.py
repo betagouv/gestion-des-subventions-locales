@@ -1,4 +1,3 @@
-# Create your views here.
 from celery import states
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
@@ -9,6 +8,7 @@ from django.views.decorators.http import require_GET, require_POST
 from django.views.generic.list import ListView
 from django_celery_results.models import TaskResult
 
+from .exceptions import DsServiceException
 from .importer.dossier import save_one_dossier_from_ds
 from .models import Demarche, Dossier, FieldMappingForComputer
 from .tasks import task_save_demarche_dossiers_from_ds, task_save_demarche_from_ds
@@ -17,10 +17,23 @@ from .tasks import task_save_demarche_dossiers_from_ds, task_save_demarche_from_
 @require_POST
 def refresh_one_dossier(request, dossier_ds_number):
     dossier = get_object_or_404(Dossier, ds_number=dossier_ds_number)
-    save_one_dossier_from_ds(dossier)
-    messages.success(
-        request, "Le dossier a bien été mis à jour depuis Démarches Simplifiées."
-    )
+
+    # todo : vérifier que request.user a les droits sur le dossier,
+    # pour ne pas ouvrir une porte ou un oracle vers DS
+
+    try:
+        level, message = save_one_dossier_from_ds(dossier)
+        messages.add_message(request, level, message)
+    except DsServiceException:
+        messages.error(
+            request,
+            (
+                "Une erreur s’est produite lors de l’appel à Démarches Simplifiées. "
+                "Essayez à nouveau dans quelques instants."
+            ),
+        )
+    except Exception:
+        message.error(request, ("Une erreur s’est produite dans Turgot."))
     next = request.POST.get("next", "/")
     next_is_absolute = next[0] == "/" and next[1] != "/"
     if not next_is_absolute:
