@@ -18,9 +18,14 @@ from .tasks import task_save_demarche_dossiers_from_ds, task_save_demarche_from_
 def refresh_one_dossier(request, dossier_ds_number):
     dossier = get_object_or_404(Dossier, ds_number=dossier_ds_number)
     save_one_dossier_from_ds(dossier)
-    return render(
-        request, "gsl_demarches_simplifiees/confirmation_dossier_refreshed.html"
+    messages.success(
+        request, "Le dossier a bien été mis à jour depuis Démarches Simplifiées."
     )
+    next = request.POST.get("next", "/")
+    next_is_absolute = next[0] == "/" and next[1] != "/"
+    if not next_is_absolute:
+        next = "/"
+    return redirect(next)
 
 
 @staff_member_required
