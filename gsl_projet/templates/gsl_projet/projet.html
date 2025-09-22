@@ -29,6 +29,7 @@
                             ce projet sur Démarches Simplifiées&nbsp;?
                         </p>
                         {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.path }}" />
                         {# la maquette disait fr-icon-arrow-left-right-line mais on ne l’a pas dans notre DSFR ? #}
                         <button type="submit"
                                 class="fr-btn fr-btn--icon-left fr-icon-refresh-line fr-btn--tertiary">
