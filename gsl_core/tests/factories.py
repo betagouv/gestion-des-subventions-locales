@@ -87,7 +87,7 @@ class CollegueFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Collegue
 
-    username = factory.Faker("user_name")
+    username = factory.Sequence(lambda n: f"collegue_{n}")
     email = factory.Faker("email")
     is_staff = False
     is_active = True
