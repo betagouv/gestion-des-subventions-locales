@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import ngettext
 from django.views.decorators.http import require_GET, require_POST
 from django.views.generic.list import ListView
@@ -35,8 +36,8 @@ def refresh_one_dossier(request, dossier_ds_number):
     except Exception:
         message.error(request, ("Une erreur s’est produite dans Turgot."))
     next = request.POST.get("next", "/")
-    next_is_absolute = next[0] == "/" and next[1] != "/"
-    if not next_is_absolute:
+    is_next_safe = url_has_allowed_host_and_scheme(next, "", True)
+    if not is_next_safe:
         next = "/"
     return redirect(next)
 
