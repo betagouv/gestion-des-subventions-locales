@@ -1,8 +1,10 @@
 import logging
 
+from django.contrib import messages
 from django.utils import timezone
 
 from gsl_demarches_simplifiees.ds_client import DsClient
+from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverter
 from gsl_demarches_simplifiees.models import Demarche, Dossier
 
@@ -42,6 +44,21 @@ def save_one_dossier_from_ds(dossier: Dossier):
         if date_modif_ds > dossier.ds_date_derniere_modification:
             dossier.raw_ds_data = dossier_data
             refresh_dossier_from_saved_data(dossier)
+            return (
+                messages.SUCCESS,
+                "Le dossier a bien été mis à jour depuis Démarches Simplifiées.",
+            )
+        else:
+            return (
+                messages.WARNING,
+                (
+                    "Le dossier était déjà à jour sur Turgot, nous ne l’avons pas "
+                    "remis à jour depuis Démarches Simplifiées."
+                ),
+            )
+
+    # unset date_modif_ds is not a normal situation:
+    raise DsServiceException
 
 
 def refresh_dossier_from_saved_data(dossier: Dossier):
