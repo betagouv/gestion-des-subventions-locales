@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
@@ -5,26 +6,34 @@ from gsl_core.models import Perimetre
 from gsl_programmation.models import Enveloppe
 
 
-class EnveloppeForm(DsfrBaseForm, ModelForm):
-    def __init__(self, *args, perimetres_qs=None, **kwargs):
+class SubEnveloppeForm(DsfrBaseForm, ModelForm):
+    def __init__(self, *args, user_perimetre: Perimetre = None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["perimetre"].queryset = perimetres_qs
+        self.user_perimetre = user_perimetre
+        self.fields["perimetre"].queryset = Perimetre.objects.filter(
+            pk__in=(
+                p.id
+                for p in (
+                    user_perimetre,
+                    *user_perimetre.children(),
+                )
+            ),
+            # Une sous-enveloppe ne peut pas être déléguée si elle est régionale
+            departement__isnull=False,
+        )
 
     def clean(self):
         perimetre: Perimetre = self.cleaned_data.get("perimetre")
-        if perimetre.parent is not None:
+        try:
             self.instance.deleguee_by = Enveloppe.objects.filter(
                 dotation=self.cleaned_data.get("dotation"), perimetre=perimetre.parent
-            ).first()
-
-        if self.instance.deleguee_by is not None:
-            self.instance.annee = self.instance.deleguee_by.annee
-        else:
-            self.instance.annee = (
-                Enveloppe.objects.order_by("-annee")
-                .values_list("annee", flat=True)
-                .first()
+            ).get()
+        except Enveloppe.DoesNotExist:
+            raise ValidationError(
+                "L'enveloppe doit être une sous-enveloppe d'une enveloppe existante."
             )
+
+        self.instance.annee = self.instance.deleguee_by.annee
         self.instance.validate_constraints()
         return super().clean()
 
