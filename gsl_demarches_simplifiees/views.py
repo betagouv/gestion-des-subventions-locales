@@ -1,13 +1,15 @@
 from celery import states
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import ngettext
 from django.views.decorators.http import require_GET, require_POST
 from django.views.generic.list import ListView
 from django_celery_results.models import TaskResult
+
+from gsl_projet.models import Projet
 
 from .exceptions import DsServiceException
 from .importer.dossier import save_one_dossier_from_ds
@@ -19,8 +21,13 @@ from .tasks import task_save_demarche_dossiers_from_ds, task_save_demarche_from_
 def refresh_one_dossier(request, dossier_ds_number):
     dossier = get_object_or_404(Dossier, ds_number=dossier_ds_number)
 
-    # todo : vérifier que request.user a les droits sur le dossier,
-    # pour ne pas ouvrir une porte ou un oracle vers DS
+    # contrôle des droits de l'agent sur le projet, pour éviter d'ouvrir
+    # un oracle ou une possibilité de spammer vers DS
+    is_projet_visible = (
+        Projet.objects.filter(dossier_ds=dossier).for_user(request.user).exists()
+    )
+    if not is_projet_visible:
+        raise Http404("No %s matches the given query." % Dossier._meta.object_name)
 
     try:
         level, message = save_one_dossier_from_ds(dossier)
@@ -35,6 +42,7 @@ def refresh_one_dossier(request, dossier_ds_number):
         )
     except Exception:
         message.error(request, ("Une erreur s’est produite dans Turgot."))
+
     next = request.POST.get("next", "/")
     is_next_safe = url_has_allowed_host_and_scheme(next, "", True)
     if not is_next_safe:
