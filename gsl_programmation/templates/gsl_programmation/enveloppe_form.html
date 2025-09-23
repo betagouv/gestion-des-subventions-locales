@@ -4,15 +4,29 @@
 
 {% block content %}
     <h1>
-        Ajout d'une sous enveloppe
+        {% if object %}
+            Modification
+        {% else %}
+            Ajout
+        {% endif %}
+        d'une sous-enveloppe
     </h1>
     <div class="fr-grid-row">
         <div class="fr-col-12 fr-col-md-6">
-            <form action="{% url 'gsl_projet:enveloppe-create' %}" method="POST">
+            {% if object %}
+                <p>
+                    {{ object }}
+                </p>
+            {% endif %}
+            <form method="POST">
                 {% csrf_token %}
                 {{ form }}
                 <button type="submit" class="fr-btn">
-                    Ajouter
+                    {% if object %}
+                        Modifier
+                    {% else %}
+                        Ajouter
+                    {% endif %}
                 </button>
             </form>
         </div>

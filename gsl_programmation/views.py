@@ -3,13 +3,13 @@ from functools import cached_property
 from django.http import Http404
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
-from django.views.generic import CreateView
+from django.views.generic import CreateView, UpdateView
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 from django_filters.views import FilterView
 
 from gsl_core.models import Perimetre
-from gsl_programmation.forms import SubEnveloppeForm
+from gsl_programmation.forms import SubEnveloppeCreateForm, SubEnveloppeUpdateForm
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
 from gsl_programmation.utils.programmation_projet_filters import (
     ProgrammationProjetFilters,
@@ -208,7 +208,7 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
 
 class EnveloppeCreateView(CreateView):
     model = Enveloppe
-    form_class = SubEnveloppeForm
+    form_class = SubEnveloppeCreateForm
     success_url = reverse_lazy("gsl_projet:list")
 
     def get_form_kwargs(self):
@@ -216,13 +216,21 @@ class EnveloppeCreateView(CreateView):
         kwargs["user_perimetre"] = self.request.user.perimetre
         return kwargs
 
-    def get_perimetres_qs(self):
-        return Perimetre.objects.filter(
-            pk__in=(
-                p.id
-                for p in (
+
+class EnveloppeUpdateView(UpdateView):
+    model = Enveloppe
+    form_class = SubEnveloppeUpdateForm
+    success_url = reverse_lazy("gsl_projet:list")
+
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .filter(
+                deleguee_by__isnull=False,
+                perimetre__in=(
                     self.request.user.perimetre,
-                    *self.request.user.perimetre.children(),
-                )
-            ),
+                    *(self.request.user.perimetre.children()),
+                ),
+            )
         )

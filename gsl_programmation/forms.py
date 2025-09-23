@@ -7,7 +7,7 @@ from gsl_programmation.models import Enveloppe
 from gsl_projet.constants import DOTATION_DSIL
 
 
-class SubEnveloppeForm(DsfrBaseForm, ModelForm):
+class SubEnveloppeCreateForm(DsfrBaseForm, ModelForm):
     def __init__(self, *args, user_perimetre: Perimetre, **kwargs):
         super().__init__(*args, **kwargs)
         self.user_perimetre = user_perimetre
@@ -67,3 +67,9 @@ class SubEnveloppeForm(DsfrBaseForm, ModelForm):
             "perimetre",
             "montant",
         )
+
+
+class SubEnveloppeUpdateForm(DsfrBaseForm, ModelForm):
+    class Meta:
+        model = Enveloppe
+        fields = ("montant",)

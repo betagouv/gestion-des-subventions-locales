@@ -2,7 +2,7 @@
   margin-top: 16px;
   margin-bottom: 16px;
   border-spacing: 0 2px;
-  font-size: calc(1rem * 13/16);
+  font-size: calc(1rem * 13 / 16);
 }
 
 .enveloppe-summary table {
@@ -18,10 +18,10 @@
 }
 
 .enveloppe-summary tbody {
-  font-size: calc(1rem * 12/16);
+  font-size: calc(1rem * 12 / 16);
 }
 
-.enveloppe-summary th {
+.enveloppe-summary th:not(:last-child) {
   min-width: 90px;
   width: 130px;
   border-top: 1px solid var(--border-default-grey);
@@ -77,4 +77,12 @@
 
 .enveloppe-summary .color-green-bourgeon {
   background-color: var(--artwork-background-green-bourgeon);
+}
+
+.enveloppe-summary .fr-menu a.fr-nav__link {
+  padding: .5rem 0.75rem;
+}
+
+.enveloppe-summary .fr-menu a.fr-nav__link::before {
+  margin-right: 0.5rem;
 }
