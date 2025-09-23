@@ -220,6 +220,7 @@ class EnveloppeCreateView(CreateView):
 class EnveloppeUpdateView(UpdateView):
     model = Enveloppe
     form_class = SubEnveloppeUpdateForm
+    success_url = reverse_lazy("gsl_projet:list")
 
     def get_queryset(self):
         return (
