@@ -93,10 +93,6 @@ class Enveloppe(models.Model):
     def projets_count(self):
         return self.enveloppe_projets_included.count()
 
-    def validate_constraints(self, exclude=None):
-        # Force ignoring the exclude parameter : we want to always test unique constraints before saving to base
-        return super().validate_constraints(exclude=None)
-
     def clean(self):
         if self.dotation == DOTATION_DETR:  # scope "département"
             if self.perimetre.type == Perimetre.TYPE_REGION:

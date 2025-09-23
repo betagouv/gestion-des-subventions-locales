@@ -34,8 +34,15 @@ class SubEnveloppeCreateForm(DsfrBaseForm, ModelForm):
             )
 
         self.instance.annee = self.instance.deleguee_by.annee
-        self.instance.validate_constraints()
         return super().clean()
+
+    def _get_validation_exclusions(self):
+        """
+        We force inclusion of all field in validation because we want to test multiple fields unicity.
+
+        TODO: Tell Django dev this should be a public method
+        """
+        return set()
 
     class Meta:
         model = Enveloppe
