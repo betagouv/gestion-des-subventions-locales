@@ -17,17 +17,31 @@ from .models import Demarche, Dossier, FieldMappingForComputer
 from .tasks import task_save_demarche_dossiers_from_ds, task_save_demarche_from_ds
 
 
+def dossier_visible_by_user(func):
+    def wrapper(*args, **kwargs):
+        request = args[0]
+        user = request.user
+        if user.is_staff:
+            return func(*args, **kwargs)
+        dossier_number = kwargs.get("dossier_ds_number")
+
+        is_projet_visible_by_user = (
+            Projet.objects.for_user(user)
+            .filter(dossier_ds__ds_number=dossier_number)
+            .exists()
+        )
+        if not is_projet_visible_by_user:
+            raise Http404("No %s matches the given query." % Projet._meta.object_name)
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+@dossier_visible_by_user
 @require_POST
 def refresh_one_dossier(request, dossier_ds_number):
     dossier = get_object_or_404(Dossier, ds_number=dossier_ds_number)
-
-    # contrôle des droits de l'agent sur le projet, pour éviter d'ouvrir
-    # un oracle ou une possibilité de spammer vers DS
-    is_projet_visible = (
-        Projet.objects.filter(dossier_ds=dossier).for_user(request.user).exists()
-    )
-    if not is_projet_visible:
-        raise Http404("No %s matches the given query." % Dossier._meta.object_name)
 
     try:
         level, message = save_one_dossier_from_ds(dossier)
