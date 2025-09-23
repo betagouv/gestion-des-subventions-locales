@@ -18,7 +18,7 @@
                     {{ object }}
                 </p>
             {% endif %}
-            <form action="{% url 'gsl_projet:enveloppe-create' %}" method="POST">
+            <form method="POST">
                 {% csrf_token %}
                 {{ form }}
                 <button type="submit" class="fr-btn">
