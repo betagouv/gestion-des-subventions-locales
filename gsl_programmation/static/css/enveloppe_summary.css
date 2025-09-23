@@ -86,3 +86,19 @@
 .enveloppe-summary .fr-menu a.fr-nav__link::before {
   margin-right: 0.5rem;
 }
+
+.enveloppe-summary tr.sous-enveloppe td:not(:last-child) {
+  position: relative;
+  left: 1rem;
+}
+
+.enveloppe-summary tr.sous-enveloppe .sub {
+  display: inline-block;
+  position: relative;
+  bottom: 0.25rem;
+  border: 2px solid var(--border-plain-blue-cumulus);
+  border-top: 0;
+  border-right: 0;
+  height: 0.75rem;
+  width: 0.75rem;
+}

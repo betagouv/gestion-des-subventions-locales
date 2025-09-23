@@ -112,7 +112,13 @@
         </thead>
         <tbody>
             {% for enveloppe in enveloppes %}
-                {% include "includes/_enveloppe_summary_line.html" %}
+                {% include "includes/_enveloppe_summary_line.html" with level=1 %}
+                {% if enveloppes_with_children %}
+                    {% for sous_enveloppe in enveloppe.enveloppe_set.all %}
+                        {% include "includes/_enveloppe_summary_line.html" with enveloppe=sous_enveloppe level=2 %}
+
+                    {% endfor %}
+                {% endif %}
             {% empty %}
                 {% include "includes/_enveloppe_summary_line.html" %}
             {% endfor %}
