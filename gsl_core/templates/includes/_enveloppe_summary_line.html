@@ -31,4 +31,26 @@
     <td class="color-blue fr-text--sm">
         {{ enveloppe.projets_count }}
     </td>
+    <td class="fr-text--sm">
+        <div class="fr-nav fr-translate">
+            <div class="fr-nav__item">
+                <button class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-icon-more-line"
+                        aria-controls="enveloppe-menu-{{ enveloppe.id }}"
+                        aria-expanded="false"
+                        aria-label="Modifier ou supprimer">
+                </button>
+                <div class="fr-menu fr-collapse" id="enveloppe-menu-{{ enveloppe.id }}">
+                    <ul class="fr-menu__list">
+                        <li>
+                            <a class="fr-nav__link fr-icon-settings-5-fill fr-icon--sm"
+                               href="{% url 'gsl_projet:enveloppe-update' enveloppe.id %}">Modifier</a>
+                        </li>
+                        <li>
+                            <a class="fr-nav__link fr-icon-delete-bin-fill fr-icon--sm" href="">Supprimer</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </td>
 </tr>
