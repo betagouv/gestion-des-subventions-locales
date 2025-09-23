@@ -216,18 +216,20 @@ class EnveloppeCreateView(CreateView):
         kwargs["user_perimetre"] = self.request.user.perimetre
         return kwargs
 
-    def get_perimetres_qs(self):
-        return Perimetre.objects.filter(
-            pk__in=(
-                p.id
-                for p in (
-                    self.request.user.perimetre,
-                    *self.request.user.perimetre.children(),
-                )
-            ),
-        )
-
 
 class EnveloppeUpdateView(UpdateView):
     model = Enveloppe
     form_class = SubEnveloppeUpdateForm
+
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .filter(
+                deleguee_by__isnull=False,
+                perimetre__in=(
+                    self.request.user.perimetre,
+                    *(self.request.user.perimetre.children()),
+                ),
+            )
+        )
