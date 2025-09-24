@@ -52,12 +52,64 @@
                                    href="{% url 'gsl_projet:enveloppe-update' enveloppe.id %}">Modifier</a>
                             </li>
                             <li>
-                                <a class="fr-nav__link fr-icon-delete-bin-fill fr-icon--sm" href="">Supprimer</a>
+                                <button class="fr-nav__link fr-icon-delete-bin-fill fr-icon--sm"
+                                        aria-controls="enveloppe-delete-modal-{{ enveloppe.id }}"
+                                        type="button"
+                                        data-fr-opened="false">
+                                    Supprimer
+                                </button>
+
                             </li>
                         </ul>
                     </div>
                 </div>
             </div>
+            <form method="post"
+                  action="{% url 'gsl_projet:enveloppe-delete' enveloppe.id %}">
+                {% csrf_token %}
+                <dialog id="enveloppe-delete-modal-{{ enveloppe.id }}"
+                        class="fr-modal confirmation-modal">
+                    <div class="fr-container fr-container--fluid fr-container-md">
+                        <div class="fr-grid-row fr-grid-row--center">
+                            <div class="fr-col-12 fr-col-md-8 fr-col-lg-6 confirmation-modal-container">
+                                <div class="fr-modal__body">
+                                    <div class="fr-modal__header">
+                                        <button aria-controls="{{ self.modal_id }}"
+                                                title="Fermer"
+                                                type="button"
+                                                class="fr-btn--close fr-btn close-modal">
+                                            Fermer
+                                        </button>
+                                    </div>
+                                    <div class="fr-modal__content">
+                                        <h1 class="fr-modal__title ">
+                                            <span class="{{ self.icon|default:"fr-icon-delete-fill" }} fr-icon--lg"
+                                                  aria-hidden="true"></span>
+                                            <span class="modal-title">Suppression d'une sous-enveloppe {{ enveloppe.dotation }}</span>
+                                        </h1>
+                                        <p class="modal-body">
+                                            Souhaitez-vous supprimer la sous-enveloppe de
+                                            dotation {{ enveloppe.dotation }}
+                                            pour {{ enveloppe.perimetre }}&nbsp;?
+                                        </p>
+                                    </div>
+                                    <div class="fr-modal__footer confirmation-modal-footer">
+                                        <button class="fr-btn fr-btn--secondary close-modal"
+                                                aria-controls="enveloppe-delete-modal-{{ enveloppe.id }}">
+                                            Annuler
+                                        </button>
+
+                                        <button class="fr-btn fr-btn--primary confirm"
+                                                {% if self.form %}data-action="modal#submit" form="{{ self.form }}" type="submit" {% endif %}>
+                                            {{ self.action_text|default:"Confirmer" }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </dialog>
+            </form>
         {% endif %}
     </td>
 </tr>
