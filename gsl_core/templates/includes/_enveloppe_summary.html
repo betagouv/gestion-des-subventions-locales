@@ -116,7 +116,6 @@
                 {% if enveloppes_with_children %}
                     {% for sous_enveloppe in enveloppe.enveloppe_set.all %}
                         {% include "includes/_enveloppe_summary_line.html" with enveloppe=sous_enveloppe %}
-
                     {% endfor %}
                 {% endif %}
             {% empty %}

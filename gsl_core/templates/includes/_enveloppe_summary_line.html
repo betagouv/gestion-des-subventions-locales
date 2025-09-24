@@ -40,12 +40,11 @@
             <div class="fr-nav fr-translate">
                 <div class="fr-nav__item">
                     <button class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-icon-more-line"
-                            aria-controls="enveloppe-menu-{{ sous_enveloppe.id }}"
+                            aria-controls="enveloppe-menu-{{ enveloppe.id }}"
                             aria-expanded="false"
                             aria-label="Modifier ou supprimer">
                     </button>
-                    <div class="fr-menu fr-collapse"
-                         id="enveloppe-menu-{{ sous_enveloppe.id }}">
+                    <div class="fr-menu fr-collapse" id="enveloppe-menu-{{ enveloppe.id }}">
                         <ul class="fr-menu__list">
                             <li>
                                 <a class="fr-nav__link fr-icon-settings-5-fill fr-icon--sm"
@@ -74,7 +73,7 @@
                             <div class="fr-col-12 fr-col-md-8 fr-col-lg-6 confirmation-modal-container">
                                 <div class="fr-modal__body">
                                     <div class="fr-modal__header">
-                                        <button aria-controls="{{ self.modal_id }}"
+                                        <button aria-controls="enveloppe-delete-modal-{{ enveloppe.id }}"
                                                 title="Fermer"
                                                 type="button"
                                                 class="fr-btn--close fr-btn close-modal">
@@ -83,8 +82,7 @@
                                     </div>
                                     <div class="fr-modal__content">
                                         <h1 class="fr-modal__title ">
-                                            <span class="{{ self.icon|default:"fr-icon-delete-fill" }} fr-icon--lg"
-                                                  aria-hidden="true"></span>
+                                            <span class="fr-icon-delete-fill fr-icon--lg" aria-hidden="true"></span>
                                             <span class="modal-title">Suppression d'une sous-enveloppe {{ enveloppe.dotation }}</span>
                                         </h1>
                                         <p class="modal-body">
@@ -99,9 +97,8 @@
                                             Annuler
                                         </button>
 
-                                        <button class="fr-btn fr-btn--primary confirm"
-                                                {% if self.form %}data-action="modal#submit" form="{{ self.form }}" type="submit" {% endif %}>
-                                            {{ self.action_text|default:"Confirmer" }}
+                                        <button class="fr-btn fr-btn--primary confirm">
+                                            Confirmer
                                         </button>
                                     </div>
                                 </div>
