@@ -38,7 +38,7 @@ class SubEnveloppeCreateForm(DsfrBaseForm, ModelForm):
 
     def _get_validation_exclusions(self):
         """
-        We force inclusion of all field in validation because we want to test multiple fields unicity.
+        We force inclusion of all fields in validation because we want to test multiple fields unicity.
 
         TODO: Tell Django dev this should be a public method
         """
