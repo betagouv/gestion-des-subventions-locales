@@ -79,11 +79,11 @@
   background-color: var(--artwork-background-green-bourgeon);
 }
 
-.enveloppe-summary .fr-menu a.fr-nav__link {
+.enveloppe-summary .fr-menu .fr-nav__link {
   padding: .5rem 0.75rem;
 }
 
-.enveloppe-summary .fr-menu a.fr-nav__link::before {
+.enveloppe-summary .fr-menu .fr-nav__link::before {
   margin-right: 0.5rem;
 }
 
