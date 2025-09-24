@@ -3,7 +3,9 @@ from functools import cached_property
 from django.http import Http404
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
-from django.views.generic import CreateView, UpdateView
+from django.utils.decorators import method_decorator
+from django.views.decorators.http import require_POST
+from django.views.generic import CreateView, DeleteView, UpdateView
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 from django_filters.views import FilterView
@@ -220,6 +222,25 @@ class EnveloppeCreateView(CreateView):
 class EnveloppeUpdateView(UpdateView):
     model = Enveloppe
     form_class = SubEnveloppeUpdateForm
+    success_url = reverse_lazy("gsl_projet:list")
+
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .filter(
+                deleguee_by__isnull=False,
+                perimetre__in=(
+                    self.request.user.perimetre,
+                    *(self.request.user.perimetre.children()),
+                ),
+            )
+        )
+
+
+@method_decorator(require_POST, name="dispatch")
+class EnveloppeDeleteView(DeleteView):
+    model = Enveloppe
     success_url = reverse_lazy("gsl_projet:list")
 
     def get_queryset(self):
