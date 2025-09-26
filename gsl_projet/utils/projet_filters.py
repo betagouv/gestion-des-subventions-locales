@@ -34,13 +34,15 @@ class ProjetOrderingFilter(OrderingFilter):
             (
                 labels.get(field, _(pretty_name(field))),
                 (
-                    (f"-{param}", "La plus récente"),
-                    (param, "La plus ancienne"),
-                )
-                if param == "date"
-                else (
-                    (param, "Ascendant"),
-                    (f"-{param}", "Descendant"),
+                    (
+                        (f"-{param}", "La plus récente"),
+                        (param, "La plus ancienne"),
+                    )
+                    if param == "date"
+                    else (
+                        (param, "Croissant"),
+                        (f"-{param}", "Décroissant"),
+                    )
                 ),
             )
             for field, param in fields.items()
