@@ -11,33 +11,43 @@
 .fr-fieldset__element .fr-radio-rich input[type="radio"] ~ label {
   flex-direction: row;
   gap: 8px;
-  font-size: calc(14rem /16);
+  font-size: calc(14rem / 16);
   font-weight: 500;
 }
 
-.radio-input-provisionally_accepted label{
-  color:var(--text-default-info);
+.radio-input-provisionally_accepted label {
+  color: var(--text-default-info);
+
+  --border-default-grey: var(--text-default-info);
 }
 
-.radio-input-provisionally_refused label{
-  color:var(--text-action-high-orange-terre-battue);
+.radio-input-provisionally_refused label {
+  color: var(--text-action-high-orange-terre-battue);
+
+  --border-default-grey: var(--text-action-high-orange-terre-battue);
 }
 
 .radio-input-valid label {
   color: var(--text-default-success);
+
+  --border-default-grey: var(--text-default-success);
 }
 
 .radio-input-cancelled label {
   color: var(--text-default-error);
+
+  --border-default-grey: var(--text-default-error);
 }
 
 .radio-input-dismissed label,
 .radio-input-draft label {
   color: var(--text-default-grey);
+
+  --border-default-grey: var(--text-default-grey);
 }
 
 .avis-commission-detr-block {
-  grid-gap: 16px;
+  gap: 16px;
   align-items: baseline;
 }
 
@@ -55,7 +65,7 @@
 }
 
 #id_is_budget_vert {
-  width:180px
+  width: 180px
 }
 
 .submit-projet-note-form-container {
@@ -64,7 +74,7 @@
 }
 
 #projet_note_form {
-  display:none
+  display: none
 }
 
 
