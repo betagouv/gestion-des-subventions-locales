@@ -34,6 +34,7 @@ class Enveloppe(models.Model):
         constraints = (
             models.UniqueConstraint(
                 name="unicity_by_perimeter_and_dotation",
+                violation_error_message="Cette enveloppe est déjà programmée pour ce territoire et cette dotation.",
                 fields=(
                     "annee",
                     "dotation",

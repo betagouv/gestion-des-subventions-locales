@@ -1,0 +1,59 @@
+from django.core.exceptions import ValidationError
+from django.forms import ModelForm
+from dsfr.forms import DsfrBaseForm
+
+from gsl_core.models import Perimetre
+from gsl_programmation.models import Enveloppe
+
+
+class SubEnveloppeCreateForm(DsfrBaseForm, ModelForm):
+    def __init__(self, *args, user_perimetre: Perimetre = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user_perimetre = user_perimetre
+        self.fields["perimetre"].queryset = Perimetre.objects.filter(
+            pk__in=(
+                p.id
+                for p in (
+                    user_perimetre,
+                    *user_perimetre.children(),
+                )
+            ),
+            # Une sous-enveloppe ne peut pas être déléguée si elle est régionale
+            departement__isnull=False,
+        )
+
+    def clean(self):
+        perimetre: Perimetre = self.cleaned_data.get("perimetre")
+        try:
+            self.instance.deleguee_by = Enveloppe.objects.filter(
+                dotation=self.cleaned_data.get("dotation"), perimetre=perimetre.parent
+            ).get()
+        except Enveloppe.DoesNotExist:
+            raise ValidationError(
+                "L'enveloppe doit être une sous-enveloppe d'une enveloppe existante."
+            )
+
+        self.instance.annee = self.instance.deleguee_by.annee
+        return super().clean()
+
+    def _get_validation_exclusions(self):
+        """
+        We force inclusion of all fields in validation because we want to test multiple fields unicity.
+
+        TODO: Tell Django dev this should be a public method
+        """
+        return set()
+
+    class Meta:
+        model = Enveloppe
+        fields = (
+            "dotation",
+            "perimetre",
+            "montant",
+        )
+
+
+class SubEnveloppeUpdateForm(DsfrBaseForm, ModelForm):
+    class Meta:
+        model = Enveloppe
+        fields = ("montant",)
