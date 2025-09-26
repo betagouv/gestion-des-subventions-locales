@@ -5,7 +5,7 @@ from pathlib import Path
 import requests
 from django.conf import settings
 
-from gsl_demarches_simplifiees.exceptions import DsServiceException
+from gsl_demarches_simplifiees.exceptions import DsConnectionError, DsServiceException
 
 logger = getLogger(__name__)
 
@@ -34,7 +34,7 @@ class DsClientBase:
 
         except requests.exceptions.ConnectionError as e:
             logger.warning("DS connection error", extra={"erreur": e})
-            raise Exception("Erreur de connexion à Démarches Simplifiées")
+            raise DsConnectionError()
 
         if response.status_code == 200:
             results = response.json()
@@ -50,6 +50,7 @@ class DsClientBase:
                     "DS forbidden access : token problem ?",
                     extra={"error": response.text},
                 )
+                raise DsConnectionError()
             else:
                 logger.error(
                     "DS request error",
@@ -115,7 +116,12 @@ class DsMutator(DsClientBase):
     filename = "ds_mutations.gql"
 
     def dossier_modifier_annotation_checkbox(
-        self, dossier_id: str, instructeur_id: str, field_id: str, value: bool
+        self,
+        dossier_id: str,
+        instructeur_id: str,
+        field_id: str,
+        value: bool,
+        include_annotations=False,
     ):
         variables = {
             "input": {
@@ -124,10 +130,33 @@ class DsMutator(DsClientBase):
                 "dossierId": dossier_id,
                 "instructeurId": instructeur_id,
                 "value": value,
-            }
+            },
+            "includeAnnotations": include_annotations,
         }
         return self.launch_graphql_query(
             "modifierAnnotationCheckbox", variables=variables
+        )
+
+    def dossier_modifier_annotation_decimal(
+        self,
+        dossier_id: str,
+        instructeur_id: str,
+        field_id: str,
+        value: float,
+        include_annotations=False,
+    ):
+        variables = {
+            "input": {
+                "clientMutationId": settings.DS_CLIENT_ID,
+                "annotationId": field_id,
+                "dossierId": dossier_id,
+                "instructeurId": instructeur_id,
+                "value": value,
+            },
+            "includeAnnotations": include_annotations,
+        }
+        return self.launch_graphql_query(
+            "modifierAnnotationDecimalNumber", variables=variables
         )
 
     def dossier_repasser_en_instruction(
