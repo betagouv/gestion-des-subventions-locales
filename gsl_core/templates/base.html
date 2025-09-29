@@ -53,7 +53,8 @@
                     "modeleArreteForm": "/static/js/modeleArreteForm.js",
                     "deleteNotificationDocumentModal": "/static/js/deleteNotificationDocumentModal.js",
                     "chooseDocumentType": "/static/js/chooseDocumentType.js",
-                    "checkboxSelection": "/static/js/checkboxSelection.js"
+                    "checkboxSelection": "/static/js/checkboxSelection.js",
+                    "processModal": "/static/js/controllers/processModal.js"
                 }
             }
             </script>
@@ -120,6 +121,7 @@
             import { DeleteNotificationDocumentModal } from "deleteNotificationDocumentModal"
             import { ChooseDocumentType } from "chooseDocumentType"
             import { CheckboxSelection } from "checkboxSelection"
+            import { ProcessModal } from "processModal"
 
             window.Stimulus = Application.start()
 
@@ -130,6 +132,7 @@
             Stimulus.register("delete-notification-document-modal", DeleteNotificationDocumentModal)
             Stimulus.register("choose-document-type", ChooseDocumentType)
             Stimulus.register("checkbox-selection", CheckboxSelection)
+            Stimulus.register("process-modal", ProcessModal)
         </script>
 
         {% block extra_js %}

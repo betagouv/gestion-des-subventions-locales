@@ -69,8 +69,19 @@ function showConfirmationModal (select, originalValue) {
   }
 
   const modal = document.getElementById(modalId)
-  _ensureButtonsAreEnabled(modal)
+  _associateFieldMotivationToForm(select, modal)
+  _ensureButtonsAreEnabled(select, modal)
   dsfr(modal).modal.disclose()
+}
+
+function _associateFieldMotivationToForm (select, modal) {
+  if (modal) {
+    const formId = select.closest('form').id
+    const motivationField = modal.querySelector('#motivation')
+    if (motivationField) {
+      motivationField.setAttribute('form', formId)
+    }
+  }
 }
 
 function _replaceInitialStatusModalContentText (originalValue, modalContentId) {

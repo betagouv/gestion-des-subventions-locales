@@ -1,5 +1,6 @@
 <dialog id="{% spaceless %}{% block modal_id %}default-modal-id{% endblock modal_id %}{% endspaceless %}"
-        class="fr-modal confirmation-modal">
+        class="fr-modal confirmation-modal"
+        data-controller="{% block controller %}{% endblock controller %}">
     <div class="fr-container fr-container--fluid fr-container-md">
         <div class="fr-grid-row fr-grid-row--center">
             <div class="fr-col-12 fr-col-md-8 fr-col-lg-6 confirmation-modal-container">

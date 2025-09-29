@@ -238,9 +238,13 @@ def test_update_status_with_dismissed(user):
     with mock.patch.object(
         SimulationProjetService, "_dismiss_a_simulation_projet"
     ) as mock_dismiss_a_simulation_projet:
-        SimulationProjetService.update_status(simulation_projet, new_status, user)
+        SimulationProjetService.update_status(
+            simulation_projet, new_status, user, "motivation"
+        )
 
-        mock_dismiss_a_simulation_projet.assert_called_once_with(simulation_projet)
+        mock_dismiss_a_simulation_projet.assert_called_once_with(
+            simulation_projet, user, "motivation"
+        )
 
 
 @pytest.mark.parametrize(
@@ -671,15 +675,10 @@ def test_get_simulation_projet_status(projet_status, simulation_projet_status_ex
     assert status == simulation_projet_status_expected
 
 
-@mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
-)
 @pytest.mark.parametrize(
     ("dotation_projet_transition, method, with_enveloppe, with_montant"),
     (
-        ("accept", SimulationProjetService._accept_a_simulation_projet, True, True),
         ("refuse", SimulationProjetService._refuse_a_simulation_projet, True, False),
-        ("dismiss", SimulationProjetService._dismiss_a_simulation_projet, False, False),
         (
             "set_back_status_to_processing",
             SimulationProjetService._set_back_to_processing,
@@ -689,12 +688,10 @@ def test_get_simulation_projet_status(projet_status, simulation_projet_status_ex
     ),
 )
 def test_simulation_projet_transition_are_called(
-    mock_ds_update,
     dotation_projet_transition,
     method,
     with_enveloppe,
     with_montant,
-    user,
 ):
     with mock.patch(
         f"gsl_projet.models.DotationProjet.{dotation_projet_transition}"
@@ -707,16 +704,50 @@ def test_simulation_projet_transition_are_called(
         if with_montant:
             args["montant"] = simulation_projet.montant
 
-        if dotation_projet_transition == "accept":
-            method(simulation_projet, user)
-
-            mock_ds_update.assert_called_once_with(
-                dossier=simulation_projet.projet.dossier_ds,
-                user=user,
-                montant=simulation_projet.montant,
-                taux=simulation_projet.taux,
-            )
-        else:  # TODO it's only tmp. remove it
-            method(simulation_projet)
+        method(simulation_projet)
 
         mock_transition_dotation_projet.assert_called_once_with(**args, **kwargs)
+
+
+@mock.patch("gsl_projet.models.DotationProjet.accept")
+@mock.patch(
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+)
+def test_accept_simulation_projet_triggers_transition(
+    mock_ds_update,
+    mock_transition_dotation_projet,
+    user,
+):
+    simulation_projet = SimulationProjetFactory()
+
+    SimulationProjetService._accept_a_simulation_projet(simulation_projet, user)
+
+    kwargs = {
+        "enveloppe": simulation_projet.enveloppe,
+        "montant": simulation_projet.montant,
+    }
+    mock_transition_dotation_projet.assert_called_once_with(**kwargs)
+    mock_ds_update.assert_called_once_with(
+        dossier=simulation_projet.dossier,
+        user=user,
+        montant=simulation_projet.montant,
+        taux=simulation_projet.taux,
+    )
+
+
+@mock.patch("gsl_projet.models.DotationProjet.dismiss")
+@mock.patch("gsl_demarches_simplifiees.services.DsService.dismiss_in_ds")
+def test_dimiss_simulation_projet_triggers_transition(
+    mock_dismiss_in_ds,
+    mock_transition_dotation_projet,
+    user,
+):
+    simulation_projet = SimulationProjetFactory()
+    SimulationProjetService._dismiss_a_simulation_projet(
+        simulation_projet, user, "motivation"
+    )
+
+    mock_transition_dotation_projet.assert_called_once_with()
+    mock_dismiss_in_ds.assert_called_once_with(
+        simulation_projet.dossier, user, "motivation"
+    )

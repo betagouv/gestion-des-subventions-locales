@@ -5,6 +5,7 @@ from gsl_core.models import Collegue
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.mixins import build_error_message, process_projet_update
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.services import DsService
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
     PROJET_STATUS_ACCEPTED,
@@ -108,7 +109,11 @@ class SimulationProjetService:
 
     @classmethod
     def update_status(
-        cls, simulation_projet: SimulationProjet, new_status: str, user: Collegue
+        cls,
+        simulation_projet: SimulationProjet,
+        new_status: str,
+        user: Collegue,
+        motivation: str = "",
     ):
         if new_status == SimulationProjet.STATUS_ACCEPTED:
             return cls._accept_a_simulation_projet(simulation_projet, user)
@@ -117,7 +122,7 @@ class SimulationProjetService:
             return cls._refuse_a_simulation_projet(simulation_projet)
 
         if new_status == SimulationProjet.STATUS_DISMISSED:
-            return cls._dismiss_a_simulation_projet(simulation_projet)
+            return cls._dismiss_a_simulation_projet(simulation_projet, user, motivation)
 
         if (
             new_status == SimulationProjet.STATUS_PROCESSING
@@ -219,10 +224,15 @@ class SimulationProjetService:
         return updated_simulation_projet
 
     @classmethod
-    def _dismiss_a_simulation_projet(cls, simulation_projet: SimulationProjet):
+    def _dismiss_a_simulation_projet(
+        cls, simulation_projet: SimulationProjet, user: Collegue, motivation: str
+    ):
         dotation_projet = simulation_projet.dotation_projet
         dotation_projet.dismiss()
         dotation_projet.save()
+
+        ds_service = DsService()
+        ds_service.dismiss_in_ds(simulation_projet.dossier, user, motivation)
 
         updated_simulation_projet = SimulationProjet.objects.get(
             pk=simulation_projet.pk

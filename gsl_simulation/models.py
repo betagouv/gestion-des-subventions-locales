@@ -59,6 +59,7 @@ class SimulationProjet(BaseModel):
     STATUS_PROVISIONALLY_ACCEPTED = "provisionally_accepted"
     STATUS_PROVISIONALLY_REFUSED = "provisionally_refused"
     STATUS_DISMISSED = "dismissed"
+
     STATUS_CHOICES = (
         (STATUS_PROCESSING, "🔄 En traitement"),
         (STATUS_ACCEPTED, "✅ Accepté"),
@@ -67,6 +68,7 @@ class SimulationProjet(BaseModel):
         (STATUS_REFUSED, "❌ Refusé"),
         (STATUS_DISMISSED, "⛔️ Classé sans suite"),
     )
+
     dotation_projet = models.ForeignKey(
         DotationProjet, on_delete=models.CASCADE, null=True
     )
@@ -107,6 +109,10 @@ class SimulationProjet(BaseModel):
     @property
     def projet(self):
         return self.dotation_projet.projet
+
+    @property
+    def dossier(self):
+        return self.projet.dossier_ds
 
     @property
     def enveloppe(self):
