@@ -72,16 +72,24 @@ def test_update_ds_is_budget_vert_functions_call_generic_function_success(
     )
 
 
+@pytest.mark.parametrize(
+    "function, field_name",
+    (
+        ("update_ds_assiette", "annotations_assiette"),
+        ("update_ds_montant", "annotations_montant_accorde"),
+        ("update_ds_taux", "annotations_taux"),
+    ),
+)
 @mock.patch.object(DsService, "_update_decimal_field")
 def test_update_decimal_field_functions_call_generic_function_success(
-    update_boolean_field_mocker, user, dossier
+    update_boolean_field_mocker, user, dossier, function, field_name
 ):
     ds_service = DsService()
 
-    ds_service_function = getattr(ds_service, "update_ds_assiette")
+    ds_service_function = getattr(ds_service, function)
     ds_service_function(dossier, user, 250.33)
     update_boolean_field_mocker.assert_called_once_with(
-        dossier, user, 250.33, "annotations_assiette"
+        dossier, user, 250.33, field_name
     )
 
 

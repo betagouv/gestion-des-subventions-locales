@@ -8,6 +8,7 @@
   color: var(--text-default-error);
 }
 
+.message--warning > .fr-notice,
 .message--orange > .fr-notice {
   background-color: var(--brown-caramel-975-75);
   color: var(--text-default-warning);

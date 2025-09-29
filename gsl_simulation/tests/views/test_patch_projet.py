@@ -10,6 +10,7 @@ from gsl_core.tests.factories import (
     CollegueFactory,
     PerimetreDepartementalFactory,
 )
+from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.tests.factories import (
     FieldMappingForComputerFactory,
 )
@@ -399,3 +400,56 @@ def test_patch_projet_with_user_with_ds_connection_error(
 
     assert response.status_code == 200
     assert accepted_simulation_projet.projet.__getattribute__(field) is initial_value
+
+
+def test_two_fields_update_and_only_one_error(
+    perimetre_departemental, accepted_simulation_projet
+):
+    collegue = CollegueFactory(perimetre=perimetre_departemental, ds_id="")
+    client = ClientWithLoggedUserFactory(collegue)
+    accepted_simulation_projet.projet.is_in_qpv = False
+    accepted_simulation_projet.projet.is_attached_to_a_crte = False
+    accepted_simulation_projet.projet.save()
+    data = {
+        "is_in_qpv": "on",
+        "is_attached_to_a_crte": "on",
+        "dotations": [DOTATION_DSIL],
+    }
+
+    with (
+        patch(
+            "gsl_demarches_simplifiees.services.DsService.update_ds_is_in_qpv",
+            return_value=True,
+        ),
+        patch(
+            "gsl_demarches_simplifiees.services.DsService.update_ds_is_attached_to_a_crte",
+            side_effect=DsServiceException("Erreur !"),
+        ),
+    ):
+        url = reverse(
+            "simulation:patch-projet",
+            args=[accepted_simulation_projet.id],
+        )
+        response = client.post(
+            url,
+            data,
+            follow=True,
+        )
+
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+    message = list(messages)[0]
+    assert message.level == 40  # Error
+    assert (
+        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées (CRTE => Erreur !). Ces modifications n'ont pas été enregistrées."
+        == message.message
+    )
+
+    accepted_simulation_projet.projet.refresh_from_db()
+
+    assert response.status_code == 200
+
+    assert (
+        accepted_simulation_projet.projet.is_in_qpv is True
+    )  # Only this field has been updated
+    assert accepted_simulation_projet.projet.is_attached_to_a_crte is False

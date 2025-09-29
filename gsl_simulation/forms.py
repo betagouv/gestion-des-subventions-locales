@@ -6,6 +6,7 @@ from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
 from gsl_core.models import Perimetre
+from gsl_demarches_simplifiees.mixins import DsUpdatableFields
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.forms import DSUpdateMixin
 from gsl_projet.models import DotationProjet
@@ -111,9 +112,15 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
         dotation_projet: DotationProjet = self.instance.dotation_projet
 
         if "assiette" in self.changed_data or "montant" in self.changed_data:
-            computed_taux = compute_taux(
-                cleaned_data.get("montant"), cleaned_data.get("assiette")
-            )
+            assiette = cleaned_data.get("assiette")
+            if assiette is None:
+                assiette = dotation_projet.dossier_ds.finance_cout_total
+
+            computed_taux = compute_taux(cleaned_data.get("montant"), assiette)
+
+            if computed_taux != self.fields["taux"].initial:
+                self.changed_data.append("taux")
+
             cleaned_data["taux"] = computed_taux
 
         else:
@@ -135,7 +142,9 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
     def get_dossier_ds(self, instance):
         return instance.projet.dossier_ds
 
-    def get_fields(self):
+    def get_fields(self) -> list[DsUpdatableFields]:
+        if self.instance.status == SimulationProjet.STATUS_ACCEPTED:
+            return ["assiette", "montant", "taux"]
         return ["assiette"]
 
     def reset_field(self, field, instance):
@@ -162,7 +171,7 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
             )
 
         if field == "taux":
-            initial_taux = self.initial["taux"]
+            initial_taux = self.fields["taux"].initial
             self.cleaned_data["taux"] = initial_taux
             instance.montant = DotationProjetService.compute_montant_from_taux(
                 dotation_projet, initial_taux

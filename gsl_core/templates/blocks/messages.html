@@ -1,0 +1,11 @@
+{% load dsfr_tags gsl_filters %}
+
+<div id="messages" hx-swap-oob="{{ hx_swap_oob }}">
+    {% for message in messages %}
+        {% with message|create_alert_data as data_dict %}
+            <div class="message--{% if data_dict.class %}{{ data_dict.class }}{% else %}{{ message.level_tag }}{% endif %}">
+                {% dsfr_notice data_dict %}
+            </div>
+        {% endwith %}
+    {% endfor %}
+</div>
