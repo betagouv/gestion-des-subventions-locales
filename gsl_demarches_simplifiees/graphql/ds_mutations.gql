@@ -1,7 +1,27 @@
-mutation modifierAnnotationCheckbox($input: DossierModifierAnnotationCheckboxInput!) {
+mutation modifierAnnotationCheckbox(
+    $input: DossierModifierAnnotationCheckboxInput!
+    $includeAnnotations: Boolean = false
+  ) {
   dossierModifierAnnotationCheckbox(input: $input) {
     clientMutationId
-    annotation{
+    annotation @include(if: $includeAnnotations) {
+      id
+      label
+      stringValue
+    }
+    errors {
+      message
+    }
+  }
+}
+
+mutation modifierAnnotationDecimalNumber(
+    $input: DossierModifierAnnotationDecimalNumberInput!
+    $includeAnnotations: Boolean = false
+  ) {
+  dossierModifierAnnotationDecimalNumber(input: $input) {
+    clientMutationId
+    annotation @include(if: $includeAnnotations) {
       id
       label
       stringValue

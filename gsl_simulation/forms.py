@@ -1,3 +1,5 @@
+from logging import getLogger
+
 from django import forms
 from django.core.exceptions import ValidationError
 from django.forms import ModelForm
@@ -5,9 +7,13 @@ from dsfr.forms import DsfrBaseForm
 
 from gsl_core.models import Perimetre
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.forms import DSUpdateMixin
+from gsl_projet.models import DotationProjet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.utils import compute_taux
 from gsl_simulation.models import SimulationProjet
+
+logger = getLogger(__name__)
 
 
 class SimulationForm(DsfrBaseForm):
@@ -45,7 +51,7 @@ class SimulationForm(DsfrBaseForm):
         return cleaned_data
 
 
-class SimulationProjetForm(ModelForm, DsfrBaseForm):
+class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
     assiette = forms.DecimalField(
         label="Montant des dépenses éligibles retenues (€)",
         max_digits=12,
@@ -102,7 +108,7 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         """
         cleaned_data = super().clean()
         simulation_projet = self.instance
-        dotation_projet = self.instance.dotation_projet
+        dotation_projet: DotationProjet = self.instance.dotation_projet
 
         if "assiette" in self.changed_data or "montant" in self.changed_data:
             computed_taux = compute_taux(
@@ -119,17 +125,46 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
 
         dotation_projet.assiette = cleaned_data.get("assiette")
         dotation_projet.clean()
+
         return cleaned_data
 
     def save(self, commit=True):
-        instance = super().save(commit=False)
+        instance: SimulationProjet = super().save(commit=False)
+        return self._save_with_ds(instance, commit)
 
-        dotation_projet = instance.dotation_projet
-        if dotation_projet:
-            dotation_projet.assiette = self.cleaned_data.get("assiette")
+    def get_dossier_ds(self, instance):
+        return instance.projet.dossier_ds
 
-        if commit:
-            dotation_projet.save()
-            instance.save()
+    def get_fields(self):
+        return ["assiette"]
 
-        return instance
+    def reset_field(self, field, instance):
+        self._reset_field(field, instance, instance.dotation_projet)
+
+    def post_save(self, instance):
+        instance.dotation_projet.save()
+
+    def _reset_field(
+        self, field: str, instance: SimulationProjet, dotation_projet: DotationProjet
+    ):
+        if field == "assiette":
+            self.cleaned_data["assiette"] = self["assiette"].initial
+            dotation_projet.assiette = self["assiette"].initial
+            self.cleaned_data["taux"] = compute_taux(
+                instance.montant, dotation_projet.assiette
+            )
+
+        if field == "montant":
+            self.cleaned_data["montant"] = self["montant"].initial
+            instance.montant = self["montant"].initial
+            self.cleaned_data["taux"] = compute_taux(
+                instance.montant, dotation_projet.assiette
+            )
+
+        if field == "taux":
+            initial_taux = self.initial["taux"]
+            self.cleaned_data["taux"] = initial_taux
+            instance.montant = DotationProjetService.compute_montant_from_taux(
+                dotation_projet, initial_taux
+            )
+            self.cleaned_data["montant"] = instance.montant

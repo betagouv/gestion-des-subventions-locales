@@ -27,7 +27,7 @@ def test_launch_graphql_query_token_error_logs_and_raises(caplog):
             with pytest.raises(Exception) as excinfo:
                 client.launch_graphql_query("someOperation")
             assert (
-                "HTTP Error while running query. Status code: 403. Error: {'errors': [{'message': 'Without a token, only persisted queries are allowed', 'extensions': {'code': 'forbidden'}}], 'data': None}"
+                "Nous n'arrivons pas à nous connecter à Démarches Simplifiées."
                 in str(excinfo.value)
             )
             assert "DS forbidden access : token problem ?" in caplog.text
