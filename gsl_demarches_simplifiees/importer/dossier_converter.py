@@ -114,6 +114,9 @@ class DossierConverter:
         if ds_typename == "MultipleDropDownListChamp":
             return ds_field_data["values"]
 
+        if ds_typename == "LinkedDropDownListChamp":
+            return ds_field_data["secondaryValue"]
+
         if ds_typename == "AddressChamp":
             return ds_field_data["address"] or ds_field_data["stringValue"]
 

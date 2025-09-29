@@ -25,6 +25,37 @@
         "collapsibleExplanationText": "\r\nPour constituer votre dossier, les sections suivantes sont à compléter :\r\n\r\n-Informations sur le porteur de projet\r\n-Présentation de l'opération\r\n-Plan de financement prévisionnel\r\n-Finalisation du dossier\r\n\r\n\r\n<br />\r\n\r\nVotre dossier est enregistré automatiquement après chaque modification. Vous pouvez à tout moment fermer la fenêtre et reprendre plus tard là où vous en étiez."
       },
       {
+        "id": "TEST_ID_ARRDT_==",
+        "label": "Département du porteur de projet",
+        "options": [
+          "--56 - Morbihan--",
+          "561 - Lorient",
+          "562 - Pontivy",
+          "563 - Vannes",
+          "--57 - Moselle--",
+          "573 - Forbach-Boulay-Moselle",
+          "575 - Sarrebourg-Château-Salins",
+          "576 - Sarreguemines",
+          "577 - Thionville",
+          "579 - Metz",
+          "--58 - Nièvre--",
+          "581 - Château-Chinon (Ville)",
+          "582 - Clamecy",
+          "583 - Nevers",
+          "584 - Cosne-Cours-sur-Loire",
+          "--59 - Nord--",
+          "591 - Avesnes-sur-Helpe",
+          "592 - Cambrai",
+          "593 - Douai",
+          "594 - Dunkerque",
+          "595 - Lille",
+          "596 - Valenciennes"
+        ],
+        "required": true,
+        "__typename": "LinkedDropDownListChampDescriptor",
+        "description": "Votre dossier sera transmis à l'autorité compétente pour instruire votre dossier."
+      },
+      {
         "__typename": "HeaderSectionChampDescriptor",
         "id": "TEST_ID_ODgwNDAy",
         "label": "Informations sur le porteur de projet",

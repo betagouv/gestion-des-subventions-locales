@@ -212,6 +212,20 @@ extract_field_test_data = (
     ),
     (
         {
+            "id": "TEST_ID_MzI3Njk1NA==",
+            "label": "Département du porteur de projet",
+            "prefilled": False,
+            "updatedAt": "2025-09-29T16:28:56+02:00",
+            "__typename": "LinkedDropDownListChamp",
+            "stringValue": "57 - Moselle / 579 - Metz",
+            "primaryValue": "57 - Moselle",
+            "secondaryValue": "579 - Metz",
+            "champDescriptorId": "TEST_ID_I3Njk1NA==",
+        },
+        "579 - Metz",
+    ),
+    (
+        {
             "id": "TEST_ID_zNTY1MA==",
             "label": "Si oui, précisez le niveau de priorité de ce dossier.",
             "prefilled": False,
