@@ -87,7 +87,7 @@ class ProjetService:
         dotations: list[Any] = []
 
         if not dotation_annotation:
-            logging.warning(f"Projet {projet} is missing annotation dotation")
+            logging.warning(f"No data in field {field} for projet {projet}.")
             return dotations
 
         if DOTATION_DETR in dotation_annotation:
@@ -97,7 +97,7 @@ class ProjetService:
 
         if not dotations:
             logging.warning(
-                f"Projet {projet} annotation dotation {dotation_annotation} is unkown"
+                f"Projet {projet} DS dotation {dotation_annotation} is unknown."
             )
         return dotations
 
