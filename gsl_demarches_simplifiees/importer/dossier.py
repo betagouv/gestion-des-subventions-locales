@@ -35,8 +35,8 @@ def save_demarche_dossiers_from_ds(demarche_number):
             )
 
 
-def save_one_dossier_from_ds(dossier: Dossier):
-    client = DsClient()
+def save_one_dossier_from_ds(dossier: Dossier, client: DsClient = None):
+    client = client or DsClient()
     dossier_data = client.get_one_dossier(dossier.ds_number)
     date_modif_ds = dossier_data.get("dateDerniereModification", None)
     if date_modif_ds:
