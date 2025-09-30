@@ -1,9 +1,13 @@
+import base64
+import hashlib
+import json
 from collections.abc import Iterator
 from logging import getLogger
 from pathlib import Path
 
 import requests
 from django.conf import settings
+from django.core.files.uploadedfile import UploadedFile
 
 from gsl_demarches_simplifiees.exceptions import DsConnectionError, DsServiceException
 
@@ -38,11 +42,11 @@ class DsClientBase:
 
         if response.status_code == 200:
             results = response.json()
-            if "errors" in results.keys() and results.get("data", None) is None:
-                logger.error(
-                    "DS request error", extra={**variables, "error": results["errors"]}
-                )
-                raise DsServiceException
+            if "errors" in results.keys():
+                for error in results["errors"]:
+                    logger.error(f"DS request error : {error['message']}")
+                if results.get("data", None) is None:
+                    raise DsServiceException
             return results
         else:
             if response.status_code == 403:
@@ -189,7 +193,7 @@ class DsMutator(DsClientBase):
             "dossierPasserEnInstruction", variables=variables
         )
 
-    def mutate_with_justificatif_and_motivation(
+    def _mutate_with_justificatif_and_motivation(
         self,
         action: str,
         dossier_id: str,
@@ -213,8 +217,49 @@ class DsMutator(DsClientBase):
             variables["input"]["justificatif"] = justificatif_id
         return self.launch_graphql_query(action, variables=variables)
 
-    def dossier_accepter(self, *args, **kwargs):
-        return self.mutate_with_justificatif_and_motivation(
+    def _upload_attachment(self, dossier_id: str, file: UploadedFile) -> str:
+        """
+        Upload a file to Démarches Simplifiées using GraphQL mutation.
+
+        :param file: UploadedFile instance. It must be a PDF file.
+        :param dossier_id: ID of the dossier to attach the file to.
+        :return: signedBlobId of the uploaded file.
+        """
+        res = self.launch_graphql_query(
+            "createDirectUpload",
+            {
+                "input": {
+                    "dossierId": dossier_id,
+                    "filename": "./" + file.name,
+                    "byteSize": file.size,
+                    "checksum": base64.b64encode(
+                        hashlib.md5(file.read()).digest()
+                    ).decode(),
+                    "contentType": "application/pdf",
+                }
+            },
+        )
+        upload_url = res["data"]["createDirectUpload"]["directUpload"]["url"]
+        credential_headers = json.loads(
+            res["data"]["createDirectUpload"]["directUpload"]["headers"]
+        )
+        blob_id = res["data"]["createDirectUpload"]["directUpload"]["signedBlobId"]
+        try:
+            file.seek(0)
+            res = requests.put(upload_url, data=file.read(), headers=credential_headers)
+            if not 200 <= res.status_code < 300:
+                raise DsServiceException(f"Error uploading file: {res}")
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            raise DsConnectionError()
+
+        return blob_id
+
+    def dossier_accepter(self, *args, document: UploadedFile = None, **kwargs):
+        if document is not None:
+            kwargs["justificatif_id"] = self._upload_attachment(
+                kwargs["dossier_id"], document
+            )
+        return self._mutate_with_justificatif_and_motivation(
             "dossierAccepter", *args, **kwargs
         )
 
@@ -223,12 +268,25 @@ class DsMutator(DsClientBase):
         dossier_id: str,
         instructeur_id: str,
         motivation: str = "",
+        document: UploadedFile = None,
     ):
-        return self.mutate_with_justificatif_and_motivation(
-            "dossierClasserSansSuite", dossier_id, instructeur_id, motivation
+        if document is not None:
+            justificatif_id = self._upload_attachment(dossier_id, document)
+        else:
+            justificatif_id = None
+        return self._mutate_with_justificatif_and_motivation(
+            "dossierClasserSansSuite",
+            dossier_id,
+            instructeur_id,
+            motivation,
+            justificatif_id,
         )
 
-    def dossier_refuser(self, *args, **kwargs):
-        return self.mutate_with_justificatif_and_motivation(
+    def dossier_refuser(self, *args, document: UploadedFile = None, **kwargs):
+        if document is not None:
+            kwargs["justificatif_id"] = self._upload_attachment(
+                kwargs["dossier_id"], document
+            )
+        return self._mutate_with_justificatif_and_motivation(
             "dossierRefuser", *args, **kwargs
         )
