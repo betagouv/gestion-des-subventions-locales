@@ -237,6 +237,8 @@ def select_modele(request, programmation_projet_id, document_type):
 
     context = {
         "programmation_projet": programmation_projet,
+        "dotation": programmation_projet.dotation,
+        "document_type": document_type,
         "page_title": page_title,
         "page_step_title": page_step_title,
         "cancel_link": reverse(

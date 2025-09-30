@@ -18,6 +18,16 @@
             <li>
                 {% include "includes/_modele_card.html" %}
             </li>
+        {% empty %}
+            <div class="fr-callout">
+                <p class="fr-callout__text">
+                    Vous n'avez créé aucun modèle pour le moment. Créez un nouveau modèle et revenez ici.
+                </p>
+                <a class="fr-btn fr-btn--primary"
+                   href="{% url 'gsl_notification:modele-creer' document_type dotation %}">
+                    Créer un modèle d'arrêté
+                </a>
+            </div>
         {% endfor %}
     </ul>
 </div>
