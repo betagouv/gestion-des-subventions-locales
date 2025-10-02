@@ -48,12 +48,12 @@
                     Imprimer tous les documents
                 </button>
             </div>
-            {% if documents %}
+            {% if programmation_projet.documents %}
                 <ul class="arrete-list"
                     data-controller="delete-notification-document-modal"
                     data-delete-notification-document-modal-modal-id-value="delete-document-confirmation-modal"
                     data-delete-notification-document-modal-form-id-value="delete-document-form">
-                    {% for document in documents %}
+                    {% for document in programmation_projet.documents %}
                         {% include "includes/_document_card.html" %}
                     {% endfor %}
                 </ul>
