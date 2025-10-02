@@ -22,7 +22,6 @@ from gsl_notification.utils import (
 )
 from gsl_notification.views.decorators import (
     document_visible_by_user,
-    programmation_projet_visible_by_user,
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
@@ -70,10 +69,9 @@ class NotificationDocumentsView(DetailView):
 
 
 @require_http_methods(["GET"])
-@programmation_projet_visible_by_user
 def choose_type_for_document_generation(request, programmation_projet_id):
     programmation_projet = get_object_or_404(
-        ProgrammationProjet,
+        ProgrammationProjet.objects.visible_to_user(request.user),
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
@@ -95,10 +93,9 @@ def choose_type_for_document_generation(request, programmation_projet_id):
 
 
 @require_http_methods(["GET"])
-@programmation_projet_visible_by_user
 def select_modele(request, programmation_projet_id, document_type):
     programmation_projet = get_object_or_404(
-        ProgrammationProjet,
+        ProgrammationProjet.objects.visible_to_user(request.user),
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
@@ -152,10 +149,9 @@ def select_modele(request, programmation_projet_id, document_type):
 
 @csp_update({"style-src": [SELF, UNSAFE_INLINE]})
 @require_http_methods(["GET", "POST"])
-@programmation_projet_visible_by_user
 def change_document_view(request, programmation_projet_id, document_type):
     programmation_projet = get_object_or_404(
-        ProgrammationProjet,
+        ProgrammationProjet.objects.visible_to_user(request.user),
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )

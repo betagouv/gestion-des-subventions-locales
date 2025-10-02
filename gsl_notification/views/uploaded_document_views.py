@@ -12,7 +12,6 @@ from gsl_notification.utils import (
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
 from gsl_notification.views.decorators import (
-    programmation_projet_visible_by_user,
     uploaded_document_visible_by_user,
 )
 from gsl_notification.views.views import (
@@ -23,10 +22,9 @@ from gsl_programmation.models import ProgrammationProjet
 
 
 @require_http_methods(["GET"])
-@programmation_projet_visible_by_user
 def choose_type_for_document_upload(request, programmation_projet_id):
     programmation_projet = get_object_or_404(
-        ProgrammationProjet,
+        ProgrammationProjet.objects.visible_to_user(request.user),
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
@@ -41,11 +39,10 @@ def choose_type_for_document_upload(request, programmation_projet_id):
 # Upload document ------------------------------------------------------------------
 
 
-@programmation_projet_visible_by_user
 @require_http_methods(["GET", "POST"])
 def create_uploaded_document_view(request, programmation_projet_id, document_type):
     programmation_projet = get_object_or_404(
-        ProgrammationProjet,
+        ProgrammationProjet.objects.visible_to_user(request.user),
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
