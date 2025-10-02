@@ -172,6 +172,8 @@ class ProjetListView(FilterView, ListView, FilterUtils):
         context["total_amount_granted"] = ProjetService.get_total_amount_granted(
             qs_global
         )
+        context["enveloppes"] = self.request.user.perimetre.enveloppe_set.all()
+        context["enveloppes_with_children"] = True
         self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
 
         return context
