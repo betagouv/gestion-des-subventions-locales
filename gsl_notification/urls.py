@@ -27,18 +27,18 @@ from gsl_notification.views.uploaded_document_views import (
 )
 from gsl_notification.views.views import (
     DownloadDocumentView,
+    NotificationDocumentsView,
     PrintDocumentView,
     change_document_view,
     choose_type_for_document_generation,
     delete_document_view,
-    documents_view,
     select_modele,
 )
 
 urlpatterns = [
     path(
         "<int:programmation_projet_id>/documents/",
-        documents_view,
+        NotificationDocumentsView.as_view(),
         name="documents",
     ),
     # Generated files

@@ -154,6 +154,10 @@ class GeneratedDocument(models.Model):
         )
 
     @property
+    def is_generated(self):
+        return True
+
+    @property
     def name(self):
         raise NotImplementedError
 
