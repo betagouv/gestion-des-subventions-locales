@@ -2,7 +2,11 @@
 <li class="arrete-card fr-mt-4w">
     <div class="arrete-card__header">
         <span class="fr-tag">
-            {{ document.tag }}
+            {% if document.is_generated %}
+                Créé sur Turgot
+            {% else %}
+                Importé
+            {% endif %}
         </span>
 
         <details name="document-actions">
@@ -10,28 +14,27 @@
                      aria-label="Ouvrir les actions du document">
             </summary>
             <ul class="new-gsl-dropdown-content arrete-card__actions no-list-style fr-m-0">
-                {% for action in document.actions %}
+                {% if document.is_generated %}
                     <li>
-                        {% if action.name == "delete" %}
-                            <button type="button"
-                                    class="fr-btn fr-btn--secondary arrete-card__action"
-                                    data-fr-opened="false"
-                                    aria-controls="{{ action.aria_controls }}"
-                                    aria-expanded="false"
-                                    data-name="{{ document.name }}"
-                                    data-type="{{ document.document_type }}"
-                                    data-form-action="{{ action.action }}"
-                                    data-action="delete-notification-document-modal#updateModaleTitleAndSubmitAction">
-                                {{ action.label }}
-                            </button>
-                        {% else %}
-                            <a href="{{ action.href }}"
-                               class="fr-btn fr-btn--secondary arrete-card__action">
-                                {{ action.label }}
-                            </a>
-                        {% endif %}
+                        <a href="{% url "notification:modifier-document" document.programmation_projet.id document.document_type %}"
+                           class="fr-btn fr-btn--secondary arrete-card__action">
+                            Modifier
+                        </a>
                     </li>
-                {% endfor %}
+                {% endif %}
+                <li>
+                    <button type="button"
+                            class="fr-btn fr-btn--secondary arrete-card__action"
+                            data-fr-opened="false"
+                            aria-controls="delete-document-confirmation-modal"
+                            aria-expanded="false"
+                            data-name="{{ document.name }}"
+                            data-type="{{ document.document_type }}"
+                            data-form-action="{% url "notification:delete-uploaded-document" document.document_type document.id %}"
+                            data-action="delete-notification-document-modal#updateModaleTitleAndSubmitAction">
+                        Supprimer
+                    </button>
+                </li>
             </ul>
         </details>
     </div>
