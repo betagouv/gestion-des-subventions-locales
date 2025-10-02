@@ -16,7 +16,7 @@ from gsl_projet.forms import DotationProjetForm, ProjetForm
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.forms import SimulationProjetForm
-from gsl_simulation.models import SimulationProjet
+from gsl_simulation.models import SimulationProjet, SimulationProjetQuerySet
 from gsl_simulation.services.simulation_projet_service import (
     SimulationProjetService,
 )
@@ -27,16 +27,16 @@ from gsl_simulation.utils import (
 )
 from gsl_simulation.views.decorators import (
     exception_handler_decorator,
-    projet_must_be_in_user_perimetre,
 )
 from gsl_simulation.views.simulation_views import SimulationDetailView
 
 
-@projet_must_be_in_user_perimetre
 @exception_handler_decorator
 @require_POST
 def patch_taux_simulation_projet(request, pk):
-    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
+    simulation_projet = get_object_or_404(
+        SimulationProjet.objects.in_user_perimeter(request.user), id=pk
+    )
     new_taux = replace_comma_by_dot(request.POST.get("taux"))
     try:
         with transaction.atomic():
@@ -56,11 +56,12 @@ def patch_taux_simulation_projet(request, pk):
     )
 
 
-@projet_must_be_in_user_perimetre
 @exception_handler_decorator
 @require_POST
 def patch_montant_simulation_projet(request, pk):
-    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
+    simulation_projet = get_object_or_404(
+        SimulationProjet.objects.in_user_perimeter(request.user), id=pk
+    )
     new_montant = replace_comma_by_dot(request.POST.get("montant"))
     try:
         with transaction.atomic():
@@ -82,11 +83,12 @@ def patch_montant_simulation_projet(request, pk):
     )
 
 
-@projet_must_be_in_user_perimetre
 @exception_handler_decorator
 @require_POST
 def patch_status_simulation_projet(request, pk):
-    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
+    simulation_projet = get_object_or_404(
+        SimulationProjet.objects.in_user_perimeter(request.user), id=pk
+    )
     status = request.POST.get("status")
     motivation = request.POST.get("motivation")
 
@@ -116,11 +118,12 @@ def patch_status_simulation_projet(request, pk):
     )
 
 
-@projet_must_be_in_user_perimetre
 @exception_handler_decorator
 @require_POST
 def patch_dotation_projet(request, pk):
-    simulation_projet = get_object_or_404(SimulationProjet, id=pk)
+    simulation_projet = get_object_or_404(
+        SimulationProjet.objects.in_user_perimeter(request.user), id=pk
+    )
     form = DotationProjetForm(
         request.POST,
         instance=simulation_projet.dotation_projet,
@@ -148,11 +151,23 @@ def patch_dotation_projet(request, pk):
 class BaseSimulationProjetView(UpdateView):
     form_class = SimulationProjetForm
 
+    def get_queryset(self) -> SimulationProjetQuerySet:
+        return (
+            super()
+            .get_queryset()
+            .select_related(
+                "simulation",
+                "simulation__enveloppe",
+                "dotation_projet",
+                "dotation_projet__projet",
+                "dotation_projet__projet__dossier_ds",
+            )
+            .prefetch_related("dotation_projet__projet__dotationprojet_set")
+        )
+
     def get_object(self, queryset=None) -> SimulationProjet:
         if not hasattr(self, "_simulation_projet"):
-            self._simulation_projet = _get_view_simulation_projet_from_pk(
-                self.kwargs.get("pk")
-            )
+            self._simulation_projet = super().get_object(queryset)
         return self._simulation_projet
 
     def get_form_kwargs(self):
@@ -189,6 +204,9 @@ class ProjetFormView(BaseSimulationProjetView):
     model = SimulationProjet
     form_class = ProjetForm
 
+    def get_queryset(self):
+        return super().get_queryset().in_user_perimeter(self.request.user)
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         simulation_projet = self.get_object()
@@ -219,6 +237,9 @@ class SimulationProjetDetailView(BaseSimulationProjetView):
     form_class = SimulationProjetForm
 
     ALLOWED_TABS = {"historique"}
+
+    def get_queryset(self):
+        return super().get_queryset().in_user_perimeter(self.request.user)
 
     def get_template_names(self):
         if "tab" in self.kwargs:
@@ -337,9 +358,9 @@ def _enrich_simulation_projet_context_with_specific_info_for_main_tab(
             "dotation_projet_form": DotationProjetForm(
                 instance=simulation_projet.dotation_projet,
             ),
-            "initial_dotations": json.dumps(dotation_field.initial)
-            if dotation_field
-            else [],
+            "initial_dotations": (
+                json.dumps(dotation_field.initial) if dotation_field else []
+            ),
             "other_dotation_simu": _get_other_dotation_simulation_projet(
                 simulation_projet
             ),

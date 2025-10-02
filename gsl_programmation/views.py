@@ -26,6 +26,7 @@ from gsl_projet.utils.projet_page import PROJET_MENU
 
 class ProgrammationProjetDetailView(DetailView):
     model = ProgrammationProjet
+    pk_url_kwarg = "programmation_projet_id"
 
     ALLOWED_TABS = {"annotations", "historique"}
 
@@ -37,9 +38,10 @@ class ProgrammationProjetDetailView(DetailView):
             return [f"gsl_programmation/tab_programmation_projet/tab_{tab}.html"]
         return ["gsl_programmation/programmation_projet_detail.html"]
 
-    def get_object(self, queryset=None):
-        self.programmation_projet = (
-            ProgrammationProjet.objects.select_related(
+    def get_queryset(self):
+        return (
+            ProgrammationProjet.objects.visible_to_user(self.request.user)
+            .select_related(
                 "dotation_projet",
                 "dotation_projet__projet",
                 "dotation_projet__projet__dossier_ds",
@@ -49,20 +51,17 @@ class ProgrammationProjetDetailView(DetailView):
                 "enveloppe__perimetre",
             )
             .prefetch_related("dotation_projet__detr_categories")
-            .get(pk=self.kwargs.get("programmation_projet_id"))
         )
-        return self.programmation_projet
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
         tab = self.kwargs.get("tab", "projet")
-        title = self.programmation_projet.projet.dossier_ds.projet_intitule
+        title = self.object.projet.dossier_ds.projet_intitule
         context = {
             "title": title,
-            "programmation_projet": self.programmation_projet,
-            "projet": self.programmation_projet.projet,
-            "dossier": self.programmation_projet.projet.dossier_ds,
-            "enveloppe": self.programmation_projet.enveloppe,
+            "programmation_projet": self.object,
+            "projet": self.object.projet,
+            "dossier": self.object.projet.dossier_ds,
+            "enveloppe": self.object.enveloppe,
             "breadcrumb_dict": {
                 "links": [
                     {
@@ -76,9 +75,9 @@ class ProgrammationProjetDetailView(DetailView):
             "current_tab": tab,
         }
         if tab == "annotations":
-            context["projet_notes"] = self.programmation_projet.projet.notes.all()
+            context["projet_notes"] = self.object.projet.notes.all()
 
-        return context
+        return super().get_context_data(**context)
 
 
 class ProgrammationProjetListView(FilterView, ListView, FilterUtils):

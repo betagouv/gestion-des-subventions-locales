@@ -201,6 +201,8 @@ class ProgrammationProjetQuerySet(models.QuerySet):
         return self.filter(status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None)
 
     def visible_to_user(self, user):
+        if user.is_staff:
+            return self.all()
         return self.filter(dotation_projet__projet__in=Projet.objects.for_user(user))
 
 
