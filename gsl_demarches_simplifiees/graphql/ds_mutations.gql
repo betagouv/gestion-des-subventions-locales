@@ -201,3 +201,14 @@ mutation dossierAccepter($input: DossierAccepterInput!) {
     }
   }
 }
+
+mutation createDirectUpload($input: CreateDirectUploadInput!) {
+  createDirectUpload(input: $input) {
+    directUpload {
+      url
+      headers
+      blobId
+      signedBlobId
+    }
+  }
+}
