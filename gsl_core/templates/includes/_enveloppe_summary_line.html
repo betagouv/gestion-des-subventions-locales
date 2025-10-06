@@ -1,6 +1,6 @@
 {% load gsl_filters %}
 
-<tr {% if enveloppe.is_deleguee %} class="sous-enveloppe"{% endif %}>
+<tr {% if level == 2 %} class="sous-enveloppe"{% endif %}>
     <td>
         {% if enveloppe.is_deleguee %}
             <div class="sub">
