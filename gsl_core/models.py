@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, UniqueConstraint
+from django.utils.functional import cached_property
 
 
 class BaseModel(models.Model):
@@ -238,13 +239,35 @@ class Perimetre(BaseModel):
             return self.departement.name
         return self.arrondissement.name
 
-    def children(self):
+    def children(
+        self,
+        max_depth=2,
+    ):
+        if self.type == self.TYPE_ARRONDISSEMENT:
+            return Perimetre.objects.none()
+
+        if self.type == self.TYPE_REGION and max_depth == 1:
+            return Perimetre.objects.filter(region=self.region, arrondissement=None)
+
         kwargs = {"region_id": self.region_id}
         if self.departement_id:
             kwargs["departement_id"] = self.departement_id
-        if self.arrondissement_id:
-            kwargs["arrondissement_id"] = self.arrondissement_id
+
         return Perimetre.objects.filter(**kwargs).exclude(id=self.id)
+
+    @cached_property
+    def parent(self):
+        if self.arrondissement_id:
+            return Perimetre.objects.get(
+                region_id=self.region_id,
+                departement_id=self.departement_id,
+                arrondissement_id=None,
+            )
+        elif self.departement_id:
+            return Perimetre.objects.get(
+                region_id=self.region_id, departement_id=None, arrondissement_id=None
+            )
+        return None
 
     def ancestors(self):
         if self.departement_id:
