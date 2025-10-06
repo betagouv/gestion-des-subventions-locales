@@ -239,12 +239,20 @@ class Perimetre(BaseModel):
             return self.departement.name
         return self.arrondissement.name
 
-    def children(self):
+    def children(
+        self,
+        max_depth=2,
+    ):
+        if self.type == self.TYPE_ARRONDISSEMENT:
+            return Perimetre.objects.none()
+
+        if self.type == self.TYPE_REGION and max_depth == 1:
+            return Perimetre.objects.filter(region=self.region, arrondissement=None)
+
         kwargs = {"region_id": self.region_id}
         if self.departement_id:
             kwargs["departement_id"] = self.departement_id
-        if self.arrondissement_id:
-            kwargs["arrondissement_id"] = self.arrondissement_id
+
         return Perimetre.objects.filter(**kwargs).exclude(id=self.id)
 
     @cached_property

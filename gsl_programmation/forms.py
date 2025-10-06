@@ -4,18 +4,23 @@ from dsfr.forms import DsfrBaseForm
 
 from gsl_core.models import Perimetre
 from gsl_programmation.models import Enveloppe
+from gsl_projet.constants import DOTATION_DSIL
 
 
 class SubEnveloppeCreateForm(DsfrBaseForm, ModelForm):
-    def __init__(self, *args, user_perimetre: Perimetre = None, **kwargs):
+    def __init__(self, *args, user_perimetre: Perimetre, **kwargs):
         super().__init__(*args, **kwargs)
         self.user_perimetre = user_perimetre
+        if self.user_perimetre.type == Perimetre.TYPE_REGION:
+            self.fields["dotation"].widget = self.fields["dotation"].hidden_widget()
+            self.fields["dotation"].choices = ((DOTATION_DSIL, DOTATION_DSIL),)
+            self.fields["dotation"].initial = DOTATION_DSIL
         self.fields["perimetre"].queryset = Perimetre.objects.filter(
             pk__in=(
                 p.id
                 for p in (
                     user_perimetre,
-                    *user_perimetre.children(),
+                    *user_perimetre.children(max_depth=1),
                 )
             ),
             # Une sous-enveloppe ne peut pas être déléguée si elle est régionale
