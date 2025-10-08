@@ -6,9 +6,11 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_http_methods
-from django.views.generic import DetailView
+from django.views.generic import DetailView, UpdateView
 from django_weasyprint import WeasyTemplateResponseMixin
 
+from gsl_demarches_simplifiees.exceptions import DsServiceException
+from gsl_notification.forms import NotificationMessageForm
 from gsl_notification.models import (
     GeneratedDocument,
 )
@@ -39,6 +41,9 @@ class NotificationDocumentsView(DetailView):
     pk_url_kwarg = "programmation_projet_id"
     context_object_name = "programmation_projet"
 
+    def get_queryset(self):
+        return ProgrammationProjet.objects.visible_to_user(self.request.user)
+
     def get_context_data(self, **kwargs):
         title = self.object.projet.dossier_ds.projet_intitule
         return super().get_context_data(
@@ -61,8 +66,69 @@ class NotificationDocumentsView(DetailView):
             }
         )
 
+
+class NotificationMessageView(UpdateView):
+    template_name = (
+        "gsl_notification/tab_simulation_projet/tab_notifications_message.html"
+    )
+
+    pk_url_kwarg = "programmation_projet_id"
+    context_object_name = "programmation_projet"
+    form_class = NotificationMessageForm
+
     def get_queryset(self):
         return ProgrammationProjet.objects.visible_to_user(self.request.user)
+
+    def get_context_data(self, **kwargs):
+        title = self.object.projet.dossier_ds.projet_intitule
+        return super().get_context_data(
+            **{
+                "dotation_projet": self.object.dotation_projet,
+                "dossier": self.object.dotation_projet.projet.dossier_ds,
+                "projet": self.object.projet,
+                "title": title,
+                "breadcrumb_dict": {
+                    "links": [
+                        {
+                            "url": reverse(
+                                "gsl_programmation:programmation-projet-list"
+                            ),
+                            "title": "Programmation en cours",
+                        },
+                        {
+                            "url": reverse(
+                                "gsl_programmation:programmation-projet-detail",
+                                args=[self.object.id],
+                            ),
+                            "title": title,
+                        },
+                    ],
+                    "current": title,
+                },
+            }
+        )
+
+    def form_valid(self, form):
+        try:
+            form.save(instructeur_id=self.request.user.ds_id)
+        except DsServiceException as e:
+            messages.error(
+                self.request,
+                f"Une erreur est survenue lors de l'envoi de la notification'. {str(e)}",
+            )
+            return self.form_invalid(form)
+
+        messages.success(
+            self.request,
+            "Le projet accepté a bien été notifié. Un message de notification a bien été envoyé au demandeur dans l’espace Démarches Simplifiées.",
+        )
+        return redirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse(
+            "gsl_programmation:programmation-projet-detail",
+            args=[self.object.id],
+        )
 
 
 # Edition form for arrêté --------------------------------------------------------------

@@ -10,6 +10,7 @@ from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 
 from gsl_demarches_simplifiees.exceptions import DsConnectionError, DsServiceException
+from gsl_demarches_simplifiees.models import Dossier
 
 logger = getLogger(__name__)
 
@@ -196,7 +197,7 @@ class DsMutator(DsClientBase):
     def _mutate_with_justificatif_and_motivation(
         self,
         action: str,
-        dossier_id: str,
+        dossier_ds_id: str,
         instructeur_id: str,
         motivation: str = "",
         justificatif_id: str | None = None,
@@ -206,7 +207,7 @@ class DsMutator(DsClientBase):
             "input": {
                 "clientMutationId": settings.DS_CLIENT_ID,
                 "disableNotification": disable_notification,
-                "dossierId": dossier_id,
+                "dossierId": dossier_ds_id,
                 "instructeurId": instructeur_id,
             }
         }
@@ -217,7 +218,7 @@ class DsMutator(DsClientBase):
             variables["input"]["justificatif"] = justificatif_id
         return self.launch_graphql_query(action, variables=variables)
 
-    def _upload_attachment(self, dossier_id: str, file: UploadedFile) -> str:
+    def _upload_attachment(self, dossier_ds_id: str, file: UploadedFile) -> str:
         """
         Upload a file to Démarches Simplifiées using GraphQL mutation.
 
@@ -229,8 +230,8 @@ class DsMutator(DsClientBase):
             "createDirectUpload",
             {
                 "input": {
-                    "dossierId": dossier_id,
-                    "filename": "./" + file.name,
+                    "dossierId": dossier_ds_id,
+                    "filename": file.name,
                     "byteSize": file.size,
                     "checksum": base64.b64encode(
                         hashlib.md5(file.read()).digest()
@@ -254,13 +255,26 @@ class DsMutator(DsClientBase):
 
         return blob_id
 
-    def dossier_accepter(self, *args, document: UploadedFile = None, **kwargs):
-        if document is not None:
-            kwargs["justificatif_id"] = self._upload_attachment(
-                kwargs["dossier_id"], document
-            )
+    def dossier_accepter(
+        self,
+        dossier: Dossier,
+        instructeur_id: str,
+        motivation: str = "",
+        disable_notification: bool = False,
+        document: UploadedFile = None,
+    ):
+        justificatif_id = (
+            self._upload_attachment(dossier.ds_id, document)
+            if document is not None
+            else None
+        )
         return self._mutate_with_justificatif_and_motivation(
-            "dossierAccepter", *args, **kwargs
+            "dossierAccepter",
+            dossier_ds_id=dossier.ds_id,
+            instructeur_id=instructeur_id,
+            motivation=motivation,
+            disable_notification=disable_notification,
+            justificatif_id=justificatif_id,
         )
 
     def dossier_classer_sans_suite(
