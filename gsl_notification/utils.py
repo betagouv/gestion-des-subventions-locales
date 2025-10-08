@@ -275,12 +275,11 @@ def _get_uploaded_document_pdf(document: Annexe | ArreteEtLettreSignes) -> io.By
     s3_object = get_s3_object(document.file.name)
     content = s3_object["Body"].read()
 
-    if s3_object["ContentType"] == "application/pdf":
-        return content
-
     output = io.BytesIO()
     output.write(
-        img2pdf.convert(
+        content
+        if s3_object["ContentType"] == "application/pdf"
+        else img2pdf.convert(
             content,
             layout_fun=img2pdf.get_layout_fun(
                 (img2pdf.mm_to_pt(210), img2pdf.mm_to_pt(297))

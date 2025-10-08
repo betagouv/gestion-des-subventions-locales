@@ -1,10 +1,13 @@
 import os
 
 from django import forms
+from django.db import transaction
 from django.db.models.fields import files
+from django.utils import timezone
 from dsfr.forms import DsfrBaseForm
 
 from gsl.settings import MAX_POST_FILE_SIZE_IN_MO
+from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_notification.models import (
     Annexe,
     Arrete,
@@ -12,6 +15,8 @@ from gsl_notification.models import (
     LettreNotification,
     ModeleDocument,
 )
+from gsl_notification.utils import merge_documents_into_pdf
+from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import ARRETE, LETTRE
 
 
@@ -131,3 +136,45 @@ class ModeleDocumentStepThreeForm(forms.ModelForm, DsfrBaseForm):
     class Meta:
         model = ModeleDocument
         fields = ("content",)
+
+
+class AnnexeChoiceField(forms.ModelMultipleChoiceField):
+    def label_from_instance(self, obj: Annexe):
+        return f"Annexe - {obj.name}"
+
+
+class NotificationMessageForm(DsfrBaseForm, forms.Form):
+    annexes = AnnexeChoiceField(
+        widget=forms.CheckboxSelectMultiple,
+        queryset=Annexe.objects.none(),
+        label="Pièces jointes",
+        required=False,
+    )
+    justification = forms.CharField(
+        label="Justification de l'acceptation du dossier (facultatif)",
+        required=False,
+        widget=forms.Textarea,
+    )
+
+    def save(self, instructeur_id):
+        justificatif_file = merge_documents_into_pdf(
+            [
+                self.programmation_projet.arrete_et_lettre_signes,
+                *self.cleaned_data["annexes"],
+            ]
+        )
+
+        with transaction.atomic():
+            self.programmation_projet.notified_at = timezone.now()
+            self.programmation_projet.save()
+            DsMutator().dossier_accepter(
+                self.programmation_projet.dossier,
+                instructeur_id,
+                motivation=self.cleaned_data.get("justification", ""),
+                document=justificatif_file,
+            )
+
+    def __init__(self, *args, instance: ProgrammationProjet, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.programmation_projet = instance
+        self.fields["annexes"].queryset = self.programmation_projet.annexes.all()

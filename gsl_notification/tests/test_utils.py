@@ -158,7 +158,7 @@ class TestMergeDocumentsIntoPdf:
         bytes_io = io.BytesIO()
         pdf.save(bytes_io)
         bytes_io.seek(0)
-        return bytes_io
+        return bytes_io.read()
 
     @pytest.fixture
     def sample_two_page_pdf_bytes(self):
@@ -169,7 +169,7 @@ class TestMergeDocumentsIntoPdf:
         bytes_io = io.BytesIO()
         pdf.save(bytes_io)
         bytes_io.seek(0)
-        return bytes_io
+        return bytes_io.read()
 
     @pytest.fixture
     def sample_image_bytes(self):
