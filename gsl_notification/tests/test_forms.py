@@ -107,6 +107,7 @@ def test_arrete_et_lettre_signe_form_invalid_missing_fields(form_class):
         ("test.jpg", "image/jpeg", True),
         ("test.jpeg", "image/jpeg", True),
         ("test.txt", "text/plain", False),
+        ("test.pdf", "text/plain", False),
     ],
 )
 @pytest.mark.django_db
