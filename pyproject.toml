@@ -59,6 +59,7 @@ dev = [
     "pytest-ruff",
     "pytest-xdist",
     "pytest",
+    "responses",
     "ruff",
 ]
 

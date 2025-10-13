@@ -1,33 +1,34 @@
 import logging
-from unittest.mock import MagicMock, patch
 
 import pytest
+import responses
+from django.conf import settings
 
 from gsl_demarches_simplifiees.ds_client import DsClient
 
 
+@responses.activate
 def test_launch_graphql_query_token_error_logs_and_raises(caplog):
-    error_response = {
-        "errors": [
-            {
-                "message": "Without a token, only persisted queries are allowed",
-                "extensions": {"code": "forbidden"},
-            }
-        ],
-        "data": None,
-    }
-    mock_resp = MagicMock()
-    mock_resp.status_code = 403
-    mock_resp.json.return_value = error_response
-    mock_resp.text = str(error_response)
+    responses.add(
+        responses.POST,
+        settings.DS_API_URL,
+        json={
+            "errors": [
+                {
+                    "message": "Without a token, only persisted queries are allowed",
+                    "extensions": {"code": "forbidden"},
+                }
+            ],
+            "data": None,
+        },
+        status=403,
+    )
 
-    with patch("requests.post", return_value=mock_resp):
-        client = DsClient()
-        with caplog.at_level(logging.CRITICAL):
-            with pytest.raises(Exception) as excinfo:
-                client.launch_graphql_query("someOperation")
-            assert (
-                "Nous n'arrivons pas à nous connecter à Démarches Simplifiées."
-                in str(excinfo.value)
-            )
-            assert "DS forbidden access : token problem ?" in caplog.text
+    client = DsClient()
+    with caplog.at_level(logging.CRITICAL):
+        with pytest.raises(Exception) as excinfo:
+            client.launch_graphql_query("someOperation")
+        assert "Nous n'arrivons pas à nous connecter à Démarches Simplifiées." in str(
+            excinfo.value
+        )
+        assert "DS forbidden access : token problem ?" in caplog.text
