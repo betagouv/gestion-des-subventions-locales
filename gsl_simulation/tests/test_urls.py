@@ -738,8 +738,8 @@ def test_post_edit_projet_note_url(
         (False, False, True, 404),
         (True, True, False, 403),
         (False, True, False, 403),
-        (True, False, False, 404),
-        (False, False, False, 404),
+        (True, False, False, 403),
+        (False, False, False, 403),
     ),
 )
 def test_get_note_card_url(

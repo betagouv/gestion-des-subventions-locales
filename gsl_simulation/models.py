@@ -4,6 +4,7 @@ from django.forms import ValidationError
 
 from gsl_core.models import BaseModel, Collegue
 from gsl_programmation.models import Enveloppe
+from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.models import DotationProjet
 from gsl_projet.utils.utils import compute_taux
 
@@ -52,6 +53,21 @@ class Simulation(BaseModel):
         return {**default_status_summary, **summary}
 
 
+class SimulationProjetQuerySet(models.QuerySet):
+    def in_user_perimeter(self, user: Collegue):
+        if user.is_staff:
+            return self.all()
+        return self.filter(
+            simulation__enveloppe__in=EnveloppeService.get_enveloppes_visible_for_a_user(
+                user
+            )
+        )
+
+
+class SimulationProjetManager(models.Manager.from_queryset(SimulationProjetQuerySet)):
+    pass
+
+
 class SimulationProjet(BaseModel):
     STATUS_PROCESSING = "draft"
     STATUS_ACCEPTED = "valid"
@@ -82,6 +98,8 @@ class SimulationProjet(BaseModel):
     status = models.CharField(
         verbose_name="État", choices=STATUS_CHOICES, default=STATUS_PROCESSING
     )
+
+    objects = SimulationProjetManager()
 
     class Meta:
         verbose_name = "Projet de simulation"

@@ -9,7 +9,6 @@ from gsl_projet.forms import ProjetNoteForm
 from gsl_projet.models import ProjetNote
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.views.decorators import (
-    check_if_simulation_projet_enveloppe_is_in_user_enveloppes,
     exception_handler_decorator,
 )
 from gsl_simulation.views.simulation_projet_views import (
@@ -21,6 +20,9 @@ from gsl_simulation.views.simulation_projet_views import (
 class SimulationProjetAnnotationsView(SimulationProjetDetailView):
     template_name = "gsl_simulation/tab_simulation_projet/tab_annotations.html"
     model = SimulationProjet
+
+    def get_queryset(self):
+        return super().get_queryset().in_user_perimeter(self.request.user)
 
     def get_template_names(self):
         return [self.template_name]
@@ -39,7 +41,7 @@ class SimulationProjetAnnotationsView(SimulationProjetDetailView):
 
     def post(self, request, *args, **kwargs):
         simulation_projet = get_object_or_404(
-            SimulationProjet, id=self.kwargs.get("pk")
+            self.get_queryset(), id=self.kwargs.get("pk")
         )
         if request.POST.get("action") == "delete_note":
             return self.delete(request, *args, **kwargs)
@@ -142,8 +144,9 @@ class ProjetNoteEditView(UpdateView):
                 "Vous n'avez pas la permission de modifier cette note."
             )
 
-        check_if_simulation_projet_enveloppe_is_in_user_enveloppes(
-            request.user, self.simulation_projet_id
+        get_object_or_404(
+            SimulationProjet.objects.in_user_perimeter(self.request.user),
+            id=self.simulation_projet_id,
         )
 
 
@@ -157,7 +160,9 @@ def get_note_card(request, pk: int, note_id: int):
         "includes/_note_card.html",
         {
             "note": get_object_or_404(ProjetNote, id=note_id),
-            "simu": get_object_or_404(SimulationProjet, id=pk),
+            "simu": get_object_or_404(
+                SimulationProjet.objects.in_user_perimeter(request.user), id=pk
+            ),
             "allow_update": True,
         },
     )

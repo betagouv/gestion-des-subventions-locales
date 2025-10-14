@@ -2,9 +2,7 @@ from django.urls import path
 
 from gsl_simulation.views import simulation_views
 from gsl_simulation.views.decorators import (
-    projet_must_be_in_user_perimetre,
     simulation_must_be_visible_by_user,
-    simulation_projet_must_be_visible_by_user,
 )
 from gsl_simulation.views.simulation_projet_annotations_views import (
     ProjetNoteEditView,
@@ -42,19 +40,19 @@ urlpatterns = [
     ),
     path(
         "projet-detail/<int:pk>/",
-        simulation_projet_must_be_visible_by_user(SimulationProjetDetailView.as_view()),
+        SimulationProjetDetailView.as_view(),
         name="simulation-projet-detail",
     ),
     path(
         "projet-detail/<int:pk>/annotations/",
-        simulation_projet_must_be_visible_by_user(
-            SimulationProjetAnnotationsView.as_view()
-        ),
+        SimulationProjetAnnotationsView.as_view(),
         name="simulation-projet-annotations",
     ),
     path(
+        # careful when tab="annotations" it actually matches SimulationProjetAnnotationsView just above
+        # lost 20 minutes trying to solve a bug on SimulationProjetDetailView that didn't exist
         "projet-detail/<int:pk>/<str:tab>/",
-        simulation_projet_must_be_visible_by_user(SimulationProjetDetailView.as_view()),
+        SimulationProjetDetailView.as_view(),
         name="simulation-projet-tab",
     ),
     path(
@@ -79,7 +77,7 @@ urlpatterns = [
     ),
     path(
         "modifier-le-projet-d-un-projet-de-simulation/<int:pk>/",
-        projet_must_be_in_user_perimetre(ProjetFormView.as_view()),
+        ProjetFormView.as_view(),
         name="patch-projet",
     ),
     path(
@@ -95,7 +93,7 @@ urlpatterns = [
     ),
     path(
         "simulation_projet/<int:pk>/annotations/<int:note_id>",
-        simulation_projet_must_be_visible_by_user(get_note_card),
+        get_note_card,
         name="get-note-card",
     ),
 ]
