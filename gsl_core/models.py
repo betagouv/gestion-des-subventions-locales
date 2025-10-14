@@ -258,15 +258,15 @@ class Perimetre(BaseModel):
     @cached_property
     def parent(self):
         if self.arrondissement_id:
-            return Perimetre.objects.get(
+            return Perimetre.objects.get_or_create(
                 region_id=self.region_id,
                 departement_id=self.departement_id,
                 arrondissement_id=None,
-            )
+            )[0]
         elif self.departement_id:
-            return Perimetre.objects.get(
+            return Perimetre.objects.get_or_create(
                 region_id=self.region_id, departement_id=None, arrondissement_id=None
-            )
+            )[0]
         return None
 
     def ancestors(self):

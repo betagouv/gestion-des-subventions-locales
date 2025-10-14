@@ -167,9 +167,11 @@ def test_get_initial_montant_from_dotation_projet(
         projet__dossier_ds__annotations_montant_accorde=annotations_montant_accorde,
         projet__dossier_ds__demande_montant=demande_montant,
         assiette=assiette_or_finance_cout_total if field == "assiette" else None,
-        projet__dossier_ds__finance_cout_total=assiette_or_finance_cout_total
-        if field == "projet__dossier_ds__finance_cout_total"
-        else None,
+        projet__dossier_ds__finance_cout_total=(
+            assiette_or_finance_cout_total
+            if field == "projet__dossier_ds__finance_cout_total"
+            else None
+        ),
     )
 
     montant = SimulationProjetService.get_initial_montant_from_dotation_projet(
@@ -405,7 +407,10 @@ def test_accept_a_simulation_projet(mock_ds_update, user):
     assert pp_qs.count() == 1
 
     programmation_projet = pp_qs.first()
-    assert programmation_projet.enveloppe == updated_simulation_projet.enveloppe
+    assert (
+        programmation_projet.enveloppe
+        == updated_simulation_projet.enveloppe.delegation_root
+    )  # ProgrammationProjet must not be created with delegated enveloppe
     assert programmation_projet.taux == updated_simulation_projet.taux
     assert programmation_projet.montant == updated_simulation_projet.montant
 
@@ -559,7 +564,7 @@ def test_update_taux_of_accepted_montant(mock_ds_update, field_name, user):
         montant=200,
     )
     programmation_projet = ProgrammationProjetFactory(
-        enveloppe=simulation_projet.enveloppe,
+        enveloppe=simulation_projet.enveloppe.delegation_root,
         dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
@@ -630,7 +635,7 @@ def test_update_montant_of_accepted_montant(mock_ds_update, field_name, user):
         montant=1_000,
     )
     programmation_projet = ProgrammationProjetFactory(
-        enveloppe=simulation_projet.enveloppe,
+        enveloppe=simulation_projet.enveloppe.delegation_root,
         dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         montant=1_000,

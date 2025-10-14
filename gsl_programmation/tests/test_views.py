@@ -264,7 +264,8 @@ class TestProgrammationProjetListViewWithDotation:
     @pytest.fixture
     def dsil_programmation_projet(self, user_with_perimetre):
         dsil_enveloppe = DsilEnveloppeFactory(
-            perimetre=user_with_perimetre.perimetre, annee=2024
+            perimetre=user_with_perimetre.perimetre.parent,
+            annee=2024,  # DSIL programmation can only be on Region
         )
         return ProgrammationProjetFactory(
             dotation_projet__projet__perimetre=user_with_perimetre.perimetre,

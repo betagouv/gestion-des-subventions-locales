@@ -28,7 +28,7 @@ class SimulationService:
             dotation=dotation,
             annee=date.today().year,
             defaults={"montant": 0},
-        )  # TODO: handle deleguee_by if needed
+        )
         slug = SimulationService.get_slug(title)
         simulation = Simulation.objects.create(
             title=title,

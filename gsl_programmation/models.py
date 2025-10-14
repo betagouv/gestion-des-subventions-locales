@@ -1,13 +1,44 @@
 from functools import cached_property
 
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Sum
 
 from gsl_core.models import Perimetre
 from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.utils.utils import compute_taux
+
+
+class EnveloppeQueryset(models.QuerySet):
+    @transaction.atomic
+    def create(self, **kwargs):
+        new_obj = super().create(**kwargs)
+        if (
+            new_obj.deleguee_by is not None
+            or (
+                new_obj.dotation == DOTATION_DETR
+                and new_obj.perimetre.arrondissement is None
+            )
+            or (
+                new_obj.dotation == DOTATION_DSIL
+                and new_obj.perimetre.departement is None
+            )
+        ):
+            return new_obj
+
+        new_obj.deleguee_by = self.model.objects.get_or_create(
+            dotation=new_obj.dotation,
+            annee=new_obj.annee,
+            perimetre=new_obj.perimetre.parent,
+            defaults={"montant": new_obj.montant},
+        )[0]
+        new_obj.save(update_fields=["deleguee_by"])
+        return new_obj
+
+
+class EnveloppeManager(models.Manager.from_queryset(EnveloppeQueryset)):
+    pass
 
 
 class Enveloppe(models.Model):
@@ -30,6 +61,8 @@ class Enveloppe(models.Model):
         blank=True,
     )
 
+    objects = EnveloppeManager()
+
     class Meta:
         constraints = (
             models.UniqueConstraint(
@@ -49,6 +82,13 @@ class Enveloppe(models.Model):
     @property
     def is_deleguee(self):
         return self.deleguee_by is not None
+
+    @property
+    def delegation_root(self):
+        if not self.is_deleguee:
+            return self
+        else:
+            return self.deleguee_by.delegation_root
 
     @cached_property
     def enveloppe_projets_included(self):
