@@ -49,8 +49,8 @@ class OIDCAuthenticationBackend(MozillaOIDCAuthenticationBackend):
         }
 
     def filter_users_by_claims(self, claims):
-        username = self.get_username(claims)
-        return self.UserModel.objects.filter(username=username)
+        email = claims.get("email").lower()
+        return self.UserModel.objects.filter(email=email)
 
     def create_user(self, claims):
         username = self.get_username(claims)
