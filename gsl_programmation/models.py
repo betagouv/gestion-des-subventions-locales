@@ -170,6 +170,11 @@ class Enveloppe(models.Model):
 
 
 class ProgrammationProjetQuerySet(models.QuerySet):
+    def create(self, **kwargs):
+        if "enveloppe" in kwargs:
+            kwargs["enveloppe"] = kwargs["enveloppe"].delegation_root
+        return super().create(**kwargs)
+
     def for_enveloppe(self, enveloppe: Enveloppe | None):
         if enveloppe is None or enveloppe.deleguee_by is None:
             return self.filter(enveloppe=enveloppe)
