@@ -43,4 +43,9 @@ urlpatterns = [
         views.view_dossier_json,
         name="view-dossier-json",
     ),
+    path(
+        "dossier/<int:dossier_ds_number>/refresh/",
+        views.refresh_one_dossier,
+        name="refresh-one-dossier",
+    ),
 ]

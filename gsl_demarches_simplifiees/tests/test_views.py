@@ -1,7 +1,10 @@
 import pytest
 from django.urls import reverse
 
-from gsl_core.tests.factories import ClientWithLoggedUserFactory, CollegueFactory
+from gsl_core.tests.factories import (
+    ClientWithLoggedUserFactory,
+    CollegueFactory,
+)
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DemarcheFactory, DossierFactory
 
