@@ -349,7 +349,6 @@ class DotationProjet(models.Model):
     @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
     def accept(self, montant: float, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
-        from gsl_programmation.services.enveloppe_service import EnveloppeService
         from gsl_simulation.models import SimulationProjet
 
         if self.dotation != enveloppe.dotation:
@@ -362,11 +361,9 @@ class DotationProjet(models.Model):
             montant=montant,
         )
 
-        parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
-
         ProgrammationProjet.objects.update_or_create(
             dotation_projet=self,
-            enveloppe=parent_enveloppe,
+            enveloppe=enveloppe.delegation_root,
             defaults={
                 "montant": montant,
                 "status": ProgrammationProjet.STATUS_ACCEPTED,
@@ -376,7 +373,6 @@ class DotationProjet(models.Model):
     @transition(field=status, source="*", target=PROJET_STATUS_REFUSED)
     def refuse(self, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
-        from gsl_programmation.services.enveloppe_service import EnveloppeService
         from gsl_simulation.models import SimulationProjet
 
         if self.dotation != enveloppe.dotation:
@@ -389,11 +385,9 @@ class DotationProjet(models.Model):
             montant=0,
         )
 
-        parent_enveloppe = EnveloppeService.get_parent_enveloppe(enveloppe)
-
         ProgrammationProjet.objects.update_or_create(
             dotation_projet=self,
-            enveloppe=parent_enveloppe,
+            enveloppe=enveloppe.delegation_root,
             defaults={
                 "montant": 0,
                 "status": ProgrammationProjet.STATUS_REFUSED,

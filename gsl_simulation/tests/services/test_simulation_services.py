@@ -55,6 +55,19 @@ def test_empty_enveloppe_is_created_if_needed():
 
 
 @pytest.mark.django_db
+def test_empty_enveloppe_is_subenveloppe_if_needed():
+    perimetre_departemental = PerimetreDepartementalFactory()
+    user = CollegueFactory(perimetre=perimetre_departemental)
+    assert Enveloppe.objects.count() == 0
+
+    simulation = SimulationService.create_simulation(user, "Test", DOTATION_DSIL)
+
+    assert Enveloppe.objects.count() == 2
+    assert simulation.enveloppe.dotation == DOTATION_DSIL
+    assert simulation.enveloppe.deleguee_by is not None
+
+
+@pytest.mark.django_db
 def test_user_with_department_and_ask_for_detr_simulation():
     perimetre_departemental = PerimetreDepartementalFactory()
     user = CollegueFactory(perimetre=perimetre_departemental)

@@ -1,4 +1,4 @@
-{% load static gsl_filters %}
+{% load static %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/enveloppe_summary.css' %}">
@@ -106,41 +106,22 @@
                         </div>
                     </div>
                 </th>
+                <th>
+                </th>
             </tr>
         </thead>
         <tbody>
-            <tr>
-                <td>
-                    <b>{{ enveloppe.dotation }}</b>
-                </td>
-                <td>
-                    {{ enveloppe.perimetre.type }}
-                </td>
-                <td>
-                    {{ enveloppe.perimetre.entity_name }}
-                </td>
-                <td>
-                    {{ enveloppe.montant | euro }}
-                </td>
-                <td class="color-green-archipel">
-                    {{ enveloppe.montant_asked | euro }}
-                </td>
-                <td class="color-green-bourgeon">
-                    {{ enveloppe.accepted_montant | euro }}
-                </td>
-                <td class="color-success fr-text--sm">
-                    {{ enveloppe.validated_projets_count }}
-                </td>
-                <td class="color-error fr-text--sm">
-                    {{ enveloppe.refused_projets_count }}
-                </td>
-                <td class="color-blue fr-text--sm">
-                    {{ enveloppe.demandeurs_count }}
-                </td>
-                <td class="color-blue fr-text--sm">
-                    {{ enveloppe.projets_count }}
-                </td>
-            </tr>
+            {% for enveloppe in enveloppes %}
+                {% include "includes/_enveloppe_summary_line.html" with level=1 %}
+                {% if enveloppes_with_children %}
+                    {% for sous_enveloppe in enveloppe.enveloppe_set.all %}
+                        {% include "includes/_enveloppe_summary_line.html" with enveloppe=sous_enveloppe level=2 %}
+
+                    {% endfor %}
+                {% endif %}
+            {% empty %}
+                {% include "includes/_enveloppe_summary_line.html" %}
+            {% endfor %}
         </tbody>
     </table>
 </div>
