@@ -1,16 +1,23 @@
 from collections.abc import Iterator
+from logging import getLogger
 from pathlib import Path
 
 import requests
 from django.conf import settings
 
+from gsl_demarches_simplifiees.exceptions import DsConnectionError, DsServiceException
 
-class DsClient:
+logger = getLogger(__name__)
+
+
+class DsClientBase:
+    filename = ""
+
     def __init__(self):
         self.token = settings.DS_API_TOKEN
         self.url = settings.DS_API_URL
         with open(
-            Path(__file__).resolve().parent / "graphql" / "ds_queries.gql"
+            Path(__file__).resolve().parent / "graphql" / self.filename
         ) as query_file:
             self.query = query_file.read()
 
@@ -22,19 +29,41 @@ class DsClient:
         data = {"query": self.query, "operationName": operation_name}
         if variables:
             data["variables"] = variables
+        try:
+            response = requests.post(self.url, json=data, headers=headers)
 
-        response = requests.post(self.url, json=data, headers=headers)
+        except requests.exceptions.ConnectionError as e:
+            logger.warning("DS connection error", extra={"erreur": e})
+            raise DsConnectionError()
+
         if response.status_code == 200:
             results = response.json()
             if "errors" in results.keys() and results.get("data", None) is None:
-                print(results["errors"])  # @todo loguer ça bien
-                raise Exception(f"Query failed to run: {results['errors']}")
+                logger.error(
+                    "DS request error", extra={**variables, "error": results["errors"]}
+                )
+                raise DsServiceException
             return results
         else:
+            if response.status_code == 403:
+                logger.critical(
+                    "DS forbidden access : token problem ?",
+                    extra={"error": response.text},
+                )
+                raise DsConnectionError()
+            else:
+                logger.error(
+                    "DS request error",
+                    extra={"status_code": response.status_code, "error": response.text},
+                )
             raise Exception(
                 f"HTTP Error while running query. Status code: {response.status_code}. "
                 f"Error: {response.text}"
             )
+
+
+class DsClient(DsClientBase):
+    filename = "ds_queries.gql"
 
     def get_demarche(self, demarche_number) -> dict:
         """
@@ -81,3 +110,125 @@ class DsClient:
         }
         result = self.launch_graphql_query("getDossier", variables)
         return result["data"]["dossier"]
+
+
+class DsMutator(DsClientBase):
+    filename = "ds_mutations.gql"
+
+    def dossier_modifier_annotation_checkbox(
+        self,
+        dossier_id: str,
+        instructeur_id: str,
+        field_id: str,
+        value: bool,
+        include_annotations=False,
+    ):
+        variables = {
+            "input": {
+                "clientMutationId": settings.DS_CLIENT_ID,
+                "annotationId": field_id,
+                "dossierId": dossier_id,
+                "instructeurId": instructeur_id,
+                "value": value,
+            },
+            "includeAnnotations": include_annotations,
+        }
+        return self.launch_graphql_query(
+            "modifierAnnotationCheckbox", variables=variables
+        )
+
+    def dossier_modifier_annotation_decimal(
+        self,
+        dossier_id: str,
+        instructeur_id: str,
+        field_id: str,
+        value: float,
+        include_annotations=False,
+    ):
+        variables = {
+            "input": {
+                "clientMutationId": settings.DS_CLIENT_ID,
+                "annotationId": field_id,
+                "dossierId": dossier_id,
+                "instructeurId": instructeur_id,
+                "value": value,
+            },
+            "includeAnnotations": include_annotations,
+        }
+        return self.launch_graphql_query(
+            "modifierAnnotationDecimalNumber", variables=variables
+        )
+
+    def dossier_repasser_en_instruction(
+        self, dossier_id, instructeur_id, disable_notification=False
+    ):
+        variables = {
+            "input": {
+                "clientMutationId": settings.DS_CLIENT_ID,
+                "disableNotification": disable_notification,
+                "dossierId": dossier_id,
+                "instructeurId": instructeur_id,
+            }
+        }
+        return self.launch_graphql_query(
+            "dossierRepasserEnInstruction", variables=variables
+        )
+
+    def dossier_passer_en_instruction(
+        self, dossier_id, instructeur_id, disable_notification=False
+    ):
+        variables = {
+            "input": {
+                "clientMutationId": settings.DS_CLIENT_ID,
+                "disableNotification": disable_notification,
+                "dossierId": dossier_id,
+                "instructeurId": instructeur_id,
+            }
+        }
+        return self.launch_graphql_query(
+            "dossierPasserEnInstruction", variables=variables
+        )
+
+    def mutate_with_justificatif_and_motivation(
+        self,
+        action: str,
+        dossier_id: str,
+        instructeur_id: str,
+        motivation: str = "",
+        justificatif_id: str | None = None,
+        disable_notification: bool = False,
+    ):
+        variables = {
+            "input": {
+                "clientMutationId": settings.DS_CLIENT_ID,
+                "disableNotification": disable_notification,
+                "dossierId": dossier_id,
+                "instructeurId": instructeur_id,
+            }
+        }
+        if motivation:
+            variables["input"]["motivation"] = motivation
+
+        if justificatif_id:
+            variables["input"]["justificatif"] = justificatif_id
+        return self.launch_graphql_query(action, variables=variables)
+
+    def dossier_accepter(self, *args, **kwargs):
+        return self.mutate_with_justificatif_and_motivation(
+            "dossierAccepter", *args, **kwargs
+        )
+
+    def dossier_classer_sans_suite(
+        self,
+        dossier_id: str,
+        instructeur_id: str,
+        motivation: str = "",
+    ):
+        return self.mutate_with_justificatif_and_motivation(
+            "dossierClasserSansSuite", dossier_id, instructeur_id, motivation
+        )
+
+    def dossier_refuser(self, *args, **kwargs):
+        return self.mutate_with_justificatif_and_motivation(
+            "dossierRefuser", *args, **kwargs
+        )

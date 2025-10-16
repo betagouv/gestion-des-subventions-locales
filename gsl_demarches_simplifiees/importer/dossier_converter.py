@@ -1,6 +1,7 @@
 import datetime
 from collections.abc import Iterable
 from itertools import chain
+from logging import getLogger
 
 from django.db import models
 
@@ -11,6 +12,8 @@ from gsl_demarches_simplifiees.models import (
     FieldMappingForComputer,
     PersonneMorale,
 )
+
+logger = getLogger(__name__)
 
 
 def camelcase(my_string):
@@ -99,10 +102,20 @@ class DossierConverter:
             return ds_field_data["decimalNumber"]
 
         if ds_typename == "IntegerNumberChamp":
-            return int(ds_field_data["integerNumber"])
+            try:
+                return int(ds_field_data["integerNumber"])
+            except TypeError:
+                logger.warning(
+                    "Value of IntegerNumberChamp is uncorrect.",
+                    extra={"value": ds_field_data["integerNumber"]},
+                )
+                return None
 
         if ds_typename == "MultipleDropDownListChamp":
             return ds_field_data["values"]
+
+        if ds_typename == "LinkedDropDownListChamp":
+            return ds_field_data["secondaryValue"]
 
         if ds_typename == "AddressChamp":
             return ds_field_data["address"] or ds_field_data["stringValue"]

@@ -10,7 +10,7 @@
 
 {% block go_back_button %}
     <div class="fr-mb-4w">
-        <a href="{% url "simulation:simulation-detail" slug=simu.simulation.slug %}"
+        <a href="{% url "simulation:simulation-detail" slug=simu.simulation.slug %}{% querystring %}"
            class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
             Retour à la simulation
         </a>

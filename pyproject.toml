@@ -47,17 +47,19 @@ build-backend = "setuptools.build_meta"
 [project.optional-dependencies]
 dev = [
     "diff-cover",
-    "django-query-counter",
+    "django-debug-toolbar",
     "djlint",
     "factory_boy",
     "freezegun",
     "pip-tools",
     "pre-commit",
+    "pyproject.toml",
     "pytest-cov",
     "pytest-django",
     "pytest-ruff",
     "pytest-xdist",
     "pytest",
+    "responses",
     "ruff",
 ]
 

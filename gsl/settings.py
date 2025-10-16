@@ -10,7 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import logging
 import os
+import sys
 from pathlib import Path
 
 import dj_database_url
@@ -43,20 +45,17 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(ENV_SEPARATOR)
 # Init Sentry if the DSN is defined
 SENTRY_DSN = os.getenv("SENTRY_DSN", None)
 if SENTRY_DSN:
-    import logging
-
     import sentry_sdk
     from sentry_sdk.integrations.django import DjangoIntegration
-    from sentry_sdk.integrations.logging import LoggingIntegration
 
     SENTRY_ENV = os.getenv("SENTRY_ENV", "unknown")
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         integrations=[
             DjangoIntegration(),
-            LoggingIntegration(level=logging.ERROR, event_level=logging.ERROR),
         ],
         environment=SENTRY_ENV,
+        enable_logs=True,
     )
 
 # Application definition
@@ -109,8 +108,12 @@ MIDDLEWARE = [
 ]
 
 if DEBUG:
-    INSTALLED_APPS.append("query_counter")
-    MIDDLEWARE.append("query_counter.middleware.DjangoQueryCounterMiddleware")
+    INSTALLED_APPS.append("debug_toolbar")
+    MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
+
+    INTERNAL_IPS = [
+        "127.0.0.1",
+    ]
 
 AUTHENTICATION_BACKENDS = [
     "gsl_oidc.backends.OIDCAuthenticationBackend",
@@ -218,13 +221,40 @@ DS_API_TOKEN = os.getenv("DS_API_TOKEN", "")
 DS_API_URL = os.getenv(
     "DS_API_URL", "https://www.demarches-simplifiees.fr/api/v2/graphql"
 )
-
+DS_CLIENT_ID = os.getenv("DS_CLIENT_ID", ENV)
 LOGIN_URL = "/comptes/login/"
 
 # Redirect after login/logout - used by OIDC backends
 
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
+
+# Logs
+LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", logging.INFO)
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "level": LOGGING_LEVEL,
+            "class": "logging.StreamHandler",
+            "stream": sys.stdout,
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "": {
+            "handlers": ["console"],
+            "level": LOGGING_LEVEL,
+            "propagate": True,
+        },
+    },
+}
 
 # Connection to "Pro Connect" (OIDC)
 PROCONNECT_DOMAIN = os.getenv("PROCONNECT_DOMAIN", "fca.integ01.dev-agentconnect.fr")
@@ -270,10 +300,6 @@ CONTENT_SECURITY_POLICY = {
 CONTENT_SECURITY_POLICY_REPORT_ONLY = {}
 
 # Dev configuration
-
-# syntax coloring queries in django-query-counters.
-# see https://pygments.org/demo/
-DQC_PYGMENTS_STYLE = os.getenv("DQC_PYGMENTS_STYLE", "monokai")
 
 
 # Storage

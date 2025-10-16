@@ -1,10 +1,7 @@
-import logging
 from datetime import UTC, datetime
-from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
-from django.contrib.messages import get_messages
 from django.urls import resolve, reverse
 
 from gsl_core.tests.factories import (
@@ -19,20 +16,14 @@ from gsl_core.tests.factories import (
 from gsl_demarches_simplifiees.models import Dossier, NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
+    FieldMappingForComputerFactory,
     NaturePorteurProjetFactory,
 )
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
-from gsl_projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
-)
-from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.models import Projet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.tests.factories import (
     DemandeurFactory,
@@ -64,6 +55,11 @@ def req(perimetre_departemental) -> RequestFactory:
 @pytest.fixture
 def view() -> SimulationListView:
     return SimulationListView()
+
+
+@pytest.fixture
+def ds_field():
+    return FieldMappingForComputerFactory(ds_field_id=101112)
 
 
 @pytest.fixture
@@ -284,6 +280,20 @@ def test_view_with_filters(req, simulation, create_simulation_projets):
             <= projet.dotationprojet_set.first().simulationprojet_set.first().montant
             <= 400_000
         )
+
+
+def test_view_with_order(req, simulation, create_simulation_projets):
+    filter_params = {
+        "order": "-montant_previsionnel",
+    }
+    view = _get_view_with_filter(req, simulation, filter_params)
+    projets = view.get_projet_queryset()
+
+    assert projets.count() == 7
+    assert (
+        projets.first().dotationprojet_set.first().simulationprojet_set.first().montant
+        == 500_000
+    )
 
 
 ## Test with multiple simulations
@@ -544,324 +554,6 @@ def test_view_with_territory_filter():
 
     assert projets.count() == 2
     assert all(projet.perimetre == perimetre_arrondissement_A for projet in projets)
-
-
-@pytest.fixture
-def collegue(perimetre_departemental):
-    return CollegueFactory(perimetre=perimetre_departemental)
-
-
-@pytest.fixture
-def client_with_user_logged(collegue):
-    return ClientWithLoggedUserFactory(collegue)
-
-
-@pytest.fixture
-def simulation_projet(collegue, simulation) -> SimulationProjet:
-    dotation_projet = DotationProjetFactory(
-        status=PROJET_STATUS_PROCESSING,
-        projet__perimetre=collegue.perimetre,
-        dotation=DOTATION_DETR,
-    )
-    return SimulationProjetFactory(
-        dotation_projet=dotation_projet,
-        status=SimulationProjet.STATUS_PROCESSING,
-        montant=1000,
-        simulation=simulation,
-    )
-
-
-def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
-    client_with_user_logged, simulation_projet
-):
-    url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
-    )
-    response = client_with_user_logged.post(
-        url,
-        {"status": f"{SimulationProjet.STATUS_ACCEPTED}"},
-        follow=True,
-        headers={"HX-Request": "true"},
-    )
-
-    updated_simulation_projet = SimulationProjet.objects.get(id=simulation_projet.id)
-    dotation_projet = DotationProjet.objects.get(
-        id=updated_simulation_projet.dotation_projet.id
-    )
-
-    assert response.status_code == 200
-    assert updated_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
-    assert dotation_projet.status == PROJET_STATUS_ACCEPTED
-    assert "1 projet validé" in response.content.decode()
-    assert "0 projet refusé" in response.content.decode()
-    assert "0 projet notifié" in response.content.decode()
-    assert (
-        '<span hx-swap-oob="innerHTML" id="total-amount-granted">1\xa0000\xa0€</span>'
-        in response.content.decode()
-    )
-
-
-def test_patch_status_simulation_projet_with_refused_value_with_htmx(
-    client_with_user_logged, simulation_projet
-):
-    url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
-    )
-    response = client_with_user_logged.post(
-        url,
-        {"status": f"{SimulationProjet.STATUS_REFUSED}"},
-        follow=True,
-        headers={"HX-Request": "true"},
-    )
-
-    simulation_projet.refresh_from_db()
-    dotation_projet = DotationProjet.objects.get(
-        id=simulation_projet.dotation_projet.id
-    )
-
-    assert response.status_code == 200
-    assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
-    assert dotation_projet.status == PROJET_STATUS_REFUSED
-    assert "0 projet validé" in response.content.decode()
-    assert "1 projet refusé" in response.content.decode()
-    assert "0 projet notifié" in response.content.decode()
-    assert (
-        '<span hx-swap-oob="innerHTML" id="total-amount-granted">0\xa0€</span>'
-        in response.content.decode()
-    )
-
-
-data_test = (
-    (
-        SimulationProjet.STATUS_ACCEPTED,
-        "Le financement de ce projet vient d’être accepté avec la dotation DETR pour 1\xa0000,00\xa0€.",
-        "valid",
-    ),
-    (
-        SimulationProjet.STATUS_REFUSED,
-        "Le financement de ce projet vient d’être refusé.",
-        "cancelled",
-    ),
-    (
-        SimulationProjet.STATUS_DISMISSED,
-        "Le projet est classé sans suite.",
-        "dismissed",
-    ),
-    (
-        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
-        "Le projet est accepté provisoirement dans cette simulation.",
-        "provisionally_accepted",
-    ),
-    (
-        SimulationProjet.STATUS_PROCESSING,
-        "Le projet est revenu en traitement.",
-        "draft",
-    ),
-)
-
-
-@pytest.mark.parametrize("status, expected_message, expected_tag", data_test)
-def test_patch_status_simulation_projet_with_refused_value_giving_message(
-    client_with_user_logged, simulation_projet, status, expected_message, expected_tag
-):
-    if status == SimulationProjet.STATUS_PROCESSING:
-        simulation_projet.status = SimulationProjet.STATUS_ACCEPTED
-        simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
-        simulation_projet.dotation_projet.save()
-        simulation_projet.save()
-
-    url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
-    )
-    response = client_with_user_logged.post(
-        url,
-        {"status": status},
-        follow=True,
-    )
-
-    assert response.status_code == 200
-
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-
-    message = list(messages)[0]
-    assert message.level == 20
-    assert message.message == expected_message
-    assert message.extra_tags == expected_tag
-
-
-@pytest.mark.parametrize("data", ({"status": "invalid_status"}, {}))
-def test_patch_status_simulation_projet_invalid_status(
-    client_with_user_logged, simulation_projet, data
-):
-    url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
-    )
-    response = client_with_user_logged.post(
-        url,
-        {"status": "invalid"},
-        follow=True,
-        headers={"HX-Request": "true"},
-    )
-
-    updated_simulation_projet = SimulationProjet.objects.get(id=simulation_projet.id)
-    assert response.status_code == 500
-    assert updated_simulation_projet.status == SimulationProjet.STATUS_PROCESSING
-
-
-@pytest.fixture
-def accepted_simulation_projet(collegue, simulation) -> SimulationProjet:
-    dotation_projet = DotationProjetFactory(
-        status=PROJET_STATUS_PROCESSING,
-        assiette=10_000,
-        projet__perimetre=collegue.perimetre,
-        dotation=DOTATION_DETR,
-    )
-
-    return SimulationProjetFactory(
-        dotation_projet=dotation_projet,
-        status=SimulationProjet.STATUS_ACCEPTED,
-        montant=1_000,
-        simulation=simulation,
-    )
-
-
-def test_patch_taux_simulation_projet(
-    client_with_user_logged, accepted_simulation_projet
-):
-    url = reverse(
-        "simulation:patch-simulation-projet-taux", args=[accepted_simulation_projet.id]
-    )
-    response = client_with_user_logged.post(
-        url,
-        {"taux": "75.0"},
-        follow=True,
-        headers={"HX-Request": "true"},
-    )
-
-    updated_simulation_projet = SimulationProjet.objects.get(
-        id=accepted_simulation_projet.id
-    )
-
-    assert response.status_code == 200
-    assert updated_simulation_projet.taux == 75.0
-    assert updated_simulation_projet.montant == 7_500
-    assert (
-        '<span hx-swap-oob="innerHTML" id="total-amount-granted">7\xa0500\xa0€</span>'
-        in response.content.decode()
-    )
-
-
-@pytest.mark.parametrize("taux", ("-3", "100.1"))
-def test_patch_taux_simulation_projet_with_wrong_value(
-    client_with_user_logged, accepted_simulation_projet, taux, caplog
-):
-    url = reverse(
-        "simulation:patch-simulation-projet-taux", args=[accepted_simulation_projet.id]
-    )
-    response = client_with_user_logged.post(
-        url,
-        {"taux": f"{taux}"},
-        follow=True,
-    )
-
-    with caplog.at_level(logging.ERROR):
-        accepted_simulation_projet.refresh_from_db()
-
-    assert response.status_code == 500
-    assert response.content == b'{"error": "An internal error has occurred."}'
-    assert "must be between 0 and 100" in caplog.text
-    assert accepted_simulation_projet.taux == 10
-    assert accepted_simulation_projet.montant == 1_000
-
-
-def test_patch_montant_simulation_projet(
-    client_with_user_logged, accepted_simulation_projet
-):
-    url = reverse(
-        "simulation:patch-simulation-projet-montant",
-        args=[accepted_simulation_projet.id],
-    )
-    response = client_with_user_logged.post(
-        url,
-        {"montant": "1267,32"},
-        follow=True,
-        headers={"HX-Request": "true"},
-    )
-
-    updated_simulation_projet = SimulationProjet.objects.get(
-        id=accepted_simulation_projet.id
-    )
-
-    assert response.status_code == 200
-    assert updated_simulation_projet.montant == Decimal("1267.32")
-    assert updated_simulation_projet.taux == Decimal("12.673")
-    assert (
-        '<span hx-swap-oob="innerHTML" id="total-amount-granted">1\xa0267\xa0€</span>'
-        in response.content.decode()
-    )
-
-
-@pytest.mark.parametrize(
-    "value, expected_value", (("True", True), ("False", False), ("", None))
-)
-def test_patch_detr_avis_commission_simulation_projet(
-    client_with_user_logged, accepted_simulation_projet, value, expected_value
-):
-    url = reverse(
-        "simulation:patch-dotation-projet",
-        args=[accepted_simulation_projet.id],
-    )
-    response = client_with_user_logged.post(
-        url,
-        {"detr_avis_commission": value},
-        follow=True,
-    )
-
-    updated_simulation_projet = SimulationProjet.objects.get(
-        id=accepted_simulation_projet.id
-    )
-
-    assert response.status_code == 200
-    assert (
-        updated_simulation_projet.dotation_projet.detr_avis_commission is expected_value
-    )
-
-
-@pytest.mark.parametrize(
-    "field, data, expected_value",
-    (
-        ("is_budget_vert", {"is_budget_vert": "True"}, True),
-        ("is_budget_vert", {"is_budget_vert": "False"}, False),
-        ("is_budget_vert", {"is_budget_vert": ""}, None),
-        ("is_attached_to_a_crte", {"is_attached_to_a_crte": "on"}, True),
-        ("is_attached_to_a_crte", {}, False),
-        ("is_in_qpv", {"is_in_qpv": "on"}, True),
-        ("is_in_qpv", {}, False),
-    ),
-)
-def test_patch_projet(
-    client_with_user_logged, accepted_simulation_projet, field, data, expected_value
-):
-    accepted_simulation_projet.projet.__setattr__(field, not (expected_value))
-    accepted_simulation_projet.projet.save()
-
-    data["dotations"] = [DOTATION_DSIL]
-
-    url = reverse(
-        "simulation:patch-projet",
-        args=[accepted_simulation_projet.id],
-    )
-    response = client_with_user_logged.post(
-        url,
-        data,
-        follow=True,
-    )
-
-    accepted_simulation_projet.projet.refresh_from_db()
-
-    assert response.status_code == 200
-    assert accepted_simulation_projet.projet.__getattribute__(field) is expected_value
 
 
 def test_get_projet_queryset_calls_prefetch(req, simulation, create_simulation_projets):

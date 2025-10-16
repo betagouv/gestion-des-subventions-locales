@@ -6,14 +6,20 @@
 {% endblock extra_css %}
 
 {% block content %}
-    {% block go_back_button %}
-        <div class="fr-mb-4w">
-            <a href="{% url "projet:list" %}"
-               class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
-                Retour à la liste des projets
-            </a>
+    <div class="fr-container--fluid">
+        <div class="fr-grid-row">
+            <div class="fr-col">
+                {% block go_back_button %}
+                    <div class="fr-mb-4w">
+                        <a href="{% url "projet:list" %}{% querystring %}"
+                           class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+                            Retour à la liste des projets
+                        </a>
+                    </div>
+                {% endblock go_back_button %}
+            </div>
         </div>
-    {% endblock go_back_button %}
+    </div>
     <div class="projet-header">
         <h1>
             {{ dossier.projet_intitule|lower|capfirst }}
@@ -29,16 +35,37 @@
     </div>
 
     <ul class="fr-btns-group--right fr-btns-group--inline fr-mt-6w fr-mb-5w">
-        <li>
-            <a href="{{ dossier.url_on_ds }}"
-               target="_blank"
-               rel="noreferrer noopener"
-               title="Voir le dossier sur Démarches Simplifiées - nouvelle fenêtre"
-               class="fr-btn fr-btn--icon-right fr-icon-external-link-line">
-                Voir le dossier sur Démarches Simplifiées
-                <span class="fr-sr-only">(nouvelle fenêtre)</span>
-            </a>
-        </li>
+        {% if dossier.ds_number %}
+            <li>
+                <a href="{{ dossier.url_on_ds }}"
+                   target="_blank"
+                   rel="noreferrer noopener"
+                   title="Voir le dossier sur Démarches Simplifiées - nouvelle fenêtre"
+                   class="fr-btn fr-btn--icon-right fr-icon-external-link-line fr-btn--secondary">
+                    Voir le dossier sur Démarches Simplifiées
+                    <span class="fr-sr-only">(nouvelle fenêtre)</span>
+                </a>
+            </li>
+            <li>
+                <form action="{% url "ds:refresh-one-dossier" dossier.ds_number %}"
+                      method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}" />
+                    {# la maquette disait fr-icon-arrow-left-right-line mais on ne l’a pas dans notre DSFR ? #}
+                    <button type="submit"
+                            class="fr-btn fr-btn--icon-right fr-icon-refresh-line"
+                            aria-describedby="info-refresh-from-ds">
+                        Actualiser depuis DS
+                    </button>
+                    <span class="fr-tooltip fr-placement"
+                          id="info-refresh-from-ds"
+                          role="tooltip">
+                        Rafraîchir le dossier sur Turgot à partir des données
+                        provenant de Démarches Simplifiées
+                    </span>
+                </form>
+            </li>
+        {% endif %}
         {% comment %}
         <li>
             <a href="@todo" class="fr-btn fr-btn--icon-right fr-icon-article-line fr-btn--secondary">

@@ -26,7 +26,7 @@ def replace_comma_by_dot(value: str | None) -> float | None:
         return 0.0
 
 
-def add_success_message(
+def add_simulation_projet_status_success_message(
     request, message_type: str | None, simulation_projet: SimulationProjet
 ):
     STATUS_TO_MESSAGE = {

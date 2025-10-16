@@ -398,7 +398,7 @@ def delete_modele_view(request, modele_type, modele_id):
         messages.info(
             request,
             f"Le modèle {type_and_article} “{name}” a été supprimé.",
-            extra_tags="delete-modele-arrete",
+            extra_tags="delete_modele_arrete",
         )
 
     except ProtectedError:

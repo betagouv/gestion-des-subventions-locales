@@ -4,7 +4,6 @@ from django_filters import (
     FilterSet,
     MultipleChoiceFilter,
     NumberFilter,
-    OrderingFilter,
 )
 
 from gsl_core.models import Perimetre
@@ -15,6 +14,7 @@ from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     CustomSelectWidget,
 )
+from gsl_projet.utils.projet_filters import ProjetOrderingFilter
 
 
 class ProgrammationProjetFilters(FilterSet):
@@ -148,18 +148,22 @@ class ProgrammationProjetFilters(FilterSet):
             return queryset
 
     ORDERING_MAP = {
-        "montant": "montant",
         "dotation_projet__projet__dossier_ds__finance_cout_total": "cout",
         "dotation_projet__projet__demandeur__name": "demandeur",
+        "montant": "montant",
+        "dotation_projet__programmation_projet__montant": "Montant retenu",
     }
 
-    order = OrderingFilter(
+    ORDERING_LABELS = {
+        "dotation_projet__projet__dossier_ds__finance_cout_total": "Coût total",
+        "dotation_projet__projet__demandeur__name": "Demandeur",
+        "montant": "Montant accordé",
+        "dotation_projet__programmation_projet__montant": "Montant retenu",
+    }
+
+    order = ProjetOrderingFilter(
         fields=ORDERING_MAP,
-        field_labels={
-            "montant": "Montant",
-            "dotation_projet__projet__dossier_ds__finance_cout_total": "Coût",
-            "dotation_projet__projet__demandeur__name": "Demandeur",
-        },
+        field_labels=ORDERING_LABELS,
         empty_label="Tri",
         widget=CustomSelectWidget,
     )

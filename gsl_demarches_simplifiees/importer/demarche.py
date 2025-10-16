@@ -13,15 +13,17 @@ from gsl_demarches_simplifiees.models import (
 
 IMPORTED_DS_FIELDS = (
     "AddressChampDescriptor",
+    "CheckboxChampDescriptor",
     "DateChampDescriptor",
     "DecimalNumberChampDescriptor",
     "DropDownListChampDescriptor",
     "IntegerNumberChampDescriptor",
+    "LinkedDropDownListChampDescriptor",
     "MultipleDropDownListChampDescriptor",
     "PhoneChampDescriptor",
     "SiretChampDescriptor",
-    "TextChampDescriptor",
     "TextareaChampDescriptor",
+    "TextChampDescriptor",
     "YesNoChampDescriptor",
 )
 
@@ -64,8 +66,11 @@ def get_or_create_demarche(demarche_data):
         f"ds_{field}": demarche_data[camelcase(field)] for field in ds_fields
     }
     if demarche_data["activeRevision"]:
-        django_data["active_revision_date"] = timezone.datetime.fromisoformat(
-            demarche_data["activeRevision"]["datePublication"]
+        active_revision_date = demarche_data["activeRevision"]["datePublication"]
+        django_data["active_revision_date"] = (
+            None
+            if active_revision_date is None
+            else timezone.datetime.fromisoformat(active_revision_date)
         )
         django_data["active_revision_id"] = demarche_data["activeRevision"]["id"]
     try:

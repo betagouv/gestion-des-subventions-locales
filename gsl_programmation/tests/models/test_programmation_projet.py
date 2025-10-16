@@ -153,7 +153,10 @@ def enveloppe_deleguee(enveloppe, departement_perimetre) -> Enveloppe:
 
 @pytest.mark.django_db
 def test_clean_programmation_on_deleguee_enveloppe(dotation_projet, enveloppe_deleguee):
-    programmation = ProgrammationProjetFactory(
+    # we directly instantiate the object rather than using the factory here
+    # because we want to test an invalid state, and the factory uses `objects.create()`
+    # which prevent this invalid state from happening
+    programmation = ProgrammationProjet(
         dotation_projet=dotation_projet,
         enveloppe=enveloppe_deleguee,
         montant=Decimal("100.00"),
@@ -423,3 +426,19 @@ def test_documents_summary_arrete_et_lettre_signes_hides_arrete_and_lettre_gener
 
     summary = programmation_projet.documents_summary
     assert summary == ["1 arrêté et lettre signés"]
+
+
+@pytest.mark.django_db
+def test_programmation_projet_enveloppe_is_always_delegation_root(
+    dotation_projet, enveloppe_deleguee
+):
+    programmation_projet, _ = ProgrammationProjet.objects.update_or_create(
+        dotation_projet=dotation_projet,
+        enveloppe=enveloppe_deleguee,
+        defaults={
+            "montant": Decimal("10.00"),
+            "status": ProgrammationProjet.STATUS_ACCEPTED,
+        },
+    )
+    assert programmation_projet.enveloppe.pk != enveloppe_deleguee.pk
+    assert programmation_projet.enveloppe.pk == enveloppe_deleguee.delegation_root.pk

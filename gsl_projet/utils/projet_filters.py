@@ -1,5 +1,7 @@
-from django.db.models import Count, Exists, OuterRef, Q
+from django.db.models import Count, Exists, F, OuterRef, Q
 from django.forms import NumberInput
+from django.forms.utils import pretty_name
+from django.utils.translation import gettext_lazy as _
 from django_filters import (
     FilterSet,
     MultipleChoiceFilter,
@@ -26,20 +28,54 @@ from gsl_projet.utils.django_filters_custom_widget import (
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 
 
-class ProjetFilters(FilterSet):
+class ProjetOrderingFilter(OrderingFilter):
+    def build_choices(self, fields, labels):
+        return [
+            (
+                labels.get(field, _(pretty_name(field))),
+                (
+                    (
+                        (f"-{param}", "La plus récente"),
+                        (param, "La plus ancienne"),
+                    )
+                    if param == "date"
+                    else (
+                        (param, "Croissant"),
+                        (f"-{param}", "Décroissant"),
+                    )
+                ),
+            )
+            for field, param in fields.items()
+        ]
+
+    def get_ordering_value(self, param):
+        descending = param.startswith("-")
+        param = param[1:] if descending else param
+        field_name = self.param_map.get(param, param)
+
+        return (
+            F(field_name).desc(nulls_last=True)
+            if descending
+            else F(field_name).asc(nulls_last=True)
+        )
+
+
+class BaseProjetFilters(FilterSet):
     ORDERING_MAP = {
         "dossier_ds__ds_date_depot": "date",
         "dossier_ds__finance_cout_total": "cout",
         "demandeur__name": "demandeur",
     }
 
-    order = OrderingFilter(
+    ORDERING_LABELS = {
+        "dossier_ds__ds_date_depot": "Date",
+        "dossier_ds__finance_cout_total": "Coût total",
+        "demandeur__name": "Demandeur",
+    }
+
+    order = ProjetOrderingFilter(
         fields=ORDERING_MAP,
-        field_labels={
-            "dossier_ds__ds_date_depot": "Date",
-            "dossier_ds__finance_cout_total": "Coût total",
-            "demandeur__name": "Demandeur",
-        },
+        field_labels=ORDERING_LABELS,
         empty_label="Tri",
         widget=CustomSelectWidget,
     )
@@ -237,5 +273,5 @@ class ProjetFilters(FilterSet):
         self.queryset = Projet.objects.all()
         qs = super().qs
         if not qs.query.order_by:
-            qs = qs.order_by("-dossier_ds__ds_date_depot")
+            qs = qs.order_by(F("dossier_ds__ds_date_depot").desc(nulls_last=True))
         return qs

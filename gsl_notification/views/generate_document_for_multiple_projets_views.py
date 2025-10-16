@@ -158,6 +158,8 @@ def select_modele_multiple(request, dotation, document_type):
         "page_title": page_title,
         "page_step_title": page_step_title,
         "cancel_link": go_back_link,
+        "dotation": dotation,
+        "document_type": document_type,
         "modeles_list": [
             {
                 "name": obj.name,

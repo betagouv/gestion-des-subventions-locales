@@ -20,13 +20,30 @@
     </li>
     <li>
         {% if user.is_authenticated %}
-            <span class="fr-btn--display fr-btn fr-icon-user-fill">{{ user.first_name }} {{ user.last_name }}</span>
-            <form action="{% url 'oidc_logout' %}" method="post" class="fr-sr-only">
-                {% csrf_token %}
-                <button class="fr-btn--display fr-btn fr-icon-lock-unlock-fill" type="submit">
-                    Déconnexion
-                </button>
-            </form>
+            <div class="header-items fr-nav">
+                <div class="fr-nav">
+                    <div class="fr-nav__item fr-nav__item--align-right"
+                         data-fr-js-navigation-item="true">
+                        <button aria-controls="user-menu"
+                                aria-expanded="false"
+                                title="Menu utilisateur"
+                                type="button"
+                                class="fr-btn fr-icon-user-fill">
+                            {{ user }} <span class="fr-ml-1w fr-icon--sm fr-icon-arrow-down-s-line"></span>
+                        </button>
+
+                        <div class="fr-collapse fr-menu" id="user-menu">
+                            <ul class="fr-menu__list">
+                                <li>
+                                    <a class="fr-nav__link blue-color" href="{% url 'oidc_logout' %}">
+                                        Se déconnecter
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
         {% else %}
             <a class="fr-btn fr-icon-lock-line" href="{% url "login" %}">Se connecter</a>
         {% endif %}
@@ -45,13 +62,6 @@
 {% block burger_menu %}
     {% translate "Search" as search_label %}
     <div class="fr-header__navbar">
-        <button class="fr-btn--search fr-btn"
-                data-fr-opened="false"
-                aria-controls="modal-search"
-                id="fr-btn-search-mobile"
-                title="{{ search_label }}">
-            {{ search_label }}
-        </button>
         {% translate "Menu" as menu_label %}
         <button class="fr-btn--menu fr-btn"
                 data-fr-opened="false"

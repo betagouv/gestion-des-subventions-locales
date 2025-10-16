@@ -48,60 +48,121 @@ def test_remove_first_word():
 
 
 @pytest.mark.parametrize(
-    "extra_tags, title_expected, has_message, type_expected",
+    "extra_tags, title_expected",
     (
-        ("valid", "Projet accepté", True, None),
-        ("cancelled", "Projet refusé", True, None),
-        (
-            "provisionally_accepted",
-            "Projet accepté provisoirement",
-            True,
-            None,
-        ),
-        (
-            "provisionally_refused",
-            "Projet refusé provisoirement",
-            True,
-            None,
-        ),
-        (
-            "dismissed",
-            "Projet classé sans suite",
-            True,
-            None,
-        ),
-        (
-            "draft",
-            "Projet en traitement",
-            True,
-            None,
-        ),
-        ("projet_note_deletion", "Suppression de la note", "Test description", None),
-        ("info", None, True, "info"),
-        ("alert", None, True, "alert"),
-        ("other", None, True, None),
-        (None, None, True, None),
+        ("valid", "Projet accepté"),
+        ("cancelled", "Projet refusé"),
+        ("provisionally_accepted", "Projet accepté provisoirement"),
+        ("provisionally_refused", "Projet refusé provisoirement"),
+        ("dismissed", "Projet classé sans suite"),
+        ("draft", "Projet en traitement"),
+        ("projet_note_deletion", "Suppression de la note"),
+        ("delete_modele_arrete", "Modèle supprimé"),
+        ("info", None),
+        ("alert", None),
+        ("other", None),
+        (None, None),
     ),
 )
-def test_create_alert_data(extra_tags, title_expected, has_message, type_expected):
+def test_create_alert_data_title(extra_tags, title_expected):
     message_text = "Test description"
-    message = type("Message", (object,), {})()
+    message = type("Message", (object,), {"level_tag": "success"})()
     message.message = message_text
     message.extra_tags = extra_tags
 
     data = create_alert_data(message)
 
     assert data["is_collapsible"] is True
+    assert data["description"] == message_text
 
     if title_expected:
         assert data["title"] == title_expected
     else:
         assert "title" not in data
 
-    if has_message:
-        assert data["description"] == message_text
+
+@pytest.mark.parametrize(
+    "extra_tags, class_expected",
+    (
+        ("valid", "success"),
+        ("cancelled", "error"),
+        ("provisionally_accepted", "info"),
+        ("provisionally_refused", "brown"),
+        ("dismissed", "orange"),
+        ("draft", "grey"),
+        ("projet_note_deletion", "error"),
+        ("delete_modele_arrete", "grey"),
+        ("alert", None),
+        ("error", None),
+        ("other", None),
+        (None, None),
+    ),
+)
+def test_create_alert_data_class(extra_tags, class_expected):
+    message = type(
+        "Message", (object,), {"message": "Mon message", "level_tag": "success"}
+    )()
+    message.extra_tags = extra_tags
+
+    data = create_alert_data(message)
+
+    if class_expected:
+        assert data["class"] == class_expected
     else:
-        assert "description" not in data
+        assert "class" not in data
+
+
+@pytest.mark.parametrize(
+    "extra_tags, icon_expected",
+    (
+        ("valid", None),
+        ("cancelled", None),
+        ("provisionally_accepted", None),
+        ("provisionally_refused", None),
+        ("dismissed", None),
+        ("draft", None),
+        ("projet_note_deletion", None),
+        ("delete_modele_arrete", "fr-icon-delete-bin-fill"),
+        ("alert", None),
+        ("error", None),
+        ("other", None),
+        (None, None),
+    ),
+)
+def test_create_alert_data_icon(extra_tags, icon_expected):
+    message = type(
+        "Message", (object,), {"message": "Mon message", "level_tag": "success"}
+    )()
+    message.extra_tags = extra_tags
+
+    data = create_alert_data(message)
+
+    if icon_expected:
+        assert data["icon"] == icon_expected
+    else:
+        assert "icon" not in data
+
+
+@pytest.mark.parametrize(
+    "level_tag, type_expected",
+    (
+        ("info", None),
+        ("warning", "warning"),
+        (
+            "success",
+            None,
+        ),
+        ("error", "alert"),
+    ),
+)
+def test_create_alert_data_type(level_tag, type_expected):
+    message = type(
+        "Message",
+        (object,),
+        {"message": "Mon message", "level_tag": level_tag, "extra_tags": ""},
+    )()
+
+    data = create_alert_data(message)
 
     if type_expected:
         assert data["type"] == type_expected

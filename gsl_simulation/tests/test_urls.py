@@ -1,4 +1,5 @@
 from decimal import Decimal
+from unittest import mock
 
 import pytest
 from django.urls import reverse
@@ -270,15 +271,21 @@ status_update_expected_status_summary = {
 
 @pytest.mark.django_db
 def test_patch_status_simulation_projet_url(
-    client_with_cote_d_or_user_logged, cote_dorien_simulation_projet
+    client_with_cote_d_or_user_logged,
+    cote_dorien_simulation_projet,
 ):
     url = reverse(
         "simulation:patch-simulation-projet-status",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_cote_d_or_user_logged.post(
-        url, {"status": "valid"}, follow=True
-    )
+
+    with mock.patch(
+        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+    ) as mock_update_ds_montant_and_taux:
+        mock_update_ds_montant_and_taux.return_value = None
+        response = client_with_cote_d_or_user_logged.post(
+            url, {"status": "valid"}, follow=True
+        )
     assert response.status_code == 200
     assert response.templates[0].name == "gsl_simulation/simulation_detail.html"
     assert response.context["simu"] == cote_dorien_simulation_projet
@@ -299,9 +306,13 @@ def test_patch_status_simulation_projet_url_with_htmx(
         "simulation:patch-simulation-projet-status",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_cote_d_or_user_logged.post(
-        url, {"status": "valid"}, headers={"HX-Request": "true"}, follow=True
-    )
+    with mock.patch(
+        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+    ) as mock_update_ds_montant_and_taux:
+        mock_update_ds_montant_and_taux.return_value = None
+        response = client_with_cote_d_or_user_logged.post(
+            url, {"status": "valid"}, headers={"HX-Request": "true"}, follow=True
+        )
     assert response.status_code == 200
     assert response.templates[0].name == "htmx/projet_update.html"
     assert response.context["simu"] == cote_dorien_simulation_projet
@@ -402,7 +413,12 @@ PATCH_ROUTES_AND_DATA = (
     ("simulation:patch-simulation-projet-status", {"status": "valid"}),
     (
         "simulation:patch-projet",
-        {"is_in_qpv": "on", "is_attached_to_a_crte": "on", "is_budget_vert": ""},
+        {
+            "is_in_qpv": "on",
+            "is_attached_to_a_crte": "on",
+            "is_budget_vert": "",
+            "dotations": ["DSIL"],
+        },
     ),
     ("simulation:patch-dotation-projet", {"detr_avis_commission": ""}),
 )

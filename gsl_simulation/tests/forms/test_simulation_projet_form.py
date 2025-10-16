@@ -1,17 +1,27 @@
+from typing import cast
+from unittest.mock import patch
+
 import pytest
 from django import forms
+from django.core.exceptions import ValidationError
 
+from gsl_core.models import Collegue
+from gsl_core.tests.factories import CollegueFactory
 from gsl_projet.tests.factories import DetrProjetFactory
 from gsl_simulation.forms import SimulationProjetForm
+from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationProjetFactory
 
 pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
-def simulation_projet():
+def simulation_projet() -> SimulationProjet:
     dotation_projet = DetrProjetFactory(assiette=1_000)
-    return SimulationProjetFactory(dotation_projet=dotation_projet, montant=200)
+    return cast(
+        SimulationProjet,
+        SimulationProjetFactory(dotation_projet=dotation_projet, montant=200),
+    )
 
 
 @pytest.fixture
@@ -168,3 +178,102 @@ def test_montant_cant_be_higher_than_assiette(simulation_projet):
         "Le montant de la simulation ne peut pas être supérieur à l'assiette du projet"
         in form.errors["montant"][0]
     )
+
+
+@pytest.fixture
+def user() -> Collegue:
+    return cast(Collegue, CollegueFactory(ds_id="123"))
+
+
+def test_save_with_assiette_field_exceptions(simulation_projet, user):
+    data = {"assiette": 400, "montant": 300, "taux": 75}
+    form = SimulationProjetForm(instance=simulation_projet, data=data, user=user)
+    assert form.is_valid()
+
+    with patch(
+        "gsl_demarches_simplifiees.mixins.process_projet_update"
+    ) as mock_process:
+        mock_process.return_value = ({"assiette": "Some error"}, False)
+        form.save()
+
+    simulation_projet.refresh_from_db()
+    assert simulation_projet.dotation_projet.assiette == 1_000  # not updated
+    assert simulation_projet.montant == 300  # updated
+    assert simulation_projet.taux == 30  # computed
+
+
+def test_save_with_montant_field_exceptions(simulation_projet, user):
+    data = {"assiette": 400, "montant": 300, "taux": 75}
+    form = SimulationProjetForm(instance=simulation_projet, data=data, user=user)
+    assert form.is_valid()
+
+    with patch(
+        "gsl_demarches_simplifiees.mixins.process_projet_update"
+    ) as mock_process:
+        mock_process.return_value = ({"montant": "Some error"}, False)
+        form.save()
+
+    simulation_projet.refresh_from_db()
+    assert simulation_projet.dotation_projet.assiette == 400  # updated
+    assert simulation_projet.montant == 200  # not updated
+    assert simulation_projet.taux == 50  # computed
+
+
+def test_save_with_assiette_field_exceptions_and_montant_cleaned(
+    simulation_projet, user
+):
+    data = {"assiette": 2_000, "montant": 1_500, "taux": 75}
+    form = SimulationProjetForm(instance=simulation_projet, data=data, user=user)
+    assert form.is_valid()
+
+    with patch(
+        "gsl_demarches_simplifiees.mixins.process_projet_update"
+    ) as mock_process:
+        mock_process.return_value = ({"assiette": "Some error"}, False)
+
+        # Error because assiette update is cancelled (=> 1_000) and then montant is higher than assiette, so model cleans do the job
+        with pytest.raises(ValidationError):
+            form.save()
+
+
+def test_get_fields(simulation_projet):
+    simulation_projet = SimulationProjetFactory(
+        montant=200, status=SimulationProjet.STATUS_ACCEPTED
+    )
+    form = SimulationProjetForm(instance=simulation_projet)
+    assert form.get_fields() == ["assiette", "montant", "taux"]
+
+    for status in [
+        SimulationProjet.STATUS_REFUSED,
+        SimulationProjet.STATUS_DISMISSED,
+        SimulationProjet.STATUS_PROCESSING,
+        SimulationProjet.STATUS_PROCESSING,
+        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
+        SimulationProjet.STATUS_PROVISIONALLY_REFUSED,
+    ]:
+        simulation_projet = SimulationProjetFactory(montant=200, status=status)
+        form = SimulationProjetForm(instance=simulation_projet)
+        assert form.get_fields() == ["assiette"]
+
+
+def test_remove_assiette_field():
+    simulation_projet = SimulationProjetFactory(
+        dotation_projet__projet__dossier_ds__finance_cout_total=10_000,
+        dotation_projet__assiette=1_000,
+        dotation_projet__detr_avis_commission=None,
+        montant=200,
+        status=SimulationProjet.STATUS_ACCEPTED,
+    )
+
+    data = {"assiette": None, "montant": 200, "taux": 20}
+    form = SimulationProjetForm(instance=simulation_projet, data=data)
+
+    assert form.is_valid()
+    assert form.cleaned_data["assiette"] is None
+    assert form.cleaned_data["montant"] == 200
+    assert form.cleaned_data["taux"] == 2  # computed from montant and cout total
+    assert form.changed_data == ["assiette", "taux"]
+    form.save()
+    assert simulation_projet.dotation_projet.assiette is None
+    assert simulation_projet.montant == 200
+    assert simulation_projet.taux == 2

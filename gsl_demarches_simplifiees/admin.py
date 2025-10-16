@@ -95,6 +95,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         for demarche in queryset:
             task_refresh_field_mappings_on_demarche(demarche.ds_number)
 
+    @admin.action(description="Extraction des catégories DETR")
     def extract_detr_categories(self, request, queryset):
         for demarche in queryset:
             refresh_categories_operation_detr(demarche.ds_number)

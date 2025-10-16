@@ -264,7 +264,8 @@ class TestProgrammationProjetListViewWithDotation:
     @pytest.fixture
     def dsil_programmation_projet(self, user_with_perimetre):
         dsil_enveloppe = DsilEnveloppeFactory(
-            perimetre=user_with_perimetre.perimetre, annee=2024
+            perimetre=user_with_perimetre.perimetre.parent,
+            annee=2024,  # DSIL programmation can only be on Region
         )
         return ProgrammationProjetFactory(
             dotation_projet__projet__perimetre=user_with_perimetre.perimetre,
@@ -555,3 +556,105 @@ class TestProgrammationProjetSecurity:
         )
         response = client.get(url)
         assert response.status_code == 404
+
+
+class TestSubEnveloppeSecurity:
+    def test_can_only_edit_delegated_enveloppe(self):
+        # Setup a user with a departmental perimeter
+        user = CollegueFactory()
+        perimetre_dept = PerimetreDepartementalFactory()
+        user.perimetre = perimetre_dept
+        user.save()
+        client = ClientWithLoggedUserFactory(user=user)
+
+        # Parent DETR envelope at departmental level (should not be editable)
+        parent_enveloppe = DetrEnveloppeFactory(perimetre=perimetre_dept, annee=2024)
+
+        # Delegated child envelope at arrondissement level within the same department
+        from gsl_core.tests.factories import ArrondissementFactory
+
+        arrondissement = ArrondissementFactory(departement=perimetre_dept.departement)
+        perimetre_arr = PerimetreArrondissementFactory(arrondissement=arrondissement)
+        delegated_child = Enveloppe.objects.create(
+            dotation=DOTATION_DETR,
+            montant=1000,
+            annee=parent_enveloppe.annee,
+            perimetre=perimetre_arr,
+            deleguee_by=parent_enveloppe,
+        )
+
+        # Delegated envelope outside user's perimeter (should NOT be editable)
+        other_dept = PerimetreDepartementalFactory()
+        other_parent = DetrEnveloppeFactory(perimetre=other_dept, annee=2024)
+        other_arrondissement = ArrondissementFactory(departement=other_dept.departement)
+        other_arr = PerimetreArrondissementFactory(arrondissement=other_arrondissement)
+        delegated_outside = Enveloppe.objects.create(
+            dotation=DOTATION_DETR,
+            montant=2000,
+            annee=other_parent.annee,
+            perimetre=other_arr,
+            deleguee_by=other_parent,
+        )
+
+        # Allowed: can edit delegated sub-enveloppe within their perimeter/children
+        url_allowed = reverse("gsl_projet:enveloppe-update", args=[delegated_child.id])
+        response = client.get(url_allowed)
+        assert response.status_code == 200
+
+        # Not allowed: non-delegated envelope should 404
+        url_not_delegated = reverse(
+            "gsl_projet:enveloppe-update", args=[parent_enveloppe.id]
+        )
+        response = client.get(url_not_delegated)
+        assert response.status_code == 404
+
+        # Not allowed: delegated envelope outside perimeter should 404
+        url_outside = reverse(
+            "gsl_projet:enveloppe-update", args=[delegated_outside.id]
+        )
+        response = client.get(url_outside)
+        assert response.status_code == 404
+
+    def test_cannot_create_higher_perimeter_enveloppe(self):
+        # Setup a user with a departmental perimeter
+        user = CollegueFactory()
+        perimetre_dept = PerimetreDepartementalFactory()
+        user.perimetre = perimetre_dept
+        user.save()
+        client = ClientWithLoggedUserFactory(user=user)
+
+        # There is a regional perimeter in the same region
+        perimetre_region = PerimetreRegionalFactory(region=perimetre_dept.region)
+
+        # Access the create form and ensure the regional perimeter is not selectable
+        url = reverse("gsl_projet:enveloppe-create")
+        response = client.get(url)
+        assert response.status_code == 200
+        form = response.context["form"]
+        perimetre_queryset = form.fields["perimetre"].queryset
+        assert perimetre_region not in perimetre_queryset
+
+    def test_cannot_create_other_department_enveloppe(self):
+        # Setup a user with a departmental perimeter
+        user = CollegueFactory()
+        perimetre_dept = PerimetreDepartementalFactory()
+        user.perimetre = perimetre_dept
+        user.save()
+        client = ClientWithLoggedUserFactory(user=user)
+
+        # Create an arrondissement perimeter in another department (same region)
+        from gsl_core.tests.factories import ArrondissementFactory, DepartementFactory
+
+        other_dept = DepartementFactory(region=perimetre_dept.region)
+        other_arrondissement = ArrondissementFactory(departement=other_dept)
+        perimetre_other_arr = PerimetreArrondissementFactory(
+            arrondissement=other_arrondissement
+        )
+
+        # Access the create form and ensure the other-department perimeter is not selectable
+        url = reverse("gsl_projet:enveloppe-create")
+        response = client.get(url)
+        assert response.status_code == 200
+        form = response.context["form"]
+        perimetre_queryset = form.fields["perimetre"].queryset
+        assert perimetre_other_arr not in perimetre_queryset

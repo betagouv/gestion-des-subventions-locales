@@ -1,6 +1,6 @@
 from functools import cached_property
 
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Sum
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -10,14 +10,15 @@ from django_filters.views import FilterView
 
 from gsl_projet.constants import PROJET_STATUS_CHOICES
 from gsl_projet.services.projet_services import ProjetService
+from gsl_projet.utils.django_filters_custom_widget import CustomSelectWidget
 from gsl_projet.utils.filter_utils import FilterUtils
-from gsl_projet.utils.projet_filters import ProjetFilters
+from gsl_projet.utils.projet_filters import BaseProjetFilters, ProjetOrderingFilter
 from gsl_projet.utils.projet_page import PROJET_MENU
 
 from .models import CategorieDetr, Projet
 
 
-def visible_by_user(func):
+def projet_visible_by_user(func):
     def wrapper(*args, **kwargs):
         user = args[0].user
         if user.is_staff:
@@ -52,7 +53,7 @@ def _get_projet_context_info(projet_id):
     return context
 
 
-@visible_by_user
+@projet_visible_by_user
 @require_GET
 def get_projet(request, projet_id):
     context = _get_projet_context_info(projet_id)
@@ -62,7 +63,7 @@ def get_projet(request, projet_id):
 PROJET_TABS = {"annotations", "historique"}
 
 
-@visible_by_user
+@projet_visible_by_user
 @require_GET
 def get_projet_tab(request, projet_id, tab):
     if tab not in PROJET_TABS:
@@ -71,7 +72,7 @@ def get_projet_tab(request, projet_id, tab):
     return render(request, f"gsl_projet/projet/tab_{tab}.html", context)
 
 
-class ProjetListViewFilters(ProjetFilters):
+class ProjetListViewFilters(BaseProjetFilters):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if hasattr(self.request, "user") and self.request.user.perimetre:
@@ -86,6 +87,23 @@ class ProjetListViewFilters(ProjetFilters):
                         perimetre.departement
                     )
                 )
+
+    ORDERING_MAP = {
+        **BaseProjetFilters.ORDERING_MAP,
+        "montant_retenu_total": "montant_retenu",
+    }
+
+    ORDERING_LABELS = {
+        **BaseProjetFilters.ORDERING_LABELS,
+        "montant_retenu_total": "Montant retenu",
+    }
+
+    order = ProjetOrderingFilter(
+        fields=ORDERING_MAP,
+        field_labels=ORDERING_LABELS,
+        empty_label="Tri",
+        widget=CustomSelectWidget,
+    )
 
     filterset = (
         "territoire",
@@ -103,6 +121,9 @@ class ProjetListViewFilters(ProjetFilters):
         from gsl_programmation.models import ProgrammationProjet
 
         qs = super().qs
+        qs = qs.annotate(
+            montant_retenu_total=Sum("dotationprojet__programmation_projet__montant")
+        )
         qs = qs.for_user(self.request.user)
         qs = qs.for_current_year()
         qs = qs.select_related(
@@ -151,6 +172,12 @@ class ProjetListView(FilterView, ListView, FilterUtils):
         context["total_amount_granted"] = ProjetService.get_total_amount_granted(
             qs_global
         )
+        context["enveloppes"] = self.request.user.perimetre.enveloppe_set.filter(
+            annee=self.request.user.perimetre.enveloppe_set.order_by("-annee")
+            .values_list("annee", flat=True)
+            .first()
+        ).all()
+        context["enveloppes_with_children"] = True
         self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
 
         return context

@@ -66,6 +66,15 @@ STATUS_TO_ALERT_TITLE = {
     SimulationProjet.STATUS_PROCESSING: "Projet en traitement",
 }
 
+STATUS_TO_CLASS = {
+    SimulationProjet.STATUS_ACCEPTED: "success",
+    SimulationProjet.STATUS_REFUSED: "error",
+    SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: "info",
+    SimulationProjet.STATUS_PROVISIONALLY_REFUSED: "brown",
+    SimulationProjet.STATUS_DISMISSED: "orange",
+    SimulationProjet.STATUS_PROCESSING: "grey",
+}
+
 
 @register.filter
 def create_alert_data(message: Any) -> dict[str, str | bool]:
@@ -76,13 +85,20 @@ def create_alert_data(message: Any) -> dict[str, str | bool]:
 
     if message.extra_tags in STATUS_TO_ALERT_TITLE:
         data_dict["title"] = STATUS_TO_ALERT_TITLE[message.extra_tags]
+        data_dict["class"] = STATUS_TO_CLASS[message.extra_tags]
     elif message.extra_tags == "projet_note_deletion":
         data_dict["title"] = "Suppression de la note"
-    elif message.extra_tags == "delete-modele-arrete":
+        data_dict["class"] = "error"
+    elif message.extra_tags == "delete_modele_arrete":
         data_dict["title"] = "Modèle supprimé"
+        data_dict["class"] = "grey"
         data_dict["icon"] = "fr-icon-delete-bin-fill"
-    elif message.extra_tags in ["info", "alert"]:
-        data_dict["type"] = message.extra_tags
+
+    if message.level_tag == "error":
+        data_dict["type"] = "alert"
+
+    if message.level_tag == "warning":
+        data_dict["type"] = "warning"
 
     return data_dict
 

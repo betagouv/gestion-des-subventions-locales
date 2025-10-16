@@ -1,0 +1,203 @@
+mutation modifierAnnotationCheckbox(
+    $input: DossierModifierAnnotationCheckboxInput!
+    $includeAnnotations: Boolean = false
+  ) {
+  dossierModifierAnnotationCheckbox(input: $input) {
+    clientMutationId
+    annotation @include(if: $includeAnnotations) {
+      id
+      label
+      stringValue
+    }
+    errors {
+      message
+    }
+  }
+}
+
+mutation modifierAnnotationDecimalNumber(
+    $input: DossierModifierAnnotationDecimalNumberInput!
+    $includeAnnotations: Boolean = false
+  ) {
+  dossierModifierAnnotationDecimalNumber(input: $input) {
+    clientMutationId
+    annotation @include(if: $includeAnnotations) {
+      id
+      label
+      stringValue
+    }
+    errors {
+      message
+    }
+  }
+}
+
+mutation dossierRepasserEnInstruction($input: DossierRepasserEnInstructionInput!) {
+  dossierRepasserEnInstruction(input: $input) {
+    clientMutationId
+    dossier {
+      archived
+      connectionUsager
+      dateDepot
+      dateDerniereCorrectionEnAttente
+      dateDerniereModification
+      dateDerniereModificationAnnotations
+      dateDerniereModificationChamps
+      dateExpiration
+      datePassageEnConstruction
+      datePassageEnInstruction
+      datePrevisionnelleDecisionSVASVR
+      dateSuppressionParAdministration
+      dateSuppressionParUsager
+      dateTraitement
+      dateTraitementSVASVR
+      deposeParUnTiers
+      id
+      motivation
+      nomMandataire
+      number
+      prefilled
+      prenomMandataire
+      state
+    }
+    errors {
+      message
+    }
+  }
+}
+
+mutation dossierAccepter($input: DossierAccepterInput!) {
+  dossierAccepter(input: $input) {
+    clientMutationId
+    dossier {
+      archived
+      connectionUsager
+      dateDepot
+      dateDerniereCorrectionEnAttente
+      dateDerniereModification
+      dateDerniereModificationAnnotations
+      dateDerniereModificationChamps
+      dateExpiration
+      datePassageEnConstruction
+      datePassageEnInstruction
+      datePrevisionnelleDecisionSVASVR
+      dateSuppressionParAdministration
+      dateSuppressionParUsager
+      dateTraitement
+      dateTraitementSVASVR
+      deposeParUnTiers
+      id
+      motivation
+      nomMandataire
+      number
+      prefilled
+      prenomMandataire
+      state
+    }
+    errors {
+      message
+    }
+  }
+}
+
+  mutation dossierRefuser($input: DossierRefuserInput!) {
+  dossierRefuser(input: $input) {
+    clientMutationId
+    dossier {
+      archived
+      connectionUsager
+      dateDepot
+      dateDerniereCorrectionEnAttente
+      dateDerniereModification
+      dateDerniereModificationAnnotations
+      dateDerniereModificationChamps
+      dateExpiration
+      datePassageEnConstruction
+      datePassageEnInstruction
+      datePrevisionnelleDecisionSVASVR
+      dateSuppressionParAdministration
+      dateSuppressionParUsager
+      dateTraitement
+      dateTraitementSVASVR
+      deposeParUnTiers
+      id
+      motivation
+      nomMandataire
+      number
+      prefilled
+      prenomMandataire
+      state
+    }
+    errors {
+      message
+    }
+  }
+}
+
+  mutation dossierClasserSansSuite($input: DossierClasserSansSuiteInput!) {
+  dossierClasserSansSuite(input: $input) {
+    clientMutationId
+    dossier {
+      archived
+      connectionUsager
+      dateDepot
+      dateDerniereCorrectionEnAttente
+      dateDerniereModification
+      dateDerniereModificationAnnotations
+      dateDerniereModificationChamps
+      dateExpiration
+      datePassageEnConstruction
+      datePassageEnInstruction
+      datePrevisionnelleDecisionSVASVR
+      dateSuppressionParAdministration
+      dateSuppressionParUsager
+      dateTraitement
+      dateTraitementSVASVR
+      deposeParUnTiers
+      id
+      motivation
+      nomMandataire
+      number
+      prefilled
+      prenomMandataire
+      state
+    }
+    errors {
+      message
+    }
+  }
+}
+
+ mutation dossierPasserEnInstruction($input: DossierPasserEnInstructionInput!) {
+  dossierPasserEnInstruction(input: $input) {
+    clientMutationId
+    dossier {
+      archived
+      connectionUsager
+      dateDepot
+      dateDerniereCorrectionEnAttente
+      dateDerniereModification
+      dateDerniereModificationAnnotations
+      dateDerniereModificationChamps
+      dateExpiration
+      datePassageEnConstruction
+      datePassageEnInstruction
+      datePrevisionnelleDecisionSVASVR
+      dateSuppressionParAdministration
+      dateSuppressionParUsager
+      dateTraitement
+      dateTraitementSVASVR
+      deposeParUnTiers
+      id
+      motivation
+      nomMandataire
+      number
+      prefilled
+      prenomMandataire
+      state
+    }
+    errors {
+      message
+    }
+  }
+}

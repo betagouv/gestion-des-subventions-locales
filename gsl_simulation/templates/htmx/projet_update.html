@@ -1,5 +1,6 @@
 {% load gsl_filters %}
 
+{% include "blocks/messages.html" with hx_swap_oob="true" %}
 {% include "includes/_status_summary.html" with hx_swap_oob="true" %}
 <span hx-swap-oob="innerHTML" id="total-amount-granted">{{ total_amount_granted | euro }}</span>
 {% include "includes/table_forms/_montant_form.html" %}

@@ -1,3 +1,5 @@
+from typing_extensions import deprecated
+
 from gsl_core.models import Collegue, Perimetre
 from gsl_programmation.models import Enveloppe
 from gsl_projet.constants import DOTATION_DSIL
@@ -37,8 +39,6 @@ class EnveloppeService:
         )
 
     @classmethod
+    @deprecated("Use enveloppe.delegation_root instead")
     def get_parent_enveloppe(cls, enveloppe: Enveloppe):
-        if not enveloppe.is_deleguee:
-            return enveloppe
-        else:
-            return cls.get_parent_enveloppe(enveloppe.deleguee_by)
+        return enveloppe.delegation_root

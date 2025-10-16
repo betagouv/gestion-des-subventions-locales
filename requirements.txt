@@ -6,21 +6,21 @@
 #
 amqp==5.3.1
     # via kombu
-asgiref==3.9.1
+asgiref==3.10.0
     # via
     #   django
     #   django-htmx
 asttokens==3.0.0
     # via stack-data
-beautifulsoup4==4.13.4
+beautifulsoup4==4.14.2
     # via bs4
-billiard==4.2.1
+billiard==4.2.2
     # via celery
-boto3==1.40.3
+boto3==1.40.51
     # via
     #   django-storages
     #   gsl (pyproject.toml)
-botocore==1.40.3
+botocore==1.40.51
     # via
     #   boto3
     #   s3transfer
@@ -33,17 +33,17 @@ celery==5.5.3
     #   django-celery-beat
     #   django-celery-results
     #   gsl (pyproject.toml)
-certifi==2025.8.3
+certifi==2025.10.5
     # via
     #   requests
     #   sentry-sdk
-cffi==1.17.1
+cffi==2.0.0
     # via
     #   cryptography
     #   weasyprint
-charset-normalizer==3.4.2
+charset-normalizer==3.4.4
     # via requests
-click==8.2.1
+click==8.3.0
     # via
     #   celery
     #   click-didyoumean
@@ -55,9 +55,9 @@ click-plugins==1.1.1.2
     # via celery
 click-repl==0.3.0
     # via celery
-cron-descriptor==1.4.5
+cron-descriptor==2.0.6
     # via django-celery-beat
-cryptography==45.0.6
+cryptography==46.0.2
     # via
     #   josepy
     #   mozilla-django-oidc
@@ -71,7 +71,7 @@ diff-match-patch==20241021
     # via django-import-export
 dj-database-url==3.0.1
     # via gsl (pyproject.toml)
-django==5.2.5
+django==5.2.7
     # via
     #   dj-database-url
     #   django-celery-beat
@@ -99,19 +99,19 @@ django-crispy-forms==2.4
     # via django-dsfr
 django-csp==4.0
     # via gsl (pyproject.toml)
-django-dsfr==3.0.0
+django-dsfr==3.2.0
     # via gsl (pyproject.toml)
 django-extensions==4.1
     # via gsl (pyproject.toml)
-django-filter==25.1
+django-filter==25.2
     # via gsl (pyproject.toml)
 django-formtools==2.5.1
     # via gsl (pyproject.toml)
 django-fsm-2==4.0.0
     # via gsl (pyproject.toml)
-django-htmx==1.23.2
+django-htmx==1.26.0
     # via gsl (pyproject.toml)
-django-import-export==4.3.9
+django-import-export==4.3.10
     # via gsl (pyproject.toml)
 django-referrer-policy==1.0
     # via gsl (pyproject.toml)
@@ -125,15 +125,15 @@ django-widget-tweaks==1.5.0
     # via django-dsfr
 et-xmlfile==2.0.0
     # via openpyxl
-executing==2.2.0
+executing==2.2.1
     # via stack-data
-fonttools[woff]==4.59.0
+fonttools[woff]==4.60.1
     # via weasyprint
 gunicorn==23.0.0
     # via gsl (pyproject.toml)
-idna==3.10
+idna==3.11
     # via requests
-ipython==9.4.0
+ipython==9.6.0
     # via gsl (pyproject.toml)
 ipython-pygments-lexers==1.1.1
     # via ipython
@@ -160,25 +160,25 @@ packaging==25.0
     #   django-csp
     #   gunicorn
     #   kombu
-parso==0.8.4
+parso==0.8.5
     # via jedi
 pexpect==4.9.0
     # via ipython
 pillow==11.3.0
     # via weasyprint
-prompt-toolkit==3.0.51
+prompt-toolkit==3.0.52
     # via
     #   click-repl
     #   ipython
-psycopg[binary]==3.2.9
+psycopg[binary]==3.2.10
     # via gsl (pyproject.toml)
-psycopg-binary==3.2.9
+psycopg-binary==3.2.10
     # via psycopg
 ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.3
     # via stack-data
-pycparser==2.22
+pycparser==2.23
     # via cffi
 pydyf==0.11.0
     # via weasyprint
@@ -196,20 +196,20 @@ python-dateutil==2.9.0.post0
     #   celery
 python-dotenv==1.1.1
     # via gsl (pyproject.toml)
-redis==6.3.0
+redis==6.4.0
     # via gsl (pyproject.toml)
-requests==2.32.4
+requests==2.32.5
     # via
     #   django-dsfr
     #   gsl (pyproject.toml)
     #   mozilla-django-oidc
-s3transfer==0.13.1
+s3transfer==0.14.0
     # via boto3
-sentry-sdk==2.34.1
+sentry-sdk==2.41.0
     # via gsl (pyproject.toml)
 six==1.17.0
     # via python-dateutil
-soupsieve==2.7
+soupsieve==2.8
     # via beautifulsoup4
 sqlparse==0.5.3
     # via django
@@ -229,8 +229,10 @@ traitlets==5.14.3
     # via
     #   ipython
     #   matplotlib-inline
-typing-extensions==4.14.1
-    # via beautifulsoup4
+typing-extensions==4.15.0
+    # via
+    #   beautifulsoup4
+    #   cron-descriptor
 tzdata==2025.2
     # via
     #   django-celery-beat
@@ -245,7 +247,7 @@ vine==5.1.0
     #   amqp
     #   celery
     #   kombu
-wcwidth==0.2.13
+wcwidth==0.2.14
     # via prompt-toolkit
 weasyprint==66.0
     # via django-weasyprint
@@ -254,7 +256,7 @@ webencodings==0.5.1
     #   cssselect2
     #   tinycss2
     #   tinyhtml5
-whitenoise==6.9.0
+whitenoise==6.11.0
     # via gsl (pyproject.toml)
 xlrd==2.0.2
     # via tablib

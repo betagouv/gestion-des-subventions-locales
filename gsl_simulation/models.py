@@ -59,6 +59,7 @@ class SimulationProjet(BaseModel):
     STATUS_PROVISIONALLY_ACCEPTED = "provisionally_accepted"
     STATUS_PROVISIONALLY_REFUSED = "provisionally_refused"
     STATUS_DISMISSED = "dismissed"
+
     STATUS_CHOICES = (
         (STATUS_PROCESSING, "🔄 En traitement"),
         (STATUS_ACCEPTED, "✅ Accepté"),
@@ -67,6 +68,7 @@ class SimulationProjet(BaseModel):
         (STATUS_REFUSED, "❌ Refusé"),
         (STATUS_DISMISSED, "⛔️ Classé sans suite"),
     )
+
     dotation_projet = models.ForeignKey(
         DotationProjet, on_delete=models.CASCADE, null=True
     )
@@ -109,6 +111,10 @@ class SimulationProjet(BaseModel):
         return self.dotation_projet.projet
 
     @property
+    def dossier(self):
+        return self.projet.dossier_ds
+
+    @property
     def enveloppe(self):
         return self.simulation.enveloppe
 
@@ -126,18 +132,18 @@ class SimulationProjet(BaseModel):
     def _validate_montant(self, errors):
         if self.dotation_projet.assiette is not None:
             if self.montant and self.montant > self.dotation_projet.assiette:
-                errors["montant"] = {
-                    f"Le montant de la simulation ne peut pas être supérieur à l'assiette du projet ({self.projet.pk})."
-                }
+                errors["montant"] = (
+                    "Le montant de la simulation ne peut pas être supérieur à l'assiette du projet."
+                )
         else:
             if (
                 self.montant
                 and self.projet.dossier_ds.finance_cout_total
                 and self.montant > self.projet.dossier_ds.finance_cout_total
             ):
-                errors["montant"] = {
-                    f"Le montant de la simulation ne peut pas être supérieur au coût total du projet ({self.projet.pk})."
-                }
+                errors["montant"] = (
+                    "Le montant de la simulation ne peut pas être supérieur au coût total du projet."
+                )
 
     def _validate_dotation(self, errors):
         if self.dotation_projet.dotation != self.simulation.enveloppe.dotation:

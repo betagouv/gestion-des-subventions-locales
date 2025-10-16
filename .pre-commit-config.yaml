@@ -15,7 +15,7 @@ repos:
   rev: v16.23.1
   hooks:
     - id: stylelint
-      args: [--fix]
+      args: [--fix, --allow-empty-input]
 - repo: https://github.com/standard/standard
   rev: master
   hooks:

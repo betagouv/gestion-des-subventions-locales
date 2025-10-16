@@ -2,6 +2,7 @@ from django.urls import path
 
 from gsl_simulation.views import simulation_views
 from gsl_simulation.views.decorators import (
+    projet_must_be_in_user_perimetre,
     simulation_must_be_visible_by_user,
     simulation_projet_must_be_visible_by_user,
 )
@@ -11,10 +12,10 @@ from gsl_simulation.views.simulation_projet_annotations_views import (
     get_note_card,
 )
 from gsl_simulation.views.simulation_projet_views import (
+    ProjetFormView,
     SimulationProjetDetailView,
     patch_dotation_projet,
     patch_montant_simulation_projet,
-    patch_projet,
     patch_status_simulation_projet,
     patch_taux_simulation_projet,
 )
@@ -78,7 +79,7 @@ urlpatterns = [
     ),
     path(
         "modifier-le-projet-d-un-projet-de-simulation/<int:pk>/",
-        patch_projet,
+        projet_must_be_in_user_perimetre(ProjetFormView.as_view()),
         name="patch-projet",
     ),
     path(

@@ -232,7 +232,7 @@
                                     </td>
                                     <td>
                                         <a class="fr-btn--tertiary-no-outline gsl-no-underline"
-                                           href="{{ programmation_projet.get_absolute_url }}">
+                                           href="{{ programmation_projet.get_absolute_url }}{% querystring %}">
                                             <span class="fr-sr-only">Voir le projet programmé {{ programmation_projet.projet.dossier_ds.ds_number }}</span>
                                             <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
                                         </a>

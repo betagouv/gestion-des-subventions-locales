@@ -1,28 +1,25 @@
-.message--cancelled > .fr-notice,
-.message--projet_note_deletion > .fr-notice {
-  background-color: var(--background-alt-orange-terre-battue);
-  color: var(--text-default-error);
-}
-
-.message--success > .fr-notice,
-.message--valid > .fr-notice {
+.message--success > .fr-notice {
   background-color: var(--background-alt-green-emeraude);
   color: var(--text-default-success);
 }
 
+.message--error > .fr-notice {
+  background-color: var(--background-alt-orange-terre-battue);
+  color: var(--text-default-error);
+}
 
-.message--dismissed > .fr-notice {
+.message--warning > .fr-notice,
+.message--orange > .fr-notice {
   background-color: var(--brown-caramel-975-75);
   color: var(--text-default-warning);
 }
 
-.message--delete-modele-arrete > .fr-notice,
-.message--draft > .fr-notice {
+.message--grey > .fr-notice {
   background-color: var(--background-alt-grey);
   color: var(--text-default-grey);
 }
 
-.message--provisionally_refused > .fr-notice {
+.message--brown > .fr-notice {
   background-color: var(--background-alt-orange-terre-battue);
   color: var(--text-action-high-orange-terre-battue);
 }

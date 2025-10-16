@@ -53,7 +53,8 @@
                     "modeleArreteForm": "/static/js/modeleArreteForm.js",
                     "deleteNotificationDocumentModal": "/static/js/deleteNotificationDocumentModal.js",
                     "chooseDocumentType": "/static/js/chooseDocumentType.js",
-                    "checkboxSelection": "/static/js/checkboxSelection.js"
+                    "checkboxSelection": "/static/js/checkboxSelection.js",
+                    "processModal": "/static/js/controllers/processModal.js"
                 }
             }
             </script>
@@ -85,17 +86,7 @@
         {% endif %}
 
         {% block messages %}
-            {% if messages %}
-                <div class="messages">
-                    {% for message in messages %}
-                        <div class="message--{{ message.extra_tags }}">
-                            {% with message|create_alert_data as data_dict %}
-                                {% dsfr_notice data_dict %}
-                            {% endwith %}
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
+            {% include "blocks/messages.html" %}
         {% endblock messages %}
 
         <div class="fr-container fr-mt-4w fr-mb-6w">
@@ -130,6 +121,7 @@
             import { DeleteNotificationDocumentModal } from "deleteNotificationDocumentModal"
             import { ChooseDocumentType } from "chooseDocumentType"
             import { CheckboxSelection } from "checkboxSelection"
+            import { ProcessModal } from "processModal"
 
             window.Stimulus = Application.start()
 
@@ -140,6 +132,7 @@
             Stimulus.register("delete-notification-document-modal", DeleteNotificationDocumentModal)
             Stimulus.register("choose-document-type", ChooseDocumentType)
             Stimulus.register("checkbox-selection", CheckboxSelection)
+            Stimulus.register("process-modal", ProcessModal)
         </script>
 
         {% block extra_js %}

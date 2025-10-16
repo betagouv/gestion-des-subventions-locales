@@ -1,12 +1,12 @@
 import logging
+from typing import cast
 from unittest import mock
 
 import pytest
 
+from gsl_core.models import Collegue
 from gsl_core.tests.factories import (
-    PerimetreArrondissementFactory,
-    PerimetreDepartementalFactory,
-    PerimetreRegionalFactory,
+    CollegueFactory,
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
@@ -30,6 +30,11 @@ from gsl_simulation.services.simulation_projet_service import SimulationProjetSe
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture
+def user() -> Collegue:
+    return cast(Collegue, CollegueFactory())
 
 
 @mock.patch.object(
@@ -162,9 +167,11 @@ def test_get_initial_montant_from_dotation_projet(
         projet__dossier_ds__annotations_montant_accorde=annotations_montant_accorde,
         projet__dossier_ds__demande_montant=demande_montant,
         assiette=assiette_or_finance_cout_total if field == "assiette" else None,
-        projet__dossier_ds__finance_cout_total=assiette_or_finance_cout_total
-        if field == "projet__dossier_ds__finance_cout_total"
-        else None,
+        projet__dossier_ds__finance_cout_total=(
+            assiette_or_finance_cout_total
+            if field == "projet__dossier_ds__finance_cout_total"
+            else None
+        ),
     )
 
     montant = SimulationProjetService.get_initial_montant_from_dotation_projet(
@@ -199,18 +206,18 @@ def dotation_projet():
 @mock.patch(
     "gsl_simulation.services.simulation_projet_service.SimulationProjetService._accept_a_simulation_projet"
 )
-def test_update_status_with_accepted(mock_accept_a_simulation_projet):
+def test_update_status_with_accepted(mock_accept_a_simulation_projet, user):
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROCESSING
     )
     new_status = SimulationProjet.STATUS_ACCEPTED
 
-    SimulationProjetService.update_status(simulation_projet, new_status)
+    SimulationProjetService.update_status(simulation_projet, new_status, user)
 
-    mock_accept_a_simulation_projet.assert_called_once_with(simulation_projet)
+    mock_accept_a_simulation_projet.assert_called_once_with(simulation_projet, user)
 
 
-def test_update_status_with_refused():
+def test_update_status_with_refused(user):
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROCESSING
     )
@@ -219,12 +226,12 @@ def test_update_status_with_refused():
     with mock.patch.object(
         SimulationProjetService, "_refuse_a_simulation_projet"
     ) as mock_refuse_a_simulation_projet:
-        SimulationProjetService.update_status(simulation_projet, new_status)
+        SimulationProjetService.update_status(simulation_projet, new_status, user)
 
         mock_refuse_a_simulation_projet.assert_called_once_with(simulation_projet)
 
 
-def test_update_status_with_dismissed():
+def test_update_status_with_dismissed(user):
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROCESSING
     )
@@ -233,9 +240,13 @@ def test_update_status_with_dismissed():
     with mock.patch.object(
         SimulationProjetService, "_dismiss_a_simulation_projet"
     ) as mock_dismiss_a_simulation_projet:
-        SimulationProjetService.update_status(simulation_projet, new_status)
+        SimulationProjetService.update_status(
+            simulation_projet, new_status, user, "motivation"
+        )
 
-        mock_dismiss_a_simulation_projet.assert_called_once_with(simulation_projet)
+        mock_dismiss_a_simulation_projet.assert_called_once_with(
+            simulation_projet, user, "motivation"
+        )
 
 
 @pytest.mark.parametrize(
@@ -247,7 +258,7 @@ def test_update_status_with_dismissed():
     ),
 )
 def test_update_status_with_processing_from_accepted_or_refused_or_dismissed(
-    initial_status,
+    initial_status, user
 ):
     simulation_projet = SimulationProjetFactory(status=initial_status)
     new_status = SimulationProjet.STATUS_PROCESSING
@@ -255,20 +266,20 @@ def test_update_status_with_processing_from_accepted_or_refused_or_dismissed(
     with mock.patch.object(
         SimulationProjetService, "_set_back_to_processing"
     ) as mock_set_back_a_simulation_projet_to_processing:
-        SimulationProjetService.update_status(simulation_projet, new_status)
+        SimulationProjetService.update_status(simulation_projet, new_status, user)
 
         mock_set_back_a_simulation_projet_to_processing.assert_called_once_with(
             simulation_projet
         )
 
 
-def test_update_status_with_processing():
+def test_update_status_with_processing(user):
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
     )
     new_status = SimulationProjet.STATUS_PROCESSING
 
-    SimulationProjetService.update_status(simulation_projet, new_status)
+    SimulationProjetService.update_status(simulation_projet, new_status, user)
 
     simulation_projet.refresh_from_db()
     assert simulation_projet.status == new_status
@@ -318,7 +329,7 @@ def test_update_status_with_provisionally_accepted_from_refused_or_accepted_or_d
         status=initial_status,
     )
 
-    SimulationProjetService.update_status(simulation_projet, new_status)
+    SimulationProjetService.update_status(simulation_projet, new_status, user)
 
     simulation_projet.refresh_from_db()
     assert simulation_projet.status == new_status
@@ -338,7 +349,7 @@ def test_update_status_with_provisionally_accepted_from_refused_or_accepted_or_d
     ),
 )
 def test_update_status_with_provisionally_accepted_remove_programmation_projet_from_accepted_or_refused(
-    initial_status,
+    initial_status, user
 ):
     dotation_projet = DotationProjetFactory(
         status=SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS[initial_status]
@@ -350,7 +361,7 @@ def test_update_status_with_provisionally_accepted_remove_programmation_projet_f
     ProgrammationProjetFactory(dotation_projet=simulation_projet.dotation_projet)
 
     SimulationProjetService.update_status(
-        simulation_projet, SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
+        simulation_projet, SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED, user
     )
 
     simulation_projet.refresh_from_db()
@@ -363,7 +374,10 @@ def test_update_status_with_provisionally_accepted_remove_programmation_projet_f
     )
 
 
-def test_accept_a_simulation_projet():
+@mock.patch(
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+)
+def test_accept_a_simulation_projet(mock_ds_update, user):
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROCESSING
     )
@@ -375,7 +389,15 @@ def test_accept_a_simulation_projet():
     )
     assert pp_qs.count() == 0
 
-    SimulationProjetService._accept_a_simulation_projet(simulation_projet)
+    SimulationProjetService._accept_a_simulation_projet(simulation_projet, user)
+
+    mock_ds_update.assert_called_once_with(
+        dossier=simulation_projet.projet.dossier_ds,
+        user=user,
+        montant=simulation_projet.montant,
+        taux=simulation_projet.taux,
+    )
+
     updated_simulation_projet = SimulationProjet.objects.get(pk=simulation_projet.pk)
     assert updated_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
 
@@ -385,7 +407,10 @@ def test_accept_a_simulation_projet():
     assert pp_qs.count() == 1
 
     programmation_projet = pp_qs.first()
-    assert programmation_projet.enveloppe == updated_simulation_projet.enveloppe
+    assert (
+        programmation_projet.enveloppe
+        == updated_simulation_projet.enveloppe.delegation_root
+    )  # ProgrammationProjet must not be created with delegated enveloppe
     assert programmation_projet.taux == updated_simulation_projet.taux
     assert programmation_projet.montant == updated_simulation_projet.montant
 
@@ -395,7 +420,13 @@ def test_accept_a_simulation_projet():
     assert updated_other_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
 
 
-def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_mother_enveloppe():
+@mock.patch(
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+)
+def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_mother_enveloppe(
+    mock_ds_update,
+    user,
+):
     mother_enveloppe = DetrEnveloppeFactory()
     child_enveloppe = DetrEnveloppeFactory(deleguee_by=mother_enveloppe)
     simulation = SimulationFactory(enveloppe=child_enveloppe)
@@ -406,7 +437,14 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
     )
     new_status = SimulationProjet.STATUS_ACCEPTED
 
-    SimulationProjetService.update_status(simulation_projet, new_status)
+    SimulationProjetService.update_status(simulation_projet, new_status, user)
+
+    mock_ds_update.assert_called_once_with(
+        dossier=simulation_projet.projet.dossier_ds,
+        user=user,
+        montant=simulation_projet.montant,
+        taux=simulation_projet.taux,
+    )
 
     programmation_projets_qs = ProgrammationProjet.objects.filter(
         dotation_projet=simulation_projet.dotation_projet
@@ -416,6 +454,9 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
     assert programmation_projet.enveloppe == mother_enveloppe
 
 
+@mock.patch(
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+)
 @pytest.mark.parametrize(
     "initial_programmation_status, new_projet_status, programmation_status_expected",
     (
@@ -432,9 +473,11 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
     ),
 )
 def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_mother_enveloppe(
+    mock_ds_update,
     initial_programmation_status,
     new_projet_status,
     programmation_status_expected,
+    user,
 ):
     mother_enveloppe = DetrEnveloppeFactory()
     child_enveloppe = DetrEnveloppeFactory(deleguee_by=mother_enveloppe)
@@ -458,7 +501,15 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
     )
     assert programmation_projets_qs.count() == 1
 
-    SimulationProjetService.update_status(simulation_projet, new_projet_status)
+    SimulationProjetService.update_status(simulation_projet, new_projet_status, user)
+
+    if new_projet_status == SimulationProjet.STATUS_ACCEPTED:
+        mock_ds_update.assert_called_once_with(
+            dossier=simulation_projet.projet.dossier_ds,
+            user=user,
+            montant=simulation_projet.montant,
+            taux=simulation_projet.taux,
+        )
 
     programmation_projets_qs = ProgrammationProjet.objects.filter(
         dotation_projet=simulation_projet.dotation_projet
@@ -474,7 +525,7 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
     "field_name",
     ("assiette", "projet__dossier_ds__finance_cout_total"),
 )
-def test_update_taux(field_name):
+def test_update_taux(field_name, user):
     dotation_projet = DotationProjetFactory(
         **{field_name: 1000},
     )
@@ -484,17 +535,20 @@ def test_update_taux(field_name):
     )
     new_taux = 15.0
 
-    SimulationProjetService.update_taux(simulation_projet, new_taux)
+    SimulationProjetService.update_taux(simulation_projet, new_taux, user)
 
     assert simulation_projet.taux == new_taux
     assert simulation_projet.montant == 150.0
 
 
+@mock.patch(
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+)
 @pytest.mark.parametrize(
     "field_name",
     ("assiette", "projet__dossier_ds__finance_cout_total"),
 )
-def test_update_taux_of_accepted_montant(field_name):
+def test_update_taux_of_accepted_montant(mock_ds_update, field_name, user):
     dotation_projet = DotationProjetFactory(
         **{field_name: 1000},
     )
@@ -510,31 +564,39 @@ def test_update_taux_of_accepted_montant(field_name):
         montant=200,
     )
     programmation_projet = ProgrammationProjetFactory(
-        enveloppe=simulation_projet.enveloppe,
+        enveloppe=simulation_projet.enveloppe.delegation_root,
         dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
 
     new_taux = 15.0
-    SimulationProjetService.update_taux(simulation_projet, new_taux)
+    SimulationProjetService.update_taux(simulation_projet, new_taux, user)
+
+    expected_montant = 150.0
+    mock_ds_update.assert_called_once_with(
+        dossier=simulation_projet.projet.dossier_ds,
+        user=user,
+        montant=expected_montant,
+        taux=new_taux,
+    )
 
     assert simulation_projet.taux == new_taux
-    assert simulation_projet.montant == 150.0
+    assert simulation_projet.montant == expected_montant
 
     other_simulation_projet.refresh_from_db()
     assert other_simulation_projet.taux == new_taux
-    assert other_simulation_projet.montant == 150.0
+    assert other_simulation_projet.montant == expected_montant
 
     programmation_projet.refresh_from_db()
     assert programmation_projet.taux == new_taux
-    assert programmation_projet.montant == 150.0
+    assert programmation_projet.montant == expected_montant
 
 
 @pytest.mark.parametrize(
     "field_name",
     ("assiette", "projet__dossier_ds__finance_cout_total"),
 )
-def test_update_montant(field_name):
+def test_update_montant(field_name, user):
     dotation_projet = DotationProjetFactory(
         **{field_name: 1000},
     )
@@ -544,17 +606,20 @@ def test_update_montant(field_name):
     )
     new_montant = 500.0
 
-    SimulationProjetService.update_montant(simulation_projet, new_montant)
+    SimulationProjetService.update_montant(simulation_projet, new_montant, user)
 
     assert simulation_projet.montant == new_montant
     assert simulation_projet.taux == 50.0
 
 
+@mock.patch(
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+)
 @pytest.mark.parametrize(
     "field_name",
     ("assiette", "projet__dossier_ds__finance_cout_total"),
 )
-def test_update_montant_of_accepted_montant(field_name):
+def test_update_montant_of_accepted_montant(mock_ds_update, field_name, user):
     dotation_projet = DotationProjetFactory(
         **{field_name: 1000},
     )
@@ -570,114 +635,34 @@ def test_update_montant_of_accepted_montant(field_name):
         montant=1_000,
     )
     programmation_projet = ProgrammationProjetFactory(
-        enveloppe=simulation_projet.enveloppe,
+        enveloppe=simulation_projet.enveloppe.delegation_root,
         dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         montant=1_000,
     )
 
     new_montant = 500.0
+    new_taux = 50.0
 
-    SimulationProjetService.update_montant(simulation_projet, new_montant)
+    SimulationProjetService.update_montant(simulation_projet, new_montant, user)
+
+    mock_ds_update.assert_called_once_with(
+        dossier=simulation_projet.projet.dossier_ds,
+        user=user,
+        montant=new_montant,
+        taux=new_taux,
+    )
 
     assert simulation_projet.montant == new_montant
-    assert simulation_projet.taux == 50.0
+    assert simulation_projet.taux == new_taux
 
     other_simulation_projet.refresh_from_db()
-    assert other_simulation_projet.montant == 500.0
-    assert other_simulation_projet.taux == 50.0
+    assert other_simulation_projet.montant == new_montant
+    assert other_simulation_projet.taux == new_taux
 
     programmation_projet.refresh_from_db()
-    assert programmation_projet.montant == 500.0
-    assert programmation_projet.taux == 50.0
-
-
-def test_is_simulation_projet_in_perimetre_regional():
-    perimetre_arrondissement = PerimetreArrondissementFactory()
-    perimetre_regional = PerimetreRegionalFactory(
-        region=perimetre_arrondissement.region
-    )
-    dotation_projet = DetrProjetFactory(projet__perimetre=perimetre_arrondissement)
-    simulation_projet = SimulationProjetFactory(dotation_projet=dotation_projet)
-
-    assert (
-        SimulationProjetService.is_simulation_projet_in_perimetre(
-            simulation_projet, perimetre_regional
-        )
-        is True
-    )
-
-    other_arrondissement_perimetre = PerimetreArrondissementFactory()
-    other_dotation_projet = DotationProjetFactory(
-        projet__perimetre=other_arrondissement_perimetre, dotation=DOTATION_DETR
-    )
-    other_simulation_projet = SimulationProjetFactory(
-        dotation_projet=other_dotation_projet
-    )
-
-    assert (
-        SimulationProjetService.is_simulation_projet_in_perimetre(
-            other_simulation_projet, perimetre_regional
-        )
-        is False
-    )
-
-
-def test_is_simulation_projet_in_perimetre_departemental():
-    perimetre_arrondissement = PerimetreArrondissementFactory()
-    perimetre_departemental = PerimetreDepartementalFactory(
-        departement=perimetre_arrondissement.departement
-    )
-    dotation_projet = DetrProjetFactory(projet__perimetre=perimetre_arrondissement)
-    simulation_projet = SimulationProjetFactory(dotation_projet=dotation_projet)
-
-    assert (
-        SimulationProjetService.is_simulation_projet_in_perimetre(
-            simulation_projet, perimetre_departemental
-        )
-        is True
-    )
-
-    other_arrondissement = PerimetreArrondissementFactory()
-    other_dotation_projet = DetrProjetFactory(projet__perimetre=other_arrondissement)
-    other_simulation_projet = SimulationProjetFactory(
-        dotation_projet=other_dotation_projet
-    )
-
-    assert (
-        SimulationProjetService.is_simulation_projet_in_perimetre(
-            other_simulation_projet, perimetre_departemental
-        )
-        is False
-    )
-
-
-def test_is_simulation_projet_in_perimetre_arrondissement():
-    perimetre_arrondissement = PerimetreArrondissementFactory()
-    dotation_projet = DetrProjetFactory(projet__perimetre=perimetre_arrondissement)
-    simulation_projet = SimulationProjetFactory(dotation_projet=dotation_projet)
-
-    assert (
-        SimulationProjetService.is_simulation_projet_in_perimetre(
-            simulation_projet, perimetre_arrondissement
-        )
-        is True
-    )
-
-    other_arrondissement_perimetre = PerimetreArrondissementFactory()
-    other_dotation_projet = DetrProjetFactory(
-        projet__perimetre=other_arrondissement_perimetre
-    )
-    other_simulation_projet = SimulationProjetFactory(
-        dotation_projet=other_dotation_projet
-    )
-
-    assert (
-        SimulationProjetService.is_simulation_projet_in_perimetre(
-            other_simulation_projet, perimetre_arrondissement
-        )
-        is False
-    )
+    assert programmation_projet.montant == new_montant
+    assert programmation_projet.taux == new_taux
 
 
 @pytest.mark.parametrize(
@@ -698,9 +683,7 @@ def test_get_simulation_projet_status(projet_status, simulation_projet_status_ex
 @pytest.mark.parametrize(
     ("dotation_projet_transition, method, with_enveloppe, with_montant"),
     (
-        ("accept", SimulationProjetService._accept_a_simulation_projet, True, True),
         ("refuse", SimulationProjetService._refuse_a_simulation_projet, True, False),
-        ("dismiss", SimulationProjetService._dismiss_a_simulation_projet, False, False),
         (
             "set_back_status_to_processing",
             SimulationProjetService._set_back_to_processing,
@@ -710,13 +693,17 @@ def test_get_simulation_projet_status(projet_status, simulation_projet_status_ex
     ),
 )
 def test_simulation_projet_transition_are_called(
-    dotation_projet_transition, method, with_enveloppe, with_montant
+    dotation_projet_transition,
+    method,
+    with_enveloppe,
+    with_montant,
 ):
     with mock.patch(
         f"gsl_projet.models.DotationProjet.{dotation_projet_transition}"
     ) as mock_transition_dotation_projet:
         simulation_projet = SimulationProjetFactory()
         args = {}
+        kwargs = {}
         if with_enveloppe:
             args["enveloppe"] = simulation_projet.enveloppe
         if with_montant:
@@ -724,4 +711,48 @@ def test_simulation_projet_transition_are_called(
 
         method(simulation_projet)
 
-        mock_transition_dotation_projet.assert_called_once_with(**args)
+        mock_transition_dotation_projet.assert_called_once_with(**args, **kwargs)
+
+
+@mock.patch("gsl_projet.models.DotationProjet.accept")
+@mock.patch(
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+)
+def test_accept_simulation_projet_triggers_transition(
+    mock_ds_update,
+    mock_transition_dotation_projet,
+    user,
+):
+    simulation_projet = SimulationProjetFactory()
+
+    SimulationProjetService._accept_a_simulation_projet(simulation_projet, user)
+
+    kwargs = {
+        "enveloppe": simulation_projet.enveloppe,
+        "montant": simulation_projet.montant,
+    }
+    mock_transition_dotation_projet.assert_called_once_with(**kwargs)
+    mock_ds_update.assert_called_once_with(
+        dossier=simulation_projet.dossier,
+        user=user,
+        montant=simulation_projet.montant,
+        taux=simulation_projet.taux,
+    )
+
+
+@mock.patch("gsl_projet.models.DotationProjet.dismiss")
+@mock.patch("gsl_demarches_simplifiees.services.DsService.dismiss_in_ds")
+def test_dimiss_simulation_projet_triggers_transition(
+    mock_dismiss_in_ds,
+    mock_transition_dotation_projet,
+    user,
+):
+    simulation_projet = SimulationProjetFactory()
+    SimulationProjetService._dismiss_a_simulation_projet(
+        simulation_projet, user, "motivation"
+    )
+
+    mock_transition_dotation_projet.assert_called_once_with()
+    mock_dismiss_in_ds.assert_called_once_with(
+        simulation_projet.dossier, user, "motivation"
+    )
