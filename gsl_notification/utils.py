@@ -1,23 +1,21 @@
 import base64
+import io
 import os
 from functools import lru_cache
 
 import boto3
+import img2pdf
 import requests
 from bs4 import BeautifulSoup
 from django.core.files import File
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models.fields.files import FieldFile
 from django.http import Http404
+from pikepdf import Pdf
 
 from gsl import settings
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
-from gsl_notification.forms import (
-    AnnexeForm,
-    ArreteEtLettreSigneForm,
-    ArreteForm,
-    LettreNotificationForm,
-)
 from gsl_notification.models import (
     Annexe,
     Arrete,
@@ -223,6 +221,8 @@ def get_document_class(document_type):
 
 
 def get_form_class(document_type):
+    from gsl_notification.forms import ArreteForm, LettreNotificationForm
+
     if document_type not in [ARRETE, LETTRE]:
         raise ValueError("Type inconnu")
     if document_type == LETTRE:
@@ -255,6 +255,8 @@ def get_uploaded_document_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES
 
 
 def get_uploaded_form_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES):
+    from gsl_notification.forms import AnnexeForm, ArreteEtLettreSigneForm
+
     if document_type not in [ARRETE_ET_LETTRE_SIGNES, ANNEXE]:
         raise ValueError(f"Document type {document_type} inconnu")
     if document_type == ANNEXE:
@@ -267,3 +269,41 @@ def get_logo_base64(url):
     response = requests.get(url)
     response.raise_for_status()
     return "data:image/png;base64," + base64.b64encode(response.content).decode("utf-8")
+
+
+def _get_uploaded_document_pdf(document: Annexe | ArreteEtLettreSignes) -> io.BytesIO:
+    s3_object = get_s3_object(document.file.name)
+    content = s3_object["Body"].read()
+
+    if s3_object["ContentType"] == "application/pdf":
+        return content
+
+    output = io.BytesIO()
+    output.write(
+        img2pdf.convert(
+            content,
+            layout_fun=img2pdf.get_layout_fun(
+                (img2pdf.mm_to_pt(210), img2pdf.mm_to_pt(297))
+            ),  # A4
+        )
+    )
+    return output
+
+
+def merge_documents_into_pdf(
+    documents: list[ArreteEtLettreSignes | Annexe],
+) -> SimpleUploadedFile:
+    documents_file_bytes = [_get_uploaded_document_pdf(doc) for doc in documents]
+
+    pdf = Pdf.new()
+
+    for file in documents_file_bytes:
+        src = Pdf.open(file)
+        pdf.pages.extend(src.pages)
+
+    bytes = io.BytesIO()
+    pdf.save(bytes)
+    bytes.seek(0)
+    return SimpleUploadedFile(
+        name="documents.pdf", content=bytes.read(), content_type="application/pdf"
+    )
