@@ -76,7 +76,8 @@ def test_refresh_one_dossier_invalid_perimeter_gives_404():
     mock_api_call.assert_not_called()
 
 
-def test_refresh_data_with_ds_service_exception_is_shown():
+@pytest.mark.parametrize("exception_class", (DsConnectionError, DsServiceException))
+def test_refresh_data_with_ds_error_is_shown(exception_class):
     projet = ProjetFactory()
     dossier = projet.dossier_ds
     collegue = CollegueFactory(perimetre=projet.perimetre)
@@ -87,32 +88,7 @@ def test_refresh_data_with_ds_service_exception_is_shown():
 
     with patch(
         "gsl_demarches_simplifiees.views.save_one_dossier_from_ds",
-        side_effect=DsServiceException("Mock DS Service exception"),
-    ) as mock_api_call:
-        response = client.post(url, {"next": "/next-url"}, follow=False)
-
-    mock_api_call.assert_called_once()
-    assert response.status_code == 302
-    assert "next-url" in response.headers["location"]
-    response_messages = messages.get_messages(response.wsgi_request)
-    assert len(response_messages) == 1
-    first_message = tuple(response_messages)[0]
-    assert "Une erreur s’est produite lors de l’appel" in first_message.message
-    assert first_message.level == messages.ERROR
-
-
-def test_refresh_data_with_ds_connection_error_is_shown():
-    projet = ProjetFactory()
-    dossier = projet.dossier_ds
-    collegue = CollegueFactory(perimetre=projet.perimetre)
-    url = reverse(
-        "ds:refresh-one-dossier", kwargs={"dossier_ds_number": dossier.ds_number}
-    )
-    client = ClientWithLoggedUserFactory(collegue)
-
-    with patch(
-        "gsl_demarches_simplifiees.views.save_one_dossier_from_ds",
-        side_effect=DsConnectionError("Mock DS Connection Error"),
+        side_effect=exception_class("Mock DS Error"),
     ) as mock_api_call:
         response = client.post(url, {"next": "/next-url"}, follow=False)
 
