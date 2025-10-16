@@ -10,6 +10,14 @@ html {
     max-width: 12rem;
 }
 
+.header-items {
+    position: relative;
+}
+
+.header-items #user-menu > ul {
+    max-width: 200px;
+}
+
 /* Utils */
 
 .gsl-nowrap {
@@ -317,6 +325,7 @@ ul.no-list-style li {
 }
 
 /* dropdown */
+
 .gsl-dropdown > button {
   text-align: start;
   overflow: hidden;
@@ -332,10 +341,6 @@ ul.no-list-style li {
   margin-top: 1px; /* Alignement vertical de l'icône */
 }
 
-.gsl-dropdown .gsl-dropdown-content {
-  gap: 6px;
-  min-width: auto;
-}
 
 .gsl-dropdown-content {
   display: none;
@@ -348,6 +353,12 @@ ul.no-list-style li {
   gap: 1rem;
   max-height: 80vh;
   overflow-y: auto;
+}
+
+
+.gsl-dropdown .gsl-dropdown-content {
+  gap: 6px;
+  min-width: auto;
 }
 
 
