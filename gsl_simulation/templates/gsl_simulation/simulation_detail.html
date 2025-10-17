@@ -112,7 +112,8 @@
 {% endblock modal %}
 
 {% block extra_js %}
-    <script src="{% static 'js/simulationProjetStatusConfirmation.js' %}"></script>
+    <script type="module"
+            src="{% static 'js/simulationProjetStatusConfirmation.js' %}"></script>
     <script type="module"
             src="{% static 'js/handleInteractionsInSimulation.js' %}"></script>
 {% endblock extra_js %}

@@ -24,7 +24,6 @@ from gsl_projet.constants import (
     DOTATION_DETR,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
 )
 from gsl_projet.models import DotationProjet
 from gsl_projet.tests.factories import (
@@ -121,46 +120,11 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
     )
 
 
-def test_patch_status_simulation_projet_with_refused_value_with_htmx(
-    client_with_user_logged, simulation_projet
-):
-    url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
-    )
-    response = client_with_user_logged.post(
-        url,
-        {"status": f"{SimulationProjet.STATUS_REFUSED}"},
-        follow=True,
-        headers={"HX-Request": "true"},
-    )
-
-    simulation_projet.refresh_from_db()
-    dotation_projet = DotationProjet.objects.get(
-        id=simulation_projet.dotation_projet.id
-    )
-
-    assert response.status_code == 200
-    assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
-    assert dotation_projet.status == PROJET_STATUS_REFUSED
-    assert "0 projet validé" in response.content.decode()
-    assert "1 projet refusé" in response.content.decode()
-    assert "0 projet notifié" in response.content.decode()
-    assert (
-        '<span hx-swap-oob="innerHTML" id="total-amount-granted">0\xa0€</span>'
-        in response.content.decode()
-    )
-
-
 data_test = (
     (
         SimulationProjet.STATUS_ACCEPTED,
         "Le financement de ce projet vient d’être accepté avec la dotation DETR pour 1\xa0000,00\xa0€.",
         "valid",
-    ),
-    (
-        SimulationProjet.STATUS_REFUSED,
-        "Le financement de ce projet vient d’être refusé.",
-        "cancelled",
     ),
     (
         SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,

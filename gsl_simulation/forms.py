@@ -1,12 +1,16 @@
 from logging import getLogger
 
 from django import forms
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
 from gsl_core.models import Perimetre
+from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_demarches_simplifiees.mixins import DsUpdatableFields
+from gsl_notification.validators import document_file_validator
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.forms import DSUpdateMixin
 from gsl_projet.models import DotationProjet
@@ -177,3 +181,34 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
                 dotation_projet, initial_taux
             )
             self.cleaned_data["montant"] = instance.montant
+
+
+class RefuseProjetForm(DsfrBaseForm, forms.Form):
+    justification = forms.CharField(
+        label="Motivation envoyée au demandeur (obligatoire)",
+        help_text="Expliquez pourquoi ce dossier est refusé",
+        required=True,
+        widget=forms.Textarea,
+    )
+    justification_file = forms.FileField(
+        label="Ajouter un justificatif (optionnel)",
+        validators=[document_file_validator],
+        help_text=f"Taille maximale {settings.MAX_POST_FILE_SIZE_IN_MO} Mo. Formats supportés : jpg, png, pdf.",
+        required=False,
+    )
+
+    def __init__(self, instance, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.simulation_projet = instance
+
+    def save(self, instructeur_id):
+        with transaction.atomic():
+            self.simulation_projet.dotation_projet.refuse(
+                enveloppe=self.simulation_projet.enveloppe
+            )
+            self.simulation_projet.dotation_projet.save()
+            DsMutator().dossier_refuser(
+                self.simulation_projet.dossier,
+                instructeur_id,
+                motivation=self.cleaned_data["justification"],
+            )

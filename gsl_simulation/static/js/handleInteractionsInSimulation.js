@@ -2,6 +2,9 @@
 
 import { handleDotationChange } from './modules/handleDotationUpdate.js'
 import { disableAllModalButtons } from './modules/utils.js'
+import {
+  handleStatusChangeWithHtmx
+} from './simulationProjetStatusConfirmation.js'
 
 document.querySelector('.gsl-projet-table').addEventListener('change', (ev) => {
   if (ev.target.hasAttribute('hx-post') && !ev.target.disabled) {
@@ -24,7 +27,6 @@ document.querySelector('.gsl-projet-table').addEventListener('change', (ev) => {
     return
   }
   return handleStatusChangeWithHtmx(target, target.dataset.originalValue) // eslint-disable-line
-  // TODO import this function from a module
 })
 
 document.addEventListener('htmx:responseError', evt => {

@@ -167,9 +167,11 @@ def test_get_initial_montant_from_dotation_projet(
         projet__dossier_ds__annotations_montant_accorde=annotations_montant_accorde,
         projet__dossier_ds__demande_montant=demande_montant,
         assiette=assiette_or_finance_cout_total if field == "assiette" else None,
-        projet__dossier_ds__finance_cout_total=assiette_or_finance_cout_total
-        if field == "projet__dossier_ds__finance_cout_total"
-        else None,
+        projet__dossier_ds__finance_cout_total=(
+            assiette_or_finance_cout_total
+            if field == "projet__dossier_ds__finance_cout_total"
+            else None
+        ),
     )
 
     montant = SimulationProjetService.get_initial_montant_from_dotation_projet(
@@ -215,18 +217,16 @@ def test_update_status_with_accepted(mock_accept_a_simulation_projet, user):
     mock_accept_a_simulation_projet.assert_called_once_with(simulation_projet, user)
 
 
-def test_update_status_with_refused(user):
+def test_update_status_with_refused_should_not_work_anymore_on_simulation_projet_service(
+    user,
+):
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROCESSING
     )
     new_status = SimulationProjet.STATUS_REFUSED
 
-    with mock.patch.object(
-        SimulationProjetService, "_refuse_a_simulation_projet"
-    ) as mock_refuse_a_simulation_projet:
+    with pytest.raises(ValueError):
         SimulationProjetService.update_status(simulation_projet, new_status, user)
-
-        mock_refuse_a_simulation_projet.assert_called_once_with(simulation_projet)
 
 
 def test_update_status_with_dismissed(user):
@@ -460,11 +460,6 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
             SimulationProjet.STATUS_ACCEPTED,
             ProgrammationProjet.STATUS_ACCEPTED,
         ),
-        (
-            ProgrammationProjet.STATUS_ACCEPTED,
-            SimulationProjet.STATUS_REFUSED,
-            ProgrammationProjet.STATUS_REFUSED,
-        ),
     ),
 )
 def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_mother_enveloppe(
@@ -678,7 +673,6 @@ def test_get_simulation_projet_status(projet_status, simulation_projet_status_ex
 @pytest.mark.parametrize(
     ("dotation_projet_transition, method, with_enveloppe, with_montant"),
     (
-        ("refuse", SimulationProjetService._refuse_a_simulation_projet, True, False),
         (
             "set_back_status_to_processing",
             SimulationProjetService._set_back_to_processing,
