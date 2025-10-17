@@ -1,23 +1,4 @@
-{% extends "includes/modals/modal_base.html" %}
-{% block modal_id %}
-    refuse-confirmation-modal
-{% endblock modal_id %}
-
-{% block content %}
-    <h1 class="fr-modal__title refuse-color">
-        <span class="fr-icon-checkbox-fill fr-icon--lg" aria-hidden="true"></span> Refuser le financement du projet
-    </h1>
-    <p>
-        Ce projet va être refusé dans toutes les simulations dans lesquelles il a été ajouté.
-        Il apparaîtra dans la programmation officielle {{ enveloppe.dotation }} {{ enveloppe.annee }}.
-    </p>
-    <p>
-        Êtes-vous sûr(e) de refuser ce projet ?
-    </p>
-{% endblock content %}
-
-{% block confirmation_button %}
-    <button class="fr-btn fr-btn--primary refuse-button" id="confirmChange">
-        Refuser
-    </button>
-{% endblock confirmation_button %}
+<dialog class="fr-modal confirmation-modal"
+        id="refuse-confirmation-modal"
+        aria-labelledby="refuse-confirmation-modal-title">
+</dialog>

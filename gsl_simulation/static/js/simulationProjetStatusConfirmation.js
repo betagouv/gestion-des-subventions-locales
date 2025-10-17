@@ -1,5 +1,7 @@
 'use strict'
 
+import htmx from '../vendor/htmx.esm.js'
+
 let selectedElement
 let modalId
 
@@ -37,7 +39,7 @@ function mustOpenConfirmationModal (newValue, originalValue) {
   return false
 }
 
-function handleStatusChangeWithHtmx (select, originalValue) { // eslint-disable-line no-unused-vars
+export function handleStatusChangeWithHtmx (select, originalValue) { // eslint-disable-line no-unused-vars
   if (mustOpenConfirmationModal(select.value, originalValue)) {
     showConfirmationModal(select, originalValue)
   } else {
@@ -46,7 +48,7 @@ function handleStatusChangeWithHtmx (select, originalValue) { // eslint-disable-
   }
 }
 
-function handleStatusChange (select, originalValue) { // eslint-disable-line no-unused-vars
+export function handleStatusChange (select, originalValue) { // eslint-disable-line no-unused-vars
   if (mustOpenConfirmationModal(select.value, originalValue)) {
     showConfirmationModal(select, originalValue)
   } else {
@@ -72,6 +74,7 @@ function showConfirmationModal (select, originalValue) {
   _associateFieldMotivationToForm(select, modal)
   _ensureButtonsAreEnabled(select, modal)
   dsfr(modal).modal.disclose()
+  htmx.trigger(select.querySelector('[value=' + status + ']'), modalId) // Load HTMX modals contents
 }
 
 function _associateFieldMotivationToForm (select, modal) {
@@ -160,13 +163,7 @@ document.addEventListener('keydown', function (event) {
 })
 
 document.querySelectorAll('.confirmation-modal').forEach((elt) => {
-  elt.addEventListener('click', (ev) => {
+  elt.addEventListener('dsfr.conceal', (ev) => {
     closeModal()
-  })
-})
-
-document.querySelectorAll('.confirmation-modal-container').forEach((elt) => {
-  elt.addEventListener('click', (ev) => {
-    ev.stopPropagation()
   })
 })

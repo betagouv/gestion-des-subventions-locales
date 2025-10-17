@@ -11,6 +11,7 @@ from gsl_simulation.views.simulation_projet_annotations_views import (
 )
 from gsl_simulation.views.simulation_projet_views import (
     ProjetFormView,
+    RefuseProjetModalView,
     SimulationProjetDetailView,
     patch_dotation_projet,
     patch_montant_simulation_projet,
@@ -69,6 +70,11 @@ urlpatterns = [
         "modifier-le-statut-d-un-projet-de-simulation/<int:pk>/",
         patch_status_simulation_projet,
         name="patch-simulation-projet-status",
+    ),
+    path(
+        "<int:pk>/refuser/",
+        RefuseProjetModalView.as_view(),
+        name="refuse-form",
     ),
     path(
         "creation-simulation",

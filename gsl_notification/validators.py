@@ -2,12 +2,17 @@ import os
 
 from django import forms
 from django.conf import settings
+from django.core.files.uploadedfile import UploadedFile
 from django.db.models.fields.files import FieldFile
 
 
-def _file_validator(file: FieldFile, valid_mime_types, valid_extensions, type_message):
+def _file_validator(
+    file: FieldFile | UploadedFile, valid_mime_types, valid_extensions, type_message
+):
     ext = os.path.splitext(file.name)[1].lower()
-    if file.file.content_type not in valid_mime_types or ext not in valid_extensions:
+
+    _file = file.file if isinstance(file, FieldFile) else file
+    if _file.content_type not in valid_mime_types or ext not in valid_extensions:
         raise forms.ValidationError(type_message)
 
     max_size_in_mo = settings.MAX_POST_FILE_SIZE_IN_MO
@@ -18,7 +23,7 @@ def _file_validator(file: FieldFile, valid_mime_types, valid_extensions, type_me
         )
 
 
-def document_file_validator(file: FieldFile):
+def document_file_validator(file: FieldFile | UploadedFile):
     return _file_validator(
         file,
         ["application/pdf", "image/png", "image/jpeg"],
@@ -27,7 +32,7 @@ def document_file_validator(file: FieldFile):
     )
 
 
-def logo_file_validator(file: FieldFile):
+def logo_file_validator(file: FieldFile | UploadedFile):
     return _file_validator(
         file,
         ["image/png", "image/jpeg"],

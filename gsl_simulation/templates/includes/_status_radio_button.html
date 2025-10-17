@@ -6,7 +6,12 @@
                name="status"
                class="status-radio-button"
                {% if simu.status == status_value %}checked{% endif %}
-               data-original-value="{{ simu.status }}">
+               data-original-value="{{ simu.status }}"
+               hx-get="{% url 'gsl_simulation:refuse-form' simu.id %}"
+               hx-trigger="refuse-confirmation-modal"
+               hx-swap="innerHTML"
+               hx-target="#refuse-confirmation-modal"
+               hx-disabled-elt="self">
         <label class="fr-label" for="{{ status_value }}">
             {{ status_label }}
             <i class="{{ icon }}" aria-hidden="true"></i>

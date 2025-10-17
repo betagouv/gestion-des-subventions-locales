@@ -175,6 +175,8 @@ class DsMutator(DsClientBase):
                 "instructeurId": instructeur_id,
             }
         }
+        # TODO : We should check response to know if the dossier is in instruction after that
+        # for the moment, if the dossier is in construction, it silently fails without any error
         return self.launch_graphql_query(
             "dossierRepasserEnInstruction", variables=variables
         )
@@ -296,11 +298,17 @@ class DsMutator(DsClientBase):
             justificatif_id,
         )
 
-    def dossier_refuser(self, *args, document: UploadedFile = None, **kwargs):
+    def dossier_refuser(
+        self,
+        dossier: Dossier,
+        instructeur_id: str,
+        motivation: str = "",
+        document: UploadedFile = None,
+    ):
         if document is not None:
-            kwargs["justificatif_id"] = self._upload_attachment(
-                kwargs["dossier_id"], document
-            )
+            justificatif_id = self._upload_attachment(dossier.ds_id, document)
+        else:
+            justificatif_id = None
         return self._mutate_with_justificatif_and_motivation(
-            "dossierRefuser", *args, **kwargs
+            "dossierRefuser", dossier.ds_id, instructeur_id, motivation, justificatif_id
         )

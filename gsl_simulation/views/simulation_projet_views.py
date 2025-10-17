@@ -2,20 +2,24 @@ import json
 
 from django.contrib import messages
 from django.db import transaction
-from django.http import Http404, HttpRequest
+from django.http import Http404, HttpRequest, HttpResponseBadRequest
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import resolve, reverse
+from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.views.generic import UpdateView
+from django_htmx.http import HttpResponseClientRefresh
 
 from gsl.settings import ALLOWED_HOSTS
+from gsl_core.decorators import htmx_only
 from gsl_demarches_simplifiees.exceptions import DsServiceException
+from gsl_demarches_simplifiees.importer.dossier import save_one_dossier_from_ds
 from gsl_projet.forms import DotationProjetForm, ProjetForm
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
-from gsl_simulation.forms import SimulationProjetForm
+from gsl_simulation.forms import RefuseProjetForm, SimulationProjetForm
 from gsl_simulation.models import SimulationProjet, SimulationProjetQuerySet
 from gsl_simulation.services.simulation_projet_service import (
     SimulationProjetService,
@@ -91,6 +95,11 @@ def patch_status_simulation_projet(request, pk):
     )
     status = request.POST.get("status")
     motivation = request.POST.get("motivation")
+
+    if status == SimulationProjet.STATUS_REFUSED:
+        return HttpResponseBadRequest(
+            "This endpoint is not for refused projects anymore (you need to fill the form)."
+        )
 
     if status not in dict(SimulationProjet.STATUS_CHOICES).keys():
         raise ValueError("Invalid status")
@@ -429,3 +438,53 @@ def _get_other_dotation_simulation_projet(
         .order_by("-updated_at")
         .first()
     )
+
+
+@method_decorator(htmx_only, name="dispatch")
+class RefuseProjetModalView(UpdateView):
+    template_name = "htmx/refuse_confirmation_form.html"
+    context_object_name = "simulation_projet"
+    form_class = RefuseProjetForm
+
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        save_one_dossier_from_ds(obj.projet.dossier_ds)
+        return obj
+
+    def get_template_names(self):
+        if self.request.user.ds_id not in [
+            i.ds_id for i in self.object.dossier.ds_instructeurs.all()
+        ]:
+            return ["htmx/not_instructeur_error.html"]
+        return [self.template_name]
+
+    def get_queryset(self):
+        return (
+            SimulationProjet.objects.in_user_perimeter(self.request.user)
+            .exclude(dotation_projet__programmation_projet__notified_at__isnull=False)
+            .select_related(
+                "simulation",
+                "simulation__enveloppe",
+                "dotation_projet",
+                "dotation_projet__projet",
+                "dotation_projet__projet__dossier_ds",
+            )
+            .prefetch_related("dotation_projet__projet__dossier_ds__ds_instructeurs")
+        )
+
+    def form_valid(self, form):
+        try:
+            form.save(instructeur_id=self.request.user.ds_id)
+        except DsServiceException as e:
+            form.add_error(
+                None,
+                f"Une erreur est survenue lors de la soumission du formulaire. {str(e)}",
+            )
+            return super().form_invalid(form)
+
+        messages.success(
+            self.request, "Le projet a bien été refusé sur Démarches Simplifiées."
+        )
+        return (
+            HttpResponseClientRefresh()
+        )  # we reload the page without the modal and with the success message
