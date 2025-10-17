@@ -1,3 +1,5 @@
+import { handleStatusChange } from './simulationProjetStatusConfirmation.js'
+
 document.querySelectorAll('.status-radio-button').forEach((elt) => {
   elt.addEventListener('change', (ev) => {
     const target = ev.target

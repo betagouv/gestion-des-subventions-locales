@@ -1,0 +1,46 @@
+<div class="fr-container fr-container--fluid fr-container-md">
+    <div class="fr-grid-row fr-grid-row--center">
+        <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
+            <div class="fr-modal__body">
+                <div class="fr-modal__header">
+                    <button aria-controls="refuse-confirmation-modal"
+                            title="Fermer"
+                            type="button"
+                            class="fr-btn--close fr-btn close-modal">
+                        Fermer
+                    </button>
+                </div>
+                <div class="fr-modal__content">
+                    <h1 class="fr-modal__title fr-text-default--error"
+                        id="refuse-confirmation-modal-title">
+                        <i class="fr-icon-warning-fill"></i>
+                        Refuser le projet
+                    </h1>
+                    <p>
+                        Ce projet va être refusé dans toutes les simulations dans lesquelles il a été ajouté.
+                        Le demandeur va être notifié.
+                    </p>
+                    <form id="refuse-confirmation-form"
+                          hx-post="{% url 'gsl_simulation:refuse-form' simulation_projet.id %}"
+                          hx-encoding="multipart/form-data"
+                          hx-target="#refuse-confirmation-modal"
+                          hx-swap="innerHTML">
+                        {{ form }}
+                    </form>
+                </div>
+
+                <div class="fr-modal__footer confirmation-modal-footer">
+                    <button class="fr-btn fr-btn--secondary"
+                            aria-controls="refuse-confirmation-modal">
+                        Annuler
+                    </button>
+                    <button type="submit"
+                            class="fr-btn fr-btn--primary"
+                            form="refuse-confirmation-form">
+                        Refuser
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

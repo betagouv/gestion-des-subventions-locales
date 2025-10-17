@@ -119,7 +119,7 @@ class SimulationProjetService:
             return cls._accept_a_simulation_projet(simulation_projet, user)
 
         if new_status == SimulationProjet.STATUS_REFUSED:
-            return cls._refuse_a_simulation_projet(simulation_projet)
+            raise ValueError("Use RefuseProjectForm")
 
         if new_status == SimulationProjet.STATUS_DISMISSED:
             return cls._dismiss_a_simulation_projet(simulation_projet, user, motivation)
@@ -206,17 +206,6 @@ class SimulationProjetService:
             taux=simulation_projet.taux,
             user=user,
         )
-
-        updated_simulation_projet = SimulationProjet.objects.get(
-            pk=simulation_projet.pk
-        )
-        return updated_simulation_projet
-
-    @classmethod
-    def _refuse_a_simulation_projet(cls, simulation_projet: SimulationProjet):
-        dotation_projet = simulation_projet.dotation_projet
-        dotation_projet.refuse(enveloppe=simulation_projet.enveloppe)
-        dotation_projet.save()
 
         updated_simulation_projet = SimulationProjet.objects.get(
             pk=simulation_projet.pk
