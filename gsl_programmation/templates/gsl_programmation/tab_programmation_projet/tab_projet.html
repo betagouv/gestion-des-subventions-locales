@@ -22,11 +22,13 @@
         {% endif %}
 
         {% if programmation_projet.to_notify %}
-            <a class="fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
-               id="to_notify_button"
-               href="{% url 'gsl_notification:documents' programmation_projet.id %}">
+            <button class="fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
+                    id="to_notify_button"
+                    type="button"
+                    hx-get="{% url 'gsl_notification:check-ds-dossier-up-to-date' programmation_projet.id %}"
+                    hx-swap="outerHTML">
                 Notifier le demandeur
-            </a>
+            </button>
         {% endif %}
     </div>
 {% endblock status_action %}

@@ -469,6 +469,7 @@ class RefuseProjetModalView(UpdateView):
     def get_queryset(self):
         return (
             SimulationProjet.objects.in_user_perimeter(self.request.user)
+            # On exclut les simulations-projet liés à une programmation-projet déjà notifiée.
             .exclude(dotation_projet__programmation_projet__notified_at__isnull=False)
             .select_related(
                 "simulation",

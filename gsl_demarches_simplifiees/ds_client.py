@@ -8,6 +8,7 @@ from pathlib import Path
 import requests
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
+from django.utils import timezone
 
 from gsl_demarches_simplifiees.exceptions import DsConnectionError, DsServiceException
 from gsl_demarches_simplifiees.models import Dossier
@@ -265,6 +266,17 @@ class DsMutator(DsClientBase):
         disable_notification: bool = False,
         document: UploadedFile = None,
     ):
+        client = DsClient()
+        dossier_data = client.get_one_dossier(dossier.ds_number)
+        date_modif_ds = dossier_data.get("dateDerniereModification", None)
+        if date_modif_ds:
+            date_modif_ds = timezone.datetime.fromisoformat(date_modif_ds)
+            if date_modif_ds > dossier.ds_date_derniere_modification:
+                raise DsServiceException(
+                    f"Le dossier {dossier.ds_number} a été modifié depuis Démarches Simplifiées. "
+                    f"Veuillez le mettre à jour manuellement et le réexaminer sur Turgot avant de poursuivre."
+                )
+
         justificatif_id = (
             self._upload_attachment(dossier.ds_id, document)
             if document is not None

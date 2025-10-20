@@ -4,11 +4,16 @@ from django.contrib import messages
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_http_methods
 from django.views.generic import DetailView, UpdateView
+from django_htmx.http import HttpResponseClientRedirect, trigger_client_event
 from django_weasyprint import WeasyTemplateResponseMixin
 
+from gsl_core.decorators import htmx_only
+from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_notification.forms import NotificationMessageForm
 from gsl_notification.models import (
@@ -128,6 +133,39 @@ class NotificationMessageView(UpdateView):
         return reverse(
             "gsl_programmation:programmation-projet-detail",
             args=[self.object.id],
+        )
+
+
+@method_decorator(htmx_only, name="dispatch")
+class CheckDsDossierUpToDateView(DetailView):
+    """
+    This view is used to check if the dossier is up to date. It should be used in a modal.
+    """
+
+    template_name = "gsl_notification/modal/ds_dossier_not_up_to_date.html"
+    pk_url_kwarg = "programmation_projet_id"
+    context_object_name = "programmation_projet"
+
+    def get_queryset(self):
+        return ProgrammationProjet.objects.visible_to_user(self.request.user)
+
+    def render_to_response(self, context, *args, **kwargs):
+        dossier = self.object.projet.dossier_ds
+        client = DsClient()
+        dossier_data = client.get_one_dossier(dossier.ds_number)
+        date_modif_ds = dossier_data.get("dateDerniereModification", None)
+        if date_modif_ds:
+            date_modif_ds = timezone.datetime.fromisoformat(date_modif_ds)
+            if date_modif_ds <= dossier.ds_date_derniere_modification:
+                return HttpResponseClientRedirect(
+                    reverse("gsl_notification:documents", args=[self.object.id])
+                )
+
+        return trigger_client_event(
+            super().render_to_response(context, *args, **kwargs),
+            "click",
+            {"target": "#to_notify_button"},
+            after="settle",
         )
 
 
