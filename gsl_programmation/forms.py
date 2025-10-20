@@ -37,14 +37,9 @@ class SubEnveloppeCreateForm(DsfrBaseForm, ModelForm):
             .first()
         )
         if self.instance.deleguee_by is None:
-            self.instance.annee = (
-                Enveloppe.objects.filter(
-                    dotation=self.cleaned_data.get("dotation"), perimetre=perimetre
-                )
-                .order_by("-annee")
-                .first()
-                .annee
-            )  # We need something to trigger model validation errors
+            # We need something to trigger model validation errors
+            self.instance.annee = 1
+
             raise ValidationError(
                 "L'enveloppe doit être une sous-enveloppe d'une enveloppe existante."
             )
