@@ -1,5 +1,7 @@
 from functools import cached_property
 
+from django.contrib import messages
+from django.db.models import ProtectedError
 from django.http import Http404
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
@@ -255,3 +257,16 @@ class EnveloppeDeleteView(DeleteView):
                 ),
             )
         )
+
+    def post(self, request, *args, **kwargs):
+        try:
+            return self.delete(request, *args, **kwargs)
+        except ProtectedError:
+            simulation_count = self.get_object().simulation_set.count()
+            plural = "s" if simulation_count > 1 else ""
+            verbe = "sont" if simulation_count > 1 else "est"
+            messages.error(
+                self.request,
+                f"Suppression impossible : {simulation_count} simulation{plural} {verbe} rattachée{plural} à cette enveloppe.",
+            )
+            return redirect(self.success_url)

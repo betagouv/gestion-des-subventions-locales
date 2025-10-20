@@ -37,7 +37,7 @@ class SubEnveloppeCreateForm(DsfrBaseForm, ModelForm):
             .first()
         )
         if self.instance.deleguee_by is None:
-            # We need something to trigger model validation errors
+            # We need to fill this field to trigger model validation errors
             self.instance.annee = 1
 
             raise ValidationError(
