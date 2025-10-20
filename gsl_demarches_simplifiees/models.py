@@ -200,6 +200,7 @@ class Dossier(DsModel):
     ds_demandeur = models.ForeignKey(
         PersonneMorale, on_delete=models.PROTECT, verbose_name="Demandeur", null=True
     )
+    ds_instructeurs = models.ManyToManyField("gsl_demarches_simplifiees.Profile")
 
     porteur_de_projet_nature = models.ForeignKey(
         "gsl_demarches_simplifiees.NaturePorteurProjet",

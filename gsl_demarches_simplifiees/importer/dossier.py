@@ -6,7 +6,7 @@ from django.utils import timezone
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverter
-from gsl_demarches_simplifiees.models import Demarche, Dossier
+from gsl_demarches_simplifiees.models import Demarche, Dossier, Profile
 
 
 def camelcase(my_string):
@@ -38,6 +38,7 @@ def save_demarche_dossiers_from_ds(demarche_number):
 def save_one_dossier_from_ds(dossier: Dossier, client: DsClient = None):
     client = client or DsClient()
     dossier_data = client.get_one_dossier(dossier.ds_number)
+    refresh_dossier_instructeurs(dossier_data, dossier)
     date_modif_ds = dossier_data.get("dateDerniereModification", None)
     if date_modif_ds:
         date_modif_ds = timezone.datetime.fromisoformat(date_modif_ds)
@@ -71,6 +72,33 @@ def refresh_dossier_from_saved_data(dossier: Dossier):
             str(e),
         )
         raise e
+
+
+def refresh_dossier_instructeurs(dossier_data, dossier: Dossier):
+    """
+    Refreshes the instructeurs associated with a dossier based on data from Démarches Simplifiées.
+
+    Assume ds_instructeur has been prefetch_related on dossier
+    Noop if no changes, check only IDs does not check emails.
+    """
+    if "groupeInstructeur" not in dossier_data:
+        # Should not happen except in tests
+        return
+    instructeurs_data = dossier_data["groupeInstructeur"]["instructeurs"]
+
+    # Remove instructeurs that are not in the new data
+    for profile in dossier.ds_instructeurs.all():
+        if profile.ds_id not in (i["id"] for i in instructeurs_data):
+            dossier.ds_instructeurs.remove(profile)
+
+    # Add instructeurs that are not already in the dossier
+    dossier_instructeurs_ids = [p.ds_id for p in dossier.ds_instructeurs.all()]
+    for instructeur_data in instructeurs_data:
+        if instructeur_data["id"] not in dossier_instructeurs_ids:
+            instructeur, _ = Profile.objects.get_or_create(
+                ds_id=instructeur_data["id"], ds_email=instructeur_data["email"]
+            )
+            dossier.ds_instructeurs.add(instructeur)
 
 
 def get_or_create_dossier(ds_dossier_id, ds_dossier_number, demarche_number, raw_data):
