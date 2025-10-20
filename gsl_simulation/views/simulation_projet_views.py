@@ -16,6 +16,7 @@ from gsl.settings import ALLOWED_HOSTS
 from gsl_core.decorators import htmx_only
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.importer.dossier import save_one_dossier_from_ds
+from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.forms import DotationProjetForm, ProjetForm
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
@@ -107,6 +108,13 @@ def patch_status_simulation_projet(request, pk):
     if status in [SimulationProjet.STATUS_DISMISSED]:
         if not isinstance(motivation, str) or len(motivation) < 1:
             raise ValueError("Invalid motivation")
+
+    try:
+        programmation_projet = simulation_projet.dotation_projet.programmation_projet
+        if programmation_projet.notified_at:
+            raise ValueError("Notified projet status cannot be changed.")
+    except ProgrammationProjet.DoesNotExist:
+        pass
 
     try:
         with transaction.atomic():

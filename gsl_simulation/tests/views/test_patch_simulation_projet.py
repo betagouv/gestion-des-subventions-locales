@@ -794,3 +794,38 @@ def test_three_fields_update_and_only_one_error(
     assert accepted_simulation_projet.dotation_projet.assiette == 20_000
 
     assert accepted_simulation_projet.montant == 1_000  # default
+
+
+def test_patch_status_simulation_projet_blocked_when_programmation_notified(
+    client_with_user_logged, simulation_projet
+):
+    from datetime import date
+
+    from gsl_programmation.tests.factories import ProgrammationProjetFactory
+
+    # Mark the programmation as notified for this dotation_projet
+    ProgrammationProjetFactory(
+        dotation_projet=simulation_projet.dotation_projet,
+        notified_at=date.today(),
+    )
+
+    url = reverse(
+        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+    )
+
+    with patch(
+        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+    ) as mock_update_ds_montant:
+        mock_update_ds_montant.return_value = None
+        response = client_with_user_logged.post(
+            url,
+            {"status": f"{SimulationProjet.STATUS_ACCEPTED}"},
+            follow=True,
+            headers={"HX-Request": "true"},
+        )
+
+    # Should be blocked
+    assert response.status_code == 500
+    simulation_projet.refresh_from_db()
+    assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
+    mock_update_ds_montant.assert_not_called()

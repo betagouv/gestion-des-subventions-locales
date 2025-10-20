@@ -53,7 +53,11 @@
             </ul>
         </td>
         <td class="simulation-status">
-            {% include "includes/table_forms/_status_form.html" %}
+            {% if dotation_projet.programmation_projet.notified_at %}
+                {{ simu.get_status_display }} (notifié)
+            {% else %}
+                {% include "includes/table_forms/_status_form.html" %}
+            {% endif %}
             {% if dotation_projet.programmation_projet.to_notify %}
                 <span class="projet__to_notify">À notifier</span>
             {% endif %}

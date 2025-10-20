@@ -31,7 +31,18 @@
         {% if dotation_projet.programmation_projet.to_notify %}
             <span class="fr-text--xl projet__to_notify">À notifier <span class="fr-icon-mail-fill"></span></span>
         {% endif %}
-        {% include "includes/forms/_status_form.html" %}
+        {% if dotation_projet.programmation_projet.notified_at %}
+            <p>
+                <span class="fr-text--xl projet__to_notify fr-text-label--blue-france">Notifié <span class="fr-icon-checkbox-fill"></span></span>
+            </p>
+            {% if dotation_projet.programmation_projet.status == "accepted" %}
+                <b class="fr-mr-4w fr-icon-check-line green-color">{{ dotation_projet.programmation_projet.get_status_display|remove_first_word }}</b>
+            {% else %}
+                <b class="fr-mr-4w fr-icon-close-line red-color">{{ dotation_projet.programmation_projet.get_status_display|remove_first_word }}</b>
+            {% endif %}
+        {% else %}
+            {% include "includes/forms/_status_form.html" %}
+        {% endif %}
 
         {% if dotation_projet.programmation_projet.to_notify %}
             <a class="fr-mb-2w fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
