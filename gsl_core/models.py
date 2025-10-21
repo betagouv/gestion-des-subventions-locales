@@ -304,7 +304,15 @@ class Collegue(AbstractUser):
     perimetre = models.ForeignKey(
         Perimetre, on_delete=models.PROTECT, null=True, blank=True
     )
-    ds_id = models.CharField("ID chez Démarches Simplifiées", blank=True, max_length=30)
+    ds_profile = models.ForeignKey(
+        "gsl_demarches_simplifiees.Profile", on_delete=models.SET_NULL, null=True
+    )
+
+    @property
+    def ds_id(self) -> str | None:
+        if self.ds_profile:
+            return self.ds_profile.ds_id
+        return None
 
     def __str__(self) -> str:
         if self.first_name or self.last_name:
