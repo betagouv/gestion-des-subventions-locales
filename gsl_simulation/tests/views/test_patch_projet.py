@@ -8,6 +8,7 @@ from django.urls import reverse
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
+    CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
 from gsl_demarches_simplifiees.exceptions import DsServiceException
@@ -55,7 +56,7 @@ def simulation(detr_enveloppe):
 
 @pytest.fixture
 def user(perimetre_departemental):
-    return CollegueFactory(perimetre=perimetre_departemental, ds_id="XXX")
+    return CollegueWithDSProfileFactory(perimetre=perimetre_departemental)
 
 
 @pytest.fixture
@@ -310,7 +311,7 @@ def test_patch_projet_with_ds_service_exception_send_correct_error_msg_to_user_a
 @pytest.mark.parametrize(
     "field, data, initial_value, _field_label", boolean_fields_data
 )
-def test_patch_projet_with_user_without_ds_id(
+def test_patch_projet_with_user_without_ds_profile(
     perimetre_departemental,
     accepted_simulation_projet,
     field,
@@ -318,7 +319,7 @@ def test_patch_projet_with_user_without_ds_id(
     initial_value,
     _field_label,
 ):
-    user = CollegueFactory(perimetre=perimetre_departemental, ds_id="")
+    user = CollegueFactory(perimetre=perimetre_departemental)
     client = ClientWithLoggedUserFactory(user)
     accepted_simulation_projet.projet.__setattr__(field, initial_value)
     accepted_simulation_projet.projet.save()
@@ -405,7 +406,7 @@ def test_patch_projet_with_user_with_ds_connection_error(
 def test_two_fields_update_and_only_one_error(
     perimetre_departemental, accepted_simulation_projet
 ):
-    collegue = CollegueFactory(perimetre=perimetre_departemental, ds_id="")
+    collegue = CollegueFactory(perimetre=perimetre_departemental)
     client = ClientWithLoggedUserFactory(collegue)
     accepted_simulation_projet.projet.is_in_qpv = False
     accepted_simulation_projet.projet.is_attached_to_a_crte = False

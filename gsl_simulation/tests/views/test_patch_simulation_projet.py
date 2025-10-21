@@ -10,7 +10,7 @@ from django.urls import reverse
 from gsl_core.templatetags.gsl_filters import percent
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
-    CollegueFactory,
+    CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
 from gsl_demarches_simplifiees.exceptions import DsServiceException
@@ -59,7 +59,7 @@ def simulation(detr_enveloppe):
 
 @pytest.fixture
 def collegue(perimetre_departemental):
-    return CollegueFactory(perimetre=perimetre_departemental, ds_id="XXX")
+    return CollegueWithDSProfileFactory(perimetre=perimetre_departemental)
 
 
 @pytest.fixture
@@ -715,7 +715,7 @@ def test_patch_simulation_projet_with_ds_token_error(
 def test_three_fields_update_and_only_one_error(
     perimetre_departemental, accepted_simulation_projet
 ):
-    user = CollegueFactory(perimetre=perimetre_departemental, ds_id="123")
+    user = CollegueWithDSProfileFactory(perimetre=perimetre_departemental)
     client = ClientWithLoggedUserFactory(user)
     data = {
         "assiette": 20_000,
