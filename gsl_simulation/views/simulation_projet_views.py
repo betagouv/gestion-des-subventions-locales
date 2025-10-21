@@ -20,7 +20,11 @@ from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.forms import DotationProjetForm, ProjetForm
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
-from gsl_simulation.forms import RefuseProjetForm, SimulationProjetForm
+from gsl_simulation.forms import (
+    DismissProjetForm,
+    RefuseProjetForm,
+    SimulationProjetForm,
+)
 from gsl_simulation.models import SimulationProjet, SimulationProjetQuerySet
 from gsl_simulation.services.simulation_projet_service import (
     SimulationProjetService,
@@ -95,19 +99,14 @@ def patch_status_simulation_projet(request, pk):
         SimulationProjet.objects.in_user_perimeter(request.user), id=pk
     )
     status = request.POST.get("status")
-    motivation = request.POST.get("motivation")
 
-    if status == SimulationProjet.STATUS_REFUSED:
+    if status in [SimulationProjet.STATUS_REFUSED, SimulationProjet.STATUS_DISMISSED]:
         return HttpResponseBadRequest(
             "This endpoint is not for refused projects anymore (you need to fill the form)."
         )
 
     if status not in dict(SimulationProjet.STATUS_CHOICES).keys():
         raise ValueError("Invalid status")
-
-    if status in [SimulationProjet.STATUS_DISMISSED]:
-        if not isinstance(motivation, str) or len(motivation) < 1:
-            raise ValueError("Invalid motivation")
 
     try:
         programmation_projet = simulation_projet.dotation_projet.programmation_projet
@@ -119,7 +118,7 @@ def patch_status_simulation_projet(request, pk):
     try:
         with transaction.atomic():
             updated_simulation_projet = SimulationProjetService.update_status(
-                simulation_projet, status, request.user, motivation
+                simulation_projet, status, request.user
             )
 
     except DsServiceException as e:  # rollback the transaction + show error
@@ -449,10 +448,8 @@ def _get_other_dotation_simulation_projet(
 
 
 @method_decorator(htmx_only, name="dispatch")
-class RefuseProjetModalView(UpdateView):
-    template_name = "htmx/refuse_confirmation_form.html"
+class RefuseOrDismissProjetModalBaseView(UpdateView):
     context_object_name = "simulation_projet"
-    form_class = RefuseProjetForm
 
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
@@ -483,17 +480,31 @@ class RefuseProjetModalView(UpdateView):
 
     def form_valid(self, form):
         try:
-            form.save(instructeur_id=self.request.user.ds_id)
+            form.save(user=self.request.user)
         except DsServiceException as e:
             form.add_error(
                 None,
-                f"Une erreur est survenue lors de la soumission du formulaire. {str(e)}",
+                f"Une erreur est survenue lors de l'envoi à Démarche Simplifiées. {str(e)}",
             )
             return super().form_invalid(form)
 
         messages.success(
-            self.request, "Le projet a bien été refusé sur Démarches Simplifiées."
+            self.request, self.success_message, extra_tags=self.object.projet.status
         )
         return (
             HttpResponseClientRefresh()
         )  # we reload the page without the modal and with the success message
+
+
+class RefuseProjetModalView(RefuseOrDismissProjetModalBaseView):
+    template_name = "htmx/refuse_confirmation_form.html"
+    form_class = RefuseProjetForm
+    success_message = "Le projet a bien été refusé sur Démarches Simplifiées."
+
+
+class DismissProjetModalView(RefuseOrDismissProjetModalBaseView):
+    template_name = "htmx/dismiss_confirmation_form.html"
+    form_class = DismissProjetForm
+    success_message = (
+        "Le projet a bien été classé sans suite sur Démarches Simplifiées."
+    )

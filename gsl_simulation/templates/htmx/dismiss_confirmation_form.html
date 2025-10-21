@@ -3,7 +3,7 @@
         <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
             <div class="fr-modal__body">
                 <div class="fr-modal__header">
-                    <button aria-controls="refuse-confirmation-modal"
+                    <button aria-controls="dismiss-confirmation-modal"
                             title="Fermer"
                             type="button"
                             class="fr-btn--close fr-btn close-modal">
@@ -11,19 +11,20 @@
                     </button>
                 </div>
                 <div class="fr-modal__content">
-                    <h1 class="fr-modal__title fr-text-default--error"
-                        id="refuse-confirmation-modal-title">
+                    <h1 class="fr-modal__title fr-text-default--warning"
+                        id="dismiss-confirmation-modal-title">
                         <i class="fr-icon-warning-fill"></i>
-                        Refuser le projet
+                        <span class="fr-icon-checkbox-fill fr-icon--lg" aria-hidden="true"></span> Classer sans suite la
+                        demande de financement
                     </h1>
                     <p>
-                        Ce projet va être refusé dans toutes les simulations dans lesquelles il a été ajouté.
+                        Ce projet va être classé sans suite dans toutes les simulations dans lesquelles il a été ajouté.
                         Le demandeur va être notifié.
                     </p>
-                    <form id="refuse-confirmation-form"
-                          hx-post="{% url 'gsl_simulation:refuse-form' simulation_projet.id %}"
+                    <form id="dismiss-confirmation-form"
+                          hx-post="{% url 'gsl_simulation:dismiss-form' simulation_projet.id %}"
                           hx-encoding="multipart/form-data"
-                          hx-target="#refuse-confirmation-modal"
+                          hx-target="#dismiss-confirmation-modal"
                           hx-swap="innerHTML">
                         {{ form }}
                     </form>
@@ -42,13 +43,13 @@
 
                 <div class="fr-modal__footer confirmation-modal-footer">
                     <button class="fr-btn fr-btn--secondary"
-                            aria-controls="refuse-confirmation-modal">
+                            aria-controls="dismiss-confirmation-modal">
                         Annuler
                     </button>
                     <button type="submit"
                             class="fr-btn fr-btn--primary"
-                            form="refuse-confirmation-form">
-                        Refuser
+                            form="dismiss-confirmation-form">
+                        Classer sans suite
                     </button>
                 </div>
             </div>

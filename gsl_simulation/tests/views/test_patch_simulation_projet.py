@@ -182,32 +182,6 @@ def test_patch_status_simulation_projet_gives_message(
     assert message.extra_tags == expected_tag
 
 
-@mock.patch("gsl_demarches_simplifiees.services.DsService.dismiss_in_ds")
-def test_dismiss_projet(mock_dismiss_in_ds, client_with_user_logged, simulation_projet):
-    data = {"status": SimulationProjet.STATUS_DISMISSED, "motivation": "Ma motivation"}
-
-    url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
-    )
-    response = client_with_user_logged.post(url, data, follow=True)
-
-    mock_dismiss_in_ds.assert_called_once_with(
-        simulation_projet.projet.dossier_ds,
-        client_with_user_logged.user,
-        "Ma motivation",
-    )
-
-    assert response.status_code == 200
-
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-
-    message = list(messages)[0]
-    assert message.level == 20
-    assert message.message == "Le projet est classé sans suite."
-    assert message.extra_tags == "dismissed"
-
-
 @pytest.mark.parametrize("data", ({"status": "invalid_status"}, {}))
 def test_patch_status_simulation_projet_invalid_status(
     client_with_user_logged, simulation_projet, data

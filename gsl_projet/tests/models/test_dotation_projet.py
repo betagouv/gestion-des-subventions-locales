@@ -396,18 +396,22 @@ def test_refuse_with_an_dotation_enveloppe_different_from_the_dotation():
     ),
 )
 def test_dismiss(status, montant):
+    enveloppe = DetrEnveloppeFactory()
     dotation_projet = DotationProjetFactory(status=status, dotation=DOTATION_DETR)
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_REFUSED
-        if dotation_projet.status == PROJET_STATUS_REFUSED
-        else ProgrammationProjet.STATUS_ACCEPTED,
+        enveloppe=enveloppe,
+        status=(
+            ProgrammationProjet.STATUS_REFUSED
+            if dotation_projet.status == PROJET_STATUS_REFUSED
+            else ProgrammationProjet.STATUS_ACCEPTED
+        ),
     )
 
     simulation_projet_status = (
         SimulationProjet.STATUS_REFUSED
         if dotation_projet.status == PROJET_STATUS_REFUSED
-        else ProgrammationProjet.STATUS_ACCEPTED
+        else SimulationProjet.STATUS_ACCEPTED
     )
 
     SimulationProjetFactory.create_batch(
@@ -417,14 +421,16 @@ def test_dismiss(status, montant):
         montant=montant,
     )
 
-    dotation_projet.dismiss()
+    dotation_projet.dismiss(enveloppe=enveloppe)
     dotation_projet.save()
     dotation_projet.refresh_from_db()
 
     assert dotation_projet.status == PROJET_STATUS_DISMISSED
     assert (
-        ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).count() == 0
+        ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).count() == 1
     )
+    programmation_projet = ProgrammationProjet.objects.get()
+    assert programmation_projet.status == ProgrammationProjet.STATUS_DISMISSED
     simulation_projets = SimulationProjet.objects.filter(
         dotation_projet=dotation_projet
     )
@@ -436,6 +442,7 @@ def test_dismiss(status, montant):
 
 
 def test_dismiss_from_processing():
+    enveloppe = DetrEnveloppeFactory()
     dotation_projet = DotationProjetFactory(
         status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
     )
@@ -446,13 +453,13 @@ def test_dismiss_from_processing():
         montant=500,
     )
 
-    dotation_projet.dismiss()
+    dotation_projet.dismiss(enveloppe=enveloppe)
     dotation_projet.save()
     dotation_projet.refresh_from_db()
 
     assert dotation_projet.status == PROJET_STATUS_DISMISSED
     assert (
-        ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).count() == 0
+        ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).count() == 1
     )
     simulation_projets = SimulationProjet.objects.filter(
         dotation_projet=dotation_projet

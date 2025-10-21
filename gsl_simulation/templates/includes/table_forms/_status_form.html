@@ -9,14 +9,11 @@
     {% csrf_token %}
     <select class="fr-select gsl-projet-table__select input-simulation-projet-{{ simu.pk }} input-status-select-{{ simu.status }} status-select"
             name="status"
-            data-original-value="{{ simu.status }}"
-            hx-get="{% url 'gsl_simulation:refuse-form' simu.id %}"
-            hx-trigger="refuse-confirmation-modal"
-            hx-swap="innerHTML"
-            hx-target="#refuse-confirmation-modal"
-            hx-disabled-elt="self">
+            data-original-value="{{ simu.status }}">
         {% for key, value in available_states %}
-            <option value={{ key }} {% if simu.status == key %} selected {% endif %}>
+            <option value="{{ key }}"
+                    {% if simu.status == key %} selected {% endif %}
+                    {% if key == 'cancelled' %} hx-get="{% url 'gsl_simulation:refuse-form' simu.id %}" hx-trigger="refuse-confirmation-modal" hx-swap="innerHTML" hx-target="#refuse-confirmation-modal" {% elif key == 'dismissed' %} hx-get="{% url 'gsl_simulation:dismiss-form' simu.id %}" hx-trigger="dismiss-confirmation-modal" hx-swap="innerHTML" hx-target="#dismiss-confirmation-modal" {% endif %}>
                 {{ value }}
             </option>
         {% endfor %}

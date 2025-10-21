@@ -220,9 +220,11 @@ class ProgrammationProjet(models.Model):
 
     STATUS_ACCEPTED = "accepted"
     STATUS_REFUSED = "refused"
+    STATUS_DISMISSED = "dismissed"
     STATUS_CHOICES = (
         (STATUS_ACCEPTED, "✅ Accepté"),
         (STATUS_REFUSED, "❌ Refusé"),
+        (STATUS_DISMISSED, "⛔️ Classé sans suite"),
     )
 
     dotation_projet = models.OneToOneField(

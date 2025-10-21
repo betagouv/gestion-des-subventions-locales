@@ -10,6 +10,7 @@ from gsl_simulation.views.simulation_projet_annotations_views import (
     get_note_card,
 )
 from gsl_simulation.views.simulation_projet_views import (
+    DismissProjetModalView,
     ProjetFormView,
     RefuseProjetModalView,
     SimulationProjetDetailView,
@@ -75,6 +76,11 @@ urlpatterns = [
         "<int:pk>/refuser/",
         RefuseProjetModalView.as_view(),
         name="refuse-form",
+    ),
+    path(
+        "<int:pk>/classer-sans-suite/",
+        DismissProjetModalView.as_view(),
+        name="dismiss-form",
     ),
     path(
         "creation-simulation",

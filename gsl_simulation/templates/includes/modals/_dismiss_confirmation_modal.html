@@ -1,37 +1,4 @@
-{% extends "includes/modals/modal_base.html" %}
-{% block modal_id %}
-    dismiss-confirmation-modal
-{% endblock modal_id %}
-
-{% block controller %}
-    process-modal
-{% endblock controller %}
-
-{% block content %}
-    <h1 class="fr-modal__title dismiss-color">
-        <span class="fr-icon-checkbox-fill fr-icon--lg" aria-hidden="true"></span> Classer sans suite la demande de financement
-    </h1>
-    <p>
-        Ce projet va être classé sans suite dans toutes les simulations dans lesquelles il a été ajouté.
-        Le demandeur va être notifié.
-    </p>
-    <div class="fr-input-group">
-        <label class="fr-label" for="motivation">
-            Motivation envoyé au demandeur (obligatoire). Expliquez pourquoi ce dossier est classé sans suite :
-        </label>
-        <textarea class="fr-input"
-                  id="motivation"
-                  name="motivation"
-                  form="status-form"
-                  required
-                  data-action="process-modal#updateButton"></textarea>
-    </div>
-{% endblock content %}
-
-{% block confirmation_button %}
-    <button class="fr-btn fr-btn--primary dismiss-button"
-            id="confirmChange"
-            data-process-modal-target='confirmationButton'>
-        Classer sans suite
-    </button>
-{% endblock confirmation_button %}
+<dialog class="fr-modal confirmation-modal"
+        id="dismiss-confirmation-modal"
+        aria-labelledby="dismiss-confirmation-modal-title">
+</dialog>
