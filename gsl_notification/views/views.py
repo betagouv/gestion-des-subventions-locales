@@ -68,6 +68,8 @@ class NotificationDocumentsView(DetailView):
                     ],
                     "current": title,
                 },
+                "is_instructor": self.request.user.ds_id
+                in self.object.dossier.ds_instructeurs.values_list("ds_id", flat=True),
             }
         )
 
