@@ -305,7 +305,10 @@ class Collegue(AbstractUser):
         Perimetre, on_delete=models.PROTECT, null=True, blank=True
     )
     ds_profile = models.ForeignKey(
-        "gsl_demarches_simplifiees.Profile", on_delete=models.SET_NULL, null=True
+        "gsl_demarches_simplifiees.Profile",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
     )
 
     @property
