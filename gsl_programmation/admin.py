@@ -13,25 +13,53 @@ from .resources import EnveloppeDETRResource, EnveloppeDSILResource
 class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
     resource_classes = (EnveloppeDETRResource, EnveloppeDSILResource)
     list_display = (
-        "__str__",
-        "deleguee_by",
-        "formatted_amount",
+        "pk",
         "dotation",
         "annee",
+        "region_name",
+        "departement_name",
+        "arrondissement_name",
+        "formatted_amount",
         "simulations_count",
+        "deleguee_by",
     )
-    list_filter = ("dotation", "annee")
-    search_fields = (
+    list_filter = (
         "dotation",
         "annee",
         "perimetre__region__name",
         "perimetre__departement__name",
-        "perimetre__arrondissement__name",
+    )
+    search_fields = (
+        "dotation",
+        "annee",
+        "region_name",
+        "departement_name",
+        "arrondissement_name",
     )
     autocomplete_fields = (
         "deleguee_by",
         "perimetre",
     )
+
+    def region_name(self, obj):
+        return obj.perimetre.region.name
+
+    region_name.admin_order_field = "region_name"
+    region_name.short_description = "Région"
+
+    def departement_name(self, obj):
+        return obj.perimetre.departement.name if obj.perimetre.departement else None
+
+    departement_name.admin_order_field = "departement_name"
+    departement_name.short_description = "Département"
+
+    def arrondissement_name(self, obj):
+        return (
+            obj.perimetre.arrondissement.name if obj.perimetre.arrondissement else None
+        )
+
+    arrondissement_name.admin_order_field = "arrondissement_name"
+    arrondissement_name.short_description = "Arrondissement"
 
     def formatted_amount(self, obj):
         return euro(obj.montant)
