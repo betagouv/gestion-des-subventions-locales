@@ -6,15 +6,10 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 """
 
 from django.contrib import admin
-from django.shortcuts import render
 from django.urls import include, path
 
 from gsl import settings
-
-
-def no_perimeter_view(request):
-    return render(request, "no_perimetre.html")
-
+from gsl_core.views import no_perimeter_view
 
 urlpatterns = [
     path("admin/", admin.site.urls),

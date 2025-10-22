@@ -20,6 +20,10 @@ class CheckPerimeterMiddleware:
             reverse("coming-features"),
         ]
         excluded_beginning_paths = ["/admin/", "/oidc/", "/__debug__/"]
+        admin_allowed_paths = ["/ds/"]
+
+        if user.is_staff:
+            excluded_beginning_paths.extend(admin_allowed_paths)
 
         for path in excluded_beginning_paths:
             if request.path.startswith(path):

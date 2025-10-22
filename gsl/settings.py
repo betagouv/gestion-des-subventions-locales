@@ -105,7 +105,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
-    "gsl.middlewares.CheckPerimeterMiddleware",
+    "gsl_core.middlewares.CheckPerimeterMiddleware",
 ]
 
 if DEBUG:
