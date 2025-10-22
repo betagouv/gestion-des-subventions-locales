@@ -257,15 +257,33 @@ class EnveloppeDeleteView(DeleteView):
             )
         )
 
-    def post(self, request, *args, **kwargs):
+    def form_valid(self, form):
         try:
-            return self.delete(request, *args, **kwargs)
-        except ProtectedError:
-            simulation_count = self.get_object().simulation_set.count()
-            plural = "s" if simulation_count > 1 else ""
-            verbe = "sont" if simulation_count > 1 else "est"
+            return super().form_valid(form)
+        except ProtectedError as e:
+            object_classes = {}
+            for obj in e.protected_objects:
+                if obj._meta.model_name not in object_classes:
+                    object_classes[obj._meta.model_name] = 1
+                else:
+                    object_classes[obj._meta.model_name] += 1
+
+            objects_count = sum(object_classes.values())
+            msgs = []
+            if "simulation" in object_classes:
+                simulations_count = object_classes["simulation"]
+                plural = "s" if simulations_count > 1 else ""
+                msgs.append(f"{simulations_count} simulation{plural}")
+
+            if "enveloppe" in object_classes:
+                enveloppe_count = object_classes["enveloppe"]
+                plural = "s" if enveloppe_count > 1 else ""
+                msgs.append(f"{enveloppe_count} enveloppe{plural}")
+
+            verbe = "est" if objects_count == 1 else "sont"
+            plural = "" if objects_count == 1 else "s"
             messages.error(
                 self.request,
-                f"Suppression impossible : {simulation_count} simulation{plural} {verbe} rattachée{plural} à cette enveloppe.",
+                f"Suppression impossible : {' et '.join(msgs)} {verbe} rattachée{plural} à cette enveloppe.",
             )
             return redirect(self.success_url)
