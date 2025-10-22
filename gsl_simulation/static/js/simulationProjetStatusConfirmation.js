@@ -154,9 +154,6 @@ document.querySelectorAll('#confirmChange').forEach((e) => {
 })
 
 document.addEventListener('keydown', function (event) {
-  if (event.key === 'Enter' && selectedElement) {
-    selectedElement.form.submit()
-  }
   if (event.key === 'Escape' && selectedElement) {
     closeModal()
   }
