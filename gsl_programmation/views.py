@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.db.models import ProtectedError
 from django.http import Http404
 from django.shortcuts import redirect
+from django.template.defaultfilters import pluralize
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_POST
@@ -280,10 +281,8 @@ class EnveloppeDeleteView(DeleteView):
                 plural = "s" if enveloppe_count > 1 else ""
                 msgs.append(f"{enveloppe_count} enveloppe{plural}")
 
-            verbe = "est" if objects_count == 1 else "sont"
-            plural = "" if objects_count == 1 else "s"
             messages.error(
                 self.request,
-                f"Suppression impossible : {' et '.join(msgs)} {verbe} rattachée{plural} à cette enveloppe.",
+                f"Suppression impossible : {' et '.join(msgs)} {pluralize(objects_count, 'est,sont')} rattachée{pluralize(objects_count, 's')} à cette enveloppe.",
             )
             return redirect(self.success_url)
