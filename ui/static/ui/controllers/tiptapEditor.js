@@ -31,12 +31,16 @@ export class TipTapEditor extends Controller {
       this.boundClickOutside = this.clickOutside.bind(this)
       document.addEventListener('click', this.boundClickOutside)
     }
+    this.handleBeforeSwap = this._beforeSwap.bind(this)
+    document.body.addEventListener('htmx:beforeSwap', this.handleBeforeSwap)
   }
 
   disconnect () {
     if (this.boundClickOutside) {
       document.removeEventListener('click', this.boundClickOutside)
     }
+    document.body.removeEventListener('htmx:beforeSwap', this.handleBeforeSwap)
+    if (this.editor) this.editor.destroy()
   }
 
   insertMention (event) {
@@ -66,6 +70,19 @@ export class TipTapEditor extends Controller {
 
   // Private
 
+  _beforeSwap (event) {
+    const target = event.detail.target
+
+    // We only act if the target is our editor
+    if (target?.classList?.contains('tiptap')) {
+      event.preventDefault() // Prevent htmx from swapping the content
+      let html = event.detail.xhr.response
+      // Clean up the HTML (delete whitespace between tags)
+      html = html.replace(/>\s+</g, '><').trim()
+      this.editor.commands.setContent(html)
+    }
+  }
+
   _setEditor () {
     if (!this.hasEditorTarget) {
       console.warn('No tiptap editor target !')
@@ -76,9 +93,6 @@ export class TipTapEditor extends Controller {
     this.editor = new Editor({
       element: this.editorTarget,
       extensions: this._getExtensions(),
-      parseOptions: {
-        preserveWhitespace: 'full'
-      },
       onCreate ({ editor }) {
         editor.commands.setContent(contentInput.value)
         contentInput.value = editor.getHTML()
