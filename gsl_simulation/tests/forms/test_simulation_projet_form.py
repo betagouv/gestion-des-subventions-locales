@@ -6,7 +6,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 
 from gsl_core.models import Collegue
-from gsl_core.tests.factories import CollegueFactory
+from gsl_core.tests.factories import CollegueWithDSProfileFactory
 from gsl_projet.tests.factories import DetrProjetFactory
 from gsl_simulation.forms import SimulationProjetForm
 from gsl_simulation.models import SimulationProjet
@@ -182,7 +182,7 @@ def test_montant_cant_be_higher_than_assiette(simulation_projet):
 
 @pytest.fixture
 def user() -> Collegue:
-    return cast(Collegue, CollegueFactory(ds_id="123"))
+    return cast(Collegue, CollegueWithDSProfileFactory())
 
 
 def test_save_with_assiette_field_exceptions(simulation_projet, user):

@@ -8,7 +8,7 @@ from django.urls import reverse
 
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
-    CollegueFactory,
+    CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
 from gsl_programmation.tests.factories import (
@@ -42,7 +42,7 @@ def simulation(detr_enveloppe):
 
 @pytest.fixture
 def collegue(perimetre_departemental):
-    return CollegueFactory(perimetre=perimetre_departemental, ds_id="XXX")
+    return CollegueWithDSProfileFactory(perimetre=perimetre_departemental)
 
 
 @pytest.fixture

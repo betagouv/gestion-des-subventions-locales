@@ -588,7 +588,7 @@ class AutreAide(DsChoiceLibelle):
 
 class Profile(DsModel):
     ds_id = models.CharField("Identifiant DS", unique=True)
-    ds_email = models.EmailField("E-mail")
+    ds_email = models.EmailField("E-mail", unique=True)
 
     class Meta:
         verbose_name = "Profil DS"

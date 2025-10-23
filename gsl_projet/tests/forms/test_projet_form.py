@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 from django import forms
 
-from gsl_core.tests.factories import CollegueFactory
+from gsl_core.tests.factories import CollegueWithDSProfileFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.forms import ProjetForm
 from gsl_projet.models import Projet
@@ -21,7 +21,7 @@ def projet():
 
 @pytest.fixture
 def user():
-    return CollegueFactory(ds_id="123")
+    return CollegueWithDSProfileFactory()
 
 
 @pytest.mark.django_db

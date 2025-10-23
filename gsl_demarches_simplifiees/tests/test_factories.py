@@ -7,6 +7,7 @@ from gsl_demarches_simplifiees.models import (
     FieldMappingForComputer,
     NaturePorteurProjet,
     PersonneMorale,
+    Profile,
 )
 
 from .factories import (
@@ -16,6 +17,7 @@ from .factories import (
     FieldMappingForComputerFactory,
     NaturePorteurProjetFactory,
     PersonneMoraleFactory,
+    ProfileFactory,
 )
 
 pytestmark = pytest.mark.django_db
@@ -27,6 +29,7 @@ test_data = (
     (DsArrondissementFactory, Arrondissement),
     (PersonneMoraleFactory, PersonneMorale),
     (FieldMappingForComputerFactory, FieldMappingForComputer),
+    (ProfileFactory, Profile),
 )
 
 

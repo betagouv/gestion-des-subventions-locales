@@ -116,7 +116,7 @@ class DsService:
     def _get_instructeur_id(self, user: Collegue) -> str:
         instructeur_id = user.ds_id
         if bool(instructeur_id):
-            return instructeur_id
+            return str(instructeur_id)
 
         logger.error("User does not have DS id.", extra={"user_id": user.id})
         raise InstructeurUnknown

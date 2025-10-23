@@ -17,6 +17,7 @@ from gsl_demarches_simplifiees.services import (
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     FieldMappingForComputerFactory,
+    ProfileFactory,
 )
 
 pytestmark = pytest.mark.django_db
@@ -24,7 +25,7 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def user():
-    return CollegueFactory(ds_id=123)
+    return CollegueFactory(ds_profile=ProfileFactory())
 
 
 @pytest.fixture
@@ -167,7 +168,7 @@ def test_update_annotation_field_success(
 
 def test_get_instructeur_id(caplog):
     caplog.set_level(logging.ERROR)
-    user = CollegueFactory(ds_id="")
+    user = CollegueFactory()
     service = DsService()
 
     with pytest.raises(InstructeurUnknown):

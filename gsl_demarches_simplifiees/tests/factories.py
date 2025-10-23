@@ -19,6 +19,7 @@ from ..models import (
     FieldMappingForComputer,
     NaturePorteurProjet,
     PersonneMorale,
+    Profile,
 )
 
 
@@ -65,6 +66,14 @@ class NaturePorteurProjetFactory(factory.django.DjangoModelFactory):
         model = NaturePorteurProjet
 
     label = factory.Sequence(lambda n: f"nature-porteur-projet-{n}")
+
+
+class ProfileFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Profile
+
+    ds_id = factory.Sequence(lambda n: f"user-{n}")
+    ds_email = factory.Faker("email")
 
 
 @factory.django.mute_signals(post_save)
