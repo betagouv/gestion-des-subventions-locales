@@ -293,8 +293,8 @@ CONTENT_SECURITY_POLICY = {
         "default-src": [SELF],
         "img-src": [SELF, "data:", "stats.beta.gouv.fr"],
         "style-src": [SELF, NONCE],
-        "script-src": [SELF, NONCE, "stats.beta.gouv.fr", "https://esm.sh"],
-        "connect-src": [SELF, "https://stats.beta.gouv.fr", "https://esm.sh"],
+        "script-src": [SELF, NONCE, "stats.beta.gouv.fr"],
+        "connect-src": [SELF, "https://stats.beta.gouv.fr"],
     },
 }
 
