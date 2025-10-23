@@ -27,3 +27,7 @@ def coming_features_view(request):
         "gsl_pages/coming_features.html",
         {"title": "Fonctionnalités à venir"},
     )
+
+
+def no_perimeter_view(request):
+    return render(request, "no_perimetre.html")
