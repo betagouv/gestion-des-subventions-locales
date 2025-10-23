@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, UniqueConstraint
 from django.utils.functional import cached_property
+from django.utils.translation import gettext_lazy as _
 
 
 class BaseModel(models.Model):
@@ -286,6 +287,7 @@ class Perimetre(BaseModel):
 
 
 class Collegue(AbstractUser):
+    email = models.EmailField(_("email address"), blank=True, unique=True)
     proconnect_sub = models.UUIDField(
         "Identifiant unique proconnect", null=True, blank=True
     )
