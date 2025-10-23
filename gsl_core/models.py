@@ -312,10 +312,10 @@ class Collegue(AbstractUser):
     )
 
     @property
-    def ds_id(self) -> str | None:
+    def ds_id(self) -> str:
         if self.ds_profile:
             return self.ds_profile.ds_id
-        return None
+        return ""
 
     def __str__(self) -> str:
         if self.first_name or self.last_name:

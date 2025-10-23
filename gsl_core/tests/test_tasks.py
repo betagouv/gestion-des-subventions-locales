@@ -30,7 +30,7 @@ def test_associate_or_update_ds_profile_to_users():
     assert user_with_ds_profile.ds_id == "abcdefgh"
 
     user_not_in_ds_profiles.refresh_from_db()
-    assert user_not_in_ds_profiles.ds_id is None
+    assert user_not_in_ds_profiles.ds_id == ""
 
 
 @pytest.mark.django_db(transaction=True)
