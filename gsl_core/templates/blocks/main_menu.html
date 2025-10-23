@@ -16,27 +16,29 @@
              id="fr-navigation"
              aria-label="{{ main_menu_label }}">
             <ul class="fr-nav__list">
-                <li class="fr-nav__item">
-                    {% url 'projet:list' as projets_url %}
-                    <a class="fr-nav__link"
-                       href="{{ projets_url }}"
-                       target="_self"
-                       {% if "/projets/" in request.path %}aria-current="true"{% endif %}>1 - Projets</a>
-                </li>
-                <li class="fr-nav__item">
-                    {% url 'simulation:simulation-list' as simulations_url %}
-                    <a class="fr-nav__link"
-                       href="{{ simulations_url }}"
-                       target="_self"
-                       {% if "/simulation/" in request.path %}aria-current="true"{% endif %}>2 - Simulations</a>
-                </li>
-                <li class="fr-nav__item">
-                    {% url 'programmation:programmation-projet-list' as programmations_url %}
-                    <a class="fr-nav__link"
-                       href="{{ programmations_url }}"
-                       target="_self"
-                       {% if "/programmation/" in request.path or "/notification/" in request.path %}aria-current="true"{% endif %}>3 - Programmations</a>
-                </li>
+                {% if request.user.is_authenticated and request.user.perimetre %}
+                    <li class="fr-nav__item">
+                        {% url 'projet:list' as projets_url %}
+                        <a class="fr-nav__link"
+                           href="{{ projets_url }}"
+                           target="_self"
+                           {% if "/projets/" in request.path %}aria-current="true"{% endif %}>1 - Projets</a>
+                    </li>
+                    <li class="fr-nav__item">
+                        {% url 'simulation:simulation-list' as simulations_url %}
+                        <a class="fr-nav__link"
+                           href="{{ simulations_url }}"
+                           target="_self"
+                           {% if "/simulation/" in request.path %}aria-current="true"{% endif %}>2 - Simulations</a>
+                    </li>
+                    <li class="fr-nav__item">
+                        {% url 'programmation:programmation-projet-list' as programmations_url %}
+                        <a class="fr-nav__link"
+                           href="{{ programmations_url }}"
+                           target="_self"
+                           {% if "/programmation/" in request.path or "/notification/" in request.path %}aria-current="true"{% endif %}>3 - Programmations</a>
+                    </li>
+                {% endif %}
                 <li class="fr-nav__item">
                     {% url 'coming-features' as coming_features_url %}
                     <a class="fr-nav__link"

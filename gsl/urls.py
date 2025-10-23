@@ -1,7 +1,7 @@
 """gsl URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/4.1/topics/http/urls/
+    https://docs.djangoproject.com/en/5.2/topics/http/urls/
 
 """
 
@@ -9,6 +9,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 from gsl import settings
+from gsl_core.views import no_perimeter_view
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -32,6 +33,7 @@ urlpatterns = [
         "notification/",
         include(("gsl_notification.urls", "gsl_notification"), "notification"),
     ),
+    path("sans-perimetre/", no_perimeter_view, name="no_perimeter"),
 ]
 
 if settings.DEBUG:

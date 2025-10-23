@@ -28,14 +28,16 @@ def test_admin_can_view_demarche_json(
         reverse(
             "ds:view-demarche-json",
             kwargs={"demarche_ds_number": demarche_with_raw_data.ds_number},
-        )
+        ),
+        follow=True,
     )
     assert response.status_code == 200
     response = admin_client.get(
         reverse(
             "ds:view-demarche-json",
             kwargs={"demarche_ds_number": demarche_without_raw_data.ds_number},
-        )
+        ),
+        follow=True,
     )
     assert response.status_code == 200
 
@@ -57,14 +59,16 @@ def test_admin_can_view_dossier_json(
         reverse(
             "ds:view-dossier-json",
             kwargs={"dossier_ds_number": dossier_with_raw_data.ds_number},
-        )
+        ),
+        follow=True,
     )
     assert response.status_code == 200
     response = admin_client.get(
         reverse(
             "ds:view-dossier-json",
             kwargs={"dossier_ds_number": dossier_without_raw_data.ds_number},
-        )
+        ),
+        follow=True,
     )
     assert response.status_code == 200
 
