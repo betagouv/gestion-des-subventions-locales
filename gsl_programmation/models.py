@@ -57,7 +57,7 @@ class Enveloppe(models.Model):
         "self",
         verbose_name="Enveloppe déléguée",
         null=True,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         blank=True,
     )
 

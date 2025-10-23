@@ -129,18 +129,26 @@ class TestSubEnveloppeDeleteView:
         perimetre_dept = PerimetreDepartementalFactory(
             departement=perimetre_arr.departement, region=perimetre_arr.region
         )
+        perimetr_reg = PerimetreRegionalFactory(region=perimetre_dept.region)
         user.perimetre = perimetre_dept
         user.save()
         client = ClientWithLoggedUserFactory(user=user)
 
         # Create a delegated sub-enveloppe
-        parent_enveloppe = DsilEnveloppeFactory(perimetre=perimetre_dept, annee=2024)
+        parent_enveloppe = DsilEnveloppeFactory(perimetre=perimetr_reg, annee=2024)
         sub_enveloppe = Enveloppe.objects.create(
             dotation=DOTATION_DSIL,
             montant=1500,
             annee=parent_enveloppe.annee,
-            perimetre=perimetre_arr,
+            perimetre=perimetre_dept,
             deleguee_by=parent_enveloppe,
+        )
+        _sub_sub_enveloppe = Enveloppe.objects.create(
+            dotation=DOTATION_DSIL,
+            montant=500,
+            annee=parent_enveloppe.annee,
+            perimetre=perimetre_arr,
+            deleguee_by=sub_enveloppe,
         )
 
         # Create a simulation linked to the sub-enveloppe
@@ -154,6 +162,6 @@ class TestSubEnveloppeDeleteView:
         assert response.status_code == 200
         message = list(response.context["messages"])[0]
         assert (
-            "Suppression impossible : 1 simulation est rattachée à cette enveloppe."
+            "Suppression impossible : 1 simulation et 1 enveloppe sont rattachées à cette enveloppe."
             == message.message
         )
