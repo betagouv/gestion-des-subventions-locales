@@ -353,7 +353,7 @@ def test_dismiss_in_ds():
         results = {"results": {"data": {}}}
         mock_dossier_classer_sans_suite.return_value = results
 
-        ds_service.dismiss_in_ds(dossier, user, "motivation")
+        ds_service.dismiss_in_ds(dossier, user, motivation="motivation")
 
         mock_get_instructeur_id.assert_called_once_with(user)
         mock_dossier_classer_sans_suite.assert_called_once_with(

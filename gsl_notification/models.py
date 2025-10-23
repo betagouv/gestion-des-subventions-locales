@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from gsl_core.models import Collegue, Perimetre
+from gsl_notification.validators import document_file_validator, logo_file_validator
 from gsl_projet.constants import (
     ANNEXE,
     ARRETE,
@@ -47,6 +48,7 @@ class ModeleDocument(models.Model):
         verbose_name="Logo situé en haut à gauche",
         help_text="Taille maximale : 20 Mo. Formats acceptés : jpg, png.",
         upload_to=tokenized_file_in_timestamped_folder,
+        validators=[logo_file_validator],
     )
     logo_alt_text = models.CharField(
         verbose_name="Texte alternatif du logo",
@@ -152,6 +154,10 @@ class GeneratedDocument(models.Model):
             "notification:document-view",
             kwargs={"document_type": self.document_type, "document_id": self.id},
         )
+
+    @property
+    def is_generated(self):
+        return True
 
     @property
     def name(self):
@@ -268,7 +274,9 @@ class UploadedDocument(models.Model):
 
 
 class ArreteEtLettreSignes(UploadedDocument):
-    file = models.FileField(upload_to="arrete_et_lettre_signes/")
+    file = models.FileField(
+        upload_to="arrete_et_lettre_signes/", validators=[document_file_validator]
+    )
 
     programmation_projet = models.OneToOneField(
         "gsl_programmation.ProgrammationProjet",
@@ -289,7 +297,7 @@ class ArreteEtLettreSignes(UploadedDocument):
 
 
 class Annexe(UploadedDocument):
-    file = models.FileField(upload_to="annexe/")
+    file = models.FileField(upload_to="annexe/", validators=[document_file_validator])
 
     programmation_projet = models.ForeignKey(
         "gsl_programmation.ProgrammationProjet",

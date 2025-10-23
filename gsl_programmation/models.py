@@ -200,6 +200,11 @@ class ProgrammationProjetQuerySet(models.QuerySet):
     def to_notify(self):
         return self.filter(status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None)
 
+    def visible_to_user(self, user):
+        if user.is_staff:
+            return self.all()
+        return self.filter(dotation_projet__projet__in=Projet.objects.for_user(user))
+
 
 class ProgrammationProjetManager(
     models.Manager.from_queryset(ProgrammationProjetQuerySet)
@@ -215,9 +220,11 @@ class ProgrammationProjet(models.Model):
 
     STATUS_ACCEPTED = "accepted"
     STATUS_REFUSED = "refused"
+    STATUS_DISMISSED = "dismissed"
     STATUS_CHOICES = (
         (STATUS_ACCEPTED, "✅ Accepté"),
         (STATUS_REFUSED, "❌ Refusé"),
+        (STATUS_DISMISSED, "⛔️ Classé sans suite"),
     )
 
     dotation_projet = models.OneToOneField(
@@ -286,6 +293,32 @@ class ProgrammationProjet(models.Model):
     @property
     def dotation(self):
         return self.dotation_projet.dotation
+
+    @property
+    def documents(self):
+        from gsl_notification.models import (
+            Arrete,
+            ArreteEtLettreSignes,
+            LettreNotification,
+        )
+
+        return sorted(
+            (
+                document
+                for document in (
+                    Arrete.objects.filter(programmation_projet=self).first(),
+                    LettreNotification.objects.filter(
+                        programmation_projet=self
+                    ).first(),
+                    ArreteEtLettreSignes.objects.filter(
+                        programmation_projet=self
+                    ).first(),
+                    *list(self.annexes.prefetch_related("created_by").all()),
+                )
+                if document
+            ),
+            key=lambda d: d.created_at,
+        )
 
     def clean(self):
         errors = {}

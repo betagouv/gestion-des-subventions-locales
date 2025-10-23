@@ -1,12 +1,19 @@
 from logging import getLogger
 
 from django import forms
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.forms import ModelForm
+from django.utils import timezone
 from dsfr.forms import DsfrBaseForm
 
-from gsl_core.models import Perimetre
+from gsl_core.models import Collegue, Perimetre
+from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_demarches_simplifiees.mixins import DsUpdatableFields
+from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.services import DsService
+from gsl_notification.validators import document_file_validator
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.forms import DSUpdateMixin
 from gsl_projet.models import DotationProjet
@@ -177,3 +184,85 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
                 dotation_projet, initial_taux
             )
             self.cleaned_data["montant"] = instance.montant
+
+
+class RefuseProjetForm(DsfrBaseForm, forms.Form):
+    justification = forms.CharField(
+        label="Motivation envoyée au demandeur (obligatoire)",
+        help_text="Expliquez pourquoi ce dossier est refusé",
+        required=True,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+    justification_file = forms.FileField(
+        label="Ajouter un justificatif (optionnel)",
+        validators=[document_file_validator],
+        help_text=f"Taille maximale {settings.MAX_POST_FILE_SIZE_IN_MO} Mo. Formats supportés : jpg, png, pdf.",
+        required=False,
+    )
+
+    def __init__(self, instance, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.simulation_projet = instance
+
+    def save(self, user: Collegue):
+        with transaction.atomic():
+            self.simulation_projet.dotation_projet.refuse(
+                enveloppe=self.simulation_projet.enveloppe
+            )
+            self.simulation_projet.dotation_projet.save()
+            # Dossier was recently refreshed DS thanks to RefuseProjetModalView.
+            # Race conditions remain possible, but should be rare enough and just fail without any side effect.
+            if self.simulation_projet.dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:
+                DsMutator().dossier_passer_en_instruction(
+                    dossier_id=self.simulation_projet.dossier.ds_id,
+                    instructeur_id=user.ds_id,
+                )
+
+            DsMutator().dossier_refuser(
+                self.simulation_projet.dossier,
+                user.ds_id,
+                motivation=self.cleaned_data["justification"],
+                document=self.cleaned_data["justification_file"],
+            )
+            self.simulation_projet.dotation_projet.programmation_projet.notified_at = (
+                timezone.now()
+            )
+            self.simulation_projet.dotation_projet.programmation_projet.save()
+
+
+class DismissProjetForm(DsfrBaseForm, forms.Form):
+    justification = forms.CharField(
+        label="Motivation envoyée au demandeur (obligatoire)",
+        help_text="Expliquez pourquoi ce dossier est classé sans suite",
+        required=True,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+
+    def __init__(self, instance, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.simulation_projet = instance
+
+    def save(self, user: Collegue):
+        with transaction.atomic():
+            self.simulation_projet.dotation_projet.dismiss(
+                enveloppe=self.simulation_projet.enveloppe
+            )
+            self.simulation_projet.dotation_projet.save()
+            # Dossier was recently refreshed DS thanks to DismissProjetModalView.
+            # Race conditions remain possible, but should be rare enough and just fail without any side effect.
+            if self.simulation_projet.dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:
+                DsMutator().dossier_passer_en_instruction(
+                    dossier_id=self.simulation_projet.dossier.ds_id,
+                    instructeur_id=user.ds_id,
+                )
+
+            ds_service = DsService()
+            ds_service.dismiss_in_ds(
+                self.simulation_projet.dossier,
+                user,
+                motivation=self.cleaned_data["justification"],
+            )
+            self.simulation_projet.dotation_projet.programmation_projet.notified_at = (
+                timezone.now()
+            )
+            self.simulation_projet.dotation_projet.programmation_projet.save()

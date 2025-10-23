@@ -24,7 +24,6 @@ from gsl_projet.constants import (
     DOTATION_DETR,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
 )
 from gsl_projet.models import DotationProjet
 from gsl_projet.tests.factories import (
@@ -121,46 +120,11 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
     )
 
 
-def test_patch_status_simulation_projet_with_refused_value_with_htmx(
-    client_with_user_logged, simulation_projet
-):
-    url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
-    )
-    response = client_with_user_logged.post(
-        url,
-        {"status": f"{SimulationProjet.STATUS_REFUSED}"},
-        follow=True,
-        headers={"HX-Request": "true"},
-    )
-
-    simulation_projet.refresh_from_db()
-    dotation_projet = DotationProjet.objects.get(
-        id=simulation_projet.dotation_projet.id
-    )
-
-    assert response.status_code == 200
-    assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
-    assert dotation_projet.status == PROJET_STATUS_REFUSED
-    assert "0 projet validé" in response.content.decode()
-    assert "1 projet refusé" in response.content.decode()
-    assert "0 projet notifié" in response.content.decode()
-    assert (
-        '<span hx-swap-oob="innerHTML" id="total-amount-granted">0\xa0€</span>'
-        in response.content.decode()
-    )
-
-
 data_test = (
     (
         SimulationProjet.STATUS_ACCEPTED,
         "Le financement de ce projet vient d’être accepté avec la dotation DETR pour 1\xa0000,00\xa0€.",
         "valid",
-    ),
-    (
-        SimulationProjet.STATUS_REFUSED,
-        "Le financement de ce projet vient d’être refusé.",
-        "cancelled",
     ),
     (
         SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
@@ -216,32 +180,6 @@ def test_patch_status_simulation_projet_gives_message(
     assert message.level == INFO
     assert message.message == expected_message
     assert message.extra_tags == expected_tag
-
-
-@mock.patch("gsl_demarches_simplifiees.services.DsService.dismiss_in_ds")
-def test_dismiss_projet(mock_dismiss_in_ds, client_with_user_logged, simulation_projet):
-    data = {"status": SimulationProjet.STATUS_DISMISSED, "motivation": "Ma motivation"}
-
-    url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
-    )
-    response = client_with_user_logged.post(url, data, follow=True)
-
-    mock_dismiss_in_ds.assert_called_once_with(
-        simulation_projet.projet.dossier_ds,
-        client_with_user_logged.user,
-        "Ma motivation",
-    )
-
-    assert response.status_code == 200
-
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-
-    message = list(messages)[0]
-    assert message.level == 20
-    assert message.message == "Le projet est classé sans suite."
-    assert message.extra_tags == "dismissed"
 
 
 @pytest.mark.parametrize("data", ({"status": "invalid_status"}, {}))
@@ -830,3 +768,38 @@ def test_three_fields_update_and_only_one_error(
     assert accepted_simulation_projet.dotation_projet.assiette == 20_000
 
     assert accepted_simulation_projet.montant == 1_000  # default
+
+
+def test_patch_status_simulation_projet_blocked_when_programmation_notified(
+    client_with_user_logged, simulation_projet
+):
+    from datetime import date
+
+    from gsl_programmation.tests.factories import ProgrammationProjetFactory
+
+    # Mark the programmation as notified for this dotation_projet
+    ProgrammationProjetFactory(
+        dotation_projet=simulation_projet.dotation_projet,
+        notified_at=date.today(),
+    )
+
+    url = reverse(
+        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+    )
+
+    with patch(
+        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+    ) as mock_update_ds_montant:
+        mock_update_ds_montant.return_value = None
+        response = client_with_user_logged.post(
+            url,
+            {"status": f"{SimulationProjet.STATUS_ACCEPTED}"},
+            follow=True,
+            headers={"HX-Request": "true"},
+        )
+
+    # Should be blocked
+    assert response.status_code == 500
+    simulation_projet.refresh_from_db()
+    assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
+    mock_update_ds_montant.assert_not_called()
