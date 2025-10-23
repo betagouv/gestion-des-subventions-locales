@@ -124,7 +124,7 @@ def patch_status_simulation_projet(request, pk):
     except DsServiceException as e:  # rollback the transaction + show error
         messages.error(
             request,
-            f"Une erreur est survenue lors de la mise à jour du statut. {str(e)}",
+            f"{str(e)}",
         )
         return redirect_to_same_page_or_to_simulation_detail_by_default(
             request, simulation_projet
