@@ -243,10 +243,7 @@ def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
     assert len(messages) == 1
     message = list(messages)[0]
     assert message.level == 40
-    assert (
-        "Une erreur est survenue lors de la mise à jour du statut. Erreur !"
-        == message.message
-    )
+    assert "Erreur !" == message.message
     simulation_projet.refresh_from_db()
     assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING  # Not updated
     assert (
