@@ -9,9 +9,15 @@
   "private": true,
   "dependencies": {
     "@hotwired/stimulus": "^3",
+    "@tiptap/core": "^3.7.2",
+    "@tiptap/extension-highlight": "^3.7.2",
+    "@tiptap/extension-mention": "^3.7.2",
+    "@tiptap/extension-text-align": "^3.7.2",
+    "@tiptap/starter-kit": "^3.7.2",
     "htmx.org": "^2"
   },
   "devDependencies": {
+    "esbuild": "^0.25.11",
     "standard": "^17.1.2",
     "stylelint": "^16.23.1",
     "stylelint-config-standard": "^39.0.0"
@@ -20,7 +26,8 @@
     "lint:css": "stylelint \"**/*.css\"",
     "lint-fix:css": "stylelint --fix \"**/*.css\"",
     "format:js": "standard \"gsl_*/**/*.js\"",
-    "format-fix:js": "standard --fix \"gsl_*/**/*.js\""
+    "format-fix:js": "standard --fix \"gsl_*/**/*.js\"",
+    "build": "esbuild static/to_bundle/tiptap.js --bundle --format=esm --outfile=static/vendor/tiptap.js --minify"
   },
   "standard": {
     "globals": [

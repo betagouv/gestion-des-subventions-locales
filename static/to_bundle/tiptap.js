@@ -1,0 +1,5 @@
+export { Editor } from '@tiptap/core'
+export { default as Highlight } from '@tiptap/extension-highlight'
+export { default as Mention } from '@tiptap/extension-mention'
+export { default as StarterKit } from '@tiptap/starter-kit'
+export { default as TextAlign } from '@tiptap/extension-text-align'
