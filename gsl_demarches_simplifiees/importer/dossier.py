@@ -9,11 +9,6 @@ from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverte
 from gsl_demarches_simplifiees.models import Demarche, Dossier, Profile
 
 
-def camelcase(my_string):
-    s = my_string.title().replace("_", "")
-    return f"{s[0].lower()}{s[1:]}"
-
-
 def save_demarche_dossiers_from_ds(demarche_number):
     from gsl_demarches_simplifiees.tasks import task_refresh_dossier_from_saved_data
 
@@ -35,7 +30,7 @@ def save_demarche_dossiers_from_ds(demarche_number):
             )
 
 
-def save_one_dossier_from_ds(dossier: Dossier, client: DsClient = None):
+def save_one_dossier_from_ds(dossier: Dossier, client: DsClient | None = None):
     client = client or DsClient()
     dossier_data = client.get_one_dossier(dossier.ds_number)
     refresh_dossier_instructeurs(dossier_data, dossier)

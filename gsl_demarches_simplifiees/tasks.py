@@ -11,34 +11,45 @@ from gsl_demarches_simplifiees.importer.dossier import (
 from gsl_demarches_simplifiees.models import Demarche, Dossier
 
 
-@shared_task
-def task_save_demarche_from_ds(demarche_number):
-    return save_demarche_from_ds(demarche_number)
-
-
-@shared_task
-def task_refresh_field_mappings_on_demarche(demarche_number):
-    return refresh_field_mappings_on_demarche(demarche_number)
-
-
-@shared_task
-def task_save_demarche_dossiers_from_ds(demarche_number):
-    return save_demarche_dossiers_from_ds(demarche_number)
-
-
-@shared_task
-def task_refresh_dossier_from_saved_data(dossier_number):
-    dossier = Dossier.objects.get(ds_number=dossier_number)
-    refresh_dossier_from_saved_data(dossier)
-
-
+## Refresh demarches from DS
+#### of every demarches
 @shared_task
 def task_refresh_every_demarche():
     for d in Demarche.objects.all():
         task_save_demarche_from_ds.delay(d.ds_number)
 
 
+#### of one demarche
+@shared_task
+def task_save_demarche_from_ds(demarche_number):
+    return save_demarche_from_ds(demarche_number)
+
+
+## Refresh dossiers
+### from DS
+#### of every published demarches
 @shared_task
 def task_fetch_ds_dossiers_for_every_published_demarche():
     for d in Demarche.objects.filter(ds_state=Demarche.STATE_PUBLIEE):
         task_save_demarche_dossiers_from_ds.delay(d.ds_number)
+
+
+#### of one demarche
+@shared_task
+def task_save_demarche_dossiers_from_ds(demarche_number):
+    return save_demarche_dossiers_from_ds(demarche_number)
+
+
+### from saved data
+#### of one dossier
+@shared_task
+def task_refresh_dossier_from_saved_data(dossier_number):
+    dossier = Dossier.objects.get(ds_number=dossier_number)
+    refresh_dossier_from_saved_data(dossier)
+
+
+## Refresh demarche field mappings
+## from saved data if existing else from DS
+@shared_task
+def task_refresh_field_mappings_on_demarche(demarche_number):
+    return refresh_field_mappings_on_demarche(demarche_number)

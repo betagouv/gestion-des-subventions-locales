@@ -39,7 +39,7 @@ class ProgrammationProjetService:
         else:
             montant = 0
 
-        perimetre = cls.get_perimetre_from_dotation(
+        perimetre = cls._get_perimetre_from_dotation(
             dotation_projet.projet, dotation_projet.dotation
         )
         if perimetre is None:
@@ -76,7 +76,7 @@ class ProgrammationProjetService:
         return programmation_projet
 
     @classmethod
-    def get_perimetre_from_dotation(
+    def _get_perimetre_from_dotation(
         cls, projet: Projet, dotation: str
     ) -> Perimetre | None:
         if dotation == DOTATION_DETR:
