@@ -74,7 +74,7 @@ function showConfirmationModal (select, originalValue) {
   _associateFieldMotivationToForm(select, modal)
   _ensureButtonsAreEnabled(select, modal)
   dsfr(modal).modal.disclose()
-  htmx.trigger(select.querySelector('[value=' + status + ']'), modalId) // Load HTMX modals contents
+  htmx.trigger(select.querySelector('[value=' + status + ']') || select, modalId) // Load HTMX modals contents
 }
 
 function _associateFieldMotivationToForm (select, modal) {

@@ -12,8 +12,8 @@
         <div class="separator" aria-hidden="true">
         </div>
         {% include "includes/_status_radio_button.html" with status_value="valid" status_label="Accepté" icon="fr-icon-checkbox-circle-line" %}
-        {% include "includes/_status_radio_button.html" with status_value="cancelled" status_label="Refusé" icon="fr-icon-close-line" %}
-        {% include "includes/_status_radio_button.html" with status_value="dismissed" status_label="Classé sans suite" icon="fr-icon-subtract-line" %}
+        {% include "includes/_status_radio_button.html" with status_value="cancelled" status_label="Refusé" icon="fr-icon-close-line" modal_id="refuse-confirmation-modal" form_url="gsl_simulation:refuse-form" %}
+        {% include "includes/_status_radio_button.html" with status_value="dismissed" status_label="Classé sans suite" icon="fr-icon-subtract-line" modal_id="dismiss-confirmation-modal" form_url="gsl_simulation:dismiss-form" %}
         <div class="separator" aria-hidden="true">
         </div>
         {% include "includes/_status_radio_button.html" with status_value="draft" status_label="En traitement" icon="fr-icon-draft-line" %}
