@@ -33,12 +33,12 @@ class DotationProjetService:
         dotation_projets = []
         for dotation in dotations:
             dotation_projets.append(
-                cls.create_or_update_dotation_projet(projet, dotation)
+                cls._create_or_update_dotation_projet(projet, dotation)
             )
         return dotation_projets
 
     @classmethod
-    def create_or_update_dotation_projet(
+    def _create_or_update_dotation_projet(
         cls, projet: Projet, dotation: POSSIBLE_DOTATIONS
     ):
         detr_avis_commission = cls.get_detr_avis_commission(dotation, projet.dossier_ds)
@@ -129,7 +129,7 @@ class DotationProjetService:
             or montant > dotation_projet.assiette_or_cout_total
         ):
             raise ValueError(
-                f"Le montant {euro(montant)} doit être supérieur ou égal à 0 € et inférieur ou égal à {euro(dotation_projet.assiette_or_cout_total)}."
+                f"Le montant {euro(montant)} doit être supérieur ou égal à 0 € et inférieur ou égal à l'assiette ({euro(dotation_projet.assiette_or_cout_total)})."
             )
 
     @classmethod

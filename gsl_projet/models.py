@@ -320,7 +320,7 @@ class DotationProjet(models.Model):
 
     @property
     def assiette_or_cout_total(self):
-        if self.assiette:
+        if self.assiette is not None:
             return self.assiette
         return self.dossier_ds.finance_cout_total
 

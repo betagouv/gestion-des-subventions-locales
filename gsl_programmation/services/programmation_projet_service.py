@@ -1,17 +1,25 @@
 import logging
 
 from gsl_core.models import Perimetre
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.models import DotationProjet, Projet
 
 
 class ProgrammationProjetService:
+    DOTATION_PROJET_STATUS_TO_PROGRAMMATION_STATUS = {
+        PROJET_STATUS_ACCEPTED: ProgrammationProjet.STATUS_ACCEPTED,
+        PROJET_STATUS_REFUSED: ProgrammationProjet.STATUS_REFUSED,
+        PROJET_STATUS_DISMISSED: ProgrammationProjet.STATUS_DISMISSED,
+    }
+
     @classmethod
     def create_or_update_from_dotation_projet(cls, dotation_projet: DotationProjet):
         if dotation_projet.status is None:
@@ -21,6 +29,7 @@ class ProgrammationProjetService:
         if dotation_projet.status not in (
             PROJET_STATUS_ACCEPTED,
             PROJET_STATUS_REFUSED,
+            PROJET_STATUS_DISMISSED,
         ):
             ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).delete()
             return
@@ -60,9 +69,11 @@ class ProgrammationProjetService:
         ).delete()
 
         programmation_projet_status = (
-            ProgrammationProjet.STATUS_ACCEPTED
-            if dotation_projet.status == PROJET_STATUS_ACCEPTED
-            else ProgrammationProjet.STATUS_REFUSED
+            cls.DOTATION_PROJET_STATUS_TO_PROGRAMMATION_STATUS[dotation_projet.status]
+        )
+
+        notified_at = cls._get_notify_datetime_from_dotation_projet(
+            dotation_projet.dossier_ds
         )
 
         programmation_projet, _ = ProgrammationProjet.objects.update_or_create(
@@ -71,6 +82,7 @@ class ProgrammationProjetService:
             defaults={
                 "status": programmation_projet_status,
                 "montant": montant,
+                "notified_at": notified_at,
             },
         )
         return programmation_projet
@@ -91,4 +103,15 @@ class ProgrammationProjetService:
                 arrondissement=None,
             )
 
+        return None
+
+    @classmethod
+    def _get_notify_datetime_from_dotation_projet(cls, dossier: Dossier):
+        """This function is useful because we can have an accepted dotation projet and a "en instruction" dossier due to our process."""
+        if dossier.ds_state in (
+            Dossier.STATE_ACCEPTE,
+            Dossier.STATE_REFUSE,
+            Dossier.STATE_SANS_SUITE,
+        ):
+            return dossier.ds_date_traitement
         return None
