@@ -1,3 +1,4 @@
+import re
 from decimal import Decimal
 
 import pytest
@@ -13,6 +14,8 @@ from gsl_demarches_simplifiees.tests.factories import (
     CritereEligibiliteDetrFactory,
     DossierFactory,
 )
+from gsl_programmation.models import ProgrammationProjet
+from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -279,7 +282,9 @@ def test_create_simulation_projets_from_dotation_projet_with_a_dsil_and_departem
     assert last_year_simulation_projets.count() == 0
 
 
+@pytest.mark.django_db
 def test_get_dotation_projet_status_from_dossier():
+    dp = DotationProjetFactory()
     accepted = Dossier(ds_state=Dossier.STATE_ACCEPTE)
     en_construction = Dossier(ds_state=Dossier.STATE_EN_CONSTRUCTION)
     en_instruction = Dossier(ds_state=Dossier.STATE_EN_INSTRUCTION)
@@ -287,30 +292,77 @@ def test_get_dotation_projet_status_from_dossier():
     dismissed = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
 
     assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(accepted)
+        DotationProjetService.get_dotation_projet_status_from_dossier(accepted, dp)
         == PROJET_STATUS_ACCEPTED
     )
     assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(en_construction)
+        DotationProjetService.get_dotation_projet_status_from_dossier(
+            en_construction, dp
+        )
         == PROJET_STATUS_PROCESSING
     )
     assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(en_instruction)
+        DotationProjetService.get_dotation_projet_status_from_dossier(
+            en_instruction, dp
+        )
         == PROJET_STATUS_PROCESSING
     )
     assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(refused)
+        DotationProjetService.get_dotation_projet_status_from_dossier(refused, dp)
         == PROJET_STATUS_REFUSED
     )
     assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(dismissed)
+        DotationProjetService.get_dotation_projet_status_from_dossier(dismissed, dp)
         == PROJET_STATUS_DISMISSED
     )
 
     dossier_unknown = Dossier(ds_state="unknown_state")
     assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(dossier_unknown)
+        DotationProjetService.get_dotation_projet_status_from_dossier(
+            dossier_unknown, dp
+        )
         is None
+    )
+
+
+@pytest.mark.django_db
+def test_get_dotation_projet_status_from_dossier_with_an_accepted_but_not_notified_dotation_projet():
+    dp = DotationProjetFactory(
+        status=PROJET_STATUS_ACCEPTED,
+    )
+    dp.programmation_projet = ProgrammationProjetFactory(
+        status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None
+    )
+
+    accepted = Dossier(ds_state=Dossier.STATE_ACCEPTE)
+    en_construction = Dossier(ds_state=Dossier.STATE_EN_CONSTRUCTION)
+    en_instruction = Dossier(ds_state=Dossier.STATE_EN_INSTRUCTION)
+    refused = Dossier(ds_state=Dossier.STATE_REFUSE)
+    dismissed = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
+
+    assert (
+        DotationProjetService.get_dotation_projet_status_from_dossier(accepted, dp)
+        == PROJET_STATUS_ACCEPTED
+    )
+    assert (
+        DotationProjetService.get_dotation_projet_status_from_dossier(
+            en_construction, dp
+        )
+        == PROJET_STATUS_ACCEPTED
+    )
+    assert (
+        DotationProjetService.get_dotation_projet_status_from_dossier(
+            en_instruction, dp
+        )
+        == PROJET_STATUS_ACCEPTED
+    )
+    assert (
+        DotationProjetService.get_dotation_projet_status_from_dossier(refused, dp)
+        == PROJET_STATUS_REFUSED
+    )
+    assert (
+        DotationProjetService.get_dotation_projet_status_from_dossier(dismissed, dp)
+        == PROJET_STATUS_DISMISSED
     )
 
 
@@ -366,8 +418,10 @@ def test_validate_montant(
         with pytest.raises(
             ValueError,
             match=(
-                f"Le montant {euro(montant)} doit être supérieur ou égal à 0 € et inférieur ou "
-                f"égal à {euro(dotation_projet.assiette_or_cout_total)}."
+                re.escape(
+                    f"Le montant {euro(montant)} doit être supérieur ou égal à 0 € et inférieur ou "
+                    f"égal à l'assiette ({euro(dotation_projet.assiette_or_cout_total)})."
+                )
             ),
         ):
             DotationProjetService.validate_montant(montant, dotation_projet)

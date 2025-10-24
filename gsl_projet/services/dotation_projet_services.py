@@ -102,6 +102,7 @@ class DotationProjetService:
             dossier.ds_state
             in [Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION]
             and dotation_projet.status == PROJET_STATUS_ACCEPTED
+            and dotation_projet.programmation_projet
             and dotation_projet.programmation_projet.notified_at is None
         ):
             return PROJET_STATUS_ACCEPTED
