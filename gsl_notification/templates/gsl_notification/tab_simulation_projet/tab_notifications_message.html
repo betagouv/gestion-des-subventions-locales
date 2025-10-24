@@ -43,7 +43,7 @@
                 Les pièces jointes vont être compressées en un seul fichier. Le message va être envoyé au demandeur
                 dans la messagerie de ce dossier, sur Démarches simplifiées.
             </p>
-            <div class="input-group">
+            <div class="input-group fr-mb-2w">
                 <label class="fr-label" for="id_justification">
                     <b>
                         {{ form.justification.label }}
@@ -51,11 +51,21 @@
                 </label>
                 {{ form.justification }}
             </div>
-            <p>
+            {% if programmation_projet.dossier.ds_state == "en_construction" %}
+                <div class="fr-alert fr-alert--info fr-alert--sm fr-mt-2w">
+                    <p class="fr-alert__title">
+                        Dossier en construction
+                    </p>
+                    <p>
+                        Le dossier de ce projet est actuellement en construction sur Démarches Simplifiées. Le
+                        projet sera passé en instruction avant d'être réfusé.
+                    </p>
+                </div>
+            {% endif %}
+            <p class="fr-mt-2w fr-mb-1v">
                 <b>Souhaitez-vous envoyer le message de notification&nbsp;?</b>
             </p>
-            <button class="fr-btn fr-mt-6w fr-icon-check-line fr-btn--icon-left"
-                    type="submit">
+            <button class="fr-btn fr-icon-check-line fr-btn--icon-left" type="submit">
                 Confirmer l'envoi
             </button>
         </form>

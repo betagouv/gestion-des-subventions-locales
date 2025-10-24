@@ -4,6 +4,7 @@ from django.utils import timezone
 from dsfr.forms import DsfrBaseForm
 
 from gsl_demarches_simplifiees.ds_client import DsMutator
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_notification.models import (
     Annexe,
     Arrete,
@@ -105,6 +106,14 @@ class NotificationMessageForm(DsfrBaseForm, forms.Form):
                 *self.cleaned_data["annexes"],
             ]
         )
+
+        # Dossier was recently refreshed DS
+        # Race conditions remain possible, but should be rare enough and just fail without any side effect.
+        if self.programmation_projet.dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:
+            DsMutator().dossier_passer_en_instruction(
+                dossier_id=self.programmation_projet.dossier.ds_id,
+                instructeur_id=instructeur_id,
+            )
 
         with transaction.atomic():
             self.programmation_projet.notified_at = timezone.now()
