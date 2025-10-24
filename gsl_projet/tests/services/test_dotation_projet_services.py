@@ -109,7 +109,7 @@ def test_create_or_update_dotation_projet(dotation):
 
     # ------
 
-    DotationProjetService.create_or_update_dotation_projet(projet, dotation)
+    DotationProjetService._create_or_update_dotation_projet(projet, dotation)
 
     # ------
 
