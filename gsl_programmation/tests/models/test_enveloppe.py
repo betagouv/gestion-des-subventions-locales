@@ -142,138 +142,85 @@ def test_get_parent_enveloppe_delegated_multiple_times(enveloppes_hierarchy):
     assert grandchild_enveloppe.delegation_root == mother_enveloppe
 
 
-@pytest.fixture
-def set_of_enveloppes_with_one_programmation_projet_in_enveloppe(
-    detr_enveloppe,
-):
-    perimetre_arrondissements = PerimetreArrondissementFactory.create_batch(
-        2,
-        arrondissement__departement=detr_enveloppe.perimetre.departement,
-        departement=detr_enveloppe.perimetre.departement,
-        region=detr_enveloppe.perimetre.region,
-    )
-    assert len(perimetre_arrondissements) == 2, "We need 2 perimetre arrondissements"
-
-    delegated_enveloppe_1 = DetrEnveloppeFactory(
-        perimetre=perimetre_arrondissements[0],
-        deleguee_by=detr_enveloppe,
-        annee=2021,
-    )
-    delegated_enveloppe_2 = DetrEnveloppeFactory(
-        perimetre=perimetre_arrondissements[1],
-        deleguee_by=detr_enveloppe,
-        annee=2021,
-    )
-
-    perimetre_arr_1, perimetre_arr_2 = perimetre_arrondissements
-    assert perimetre_arr_1.departement == detr_enveloppe.perimetre.departement
-    assert perimetre_arr_2.departement == detr_enveloppe.perimetre.departement
-
-    ProgrammationProjetFactory(
-        enveloppe=detr_enveloppe,
-        dotation_projet__projet__perimetre=perimetre_arr_1,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-        montant=200_000,
-        dotation_projet__projet__dossier_ds__demande_montant=500_000,
-        dotation_projet__dotation=DOTATION_DETR,
-        dotation_projet__projet__dossier_ds__ds_date_depot=datetime(
-            2020, 12, 1, tzinfo=UTC
-        ),
-    )
-    ProgrammationProjetFactory(
-        enveloppe=detr_enveloppe,
-        dotation_projet__projet__perimetre=perimetre_arr_2,
-        status=ProgrammationProjet.STATUS_REFUSED,
-        montant=0,
-        dotation_projet__projet__dossier_ds__demande_montant=400_000,
-        dotation_projet__dotation=DOTATION_DETR,
-        dotation_projet__projet__dossier_ds__ds_date_depot=datetime(
-            2020, 12, 1, tzinfo=UTC
-        ),
-    )
-
-    return detr_enveloppe, delegated_enveloppe_1, delegated_enveloppe_2
-
-
 @pytest.mark.django_db
-def test_delegated_enveloppe_enveloppe_projets_processed(
-    set_of_enveloppes_with_one_programmation_projet_in_enveloppe,
-):
-    detr_enveloppe, delegated_enveloppe_1, delegated_enveloppe_2 = (
-        set_of_enveloppes_with_one_programmation_projet_in_enveloppe
-    )
-    assert detr_enveloppe.enveloppe_projets_processed.count() == 2
-    assert delegated_enveloppe_1.enveloppe_projets_processed.count() == 1
-    assert delegated_enveloppe_2.enveloppe_projets_processed.count() == 1
+class TestDelegatedEnveloppe:
+    def setup_method(self):
+        self.detr_enveloppe = DetrEnveloppeFactory()
 
+        perimetre_arrondissements = PerimetreArrondissementFactory.create_batch(
+            2,
+            arrondissement__departement=self.detr_enveloppe.perimetre.departement,
+            departement=self.detr_enveloppe.perimetre.departement,
+            region=self.detr_enveloppe.perimetre.region,
+        )
 
-@pytest.mark.django_db
-def test_delegated_enveloppe_accepted_montant(
-    set_of_enveloppes_with_one_programmation_projet_in_enveloppe,
-):
-    detr_enveloppe, delegated_enveloppe_1, delegated_enveloppe_2 = (
-        set_of_enveloppes_with_one_programmation_projet_in_enveloppe
-    )
-    assert detr_enveloppe.accepted_montant == 200_000
-    assert delegated_enveloppe_1.accepted_montant == 200_000
-    assert delegated_enveloppe_2.accepted_montant == 0
+        self.delegated_enveloppe_1 = DetrEnveloppeFactory(
+            perimetre=perimetre_arrondissements[0],
+            deleguee_by=self.detr_enveloppe,
+            annee=2021,
+        )
+        self.delegated_enveloppe_2 = DetrEnveloppeFactory(
+            perimetre=perimetre_arrondissements[1],
+            deleguee_by=self.detr_enveloppe,
+            annee=2021,
+        )
 
+        perimetre_arr_1, perimetre_arr_2 = perimetre_arrondissements
 
-@pytest.mark.django_db
-def test_delegated_enveloppe_validated_projets_count(
-    set_of_enveloppes_with_one_programmation_projet_in_enveloppe,
-):
-    detr_enveloppe, delegated_enveloppe_1, delegated_enveloppe_2 = (
-        set_of_enveloppes_with_one_programmation_projet_in_enveloppe
-    )
-    assert detr_enveloppe.validated_projets_count == 1
-    assert delegated_enveloppe_1.validated_projets_count == 1
-    assert delegated_enveloppe_2.validated_projets_count == 0
+        ProgrammationProjetFactory(
+            enveloppe=self.detr_enveloppe,
+            dotation_projet__projet__perimetre=perimetre_arr_1,
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            montant=200_000,
+            dotation_projet__projet__dossier_ds__demande_montant=500_000,
+            dotation_projet__dotation=DOTATION_DETR,
+            dotation_projet__projet__dossier_ds__ds_date_depot=datetime(
+                2020, 12, 1, tzinfo=UTC
+            ),
+        )
+        ProgrammationProjetFactory(
+            enveloppe=self.detr_enveloppe,
+            dotation_projet__projet__perimetre=perimetre_arr_2,
+            status=ProgrammationProjet.STATUS_REFUSED,
+            montant=0,
+            dotation_projet__projet__dossier_ds__demande_montant=400_000,
+            dotation_projet__dotation=DOTATION_DETR,
+            dotation_projet__projet__dossier_ds__ds_date_depot=datetime(
+                2020, 12, 1, tzinfo=UTC
+            ),
+        )
 
+    def test_enveloppe_projets_processed(self):
+        assert self.detr_enveloppe.enveloppe_projets_processed.count() == 2
+        assert self.delegated_enveloppe_1.enveloppe_projets_processed.count() == 1
+        assert self.delegated_enveloppe_2.enveloppe_projets_processed.count() == 1
 
-@pytest.mark.django_db
-def test_delegated_enveloppe_refused_projets_count(
-    set_of_enveloppes_with_one_programmation_projet_in_enveloppe,
-):
-    detr_enveloppe, delegated_enveloppe_1, delegated_enveloppe_2 = (
-        set_of_enveloppes_with_one_programmation_projet_in_enveloppe
-    )
-    assert detr_enveloppe.refused_projets_count == 1
-    assert delegated_enveloppe_1.refused_projets_count == 0
-    assert delegated_enveloppe_2.refused_projets_count == 1
+    def test_accepted_montant(self):
+        assert self.detr_enveloppe.accepted_montant == 200_000
+        assert self.delegated_enveloppe_1.accepted_montant == 200_000
+        assert self.delegated_enveloppe_2.accepted_montant == 0
 
+    def test_validated_projets_count(self):
+        assert self.detr_enveloppe.validated_projets_count == 1
+        assert self.delegated_enveloppe_1.validated_projets_count == 1
+        assert self.delegated_enveloppe_2.validated_projets_count == 0
 
-@pytest.mark.django_db
-def test_delegated_enveloppe_projets_count(
-    set_of_enveloppes_with_one_programmation_projet_in_enveloppe,
-):
-    detr_enveloppe, delegated_enveloppe_1, delegated_enveloppe_2 = (
-        set_of_enveloppes_with_one_programmation_projet_in_enveloppe
-    )
-    assert detr_enveloppe.projets_count == 2
-    assert delegated_enveloppe_1.projets_count == 1
-    assert delegated_enveloppe_2.projets_count == 1
+    def test_refused_projets_count(self):
+        assert self.detr_enveloppe.refused_projets_count == 1
+        assert self.delegated_enveloppe_1.refused_projets_count == 0
+        assert self.delegated_enveloppe_2.refused_projets_count == 1
 
+    def test_projets_count(self):
+        assert self.detr_enveloppe.projets_count == 2
+        assert self.delegated_enveloppe_1.projets_count == 1
+        assert self.delegated_enveloppe_2.projets_count == 1
 
-@pytest.mark.django_db
-def test_delegated_enveloppe_demandeurs_count(
-    set_of_enveloppes_with_one_programmation_projet_in_enveloppe,
-):
-    detr_enveloppe, delegated_enveloppe_1, delegated_enveloppe_2 = (
-        set_of_enveloppes_with_one_programmation_projet_in_enveloppe
-    )
-    assert detr_enveloppe.projets_count == 2
-    assert delegated_enveloppe_1.projets_count == 1
-    assert delegated_enveloppe_2.projets_count == 1
+    def test_demandeurs_count(self):
+        assert self.detr_enveloppe.projets_count == 2
+        assert self.delegated_enveloppe_1.projets_count == 1
+        assert self.delegated_enveloppe_2.projets_count == 1
 
-
-@pytest.mark.django_db
-def test_delegated_enveloppe_montant_asked(
-    set_of_enveloppes_with_one_programmation_projet_in_enveloppe,
-):
-    detr_enveloppe, delegated_enveloppe_1, delegated_enveloppe_2 = (
-        set_of_enveloppes_with_one_programmation_projet_in_enveloppe
-    )
-    assert detr_enveloppe.montant_asked == 900_000
-    assert delegated_enveloppe_1.montant_asked == 500_000
-    assert delegated_enveloppe_2.montant_asked == 400_000
+    def test_montant_asked(self):
+        assert self.detr_enveloppe.montant_asked == 900_000
+        assert self.delegated_enveloppe_1.montant_asked == 500_000
+        assert self.delegated_enveloppe_2.montant_asked == 400_000
