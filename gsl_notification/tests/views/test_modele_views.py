@@ -17,6 +17,7 @@ from gsl_notification.models import (
 from gsl_notification.tests.factories import (
     ArreteEtLettreSignesFactory,
     ArreteFactory,
+    LettreNotificationFactory,
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
@@ -440,16 +441,30 @@ def test_delete_modele_with_correct_perimetre(modele_type, _class, factory):
         )
 
 
-# TODO test it for modele lettre notification once relation with lettre notification created
-def test_delete_modele_with_modele_used_by_an_arrete():
+@pytest.mark.parametrize(
+    ("modele_type, factory, modele_class, modele_factory"),
+    (
+        (ARRETE, ArreteFactory, ModeleArrete, ModeleArreteFactory),
+        (
+            LETTRE,
+            LettreNotificationFactory,
+            ModeleLettreNotification,
+            ModeleLettreNotificationFactory,
+        ),
+    ),
+)
+@pytest.mark.parametrize("protected_objects_count", [1, 3])
+def test_delete_modele_with_modele_used_by_an_arrete(
+    modele_type, factory, modele_class, modele_factory, protected_objects_count
+):
     departement_perimetre = PerimetreDepartementalFactory()
     user = CollegueFactory(perimetre=departement_perimetre)
     client = ClientWithLoggedUserFactory(user)
-    modele = ModeleArreteFactory(perimetre=departement_perimetre)
-    ArreteFactory(modele=modele)
+    modele = modele_factory(perimetre=departement_perimetre)
+    factory.create_batch(protected_objects_count, modele=modele)
     url = reverse(
         "gsl_notification:delete-modele",
-        kwargs={"modele_type": ARRETE, "modele_id": modele.id},
+        kwargs={"modele_type": modele_type, "modele_id": modele.id},
     )
 
     response = client.post(url)
@@ -460,18 +475,36 @@ def test_delete_modele_with_modele_used_by_an_arrete():
     assert response.status_code == 302
     assert response.url == expected_redirect_url
 
-    assert ModeleArrete.objects.count() == 1, (
+    assert modele_class.objects.count() == 1, (
         "On s'attend à ce que le ModeleArrete ne soit pas supprimé"
     )
     messages = get_messages(response.wsgi_request)
     assert len(messages) == 1
     message = list(messages)[0]
     assert message.level == 40
-    assert (
-        message.message
-        == "Le modèle n'a pas été supprimé car il est utilisé par X arrêté(s)."  # TODO replace X by 1 once relation with lettre notification created
-    )
     assert message.extra_tags == "alert"
+    if modele_type == ARRETE:
+        if protected_objects_count == 1:
+            assert (
+                message.message
+                == "Le modèle n'a pas été supprimé car il est utilisé par 1 arrêté."
+            )
+        else:
+            assert (
+                message.message
+                == "Le modèle n'a pas été supprimé car il est utilisé par 3 arrêtés."
+            )
+    else:
+        if protected_objects_count == 1:
+            assert (
+                message.message
+                == "Le modèle n'a pas été supprimé car il est utilisé par 1 lettre de notification."
+            )
+        else:
+            assert (
+                message.message
+                == "Le modèle n'a pas été supprimé car il est utilisé par 3 lettres de notification."
+            )
 
 
 @pytest.mark.parametrize(
