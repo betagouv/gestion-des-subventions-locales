@@ -115,7 +115,7 @@ def test_create_or_update_from_dotation_projet_with_an_existing_one_with_only_do
     )
     accepted_dotation_projet.dotation = DOTATION_DSIL
     ProgrammationProjetFactory(
-        dotation_projet=accepted_dotation_projet, enveloppe=detr_enveloppe
+        dotation_projet=accepted_dotation_projet, enveloppe=detr_enveloppe, montant=1000
     )
 
     assert (
@@ -138,7 +138,9 @@ def test_create_or_update_from_dotation_projet_with_an_existing_one_with_only_do
         ).count()
         == 1
     )
-    assert programmation_projet is None
+    assert programmation_projet.montant == 0, (
+        "Montant should be 0 when no annotations provided"
+    )
     assert "missing field annotations_montant_accorde" in caplog.text
 
 
@@ -147,7 +149,7 @@ def test_create_or_update_from_dotation_projet_with_an_existing_one_and_without_
     accepted_dotation_projet, detr_enveloppe
 ):
     ProgrammationProjetFactory(
-        dotation_projet=accepted_dotation_projet, enveloppe=detr_enveloppe
+        dotation_projet=accepted_dotation_projet, enveloppe=detr_enveloppe, montant=1000
     )
 
     assert (
@@ -162,7 +164,9 @@ def test_create_or_update_from_dotation_projet_with_an_existing_one_and_without_
             accepted_dotation_projet
         )
     )
-    assert programmation_projet is None
+    assert programmation_projet.montant == 0, (
+        "Montant should be 0 when no annotations provided"
+    )
     assert (
         ProgrammationProjet.objects.filter(
             dotation_projet=accepted_dotation_projet

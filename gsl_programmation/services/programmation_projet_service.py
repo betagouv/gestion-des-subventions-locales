@@ -33,7 +33,11 @@ class ProgrammationProjetService:
                 logging.error(
                     f"Projet accepted {dotation_projet} is missing field annotations_montant_accorde"
                 )
-                return
+                montant = 0
+            else:
+                montant = dotation_projet.projet.dossier_ds.annotations_montant_accorde
+        else:
+            montant = 0
 
         perimetre = cls.get_perimetre_from_dotation(
             dotation_projet.projet, dotation_projet.dotation
@@ -55,11 +59,6 @@ class ProgrammationProjetService:
             enveloppe=enveloppe
         ).delete()
 
-        montant = (
-            dotation_projet.projet.dossier_ds.annotations_montant_accorde
-            if dotation_projet.status == PROJET_STATUS_ACCEPTED
-            else 0
-        )
         programmation_projet_status = (
             ProgrammationProjet.STATUS_ACCEPTED
             if dotation_projet.status == PROJET_STATUS_ACCEPTED
