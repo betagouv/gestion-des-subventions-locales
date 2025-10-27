@@ -25,9 +25,9 @@ from gsl_projet.constants import (
 )
 from gsl_projet.models import DotationProjet
 from gsl_projet.tasks import (
-    create_or_update_projet_and_co_from_dossier,
-    create_or_update_projets_and_co_batch,
-    create_or_update_projets_and_co_from_all_dossiers,
+    task_create_or_update_projet_and_co_from_dossier,
+    task_create_or_update_projets_and_co_batch,
+    task_create_or_update_projets_and_co_from_all_dossiers,
 )
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
@@ -57,7 +57,7 @@ def detr_enveloppe(perimetre_departement):
 
 
 @pytest.mark.django_db
-def test_create_or_update_projet_and_co_from_dossier_an_other_dotation_than_existing_one(
+def test_task_create_or_update_projet_and_co_from_dossier_an_other_dotation_than_existing_one(
     commune,
 ):
     """
@@ -75,7 +75,7 @@ def test_create_or_update_projet_and_co_from_dossier_an_other_dotation_than_exis
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
 
-    create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+    task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     dotation_projets = DotationProjet.objects.filter(projet=projet)
     assert dotation_projets.count() == 2
@@ -101,7 +101,9 @@ def test_create_or_update_projet_and_co_from_dossier_an_other_dotation_than_exis
 
 
 @pytest.mark.django_db
-def test_create_or_update_projet_and_co_from_dossier_with_construction_one(commune):
+def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
+    commune,
+):
     dossier = DossierFactory(
         ds_state=Dossier.STATE_EN_CONSTRUCTION,
         annotations_dotation=DOTATION_DETR,
@@ -130,7 +132,7 @@ def test_create_or_update_projet_and_co_from_dossier_with_construction_one(commu
 
     assert projet.status == PROJET_STATUS_ACCEPTED
 
-    create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+    task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
     assert projet.status == PROJET_STATUS_PROCESSING
@@ -153,7 +155,7 @@ def test_create_or_update_projet_and_co_from_dossier_with_construction_one(commu
 
 
 @pytest.mark.django_db
-def test_create_or_update_projet_and_co_from_dossier_with_instruction_one_and_with_an_accepted_but_not_notified_projet(
+def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_and_with_an_accepted_but_not_notified_projet(
     commune,
 ):
     """
@@ -186,7 +188,7 @@ def test_create_or_update_projet_and_co_from_dossier_with_instruction_one_and_wi
 
     assert projet.status == PROJET_STATUS_ACCEPTED
 
-    create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+    task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
     assert projet.status == PROJET_STATUS_ACCEPTED
@@ -209,7 +211,7 @@ def test_create_or_update_projet_and_co_from_dossier_with_instruction_one_and_wi
 
 
 @pytest.mark.django_db
-def test_create_or_update_projet_and_co_from_dossier_with_instruction_one_and_with_an_accepted_and_notified_projet(
+def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_and_with_an_accepted_and_notified_projet(
     commune,
 ):
     """
@@ -242,7 +244,7 @@ def test_create_or_update_projet_and_co_from_dossier_with_instruction_one_and_wi
 
     assert projet.status == PROJET_STATUS_ACCEPTED
 
-    create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+    task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
     assert projet.status == PROJET_STATUS_PROCESSING
@@ -265,7 +267,7 @@ def test_create_or_update_projet_and_co_from_dossier_with_instruction_one_and_wi
 
 
 @pytest.mark.django_db
-def test_create_or_update_projet_and_co_from_dossier_with_accepted(
+def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
     commune, detr_enveloppe
 ):
     dossier = DossierFactory(
@@ -293,7 +295,7 @@ def test_create_or_update_projet_and_co_from_dossier_with_accepted(
     )
     assert projet.status == PROJET_STATUS_REFUSED
 
-    create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+    task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
     assert projet.status == PROJET_STATUS_ACCEPTED
@@ -317,7 +319,7 @@ def test_create_or_update_projet_and_co_from_dossier_with_accepted(
 
 
 @pytest.mark.django_db
-def test_create_or_update_projet_and_co_from_dossier_with_refused(
+def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
     commune, detr_enveloppe
 ):
     dossier = DossierFactory(
@@ -344,7 +346,7 @@ def test_create_or_update_projet_and_co_from_dossier_with_refused(
     )
     assert projet.status == PROJET_STATUS_ACCEPTED
 
-    create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+    task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
     assert projet.status == PROJET_STATUS_REFUSED
@@ -369,7 +371,7 @@ def test_create_or_update_projet_and_co_from_dossier_with_refused(
 
 
 @pytest.mark.django_db
-def test_create_or_update_projet_and_co_from_dossier_with_dismissed(
+def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
     commune, detr_enveloppe
 ):
     dossier = DossierFactory(
@@ -396,7 +398,7 @@ def test_create_or_update_projet_and_co_from_dossier_with_dismissed(
     )
     assert projet.status == PROJET_STATUS_ACCEPTED
 
-    create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+    task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
     assert projet.status == PROJET_STATUS_DISMISSED
@@ -421,7 +423,7 @@ def test_create_or_update_projet_and_co_from_dossier_with_dismissed(
 
 
 @pytest.mark.django_db
-def test_create_or_update_projet_and_co_from_dossier_update_annotations(
+def test_task_create_or_update_projet_and_co_from_dossier_update_annotations(
     commune, detr_enveloppe
 ):
     dossier = DossierFactory(
@@ -453,7 +455,7 @@ def test_create_or_update_projet_and_co_from_dossier_update_annotations(
         montant=500,
     )
 
-    create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+    task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
     assert projet.is_budget_vert is True
@@ -473,9 +475,9 @@ def test_create_or_update_projets_and_its_simulation_and_programmation_projets_f
         DossierFactory(ds_number=i, ds_state="state")
 
     with mock.patch(
-        "gsl_projet.tasks.create_or_update_projets_and_co_batch.delay"
+        "gsl_projet.tasks.task_create_or_update_projets_and_co_batch.delay"
     ) as mock_create_or_update_projets_batch:
-        create_or_update_projets_and_co_from_all_dossiers(batch_size=5)
+        task_create_or_update_projets_and_co_from_all_dossiers(batch_size=5)
 
         assert mock_create_or_update_projets_batch.call_count == 2
 
@@ -486,9 +488,9 @@ def test_create_or_update_projets_and_its_simulation_and_programmation_projets_f
 @pytest.mark.django_db
 def test_create_or_update_projets_and_its_simulation_and_programmation_projets_from_all_dossiers_with_no_dossiers():
     with mock.patch(
-        "gsl_projet.tasks.create_or_update_projets_and_co_batch.delay"
+        "gsl_projet.tasks.task_create_or_update_projets_and_co_batch.delay"
     ) as mock_delay:
-        create_or_update_projets_and_co_from_all_dossiers(batch_size=5)
+        task_create_or_update_projets_and_co_from_all_dossiers(batch_size=5)
 
         mock_delay.assert_not_called()
 
@@ -496,9 +498,9 @@ def test_create_or_update_projets_and_its_simulation_and_programmation_projets_f
 @pytest.mark.django_db
 def test_create_or_update_projets_batch():
     with mock.patch(
-        "gsl_projet.tasks.create_or_update_projet_and_co_from_dossier.delay"
+        "gsl_projet.tasks.task_create_or_update_projet_and_co_from_dossier.delay"
     ) as mock_delay:
-        create_or_update_projets_and_co_batch((1, 2, 3))
+        task_create_or_update_projets_and_co_batch((1, 2, 3))
         assert mock_delay.call_count == 3
 
         mock_delay.assert_any_call(1)

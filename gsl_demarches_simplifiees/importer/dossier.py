@@ -7,7 +7,7 @@ from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverter
 from gsl_demarches_simplifiees.models import Demarche, Dossier, Profile
-from gsl_projet.tasks import create_or_update_projet_and_co_from_dossier
+from gsl_projet.services.projet_services import ProjetService
 
 
 def save_demarche_dossiers_from_ds(demarche_number):
@@ -96,7 +96,7 @@ def refresh_dossier_from_saved_data(dossier: Dossier):
         logging.error(str(e))
         raise e
 
-    create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+    ProjetService.create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
 
 def refresh_dossier_instructeurs(dossier_data, dossier: Dossier):
