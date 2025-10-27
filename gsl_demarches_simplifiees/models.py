@@ -464,7 +464,7 @@ class Dossier(DsModel):
         projet_departement, projet_arrondissement = None, None
         if self.ds_demandeur and self.ds_demandeur.address:
             commune = self.ds_demandeur.address.commune
-            if commune.departement:
+            if commune and commune.departement:
                 projet_departement = commune.departement
                 if commune.arrondissement:
                     projet_arrondissement = commune.arrondissement
