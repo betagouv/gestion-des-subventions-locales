@@ -59,7 +59,7 @@ def save_one_dossier_from_ds(dossier: Dossier, client: DsClient | None = None):
 def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
     dossier: Dossier, dossier_data: dict, async_refresh: bool = False
 ):
-    has_dossier_been_updated = _has_dossier_been_updated(dossier, dossier_data)
+    has_dossier_been_updated = _has_dossier_been_updated_on_ds(dossier, dossier_data)
     refresh_dossier_instructeurs(dossier_data, dossier)
     dossier.raw_ds_data = dossier_data
     dossier.save()
@@ -77,7 +77,7 @@ def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
     return has_dossier_been_updated
 
 
-def _has_dossier_been_updated(dossier: Dossier, dossier_data: dict) -> bool:
+def _has_dossier_been_updated_on_ds(dossier: Dossier, dossier_data: dict) -> bool:
     date_modif_ds = dossier_data.get("dateDerniereModification", None)
     if date_modif_ds:
         date_modif_ds = timezone.datetime.fromisoformat(date_modif_ds)

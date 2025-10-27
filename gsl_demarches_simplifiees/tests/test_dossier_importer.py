@@ -201,8 +201,10 @@ def test_save_dossier_data_and_refresh_dossier_and_projet_and_co_calls_sync_task
         target_task.assert_called_once_with(dossier)
 
 
-def test_has_dossier_been_updated():
-    from gsl_demarches_simplifiees.importer.dossier import _has_dossier_been_updated
+def test_has_dossier_been_updated_on_ds():
+    from gsl_demarches_simplifiees.importer.dossier import (
+        _has_dossier_been_updated_on_ds,
+    )
 
     dossier = DossierFactory.build(
         ds_date_derniere_modification=datetime.fromisoformat(
@@ -212,8 +214,8 @@ def test_has_dossier_been_updated():
 
     # Case where DS date is more recent
     ds_data_newer = {"dateDerniereModification": "2025-01-01T12:00:00+02:00"}
-    assert _has_dossier_been_updated(dossier, ds_data_newer) is True
+    assert _has_dossier_been_updated_on_ds(dossier, ds_data_newer) is True
 
     # Case where DS date is older
     ds_data_older = {"dateDerniereModification": "2023-01-01T12:00:00+02:00"}
-    assert _has_dossier_been_updated(dossier, ds_data_older) is False
+    assert _has_dossier_been_updated_on_ds(dossier, ds_data_older) is False
