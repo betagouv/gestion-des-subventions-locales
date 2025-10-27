@@ -8,6 +8,7 @@ from django.db.models import ProtectedError
 from django.db.models.fields import files
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.defaultfilters import pluralize
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
@@ -401,13 +402,9 @@ def delete_modele_view(request, modele_type, modele_id):
             extra_tags="delete_modele_arrete",
         )
 
-    except ProtectedError:
-        messages.error(
-            request,
-            # f"Le modèle n'a pas été supprimé car il est utilisé par {modele.arrete_set.count()} arrêté(s).", TODO => adapt to the model
-            "Le modèle n'a pas été supprimé car il est utilisé par X arrêté(s).",
-            extra_tags="alert",
-        )
+    except ProtectedError as e:
+        objects_count = len(e.protected_objects)
+        _add_error_message(request, objects_count, modele_type)
 
     return redirect(
         reverse("gsl_notification:modele-liste", kwargs={"dotation": dotation})
@@ -421,3 +418,18 @@ def get_generic_modele(request, dotation):
     elif dotation == DOTATION_DSIL:
         return render(request, "gsl_notification/modele/generique/dsil_modele.html")
     raise Http404("Dotation inconnue")
+
+
+def _add_error_message(request, objects_count: int, modele_type: str):
+    modele_type_name = (
+        f"arrêté{pluralize(objects_count, 's')}"
+        if modele_type == ARRETE
+        else f"lettre{pluralize(objects_count, 's')} de notification"
+    )
+    message = f"Le modèle n'a pas été supprimé car il est utilisé par {objects_count} {modele_type_name}."
+
+    messages.error(
+        request,
+        message,
+        extra_tags="alert",
+    )
