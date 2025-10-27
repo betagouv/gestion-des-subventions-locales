@@ -102,6 +102,11 @@ class Enveloppe(models.Model):
 
     @cached_property
     def enveloppe_projets_processed(self):
+        if self.is_deleguee:
+            return ProgrammationProjet.objects.filter(
+                enveloppe=self.deleguee_by,
+                dotation_projet__projet__in=self.enveloppe_projets_included,
+            )
         return ProgrammationProjet.objects.filter(enveloppe=self)
 
     @property
