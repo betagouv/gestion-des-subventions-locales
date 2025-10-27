@@ -4,15 +4,25 @@ from django import forms
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from django.db.models.fields.files import FieldFile
+from storages.backends.s3 import S3File
 
 
 def _file_validator(
-    file: FieldFile | UploadedFile, valid_mime_types, valid_extensions, type_message
+    file: FieldFile | UploadedFile | S3File,
+    valid_mime_types,
+    valid_extensions,
+    type_message,
 ):
     ext = os.path.splitext(file.name)[1].lower()
 
     _file = file.file if isinstance(file, FieldFile) else file
-    if _file.content_type not in valid_mime_types or ext not in valid_extensions:
+    if (
+        isinstance(
+            _file, UploadedFile
+        )  # We don't want to re-validate previously uploaded S3File on models
+        and _file.content_type not in valid_mime_types
+        or ext not in valid_extensions
+    ):
         raise forms.ValidationError(type_message)
 
     max_size_in_mo = settings.MAX_POST_FILE_SIZE_IN_MO
