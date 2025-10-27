@@ -84,7 +84,7 @@ class Enveloppe(models.Model):
         return self.deleguee_by is not None
 
     @property
-    def delegation_root(self):
+    def delegation_root(self) -> "Enveloppe":
         if not self.is_deleguee:
             return self
         else:
@@ -104,7 +104,7 @@ class Enveloppe(models.Model):
     def enveloppe_projets_processed(self):
         if self.is_deleguee:
             return ProgrammationProjet.objects.filter(
-                enveloppe=self.deleguee_by,
+                enveloppe=self.delegation_root,
                 dotation_projet__projet__in=self.enveloppe_projets_included,
             )
         return ProgrammationProjet.objects.filter(enveloppe=self)
