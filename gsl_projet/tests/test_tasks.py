@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from unittest import mock
 
 import pytest
@@ -18,14 +19,15 @@ from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.models import DotationProjet
 from gsl_projet.tasks import (
-    create_or_update_projet_and_co_from_dossier,
-    create_or_update_projets_and_co_batch,
-    create_or_update_projets_and_co_from_all_dossiers,
+    task_create_or_update_projet_and_co_from_dossier,
+    task_create_or_update_projets_and_co_batch,
+    task_create_or_update_projets_and_co_from_all_dossiers,
 )
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
@@ -55,8 +57,8 @@ def detr_enveloppe(perimetre_departement):
 
 
 @pytest.mark.django_db
-def test_create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier_an_other_dotation_than_existing_one(
-    commune, perimetre_departement
+def test_task_create_or_update_projet_and_co_from_dossier_an_other_dotation_than_existing_one(
+    commune,
 ):
     """
     On teste le fait qu'un dossier DS avec une annotation_dotation donnée ne supprime pas les dotation_projets avec une autre dotation dans notre application.
@@ -73,7 +75,7 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
 
-    create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+    task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     dotation_projets = DotationProjet.objects.filter(projet=projet)
     assert dotation_projets.count() == 2
@@ -99,8 +101,8 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
 
 
 @pytest.mark.django_db
-def test_create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier_with_construction_one(
-    commune, perimetre_departement
+def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
+    commune,
 ):
     dossier = DossierFactory(
         ds_state=Dossier.STATE_EN_CONSTRUCTION,
@@ -117,14 +119,23 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         2,
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
-        montant=500,
+        montant=400,
     )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
+        montant=400,
+        notified_at=datetime(
+            2024, 1, 15, 10, 30, tzinfo=UTC
+        ),  # if notified_at not set, projet should stay accepted
     )
 
-    create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+    assert projet.status == PROJET_STATUS_ACCEPTED
+
+    task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+
+    projet.refresh_from_db()
+    assert projet.status == PROJET_STATUS_PROCESSING
 
     dotation_projets = DotationProjet.objects.filter(projet=projet)
     assert dotation_projets.count() == 1
@@ -144,7 +155,119 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
 
 
 @pytest.mark.django_db
-def test_create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier_with_accepted(
+def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_and_with_an_accepted_but_not_notified_projet(
+    commune,
+):
+    """
+    On teste le fait qu'un dossier DS en instruction avec un dotation_projet accepté mais pas encore notifié
+    ne modifie pas le statut du projet ni des dotation_projets, simulation_projets et programmation_projets associés.
+    """
+    dossier = DossierFactory(
+        ds_state=Dossier.STATE_EN_INSTRUCTION,
+        annotations_dotation=DOTATION_DETR,
+        demande_montant=400,
+        finance_cout_total=4_000,
+        ds_demandeur__address__commune=commune,
+    )
+    projet = ProjetFactory(dossier_ds=dossier)
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    SimulationProjetFactory.create_batch(
+        2,
+        dotation_projet=dotation_projet,
+        status=SimulationProjet.STATUS_ACCEPTED,
+        montant=400,
+    )
+    ProgrammationProjetFactory(
+        dotation_projet=dotation_projet,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        montant=400,
+        notified_at=None,
+    )
+
+    assert projet.status == PROJET_STATUS_ACCEPTED
+
+    task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+
+    projet.refresh_from_db()
+    assert projet.status == PROJET_STATUS_ACCEPTED
+
+    dotation_projets = DotationProjet.objects.filter(projet=projet)
+    assert dotation_projets.count() == 1
+    dotation_projet = dotation_projets.first()
+    assert dotation_projet.dotation == DOTATION_DETR
+    assert dotation_projet.assiette is None
+    assert dotation_projet.status == PROJET_STATUS_ACCEPTED
+
+    for simulation_projet in dotation_projet.simulationprojet_set.all():
+        assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
+        assert simulation_projet.montant == 400
+        assert simulation_projet.taux == 10
+
+    programmation_projet = dotation_projet.programmation_projet
+    assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
+    assert programmation_projet.notified_at is None
+
+
+@pytest.mark.django_db
+def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_and_with_an_accepted_and_notified_projet(
+    commune,
+):
+    """
+    On teste le fait qu'un dossier DS en instruction avec un dotation_projet accepté mais pas encore notifié
+    ne modifie pas le statut du projet ni des dotation_projets, simulation_projets et programmation_projets associés.
+    """
+    dossier = DossierFactory(
+        ds_state=Dossier.STATE_EN_INSTRUCTION,
+        annotations_dotation=DOTATION_DETR,
+        demande_montant=400,
+        finance_cout_total=4_000,
+        ds_demandeur__address__commune=commune,
+    )
+    projet = ProjetFactory(dossier_ds=dossier)
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    SimulationProjetFactory.create_batch(
+        2,
+        dotation_projet=dotation_projet,
+        status=SimulationProjet.STATUS_ACCEPTED,
+        montant=400,
+    )
+    ProgrammationProjetFactory(
+        dotation_projet=dotation_projet,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        montant=400,
+        notified_at=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
+    )
+
+    assert projet.status == PROJET_STATUS_ACCEPTED
+
+    task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+
+    projet.refresh_from_db()
+    assert projet.status == PROJET_STATUS_PROCESSING
+
+    dotation_projets = DotationProjet.objects.filter(projet=projet)
+    assert dotation_projets.count() == 1
+    dotation_projet = dotation_projets.first()
+    assert dotation_projet.dotation == DOTATION_DETR
+    assert dotation_projet.assiette is None
+    assert dotation_projet.status == PROJET_STATUS_PROCESSING
+
+    for simulation_projet in dotation_projet.simulationprojet_set.all():
+        assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
+        assert simulation_projet.montant == 400
+        assert simulation_projet.taux == 10
+
+    assert (
+        ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).count() == 0
+    )
+
+
+@pytest.mark.django_db
+def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
     commune, detr_enveloppe
 ):
     dossier = DossierFactory(
@@ -170,9 +293,12 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         status=ProgrammationProjet.STATUS_REFUSED,
         enveloppe=detr_enveloppe,
     )
-    create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+    assert projet.status == PROJET_STATUS_REFUSED
+
+    task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
+    assert projet.status == PROJET_STATUS_ACCEPTED
 
     dotation_projets = DotationProjet.objects.filter(projet=projet)
     assert dotation_projets.count() == 1
@@ -193,13 +319,14 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
 
 
 @pytest.mark.django_db
-def test_create_or_update_projet_and_its_simulation_and_programmation_projets_from_dossier_with_refused(
+def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
     commune, detr_enveloppe
 ):
     dossier = DossierFactory(
         ds_state=Dossier.STATE_REFUSE,
         annotations_dotation=DOTATION_DETR,
         ds_demandeur__address__commune=commune,
+        ds_date_traitement=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
     )
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
@@ -217,9 +344,12 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
         enveloppe=detr_enveloppe,
         montant=500,
     )
-    create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+    assert projet.status == PROJET_STATUS_ACCEPTED
+
+    task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
+    assert projet.status == PROJET_STATUS_REFUSED
 
     dotation_projets = DotationProjet.objects.filter(projet=projet)
     assert dotation_projets.count() == 1
@@ -235,8 +365,108 @@ def test_create_or_update_projet_and_its_simulation_and_programmation_projets_fr
 
     programmation_projet = dotation_projet.programmation_projet
     assert programmation_projet.status == ProgrammationProjet.STATUS_REFUSED
+    assert programmation_projet.notified_at == datetime(2024, 1, 15, 10, 30, tzinfo=UTC)
     assert programmation_projet.montant == 0
     assert programmation_projet.taux == 0
+
+
+@pytest.mark.django_db
+def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
+    commune, detr_enveloppe
+):
+    dossier = DossierFactory(
+        ds_state=Dossier.STATE_SANS_SUITE,
+        annotations_dotation=DOTATION_DETR,
+        ds_demandeur__address__commune=commune,
+        ds_date_traitement=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
+    )
+    projet = ProjetFactory(dossier_ds=dossier)
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    SimulationProjetFactory.create_batch(
+        2,
+        dotation_projet=dotation_projet,
+        status=SimulationProjet.STATUS_ACCEPTED,
+        montant=500,
+    )
+    ProgrammationProjetFactory(
+        dotation_projet=dotation_projet,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        enveloppe=detr_enveloppe,
+        montant=500,
+    )
+    assert projet.status == PROJET_STATUS_ACCEPTED
+
+    task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+
+    projet.refresh_from_db()
+    assert projet.status == PROJET_STATUS_DISMISSED
+
+    dotation_projets = DotationProjet.objects.filter(projet=projet)
+    assert dotation_projets.count() == 1
+    dotation_projet = dotation_projets.first()
+    assert dotation_projet.dotation == DOTATION_DETR
+    assert dotation_projet.assiette is None
+    assert dotation_projet.status == PROJET_STATUS_DISMISSED
+
+    for simulation_projet in dotation_projet.simulationprojet_set.all():
+        assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED
+        assert simulation_projet.montant == 0
+        assert simulation_projet.taux == 0
+
+    programmation_projet = dotation_projet.programmation_projet
+    assert programmation_projet.status == ProgrammationProjet.STATUS_DISMISSED
+    assert programmation_projet.notified_at == datetime(2024, 1, 15, 10, 30, tzinfo=UTC)
+    assert programmation_projet.montant == 0
+    assert programmation_projet.taux == 0
+
+
+@pytest.mark.django_db
+def test_task_create_or_update_projet_and_co_from_dossier_update_annotations(
+    commune, detr_enveloppe
+):
+    dossier = DossierFactory(
+        ds_state=Dossier.STATE_ACCEPTE,
+        annotations_dotation=DOTATION_DETR,
+        annotations_assiette=60_000,
+        annotations_montant_accorde=6_000,
+        annotations_is_budget_vert=True,
+        annotations_is_qpv=True,
+        annotations_is_crte=True,
+        ds_demandeur__address__commune=commune,
+    )
+    projet = ProjetFactory(
+        dossier_ds=dossier,
+        is_budget_vert=False,
+        is_in_qpv=False,
+        is_attached_to_a_crte=False,
+    )
+    dotation_projet = DotationProjetFactory(
+        projet=projet,
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_ACCEPTED,
+        assiette=50_000,
+    )
+    ProgrammationProjetFactory(
+        dotation_projet=dotation_projet,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        enveloppe=detr_enveloppe,
+        montant=500,
+    )
+
+    task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+
+    projet.refresh_from_db()
+    assert projet.is_budget_vert is True
+    assert projet.is_in_qpv is True
+    assert projet.is_attached_to_a_crte is True
+
+    dotation_projets = DotationProjet.objects.filter(projet=projet)
+    dotation_projet = dotation_projets.first()
+    assert dotation_projet.dotation == DOTATION_DETR
+    assert dotation_projet.assiette == 60_000
+    assert dotation_projet.programmation_projet.montant == 6_000
 
 
 @pytest.mark.django_db
@@ -245,9 +475,9 @@ def test_create_or_update_projets_and_its_simulation_and_programmation_projets_f
         DossierFactory(ds_number=i, ds_state="state")
 
     with mock.patch(
-        "gsl_projet.tasks.create_or_update_projets_and_co_batch.delay"
+        "gsl_projet.tasks.task_create_or_update_projets_and_co_batch.delay"
     ) as mock_create_or_update_projets_batch:
-        create_or_update_projets_and_co_from_all_dossiers(batch_size=5)
+        task_create_or_update_projets_and_co_from_all_dossiers(batch_size=5)
 
         assert mock_create_or_update_projets_batch.call_count == 2
 
@@ -258,9 +488,9 @@ def test_create_or_update_projets_and_its_simulation_and_programmation_projets_f
 @pytest.mark.django_db
 def test_create_or_update_projets_and_its_simulation_and_programmation_projets_from_all_dossiers_with_no_dossiers():
     with mock.patch(
-        "gsl_projet.tasks.create_or_update_projets_and_co_batch.delay"
+        "gsl_projet.tasks.task_create_or_update_projets_and_co_batch.delay"
     ) as mock_delay:
-        create_or_update_projets_and_co_from_all_dossiers(batch_size=5)
+        task_create_or_update_projets_and_co_from_all_dossiers(batch_size=5)
 
         mock_delay.assert_not_called()
 
@@ -268,9 +498,9 @@ def test_create_or_update_projets_and_its_simulation_and_programmation_projets_f
 @pytest.mark.django_db
 def test_create_or_update_projets_batch():
     with mock.patch(
-        "gsl_projet.tasks.create_or_update_projet_and_co_from_dossier.delay"
+        "gsl_projet.tasks.task_create_or_update_projet_and_co_from_dossier.delay"
     ) as mock_delay:
-        create_or_update_projets_and_co_batch((1, 2, 3))
+        task_create_or_update_projets_and_co_batch((1, 2, 3))
         assert mock_delay.call_count == 3
 
         mock_delay.assert_any_call(1)

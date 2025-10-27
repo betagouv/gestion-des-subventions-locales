@@ -3,11 +3,11 @@
 import django.db.models.deletion
 import django_fsm
 from django.db import migrations, models
-from ..tasks import create_or_update_dotation_projets_from_all_projets
+from ..tasks import task_create_or_update_dotation_projets_from_all_projets
 
 
 def create_dotation_projet(apps, schema_editor):
-    create_or_update_dotation_projets_from_all_projets()
+    task_create_or_update_dotation_projets_from_all_projets()
 
 
 def nothing(apps, schema_editor):

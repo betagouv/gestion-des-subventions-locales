@@ -175,7 +175,7 @@ def test_create_or_update_from_dotation_projet_with_an_existing_one_and_without_
     )
 
 
-# STATUS REFUSED
+# STATUS REFUSED AND DISMISSED
 
 
 @pytest.fixture
@@ -188,198 +188,221 @@ def refused_dotation_projet(perimetre):
     )
 
 
-@pytest.mark.django_db
-def test_create_or_update_from_refused_projet_with_no_existing_one_and_complete_annotations(
-    refused_dotation_projet, detr_enveloppe
-):
-    refused_dotation_projet.dossier_ds.annotations_montant_accorde = 0
-    refused_dotation_projet.dossier_ds.annotations_taux = 0
-    assert (
-        ProgrammationProjet.objects.filter(
-            dotation_projet=refused_dotation_projet
-        ).count()
-        == 0
+@pytest.fixture
+def dismissed_dotation_projet(perimetre):
+    return DotationProjetFactory(
+        status=PROJET_STATUS_DISMISSED,
+        dotation=DOTATION_DETR,
+        projet__dossier_ds__annotations_assiette=3_000,
+        projet__perimetre=perimetre,
     )
 
-    ProgrammationProjetService.create_or_update_from_dotation_projet(
-        refused_dotation_projet
+
+PROJET_STATUS_TO_PROGRAMMATION_STATUS = {
+    PROJET_STATUS_REFUSED: ProgrammationProjet.STATUS_REFUSED,
+    PROJET_STATUS_DISMISSED: ProgrammationProjet.STATUS_DISMISSED,
+}
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "status, dotation_projet",
+    [
+        (PROJET_STATUS_REFUSED, "refused_dotation_projet"),
+        (PROJET_STATUS_DISMISSED, "dismissed_dotation_projet"),
+    ],
+)
+def test_create_or_update_from_refused_projet_with_no_existing_one_and_complete_annotations(
+    status, dotation_projet, detr_enveloppe, request
+):
+    dotation_projet = request.getfixturevalue(dotation_projet)
+    dotation_projet.dossier_ds.annotations_montant_accorde = 0
+    dotation_projet.dossier_ds.annotations_taux = 0
+    assert (
+        ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).count() == 0
     )
+
+    ProgrammationProjetService.create_or_update_from_dotation_projet(dotation_projet)
 
     programmation_projet = ProgrammationProjet.objects.get(
-        dotation_projet=refused_dotation_projet
+        dotation_projet=dotation_projet
     )
-    assert programmation_projet.dotation_projet == refused_dotation_projet
+    assert programmation_projet.dotation_projet == dotation_projet
     assert programmation_projet.montant == 0
     assert programmation_projet.taux == 0
-    assert programmation_projet.status == ProgrammationProjet.STATUS_REFUSED
+    assert programmation_projet.status == PROJET_STATUS_TO_PROGRAMMATION_STATUS[status]
     assert programmation_projet.enveloppe == detr_enveloppe
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    "status, dotation_projet",
+    [
+        (PROJET_STATUS_REFUSED, "refused_dotation_projet"),
+        (PROJET_STATUS_DISMISSED, "dismissed_dotation_projet"),
+    ],
+)
 def test_create_or_update_from_refused_projet_with_an_existing_one_and_complete_annotations(
-    refused_dotation_projet, detr_enveloppe
+    status, dotation_projet, detr_enveloppe, request
 ):
-    refused_dotation_projet.dossier_ds.annotations_montant_accorde = 0
+    dotation_projet = request.getfixturevalue(dotation_projet)
+    dotation_projet.dossier_ds.annotations_montant_accorde = 0
 
     ProgrammationProjetFactory(
-        dotation_projet=refused_dotation_projet,
+        dotation_projet=dotation_projet,
         montant=10,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         enveloppe=detr_enveloppe,
     )
 
-    ProgrammationProjetService.create_or_update_from_dotation_projet(
-        refused_dotation_projet
-    )
+    ProgrammationProjetService.create_or_update_from_dotation_projet(dotation_projet)
 
     programmation_projet = ProgrammationProjet.objects.get(
-        dotation_projet=refused_dotation_projet
+        dotation_projet=dotation_projet
     )
-    assert programmation_projet.dotation_projet == refused_dotation_projet
+    assert programmation_projet.dotation_projet == dotation_projet
     assert programmation_projet.montant == 0
     assert programmation_projet.taux == 0
-    assert programmation_projet.status == ProgrammationProjet.STATUS_REFUSED
+    assert programmation_projet.status == PROJET_STATUS_TO_PROGRAMMATION_STATUS[status]
     assert programmation_projet.enveloppe == detr_enveloppe
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    "status, dotation_projet",
+    [
+        (PROJET_STATUS_REFUSED, "refused_dotation_projet"),
+        (PROJET_STATUS_DISMISSED, "dismissed_dotation_projet"),
+    ],
+)
 def test_create_or_update_from_refused_projet_with_existing_one_with_only_dotation_in_annotations(
-    perimetre, refused_dotation_projet, detr_enveloppe
+    status, dotation_projet, perimetre, detr_enveloppe, request
 ):
+    dotation_projet = request.getfixturevalue(dotation_projet)
     ProgrammationProjetFactory(
-        dotation_projet=refused_dotation_projet, enveloppe=detr_enveloppe
+        dotation_projet=dotation_projet, enveloppe=detr_enveloppe
     )
 
-    refused_dotation_projet.dotation = DOTATION_DSIL
+    dotation_projet.dotation = DOTATION_DSIL
     dsil_enveloppe = DsilEnveloppeFactory(
         perimetre__region=perimetre.departement.region,
         annee=date.today().year,
     )
 
     assert (
-        ProgrammationProjet.objects.filter(
-            dotation_projet=refused_dotation_projet
-        ).count()
-        == 1
+        ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).count() == 1
     )
 
     programmation_projet = (
         ProgrammationProjetService.create_or_update_from_dotation_projet(
-            refused_dotation_projet
+            dotation_projet
         )
     )
 
     programmation_projet = ProgrammationProjet.objects.get(
-        dotation_projet=refused_dotation_projet
+        dotation_projet=dotation_projet
     )
     assert (
-        ProgrammationProjet.objects.filter(
-            dotation_projet=refused_dotation_projet
-        ).count()
-        == 1
+        ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).count() == 1
     )
     assert programmation_projet.enveloppe == dsil_enveloppe
-    assert programmation_projet.status == ProgrammationProjet.STATUS_REFUSED
+    assert programmation_projet.status == PROJET_STATUS_TO_PROGRAMMATION_STATUS[status]
     assert programmation_projet.montant == 0
     assert programmation_projet.taux == 0
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    "status, dotation_projet",
+    [
+        (PROJET_STATUS_REFUSED, "refused_dotation_projet"),
+        (PROJET_STATUS_DISMISSED, "dismissed_dotation_projet"),
+    ],
+)
 def test_create_or_update_from_refused_projet_with_no_existing_one_with_only_dotation_in_annotations(
-    refused_dotation_projet, detr_enveloppe
+    status, dotation_projet, detr_enveloppe, request
 ):
+    dotation_projet = request.getfixturevalue(dotation_projet)
     assert (
-        ProgrammationProjet.objects.filter(
-            dotation_projet=refused_dotation_projet
-        ).count()
-        == 0
+        ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).count() == 0
     )
 
     programmation_projet = (
         ProgrammationProjetService.create_or_update_from_dotation_projet(
-            refused_dotation_projet
+            dotation_projet
         )
     )
 
     programmation_projet = ProgrammationProjet.objects.get(
-        dotation_projet=refused_dotation_projet
+        dotation_projet=dotation_projet
     )
     assert (
-        ProgrammationProjet.objects.filter(
-            dotation_projet=refused_dotation_projet
-        ).count()
-        == 1
+        ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).count() == 1
     )
     assert programmation_projet.enveloppe == detr_enveloppe
-    assert programmation_projet.status == ProgrammationProjet.STATUS_REFUSED
+    assert programmation_projet.status == PROJET_STATUS_TO_PROGRAMMATION_STATUS[status]
     assert programmation_projet.montant == 0
     assert programmation_projet.taux == 0
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    "dotation_projet",
+    ("refused_dotation_projet", "dismissed_dotation_projet"),
+)
 def test_create_or_update_from_refused_projet_with_existing_one_and_without_annotations(
-    refused_dotation_projet, detr_enveloppe
+    dotation_projet, detr_enveloppe, request
 ):
+    dotation_projet = request.getfixturevalue(dotation_projet)
     ProgrammationProjetFactory(
-        dotation_projet=refused_dotation_projet, enveloppe=detr_enveloppe
+        dotation_projet=dotation_projet, enveloppe=detr_enveloppe
     )
 
     assert (
-        ProgrammationProjet.objects.filter(
-            dotation_projet=refused_dotation_projet
-        ).count()
-        == 1
+        ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).count() == 1
     )
 
-    ProgrammationProjetService.create_or_update_from_dotation_projet(
-        refused_dotation_projet
-    )
+    ProgrammationProjetService.create_or_update_from_dotation_projet(dotation_projet)
 
     assert (
-        ProgrammationProjet.objects.filter(
-            dotation_projet=refused_dotation_projet
-        ).count()
-        == 1
+        ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).count() == 1
     )
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    "status, dotation_projet",
+    [
+        (PROJET_STATUS_REFUSED, "refused_dotation_projet"),
+        (PROJET_STATUS_DISMISSED, "dismissed_dotation_projet"),
+    ],
+)
 def test_create_or_update_from_refused_projet_with_no_existing_one_and_without_annotations(
-    refused_dotation_projet, detr_enveloppe
+    status, dotation_projet, detr_enveloppe, request
 ):
+    dotation_projet = request.getfixturevalue(dotation_projet)
     assert (
-        ProgrammationProjet.objects.filter(
-            dotation_projet=refused_dotation_projet
-        ).count()
-        == 0
+        ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).count() == 0
     )
     programmation_projet = (
         ProgrammationProjetService.create_or_update_from_dotation_projet(
-            refused_dotation_projet
+            dotation_projet
         )
     )
     assert (
-        ProgrammationProjet.objects.filter(
-            dotation_projet=refused_dotation_projet
-        ).count()
-        == 1
+        ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).count() == 1
     )
-    assert programmation_projet.dotation_projet == refused_dotation_projet
+    assert programmation_projet.dotation_projet == dotation_projet
     assert programmation_projet.enveloppe == detr_enveloppe
-    assert programmation_projet.status == ProgrammationProjet.STATUS_REFUSED
+    assert programmation_projet.status == status
     assert programmation_projet.montant == 0
     assert programmation_projet.taux == 0
 
 
-# OTHER STATUS
-@pytest.mark.parametrize(
-    "other_status", (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING)
-)
+# PROCESSING
 @pytest.mark.django_db
-def test_create_or_update_from_dotation_projet_with_other_status_without_existing_one(
-    other_status,
-):
-    dp = DotationProjetFactory(status=other_status)
+def test_create_or_update_from_dotation_projet_with_processing_without_existing_one():
+    dp = DotationProjetFactory(status=PROJET_STATUS_PROCESSING)
     assert ProgrammationProjet.objects.count() == 0
 
     programmation_projet = (
@@ -390,14 +413,13 @@ def test_create_or_update_from_dotation_projet_with_other_status_without_existin
     assert ProgrammationProjet.objects.count() == 0
 
 
-@pytest.mark.parametrize(
-    "other_status", (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING)
-)
 @pytest.mark.django_db
-def test_create_or_update_from_dotation_projet_with_other_status_with_existing_one(
-    perimetre, detr_enveloppe, other_status
+def test_create_or_update_from_dotation_projet_with_processing_with_existing_one(
+    perimetre, detr_enveloppe
 ):
-    dp = DotationProjetFactory(status=other_status, projet__perimetre=perimetre)
+    dp = DotationProjetFactory(
+        status=PROJET_STATUS_PROCESSING, projet__perimetre=perimetre
+    )
     ProgrammationProjetFactory(dotation_projet=dp, enveloppe=detr_enveloppe)
 
     programmation_projet = (

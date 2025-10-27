@@ -405,7 +405,7 @@ def test_patch_montant_simulation_projet_with_wrong_value(
     message = list(messages)[0]
     assert message.level == 40
     assert (
-        "Une erreur est survenue lors de la mise à jour du montant. Le montant 12 000 € doit être supérieur ou égal à 0 € et inférieur ou égal à 10 000 €."
+        "Une erreur est survenue lors de la mise à jour du montant. Le montant 12 000 € doit être supérieur ou égal à 0 € et inférieur ou égal à l'assiette (10 000 €)."
         == message.message
     )
 
