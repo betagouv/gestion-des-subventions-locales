@@ -105,6 +105,18 @@ def patch_status_simulation_projet(request, pk):
             "This endpoint is not for refused projects anymore (you need to fill the form)."
         )
 
+    if (
+        status == SimulationProjet.STATUS_ACCEPTED
+        and bool(simulation_projet.dotation_projet.assiette) is False
+    ):
+        messages.error(
+            request,
+            "Impossible d'accepter le projet car l'assiette lié à cette dotation n'est pas renseignée.",
+        )
+        return redirect_to_same_page_or_to_simulation_detail_by_default(
+            request, simulation_projet
+        )
+
     if status not in dict(SimulationProjet.STATUS_CHOICES).keys():
         raise ValueError("Invalid status")
 
@@ -413,20 +425,6 @@ def _enrich_simulation_projet_context_with_generic_info_for_all_tabs(
             "dotation_projet": simulation_projet.dotation_projet,
             "dossier": simulation_projet.projet.dossier_ds,
         }
-    )
-
-
-def _get_view_simulation_projet_from_pk(pk: int):
-    return (
-        SimulationProjet.objects.select_related(
-            "simulation",
-            "simulation__enveloppe",
-            "dotation_projet",
-            "dotation_projet__projet",
-            "dotation_projet__projet__dossier_ds",
-        )
-        .prefetch_related("dotation_projet__projet__dotationprojet_set")
-        .get(id=pk)
     )
 
 
