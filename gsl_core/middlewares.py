@@ -16,7 +16,7 @@ class CheckPerimeterMiddleware:
         excluded_paths = [
             reverse("login"),
             reverse("logout"),
-            reverse("no_perimeter"),
+            reverse("no-perimeter"),
             reverse("coming-features"),
         ]
         excluded_beginning_paths = ["/admin/", "/oidc/", "/__debug__/"]
@@ -32,7 +32,7 @@ class CheckPerimeterMiddleware:
         if user.is_authenticated:
             has_perimeter = user.perimetre
             if not has_perimeter and request.path not in excluded_paths:
-                return redirect("no_perimeter")
+                return redirect("no-perimeter")
 
         response = self.get_response(request)
         return response

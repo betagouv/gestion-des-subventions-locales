@@ -43,7 +43,7 @@ def test_authenticated_without_perimeter_redirects(req, is_staff):
     response = middleware(request)
 
     assert response.status_code == 302
-    assert response["Location"] == reverse("no_perimeter")
+    assert response["Location"] == reverse("no-perimeter")
 
 
 @pytest.mark.parametrize("path", ["/admin/some/", "/oidc/some/", "/__debug__/some/"])
@@ -72,7 +72,7 @@ def test_staff_ds_allowed(req):
     [
         reverse("login"),
         reverse("logout"),
-        reverse("no_perimeter"),
+        reverse("no-perimeter"),
         reverse("coming-features"),
     ],
 )
