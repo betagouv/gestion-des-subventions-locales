@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import ngettext
 from django.views.decorators.http import require_GET, require_POST
@@ -112,6 +113,7 @@ def get_celery_task_results(request):
     )
 
 
+@method_decorator(staff_member_required, name="dispatch")
 class DemarcheListView(ListView):
     model = Demarche
     paginate_by = 100

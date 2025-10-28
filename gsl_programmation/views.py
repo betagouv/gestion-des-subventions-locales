@@ -1,7 +1,10 @@
 from functools import cached_property
 
+from django.contrib import messages
+from django.db.models import ProtectedError
 from django.http import Http404
 from django.shortcuts import redirect
+from django.template.defaultfilters import pluralize
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_POST
@@ -24,6 +27,7 @@ from gsl_projet.utils.projet_page import PROJET_MENU
 
 class ProgrammationProjetDetailView(DetailView):
     model = ProgrammationProjet
+    pk_url_kwarg = "programmation_projet_id"
 
     ALLOWED_TABS = {"annotations", "historique"}
 
@@ -35,9 +39,10 @@ class ProgrammationProjetDetailView(DetailView):
             return [f"gsl_programmation/tab_programmation_projet/tab_{tab}.html"]
         return ["gsl_programmation/programmation_projet_detail.html"]
 
-    def get_object(self, queryset=None):
-        self.programmation_projet = (
-            ProgrammationProjet.objects.select_related(
+    def get_queryset(self):
+        return (
+            ProgrammationProjet.objects.visible_to_user(self.request.user)
+            .select_related(
                 "dotation_projet",
                 "dotation_projet__projet",
                 "dotation_projet__projet__dossier_ds",
@@ -47,20 +52,17 @@ class ProgrammationProjetDetailView(DetailView):
                 "enveloppe__perimetre",
             )
             .prefetch_related("dotation_projet__detr_categories")
-            .get(pk=self.kwargs.get("programmation_projet_id"))
         )
-        return self.programmation_projet
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
         tab = self.kwargs.get("tab", "projet")
-        title = self.programmation_projet.projet.dossier_ds.projet_intitule
+        title = self.object.projet.dossier_ds.projet_intitule
         context = {
             "title": title,
-            "programmation_projet": self.programmation_projet,
-            "projet": self.programmation_projet.projet,
-            "dossier": self.programmation_projet.projet.dossier_ds,
-            "enveloppe": self.programmation_projet.enveloppe,
+            "programmation_projet": self.object,
+            "projet": self.object.projet,
+            "dossier": self.object.projet.dossier_ds,
+            "enveloppe": self.object.enveloppe,
             "breadcrumb_dict": {
                 "links": [
                     {
@@ -74,9 +76,9 @@ class ProgrammationProjetDetailView(DetailView):
             "current_tab": tab,
         }
         if tab == "annotations":
-            context["projet_notes"] = self.programmation_projet.projet.notes.all()
+            context["projet_notes"] = self.object.projet.notes.all()
 
-        return context
+        return super().get_context_data(**context)
 
 
 class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
@@ -255,3 +257,32 @@ class EnveloppeDeleteView(DeleteView):
                 ),
             )
         )
+
+    def form_valid(self, form):
+        try:
+            return super().form_valid(form)
+        except ProtectedError as e:
+            object_classes = {}
+            for obj in e.protected_objects:
+                if obj._meta.model_name not in object_classes:
+                    object_classes[obj._meta.model_name] = 1
+                else:
+                    object_classes[obj._meta.model_name] += 1
+
+            objects_count = sum(object_classes.values())
+            msgs = []
+            if "simulation" in object_classes:
+                simulations_count = object_classes["simulation"]
+                plural = "s" if simulations_count > 1 else ""
+                msgs.append(f"{simulations_count} simulation{plural}")
+
+            if "enveloppe" in object_classes:
+                enveloppe_count = object_classes["enveloppe"]
+                plural = "s" if enveloppe_count > 1 else ""
+                msgs.append(f"{enveloppe_count} enveloppe{plural}")
+
+            messages.error(
+                self.request,
+                f"Suppression impossible : {' et '.join(msgs)} {pluralize(objects_count, 'est,sont')} rattachée{pluralize(objects_count, 's')} à cette enveloppe.",
+            )
+            return redirect(self.success_url)

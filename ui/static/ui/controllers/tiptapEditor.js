@@ -1,50 +1,49 @@
-import { Editor } from "https://esm.sh/@tiptap/core";
-import Highlight from "https://esm.sh/@tiptap/extension-highlight";
-import Mention from "https://esm.sh/@tiptap/extension-mention";
-import StarterKit from "https://esm.sh/@tiptap/starter-kit";
-import TextAlign from "https://esm.sh/@tiptap/extension-text-align";
-import { Controller } from "stimulus"
-
+import { Editor, Highlight, Mention, StarterKit, TextAlign } from 'tiptap'
+import { Controller } from 'stimulus'
 
 const EXTENSIONS = [
-    StarterKit,
-    TextAlign.configure({
-      types: ['heading', 'paragraph'],
-    }),
-    Highlight.configure({ multicolor: false }),
-  ]
+  StarterKit,
+  TextAlign.configure({
+    types: ['heading', 'paragraph']
+  }),
+  Highlight.configure({ multicolor: false })
+]
 
 export class TipTapEditor extends Controller {
   static values = {
-    withMention:{
+    withMention: {
       type: Boolean,
-      default: false,
+      default: false
     },
-    mentions:{
+    mentions: {
       type: Array,
       default: []
     },
     contentFieldName: String
   }
-  static targets = ["editor", "toolbarButton", "mentionDropdown"]
 
-  connect(){
+  static targets = ['editor', 'toolbarButton', 'mentionDropdown']
+
+  connect () {
     this._setToolbar()
-    this._setEditor();
-    if (this.withMention){
+    this._setEditor()
+    if (this.withMention) {
       this.boundClickOutside = this.clickOutside.bind(this)
-      document.addEventListener("click", this.boundClickOutside)
-
+      document.addEventListener('click', this.boundClickOutside)
     }
+    this.handleBeforeSwap = this._beforeSwap.bind(this)
+    document.body.addEventListener('htmx:beforeSwap', this.handleBeforeSwap)
   }
 
-  disconnect() {
-    if (this.boundClickOutside){
-      document.removeEventListener("click", this.boundClickOutside)
+  disconnect () {
+    if (this.boundClickOutside) {
+      document.removeEventListener('click', this.boundClickOutside)
     }
+    document.body.removeEventListener('htmx:beforeSwap', this.handleBeforeSwap)
+    if (this.editor) this.editor.destroy()
   }
 
-  insertMention(event){
+  insertMention (event) {
     if (!this.editor) return
 
     const mentionId = event.target.dataset.id
@@ -56,96 +55,106 @@ export class TipTapEditor extends Controller {
         type: 'mention',
         attrs: {
           id: mentionId,
-          label: mentionLabel,
-        },
+          label: mentionLabel
+        }
       }
     )
-    this.mentionDropdownTarget.removeAttribute("open")
-
+    this.mentionDropdownTarget.removeAttribute('open')
   }
 
-  clickOutside(event) {
+  clickOutside (event) {
     if (!this.element.contains(event.target)) {
-      this.mentionDropdownTarget.removeAttribute("open")
+      this.mentionDropdownTarget.removeAttribute('open')
     }
   }
-
 
   // Private
 
-  _setEditor(){
-    if(!this.hasEditorTarget){
-      console.warn("No tiptap editor target !")
+  _beforeSwap (event) {
+    const target = event.detail.target
+
+    // We only act if the target is our editor
+    if (target?.classList?.contains('tiptap')) {
+      event.preventDefault() // Prevent htmx from swapping the content
+      let html = event.detail.xhr.response
+      // Clean up the HTML (delete whitespace between tags)
+      html = html.replace(/>\s+</g, '><').trim()
+      this.editor.commands.setContent(html)
+    }
+  }
+
+  _setEditor () {
+    if (!this.hasEditorTarget) {
+      console.warn('No tiptap editor target !')
     }
 
-    const contentInput = document.querySelector(`input[name="${this.contentFieldNameValue}"]`);
+    const contentInput = document.querySelector(`input[name="${this.contentFieldNameValue}"]`)
 
     this.editor = new Editor({
       element: this.editorTarget,
       extensions: this._getExtensions(),
-      onCreate({ editor }) {
-        editor.commands.setContent(contentInput.value);
-        contentInput.value = editor.getHTML();
+      onCreate ({ editor }) {
+        editor.commands.setContent(contentInput.value)
+        contentInput.value = editor.getHTML()
       },
-      onUpdate({ editor }) {
-        contentInput.value = editor.getHTML();
+      onUpdate ({ editor }) {
+        contentInput.value = editor.getHTML()
       }
-    });
-  
+    })
   }
-  
-  _setToolbar(){
-    if(!this.hasToolbarButtonTarget){
-      console.warn("No tiptap editor target !")
+
+  _setToolbar () {
+    if (!this.hasToolbarButtonTarget) {
+      console.warn('No tiptap editor target !')
     }
 
     this.toolbarButtonTargets.forEach(btn => this._setButtonAction(btn))
   };
 
-  _setButtonAction(btn) {
-    btn.addEventListener("click", (event) => {
-      if (!btn.dataset.action) return;
+  _setButtonAction (btn) {
+    btn.addEventListener('click', (event) => {
+      if (!btn.dataset.action) return
       switch (btn.dataset.action) {
-        case "bold":
-          this.editor.chain().focus().toggleBold().run();
-          break;
-        case "italic":
-          this.editor.chain().focus().toggleItalic().run();
-          break;
-        case "underline":
-          this.editor.chain().focus().toggleUnderline().run();
-          break;
-        case "highlight":
-          this.editor.chain().focus().toggleHighlight().run();
-          break;
-        case "heading":
-          this.editor.chain().focus().toggleHeading({ level: parseInt(btn.dataset.level) }).run();
-          break;
-        case "bulletList":
-          this.editor.chain().focus().toggleBulletList().run();
-          break;
-        case "orderedList":
-          this.editor.chain().focus().toggleOrderedList().run();
-          break;
-        case "align":
-          this.editor.chain().focus().setTextAlign(btn.dataset.align).run();
-          break;
-        case "undo":
-          this.editor.chain().focus().undo().run();
-          break;
-        case "redo":
-          this.editor.chain().focus().redo().run();
-          break;
+        case 'bold':
+          this.editor.chain().focus().toggleBold().run()
+          break
+        case 'italic':
+          this.editor.chain().focus().toggleItalic().run()
+          break
+        case 'underline':
+          this.editor.chain().focus().toggleUnderline().run()
+          break
+        case 'highlight':
+          this.editor.chain().focus().toggleHighlight().run()
+          break
+        case 'heading':
+          this.editor.chain().focus().toggleHeading({ level: parseInt(btn.dataset.level) }).run()
+          break
+        case 'bulletList':
+          this.editor.chain().focus().toggleBulletList().run()
+          break
+        case 'orderedList':
+          this.editor.chain().focus().toggleOrderedList().run()
+          break
+        case 'align':
+          this.editor.chain().focus().setTextAlign(btn.dataset.align).run()
+          break
+        case 'undo':
+          this.editor.chain().focus().undo().run()
+          break
+        case 'redo':
+          this.editor.chain().focus().redo().run()
+          break
       }
     })
   }
 
-  _getExtensions(){
+  _getExtensions () {
     if (!this.withMentionValue) return EXTENSIONS
     return [...EXTENSIONS, this._getMentionExtension()]
   }
 
-  _getMentionExtension(){
+  _getMentionExtension () {
     const MENTION = Mention.configure({
       HTMLAttributes: {
         class: 'mention'
@@ -157,139 +166,139 @@ export class TipTapEditor extends Controller {
           const fields = this.mentionsValue
           return fields
             .filter(field => field.label.toLowerCase().startsWith(query.toLowerCase()))
-            .slice(0, 10);
+            .slice(0, 10)
         },
         render: () => {
-          let popup;
-          let selectedIndex = 0;
-          let originalItems = [];
-          let divItems = [];
-          function updateSelection(newIndex) {
-                divItems[selectedIndex].classList.remove('selected');
-                selectedIndex = newIndex;
-                divItems[selectedIndex].classList.add('selected');
-                divItems[selectedIndex].scrollIntoView({
-                  block: 'nearest',
-                });
-              }
-          function reinitializeVariables() {
-            selectedIndex = 0;
-            divItems = [];
+          let popup
+          let selectedIndex = 0
+          let originalItems = []
+          let divItems = []
+          function updateSelection (newIndex) {
+            divItems[selectedIndex].classList.remove('selected')
+            selectedIndex = newIndex
+            divItems[selectedIndex].classList.add('selected')
+            divItems[selectedIndex].scrollIntoView({
+              block: 'nearest'
+            })
           }
-  
-          let selectItem;
-  
+          function reinitializeVariables () {
+            selectedIndex = 0
+            divItems = []
+          }
+
+          let selectItem
+
           return {
             onStart: props => {
-              originalItems = props.items;
-              reinitializeVariables();
-  
+              originalItems = props.items
+              reinitializeVariables()
+
               selectItem = (item) => {
-                props.command(item);
-              };
-  
+                props.command(item)
+              }
+
               // Créer le conteneur
-              popup = document.createElement('div');
-              popup.className = 'mention-list';
-              popup.setAttribute('tabindex', '-1'); // Rendre focusable
-  
+              popup = document.createElement('div')
+              popup.className = 'mention-list'
+              popup.setAttribute('tabindex', '-1') // Rendre focusable
+
               // Ajouter les éléments
               props.items.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'mention-item';
-                div.textContent = item.label;
-                div.dataset.id = item.id;
+                const div = document.createElement('div')
+                div.className = 'mention-item'
+                div.textContent = item.label
+                div.dataset.id = item.id
                 div.addEventListener('click', () => {
-                  props.command(item);
-                });
+                  props.command(item)
+                })
                 div.addEventListener('mouseover', () => {
-                  let index = divItems.indexOf(div);
-                  updateSelection(index);
-                });
-                popup.appendChild(div);
-                divItems.push(div);
-              });
-  
-              updateSelection(0);
-  
+                  const index = divItems.indexOf(div)
+                  updateSelection(index)
+                })
+                popup.appendChild(div)
+                divItems.push(div)
+              })
+
+              updateSelection(0)
+
               // Positionner le popup
-              const rect = props.clientRect();
+              const rect = props.clientRect()
               if (rect) {
-                popup.style.top = `${rect.bottom + window.scrollY}px`;
-                popup.style.left = `${rect.left + window.scrollX}px`;
+                popup.style.top = `${rect.bottom + window.scrollY}px`
+                popup.style.left = `${rect.left + window.scrollX}px`
               }
-  
-              document.body.appendChild(popup);
+
+              document.body.appendChild(popup)
             },
             onUpdate: props => {
-              reinitializeVariables();
-  
+              reinitializeVariables()
+
               while (popup.firstChild) {
-                popup.removeChild(popup.firstChild);
+                popup.removeChild(popup.firstChild)
               }
-              
+
               props.items.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'mention-item';
-                div.textContent = item.label;
-                div.dataset.id = item.id;
+                const div = document.createElement('div')
+                div.className = 'mention-item'
+                div.textContent = item.label
+                div.dataset.id = item.id
                 div.addEventListener('click', () => {
-                  props.command(item);
-                });
+                  props.command(item)
+                })
                 div.addEventListener('mouseover', () => {
-                  let index = divItems.indexOf(div);
-                  updateSelection(index);
-                });
-                popup.appendChild(div);
-                divItems.push(div);
-              });
-              updateSelection(0);
+                  const index = divItems.indexOf(div)
+                  updateSelection(index)
+                })
+                popup.appendChild(div)
+                divItems.push(div)
+              })
+              updateSelection(0)
             },
-            onKeyDown(props) {
+            onKeyDown (props) {
               if (props.event.key === 'Escape') {
-                popup.style.display = 'none';
-                return true;
+                popup.style.display = 'none'
+                return true
               }
               if (props.event.key === 'ArrowDown') {
                 if (selectedIndex < divItems.length - 1) {
-                  updateSelection(selectedIndex + 1);
+                  updateSelection(selectedIndex + 1)
                 }
-                return true;
+                return true
               }
               if (props.event.key === 'ArrowUp') {
                 if (selectedIndex > 0) {
-                  updateSelection(selectedIndex - 1);
+                  updateSelection(selectedIndex - 1)
                 }
-                return true;
+                return true
               }
               if (props.event.key === 'Enter') {
                 if (divItems[selectedIndex]) {
                   // Astuce pour supprimer le texte tapé
-                  const { state, dispatch } = props.view;
-                  const { from, to } = props.range;
+                  const { state, dispatch } = props.view
+                  const { from, to } = props.range
                   dispatch(
                     state.tr.delete(from, to - 1)
-                  );
+                  )
 
-                  const divItem = divItems[selectedIndex];
-                  const item = originalItems.find(i => i.id === Number(divItem.dataset.id));
-                  selectItem(item); 
+                  const divItem = divItems[selectedIndex]
+                  const item = originalItems.find(i => i.id === Number(divItem.dataset.id))
+                  selectItem(item)
                 }
-                return true;
+                return true
               }
-              return false;
+              return false
             },
-            onExit() {
+            onExit () {
               if (popup) {
-                popup.remove();
-                popup = null;
+                popup.remove()
+                popup = null
               }
-            },
-          };
+            }
+          }
         }
       }
-    });
+    })
 
-    return MENTION;
+    return MENTION
   }
 }

@@ -217,38 +217,6 @@ def test_update_status_with_accepted(mock_accept_a_simulation_projet, user):
     mock_accept_a_simulation_projet.assert_called_once_with(simulation_projet, user)
 
 
-def test_update_status_with_refused(user):
-    simulation_projet = SimulationProjetFactory(
-        status=SimulationProjet.STATUS_PROCESSING
-    )
-    new_status = SimulationProjet.STATUS_REFUSED
-
-    with mock.patch.object(
-        SimulationProjetService, "_refuse_a_simulation_projet"
-    ) as mock_refuse_a_simulation_projet:
-        SimulationProjetService.update_status(simulation_projet, new_status, user)
-
-        mock_refuse_a_simulation_projet.assert_called_once_with(simulation_projet)
-
-
-def test_update_status_with_dismissed(user):
-    simulation_projet = SimulationProjetFactory(
-        status=SimulationProjet.STATUS_PROCESSING
-    )
-    new_status = SimulationProjet.STATUS_DISMISSED
-
-    with mock.patch.object(
-        SimulationProjetService, "_dismiss_a_simulation_projet"
-    ) as mock_dismiss_a_simulation_projet:
-        SimulationProjetService.update_status(
-            simulation_projet, new_status, user, "motivation"
-        )
-
-        mock_dismiss_a_simulation_projet.assert_called_once_with(
-            simulation_projet, user, "motivation"
-        )
-
-
 @pytest.mark.parametrize(
     ("initial_status"),
     (
@@ -465,11 +433,6 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
             SimulationProjet.STATUS_ACCEPTED,
             ProgrammationProjet.STATUS_ACCEPTED,
         ),
-        (
-            ProgrammationProjet.STATUS_ACCEPTED,
-            SimulationProjet.STATUS_REFUSED,
-            ProgrammationProjet.STATUS_REFUSED,
-        ),
     ),
 )
 def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_mother_enveloppe(
@@ -683,7 +646,6 @@ def test_get_simulation_projet_status(projet_status, simulation_projet_status_ex
 @pytest.mark.parametrize(
     ("dotation_projet_transition, method, with_enveloppe, with_montant"),
     (
-        ("refuse", SimulationProjetService._refuse_a_simulation_projet, True, False),
         (
             "set_back_status_to_processing",
             SimulationProjetService._set_back_to_processing,
@@ -737,22 +699,4 @@ def test_accept_simulation_projet_triggers_transition(
         user=user,
         montant=simulation_projet.montant,
         taux=simulation_projet.taux,
-    )
-
-
-@mock.patch("gsl_projet.models.DotationProjet.dismiss")
-@mock.patch("gsl_demarches_simplifiees.services.DsService.dismiss_in_ds")
-def test_dimiss_simulation_projet_triggers_transition(
-    mock_dismiss_in_ds,
-    mock_transition_dotation_projet,
-    user,
-):
-    simulation_projet = SimulationProjetFactory()
-    SimulationProjetService._dismiss_a_simulation_projet(
-        simulation_projet, user, "motivation"
-    )
-
-    mock_transition_dotation_projet.assert_called_once_with()
-    mock_dismiss_in_ds.assert_called_once_with(
-        simulation_projet.dossier, user, "motivation"
     )

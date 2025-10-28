@@ -2,16 +2,16 @@
 {% load gsl_filters %}
 
 {% block status_action %}
-    <div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-container fr-pb-2w fr-pt-3w fr-px-3w">
+    <div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-container fr-pb-2w fr-pt-3w fr-px-3w fr-m-0">
         <div class='status_action_header'>
             <h2 class="fr-callout__title">
                 <i class="fr-icon-coin-fill blue-color" aria-hidden="true"></i>
                 Décision de financement du projet
             </h2>
             {% if programmation_projet.to_notify %}
-                <span class="fr-text--xl projet__to_notify">À notifier <span class="fr-icon-mail-fill"></span></span>
+                <span class="fr-text--xl projet__to_notify fr-ml-2w">À notifier <span class="fr-icon-mail-fill"></span></span>
             {% else %}
-                <span class="fr-text--xl projet__to_notify blue-color">Notifié <span class="fr-icon-checkbox-fill"></span></span>
+                <span class="fr-text--xl projet__to_notify fr-ml-2w blue-color">Notifié <span class="fr-icon-checkbox-fill"></span></span>
             {% endif %}
         </div>
 
@@ -22,11 +22,13 @@
         {% endif %}
 
         {% if programmation_projet.to_notify %}
-            <a class="fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
-               id="to_notify_button"
-               href="{% url 'gsl_notification:documents' programmation_projet.id %}">
+            <button class="fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
+                    id="to_notify_button"
+                    type="button"
+                    hx-get="{% url 'gsl_notification:check-ds-dossier-up-to-date' programmation_projet.id %}"
+                    hx-swap="outerHTML">
                 Notifier le demandeur
-            </a>
+            </button>
         {% endif %}
     </div>
 {% endblock status_action %}

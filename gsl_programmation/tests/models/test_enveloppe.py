@@ -2,13 +2,18 @@ from datetime import UTC, datetime
 
 import pytest
 
-from gsl_core.tests.factories import PerimetreDepartementalFactory
+from gsl_core.tests.factories import (
+    PerimetreArrondissementFactory,
+    PerimetreDepartementalFactory,
+    PerimetreRegionalFactory,
+)
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
     ProgrammationProjetFactory,
 )
-from gsl_projet.constants import DOTATION_DETR
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import Projet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.tests.factories import DotationProjetFactory, SubmittedProjetFactory
@@ -137,3 +142,163 @@ def test_get_parent_enveloppe_delegated_once(enveloppes_hierarchy):
 def test_get_parent_enveloppe_delegated_multiple_times(enveloppes_hierarchy):
     mother_enveloppe, _, grandchild_enveloppe = enveloppes_hierarchy
     assert grandchild_enveloppe.delegation_root == mother_enveloppe
+
+
+@pytest.mark.django_db
+class TestDelegatedEnveloppe:
+    def setup_method(self):
+        self.detr_enveloppe = DetrEnveloppeFactory()
+
+        perimetre_arrondissements = PerimetreArrondissementFactory.create_batch(
+            2,
+            arrondissement__departement=self.detr_enveloppe.perimetre.departement,
+            departement=self.detr_enveloppe.perimetre.departement,
+            region=self.detr_enveloppe.perimetre.region,
+        )
+
+        self.delegated_enveloppe_1 = DetrEnveloppeFactory(
+            perimetre=perimetre_arrondissements[0],
+            deleguee_by=self.detr_enveloppe,
+            annee=2021,
+        )
+        self.delegated_enveloppe_2 = DetrEnveloppeFactory(
+            perimetre=perimetre_arrondissements[1],
+            deleguee_by=self.detr_enveloppe,
+            annee=2021,
+        )
+
+        perimetre_arr_1, perimetre_arr_2 = perimetre_arrondissements
+
+        ProgrammationProjetFactory(
+            enveloppe=self.detr_enveloppe,
+            dotation_projet__projet__perimetre=perimetre_arr_1,
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            montant=200_000,
+            dotation_projet__projet__dossier_ds__demande_montant=500_000,
+            dotation_projet__dotation=DOTATION_DETR,
+            dotation_projet__projet__dossier_ds__ds_date_depot=datetime(
+                2020, 12, 1, tzinfo=UTC
+            ),
+        )
+        ProgrammationProjetFactory(
+            enveloppe=self.detr_enveloppe,
+            dotation_projet__projet__perimetre=perimetre_arr_2,
+            status=ProgrammationProjet.STATUS_REFUSED,
+            montant=0,
+            dotation_projet__projet__dossier_ds__demande_montant=400_000,
+            dotation_projet__dotation=DOTATION_DETR,
+            dotation_projet__projet__dossier_ds__ds_date_depot=datetime(
+                2020, 12, 1, tzinfo=UTC
+            ),
+        )
+
+    def test_enveloppe_projets_processed(self):
+        assert self.detr_enveloppe.enveloppe_projets_processed.count() == 2
+        assert self.delegated_enveloppe_1.enveloppe_projets_processed.count() == 1
+        assert self.delegated_enveloppe_2.enveloppe_projets_processed.count() == 1
+
+    def test_accepted_montant(self):
+        assert self.detr_enveloppe.accepted_montant == 200_000
+        assert self.delegated_enveloppe_1.accepted_montant == 200_000
+        assert self.delegated_enveloppe_2.accepted_montant == 0
+
+    def test_validated_projets_count(self):
+        assert self.detr_enveloppe.validated_projets_count == 1
+        assert self.delegated_enveloppe_1.validated_projets_count == 1
+        assert self.delegated_enveloppe_2.validated_projets_count == 0
+
+    def test_refused_projets_count(self):
+        assert self.detr_enveloppe.refused_projets_count == 1
+        assert self.delegated_enveloppe_1.refused_projets_count == 0
+        assert self.delegated_enveloppe_2.refused_projets_count == 1
+
+    def test_projets_count(self):
+        assert self.detr_enveloppe.projets_count == 2
+        assert self.delegated_enveloppe_1.projets_count == 1
+        assert self.delegated_enveloppe_2.projets_count == 1
+
+    def test_demandeurs_count(self):
+        assert self.detr_enveloppe.projets_count == 2
+        assert self.delegated_enveloppe_1.projets_count == 1
+        assert self.delegated_enveloppe_2.projets_count == 1
+
+    def test_montant_asked(self):
+        assert self.detr_enveloppe.montant_asked == 900_000
+        assert self.delegated_enveloppe_1.montant_asked == 500_000
+        assert self.delegated_enveloppe_2.montant_asked == 400_000
+
+
+@pytest.mark.django_db
+class TestDelegatedEnveloppeWithTreeLevels:
+    def setup_method(self):
+        arrondissement = PerimetreArrondissementFactory()
+        departement = PerimetreDepartementalFactory(
+            departement=arrondissement.departement, region=arrondissement.region
+        )
+        region = PerimetreRegionalFactory(region=arrondissement.region)
+
+        self.dsil_enveloppe = DsilEnveloppeFactory(perimetre=region, annee=2021)
+        self.dsil_enveloppe_dep = DsilEnveloppeFactory(
+            perimetre=departement, deleguee_by=self.dsil_enveloppe, annee=2021
+        )
+        self.dsil_enveloppe_arr = DsilEnveloppeFactory(
+            perimetre=arrondissement, deleguee_by=self.dsil_enveloppe_dep, annee=2021
+        )
+
+        ProgrammationProjetFactory(
+            enveloppe=self.dsil_enveloppe,
+            dotation_projet__dotation=DOTATION_DSIL,
+            dotation_projet__projet__perimetre=arrondissement,
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            montant=200_000,
+            dotation_projet__projet__dossier_ds__demande_montant=500_000,
+            dotation_projet__projet__dossier_ds__ds_date_depot=datetime(
+                2020, 12, 1, tzinfo=UTC
+            ),
+        )
+        ProgrammationProjetFactory(
+            enveloppe=self.dsil_enveloppe,
+            dotation_projet__dotation=DOTATION_DSIL,
+            dotation_projet__projet__perimetre=arrondissement,
+            status=ProgrammationProjet.STATUS_REFUSED,
+            montant=0,
+            dotation_projet__projet__dossier_ds__demande_montant=400_000,
+            dotation_projet__projet__dossier_ds__ds_date_depot=datetime(
+                2020, 12, 1, tzinfo=UTC
+            ),
+        )
+
+    def test_enveloppe_projets_processed(self):
+        assert self.dsil_enveloppe.enveloppe_projets_processed.count() == 2
+        assert self.dsil_enveloppe_dep.enveloppe_projets_processed.count() == 2
+        assert self.dsil_enveloppe_arr.enveloppe_projets_processed.count() == 2
+
+    def test_accepted_montant(self):
+        assert self.dsil_enveloppe.accepted_montant == 200_000
+        assert self.dsil_enveloppe_dep.accepted_montant == 200_000
+        assert self.dsil_enveloppe_arr.accepted_montant == 200_000
+
+    def test_validated_projets_count(self):
+        assert self.dsil_enveloppe.validated_projets_count == 1
+        assert self.dsil_enveloppe_dep.validated_projets_count == 1
+        assert self.dsil_enveloppe_arr.validated_projets_count == 1
+
+    def test_refused_projets_count(self):
+        assert self.dsil_enveloppe.refused_projets_count == 1
+        assert self.dsil_enveloppe_dep.refused_projets_count == 1
+        assert self.dsil_enveloppe_arr.refused_projets_count == 1
+
+    def test_projets_count(self):
+        assert self.dsil_enveloppe.projets_count == 2
+        assert self.dsil_enveloppe_dep.projets_count == 2
+        assert self.dsil_enveloppe_arr.projets_count == 2
+
+    def test_demandeurs_count(self):
+        assert self.dsil_enveloppe.projets_count == 2
+        assert self.dsil_enveloppe_dep.projets_count == 2
+        assert self.dsil_enveloppe_arr.projets_count == 2
+
+    def test_montant_asked(self):
+        assert self.dsil_enveloppe.montant_asked == 900_000
+        assert self.dsil_enveloppe_dep.montant_asked == 900_000
+        assert self.dsil_enveloppe_arr.montant_asked == 900_000

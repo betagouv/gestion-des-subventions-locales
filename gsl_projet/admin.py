@@ -67,10 +67,10 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     @admin.action(description="Rafraîchir depuis le dossier DS")
     def refresh_from_dossier(self, request, queryset):
-        from gsl_projet.tasks import create_or_update_projet_and_co_from_dossier
+        from gsl_projet.tasks import task_create_or_update_projet_and_co_from_dossier
 
         for projet in queryset.select_related("dossier_ds"):
-            create_or_update_projet_and_co_from_dossier.delay(
+            task_create_or_update_projet_and_co_from_dossier.delay(
                 projet.dossier_ds.ds_number
             )
 

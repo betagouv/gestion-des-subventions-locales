@@ -33,12 +33,12 @@ class DotationProjetService:
         dotation_projets = []
         for dotation in dotations:
             dotation_projets.append(
-                cls.create_or_update_dotation_projet(projet, dotation)
+                cls._create_or_update_dotation_projet(projet, dotation)
             )
         return dotation_projets
 
     @classmethod
-    def create_or_update_dotation_projet(
+    def _create_or_update_dotation_projet(
         cls, projet: Projet, dotation: POSSIBLE_DOTATIONS
     ):
         detr_avis_commission = cls.get_detr_avis_commission(dotation, projet.dossier_ds)
@@ -48,13 +48,14 @@ class DotationProjetService:
             projet=projet,
             dotation=dotation,
             defaults={
-                "status": cls.get_dotation_projet_status_from_dossier(
-                    projet.dossier_ds
-                ),
                 "assiette": assiette,
                 "detr_avis_commission": detr_avis_commission,
             },
         )
+        dotation_projet.status = cls.get_dotation_projet_status_from_dossier(
+            projet.dossier_ds, dotation_projet
+        )
+        dotation_projet.save()
         if dotation == DOTATION_DETR:
             for critere in projet.dossier_ds.demande_eligibilite_detr.filter(
                 detr_category__isnull=False
@@ -94,8 +95,18 @@ class DotationProjetService:
     }
 
     @classmethod
-    def get_dotation_projet_status_from_dossier(cls, ds_dossier: Dossier):
-        return cls.DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS.get(ds_dossier.ds_state)
+    def get_dotation_projet_status_from_dossier(
+        cls, dossier: Dossier, dotation_projet: DotationProjet
+    ):
+        if (
+            dossier.ds_state
+            in [Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION]
+            and dotation_projet.status == PROJET_STATUS_ACCEPTED
+            and hasattr(dotation_projet, "programmation_projet")
+            and dotation_projet.programmation_projet.notified_at is None
+        ):
+            return PROJET_STATUS_ACCEPTED
+        return cls.DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS.get(dossier.ds_state)
 
     @classmethod
     def get_detr_avis_commission(cls, dotation: str, ds_dossier: Dossier):
@@ -129,7 +140,7 @@ class DotationProjetService:
             or montant > dotation_projet.assiette_or_cout_total
         ):
             raise ValueError(
-                f"Le montant {euro(montant)} doit être supérieur ou égal à 0 € et inférieur ou égal à {euro(dotation_projet.assiette_or_cout_total)}."
+                f"Le montant {euro(montant)} doit être supérieur ou égal à 0 € et inférieur ou égal à l'assiette ({euro(dotation_projet.assiette_or_cout_total)})."
             )
 
     @classmethod

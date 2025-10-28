@@ -130,8 +130,9 @@ def client_with_cote_d_or_user_logged(cote_d_or_perimetre):
 def cote_dorien_simulation_projet(cote_d_or_perimetre):
     dotation_projet = DotationProjetFactory(
         projet__perimetre=cote_d_or_perimetre,
-        projet__dossier_ds__finance_cout_total=500_000,
+        projet__dossier_ds__finance_cout_total=1_000_000,
         dotation=DOTATION_DETR,
+        assiette=500_000,
     )
     simulation = SimulationFactory(
         enveloppe=DetrEnveloppeFactory(perimetre=cote_d_or_perimetre)
@@ -738,8 +739,8 @@ def test_post_edit_projet_note_url(
         (False, False, True, 404),
         (True, True, False, 403),
         (False, True, False, 403),
-        (True, False, False, 404),
-        (False, False, False, 404),
+        (True, False, False, 403),
+        (False, False, False, 403),
     ),
 )
 def test_get_note_card_url(

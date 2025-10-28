@@ -200,6 +200,7 @@ class Dossier(DsModel):
     ds_demandeur = models.ForeignKey(
         PersonneMorale, on_delete=models.PROTECT, verbose_name="Demandeur", null=True
     )
+    ds_instructeurs = models.ManyToManyField("gsl_demarches_simplifiees.Profile")
 
     porteur_de_projet_nature = models.ForeignKey(
         "gsl_demarches_simplifiees.NaturePorteurProjet",
@@ -463,7 +464,7 @@ class Dossier(DsModel):
         projet_departement, projet_arrondissement = None, None
         if self.ds_demandeur and self.ds_demandeur.address:
             commune = self.ds_demandeur.address.commune
-            if commune.departement:
+            if commune and commune.departement:
                 projet_departement = commune.departement
                 if commune.arrondissement:
                     projet_arrondissement = commune.arrondissement
@@ -587,7 +588,7 @@ class AutreAide(DsChoiceLibelle):
 
 class Profile(DsModel):
     ds_id = models.CharField("Identifiant DS", unique=True)
-    ds_email = models.EmailField("E-mail")
+    ds_email = models.EmailField("E-mail", unique=True)
 
     class Meta:
         verbose_name = "Profil DS"

@@ -320,7 +320,7 @@ class DotationProjet(models.Model):
 
     @property
     def assiette_or_cout_total(self):
-        if self.assiette:
+        if self.assiette is not None:
             return self.assiette
         return self.dossier_ds.finance_cout_total
 
@@ -395,15 +395,27 @@ class DotationProjet(models.Model):
         )
 
     @transition(field=status, source="*", target=PROJET_STATUS_DISMISSED)
-    def dismiss(self):
+    def dismiss(self, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
+
+        if self.dotation != enveloppe.dotation:
+            raise ValidationError(
+                "La dotation du projet et de l'enveloppe ne correspondent pas."
+            )
 
         SimulationProjet.objects.filter(dotation_projet=self).update(
             status=SimulationProjet.STATUS_DISMISSED, montant=0
         )
 
-        ProgrammationProjet.objects.filter(dotation_projet=self).delete()
+        ProgrammationProjet.objects.update_or_create(
+            dotation_projet=self,
+            enveloppe=enveloppe.delegation_root,
+            defaults={
+                "montant": 0,
+                "status": ProgrammationProjet.STATUS_DISMISSED,
+            },
+        )
 
     @transition(
         field=status,

@@ -1,22 +1,23 @@
-from typing import Union
-
 from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
 from django.contrib import messages
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
-from django.views.decorators.http import require_GET, require_http_methods
-from django.views.generic import DetailView
+from django.views.decorators.http import require_http_methods
+from django.views.generic import DetailView, UpdateView
+from django_htmx.http import HttpResponseClientRedirect, trigger_client_event
 from django_weasyprint import WeasyTemplateResponseMixin
 
+from gsl_core.decorators import htmx_only
+from gsl_demarches_simplifiees.ds_client import DsClient
+from gsl_demarches_simplifiees.exceptions import DsServiceException
+from gsl_notification.forms import NotificationMessageForm
 from gsl_notification.models import (
-    Annexe,
-    Arrete,
-    ArreteEtLettreSignes,
     GeneratedDocument,
-    LettreNotification,
 )
 from gsl_notification.utils import (
     get_doc_title,
@@ -25,177 +26,158 @@ from gsl_notification.utils import (
     get_modele_class,
     get_modele_perimetres,
     replace_mentions_in_html,
-    return_document_as_a_dict,
 )
 from gsl_notification.views.decorators import (
     document_visible_by_user,
-    programmation_projet_visible_by_user,
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
-    ANNEXE,
     ARRETE,
-    ARRETE_ET_LETTRE_SIGNES,
     LETTRE,
     POSSIBLES_DOCUMENTS,
-    POSSIBLES_DOCUMENTS_TELEVERSABLES,
 )
 
 # Views for listing notification documents on a programmationProjet, -------------------
 # in various contexts
 
 
-@programmation_projet_visible_by_user
-@require_GET
-def documents_view(request, programmation_projet_id):
-    programmation_projet = get_object_or_404(
-        ProgrammationProjet,
-        id=programmation_projet_id,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-    )
-    projet = programmation_projet.projet
-    title = projet.dossier_ds.projet_intitule
-    context = {
-        "programmation_projet": programmation_projet,
-        "dotation_projet": programmation_projet.dotation_projet,
-        "projet": projet,
-        "dossier": projet.dossier_ds,
-        "title": title,
-        "breadcrumb_dict": {
-            "links": [
-                {
-                    "url": reverse("gsl_programmation:programmation-projet-list"),
-                    "title": "Programmation en cours",
+class NotificationDocumentsView(DetailView):
+    template_name = "gsl_notification/tab_simulation_projet/tab_notifications.html"
+    pk_url_kwarg = "programmation_projet_id"
+    context_object_name = "programmation_projet"
+
+    def get_queryset(self):
+        return ProgrammationProjet.objects.visible_to_user(self.request.user)
+
+    def get_context_data(self, **kwargs):
+        title = self.object.projet.dossier_ds.projet_intitule
+        return super().get_context_data(
+            **{
+                "dotation_projet": self.object.dotation_projet,
+                "dossier": self.object.dotation_projet.projet.dossier_ds,
+                "projet": self.object.projet,
+                "title": title,
+                "breadcrumb_dict": {
+                    "links": [
+                        {
+                            "url": reverse(
+                                "gsl_programmation:programmation-projet-list"
+                            ),
+                            "title": "Programmation en cours",
+                        },
+                    ],
+                    "current": title,
                 },
-            ],
-            "current": title,
-        },
-    }
-
-    _enrich_context_for_create_or_get_arrete_view(
-        context, programmation_projet, request
-    )
-    return _generic_documents_view(
-        request,
-        programmation_projet_id,
-        programmation_projet.get_absolute_url(),
-        context,
-    )
-
-
-def _generic_documents_view(request, programmation_projet_id, source_url, context):
-    programmation_projet = get_object_or_404(
-        ProgrammationProjet,
-        id=programmation_projet_id,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-    )
-    documents = []
-
-    try:
-        arrete = programmation_projet.arrete
-        documents.append(
-            _get_doc_card_attributes(arrete, ARRETE, programmation_projet_id)
+                "is_instructor": self.request.user.ds_id
+                in self.object.dossier.ds_instructeurs.values_list("ds_id", flat=True),
+            }
         )
-    except Arrete.DoesNotExist:
-        pass
 
-    try:
-        lettre = programmation_projet.lettre_notification
-        documents.append(
-            _get_doc_card_attributes(lettre, LETTRE, programmation_projet_id)
+
+class NotificationMessageView(UpdateView):
+    template_name = (
+        "gsl_notification/tab_simulation_projet/tab_notifications_message.html"
+    )
+
+    pk_url_kwarg = "programmation_projet_id"
+    context_object_name = "programmation_projet"
+    form_class = NotificationMessageForm
+
+    def get_queryset(self):
+        return ProgrammationProjet.objects.visible_to_user(self.request.user)
+
+    def get_context_data(self, **kwargs):
+        title = self.object.projet.dossier_ds.projet_intitule
+        return super().get_context_data(
+            **{
+                "dotation_projet": self.object.dotation_projet,
+                "dossier": self.object.dotation_projet.projet.dossier_ds,
+                "projet": self.object.projet,
+                "title": title,
+                "breadcrumb_dict": {
+                    "links": [
+                        {
+                            "url": reverse(
+                                "gsl_programmation:programmation-projet-list"
+                            ),
+                            "title": "Programmation en cours",
+                        },
+                        {
+                            "url": reverse(
+                                "gsl_programmation:programmation-projet-detail",
+                                args=[self.object.id],
+                            ),
+                            "title": title,
+                        },
+                    ],
+                    "current": title,
+                },
+            }
         )
-    except LettreNotification.DoesNotExist:
-        pass
 
-    try:
-        arrete_et_lettre_signes = programmation_projet.arrete_et_lettre_signes
-        documents.append(
-            _get_uploaded_doc_card_attributes(
-                arrete_et_lettre_signes, ARRETE_ET_LETTRE_SIGNES
+    def form_valid(self, form):
+        try:
+            form.save(instructeur_id=self.request.user.ds_id)
+        except DsServiceException as e:
+            messages.error(
+                self.request,
+                f"Une erreur est survenue lors de l'envoi de la notification'. {str(e)}",
             )
+            return self.form_invalid(form)
+
+        messages.success(
+            self.request,
+            "Le projet accepté a bien été notifié. Un message de notification a bien été envoyé au demandeur dans l’espace Démarches Simplifiées.",
         )
-    except ArreteEtLettreSignes.DoesNotExist:
-        pass
+        return redirect(self.get_success_url())
 
-    for annexe in programmation_projet.annexes.prefetch_related("created_by").all():
-        documents.append(_get_uploaded_doc_card_attributes(annexe, ANNEXE))
-
-    context.update(
-        {
-            "programmation_projet_id": programmation_projet.id,
-            "source_url": source_url,
-            "dossier": programmation_projet.projet.dossier_ds,
-            "documents": sorted(documents, key=lambda d: d["created_at"]),
-        }
-    )
-
-    return render(
-        request,
-        "gsl_notification/tab_simulation_projet/tab_notifications.html",
-        context=context,
-    )
+    def get_success_url(self):
+        return reverse(
+            "gsl_programmation:programmation-projet-detail",
+            args=[self.object.id],
+        )
 
 
-def _get_doc_card_attributes(
-    doc: Union[Arrete, LettreNotification],
-    doc_type: POSSIBLES_DOCUMENTS,
-    programmation_projet_id: int,
-):
-    return {
-        **return_document_as_a_dict(doc),
-        "tag": "Créé sur Turgot",
-        "actions": [
-            {
-                "name": "update",
-                "label": "Modifier",
-                "href": reverse(
-                    "notification:modifier-document",
-                    args=[programmation_projet_id, doc_type],
-                ),
-            },
-            {
-                "name": "delete",
-                "label": "Supprimer",
-                "form_id": "delete-document-form",
-                "aria_controls": "delete-document-confirmation-modal",
-                "action": reverse(
-                    "notification:delete-document",
-                    kwargs={"document_type": doc_type, "document_id": doc.id},
-                ),
-            },
-        ],
-    }
+@method_decorator(htmx_only, name="dispatch")
+class CheckDsDossierUpToDateView(DetailView):
+    """
+    This view is used to check if the dossier is up to date. It should be used in a modal.
+    """
 
+    template_name = "gsl_notification/modal/ds_dossier_not_up_to_date.html"
+    pk_url_kwarg = "programmation_projet_id"
+    context_object_name = "programmation_projet"
 
-def _get_uploaded_doc_card_attributes(
-    doc: Union[ArreteEtLettreSignes, Annexe],
-    doc_type: POSSIBLES_DOCUMENTS_TELEVERSABLES,
-):
-    return {
-        **return_document_as_a_dict(doc),
-        "tag": "Fichier importé",
-        "actions": [
-            {
-                "name": "delete",
-                "label": "Supprimer",
-                "form_id": "delete-document-form",
-                "aria_controls": "delete-document-confirmation-modal",
-                "action": reverse(
-                    "notification:delete-uploaded-document", args=[doc_type, doc.id]
-                ),
-            },
-        ],
-    }
+    def get_queryset(self):
+        return ProgrammationProjet.objects.visible_to_user(self.request.user)
+
+    def render_to_response(self, context, *args, **kwargs):
+        dossier = self.object.projet.dossier_ds
+        client = DsClient()
+        dossier_data = client.get_one_dossier(dossier.ds_number)
+        date_modif_ds = dossier_data.get("dateDerniereModification", None)
+        if date_modif_ds:
+            date_modif_ds = timezone.datetime.fromisoformat(date_modif_ds)
+            if date_modif_ds <= dossier.ds_date_derniere_modification:
+                return HttpResponseClientRedirect(
+                    reverse("gsl_notification:documents", args=[self.object.id])
+                )
+
+        return trigger_client_event(
+            super().render_to_response(context, *args, **kwargs),
+            "click",
+            {"target": "#to_notify_button"},
+            after="settle",
+        )
 
 
 # Edition form for arrêté --------------------------------------------------------------
 
 
 @require_http_methods(["GET"])
-@programmation_projet_visible_by_user
 def choose_type_for_document_generation(request, programmation_projet_id):
     programmation_projet = get_object_or_404(
-        ProgrammationProjet,
+        ProgrammationProjet.objects.visible_to_user(request.user),
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
@@ -217,10 +199,9 @@ def choose_type_for_document_generation(request, programmation_projet_id):
 
 
 @require_http_methods(["GET"])
-@programmation_projet_visible_by_user
 def select_modele(request, programmation_projet_id, document_type):
     programmation_projet = get_object_or_404(
-        ProgrammationProjet,
+        ProgrammationProjet.objects.visible_to_user(request.user),
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
@@ -274,10 +255,9 @@ def select_modele(request, programmation_projet_id, document_type):
 
 @csp_update({"style-src": [SELF, UNSAFE_INLINE]})
 @require_http_methods(["GET", "POST"])
-@programmation_projet_visible_by_user
 def change_document_view(request, programmation_projet_id, document_type):
     programmation_projet = get_object_or_404(
-        ProgrammationProjet,
+        ProgrammationProjet.objects.visible_to_user(request.user),
         id=programmation_projet_id,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )

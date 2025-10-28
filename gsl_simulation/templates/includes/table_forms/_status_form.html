@@ -11,7 +11,9 @@
             name="status"
             data-original-value="{{ simu.status }}">
         {% for key, value in available_states %}
-            <option value={{ key }} {% if simu.status == key %} selected {% endif %}>
+            <option value="{{ key }}"
+                    {% if simu.status == key %} selected {% endif %}
+                    {% if key == 'cancelled' %} hx-get="{% url 'gsl_simulation:refuse-form' simu.id %}" hx-trigger="refuse-confirmation-modal" hx-swap="innerHTML" hx-target="#refuse-confirmation-modal" {% elif key == 'dismissed' %} hx-get="{% url 'gsl_simulation:dismiss-form' simu.id %}" hx-trigger="dismiss-confirmation-modal" hx-swap="innerHTML" hx-target="#dismiss-confirmation-modal" {% endif %}>
                 {{ value }}
             </option>
         {% endfor %}

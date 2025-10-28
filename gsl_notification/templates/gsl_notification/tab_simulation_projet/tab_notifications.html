@@ -10,16 +10,16 @@
 {% endblock extra_css %}
 
 {% block tab_projet %}
-    <h1 class="fr-mb-8w fr-mr-10w">
+    <h2 class="fr-mb-8w fr-mr-10w">
         Génération des documents et envoi de la notification au demandeur
-    </h1>
+    </h2>
 
     {% block notification_content %}
         <div class="fond-gris fr-p-4w">
-            <h2>
+            <h3>
                 <i class="fr-icon-folder-2-fill blue-color" aria-hidden="true"></i>
                 Documents de notification
-            </h2>
+            </h3>
             <div class="notification-btns">
                 {% if programmation_projet.arrete and programmation_projet.lettre_notification %}
                     <button class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line"
@@ -48,12 +48,12 @@
                     Imprimer tous les documents
                 </button>
             </div>
-            {% if documents %}
+            {% if programmation_projet.documents %}
                 <ul class="arrete-list"
                     data-controller="delete-notification-document-modal"
                     data-delete-notification-document-modal-modal-id-value="delete-document-confirmation-modal"
                     data-delete-notification-document-modal-form-id-value="delete-document-form">
-                    {% for document in documents %}
+                    {% for document in programmation_projet.documents %}
                         {% include "includes/_document_card.html" %}
                     {% endfor %}
                 </ul>
@@ -64,15 +64,27 @@
             {% endif %}
         </div>
 
-        <h2 class="fr-mt-6w">
-            <i class="fr-icon-mail-fill blue-color" aria-hidden="true"></i>
-            Message de notification
-        </h2>
-        <p>
-            <button disabled class="fr-btn fr-icon-check-line fr-btn--icon-left">
-                Envoyer le message de notification
+        {% if programmation_projet.notified_at %}
+            <h3 class="fr-mt-6w">
+                <i class="fr-icon-mail-fill blue-color" aria-hidden="true"></i> Message de notification
+            </h3>
+            <p class="fr-text-default--success">
+                Message de notification envoyé le {{ programmation_projet.notified_at|date }} sur Démarches
+                Simplifiées.
+            </p>
+        {% elif not is_instructor %}
+            <button class="fr-btn fr-mt-6w fr-icon-edit-line fr-btn--icon-right"
+                    aria-controls="refuse-confirmation-modal"
+                    data-fr-opened="false">
+                Rédiger le message de notification
             </button>
-        </p>
+        {% else %}
+            <a {% if programmation_projet.arrete_et_lettre_signes %}href="{% url 'gsl_notification:message' programmation_projet.id %}" {% endif %}
+               class="fr-btn fr-mt-6w fr-icon-edit-line fr-btn--icon-right">
+                Rédiger le message de notification
+            </a>
+        {% endif %}
+
     {% endblock notification_content %}
 {% endblock tab_projet %}
 
@@ -81,6 +93,9 @@
 {% endblock extra_js %}
 
 {% block modal %}
+    <div id="refuse-confirmation-modal" class="fr-modal" aria-hidden="true">
+        {% include "htmx/not_instructeur_error.html" %}
+    </div>
     {% ui_confirmation_modal modal_id="delete-document-confirmation-modal" title=arrete_modal_title text="Êtes-vous sûr(e) de vouloir supprimer cet arrêté ?<br>Cette action est irréversible." form="delete-document-form" action_text="Supprimer" %}
     <form method="post" id="delete-document-form">
         {% csrf_token %}

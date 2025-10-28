@@ -13,7 +13,7 @@ from gsl_core.models import (
     Perimetre,
     Region,
 )
-from gsl_core.tasks import associate_or_update_ds_id_to_users
+from gsl_core.tasks import associate_or_update_ds_profile_to_users
 
 from .resources import (
     ArrondissementResource,
@@ -50,7 +50,7 @@ class CollegueAdmin(AllPermsForStaffUser, UserAdmin, admin.ModelAdmin):
         "is_staff",
         "perimetre",
         "last_login",
-        "ds_id",
+        "ds_profile",
     )
     fieldsets = (
         (None, {"fields": ("username", "password")}),
@@ -69,7 +69,7 @@ class CollegueAdmin(AllPermsForStaffUser, UserAdmin, admin.ModelAdmin):
         ),
         (
             "Démarches Simplifiées",
-            {"fields": ("ds_id",)},
+            {"fields": ("ds_profile",)},
         ),
         (
             "Gestion des droits",
@@ -80,16 +80,16 @@ class CollegueAdmin(AllPermsForStaffUser, UserAdmin, admin.ModelAdmin):
         ("Dates", {"fields": ("last_login", "date_joined")}),
     )
     autocomplete_fields = ["perimetre"]
-    actions = ("associate_ds_id_to_users",)
+    actions = ("associate_ds_profile_to_users",)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related("perimetre__departement", "perimetre__region")
 
-    @admin.action(description="Association des identifiants de DS aux utilisateurs")
-    def associate_ds_id_to_users(self, request, queryset):
+    @admin.action(description="Association des profils DS aux utilisateurs")
+    def associate_ds_profile_to_users(self, request, queryset):
         user_ids = list(queryset.values_list("id", flat=True))
-        associate_or_update_ds_id_to_users(user_ids)
+        associate_or_update_ds_profile_to_users(user_ids)
 
 
 @admin.register(Adresse)

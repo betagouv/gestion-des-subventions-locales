@@ -21,10 +21,13 @@
   font-size: calc(1rem * 12 / 16);
 }
 
+.enveloppe-summary th {
+  border-top: 1px solid var(--border-default-grey);
+}
+
 .enveloppe-summary th:not(:last-child) {
   min-width: 90px;
   width: 130px;
-  border-top: 1px solid var(--border-default-grey);
   line-height: 1rem;
   height: 42px;
 }

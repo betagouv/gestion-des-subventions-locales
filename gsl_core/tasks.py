@@ -2,38 +2,37 @@ import logging
 from typing import List
 
 from celery import shared_task
+from django.db.models import OuterRef, Subquery
 
 from gsl_core.models import Collegue
-from gsl_demarches_simplifiees.models import Demarche
+from gsl_demarches_simplifiees.models import Profile
 
 logger = logging.getLogger(__name__)
 
 
 @shared_task
-def associate_or_update_ds_id_to_users(user_ids: List[int]):
+def associate_or_update_ds_profile_to_users(user_ids: List[int]):
     users = Collegue.objects.filter(pk__in=user_ids)
-    logger.info("Association d'id DS avec les utilisateurs : début")
+    logger.info("Association de profil DS avec les utilisateurs : début")
 
     user_without_email_count = users.filter(email="").count()
     if user_without_email_count > 0:
         logger.info(f"{user_without_email_count} utilisateurs n'ont pas d'adresse mail")
 
-    user_emails = set(users.exclude(email="").values_list("email", flat=True))
-    demarches = Demarche.objects.all()
+    users.exclude(email=None).update(
+        ds_profile=Subquery(
+            Profile.objects.filter(ds_email=OuterRef("email")).values("pk")[:1]
+        )
+    )
 
-    for demarche in demarches:
-        instructeurs_groups = demarche.raw_ds_data["groupeInstructeurs"]
-        for instructeurs_group in instructeurs_groups:
-            for instructeur in instructeurs_group["instructeurs"]:
-                instructeur_email = instructeur["email"]
-                if instructeur_email in user_emails:
-                    users.filter(email=instructeur_email).update(
-                        ds_id=instructeur["id"]
-                    )
-                    user_emails.remove(instructeur_email)
+    emails_of_user_without_profile = set(
+        users.exclude(email=None)
+        .filter(ds_profile__isnull=True)
+        .values_list("email", flat=True)
+    )
 
-    logger.info("Association d'id DS avec les utilisateurs : fin")
-    if len(user_emails) > 0:
+    logger.info("Association de profil DS avec les utilisateurs : fin")
+    if len(emails_of_user_without_profile) > 0:
         logger.info(
-            f"Ces emails n'ont pas été trouvés dans les groupes instructeurs des démarches : {','.join(user_emails)}"
+            f"Ces emails n'ont pas été trouvés dans les groupes instructeurs des démarches : {', '.join(emails_of_user_without_profile)}"
         )

@@ -1,10 +1,10 @@
-import os
-
 from django import forms
-from django.db.models.fields import files
+from django.db import transaction
+from django.utils import timezone
 from dsfr.forms import DsfrBaseForm
 
-from gsl.settings import MAX_POST_FILE_SIZE_IN_MO
+from gsl_demarches_simplifiees.ds_client import DsMutator
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_notification.models import (
     Annexe,
     Arrete,
@@ -12,6 +12,8 @@ from gsl_notification.models import (
     LettreNotification,
     ModeleDocument,
 )
+from gsl_notification.utils import merge_documents_into_pdf
+from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import ARRETE, LETTRE
 
 
@@ -33,41 +35,13 @@ class LettreNotificationForm(ArreteForm):
         fields = ("content", "created_by", "programmation_projet", "modele")
 
 
-class UploadedDocumentForm(forms.ModelForm, DsfrBaseForm):
-    file = forms.FileField(
-        required=True,
-    )
-
-    class Meta:
-        abstract = True
-
-    def clean_file(self):
-        file = self.cleaned_data["file"]
-        valid_mime_types = ["application/pdf", "image/png", "image/jpeg"]
-        valid_extensions = [".pdf", ".png", ".jpg", ".jpeg"]
-
-        ext = os.path.splitext(file.name)[1].lower()
-        if file.content_type not in valid_mime_types or ext not in valid_extensions:
-            raise forms.ValidationError(
-                "Seuls les fichiers PDF, PNG ou JPEG sont acceptés."
-            )
-
-        max_size_in_mo = MAX_POST_FILE_SIZE_IN_MO
-        max_size = max_size_in_mo * 1024 * 1024
-        if file.size > max_size:
-            raise forms.ValidationError(
-                f"La taille du fichier ne doit pas dépasser {max_size_in_mo} Mo."
-            )
-        return file
-
-
-class ArreteEtLettreSigneForm(UploadedDocumentForm):
+class ArreteEtLettreSigneForm(forms.ModelForm, DsfrBaseForm):
     class Meta:
         model = ArreteEtLettreSignes
         fields = ("file", "created_by", "programmation_projet")
 
 
-class AnnexeForm(UploadedDocumentForm):
+class AnnexeForm(forms.ModelForm, DsfrBaseForm):
     class Meta:
         model = Annexe
         fields = ("file", "created_by", "programmation_projet")
@@ -94,32 +68,6 @@ class ModeleDocumentStepTwoForm(forms.ModelForm, DsfrBaseForm):
         model = ModeleDocument
         fields = ("logo", "logo_alt_text", "top_right_text")
 
-    def clean_logo(self):
-        file = self.cleaned_data["logo"]
-        valid_mime_types = ["image/png", "image/jpeg"]
-        valid_extensions = [".png", ".jpg", ".jpeg"]
-
-        ext = os.path.splitext(file.name)[1].lower()
-
-        if isinstance(file, files.FieldFile):  # Useful for duplicate
-            if ext not in valid_extensions:
-                raise forms.ValidationError(
-                    "Seuls les fichiers PNG ou JPEG sont acceptés."
-                )
-        else:
-            if file.content_type not in valid_mime_types or ext not in valid_extensions:
-                raise forms.ValidationError(
-                    "Seuls les fichiers PNG ou JPEG sont acceptés."
-                )
-
-        max_size_in_mo = MAX_POST_FILE_SIZE_IN_MO
-        max_size = max_size_in_mo * 1024 * 1024
-        if file.size > max_size:
-            raise forms.ValidationError(
-                f"La taille du fichier ne doit pas dépasser {max_size_in_mo} Mo."
-            )
-        return file
-
 
 class ModeleDocumentStepThreeForm(forms.ModelForm, DsfrBaseForm):
     content = forms.CharField(
@@ -131,3 +79,53 @@ class ModeleDocumentStepThreeForm(forms.ModelForm, DsfrBaseForm):
     class Meta:
         model = ModeleDocument
         fields = ("content",)
+
+
+class AnnexeChoiceField(forms.ModelMultipleChoiceField):
+    def label_from_instance(self, obj: Annexe):
+        return f"Annexe - {obj.name}"
+
+
+class NotificationMessageForm(DsfrBaseForm, forms.Form):
+    annexes = AnnexeChoiceField(
+        widget=forms.CheckboxSelectMultiple,
+        queryset=Annexe.objects.none(),
+        label="Pièces jointes",
+        required=False,
+    )
+    justification = forms.CharField(
+        label="Justification de l'acceptation du dossier (facultatif)",
+        required=False,
+        widget=forms.Textarea,
+    )
+
+    def save(self, instructeur_id):
+        justificatif_file = merge_documents_into_pdf(
+            [
+                self.programmation_projet.arrete_et_lettre_signes,
+                *self.cleaned_data["annexes"],
+            ]
+        )
+
+        # Dossier was recently refreshed DS
+        # Race conditions remain possible, but should be rare enough and just fail without any side effect.
+        if self.programmation_projet.dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:
+            DsMutator().dossier_passer_en_instruction(
+                dossier_id=self.programmation_projet.dossier.ds_id,
+                instructeur_id=instructeur_id,
+            )
+
+        with transaction.atomic():
+            self.programmation_projet.notified_at = timezone.now()
+            self.programmation_projet.save()
+            DsMutator().dossier_accepter(
+                self.programmation_projet.dossier,
+                instructeur_id,
+                motivation=self.cleaned_data.get("justification", ""),
+                document=justificatif_file,
+            )
+
+    def __init__(self, *args, instance: ProgrammationProjet, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.programmation_projet = instance
+        self.fields["annexes"].queryset = self.programmation_projet.annexes.all()

@@ -1,7 +1,6 @@
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
@@ -9,15 +8,6 @@ from gsl_projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.models import DotationProjet
-
-from .tasks import create_or_update_projet_and_co_from_dossier
-
-
-@receiver(post_save, sender=Dossier, dispatch_uid="create_projet")
-def create_projet_from_valid_dossier(sender, instance: Dossier, *args, **kwargs):
-    if not instance.ds_state:
-        return
-    create_or_update_projet_and_co_from_dossier.delay(instance.ds_number)
 
 
 @receiver(

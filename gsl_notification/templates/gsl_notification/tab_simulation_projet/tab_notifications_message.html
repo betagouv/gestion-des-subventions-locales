@@ -1,0 +1,73 @@
+{% extends "gsl_notification/tab_simulation_projet/tab_notifications.html" %}
+{% load static gsl_filters %}
+{% block notification_content %}
+    <a class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-arrow-left-s-line fr-mb-4w"
+       href="{% url 'gsl_notification:documents' programmation_projet.id %}">
+        Annuler la notification
+    </a>
+
+    <div class="arrete-container">
+        <h3 class="fr-mb-3w">
+            Envoi du message de notification sur Démarches Simplifiées
+        </h3>
+
+        <form method="post">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            <fieldset class="fr-fieldset{% if form.annexes.errors %} fr-fieldset--error{% endif %}"
+                      aria-labelledby="documents-legend">
+                <legend class="fr-fieldset__legend" id="documents-legend">
+                    {{ form.annexes.label }}
+                </legend>
+                <div class="fr-fieldset__element">
+                    <div class="fr-checkbox-group">
+                        <input type="checkbox"
+                               id="arrete"
+                               name="arrete"
+                               checked
+                               disabled
+                               class="fr-checkbox">
+                        <label class="fr-label" for="arrete">
+                            Lettre et arrêté signés - {{ programmation_projet.arrete_et_lettre_signes.name }}
+                        </label>
+                    </div>
+                </div>
+                {% for doc in form.annexes %}
+                    <div class="fr-fieldset__element">
+                        {{ doc }}
+                    </div>
+                {% endfor %}
+                {{ form.annexes.errors }}
+            </fieldset>
+            <p class="fr-mb-2w fr-mt-2w">
+                Les pièces jointes vont être compressées en un seul fichier. Le message va être envoyé au demandeur
+                dans la messagerie de ce dossier, sur Démarches simplifiées.
+            </p>
+            <div class="input-group fr-mb-2w">
+                <label class="fr-label" for="id_justification">
+                    <b>
+                        {{ form.justification.label }}
+                    </b>
+                </label>
+                {{ form.justification }}
+            </div>
+            {% if programmation_projet.dossier.ds_state == "en_construction" %}
+                <div class="fr-alert fr-alert--info fr-alert--sm fr-mt-2w">
+                    <p class="fr-alert__title">
+                        Dossier en construction
+                    </p>
+                    <p>
+                        Le dossier de ce projet est actuellement en construction sur Démarches Simplifiées. Le
+                        projet sera passé en instruction avant d'être réfusé.
+                    </p>
+                </div>
+            {% endif %}
+            <p class="fr-mt-2w fr-mb-1v">
+                <b>Souhaitez-vous envoyer le message de notification&nbsp;?</b>
+            </p>
+            <button class="fr-btn fr-icon-check-line fr-btn--icon-left" type="submit">
+                Confirmer l'envoi
+            </button>
+        </form>
+    </div>
+{% endblock notification_content %}

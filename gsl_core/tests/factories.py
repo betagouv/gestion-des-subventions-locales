@@ -94,6 +94,12 @@ class CollegueFactory(factory.django.DjangoModelFactory):
     perimetre = factory.SubFactory(PerimetreFactory)
 
 
+class CollegueWithDSProfileFactory(CollegueFactory):
+    ds_profile = factory.SubFactory(
+        "gsl_demarches_simplifiees.tests.factories.ProfileFactory"
+    )
+
+
 class RequestFactory(RequestFactory):
     user = factory.SubFactory(CollegueFactory)
 
