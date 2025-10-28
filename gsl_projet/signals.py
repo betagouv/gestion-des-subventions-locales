@@ -15,7 +15,11 @@ from gsl_projet.models import DotationProjet
 )
 def update_projet_status(sender, instance: DotationProjet, **kwargs):
     """N’a pas été géré par un GeneratedField car est dépendant de champs d’autres modèles"""
-    instance.projet.status = get_projet_status(instance)
+    new_status = get_projet_status(instance)
+    if new_status is None:
+        # Arrive s'il n'y a plus de DotationProjet pour ce projet
+        return
+    instance.projet.status = new_status
     instance.projet.save()
 
 
