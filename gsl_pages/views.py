@@ -30,4 +30,4 @@ def coming_features_view(request):
 
 
 def no_perimeter_view(request):
-    return render(request, "no_perimetre.html")
+    return render(request, "gsl_pages/no_perimetre.html")

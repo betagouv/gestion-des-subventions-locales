@@ -8,5 +8,5 @@ urlpatterns = [
     path(
         "fonctionnalites-a-venir/", views.coming_features_view, name="coming-features"
     ),
-    path("sans-perimetre/", views.no_perimeter_view, name="no_perimeter"),
+    path("sans-perimetre/", views.no_perimeter_view, name="no-perimeter"),
 ]
