@@ -466,13 +466,6 @@
         ...GeoAreaFragment
       }
     }
-    ... on DossierLinkChamp {
-      dossier {
-        id
-        number
-        state
-      }
-    }
   }
 
   fragment ChampFragment on Champ {
