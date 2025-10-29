@@ -56,6 +56,7 @@ if SENTRY_DSN:
         ],
         environment=SENTRY_ENV,
         enable_logs=True,
+        traces_sample_rate=1.0,
     )
 
 # Application definition
