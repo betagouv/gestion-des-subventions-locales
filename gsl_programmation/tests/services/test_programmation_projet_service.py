@@ -125,7 +125,7 @@ def test_create_or_update_from_dotation_projet_with_an_existing_one_with_only_do
         == 1
     )
 
-    with caplog.at_level(logging.ERROR):
+    with caplog.at_level(logging.WARNING):
         programmation_projet = (
             ProgrammationProjetService.create_or_update_from_dotation_projet(
                 accepted_dotation_projet

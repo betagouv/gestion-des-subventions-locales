@@ -1,4 +1,4 @@
-import logging
+from logging import getLogger
 
 from django.contrib import messages
 from django.utils import timezone
@@ -9,7 +9,7 @@ from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverte
 from gsl_demarches_simplifiees.models import Demarche, Dossier, Profile
 from gsl_projet.services.projet_services import ProjetService
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 def save_demarche_dossiers_from_ds(demarche_number):
@@ -109,7 +109,7 @@ def refresh_dossier_from_saved_data(dossier: Dossier):
     try:
         dossier.save()
     except Exception as e:
-        logging.error(str(e))
+        logger.error(str(e))
         raise e
 
     ProjetService.create_or_update_projet_and_co_from_dossier(dossier.ds_number)

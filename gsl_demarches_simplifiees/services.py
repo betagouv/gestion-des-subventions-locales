@@ -155,42 +155,13 @@ class DsService:
         data = results.get("data", None)
 
         if data is None or mutation_key in data and data.get(mutation_key) is None:
-            if "errors" in results.keys():
-                errors = results["errors"]
-                messages = [error["message"] for error in errors]
-                message = self._transform_message(messages)
-
-                raise DsServiceException(
-                    message,
-                    log_message="Error in DS mutation",
-                    extra={
-                        "dossier_id": dossier.id,
-                        "user_id": user.id,
-                        "mutation_key": mutation_key,
-                        "field": field,
-                        "value": value,
-                        "error": messages,
-                    },
-                )
-            else:
+            if "errors" not in results.keys():
                 return
 
-        mutation_data = data.get(mutation_key)
-        if "errors" not in mutation_data:
-            return
-
-        errors = mutation_data["errors"]
-        if bool(errors):
+            errors = results["errors"]
             messages = [error["message"] for error in errors]
-            if "L’instructeur n’a pas les droits d’accès à ce dossier" in messages:
-                raise UserRightsError(
-                    extra={
-                        "dossier_id": dossier.id,
-                        "user_id": user.id,
-                    }
-                )
-
             message = self._transform_message(messages)
+
             raise DsServiceException(
                 message,
                 log_message="Error in DS mutation",
@@ -203,6 +174,37 @@ class DsService:
                     "error": messages,
                 },
             )
+
+        mutation_data = data.get(mutation_key)
+        if "errors" not in mutation_data:
+            return
+
+        errors = mutation_data["errors"]
+        if not bool(errors):
+            return
+
+        messages = [error["message"] for error in errors]
+        if "L’instructeur n’a pas les droits d’accès à ce dossier" in messages:
+            raise UserRightsError(
+                extra={
+                    "dossier_id": dossier.id,
+                    "user_id": user.id,
+                }
+            )
+
+        message = self._transform_message(messages)
+        raise DsServiceException(
+            message,
+            log_message="Error in DS mutation",
+            extra={
+                "dossier_id": dossier.id,
+                "user_id": user.id,
+                "mutation_key": mutation_key,
+                "field": field,
+                "value": value,
+                "error": messages,
+            },
+        )
 
     def _transform_message(self, messages: List[str]) -> str:  # TODO test it
         new_messages = []

@@ -23,7 +23,7 @@ class ProgrammationProjetService:
     @classmethod
     def create_or_update_from_dotation_projet(cls, dotation_projet: DotationProjet):
         if dotation_projet.status is None:
-            logging.error(f"Dotation projet {dotation_projet} is missing status")
+            logging.warning(f"Dotation projet {dotation_projet} is missing status")
             return
 
         if dotation_projet.status not in (
@@ -39,7 +39,7 @@ class ProgrammationProjetService:
                 getattr(dotation_projet.dossier_ds, "annotations_montant_accorde")
                 is None
             ):
-                logging.error(
+                logging.warning(
                     f"Projet accepted {dotation_projet} is missing field annotations_montant_accorde"
                 )
                 montant = 0
@@ -52,7 +52,7 @@ class ProgrammationProjetService:
             dotation_projet.projet, dotation_projet.dotation
         )
         if perimetre is None:
-            logging.error(f"Dotation projet {dotation_projet} is missing perimetre")
+            logging.warning(f"Dotation projet {dotation_projet} is missing perimetre")
             return
 
         enveloppe, _ = Enveloppe.objects.get_or_create(

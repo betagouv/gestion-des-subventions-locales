@@ -261,9 +261,7 @@ possible_responses = [
             "errors": [{"message": "__MUTATION_KEY__Payload not found"}],
             "data": {"__MUTATION_KEY__": None},
         },
-        DsServiceException,
         "__MUTATION_KEY__Payload not found",
-        "Error in DS mutation",
     ),
     # Invalid field id
     (
@@ -271,9 +269,7 @@ possible_responses = [
             "errors": [{"message": 'Invalid input: "field_NUL"'}],
             "data": {"__MUTATION_KEY__": None},
         },
-        DsServiceException,
         'Invalid input: "field_NUL"',
-        "Error in DS mutation",
     ),
     # Invalid value
     (
@@ -284,30 +280,24 @@ possible_responses = [
                 }
             ]
         },
-        DsServiceException,
         'Variable $input of type __MUTATION_KEY__Input! was provided invalid value for value (Could not coerce value "RIGOLO" to Boolean)',
-        "Error in DS mutation",
     ),
     # Other error
     (
         {"data": {"__MUTATION_KEY__": {"errors": [{"message": "Une erreur"}]}}},
-        DsServiceException,
         "Une erreur",
-        "Error in DS mutation",
     ),
 ]
 
 
 @pytest.mark.parametrize("mutation_type", ("checkbox", "decimal", "dismiss"))
-@pytest.mark.parametrize("mocked_response, exception, msg, log_msg", possible_responses)
+@pytest.mark.parametrize("mocked_response, msg", possible_responses)
 def test_check_results(
     user,
     dossier,
     mutation_type,
     mocked_response,
-    exception,
     msg,
-    log_msg,
     caplog,
 ):
     caplog.set_level(logging.WARNING)
@@ -321,7 +311,7 @@ def test_check_results(
     response_str = str(response).replace("__MUTATION_KEY__", mutation_data_name)
     response = eval(response_str)  # safe because we control data
 
-    with pytest.raises(exception) as exc_info:
+    with pytest.raises(DsServiceException) as exc_info:
         ds_service._check_results(
             response,
             dossier,
@@ -332,7 +322,7 @@ def test_check_results(
 
     final_msg = msg.replace("__MUTATION_KEY__", mutation_data_name)
     assert str(exc_info.value) == final_msg
-    assert log_msg in caplog.text
+    assert "Error in DS mutation" in caplog.text
 
 
 def test_dismiss_in_ds():
@@ -363,3 +353,23 @@ def test_dismiss_in_ds():
         mock_check_results.assert_called_once_with(
             results, dossier, user, "dismiss", value="motivation"
         )
+
+
+class TestTransformMessage:
+    def test_transform_message_known_phrases(self):
+        ds = DsService()
+        messages = ["Le dossier est déjà en\xa0construction"]
+        out = ds._transform_message(messages)
+        assert "Le dossier est en construction sur Démarches Simplifiées." in out
+
+    def test_transform_message_permission_phrase(self):
+        ds = DsService()
+        messages = ["An object of type Dossier was hidden due to permissions"]
+        out = ds._transform_message(messages)
+        assert "Vous n'avez pas accès à ce dossier." in out
+
+    def test_transform_message_generic(self):
+        ds = DsService()
+        messages = ["Une erreur"]
+        out = ds._transform_message(messages)
+        assert out == "Une erreur"
