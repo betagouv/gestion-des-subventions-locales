@@ -16,7 +16,7 @@ def save_demarche_dossiers_from_ds(demarche_number):
     demarche = Demarche.objects.get(ds_number=demarche_number)
     client = DsClient()
     demarche_dossiers = client.get_demarche_dossiers(demarche_number)
-    for i, dossier_data in enumerate(demarche_dossiers):
+    for dossier_data in demarche_dossiers:
         try:
             ds_id = dossier_data["id"]
             ds_dossier_number = dossier_data["number"]

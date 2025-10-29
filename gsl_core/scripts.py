@@ -1,4 +1,8 @@
+import logging
+
 from gsl_core.models import Collegue, Perimetre
+
+logger = logging.getLogger(__name__)
 
 
 def create_user(email, first_name, last_name, department_number, password):
@@ -14,18 +18,19 @@ def create_user(email, first_name, last_name, department_number, password):
         perimetre = Perimetre.objects.get(departement__insee_code=department_number)
         user.perimetre = perimetre
     except Perimetre.DoesNotExist:
-        print(
-            f"No perimetre found for department {department_number}, no perimeter will be set"
+        logger.warning(
+            "No perimetre found for department, no perimeter will be set",
+            extra={"department_number": department_number},
         )
 
     user.save()
 
-    print(f"User created: {user.email}")
+    logger.info("User created", extra={"email": user.email})
 
 
 def create_user_with_password_generator(
     email, first_name, last_name, department_number, generate_password
 ):
     password = generate_password(department_number)
-    print(f"Generated password: {password}")
+    logger.info(f"Generated password: {password}")
     create_user(email, first_name, last_name, department_number, password)
