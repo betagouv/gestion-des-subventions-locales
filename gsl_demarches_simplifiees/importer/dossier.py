@@ -33,7 +33,7 @@ def save_demarche_dossiers_from_ds(demarche_number):
         except Exception as e:
             if not isinstance(e, DsServiceException):
                 logger.exception(
-                    "Error unhandled while saving dossier from DS.",
+                    "Error unhandled while saving dossier from DS",
                     extra={
                         "demarche_ds_id": demarche_number,
                         "dossier_ds_id": ds_dossier_number,
@@ -106,11 +106,7 @@ def refresh_dossier_from_saved_data(dossier: Dossier):
     dossier_converter = DossierConverter(dossier.raw_ds_data, dossier)
     dossier_converter.fill_unmapped_fields()
     dossier_converter.convert_all_fields()
-    try:
-        dossier.save()
-    except Exception as e:
-        logger.error(str(e), extra={"dossier_id": dossier.id})
-        raise e
+    dossier.save()
 
     ProjetService.create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 

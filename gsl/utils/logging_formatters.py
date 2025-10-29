@@ -44,6 +44,7 @@ class DynamicExtraFormatter(logging.Formatter):
             "message",
             "asctime",
             "taskName",
+            "request",
         }
 
         # Trouver les attributs "extra"
