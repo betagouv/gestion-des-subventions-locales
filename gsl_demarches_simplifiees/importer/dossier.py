@@ -1,4 +1,4 @@
-from logging import getLogger
+import logging
 
 from django.contrib import messages
 from django.utils import timezone
@@ -9,7 +9,7 @@ from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverte
 from gsl_demarches_simplifiees.models import Demarche, Dossier, Profile
 from gsl_projet.services.projet_services import ProjetService
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def save_demarche_dossiers_from_ds(demarche_number):

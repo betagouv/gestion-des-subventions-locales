@@ -206,7 +206,7 @@ class DsService:
             },
         )
 
-    def _transform_message(self, messages: List[str]) -> str:  # TODO test it
+    def _transform_message(self, messages: List[str]) -> str:
         new_messages = []
         for message in messages:
             if message == "Le dossier est déjà en\xa0construction":

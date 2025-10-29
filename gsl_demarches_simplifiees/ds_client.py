@@ -40,7 +40,9 @@ class DsClientBase:
             response = requests.post(self.url, json=data, headers=headers)
 
         except requests.exceptions.ConnectionError as e:
-            raise DsConnectionError(extra={"erreur": str(e), "operation_name": operation_name}})
+            raise DsConnectionError(
+                extra={"erreur": str(e), "operation_name": operation_name}
+            )
 
         if response.status_code == 200:
             results = response.json()
