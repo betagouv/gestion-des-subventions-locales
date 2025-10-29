@@ -46,7 +46,10 @@ class DsClientBase:
             results = response.json()
             if "errors" in results.keys():
                 for error in results["errors"]:
-                    logger.warning(f"DS request error : {error['message']}")
+                    logger.warning(
+                        "DS request error",
+                        extra={"status_code": 200, "error": error["message"]},
+                    )
                 if results.get("data", None) is None:
                     raise DsServiceException(
                         level=logging.ERROR, log_message="DS request returned errors"
