@@ -16,6 +16,8 @@ from gsl_projet.models import DotationProjet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_simulation.models import Simulation, SimulationProjet
 
+logger = logging.getLogger(__name__)
+
 
 class SimulationProjetService:
     @classmethod
@@ -91,13 +93,13 @@ class SimulationProjetService:
         cls, value: Decimal, dotation_projet: DotationProjet, value_label: str
     ):
         if dotation_projet.assiette_or_cout_total is None:
-            logging.warning(
+            logger.warning(
                 f"Le projet de dotation {dotation_projet.dotation} (id: {dotation_projet.pk}) n'a ni assiette ni coût total."
             )
             return value
 
         if value and value > dotation_projet.assiette_or_cout_total:
-            logging.warning(
+            logger.warning(
                 f"Le projet de dotation {dotation_projet.dotation} (id: {dotation_projet.pk}) a une assiette plus petite que {value_label}."
             )
 

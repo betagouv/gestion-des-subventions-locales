@@ -36,6 +36,9 @@ from gsl_projet.constants import (
 )
 from gsl_projet.models import Projet
 
+logger = logging.getLogger(__name__)
+
+
 DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR = "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
 
 
@@ -355,7 +358,7 @@ def download_documents(request, dotation, document_type):
             pdf_content = _generate_pdf_for_document(document, document_type)
             filename = f"{document.name}"
             zip_file.writestr(filename, pdf_content)
-            logging.info(f"#{i} {document} généré")
+            logger.info(f"#{i} {document} généré")
     zip_buffer.seek(0)
     response = HttpResponse(zip_buffer, content_type="application/zip")
     response["Content-Disposition"] = 'attachment; filename="documents.zip"'

@@ -13,6 +13,8 @@ from gsl_projet.constants import (
 )
 from gsl_projet.models import Demandeur, DotationProjet, Projet
 
+logger = logging.getLogger(__name__)
+
 
 class ProjetService:
     @classmethod
@@ -110,7 +112,7 @@ class ProjetService:
         dotations: list[Any] = []
 
         if not dotation_annotation:
-            logging.warning(f"No data in field {field} for projet {projet}.")
+            logger.warning(f"No data in field {field} for projet {projet}.")
             return dotations
 
         if DOTATION_DETR in dotation_annotation:
@@ -119,7 +121,7 @@ class ProjetService:
             dotations.append(DOTATION_DSIL)
 
         if not dotations:
-            logging.warning(
+            logger.warning(
                 f"Projet {projet} DS dotation {dotation_annotation} is unknown."
             )
         return dotations
@@ -129,10 +131,10 @@ class ProjetService:
         from gsl_projet.services.dotation_projet_services import DotationProjetService
 
         if len(dotations) == 0:
-            logging.warning(f"Projet {projet} must have at least one dotation")
+            logger.warning(f"Projet {projet} must have at least one dotation")
             return
         if len(dotations) > 2:
-            logging.warning(f"Projet {projet} can't have more than two dotations")
+            logger.warning(f"Projet {projet} can't have more than two dotations")
             return
 
         new_dotations = set(dotations) - set(projet.dotations)

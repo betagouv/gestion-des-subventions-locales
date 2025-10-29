@@ -12,6 +12,8 @@ from gsl_projet.constants import (
 )
 from gsl_projet.models import DotationProjet, Projet
 
+logger = logging.getLogger(__name__)
+
 
 class ProgrammationProjetService:
     DOTATION_PROJET_STATUS_TO_PROGRAMMATION_STATUS = {
@@ -23,7 +25,7 @@ class ProgrammationProjetService:
     @classmethod
     def create_or_update_from_dotation_projet(cls, dotation_projet: DotationProjet):
         if dotation_projet.status is None:
-            logging.warning(f"Dotation projet {dotation_projet} is missing status")
+            logger.warning(f"Dotation projet {dotation_projet} is missing status")
             return
 
         if dotation_projet.status not in (
@@ -39,7 +41,7 @@ class ProgrammationProjetService:
                 getattr(dotation_projet.dossier_ds, "annotations_montant_accorde")
                 is None
             ):
-                logging.warning(
+                logger.warning(
                     f"Projet accepted {dotation_projet} is missing field annotations_montant_accorde"
                 )
                 montant = 0
@@ -52,7 +54,7 @@ class ProgrammationProjetService:
             dotation_projet.projet, dotation_projet.dotation
         )
         if perimetre is None:
-            logging.warning(f"Dotation projet {dotation_projet} is missing perimetre")
+            logger.warning(f"Dotation projet {dotation_projet} is missing perimetre")
             return
 
         enveloppe, _ = Enveloppe.objects.get_or_create(
