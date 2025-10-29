@@ -237,6 +237,7 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
+            "()": "gsl.utils.logging_formatters.DynamicExtraFormatter",
             "format": "%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
         },
     },
