@@ -71,7 +71,7 @@ class DsClientBase:
 
         raise DsConnectionError(
             level=logging.ERROR,
-            log_message="HTTP Error while running query.",
+            log_message="HTTP Error while running query",
             extra={"status_code": response.status_code, "error": response.text},
         )
 
