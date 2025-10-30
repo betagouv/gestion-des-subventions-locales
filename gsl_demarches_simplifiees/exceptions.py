@@ -17,13 +17,15 @@ class DsServiceException(Exception):
         if log_message is None:
             log_message = self.DEFAULT_LOG_MESSAGE
 
+        super().__init__(message, *args)
+
         logger.log(
             level,
             log_message or message,
             extra=extra,
-            exc_info=level >= logging.ERROR,
+            exc_info=self if level >= logging.ERROR else None,
+            stack_info=level >= logging.ERROR,
         )
-        super().__init__(message, *args)
 
 
 class DsConnectionError(DsServiceException):
