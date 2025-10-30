@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import json
+import logging
 from collections.abc import Iterator
 from logging import getLogger
 from pathlib import Path
@@ -39,33 +40,31 @@ class DsClientBase:
             response = requests.post(self.url, json=data, headers=headers)
 
         except requests.exceptions.ConnectionError as e:
-            logger.warning("DS connection error", extra={"erreur": e})
-            raise DsConnectionError()
+            raise DsConnectionError(extra={"erreur": str(e)})
 
         if response.status_code == 200:
             results = response.json()
             if "errors" in results.keys():
                 for error in results["errors"]:
-                    logger.error(f"DS request error : {error['message']}")
+                    logger.warning(f"DS request error : {error['message']}")
                 if results.get("data", None) is None:
-                    raise DsServiceException
+                    raise DsServiceException(
+                        level=logging.ERROR, log_message="DS request returned errors"
+                    )
             return results
-        else:
-            if response.status_code == 403:
-                logger.critical(
-                    "DS forbidden access : token problem ?",
-                    extra={"error": response.text},
-                )
-                raise DsConnectionError()
-            else:
-                logger.error(
-                    "DS request error",
-                    extra={"status_code": response.status_code, "error": response.text},
-                )
-            raise Exception(
-                f"HTTP Error while running query. Status code: {response.status_code}. "
-                f"Error: {response.text}"
+
+        if response.status_code == 403:
+            raise DsConnectionError(
+                level=logging.CRITICAL,
+                log_message="DS forbidden access : token problem ?",
+                extra={"error": response.text},
             )
+
+        raise DsConnectionError(
+            level=logging.ERROR,
+            log_message="HTTP Error while running query.",
+            extra={"status_code": response.status_code, "error": response.text},
+        )
 
 
 class DsClient(DsClientBase):
@@ -252,9 +251,21 @@ class DsMutator(DsClientBase):
             file.seek(0)
             res = requests.put(upload_url, data=file.read(), headers=credential_headers)
             if not 200 <= res.status_code < 300:
-                raise DsServiceException(f"Error uploading file: {res}")
+                raise DsConnectionError(
+                    level=logging.ERROR,
+                    log_message="Attachment upload failed",
+                    extra={
+                        "dossier_ds_id": dossier_ds_id,
+                        "file_name": file.name,
+                        "error": res.text,
+                        "status_code": res.status_code,
+                    },
+                )
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
-            raise DsConnectionError()
+            raise DsConnectionError(
+                log_message="Attachment upload failed (ConnectionError or Timeout)",
+                extra={"dossier_ds_id": dossier_ds_id, "file_name": file.name},
+            )
 
         return blob_id
 
@@ -274,7 +285,12 @@ class DsMutator(DsClientBase):
             if date_modif_ds > dossier.ds_date_derniere_modification:
                 raise DsServiceException(
                     f"Le dossier {dossier.ds_number} a été modifié depuis Démarches Simplifiées. "
-                    f"Veuillez le mettre à jour manuellement et le réexaminer sur Turgot avant de poursuivre."
+                    f"Veuillez le mettre à jour manuellement et le réexaminer sur Turgot avant de poursuivre.",
+                    level=logging.INFO,
+                    log_message="Dossier must be refreshed before accepting",
+                    extra={
+                        "dossier_id": dossier.id,
+                    },
                 )
 
         justificatif_id = (
