@@ -9,6 +9,8 @@ from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverte
 from gsl_demarches_simplifiees.models import Demarche, Dossier, Profile
 from gsl_projet.services.projet_services import ProjetService
 
+logger = logging.getLogger(__name__)
+
 
 def save_demarche_dossiers_from_ds(demarche_number):
     demarche = Demarche.objects.get(ds_number=demarche_number)
@@ -29,10 +31,15 @@ def save_demarche_dossiers_from_ds(demarche_number):
                 dossier, dossier_data, async_refresh=True
             )
         except Exception as e:
-            logging.error(
-                f"Erreur pour le {i}ème dossier de la démarche {demarche_number}",
-                str(e),
-            )
+            if not isinstance(e, DsServiceException):
+                logger.exception(
+                    "Error unhandled while saving dossier from DS.",
+                    extra={
+                        "demarche_ds_id": demarche_number,
+                        "dossier_ds_id": ds_dossier_number,
+                        "error": str(e),
+                    },
+                )
 
 
 def save_one_dossier_from_ds(dossier: Dossier, client: DsClient | None = None):
@@ -79,11 +86,20 @@ def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
 
 def _has_dossier_been_updated_on_ds(dossier: Dossier, dossier_data: dict) -> bool:
     date_modif_ds = dossier_data.get("dateDerniereModification", None)
-    if date_modif_ds:
-        date_modif_ds = timezone.datetime.fromisoformat(date_modif_ds)
-        return date_modif_ds > dossier.ds_date_derniere_modification
 
-    raise DsServiceException("Unset date_modif_ds is not a normal situation.")
+    if not date_modif_ds:
+        raise DsServiceException(
+            "Une erreur est survenue lors de la mise à jour du dossier.",
+            level=logging.ERROR,
+            log_message="Unset date_modif_ds is not a normal situation.",
+            extra={"dossier_id": dossier.id},
+        )
+
+    if dossier.ds_date_derniere_modification is None:
+        return True  # New dossier on Turgot
+
+    date_modif_ds = timezone.datetime.fromisoformat(date_modif_ds)
+    return date_modif_ds > dossier.ds_date_derniere_modification
 
 
 def refresh_dossier_from_saved_data(dossier: Dossier):

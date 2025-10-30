@@ -51,7 +51,7 @@ def refresh_one_dossier(request, dossier_ds_number):
     try:
         level, message = save_one_dossier_from_ds(dossier)
         messages.add_message(request, level, message)
-    except DsServiceException as e:
+    except DsServiceException:
         messages.error(
             request,
             (
@@ -59,7 +59,6 @@ def refresh_one_dossier(request, dossier_ds_number):
                 "Essayez à nouveau dans quelques instants."
             ),
         )
-        logger.exception("DsServiceException while refreshing one dossier: %r", e)
 
     next = request.POST.get("next", "/")
     is_next_safe = url_has_allowed_host_and_scheme(next, "", True)

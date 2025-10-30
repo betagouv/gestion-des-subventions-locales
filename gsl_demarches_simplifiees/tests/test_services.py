@@ -167,13 +167,13 @@ def test_update_annotation_field_success(
 
 
 def test_get_instructeur_id(caplog):
-    caplog.set_level(logging.ERROR)
+    caplog.set_level(logging.WARNING)
     user = CollegueFactory()
     service = DsService()
 
     with pytest.raises(InstructeurUnknown):
         service._get_instructeur_id(user)
-    assert "User does not have DS id." in caplog.text
+    assert "User does not have DS id" in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -310,7 +310,7 @@ def test_check_results(
     log_msg,
     caplog,
 ):
-    caplog.set_level(logging.ERROR)
+    caplog.set_level(logging.WARNING)
     ds_service = DsService()
 
     value = True if mutation_type == "checkbox" else 1.5

@@ -118,8 +118,7 @@ class DsService:
         if bool(instructeur_id):
             return str(instructeur_id)
 
-        logger.error("User does not have DS id.", extra={"user_id": user.id})
-        raise InstructeurUnknown
+        raise InstructeurUnknown(extra={"user_id": user.id})
 
     def _get_ds_field_id(self, dossier: Dossier, field: str) -> str:
         try:
@@ -139,7 +138,8 @@ class DsService:
                 pass
 
             raise FieldError(
-                f'Le champ "{field_name}" n\'existe pas dans la démarche {dossier.ds_demarche.ds_number}.'
+                f'Le champ "{field_name}" n\'existe pas dans la démarche {dossier.ds_demarche.ds_number}.',
+                extra={"field_name": field_name, "demarche_id": dossier.ds_demarche.pk},
             )
 
     def _check_results(
@@ -159,8 +159,10 @@ class DsService:
                 errors = results["errors"]
                 messages = [error["message"] for error in errors]
                 message = self._transform_message(messages)
-                logger.error(
-                    "Error in DS mutation",
+
+                raise DsServiceException(
+                    message,
+                    log_message="Error in DS mutation",
                     extra={
                         "dossier_id": dossier.id,
                         "user_id": user.id,
@@ -170,40 +172,37 @@ class DsService:
                         "error": messages,
                     },
                 )
-                raise DsServiceException(message)
+            else:
+                return
 
-        else:
-            mutation_data = data.get(mutation_key)
-            if "errors" in mutation_data:
-                errors = mutation_data["errors"]
-                if bool(errors):
-                    messages = [error["message"] for error in errors]
-                    if (
-                        "L’instructeur n’a pas les droits d’accès à ce dossier"
-                        in messages
-                    ):
-                        logger.info(
-                            "Instructeur has no rights on the dossier",
-                            extra={
-                                "dossier_id": dossier.id,
-                                "user_id": user.id,
-                            },
-                        )
-                        raise UserRightsError
+        mutation_data = data.get(mutation_key)
+        if "errors" not in mutation_data:
+            return
 
-                    logger.error(
-                        "Error in DS mutation",
-                        extra={
-                            "dossier_id": dossier.id,
-                            "user_id": user.id,
-                            "mutation_key": mutation_key,
-                            "field": field,
-                            "value": value,
-                            "error": messages,
-                        },
-                    )
-                    message = self._transform_message(messages)
-                    raise DsServiceException(message)
+        errors = mutation_data["errors"]
+        if bool(errors):
+            messages = [error["message"] for error in errors]
+            if "L’instructeur n’a pas les droits d’accès à ce dossier" in messages:
+                raise UserRightsError(
+                    extra={
+                        "dossier_id": dossier.id,
+                        "user_id": user.id,
+                    }
+                )
+
+            message = self._transform_message(messages)
+            raise DsServiceException(
+                message,
+                log_message="Error in DS mutation",
+                extra={
+                    "dossier_id": dossier.id,
+                    "user_id": user.id,
+                    "mutation_key": mutation_key,
+                    "field": field,
+                    "value": value,
+                    "error": messages,
+                },
+            )
 
     def _transform_message(self, messages: List[str]) -> str:  # TODO test it
         new_messages = []

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.contrib import admin
 from django.db.models import Count
 
@@ -91,6 +93,16 @@ class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         qs = qs.select_related("projet", "projet__dossier_ds")
         qs = qs.prefetch_related("simulationprojet_set")
         return qs
+
+    def has_delete_permission(self, request, obj: Optional[DotationProjet] = None):
+        perm = super().has_delete_permission(request, obj)
+        if not perm:
+            return False
+
+        if obj is None:
+            return True
+
+        return obj.projet.dotationprojet_set.count() > 1
 
     def simulation_count(self, obj):
         return obj.simulation_count

@@ -236,7 +236,10 @@ class SimulationProjetService:
         if blocking:
             raise DsServiceException(
                 "Une erreur est survenue lors de la mise à jour des informations "
-                f"sur Démarches Simplifiées. {errors['all']}"
+                f"sur Démarches Simplifiées. {errors['all']}",
+                level=logging.ERROR,
+                log_message="Blocking error during montant and taux update",
+                extra={"dossier_id": dossier.id, "montant": montant, "taux": taux},
             )
 
         error_msg = None
@@ -250,4 +253,9 @@ class SimulationProjetService:
             "informations sur Démarches Simplifiées "
             f"({fields_msg}). Ces modifications n'ont pas été enregistrées."
         )
-        raise DsServiceException(error_msg)
+        raise DsServiceException(
+            error_msg,
+            level=logging.ERROR,
+            log_message="Error during montant and taux update",
+            extra={"dossier_id": dossier.id, "montant": montant, "taux": taux},
+        )

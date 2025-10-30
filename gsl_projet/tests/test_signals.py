@@ -64,8 +64,7 @@ def test_update_projet_status_on_post_delete():
 
     with mock.patch("gsl_projet.models.Projet.save") as save_mock:
         refused_dotation_projet.delete()
-        save_mock.assert_called_once()
-        assert projet.status is None
+        save_mock.assert_not_called()  # Should not be called because there is no more DotationProjet
 
 
 @pytest.mark.parametrize(
