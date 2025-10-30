@@ -29,12 +29,10 @@ def save_demarche_dossiers_from_ds(demarche_number):
                 dossier, dossier_data, async_refresh=True
             )
         except Exception as e:
-            logging.error(
+            logging.exception(
                 f"Erreur pour le {i}ème dossier de la démarche {demarche_number}",
                 str(e),
             )
-            if e is not DsServiceException:
-                raise e
 
 
 def save_one_dossier_from_ds(dossier: Dossier, client: DsClient | None = None):
