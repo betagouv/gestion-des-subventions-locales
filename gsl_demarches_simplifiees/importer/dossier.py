@@ -33,6 +33,8 @@ def save_demarche_dossiers_from_ds(demarche_number):
                 f"Erreur pour le {i}ème dossier de la démarche {demarche_number}",
                 str(e),
             )
+            if e is not DsServiceException:
+                raise e
 
 
 def save_one_dossier_from_ds(dossier: Dossier, client: DsClient | None = None):
@@ -79,11 +81,15 @@ def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
 
 def _has_dossier_been_updated_on_ds(dossier: Dossier, dossier_data: dict) -> bool:
     date_modif_ds = dossier_data.get("dateDerniereModification", None)
-    if date_modif_ds:
-        date_modif_ds = timezone.datetime.fromisoformat(date_modif_ds)
-        return date_modif_ds > dossier.ds_date_derniere_modification
 
-    raise DsServiceException("Unset date_modif_ds is not a normal situation.")
+    if not date_modif_ds:
+        raise DsServiceException("Unset date_modif_ds is not a normal situation.")
+
+    if dossier.ds_date_derniere_modification is None:
+        return True  # New dossier on Turgot
+
+    date_modif_ds = timezone.datetime.fromisoformat(date_modif_ds)
+    return date_modif_ds > dossier.ds_date_derniere_modification
 
 
 def refresh_dossier_from_saved_data(dossier: Dossier):
