@@ -605,10 +605,6 @@ def mapping_field_choices():
     )
 
 
-def reversed_mapping():
-    return
-
-
 class FieldMappingForHuman(DsModel):
     label = models.CharField("Libellé du champ DS", unique=True)
     django_field = models.CharField(

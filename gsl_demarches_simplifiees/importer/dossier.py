@@ -19,6 +19,16 @@ def save_demarche_dossiers_from_ds(demarche_number):
     for i, dossier_data in enumerate(demarche_dossiers):
         ds_dossier_number = None
 
+        if dossier_data is None:
+            logger.info(
+                "Dossier data is empty",
+                extra={
+                    "demarche_ds_number": demarche_number,
+                    "i": i,
+                },
+            )
+            continue
+
         try:
             ds_id = dossier_data["id"]
             ds_dossier_number = dossier_data["number"]
