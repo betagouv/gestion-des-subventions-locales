@@ -241,7 +241,11 @@ class SimulationProjetService:
                 f"sur Démarches Simplifiées. {errors['all']}",
                 level=logging.ERROR,
                 log_message="Blocking error during montant and taux update",
-                extra={"dossier_id": dossier.id, "montant": montant, "taux": taux},
+                extra={
+                    "dossier_ds_number": dossier.ds_number,
+                    "montant": montant,
+                    "taux": taux,
+                },
             )
 
         error_msg = None
@@ -259,5 +263,9 @@ class SimulationProjetService:
             error_msg,
             level=logging.ERROR,
             log_message="Error during montant and taux update",
-            extra={"dossier_id": dossier.id, "montant": montant, "taux": taux},
+            extra={
+                "dossier_ds_number": dossier.ds_number,
+                "montant": montant,
+                "taux": taux,
+            },
         )

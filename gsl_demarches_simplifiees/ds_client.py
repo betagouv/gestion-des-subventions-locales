@@ -298,7 +298,7 @@ class DsMutator(DsClientBase):
                     level=logging.INFO,
                     log_message="Dossier must be refreshed before accepting",
                     extra={
-                        "dossier_id": dossier.id,
+                        "dossier_ds_number": dossier.ds_number,
                     },
                 )
 

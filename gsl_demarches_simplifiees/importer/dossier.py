@@ -16,7 +16,9 @@ def save_demarche_dossiers_from_ds(demarche_number):
     demarche = Demarche.objects.get(ds_number=demarche_number)
     client = DsClient()
     demarche_dossiers = client.get_demarche_dossiers(demarche_number)
-    for dossier_data in demarche_dossiers:
+    for i, dossier_data in enumerate(demarche_dossiers):
+        ds_dossier_number = None
+
         try:
             ds_id = dossier_data["id"]
             ds_dossier_number = dossier_data["number"]
@@ -35,9 +37,10 @@ def save_demarche_dossiers_from_ds(demarche_number):
                 logger.exception(
                     "Error unhandled while saving dossier from DS",
                     extra={
-                        "demarche_ds_id": demarche_number,
-                        "dossier_ds_id": ds_dossier_number,
+                        "demarche_ds_number": demarche_number,
+                        "dossier_ds_number": ds_dossier_number,
                         "error": str(e),
+                        "i": i,
                     },
                 )
 
@@ -92,7 +95,9 @@ def _has_dossier_been_updated_on_ds(dossier: Dossier, dossier_data: dict) -> boo
             "Une erreur est survenue lors de la mise à jour du dossier.",
             level=logging.ERROR,
             log_message="Unset date_modif_ds is not a normal situation.",
-            extra={"dossier_id": dossier.id},
+            extra={
+                "dossier_ds_number": dossier.ds_number,
+            },
         )
 
     if dossier.ds_date_derniere_modification is None:

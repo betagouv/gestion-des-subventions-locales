@@ -110,7 +110,7 @@ class DsService:
         )
         results = mutator_function(dossier.ds_id, instructeur_id, ds_field_id, value)
 
-        self._check_results(results, user, dossier, mutation_type, field, value)
+        self._check_results(results, dossier, user, mutation_type, field, value)
         return results
 
     def _get_instructeur_id(self, user: Collegue) -> str:
@@ -128,9 +128,6 @@ class DsService:
             return ds_field.ds_field_id
 
         except FieldMappingForComputer.DoesNotExist:
-            logger.warning(
-                f'Demarche #{dossier.ds_demarche_id} doesn\'t have field "{field}".'
-            )
             field_name = field
             try:
                 field_name = Dossier._meta.get_field(field).verbose_name
@@ -139,7 +136,11 @@ class DsService:
 
             raise FieldError(
                 f'Le champ "{field_name}" n\'existe pas dans la démarche {dossier.ds_demarche.ds_number}.',
-                extra={"field_name": field_name, "demarche_id": dossier.ds_demarche.pk},
+                extra={
+                    "field_name": field_name,
+                    "demarche_ds_number": dossier.ds_demarche.ds_number,
+                    "dossier_ds_number": dossier.ds_number,
+                },
             )
 
     def _check_results(
@@ -166,7 +167,7 @@ class DsService:
                 message,
                 log_message="Error in DS mutation",
                 extra={
-                    "dossier_id": dossier.id,
+                    "dossier_ds_number": dossier.ds_number,
                     "user_id": user.id,
                     "mutation_key": mutation_key,
                     "field": field,
@@ -187,7 +188,7 @@ class DsService:
         if "L’instructeur n’a pas les droits d’accès à ce dossier" in messages:
             raise UserRightsError(
                 extra={
-                    "dossier_id": dossier.id,
+                    "dossier_ds_number": dossier.ds_number,
                     "user_id": user.id,
                 }
             )
@@ -197,7 +198,7 @@ class DsService:
             message,
             log_message="Error in DS mutation",
             extra={
-                "dossier_id": dossier.id,
+                "dossier_ds_number": dossier.ds_number,
                 "user_id": user.id,
                 "mutation_key": mutation_key,
                 "field": field,
