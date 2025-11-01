@@ -1,0 +1,3 @@
+CREATE USER gsl_team WITH PASSWORD 'gsl_pass';
+CREATE DATABASE gsl OWNER gsl_team;
+ALTER USER gsl_team CREATEDB;

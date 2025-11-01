@@ -20,25 +20,18 @@ ruff format && ruff check --fix
 
 ## Première installation
 
-Dépendances :
-- PostgreSQL ≥ 15
+### Dépendances :
 - Python 3.12 (avec pip et venv)
+- Docker & Docker compose
 
-Tout d'abord, créez la base de données en lançant une invite de commande PostgreSQL :
+Tout d'abord, démarrez PostgreSQL via Docker :
 
 ```bash
-psql
+docker compose up -d
 ```
+> PostgreSQL sera automatiquement initialisé avec le script [init.sql](./docker/postgresql/init.sql)
 
-Puis, dans cette invite de commandes, créez la base de données et l'utilisateur : 
 
-```sql
-CREATE USER gsl_team WITH PASSWORD 'gsl_pass';
-CREATE DATABASE gsl OWNER gsl_team;
-ALTER USER gsl_team CREATEDB;
-```
-
-Tapez `\q` pour quitter l'invite de commandes PostgreSQL.
 
 Ensuite, il est temps de procéder à l'installation du code et de ses dépendances :
 
