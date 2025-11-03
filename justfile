@@ -10,6 +10,9 @@ install-js:
     while read jsfile; do cp "node_modules/$jsfile" "static/vendor/"; echo "Vendorized $jsfile"; done <vendorize.txt
     npm run build # to build tiptap bundle
 
+run-celery:
+    python -m celery --app gsl worker --beat --loglevel INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
 manage command:
     python manage.py {{command}}
 
