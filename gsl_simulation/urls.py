@@ -19,6 +19,7 @@ from gsl_simulation.views.simulation_projet_views import (
     patch_status_simulation_projet,
     patch_taux_simulation_projet,
 )
+from gsl_simulation.views.simulation_views import SimulationDeleteView
 
 urlpatterns = [
     path(
@@ -32,6 +33,11 @@ urlpatterns = [
             simulation_views.SimulationDetailView.as_view()
         ),
         name="simulation-detail",
+    ),
+    path(
+        "<int:pk>/supprimer/",
+        SimulationDeleteView.as_view(),
+        name="simulation-delete",
     ),
     path(
         "voir/<slug:slug>/<str:type>/",
