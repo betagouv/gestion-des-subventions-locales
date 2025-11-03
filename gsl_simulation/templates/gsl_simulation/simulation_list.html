@@ -11,31 +11,32 @@
     </h1>
     {% if object_list|length == 0 %}
         <p>
-            Aucune programmation n'est en cours ! Voulez-vous <a href="{% url 'gsl_simulation:simulation-form' %}">en commencer une</a> ?
+            Aucune programmation n'est en cours ! Voulez-vous <a href="{% url 'gsl_simulation:simulation-form' %}">en
+            commencer une</a> ?
         </p>
     {% else %}
         <div class="add-simulation-button-container">
             <a href="{% url 'gsl_simulation:simulation-form' %}"
-               class="fr-btn fr-mr-1w fr-pl-3v"><span class="fr-icon-add-line" /> Nouvelle simulation</a>
+               class="fr-btn fr-mr-1w fr-pl-3v"><i class="fr-icon-add-line"></i> Nouvelle simulation</a>
         </div>
         <ul class="simulation-cards-list no-list-style">
             {% for simulation in object_list %}
-                <li class="">
-                    <a class="simulation-card" href="{{ simulation.get_absolute_url }}">
-                        <div class="simulation-card__actions">
+                <li class="fr-mb-2w">
+                    <div class="simulation-card fr-pl-2w">
+                        <div class="simulation-card__actions fr-px-2w">
                             <span class="fr-icon-more-fill" />
                         </div>
-                        <div class="simulation-card__content">
+                        <div class="simulation-card__content fr-py-2w">
                             {% dsfr_tag label=simulation.enveloppe.dotation extra_classes="fr-icon-money-euro-box-fill fr-icon--sm fr-tag--icon-left fr-mr-1v" %}
 
-                            <h2 class="simulation-card__title">
-                                {{ simulation.title }}
+                            <h2 class="fr-h6 fr-mt-1v fr-mb-3v fr-text-label--blue-france">
+                                <a href="{{ simulation.get_absolute_url }}">{{ simulation.title }}</a>
                             </h2>
                             <span>
                                 {{ simulation.enveloppe.perimetre }}
                             </span>
                         </div>
-                        <div class="simulation-card__creation-info">
+                        <div class="simulation-card__creation-info fr-py-2w">
                             <p class="fr-text--sm fr-m-0">
                                 Créée par {{ simulation.created_by }}
                                 <br>
@@ -48,13 +49,14 @@
                         </div>
 
                         {% include "includes/_status_summary.html" with status_summary=simulation.get_projet_status_summary %}
-                        <div class="simulation-card__navigate">
+                        <a class="simulation-card__navigate fr-p-4w"
+                           href="{{ simulation.get_absolute_url }}">
                             <div class="fr-sr-only">
                                 Voir la simulation {{ simulation.title }}
                             </div>
-                            <span class="fr-icon-arrow-right-line" />
-                        </div>
-                    </a>
+                            <i class="fr-icon-arrow-right-line"></i>
+                        </a>
+                    </div>
                 </li>
             {% endfor %}
         </ul>

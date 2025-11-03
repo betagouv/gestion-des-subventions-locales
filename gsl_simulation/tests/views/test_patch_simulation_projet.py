@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.contrib.messages import INFO, get_messages
+from django.test.html import parse_html
 from django.urls import reverse
 
 from gsl_core.templatetags.gsl_filters import percent
@@ -111,9 +112,9 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
     assert response.status_code == 200
     assert updated_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
     assert dotation_projet.status == PROJET_STATUS_ACCEPTED
-    assert "1 projet validé" in response.content.decode()
-    assert "0 projet refusé" in response.content.decode()
-    assert "0 projet notifié" in response.content.decode()
+    assert "1 projet validé" in parse_html(response.content.decode())
+    assert "0 projet refusé" in parse_html(response.content.decode())
+    assert "0 projet notifié" in parse_html(response.content.decode())
     assert (
         '<span hx-swap-oob="innerHTML" id="total-amount-granted">1\xa0000\xa0€</span>'
         in response.content.decode()

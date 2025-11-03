@@ -6,60 +6,35 @@
   margin-bottom: 24px;
 }
 
-.simulation-cards-list {
-  display: grid;
-  gap: 16px;
-}
 
 .simulation-card {
-  border: 1px solid #ddd;
-  padding: 1em !important;
+  border: 1px solid var(--border-default-grey);
   display: flex;
-  box-shadow: 2px 3px 8px 0 #0000001A;
-  gap: 16px;
-  background-image: none;
-}
-
-a.simulation-card:hover {
-  background-color: #F7F7F7;
-}
-
-.simulation-card__actions {
-  color: var(--text-action-high-blue-france);
-  display: grid;
   align-items: center;
-  justify-content: center;
-  padding: 16px;
+  gap: 1rem;
 }
 
 .simulation-card__content {
   flex: 1;
-  min-width: 250px;
-}
-
-.simulation-card__title {
-  color: var(--text-title-blue-france);
-  margin-bottom: 0;
-  font-size: 1.5rem;
-}
-
-.simulation-card__creation-info {
-  display: grid;
-  align-items: center;
+  min-width: 15rem;
 }
 
 .simulation-card .projet-states-count {
   display: flex;
   flex-direction: column;
-  gap: 8px;
   justify-content: center;
   width:15%
 }
 
 .simulation-card__navigate {
-  padding: 16px;
   display: grid;
   align-items: center;
+  align-self: stretch;
+  border-left: 1px solid #ddd;
   color: var(--text-action-high-blue-france);
   background-image: none;
+}
+
+.simulation-card__navigate:hover {
+  background-color: var(--background-contrast-blue-ecume) !important;
 }
