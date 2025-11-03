@@ -40,13 +40,22 @@ class DsClientBase:
             response = requests.post(self.url, json=data, headers=headers)
 
         except requests.exceptions.ConnectionError as e:
-            raise DsConnectionError(extra={"erreur": str(e)})
+            raise DsConnectionError(
+                extra={"erreur": str(e), "operation_name": operation_name}
+            )
 
         if response.status_code == 200:
             results = response.json()
             if "errors" in results.keys():
                 for error in results["errors"]:
-                    logger.warning(f"DS request error : {error['message']}")
+                    logger.warning(
+                        "DS request error",
+                        extra={
+                            "status_code": 200,
+                            "operation_name": operation_name,
+                            "error": error["message"],
+                        },
+                    )
                 if results.get("data", None) is None:
                     raise DsServiceException(
                         level=logging.ERROR, log_message="DS request returned errors"
@@ -62,7 +71,7 @@ class DsClientBase:
 
         raise DsConnectionError(
             level=logging.ERROR,
-            log_message="HTTP Error while running query.",
+            log_message="HTTP Error while running query",
             extra={"status_code": response.status_code, "error": response.text},
         )
 
@@ -289,7 +298,7 @@ class DsMutator(DsClientBase):
                     level=logging.INFO,
                     log_message="Dossier must be refreshed before accepting",
                     extra={
-                        "dossier_id": dossier.id,
+                        "dossier_ds_number": dossier.ds_number,
                     },
                 )
 

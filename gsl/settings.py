@@ -56,6 +56,7 @@ if SENTRY_DSN:
         ],
         environment=SENTRY_ENV,
         enable_logs=True,
+        traces_sample_rate=1.0,
     )
 
 # Application definition
@@ -237,6 +238,7 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
+            "()": "gsl.utils.logging_formatters.DynamicExtraFormatter",
             "format": "%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
         },
     },

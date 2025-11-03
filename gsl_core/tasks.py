@@ -34,5 +34,6 @@ def associate_or_update_ds_profile_to_users(user_ids: List[int]):
     logger.info("Association de profil DS avec les utilisateurs : fin")
     if len(emails_of_user_without_profile) > 0:
         logger.info(
-            f"Ces emails n'ont pas été trouvés dans les groupes instructeurs des démarches : {', '.join(emails_of_user_without_profile)}"
+            "Des emails n'ont pas été trouvés dans les groupes instructeurs des démarches",
+            extra={"emails": ", ".join(emails_of_user_without_profile)},
         )

@@ -300,7 +300,7 @@ def projet():
 def test_update_dotation_with_no_value(projet, caplog):
     with caplog.at_level(logging.WARNING):
         ProjetService.update_dotation(projet, [])
-    assert f"Projet {projet.__str__()} must have at least one dotation" in caplog.text
+    assert "Projet must have at least one dotation" in caplog.text
     assert projet.dotations == []
 
 
@@ -308,9 +308,7 @@ def test_update_dotation_with_no_value(projet, caplog):
 def test_update_dotation_with_more_than_2_values(projet, caplog):
     with caplog.at_level(logging.WARNING):
         ProjetService.update_dotation(projet, [DOTATION_DETR, DOTATION_DSIL, "unknown"])
-    assert (
-        f"Projet {projet.__str__()} can't have more than two dotations" in caplog.text
-    )
+    assert "Projet can't have more than two dotations" in caplog.text
     assert projet.dotations == []
 
 
