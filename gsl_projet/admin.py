@@ -52,9 +52,14 @@ class SimulationProjetInline(admin.TabularInline):
 
 @admin.register(Projet)
 class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    raw_id_fields = ("address", "departement", "demandeur", "dossier_ds")
-    list_display = ("__str__", "status", "address", "departement", "dotations")
-    list_filter = ("status", "departement")
+    raw_id_fields = ("address", "demandeur", "dossier_ds")
+    list_display = (
+        "__str__",
+        "status",
+        "perimetre__departement",
+        "dotations",
+    )
+    list_filter = ("status", "perimetre__departement")
     actions = ("refresh_from_dossier",)
     inlines = [
         DotationProjetInline,
