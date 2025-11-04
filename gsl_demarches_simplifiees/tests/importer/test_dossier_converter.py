@@ -61,7 +61,9 @@ def dossier(dossier_ds_id, demarche, dossier_ds_number):
 
 @pytest.fixture
 def ds_dossier_data():
-    with open(Path(__file__).parent / "ds_fixtures" / "dossier_data.json") as handle:
+    with open(
+        Path(__file__).parent / ".." / "ds_fixtures" / "dossier_data.json"
+    ) as handle:
         return json.loads(handle.read())
 
 

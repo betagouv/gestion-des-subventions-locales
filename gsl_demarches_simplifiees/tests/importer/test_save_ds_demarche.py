@@ -40,7 +40,9 @@ def demarche():
 @pytest.fixture
 def demarche_data_without_dossier():
     with open(
-        Path(__file__).parent / "ds_fixtures" / "demarche_data_with_revision.json"
+        Path(__file__).parent.parent
+        / "ds_fixtures"
+        / "demarche_data_with_revision.json"
     ) as handle:
         return json.loads(handle.read())
 
