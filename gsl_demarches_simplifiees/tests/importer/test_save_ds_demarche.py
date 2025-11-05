@@ -21,7 +21,10 @@ from gsl_demarches_simplifiees.models import (
     FieldMappingForHuman,
     Profile,
 )
-from gsl_demarches_simplifiees.tests.factories import DemarcheFactory
+from gsl_demarches_simplifiees.tests.factories import (
+    DemarcheFactory,
+    FieldMappingForComputerFactory,
+)
 from gsl_projet.models import CategorieDetr
 
 pytestmark = pytest.mark.django_db
@@ -321,3 +324,111 @@ def test_guess_year_from_demarche_data(
     year = guess_year_from_demarche(demarche)
     # assert
     assert year == expected_year
+
+
+def _minimal_demarche_data_with_descriptors(descriptors):
+    """Build minimal demarche data payload expected by save_field_mappings."""
+    return {
+        "id": "dummy-id",
+        "number": 42,
+        "title": "Titre",
+        "state": "brouillon",
+        "dateCreation": None,
+        "dateFermeture": None,
+        "activeRevision": {
+            "id": "REV_ID",
+            "datePublication": None,
+            "champDescriptors": descriptors,
+            "annotationDescriptors": [],
+        },
+        "groupeInstructeurs": [],
+        "champs": [],
+    }
+
+
+def test_save_field_mappings_maps_by_verbose_name_direct_match(demarche):
+    # Arrange: DS label equals Dossier.verbose_name for demandeur_arrondissement
+    descriptors = [
+        {
+            "__typename": "TextChampDescriptor",
+            "id": "FIELD_ID_ARR",
+            "label": "Arrondissement du demandeur",
+        }
+    ]
+    demarche_data = _minimal_demarche_data_with_descriptors(descriptors)
+
+    # Act
+    save_field_mappings(demarche_data, demarche)
+
+    # Assert: a computer mapping exists and is mapped to the Django field
+    mapping = FieldMappingForComputer.objects.get(
+        demarche=demarche, ds_field_id="FIELD_ID_ARR"
+    )
+    assert mapping.django_field == "demandeur_arrondissement"
+    # No human mapping should have been created for a direct match
+    assert (
+        FieldMappingForHuman.objects.filter(label="Arrondissement du demandeur").count()
+        == 0
+    )
+
+
+def test_save_field_mappings_maps_by_normalized_label_removing_parenthesis_suffix(
+    demarche,
+):
+    # Arrange: DS label has a parenthetical suffix that should be stripped
+    descriptors = [
+        {
+            "__typename": "TextChampDescriptor",
+            "id": "FIELD_ID_ARR_PAREN",
+            "label": "Arrondissement du demandeur (01 - Ain)",
+        }
+    ]
+    demarche_data = _minimal_demarche_data_with_descriptors(descriptors)
+
+    # Act
+    save_field_mappings(demarche_data, demarche)
+
+    # Assert: still maps to demandeur_arrondissement after normalization
+    mapping = FieldMappingForComputer.objects.get(
+        demarche=demarche, ds_field_id="FIELD_ID_ARR_PAREN"
+    )
+    assert mapping.django_field == "demandeur_arrondissement"
+    # Human mapping should not be created when direct mapping succeeds via normalization
+    assert (
+        FieldMappingForHuman.objects.filter(
+            label="Arrondissement du demandeur (01 - Ain)"
+        ).count()
+        == 0
+    )
+
+
+def test_save_field_mappings_maps_updates_existing_mapping(
+    demarche,
+):
+    # Arrange: a mapping already exists
+    mapping = FieldMappingForComputerFactory(
+        demarche=demarche,
+        ds_field_id="fixed_id",
+        ds_field_label="a_label",
+        ds_field_type="DropDownListChampDescriptor",
+        django_field="a_django_field",
+    )
+
+    descriptors = [
+        {
+            "__typename": "LinkedDropDownListChampChampDescriptor",
+            "id": "fixed_id",
+            "label": "Prénom du porteur de projet",
+        }
+    ]
+    demarche_data = _minimal_demarche_data_with_descriptors(descriptors)
+
+    # Act
+    save_field_mappings(demarche_data, demarche)
+
+    # Assert: still maps to demandeur_arrondissement after normalization
+    mapping.refresh_from_db()
+    assert mapping.ds_field_id == "fixed_id"
+    assert mapping.ds_field_label == "Prénom du porteur de projet"
+    assert mapping.ds_field_type == "LinkedDropDownListChampChampDescriptor"
+    assert mapping.django_field == "porteur_de_projet_prenom"
