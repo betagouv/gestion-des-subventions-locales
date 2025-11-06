@@ -202,6 +202,23 @@ class Dossier(DsModel):
     )
     ds_instructeurs = models.ManyToManyField("gsl_demarches_simplifiees.Profile")
 
+    # ---
+    demandeur_departement_or_collectivite = models.ForeignKey(
+        "gsl_core.Departement",
+        on_delete=models.SET_NULL,
+        verbose_name="Département ou collectivité du demandeur",
+        blank=True,
+        null=True,
+    )
+    demandeur_arrondissement = models.ForeignKey(
+        "gsl_core.Arrondissement",
+        on_delete=models.SET_NULL,
+        verbose_name="Arrondissement du demandeur",
+        blank=True,
+        null=True,
+    )
+    # ---
+
     porteur_de_projet_nature = models.ForeignKey(
         "gsl_demarches_simplifiees.NaturePorteurProjet",
         models.SET_NULL,
@@ -209,6 +226,11 @@ class Dossier(DsModel):
         blank=True,
         null=True,
     )
+    # porteur_de_projet_siren_or_insee = models.CharField(
+    #     "Code SIREN ou INSEE du demandeur", blank=True
+    # )
+
+    # TODO remove it !
     porteur_de_projet_arrondissement = models.ForeignKey(
         "gsl_demarches_simplifiees.Arrondissement",
         models.SET_NULL,
@@ -220,6 +242,9 @@ class Dossier(DsModel):
         "Fonction du porteur de projet", blank=True
     )
 
+    # porteur_de_projet_civilite = models.CharField(
+    #     "Civilité du porteur de projet", blank=True
+    # )
     porteur_de_projet_nom = models.CharField("Nom du porteur de projet", blank=True)
     porteur_de_projet_prenom = models.CharField(
         "Prénom du porteur de projet", blank=True
@@ -387,8 +412,10 @@ class Dossier(DsModel):
     )
 
     _MAPPED_CHAMPS_FIELDS = (
+        demandeur_departement_or_collectivite,
+        demandeur_arrondissement,
         porteur_de_projet_nature,
-        porteur_de_projet_arrondissement,
+        # porteur_de_projet_arrondissement,
         porteur_de_projet_fonction,
         porteur_de_projet_nom,
         porteur_de_projet_prenom,

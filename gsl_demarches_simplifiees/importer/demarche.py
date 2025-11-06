@@ -1,3 +1,5 @@
+import re
+
 from django.utils import timezone
 
 from gsl_core.models import Departement
@@ -108,8 +110,11 @@ def save_field_mappings(demarche_data, demarche):
             continue
 
         ds_label = champ_descriptor["label"]
+        normalized_label = _normalize_ds_label(ds_label)
         ds_id = champ_descriptor["id"]
-        qs_human_mapping = FieldMappingForHuman.objects.filter(label=ds_label)
+        qs_human_mapping = FieldMappingForHuman.objects.filter(
+            label__in=[ds_label, normalized_label]
+        )
         computer_mapping, _ = FieldMappingForComputer.objects.get_or_create(
             ds_field_id=ds_id,
             demarche=demarche,
@@ -127,8 +132,10 @@ def save_field_mappings(demarche_data, demarche):
                 continue
 
         # Try direct mapping on verbose_name with original or normalized label
-        if ds_label in reversed_mapping:
-            computer_mapping.django_field = reversed_mapping.get(ds_label)
+        if ds_label in reversed_mapping or normalized_label in reversed_mapping:
+            computer_mapping.django_field = reversed_mapping.get(
+                ds_label
+            ) or reversed_mapping.get(normalized_label)
             computer_mapping.save()
             continue
 
@@ -137,6 +144,11 @@ def save_field_mappings(demarche_data, demarche):
                 label=ds_label,
                 demarche=demarche,
             )
+
+
+def _normalize_ds_label(label: str) -> str:
+    # Remove a trailing parenthetical suffix like " (01 - Ain)" and trim
+    return re.sub(r"\s*\([^)]*\)\s*$", "", label or "").strip()
 
 
 def guess_department_from_demarche(demarche) -> Departement:

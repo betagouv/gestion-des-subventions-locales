@@ -5,7 +5,7 @@ from logging import getLogger
 
 from django.db import models
 
-from gsl_core.models import Adresse
+from gsl_core.models import Adresse, Arrondissement, Departement
 from gsl_demarches_simplifiees.models import (
     Dossier,
     DsChoiceLibelle,
@@ -127,26 +127,6 @@ class DossierConverter:
             f"DS Fields of type '{ds_typename}' are not supported"
         )
 
-    def _prepare_address_for_injection(
-        self, dossier: Dossier, django_field_object: models.Field, injectable_value
-    ):
-        adresse = dossier.__getattribute__(django_field_object.name) or Adresse()
-        adresse.update_from_raw_ds_data(injectable_value)
-        adresse.save()
-        return adresse
-
-    def _get_related_model_get_or_create_arguments(
-        self, related_model, injectable_value
-    ):
-        arguments = {"label": injectable_value}
-        for constraint in related_model._meta.constraints:
-            if isinstance(constraint, models.UniqueConstraint):
-                fields = constraint.fields
-                if "demarche" in fields and "demarche_revision" in fields:
-                    arguments["demarche"] = self.dossier.ds_demarche
-                    arguments["demarche_revision"] = self.ds_demarche_revision
-        return arguments
-
     def inject_into_field(
         self, dossier: Dossier, django_field_object: models.Field, injectable_value
     ):
@@ -173,6 +153,14 @@ class DossierConverter:
                 injectable_value = self._prepare_address_for_injection(
                     dossier, django_field_object, injectable_value
                 )
+            if issubclass(django_field_object.related_model, Departement):
+                injectable_value = self._prepare_departement_for_injection(
+                    dossier, django_field_object, injectable_value
+                )
+            if issubclass(django_field_object.related_model, Arrondissement):
+                injectable_value = self._prepare_arrondissement_for_injection(
+                    dossier, django_field_object, injectable_value
+                )
 
             elif not issubclass(django_field_object.related_model, DsChoiceLibelle):
                 raise NotImplementedError("Can only inject DsChoiceLibelle objects")
@@ -186,3 +174,139 @@ class DossierConverter:
                 )
 
         dossier.__setattr__(django_field_object.name, injectable_value)
+
+    def _prepare_address_for_injection(
+        self, dossier: Dossier, django_field_object: models.Field, injectable_value
+    ):
+        adresse = dossier.__getattribute__(django_field_object.name) or Adresse()
+        adresse.update_from_raw_ds_data(injectable_value)
+        adresse.save()
+        return adresse
+
+    def _prepare_departement_for_injection(
+        self, dossier: Dossier, django_field_object: models.Field, injectable_value
+    ) -> Departement | None:
+        """
+        Extrait le code INSEE du format "04 - Alpes-de-Haute-Provence"
+        et récupère le département correspondant.
+        Le code peut être de 2 ou 3 caractères (ex: 01, 981).
+        """
+        if not injectable_value:
+            return None
+
+        # Extraire le code INSEE (les caractères avant " - ")
+        # Format attendu: "04 - Alpes-de-Haute-Provence"
+        if " - " in injectable_value:
+            code_insee = injectable_value.split(" - ")[0].strip()
+        else:
+            # Si le format n'est pas celui attendu, on essaie de prendre les 2-3 premiers caractères
+            code_insee = injectable_value[:3].strip()
+
+        # Récupérer le département par son code INSEE
+        try:
+            departement = Departement.objects.get(insee_code=code_insee)
+            return departement
+        except Departement.DoesNotExist:
+            logger.warning(
+                f"Département avec le code INSEE '{code_insee}' non trouvé",
+                extra={
+                    "dossier_ds_number": self.dossier.ds_number,
+                    "injectable_value": injectable_value,
+                    "code_insee": code_insee,
+                },
+            )
+            return None
+
+    def _prepare_arrondissement_for_injection(
+        self, dossier: Dossier, django_field_object: models.Field, injectable_value
+    ) -> Arrondissement | None:
+        """
+        Extrait le nom de l'arrondissement du format "04 - Alpes-de-Haute-Provence - arrondissement de Barcelonnette"
+        et récupère l'arrondissement correspondant.
+        """
+        if not injectable_value:
+            return None
+
+        # Format attendu: "04 - Alpes-de-Haute-Provence - arrondissement de Barcelonnette"
+        parts = injectable_value.split(" - ")
+
+        if len(parts) < 3:
+            logger.warning(
+                f"Format d'arrondissement invalide: '{injectable_value}'",
+                extra={
+                    "dossier_ds_number": self.dossier.ds_number,
+                    "injectable_value": injectable_value,
+                },
+            )
+            return None
+
+        # Extraire le code du département (première partie)
+        code_departement = parts[0].strip()
+
+        # Extraire le nom de l'arrondissement (dernière partie après "arrondissement de ")
+        arrondissement_part = parts[2].strip()
+        if arrondissement_part.startswith("arrondissement de "):
+            nom_arrondissement = arrondissement_part.replace(
+                "arrondissement de ", ""
+            ).strip()
+        else:
+            # Si le format est différent, on prend la dernière partie
+            nom_arrondissement = arrondissement_part
+
+        # Récupérer le département
+        try:
+            departement = Departement.objects.get(insee_code=code_departement)
+        except Departement.DoesNotExist:
+            logger.warning(
+                f"Département avec le code INSEE '{code_departement}' non trouvé pour l'arrondissement",
+                extra={
+                    "dossier_ds_number": self.dossier.ds_number,
+                    "injectable_value": injectable_value,
+                    "code_departement": code_departement,
+                },
+            )
+            return None
+
+        # Récupérer l'arrondissement par son nom dans ce département
+        try:
+            arrondissement = Arrondissement.objects.get(
+                name=nom_arrondissement, departement=departement
+            )
+            return arrondissement
+        except Arrondissement.DoesNotExist:
+            logger.warning(
+                f"Arrondissement '{nom_arrondissement}' non trouvé dans le département {code_departement}",
+                extra={
+                    "dossier_ds_number": self.dossier.ds_number,
+                    "injectable_value": injectable_value,
+                    "nom_arrondissement": nom_arrondissement,
+                    "code_departement": code_departement,
+                },
+            )
+            return None
+        except Arrondissement.MultipleObjectsReturned:
+            logger.warning(
+                f"Plusieurs arrondissements '{nom_arrondissement}' trouvés dans le département {code_departement}",
+                extra={
+                    "dossier_ds_number": self.dossier.ds_number,
+                    "injectable_value": injectable_value,
+                    "nom_arrondissement": nom_arrondissement,
+                    "code_departement": code_departement,
+                },
+            )
+            # En cas de doublon, on prend le premier
+            return Arrondissement.objects.filter(
+                name=nom_arrondissement, departement=departement
+            ).first()
+
+    def _get_related_model_get_or_create_arguments(
+        self, related_model, injectable_value
+    ):
+        arguments = {"label": injectable_value}
+        for constraint in related_model._meta.constraints:
+            if isinstance(constraint, models.UniqueConstraint):
+                fields = constraint.fields
+                if "demarche" in fields and "demarche_revision" in fields:
+                    arguments["demarche"] = self.dossier.ds_demarche
+                    arguments["demarche_revision"] = self.ds_demarche_revision
+        return arguments

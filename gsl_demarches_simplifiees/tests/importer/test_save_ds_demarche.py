@@ -352,7 +352,7 @@ def test_save_field_mappings_maps_by_verbose_name_direct_match(demarche):
         {
             "__typename": "TextChampDescriptor",
             "id": "FIELD_ID_ARR",
-            "label": "Nom du porteur de projet",
+            "label": "Arrondissement du demandeur",
         }
     ]
     demarche_data = _minimal_demarche_data_with_descriptors(descriptors)
@@ -364,7 +364,37 @@ def test_save_field_mappings_maps_by_verbose_name_direct_match(demarche):
     mapping = FieldMappingForComputer.objects.get(
         demarche=demarche, ds_field_id="FIELD_ID_ARR"
     )
-    assert mapping.django_field == "porteur_de_projet_nom"
+    assert mapping.django_field == "demandeur_arrondissement"
+
+
+def test_save_field_mappings_maps_by_normalized_label_removing_parenthesis_suffix(
+    demarche,
+):
+    # Arrange: DS label has a parenthetical suffix that should be stripped
+    descriptors = [
+        {
+            "__typename": "TextChampDescriptor",
+            "id": "FIELD_ID_ARR_PAREN",
+            "label": "Arrondissement du demandeur (01 - Ain)",
+        }
+    ]
+    demarche_data = _minimal_demarche_data_with_descriptors(descriptors)
+
+    # Act
+    save_field_mappings(demarche_data, demarche)
+
+    # Assert: still maps to demandeur_arrondissement after normalization
+    mapping = FieldMappingForComputer.objects.get(
+        demarche=demarche, ds_field_id="FIELD_ID_ARR_PAREN"
+    )
+    assert mapping.django_field == "demandeur_arrondissement"
+    # Human mapping should not be created when direct mapping succeeds via normalization
+    assert (
+        FieldMappingForHuman.objects.filter(
+            label="Arrondissement du demandeur (01 - Ain)"
+        ).count()
+        == 0
+    )
 
 
 def test_save_field_mappings_maps_updates_existing_mapping(
