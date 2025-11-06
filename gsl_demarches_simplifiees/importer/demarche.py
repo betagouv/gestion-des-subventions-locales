@@ -1,5 +1,3 @@
-import re
-
 from django.utils import timezone
 
 from gsl_core.models import Departement
@@ -108,19 +106,13 @@ def save_field_mappings(demarche_data, demarche):
         ds_type = champ_descriptor["__typename"]
         if ds_type not in IMPORTED_DS_FIELDS:
             continue
+
         ds_label = champ_descriptor["label"]
-        normalized_label = _normalize_ds_label(ds_label)
         ds_id = champ_descriptor["id"]
-        qs_human_mapping = FieldMappingForHuman.objects.filter(
-            label__in=[ds_label, normalized_label]
-        )
+        qs_human_mapping = FieldMappingForHuman.objects.filter(label=ds_label)
         computer_mapping, _ = FieldMappingForComputer.objects.get_or_create(
             ds_field_id=ds_id,
             demarche=demarche,
-            defaults={
-                "ds_field_label": ds_label,
-                "ds_field_type": ds_type,
-            },
         )
         computer_mapping.ds_field_label = ds_label
         computer_mapping.ds_field_type = ds_type
@@ -133,24 +125,18 @@ def save_field_mappings(demarche_data, demarche):
                 computer_mapping.field_mapping_for_human = human_mapping
                 computer_mapping.save()
                 continue
-        # Try direct mapping on verbose_name with original or normalized label
-        if ds_label in reversed_mapping or normalized_label in reversed_mapping:
-            computer_mapping.django_field = reversed_mapping.get(
-                ds_label
-            ) or reversed_mapping.get(normalized_label)
+
+        # Try direct mapping on verbose_name with original
+        if ds_label in reversed_mapping:
+            computer_mapping.django_field = reversed_mapping.get(ds_label)
             computer_mapping.save()
             continue
 
-        if not qs_human_mapping.exists():
+        if not qs_human_mapping.exists() and not computer_mapping.django_field:
             FieldMappingForHuman.objects.create(
                 label=ds_label,
                 demarche=demarche,
             )
-
-
-def _normalize_ds_label(label: str) -> str:
-    # Remove a trailing parenthetical suffix like " (01 - Ain)" and trim
-    return re.sub(r"\s*\([^)]*\)\s*$", "", label or "").strip()
 
 
 def guess_department_from_demarche(demarche) -> Departement:
