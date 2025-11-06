@@ -110,14 +110,14 @@ def save_field_mappings(demarche_data, demarche):
         ds_label = champ_descriptor["label"]
         ds_id = champ_descriptor["id"]
         qs_human_mapping = FieldMappingForHuman.objects.filter(label=ds_label)
-        computer_mapping, _ = FieldMappingForComputer.objects.get_or_create(
+        computer_mapping, _ = FieldMappingForComputer.objects.update_or_create(
             ds_field_id=ds_id,
             demarche=demarche,
+            defaults={
+                "ds_field_label": ds_label,
+                "ds_field_type": ds_type,
+            },
         )
-        computer_mapping.ds_field_label = ds_label
-        computer_mapping.ds_field_type = ds_type
-        computer_mapping.save()
-
         if qs_human_mapping.exists():  # we have a label which is known
             human_mapping = qs_human_mapping.get()
             if human_mapping.django_field:
