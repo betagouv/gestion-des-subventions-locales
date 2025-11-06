@@ -126,7 +126,7 @@ def save_field_mappings(demarche_data, demarche):
                 computer_mapping.save()
                 continue
 
-        # Try direct mapping on verbose_name with original
+        # Try direct mapping on verbose_name with original or normalized label
         if ds_label in reversed_mapping:
             computer_mapping.django_field = reversed_mapping.get(ds_label)
             computer_mapping.save()
