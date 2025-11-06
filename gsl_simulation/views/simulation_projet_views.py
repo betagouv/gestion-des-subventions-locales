@@ -448,11 +448,16 @@ def _get_other_dotation_simulation_projet(
 @method_decorator(htmx_only, name="dispatch")
 class RefuseOrDismissProjetModalBaseView(UpdateView):
     context_object_name = "simulation_projet"
+    modal_id = None
 
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
         save_one_dossier_from_ds(obj.projet.dossier_ds)
         return obj
+
+    def get_context_data(self, **kwargs):
+        kwargs["modal_id"] = self.modal_id
+        return super().get_context_data(**kwargs)
 
     def get_template_names(self):
         if self.request.user.ds_id not in [
@@ -498,6 +503,7 @@ class RefuseProjetModalView(RefuseOrDismissProjetModalBaseView):
     template_name = "htmx/refuse_confirmation_form.html"
     form_class = RefuseProjetForm
     success_message = "Le projet a bien été refusé sur Démarches Simplifiées."
+    modal_id = "refuse-confirmation-modal"
 
 
 class DismissProjetModalView(RefuseOrDismissProjetModalBaseView):
@@ -506,3 +512,4 @@ class DismissProjetModalView(RefuseOrDismissProjetModalBaseView):
     success_message = (
         "Le projet a bien été classé sans suite sur Démarches Simplifiées."
     )
+    modal_id = "dismiss-confirmation-modal"

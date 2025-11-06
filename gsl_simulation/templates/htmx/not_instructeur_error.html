@@ -3,7 +3,7 @@
         <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
             <div class="fr-modal__body">
                 <div class="fr-modal__header">
-                    <button aria-controls="refuse-confirmation-modal"
+                    <button aria-controls="{{ modal_id }}"
                             title="Fermer"
                             type="button"
                             class="fr-btn--close fr-btn close-modal">
@@ -12,7 +12,7 @@
                 </div>
                 <div class="fr-modal__content">
                     <h1 class="fr-modal__title fr-text-default--error"
-                        id="refuse-confirmation-modal-title">
+                        id="{{ modal_id }}-title">
                         <i class="fr-icon-group-fill"></i>
                         Vous ne faites pas partie du groupe d'instructeurs de ce dossier
                     </h1>
@@ -24,8 +24,7 @@
                 </div>
 
                 <div class="fr-modal__footer confirmation-modal-footer">
-                    <button class="fr-btn fr-btn--primary"
-                            aria-controls="refuse-confirmation-modal">
+                    <button class="fr-btn fr-btn--primary" aria-controls="{{ modal_id }}">
                         Compris
                     </button>
                 </div>
