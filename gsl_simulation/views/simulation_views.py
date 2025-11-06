@@ -6,7 +6,10 @@ from django.db.models import Count, Prefetch, QuerySet
 from django.forms import NumberInput
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
+from django.utils.decorators import method_decorator
+from django.views.decorators.http import require_POST
+from django.views.generic import DeleteView
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 from django_filters import MultipleChoiceFilter, NumberFilter
@@ -349,6 +352,19 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         response["Pragma"] = "no-cache"
         response["Expires"] = "0"
         return response
+
+
+@method_decorator(require_POST, name="dispatch")
+class SimulationDeleteView(DeleteView):
+    success_url = reverse_lazy("simulation:simulation-list")
+
+    def get_queryset(self):
+        visible_by_user_enveloppes = EnveloppeService.get_enveloppes_visible_for_a_user(
+            self.request.user
+        )
+        return Simulation.objects.filter(
+            enveloppe__in=visible_by_user_enveloppes
+        ).order_by("-created_at")
 
 
 def simulation_form(request):

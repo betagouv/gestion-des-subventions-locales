@@ -11,31 +11,103 @@
     </h1>
     {% if object_list|length == 0 %}
         <p>
-            Aucune programmation n'est en cours ! Voulez-vous <a href="{% url 'gsl_simulation:simulation-form' %}">en commencer une</a> ?
+            Aucune programmation n'est en cours ! Voulez-vous <a href="{% url 'gsl_simulation:simulation-form' %}">en
+            commencer une</a> ?
         </p>
     {% else %}
         <div class="add-simulation-button-container">
             <a href="{% url 'gsl_simulation:simulation-form' %}"
-               class="fr-btn fr-mr-1w fr-pl-3v"><span class="fr-icon-add-line" /> Nouvelle simulation</a>
+               class="fr-btn fr-mr-1w fr-pl-3v"><i class="fr-icon-add-line"></i> Nouvelle simulation</a>
         </div>
         <ul class="simulation-cards-list no-list-style">
             {% for simulation in object_list %}
-                <li class="">
-                    <a class="simulation-card" href="{{ simulation.get_absolute_url }}">
-                        <div class="simulation-card__actions">
-                            <span class="fr-icon-more-fill" />
+                <li class="fr-mb-2w">
+                    <div class="simulation-card fr-pl-2w">
+                        <div class="simulation-card__actions fr-px-2w">
+                            <div class="fr-nav fr-translate">
+                                <div class="fr-nav__item">
+                                    <button class="fr-btn fr-btn--tertiary-no-outline fr-icon-more-fill"
+                                            aria-controls="simulation-menu-{{ simulation.id }}"
+                                            aria-expanded="false"
+                                            aria-label="Modifier ou supprimer">
+                                    </button>
+                                    <div class="fr-menu fr-collapse" id="simulation-menu-{{ simulation.id }}">
+                                        <ul class="fr-menu__list">
+                                            <li>
+                                                <button class="fr-nav__link fr-icon-delete-bin-fill fr-icon--sm fr-btn--icon-left"
+                                                        aria-controls="simulation-delete-modal-{{ simulation.id }}"
+                                                        type="button"
+                                                        data-fr-opened="false">
+                                                    Supprimer
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <dialog id="simulation-delete-modal-{{ simulation.id }}"
+                                    class="fr-modal confirmation-modal fr-text--regular">
+                                <div class="fr-container fr-container--fluid fr-container-md">
+                                    <div class="fr-grid-row fr-grid-row--center">
+                                        <div class="fr-col-12 fr-col-md-8 fr-col-lg-6 confirmation-modal-container">
+                                            <div class="fr-modal__body">
+                                                <div class="fr-modal__header">
+                                                    <button aria-controls="simulation-delete-modal-{{ simulation.id }}"
+                                                            title="Fermer"
+                                                            type="button"
+                                                            class="fr-btn--close fr-btn close-modal">
+                                                        Fermer
+                                                    </button>
+                                                </div>
+                                                <div class="fr-modal__content">
+                                                    <h1 class="fr-modal__title ">
+                                                        <span class="fr-icon-delete-fill fr-icon--lg" aria-hidden="true"></span>
+                                                        <span class="modal-title">Suppression de la simulation «&nbsp;{{ simulation.title }}&nbsp;»</span>
+                                                    </h1>
+                                                    <p>
+                                                        Cette action entraînera la suppression de la simulation. <b>Tous
+                                                        les utilisateurs du même périmètre qui avaient accès à cette
+                                                        simulation ne la verront plus non plus.</b>> Cette action est
+                                                        irréversible.
+                                                    </p>
+                                                    <p>
+                                                        Êtes-vous sûr de supprimer cette simulation&nbsp;?
+                                                    </p>
+                                                    <form method="post"
+                                                          id="simulation-delete-form-{{ simulation.id }}"
+                                                          action="{% url 'gsl_simulation:simulation-delete' simulation.id %}">
+                                                        {% csrf_token %}
+                                                    </form>
+                                                </div>
+                                                <div class="fr-modal__footer confirmation-modal-footer">
+                                                    <button class="fr-btn fr-btn--secondary close-modal"
+                                                            aria-controls="simulation-delete-modal-{{ simulation.id }}">
+                                                        Annuler
+                                                    </button>
+
+                                                    <button class="fr-btn fr-btn--primary confirm"
+                                                            type="submit"
+                                                            form="simulation-delete-form-{{ simulation.id }}">
+                                                        Confirmer
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </dialog>
                         </div>
-                        <div class="simulation-card__content">
+                        <div class="simulation-card__content fr-py-2w">
                             {% dsfr_tag label=simulation.enveloppe.dotation extra_classes="fr-icon-money-euro-box-fill fr-icon--sm fr-tag--icon-left fr-mr-1v" %}
 
-                            <h2 class="simulation-card__title">
-                                {{ simulation.title }}
+                            <h2 class="fr-h6 fr-mt-1v fr-mb-3v fr-text-label--blue-france">
+                                <a href="{{ simulation.get_absolute_url }}">{{ simulation.title }}</a>
                             </h2>
                             <span>
                                 {{ simulation.enveloppe.perimetre }}
                             </span>
                         </div>
-                        <div class="simulation-card__creation-info">
+                        <div class="simulation-card__creation-info fr-py-2w">
                             <p class="fr-text--sm fr-m-0">
                                 Créée par {{ simulation.created_by }}
                                 <br>
@@ -48,13 +120,14 @@
                         </div>
 
                         {% include "includes/_status_summary.html" with status_summary=simulation.get_projet_status_summary %}
-                        <div class="simulation-card__navigate">
+                        <a class="simulation-card__navigate fr-p-4w"
+                           href="{{ simulation.get_absolute_url }}">
                             <div class="fr-sr-only">
                                 Voir la simulation {{ simulation.title }}
                             </div>
-                            <span class="fr-icon-arrow-right-line" />
-                        </div>
-                    </a>
+                            <i class="fr-icon-arrow-right-line"></i>
+                        </a>
+                    </div>
                 </li>
             {% endfor %}
         </ul>
