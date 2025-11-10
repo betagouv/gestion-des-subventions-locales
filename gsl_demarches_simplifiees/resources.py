@@ -11,3 +11,4 @@ class FieldMappingForHumanResource(resources.ModelResource):
 class FieldMappingForComputerResource(resources.ModelResource):
     class Meta:
         model = FieldMappingForComputer
+        import_id_fields = ("demarche", "ds_field_id")
