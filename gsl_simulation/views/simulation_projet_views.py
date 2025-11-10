@@ -111,7 +111,7 @@ def patch_status_simulation_projet(request, pk):
     ):
         messages.error(
             request,
-            "Impossible d'accepter le projet car l'assiette lié à cette dotation n'est pas renseignée.",
+            "Le projet n'a pas pu être accepté car il manque l'assiette subventionnable. Veuillez ajouter le montant des dépenses éligibles retenues avant d'accepter un projet.",
         )
         return redirect_to_same_page_or_to_simulation_detail_by_default(
             request, simulation_projet
