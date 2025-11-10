@@ -98,6 +98,7 @@ def save_field_mappings(demarche_data, demarche):
     reversed_mapping = {
         field.verbose_name: field.name for field in Dossier.MAPPED_FIELDS
     }
+
     for champ_descriptor in (
         demarche_data["activeRevision"]["champDescriptors"]
         + demarche_data["activeRevision"]["annotationDescriptors"]
@@ -105,10 +106,11 @@ def save_field_mappings(demarche_data, demarche):
         ds_type = champ_descriptor["__typename"]
         if ds_type not in IMPORTED_DS_FIELDS:
             continue
+
         ds_label = champ_descriptor["label"]
         ds_id = champ_descriptor["id"]
         qs_human_mapping = FieldMappingForHuman.objects.filter(label=ds_label)
-        computer_mapping, _ = FieldMappingForComputer.objects.get_or_create(
+        computer_mapping, _ = FieldMappingForComputer.objects.update_or_create(
             ds_field_id=ds_id,
             demarche=demarche,
             defaults={
@@ -116,8 +118,6 @@ def save_field_mappings(demarche_data, demarche):
                 "ds_field_type": ds_type,
             },
         )
-        if computer_mapping.django_field:  # field is already mapped, continue
-            continue
         if qs_human_mapping.exists():  # we have a label which is known
             human_mapping = qs_human_mapping.get()
             if human_mapping.django_field:
@@ -125,11 +125,14 @@ def save_field_mappings(demarche_data, demarche):
                 computer_mapping.field_mapping_for_human = human_mapping
                 computer_mapping.save()
                 continue
+
+        # Try direct mapping on verbose_name with original
         if ds_label in reversed_mapping:
             computer_mapping.django_field = reversed_mapping.get(ds_label)
             computer_mapping.save()
             continue
-        if not qs_human_mapping.exists():
+
+        if not qs_human_mapping.exists() and not computer_mapping.django_field:
             FieldMappingForHuman.objects.create(
                 label=ds_label,
                 demarche=demarche,

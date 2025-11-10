@@ -23,11 +23,11 @@
                         {% for mapping in existing_mappings %}
                             <tr>
                                 <td>
-                                    {{ mapping.django_field }}
+                                    {{ mapping.django_field|default:"Champ non trouvé" }}
                                     <br>
-                                    {{ mapping.django_field_label }}
+                                    {{ mapping.django_field_label|default:"-" }}
                                     <br>
-                                    {{ mapping.django_field_type }}
+                                    {{ mapping.django_field_type|default:"-" }}
                                 </td>
                                 <td>
                                     {{ mapping.ds_field_label }}
