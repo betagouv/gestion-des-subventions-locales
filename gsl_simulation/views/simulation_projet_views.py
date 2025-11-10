@@ -450,6 +450,16 @@ class RefuseOrDismissProjetModalBaseView(UpdateView):
     context_object_name = "simulation_projet"
     modal_id = None
 
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            return super().dispatch(request, *args, **kwargs)
+        except DsServiceException as e:
+            messages.error(
+                self.request,
+                str(e),
+            )
+            return HttpResponseClientRefresh()  # we reload the page without the modal
+
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
         save_one_dossier_from_ds(obj.projet.dossier_ds)
