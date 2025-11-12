@@ -376,6 +376,7 @@ def test_save_field_mappings_maps_updates_existing_mapping(
         ds_field_type="DropDownListChampDescriptor",
         django_field="a_django_field",
     )
+    original_updated_at = mapping.updated_at
 
     descriptors = [
         {
@@ -395,3 +396,34 @@ def test_save_field_mappings_maps_updates_existing_mapping(
     assert mapping.ds_field_label == "Prénom du porteur de projet"
     assert mapping.ds_field_type == "TextChampDescriptor"
     assert mapping.django_field == "porteur_de_projet_prenom"
+    assert mapping.updated_at > original_updated_at
+
+
+def test_save_field_mappings_dont_update_existing_mapping_if_ds_label_and_type_are_the_same(
+    demarche,
+):
+    # Arrange: a mapping already exists
+    mapping = FieldMappingForComputerFactory(
+        demarche=demarche,
+        ds_field_id="fixed_id",
+        ds_field_label="Prénom du porteur de projet",
+        ds_field_type="TextChampDescriptor",
+        django_field="porteur_de_projet_prenom",
+    )
+    original_updated_at = mapping.updated_at
+
+    descriptors = [
+        {
+            "__typename": "TextChampDescriptor",
+            "id": "fixed_id",
+            "label": "Prénom du porteur de projet",
+        }
+    ]
+    demarche_data = _minimal_demarche_data_with_descriptors(descriptors)
+
+    # Act
+    save_field_mappings(demarche_data, demarche)
+
+    # Assert: updated_at is the same as created_at
+    mapping.refresh_from_db()
+    assert mapping.updated_at == original_updated_at

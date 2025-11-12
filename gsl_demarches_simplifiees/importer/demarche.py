@@ -110,7 +110,7 @@ def save_field_mappings(demarche_data, demarche):
         ds_label = champ_descriptor["label"]
         ds_id = champ_descriptor["id"]
         qs_human_mapping = FieldMappingForHuman.objects.filter(label=ds_label)
-        computer_mapping, _ = FieldMappingForComputer.objects.update_or_create(
+        computer_mapping, created = FieldMappingForComputer.objects.get_or_create(
             ds_field_id=ds_id,
             demarche=demarche,
             defaults={
@@ -118,6 +118,16 @@ def save_field_mappings(demarche_data, demarche):
                 "ds_field_type": ds_type,
             },
         )
+
+        if not created:
+            if (
+                computer_mapping.ds_field_label != ds_label
+                or computer_mapping.ds_field_type != ds_type
+            ):
+                computer_mapping.ds_field_label = ds_label
+                computer_mapping.ds_field_type = ds_type
+                computer_mapping.save()
+
         if qs_human_mapping.exists():  # we have a label which is known
             human_mapping = qs_human_mapping.get()
             if human_mapping.django_field:
@@ -128,15 +138,14 @@ def save_field_mappings(demarche_data, demarche):
 
         # Try direct mapping on verbose_name with original
         if ds_label in reversed_mapping:
-            computer_mapping.django_field = reversed_mapping.get(ds_label)
-            computer_mapping.save()
-            continue
+            django_field = reversed_mapping.get(ds_label)
+            if django_field != computer_mapping.django_field:
+                computer_mapping.django_field = django_field
+                computer_mapping.save()
+                continue
 
         if not qs_human_mapping.exists() and not computer_mapping.django_field:
-            FieldMappingForHuman.objects.create(
-                label=ds_label,
-                demarche=demarche,
-            )
+            FieldMappingForHuman.objects.create(label=ds_label, demarche=demarche)
 
 
 def guess_department_from_demarche(demarche) -> Departement:
