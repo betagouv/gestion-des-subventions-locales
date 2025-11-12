@@ -1,6 +1,7 @@
 from functools import cached_property
 
 from django.contrib import messages
+from django.contrib.auth.views import RedirectURLMixin
 from django.db.models import ProtectedError
 from django.http import Http404
 from django.shortcuts import redirect
@@ -210,10 +211,10 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
         return CategorieDetr.objects.current_for_departement(perimetre.departement)
 
 
-class EnveloppeCreateView(CreateView):
+class EnveloppeCreateView(RedirectURLMixin, CreateView):
     model = Enveloppe
     form_class = SubEnveloppeCreateForm
-    success_url = reverse_lazy("gsl_projet:list")
+    next_page = reverse_lazy("gsl_projet:list")
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
