@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
@@ -10,10 +11,11 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.importer.demarche import (
     extract_categories_operation_detr,
-    get_or_create_demarche,
     guess_year_from_demarche,
+    save_demarche_from_ds,
     save_field_mappings,
     save_groupe_instructeurs,
+    update_or_create_demarche,
 )
 from gsl_demarches_simplifiees.models import (
     Demarche,
@@ -32,11 +34,12 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def demarche():
-    return Demarche.objects.create(
-        ds_id="lidentifiantdsdelademarche",
+    return DemarcheFactory(
+        ds_id="un-id-qui-nest-pas-un-vrai==",
         ds_number=123456,
         ds_title="Titre de la démarche pour le Bas-Rhin",
         ds_state=Demarche.STATE_PUBLIEE,
+        active_revision_id="TEST_ID_MTYyNjE0",
     )
 
 
@@ -50,6 +53,59 @@ def demarche_data_without_dossier():
         return json.loads(handle.read())
 
 
+def test_save_demarche_from_ds_with_refresh_only_if_demarche_has_been_updated(
+    demarche_data_without_dossier,
+    demarche,
+):
+    original_updated_at = demarche.updated_at
+
+    with patch(
+        "gsl_demarches_simplifiees.ds_client.DsClient.get_demarche"
+    ) as get_demarche:
+        get_demarche.return_value = {
+            "data": {
+                "demarche": demarche_data_without_dossier,
+            },
+        }
+
+        save_demarche_from_ds(
+            demarche.ds_number,
+            refresh_only_if_demarche_has_been_updated=True,
+        )
+
+    demarche.refresh_from_db()
+
+    assert demarche.active_revision_id == "TEST_ID_MTYyNjE0"
+
+    assert demarche.updated_at == original_updated_at
+
+
+def test_save_demarche_from_ds_even_if_active_revision_id_is_the_same(
+    demarche_data_without_dossier,
+    demarche,
+):
+    original_updated_at = demarche.updated_at
+
+    with patch(
+        "gsl_demarches_simplifiees.ds_client.DsClient.get_demarche"
+    ) as get_demarche:
+        get_demarche.return_value = {
+            "data": {
+                "demarche": demarche_data_without_dossier,
+            },
+        }
+
+        save_demarche_from_ds(
+            demarche.ds_number,
+            refresh_only_if_demarche_has_been_updated=False,
+        )
+
+    demarche.refresh_from_db()
+
+    assert demarche.active_revision_id == "TEST_ID_MTYyNjE0"
+    assert demarche.updated_at > original_updated_at
+
+
 def test_get_existing_demarche_updates_ds_fields(demarche_data_without_dossier):
     existing_demarche = Demarche.objects.create(
         ds_id="un-id-qui-nest-pas-un-vrai==",
@@ -57,7 +113,7 @@ def test_get_existing_demarche_updates_ds_fields(demarche_data_without_dossier):
         ds_title="Le titre qui va changer",
         ds_state=Demarche.STATE_PUBLIEE,
     )
-    returned_demarche = get_or_create_demarche(demarche_data_without_dossier)
+    returned_demarche = update_or_create_demarche(demarche_data_without_dossier)
     assert existing_demarche.ds_id == returned_demarche.ds_id
     assert existing_demarche.pk == returned_demarche.pk
     assert returned_demarche.ds_title == "Titre de la démarche"
@@ -75,7 +131,7 @@ def test_get_existing_demarche_updates_ds_fields(demarche_data_without_dossier):
 
 
 def test_get_new_demarche_prefills_ds_fields(demarche_data_without_dossier):
-    demarche = get_or_create_demarche(demarche_data_without_dossier)
+    demarche = update_or_create_demarche(demarche_data_without_dossier)
     assert demarche.ds_id == "un-id-qui-nest-pas-un-vrai=="
     assert demarche.ds_number == 123456
     assert demarche.ds_title == "Titre de la démarche"
@@ -88,7 +144,7 @@ def test_get_new_demarche_prefills_ds_fields(demarche_data_without_dossier):
     assert demarche.raw_ds_data == demarche_data_without_dossier
 
 
-def test_get_or_create_demarche_with_no_active_revision():
+def test_update_or_create_demarche_with_no_active_revision():
     demarche_data = {
         "id": "un-id-qui-nest-pas-un-vrai==",
         "number": 123456,
@@ -104,7 +160,7 @@ def test_get_or_create_demarche_with_no_active_revision():
         "groupeInstructeurs": [],
         "champs": [],
     }
-    demarche = get_or_create_demarche(demarche_data)
+    demarche = update_or_create_demarche(demarche_data)
     assert demarche.ds_id == "un-id-qui-nest-pas-un-vrai=="
     assert demarche.ds_number == 123456
     assert demarche.ds_title == "Titre de la démarche"

@@ -14,15 +14,21 @@ from gsl_demarches_simplifiees.models import Demarche, Dossier
 ## Refresh demarches from DS
 #### of every demarches
 @shared_task
-def task_refresh_every_demarche():
+def task_refresh_every_demarche(refresh_only_if_demarche_has_been_updated=True):
     for d in Demarche.objects.all():
-        task_save_demarche_from_ds.delay(d.ds_number)
+        task_save_demarche_from_ds.delay(
+            d.ds_number, refresh_only_if_demarche_has_been_updated
+        )
 
 
 #### of one demarche
 @shared_task
-def task_save_demarche_from_ds(demarche_number):
-    return save_demarche_from_ds(demarche_number)
+def task_save_demarche_from_ds(
+    demarche_number, refresh_only_if_demarche_has_been_updated=False
+):
+    return save_demarche_from_ds(
+        demarche_number, refresh_only_if_demarche_has_been_updated
+    )
 
 
 ## Refresh dossiers
@@ -51,5 +57,5 @@ def task_refresh_dossier_from_saved_data(dossier_number):
 ## Refresh demarche field mappings
 ## from saved data if existing else from DS
 @shared_task
-def task_refresh_field_mappings_on_demarche(demarche_number):
+def task_refresh_field_mappings_from_demarche_data(demarche_number):
     return refresh_field_mappings_on_demarche(demarche_number)
