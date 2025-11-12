@@ -29,7 +29,6 @@ from gsl_simulation.models import SimulationProjet, SimulationProjetQuerySet
 from gsl_simulation.services.simulation_projet_service import (
     SimulationProjetService,
 )
-from gsl_simulation.services.simulation_service import SimulationService
 from gsl_simulation.utils import (
     add_simulation_projet_status_success_message,
     replace_comma_by_dot,
@@ -330,8 +329,8 @@ def render_partial_simulation_projet(request, simulation_projet):
         filter_params,
     )
 
-    total_amount_granted = SimulationService.get_total_amount_granted(
-        filtered_projets, simulation_projet.simulation
+    total_amount_granted = simulation_projet.simulation.get_total_amount_granted(
+        filtered_projets
     )
 
     return render(

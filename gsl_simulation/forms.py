@@ -2,61 +2,40 @@ from logging import getLogger
 
 from django import forms
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Q
 from django.forms import ModelForm
 from django.utils import timezone
 from dsfr.forms import DsfrBaseForm
 
-from gsl_core.models import Collegue, Perimetre
+from gsl_core.models import Collegue
 from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_demarches_simplifiees.mixins import DsUpdatableFields
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.validators import document_file_validator
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_programmation.models import Enveloppe
 from gsl_projet.forms import DSUpdateMixin
 from gsl_projet.models import DotationProjet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.utils import compute_taux
-from gsl_simulation.models import SimulationProjet
+from gsl_simulation.models import Simulation, SimulationProjet
 
 logger = getLogger(__name__)
 
 
-class SimulationForm(DsfrBaseForm):
-    title = forms.CharField(
-        label="Titre de la simulation", max_length=100, required=True
-    )
-    dotation = forms.ChoiceField(
-        label="Dotation associée",
-        choices=[
-            ("", "Choisir un fonds de dotation"),
-            (DOTATION_DETR, DOTATION_DETR),
-            (DOTATION_DSIL, DOTATION_DSIL),
-        ],
-        required=True,
-    )
-
+class SimulationForm(DsfrBaseForm, ModelForm):
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.user = user
+        self.fields["enveloppe"].queryset = Enveloppe.objects.filter(
+            Q(perimetre=user.perimetre)
+            | Q(deleguee_by__perimetre=user.perimetre)
+            | Q(deleguee_by__deleguee_by__perimetre=user.perimetre)
+        )
 
-    def clean(self):
-        cleaned_data = super().clean()
-        dotation = cleaned_data.get("dotation")
-        if self.user.perimetre is None:
-            raise ValidationError(
-                "Votre compte n’est pas associé à un périmètre. Contactez l’équipe."
-            )
-
-        if dotation == DOTATION_DETR:
-            if self.user.perimetre.type == Perimetre.TYPE_REGION:
-                raise ValidationError(
-                    f"Votre compte est associé à un périmètre régional ({self.user.perimetre}), vous ne pouvez pas créer une simulation de programmation pour un fonds de dotation DETR."
-                )
-
-        return cleaned_data
+    class Meta:
+        model = Simulation
+        fields = ["title", "enveloppe"]
 
 
 class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
