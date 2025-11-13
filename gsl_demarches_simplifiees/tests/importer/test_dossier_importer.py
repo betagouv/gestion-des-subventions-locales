@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import patch
 
 import pytest
@@ -76,6 +77,36 @@ def test_save_demarche_dossiers_from_ds_update_raw_ds_data_dossiers():
 
         assert dossier.ds_number == 20240001
         assert dossier.raw_ds_data == ds_dossiers[0]
+
+
+@pytest.mark.django_db
+def test_save_demarche_dossiers_from_ds_with_one_empty_data(caplog):
+    caplog.set_level(logging.INFO)
+    demarche_number = 123
+    DemarcheFactory(ds_number=demarche_number)
+
+    ds_dossiers = [
+        {
+            "id": "DOSS-1",
+            "number": 20240001,
+            "dateDerniereModification": "2025-01-01T12:09:33+02:00",
+        },
+        None,
+        {
+            "id": "DOSS-2",
+            "number": 20240002,
+            "dateDerniereModification": "2025-01-01T12:09:33+02:00",
+        },
+    ]
+
+    with patch(
+        "gsl_demarches_simplifiees.ds_client.DsClient.get_demarche_dossiers",
+        return_value=ds_dossiers,
+    ):
+        save_demarche_dossiers_from_ds(demarche_number)
+
+        assert Dossier.objects.count() == 2
+        assert "Dossier data is empty" in caplog.text
 
 
 def test_save_one_dossier_from_ds_error_with_invalid_ds_response():
