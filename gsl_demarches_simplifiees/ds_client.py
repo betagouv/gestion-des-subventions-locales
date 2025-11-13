@@ -3,6 +3,7 @@ import hashlib
 import json
 import logging
 from collections.abc import Iterator
+from datetime import datetime
 from logging import getLogger
 from pathlib import Path
 
@@ -94,7 +95,9 @@ class DsClient(DsClientBase):
         }
         return self.launch_graphql_query("getDemarche", variables=variables)
 
-    def get_demarche_dossiers(self, demarche_number) -> Iterator[dict]:
+    def get_demarche_dossiers(
+        self, demarche_number, updated_since: datetime | None = None
+    ) -> Iterator[dict]:
         """
         Get all dossiers from one given demarche
         :param demarche_number:
@@ -103,6 +106,7 @@ class DsClient(DsClientBase):
         variables = {
             "demarcheNumber": demarche_number,
             "includeDossiers": True,
+            "updatedSince": updated_since.isoformat() if updated_since else None,
         }
         result = self.launch_graphql_query("getDemarche", variables=variables)
         yield from result["data"]["demarche"]["dossiers"]["nodes"]

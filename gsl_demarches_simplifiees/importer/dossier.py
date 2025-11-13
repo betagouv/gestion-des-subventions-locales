@@ -12,10 +12,15 @@ from gsl_projet.services.projet_services import ProjetService
 logger = logging.getLogger(__name__)
 
 
-def save_demarche_dossiers_from_ds(demarche_number):
+def save_demarche_dossiers_from_ds(demarche_number, using_updated_since: bool = True):
+    new_updated_since = timezone.now()
+
     demarche = Demarche.objects.get(ds_number=demarche_number)
     client = DsClient()
-    demarche_dossiers = client.get_demarche_dossiers(demarche_number)
+    updated_since = demarche.updated_since if using_updated_since else None
+    demarche_dossiers = client.get_demarche_dossiers(
+        demarche_number, updated_since=updated_since
+    )
     for i, dossier_data in enumerate(demarche_dossiers):
         ds_dossier_number = None
 
@@ -53,6 +58,9 @@ def save_demarche_dossiers_from_ds(demarche_number):
                         "i": i,
                     },
                 )
+
+    demarche.updated_since = new_updated_since
+    demarche.save()
 
 
 def save_one_dossier_from_ds(dossier: Dossier, client: DsClient | None = None):
@@ -125,6 +133,8 @@ def refresh_dossier_from_saved_data(dossier: Dossier):
 
     ProjetService.create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
+    # save_all_dates_from_dossier(dossier)
+
 
 def refresh_dossier_instructeurs(dossier_data, dossier: Dossier):
     """
@@ -151,3 +161,13 @@ def refresh_dossier_instructeurs(dossier_data, dossier: Dossier):
                 ds_id=instructeur_data["id"], ds_email=instructeur_data["email"]
             )
             dossier.ds_instructeurs.add(instructeur)
+
+
+# def save_all_dates_from_dossier(dossier: Dossier):
+#     dossier.ds_date_depot = dossier.raw_ds_data.get("dateDepot")
+#     dossier.ds_date_passage_en_construction = dossier.raw_ds_data.get("datePassageEnConstruction")
+#     dossier.ds_date_passage_en_instruction = dossier.raw_ds_data.get("datePassageEnInstruction")
+#     dossier.ds_date_derniere_modification = dossier.raw_ds_data.get("dateDerniereModification")
+#     dossier.ds_date_derniere_modification_champs = dossier.raw_ds_data.get("dateDerniereModificationChamps")
+#     dossier.ds_date_traitement = dossier.raw_ds_data.get("dateTraitement")
+#     dossier.save()

@@ -109,6 +109,21 @@ def test_save_demarche_dossiers_from_ds_with_one_empty_data(caplog):
         assert "Dossier data is empty" in caplog.text
 
 
+def test_save_demarche_dossiers_from_ds_update_updated_since():
+    demarche_number = 123
+    demarche = DemarcheFactory(ds_number=demarche_number, updated_since=None)
+
+    with patch(
+        "gsl_demarches_simplifiees.ds_client.DsClient.get_demarche_dossiers",
+        return_value=[],
+    ):
+        save_demarche_dossiers_from_ds(demarche_number)
+
+    demarche.refresh_from_db()
+    assert demarche.updated_since is not None
+    assert demarche.updated_since > demarche.created_at
+
+
 def test_save_one_dossier_from_ds_error_with_invalid_ds_response():
     ds_client = DsClient()
     dossier = DossierFactory.build()
