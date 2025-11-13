@@ -51,6 +51,11 @@ class SimulationForm(DsfrBaseForm, ModelForm):
             Q(perimetre=user.perimetre)
             | Q(deleguee_by__perimetre=user.perimetre)
             | Q(deleguee_by__deleguee_by__perimetre=user.perimetre)
+        ).order_by(
+            "dotation",
+            "-perimetre__region",
+            "-perimetre__departement",
+            "-perimetre__arrondissement",
         )
 
     def save(self, commit=True):
