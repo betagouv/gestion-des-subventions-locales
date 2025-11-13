@@ -16,22 +16,48 @@ from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.validators import document_file_validator
 from gsl_programmation.models import Enveloppe
 from gsl_projet.forms import DSUpdateMixin
-from gsl_projet.models import DotationProjet
+from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.utils import compute_taux
 from gsl_simulation.models import Simulation, SimulationProjet
+from gsl_simulation.services.simulation_projet_service import SimulationProjetService
 
 logger = getLogger(__name__)
+
+
+def _add_enveloppe_projets_to_simulation(simulation: Simulation):
+    simulation_perimetre = simulation.enveloppe.perimetre
+    simulation_dotation = simulation.enveloppe.dotation
+    selected_projets = Projet.objects.for_perimetre(simulation_perimetre)
+    selected_projets = selected_projets.for_current_year()
+    selected_dotation_projet = DotationProjet.objects.filter(
+        projet__in=selected_projets, dotation=simulation_dotation
+    ).select_related(
+        "projet",
+        "projet__dossier_ds",
+    )
+
+    for dotation_projet in selected_dotation_projet:
+        SimulationProjetService.create_or_update_simulation_projet_from_dotation_projet(
+            dotation_projet, simulation
+        )
 
 
 class SimulationForm(DsfrBaseForm, ModelForm):
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.user = user
         self.fields["enveloppe"].queryset = Enveloppe.objects.filter(
             Q(perimetre=user.perimetre)
             | Q(deleguee_by__perimetre=user.perimetre)
             | Q(deleguee_by__deleguee_by__perimetre=user.perimetre)
         )
+
+    def save(self, commit=True):
+        self.instance.created_by = self.user
+        instance: Simulation = super().save(commit=commit)
+        _add_enveloppe_projets_to_simulation(instance)
+        return instance
 
     class Meta:
         model = Simulation

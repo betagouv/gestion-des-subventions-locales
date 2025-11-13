@@ -22,8 +22,8 @@ from gsl_projet.tests.factories import (
     DsilProjetFactory,
     ProjetFactory,
 )
+from gsl_simulation.forms import _add_enveloppe_projets_to_simulation
 from gsl_simulation.models import SimulationProjet
-from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
 from gsl_simulation.tests.factories import SimulationFactory
 
 
@@ -124,7 +124,7 @@ def dsil_projets(
 def test_add_enveloppe_projets_to_detr_simulation(
     detr_simulation, detr_projets, dsil_projets
 ):
-    add_enveloppe_projets_to_simulation(detr_simulation.id)
+    _add_enveloppe_projets_to_simulation(detr_simulation)
 
     assert SimulationProjet.objects.count() == 5
 
@@ -198,7 +198,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
 def test_add_enveloppe_projets_to_dsil_simulation(
     dsil_simulation, detr_projets, dsil_projets
 ):
-    add_enveloppe_projets_to_simulation(dsil_simulation.id)
+    _add_enveloppe_projets_to_simulation(dsil_simulation)
 
     assert SimulationProjet.objects.count() == 5
 
@@ -294,7 +294,7 @@ def test_add_enveloppe_projets_to_DETR_simulation_containing_DETR_in_demande_dis
     )
     DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
 
-    add_enveloppe_projets_to_simulation(detr_simulation.id)
+    _add_enveloppe_projets_to_simulation(detr_simulation)
 
     assert SimulationProjet.objects.count() == count
 
@@ -329,6 +329,6 @@ def test_add_enveloppe_projets_to_DSIL_simulation_containing_DSIL_in_demande_dis
     )
     DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
 
-    add_enveloppe_projets_to_simulation(dsil_simulation.id)
+    _add_enveloppe_projets_to_simulation(dsil_simulation)
 
     assert SimulationProjet.objects.count() == count

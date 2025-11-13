@@ -34,7 +34,6 @@ from gsl_simulation.resources import (
     DetrSimulationProjetResource,
     DsilSimulationProjetResource,
 )
-from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
 
 
 class SimulationListView(ListView):
@@ -372,15 +371,6 @@ class SimulationCreateView(CreateView):
 
     def get_form_kwargs(self):
         return {"user": self.request.user, **super().get_form_kwargs()}
-
-    def form_valid(self, form):
-        Simulation.objects.create(
-            user=self.request.user,
-            title=form.cleaned_data["title"],
-            enveloppe=form.cleaned_data["enveloppe"],
-        )
-        add_enveloppe_projets_to_simulation(self.object.id)
-        return self.get_success_url()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
