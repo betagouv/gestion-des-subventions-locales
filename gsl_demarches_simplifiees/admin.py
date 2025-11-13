@@ -22,6 +22,7 @@ from .resources import FieldMappingForComputerResource, FieldMappingForHumanReso
 from .tasks import (
     task_refresh_dossier_from_saved_data,
     task_refresh_field_mappings_from_demarche_data,
+    task_save_demarche_dossiers_from_ds,
     task_save_demarche_from_ds,
 )
 
@@ -45,6 +46,8 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "save_demarche_from_ds",
         "refresh_field_mappings",
         "extract_detr_categories",
+        "refresh_dossiers_from_ds",
+        "refresh_new_or_modified_dossiers_from_ds",
     )
     autocomplete_fields = ("perimetre",)
     fieldsets = (
@@ -111,6 +114,22 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def extract_detr_categories(self, request, queryset):
         for demarche in queryset:
             refresh_categories_operation_detr(demarche.ds_number)
+
+    @admin.action(description="Rafraîchir tous les dossiers de la démarche depuis DS")
+    def refresh_dossiers_from_ds(self, request, queryset):
+        for demarche in queryset:
+            task_save_demarche_dossiers_from_ds.delay(
+                demarche.ds_number, using_updated_since=False
+            )
+
+    @admin.action(
+        description="Rafraîchir les nouveaux dossiers ou les dossiers modifiés d’une démarche depuis DS depuis la dernière mise à jour"
+    )
+    def refresh_new_or_modified_dossiers_from_ds(self, request, queryset):
+        for demarche in queryset:
+            task_save_demarche_dossiers_from_ds.delay(
+                demarche.ds_number, using_updated_since=True
+            )
 
     def link_to_json(self, obj):
         return mark_safe(f'<a href="{obj.json_url}">JSON brut</a>')
