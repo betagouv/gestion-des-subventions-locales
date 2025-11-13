@@ -31,6 +31,10 @@
   padding-right: 16px;
 }
 
+.simulation-menu {
+  display: inline-block;
+}
+
 .simulation-status {
   text-align: right;
 }

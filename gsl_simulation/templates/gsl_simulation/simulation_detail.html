@@ -8,6 +8,9 @@
 {% block content %}
     <h1>
         {{ title }}
+        <div class="simulation-menu">
+            {% include "includes/modals/_simulation_actions_menu.html" %}
+        </div>
     </h1>
     {% include "includes/_status_summary.html" %}
     <div class="gsl-dropdown fr-mt-2w fr-mb-2w">
