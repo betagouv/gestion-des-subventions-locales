@@ -21,7 +21,9 @@ def save_demarche_dossiers_from_ds(demarche_number, using_updated_since: bool = 
     demarche_dossiers = client.get_demarche_dossiers(
         demarche_number, updated_since=updated_since
     )
-    for i, dossier_data in enumerate(demarche_dossiers):
+    dossiers_count = 0
+    for dossier_data in demarche_dossiers:
+        dossiers_count += 1
         ds_dossier_number = None
 
         if dossier_data is None:
@@ -55,9 +57,17 @@ def save_demarche_dossiers_from_ds(demarche_number, using_updated_since: bool = 
                         "demarche_ds_number": demarche_number,
                         "dossier_ds_number": ds_dossier_number,
                         "error": str(e),
-                        "i": i,
+                        "i": dossiers_count,
                     },
                 )
+
+    logger.info(
+        "Updated demarche from DS",
+        extra={
+            "demarche_ds_number": demarche_number,
+            "dossiers_count": dossiers_count,
+        },
+    )
 
     demarche.updated_since = new_updated_since
     demarche.save()

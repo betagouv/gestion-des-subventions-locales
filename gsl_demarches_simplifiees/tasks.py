@@ -42,8 +42,10 @@ def task_fetch_ds_dossiers_for_every_published_demarche():
 
 #### of one demarche
 @shared_task
-def task_save_demarche_dossiers_from_ds(demarche_number):
-    return save_demarche_dossiers_from_ds(demarche_number)
+def task_save_demarche_dossiers_from_ds(
+    demarche_number, using_updated_since: bool = True
+):
+    return save_demarche_dossiers_from_ds(demarche_number, using_updated_since)
 
 
 ### from saved data
