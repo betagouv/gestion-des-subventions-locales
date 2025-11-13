@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.db.models import Count
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 from import_export.admin import ImportExportMixin
 
@@ -135,7 +136,9 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_state",
         "link_to_json",
         "projet_intitule",
+        "projet_link",
     )
+    readonly_fields = ("projet_link",)
 
     fieldsets = (
         (
@@ -205,6 +208,18 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def link_to_json(self, obj):
         return mark_safe(f'<a href="{obj.json_url}">JSON brut</a>')
+
+    def projet_link(self, obj):
+        return (
+            mark_safe(
+                f'<a href="{reverse("admin:gsl_projet_projet_change", args=[obj.projet.id])}">{obj.projet.id}</a>'
+            )
+            if obj.projet
+            else None
+        )
+
+    projet_link.short_description = "Projet"
+    projet_link.admin_order_field = "projet__id"
 
 
 @admin.register(FieldMappingForHuman)
