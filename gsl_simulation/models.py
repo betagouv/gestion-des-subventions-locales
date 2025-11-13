@@ -1,41 +1,13 @@
 from django.db import models
 from django.db.models import Count, QuerySet, Sum
 from django.forms import ValidationError
+from django_extensions.db.fields import AutoSlugField
 
 from gsl_core.models import BaseModel, Collegue
 from gsl_programmation.models import Enveloppe
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.utils.utils import compute_taux
-
-
-class SimulationManager(models.Manager):
-    def generate_unique_slug(self, title) -> str:
-        from django.utils.text import slugify
-
-        slug = slugify(title)
-        if self.model.objects.filter(slug=slug).exists():
-            i = 1
-            incremented_slug = slugify(slug + f"-{i}")
-            while self.model.objects.filter(slug=incremented_slug).exists():
-                i += 1
-                incremented_slug = slugify(slug + f"-{i}")
-            return incremented_slug
-        return slug
-
-    def create(
-        self,
-        title: str | None = None,
-        **kwargs,
-    ):
-        """
-        Create a simulation for the given user and Enveloppe. Do not need much
-        data validation because it is done at the Enveloppe form and manager level.
-        """
-
-        kwargs["slug"] = kwargs.get("slug", self.generate_unique_slug(title))
-        simulation = super().create(title=title, **kwargs)
-        return simulation
 
 
 class Simulation(BaseModel):
@@ -46,9 +18,13 @@ class Simulation(BaseModel):
         on_delete=models.PROTECT,
         verbose_name="Enveloppe de dotation associée",
     )
-    slug = models.SlugField(verbose_name="Clé d’URL", unique=True, max_length=120)
-
-    objects = SimulationManager()
+    slug = AutoSlugField(
+        verbose_name="Clé d’URL",
+        unique=True,
+        max_length=120,
+        populate_from="title",
+        blank=False,
+    )
 
     class Meta:
         verbose_name = "Simulation"

@@ -25,32 +25,6 @@ def test_slug_model_creation_and_slug_generation():
     assert simulation.slug == "test"
 
 
-@pytest.mark.django_db
-def test_slug_generation():
-    SimulationFactory(slug="test")
-    SimulationFactory(slug="test-2")
-    SimulationFactory(slug="other-test")
-    SimulationFactory(slug="other-test-1")
-
-    slug = Simulation.objects.generate_unique_slug("test")
-    assert slug == "test-1"
-
-    slug = Simulation.objects.generate_unique_slug("Test   2 !!")
-    assert slug == "test-2-1"
-
-    slug = Simulation.objects.generate_unique_slug("Other test")
-    assert slug == "other-test-2"
-
-    slug = Simulation.objects.generate_unique_slug("Other test 1")
-    assert slug == "other-test-1-1"
-
-    slug = Simulation.objects.generate_unique_slug("Test    avec ce titre !!")
-    assert slug == "test-avec-ce-titre"
-
-    slug = Simulation.objects.generate_unique_slug('Test   &"@ avec ces caractères !!')
-    assert slug == "test-avec-ces-caracteres"
-
-
 @pytest.fixture
 def simulation():
     return SimulationFactory()

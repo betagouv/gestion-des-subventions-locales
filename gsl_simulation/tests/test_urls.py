@@ -76,7 +76,7 @@ def test_simulation_detail_url_with_not_authorized_user(
 def test_simulation_detail_url_for_user_with_correct_perimetre(
     client_with_same_departement_perimetre, enveloppe_departemental
 ):
-    SimulationFactory(slug="test-slug", enveloppe=enveloppe_departemental)
+    SimulationFactory(title="Test slug", enveloppe=enveloppe_departemental)
 
     url = reverse("simulation:simulation-detail", kwargs={"slug": "test-slug"})
     response = client_with_same_departement_perimetre.get(url)
@@ -100,7 +100,7 @@ def test_simulation_export_url_for_user_with_correct_perimetre(
     export_type,
     response_code,
 ):
-    SimulationFactory(slug="test-slug", enveloppe=enveloppe_departemental)
+    SimulationFactory(title="Test slug", enveloppe=enveloppe_departemental)
 
     url = reverse(
         "simulation:simulation-projets-export",
