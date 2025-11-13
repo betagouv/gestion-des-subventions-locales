@@ -364,6 +364,7 @@ class Dossier(DsModel):
     )
     annotations_is_qpv = models.BooleanField("Projet situé en QPV", null=True)
     annotations_is_crte = models.BooleanField("Projet rattaché à un CRTE", null=True)
+    # TODO remove these three fields at the end of DUN dev
     annotations_assiette = models.DecimalField(
         "Montant des dépenses éligibles retenues (€)",
         max_digits=12,
@@ -382,6 +383,50 @@ class Dossier(DsModel):
         "Taux de subvention (%)",
         max_digits=5,
         decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    # DETR
+    annotations_assiette_detr = models.DecimalField(
+        "DETR - Montant des dépenses éligibles retenues (en euros)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    annotations_montant_accorde_detr = models.DecimalField(
+        "DETR - Montant définitif de la subvention (en euros)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    annotations_taux_detr = models.DecimalField(
+        "DETR - Taux de subvention (%)",
+        max_digits=6,
+        decimal_places=3,
+        null=True,
+        blank=True,
+    )
+    # DSIL
+    annotations_assiette_dsil = models.DecimalField(
+        "DSIL - Montant des dépenses éligibles retenues (en euros)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    annotations_montant_accorde_dsil = models.DecimalField(
+        "DSIL - Montant définitif de la subvention (en euros)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    annotations_taux_dsil = models.DecimalField(
+        "DSIL - Taux de subvention (%)",
+        max_digits=6,
+        decimal_places=3,
         null=True,
         blank=True,
     )
@@ -427,9 +472,12 @@ class Dossier(DsModel):
         annotations_is_budget_vert,
         annotations_is_qpv,
         annotations_is_crte,
-        annotations_assiette,
-        annotations_montant_accorde,
-        annotations_taux,
+        annotations_assiette_detr,
+        annotations_montant_accorde_detr,
+        annotations_taux_detr,
+        annotations_assiette_dsil,
+        annotations_montant_accorde_dsil,
+        annotations_taux_dsil,
     )
     MAPPED_FIELDS = _MAPPED_ANNOTATIONS_FIELDS + _MAPPED_CHAMPS_FIELDS
 
