@@ -55,6 +55,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("address", "demandeur", "dossier_ds")
     list_display = (
         "__str__",
+        "dossier_ds__projet_intitule",
         "status",
         "perimetre__departement",
         "dotations",
@@ -64,12 +65,11 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     inlines = [
         DotationProjetInline,
     ]
-    search_fields = ("dossier_ds__ds_number",)
+    search_fields = ("dossier_ds__ds_number", "dossier_ds__projet_intitule")
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = qs.select_related("address").select_related("departement")
-        qs = qs.prefetch_related("dotationprojet_set")
+        qs = qs.prefetch_related("dotationprojet_set", "perimetre__departement")
         return qs
 
     @admin.action(description="Rafraîchir depuis le dossier DS")
