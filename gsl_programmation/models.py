@@ -12,8 +12,14 @@ from gsl_projet.utils.utils import compute_taux
 
 class EnveloppeQueryset(models.QuerySet):
     @transaction.atomic
-    def create(self, **kwargs):
-        new_obj = super().create(**kwargs)
+    def create(
+        self, dotation: str | None = None, perimetre: Perimetre | None = None, **kwargs
+    ):
+        # Business constraints (there for safety but should never raise, we have form validation)
+        if dotation == DOTATION_DETR and perimetre.type == Perimetre.TYPE_REGION:
+            raise ValueError("For a DETR Enveloppe, region perimeter is not allowed")
+
+        new_obj = super().create(dotation=dotation, perimetre=perimetre, **kwargs)
         if (
             new_obj.deleguee_by is not None
             or (
@@ -50,7 +56,7 @@ class Enveloppe(models.Model):
     )
     annee = models.IntegerField(verbose_name="Année")
     perimetre = models.ForeignKey(
-        Perimetre, on_delete=models.PROTECT, verbose_name="Périmètre", null=True
+        Perimetre, on_delete=models.PROTECT, verbose_name="Périmètre"
     )
 
     deleguee_by = models.ForeignKey(

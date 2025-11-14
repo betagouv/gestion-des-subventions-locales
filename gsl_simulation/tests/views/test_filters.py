@@ -30,8 +30,8 @@ from gsl_projet.tests.factories import (
     DotationProjetFactory,
     ProjetFactory,
 )
+from gsl_simulation.forms import _add_enveloppe_projets_to_simulation
 from gsl_simulation.models import SimulationProjet
-from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_simulation.views.simulation_views import (
     SimulationDetailView,
@@ -182,7 +182,7 @@ def test_simulation_list_view(req, view, simulations):
 
 @pytest.fixture
 def create_simulation_projets(simulation, projets):
-    add_enveloppe_projets_to_simulation(simulation.id)
+    _add_enveloppe_projets_to_simulation(simulation)
 
 
 # Test filters
@@ -321,8 +321,8 @@ def test_view_with_multiple_simulations(req, perimetre_departemental):
     simulation_2 = SimulationFactory(enveloppe=enveloppe)
 
     DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
-    add_enveloppe_projets_to_simulation(simulation_1.id)
-    add_enveloppe_projets_to_simulation(simulation_2.id)
+    _add_enveloppe_projets_to_simulation(simulation_1)
+    _add_enveloppe_projets_to_simulation(simulation_2)
 
     view = _get_view_with_filter(
         req,

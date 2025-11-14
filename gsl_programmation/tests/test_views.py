@@ -177,15 +177,15 @@ class TestProgrammationProjetListViewGetEnveloppe:
 
         # Créer plusieurs enveloppes avec différents niveaux de correspondance
         # 1. Enveloppe exacte (même périmètre)
-        enveloppe_exacte = DetrEnveloppeFactory(perimetre=perimetre_dept, annee=2024)
+        enveloppe_exacte = DsilEnveloppeFactory(perimetre=perimetre_dept, annee=2024)
 
         # 2. Enveloppe régionale (même région)
         perimetre_region = PerimetreRegionalFactory(region=perimetre_dept.region)
-        DetrEnveloppeFactory(
+        DsilEnveloppeFactory(
             perimetre=perimetre_region, annee=2025
         )  # Enveloppe régionale
 
-        enveloppe_qs = Enveloppe.objects.filter(dotation=DOTATION_DETR).order_by(
+        enveloppe_qs = Enveloppe.objects.filter(dotation=DOTATION_DSIL).order_by(
             "-annee"
         )
 
@@ -226,11 +226,11 @@ class TestProgrammationProjetListViewGetEnveloppe:
 
         # Créer une enveloppe régionale pour la même région
         perimetre_region = PerimetreRegionalFactory(region=perimetre_arr.region)
-        enveloppe_region = DetrEnveloppeFactory(perimetre=perimetre_region, annee=2024)
+        enveloppe_region = DsilEnveloppeFactory(perimetre=perimetre_region, annee=2024)
 
         # Pas d'enveloppe départementale correspondante
 
-        enveloppe_qs = Enveloppe.objects.filter(dotation=DOTATION_DETR).order_by(
+        enveloppe_qs = Enveloppe.objects.filter(dotation=DOTATION_DSIL).order_by(
             "-annee"
         )
 

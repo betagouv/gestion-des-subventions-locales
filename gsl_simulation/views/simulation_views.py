@@ -5,11 +5,11 @@ from django.core.paginator import Paginator
 from django.db.models import Count, Prefetch, QuerySet
 from django.forms import NumberInput
 from django.http import HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_POST
-from django.views.generic import DeleteView
+from django.views.generic import CreateView, DeleteView
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 from django_filters import MultipleChoiceFilter, NumberFilter
@@ -34,8 +34,6 @@ from gsl_simulation.resources import (
     DetrSimulationProjetResource,
     DsilSimulationProjetResource,
 )
-from gsl_simulation.services.simulation_service import SimulationService
-from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
 
 
 class SimulationListView(ListView):
@@ -227,9 +225,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                 "status_summary": simulation.get_projet_status_summary(),
                 "total_cost": ProjetService.get_total_cost(qs),
                 "total_amount_asked": ProjetService.get_total_amount_asked(qs),
-                "total_amount_granted": SimulationService.get_total_amount_granted(
-                    qs, simulation
-                ),
+                "total_amount_granted": simulation.get_total_amount_granted(qs),
                 "available_states": SimulationProjet.STATUS_CHOICES,
                 "filter_params": self.request.GET.urlencode(),
                 "enveloppe": simulation.enveloppe,
@@ -367,36 +363,28 @@ class SimulationDeleteView(DeleteView):
         ).order_by("-created_at")
 
 
-def simulation_form(request):
-    if request.method == "POST":
-        form = SimulationForm(request.POST, user=request.user)
-        if form.is_valid():
-            simulation = SimulationService.create_simulation(
-                request.user, form.cleaned_data["title"], form.cleaned_data["dotation"]
-            )
-            add_enveloppe_projets_to_simulation(simulation.id)
-            return redirect("simulation:simulation-list")
-        else:
-            return render(
-                request, "gsl_simulation/simulation_form.html", {"form": form}
-            )
-    else:
-        form = SimulationForm(user=request.user)
-        context = {
-            "breadcrumb_dict": {
-                "links": [
-                    {
-                        "url": reverse("gsl_simulation:simulation-list"),
-                        "title": "Mes simulations de programmation",
-                    },
-                ],
-                "current": "Création d'une simulation de programmation",
-            }
-        }
-        context["form"] = form
-        context["title"] = "Création d'une simulation de programmation"
+class SimulationCreateView(CreateView):
+    model = Simulation
+    form_class = SimulationForm
+    template_name = "gsl_simulation/simulation_form.html"
+    success_url = reverse_lazy("simulation:simulation-list")
 
-        return render(request, "gsl_simulation/simulation_form.html", context)
+    def get_form_kwargs(self):
+        return {"user": self.request.user, **super().get_form_kwargs()}
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["breadcrumb_dict"] = {
+            "links": [
+                {
+                    "url": reverse("gsl_simulation:simulation-list"),
+                    "title": "Mes simulations de programmation",
+                },
+            ],
+            "current": "Création d'une simulation de programmation",
+        }
+        context["title"] = "Création d'une simulation de programmation"
+        return context
 
 
 class FilteredProjetsExportView(SimulationDetailView):
