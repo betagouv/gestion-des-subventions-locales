@@ -201,8 +201,9 @@ class SimulationProjetService:
         )
         dotation_projet.save()
 
-        cls._update_ds_montant_and_taux(
+        cls._update_ds_assiette_montant_and_taux(
             dossier=dotation_projet.projet.dossier_ds,
+            assiette=dotation_projet.assiette,
             montant=simulation_projet.montant,
             taux=simulation_projet.taux,
             dotation=dotation_projet.dotation,
@@ -226,20 +227,22 @@ class SimulationProjetService:
         return updated_simulation_projet
 
     @classmethod
-    def _update_ds_montant_and_taux(
+    def _update_ds_assiette_montant_and_taux(
         cls,
         dossier: Dossier,
+        assiette: float,
         montant: float,
         taux: float,
         dotation: POSSIBLE_DOTATIONS,
         user: Collegue,
     ) -> None:
         data = {
+            "assiette": assiette,
             "montant": montant,
             "taux": taux,
         }
         errors, blocking = process_projet_update(
-            data, dossier, ["montant", "taux"], dotation=dotation, user=user
+            data, dossier, ["assiette", "montant", "taux"], dotation=dotation, user=user
         )
 
         if blocking:
@@ -250,6 +253,7 @@ class SimulationProjetService:
                 log_message="Blocking error during montant and taux update",
                 extra={
                     "dossier_ds_number": dossier.ds_number,
+                    "assiette": assiette,
                     "montant": montant,
                     "taux": taux,
                 },

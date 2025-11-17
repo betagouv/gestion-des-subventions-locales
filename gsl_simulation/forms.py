@@ -15,6 +15,7 @@ from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.validators import document_file_validator
 from gsl_programmation.models import Enveloppe
+from gsl_projet.constants import PROJET_STATUS_ACCEPTED
 from gsl_projet.forms import DSUpdateMixin
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
@@ -152,8 +153,10 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
 
         return cleaned_data
 
-    def save(self, commit=True):
+    def save(self, commit=True) -> tuple[SimulationProjet, str | None]:
         instance: SimulationProjet = super().save(commit=False)
+        if instance.dotation_projet.status != PROJET_STATUS_ACCEPTED:
+            return self._save_without_ds(instance, commit=commit)
         return self._save_with_ds(instance, dotation=instance.dotation, commit=commit)
 
     def get_dossier_ds(self, instance):

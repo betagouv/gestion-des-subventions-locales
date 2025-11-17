@@ -59,6 +59,12 @@ class DSUpdateMixin:
             self.user = kwargs.pop("user")
         return super().__init__(*args, **kwargs)
 
+    def _save_without_ds(self, instance, commit=True):
+        if commit:
+            instance.save()
+            self.post_save(instance)
+        return instance, None
+
     def _save_with_ds(
         self, instance, dotation: POSSIBLE_DOTATIONS | None = None, commit=True
     ):
