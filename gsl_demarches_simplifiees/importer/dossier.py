@@ -143,8 +143,6 @@ def refresh_dossier_from_saved_data(dossier: Dossier):
 
     ProjetService.create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
-    # save_all_dates_from_dossier(dossier)
-
 
 def refresh_dossier_instructeurs(dossier_data, dossier: Dossier):
     """
@@ -171,13 +169,3 @@ def refresh_dossier_instructeurs(dossier_data, dossier: Dossier):
                 ds_id=instructeur_data["id"], ds_email=instructeur_data["email"]
             )
             dossier.ds_instructeurs.add(instructeur)
-
-
-# def save_all_dates_from_dossier(dossier: Dossier):
-#     dossier.ds_date_depot = dossier.raw_ds_data.get("dateDepot")
-#     dossier.ds_date_passage_en_construction = dossier.raw_ds_data.get("datePassageEnConstruction")
-#     dossier.ds_date_passage_en_instruction = dossier.raw_ds_data.get("datePassageEnInstruction")
-#     dossier.ds_date_derniere_modification = dossier.raw_ds_data.get("dateDerniereModification")
-#     dossier.ds_date_derniere_modification_champs = dossier.raw_ds_data.get("dateDerniereModificationChamps")
-#     dossier.ds_date_traitement = dossier.raw_ds_data.get("dateTraitement")
-#     dossier.save()

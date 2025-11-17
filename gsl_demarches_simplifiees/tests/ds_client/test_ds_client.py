@@ -1,10 +1,10 @@
 import logging
-from datetime import datetime, timezone
 from unittest.mock import patch
 
 import pytest
 import responses
 from django.conf import settings
+from django.utils import timezone
 
 from gsl_demarches_simplifiees.ds_client import DsClient
 
@@ -40,7 +40,7 @@ def test_get_demarche_dossiers_with_updated_since_calls_graphql_with_iso_format(
     """Test that get_demarche_dossiers converts datetime to ISO format for GraphQL query."""
     client = DsClient()
     demarche_number = 123
-    updated_since = datetime(2024, 1, 15, 14, 30, 45, tzinfo=timezone.utc)
+    updated_since = timezone.datetime(2024, 1, 15)
     expected_iso_format = updated_since.isoformat()
 
     mock_response = {
