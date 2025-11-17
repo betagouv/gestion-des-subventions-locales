@@ -138,6 +138,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "link_to_json",
         "projet_intitule",
         "projet_link",
+        "perimetre",
     )
     readonly_fields = ("projet_link",)
 
@@ -209,7 +210,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = qs.select_related("ds_demarche")
+        qs = qs.select_related("ds_demarche", "projet")
         return qs
 
     def link_to_json(self, obj):
@@ -268,7 +269,7 @@ class FieldMappingForComputerAdmin(
 
 @admin.register(Profile)
 class ProfileAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    pass
+    search_fields = ("ds_id", "ds_email")
 
 
 @admin.register(Arrondissement)

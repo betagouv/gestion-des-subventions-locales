@@ -69,11 +69,9 @@ class DsService:
         dotation: POSSIBLE_DOTATIONS,
         value: float | None,
     ):
-        suffix = "dsil" if dotation == DOTATION_DSIL else "detr"
-        field = f"annotations_assiette_{suffix}"
-        if value is None:
-            value = 0
-        return self._update_decimal_field(dossier, user, value, field)
+        return self._update_assiette_montant_or_taux(
+            dossier, user, dotation, value, "assiette"
+        )
 
     def update_ds_montant(
         self,
@@ -82,11 +80,9 @@ class DsService:
         dotation: POSSIBLE_DOTATIONS,
         value: float | None,
     ):
-        suffix = "dsil" if dotation == DOTATION_DSIL else "detr"
-        field = f"annotations_montant_accorde_{suffix}"
-        if value is None:
-            value = 0
-        return self._update_decimal_field(dossier, user, value, field)
+        return self._update_assiette_montant_or_taux(
+            dossier, user, dotation, value, "montant_accorde"
+        )
 
     def update_ds_taux(
         self,
@@ -95,13 +91,25 @@ class DsService:
         dotation: POSSIBLE_DOTATIONS,
         value: float | None,
     ):
+        return self._update_assiette_montant_or_taux(
+            dossier, user, dotation, value, "taux"
+        )
+
+    # Private
+
+    def _update_assiette_montant_or_taux(
+        self,
+        dossier: Dossier,
+        user: Collegue,
+        dotation: POSSIBLE_DOTATIONS,
+        value: float | None,
+        field_name: str,
+    ):
         suffix = "dsil" if dotation == DOTATION_DSIL else "detr"
-        field = f"annotations_taux_{suffix}"
+        field = f"annotations_{field_name}_{suffix}"
         if value is None:
             value = 0
         return self._update_decimal_field(dossier, user, value, field)
-
-    # Private
 
     def _update_boolean_field(
         self, dossier: Dossier, user: Collegue, value: bool, field: str
