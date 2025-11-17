@@ -13,6 +13,7 @@ from gsl_demarches_simplifiees.exceptions import (
     UserRightsError,
 )
 from gsl_demarches_simplifiees.models import Dossier, FieldMappingForComputer
+from gsl_projet.constants import DOTATION_DSIL, POSSIBLE_DOTATIONS
 
 logger = getLogger(__name__)
 
@@ -61,22 +62,44 @@ class DsService:
     ):
         return self._update_boolean_field(dossier, user, value, "annotations_is_crte")
 
-    def update_ds_assiette(self, dossier: Dossier, user: Collegue, value: float | None):
+    def update_ds_assiette(
+        self,
+        dossier: Dossier,
+        user: Collegue,
+        dotation: POSSIBLE_DOTATIONS,
+        value: float | None,
+    ):
+        suffix = "dsil" if dotation == DOTATION_DSIL else "detr"
+        field = f"annotations_assiette_{suffix}"
         if value is None:
             value = 0
-        return self._update_decimal_field(dossier, user, value, "annotations_assiette")
+        return self._update_decimal_field(dossier, user, value, field)
 
-    def update_ds_montant(self, dossier: Dossier, user: Collegue, value: float | None):
+    def update_ds_montant(
+        self,
+        dossier: Dossier,
+        user: Collegue,
+        dotation: POSSIBLE_DOTATIONS,
+        value: float | None,
+    ):
+        suffix = "dsil" if dotation == DOTATION_DSIL else "detr"
+        field = f"annotations_montant_accorde_{suffix}"
         if value is None:
             value = 0
-        return self._update_decimal_field(
-            dossier, user, value, "annotations_montant_accorde"
-        )
+        return self._update_decimal_field(dossier, user, value, field)
 
-    def update_ds_taux(self, dossier: Dossier, user: Collegue, value: float | None):
+    def update_ds_taux(
+        self,
+        dossier: Dossier,
+        user: Collegue,
+        dotation: POSSIBLE_DOTATIONS,
+        value: float | None,
+    ):
+        suffix = "dsil" if dotation == DOTATION_DSIL else "detr"
+        field = f"annotations_taux_{suffix}"
         if value is None:
             value = 0
-        return self._update_decimal_field(dossier, user, value, "annotations_taux")
+        return self._update_decimal_field(dossier, user, value, field)
 
     # Private
 

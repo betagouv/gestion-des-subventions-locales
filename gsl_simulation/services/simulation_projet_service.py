@@ -7,6 +7,7 @@ from gsl_demarches_simplifiees.mixins import build_error_message, process_projet
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
+    POSSIBLE_DOTATIONS,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
     PROJET_STATUS_PROCESSING,
@@ -204,6 +205,7 @@ class SimulationProjetService:
             dossier=dotation_projet.projet.dossier_ds,
             montant=simulation_projet.montant,
             taux=simulation_projet.taux,
+            dotation=dotation_projet.dotation,
             user=user,
         )
 
@@ -225,14 +227,19 @@ class SimulationProjetService:
 
     @classmethod
     def _update_ds_montant_and_taux(
-        cls, dossier: Dossier, montant: float, taux: float, user: Collegue
+        cls,
+        dossier: Dossier,
+        montant: float,
+        taux: float,
+        dotation: POSSIBLE_DOTATIONS,
+        user: Collegue,
     ) -> None:
         data = {
             "montant": montant,
             "taux": taux,
         }
         errors, blocking = process_projet_update(
-            data, dossier, ["montant", "taux"], user
+            data, dossier, ["montant", "taux"], dotation=dotation, user=user
         )
 
         if blocking:

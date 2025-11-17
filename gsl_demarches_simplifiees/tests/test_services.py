@@ -19,6 +19,7 @@ from gsl_demarches_simplifiees.tests.factories import (
     FieldMappingForComputerFactory,
     ProfileFactory,
 )
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 
 pytestmark = pytest.mark.django_db
 
@@ -81,16 +82,23 @@ def test_update_ds_is_budget_vert_functions_call_generic_function_success(
         ("update_ds_taux", "annotations_taux"),
     ),
 )
+@pytest.mark.parametrize(
+    "dotation",
+    (DOTATION_DSIL, DOTATION_DETR),
+)
 @mock.patch.object(DsService, "_update_decimal_field")
 def test_update_decimal_field_functions_call_generic_function_success(
-    update_boolean_field_mocker, user, dossier, function, field_name
+    update_decimal_field_mocker, user, dossier, function, field_name, dotation
 ):
     ds_service = DsService()
 
+    suffix = "dsil" if dotation == DOTATION_DSIL else "detr"
+    field_complete_name = f"{field_name}_{suffix}"
+
     ds_service_function = getattr(ds_service, function)
-    ds_service_function(dossier, user, 250.33)
-    update_boolean_field_mocker.assert_called_once_with(
-        dossier, user, 250.33, field_name
+    ds_service_function(dossier, user, dotation, 250.33)
+    update_decimal_field_mocker.assert_called_once_with(
+        dossier, user, 250.33, field_complete_name
     )
 
 
@@ -101,9 +109,9 @@ def test_update_decimal_field_functions_with_None(
     ds_service = DsService()
     ds_service_function = getattr(ds_service, "update_ds_assiette")
 
-    ds_service_function(dossier, user, None)
+    ds_service_function(dossier, user, DOTATION_DSIL, None)
     update_boolean_field_mocker.assert_called_once_with(
-        dossier, user, 0, "annotations_assiette"
+        dossier, user, 0, "annotations_assiette_dsil"
     )
 
 

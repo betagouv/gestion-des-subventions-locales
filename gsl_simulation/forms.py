@@ -154,7 +154,7 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
 
     def save(self, commit=True):
         instance: SimulationProjet = super().save(commit=False)
-        return self._save_with_ds(instance, commit)
+        return self._save_with_ds(instance, dotation=instance.dotation, commit=commit)
 
     def get_dossier_ds(self, instance):
         return instance.projet.dossier_ds

@@ -10,6 +10,7 @@ from gsl_demarches_simplifiees.exceptions import (
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
+from gsl_projet.constants import POSSIBLE_DOTATIONS
 
 DsUpdatableFields = Literal[
     "is_in_qpv",
@@ -20,6 +21,16 @@ DsUpdatableFields = Literal[
     "taux",
 ]
 FIELDS_UPDATABLE_ON_DS: List[DsUpdatableFields] = list(get_args(DsUpdatableFields))
+
+DsUpdatableDotationFields = Literal[
+    "assiette",
+    "montant",
+    "taux",
+]
+DOTATION_FIELDS_TO_DS_SERVICE_FUNCTIONS: List[DsUpdatableDotationFields] = list(
+    get_args(DsUpdatableDotationFields)
+)
+
 FIELDS_TO_DS_SERVICE_FUNCTIONS: Mapping[DsUpdatableFields, str] = {
     "is_in_qpv": "update_ds_is_in_qpv",
     "is_attached_to_a_crte": "update_ds_is_attached_to_a_crte",
@@ -48,7 +59,9 @@ class DSUpdateMixin:
             self.user = kwargs.pop("user")
         return super().__init__(*args, **kwargs)
 
-    def _save_with_ds(self, instance, commit=True):
+    def _save_with_ds(
+        self, instance, dotation: POSSIBLE_DOTATIONS | None = None, commit=True
+    ):
         error_msg = None
 
         if commit:
@@ -62,6 +75,7 @@ class DSUpdateMixin:
                     data=data,
                     dossier=self.get_dossier_ds(instance),
                     fields=self.get_fields(),
+                    dotation=dotation,
                     user=self.user,
                 )
 
@@ -105,6 +119,7 @@ def process_projet_update(
     data: dict,
     dossier: Dossier,
     fields: List[DsUpdatableFields],
+    dotation: POSSIBLE_DOTATIONS | None,
     user: Collegue,
 ) -> tuple[dict[str, str], bool]:
     """
@@ -121,11 +136,15 @@ def process_projet_update(
                 update_function = getattr(
                     ds_service, FIELDS_TO_DS_SERVICE_FUNCTIONS[field]
                 )
-                update_function(
-                    dossier=dossier,
-                    user=user,
-                    value=data[field],
-                )
+                kwargs = {
+                    "dossier": dossier,
+                    "user": user,
+                    "value": data[field],
+                }
+                if field in DOTATION_FIELDS_TO_DS_SERVICE_FUNCTIONS:
+                    kwargs["dotation"] = dotation
+
+                update_function(**kwargs)
             except (UserRightsError, InstructeurUnknown, DsConnectionError) as e:
                 return {"all": str(e)}, True  # global error -> stop
             except DsServiceException as e:
