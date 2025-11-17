@@ -5,6 +5,7 @@ from django.utils.safestring import mark_safe
 from import_export.admin import ImportExportMixin
 
 from gsl_core.admin import AllPermsForStaffUser
+from gsl_demarches_simplifiees.importer.dossier import save_one_dossier_from_ds
 
 from .importer.demarche import refresh_categories_operation_detr
 from .models import (
@@ -188,7 +189,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             {"classes": ("collapse", "open"), "fields": ("raw_ds_data",)},
         ),
     )
-    actions = ("refresh_from_db",)
+    actions = ("refresh_from_db", "refresh_from_ds")
     raw_id_fields = (
         "projet_adresse",
         "ds_demandeur",
@@ -200,6 +201,11 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def refresh_from_db(self, request, queryset):
         for dossier in queryset:
             task_refresh_dossier_from_saved_data.delay(dossier.ds_number)
+
+    @admin.action(description="Rafraîchir depuis DS")
+    def refresh_from_ds(self, request, queryset):
+        for dossier in queryset:
+            save_one_dossier_from_ds.delay(dossier)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
