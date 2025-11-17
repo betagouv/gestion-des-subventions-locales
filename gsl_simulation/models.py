@@ -164,6 +164,10 @@ class SimulationProjet(BaseModel):
         return self.simulation.enveloppe
 
     @property
+    def dotation(self):
+        return self.dotation_projet.dotation
+
+    @property
     def taux(self):
         return compute_taux(self.montant, self.dotation_projet.assiette_or_cout_total)
 

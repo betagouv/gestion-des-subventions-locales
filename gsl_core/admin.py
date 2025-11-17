@@ -79,7 +79,7 @@ class CollegueAdmin(AllPermsForStaffUser, UserAdmin, admin.ModelAdmin):
         ),
         ("Dates", {"fields": ("last_login", "date_joined")}),
     )
-    autocomplete_fields = ["perimetre"]
+    autocomplete_fields = ["perimetre", "ds_profile"]
     actions = ("associate_ds_profile_to_users",)
 
     def get_queryset(self, request):
@@ -136,7 +136,13 @@ class CommuneAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
 
 @admin.register(Perimetre)
 class PerimetreAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    search_fields = ("departement__name", "region__name", "arrondissement__name")
+    search_fields = (
+        "departement__insee_code",
+        "arrondissement__insee_code",
+        "departement__name",
+        "region__name",
+        "arrondissement__name",
+    )
     list_display = (
         "__str__",
         "type",

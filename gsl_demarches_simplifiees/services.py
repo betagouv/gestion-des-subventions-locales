@@ -13,6 +13,7 @@ from gsl_demarches_simplifiees.exceptions import (
     UserRightsError,
 )
 from gsl_demarches_simplifiees.models import Dossier, FieldMappingForComputer
+from gsl_projet.constants import DOTATION_DSIL, POSSIBLE_DOTATIONS
 
 logger = getLogger(__name__)
 
@@ -61,24 +62,54 @@ class DsService:
     ):
         return self._update_boolean_field(dossier, user, value, "annotations_is_crte")
 
-    def update_ds_assiette(self, dossier: Dossier, user: Collegue, value: float | None):
-        if value is None:
-            value = 0
-        return self._update_decimal_field(dossier, user, value, "annotations_assiette")
-
-    def update_ds_montant(self, dossier: Dossier, user: Collegue, value: float | None):
-        if value is None:
-            value = 0
-        return self._update_decimal_field(
-            dossier, user, value, "annotations_montant_accorde"
+    def update_ds_assiette(
+        self,
+        dossier: Dossier,
+        user: Collegue,
+        dotation: POSSIBLE_DOTATIONS,
+        value: float | None,
+    ):
+        return self._update_assiette_montant_or_taux(
+            dossier, user, dotation, value, "assiette"
         )
 
-    def update_ds_taux(self, dossier: Dossier, user: Collegue, value: float | None):
-        if value is None:
-            value = 0
-        return self._update_decimal_field(dossier, user, value, "annotations_taux")
+    def update_ds_montant(
+        self,
+        dossier: Dossier,
+        user: Collegue,
+        dotation: POSSIBLE_DOTATIONS,
+        value: float | None,
+    ):
+        return self._update_assiette_montant_or_taux(
+            dossier, user, dotation, value, "montant_accorde"
+        )
+
+    def update_ds_taux(
+        self,
+        dossier: Dossier,
+        user: Collegue,
+        dotation: POSSIBLE_DOTATIONS,
+        value: float | None,
+    ):
+        return self._update_assiette_montant_or_taux(
+            dossier, user, dotation, value, "taux"
+        )
 
     # Private
+
+    def _update_assiette_montant_or_taux(
+        self,
+        dossier: Dossier,
+        user: Collegue,
+        dotation: POSSIBLE_DOTATIONS,
+        value: float | None,
+        field_name: str,
+    ):
+        suffix = "dsil" if dotation == DOTATION_DSIL else "detr"
+        field = f"annotations_{field_name}_{suffix}"
+        if value is None:
+            value = 0
+        return self._update_decimal_field(dossier, user, value, field)
 
     def _update_boolean_field(
         self, dossier: Dossier, user: Collegue, value: bool, field: str

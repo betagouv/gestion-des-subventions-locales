@@ -343,7 +343,7 @@ def test_update_status_with_provisionally_accepted_remove_programmation_projet_f
 
 
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
 )
 def test_accept_a_simulation_projet(mock_ds_update, user):
     simulation_projet = SimulationProjetFactory(
@@ -362,6 +362,8 @@ def test_accept_a_simulation_projet(mock_ds_update, user):
     mock_ds_update.assert_called_once_with(
         dossier=simulation_projet.projet.dossier_ds,
         user=user,
+        dotation=simulation_projet.dotation,
+        assiette=simulation_projet.dotation_projet.assiette,
         montant=simulation_projet.montant,
         taux=simulation_projet.taux,
     )
@@ -389,7 +391,7 @@ def test_accept_a_simulation_projet(mock_ds_update, user):
 
 
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
 )
 def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_mother_enveloppe(
     mock_ds_update,
@@ -410,6 +412,8 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
     mock_ds_update.assert_called_once_with(
         dossier=simulation_projet.projet.dossier_ds,
         user=user,
+        dotation=simulation_projet.dotation,
+        assiette=simulation_projet.dotation_projet.assiette,
         montant=simulation_projet.montant,
         taux=simulation_projet.taux,
     )
@@ -423,7 +427,7 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
 
 
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
 )
 @pytest.mark.parametrize(
     "initial_programmation_status, new_projet_status, programmation_status_expected",
@@ -470,6 +474,8 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
         mock_ds_update.assert_called_once_with(
             dossier=simulation_projet.projet.dossier_ds,
             user=user,
+            dotation=simulation_projet.dotation,
+            assiette=simulation_projet.dotation_projet.assiette,
             montant=simulation_projet.montant,
             taux=simulation_projet.taux,
         )
@@ -505,7 +511,7 @@ def test_update_taux(field_name, user):
 
 
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
 )
 @pytest.mark.parametrize(
     "field_name",
@@ -539,6 +545,8 @@ def test_update_taux_of_accepted_montant(mock_ds_update, field_name, user):
     mock_ds_update.assert_called_once_with(
         dossier=simulation_projet.projet.dossier_ds,
         user=user,
+        dotation=simulation_projet.dotation,
+        assiette=simulation_projet.dotation_projet.assiette,
         montant=expected_montant,
         taux=new_taux,
     )
@@ -576,7 +584,7 @@ def test_update_montant(field_name, user):
 
 
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
 )
 @pytest.mark.parametrize(
     "field_name",
@@ -612,6 +620,8 @@ def test_update_montant_of_accepted_montant(mock_ds_update, field_name, user):
     mock_ds_update.assert_called_once_with(
         dossier=simulation_projet.projet.dossier_ds,
         user=user,
+        dotation=simulation_projet.dotation,
+        assiette=simulation_projet.dotation_projet.assiette,
         montant=new_montant,
         taux=new_taux,
     )
@@ -678,7 +688,7 @@ def test_simulation_projet_transition_are_called(
 
 @mock.patch("gsl_projet.models.DotationProjet.accept")
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
 )
 def test_accept_simulation_projet_triggers_transition(
     mock_ds_update,
@@ -697,6 +707,8 @@ def test_accept_simulation_projet_triggers_transition(
     mock_ds_update.assert_called_once_with(
         dossier=simulation_projet.dossier,
         user=user,
+        dotation=simulation_projet.dotation,
+        assiette=simulation_projet.dotation_projet.assiette,
         montant=simulation_projet.montant,
         taux=simulation_projet.taux,
     )

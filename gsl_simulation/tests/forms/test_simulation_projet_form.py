@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import CollegueWithDSProfileFactory
+from gsl_projet.constants import PROJET_STATUS_ACCEPTED
 from gsl_projet.tests.factories import DetrProjetFactory
 from gsl_simulation.forms import SimulationProjetForm
 from gsl_simulation.models import SimulationProjet
@@ -185,7 +186,10 @@ def user() -> Collegue:
     return cast(Collegue, CollegueWithDSProfileFactory())
 
 
-def test_save_with_assiette_field_exceptions(simulation_projet, user):
+def test_save_with_ds_and_assiette_field_exceptions(simulation_projet, user):
+    simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
+    simulation_projet.dotation_projet.save()
+
     data = {"assiette": 400, "montant": 300, "taux": 75}
     form = SimulationProjetForm(instance=simulation_projet, data=data, user=user)
     assert form.is_valid()
@@ -202,7 +206,10 @@ def test_save_with_assiette_field_exceptions(simulation_projet, user):
     assert simulation_projet.taux == 30  # computed
 
 
-def test_save_with_montant_field_exceptions(simulation_projet, user):
+def test_save_with_ds_montant_field_exceptions(simulation_projet, user):
+    simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
+    simulation_projet.dotation_projet.save()
+
     data = {"assiette": 400, "montant": 300, "taux": 75}
     form = SimulationProjetForm(instance=simulation_projet, data=data, user=user)
     assert form.is_valid()
@@ -219,9 +226,12 @@ def test_save_with_montant_field_exceptions(simulation_projet, user):
     assert simulation_projet.taux == 50  # computed
 
 
-def test_save_with_assiette_field_exceptions_and_montant_cleaned(
+def test_save_with_ds_and_assiette_field_exceptions_and_montant_cleaned(
     simulation_projet, user
 ):
+    simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
+    simulation_projet.dotation_projet.save()
+
     data = {"assiette": 2_000, "montant": 1_500, "taux": 75}
     form = SimulationProjetForm(instance=simulation_projet, data=data, user=user)
     assert form.is_valid()
