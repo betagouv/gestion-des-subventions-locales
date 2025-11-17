@@ -94,7 +94,7 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
         "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
     )
     with patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
     ) as mock_update_ds_montant:
         mock_update_ds_montant.return_value = None
         response = client_with_user_logged.post(
@@ -141,7 +141,7 @@ data_test = (
 
 
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
 )
 @pytest.mark.parametrize("status, expected_message, expected_tag", data_test)
 def test_patch_status_simulation_projet_gives_message(
@@ -168,6 +168,8 @@ def test_patch_status_simulation_projet_gives_message(
         mock_ds_update.assert_called_once_with(
             dossier=simulation_projet.projet.dossier_ds,
             user=client_with_user_logged.user,
+            dotation=simulation_projet.dotation,
+            assiette=simulation_projet.dotation_projet.assiette,
             montant=Decimal(simulation_projet.montant),
             taux=Decimal(simulation_projet.taux),
         )
@@ -231,7 +233,7 @@ def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
     )
 
     with patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux",
+        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux",
         side_effect=DsServiceException("Erreur !"),
     ):
         response = client_with_user_logged.post(
@@ -253,7 +255,7 @@ def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
 
 
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
 )
 def test_patch_taux_simulation_projet(
     mock_ds_update,
@@ -277,6 +279,8 @@ def test_patch_taux_simulation_projet(
     mock_ds_update.assert_called_once_with(
         dossier=accepted_simulation_projet.projet.dossier_ds,
         user=client_with_user_logged.user,
+        dotation=accepted_simulation_projet.dotation,
+        assiette=accepted_simulation_projet.dotation_projet.assiette,
         montant=7_500,
         taux=75.0,
     )
@@ -326,7 +330,7 @@ def test_patch_taux_simulation_projet_cancelling_all_when_error_in_ds_update(
     )
 
     with patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux",
+        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux",
         side_effect=DsServiceException("Erreur !"),
     ):
         response = client_with_user_logged.post(
@@ -350,7 +354,7 @@ def test_patch_taux_simulation_projet_cancelling_all_when_error_in_ds_update(
 
 
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
 )
 def test_patch_montant_simulation_projet(
     mock_ds_update,
@@ -375,6 +379,8 @@ def test_patch_montant_simulation_projet(
     mock_ds_update.assert_called_once_with(
         dossier=accepted_simulation_projet.projet.dossier_ds,
         user=client_with_user_logged.user,
+        dotation=accepted_simulation_projet.dotation,
+        assiette=accepted_simulation_projet.dotation_projet.assiette,
         montant=1267.32,
         taux=Decimal("12.673"),
     )
@@ -424,7 +430,7 @@ def test_patch_montant_simulation_projet_cancelling_all_when_error_in_ds_update(
     )
 
     with patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux",
+        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux",
         side_effect=DsServiceException("Erreur !"),
     ):
         response = client_with_user_logged.post(
@@ -627,6 +633,7 @@ possible_responses = [
 def test_patch_simulation_projet_with_ds_error(
     client_with_user_logged, accepted_simulation_projet, ds_field, response, error_msg
 ):
+    accepted_simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
     accepted_simulation_projet.dotation_projet.assiette = 1_000
     accepted_simulation_projet.montant = 500
     accepted_simulation_projet.save()
@@ -673,6 +680,7 @@ def test_patch_simulation_projet_with_ds_error(
 def test_patch_simulation_projet_with_ds_token_error(
     client_with_user_logged, accepted_simulation_projet, ds_field
 ):
+    accepted_simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
     accepted_simulation_projet.dotation_projet.assiette = 1_000
     accepted_simulation_projet.montant = 500
     accepted_simulation_projet.save()
@@ -716,6 +724,8 @@ def test_patch_simulation_projet_with_ds_token_error(
 def test_three_fields_update_and_only_one_error(
     perimetre_departemental, accepted_simulation_projet
 ):
+    accepted_simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
+    accepted_simulation_projet.dotation_projet.save()
     user = CollegueWithDSProfileFactory(perimetre=perimetre_departemental)
     client = ClientWithLoggedUserFactory(user)
     data = {
@@ -786,7 +796,7 @@ def test_patch_status_simulation_projet_blocked_when_programmation_notified(
     )
 
     with patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
     ) as mock_update_ds_montant:
         mock_update_ds_montant.return_value = None
         response = client_with_user_logged.post(

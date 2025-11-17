@@ -155,9 +155,13 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
 
     def save(self, commit=True) -> tuple[SimulationProjet, str | None]:
         instance: SimulationProjet = super().save(commit=False)
-        if instance.dotation_projet.status != PROJET_STATUS_ACCEPTED:
-            return self._save_without_ds(instance, commit=commit)
-        return self._save_with_ds(instance, dotation=instance.dotation, commit=commit)
+
+        if instance.dotation_projet.status == PROJET_STATUS_ACCEPTED:
+            return self._save_with_ds(
+                instance, dotation=instance.dotation, commit=commit
+            )
+
+        return self._save_without_ds(instance, commit=commit)
 
     def get_dossier_ds(self, instance):
         return instance.projet.dossier_ds

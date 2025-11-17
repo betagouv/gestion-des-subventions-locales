@@ -281,9 +281,9 @@ def test_patch_status_simulation_projet_url(
     )
 
     with mock.patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
-    ) as mock_update_ds_montant_and_taux:
-        mock_update_ds_montant_and_taux.return_value = None
+        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
+    ) as mock_update_ds_assiette_montant_and_taux:
+        mock_update_ds_assiette_montant_and_taux.return_value = None
         response = client_with_cote_d_or_user_logged.post(
             url, {"status": "valid"}, follow=True
         )
@@ -308,9 +308,9 @@ def test_patch_status_simulation_projet_url_with_htmx(
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
     with mock.patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
-    ) as mock_update_ds_montant_and_taux:
-        mock_update_ds_montant_and_taux.return_value = None
+        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
+    ) as mock_update_ds_assiette_montant_and_taux:
+        mock_update_ds_assiette_montant_and_taux.return_value = None
         response = client_with_cote_d_or_user_logged.post(
             url, {"status": "valid"}, headers={"HX-Request": "true"}, follow=True
         )
