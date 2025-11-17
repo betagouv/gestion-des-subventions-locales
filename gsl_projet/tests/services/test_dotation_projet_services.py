@@ -2,6 +2,8 @@ import re
 from decimal import Decimal
 
 import pytest
+from django.utils import timezone
+from freezegun import freeze_time
 
 from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_core.tests.factories import (
@@ -14,8 +16,12 @@ from gsl_demarches_simplifiees.tests.factories import (
     CritereEligibiliteDetrFactory,
     DossierFactory,
 )
-from gsl_programmation.models import ProgrammationProjet
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
+from gsl_programmation.models import Enveloppe, ProgrammationProjet
+from gsl_programmation.tests.factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
+    ProgrammationProjetFactory,
+)
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -134,7 +140,9 @@ def test_create_or_update_dotation_projet(dotation):
 @pytest.fixture
 def perimetres():
     arr_dijon = PerimetreArrondissementFactory()
-    dep_21 = PerimetreDepartementalFactory(departement=arr_dijon.departement)
+    dep_21 = PerimetreDepartementalFactory(
+        departement=arr_dijon.departement, region=arr_dijon.region
+    )
     region_bfc = PerimetreRegionalFactory(region=dep_21.region)
 
     arr_nanterre = PerimetreArrondissementFactory()
@@ -292,33 +300,33 @@ def test_get_dotation_projet_status_from_dossier():
     dismissed = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
 
     assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(accepted, dp)
+        DotationProjetService._get_dotation_projet_status_from_dossier(accepted, dp)
         == PROJET_STATUS_ACCEPTED
     )
     assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(
+        DotationProjetService._get_dotation_projet_status_from_dossier(
             en_construction, dp
         )
         == PROJET_STATUS_PROCESSING
     )
     assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(
+        DotationProjetService._get_dotation_projet_status_from_dossier(
             en_instruction, dp
         )
         == PROJET_STATUS_PROCESSING
     )
     assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(refused, dp)
+        DotationProjetService._get_dotation_projet_status_from_dossier(refused, dp)
         == PROJET_STATUS_REFUSED
     )
     assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(dismissed, dp)
+        DotationProjetService._get_dotation_projet_status_from_dossier(dismissed, dp)
         == PROJET_STATUS_DISMISSED
     )
 
     dossier_unknown = Dossier(ds_state="unknown_state")
     assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(
+        DotationProjetService._get_dotation_projet_status_from_dossier(
             dossier_unknown, dp
         )
         is None
@@ -341,27 +349,27 @@ def test_get_dotation_projet_status_from_dossier_with_an_accepted_but_not_notifi
     dismissed = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
 
     assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(accepted, dp)
+        DotationProjetService._get_dotation_projet_status_from_dossier(accepted, dp)
         == PROJET_STATUS_ACCEPTED
     )
     assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(
+        DotationProjetService._get_dotation_projet_status_from_dossier(
             en_construction, dp
         )
         == PROJET_STATUS_ACCEPTED
     )
     assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(
+        DotationProjetService._get_dotation_projet_status_from_dossier(
             en_instruction, dp
         )
         == PROJET_STATUS_ACCEPTED
     )
     assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(refused, dp)
+        DotationProjetService._get_dotation_projet_status_from_dossier(refused, dp)
         == PROJET_STATUS_REFUSED
     )
     assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(dismissed, dp)
+        DotationProjetService._get_dotation_projet_status_from_dossier(dismissed, dp)
         == PROJET_STATUS_DISMISSED
     )
 
@@ -382,7 +390,7 @@ def test_get_detr_avis_commission(dotation, dossier_state):
     dossier = DossierFactory(
         ds_state=dossier_state,
     )
-    avis_commissioin_detr = DotationProjetService.get_detr_avis_commission(
+    avis_commissioin_detr = DotationProjetService._get_detr_avis_commission(
         dotation, dossier
     )
     if dotation == DOTATION_DETR and dossier_state == Dossier.STATE_ACCEPTE:
@@ -508,3 +516,81 @@ def test_validate_taux(taux, should_raise_exception):
             DotationProjetService.validate_taux(taux)
     else:
         DotationProjetService.validate_taux(taux)
+
+
+class TestGetRootEnveloppeFromDotationProjet:
+    @pytest.mark.django_db
+    @freeze_time("2025-05-06")
+    def test_get_root_enveloppe_from_dotation_projet_with_a_detr_and_arrondissement_projet(
+        self, perimetres
+    ):
+        arr_dijon, dep_21, *_ = perimetres
+        dotation_projet = DotationProjetFactory(
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            projet__perimetre=arr_dijon,
+        )
+        dep_detr_enveloppe = DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+        _arr_detr_enveloppe = DetrEnveloppeFactory(
+            perimetre=arr_dijon, annee=2025, deleguee_by=dep_detr_enveloppe
+        )
+
+        enveloppe = DotationProjetService._get_root_enveloppe_from_dotation_projet(
+            dotation_projet
+        )
+        assert enveloppe == dep_detr_enveloppe
+
+    @pytest.mark.django_db
+    @freeze_time("2025-05-06")
+    def test_get_root_enveloppe_from_dotation_projet_with_a_dsil_and_region_projet(
+        self, perimetres
+    ):
+        arr_dijon, dep_21, region_bfc, *_ = perimetres
+        dotation_projet = DotationProjetFactory(
+            dotation=DOTATION_DSIL,
+            status=PROJET_STATUS_ACCEPTED,
+            projet__perimetre=arr_dijon,
+        )
+        region_dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+        dep_dsil_enveloppe_delegated = DsilEnveloppeFactory(
+            perimetre=dep_21, annee=2025, deleguee_by=region_dsil_enveloppe
+        )
+        _arr_dsil_enveloppe_delegated = DsilEnveloppeFactory(
+            perimetre=arr_dijon, annee=2025, deleguee_by=dep_dsil_enveloppe_delegated
+        )
+
+        enveloppe = DotationProjetService._get_root_enveloppe_from_dotation_projet(
+            dotation_projet
+        )
+
+        assert enveloppe == region_dsil_enveloppe
+
+    @pytest.mark.django_db
+    @freeze_time("2026-05-06")
+    def test_get_enveloppe_from_dotation_projet_with_a_next_year_date(
+        self, perimetres, caplog
+    ):
+        arr_dijon, _, region_bfc, *_ = perimetres
+        dotation_projet = DotationProjetFactory(
+            dotation=DOTATION_DSIL,
+            status=PROJET_STATUS_ACCEPTED,
+            projet__perimetre=arr_dijon,
+            projet__dossier_ds__ds_date_traitement=timezone.datetime(2026, 1, 15),
+        )
+        _region_dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+
+        with pytest.raises(Enveloppe.DoesNotExist):  # No enveloppe for 2026
+            DotationProjetService._get_root_enveloppe_from_dotation_projet(
+                dotation_projet
+            )
+
+        record = caplog.records[0]
+        assert record.message == "No enveloppe found for a dotation projet"
+        assert record.levelname == "WARNING"
+        assert (
+            getattr(record, "dossier_ds_number", None)
+            == dotation_projet.dossier_ds.ds_number
+        )
+        assert getattr(record, "dotation", None) == dotation_projet.dotation
+        assert getattr(record, "year", None) == 2026
+        assert getattr(record, "perimetre", None) == arr_dijon

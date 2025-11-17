@@ -33,6 +33,8 @@ from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationProjetFactory
 
+# Fixtures
+
 
 @pytest.fixture
 def commune():
@@ -53,7 +55,10 @@ def perimetre_departement(perimetre_arrondissement):
 
 @pytest.fixture
 def detr_enveloppe(perimetre_departement):
-    return DetrEnveloppeFactory(perimetre=perimetre_departement)
+    return DetrEnveloppeFactory(perimetre=perimetre_departement, annee=2024)
+
+
+# Tests
 
 
 @pytest.mark.django_db
@@ -328,7 +333,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
         ds_demandeur__address__commune=commune,
         ds_date_traitement=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
     )
-    projet = ProjetFactory(dossier_ds=dossier)
+    projet = ProjetFactory(dossier_ds=dossier, perimetre=detr_enveloppe.perimetre)
     dotation_projet = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )

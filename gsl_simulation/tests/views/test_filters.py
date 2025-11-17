@@ -90,6 +90,10 @@ def projets(simulation, perimetre_departemental):
     commune = NaturePorteurProjetFactory(
         label="Commune", type=NaturePorteurProjet.COMMUNES
     )
+    for perimetre in (perimetre_departemental, other_perimeter):
+        for year in (2024, 2025):
+            DetrEnveloppeFactory(perimetre=perimetre, annee=year)
+            DsilEnveloppeFactory(perimetre=perimetre, annee=year)
 
     for perimetre in (perimetre_departemental, other_perimeter):
         demandeur = DemandeurFactory()
@@ -108,6 +112,7 @@ def projets(simulation, perimetre_departemental):
                     demande_dispositif_sollicite=dotation,
                     finance_cout_total=1_000_000,
                     porteur_de_projet_nature=epci,
+                    ds_demandeur__address__commune__departement=perimetre.departement,
                 )
                 projet_2024 = ProjetFactory(
                     dossier_ds=dossier_2024,
@@ -124,6 +129,7 @@ def projets(simulation, perimetre_departemental):
                     demande_dispositif_sollicite=dotation,
                     finance_cout_total=2_000_000,
                     porteur_de_projet_nature=commune,
+                    ds_demandeur__address__commune__departement=perimetre.departement,
                 )
                 projet_2025 = ProjetFactory(
                     dossier_ds=dossier_2025,
@@ -141,6 +147,7 @@ def projets(simulation, perimetre_departemental):
                     demande_montant=400_000,
                     finance_cout_total=3_000_000,
                     porteur_de_projet_nature=commune,
+                    ds_demandeur__address__commune__departement=perimetre.departement,
                 )
                 projet_2024 = ProjetFactory(
                     dossier_ds=dossier_2024,
@@ -157,6 +164,7 @@ def projets(simulation, perimetre_departemental):
                     demande_montant=500_000,
                     finance_cout_total=4_000_000,
                     porteur_de_projet_nature=epci,
+                    ds_demandeur__address__commune__departement=perimetre.departement,
                 )
                 projet_2025 = ProjetFactory(
                     dossier_ds=dossier_2025,

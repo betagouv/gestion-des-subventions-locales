@@ -32,7 +32,7 @@ class ProjetService:
         dotation_projets = (
             DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
         )
-        for dotation_projet in dotation_projets:
+        for dotation_projet in dotation_projets:  # TODO feature dun : Remove this loop and handle all in transitions ?? but it must include updates from annotations !
             ProgrammationProjetService.create_or_update_from_dotation_projet(
                 dotation_projet
             )
