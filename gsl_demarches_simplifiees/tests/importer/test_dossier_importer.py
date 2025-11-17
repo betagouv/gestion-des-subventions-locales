@@ -109,6 +109,7 @@ def test_save_demarche_dossiers_from_ds_with_one_empty_data(caplog):
         assert "Dossier data is empty" in caplog.text
 
 
+@pytest.mark.django_db
 def test_save_demarche_dossiers_from_ds_update_updated_since():
     demarche_number = 123
     demarche = DemarcheFactory(ds_number=demarche_number, updated_since=None)

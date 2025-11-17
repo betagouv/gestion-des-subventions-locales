@@ -31,7 +31,7 @@ def save_demarche_dossiers_from_ds(demarche_number, using_updated_since: bool = 
                 "Dossier data is empty",
                 extra={
                     "demarche_ds_number": demarche_number,
-                    "i": i,
+                    "i": dossiers_count,
                 },
             )
             continue

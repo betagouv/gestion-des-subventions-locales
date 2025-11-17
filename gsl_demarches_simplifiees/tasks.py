@@ -12,7 +12,7 @@ from gsl_demarches_simplifiees.models import Demarche, Dossier
 
 
 ## Refresh demarches from DS
-#### of every demarches
+#### of every demarches => useful in cron tasks !
 @shared_task
 def task_refresh_every_demarche(refresh_only_if_demarche_has_been_updated=True):
     for d in Demarche.objects.all():
