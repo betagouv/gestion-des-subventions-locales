@@ -33,11 +33,22 @@ def camelcase(my_string):
     return f"{s[0].lower()}{s[1:]}"
 
 
-def save_demarche_from_ds(demarche_number):
+def save_demarche_from_ds(
+    demarche_number, refresh_only_if_demarche_has_been_updated=False
+):
     client = DsClient()
     result = client.get_demarche(demarche_number)
     demarche_data = result["data"]["demarche"]
-    demarche = get_or_create_demarche(demarche_data)
+
+    if refresh_only_if_demarche_has_been_updated:
+        try:
+            demarche = Demarche.objects.get(ds_number=demarche_number)
+            if demarche.active_revision_id == demarche_data["activeRevision"]["id"]:
+                return
+        except Demarche.DoesNotExist:
+            pass
+
+    demarche = update_or_create_demarche(demarche_data)
     save_groupe_instructeurs(demarche_data, demarche)
     save_field_mappings(demarche_data, demarche)
     extract_categories_operation_detr(demarche_data, demarche)
@@ -60,7 +71,7 @@ def refresh_categories_operation_detr(demarche_number):
         save_demarche_from_ds(demarche_number)
 
 
-def get_or_create_demarche(demarche_data):
+def update_or_create_demarche(demarche_data):
     ds_fields = ("id", "number", "title", "state", "date_creation", "date_fermeture")
     django_data = {
         f"ds_{field}": demarche_data[camelcase(field)] for field in ds_fields
@@ -110,7 +121,7 @@ def save_field_mappings(demarche_data, demarche):
         ds_label = champ_descriptor["label"]
         ds_id = champ_descriptor["id"]
         qs_human_mapping = FieldMappingForHuman.objects.filter(label=ds_label)
-        computer_mapping, _ = FieldMappingForComputer.objects.update_or_create(
+        computer_mapping, created = FieldMappingForComputer.objects.get_or_create(
             ds_field_id=ds_id,
             demarche=demarche,
             defaults={
@@ -118,6 +129,16 @@ def save_field_mappings(demarche_data, demarche):
                 "ds_field_type": ds_type,
             },
         )
+
+        if not created:
+            if (
+                computer_mapping.ds_field_label != ds_label
+                or computer_mapping.ds_field_type != ds_type
+            ):
+                computer_mapping.ds_field_label = ds_label
+                computer_mapping.ds_field_type = ds_type
+                computer_mapping.save()
+
         if qs_human_mapping.exists():  # we have a label which is known
             human_mapping = qs_human_mapping.get()
             if human_mapping.django_field:
@@ -128,15 +149,14 @@ def save_field_mappings(demarche_data, demarche):
 
         # Try direct mapping on verbose_name with original
         if ds_label in reversed_mapping:
-            computer_mapping.django_field = reversed_mapping.get(ds_label)
-            computer_mapping.save()
-            continue
+            django_field = reversed_mapping.get(ds_label)
+            if django_field != computer_mapping.django_field:
+                computer_mapping.django_field = django_field
+                computer_mapping.save()
+                continue
 
         if not qs_human_mapping.exists() and not computer_mapping.django_field:
-            FieldMappingForHuman.objects.create(
-                label=ds_label,
-                demarche=demarche,
-            )
+            FieldMappingForHuman.objects.create(label=ds_label, demarche=demarche)
 
 
 def guess_department_from_demarche(demarche) -> Departement:

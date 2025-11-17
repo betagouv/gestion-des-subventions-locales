@@ -62,6 +62,9 @@ class Demarche(DsModel):
     active_revision_date = models.DateTimeField(
         "Date de publication de la révision active", blank=True, null=True
     )
+    updated_since = models.DateTimeField(
+        "Date de dernière mise à jour des dossiers", blank=True, null=True
+    )
 
     class Meta:
         verbose_name = "Démarche"
