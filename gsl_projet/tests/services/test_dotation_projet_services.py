@@ -102,6 +102,30 @@ def test_create_or_update_dotation_projet_from_projet_do_not_remove_dotation_pro
 
 
 @pytest.mark.django_db
+def test_create_or_update_dotation_projet_from_projet_also_refuse_dsil_dotation_projet_even_if_not_in_demande_dispositif_sollicite():
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_REFUSE,
+        dossier_ds__demande_dispositif_sollicite="DETR",
+    )
+    projet_dotation_detr = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+    )
+    projet_dotation_dsil = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_PROCESSING
+    )
+    projet_dotation_projets = DotationProjet.objects.filter(projet=projet)
+    assert projet_dotation_projets.count() == 2
+
+    DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
+
+    projet_dotation_detr.refresh_from_db()  # always exists
+    assert projet_dotation_detr.status == PROJET_STATUS_REFUSED
+
+    projet_dotation_dsil.refresh_from_db()  # always exists
+    assert projet_dotation_dsil.status == PROJET_STATUS_REFUSED
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     "dotation",
     (DOTATION_DETR, DOTATION_DSIL),

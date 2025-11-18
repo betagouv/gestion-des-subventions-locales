@@ -26,17 +26,13 @@ class DotationProjetService:
     def create_or_update_dotation_projet_from_projet(
         cls, projet: Projet
     ) -> list[DotationProjet]:
-        dotations = cls._get_dotations_from_field(projet, "annotations_dotation")
-        if not dotations:
-            dotations = cls._get_dotations_from_field(
-                projet, "demande_dispositif_sollicite"
-            )
+        # check for initialisation
+        if projet.dotationprojet_set.count() == 0:
+            dotation_projets = cls._initialize_dotation_projets_from_projet(projet)
+            return dotation_projets
 
-        dotation_projets = []
-        for dotation in dotations:
-            dotation_projets.append(
-                cls._create_or_update_dotation_projet(projet, dotation)
-            )
+        # check for updates
+        dotation_projets = cls._update_dotation_projets_from_projet(projet)
         return dotation_projets
 
     @classmethod
@@ -98,6 +94,262 @@ class DotationProjetService:
     # private
 
     @classmethod
+    def _initialize_dotation_projets_from_projet(
+        cls, projet: Projet
+    ) -> list[DotationProjet]:
+        dossier_status = projet.dossier_ds.ds_state
+        if dossier_status == Dossier.STATE_ACCEPTE:
+            return cls._initialize_dotation_projets_from_projet_accepted(projet)
+        elif dossier_status == Dossier.STATE_REFUSE:
+            return cls._initialize_dotation_projets_from_projet_refused(projet)
+        elif dossier_status == Dossier.STATE_SANS_SUITE:
+            return cls._initialize_dotation_projets_from_projet_sans_suite(projet)
+        elif dossier_status in [
+            Dossier.STATE_EN_CONSTRUCTION,
+            Dossier.STATE_EN_INSTRUCTION,
+        ]:
+            return cls._initialize_dotation_projets_from_projet_en_construction_or_instruction(
+                projet
+            )
+
+        raise ValueError(f"Invalid dossier status: {dossier_status}")
+
+    @classmethod
+    def _initialize_dotation_projets_from_projet_accepted(
+        cls, projet: Projet
+    ) -> list[DotationProjet]:  # TODO DUN test
+        dotations = cls._get_dotations_from_field(
+            projet, "annotations_dotation"
+        )  # TODO DUN handle case where dotations is empty !
+        if not dotations:  # TODO DUN ok with this logic ?
+            logger.warning(
+                "No dotations found in annotations_dotation for accepted dossier during initialisation",
+                extra={
+                    "dossier_ds_number": projet.dossier_ds.ds_number,
+                    "projet": projet.pk,
+                },
+            )
+
+            dotations = cls._get_dotations_from_field(
+                projet, "demande_dispositif_sollicite"
+            )
+
+        dotation_projets = []
+        for dotation in dotations:
+            dotation_projet = cls._create_dotation_projet(projet, dotation)
+            enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
+            montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
+            dotation_projet.accept(enveloppe=enveloppe, montant=montant)
+            dotation_projet.save()
+            dotation_projets.append(dotation_projet)
+        return dotation_projets
+
+    @classmethod
+    def _initialize_dotation_projets_from_projet_refused(
+        cls, projet: Projet
+    ) -> list[DotationProjet]:  # TODO DUN test
+        dotations = cls._get_dotations_from_field(
+            projet, "demande_dispositif_sollicite"
+        )
+        dotation_projets = []
+        for dotation in dotations:
+            dotation_projet = cls._create_dotation_projet(projet, dotation)
+            enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
+            dotation_projet.refuse(enveloppe=enveloppe)
+            dotation_projet.save()
+            dotation_projets.append(dotation_projet)
+        return dotation_projets
+
+    @classmethod
+    def _initialize_dotation_projets_from_projet_sans_suite(
+        cls, projet: Projet
+    ) -> list[DotationProjet]:  # TODO DUN test
+        dotations = cls._get_dotations_from_field(
+            projet, "demande_dispositif_sollicite"
+        )
+        dotation_projets = []
+        for dotation in dotations:
+            dotation_projet = cls._create_dotation_projet(projet, dotation)
+            enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
+            dotation_projet.dismiss(enveloppe=enveloppe)
+            dotation_projet.save()
+            dotation_projets.append(dotation_projet)
+        return dotation_projets
+
+    @classmethod
+    def _initialize_dotation_projets_from_projet_en_construction_or_instruction(
+        cls, projet: Projet
+    ) -> list[DotationProjet]:  # TODO DUN test
+        dotations = cls._get_dotations_from_field(
+            projet, "demande_dispositif_sollicite"
+        )
+        dotation_projets = []
+        for dotation in dotations:
+            dotation_projet = cls._create_dotation_projet(projet, dotation)
+            dotation_projets.append(dotation_projet)
+        return dotation_projets
+
+    @classmethod
+    def _create_dotation_projet(
+        cls, projet: Projet, dotation: POSSIBLE_DOTATIONS
+    ) -> DotationProjet:
+        detr_avis_commission = cls._get_detr_avis_commission(
+            dotation, projet.dossier_ds
+        )
+        assiette = cls._get_assiette_from_dossier(projet.dossier_ds)
+        return DotationProjet.objects.create(
+            projet=projet,
+            dotation=dotation,
+            detr_avis_commission=detr_avis_commission,
+            assiette=assiette,
+        )
+
+    @classmethod
+    def _update_dotation_projets_from_projet(
+        cls, projet: Projet
+    ) -> list[DotationProjet]:
+        dossier_status = projet.dossier_ds.ds_state
+        if dossier_status == Dossier.STATE_ACCEPTE:
+            return cls._update_dotation_projets_from_projet_accepted(projet)
+        elif dossier_status == Dossier.STATE_REFUSE:
+            return cls._update_dotation_projets_from_projet_refused(projet)
+        elif dossier_status == Dossier.STATE_SANS_SUITE:
+            return cls._update_dotation_projets_from_projet_sans_suite(projet)
+        elif dossier_status in [
+            Dossier.STATE_EN_CONSTRUCTION,
+            Dossier.STATE_EN_INSTRUCTION,
+        ]:
+            date_traitement = projet.dossier_ds.ds_date_traitement
+            date_passage_en_instruction = (
+                projet.dossier_ds.ds_date_passage_en_instruction
+            )
+            if date_traitement is not None and date_passage_en_instruction is not None:
+                is_dossier_back_to_instruction = (
+                    date_traitement < date_passage_en_instruction
+                )  # TODO DUN verify and test !
+                if is_dossier_back_to_instruction:
+                    return cls._update_dotation_projets_from_projet_back_to_instruction(
+                        projet
+                    )
+        else:
+            raise ValueError(f"Invalid dossier status: {dossier_status}")
+        return []
+
+    @classmethod
+    def _update_dotation_projets_from_projet_accepted(
+        cls, projet: Projet
+    ) -> list[DotationProjet]:  # TODO DUN test
+        dotations_to_accept = cls._get_dotations_from_field(
+            projet, "annotations_dotation"
+        )
+        # TODO test
+        if not dotations_to_accept:  # TODO DUN ok with this logic ?
+            logger.warning(
+                "No dotations found in annotations_dotation for accepted dossier during update",
+                extra={
+                    "dossier_ds_number": projet.dossier_ds.ds_number,
+                    "projet": projet.pk,
+                },
+            )
+            dotations_to_accept = cls._get_dotations_from_field(
+                projet, "demande_dispositif_sollicite"
+            )
+
+        dotations_to_remove = set(projet.dotations) - set(
+            dotations_to_accept
+        )  # TODO DUN verify and test !
+        dotation_projets = []  # TODO DUN verify and test
+        for dotation in dotations_to_accept:
+            dotation_projet, _ = DotationProjet.objects.get_or_create(
+                projet=projet,
+                dotation=dotation,
+                defaults={
+                    "assiette": cls._get_assiette_from_dossier(projet.dossier_ds),
+                    "detr_avis_commission": cls._get_detr_avis_commission(
+                        dotation, projet.dossier_ds
+                    ),
+                },
+            )
+            enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
+            montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
+            dotation_projet.accept(enveloppe=enveloppe, montant=montant)
+            dotation_projet.save()
+            dotation_projets.append(dotation_projet)
+
+        for dotation in dotations_to_remove:  # TODO DUN verify and test !
+            dotation_projet = (
+                DotationProjet.objects.filter(projet=projet, dotation=dotation).delete()
+            )  # TODO verify that a potential programmation projet is also deleted
+
+        return dotation_projets
+
+    @classmethod
+    def _update_dotation_projets_from_projet_refused(
+        cls, projet: Projet
+    ) -> list[DotationProjet]:  # TODO DUN test
+        dotation_projets = []
+        for dotation_projet in projet.dotationprojet_set.all():
+            if dotation_projet.status != PROJET_STATUS_REFUSED:
+                enveloppe = cls._get_root_enveloppe_from_dotation_projet(
+                    dotation_projet
+                )
+                dotation_projet.refuse(enveloppe=enveloppe)
+            dotation_projets.append(dotation_projet)
+        return dotation_projets
+
+    @classmethod
+    def _update_dotation_projets_from_projet_sans_suite(
+        cls, projet: Projet
+    ) -> list[DotationProjet]:  # TODO DUN test
+        dotation_projets = []
+        for dotation_projet in projet.dotationprojet_set.all():
+            if dotation_projet.status not in [
+                PROJET_STATUS_DISMISSED,
+                PROJET_STATUS_REFUSED,
+            ]:
+                enveloppe = cls._get_root_enveloppe_from_dotation_projet(
+                    dotation_projet
+                )
+                dotation_projet.dismiss(enveloppe=enveloppe)
+            dotation_projets.append(dotation_projet)
+        return dotation_projets
+
+    @classmethod
+    def _update_dotation_projets_from_projet_back_to_instruction(
+        cls, projet: Projet
+    ) -> list[DotationProjet]:  # TODO DUN test
+        projet_dps = projet.dotationprojet_set
+
+        if projet_dps.filter(status=PROJET_STATUS_ACCEPTED).count() == 1:
+            if (
+                projet_dps.filter(
+                    status_in=[PROJET_STATUS_DISMISSED, PROJET_STATUS_REFUSED]
+                ).count()
+                == 1
+            ):
+                return cls._update_dotation_projets_with_one_accepted_and_one_dismissed_or_refused(
+                    projet
+                )
+
+        dotation_projets = []
+        for dotation_projet in projet_dps:
+            dotation_projet.set_back_status_to_processing()
+            dotation_projets.append(dotation_projet)
+        return dotation_projets
+
+    @classmethod
+    def _update_dotation_projets_with_one_accepted_and_one_dismissed_or_refused(
+        cls, projet: Projet
+    ) -> list[DotationProjet]:  # TODO DUN test
+        dotation_projets = []
+        for dotation_projet in projet.dotationprojet_set.all():
+            if dotation_projet.status == PROJET_STATUS_ACCEPTED:
+                dotation_projet.set_back_status_to_processing()
+            dotation_projets.append(dotation_projet)
+        return dotation_projets
+
+    # TODO to remove
+    @classmethod
     def _create_or_update_dotation_projet(
         cls, projet: Projet, dotation: POSSIBLE_DOTATIONS
     ):
@@ -134,6 +386,7 @@ class DotationProjetService:
                 dotation_projet.detr_categories.add(critere.detr_category)
         return dotation_projet
 
+    # TODO to remove
     DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS = {
         Dossier.STATE_ACCEPTE: PROJET_STATUS_ACCEPTED,
         Dossier.STATE_EN_CONSTRUCTION: PROJET_STATUS_PROCESSING,
@@ -142,6 +395,7 @@ class DotationProjetService:
         Dossier.STATE_SANS_SUITE: PROJET_STATUS_DISMISSED,
     }
 
+    # TODO to remove
     @classmethod
     def _get_dotation_projet_status_from_dossier(
         cls, dossier: Dossier, dotation_projet: DotationProjet
@@ -198,6 +452,40 @@ class DotationProjetService:
         return enveloppe
 
     @classmethod
+    def _get_assiette_from_dossier(cls, dossier: Dossier, dotation: POSSIBLE_DOTATIONS):
+        if dotation == DOTATION_DETR:
+            assiette = dossier.annotations_assiette_detr
+        elif dotation == DOTATION_DSIL:
+            assiette = dossier.annotations_assiette_dsil
+        if assiette is None:
+            logger.warning(
+                "Assiette is missing in dossier annotations",
+                extra={
+                    "dossier_ds_number": dossier.ds_number,
+                    "dotation": dotation,
+                },
+            )
+            return 0  # TODO DUN handle case where assiette is missing
+        return assiette
+
+    @classmethod
+    def _get_montant_from_dossier(cls, dossier: Dossier, dotation: POSSIBLE_DOTATIONS):
+        if dotation == DOTATION_DETR:
+            montant = dossier.annotations_montant_accorde_detr
+        elif dotation == DOTATION_DSIL:
+            montant = dossier.annotations_montant_accorde_dsil
+        if montant is None:
+            logger.warning(
+                "Montant is missing in dossier annotations",
+                extra={
+                    "dossier_ds_number": dossier.ds_number,
+                    "dotation": dotation,
+                },
+            )
+            return 0  # TODO DUN handle case where montant is missing
+        return montant
+
+    @classmethod
     def _get_dotations_from_field(
         cls,
         projet: Projet,
@@ -212,6 +500,7 @@ class DotationProjetService:
             logger.warning(
                 "No dotation",
                 extra={
+                    "dossier_ds_number": projet.dossier_ds.ds_number,
                     "projet": projet.pk,
                     "value": dotations_value,
                     "field": field,
@@ -228,6 +517,7 @@ class DotationProjetService:
             logger.warning(
                 "Dotation unknown",
                 extra={
+                    "dossier_ds_number": projet.dossier_ds.ds_number,
                     "projet": projet.pk,
                     "value": dotations_value,
                     "field": field,

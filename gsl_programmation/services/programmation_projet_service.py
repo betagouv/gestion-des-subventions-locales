@@ -38,11 +38,18 @@ class ProgrammationProjetService:
 
         if dotation_projet.status == PROJET_STATUS_ACCEPTED:
             if (
-                getattr(dotation_projet.dossier_ds, "annotations_montant_accorde")
+                getattr(
+                    dotation_projet.dossier_ds, "annotations_montant_accorde"
+                )  # TODO DUN use new fields
                 is None
             ):
                 logger.warning(
-                    f"Projet accepted {dotation_projet} is missing field annotations_montant_accorde"
+                    "Projet accepted is missing field annotations_montant_accorde",
+                    extra={
+                        "dossier_ds_number": dotation_projet.dossier_ds.ds_number,
+                        "projet": dotation_projet.projet.pk,
+                        "dotation": dotation_projet.dotation,
+                    },
                 )
                 montant = 0
             else:
@@ -54,7 +61,14 @@ class ProgrammationProjetService:
             dotation_projet.projet, dotation_projet.dotation
         )
         if perimetre is None:
-            logger.warning(f"Dotation projet {dotation_projet} is missing perimetre")
+            logger.warning(
+                "Dotation projet is missing perimetre to create an enveloppe",
+                extra={
+                    "dossier_ds_number": dotation_projet.dossier_ds.ds_number,
+                    "projet": dotation_projet.projet.pk,
+                    "dotation": dotation_projet.dotation,
+                },
+            )
             return
 
         enveloppe, _ = Enveloppe.objects.get_or_create(
