@@ -1,13 +1,10 @@
 import logging
-from typing import Any, Literal
 
 from django.db.models import Sum
 from django.db.models.query import QuerySet
 
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
     POSSIBLE_DOTATIONS,
     PROJET_STATUS_PROCESSING,
 )
@@ -99,44 +96,6 @@ class ProjetService:
         if ds_dossier.annotations_is_budget_vert is not None:
             return ds_dossier.annotations_is_budget_vert
         return ds_dossier.environnement_transition_eco
-
-    @classmethod
-    def get_dotations_from_field(
-        cls,
-        projet: Projet,
-        field: Literal[
-            "annotations_dotation", "demande_dispositif_sollicite"
-        ] = "annotations_dotation",
-    ) -> list[Any]:
-        dotation_annotation = getattr(projet.dossier_ds, field)
-        dotations: list[Any] = []
-
-        if not dotation_annotation:
-            logger.warning(
-                "No dotation",
-                extra={
-                    "projet": projet.pk,
-                    "value": dotation_annotation,
-                    "field": field,
-                },
-            )
-            return dotations
-
-        if DOTATION_DETR in dotation_annotation:
-            dotations.append(DOTATION_DETR)
-        if DOTATION_DSIL in dotation_annotation:
-            dotations.append(DOTATION_DSIL)
-
-        if not dotations:
-            logger.warning(
-                "Dotation unknown",
-                extra={
-                    "projet": projet.pk,
-                    "value": dotation_annotation,
-                    "field": field,
-                },
-            )
-        return dotations
 
     @classmethod
     def update_dotation(cls, projet: Projet, dotations: list[POSSIBLE_DOTATIONS]):

@@ -299,38 +299,17 @@ def test_get_dotation_projet_status_from_dossier():
     refused = Dossier(ds_state=Dossier.STATE_REFUSE)
     dismissed = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
 
-    assert (
-        DotationProjetService._get_dotation_projet_status_from_dossier(accepted, dp)
-        == PROJET_STATUS_ACCEPTED
-    )
-    assert (
-        DotationProjetService._get_dotation_projet_status_from_dossier(
-            en_construction, dp
-        )
-        == PROJET_STATUS_PROCESSING
-    )
-    assert (
-        DotationProjetService._get_dotation_projet_status_from_dossier(
-            en_instruction, dp
-        )
-        == PROJET_STATUS_PROCESSING
-    )
-    assert (
-        DotationProjetService._get_dotation_projet_status_from_dossier(refused, dp)
-        == PROJET_STATUS_REFUSED
-    )
-    assert (
-        DotationProjetService._get_dotation_projet_status_from_dossier(dismissed, dp)
-        == PROJET_STATUS_DISMISSED
-    )
+    # enhance lisibility
+    tested_function = DotationProjetService._get_dotation_projet_status_from_dossier
+
+    assert tested_function(accepted, dp) == PROJET_STATUS_ACCEPTED
+    assert tested_function(en_construction, dp) == PROJET_STATUS_PROCESSING
+    assert tested_function(en_instruction, dp) == PROJET_STATUS_PROCESSING
+    assert tested_function(refused, dp) == PROJET_STATUS_REFUSED
+    assert tested_function(dismissed, dp) == PROJET_STATUS_DISMISSED
 
     dossier_unknown = Dossier(ds_state="unknown_state")
-    assert (
-        DotationProjetService._get_dotation_projet_status_from_dossier(
-            dossier_unknown, dp
-        )
-        is None
-    )
+    assert tested_function(dossier_unknown, dp) is None
 
 
 @pytest.mark.django_db
@@ -348,30 +327,14 @@ def test_get_dotation_projet_status_from_dossier_with_an_accepted_but_not_notifi
     refused = Dossier(ds_state=Dossier.STATE_REFUSE)
     dismissed = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
 
-    assert (
-        DotationProjetService._get_dotation_projet_status_from_dossier(accepted, dp)
-        == PROJET_STATUS_ACCEPTED
-    )
-    assert (
-        DotationProjetService._get_dotation_projet_status_from_dossier(
-            en_construction, dp
-        )
-        == PROJET_STATUS_ACCEPTED
-    )
-    assert (
-        DotationProjetService._get_dotation_projet_status_from_dossier(
-            en_instruction, dp
-        )
-        == PROJET_STATUS_ACCEPTED
-    )
-    assert (
-        DotationProjetService._get_dotation_projet_status_from_dossier(refused, dp)
-        == PROJET_STATUS_REFUSED
-    )
-    assert (
-        DotationProjetService._get_dotation_projet_status_from_dossier(dismissed, dp)
-        == PROJET_STATUS_DISMISSED
-    )
+    # enhance lisibility
+    tested_function = DotationProjetService._get_dotation_projet_status_from_dossier
+
+    assert tested_function(accepted, dp) == PROJET_STATUS_ACCEPTED
+    assert tested_function(en_construction, dp) == PROJET_STATUS_ACCEPTED
+    assert tested_function(en_instruction, dp) == PROJET_STATUS_ACCEPTED
+    assert tested_function(refused, dp) == PROJET_STATUS_REFUSED
+    assert tested_function(dismissed, dp) == PROJET_STATUS_DISMISSED
 
 
 @pytest.mark.parametrize("dotation", (DOTATION_DETR, DOTATION_DSIL))
@@ -594,3 +557,24 @@ class TestGetRootEnveloppeFromDotationProjet:
         assert getattr(record, "dotation", None) == dotation_projet.dotation
         assert getattr(record, "year", None) == 2026
         assert getattr(record, "perimetre", None) == arr_dijon
+
+
+@pytest.mark.parametrize(
+    "field", ("annotations_dotation", "demande_dispositif_sollicite")
+)
+@pytest.mark.parametrize(
+    "value, expected_dotation",
+    [
+        ("DETR", [DOTATION_DETR]),
+        ("DSIL", [DOTATION_DSIL]),
+        ("[DETR, DSIL]", [DOTATION_DETR, DOTATION_DSIL]),
+        ("DETR et DSIL", [DOTATION_DETR, DOTATION_DSIL]),
+        ("['DETR', 'DSIL', 'DETR et DSIL']", [DOTATION_DETR, DOTATION_DSIL]),
+    ],
+)
+@pytest.mark.django_db
+def test_get_dotations_from_field(field, value, expected_dotation):
+    projet = ProjetFactory()
+    setattr(projet.dossier_ds, field, value)
+    dotation = DotationProjetService._get_dotations_from_field(projet, field)
+    assert dotation == expected_dotation

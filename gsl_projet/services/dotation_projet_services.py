@@ -1,12 +1,14 @@
 import logging
 from datetime import date
 from decimal import Decimal, InvalidOperation
+from typing import Any, Literal
 
 from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import Enveloppe
 from gsl_projet.constants import (
     DOTATION_DETR,
+    DOTATION_DSIL,
     POSSIBLE_DOTATIONS,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
@@ -14,7 +16,6 @@ from gsl_projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.models import DotationProjet, Projet
-from gsl_projet.services.projet_services import ProjetService
 from gsl_simulation.models import Simulation
 
 logger = logging.getLogger(__name__)
@@ -25,11 +26,9 @@ class DotationProjetService:
     def create_or_update_dotation_projet_from_projet(
         cls, projet: Projet
     ) -> list[DotationProjet]:
-        dotations = ProjetService.get_dotations_from_field(
-            projet, "annotations_dotation"
-        )
+        dotations = cls._get_dotations_from_field(projet, "annotations_dotation")
         if not dotations:
-            dotations = ProjetService.get_dotations_from_field(
+            dotations = cls._get_dotations_from_field(
                 projet, "demande_dispositif_sollicite"
             )
 
@@ -197,3 +196,41 @@ class DotationProjetService:
                 f"No enveloppe found for dotation {dotation_projet.dotation} and perimetre {projet_perimetre}"
             )
         return enveloppe
+
+    @classmethod
+    def _get_dotations_from_field(
+        cls,
+        projet: Projet,
+        field: Literal[
+            "annotations_dotation", "demande_dispositif_sollicite"
+        ] = "annotations_dotation",
+    ) -> list[Any]:
+        dotations_value = getattr(projet.dossier_ds, field)
+        dotations: list[Any] = []
+
+        if not dotations_value:
+            logger.warning(
+                "No dotation",
+                extra={
+                    "projet": projet.pk,
+                    "value": dotations_value,
+                    "field": field,
+                },
+            )
+            return dotations
+
+        if DOTATION_DETR in dotations_value:
+            dotations.append(DOTATION_DETR)
+        if DOTATION_DSIL in dotations_value:
+            dotations.append(DOTATION_DSIL)
+
+        if not dotations:
+            logger.warning(
+                "Dotation unknown",
+                extra={
+                    "projet": projet.pk,
+                    "value": dotations_value,
+                    "field": field,
+                },
+            )
+        return dotations
