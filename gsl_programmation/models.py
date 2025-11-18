@@ -2,7 +2,8 @@ from functools import cached_property
 
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.db.models import Sum
+from django.db.models import F, Sum
+from typing_extensions import deprecated
 
 from gsl_core.models import Perimetre
 from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
@@ -209,7 +210,16 @@ class ProgrammationProjetQuerySet(models.QuerySet):
         )
 
     def to_notify(self):
-        return self.filter(status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None)
+        return (
+            self.filter(status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None)
+            .annotate(
+                dotations_count=Sum("dotation_projet__projet__dotationprojet"),
+                programmation_count=Sum(
+                    "dotation_projet__projet__dotationprojet__programmation_projet"
+                ),
+            )
+            .filter(dotations_count=F("programmation_count"))
+        )
 
     def visible_to_user(self, user):
         if user.is_staff:
@@ -298,8 +308,9 @@ class ProgrammationProjet(models.Model):
         return compute_taux(self.montant, self.dotation_projet.assiette_or_cout_total)
 
     @property
+    @deprecated("Use `Projet.to_notify` instead.")
     def to_notify(self):
-        return self.notified_at is None and self.status == self.STATUS_ACCEPTED
+        return self.projet.to_notify
 
     @property
     def dotation(self):

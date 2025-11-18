@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime
 from datetime import timezone as tz
-from typing import TYPE_CHECKING, Iterator, Union
+from typing import TYPE_CHECKING, Iterator, List, Optional, Union
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -25,6 +25,7 @@ from gsl_projet.constants import (
 if TYPE_CHECKING:
     from gsl_demarches_simplifiees.models import CritereEligibiliteDsil, Dossier
     from gsl_programmation.models import Enveloppe
+    from gsl_simulation.models import SimulationProjet
 
 
 class CategorieDetrQueryset(models.QuerySet):
@@ -227,13 +228,16 @@ class Projet(models.Model):
 
     @property
     def to_notify(self) -> bool:
-        from gsl_programmation.models import ProgrammationProjet
-
-        return ProgrammationProjet.objects.filter(
-            dotation_projet__projet=self,
-            status=ProgrammationProjet.STATUS_ACCEPTED,
-            notified_at__isnull=True,
-        ).exists()
+        """
+        Returns True if the projet has not been notified yet, and all dotations have a programmation.
+        """
+        return all(
+            (
+                d.programmation_projet is not None
+                and d.programmation_projet.notified_at is None
+            )
+            for d in self.dotationprojet_set.all()
+        )
 
 
 class DotationProjet(models.Model):
@@ -317,6 +321,22 @@ class DotationProjet(models.Model):
     @property
     def dossier_ds(self):
         return self.projet.dossier_ds
+
+    @property
+    def other_dotations(self) -> List["DotationProjet"]:
+        return list(d for d in self.projet.dotationprojet_set.all() if d.pk != self.pk)
+
+    @property
+    def last_simulation(self) -> Optional["SimulationProjet"]:
+        """
+        We use python side sort so we benefit from prefetching !
+        """
+        simulations = sorted(
+            self.simulationprojet_set.all(),
+            key=lambda s: s.updated_at,
+            reverse=True,
+        )
+        return simulations[0] if len(simulations) else None
 
     @property
     def assiette_or_cout_total(self):
