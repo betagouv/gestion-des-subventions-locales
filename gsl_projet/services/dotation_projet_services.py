@@ -196,7 +196,7 @@ class DotationProjetService:
         detr_avis_commission = cls._get_detr_avis_commission(
             dotation, projet.dossier_ds
         )
-        assiette = cls._get_assiette_from_dossier(projet.dossier_ds)
+        assiette = cls._get_assiette_from_dossier(projet.dossier_ds, dotation)
         return DotationProjet.objects.create(
             projet=projet,
             dotation=dotation,
@@ -263,17 +263,24 @@ class DotationProjetService:
             dotation_projet, _ = DotationProjet.objects.get_or_create(
                 projet=projet,
                 dotation=dotation,
-                defaults={
-                    "assiette": cls._get_assiette_from_dossier(projet.dossier_ds),
-                    "detr_avis_commission": cls._get_detr_avis_commission(
-                        dotation, projet.dossier_ds
-                    ),
-                },
             )
+
+            assiette = cls._get_assiette_from_dossier(projet.dossier_ds, dotation)
+            if assiette is not None:  # we only update if we have an info
+                dotation_projet.assiette = assiette
+
+            detr_avis_commission = cls._get_detr_avis_commission(
+                dotation, projet.dossier_ds
+            )
+            if detr_avis_commission is not None:  # we only update if we have an info
+                dotation_projet.detr_avis_commission = detr_avis_commission
+
             enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
             montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
             dotation_projet.accept(enveloppe=enveloppe, montant=montant)
+
             dotation_projet.save()
+
             dotation_projets.append(dotation_projet)
 
         for dotation in dotations_to_remove:  # TODO DUN verify and test !
@@ -294,6 +301,7 @@ class DotationProjetService:
                     dotation_projet
                 )
                 dotation_projet.refuse(enveloppe=enveloppe)
+                dotation_projet.save()
             dotation_projets.append(dotation_projet)
         return dotation_projets
 
@@ -311,6 +319,7 @@ class DotationProjetService:
                     dotation_projet
                 )
                 dotation_projet.dismiss(enveloppe=enveloppe)
+                dotation_projet.save()
             dotation_projets.append(dotation_projet)
         return dotation_projets
 
@@ -323,7 +332,7 @@ class DotationProjetService:
         if projet_dps.filter(status=PROJET_STATUS_ACCEPTED).count() == 1:
             if (
                 projet_dps.filter(
-                    status_in=[PROJET_STATUS_DISMISSED, PROJET_STATUS_REFUSED]
+                    status__in=[PROJET_STATUS_DISMISSED, PROJET_STATUS_REFUSED]
                 ).count()
                 == 1
             ):
@@ -332,19 +341,21 @@ class DotationProjetService:
                 )
 
         dotation_projets = []
-        for dotation_projet in projet_dps:
+        for dotation_projet in projet_dps.all():
             dotation_projet.set_back_status_to_processing()
+            dotation_projet.save()
             dotation_projets.append(dotation_projet)
         return dotation_projets
 
     @classmethod
     def _update_dotation_projets_with_one_accepted_and_one_dismissed_or_refused(
         cls, projet: Projet
-    ) -> list[DotationProjet]:  # TODO DUN test
+    ) -> list[DotationProjet]:
         dotation_projets = []
         for dotation_projet in projet.dotationprojet_set.all():
             if dotation_projet.status == PROJET_STATUS_ACCEPTED:
                 dotation_projet.set_back_status_to_processing()
+                dotation_projet.save()
             dotation_projets.append(dotation_projet)
         return dotation_projets
 
@@ -452,7 +463,9 @@ class DotationProjetService:
         return enveloppe
 
     @classmethod
-    def _get_assiette_from_dossier(cls, dossier: Dossier, dotation: POSSIBLE_DOTATIONS):
+    def _get_assiette_from_dossier(
+        cls, dossier: Dossier, dotation: POSSIBLE_DOTATIONS
+    ) -> float | None:
         if dotation == DOTATION_DETR:
             assiette = dossier.annotations_assiette_detr
         elif dotation == DOTATION_DSIL:
@@ -465,7 +478,7 @@ class DotationProjetService:
                     "dotation": dotation,
                 },
             )
-            return 0  # TODO DUN handle case where assiette is missing
+            return None
         return assiette
 
     @classmethod
