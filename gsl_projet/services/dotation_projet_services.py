@@ -123,11 +123,10 @@ class DotationProjetService:
     @classmethod
     def _initialize_dotation_projets_from_projet_accepted(
         cls, projet: Projet
-    ) -> list[DotationProjet]:  # TODO DUN test
-        # TODO DUN handle case where dotations is empty !
+    ) -> list[DotationProjet]:
         dotations = cls._get_dotations_from_field(projet, "annotations_dotation")
 
-        if not dotations:  # TODO DUN ok with this logic ?
+        if not dotations:
             logger.warning(
                 "No dotations found in annotations_dotation for accepted dossier during initialisation",
                 extra={
@@ -158,7 +157,7 @@ class DotationProjetService:
     @classmethod
     def _initialize_dotation_projets_from_projet_refused(
         cls, projet: Projet
-    ) -> list[DotationProjet]:  # TODO DUN test
+    ) -> list[DotationProjet]:
         dotations = cls._get_dotations_from_field(
             projet, "demande_dispositif_sollicite"
         )
@@ -177,7 +176,7 @@ class DotationProjetService:
     @classmethod
     def _initialize_dotation_projets_from_projet_sans_suite(
         cls, projet: Projet
-    ) -> list[DotationProjet]:  # TODO DUN test
+    ) -> list[DotationProjet]:
         dotations = cls._get_dotations_from_field(
             projet, "demande_dispositif_sollicite"
         )
@@ -196,7 +195,7 @@ class DotationProjetService:
     @classmethod
     def _initialize_dotation_projets_from_projet_en_construction_or_instruction(
         cls, projet: Projet
-    ) -> list[DotationProjet]:  # TODO DUN test
+    ) -> list[DotationProjet]:
         dotations = cls._get_dotations_from_field(
             projet, "demande_dispositif_sollicite"
         )
@@ -245,7 +244,7 @@ class DotationProjetService:
             if date_traitement is not None and date_passage_en_instruction is not None:
                 is_dossier_back_to_instruction = (
                     date_traitement < date_passage_en_instruction
-                )  # TODO DUN verify and test !
+                )
                 if is_dossier_back_to_instruction:
                     return cls._update_dotation_projets_from_projet_back_to_instruction(
                         projet
@@ -257,12 +256,12 @@ class DotationProjetService:
     @classmethod
     def _update_dotation_projets_from_projet_accepted(
         cls, projet: Projet
-    ) -> list[DotationProjet]:  # TODO DUN test
+    ) -> list[DotationProjet]:
         dotations_to_accept = cls._get_dotations_from_field(
             projet, "annotations_dotation"
         )
-        # TODO test
-        if not dotations_to_accept:  # TODO DUN ok with this logic ?
+
+        if not dotations_to_accept:
             logger.warning(
                 "No dotations found in annotations_dotation for accepted dossier during update",
                 extra={
@@ -274,49 +273,50 @@ class DotationProjetService:
                 projet, "demande_dispositif_sollicite"
             )
 
-        dotations_to_remove = set(projet.dotations) - set(
-            dotations_to_accept
-        )  # TODO DUN verify and test !
-        dotation_projets = []  # TODO DUN verify and test
+        dotations_to_remove = set(projet.dotations) - set(dotations_to_accept)
+        dotation_projets = []
         for dotation in dotations_to_accept:
-            dotation_projet, _ = DotationProjet.objects.get_or_create(
-                projet=projet,
-                dotation=dotation,
-            )
-
-            assiette = cls._get_assiette_from_dossier(projet.dossier_ds, dotation)
-            if assiette is not None:  # we only update if we have an info
-                dotation_projet.assiette = assiette
-
-            detr_avis_commission = cls._get_detr_avis_commission(
-                dotation, projet.dossier_ds
-            )
-            if detr_avis_commission is not None:  # we only update if we have an info
-                dotation_projet.detr_avis_commission = detr_avis_commission
-
-            enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
-            montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
-            notified_at = pps._get_notify_datetime_from_dotation_projet(
-                projet.dossier_ds
-            )
-            dotation_projet.accept(
-                enveloppe=enveloppe, montant=montant, notified_at=notified_at
-            )
-            dotation_projet.save()
-
+            dotation_projet = cls._accept_dotation_projet(projet, dotation)
             dotation_projets.append(dotation_projet)
 
-        for dotation in dotations_to_remove:  # TODO DUN verify and test !
-            dotation_projet = (
-                DotationProjet.objects.filter(projet=projet, dotation=dotation).delete()
-            )  # TODO verify that a potential programmation projet is also deleted
+        for dotation in dotations_to_remove:
+            DotationProjet.objects.filter(projet=projet, dotation=dotation).delete()
 
         return dotation_projets
 
     @classmethod
+    def _accept_dotation_projet(
+        cls, projet: Projet, dotation: POSSIBLE_DOTATIONS
+    ) -> DotationProjet:
+        dotation_projet, _ = DotationProjet.objects.get_or_create(
+            projet=projet,
+            dotation=dotation,
+        )
+
+        assiette = cls._get_assiette_from_dossier(projet.dossier_ds, dotation)
+        if assiette is not None:  # we only update if we have an info
+            dotation_projet.assiette = assiette
+
+        detr_avis_commission = cls._get_detr_avis_commission(
+            dotation, projet.dossier_ds
+        )
+        if detr_avis_commission is not None:  # we only update if we have an info
+            dotation_projet.detr_avis_commission = detr_avis_commission
+
+        enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
+        montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
+        notified_at = pps._get_notify_datetime_from_dotation_projet(projet.dossier_ds)
+        dotation_projet.accept(
+            enveloppe=enveloppe, montant=montant, notified_at=notified_at
+        )
+        dotation_projet.save()
+
+        return dotation_projet
+
+    @classmethod
     def _update_dotation_projets_from_projet_refused(
         cls, projet: Projet
-    ) -> list[DotationProjet]:  # TODO DUN test
+    ) -> list[DotationProjet]:
         dotation_projets = []
         for dotation_projet in projet.dotationprojet_set.all():
             if dotation_projet.status != PROJET_STATUS_REFUSED:
@@ -334,7 +334,7 @@ class DotationProjetService:
     @classmethod
     def _update_dotation_projets_from_projet_sans_suite(
         cls, projet: Projet
-    ) -> list[DotationProjet]:  # TODO DUN test
+    ) -> list[DotationProjet]:
         dotation_projets = []
         for dotation_projet in projet.dotationprojet_set.all():
             if dotation_projet.status not in [
@@ -355,7 +355,7 @@ class DotationProjetService:
     @classmethod
     def _update_dotation_projets_from_projet_back_to_instruction(
         cls, projet: Projet
-    ) -> list[DotationProjet]:  # TODO DUN test
+    ) -> list[DotationProjet]:
         projet_dps = projet.dotationprojet_set
 
         if projet_dps.filter(status=PROJET_STATUS_ACCEPTED).count() == 1:
@@ -387,68 +387,6 @@ class DotationProjetService:
                 dotation_projet.save()
             dotation_projets.append(dotation_projet)
         return dotation_projets
-
-    # # TODO to remove
-    # @classmethod
-    # def _create_or_update_dotation_projet(
-    #     cls, projet: Projet, dotation: POSSIBLE_DOTATIONS
-    # ):
-    #     detr_avis_commission = cls._get_detr_avis_commission(
-    #         dotation, projet.dossier_ds
-    #     )
-    #     assiette = projet.dossier_ds.annotations_assiette
-
-    #     dotation_projet, _ = DotationProjet.objects.update_or_create(
-    #         projet=projet,
-    #         dotation=dotation,
-    #         defaults={
-    #             "assiette": assiette,
-    #             "detr_avis_commission": detr_avis_commission,
-    #         },
-    #     )
-    #     status = cls._get_dotation_projet_status_from_dossier(
-    #         projet.dossier_ds, dotation_projet
-    #     )
-    #     if dotation_projet.status != status:
-    #         if status == PROJET_STATUS_REFUSED:
-    #             enveloppe = cls._get_root_enveloppe_from_dotation_projet(
-    #                 dotation_projet
-    #             )
-    #             dotation_projet.refuse(enveloppe)
-    #         else:
-    #             dotation_projet.status = status  # TODO use transitions in next PRs
-    #         dotation_projet.save()
-
-    #     if dotation == DOTATION_DETR:
-    #         for critere in projet.dossier_ds.demande_eligibilite_detr.filter(
-    #             detr_category__isnull=False
-    #         ):
-    #             dotation_projet.detr_categories.add(critere.detr_category)
-    #     return dotation_projet
-
-    # # TODO to remove
-    # DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS = {
-    #     Dossier.STATE_ACCEPTE: PROJET_STATUS_ACCEPTED,
-    #     Dossier.STATE_EN_CONSTRUCTION: PROJET_STATUS_PROCESSING,
-    #     Dossier.STATE_EN_INSTRUCTION: PROJET_STATUS_PROCESSING,
-    #     Dossier.STATE_REFUSE: PROJET_STATUS_REFUSED,
-    #     Dossier.STATE_SANS_SUITE: PROJET_STATUS_DISMISSED,
-    # }
-
-    # # TODO to remove
-    # @classmethod
-    # def _get_dotation_projet_status_from_dossier(
-    #     cls, dossier: Dossier, dotation_projet: DotationProjet
-    # ):
-    #     if (
-    #         dossier.ds_state
-    #         in [Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION]
-    #         and dotation_projet.status == PROJET_STATUS_ACCEPTED
-    #         and hasattr(dotation_projet, "programmation_projet")
-    #         and dotation_projet.programmation_projet.notified_at is None
-    #     ):
-    #         return PROJET_STATUS_ACCEPTED
-    #     return cls.DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS.get(dossier.ds_state)
 
     ## -------------------------- Utils --------------------------
 
@@ -526,7 +464,7 @@ class DotationProjetService:
                     "dotation": dotation,
                 },
             )
-            return 0  # TODO DUN handle case where montant is missing
+            return 0
         return montant
 
     @classmethod
