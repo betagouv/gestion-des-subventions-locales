@@ -246,7 +246,6 @@ def simulations_of_previous_year_current_year_and_next_year_for_each_perimetres_
             )
 
 
-# @freeze_time("2025-05-06")
 @pytest.mark.django_db
 def test_create_simulation_projets_from_dotation_projet_with_a_detr_and_arrondissement_projet(
     perimetres,
@@ -289,7 +288,6 @@ def test_create_simulation_projets_from_dotation_projet_with_a_detr_and_arrondis
     assert last_year_simulation_projets.count() == 0
 
 
-# @freeze_time("2025-05-06")
 @pytest.mark.django_db
 def test_create_simulation_projets_from_dotation_projet_with_a_dsil_and_departement_projet(
     perimetres,
@@ -1043,8 +1041,21 @@ def test_update_dotation_projets_from_projet_sans_suite_does_not_update_already_
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    "status_1, status_2",
+    (
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_ACCEPTED),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_REFUSED),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_DISMISSED),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED),
+        (PROJET_STATUS_PROCESSING, PROJET_STATUS_DISMISSED),
+        (PROJET_STATUS_PROCESSING, PROJET_STATUS_REFUSED),
+    ),
+)
 @freeze_time("2025-05-06")
-def test_update_dotation_projets_from_projet_back_to_instruction(perimetres):
+def test_update_dotation_projets_from_projet_back_to_instruction(
+    perimetres, status_1, status_2
+):
     """Test _update_dotation_projets_from_projet_back_to_instruction"""
     projet = ProjetFactory(
         dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
@@ -1056,10 +1067,10 @@ def test_update_dotation_projets_from_projet_back_to_instruction(perimetres):
 
     # Create dotation projets with different statuses
     detr_dp = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=status_1
     )
     dsil_dp = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_REFUSED
+        projet=projet, dotation=DOTATION_DSIL, status=status_2
     )
 
     dotation_projets = dps._update_dotation_projets_from_projet(projet)
@@ -1070,12 +1081,16 @@ def test_update_dotation_projets_from_projet_back_to_instruction(perimetres):
     assert detr_dp.status == PROJET_STATUS_PROCESSING
 
     dsil_dp.refresh_from_db()
-    assert dsil_dp.status == PROJET_STATUS_REFUSED
+    assert dsil_dp.status == PROJET_STATUS_PROCESSING
 
 
+@pytest.mark.parametrize(
+    "refused_or_dismissed", (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED)
+)
 @pytest.mark.django_db
 def test_update_dotation_projets_from_projet_back_to_instruction_with_one_accepted_and_one_dismissed(
     perimetres,
+    refused_or_dismissed,
 ):
     """Test _update_dotation_projets_from_projet_back_to_instruction with one accepted and one dismissed"""
     arr_dijon, dep_21, region_bfc, *_ = perimetres
@@ -1094,7 +1109,7 @@ def test_update_dotation_projets_from_projet_back_to_instruction_with_one_accept
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
     dsil_dp = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_DISMISSED
+        projet=projet, dotation=DOTATION_DSIL, status=refused_or_dismissed
     )
 
     dotation_projets = dps._update_dotation_projets_from_projet_back_to_instruction(
@@ -1108,35 +1123,7 @@ def test_update_dotation_projets_from_projet_back_to_instruction_with_one_accept
 
     dsil_dp.refresh_from_db()
     # The dismissed one should remain dismissed (not updated)
-    assert dsil_dp.status == PROJET_STATUS_DISMISSED
-
-
-@pytest.mark.django_db
-def test_update_dotation_projets_with_one_accepted_and_one_dismissed_or_refused():
-    """Test _update_dotation_projets_with_one_accepted_and_one_dismissed_or_refused"""
-    projet = ProjetFactory()
-
-    # Create one accepted and one dismissed dotation projet
-    detr_dp = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
-    )
-    dsil_dp = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_DISMISSED
-    )
-
-    dotation_projets = (
-        dps._update_dotation_projets_with_one_accepted_and_one_dismissed_or_refused(
-            projet
-        )
-    )
-
-    assert len(dotation_projets) == 2
-
-    detr_dp.refresh_from_db()
-    assert detr_dp.status == PROJET_STATUS_PROCESSING
-
-    dsil_dp.refresh_from_db()
-    assert dsil_dp.status == PROJET_STATUS_DISMISSED  # Not changed
+    assert dsil_dp.status == refused_or_dismissed
 
 
 @pytest.mark.django_db
