@@ -331,53 +331,6 @@ def test_create_simulation_projets_from_dotation_projet_with_a_dsil_and_departem
     assert last_year_simulation_projets.count() == 0
 
 
-# @pytest.mark.django_db
-# def test_get_dotation_projet_status_from_dossier():
-#     dp = DotationProjetFactory()
-#     accepted = Dossier(ds_state=Dossier.STATE_ACCEPTE)
-#     en_construction = Dossier(ds_state=Dossier.STATE_EN_CONSTRUCTION)
-#     en_instruction = Dossier(ds_state=Dossier.STATE_EN_INSTRUCTION)
-#     refused = Dossier(ds_state=Dossier.STATE_REFUSE)
-#     dismissed = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
-
-#     # enhance lisibility
-#     tested_function = dps._get_dotation_projet_status_from_dossier
-
-#     assert tested_function(accepted, dp) == PROJET_STATUS_ACCEPTED
-#     assert tested_function(en_construction, dp) == PROJET_STATUS_PROCESSING
-#     assert tested_function(en_instruction, dp) == PROJET_STATUS_PROCESSING
-#     assert tested_function(refused, dp) == PROJET_STATUS_REFUSED
-#     assert tested_function(dismissed, dp) == PROJET_STATUS_DISMISSED
-
-#     dossier_unknown = Dossier(ds_state="unknown_state")
-#     assert tested_function(dossier_unknown, dp) is None
-
-
-# @pytest.mark.django_db
-# def test_get_dotation_projet_status_from_dossier_with_an_accepted_but_not_notified_dotation_projet():
-#     dp = DotationProjetFactory(
-#         status=PROJET_STATUS_ACCEPTED,
-#     )
-#     dp.programmation_projet = ProgrammationProjetFactory(
-#         status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None
-#     )
-
-#     accepted = Dossier(ds_state=Dossier.STATE_ACCEPTE)
-#     en_construction = Dossier(ds_state=Dossier.STATE_EN_CONSTRUCTION)
-#     en_instruction = Dossier(ds_state=Dossier.STATE_EN_INSTRUCTION)
-#     refused = Dossier(ds_state=Dossier.STATE_REFUSE)
-#     dismissed = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
-
-#     # enhance lisibility
-#     tested_function = dps._get_dotation_projet_status_from_dossier
-
-#     assert tested_function(accepted, dp) == PROJET_STATUS_ACCEPTED
-#     assert tested_function(en_construction, dp) == PROJET_STATUS_ACCEPTED
-#     assert tested_function(en_instruction, dp) == PROJET_STATUS_ACCEPTED
-#     assert tested_function(refused, dp) == PROJET_STATUS_REFUSED
-#     assert tested_function(dismissed, dp) == PROJET_STATUS_DISMISSED
-
-
 @pytest.mark.parametrize("dotation", (DOTATION_DETR, DOTATION_DSIL))
 @pytest.mark.parametrize(
     "dossier_state",

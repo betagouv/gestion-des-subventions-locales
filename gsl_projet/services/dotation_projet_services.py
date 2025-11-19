@@ -3,6 +3,7 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any, Literal
 
+from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import Enveloppe
@@ -403,16 +404,11 @@ class DotationProjetService:
             deleguee_by__isnull=True,
         )
         projet_perimetre = dotation_projet.projet.perimetre
+        perimetre = cls._get_perimetre_from_dotation(
+            projet_perimetre, dotation_projet.dotation
+        )
         try:
-            try:
-                try:
-                    enveloppe = enveloppe_qs.get(perimetre=projet_perimetre)
-                except Enveloppe.DoesNotExist:
-                    enveloppe = enveloppe_qs.get(
-                        perimetre__departement=projet_perimetre.departement
-                    )
-            except Enveloppe.DoesNotExist:
-                enveloppe = enveloppe_qs.get(perimetre__region=projet_perimetre.region)
+            return enveloppe_qs.get(perimetre=perimetre)
         except Enveloppe.DoesNotExist:
             logger.warning(
                 "No enveloppe found for a dotation projet",
@@ -424,9 +420,26 @@ class DotationProjetService:
                 },
             )
             raise Enveloppe.DoesNotExist(
-                f"No enveloppe found for dotation {dotation_projet.dotation} and perimetre {projet_perimetre}"
+                f"No enveloppe found for dotation {dotation_projet.dotation}, perimetre {projet_perimetre} and year {year}"
             )
-        return enveloppe
+
+    @classmethod
+    def _get_perimetre_from_dotation(
+        cls, projet_perimetre: Perimetre, dotation: str
+    ) -> Perimetre | None:
+        if dotation == DOTATION_DETR:
+            return Perimetre.objects.get(
+                departement=projet_perimetre.departement, arrondissement=None
+            )
+
+        elif dotation == DOTATION_DSIL:
+            return Perimetre.objects.get(
+                region=projet_perimetre.departement.region,
+                departement=None,
+                arrondissement=None,
+            )
+
+        return None
 
     @classmethod
     def _get_assiette_from_dossier(

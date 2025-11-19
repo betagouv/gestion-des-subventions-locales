@@ -66,7 +66,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_an_other_dotation_than
 ):
     """
     On teste le fait qu'un dossier DS avec une annotation_dotation donnée ne supprime pas les dotation_projets avec une autre dotation dans notre application.
-    Désormais, on ignore les annotations dotation lorsque le dossier n'est pas accepté. Donc ici, la dotation DSIL ne sera pas instanciée pour ce projet.
+    Désormais, on ignore l'annotation dotation lorsque le dossier n'est pas accepté. Donc ici, la dotation DSIL ne sera pas instanciée pour ce projet.
     """
     dossier = DossierFactory(
         ds_state=Dossier.STATE_EN_CONSTRUCTION,
@@ -118,10 +118,9 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
         dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         montant=400,
-        notified_at=datetime(
-            2024, 1, 15, 10, 30, tzinfo=UTC
-        ),  # if notified_at not set, projet should stay accepted
+        notified_at=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
     )
+    # Notified or not, projet should stay accepted
 
     assert projet.status == PROJET_STATUS_ACCEPTED
 
@@ -431,7 +430,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
 
 
 @pytest.mark.django_db
-def test_task_create_or_update_projet_and_co_from_dossier_update_annotations(
+def test_task_create_or_update_projet_and_co_from_dossier_update_from_annotations(
     commune, detr_enveloppe
 ):
     dossier = DossierFactory(

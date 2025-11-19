@@ -97,8 +97,6 @@ def detr_projets(
             perimetre=arrondissement_perimetre,
         )
         detr_projet = DetrProjetFactory(projet=projet, status=status, assiette=assiette)
-        # if state == Dossier.STATE_ACCEPTE:
-
         detr_projets.append(detr_projet)
     return detr_projets
 
