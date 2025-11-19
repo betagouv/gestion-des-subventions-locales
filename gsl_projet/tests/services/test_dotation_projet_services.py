@@ -45,6 +45,28 @@ from gsl_simulation.models import Simulation, SimulationProjet
 from gsl_simulation.tests.factories import SimulationFactory
 
 
+@pytest.fixture
+def perimetres():
+    arr_dijon = PerimetreArrondissementFactory()
+    dep_21 = PerimetreDepartementalFactory(
+        departement=arr_dijon.departement, region=arr_dijon.region
+    )
+    region_bfc = PerimetreRegionalFactory(region=dep_21.region)
+
+    arr_nanterre = PerimetreArrondissementFactory()
+    dep_92 = PerimetreDepartementalFactory(departement=arr_nanterre.departement)
+    region_idf = PerimetreRegionalFactory(region=dep_92.region)
+    return [
+        arr_dijon,
+        dep_21,
+        region_bfc,
+        arr_nanterre,
+        dep_92,
+        region_idf,
+    ]
+
+
+@freeze_time("2025-05-06")
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "field", ("annotations_dotation", "demande_dispositif_sollicite")
@@ -62,11 +84,19 @@ from gsl_simulation.tests.factories import SimulationFactory
     ),
 )
 def test_create_or_update_dotation_projet_from_projet(
-    field, dotation_value, dotation_projet_count
+    field,
+    dotation_value,
+    dotation_projet_count,
+    perimetres,
 ):
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
     projet = ProjetFactory(
         dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
-        dossier_ds__annotations_assiette=1_000,
+        dossier_ds__annotations_assiette_detr=1_000,
+        dossier_ds__annotations_assiette_dsil=1_000,
+        perimetre=arr_dijon,
     )
     setattr(projet.dossier_ds, field, dotation_value)
 
@@ -85,8 +115,11 @@ def test_create_or_update_dotation_projet_from_projet(
 
 
 @pytest.mark.django_db
-def test_create_or_update_dotation_projet_from_projet_do_not_remove_dotation_projet_not_in_dossier():
-    projet = ProjetFactory(dossier_ds__annotations_dotation="DETR")
+def test_create_or_update_dotation_projet_from_en_instruction_projet_ignore_annotations():
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+        dossier_ds__annotations_dotation="DETR",
+    )
     projet_dotation_dsil = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
     projet_dotation_projets = DotationProjet.objects.filter(projet=projet)
     assert projet_dotation_projets.count() == 1
@@ -96,18 +129,24 @@ def test_create_or_update_dotation_projet_from_projet_do_not_remove_dotation_pro
     projet_dotation_dsil.refresh_from_db()  # always exists
 
     projet_dotation_projets = DotationProjet.objects.filter(projet_id=projet.id)
-    assert projet_dotation_projets.count() == 2
+    assert projet_dotation_projets.count() == 1
 
     dsil_dotation_projets = projet_dotation_projets.filter(dotation=DOTATION_DSIL)
     assert dsil_dotation_projets.count() == 1
 
     detr_dotation_projet = projet_dotation_projets.filter(dotation=DOTATION_DETR)
-    assert detr_dotation_projet.count() == 1
+    assert detr_dotation_projet.count() == 0
 
 
 @pytest.mark.django_db
-def test_create_or_update_dotation_projet_from_projet_also_refuse_dsil_dotation_projet_even_if_not_in_demande_dispositif_sollicite():
+def test_create_or_update_dotation_projet_from_projet_also_refuse_dsil_dotation_projet_even_if_not_in_demande_dispositif_sollicite(
+    perimetres,
+):
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
     projet = ProjetFactory(
+        perimetre=arr_dijon,
         dossier_ds__ds_state=Dossier.STATE_REFUSE,
         dossier_ds__demande_dispositif_sollicite="DETR",
     )
@@ -163,27 +202,6 @@ def test_create_or_update_dotation_projet(dotation):
         assert dotation_projet.detr_categories.count() == 0
     else:
         assert categorie_detr in dotation_projet.detr_categories.all()
-
-
-@pytest.fixture
-def perimetres():
-    arr_dijon = PerimetreArrondissementFactory()
-    dep_21 = PerimetreDepartementalFactory(
-        departement=arr_dijon.departement, region=arr_dijon.region
-    )
-    region_bfc = PerimetreRegionalFactory(region=dep_21.region)
-
-    arr_nanterre = PerimetreArrondissementFactory()
-    dep_92 = PerimetreDepartementalFactory(departement=arr_nanterre.departement)
-    region_idf = PerimetreRegionalFactory(region=dep_92.region)
-    return [
-        arr_dijon,
-        dep_21,
-        region_bfc,
-        arr_nanterre,
-        dep_92,
-        region_idf,
-    ]
 
 
 @pytest.fixture
@@ -654,8 +672,8 @@ def test_initialize_dotation_projets_from_projet_accepted_with_empty_annotations
         dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
         dossier_ds__annotations_dotation="",  # Empty
         dossier_ds__demande_dispositif_sollicite="DETR",
-        dossier_ds__annotations_assiette_detr=10_000,  # TODO DUN à voir si on envisage ce cas-là ou si pas d'annotations dotation implique pas d'assiette / montant ?
-        dossier_ds__annotations_montant_accorde_detr=5_000,
+        dossier_ds__annotations_assiette_detr=None,
+        dossier_ds__annotations_montant_accorde_detr=None,
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
         perimetre=arr_dijon,
     )
@@ -666,13 +684,15 @@ def test_initialize_dotation_projets_from_projet_accepted_with_empty_annotations
     assert len(dotation_projets) == 1
     detr_dp = DotationProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
     assert detr_dp.status == PROJET_STATUS_ACCEPTED
-    assert detr_dp.assiette == 10_000
-    assert detr_dp.montant_retenu == 5_000
+    assert detr_dp.assiette is None
+    assert detr_dp.montant_retenu == 0
+    assert detr_dp.taux_retenu == 0
+    assert detr_dp.detr_avis_commission is True
     assert detr_dp.programmation_projet is not None
     assert detr_dp.programmation_projet.status == PROJET_STATUS_ACCEPTED
 
     # Check log message, level and extra
-    assert len(caplog.records) == 2
+    assert len(caplog.records) == 4
     record = caplog.records[0]
     assert record.message == "No dotation"
     assert record.levelname == "WARNING"
@@ -689,6 +709,18 @@ def test_initialize_dotation_projets_from_projet_accepted_with_empty_annotations
     assert record.levelname == "WARNING"
     assert getattr(record, "dossier_ds_number", None) == projet.dossier_ds.ds_number
     assert getattr(record, "projet", None) == projet.pk
+
+    record = caplog.records[2]
+    assert record.message == "Assiette is missing in dossier annotations"
+    assert record.levelname == "WARNING"
+    assert getattr(record, "dossier_ds_number", None) == projet.dossier_ds.ds_number
+    assert getattr(record, "dotation", None) == DOTATION_DETR
+
+    record = caplog.records[3]
+    assert record.message == "Montant is missing in dossier annotations"
+    assert record.levelname == "WARNING"
+    assert getattr(record, "dossier_ds_number", None) == projet.dossier_ds.ds_number
+    assert getattr(record, "dotation", None) == DOTATION_DETR
 
 
 @pytest.mark.django_db
