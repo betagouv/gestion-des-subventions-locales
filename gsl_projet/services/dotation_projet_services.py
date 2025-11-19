@@ -124,9 +124,9 @@ class DotationProjetService:
     def _initialize_dotation_projets_from_projet_accepted(
         cls, projet: Projet
     ) -> list[DotationProjet]:  # TODO DUN test
-        dotations = cls._get_dotations_from_field(
-            projet, "annotations_dotation"
-        )  # TODO DUN handle case where dotations is empty !
+        # TODO DUN handle case where dotations is empty !
+        dotations = cls._get_dotations_from_field(projet, "annotations_dotation")
+
         if not dotations:  # TODO DUN ok with this logic ?
             logger.warning(
                 "No dotations found in annotations_dotation for accepted dossier during initialisation",
