@@ -13,6 +13,7 @@ from gsl_projet.constants import (
     POSSIBLE_DOTATIONS,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.models import DotationProjet, Projet
@@ -369,8 +370,10 @@ class DotationProjetService:
 
         dotation_projets = []
         for dotation_projet in projet_dps.all():
-            dotation_projet.set_back_status_to_processing()
-            dotation_projet.save()
+            if dotation_projet.status != PROJET_STATUS_PROCESSING:
+                dotation_projet.set_back_status_to_processing()
+                dotation_projet.save()
+
             dotation_projets.append(dotation_projet)
         return dotation_projets
 
