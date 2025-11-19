@@ -6,13 +6,15 @@ from typing import Any, Literal
 from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import Enveloppe
+from gsl_programmation.services.programmation_projet_service import (
+    ProgrammationProjetService as pps,
+)
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     POSSIBLE_DOTATIONS,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.models import DotationProjet, Projet
@@ -33,6 +35,8 @@ class DotationProjetService:
 
         # check for updates
         dotation_projets = cls._update_dotation_projets_from_projet(projet)
+
+        cls._update_detr_categories(dotation_projets)
         return dotation_projets
 
     @classmethod
@@ -93,6 +97,8 @@ class DotationProjetService:
 
     # private
 
+    ## -------------------------- Initialize Dotation Projets --------------------------
+
     @classmethod
     def _initialize_dotation_projets_from_projet(
         cls, projet: Projet
@@ -139,7 +145,12 @@ class DotationProjetService:
             dotation_projet = cls._create_dotation_projet(projet, dotation)
             enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
             montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
-            dotation_projet.accept(enveloppe=enveloppe, montant=montant)
+            notified_at = pps._get_notify_datetime_from_dotation_projet(
+                projet.dossier_ds
+            )
+            dotation_projet.accept(
+                enveloppe=enveloppe, montant=montant, notified_at=notified_at
+            )
             dotation_projet.save()
             dotation_projets.append(dotation_projet)
         return dotation_projets
@@ -155,7 +166,10 @@ class DotationProjetService:
         for dotation in dotations:
             dotation_projet = cls._create_dotation_projet(projet, dotation)
             enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
-            dotation_projet.refuse(enveloppe=enveloppe)
+            notified_at = pps._get_notify_datetime_from_dotation_projet(
+                projet.dossier_ds
+            )
+            dotation_projet.refuse(enveloppe=enveloppe, notified_at=notified_at)
             dotation_projet.save()
             dotation_projets.append(dotation_projet)
         return dotation_projets
@@ -171,7 +185,10 @@ class DotationProjetService:
         for dotation in dotations:
             dotation_projet = cls._create_dotation_projet(projet, dotation)
             enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
-            dotation_projet.dismiss(enveloppe=enveloppe)
+            notified_at = pps._get_notify_datetime_from_dotation_projet(
+                projet.dossier_ds
+            )
+            dotation_projet.dismiss(enveloppe=enveloppe, notified_at=notified_at)
             dotation_projet.save()
             dotation_projets.append(dotation_projet)
         return dotation_projets
@@ -204,6 +221,8 @@ class DotationProjetService:
             assiette=assiette,
         )
 
+    ## -------------------------- Update Dotation Projets --------------------------
+
     @classmethod
     def _update_dotation_projets_from_projet(
         cls, projet: Projet
@@ -233,7 +252,7 @@ class DotationProjetService:
                     )
         else:
             raise ValueError(f"Invalid dossier status: {dossier_status}")
-        return []
+        return projet.dotationprojet_set.all()
 
     @classmethod
     def _update_dotation_projets_from_projet_accepted(
@@ -277,8 +296,12 @@ class DotationProjetService:
 
             enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
             montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
-            dotation_projet.accept(enveloppe=enveloppe, montant=montant)
-
+            notified_at = pps._get_notify_datetime_from_dotation_projet(
+                projet.dossier_ds
+            )
+            dotation_projet.accept(
+                enveloppe=enveloppe, montant=montant, notified_at=notified_at
+            )
             dotation_projet.save()
 
             dotation_projets.append(dotation_projet)
@@ -300,7 +323,10 @@ class DotationProjetService:
                 enveloppe = cls._get_root_enveloppe_from_dotation_projet(
                     dotation_projet
                 )
-                dotation_projet.refuse(enveloppe=enveloppe)
+                notified_at = pps._get_notify_datetime_from_dotation_projet(
+                    projet.dossier_ds
+                )
+                dotation_projet.refuse(enveloppe=enveloppe, notified_at=notified_at)
                 dotation_projet.save()
             dotation_projets.append(dotation_projet)
         return dotation_projets
@@ -318,7 +344,10 @@ class DotationProjetService:
                 enveloppe = cls._get_root_enveloppe_from_dotation_projet(
                     dotation_projet
                 )
-                dotation_projet.dismiss(enveloppe=enveloppe)
+                notified_at = pps._get_notify_datetime_from_dotation_projet(
+                    projet.dossier_ds
+                )
+                dotation_projet.dismiss(enveloppe=enveloppe, notified_at=notified_at)
                 dotation_projet.save()
             dotation_projets.append(dotation_projet)
         return dotation_projets
@@ -359,67 +388,69 @@ class DotationProjetService:
             dotation_projets.append(dotation_projet)
         return dotation_projets
 
-    # TODO to remove
-    @classmethod
-    def _create_or_update_dotation_projet(
-        cls, projet: Projet, dotation: POSSIBLE_DOTATIONS
-    ):
-        detr_avis_commission = cls._get_detr_avis_commission(
-            dotation, projet.dossier_ds
-        )
-        assiette = projet.dossier_ds.annotations_assiette
+    # # TODO to remove
+    # @classmethod
+    # def _create_or_update_dotation_projet(
+    #     cls, projet: Projet, dotation: POSSIBLE_DOTATIONS
+    # ):
+    #     detr_avis_commission = cls._get_detr_avis_commission(
+    #         dotation, projet.dossier_ds
+    #     )
+    #     assiette = projet.dossier_ds.annotations_assiette
 
-        dotation_projet, _ = DotationProjet.objects.update_or_create(
-            projet=projet,
-            dotation=dotation,
-            defaults={
-                "assiette": assiette,
-                "detr_avis_commission": detr_avis_commission,
-            },
-        )
-        status = cls._get_dotation_projet_status_from_dossier(
-            projet.dossier_ds, dotation_projet
-        )
-        if dotation_projet.status != status:
-            if status == PROJET_STATUS_REFUSED:
-                enveloppe = cls._get_root_enveloppe_from_dotation_projet(
-                    dotation_projet
-                )
-                dotation_projet.refuse(enveloppe)
-            else:
-                dotation_projet.status = status  # TODO use transitions in next PRs
-            dotation_projet.save()
+    #     dotation_projet, _ = DotationProjet.objects.update_or_create(
+    #         projet=projet,
+    #         dotation=dotation,
+    #         defaults={
+    #             "assiette": assiette,
+    #             "detr_avis_commission": detr_avis_commission,
+    #         },
+    #     )
+    #     status = cls._get_dotation_projet_status_from_dossier(
+    #         projet.dossier_ds, dotation_projet
+    #     )
+    #     if dotation_projet.status != status:
+    #         if status == PROJET_STATUS_REFUSED:
+    #             enveloppe = cls._get_root_enveloppe_from_dotation_projet(
+    #                 dotation_projet
+    #             )
+    #             dotation_projet.refuse(enveloppe)
+    #         else:
+    #             dotation_projet.status = status  # TODO use transitions in next PRs
+    #         dotation_projet.save()
 
-        if dotation == DOTATION_DETR:
-            for critere in projet.dossier_ds.demande_eligibilite_detr.filter(
-                detr_category__isnull=False
-            ):
-                dotation_projet.detr_categories.add(critere.detr_category)
-        return dotation_projet
+    #     if dotation == DOTATION_DETR:
+    #         for critere in projet.dossier_ds.demande_eligibilite_detr.filter(
+    #             detr_category__isnull=False
+    #         ):
+    #             dotation_projet.detr_categories.add(critere.detr_category)
+    #     return dotation_projet
 
-    # TODO to remove
-    DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS = {
-        Dossier.STATE_ACCEPTE: PROJET_STATUS_ACCEPTED,
-        Dossier.STATE_EN_CONSTRUCTION: PROJET_STATUS_PROCESSING,
-        Dossier.STATE_EN_INSTRUCTION: PROJET_STATUS_PROCESSING,
-        Dossier.STATE_REFUSE: PROJET_STATUS_REFUSED,
-        Dossier.STATE_SANS_SUITE: PROJET_STATUS_DISMISSED,
-    }
+    # # TODO to remove
+    # DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS = {
+    #     Dossier.STATE_ACCEPTE: PROJET_STATUS_ACCEPTED,
+    #     Dossier.STATE_EN_CONSTRUCTION: PROJET_STATUS_PROCESSING,
+    #     Dossier.STATE_EN_INSTRUCTION: PROJET_STATUS_PROCESSING,
+    #     Dossier.STATE_REFUSE: PROJET_STATUS_REFUSED,
+    #     Dossier.STATE_SANS_SUITE: PROJET_STATUS_DISMISSED,
+    # }
 
-    # TODO to remove
-    @classmethod
-    def _get_dotation_projet_status_from_dossier(
-        cls, dossier: Dossier, dotation_projet: DotationProjet
-    ):
-        if (
-            dossier.ds_state
-            in [Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION]
-            and dotation_projet.status == PROJET_STATUS_ACCEPTED
-            and hasattr(dotation_projet, "programmation_projet")
-            and dotation_projet.programmation_projet.notified_at is None
-        ):
-            return PROJET_STATUS_ACCEPTED
-        return cls.DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS.get(dossier.ds_state)
+    # # TODO to remove
+    # @classmethod
+    # def _get_dotation_projet_status_from_dossier(
+    #     cls, dossier: Dossier, dotation_projet: DotationProjet
+    # ):
+    #     if (
+    #         dossier.ds_state
+    #         in [Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION]
+    #         and dotation_projet.status == PROJET_STATUS_ACCEPTED
+    #         and hasattr(dotation_projet, "programmation_projet")
+    #         and dotation_projet.programmation_projet.notified_at is None
+    #     ):
+    #         return PROJET_STATUS_ACCEPTED
+    #     return cls.DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS.get(dossier.ds_state)
+
+    ## -------------------------- Utils --------------------------
 
     @classmethod
     def _get_detr_avis_commission(cls, dotation: str, ds_dossier: Dossier):
@@ -537,3 +568,16 @@ class DotationProjetService:
                 },
             )
         return dotations
+
+    @classmethod
+    def _update_detr_categories(cls, dotation_projets: list[DotationProjet]):
+        for dotation_projet in dotation_projets:
+            if dotation_projet.dotation != DOTATION_DETR:
+                continue
+
+            for (
+                critere
+            ) in dotation_projet.projet.dossier_ds.demande_eligibilite_detr.filter(
+                detr_category__isnull=False
+            ):
+                dotation_projet.detr_categories.add(critere.detr_category)

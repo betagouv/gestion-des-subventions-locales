@@ -16,26 +16,24 @@ logger = logging.getLogger(__name__)
 class ProjetService:
     @classmethod
     def create_or_update_projet_and_co_from_dossier(cls, ds_dossier_number: str):
-        from gsl_programmation.services.programmation_projet_service import (
-            ProgrammationProjetService,
-        )
+        # from gsl_programmation.services.programmation_projet_service import (
+        #     ProgrammationProjetService,
+        # )
         from gsl_projet.services.dotation_projet_services import DotationProjetService
-        from gsl_simulation.services.simulation_projet_service import (
-            SimulationProjetService,
-        )
+        # from gsl_simulation.services.simulation_projet_service import (
+        #     SimulationProjetService,
+        # )
 
         ds_dossier = Dossier.objects.get(ds_number=ds_dossier_number)
         projet = cls.create_or_update_from_ds_dossier(ds_dossier)
-        dotation_projets = (
-            DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
-        )
-        for dotation_projet in dotation_projets:  # TODO feature dun : Remove this loop and handle all in transitions ?? but it must include updates from annotations !
-            ProgrammationProjetService.create_or_update_from_dotation_projet(
-                dotation_projet
-            )
-            SimulationProjetService.update_simulation_projets_from_dotation_projet(
-                dotation_projet
-            )
+        DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
+        # for dotation_projet in dotation_projets:  # TODO feature dun : Remove this loop and handle all in transitions ?? but it must include updates from annotations !
+        #     ProgrammationProjetService.create_or_update_from_dotation_projet(
+        #         dotation_projet
+        #     )
+        #     SimulationProjetService.update_simulation_projets_from_dotation_projet(
+        #         dotation_projet
+        #     )
 
     @classmethod
     def create_or_update_from_ds_dossier(cls, ds_dossier: Dossier):
