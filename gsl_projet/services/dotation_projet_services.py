@@ -6,9 +6,6 @@ from typing import Any, Literal
 from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import Enveloppe
-from gsl_programmation.services.programmation_projet_service import (
-    ProgrammationProjetService as pps,
-)
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -144,7 +141,7 @@ class DotationProjetService:
             dotation_projet = cls._create_dotation_projet(projet, dotation)
             enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
             montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
-            notified_at = pps._get_notify_datetime_from_dotation_projet(
+            notified_at = cls._get_notify_datetime_from_dotation_projet(
                 projet.dossier_ds
             )
             dotation_projet.accept(
@@ -165,7 +162,7 @@ class DotationProjetService:
         for dotation in dotations:
             dotation_projet = cls._create_dotation_projet(projet, dotation)
             enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
-            notified_at = pps._get_notify_datetime_from_dotation_projet(
+            notified_at = cls._get_notify_datetime_from_dotation_projet(
                 projet.dossier_ds
             )
             dotation_projet.refuse(enveloppe=enveloppe, notified_at=notified_at)
@@ -184,7 +181,7 @@ class DotationProjetService:
         for dotation in dotations:
             dotation_projet = cls._create_dotation_projet(projet, dotation)
             enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
-            notified_at = pps._get_notify_datetime_from_dotation_projet(
+            notified_at = cls._get_notify_datetime_from_dotation_projet(
                 projet.dossier_ds
             )
             dotation_projet.dismiss(enveloppe=enveloppe, notified_at=notified_at)
@@ -305,7 +302,7 @@ class DotationProjetService:
 
         enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
         montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
-        notified_at = pps._get_notify_datetime_from_dotation_projet(projet.dossier_ds)
+        notified_at = cls._get_notify_datetime_from_dotation_projet(projet.dossier_ds)
         dotation_projet.accept(
             enveloppe=enveloppe, montant=montant, notified_at=notified_at
         )
@@ -323,7 +320,7 @@ class DotationProjetService:
                 enveloppe = cls._get_root_enveloppe_from_dotation_projet(
                     dotation_projet
                 )
-                notified_at = pps._get_notify_datetime_from_dotation_projet(
+                notified_at = cls._get_notify_datetime_from_dotation_projet(
                     projet.dossier_ds
                 )
                 dotation_projet.refuse(enveloppe=enveloppe, notified_at=notified_at)
@@ -344,7 +341,7 @@ class DotationProjetService:
                 enveloppe = cls._get_root_enveloppe_from_dotation_projet(
                     dotation_projet
                 )
-                notified_at = pps._get_notify_datetime_from_dotation_projet(
+                notified_at = cls._get_notify_datetime_from_dotation_projet(
                     projet.dossier_ds
                 )
                 dotation_projet.dismiss(enveloppe=enveloppe, notified_at=notified_at)
@@ -519,3 +516,14 @@ class DotationProjetService:
                 detr_category__isnull=False
             ):
                 dotation_projet.detr_categories.add(critere.detr_category)
+
+    @classmethod
+    def _get_notify_datetime_from_dotation_projet(cls, dossier: Dossier):
+        """This function is useful because we can have an accepted dotation projet and a "en instruction" dossier due to our process."""
+        if dossier.ds_state in (
+            Dossier.STATE_ACCEPTE,
+            Dossier.STATE_REFUSE,
+            Dossier.STATE_SANS_SUITE,
+        ):
+            return dossier.ds_date_traitement
+        return None
