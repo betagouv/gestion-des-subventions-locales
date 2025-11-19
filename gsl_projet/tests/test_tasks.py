@@ -275,8 +275,6 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
     """
     On teste le fait qu'un dossier DS accepté avec un dotation_projet refusé bascule le projet et tout le reste en accepté
     """
-    # arr_dijon, dep_21, region_bfc, *_ = perimetres
-    # DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     dossier = DossierFactory(
         ds_state=Dossier.STATE_ACCEPTE,
         ds_demandeur__address__commune=commune,
