@@ -2,7 +2,7 @@ from functools import cached_property
 
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.db.models import F, Sum
+from django.db.models import Sum
 from typing_extensions import deprecated
 
 from gsl_core.models import Perimetre
@@ -210,16 +210,7 @@ class ProgrammationProjetQuerySet(models.QuerySet):
         )
 
     def to_notify(self):
-        return (
-            self.filter(status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None)
-            .annotate(
-                dotations_count=Sum("dotation_projet__projet__dotationprojet"),
-                programmation_count=Sum(
-                    "dotation_projet__projet__dotationprojet__programmation_projet"
-                ),
-            )
-            .filter(dotations_count=F("programmation_count"))
-        )
+        return self.filter(dotation_projet__projet__in=Projet.objects.to_notify())
 
     def visible_to_user(self, user):
         if user.is_staff:

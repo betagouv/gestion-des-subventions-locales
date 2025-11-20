@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Iterator, List, Optional, Union
 
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q, UniqueConstraint
+from django.db.models import Count, F, Q, UniqueConstraint
 from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
@@ -137,6 +137,15 @@ class ProjetQuerySet(models.QuerySet):
         )
         return projet_qs_not_processed_before_the_start_of_the_year
 
+    def to_notify(self):
+        return self.annotate(
+            dotations_count=Count("dotationprojet"),
+            programmation_count=Count(
+                "dotationprojet__programmation_projet",
+                filter=Q(dotationprojet__programmation_projet__notified_at=None),
+            ),
+        ).filter(dotations_count=F("programmation_count"))
+
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
     def get_queryset(self):
@@ -230,10 +239,12 @@ class Projet(models.Model):
     def to_notify(self) -> bool:
         """
         Returns True if the projet has not been notified yet, and all dotations have a programmation.
+
+        Does not check if the programmation has been accepted or refused ! This is not necessary.
         """
         return all(
             (
-                d.programmation_projet is not None
+                hasattr(d, "programmation_projet")
                 and d.programmation_projet.notified_at is None
             )
             for d in self.dotationprojet_set.all()
@@ -327,7 +338,7 @@ class DotationProjet(models.Model):
         return list(d for d in self.projet.dotationprojet_set.all() if d.pk != self.pk)
 
     @property
-    def last_simulation(self) -> Optional["SimulationProjet"]:
+    def last_updated_simulation_projet(self) -> Optional["SimulationProjet"]:
         """
         We use python side sort so we benefit from prefetching !
         """

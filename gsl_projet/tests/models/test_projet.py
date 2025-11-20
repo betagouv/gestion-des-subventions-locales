@@ -87,7 +87,7 @@ def test_dotation_dsil():
             "2023-07-23 13:05:03.837825+00:00",
             False,
         ),
-        (ProgrammationProjet.STATUS_REFUSED, None, False),
+        (ProgrammationProjet.STATUS_REFUSED, None, True),
         (ProgrammationProjet.STATUS_REFUSED, "2023-07-23 13:05:03.837825+00:00", False),
     ),
 )

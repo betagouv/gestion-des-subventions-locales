@@ -248,12 +248,12 @@
                                         </td>
                                         <td class="gsl-money">
                                             <div class="gsl-money">
-                                                {{ other_dotation.last_simulation.montant|euro:2 }}
+                                                {{ other_dotation.last_updated_simulation_projet.montant|euro:2 }}
                                             </div>
                                         </td>
                                         <td class="gsl-money">
                                             <div class="gsl-money">
-                                                {{ other_dotation.last_simulation.taux|percent }}
+                                                {{ other_dotation.last_updated_simulation_projet.taux|percent }}
                                             </div>
                                         </td>
                                         <td>
@@ -274,7 +274,7 @@
                                             </ul>
                                         </td>
                                         <td class="other-simulation-status">
-                                            <b>{{ other_dotation.last_simulation.get_status_display }}</b>
+                                            <b>{{ other_dotation.last_updated_simulation_projet.get_status_display }}</b>
                                         </td>
                                         <td colspan=3 class="fr-cell--right gsl-nowrap">
                                         </td>

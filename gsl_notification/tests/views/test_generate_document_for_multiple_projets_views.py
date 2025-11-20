@@ -105,11 +105,6 @@ def test_choose_type_for_multiple_document_generation_no_id(client):
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=datetime.now(UTC),
     )
-    ProgrammationProjetFactory.create_batch(
-        2,
-        dotation_projet__projet__perimetre=client.user.perimetre,
-        status=ProgrammationProjet.STATUS_REFUSED,
-    )
 
     url = reverse(
         "notification:choose-generated-document-type-multiple", args=[DOTATION_DETR]
@@ -285,11 +280,6 @@ def test_select_modele_multiple_no_id(client):
         dotation_projet__projet__perimetre=client.user.perimetre,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=datetime.now(UTC),
-    )
-    ProgrammationProjetFactory.create_batch(
-        2,
-        dotation_projet__projet__perimetre=client.user.perimetre,
-        status=ProgrammationProjet.STATUS_REFUSED,
     )
 
     url = reverse("notification:select-modele-multiple", args=[DOTATION_DETR, LETTRE])
@@ -479,11 +469,6 @@ def test_save_documents_no_id(client, detr_lettre_modele):
         dotation_projet__projet__perimetre=client.user.perimetre,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=datetime.now(UTC),
-    )
-    ProgrammationProjetFactory.create_batch(
-        2,
-        dotation_projet__projet__perimetre=client.user.perimetre,
-        status=ProgrammationProjet.STATUS_REFUSED,
     )
 
     url = reverse(
@@ -786,12 +771,6 @@ def test_download_documents_no_id(client):
         dotation_projet__projet__perimetre=client.user.perimetre,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=datetime.now(UTC),
-    )
-
-    pps += ProgrammationProjetFactory.create_batch(
-        2,
-        dotation_projet__projet__perimetre=client.user.perimetre,
-        status=ProgrammationProjet.STATUS_REFUSED,
     )
 
     for pp in pps:
