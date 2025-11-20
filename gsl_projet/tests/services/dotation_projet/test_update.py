@@ -11,6 +11,7 @@ from gsl_core.tests.factories import (
     PerimetreRegionalFactory,
 )
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.tests.factories import DossierFactory
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
@@ -64,12 +65,15 @@ def test_update_dotation_projets_from_projet_accepted_creates_new_dotation_proje
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
 
+    dossier = DossierFactory(
+        ds_state=Dossier.STATE_EN_INSTRUCTION,
+        demande_dispositif_sollicite="DETR",
+        annotations_assiette_detr=None,
+        annotations_montant_accorde_detr=None,
+        ds_date_traitement=None,
+    )
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
-        dossier_ds__demande_dispositif_sollicite="DETR",
-        dossier_ds__annotations_assiette_detr=None,
-        dossier_ds__annotations_montant_accorde_detr=None,
-        dossier_ds__ds_date_traitement=None,
+        dossier_ds=dossier,
         perimetre=arr_dijon,
     )
 
@@ -77,13 +81,13 @@ def test_update_dotation_projets_from_projet_accepted_creates_new_dotation_proje
     assert projet.dotationprojet_set.count() == 1
 
     # Projet has been accepted on DS for DETR and DSIL
-    projet.dossier_ds.annotations_dotation = "DETR et DSIL"
-    projet.dossier_ds.annotations_assiette_detr = 10_000
-    projet.dossier_ds.annotations_montant_accorde_detr = 5_000
-    projet.dossier_ds.annotations_assiette_dsil = 20_000
-    projet.dossier_ds.annotations_montant_accorde_dsil = 15_000
-    projet.dossier_ds.ds_date_traitement = timezone.datetime(2025, 1, 15, tzinfo=UTC)
-    projet.dossier_ds.save()
+    dossier.annotations_dotation = "DETR et DSIL"
+    dossier.annotations_assiette_detr = 10_000
+    dossier.annotations_montant_accorde_detr = 5_000
+    dossier.annotations_assiette_dsil = 20_000
+    dossier.annotations_montant_accorde_dsil = 15_000
+    dossier.ds_date_traitement = timezone.datetime(2025, 1, 15, tzinfo=UTC)
+    dossier.save()
 
     dotation_projets = dps._update_dotation_projets_from_projet_accepted(projet)
 
@@ -152,28 +156,37 @@ def test_update_dotation_projets_from_projet_accepted_with_empty_annotations_dot
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
 
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
-        dossier_ds__annotations_dotation="",
+        dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="DETR",
-        dossier_ds__annotations_assiette_detr=10_000,
-        dossier_ds__annotations_montant_accorde_detr=5_000,
-        dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
+        dossier_ds__ds_date_traitement=None,
         perimetre=arr_dijon,
     )
+
+    dps._initialize_dotation_projets_from_projet(projet)
+    assert projet.dotationprojet_set.count() == 1
+
+    projet.dossier_ds.ds_state = Dossier.STATE_ACCEPTE
+    projet.dossier_ds.ds_date_traitement = timezone.datetime(2025, 1, 15, tzinfo=UTC)
+    projet.dossier_ds.annotations_dotation = ""
+    projet.dossier_ds.save()
+
+    # --
 
     with caplog.at_level(logging.WARNING):
         dotation_projets = dps._update_dotation_projets_from_projet_accepted(projet)
 
+    # --
+
     assert len(dotation_projets) == 1
     detr_dp = DotationProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
-    assert detr_dp.status == PROJET_STATUS_ACCEPTED
+    assert detr_dp.status == PROJET_STATUS_PROCESSING
 
     assert len(caplog.records) == 2
     record = caplog.records[0]
-    assert record.message == "No dotation"
-    assert record.levelname == "WARNING"
-    assert getattr(record, "dossier_ds_number", None) == projet.dossier_ds.ds_number
-    assert getattr(record, "projet", None) == projet.pk
+    assert record.message == "Assiette is missing in dossier annotations"
+    assert record.levelname == "INFO", (
+        "Log level should be INFO because the dossier is in EN_INSTRUCTION during initialization"
+    )
 
     record = caplog.records[1]
     assert (

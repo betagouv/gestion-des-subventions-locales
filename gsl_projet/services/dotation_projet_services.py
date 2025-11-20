@@ -123,17 +123,13 @@ class DotationProjetService:
     def _initialize_dotation_projets_from_projet_accepted(
         cls, projet: Projet
     ) -> list[DotationProjet]:
-        dotations = cls._get_dotations_from_field(projet, "annotations_dotation")
+        dotations = cls._get_dotations_from_field(
+            projet,
+            "annotations_dotation",
+            log_message_if_missing="No dotations found in annotations_dotation for accepted dossier during initialisation",
+        )
 
         if not dotations:
-            logger.warning(
-                "No dotations found in annotations_dotation for accepted dossier during initialisation",
-                extra={
-                    "dossier_ds_number": projet.dossier_ds.ds_number,
-                    "projet": projet.pk,
-                },
-            )
-
             dotations = cls._get_dotations_from_field(
                 projet, "demande_dispositif_sollicite"
             )
@@ -211,7 +207,14 @@ class DotationProjetService:
         detr_avis_commission = cls._get_detr_avis_commission(
             dotation, projet.dossier_ds
         )
-        assiette = cls._get_assiette_from_dossier(projet.dossier_ds, dotation)
+        log_level = (
+            logging.WARNING
+            if projet.dossier_ds.ds_state == Dossier.STATE_ACCEPTE
+            else logging.INFO
+        )
+        assiette = cls._get_assiette_from_dossier(
+            projet.dossier_ds, dotation, log_level
+        )
         return DotationProjet.objects.create(
             projet=projet,
             dotation=dotation,
@@ -257,20 +260,13 @@ class DotationProjetService:
         cls, projet: Projet
     ) -> list[DotationProjet]:
         dotations_to_accept = cls._get_dotations_from_field(
-            projet, "annotations_dotation"
+            projet,
+            "annotations_dotation",
+            log_message_if_missing="No dotations found in annotations_dotation for accepted dossier during update",
         )
 
         if not dotations_to_accept:
-            logger.warning(
-                "No dotations found in annotations_dotation for accepted dossier during update",
-                extra={
-                    "dossier_ds_number": projet.dossier_ds.ds_number,
-                    "projet": projet.pk,
-                },
-            )
-            dotations_to_accept = cls._get_dotations_from_field(
-                projet, "demande_dispositif_sollicite"
-            )
+            return projet.dotationprojet_set.all()
 
         dotations_to_remove = set(projet.dotations) - set(dotations_to_accept)
         dotation_projets = []
@@ -446,14 +442,19 @@ class DotationProjetService:
 
     @classmethod
     def _get_assiette_from_dossier(
-        cls, dossier: Dossier, dotation: POSSIBLE_DOTATIONS
+        cls,
+        dossier: Dossier,
+        dotation: POSSIBLE_DOTATIONS,
+        log_level: int = logging.WARNING,
     ) -> float | None:
         if dotation == DOTATION_DETR:
             assiette = dossier.annotations_assiette_detr
         elif dotation == DOTATION_DSIL:
             assiette = dossier.annotations_assiette_dsil
+
         if assiette is None:
-            logger.warning(
+            logger.log(
+                log_level,
                 "Assiette is missing in dossier annotations",
                 extra={
                     "dossier_ds_number": dossier.ds_number,
@@ -487,13 +488,14 @@ class DotationProjetService:
         field: Literal[
             "annotations_dotation", "demande_dispositif_sollicite"
         ] = "annotations_dotation",
+        log_message_if_missing: str = "No dotation",
     ) -> list[Any]:
         dotations_value = getattr(projet.dossier_ds, field)
         dotations: list[Any] = []
 
         if not dotations_value:
             logger.warning(
-                "No dotation",
+                log_message_if_missing,
                 extra={
                     "dossier_ds_number": projet.dossier_ds.ds_number,
                     "projet": projet.pk,

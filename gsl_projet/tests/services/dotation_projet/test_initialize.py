@@ -114,30 +114,27 @@ def test_initialize_dotation_projets_from_projet_accepted_with_empty_annotations
         perimetre=arr_dijon,
     )
 
+    # --
+
     with caplog.at_level(logging.WARNING):
         dotation_projets = dps._initialize_dotation_projets_from_projet_accepted(projet)
+
+    # --
 
     assert len(dotation_projets) == 1
     detr_dp = DotationProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
     assert detr_dp.status == PROJET_STATUS_ACCEPTED
-    assert detr_dp.assiette is None
-    assert detr_dp.montant_retenu == 0
-    assert detr_dp.taux_retenu == 0
+    assert detr_dp.assiette is None, "Assiette should be None if assiette is missing"
+    assert detr_dp.montant_retenu == 0, "Montant should be 0 if montant is missing"
+    assert detr_dp.taux_retenu == 0, "Taux should be 0 if montant is missing"
     assert detr_dp.detr_avis_commission is True
     assert detr_dp.programmation_projet is not None
     assert detr_dp.programmation_projet.status == PROJET_STATUS_ACCEPTED
 
     # Check log message, level and extra
-    assert len(caplog.records) == 4
-    record = caplog.records[0]
-    assert record.message == "No dotation"
-    assert record.levelname == "WARNING"
-    assert getattr(record, "dossier_ds_number", None) == projet.dossier_ds.ds_number
-    assert getattr(record, "projet", None) == projet.pk
-    assert getattr(record, "value", None) == ""
-    assert getattr(record, "field", None) == "annotations_dotation"
+    assert len(caplog.records) == 3
 
-    record = caplog.records[1]
+    record = caplog.records[0]
     assert (
         record.message
         == "No dotations found in annotations_dotation for accepted dossier during initialisation"
@@ -145,14 +142,16 @@ def test_initialize_dotation_projets_from_projet_accepted_with_empty_annotations
     assert record.levelname == "WARNING"
     assert getattr(record, "dossier_ds_number", None) == projet.dossier_ds.ds_number
     assert getattr(record, "projet", None) == projet.pk
+    assert getattr(record, "value", None) == ""
+    assert getattr(record, "field", None) == "annotations_dotation"
 
-    record = caplog.records[2]
+    record = caplog.records[1]
     assert record.message == "Assiette is missing in dossier annotations"
     assert record.levelname == "WARNING"
     assert getattr(record, "dossier_ds_number", None) == projet.dossier_ds.ds_number
     assert getattr(record, "dotation", None) == DOTATION_DETR
 
-    record = caplog.records[3]
+    record = caplog.records[2]
     assert record.message == "Montant is missing in dossier annotations"
     assert record.levelname == "WARNING"
     assert getattr(record, "dossier_ds_number", None) == projet.dossier_ds.ds_number
