@@ -42,6 +42,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_title",
         "ds_state",
         "dossiers_count",
+        "fields_count",
         "link_to_json",
     )
     actions = (
@@ -99,6 +100,12 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     dossiers_count.admin_order_field = "dossier_count"
     dossiers_count.short_description = "# de dossiers"
+
+    def fields_count(self, obj) -> int:
+        return obj.fieldmappingforcomputer_set.count()
+
+    fields_count.admin_order_field = "fields_count"
+    fields_count.short_description = "# de champs"
 
     @admin.action(
         description="Rafraîchir les correspondances de champs depuis les données sauvegardées"
@@ -166,10 +173,10 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_number",
         "ds_demarche__ds_number",
         "ds_state",
-        "link_to_json",
         "projet_intitule",
-        "projet_link",
         "perimetre",
+        "projet_link",
+        "link_to_json",
     )
     readonly_fields = ("projet_link",)
 
