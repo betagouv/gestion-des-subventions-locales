@@ -2,6 +2,7 @@ import re
 from decimal import Decimal
 
 import pytest
+from freezegun import freeze_time
 
 from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_core.tests.factories import (
@@ -14,18 +15,21 @@ from gsl_demarches_simplifiees.tests.factories import (
     CritereEligibiliteDetrFactory,
     DossierFactory,
 )
-from gsl_programmation.models import ProgrammationProjet
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
+from gsl_programmation.tests.factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
+)
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.models import DotationProjet
-from gsl_projet.services.dotation_projet_services import DotationProjetService
+from gsl_projet.services.dotation_projet_services import (
+    DotationProjetService as dps,
+)
 from gsl_projet.tests.factories import (
     CategorieDetrFactory,
     DotationProjetFactory,
@@ -35,6 +39,31 @@ from gsl_simulation.models import Simulation, SimulationProjet
 from gsl_simulation.tests.factories import SimulationFactory
 
 
+@pytest.fixture
+def perimetres():
+    arr_dijon = PerimetreArrondissementFactory()
+    dep_21 = PerimetreDepartementalFactory(
+        departement=arr_dijon.departement, region=arr_dijon.region
+    )
+    region_bfc = PerimetreRegionalFactory(region=dep_21.region)
+
+    arr_nanterre = PerimetreArrondissementFactory()
+    dep_92 = PerimetreDepartementalFactory(departement=arr_nanterre.departement)
+    region_idf = PerimetreRegionalFactory(region=dep_92.region)
+    return [
+        arr_dijon,
+        dep_21,
+        region_bfc,
+        arr_nanterre,
+        dep_92,
+        region_idf,
+    ]
+
+
+# -- create_or_update_dotation_projet_from_projet --
+
+
+@freeze_time("2025-05-06")
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "field", ("annotations_dotation", "demande_dispositif_sollicite")
@@ -52,15 +81,23 @@ from gsl_simulation.tests.factories import SimulationFactory
     ),
 )
 def test_create_or_update_dotation_projet_from_projet(
-    field, dotation_value, dotation_projet_count
+    field,
+    dotation_value,
+    dotation_projet_count,
+    perimetres,
 ):
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
     projet = ProjetFactory(
         dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
-        dossier_ds__annotations_assiette=1_000,
+        dossier_ds__annotations_assiette_detr=1_000,
+        dossier_ds__annotations_assiette_dsil=1_000,
+        perimetre=arr_dijon,
     )
     setattr(projet.dossier_ds, field, dotation_value)
 
-    DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
+    dps.create_or_update_dotation_projet_from_projet(projet)
 
     assert DotationProjet.objects.count() == dotation_projet_count
 
@@ -75,24 +112,60 @@ def test_create_or_update_dotation_projet_from_projet(
 
 
 @pytest.mark.django_db
-def test_create_or_update_dotation_projet_from_projet_do_not_remove_dotation_projet_not_in_dossier():
-    projet = ProjetFactory(dossier_ds__annotations_dotation="DETR")
+def test_create_or_update_dotation_projet_from_en_instruction_projet_ignore_annotations():
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+        dossier_ds__annotations_dotation="DETR",
+    )
     projet_dotation_dsil = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
     projet_dotation_projets = DotationProjet.objects.filter(projet=projet)
     assert projet_dotation_projets.count() == 1
 
-    DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
+    dps.create_or_update_dotation_projet_from_projet(projet)
 
     projet_dotation_dsil.refresh_from_db()  # always exists
 
     projet_dotation_projets = DotationProjet.objects.filter(projet_id=projet.id)
-    assert projet_dotation_projets.count() == 2
+    assert projet_dotation_projets.count() == 1
 
     dsil_dotation_projets = projet_dotation_projets.filter(dotation=DOTATION_DSIL)
     assert dsil_dotation_projets.count() == 1
 
     detr_dotation_projet = projet_dotation_projets.filter(dotation=DOTATION_DETR)
-    assert detr_dotation_projet.count() == 1
+    assert detr_dotation_projet.count() == 0
+
+
+@pytest.mark.django_db
+def test_create_or_update_dotation_projet_from_projet_also_refuse_dsil_dotation_projet_even_if_not_in_demande_dispositif_sollicite(
+    perimetres,
+):
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+    projet = ProjetFactory(
+        perimetre=arr_dijon,
+        dossier_ds__ds_state=Dossier.STATE_REFUSE,
+        dossier_ds__demande_dispositif_sollicite="DETR",
+    )
+    projet_dotation_detr = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+    )
+    projet_dotation_dsil = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_PROCESSING
+    )
+    projet_dotation_projets = DotationProjet.objects.filter(projet=projet)
+    assert projet_dotation_projets.count() == 2
+
+    dps.create_or_update_dotation_projet_from_projet(projet)
+
+    projet_dotation_detr.refresh_from_db()  # always exists
+    assert projet_dotation_detr.status == PROJET_STATUS_REFUSED
+
+    projet_dotation_dsil.refresh_from_db()  # always exists
+    assert projet_dotation_dsil.status == PROJET_STATUS_REFUSED
+
+
+# -- create_simulation_projets_from_dotation_projet --
 
 
 @pytest.mark.django_db
@@ -100,10 +173,12 @@ def test_create_or_update_dotation_projet_from_projet_do_not_remove_dotation_pro
     "dotation",
     (DOTATION_DETR, DOTATION_DSIL),
 )
-def test_create_or_update_dotation_projet(dotation):
+def test_create_or_update_dotation_projet_add_detr_categories(dotation):
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_SANS_SUITE,
-        dossier_ds__annotations_assiette=2_000,
+        dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+    )
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
     )
     categorie_detr = CategorieDetrFactory()
     projet.dossier_ds.demande_eligibilite_detr.add(
@@ -112,7 +187,7 @@ def test_create_or_update_dotation_projet(dotation):
 
     # ------
 
-    DotationProjetService._create_or_update_dotation_projet(projet, dotation)
+    dps.create_or_update_dotation_projet_from_projet(projet)
 
     # ------
 
@@ -121,33 +196,12 @@ def test_create_or_update_dotation_projet(dotation):
     dotation_projet = DotationProjet.objects.first()
     assert dotation_projet.projet == projet
     assert dotation_projet.dotation == dotation
-    assert dotation_projet.status == PROJET_STATUS_DISMISSED
-    assert dotation_projet.assiette == 2_000
-    assert dotation_projet.detr_avis_commission is None
+    assert dotation_projet.status == PROJET_STATUS_PROCESSING
 
     if dotation_projet.dotation == DOTATION_DSIL:
         assert dotation_projet.detr_categories.count() == 0
     else:
         assert categorie_detr in dotation_projet.detr_categories.all()
-
-
-@pytest.fixture
-def perimetres():
-    arr_dijon = PerimetreArrondissementFactory()
-    dep_21 = PerimetreDepartementalFactory(departement=arr_dijon.departement)
-    region_bfc = PerimetreRegionalFactory(region=dep_21.region)
-
-    arr_nanterre = PerimetreArrondissementFactory()
-    dep_92 = PerimetreDepartementalFactory(departement=arr_nanterre.departement)
-    region_idf = PerimetreRegionalFactory(region=dep_92.region)
-    return [
-        arr_dijon,
-        dep_21,
-        region_bfc,
-        arr_nanterre,
-        dep_92,
-        region_idf,
-    ]
 
 
 @pytest.fixture
@@ -193,7 +247,6 @@ def simulations_of_previous_year_current_year_and_next_year_for_each_perimetres_
             )
 
 
-# @freeze_time("2025-05-06")
 @pytest.mark.django_db
 def test_create_simulation_projets_from_dotation_projet_with_a_detr_and_arrondissement_projet(
     perimetres,
@@ -207,9 +260,7 @@ def test_create_simulation_projets_from_dotation_projet_with_a_detr_and_arrondis
         projet__perimetre=arr_dijon,
     )
 
-    DotationProjetService.create_simulation_projets_from_dotation_projet(
-        dotation_projet
-    )
+    dps.create_simulation_projets_from_dotation_projet(dotation_projet)
 
     # We only have a simulation_projets for enveloppe DETR of this year + the next year and on arr_dijon and dep_21 (because DETR)
     assert dotation_projet.simulationprojet_set.count() == 4
@@ -238,7 +289,6 @@ def test_create_simulation_projets_from_dotation_projet_with_a_detr_and_arrondis
     assert last_year_simulation_projets.count() == 0
 
 
-# @freeze_time("2025-05-06")
 @pytest.mark.django_db
 def test_create_simulation_projets_from_dotation_projet_with_a_dsil_and_departement_projet(
     perimetres,
@@ -251,9 +301,7 @@ def test_create_simulation_projets_from_dotation_projet_with_a_dsil_and_departem
         projet__perimetre=dep_21,
     )
 
-    DotationProjetService.create_simulation_projets_from_dotation_projet(
-        dotation_projet
-    )
+    dps.create_simulation_projets_from_dotation_projet(dotation_projet)
 
     # We only have a simulation_projets for enveloppe DSIL of this year + the next year and on dep_21 and region_bfc
     assert dotation_projet.simulationprojet_set.count() == 4
@@ -282,90 +330,6 @@ def test_create_simulation_projets_from_dotation_projet_with_a_dsil_and_departem
     assert last_year_simulation_projets.count() == 0
 
 
-@pytest.mark.django_db
-def test_get_dotation_projet_status_from_dossier():
-    dp = DotationProjetFactory()
-    accepted = Dossier(ds_state=Dossier.STATE_ACCEPTE)
-    en_construction = Dossier(ds_state=Dossier.STATE_EN_CONSTRUCTION)
-    en_instruction = Dossier(ds_state=Dossier.STATE_EN_INSTRUCTION)
-    refused = Dossier(ds_state=Dossier.STATE_REFUSE)
-    dismissed = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
-
-    assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(accepted, dp)
-        == PROJET_STATUS_ACCEPTED
-    )
-    assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(
-            en_construction, dp
-        )
-        == PROJET_STATUS_PROCESSING
-    )
-    assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(
-            en_instruction, dp
-        )
-        == PROJET_STATUS_PROCESSING
-    )
-    assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(refused, dp)
-        == PROJET_STATUS_REFUSED
-    )
-    assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(dismissed, dp)
-        == PROJET_STATUS_DISMISSED
-    )
-
-    dossier_unknown = Dossier(ds_state="unknown_state")
-    assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(
-            dossier_unknown, dp
-        )
-        is None
-    )
-
-
-@pytest.mark.django_db
-def test_get_dotation_projet_status_from_dossier_with_an_accepted_but_not_notified_dotation_projet():
-    dp = DotationProjetFactory(
-        status=PROJET_STATUS_ACCEPTED,
-    )
-    dp.programmation_projet = ProgrammationProjetFactory(
-        status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None
-    )
-
-    accepted = Dossier(ds_state=Dossier.STATE_ACCEPTE)
-    en_construction = Dossier(ds_state=Dossier.STATE_EN_CONSTRUCTION)
-    en_instruction = Dossier(ds_state=Dossier.STATE_EN_INSTRUCTION)
-    refused = Dossier(ds_state=Dossier.STATE_REFUSE)
-    dismissed = Dossier(ds_state=Dossier.STATE_SANS_SUITE)
-
-    assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(accepted, dp)
-        == PROJET_STATUS_ACCEPTED
-    )
-    assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(
-            en_construction, dp
-        )
-        == PROJET_STATUS_ACCEPTED
-    )
-    assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(
-            en_instruction, dp
-        )
-        == PROJET_STATUS_ACCEPTED
-    )
-    assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(refused, dp)
-        == PROJET_STATUS_REFUSED
-    )
-    assert (
-        DotationProjetService.get_dotation_projet_status_from_dossier(dismissed, dp)
-        == PROJET_STATUS_DISMISSED
-    )
-
-
 @pytest.mark.parametrize("dotation", (DOTATION_DETR, DOTATION_DSIL))
 @pytest.mark.parametrize(
     "dossier_state",
@@ -382,9 +346,7 @@ def test_get_detr_avis_commission(dotation, dossier_state):
     dossier = DossierFactory(
         ds_state=dossier_state,
     )
-    avis_commissioin_detr = DotationProjetService.get_detr_avis_commission(
-        dotation, dossier
-    )
+    avis_commissioin_detr = dps._get_detr_avis_commission(dotation, dossier)
     if dotation == DOTATION_DETR and dossier_state == Dossier.STATE_ACCEPTE:
         assert avis_commissioin_detr is True
     else:
@@ -424,10 +386,13 @@ def test_validate_montant(
                 )
             ),
         ):
-            DotationProjetService.validate_montant(montant, dotation_projet)
+            dps.validate_montant(montant, dotation_projet)
 
     else:
-        DotationProjetService.validate_montant(montant, dotation_projet)
+        dps.validate_montant(montant, dotation_projet)
+
+
+# -- compute_montant_from_taux --
 
 
 @pytest.mark.django_db
@@ -435,17 +400,17 @@ def test_compute_montant_from_taux():
     dotation_projet = DotationProjetFactory(
         projet__dossier_ds__finance_cout_total=100_000,
     )
-    taux = DotationProjetService.compute_montant_from_taux(dotation_projet, 25)
+    taux = dps.compute_montant_from_taux(dotation_projet, 25)
     assert taux == 25_000
 
     dotation_projet = DotationProjetFactory(
         assiette=50_000,
     )
-    taux = DotationProjetService.compute_montant_from_taux(dotation_projet, 25)
+    taux = dps.compute_montant_from_taux(dotation_projet, 25)
     assert taux == 12_500
 
     dotation_projet = DotationProjetFactory()
-    taux = DotationProjetService.compute_montant_from_taux(dotation_projet, 25)
+    taux = dps.compute_montant_from_taux(dotation_projet, 25)
     assert taux == 0
 
 
@@ -472,7 +437,7 @@ def test_compute_montant_from_taux_with_various_assiettes(
     assiette, taux, expected_montant
 ):
     dotation_projet = DotationProjetFactory(assiette=assiette)
-    montant = DotationProjetService.compute_montant_from_taux(dotation_projet, taux)
+    montant = dps.compute_montant_from_taux(dotation_projet, taux)
     assert montant == round(Decimal(expected_montant), 2)
 
 
@@ -484,8 +449,11 @@ def test_compute_montant_from_taux_with_various_cout_total(
     dotation_projet = DotationProjetFactory(
         projet__dossier_ds__finance_cout_total=cout_total
     )
-    montant = DotationProjetService.compute_montant_from_taux(dotation_projet, taux)
+    montant = dps.compute_montant_from_taux(dotation_projet, taux)
     assert montant == round(Decimal(expected_montant), 2)
+
+
+# -- validate_taux --
 
 
 @pytest.mark.parametrize(
@@ -505,6 +473,6 @@ def test_validate_taux(taux, should_raise_exception):
         with pytest.raises(
             ValueError, match=f"Le taux {percent(taux)} doit être entre 0% and 100%"
         ):
-            DotationProjetService.validate_taux(taux)
+            dps.validate_taux(taux)
     else:
-        DotationProjetService.validate_taux(taux)
+        dps.validate_taux(taux)

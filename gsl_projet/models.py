@@ -347,7 +347,12 @@ class DotationProjet(models.Model):
         return None
 
     @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
-    def accept(self, montant: float, enveloppe: "Enveloppe"):
+    def accept(
+        self,
+        montant: float,
+        enveloppe: "Enveloppe",
+        notified_at: datetime | None = None,
+    ):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -367,11 +372,12 @@ class DotationProjet(models.Model):
             defaults={
                 "montant": montant,
                 "status": ProgrammationProjet.STATUS_ACCEPTED,
+                "notified_at": notified_at,
             },
         )
 
     @transition(field=status, source="*", target=PROJET_STATUS_REFUSED)
-    def refuse(self, enveloppe: "Enveloppe"):
+    def refuse(self, enveloppe: "Enveloppe", notified_at: datetime | None = None):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -391,11 +397,12 @@ class DotationProjet(models.Model):
             defaults={
                 "montant": 0,
                 "status": ProgrammationProjet.STATUS_REFUSED,
+                "notified_at": notified_at,
             },
         )
 
     @transition(field=status, source="*", target=PROJET_STATUS_DISMISSED)
-    def dismiss(self, enveloppe: "Enveloppe"):
+    def dismiss(self, enveloppe: "Enveloppe", notified_at: datetime | None = None):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -414,6 +421,7 @@ class DotationProjet(models.Model):
             defaults={
                 "montant": 0,
                 "status": ProgrammationProjet.STATUS_DISMISSED,
+                "notified_at": notified_at,
             },
         )
 

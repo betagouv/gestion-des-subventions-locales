@@ -14,7 +14,13 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
-from gsl_projet.constants import DOTATION_DETR
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.tests.factories import (
     DetrProjetFactory,
@@ -56,6 +62,15 @@ def dsil_simulation(region_perimetre):
     return SimulationFactory(enveloppe=DsilEnveloppeFactory(perimetre=region_perimetre))
 
 
+DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS = {
+    Dossier.STATE_ACCEPTE: PROJET_STATUS_ACCEPTED,
+    Dossier.STATE_EN_CONSTRUCTION: PROJET_STATUS_PROCESSING,
+    Dossier.STATE_EN_INSTRUCTION: PROJET_STATUS_PROCESSING,
+    Dossier.STATE_REFUSE: PROJET_STATUS_REFUSED,
+    Dossier.STATE_SANS_SUITE: PROJET_STATUS_DISMISSED,
+}
+
+
 @pytest.fixture
 def detr_projets(
     departement_perimetre, arrondissement_perimetre
@@ -71,9 +86,7 @@ def detr_projets(
         (6_500, None, Dossier.STATE_SANS_SUITE, datetime(2024, 1, 1, tzinfo=UTC)),
         (2_500, None, Dossier.STATE_SANS_SUITE, datetime(2025, 1, 1, tzinfo=UTC)),
     ):
-        status = DotationProjetService.DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS[
-            state
-        ]
+        status = DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS[state]
         projet = ProjetFactory(
             dossier_ds=DossierFactory(
                 demande_montant=montant,
@@ -103,9 +116,7 @@ def dsil_projets(
         (2_500, None, Dossier.STATE_SANS_SUITE, datetime(2024, 12, 13, tzinfo=UTC)),
         (2_500, None, Dossier.STATE_SANS_SUITE, datetime(2025, 1, 1, tzinfo=UTC)),
     ):
-        status = DotationProjetService.DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS[
-            state
-        ]
+        status = DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS[state]
         projet = ProjetFactory(
             dossier_ds=DossierFactory(
                 demande_montant=montant,

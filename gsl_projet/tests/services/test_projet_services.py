@@ -270,27 +270,6 @@ def test_get_is_budget_vert(
     assert ProjetService.get_is_budget_vert(dossier) == expected_result
 
 
-@pytest.mark.parametrize(
-    "field", ("annotations_dotation", "demande_dispositif_sollicite")
-)
-@pytest.mark.parametrize(
-    "value, expected_dotation",
-    [
-        ("DETR", [DOTATION_DETR]),
-        ("DSIL", [DOTATION_DSIL]),
-        ("[DETR, DSIL]", [DOTATION_DETR, DOTATION_DSIL]),
-        ("DETR et DSIL", [DOTATION_DETR, DOTATION_DSIL]),
-        ("['DETR', 'DSIL', 'DETR et DSIL']", [DOTATION_DETR, DOTATION_DSIL]),
-    ],
-)
-@pytest.mark.django_db
-def test_get_dotations_from_field(field, value, expected_dotation):
-    projet = ProjetFactory()
-    setattr(projet.dossier_ds, field, value)
-    dotation = ProjetService.get_dotations_from_field(projet, field)
-    assert dotation == expected_dotation
-
-
 @pytest.fixture
 def projet():
     return ProjetFactory()

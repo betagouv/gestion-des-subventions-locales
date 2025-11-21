@@ -90,6 +90,10 @@ def projets(simulation, perimetre_departemental):
     commune = NaturePorteurProjetFactory(
         label="Commune", type=NaturePorteurProjet.COMMUNES
     )
+    for perimetre in (perimetre_departemental, other_perimeter):
+        for year in (2024, 2025):
+            DetrEnveloppeFactory(perimetre=perimetre, annee=year)
+            DsilEnveloppeFactory(perimetre=perimetre, annee=year)
 
     for perimetre in (perimetre_departemental, other_perimeter):
         demandeur = DemandeurFactory()
@@ -103,11 +107,13 @@ def projets(simulation, perimetre_departemental):
                     ds_state=state,
                     ds_date_depot=datetime(2023, 10, 1, tzinfo=UTC),
                     ds_date_traitement=datetime(2024, 1, 1, tzinfo=UTC),
-                    annotations_montant_accorde=150_000,
                     demande_montant=200_000,
                     demande_dispositif_sollicite=dotation,
                     finance_cout_total=1_000_000,
+                    annotations_montant_accorde_detr=150_000,
+                    annotations_montant_accorde_dsil=150_000,
                     porteur_de_projet_nature=epci,
+                    ds_demandeur__address__commune__departement=perimetre.departement,
                 )
                 projet_2024 = ProjetFactory(
                     dossier_ds=dossier_2024,
@@ -120,10 +126,12 @@ def projets(simulation, perimetre_departemental):
                     ds_state=state,
                     ds_date_traitement=datetime(2025, 1, 1, tzinfo=UTC),
                     demande_montant=300_000,
-                    annotations_montant_accorde=120_000,
+                    annotations_montant_accorde_detr=120_000,
+                    annotations_montant_accorde_dsil=120_000,
                     demande_dispositif_sollicite=dotation,
                     finance_cout_total=2_000_000,
                     porteur_de_projet_nature=commune,
+                    ds_demandeur__address__commune__departement=perimetre.departement,
                 )
                 projet_2025 = ProjetFactory(
                     dossier_ds=dossier_2025,
@@ -141,6 +149,7 @@ def projets(simulation, perimetre_departemental):
                     demande_montant=400_000,
                     finance_cout_total=3_000_000,
                     porteur_de_projet_nature=commune,
+                    ds_demandeur__address__commune__departement=perimetre.departement,
                 )
                 projet_2024 = ProjetFactory(
                     dossier_ds=dossier_2024,
@@ -157,6 +166,7 @@ def projets(simulation, perimetre_departemental):
                     demande_montant=500_000,
                     finance_cout_total=4_000_000,
                     porteur_de_projet_nature=epci,
+                    ds_demandeur__address__commune__departement=perimetre.departement,
                 )
                 projet_2025 = ProjetFactory(
                     dossier_ds=dossier_2025,

@@ -1,13 +1,10 @@
 import logging
-from typing import Any, Literal
 
 from django.db.models import Sum
 from django.db.models.query import QuerySet
 
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
     POSSIBLE_DOTATIONS,
     PROJET_STATUS_PROCESSING,
 )
@@ -19,26 +16,11 @@ logger = logging.getLogger(__name__)
 class ProjetService:
     @classmethod
     def create_or_update_projet_and_co_from_dossier(cls, ds_dossier_number: str):
-        from gsl_programmation.services.programmation_projet_service import (
-            ProgrammationProjetService,
-        )
         from gsl_projet.services.dotation_projet_services import DotationProjetService
-        from gsl_simulation.services.simulation_projet_service import (
-            SimulationProjetService,
-        )
 
         ds_dossier = Dossier.objects.get(ds_number=ds_dossier_number)
         projet = cls.create_or_update_from_ds_dossier(ds_dossier)
-        dotation_projets = (
-            DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
-        )
-        for dotation_projet in dotation_projets:
-            ProgrammationProjetService.create_or_update_from_dotation_projet(
-                dotation_projet
-            )
-            SimulationProjetService.update_simulation_projets_from_dotation_projet(
-                dotation_projet
-            )
+        DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
 
     @classmethod
     def create_or_update_from_ds_dossier(cls, ds_dossier: Dossier):
@@ -99,44 +81,6 @@ class ProjetService:
         if ds_dossier.annotations_is_budget_vert is not None:
             return ds_dossier.annotations_is_budget_vert
         return ds_dossier.environnement_transition_eco
-
-    @classmethod
-    def get_dotations_from_field(
-        cls,
-        projet: Projet,
-        field: Literal[
-            "annotations_dotation", "demande_dispositif_sollicite"
-        ] = "annotations_dotation",
-    ) -> list[Any]:
-        dotation_annotation = getattr(projet.dossier_ds, field)
-        dotations: list[Any] = []
-
-        if not dotation_annotation:
-            logger.warning(
-                "No dotation",
-                extra={
-                    "projet": projet.pk,
-                    "value": dotation_annotation,
-                    "field": field,
-                },
-            )
-            return dotations
-
-        if DOTATION_DETR in dotation_annotation:
-            dotations.append(DOTATION_DETR)
-        if DOTATION_DSIL in dotation_annotation:
-            dotations.append(DOTATION_DSIL)
-
-        if not dotations:
-            logger.warning(
-                "Dotation unknown",
-                extra={
-                    "projet": projet.pk,
-                    "value": dotation_annotation,
-                    "field": field,
-                },
-            )
-        return dotations
 
     @classmethod
     def update_dotation(cls, projet: Projet, dotations: list[POSSIBLE_DOTATIONS]):
