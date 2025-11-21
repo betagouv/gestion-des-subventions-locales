@@ -393,11 +393,9 @@ class TestProgrammationProjetFilters:
         # Créer des projets avec différents états de notification
         projet1 = ProjetFactory(perimetre=arrondissement)
         projet2 = ProjetFactory(perimetre=arrondissement)
-        projet3 = ProjetFactory(perimetre=arrondissement)
 
         dotation1 = DotationProjetFactory(projet=projet1, dotation=DOTATION_DETR)
         dotation2 = DotationProjetFactory(projet=projet2, dotation=DOTATION_DETR)
-        dotation3 = DotationProjetFactory(projet=projet3, dotation=DOTATION_DETR)
 
         # Programmation acceptée non notifiée (à notifier)
         prog_to_notify = ProgrammationProjetFactory(
@@ -415,14 +413,6 @@ class TestProgrammationProjetFilters:
             notified_at=timezone.now(),
         )
 
-        # Programmation refusée
-        prog_refused = ProgrammationProjetFactory(
-            dotation_projet=dotation3,
-            enveloppe=enveloppe,
-            status=ProgrammationProjet.STATUS_REFUSED,
-            notified_at=None,
-        )
-
         # Test filtre "Notifié"
         filterset = ProgrammationProjetFilters(
             data={"notified": "yes"}, request=mock_request
@@ -430,7 +420,6 @@ class TestProgrammationProjetFilters:
         result = list(filterset.qs)
         assert prog_to_notify not in result
         assert prog_notified in result
-        assert prog_refused in result
 
         # Test filtre "pas notifié"
         filterset = ProgrammationProjetFilters(
@@ -439,7 +428,6 @@ class TestProgrammationProjetFilters:
         result = list(filterset.qs)
         assert prog_to_notify in result
         assert prog_notified not in result
-        assert prog_refused not in result
 
     def test_order_filter(self, mock_request, enveloppe, arrondissement):
         """Test le filtre de tri"""

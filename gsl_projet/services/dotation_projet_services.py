@@ -3,6 +3,8 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any, Literal
 
+from django.db import transaction
+
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_demarches_simplifiees.models import Dossier
@@ -99,10 +101,19 @@ class DotationProjetService:
     ## -------------------------- Initialize Dotation Projets --------------------------
 
     @classmethod
+    @transaction.atomic
     def _initialize_dotation_projets_from_projet(
         cls, projet: Projet
     ) -> list[DotationProjet]:
         dossier_status = projet.dossier_ds.ds_state
+        if dossier_status in (
+            Dossier.STATE_ACCEPTE,
+            Dossier.STATE_REFUSE,
+            Dossier.STATE_SANS_SUITE,
+        ):
+            projet.notified_at = projet.dossier_ds.ds_date_traitement
+            projet.save(update_fields=["notified_at"])
+
         if dossier_status == Dossier.STATE_ACCEPTE:
             return cls._initialize_dotation_projets_from_projet_accepted(projet)
         elif dossier_status == Dossier.STATE_REFUSE:
@@ -139,12 +150,7 @@ class DotationProjetService:
             dotation_projet = cls._create_dotation_projet(projet, dotation)
             enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
             montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
-            notified_at = cls._get_notify_datetime_from_dotation_projet(
-                projet.dossier_ds
-            )
-            dotation_projet.accept(
-                enveloppe=enveloppe, montant=montant, notified_at=notified_at
-            )
+            dotation_projet.accept(enveloppe=enveloppe, montant=montant)
             dotation_projet.save()
             dotation_projets.append(dotation_projet)
         return dotation_projets
@@ -160,10 +166,7 @@ class DotationProjetService:
         for dotation in dotations:
             dotation_projet = cls._create_dotation_projet(projet, dotation)
             enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
-            notified_at = cls._get_notify_datetime_from_dotation_projet(
-                projet.dossier_ds
-            )
-            dotation_projet.refuse(enveloppe=enveloppe, notified_at=notified_at)
+            dotation_projet.refuse(enveloppe=enveloppe)
             dotation_projet.save()
             dotation_projets.append(dotation_projet)
         return dotation_projets
@@ -179,10 +182,7 @@ class DotationProjetService:
         for dotation in dotations:
             dotation_projet = cls._create_dotation_projet(projet, dotation)
             enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
-            notified_at = cls._get_notify_datetime_from_dotation_projet(
-                projet.dossier_ds
-            )
-            dotation_projet.dismiss(enveloppe=enveloppe, notified_at=notified_at)
+            dotation_projet.dismiss(enveloppe=enveloppe)
             dotation_projet.save()
             dotation_projets.append(dotation_projet)
         return dotation_projets
@@ -225,10 +225,19 @@ class DotationProjetService:
     ## -------------------------- Update Dotation Projets --------------------------
 
     @classmethod
+    @transaction.atomic
     def _update_dotation_projets_from_projet(
         cls, projet: Projet
     ) -> list[DotationProjet]:
         dossier_status = projet.dossier_ds.ds_state
+        if dossier_status in (
+            Dossier.STATE_ACCEPTE,
+            Dossier.STATE_REFUSE,
+            Dossier.STATE_SANS_SUITE,
+        ):
+            projet.notified_at = projet.dossier_ds.ds_date_traitement
+            projet.save(update_fields=["notified_at"])
+
         if dossier_status == Dossier.STATE_ACCEPTE:
             return cls._update_dotation_projets_from_projet_accepted(projet)
         elif dossier_status == Dossier.STATE_REFUSE:
@@ -300,10 +309,7 @@ class DotationProjetService:
 
         enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
         montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
-        notified_at = cls._get_notify_datetime_from_dotation_projet(projet.dossier_ds)
-        dotation_projet.accept(
-            enveloppe=enveloppe, montant=montant, notified_at=notified_at
-        )
+        dotation_projet.accept(enveloppe=enveloppe, montant=montant)
         dotation_projet.save()
 
         return dotation_projet
@@ -318,10 +324,7 @@ class DotationProjetService:
                 enveloppe = cls._get_root_enveloppe_from_dotation_projet(
                     dotation_projet
                 )
-                notified_at = cls._get_notify_datetime_from_dotation_projet(
-                    projet.dossier_ds
-                )
-                dotation_projet.refuse(enveloppe=enveloppe, notified_at=notified_at)
+                dotation_projet.refuse(enveloppe=enveloppe)
                 dotation_projet.save()
             dotation_projets.append(dotation_projet)
         return dotation_projets
@@ -339,10 +342,7 @@ class DotationProjetService:
                 enveloppe = cls._get_root_enveloppe_from_dotation_projet(
                     dotation_projet
                 )
-                notified_at = cls._get_notify_datetime_from_dotation_projet(
-                    projet.dossier_ds
-                )
-                dotation_projet.dismiss(enveloppe=enveloppe, notified_at=notified_at)
+                dotation_projet.dismiss(enveloppe=enveloppe)
                 dotation_projet.save()
             dotation_projets.append(dotation_projet)
         return dotation_projets
@@ -534,14 +534,3 @@ class DotationProjetService:
                 detr_category__isnull=False
             ):
                 dotation_projet.detr_categories.add(critere.detr_category)
-
-    @classmethod
-    def _get_notify_datetime_from_dotation_projet(cls, dossier: Dossier):
-        """This function is useful because we can have an accepted dotation projet and a "en instruction" dossier due to our process."""
-        if dossier.ds_state in (
-            Dossier.STATE_ACCEPTE,
-            Dossier.STATE_REFUSE,
-            Dossier.STATE_SANS_SUITE,
-        ):
-            return dossier.ds_date_traitement
-        return None

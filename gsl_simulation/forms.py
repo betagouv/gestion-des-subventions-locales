@@ -241,10 +241,8 @@ class RefuseProjetForm(DsfrBaseForm, forms.Form):
                 motivation=self.cleaned_data["justification"],
                 document=self.cleaned_data["justification_file"],
             )
-            self.simulation_projet.dotation_projet.programmation_projet.notified_at = (
-                timezone.now()
-            )
-            self.simulation_projet.dotation_projet.programmation_projet.save()
+            self.simulation_projet.dotation_projet.projet.notified_at = timezone.now()
+            self.simulation_projet.dotation_projet.projet.save()
 
 
 class DismissProjetForm(DsfrBaseForm, forms.Form):

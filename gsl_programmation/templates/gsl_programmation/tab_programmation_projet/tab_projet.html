@@ -10,7 +10,7 @@
             </h2>
             {% if programmation_projet.projet.to_notify %}
                 <span class="fr-text--xl projet__to_notify fr-ml-2w">À notifier <span class="fr-icon-mail-fill"></span></span>
-            {% elif programmation_projet.notified_at %}
+            {% elif programmation_projet.projet.notified_at %}
                 <span class="fr-text--xl projet__to_notify fr-ml-2w blue-color">Notifié <span class="fr-icon-checkbox-fill"></span></span>
             {% else %}
                 <b class="fr-ml-2w"><em>En attente de la décision {{ programmation_projet.dotation_projet.other_dotations.0.dotation }}.</em></b>

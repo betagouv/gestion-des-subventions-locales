@@ -142,9 +142,8 @@ class ProjetQuerySet(models.QuerySet):
             dotations_count=Count("dotationprojet"),
             programmation_count=Count(
                 "dotationprojet__programmation_projet",
-                filter=Q(dotationprojet__programmation_projet__notified_at=None),
             ),
-        ).filter(dotations_count=F("programmation_count"))
+        ).filter(dotations_count=F("programmation_count"), notified_at__isnull=True)
 
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
@@ -169,6 +168,9 @@ class Projet(models.Model):
         verbose_name="Statut",
         choices=PROJET_STATUS_CHOICES,
         default=PROJET_STATUS_PROCESSING,
+    )
+    notified_at = models.DateTimeField(
+        verbose_name="Date de notification", null=True, blank=True
     )
 
     is_in_qpv = models.BooleanField("Projet situé en QPV", null=False, default=False)
@@ -382,7 +384,6 @@ class DotationProjet(models.Model):
         self,
         montant: float,
         enveloppe: "Enveloppe",
-        notified_at: datetime | None = None,
     ):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
@@ -403,12 +404,11 @@ class DotationProjet(models.Model):
             defaults={
                 "montant": montant,
                 "status": ProgrammationProjet.STATUS_ACCEPTED,
-                "notified_at": notified_at,
             },
         )
 
     @transition(field=status, source="*", target=PROJET_STATUS_REFUSED)
-    def refuse(self, enveloppe: "Enveloppe", notified_at: datetime | None = None):
+    def refuse(self, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -428,12 +428,11 @@ class DotationProjet(models.Model):
             defaults={
                 "montant": 0,
                 "status": ProgrammationProjet.STATUS_REFUSED,
-                "notified_at": notified_at,
             },
         )
 
     @transition(field=status, source="*", target=PROJET_STATUS_DISMISSED)
-    def dismiss(self, enveloppe: "Enveloppe", notified_at: datetime | None = None):
+    def dismiss(self, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -452,7 +451,6 @@ class DotationProjet(models.Model):
             defaults={
                 "montant": 0,
                 "status": ProgrammationProjet.STATUS_DISMISSED,
-                "notified_at": notified_at,
             },
         )
 

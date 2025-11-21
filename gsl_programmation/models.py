@@ -259,9 +259,6 @@ class ProgrammationProjet(models.Model):
         verbose_name="Justification", blank=True, null=False, default=""
     )
 
-    notified_at = models.DateTimeField(
-        verbose_name="Date de notification", null=True, blank=True
-    )
     created_at = models.DateTimeField(
         verbose_name="Date de création", auto_now_add=True
     )
@@ -306,6 +303,16 @@ class ProgrammationProjet(models.Model):
     @property
     def dotation(self):
         return self.dotation_projet.dotation
+
+    @property
+    @deprecated("Use `Projet.notified_at` instead.")
+    def notified_at(self):
+        return self.projet.notified_at
+
+    @notified_at.setter
+    @deprecated("Use `Projet.notified_at` instead.")
+    def notified_at(self, value):
+        self.projet.notified_at = value
 
     @property
     def documents(self):

@@ -60,7 +60,7 @@ def choose_type_for_multiple_document_generation(request, dotation):
             ProgrammationProjet,
             id__in=ids,
             status=ProgrammationProjet.STATUS_ACCEPTED,
-            notified_at=None,
+            dotation_projet__projet__notified_at=None,
             dotation_projet__dotation=dotation,
         )
         if len(programmation_projets) < len(ids):
@@ -125,7 +125,7 @@ def select_modele_multiple(request, dotation, document_type):
             ProgrammationProjet,
             id__in=ids,
             status=ProgrammationProjet.STATUS_ACCEPTED,
-            notified_at=None,
+            dotation_projet__projet__notified_at=None,
             dotation_projet__dotation=dotation,
         )
         if len(programmation_projets) < len(ids):
@@ -222,7 +222,7 @@ def save_documents(
             ProgrammationProjet,
             id__in=ids,
             status=ProgrammationProjet.STATUS_ACCEPTED,
-            notified_at=None,
+            dotation_projet__projet__notified_at=None,
             dotation_projet__dotation=dotation,
         )
         if len(programmation_projets) < len(ids):
@@ -323,7 +323,7 @@ def download_documents(request, dotation, document_type):
             id__in=ids,
             dotation_projet__dotation=dotation,
             status=ProgrammationProjet.STATUS_ACCEPTED,
-            notified_at=None,
+            dotation_projet__projet__notified_at=None,
         )
         if len(programmation_projets) < len(ids):
             return HttpResponseBadRequest(
