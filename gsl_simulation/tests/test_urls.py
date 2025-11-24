@@ -178,7 +178,6 @@ def test_patch_taux_simulation_projet_url(
     assert response.templates[0].name == "gsl_simulation/simulation_detail.html"
     assert response.context["simu"] == cote_dorien_simulation_projet
     assert response.context["projet"] == cote_dorien_simulation_projet.projet
-    assert response.context["available_states"] == SimulationProjet.STATUS_CHOICES
     assert response.context["status_summary"] == expected_status_summary
     assert response.context["total_amount_granted"] == Decimal("2500.00")
     assert response.context["filter_params"] == ""
@@ -206,7 +205,6 @@ def test_patch_taux_simulation_projet_url_with_htmx(
         == cote_dorien_simulation_projet.dotation_projet
     )
     assert response.context["projet"] == cote_dorien_simulation_projet.projet
-    assert response.context["available_states"] == SimulationProjet.STATUS_CHOICES
     assert response.context["status_summary"] == expected_status_summary
     assert response.context["total_amount_granted"] == Decimal("2500.00")
 
@@ -229,7 +227,6 @@ def test_patch_montant_simulation_projet_url(
     assert response.templates[0].name == "gsl_simulation/simulation_detail.html"
     assert response.context["simu"] == cote_dorien_simulation_projet
     assert response.context["projet"] == cote_dorien_simulation_projet.projet
-    assert response.context["available_states"] == SimulationProjet.STATUS_CHOICES
     assert response.context["status_summary"] == expected_status_summary
     assert response.context["total_amount_granted"] == Decimal("100")
 
@@ -252,7 +249,6 @@ def test_patch_montant_simulation_projet_url_with_htmx(
     assert response.templates[0].name == "htmx/projet_update.html"
     assert response.context["simu"] == cote_dorien_simulation_projet
     assert response.context["projet"] == cote_dorien_simulation_projet.projet
-    assert response.context["available_states"] == SimulationProjet.STATUS_CHOICES
     assert response.context["status_summary"] == expected_status_summary
     assert response.context["total_amount_granted"] == Decimal("100")
 
@@ -271,56 +267,26 @@ status_update_expected_status_summary = {
 
 
 @pytest.mark.django_db
-def test_patch_status_simulation_projet_url(
-    client_with_cote_d_or_user_logged,
-    cote_dorien_simulation_projet,
-):
-    url = reverse(
-        "simulation:patch-simulation-projet-status",
-        kwargs={"pk": cote_dorien_simulation_projet.pk},
-    )
-
-    with mock.patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
-    ) as mock_update_ds_assiette_montant_and_taux:
-        mock_update_ds_assiette_montant_and_taux.return_value = None
-        response = client_with_cote_d_or_user_logged.post(
-            url, {"status": "valid"}, follow=True
-        )
-    assert response.status_code == 200
-    assert response.templates[0].name == "gsl_simulation/simulation_detail.html"
-    assert response.context["simu"] == cote_dorien_simulation_projet
-    assert response.context["projet"] == cote_dorien_simulation_projet.projet
-    assert response.context["available_states"] == SimulationProjet.STATUS_CHOICES
-    assert response.context["status_summary"] == status_update_expected_status_summary
-    assert response.context["total_amount_granted"] == Decimal("0")
-
-    cote_dorien_simulation_projet.refresh_from_db()
-    assert cote_dorien_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
-
-
-@pytest.mark.django_db
 def test_patch_status_simulation_projet_url_with_htmx(
     client_with_cote_d_or_user_logged, cote_dorien_simulation_projet
 ):
+    page_url = reverse(
+        "gsl_simulation:simulation-projet-detail",
+        args=[cote_dorien_simulation_projet.pk],
+    )
+    htmx_headers = {"HX-Request": "true", "HX-Request-URL": page_url}
     url = reverse(
         "simulation:patch-simulation-projet-status",
-        kwargs={"pk": cote_dorien_simulation_projet.pk},
+        kwargs={"pk": cote_dorien_simulation_projet.pk, "status": "valid"},
     )
     with mock.patch(
         "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
     ) as mock_update_ds_assiette_montant_and_taux:
         mock_update_ds_assiette_montant_and_taux.return_value = None
         response = client_with_cote_d_or_user_logged.post(
-            url, {"status": "valid"}, headers={"HX-Request": "true"}, follow=True
+            url, headers=htmx_headers, follow=True
         )
     assert response.status_code == 200
-    assert response.templates[0].name == "htmx/projet_update.html"
-    assert response.context["simu"] == cote_dorien_simulation_projet
-    assert response.context["projet"] == cote_dorien_simulation_projet.projet
-    assert response.context["available_states"] == SimulationProjet.STATUS_CHOICES
-    assert response.context["status_summary"] == status_update_expected_status_summary
-    assert response.context["total_amount_granted"] == Decimal("0")
 
     cote_dorien_simulation_projet.refresh_from_db()
     assert cote_dorien_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
@@ -355,10 +321,10 @@ def test_patch_projet_only_if_projet_is_included_in_user_perimetre(
 
     url = reverse(
         "simulation:patch-simulation-projet-status",
-        kwargs={"pk": cote_dorien_simulation_projet.pk},
+        kwargs={"pk": cote_dorien_simulation_projet.pk, "status": "valid"},
     )
     response = client_with_cote_d_or_user_logged.post(
-        url, {"status": "valid"}, follow=True
+        url, headers={"HX-Request": "true"}
     )
     assert response.status_code == 200
 
@@ -391,9 +357,11 @@ def test_cant_patch_projet_only_if_projet_is_not_included_in_user_perimetre(
 
     url = reverse(
         "simulation:patch-simulation-projet-status",
-        kwargs={"pk": cote_dorien_simulation_projet.pk},
+        kwargs={"pk": cote_dorien_simulation_projet.pk, "status": "valid"},
     )
-    response = client_with_iconnais_user_logged.post(url, {"status": "valid"})
+    response = client_with_iconnais_user_logged.post(
+        url, headers={"HX-Request": "true"}
+    )
     assert response.status_code == 404
 
 
@@ -409,11 +377,12 @@ def client_with_bourguignon_user_logged(perimetre_bourgogne):
 
 
 PATCH_ROUTES_AND_DATA = (
-    ("simulation:patch-simulation-projet-taux", {"taux": "0.5"}),
-    ("simulation:patch-simulation-projet-montant", {"montant": "400"}),
-    ("simulation:patch-simulation-projet-status", {"status": "valid"}),
+    ("simulation:patch-simulation-projet-taux", {}, {"taux": "0.5"}),
+    ("simulation:patch-simulation-projet-montant", {}, {"montant": "400"}),
+    ("simulation:patch-simulation-projet-status", {"status": "valid"}, None),
     (
         "simulation:patch-projet",
+        {},
         {
             "is_in_qpv": "on",
             "is_attached_to_a_crte": "on",
@@ -421,23 +390,34 @@ PATCH_ROUTES_AND_DATA = (
             "dotations": ["DSIL"],
         },
     ),
-    ("simulation:patch-dotation-projet", {"detr_avis_commission": ""}),
+    ("simulation:patch-dotation-projet", {}, {"detr_avis_commission": ""}),
 )
 
 
 @pytest.mark.parametrize(
-    "route, data",
+    "route, kwargs, data",
     PATCH_ROUTES_AND_DATA,
 )
 @pytest.mark.django_db
 def test_regional_user_cant_patch_projet_if_simulation_projet_is_associated_to_detr_enveloppe(
-    client_with_bourguignon_user_logged, cote_dorien_simulation_projet, route, data
+    client_with_bourguignon_user_logged,
+    cote_dorien_simulation_projet,
+    route,
+    kwargs,
+    data,
 ):
+    page_url = reverse(
+        "simulation:simulation-projet-detail", args=[cote_dorien_simulation_projet.pk]
+    )
     url = reverse(
         route,
-        kwargs={"pk": cote_dorien_simulation_projet.pk},
+        kwargs={"pk": cote_dorien_simulation_projet.pk, **kwargs},
     )
-    response = client_with_bourguignon_user_logged.post(url, data)
+    response = client_with_bourguignon_user_logged.post(
+        url,
+        data,
+        headers={"HX-Request": "true", "HX-Request-URL": page_url},
+    )
     assert response.status_code == 404
 
 
@@ -455,16 +435,29 @@ def cote_dorien_dsil_simulation_projet(cote_d_or_perimetre):
     )
 
 
-@pytest.mark.parametrize("route, data", PATCH_ROUTES_AND_DATA)
+@pytest.mark.parametrize("route, kwargs, data", PATCH_ROUTES_AND_DATA)
 @pytest.mark.django_db
 def test_regional_user_can_patch_projet_if_simulation_projet_is_associated_to_dsil_enveloppe_and_in_its_perimetre(
-    client_with_bourguignon_user_logged, cote_dorien_dsil_simulation_projet, route, data
+    client_with_bourguignon_user_logged,
+    cote_dorien_dsil_simulation_projet,
+    route,
+    kwargs,
+    data,
 ):
+    page_url = reverse(
+        "simulation:simulation-projet-detail",
+        args=[cote_dorien_dsil_simulation_projet.pk],
+    )
     url = reverse(
         route,
-        kwargs={"pk": cote_dorien_dsil_simulation_projet.pk},
+        kwargs={"pk": cote_dorien_dsil_simulation_projet.pk, **kwargs},
     )
-    response = client_with_bourguignon_user_logged.post(url, data, follow=True)
+    response = client_with_bourguignon_user_logged.post(
+        url,
+        data,
+        headers={"HX-Request": "true", "HX-Request-URL": page_url},
+        follow=True,
+    )
     assert response.status_code == 200
 
 
@@ -474,18 +467,22 @@ def client_with_staff_user_logged():
     return ClientWithLoggedUserFactory(staff_user)
 
 
-@pytest.mark.parametrize("route, data", PATCH_ROUTES_AND_DATA)
+@pytest.mark.parametrize("route, kwargs, data", PATCH_ROUTES_AND_DATA)
 @pytest.mark.django_db
 def test_patch_projet_allowed_for_staff_user(
-    client_with_staff_user_logged, cote_dorien_simulation_projet, route, data
+    client_with_staff_user_logged, cote_dorien_simulation_projet, route, kwargs, data
 ):
+    page_url = reverse(
+        "simulation:simulation-projet-detail", args=[cote_dorien_simulation_projet.pk]
+    )
     url = reverse(
         route,
-        kwargs={"pk": cote_dorien_simulation_projet.pk},
+        kwargs={"pk": cote_dorien_simulation_projet.pk, **kwargs},
     )
     response = client_with_staff_user_logged.post(
         url,
         data,
+        headers={"HX-Request": "true", "HX-Request-URL": page_url},
         follow=True,
     )
     assert response.status_code == 200
@@ -617,10 +614,10 @@ def test_redirection_with_referer_allowed(
     )
 
     url = reverse(
-        "simulation:patch-simulation-projet-status",
+        "gsl_simulation:patch-simulation-projet-montant",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client.post(url, {"status": "valid"}, follow=True)
+    response = client.post(url, {"montant": "100"}, follow=True)
     assert response.status_code == 200
     assert response.templates[0].name == "gsl_simulation/simulation_projet_detail.html"
 
@@ -631,10 +628,10 @@ def test_redirection_with_referer_not_allowed(
 ):
     client = get_client_with_referer(cote_d_or_perimetre, "http://localhost:8001/")
     url = reverse(
-        "simulation:patch-simulation-projet-status",
+        "gsl_simulation:patch-simulation-projet-montant",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client.post(url, {"status": "valid"}, follow=True)
+    response = client.post(url, {"montant": "100"}, follow=True)
     assert response.status_code == 200
     assert response.templates[0].name == "gsl_simulation/simulation_detail.html"
 

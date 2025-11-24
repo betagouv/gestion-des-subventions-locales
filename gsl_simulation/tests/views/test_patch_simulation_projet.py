@@ -90,8 +90,12 @@ def simulation_projet(collegue, simulation):
 def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
     client_with_user_logged, simulation_projet
 ):
+    page_url = reverse(
+        "simulation:simulation-detail", args=[simulation_projet.simulation.slug]
+    )
     url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+        "simulation:patch-simulation-projet-status",
+        args=[simulation_projet.id, SimulationProjet.STATUS_ACCEPTED],
     )
     with patch(
         "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
@@ -99,9 +103,8 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
         mock_update_ds_montant.return_value = None
         response = client_with_user_logged.post(
             url,
-            {"status": f"{SimulationProjet.STATUS_ACCEPTED}"},
             follow=True,
-            headers={"HX-Request": "true"},
+            headers={"HX-Request": "true", "HX-Request-URL": page_url},
         )
 
     updated_simulation_projet = SimulationProjet.objects.get(id=simulation_projet.id)
@@ -115,10 +118,7 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
     assert "1 projet validé" in parse_html(response.content.decode())
     assert "0 projet refusé" in parse_html(response.content.decode())
     assert "0 projet notifié" in parse_html(response.content.decode())
-    assert (
-        '<span hx-swap-oob="innerHTML" id="total-amount-granted">1\xa0000\xa0€</span>'
-        in response.content.decode()
-    )
+    assert 'id="total-amount-granted">1\xa0000\xa0€</span>' in response.content.decode()
 
 
 data_test = (
@@ -158,11 +158,15 @@ def test_patch_status_simulation_projet_gives_message(
         simulation_projet.dotation_projet.save()
         simulation_projet.save()
 
-    data = {"status": status}
-    url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+    page_url = reverse(
+        "simulation:simulation-projet-detail", args=[simulation_projet.id]
     )
-    response = client_with_user_logged.post(url, data, follow=True)
+    url = reverse(
+        "simulation:patch-simulation-projet-status", args=[simulation_projet.id, status]
+    )
+    response = client_with_user_logged.post(
+        url, headers={"HX-Request": "true", "HX-Request-URL": page_url}, follow=True
+    )
 
     if status == SimulationProjet.STATUS_ACCEPTED:
         mock_ds_update.assert_called_once_with(
@@ -190,17 +194,17 @@ def test_patch_status_simulation_projet_invalid_status(
     client_with_user_logged, simulation_projet, data
 ):
     url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+        "simulation:patch-simulation-projet-status",
+        args=[simulation_projet.id, "invalid"],
     )
     response = client_with_user_logged.post(
         url,
-        {"status": "invalid"},
         follow=True,
         headers={"HX-Request": "true"},
     )
 
     updated_simulation_projet = SimulationProjet.objects.get(id=simulation_projet.id)
-    assert response.status_code == 500
+    assert response.status_code == 404
     assert updated_simulation_projet.status == SimulationProjet.STATUS_PROCESSING
 
 
@@ -228,8 +232,12 @@ def accepted_simulation_projet(collegue, simulation):
 def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
     client_with_user_logged, simulation_projet
 ):
+    page_url = reverse(
+        "simulation:simulation-projet-detail", args=[simulation_projet.id]
+    )
     url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+        "simulation:patch-simulation-projet-status",
+        args=[simulation_projet.id, SimulationProjet.STATUS_ACCEPTED],
     )
 
     with patch(
@@ -238,7 +246,7 @@ def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
     ):
         response = client_with_user_logged.post(
             url,
-            {"status": "valid"},
+            headers={"HX-Request": "true", "HX-Request-URL": page_url},
             follow=True,
         )
     assert response.status_code == 200
@@ -792,7 +800,8 @@ def test_patch_status_simulation_projet_blocked_when_programmation_notified(
     )
 
     url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+        "simulation:patch-simulation-projet-status",
+        args=[simulation_projet.id, SimulationProjet.STATUS_ACCEPTED],
     )
 
     with patch(
@@ -801,13 +810,12 @@ def test_patch_status_simulation_projet_blocked_when_programmation_notified(
         mock_update_ds_montant.return_value = None
         response = client_with_user_logged.post(
             url,
-            {"status": f"{SimulationProjet.STATUS_ACCEPTED}"},
             follow=True,
             headers={"HX-Request": "true"},
         )
 
     # Should be blocked
-    assert response.status_code == 500
+    assert response.status_code == 200
     simulation_projet.refresh_from_db()
     assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
     mock_update_ds_montant.assert_not_called()

@@ -1,13 +1,3 @@
-import { handleStatusChange } from './simulationProjetStatusConfirmation.js'
-
-document.querySelectorAll('.status-radio-button').forEach((elt) => {
-  elt.addEventListener('change', (ev) => {
-    const target = ev.target
-    return handleStatusChange(target, target.dataset.originalValue) // eslint-disable-line
-    // TODO use handleStatusChange from a module
-  })
-})
-
 const detrAvisCommission = document.querySelector('#id_detr_avis_commission')
 if (detrAvisCommission) {
   detrAvisCommission.addEventListener('change', (ev) => {

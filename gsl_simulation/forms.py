@@ -2,6 +2,7 @@ from logging import getLogger
 
 from django import forms
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.forms import ModelForm
@@ -201,6 +202,36 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
                 dotation_projet, initial_taux
             )
             self.cleaned_data["montant"] = instance.montant
+
+
+class StatusProjetForm(DsfrBaseForm, forms.ModelForm):
+    def __init__(self, status, **kwargs):
+        self.status = status
+        super().__init__(**kwargs)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if (
+            self.status == SimulationProjet.STATUS_ACCEPTED
+            and bool(self.instance.dotation_projet.assiette) is False
+        ):
+            raise ValidationError(
+                "Le projet n'a pas pu être accepté car il manque l'assiette subventionnable. "
+                "Veuillez ajouter le montant des dépenses éligibles retenues avant d'accepter un projet.",
+            )
+
+        if self.instance.dotation_projet.projet.notified_at:
+            raise ValidationError("Notified projet status cannot be changed.")
+
+        return cleaned_data
+
+    def save(self, status, user: Collegue, commit=True):
+        SimulationProjetService.update_status(self.instance, self.status, user)
+        return self.instance
+
+    class Meta:
+        model = SimulationProjet
+        fields = ()
 
 
 class RefuseProjetForm(DsfrBaseForm, forms.Form):

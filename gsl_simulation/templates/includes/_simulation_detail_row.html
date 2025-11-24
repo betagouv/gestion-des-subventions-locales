@@ -55,7 +55,7 @@
         {% if dotation_projet.programmation_projet.notified_at %}
             {{ simu.get_status_display }} (notifié)
         {% else %}
-            {% include "includes/table_forms/_status_form.html" %}
+            {% include "includes/_status_dropdown_buttons.html" with table=True %}
         {% endif %}
         {% if dotation_projet.to_notify %}
             <span class="projet__to_notify">À notifier</span>

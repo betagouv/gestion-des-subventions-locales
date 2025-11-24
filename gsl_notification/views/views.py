@@ -9,10 +9,11 @@ from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_http_methods
 from django.views.generic import DetailView, UpdateView
-from django_htmx.http import HttpResponseClientRedirect, trigger_client_event
+from django_htmx.http import HttpResponseClientRedirect
 from django_weasyprint import WeasyTemplateResponseMixin
 
 from gsl_core.decorators import htmx_only
+from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_notification.forms import NotificationMessageForm
@@ -139,7 +140,7 @@ class NotificationMessageView(UpdateView):
 
 
 @method_decorator(htmx_only, name="dispatch")
-class CheckDsDossierUpToDateView(DetailView):
+class CheckDsDossierUpToDateView(OpenHtmxModalMixin, DetailView):
     """
     This view is used to check if the dossier is up to date. It should be used in a modal.
     """
@@ -147,6 +148,7 @@ class CheckDsDossierUpToDateView(DetailView):
     template_name = "gsl_notification/modal/ds_dossier_not_up_to_date.html"
     pk_url_kwarg = "programmation_projet_id"
     context_object_name = "programmation_projet"
+    modal_id = "dossier-not-up-to-date-modal"
 
     def get_queryset(self):
         return ProgrammationProjet.objects.visible_to_user(self.request.user)
@@ -163,12 +165,7 @@ class CheckDsDossierUpToDateView(DetailView):
                     reverse("gsl_notification:documents", args=[self.object.id])
                 )
 
-        return trigger_client_event(
-            super().render_to_response(context, *args, **kwargs),
-            "click",
-            {"target": "#to_notify_button"},
-            after="settle",
-        )
+        return super().render_to_response(context, *args, **kwargs)
 
 
 # Edition form for arrêté --------------------------------------------------------------

@@ -1,0 +1,72 @@
+{% comment %}
+If GET, this is first display:
+ we swap the modal in the body, and swap the original HTMX button
+ with a button opening the modal.
+
+If POST, the modal is already opened and the form is being sent:
+    we swap the modal in itself
+    to display form errors.
+{% endcomment %}
+{% if request.method == "GET" %}
+    {% block button %}
+        {% comment %}
+        Example with a dropdown button
+        {% endcomment %}
+        <button class="fr-nav__link"
+                id="{{ modal_button_id }}"
+                aria-controls="{{ modal_id }}"
+                type="button"
+                data-fr-opened="false">
+            {% block button_label %}
+            {% endblock button_label %}
+        </button>
+    {% endblock button %}
+    <div hx-swap-oob="beforeend:body">
+    {% endif %}
+    <dialog class="fr-modal"
+            id="{{ modal_id }}"
+            aria-labelledby="{{ modal_id }}-title">
+        <div class="fr-container fr-container--fluid fr-container-md">
+            <div class="fr-grid-row fr-grid-row--center">
+                <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
+                    <div class="fr-modal__body">
+                        <div class="fr-modal__header">
+                            <button aria-controls="{{ modal_id }}"
+                                    title="Fermer"
+                                    type="button"
+                                    class="fr-btn--close fr-btn close-modal">
+                                Fermer
+                            </button>
+                        </div>
+                        <div class="fr-modal__content">
+                            {% block content %}
+                            {% endblock content %}
+                        </div>
+
+                        <div class="fr-modal__footer">
+                            <ul class="fr-btns-group fr-btns-group--right fr-btns-group--inline-reverse fr-btns-group--inline-lg fr-btns-group--icon-left">
+                                <li>
+                                    {% block confirmation_button %}
+                                        <button type="submit"
+                                                class="fr-btn fr-btn--primary"
+                                                form="{{ modal_id }}-form">
+                                            Confirmer
+                                        </button>
+
+                                    {% endblock confirmation_button %}
+                                </li>
+                                <li>
+                                    <button class="fr-btn fr-btn--secondary" aria-controls="{{ modal_id }}">
+                                        Annuler
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </dialog>
+    {% if request.method == "GET" %}
+    </div>
+{% endif %}
