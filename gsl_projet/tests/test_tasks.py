@@ -73,7 +73,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_an_other_dotation_than
         annotations_dotation=DOTATION_DSIL,
         demande_montant=400,
         finance_cout_total=4_000,
-        ds_demandeur__address__commune=commune,
+        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
     )
     projet = ProjetFactory(dossier_ds=dossier)
     detr_dotation_projet = DotationProjetFactory(
@@ -102,7 +102,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
         annotations_dotation=DOTATION_DETR,
         demande_montant=400,
         finance_cout_total=4_000,
-        ds_demandeur__address__commune=commune,
+        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
     )
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
@@ -221,7 +221,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
         annotations_dotation=DOTATION_DETR,
         demande_montant=400,
         finance_cout_total=4_000,
-        ds_demandeur__address__commune=commune,
+        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
     )
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
