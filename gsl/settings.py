@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
-import logging
 import os
 import sys
 from pathlib import Path
@@ -232,7 +231,7 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
 # Logs
-LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", logging.INFO)
+LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -255,6 +254,11 @@ LOGGING = {
             "handlers": ["console"],
             "level": LOGGING_LEVEL,
             "propagate": True,
+        },
+        "celery.worker": {
+            "handlers": ["console"],
+            "level": LOGGING_LEVEL,
+            "propagate": False,
         },
     },
 }
