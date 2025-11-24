@@ -4,6 +4,7 @@ from unittest import mock
 from unittest.mock import patch
 
 import pytest
+from django.utils import timezone
 
 from gsl_core.tests.factories import CollegueFactory
 from gsl_demarches_simplifiees.models import Dossier, FieldMappingForComputer
@@ -172,6 +173,52 @@ def test_update_annotation_field_success(
             dossier, user, value, "field", mutation_type
         )
         assert "data" in result
+
+
+@pytest.mark.parametrize(
+    "function, mutation_type",
+    (
+        ("dossier_modifier_annotation_checkbox", "checkbox"),
+        ("dossier_modifier_annotation_decimal", "decimal"),
+    ),
+)
+def test_update_annotation_field_updates_ds_date_derniere_modification(
+    user, dossier, ds_field, function, mutation_type
+):
+    ds_service = DsService()
+
+    value = True if mutation_type == "checkbox" else 1.5
+    mutation_data_name = DsService.MUTATION_KEYS[mutation_type]
+    updated_at_iso = "2025-01-15T10:30:00+00:00"
+    expected_updated_at = timezone.datetime.fromisoformat(updated_at_iso)
+
+    dossier.ds_date_derniere_modification = None
+    dossier.save()
+
+    with (
+        patch(
+            "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
+            return_value=ds_field,
+        ),
+        patch.object(ds_service, "mutator") as mock_mutator,
+    ):
+        mock_function = getattr(mock_mutator, function)
+        mock_function.return_value = {
+            "data": {
+                mutation_data_name: {
+                    "clientMutationId": "dev",
+                    "errors": None,
+                },
+                "updatedAt": updated_at_iso,
+            }
+        }
+
+        ds_service._update_annotation_field(
+            dossier, user, value, "field", mutation_type
+        )
+
+        dossier.refresh_from_db()
+        assert dossier.ds_date_derniere_modification == expected_updated_at
 
 
 def test_get_instructeur_id(caplog):

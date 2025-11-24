@@ -8,6 +8,7 @@ mutation modifierAnnotationCheckbox(
       id
       label
       stringValue
+      updatedAt
     }
     errors {
       message
@@ -25,6 +26,7 @@ mutation modifierAnnotationDecimalNumber(
       id
       label
       stringValue
+      updatedAt
     }
     errors {
       message

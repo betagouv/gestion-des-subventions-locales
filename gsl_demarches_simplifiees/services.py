@@ -142,7 +142,14 @@ class DsService:
         results = mutator_function(dossier.ds_id, instructeur_id, ds_field_id, value)
 
         self._check_results(results, dossier, user, mutation_type, field, value)
+        self._update_updated_at(dossier, results)
         return results
+
+    def _update_updated_at(self, dossier: Dossier, results: dict):
+        updated_at = results.get("data", {}).get("updatedAt")
+        if updated_at:
+            dossier.ds_date_derniere_modification = updated_at
+            dossier.save(update_fields=["ds_date_derniere_modification"])
 
     def _get_instructeur_id(self, user: Collegue) -> str:
         instructeur_id = user.ds_id
