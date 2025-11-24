@@ -23,10 +23,10 @@
                             <p>
                                 Les informations des dossiers sont récupérées sur Démarches Simplifiées et mises à jour
                                 sur
-                                Turgot toutes les 12h.
+                                Turgot toutes les heures.
                                 <b>Nous remarquons des changements sur ce dossier, sur Démarches Simplifiées, qui datent
                                     de
-                                    moins de 12h</b>.
+                                    moins d'une heure</b>.
                                 </p>
                                 <p>
                                     Vous devez actualiser depuis DS les informations de ce dossier et le réexaminer avant de
@@ -37,9 +37,6 @@
                                       method="post"
                                       id="refresh-dossier-form">
                                     {% csrf_token %}
-                                    <input type="hidden"
-                                           name="next"
-                                           value="{% url 'gsl_programmation:programmation-projet-detail' object.id %}" />
                                 </form>
                             </div>
                             <div class="fr-modal__footer">
