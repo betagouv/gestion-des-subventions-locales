@@ -1,11 +1,9 @@
 {% extends "htmx/_base_htmx_modal.html" %}
-
 {% block button_label %}
     ✅ Accepté
 {% endblock button_label %}
 
 {% block content %}
-
     <h1 class="fr-modal__title success-color">
         <span class="fr-icon-checkbox-fill fr-icon--lg" aria-hidden="true"></span> Accepter le
         financement du projet
@@ -13,11 +11,10 @@
     {% if object.dotation_projet.assiette %}
         <p>
             Ce projet va être accepté dans toutes les simulations dans lesquelles il a été ajouté.
-            Il apparaîtra dans la programmation
-            officielle {{ enveloppe.dotation }} {{ enveloppe.annee }}.
+            Il apparaîtra dans la programmation officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
         </p>
         <p>
-            Êtes-vous sûr(e) d'accepter ce projet ?
+            Êtes-vous sûr(e) d'accepter ce projet&nbsp;?
         </p>
         <form id="{{ modal_id }}-form"
               hx-post="{{ request.path }}"

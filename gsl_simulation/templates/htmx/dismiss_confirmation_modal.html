@@ -1,5 +1,4 @@
 {% extends "htmx/_base_htmx_modal.html" %}
-
 {% block button_label %}
     ⛔️ Classé sans suite
 {% endblock button_label %}
@@ -12,8 +11,7 @@
     </h1>
     <p>
         Ce projet va être classé sans suite dans toutes les simulations dans lesquelles il a été
-        ajouté.
-        Le demandeur va être notifié.
+        ajouté. Le demandeur va être notifié.
     </p>
     <form id="{{ modal_id }}-form"
           hx-post="{% url 'gsl_simulation:dismiss-form' simulation_projet.id %}"
@@ -29,9 +27,7 @@
             </p>
             <p>
                 Le dossier de ce projet est actuellement en construction sur Démarches
-                Simplifiées.
-                Le
-                projet sera passé en instruction avant d'être réfusé.
+                Simplifiées. Le projet sera passé en instruction avant d'être réfusé.
             </p>
         </div>
     {% endif %}

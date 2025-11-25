@@ -1,22 +1,20 @@
 {% extends "htmx/_base_htmx_modal.html" %}
-
 {% load simulation_filters %}
-
 {% block button_label %}
     ✖️ Refusé provisoirement
 {% endblock button_label %}
 
 {% block content %}
     <h1 class="fr-modal__title processing-color">
-        <span class="fr-icon-draft-fill fr-icon--lg" aria-hidden="true"></span> Revenir au statut "Refusé
-        provisoirement”
+        <span class="fr-icon-draft-fill fr-icon--lg" aria-hidden="true"></span>
+        Revenir au statut "Refusé provisoirement”
     </h1>
     <p id="provisionally_refused-confirmation-modal-content">
         Ce projet {{ object.status|status_to_french_word }} va être remis en traitement dans toutes les autres simulations
         dans lesquelles il a été ajouté. Il n'apparaîtra plus dans la programmation officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
     </p>
     <p>
-        Êtes-vous sûr(e) de refuser provisoirement le projet ?
+        Êtes-vous sûr(e) de refuser provisoirement le projet&nbsp;?
     </p>
     <form id="{{ modal_id }}-form"
           hx-post="{{ request.path }}"

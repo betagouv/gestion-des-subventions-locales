@@ -1,7 +1,5 @@
 {% extends "htmx/_base_htmx_modal.html" %}
-
 {% load simulation_filters %}
-
 {% block button_label %}
     🔄 En traitement
 {% endblock button_label %}
@@ -15,7 +13,7 @@
         lesquelles il a été ajouté. Il n'apparaîtra plus dans la programmation officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
     </p>
     <p>
-        Êtes-vous sûr(e) de remettre le projet en traitement ?
+        Êtes-vous sûr(e) de remettre le projet en traitement&nbsp;?
     </p>
     <form id="{{ modal_id }}-form"
           hx-post="{{ request.path }}"

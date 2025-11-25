@@ -30,13 +30,13 @@ def status_url(simulation: SimulationProjet, status):
 
 
 @register.filter(name="status_needs_modal")
-def status_needs_modal(simulation: SimulationProjet, status):
+def status_needs_modal(simulation_projet: SimulationProjet, status):
     """
     Discriminate between status that needs a confirmation modal (GET) and those that don't (POST).
     """
     return (
         status not in SIMULATION_ONLY_STATUS
-        or simulation.status not in SIMULATION_ONLY_STATUS
+        or simulation_projet.status not in SIMULATION_ONLY_STATUS
     )
 
 
