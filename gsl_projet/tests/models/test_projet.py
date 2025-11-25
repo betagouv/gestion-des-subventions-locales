@@ -1,6 +1,5 @@
 import pytest
 
-from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
@@ -78,29 +77,55 @@ def test_dotation_dsil():
     assert projet.dotation_dsil == dotation
 
 
-@pytest.mark.parametrize(
-    "status, notified_at, expected",
-    (
-        (ProgrammationProjet.STATUS_ACCEPTED, None, True),
-        (
-            ProgrammationProjet.STATUS_ACCEPTED,
-            "2023-07-23 13:05:03.837825+00:00",
-            False,
-        ),
-        (ProgrammationProjet.STATUS_REFUSED, None, False),
-        (ProgrammationProjet.STATUS_REFUSED, "2023-07-23 13:05:03.837825+00:00", False),
-    ),
-)
-@pytest.mark.django_db
-def test_to_notify_true_and_false(status, notified_at, expected):
+def test_to_notify_false_without_programmation():
+    """Project without any programmation should return False."""
     projet = ProjetFactory()
-    dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
 
     assert projet.to_notify is False
 
-    ProgrammationProjetFactory(
-        dotation_projet=dotation,
-        status=status,
-        notified_at=notified_at,
-    )
-    assert projet.to_notify is expected
+
+def test_to_notify_true_with_programmation_not_notified():
+    """Project with programmation but not notified should return True."""
+    projet = ProjetFactory()
+    dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+
+    ProgrammationProjetFactory(dotation_projet=dotation)
+    assert projet.to_notify is True
+
+
+def test_to_notify_false_when_projet_already_notified():
+    """Project already notified should return False."""
+    from django.utils import timezone
+
+    projet = ProjetFactory(notified_at=timezone.now())
+    dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+
+    ProgrammationProjetFactory(dotation_projet=dotation)
+    assert projet.to_notify is False
+
+
+def test_to_notify_with_double_dotation_all_notified():
+    """Double dotation project returns False only if all dotations are notified."""
+    from django.utils import timezone
+
+    projet = ProjetFactory(notified_at=timezone.now())
+    dotation_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    dotation_dsil = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+
+    ProgrammationProjetFactory(dotation_projet=dotation_detr)
+    ProgrammationProjetFactory(dotation_projet=dotation_dsil)
+
+    assert projet.to_notify is False
+
+
+def test_to_notify_with_double_dotation_partial_programmation():
+    """Double dotation project returns False if any dotation lacks programmation."""
+    projet = ProjetFactory()
+    dotation_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+
+    # Only create programmation for DETR
+    ProgrammationProjetFactory(dotation_projet=dotation_detr)
+
+    assert projet.to_notify is False

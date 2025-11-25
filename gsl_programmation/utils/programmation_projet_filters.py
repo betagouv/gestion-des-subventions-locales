@@ -137,13 +137,9 @@ class ProgrammationProjetFilters(FilterSet):
 
     def filter_notified(self, queryset, _name, value: str):
         if value == "yes":
-            return queryset.exclude(
-                notified_at=None, status=ProgrammationProjet.STATUS_ACCEPTED
-            )
+            return queryset.exclude(dotation_projet__projet__notified_at=None)
         elif value == "no":
-            return queryset.filter(
-                notified_at=None, status=ProgrammationProjet.STATUS_ACCEPTED
-            )
+            return queryset.filter(dotation_projet__projet__notified_at=None)
         else:
             return queryset
 

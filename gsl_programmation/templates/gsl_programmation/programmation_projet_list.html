@@ -2,6 +2,7 @@
 {% load static dsfr_tags gsl_filters %}
 
 {% block extra_css %}
+    <link rel="stylesheet" href="{% static "css/messages.css" %}">
     <link rel="stylesheet" href="{% static "css/projet_list.css" %}">
     <link rel="stylesheet"
           href="{% static "css/programmation_projet_list.css" %}">
@@ -161,7 +162,7 @@
                             {% for programmation_projet in programmation_projets %}
                                 <tr>
                                     <td>
-                                        {% if programmation_projet.to_notify %}
+                                        {% if programmation_projet.projet.to_notify %}
                                             <div class="fr-checkbox-group fr-checkbox-group--sm">
                                                 <input id="checkbox-{{ programmation_projet.id }}"
                                                        type="checkbox"
@@ -221,13 +222,15 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if programmation_projet.to_notify %}
+                                        {% if programmation_projet.projet.to_notify %}
                                             <span class="projet__to_notify">À notifier</span>
-                                        {% else %}
+                                        {% elif programmation_projet.projet.notified_at %}
                                             <span class="blue-color projet__notified">
                                                 <span class="fr-icon-checkbox-fill" aria-hidden="true"></span>
                                                 Notifié
                                             </span>
+                                        {% else %}
+                                            <b><em>En attente de la décision {{ programmation_projet.dotation_projet.other_dotations.0.dotation }}.</em></b>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -238,6 +241,45 @@
                                         </a>
                                     </td>
                                 </tr>
+                                {% for other_dotation in programmation_projet.dotation_projet.other_dotations %}
+                                    <tr class="other-dotation-row">
+                                        <td colspan=5 class="information-other-dotation">
+                                            Informations pour la dotation {{ other_dotation.dotation }}
+                                        </td>
+                                        <td class="gsl-money">
+                                            <div class="gsl-money">
+                                                {{ other_dotation.last_updated_simulation_projet.montant|euro:2 }}
+                                            </div>
+                                        </td>
+                                        <td class="gsl-money">
+                                            <div class="gsl-money">
+                                                {{ other_dotation.last_updated_simulation_projet.taux|percent }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <ul class="no-list-style">
+                                                {% if other_dotation.dotation == "DETR" %}
+                                                    {% for c in other_dotation.detr_categories.all %}
+                                                        <li>
+                                                            {{ c.label }}
+                                                        </li>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    {% for c in other_dotation.projet.dossier_ds.demande_eligibilite_dsil.all %}
+                                                        <li>
+                                                            {{ c }}
+                                                        </li>
+                                                    {% endfor %}
+                                                {% endif %}
+                                            </ul>
+                                        </td>
+                                        <td class="other-simulation-status">
+                                            <b>{{ other_dotation.last_updated_simulation_projet.get_status_display }}</b>
+                                        </td>
+                                        <td colspan=3 class="fr-cell--right gsl-nowrap">
+                                        </td>
+                                    </tr>
+                                {% endfor %}
                             {% empty %}
                                 <tr>
                                     <td colspan="12">

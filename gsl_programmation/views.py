@@ -91,6 +91,19 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
     ordering = ["-created_at"]
     STATE_MAPPINGS = {key: value for key, value in ProgrammationProjet.STATUS_CHOICES}
 
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .select_related("dotation_projet", "dotation_projet__projet")
+            .prefetch_related(
+                "dotation_projet__projet__dotationprojet_set",
+                "dotation_projet__projet__dotationprojet_set__programmation_projet",
+                "dotation_projet__projet__dotationprojet_set__simulationprojet_set",
+                "dotation_projet__projet__dotationprojet_set__detr_categories",
+            )
+        )
+
     def get(self, request, *args, **kwargs):
         self.perimetre: Perimetre = self.request.user.perimetre
         self.dotation = kwargs.get("dotation")

@@ -16,7 +16,6 @@ from gsl.settings import ALLOWED_HOSTS
 from gsl_core.decorators import htmx_only
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.importer.dossier import save_one_dossier_from_ds
-from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.forms import DotationProjetForm, ProjetForm
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
@@ -119,12 +118,8 @@ def patch_status_simulation_projet(request, pk):
     if status not in dict(SimulationProjet.STATUS_CHOICES).keys():
         raise ValueError("Invalid status")
 
-    try:
-        programmation_projet = simulation_projet.dotation_projet.programmation_projet
-        if programmation_projet.notified_at:
-            raise ValueError("Notified projet status cannot be changed.")
-    except ProgrammationProjet.DoesNotExist:
-        pass
+    if simulation_projet.dotation_projet.projet.notified_at:
+        raise ValueError("Notified projet status cannot be changed.")
 
     try:
         with transaction.atomic():
@@ -479,7 +474,7 @@ class RefuseOrDismissProjetModalBaseView(UpdateView):
         return (
             SimulationProjet.objects.in_user_perimeter(self.request.user)
             # On exclut les simulations-projet liés à une programmation-projet déjà notifiée.
-            .exclude(dotation_projet__programmation_projet__notified_at__isnull=False)
+            .exclude(dotation_projet__projet__notified_at__isnull=False)
             .select_related(
                 "simulation",
                 "simulation__enveloppe",

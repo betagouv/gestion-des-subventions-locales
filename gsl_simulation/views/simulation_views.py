@@ -2,7 +2,7 @@ from datetime import date
 from functools import cached_property
 
 from django.core.paginator import Paginator
-from django.db.models import Count, Prefetch, QuerySet
+from django.db.models import Prefetch
 from django.forms import NumberInput
 from django.http import HttpResponse
 from django.shortcuts import redirect
@@ -18,7 +18,7 @@ from django_filters.views import FilterView
 from gsl_core.models import Perimetre
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, DOTATIONS
-from gsl_projet.models import CategorieDetr, DotationProjet, Projet
+from gsl_projet.models import CategorieDetr, DotationProjet
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
@@ -230,9 +230,6 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                 "filter_params": self.request.GET.urlencode(),
                 "enveloppe": simulation.enveloppe,
                 "dotations": DOTATIONS,
-                "other_dotations_simu": self._get_other_dotations_simulation_projet(
-                    current_page.object_list, simulation.enveloppe.dotation
-                ),
                 "export_types": FilteredProjetsExportView.EXPORT_TYPES,
                 "breadcrumb_dict": {
                     "links": [
@@ -255,6 +252,11 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         qs = qs.filter(dotationprojet__simulationprojet__simulation=simulation)
         qs = qs.select_related("demandeur", "address", "address__commune")
         qs = qs.prefetch_related(
+            "dotationprojet_set",
+            "dotationprojet_set__programmation_projet",
+            "dotationprojet_set__simulationprojet_set",
+            "dotationprojet_set__detr_categories",
+            "dossier_ds__demande_eligibilite_dsil",
             Prefetch(
                 "dotationprojet_set",
                 queryset=DotationProjet.objects.filter(
@@ -269,9 +271,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             ),
             "dotation_projet__programmation_projet",
         )
-        if simulation.dotation == DOTATION_DSIL:
-            qs = qs.prefetch_related("dossier_ds__demande_eligibilite_dsil")
-        else:
+        if simulation.dotation == DOTATION_DETR:
             qs = qs.prefetch_related(
                 "dotation_projet__detr_categories",
             )
@@ -297,48 +297,6 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                 simulation.enveloppe.perimetre.departement
             ).all()
         )
-
-    def _get_other_dotations_simulation_projet(
-        self, projets: QuerySet[Projet], current_dotation: str
-    ) -> dict[int, SimulationProjet]:
-        projet_ids = set(projets.values_list("id", flat=True))
-        ids_of_double_dotation_projet = set(
-            Projet.objects.annotate(dotation_projet_count=Count("dotationprojet"))
-            .filter(dotation_projet_count__gt=1, id__in=projet_ids)
-            .values_list("id", flat=True)
-        )
-        if not ids_of_double_dotation_projet:
-            return {}
-
-        # Récupère tous les SimulationProjet concernés en une seule requête
-        other_simulation_projets = (
-            SimulationProjet.objects.select_related(
-                "dotation_projet",
-                "dotation_projet__projet",
-                "dotation_projet__projet__dossier_ds",
-            )
-            .filter(dotation_projet__projet__id__in=ids_of_double_dotation_projet)
-            .exclude(simulation__enveloppe__dotation=current_dotation)
-            .order_by("dotation_projet__projet__id", "-updated_at")
-        )
-        if current_dotation == DOTATION_DSIL:
-            other_simulation_projets = other_simulation_projets.prefetch_related(
-                "dotation_projet__detr_categories"
-            )
-        else:
-            other_simulation_projets = other_simulation_projets.prefetch_related(
-                "dotation_projet__projet__dossier_ds__demande_eligibilite_dsil",
-            )
-        # On ne garde que le SimulationProjet le plus récent pour chaque projet_id
-        projet_id_to_last_updated_other_dotation_simulation_projet = {
-            pid: None for pid in ids_of_double_dotation_projet
-        }
-        for sp in other_simulation_projets:
-            pid = sp.dotation_projet.projet_id
-            if not projet_id_to_last_updated_other_dotation_simulation_projet[pid]:
-                projet_id_to_last_updated_other_dotation_simulation_projet[pid] = sp
-
-        return projet_id_to_last_updated_other_dotation_simulation_projet
 
     # This method is used to prevent caching of the page
     # This is useful for the row update with htmx

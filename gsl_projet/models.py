@@ -1,10 +1,10 @@
 from datetime import UTC, date, datetime
 from datetime import timezone as tz
-from typing import TYPE_CHECKING, Iterator, Union
+from typing import TYPE_CHECKING, Iterator, List, Optional, Union
 
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q, UniqueConstraint
+from django.db.models import Count, F, Q, UniqueConstraint
 from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
@@ -25,6 +25,7 @@ from gsl_projet.constants import (
 if TYPE_CHECKING:
     from gsl_demarches_simplifiees.models import CritereEligibiliteDsil, Dossier
     from gsl_programmation.models import Enveloppe
+    from gsl_simulation.models import SimulationProjet
 
 
 class CategorieDetrQueryset(models.QuerySet):
@@ -136,6 +137,14 @@ class ProjetQuerySet(models.QuerySet):
         )
         return projet_qs_not_processed_before_the_start_of_the_year
 
+    def to_notify(self):
+        return self.annotate(
+            dotations_count=Count("dotationprojet"),
+            programmation_count=Count(
+                "dotationprojet__programmation_projet",
+            ),
+        ).filter(dotations_count=F("programmation_count"), notified_at__isnull=True)
+
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
     def get_queryset(self):
@@ -159,6 +168,9 @@ class Projet(models.Model):
         verbose_name="Statut",
         choices=PROJET_STATUS_CHOICES,
         default=PROJET_STATUS_PROCESSING,
+    )
+    notified_at = models.DateTimeField(
+        verbose_name="Date de notification", null=True, blank=True
     )
 
     is_in_qpv = models.BooleanField("Projet situé en QPV", null=False, default=False)
@@ -227,13 +239,18 @@ class Projet(models.Model):
 
     @property
     def to_notify(self) -> bool:
-        from gsl_programmation.models import ProgrammationProjet
+        """
+        Returns True if the projet has not been notified yet, and all dotations have a programmation.
 
-        return ProgrammationProjet.objects.filter(
-            dotation_projet__projet=self,
-            status=ProgrammationProjet.STATUS_ACCEPTED,
-            notified_at__isnull=True,
-        ).exists()
+        Does not check if the programmation has been accepted or refused ! This is not necessary.
+        """
+        return all(
+            (
+                hasattr(d, "programmation_projet")
+                and d.programmation_projet.notified_at is None
+            )
+            for d in self.dotationprojet_set.all()
+        )
 
 
 class DotationProjet(models.Model):
@@ -319,6 +336,22 @@ class DotationProjet(models.Model):
         return self.projet.dossier_ds
 
     @property
+    def other_dotations(self) -> List["DotationProjet"]:
+        return list(d for d in self.projet.dotationprojet_set.all() if d.pk != self.pk)
+
+    @property
+    def last_updated_simulation_projet(self) -> Optional["SimulationProjet"]:
+        """
+        We use python side sort so we benefit from prefetching !
+        """
+        simulations = sorted(
+            self.simulationprojet_set.all(),
+            key=lambda s: s.updated_at,
+            reverse=True,
+        )
+        return simulations[0] if len(simulations) else None
+
+    @property
     def assiette_or_cout_total(self):
         if self.assiette is not None:
             return self.assiette
@@ -351,7 +384,6 @@ class DotationProjet(models.Model):
         self,
         montant: float,
         enveloppe: "Enveloppe",
-        notified_at: datetime | None = None,
     ):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
@@ -372,12 +404,11 @@ class DotationProjet(models.Model):
             defaults={
                 "montant": montant,
                 "status": ProgrammationProjet.STATUS_ACCEPTED,
-                "notified_at": notified_at,
             },
         )
 
     @transition(field=status, source="*", target=PROJET_STATUS_REFUSED)
-    def refuse(self, enveloppe: "Enveloppe", notified_at: datetime | None = None):
+    def refuse(self, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -397,12 +428,11 @@ class DotationProjet(models.Model):
             defaults={
                 "montant": 0,
                 "status": ProgrammationProjet.STATUS_REFUSED,
-                "notified_at": notified_at,
             },
         )
 
     @transition(field=status, source="*", target=PROJET_STATUS_DISMISSED)
-    def dismiss(self, enveloppe: "Enveloppe", notified_at: datetime | None = None):
+    def dismiss(self, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -421,7 +451,6 @@ class DotationProjet(models.Model):
             defaults={
                 "montant": 0,
                 "status": ProgrammationProjet.STATUS_DISMISSED,
-                "notified_at": notified_at,
             },
         )
 

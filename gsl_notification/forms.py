@@ -116,8 +116,8 @@ class NotificationMessageForm(DsfrBaseForm, forms.Form):
             )
 
         with transaction.atomic():
-            self.programmation_projet.notified_at = timezone.now()
-            self.programmation_projet.save()
+            self.programmation_projet.projet.notified_at = timezone.now()
+            self.programmation_projet.projet.save()
             DsMutator().dossier_accepter(
                 self.programmation_projet.dossier,
                 instructeur_id,
