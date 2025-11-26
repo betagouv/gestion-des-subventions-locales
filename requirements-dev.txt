@@ -8,25 +8,25 @@ amqp==5.3.1
     # via kombu
 annotated-types==0.7.0
     # via pydantic
-asgiref==3.10.0
+asgiref==3.11.0
     # via
     #   django
     #   django-htmx
-asttokens==3.0.0
+asttokens==3.0.1
     # via stack-data
 beautifulsoup4==4.14.2
     # via bs4
-billiard==4.2.2
+billiard==4.2.3
     # via celery
-boto3==1.40.51
+boto3==1.41.3
     # via
     #   django-storages
     #   gsl (pyproject.toml)
-botocore==1.40.51
+botocore==1.41.3
     # via
     #   boto3
     #   s3transfer
-brotli==1.1.0
+brotli==1.2.0
     # via fonttools
 bs4==0.0.2
     # via gsl (pyproject.toml)
@@ -37,7 +37,7 @@ celery==5.5.3
     #   django-celery-beat
     #   django-celery-results
     #   gsl (pyproject.toml)
-certifi==2025.10.5
+certifi==2025.11.12
     # via
     #   requests
     #   sentry-sdk
@@ -45,13 +45,13 @@ cffi==2.0.0
     # via
     #   cryptography
     #   weasyprint
-cfgv==3.4.0
+cfgv==3.5.0
     # via pre-commit
 chardet==5.2.0
     # via diff-cover
 charset-normalizer==3.4.4
     # via requests
-click==8.3.0
+click==8.3.1
     # via
     #   celery
     #   click-didyoumean
@@ -67,11 +67,11 @@ click-repl==0.3.0
     # via celery
 colorama==0.4.6
     # via djlint
-coverage[toml]==7.10.7
+coverage[toml]==7.12.0
     # via pytest-cov
 cron-descriptor==2.0.6
     # via django-celery-beat
-cryptography==46.0.2
+cryptography==46.0.3
     # via
     #   josepy
     #   mozilla-django-oidc
@@ -83,9 +83,9 @@ decorator==5.2.1
     # via ipython
 defusedxml==0.7.1
     # via odfpy
-deprecated==1.2.18
+deprecated==1.3.1
     # via pikepdf
-diff-cover==9.7.1
+diff-cover==9.7.2
     # via gsl (pyproject.toml)
 diff-match-patch==20241021
     # via django-import-export
@@ -93,7 +93,7 @@ distlib==0.4.0
     # via virtualenv
 dj-database-url==3.0.1
     # via gsl (pyproject.toml)
-django==5.2.7
+django==5.2.8
     # via
     #   dj-database-url
     #   django-celery-beat
@@ -118,11 +118,11 @@ django-celery-beat==2.8.1
     # via gsl (pyproject.toml)
 django-celery-results==2.6.0
     # via gsl (pyproject.toml)
-django-crispy-forms==2.4
+django-crispy-forms==2.5
     # via django-dsfr
 django-csp==4.0
     # via gsl (pyproject.toml)
-django-debug-toolbar==6.0.0
+django-debug-toolbar==6.1.0
     # via gsl (pyproject.toml)
 django-dsfr==3.2.0
     # via gsl (pyproject.toml)
@@ -132,11 +132,11 @@ django-filter==25.2
     # via gsl (pyproject.toml)
 django-formtools==2.5.1
     # via gsl (pyproject.toml)
-django-fsm-2==4.0.0
+django-fsm-2==4.1.0
     # via gsl (pyproject.toml)
 django-htmx==1.26.0
     # via gsl (pyproject.toml)
-django-import-export==4.3.10
+django-import-export==4.3.14
     # via gsl (pyproject.toml)
 django-referrer-policy==1.0
     # via gsl (pyproject.toml)
@@ -156,13 +156,13 @@ editorconfig==0.17.1
     #   jsbeautifier
 et-xmlfile==2.0.0
     # via openpyxl
-execnet==2.1.1
+execnet==2.1.2
     # via pytest-xdist
 executing==2.2.1
     # via stack-data
 factory-boy==3.3.3
     # via gsl (pyproject.toml)
-faker==37.11.0
+faker==38.2.0
     # via factory-boy
 filelock==3.20.0
     # via virtualenv
@@ -176,11 +176,11 @@ identify==2.6.15
     # via pre-commit
 idna==3.11
     # via requests
-img2pdf==0.6.1
+img2pdf==0.6.3
     # via gsl (pyproject.toml)
-iniconfig==2.1.0
+iniconfig==2.3.0
     # via pytest
-ipython==9.6.0
+ipython==9.7.0
     # via gsl (pyproject.toml)
 ipython-pygments-lexers==1.1.1
     # via ipython
@@ -192,7 +192,7 @@ jmespath==1.0.1
     # via
     #   boto3
     #   botocore
-josepy==2.1.0
+josepy==2.2.0
     # via mozilla-django-oidc
 jsbeautifier==1.15.4
     # via
@@ -206,7 +206,7 @@ lxml==6.0.2
     # via pikepdf
 markupsafe==3.0.3
     # via jinja2
-matplotlib-inline==0.1.7
+matplotlib-inline==0.2.1
     # via ipython
 mozilla-django-oidc==4.0.1
     # via gsl (pyproject.toml)
@@ -231,16 +231,16 @@ pathspec==0.12.1
     # via djlint
 pexpect==4.9.0
     # via ipython
-pikepdf==9.11.0
+pikepdf==10.0.2
     # via
     #   gsl (pyproject.toml)
     #   img2pdf
-pillow==11.3.0
+pillow==12.0.0
     # via
     #   img2pdf
     #   pikepdf
     #   weasyprint
-pip-tools==7.5.1
+pip-tools==7.5.2
     # via gsl (pyproject.toml)
 platformdirs==4.5.0
     # via virtualenv
@@ -249,15 +249,15 @@ pluggy==1.6.0
     #   diff-cover
     #   pytest
     #   pytest-cov
-pre-commit==4.3.0
+pre-commit==4.5.0
     # via gsl (pyproject.toml)
 prompt-toolkit==3.0.52
     # via
     #   click-repl
     #   ipython
-psycopg[binary]==3.2.10
+psycopg[binary]==3.2.13
     # via gsl (pyproject.toml)
-psycopg-binary==3.2.10
+psycopg-binary==3.2.13
     # via psycopg
 ptyprocess==0.7.0
     # via pexpect
@@ -265,9 +265,9 @@ pure-eval==0.2.3
     # via stack-data
 pycparser==2.23
     # via cffi
-pydantic==2.12.1
+pydantic==2.12.4
     # via pyproject-toml
-pydantic-core==2.41.3
+pydantic-core==2.41.5
     # via pydantic
 pydyf==0.11.0
     # via weasyprint
@@ -285,7 +285,7 @@ pyproject-hooks==1.2.0
     #   pip-tools
 pyproject-toml==0.1.0
     # via gsl (pyproject.toml)
-pytest==8.4.2
+pytest==9.0.1
     # via
     #   gsl (pyproject.toml)
     #   pytest-cov
@@ -307,16 +307,16 @@ python-dateutil==2.9.0.post0
     #   botocore
     #   celery
     #   freezegun
-python-dotenv==1.1.1
+python-dotenv==1.2.1
     # via gsl (pyproject.toml)
 pyyaml==6.0.3
     # via
     #   djlint
     #   pre-commit
     #   responses
-redis==6.4.0
+redis==7.1.0
     # via gsl (pyproject.toml)
-regex==2025.9.18
+regex==2025.11.3
     # via djlint
 requests==2.32.5
     # via
@@ -326,13 +326,13 @@ requests==2.32.5
     #   responses
 responses==0.25.8
     # via gsl (pyproject.toml)
-ruff==0.14.0
+ruff==0.14.6
     # via
     #   gsl (pyproject.toml)
     #   pytest-ruff
-s3transfer==0.14.0
+s3transfer==0.15.0
     # via boto3
-sentry-sdk==2.41.0
+sentry-sdk==2.46.0
     # via gsl (pyproject.toml)
 six==1.17.0
     # via
@@ -347,11 +347,11 @@ sqlparse==0.5.3
     #   django-debug-toolbar
 stack-data==0.6.3
     # via ipython
-tablib[ods,xls,xlsx]==3.8.0
+tablib[ods,xls,xlsx]==3.9.0
     # via
     #   django-import-export
     #   gsl (pyproject.toml)
-tinycss2==1.4.0
+tinycss2==1.5.1
     # via
     #   cssselect2
     #   weasyprint
@@ -388,7 +388,7 @@ vine==5.1.0
     #   amqp
     #   celery
     #   kombu
-virtualenv==20.35.3
+virtualenv==20.35.4
     # via pre-commit
 wcwidth==0.2.14
     # via prompt-toolkit
@@ -405,13 +405,13 @@ wheel==0.45.1
     #   pyproject-toml
 whitenoise==6.11.0
     # via gsl (pyproject.toml)
-wrapt==1.17.3
+wrapt==2.0.1
     # via deprecated
 xlrd==2.0.2
     # via tablib
 xlwt==1.3.0
     # via tablib
-zopfli==0.2.3.post1
+zopfli==0.4.0
     # via fonttools
 
 # The following packages are considered to be unsafe in a requirements file:
