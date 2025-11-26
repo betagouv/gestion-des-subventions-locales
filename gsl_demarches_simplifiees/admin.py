@@ -244,7 +244,9 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     @admin.action(description="Rafraîchir depuis DS")
     def refresh_from_ds(self, request, queryset):
         for dossier in queryset:
-            save_one_dossier_from_ds.delay(dossier)
+            save_one_dossier_from_ds.delay(
+                dossier, refresh_only_if_dossier_has_been_updated=False
+            )
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

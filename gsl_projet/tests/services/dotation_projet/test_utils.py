@@ -213,7 +213,7 @@ def test_is_programmation_projet_created_after_date_of_passage_en_instruction_wi
 
 
 @pytest.mark.django_db
-def test_is_programmation_projet_created_before_date_of_passage_en_instruction_created_before():
+def test_is_programmation_projet_created_after_date_of_passage_en_instruction_when_pp_is_created_before_passage_en_instruction():
     """Test _is_programmation_projet_created_after_date_of_passage_en_instruction returns False when programmation_projet.created_at is before ds_date_passage_en_instruction"""
     dossier = DossierFactory(
         ds_date_passage_en_instruction=timezone.datetime(2025, 1, 15, tzinfo=UTC)
@@ -221,12 +221,11 @@ def test_is_programmation_projet_created_before_date_of_passage_en_instruction_c
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(projet=projet)
 
-    # Create programmation_projet with frozen time (2025-01-01) which is before passage en instruction (2025-01-15)
-    # But we'll manually set created_at to be before
-    programmation_projet = ProgrammationProjetFactory(
-        dotation_projet=dotation_projet,
-        created_at=timezone.datetime(2025, 1, 10, tzinfo=UTC),
-    )
+    # Create programmation_projet with frozen time (2025-01-10) which is before passage en instruction (2025-01-15)
+    with freeze_time("2025-01-10"):
+        programmation_projet = ProgrammationProjetFactory(
+            dotation_projet=dotation_projet,
+        )
 
     result = dps._is_programmation_projet_created_after_date_of_passage_en_instruction(
         dotation_projet
@@ -237,7 +236,7 @@ def test_is_programmation_projet_created_before_date_of_passage_en_instruction_c
 
 
 @pytest.mark.django_db
-def test_is_programmation_projet_created_after_date_of_passage_en_instruction_created_after():
+def test_is_programmation_projet_created_after_date_of_passage_en_instruction_when_pp_is_created_after_passage_en_instruction():
     """Test _is_programmation_projet_created_after_date_of_passage_en_instruction returns True when programmation_projet.created_at is after ds_date_passage_en_instruction"""
     dossier = DossierFactory(
         ds_date_passage_en_instruction=timezone.datetime(
@@ -248,10 +247,10 @@ def test_is_programmation_projet_created_after_date_of_passage_en_instruction_cr
     dotation_projet = DotationProjetFactory(projet=projet)
 
     # Create programmation_projet with frozen time (2025-01-20) which is after passage en instruction (2025-01-15)
-    programmation_projet = ProgrammationProjetFactory(
-        dotation_projet=dotation_projet,
-        created_at=timezone.datetime(2025, 1, 20, tzinfo=UTC),
-    )
+    with freeze_time("2025-01-20"):
+        programmation_projet = ProgrammationProjetFactory(
+            dotation_projet=dotation_projet,
+        )
 
     result = dps._is_programmation_projet_created_after_date_of_passage_en_instruction(
         dotation_projet

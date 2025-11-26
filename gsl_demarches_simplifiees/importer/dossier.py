@@ -73,11 +73,17 @@ def save_demarche_dossiers_from_ds(demarche_number, using_updated_since: bool = 
     demarche.save()
 
 
-def save_one_dossier_from_ds(dossier: Dossier, client: DsClient | None = None):
+def save_one_dossier_from_ds(
+    dossier: Dossier,
+    client: DsClient | None = None,
+    refresh_only_if_dossier_has_been_updated: bool = True,
+):
     client = client or DsClient()
     dossier_data = client.get_one_dossier(dossier.ds_number)
     has_dossier_been_updated = _save_dossier_data_and_refresh_dossier_and_projet_and_co(
-        dossier, dossier_data
+        dossier,
+        dossier_data,
+        refresh_only_if_dossier_has_been_updated=refresh_only_if_dossier_has_been_updated,
     )
 
     if has_dossier_been_updated:
@@ -95,14 +101,21 @@ def save_one_dossier_from_ds(dossier: Dossier, client: DsClient | None = None):
 
 
 def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
-    dossier: Dossier, dossier_data: dict, async_refresh: bool = False
+    dossier: Dossier,
+    dossier_data: dict,
+    async_refresh: bool = False,
+    refresh_only_if_dossier_has_been_updated: bool = True,
 ):
-    has_dossier_been_updated = _has_dossier_been_updated_on_ds(dossier, dossier_data)
+    if refresh_only_if_dossier_has_been_updated:
+        must_refresh_dossier = _has_dossier_been_updated_on_ds(dossier, dossier_data)
+    else:
+        must_refresh_dossier = True
+
     refresh_dossier_instructeurs(dossier_data, dossier)
     dossier.raw_ds_data = dossier_data
     dossier.save()
 
-    if has_dossier_been_updated:
+    if must_refresh_dossier:
         if async_refresh:
             from gsl_demarches_simplifiees.tasks import (
                 task_refresh_dossier_from_saved_data,
@@ -112,7 +125,7 @@ def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
         else:
             refresh_dossier_from_saved_data(dossier)
 
-    return has_dossier_been_updated
+    return must_refresh_dossier
 
 
 def _has_dossier_been_updated_on_ds(dossier: Dossier, dossier_data: dict) -> bool:
