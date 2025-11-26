@@ -3,6 +3,7 @@ from decimal import Decimal
 import pytest
 from django.db import IntegrityError
 from django.forms import ValidationError
+from django.utils import timezone
 from django_fsm import TransitionNotAllowed
 
 from gsl_core.tests.factories import DepartementFactory, PerimetreFactory
@@ -476,7 +477,9 @@ def test_dismiss_from_processing():
 
 def test_set_back_status_to_processing_from_accepted():
     dotation_projet = DotationProjetFactory(
-        status=PROJET_STATUS_ACCEPTED, assiette=50_000
+        status=PROJET_STATUS_ACCEPTED,
+        assiette=50_000,
+        projet__notified_at=timezone.now(),
     )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
@@ -490,9 +493,14 @@ def test_set_back_status_to_processing_from_accepted():
         montant=10_000,
     )
 
+    assert dotation_projet.projet.notified_at is not None
+
+    # --
     dotation_projet.set_back_status_to_processing()
     dotation_projet.save()
     dotation_projet.refresh_from_db()
+
+    # --
 
     assert dotation_projet.status == PROJET_STATUS_PROCESSING
     assert (
@@ -506,24 +514,50 @@ def test_set_back_status_to_processing_from_accepted():
         assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
         assert simulation_projet.montant == 10_000
         assert simulation_projet.taux == 20
+    assert dotation_projet.projet.notified_at is None
 
 
-def test_set_back_status_to_processing_from_refused():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_REFUSED)
+@pytest.mark.parametrize(
+    ("projet_status, programmation_projet_status, simulation_projet_status"),
+    [
+        (
+            PROJET_STATUS_REFUSED,
+            ProgrammationProjet.STATUS_REFUSED,
+            SimulationProjet.STATUS_REFUSED,
+        ),
+        (
+            PROJET_STATUS_DISMISSED,
+            ProgrammationProjet.STATUS_DISMISSED,
+            SimulationProjet.STATUS_DISMISSED,
+        ),
+    ],
+)
+def test_set_back_status_to_processing_from_refused_or_dismissed(
+    projet_status, programmation_projet_status, simulation_projet_status
+):
+    dotation_projet = DotationProjetFactory(
+        status=projet_status, projet__notified_at=timezone.now()
+    )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_REFUSED,
+        status=programmation_projet_status,
     )
     SimulationProjetFactory.create_batch(
         3,
         dotation_projet=dotation_projet,
-        status=SimulationProjet.STATUS_REFUSED,
+        status=simulation_projet_status,
         montant=0,
     )
+
+    assert dotation_projet.projet.notified_at is not None
+
+    # --
 
     dotation_projet.set_back_status_to_processing()
     dotation_projet.save()
     dotation_projet.refresh_from_db()
+
+    # --
 
     assert dotation_projet.status == PROJET_STATUS_PROCESSING
     assert (
@@ -537,6 +571,7 @@ def test_set_back_status_to_processing_from_refused():
         assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
         assert simulation_projet.montant == 0
         assert simulation_projet.taux == 0
+    assert dotation_projet.projet.notified_at is None
 
 
 @pytest.mark.parametrize(("status"), [PROJET_STATUS_PROCESSING])
