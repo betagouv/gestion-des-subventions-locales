@@ -10,8 +10,10 @@
         Revenir au statut "Refusé provisoirement”
     </h1>
     <p id="provisionally_refused-confirmation-modal-content">
-        Ce projet {{ object.status|status_to_french_word }} va être remis en traitement dans toutes les autres simulations
-        dans lesquelles il a été ajouté. Il n'apparaîtra plus dans la programmation officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
+        Ce projet {{ object.status|status_to_french_word }} va être remis en traitement dans toutes les autres
+        simulations
+        dans lesquelles il a été ajouté. Il n'apparaîtra plus dans la programmation
+        officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
     </p>
     <p>
         Êtes-vous sûr(e) de refuser provisoirement le projet&nbsp;?
@@ -19,7 +21,8 @@
     <form id="{{ modal_id }}-form"
           hx-post="{{ request.path }}"
           hx-target="#{{ modal_id }}"
-          hx-swap="outerHTML">
+          hx-swap="outerHTML"
+          hx-disabled-elt="#{{ modal_id }}-submit-button, #{{ modal_id }}-cancel-button">
         {{ form.non_field_errors }}
     </form>
 {% endblock content %}
@@ -27,7 +30,8 @@
 {% block confirmation_button %}
     <button type="submit"
             class="fr-btn fr-btn--primary"
-            form="{{ modal_id }}-form">
+            form="{{ modal_id }}-form"
+            id="{{ modal_id }}-submit-button">
         Oui
     </button>
 {% endblock confirmation_button %}

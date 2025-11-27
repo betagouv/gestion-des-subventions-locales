@@ -18,7 +18,8 @@
           hx-post="{% url 'gsl_simulation:refuse-form' simulation_projet.id %}"
           hx-encoding="multipart/form-data"
           hx-target="#{{ modal_id }}"
-          hx-swap="outerHTML">
+          hx-swap="outerHTML"
+          hx-disabled-elt="#{{ modal_id }}-submit-button, #{{ modal_id }}-cancel-button">
         {{ form }}
     </form>
     {% if simulation_projet.projet.dossier_ds.ds_state == "en_construction" %}
@@ -28,7 +29,7 @@
             </p>
             <p>
                 Le dossier de ce projet est actuellement en construction sur Démarches
-                Simplifiées. Le projet sera passé en instruction avant d'être réfusé.
+                Simplifiées. Le projet sera passé en instruction avant d’être réfusé.
             </p>
         </div>
     {% endif %}
@@ -37,7 +38,8 @@
 {% block confirmation_button %}
     <button type="submit"
             class="fr-btn fr-btn--primary"
-            form="{{ modal_id }}-form">
+            form="{{ modal_id }}-form"
+            id="{{ modal_id }}-submit-button">
         Refuser
     </button>
 {% endblock confirmation_button %}

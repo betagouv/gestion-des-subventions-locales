@@ -56,7 +56,9 @@ If POST, the modal is already opened and the form is being sent:
                                     {% endblock confirmation_button %}
                                 </li>
                                 <li>
-                                    <button class="fr-btn fr-btn--secondary" aria-controls="{{ modal_id }}">
+                                    <button class="fr-btn fr-btn--secondary"
+                                            aria-controls="{{ modal_id }}"
+                                            id="{{ modal_id }}-cancel-button">
                                         Annuler
                                     </button>
                                 </li>

@@ -1,5 +1,4 @@
 import json
-import logging
 
 from django.contrib import messages
 from django.db import transaction
@@ -39,8 +38,6 @@ from gsl_simulation.views.decorators import (
     exception_handler_decorator,
 )
 from gsl_simulation.views.simulation_views import SimulationDetailView
-
-logger = logging.getLogger(__name__)
 
 
 @exception_handler_decorator

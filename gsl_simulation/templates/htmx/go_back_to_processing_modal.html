@@ -18,7 +18,8 @@
     <form id="{{ modal_id }}-form"
           hx-post="{{ request.path }}"
           hx-target="#{{ modal_id }}"
-          hx-swap="outerHTML">
+          hx-swap="outerHTML"
+          hx-disabled-elt="#{{ modal_id }}-submit-button, #{{ modal_id }}-cancel-button">
         {{ form.non_field_errors }}
     </form>
 {% endblock content %}
@@ -26,7 +27,8 @@
 {% block confirmation_button %}
     <button type="submit"
             class="fr-btn fr-btn--primary"
-            form="{{ modal_id }}-form">
+            form="{{ modal_id }}-form"
+            id="{{ modal_id }}-submit-button">
         Oui
     </button>
 {% endblock confirmation_button %}
