@@ -8,26 +8,20 @@
                 <i class="fr-icon-coin-fill blue-color" aria-hidden="true"></i>
                 Décision de financement du projet
             </h2>
-            {% if programmation_projet.projet.to_notify %}
+            {% if projet.to_notify %}
                 <span class="fr-text--xl projet__to_notify fr-ml-2w">À notifier <span class="fr-icon-mail-fill"></span></span>
-            {% elif programmation_projet.projet.notified_at %}
+            {% elif projet.notified_at %}
                 <span class="fr-text--xl projet__to_notify fr-ml-2w blue-color">Notifié <span class="fr-icon-checkbox-fill"></span></span>
             {% else %}
-                <b class="fr-ml-2w"><em>En attente de la décision {{ programmation_projet.dotation_projet.other_dotations.0.dotation }}.</em></b>
+                <b class="fr-ml-2w"><em>En attente de la décision {{ dotation_not_notified }}.</em></b>
             {% endif %}
         </div>
 
-        {% if programmation_projet.status == "accepted" %}
-            <b class="fr-mr-4w fr-icon-check-line green-color">{{ programmation_projet.get_status_display|remove_first_word }}</b>
-        {% else %}
-            <b class="fr-mr-4w fr-icon-close-line red-color">{{ programmation_projet.get_status_display|remove_first_word }}</b>
-        {% endif %}
-
-        {% if programmation_projet.projet.to_notify %}
+        {% if projet.to_notify %}
             <button class="fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
                     id="to_notify_button"
                     type="button"
-                    hx-get="{% url 'gsl_notification:check-ds-dossier-up-to-date' programmation_projet.id %}"
+                    hx-get="{% url 'gsl_notification:check-ds-dossier-up-to-date' projet.id %}"
                     hx-swap="outerHTML">
                 Notifier le demandeur
             </button>

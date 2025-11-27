@@ -20,15 +20,18 @@ from gsl_programmation.models import Enveloppe, ProgrammationProjet
 from gsl_programmation.utils.programmation_projet_filters import (
     ProgrammationProjetFilters,
 )
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.models import CategorieDetr
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+)
+from gsl_projet.models import CategorieDetr, Projet
 from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_page import PROJET_MENU
 
 
 class ProgrammationProjetDetailView(DetailView):
-    model = ProgrammationProjet
-    pk_url_kwarg = "programmation_projet_id"
+    model = Projet
+    pk_url_kwarg = "projet_id"
 
     ALLOWED_TABS = {"annotations", "historique"}
 
@@ -40,30 +43,37 @@ class ProgrammationProjetDetailView(DetailView):
             return [f"gsl_programmation/tab_programmation_projet/tab_{tab}.html"]
         return ["gsl_programmation/programmation_projet_detail.html"]
 
+    # TODO test it
     def get_queryset(self):
         return (
-            ProgrammationProjet.objects.visible_to_user(self.request.user)
-            .select_related(
-                "dotation_projet",
-                "dotation_projet__projet",
-                "dotation_projet__projet__dossier_ds",
-                "dotation_projet__projet__perimetre",
-                "dotation_projet__projet__demandeur",
-                "enveloppe",
-                "enveloppe__perimetre",
-            )
-            .prefetch_related("dotation_projet__detr_categories")
+            Projet.objects.for_user(self.request.user)
+            # .filter(
+            #     dotationprojet__status__in=[
+            #         PROJET_STATUS_ACCEPTED,
+            #         PROJET_STATUS_REFUSED,
+            #         PROJET_STATUS_DISMISSED,
+            #     ]
+            # )
+            # .distinct()  # utile ??
+            # .select_related(
+            #     "dotation_projet",
+            #     "dotation_projet__projet",
+            #     "dotation_projet__projet__dossier_ds",
+            #     "dotation_projet__projet__perimetre",
+            #     "dotation_projet__projet__demandeur",
+            #     "enveloppe",
+            #     "enveloppe__perimetre",
+            # )
+            # .prefetch_related("dotation_projet__detr_categories")
         )
 
     def get_context_data(self, **kwargs):
         tab = self.kwargs.get("tab", "projet")
-        title = self.object.projet.dossier_ds.projet_intitule
+        title = self.object.dossier_ds.projet_intitule
         context = {
             "title": title,
-            "programmation_projet": self.object,
-            "projet": self.object.projet,
-            "dossier": self.object.projet.dossier_ds,
-            "enveloppe": self.object.enveloppe,
+            "projet": self.object,
+            "dossier": self.object.dossier_ds,
             "breadcrumb_dict": {
                 "links": [
                     {
@@ -75,9 +85,11 @@ class ProgrammationProjetDetailView(DetailView):
             },
             "menu_dict": PROJET_MENU,
             "current_tab": tab,
+            # TODO DUN: display the dotation not notified
+            # "dotation_not_notified": self.object.dotationprojet_set.filter(status=Projet.STATUS_ACCEPTED).first().other_dotations.0.dotation
         }
         if tab == "annotations":
-            context["projet_notes"] = self.object.projet.notes.all()
+            context["projet_notes"] = self.object.notes.all()
 
         return super().get_context_data(**context)
 

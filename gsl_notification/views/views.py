@@ -37,6 +37,7 @@ from gsl_projet.constants import (
     LETTRE,
     POSSIBLES_DOCUMENTS,
 )
+from gsl_projet.models import Projet
 
 # Views for listing notification documents on a programmationProjet, -------------------
 # in various contexts
@@ -146,15 +147,15 @@ class CheckDsDossierUpToDateView(OpenHtmxModalMixin, DetailView):
     """
 
     template_name = "gsl_notification/modal/ds_dossier_not_up_to_date.html"
-    pk_url_kwarg = "programmation_projet_id"
-    context_object_name = "programmation_projet"
+    pk_url_kwarg = "projet_id"
+    context_object_name = "projet"
     modal_id = "dossier-not-up-to-date-modal"
 
     def get_queryset(self):
-        return ProgrammationProjet.objects.visible_to_user(self.request.user)
+        return Projet.objects.for_user(self.request.user)
 
     def render_to_response(self, context, *args, **kwargs):
-        dossier = self.object.projet.dossier_ds
+        dossier = self.object.dossier_ds
         client = DsClient()
         dossier_data = client.get_one_dossier(dossier.ds_number)
         date_modif_ds = dossier_data.get("dateDerniereModification", None)

@@ -275,12 +275,13 @@ class ProgrammationProjet(models.Model):
     def __str__(self):
         return f"Projet programmé {self.pk}"
 
+    # TODO DUN: remove it ?
     def get_absolute_url(self):
         from django.urls import reverse
 
         return reverse(
             "gsl_programmation:programmation-projet-detail",
-            kwargs={"programmation_projet_id": self.pk},
+            kwargs={"projet_id": self.projet.id},
         )
 
     @property
