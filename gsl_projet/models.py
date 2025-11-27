@@ -468,6 +468,8 @@ class DotationProjet(models.Model):
         )
 
         ProgrammationProjet.objects.filter(dotation_projet=self).delete()
+        self.projet.notified_at = None
+        self.projet.save()
 
 
 class ProjetNote(BaseModel):

@@ -121,7 +121,7 @@ class NotificationMessageView(UpdateView):
         except DsServiceException as e:
             messages.error(
                 self.request,
-                f"Une erreur est survenue lors de l'envoi de la notification'. {str(e)}",
+                f"Une erreur est survenue lors de l'envoi de la notification. {str(e)}",
             )
             return self.form_invalid(form)
 
