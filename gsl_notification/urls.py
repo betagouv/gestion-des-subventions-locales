@@ -39,7 +39,7 @@ from gsl_notification.views.views import (
 
 urlpatterns = [
     path(
-        "<int:programmation_projet_id>/",
+        "<int:projet_id>/",
         CheckDsDossierUpToDateView.as_view(),
         name="check-ds-dossier-up-to-date",
     ),
