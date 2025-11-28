@@ -453,7 +453,7 @@ class TestProgrammationProjetDetailView:
             kwargs={"dotation": "DETR"},
         )
         assert go_back_link.startswith(expected_url)
-        assert "dotation=DETR" in go_back_link
+        assert "dotation" not in go_back_link
         assert "page=1" in go_back_link
         assert "search=test" in go_back_link
 
@@ -510,7 +510,7 @@ class TestProgrammationProjetDetailView:
             kwargs={"dotation": "DSIL"},
         )
         assert go_back_link.startswith(expected_url)
-        assert "dotation=DSIL" in go_back_link
+        assert "dotation=DSIL" not in go_back_link
 
 
 class TestProgrammationProjetTabView:
