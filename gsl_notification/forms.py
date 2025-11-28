@@ -26,25 +26,25 @@ class ArreteForm(forms.ModelForm, DsfrBaseForm):
 
     class Meta:
         model = Arrete
-        fields = ("content", "created_by", "programmation_projet", "modele")
+        fields = ("content", "created_by", "projet", "dotation", "modele")
 
 
 class LettreNotificationForm(ArreteForm):
     class Meta:
         model = LettreNotification
-        fields = ("content", "created_by", "programmation_projet", "modele")
+        fields = ("content", "created_by", "projet", "dotation", "modele")
 
 
 class ArreteEtLettreSigneForm(forms.ModelForm, DsfrBaseForm):
     class Meta:
         model = ArreteEtLettreSignes
-        fields = ("file", "created_by", "programmation_projet")
+        fields = ("file", "created_by", "projet", "dotation")
 
 
 class AnnexeForm(forms.ModelForm, DsfrBaseForm):
     class Meta:
         model = Annexe
-        fields = ("file", "created_by", "programmation_projet")
+        fields = ("file", "created_by", "projet")
 
 
 class ModeleDocumentStepZeroForm(DsfrBaseForm):

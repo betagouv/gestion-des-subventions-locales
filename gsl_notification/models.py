@@ -176,24 +176,24 @@ class GeneratedDocument(models.Model):
         return 12345
 
     def clean(self):
-        if (
-            hasattr(self, "programmation_projet")
-            and hasattr(self, "modele")
-            and self.programmation_projet.dotation != self.modele.dotation
-        ):
+        if hasattr(self, "modele") and self.dotation != self.modele.dotation:
             raise ValidationError(
-                "Le modèle doit avoir la même dotation que le projet de programmation."
+                "Le modèle doit avoir la même dotation que le document."
             )
         return super().clean()
 
 
 class Arrete(GeneratedDocument):
-    programmation_projet = models.OneToOneField(
-        "gsl_programmation.ProgrammationProjet",
+    projet = models.ForeignKey(
+        "gsl_projet.Projet",
         on_delete=models.CASCADE,
-        verbose_name="Programmation projet",
-        related_name="arrete",
+        verbose_name="Projet",
+        related_name="arretes",
+        null=True,
     )
+    dotation = models.CharField(
+        "Dotation", choices=DOTATION_CHOICES, default="DETR"
+    )  # TODO remove default !
     modele = models.ForeignKey(ModeleArrete, on_delete=models.PROTECT)
 
     class Meta:
@@ -209,16 +209,20 @@ class Arrete(GeneratedDocument):
 
     @property
     def name(self):
-        return f"arrêté-attributif-{self.created_at.strftime('%Y-%m-%d')} - N°{self.programmation_projet.dossier.ds_number}.pdf"
+        return f"arrêté-attributif-{self.created_at.strftime('%Y-%m-%d')} - N°{self.projet.dossier_ds.ds_number}.pdf"
 
 
 class LettreNotification(GeneratedDocument):
-    programmation_projet = models.OneToOneField(
-        "gsl_programmation.ProgrammationProjet",
+    projet = models.ForeignKey(
+        "gsl_projet.Projet",
         on_delete=models.CASCADE,
-        verbose_name="Programmation projet",
-        related_name="lettre_notification",
+        verbose_name="Projet",
+        related_name="lettres_notification",
+        null=True,
     )
+    dotation = models.CharField(
+        "Dotation", choices=DOTATION_CHOICES, default="DETR"
+    )  # TODO
     modele = models.ForeignKey(ModeleLettreNotification, on_delete=models.PROTECT)
 
     class Meta:
@@ -234,7 +238,7 @@ class LettreNotification(GeneratedDocument):
 
     @property
     def name(self):
-        return f"lettre-notification-{self.created_at.strftime('%Y-%m-%d')} - N°{self.programmation_projet.dossier.ds_number}.pdf"
+        return f"lettre-notification-{self.created_at.strftime('%Y-%m-%d')} - N°{self.projet.dossier_ds.ds_number}.pdf"
 
 
 class UploadedDocument(models.Model):
@@ -278,11 +282,15 @@ class ArreteEtLettreSignes(UploadedDocument):
         upload_to="arrete_et_lettre_signes/", validators=[document_file_validator]
     )
 
-    programmation_projet = models.OneToOneField(
-        "gsl_programmation.ProgrammationProjet",
+    projet = models.ForeignKey(
+        "gsl_projet.Projet",
         on_delete=models.CASCADE,
         related_name="arrete_et_lettre_signes",
+        null=True,
     )
+    dotation = models.CharField(
+        "Dotation", choices=DOTATION_CHOICES, default="DETR"
+    )  # TODO
 
     class Meta:
         verbose_name = "Arrêté et lettre signés"
@@ -299,10 +307,8 @@ class ArreteEtLettreSignes(UploadedDocument):
 class Annexe(UploadedDocument):
     file = models.FileField(upload_to="annexe/", validators=[document_file_validator])
 
-    programmation_projet = models.ForeignKey(
-        "gsl_programmation.ProgrammationProjet",
-        on_delete=models.CASCADE,
-        related_name="annexes",
+    projet = models.ForeignKey(
+        "gsl_projet.Projet", on_delete=models.CASCADE, related_name="annexes", null=True
     )
 
     class Meta:
