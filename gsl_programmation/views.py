@@ -45,19 +45,15 @@ class ProgrammationProjetDetailView(DetailView):
 
     def get_queryset(self):
         return (
-            Projet.objects.for_user(
-                self.request.user
-            ).with_at_least_one_programmated_dotation()
-            # .select_related(
-            #     "dotation_projet",
-            #     "dotation_projet__projet",
-            #     "dotation_projet__projet__dossier_ds",
-            #     "dotation_projet__projet__perimetre",
-            #     "dotation_projet__projet__demandeur",
-            #     "enveloppe",
-            #     "enveloppe__perimetre",
-            # )
-            # .prefetch_related("dotation_projet__detr_categories")
+            Projet.objects.for_user(self.request.user)
+            .with_at_least_one_programmated_dotation()
+            .select_related(
+                "dossier_ds",
+                "perimetre",
+                "perimetre__departement",
+                "demandeur",
+            )
+            .prefetch_related("dotationprojet_set__detr_categories")
         )
 
     def get_context_data(self, **kwargs):
@@ -78,8 +74,7 @@ class ProgrammationProjetDetailView(DetailView):
             },
             "menu_dict": PROJET_MENU,
             "current_tab": tab,
-            # TODO DUN: display the dotation not notified
-            # "dotation_not_notified": self.object.dotationprojet_set.filter(status=Projet.STATUS_ACCEPTED).first().other_dotations.0.dotation
+            "dotation_not_treated": self.object.dotation_not_treated,
         }
         if tab == "annotations":
             context["projet_notes"] = self.object.notes.all()

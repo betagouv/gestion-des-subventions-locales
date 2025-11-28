@@ -236,3 +236,50 @@ def test_can_display_notification_tab_with_multiple_dotations(
         projet=projet, dotation=DOTATION_DSIL, status=second_dotation_status
     )
     assert projet.can_display_notification_tab is expected_can_display_notification_tab
+
+
+def test_dotation_not_treated_without_dotations():
+    """Project without any dotations should return None."""
+    projet = ProjetFactory()
+    assert projet.dotation_not_treated is None
+
+
+def test_dotation_not_treated_with_processing_dotation():
+    """Project with processing dotation should return that dotation."""
+    projet = ProjetFactory()
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+    )
+    assert projet.dotation_not_treated == DOTATION_DETR
+
+
+@pytest.mark.parametrize(
+    "dotation_status",
+    [PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED],
+)
+def test_dotation_not_treated_with_not_processing_dotation(dotation_status):
+    """Project with non-processing dotation should return None."""
+    projet = ProjetFactory()
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR, status=dotation_status)
+    assert projet.dotation_not_treated is None
+
+
+@pytest.mark.parametrize(
+    "first_status, second_status, expected_dotation_not_treated",
+    [
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING, DOTATION_DSIL),
+        (PROJET_STATUS_PROCESSING, PROJET_STATUS_ACCEPTED, DOTATION_DETR),
+        (
+            PROJET_STATUS_PROCESSING,
+            PROJET_STATUS_PROCESSING,
+            DOTATION_DETR,
+        ),  # Should return the first one encountered (DETR)
+    ],
+)
+def test_dotation_not_treated_with_multiple_dotations_one_processing(
+    first_status, second_status, expected_dotation_not_treated
+):
+    projet = ProjetFactory()
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR, status=first_status)
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL, status=second_status)
+    assert projet.dotation_not_treated == expected_dotation_not_treated

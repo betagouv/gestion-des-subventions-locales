@@ -265,6 +265,17 @@ class Projet(models.Model):
             d.status == PROJET_STATUS_ACCEPTED for d in self.dotationprojet_set.all()
         )
 
+    @property
+    def dotation_not_treated(self) -> Optional[POSSIBLE_DOTATIONS]:
+        return next(
+            (
+                d.dotation
+                for d in self.dotationprojet_set.all()
+                if d.status == PROJET_STATUS_PROCESSING
+            ),
+            None,
+        )
+
 
 class DotationProjet(models.Model):
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
