@@ -189,11 +189,8 @@ class Arrete(GeneratedDocument):
         on_delete=models.CASCADE,
         verbose_name="Projet",
         related_name="arretes",
-        null=True,
     )
-    dotation = models.CharField(
-        "Dotation", choices=DOTATION_CHOICES, default="DETR"
-    )  # TODO remove default !
+    dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
     modele = models.ForeignKey(ModeleArrete, on_delete=models.PROTECT)
 
     class Meta:
@@ -218,11 +215,8 @@ class LettreNotification(GeneratedDocument):
         on_delete=models.CASCADE,
         verbose_name="Projet",
         related_name="lettres_notification",
-        null=True,
     )
-    dotation = models.CharField(
-        "Dotation", choices=DOTATION_CHOICES, default="DETR"
-    )  # TODO
+    dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
     modele = models.ForeignKey(ModeleLettreNotification, on_delete=models.PROTECT)
 
     class Meta:
@@ -286,11 +280,8 @@ class ArreteEtLettreSignes(UploadedDocument):
         "gsl_projet.Projet",
         on_delete=models.CASCADE,
         related_name="arrete_et_lettre_signes",
-        null=True,
     )
-    dotation = models.CharField(
-        "Dotation", choices=DOTATION_CHOICES, default="DETR"
-    )  # TODO
+    dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
 
     class Meta:
         verbose_name = "Arrêté et lettre signés"
@@ -308,7 +299,7 @@ class Annexe(UploadedDocument):
     file = models.FileField(upload_to="annexe/", validators=[document_file_validator])
 
     projet = models.ForeignKey(
-        "gsl_projet.Projet", on_delete=models.CASCADE, related_name="annexes", null=True
+        "gsl_projet.Projet", on_delete=models.CASCADE, related_name="annexes"
     )
 
     class Meta:
