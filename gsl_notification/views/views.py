@@ -136,7 +136,7 @@ class NotificationMessageView(UpdateView):
     def get_success_url(self):
         return reverse(
             "gsl_programmation:programmation-projet-detail",
-            args=[self.object.id],
+            args=[self.object.projet.id],
         )
 
 
