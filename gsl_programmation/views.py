@@ -75,11 +75,28 @@ class ProgrammationProjetDetailView(DetailView):
             "menu_dict": PROJET_MENU,
             "current_tab": tab,
             "dotation_not_treated": self.object.dotation_not_treated,
+            "go_back_link": self.get_go_back_link(),
         }
         if tab == "annotations":
             context["projet_notes"] = self.object.notes.all()
 
         return super().get_context_data(**context)
+
+    def get_go_back_link(self):
+        url = reverse("gsl_programmation:programmation-projet-list")
+        if "dotation" in self.request.GET:
+            url = reverse(
+                "gsl_programmation:programmation-projet-list-dotation",
+                kwargs={"dotation": self.request.GET["dotation"]},
+            )
+        if self.request.GET.urlencode():
+            params = self.request.GET.copy()
+            params.pop("dotation", None)
+
+            if params:
+                url += "?" + params.urlencode()
+
+        return url
 
 
 class ProgrammationProjetListView(FilterView, ListView, FilterUtils):

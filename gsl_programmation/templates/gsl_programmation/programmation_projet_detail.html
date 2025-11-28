@@ -9,8 +9,7 @@
 
 {% block go_back_button %}
     <div class="fr-mb-4w">
-        {% comment %} TODO DUN: add the correct dotation {% endcomment %}
-        <a href="{% if go_back_link %}{{ go_back_link }}{% else %}{% url 'programmation:programmation-projet-list-dotation' dotation="DETR" %}{% querystring %}{% endif %}"
+        <a href="{% if go_back_link %}{{ go_back_link }}{% else %}{% url 'programmation:programmation-projet-list' %}{% querystring %}{% endif %}"
            class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
             Retour à la liste des projets programmés
         </a>

@@ -435,6 +435,83 @@ class TestProgrammationProjetDetailView:
         assert hasattr(projet_context, "demandeur")
         assert hasattr(projet_context, "dotationprojet_set")
 
+    def test_get_go_back_link_with_dotation_in_query_string(
+        self, user_with_perimetre, programmation_projet
+    ):
+        """Test get_go_back_link quand 'dotation' est dans les paramètres de requête"""
+        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
+        url = reverse(
+            "gsl_programmation:programmation-projet-detail",
+            kwargs={"projet_id": programmation_projet.projet.id},
+        )
+        response = client.get(url + "?dotation=DETR&page=1&search=test")
+        assert response.status_code == 200
+
+        go_back_link = response.context["go_back_link"]
+        expected_url = reverse(
+            "gsl_programmation:programmation-projet-list-dotation",
+            kwargs={"dotation": "DETR"},
+        )
+        assert go_back_link.startswith(expected_url)
+        assert "dotation=DETR" in go_back_link
+        assert "page=1" in go_back_link
+        assert "search=test" in go_back_link
+
+    def test_get_go_back_link_without_dotation_in_query_string(
+        self, user_with_perimetre, programmation_projet
+    ):
+        """Test get_go_back_link quand 'dotation' n'est pas dans les paramètres de requête"""
+        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
+        url = reverse(
+            "gsl_programmation:programmation-projet-detail",
+            kwargs={"projet_id": programmation_projet.projet.id},
+        )
+        response = client.get(url + "?page=1&search=test")
+        assert response.status_code == 200
+
+        go_back_link = response.context["go_back_link"]
+        expected_url = reverse("gsl_programmation:programmation-projet-list")
+        assert go_back_link.startswith(expected_url)
+        assert "page=1" in go_back_link
+        assert "search=test" in go_back_link
+        assert "dotation" not in go_back_link
+
+    def test_get_go_back_link_with_no_query_parameters(
+        self, user_with_perimetre, programmation_projet
+    ):
+        """Test get_go_back_link sans paramètres de requête"""
+        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
+        url = reverse(
+            "gsl_programmation:programmation-projet-detail",
+            kwargs={"projet_id": programmation_projet.projet.id},
+        )
+        response = client.get(url)
+        assert response.status_code == 200
+
+        go_back_link = response.context["go_back_link"]
+        expected_url = reverse("gsl_programmation:programmation-projet-list")
+        assert go_back_link == expected_url
+
+    def test_get_go_back_link_with_dotation_dsil(
+        self, user_with_perimetre, programmation_projet
+    ):
+        """Test get_go_back_link avec dotation DSIL"""
+        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
+        url = reverse(
+            "gsl_programmation:programmation-projet-detail",
+            kwargs={"projet_id": programmation_projet.projet.id},
+        )
+        response = client.get(url + "?dotation=DSIL")
+        assert response.status_code == 200
+
+        go_back_link = response.context["go_back_link"]
+        expected_url = reverse(
+            "gsl_programmation:programmation-projet-list-dotation",
+            kwargs={"dotation": "DSIL"},
+        )
+        assert go_back_link.startswith(expected_url)
+        assert "dotation=DSIL" in go_back_link
+
 
 class TestProgrammationProjetTabView:
     """Tests pour la vue onglets d'un projet programmé"""
