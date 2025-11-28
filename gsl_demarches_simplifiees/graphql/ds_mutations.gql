@@ -1,13 +1,14 @@
 mutation modifierAnnotationCheckbox(
-    $input: DossierModifierAnnotationCheckboxInput!
-    $includeAnnotations: Boolean = false
-  ) {
+  $input: DossierModifierAnnotationCheckboxInput!
+  $includeAnnotations: Boolean = false
+) {
   dossierModifierAnnotationCheckbox(input: $input) {
     clientMutationId
     annotation @include(if: $includeAnnotations) {
       id
       label
       stringValue
+      updatedAt
     }
     errors {
       message
@@ -16,15 +17,16 @@ mutation modifierAnnotationCheckbox(
 }
 
 mutation modifierAnnotationDecimalNumber(
-    $input: DossierModifierAnnotationDecimalNumberInput!
-    $includeAnnotations: Boolean = false
-  ) {
+  $input: DossierModifierAnnotationDecimalNumberInput!
+  $includeAnnotations: Boolean = false
+) {
   dossierModifierAnnotationDecimalNumber(input: $input) {
     clientMutationId
     annotation @include(if: $includeAnnotations) {
       id
       label
       stringValue
+      updatedAt
     }
     errors {
       message
@@ -32,7 +34,9 @@ mutation modifierAnnotationDecimalNumber(
   }
 }
 
-mutation dossierRepasserEnInstruction($input: DossierRepasserEnInstructionInput!) {
+mutation dossierRepasserEnInstruction(
+  $input: DossierRepasserEnInstructionInput!
+) {
   dossierRepasserEnInstruction(input: $input) {
     clientMutationId
     dossier {
@@ -100,7 +104,7 @@ mutation dossierAccepter($input: DossierAccepterInput!) {
   }
 }
 
-  mutation dossierRefuser($input: DossierRefuserInput!) {
+mutation dossierRefuser($input: DossierRefuserInput!) {
   dossierRefuser(input: $input) {
     clientMutationId
     dossier {
@@ -134,7 +138,7 @@ mutation dossierAccepter($input: DossierAccepterInput!) {
   }
 }
 
-  mutation dossierClasserSansSuite($input: DossierClasserSansSuiteInput!) {
+mutation dossierClasserSansSuite($input: DossierClasserSansSuiteInput!) {
   dossierClasserSansSuite(input: $input) {
     clientMutationId
     dossier {
@@ -168,7 +172,7 @@ mutation dossierAccepter($input: DossierAccepterInput!) {
   }
 }
 
- mutation dossierPasserEnInstruction($input: DossierPasserEnInstructionInput!) {
+mutation dossierPasserEnInstruction($input: DossierPasserEnInstructionInput!) {
   dossierPasserEnInstruction(input: $input) {
     clientMutationId
     dossier {

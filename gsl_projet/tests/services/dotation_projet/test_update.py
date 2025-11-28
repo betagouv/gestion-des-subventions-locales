@@ -15,6 +15,7 @@ from gsl_demarches_simplifiees.tests.factories import DossierFactory
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
+    ProgrammationProjetFactory,
 )
 from gsl_projet.constants import (
     DOTATION_DETR,
@@ -405,3 +406,113 @@ def test_update_dotation_projets_from_projet_back_to_instruction_with_one_accept
     dsil_dp.refresh_from_db()
     # The dismissed one should remain dismissed (not updated)
     assert dsil_dp.status == refused_or_dismissed
+
+
+@pytest.mark.parametrize(
+    "first_status, second_status",
+    (
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_ACCEPTED),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_ACCEPTED),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_DISMISSED),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_REFUSED),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_ACCEPTED),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_REFUSED),
+    ),
+)
+@pytest.mark.django_db
+def test_update_dotation_projets_from_projet_back_to_instruction_with_a_programmation_projet_created_after_date_of_passage_en_instruction(
+    perimetres,
+    first_status,
+    second_status,
+):
+    arr_dijon, *_ = perimetres
+
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+        dossier_ds__ds_date_passage_en_instruction=timezone.datetime(
+            2025, 1, 20, tzinfo=UTC
+        ),
+        dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
+        perimetre=arr_dijon,
+    )
+
+    # Create two accepted dotation projets
+    detr_dp = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=first_status
+    )
+    with freeze_time("2025-01-25"):
+        ProgrammationProjetFactory.create(dotation_projet=detr_dp)
+
+    dsil_dp = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=second_status
+    )
+    with freeze_time("2025-01-10"):
+        ProgrammationProjetFactory.create(dotation_projet=dsil_dp)
+
+    # --
+
+    dotation_projets = dps._update_dotation_projets_from_projet(projet)
+
+    # --
+
+    assert len(dotation_projets) == 2
+    detr_dp.refresh_from_db()
+    assert detr_dp.status == first_status, (
+        "The dotation projet with status %s should remain %s because the programmation_projet was created before the date of passage en instruction"
+        % (first_status, first_status)
+    )
+
+    dsil_dp.refresh_from_db()
+    assert dsil_dp.status == PROJET_STATUS_PROCESSING, (
+        "The dotation projet with status %s should be set to processing because the programmation_projet was created after the date of passage en instruction"
+        % second_status
+    )
+    assert hasattr(dsil_dp, "programmation_projet") is False
+
+
+@pytest.mark.parametrize(
+    "second_status",
+    (PROJET_STATUS_DISMISSED, PROJET_STATUS_REFUSED),
+)
+@pytest.mark.django_db
+def test_update_dotation_projets_from_projet_back_to_instruction_with_one_accepted_and_programmation_projet_created_after_date_of_passage_en_instruction_and_one_dismissed_or_refused(
+    perimetres,
+    second_status,
+):
+    """Test _update_dotation_projets_from_projet_back_to_instruction with two accepted dotation projets and one programmation_projet created after date of passage en instruction"""
+    arr_dijon, *_ = perimetres
+
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+        dossier_ds__ds_date_passage_en_instruction=timezone.datetime(
+            2025, 1, 20, tzinfo=UTC
+        ),
+        dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
+        perimetre=arr_dijon,
+    )
+
+    # Create two accepted dotation projets
+    detr_dp = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    with freeze_time("2025-01-25"):
+        ProgrammationProjetFactory.create(dotation_projet=detr_dp)
+
+    dsil_dp = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=second_status
+    )
+    with freeze_time("2025-01-10"):
+        ProgrammationProjetFactory.create(dotation_projet=dsil_dp)
+
+    # --
+
+    dotation_projets = dps._update_dotation_projets_from_projet(projet)
+
+    # --
+
+    assert len(dotation_projets) == 1
+    detr_dp.refresh_from_db()
+    assert detr_dp.status == PROJET_STATUS_ACCEPTED, (
+        "The accepted dotation projet should remain accepted because the programmation_projet was created before the date of passage en instruction"
+    )

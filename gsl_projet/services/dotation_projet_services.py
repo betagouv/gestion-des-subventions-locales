@@ -366,6 +366,12 @@ class DotationProjetService:
 
         dotation_projets = []
         for dotation_projet in projet_dps.all():
+            if cls._is_programmation_projet_created_after_date_of_passage_en_instruction(
+                dotation_projet
+            ):
+                dotation_projets.append(dotation_projet)
+                continue
+
             if dotation_projet.status != PROJET_STATUS_PROCESSING:
                 dotation_projet.set_back_status_to_processing()
                 dotation_projet.save()
@@ -380,6 +386,10 @@ class DotationProjetService:
         dotation_projets = []
         for dotation_projet in projet.dotationprojet_set.all():
             if dotation_projet.status == PROJET_STATUS_ACCEPTED:
+                if cls._is_programmation_projet_created_after_date_of_passage_en_instruction(
+                    dotation_projet
+                ):
+                    continue
                 dotation_projet.set_back_status_to_processing()
                 dotation_projet.save()
             dotation_projets.append(dotation_projet)
@@ -534,3 +544,15 @@ class DotationProjetService:
                 detr_category__isnull=False
             ):
                 dotation_projet.detr_categories.add(critere.detr_category)
+
+    @classmethod
+    def _is_programmation_projet_created_after_date_of_passage_en_instruction(
+        cls, dotation_projet: DotationProjet
+    ):
+        if (
+            hasattr(dotation_projet, "programmation_projet")
+            and dotation_projet.programmation_projet.created_at
+            > dotation_projet.projet.dossier_ds.ds_date_passage_en_instruction
+        ):
+            return True
+        return False

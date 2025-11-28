@@ -12,6 +12,7 @@ from django.views.decorators.http import require_GET, require_POST
 from django.views.generic.list import ListView
 from django_celery_results.models import TaskResult
 
+from gsl.settings import ALLOWED_HOSTS
 from gsl_projet.models import Projet
 
 from .exceptions import DsServiceException
@@ -60,11 +61,15 @@ def refresh_one_dossier(request, dossier_ds_number):
             ),
         )
 
-    next = request.POST.get("next", "/")
-    is_next_safe = url_has_allowed_host_and_scheme(next, "", True)
-    if not is_next_safe:
-        next = "/"
-    return redirect(next)
+    url = request.POST.get("next")
+    if not url:
+        url = request.headers.get("Referer")
+
+    is_url_safe = url_has_allowed_host_and_scheme(url, allowed_hosts=ALLOWED_HOSTS)
+    if is_url_safe:
+        return redirect(url)
+
+    return redirect("/")
 
 
 @staff_member_required
