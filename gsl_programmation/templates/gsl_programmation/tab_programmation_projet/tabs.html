@@ -18,8 +18,7 @@
                {% if current_tab == "historique" %}aria-selected="true"{% endif %}
                class="fr-tabs__tab fr-icon-archive-line fr-tabs__tab--icon-left">Historique du demandeur</a>
         </li>
-        {% if projet.status == "accepted" %}
-            {% comment %} TODO DUN: display if a projet has a least one accepted dotation projet {% endcomment %}
+        {% if projet.can_display_notification_tab %}
             <li>
                 {% url 'gsl_notification:documents' projet.id as notifications_url %}
                 <a href="{{ notifications_url }}{% querystring %}"
