@@ -13,8 +13,8 @@ from gsl_notification.models import (
     ModeleDocument,
 )
 from gsl_notification.utils import merge_documents_into_pdf
-from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import ARRETE, LETTRE
+from gsl_projet.models import Projet
 
 
 class ArreteForm(forms.ModelForm, DsfrBaseForm):
@@ -102,30 +102,30 @@ class NotificationMessageForm(DsfrBaseForm, forms.Form):
     def save(self, instructeur_id):
         justificatif_file = merge_documents_into_pdf(
             [
-                self.programmation_projet.arrete_et_lettre_signes,
+                *self.projet.arrete_et_lettre_signes,  # TODO DUN verify this, now it's a One To Many relation
                 *self.cleaned_data["annexes"],
             ]
         )
 
         # Dossier was recently refreshed DS
         # Race conditions remain possible, but should be rare enough and just fail without any side effect.
-        if self.programmation_projet.dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:
+        if self.projet.dossier_ds.ds_state == Dossier.STATE_EN_CONSTRUCTION:
             DsMutator().dossier_passer_en_instruction(
                 dossier_id=self.programmation_projet.dossier.ds_id,
                 instructeur_id=instructeur_id,
             )
 
         with transaction.atomic():
-            self.programmation_projet.projet.notified_at = timezone.now()
-            self.programmation_projet.projet.save()
+            self.projet.notified_at = timezone.now()
+            self.projet.save()
             DsMutator().dossier_accepter(
-                self.programmation_projet.dossier,
+                self.projet.dossier_ds,
                 instructeur_id,
                 motivation=self.cleaned_data.get("justification", ""),
                 document=justificatif_file,
             )
 
-    def __init__(self, *args, instance: ProgrammationProjet, **kwargs):
+    def __init__(self, *args, instance: Projet, **kwargs):
         super().__init__(*args, **kwargs)
-        self.programmation_projet = instance
+        self.projet = instance
         self.fields["annexes"].queryset = self.programmation_projet.annexes.all()

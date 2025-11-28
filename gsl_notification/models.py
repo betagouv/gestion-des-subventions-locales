@@ -139,6 +139,7 @@ class GeneratedDocument(models.Model):
         default="",
         help_text="Contenu HTML du document, utilisé pour les exports.",
     )
+    dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
 
     class Meta:
         abstract = True
@@ -190,12 +191,17 @@ class Arrete(GeneratedDocument):
         verbose_name="Projet",
         related_name="arretes",
     )
-    dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
     modele = models.ForeignKey(ModeleArrete, on_delete=models.PROTECT)
 
     class Meta:
         verbose_name = "Arrêté"
         verbose_name_plural = "Arrêtés"
+        constraints = (
+            models.UniqueConstraint(
+                fields=("projet", "dotation"),
+                name="unicity_by_arrete_projet_and_dotation",
+            ),
+        )
 
     def __str__(self):
         return f"Arrêté #{self.id}"
@@ -216,12 +222,17 @@ class LettreNotification(GeneratedDocument):
         verbose_name="Projet",
         related_name="lettres_notification",
     )
-    dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
     modele = models.ForeignKey(ModeleLettreNotification, on_delete=models.PROTECT)
 
     class Meta:
         verbose_name = "Lettre de notification"
         verbose_name_plural = "Lettres de notification"
+        constraints = (
+            models.UniqueConstraint(
+                fields=("projet", "dotation"),
+                name="unicity_by_lettre_projet_and_dotation",
+            ),
+        )
 
     def __str__(self):
         return f"Lettre de notification #{self.id}"
@@ -286,6 +297,12 @@ class ArreteEtLettreSignes(UploadedDocument):
     class Meta:
         verbose_name = "Arrêté et lettre signés"
         verbose_name_plural = "Arrêtés et lettres signés"
+        constraints = (
+            models.UniqueConstraint(
+                fields=("projet", "dotation"),
+                name="unicity_by_arrete_and_lettre_signes_projet_and_dotation",
+            ),
+        )
 
     def __str__(self):
         return f"Arrêté et lettre signés #{self.id}"
