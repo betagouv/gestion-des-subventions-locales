@@ -43,18 +43,11 @@ class ProgrammationProjetDetailView(DetailView):
             return [f"gsl_programmation/tab_programmation_projet/tab_{tab}.html"]
         return ["gsl_programmation/programmation_projet_detail.html"]
 
-    # TODO test it
     def get_queryset(self):
         return (
-            Projet.objects.for_user(self.request.user)
-            # .filter(
-            #     dotationprojet__status__in=[
-            #         PROJET_STATUS_ACCEPTED,
-            #         PROJET_STATUS_REFUSED,
-            #         PROJET_STATUS_DISMISSED,
-            #     ]
-            # )
-            # .distinct()  # utile ??
+            Projet.objects.for_user(
+                self.request.user
+            ).with_at_least_one_programmated_dotation()
             # .select_related(
             #     "dotation_projet",
             #     "dotation_projet__projet",

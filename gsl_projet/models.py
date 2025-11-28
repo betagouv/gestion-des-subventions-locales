@@ -145,6 +145,13 @@ class ProjetQuerySet(models.QuerySet):
             ),
         ).filter(dotations_count=F("programmation_count"), notified_at__isnull=True)
 
+    def with_at_least_one_programmated_dotation(self):
+        return self.annotate(
+            programmation_count=Count(
+                "dotationprojet__programmation_projet",
+            ),
+        ).filter(programmation_count__gt=0)
+
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
     def get_queryset(self):
@@ -250,6 +257,12 @@ class Projet(models.Model):
                 and d.programmation_projet.notified_at is None
             )
             for d in self.dotationprojet_set.all()
+        )
+
+    @property
+    def can_display_notification_tab(self) -> bool:
+        return any(
+            d.status == PROJET_STATUS_ACCEPTED for d in self.dotationprojet_set.all()
         )
 
 
