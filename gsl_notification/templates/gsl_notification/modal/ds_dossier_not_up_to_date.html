@@ -33,7 +33,7 @@
                                     le
                                     notifier.
                                 </p>
-                                <form action="{% url "gsl_demarches_simplifiees:refresh-one-dossier" object.dossier.ds_number %}"
+                                <form action="{% url "gsl_demarches_simplifiees:refresh-one-dossier" projet.dossier_ds.ds_number %}"
                                       method="post"
                                       id="refresh-dossier-form">
                                     {% csrf_token %}
