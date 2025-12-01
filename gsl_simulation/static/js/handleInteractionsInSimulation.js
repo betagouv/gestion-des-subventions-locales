@@ -2,9 +2,6 @@
 
 import { handleDotationChange } from './modules/handleDotationUpdate.js'
 import { disableAllModalButtons } from './modules/utils.js'
-import {
-  handleStatusChangeWithHtmx
-} from './simulationProjetStatusConfirmation.js'
 
 document.querySelector('.gsl-projet-table').addEventListener('change', (ev) => {
   if (ev.target.hasAttribute('hx-post') && !ev.target.disabled) {
@@ -19,14 +16,6 @@ document.querySelector('.gsl-projet-table').addEventListener('change', (ev) => {
 
 document.querySelector('.gsl-projet-table').addEventListener('submit', (ev) => {
   ev.preventDefault()
-})
-
-document.querySelector('.gsl-projet-table').addEventListener('change', (ev) => {
-  const target = ev.target
-  if (!target.classList.contains('status-select')) {
-    return
-  }
-  return handleStatusChangeWithHtmx(target, target.dataset.originalValue) // eslint-disable-line
 })
 
 document.addEventListener('htmx:responseError', evt => {

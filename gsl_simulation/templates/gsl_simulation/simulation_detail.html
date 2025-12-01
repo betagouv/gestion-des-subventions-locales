@@ -76,7 +76,7 @@
                     <th class="max_160_width">
                         Catégorie d’opération
                     </th>
-                    <th class="max_160_width">
+                    <th class="max_180_width">
                         Statut
                     </th>
                     <th>
@@ -106,18 +106,10 @@
 {% endblock content %}
 
 {% block modal %}
-    {% include "includes/modals/_accept_confirmation_modal.html" %}
-    {% include "includes/modals/_refuse_confirmation_modal.html" %}
-    {% include "includes/modals/_dismiss_confirmation_modal.html" %}
-    {% include "includes/modals/_go_back_to_processing_modal.html" %}
-    {% include "includes/modals/_go_back_to_provisionally_accepted_modal.html" %}
-    {% include "includes/modals/_go_back_to_provisionally_refused_modal.html" %}
     {% include "includes/modals/_dotation_update_confirmation_modal.html" %}
 {% endblock modal %}
 
 {% block extra_js %}
-    <script type="module"
-            src="{% static 'js/simulationProjetStatusConfirmation.js' %}"></script>
     <script type="module"
             src="{% static 'js/handleInteractionsInSimulation.js' %}"></script>
 {% endblock extra_js %}

@@ -1,6 +1,8 @@
 import logging
 from decimal import Decimal
 
+from django.db import transaction
+
 from gsl_core.models import Collegue
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.mixins import build_error_message, process_projet_update
@@ -110,6 +112,7 @@ class SimulationProjetService:
         )
 
     @classmethod
+    @transaction.atomic
     def update_status(
         cls,
         simulation_projet: SimulationProjet,

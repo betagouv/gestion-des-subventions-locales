@@ -1,0 +1,34 @@
+{% extends "htmx/_base_htmx_modal.html" %}
+{% load simulation_filters %}
+{% block button_label %}
+    <span aria-hidden="true">🔄</span> En traitement
+{% endblock button_label %}
+
+{% block content %}
+    <h1 class="fr-modal__title processing-color">
+        <span class="fr-icon-draft-fill fr-icon--lg" aria-hidden="true"></span> Revenir au statut “En traitement”
+    </h1>
+    <p id="draft-confirmation-modal-content">
+        Ce projet {{ object.status|status_to_french_word }} va être remis en traitement dans toutes les simulations dans
+        lesquelles il a été ajouté. Il n'apparaîtra plus dans la programmation officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
+    </p>
+    <p>
+        Êtes-vous sûr(e) de remettre le projet en traitement&nbsp;?
+    </p>
+    <form id="{{ modal_id }}-form"
+          hx-post="{{ request.path }}"
+          hx-target="#{{ modal_id }}"
+          hx-swap="outerHTML"
+          hx-disabled-elt="#{{ modal_id }}-submit-button, #{{ modal_id }}-cancel-button">
+        {{ form.non_field_errors }}
+    </form>
+{% endblock content %}
+
+{% block confirmation_button %}
+    <button type="submit"
+            class="fr-btn fr-btn--primary"
+            form="{{ modal_id }}-form"
+            id="{{ modal_id }}-submit-button">
+        Oui
+    </button>
+{% endblock confirmation_button %}

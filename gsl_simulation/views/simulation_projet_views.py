@@ -2,7 +2,7 @@ import json
 
 from django.contrib import messages
 from django.db import transaction
-from django.http import Http404, HttpRequest, HttpResponseBadRequest
+from django.http import Http404, HttpRequest
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import resolve, reverse
@@ -14,6 +14,8 @@ from django_htmx.http import HttpResponseClientRefresh
 
 from gsl.settings import ALLOWED_HOSTS
 from gsl_core.decorators import htmx_only
+from gsl_core.templatetags.gsl_filters import euro
+from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.importer.dossier import save_one_dossier_from_ds
 from gsl_projet.forms import DotationProjetForm, ProjetForm
@@ -23,13 +25,13 @@ from gsl_simulation.forms import (
     DismissProjetForm,
     RefuseProjetForm,
     SimulationProjetForm,
+    StatusProjetForm,
 )
 from gsl_simulation.models import SimulationProjet, SimulationProjetQuerySet
 from gsl_simulation.services.simulation_projet_service import (
     SimulationProjetService,
 )
 from gsl_simulation.utils import (
-    add_simulation_projet_status_success_message,
     replace_comma_by_dot,
 )
 from gsl_simulation.views.decorators import (
@@ -87,56 +89,6 @@ def patch_montant_simulation_projet(request, pk):
 
     return redirect_to_same_page_or_to_simulation_detail_by_default(
         request, simulation_projet
-    )
-
-
-@exception_handler_decorator
-@require_POST
-def patch_status_simulation_projet(request, pk):
-    simulation_projet = get_object_or_404(
-        SimulationProjet.objects.in_user_perimeter(request.user), id=pk
-    )
-    status = request.POST.get("status")
-
-    if status in [SimulationProjet.STATUS_REFUSED, SimulationProjet.STATUS_DISMISSED]:
-        return HttpResponseBadRequest(
-            "This endpoint is not for refused projects anymore (you need to fill the form)."
-        )
-
-    if (
-        status == SimulationProjet.STATUS_ACCEPTED
-        and bool(simulation_projet.dotation_projet.assiette) is False
-    ):
-        messages.error(
-            request,
-            "Le projet n'a pas pu être accepté car il manque l'assiette subventionnable. Veuillez ajouter le montant des dépenses éligibles retenues avant d'accepter un projet.",
-        )
-        return redirect_to_same_page_or_to_simulation_detail_by_default(
-            request, simulation_projet
-        )
-
-    if status not in dict(SimulationProjet.STATUS_CHOICES).keys():
-        raise ValueError("Invalid status")
-
-    if simulation_projet.dotation_projet.projet.notified_at:
-        raise ValueError("Notified projet status cannot be changed.")
-
-    try:
-        with transaction.atomic():
-            updated_simulation_projet = SimulationProjetService.update_status(
-                simulation_projet, status, request.user
-            )
-
-    except DsServiceException as e:  # rollback the transaction + show error
-        messages.error(
-            request,
-            f"{str(e)}",
-        )
-        return redirect_to_same_page_or_to_simulation_detail_by_default(
-            request, simulation_projet
-        )
-    return redirect_to_same_page_or_to_simulation_detail_by_default(
-        request, updated_simulation_projet, status
     )
 
 
@@ -296,15 +248,10 @@ class SimulationProjetDetailView(BaseSimulationProjetView):
 
 
 def redirect_to_same_page_or_to_simulation_detail_by_default(
-    request, simulation_projet, message_type: str | None = None
+    request, simulation_projet
 ):
     if request.htmx:
         return render_partial_simulation_projet(request, simulation_projet)
-
-    if message_type is not None:
-        add_simulation_projet_status_success_message(
-            request, message_type, simulation_projet
-        )
 
     referer = request.headers.get("Referer")
     if referer and url_has_allowed_host_and_scheme(
@@ -335,7 +282,6 @@ def render_partial_simulation_projet(request, simulation_projet):
             "simu": simulation_projet,
             "dotation_projet": simulation_projet.dotation_projet,
             "projet": simulation_projet.projet,
-            "available_states": SimulationProjet.STATUS_CHOICES,
             "status_summary": simulation_projet.simulation.get_projet_status_summary(),
             "total_amount_granted": total_amount_granted,
             "filter_params": filter_params,
@@ -440,9 +386,77 @@ def _get_other_dotation_simulation_projet(
 
 
 @method_decorator(htmx_only, name="dispatch")
-class RefuseOrDismissProjetModalBaseView(UpdateView):
+class SimulationProjetStatusUpdate(OpenHtmxModalMixin, UpdateView):
+    """
+    This form handles status update of a SimulationProjet for all status
+    that never needs additional data:
+    STATUS_PROCESSING, STATUS_ACCEPTED, and both STATUS_PROVISIONNALY_*
+
+    Depending on context, it can be directly POSTed or GETed to display and
+    HTMX confirmation modal. Wether it's a POST or a GET, is handled by
+    `gsl_simulation.templatetags.simulation_filters`
+    """
+
+    model = SimulationProjet
+    form_class = StatusProjetForm
+
+    def dispatch(self, request, *args, **kwargs):
+        if self.kwargs["status"] not in (
+            SimulationProjet.STATUS_ACCEPTED,
+            SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
+            SimulationProjet.STATUS_PROVISIONALLY_REFUSED,
+            SimulationProjet.STATUS_PROCESSING,
+        ):
+            raise Http404
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        return SimulationProjet.objects.in_user_perimeter(self.request.user)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"status": self.kwargs["status"]})
+        return kwargs
+
+    def get_template_names(self):
+        if self.kwargs["status"] == SimulationProjet.STATUS_ACCEPTED:
+            return ["htmx/accept_confirmation_modal.html"]
+        if self.kwargs["status"] == SimulationProjet.STATUS_PROVISIONALLY_REFUSED:
+            return ["htmx/go_back_to_provisionally_refused_modal.html"]
+        if self.kwargs["status"] == SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED:
+            return ["htmx/go_back_to_provisionally_accepted_modal.html"]
+        if self.kwargs["status"] == SimulationProjet.STATUS_PROCESSING:
+            return ["htmx/go_back_to_processing_modal.html"]
+        raise Http404("This status doesn't need a confirmation modal")
+
+    def get_modal_id(self):
+        return f"status-update-modal-{self.object.pk}"
+
+    def form_valid(self, form):
+        try:
+            form.save(status=self.kwargs["status"], user=self.request.user)
+            messages.info(
+                self.request,
+                {
+                    SimulationProjet.STATUS_ACCEPTED: f"Le financement de ce projet vient d’être accepté avec la "
+                    f"dotation {self.object.enveloppe.dotation} pour {euro(self.object.montant, 2)}.",
+                    SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: "Le projet est accepté provisoirement dans cette simulation.",
+                    SimulationProjet.STATUS_PROVISIONALLY_REFUSED: "Le projet est refusé provisoirement dans cette simulation.",
+                    SimulationProjet.STATUS_PROCESSING: "Le projet est revenu en traitement.",
+                }[self.kwargs["status"]],
+                extra_tags=self.kwargs["status"],
+            )
+        except DsServiceException as e:  # rollback the transaction + show error
+            messages.error(
+                self.request,
+                f"{str(e)}",
+            )
+        return HttpResponseClientRefresh()
+
+
+@method_decorator(htmx_only, name="dispatch")
+class RefuseOrDismissProjetModalBaseView(OpenHtmxModalMixin, UpdateView):
     context_object_name = "simulation_projet"
-    modal_id = None
 
     def dispatch(self, request, *args, **kwargs):
         try:
@@ -458,10 +472,6 @@ class RefuseOrDismissProjetModalBaseView(UpdateView):
         obj = super().get_object(queryset)
         save_one_dossier_from_ds(obj.projet.dossier_ds)
         return obj
-
-    def get_context_data(self, **kwargs):
-        kwargs["modal_id"] = self.modal_id
-        return super().get_context_data(**kwargs)
 
     def get_template_names(self):
         if self.request.user.ds_id not in [
@@ -504,16 +514,20 @@ class RefuseOrDismissProjetModalBaseView(UpdateView):
 
 
 class RefuseProjetModalView(RefuseOrDismissProjetModalBaseView):
-    template_name = "htmx/refuse_confirmation_form.html"
+    template_name = "htmx/refuse_confirmation_modal.html"
     form_class = RefuseProjetForm
     success_message = "Le projet a bien été refusé sur Démarches Simplifiées."
-    modal_id = "refuse-confirmation-modal"
+
+    def get_modal_id(self):
+        return f"refuse-modal-{self.object.pk}"
 
 
 class DismissProjetModalView(RefuseOrDismissProjetModalBaseView):
-    template_name = "htmx/dismiss_confirmation_form.html"
+    template_name = "htmx/dismiss_confirmation_modal.html"
     form_class = DismissProjetForm
     success_message = (
         "Le projet a bien été classé sans suite sur Démarches Simplifiées."
     )
-    modal_id = "dismiss-confirmation-modal"
+
+    def get_modal_id(self):
+        return f"dismiss-modal-{self.object.pk}"

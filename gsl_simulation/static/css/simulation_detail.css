@@ -35,10 +35,6 @@
   display: inline-block;
 }
 
-.simulation-status {
-  text-align: right;
-}
-
 .dotation-dropdown > button {
   line-height: inherit;
 }
@@ -116,27 +112,43 @@
 
 /* status select */
 
-.status-select {
+.gsl-projet-table td.simulation-status {
+  padding: 0;
+  text-align: right;
+}
+
+.gsl-projet-table .input-status-select .fr-btn--sm,
+.gsl-projet-table .input-status-select .fr-nav__link {
+  font-size: .6rem;
+  padding: .25rem 2rem .25rem .5rem;
+  text-align: right;
+}
+
+.gsl-projet-table .status-select {
   font-weight: bold;
 }
 
-.status-select:has(> option[value="valid"]:checked){
-  color: var(--text-default-success)
+.gsl-projet-table .input-status-select .fr-btn--tertiary {
+  color: var(--text-default-grey);
 }
 
-.status-select:has(> option[value="cancelled"]:checked){
-  color: var(--text-default-error)
+.gsl-projet-table .input-status-valid .fr-btn.fr-btn--tertiary {
+  color: var(--text-default-success);
 }
 
-.status-select:has(> option[value="provisionally_accepted"]:checked){
-  color: var(--text-default-info)
+.gsl-projet-table .input-status-cancelled .fr-btn.fr-btn--tertiary {
+  color: var(--text-default-error);
 }
 
-.status-select:has(> option[value="provisionally_refused"]:checked){
-  color: var(--text-action-high-orange-terre-battue)
+.gsl-projet-table .input-status-provisionally_accepted .fr-btn.fr-btn--tertiary {
+  color: var(--text-default-info);
 }
 
-/* inputs */
+.gsl-projet-table .input-status-provisionally_refused .fr-btn.fr-btn--tertiary {
+  color: var(--text-action-high-orange-terre-battue);
+}
+
+/* text inputs */
 
 .input-status-color-valid{
   background-color: var(--background-alt-green-emeraude);
