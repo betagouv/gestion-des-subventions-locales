@@ -5,7 +5,7 @@ default:
 
 # Install Javascript dependencies
 install-js:
-    npm install
+    npm ci --ignore-scripts
     # For JS deps that distribute a bundle, just vendorize it
     while read jsfile; do cp "node_modules/$jsfile" "static/vendor/"; echo "Vendorized $jsfile"; done <vendorize.txt
     npm run build # to build tiptap bundle
