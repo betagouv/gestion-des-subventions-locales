@@ -4,7 +4,17 @@ from typing import TYPE_CHECKING, Iterator, List, Optional, Union
 
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Count, Exists, F, OuterRef, Q, UniqueConstraint
+from django.db.models import (
+    Case,
+    Count,
+    Exists,
+    F,
+    OuterRef,
+    Q,
+    UniqueConstraint,
+    Value,
+    When,
+)
 from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
@@ -86,6 +96,51 @@ class ProjetQuerySet(models.QuerySet):
             return self.none()
 
         return self.for_perimetre(user.perimetre)
+
+    def annotate_status(self):
+        # Check if all dotations have a programmation_projet
+        has_processing = Exists(
+            DotationProjet.objects.filter(
+                projet=OuterRef("pk"), status=PROJET_STATUS_PROCESSING
+            )
+        )
+
+        # Count dotations with specific programmation status
+        has_accepted = Exists(
+            DotationProjet.objects.filter(
+                projet=OuterRef("pk"),
+                status=PROJET_STATUS_ACCEPTED,
+            )
+        )
+
+        has_dismissed = Exists(
+            DotationProjet.objects.filter(
+                projet=OuterRef("pk"),
+                status=PROJET_STATUS_DISMISSED,
+            )
+        )
+
+        return self.annotate(
+            _status=Case(
+                # If not all dotations have programmation, return PROCESSING
+                When(
+                    has_processing,
+                    then=Value(PROJET_STATUS_PROCESSING),
+                ),
+                # If any dotation is ACCEPTED, return ACCEPTED
+                When(
+                    has_accepted,
+                    then=Value(PROJET_STATUS_ACCEPTED),
+                ),
+                # If any dotation is DISMISSED, return DISMISSED
+                When(
+                    has_dismissed,
+                    then=Value(PROJET_STATUS_DISMISSED),
+                ),
+                # Otherwise return REFUSED
+                default=Value(PROJET_STATUS_REFUSED),
+            )
+        )
 
     def for_perimetre(self, perimetre: Perimetre | None):
         if perimetre is None:
@@ -175,11 +230,6 @@ class Projet(models.Model):
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT, null=True)
     perimetre = models.ForeignKey(Perimetre, on_delete=models.PROTECT, null=True)
 
-    status = models.CharField(
-        verbose_name="Statut",
-        choices=PROJET_STATUS_CHOICES,
-        default=PROJET_STATUS_PROCESSING,
-    )
     notified_at = models.DateTimeField(
         verbose_name="Date de notification", null=True, blank=True
     )
@@ -206,6 +256,28 @@ class Projet(models.Model):
         from django.urls import reverse
 
         return reverse("projet:get-projet", kwargs={"projet_id": self.id})
+
+    @property
+    def status(self):
+        if hasattr(self, "_status"):
+            return self._status
+
+        if any(
+            d.status == PROJET_STATUS_PROCESSING for d in self.dotationprojet_set.all()
+        ):
+            return PROJET_STATUS_PROCESSING
+
+        if any(
+            d.status == PROJET_STATUS_ACCEPTED for d in self.dotationprojet_set.all()
+        ):
+            return PROJET_STATUS_ACCEPTED
+
+        if any(
+            d.status == PROJET_STATUS_DISMISSED for d in self.dotationprojet_set.all()
+        ):
+            return PROJET_STATUS_DISMISSED
+
+        return PROJET_STATUS_REFUSED
 
     @property
     def can_have_a_commission_detr_avis(self) -> bool:

@@ -1,5 +1,3 @@
-from unittest import mock
-
 import pytest
 
 from gsl_projet.constants import (
@@ -10,42 +8,32 @@ from gsl_projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl_projet.signals import get_projet_status
+from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
 
 
 def test_update_projet_status_on_post_save():
-    projet = ProjetFactory()
-    dismissed_dotation_projet = DotationProjetFactory(
+    projet: Projet = ProjetFactory()
+    dotation_projet: DotationProjet = DotationProjetFactory(
         projet=projet, status=PROJET_STATUS_DISMISSED, dotation=DOTATION_DETR
     )
 
-    with mock.patch("gsl_projet.models.Projet.save") as save_mock:
-        dismissed_dotation_projet.save()
-        save_mock.assert_called_once()
-        assert projet.status == PROJET_STATUS_DISMISSED
+    dotation_projet.save()
+    assert projet.status == PROJET_STATUS_DISMISSED
 
-    new_dotation_projet = DotationProjetFactory(
-        projet=projet, status=PROJET_STATUS_REFUSED, dotation=DOTATION_DSIL
-    )
-    with mock.patch("gsl_projet.models.Projet.save") as save_mock:
-        new_dotation_projet.save()
-        save_mock.assert_called_once()
-        assert projet.status == PROJET_STATUS_REFUSED
+    dotation_projet.status = PROJET_STATUS_REFUSED
+    dotation_projet.save()
+    assert projet.status == PROJET_STATUS_REFUSED
 
-    new_dotation_projet.status = PROJET_STATUS_PROCESSING
-    with mock.patch("gsl_projet.models.Projet.save") as save_mock:
-        new_dotation_projet.save()
-        save_mock.assert_called_once()
-        assert projet.status == PROJET_STATUS_PROCESSING
+    dotation_projet.status = PROJET_STATUS_PROCESSING
+    dotation_projet.save()
+    assert projet.status == PROJET_STATUS_PROCESSING
 
-    new_dotation_projet.status = PROJET_STATUS_ACCEPTED
-    with mock.patch("gsl_projet.models.Projet.save") as save_mock:
-        new_dotation_projet.save()
-        save_mock.assert_called_once()
-        assert projet.status == PROJET_STATUS_ACCEPTED
+    dotation_projet.status = PROJET_STATUS_ACCEPTED
+    dotation_projet.save()
+    assert projet.status == PROJET_STATUS_ACCEPTED
 
 
 def test_update_projet_status_on_post_delete():
@@ -53,18 +41,12 @@ def test_update_projet_status_on_post_delete():
     accepted_dotation_projet = DotationProjetFactory(
         projet=projet, status=PROJET_STATUS_ACCEPTED, dotation=DOTATION_DETR
     )
-    refused_dotation_projet = DotationProjetFactory(
+    DotationProjetFactory(
         projet=projet, status=PROJET_STATUS_REFUSED, dotation=DOTATION_DSIL
     )
 
-    with mock.patch("gsl_projet.models.Projet.save") as save_mock:
-        accepted_dotation_projet.delete()
-        save_mock.assert_called_once()
-        assert projet.status is PROJET_STATUS_REFUSED
-
-    with mock.patch("gsl_projet.models.Projet.save") as save_mock:
-        refused_dotation_projet.delete()
-        save_mock.assert_not_called()  # Should not be called because there is no more DotationProjet
+    accepted_dotation_projet.delete()
+    assert projet.status is PROJET_STATUS_REFUSED
 
 
 @pytest.mark.parametrize(
@@ -74,12 +56,12 @@ def test_update_projet_status_on_post_delete():
         (False, True, False, False, PROJET_STATUS_PROCESSING),
         (False, False, True, False, PROJET_STATUS_REFUSED),
         (False, False, False, True, PROJET_STATUS_DISMISSED),
-        (True, True, False, False, PROJET_STATUS_ACCEPTED),
+        (True, True, False, False, PROJET_STATUS_PROCESSING),
         (True, False, True, False, PROJET_STATUS_ACCEPTED),
         (True, False, False, True, PROJET_STATUS_ACCEPTED),
         (False, True, True, False, PROJET_STATUS_PROCESSING),
         (False, True, False, True, PROJET_STATUS_PROCESSING),
-        (False, False, True, True, PROJET_STATUS_REFUSED),
+        (False, False, True, True, PROJET_STATUS_DISMISSED),
     ),
 )
 def test_status_mixed_dotations(
@@ -116,4 +98,4 @@ def test_status_mixed_dotations(
             dotation=current_dotation,
         )
 
-    assert get_projet_status(projet.dotationprojet_set.first()) == expected_status
+    assert projet.status == expected_status

@@ -222,7 +222,7 @@ class BaseProjetFilters(FilterSet):
     )
 
     status = MultipleChoiceFilter(
-        field_name="status",
+        method="filter_status",
         choices=order_couples_tuple_by_first_value(
             PROJET_STATUS_CHOICES, ordered_status
         ),
@@ -234,6 +234,9 @@ class BaseProjetFilters(FilterSet):
         choices=[],
         widget=CustomCheckboxSelectMultiple(),
     )
+
+    def filter_status(self, queryset, _name, values: list[str]):
+        return queryset.annotate_status().filter(_status__in=values)
 
     def filter_territoire(self, queryset, _name, values: list[int]):
         perimetres = set()

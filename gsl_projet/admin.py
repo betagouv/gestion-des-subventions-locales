@@ -8,7 +8,8 @@ from django.utils.html import mark_safe
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_simulation.models import SimulationProjet
 
-from .models import CategorieDetr, Demandeur, DotationProjet, Projet
+from .constants import PROJET_STATUS_CHOICES
+from .models import CategorieDetr, Demandeur, DotationProjet, Projet, ProjetQuerySet
 
 
 @admin.register(Demandeur)
@@ -59,19 +60,32 @@ class SimulationProjetInline(admin.TabularInline):
     ]
 
 
+class ProjetStatusFilter(admin.SimpleListFilter):
+    title = "Statut"
+    parameter_name = "status"
+
+    def lookups(self, request, model_admin):
+        return PROJET_STATUS_CHOICES
+
+    def queryset(self, request, queryset: ProjetQuerySet):
+        if self.value():
+            return queryset.annotate_status().filter(_status=self.value())
+        return queryset
+
+
 @admin.register(Projet)
 class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("address", "demandeur", "dossier_ds")
     list_display = (
         "__str__",
         "dossier_ds__projet_intitule",
-        "status",
+        "get_status_display",
         "perimetre__departement",
         "dotations",
         "demarche",
     )
     list_filter = (
-        "status",
+        ProjetStatusFilter,
         "perimetre__departement",
         "dossier_ds__ds_demarche__ds_number",
     )
@@ -106,6 +120,11 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def dotations(self, obj):
         return ", ".join(obj.dotations)
+
+    def get_status_display(self, obj: Projet):
+        return dict(PROJET_STATUS_CHOICES)[obj.status]
+
+    get_status_display.short_description = "Statut"
 
 
 @admin.register(DotationProjet)

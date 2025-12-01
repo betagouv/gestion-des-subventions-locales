@@ -64,7 +64,6 @@ def test_create_or_update_simulation_projet_from_dotation_projet_when_no_simulat
     dotation_projet = DotationProjetFactory(
         projet__dossier_ds__annotations_montant_accorde=1_000,
         projet__dossier_ds__finance_cout_total=10_000,
-        projet__status=PROJET_STATUS_ACCEPTED,
         status=PROJET_STATUS_ACCEPTED,
         dotation=DOTATION_DETR,
     )
