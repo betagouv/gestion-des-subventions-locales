@@ -5,7 +5,7 @@
         <button class="fr-select fr-btn--{% if table %}sm{% else %}lg{% endif %} fr-dropdown__button"
                 aria-expanded="false"
                 aria-controls="status-dropdown-{{ simu.pk }}"
-                aria-label="Changer le statut du projet">
+                aria-label="{{ simu.get_status_display }}. Changer le statut du projet">
             {{ simu.get_status_display }}
         </button>
         <div class="fr-collapse fr-menu"
