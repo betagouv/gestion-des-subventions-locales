@@ -62,6 +62,7 @@ class ProgrammationProjetDetailView(DetailView):
         context = {
             "title": title,
             "projet": self.object,
+            "dotation_projets": self.object.dotationprojet_set.all(),
             "dossier": self.object.dossier_ds,
             "breadcrumb_dict": {
                 "links": [

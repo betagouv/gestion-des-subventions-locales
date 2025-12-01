@@ -16,11 +16,6 @@
     </div>
 {% endblock go_back_button %}
 
-{% block status_badge %}
-    {% comment %} TODO DUN: display double badges if double dotations {% endcomment %}
-    <span class="fr-badge fr-text--xl fr-mt-2v fr-ml-5w badge-projet-status badge-projet-status__{{ projet.status }}">{{ projet.get_status_display|remove_first_word }}</span>
-{% endblock status_badge %}
-
 {% block tabs_list %}
     {% include "gsl_programmation/tab_programmation_projet/tabs.html" %}
 {% endblock tabs_list %}
