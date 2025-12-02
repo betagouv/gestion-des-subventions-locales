@@ -140,29 +140,29 @@ def test_to_notify_with_double_dotation_partial_programmation():
     assert projet.to_notify is False
 
 
-def test_with_at_least_one_programmated_dotation():
+def test_with_at_least_one_programmed_dotation():
     """Project with at least one programmated dotation should return True."""
     projet = ProjetFactory()
     dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
     ProgrammationProjetFactory(dotation_projet=dotation)
-    assert Projet.objects.with_at_least_one_programmated_dotation().count() == 1
+    assert Projet.objects.with_at_least_one_programmed_dotation().count() == 1
 
 
-def test_with_at_least_one_programmated_dotation_without_programmation():
+def test_with_at_least_one_programmed_dotation_without_programmation():
     """Project without programmated dotation should return False."""
     projet = ProjetFactory()
     DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    assert Projet.objects.with_at_least_one_programmated_dotation().count() == 0
+    assert Projet.objects.with_at_least_one_programmed_dotation().count() == 0
 
 
-def test_with_at_least_one_programmated_dotation_when_projet_has_two_programmated_dotations():
+def test_with_at_least_one_programmed_dotation_when_projet_has_two_programmated_dotations():
     """Project without programmated dotation should return False."""
     projet = ProjetFactory()
     dotation_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
     dotation_dsil = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
     ProgrammationProjetFactory(dotation_projet=dotation_detr)
     ProgrammationProjetFactory(dotation_projet=dotation_dsil)
-    assert Projet.objects.with_at_least_one_programmated_dotation().count() == 1
+    assert Projet.objects.with_at_least_one_programmed_dotation().count() == 1
 
 
 def test_for_user_and_at_least_one_programmated_dotation():
@@ -179,7 +179,7 @@ def test_for_user_and_at_least_one_programmated_dotation():
     ProgrammationProjetFactory(dotation_projet=dotation_detr_not_in_perimeter)
 
     assert (
-        Projet.objects.for_user(user).with_at_least_one_programmated_dotation().count()
+        Projet.objects.for_user(user).with_at_least_one_programmed_dotation().count()
         == 1
     )
 

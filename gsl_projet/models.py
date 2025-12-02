@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Iterator, List, Optional, Union
 
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Count, F, Q, UniqueConstraint
+from django.db.models import Count, Exists, F, OuterRef, Q, UniqueConstraint
 from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
@@ -145,12 +145,16 @@ class ProjetQuerySet(models.QuerySet):
             ),
         ).filter(dotations_count=F("programmation_count"), notified_at__isnull=True)
 
-    def with_at_least_one_programmated_dotation(self):
-        return self.annotate(
-            programmation_count=Count(
-                "dotationprojet__programmation_projet",
-            ),
-        ).filter(programmation_count__gt=0)
+    def with_at_least_one_programmed_dotation(self):
+        from gsl_programmation.models import ProgrammationProjet
+
+        return self.filter(
+            Exists(
+                ProgrammationProjet.objects.filter(
+                    dotation_projet__projet=OuterRef("pk")
+                )
+            )
+        )
 
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):

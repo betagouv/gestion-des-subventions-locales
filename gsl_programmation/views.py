@@ -46,7 +46,7 @@ class ProgrammationProjetDetailView(DetailView):
     def get_queryset(self):
         return (
             Projet.objects.for_user(self.request.user)
-            .with_at_least_one_programmated_dotation()
+            .with_at_least_one_programmed_dotation()
             .select_related(
                 "dossier_ds",
                 "perimetre",
@@ -74,7 +74,6 @@ class ProgrammationProjetDetailView(DetailView):
             },
             "menu_dict": PROJET_MENU,
             "current_tab": tab,
-            "dotation_not_treated": self.object.dotation_not_treated,
             "go_back_link": self.get_go_back_link(),
         }
         if tab == "annotations":

@@ -13,7 +13,7 @@
             {% elif projet.notified_at %}
                 <span class="fr-text--xl projet__to_notify fr-ml-2w blue-color">Notifié <span class="fr-icon-checkbox-fill"></span></span>
             {% else %}
-                <b class="fr-ml-2w"><em>En attente de la décision {{ dotation_not_treated }}.</em></b>
+                <b class="fr-ml-2w"><em>En attente de la décision {{ projet.dotation_not_treated }}.</em></b>
             {% endif %}
         </div>
 
