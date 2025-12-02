@@ -18,7 +18,9 @@ from gsl_core.templatetags.gsl_filters import euro
 from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.importer.dossier import save_one_dossier_from_ds
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.forms import DotationProjetForm, ProjetForm
+from gsl_projet.models import DotationProjet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.forms import (
@@ -329,9 +331,7 @@ def _enrich_simulation_projet_context_with_specific_info_for_main_tab(
             "initial_dotations": (
                 json.dumps(dotation_field.initial) if dotation_field else []
             ),
-            "other_dotation_simu": _get_other_dotation_simulation_projet(
-                simulation_projet
-            ),
+            "other_dotation_montants": _get_other_dotation_montants(simulation_projet),
             "dotation_projets": simulation_projet.projet.dotationprojet_set.all(),
         }
     )
@@ -368,21 +368,30 @@ def _enrich_simulation_projet_context_with_generic_info_for_all_tabs(
     )
 
 
-def _get_other_dotation_simulation_projet(
+def _get_other_dotation_montants(
     simulation_projet: SimulationProjet,
-) -> SimulationProjet | None:
+) -> object | None:
     if not simulation_projet.projet.has_double_dotations:
         return None
 
-    # Get the most recent simulation projet with the same projet but different dotation
-    return (
-        SimulationProjet.objects.filter(
-            dotation_projet__projet=simulation_projet.projet,
-        )
-        .exclude(dotation_projet__dotation=simulation_projet.dotation_projet.dotation)
-        .order_by("-updated_at")
-        .first()
-    )
+    other_dotation_projet = DotationProjet.objects.filter(
+        projet=simulation_projet.projet,
+        dotation=DOTATION_DETR
+        if simulation_projet.dotation_projet.dotation == DOTATION_DSIL
+        else DOTATION_DSIL,
+    ).first()
+    montants = {
+        "dotation": other_dotation_projet.dotation,
+        "assiette": other_dotation_projet.assiette,
+        "montant": None,
+        "taux": None,
+    }
+
+    if hasattr(other_dotation_projet, "programmation_projet"):
+        montants["montant"] = other_dotation_projet.programmation_projet.montant
+        montants["taux"] = other_dotation_projet.programmation_projet.taux
+
+    return montants
 
 
 @method_decorator(htmx_only, name="dispatch")

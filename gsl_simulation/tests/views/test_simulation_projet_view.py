@@ -1,87 +1,138 @@
+from decimal import Decimal
+
 import pytest
 
-from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
-from gsl_simulation.models import SimulationProjet
+from gsl_programmation.tests.factories import ProgrammationProjetFactory
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.tests.factories import (
+    DetrProjetFactory,
+    DsilProjetFactory,
+    ProjetFactory,
+)
 from gsl_simulation.tests.factories import SimulationProjetFactory
 from gsl_simulation.views.simulation_projet_views import (
-    _get_other_dotation_simulation_projet,
+    _get_other_dotation_montants,
 )
 
 pytestmark = pytest.mark.django_db
 
 
-@pytest.fixture
-def projet():
-    return ProjetFactory()
+def test_get_other_dotation_montants_without_double_dotations():
+    """Test that function returns None when projet doesn't have double dotations."""
+    projet = ProjetFactory()
+    dsil_dotation_projet = DsilProjetFactory(projet=projet)
+    simulation_projet = SimulationProjetFactory(dotation_projet=dsil_dotation_projet)
 
-
-@pytest.fixture
-def detr_projet(projet):
-    return DotationProjetFactory(projet=projet, dotation="DETR")
-
-
-@pytest.fixture
-def dsil_projet(projet):
-    return DotationProjetFactory(projet=projet, dotation="DSIL")
-
-
-@pytest.fixture
-def dsil_simulation_projets(dsil_projet):
-    return [
-        SimulationProjetFactory(
-            dotation_projet=dsil_projet,
-        )
-        for _ in range(3)
-    ]
-
-
-@pytest.fixture
-def detr_simulation_projets(detr_projet):
-    return [
-        SimulationProjetFactory(
-            dotation_projet=detr_projet,
-        )
-        for _ in range(3)
-    ]
-
-
-def test_get_other_dotation_simulation_projet_without_other_dotation_simulation_projets(
-    dsil_simulation_projets,
-):
-    simulation_projet = dsil_simulation_projets[0]
-
-    result = _get_other_dotation_simulation_projet(simulation_projet)
+    result = _get_other_dotation_montants(simulation_projet)
 
     assert result is None
 
 
-def test_get_other_dotation_simulation_projet_with_other_dotation_simulation_projets(
-    dsil_simulation_projets, detr_simulation_projets
-):
-    simulation_projet = dsil_simulation_projets[0]
-
-    result = _get_other_dotation_simulation_projet(simulation_projet)
-
-    expected_simulation_projet = (
-        SimulationProjet.objects.filter(
-            dotation_projet__projet=simulation_projet.dotation_projet.projet,
-            dotation_projet__dotation="DETR",
-        )
-        .order_by("-updated_at")
-        .first()
+def test_get_other_dotation_montants_dsil_to_detr_without_programmation():
+    """Test DSIL -> DETR direction when other dotation has no programmation."""
+    projet = ProjetFactory()
+    dsil_dotation_projet = DsilProjetFactory(
+        projet=projet, assiette=Decimal("10000.00")
+    )
+    DetrProjetFactory(projet=projet, assiette=Decimal("20000.00"))
+    simulation_projet = SimulationProjetFactory(
+        dotation_projet=dsil_dotation_projet, montant=Decimal("5000.00")
     )
 
-    assert result == expected_simulation_projet
+    result = _get_other_dotation_montants(simulation_projet)
+
+    assert result is not None
+    assert result["dotation"] == DOTATION_DETR
+    assert result["assiette"] == Decimal("20000.00")
+    assert result["montant"] is None
+    assert result["taux"] is None
 
 
-def test_get_other_dotation_simulation_projet_give_the_last_updated(
-    dsil_simulation_projets, detr_simulation_projets
-):
-    detr_simu_to_update = detr_simulation_projets[1]
-    detr_simu_to_update.montant = 1000
-    detr_simu_to_update.save()
-    simulation_projet = dsil_simulation_projets[0]
+def test_get_other_dotation_montants_detr_to_dsil_without_programmation():
+    """Test DETR -> DSIL direction when other dotation has no programmation."""
+    projet = ProjetFactory()
+    detr_dotation_projet = DetrProjetFactory(
+        projet=projet, assiette=Decimal("15000.00")
+    )
+    DsilProjetFactory(projet=projet, assiette=Decimal("25000.00"))
+    simulation_projet = SimulationProjetFactory(
+        dotation_projet=detr_dotation_projet, montant=Decimal("8000.00")
+    )
 
-    result = _get_other_dotation_simulation_projet(simulation_projet)
+    result = _get_other_dotation_montants(simulation_projet)
 
-    assert result == detr_simu_to_update
+    assert result is not None
+    assert result["dotation"] == DOTATION_DSIL
+    assert result["assiette"] == Decimal("25000.00")
+    assert result["montant"] is None
+    assert result["taux"] is None
+
+
+def test_get_other_dotation_montants_dsil_to_detr_with_programmation():
+    """Test DSIL -> DETR direction when other dotation has programmation."""
+    projet = ProjetFactory()
+    dsil_dotation_projet = DsilProjetFactory(
+        projet=projet, assiette=Decimal("10000.00")
+    )
+    detr_dotation_projet = DetrProjetFactory(
+        projet=projet, assiette=Decimal("20000.00")
+    )
+    programmation_projet = ProgrammationProjetFactory(
+        dotation_projet=detr_dotation_projet, montant=Decimal("15000.00")
+    )
+    simulation_projet = SimulationProjetFactory(
+        dotation_projet=dsil_dotation_projet, montant=Decimal("5000.00")
+    )
+
+    result = _get_other_dotation_montants(simulation_projet)
+
+    assert result is not None
+    assert result["dotation"] == DOTATION_DETR
+    assert result["assiette"] == Decimal("20000.00")
+    assert result["montant"] == Decimal("15000.00")
+    assert result["taux"] == programmation_projet.taux
+
+
+def test_get_other_dotation_montants_detr_to_dsil_with_programmation():
+    """Test DETR -> DSIL direction when other dotation has programmation."""
+    projet = ProjetFactory()
+    detr_dotation_projet = DetrProjetFactory(
+        projet=projet, assiette=Decimal("15000.00")
+    )
+    dsil_dotation_projet = DsilProjetFactory(
+        projet=projet, assiette=Decimal("25000.00")
+    )
+    programmation_projet = ProgrammationProjetFactory(
+        dotation_projet=dsil_dotation_projet, montant=Decimal("20000.00")
+    )
+    simulation_projet = SimulationProjetFactory(
+        dotation_projet=detr_dotation_projet, montant=Decimal("8000.00")
+    )
+
+    result = _get_other_dotation_montants(simulation_projet)
+
+    assert result is not None
+    assert result["dotation"] == DOTATION_DSIL
+    assert result["assiette"] == Decimal("25000.00")
+    assert result["montant"] == Decimal("20000.00")
+    assert result["taux"] == programmation_projet.taux
+
+
+def test_get_other_dotation_montants_with_none_assiette():
+    """Test that function handles None assiette correctly."""
+    projet = ProjetFactory()
+    dsil_dotation_projet = DsilProjetFactory(
+        projet=projet, assiette=Decimal("10000.00")
+    )
+    DetrProjetFactory(projet=projet, assiette=None)
+    simulation_projet = SimulationProjetFactory(
+        dotation_projet=dsil_dotation_projet, montant=Decimal("5000.00")
+    )
+
+    result = _get_other_dotation_montants(simulation_projet)
+
+    assert result is not None
+    assert result["dotation"] == DOTATION_DETR
+    assert result["assiette"] is None
+    assert result["montant"] is None
+    assert result["taux"] is None
