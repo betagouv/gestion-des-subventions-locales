@@ -273,11 +273,18 @@ class Projet(models.Model):
     def dotation_not_treated(self) -> Optional[POSSIBLE_DOTATIONS]:
         return next(
             (
-                d.dotation
-                for d in self.dotationprojet_set.all()
-                if d.status == PROJET_STATUS_PROCESSING
+                dp.dotation
+                for dp in self.dotationprojet_set.all()
+                if dp.status == PROJET_STATUS_PROCESSING
             ),
             None,
+        )
+
+    @property
+    def all_dotations_have_processing_status(self) -> bool:
+        return all(
+            dp.status == PROJET_STATUS_PROCESSING
+            for dp in self.dotationprojet_set.all()
         )
 
 

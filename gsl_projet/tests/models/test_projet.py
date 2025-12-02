@@ -283,3 +283,44 @@ def test_dotation_not_treated_with_multiple_dotations_one_processing(
     DotationProjetFactory(projet=projet, dotation=DOTATION_DETR, status=first_status)
     DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL, status=second_status)
     assert projet.dotation_not_treated == expected_dotation_not_treated
+
+
+@pytest.mark.parametrize(
+    "status, expected_value",
+    (
+        (PROJET_STATUS_ACCEPTED, False),
+        (PROJET_STATUS_REFUSED, False),
+        (PROJET_STATUS_DISMISSED, False),
+        (PROJET_STATUS_PROCESSING, True),
+    ),
+)
+def test_all_dotations_have_processing_status_when_simple_dotation(
+    status, expected_value
+):
+    projet = ProjetFactory()
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR, status=status)
+    assert projet.all_dotations_have_processing_status is expected_value
+
+
+@pytest.mark.parametrize(
+    "first_status, second_status, expected_value",
+    (
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_ACCEPTED, False),
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, False),
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_DISMISSED, False),
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING, False),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_REFUSED, False),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED, False),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_PROCESSING, False),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_DISMISSED, False),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING, False),
+        (PROJET_STATUS_PROCESSING, PROJET_STATUS_PROCESSING, True),
+    ),
+)
+def test_all_dotations_have_processing_status_when_double_dotations(
+    first_status, second_status, expected_value
+):
+    projet = ProjetFactory()
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR, status=first_status)
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL, status=second_status)
+    assert projet.all_dotations_have_processing_status is expected_value
