@@ -47,3 +47,10 @@ def status_to_french_word(status):
         SimulationProjet.STATUS_REFUSED: "refusé",
         SimulationProjet.STATUS_DISMISSED: "classé sans suite",
     }[status]
+
+
+@register.filter(name="split_symbol_and_status")
+def split_symbol_and_status(symbol_and_status):
+    symbol = symbol_and_status[0]
+    status = symbol_and_status[2:]
+    return f"<span aria-hidden='true'>{symbol}</span> {status}"

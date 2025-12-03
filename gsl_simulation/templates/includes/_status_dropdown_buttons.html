@@ -14,9 +14,9 @@
             <ul class="fr-menu__list">
                 {% for key, value in simu.STATUS_CHOICES %}
                     <li>
-                        <button class="fr-nav__link fr-activ"
+                        <button class="fr-nav__link fr-activ simulation_projet_status_option"
                                 {% if simu.status == key %} disabled="disabled" aria-current="true" {% elif simu|status_needs_modal:key %} hx-get="{{ simu|status_url:key }}" hx-swap="outerHTML" {% else %} hx-post="{{ simu|status_url:key }}" hx-vals='{"status": "{{ key }}"}' hx-disabled-elt="#status-dropdown-{{ simu.pk }} button"{% endif %}>
-                            {{ value }}
+                            {{ value|split_symbol_and_status|safe }}
                         </button>
                     </li>
                 {% endfor %}
