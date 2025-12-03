@@ -148,6 +148,11 @@
   color: var(--text-action-high-orange-terre-battue);
 }
 
+.simulation_projet_status_option {
+  justify-content:flex-start;
+  gap:8px;
+}
+
 /* text inputs */
 
 .input-status-color-valid{

@@ -163,7 +163,9 @@ class CheckDsDossierUpToDateView(OpenHtmxModalMixin, DetailView):
             date_modif_ds = timezone.datetime.fromisoformat(date_modif_ds)
             if date_modif_ds <= dossier.ds_date_derniere_modification:
                 return HttpResponseClientRedirect(
-                    reverse("gsl_notification:documents", args=[self.object.id])
+                    reverse(
+                        "gsl_notification:documents", args=[self.object.id]
+                    )  # TODO DUN doesn't work. Waiting for refacto of this view
                 )
 
         return super().render_to_response(context, *args, **kwargs)
