@@ -31,7 +31,7 @@ class ProjetService:
                 dossier_ds=ds_dossier,
             )
         projet.address = ds_dossier.projet_adresse
-        projet.perimetre = ds_dossier.perimetre
+        projet.perimetre = ds_dossier.get_projet_perimetre()
         projet.is_in_qpv = cls.get_is_in_qpv(ds_dossier)
         projet.is_attached_to_a_crte = cls.get_is_attached_to_a_crte(ds_dossier)
         projet.is_budget_vert = cls.get_is_budget_vert(ds_dossier)

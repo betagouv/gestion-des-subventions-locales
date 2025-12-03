@@ -28,7 +28,7 @@ def test_get_declared_arrondissement_even_with_demandeur_arrondissement():
         porteur_de_projet_arrondissement=declared_arrondissement,
     )
 
-    perimetre = dossier.perimetre
+    perimetre = dossier.get_projet_perimetre()
 
     assert perimetre == perimetre_arrondissement
     assert perimetre.arrondissement != demandeur_arrondissement
@@ -51,7 +51,7 @@ def test_get_declared_arrondissement_if_no_arrondissement_provided_on_demandeur(
         porteur_de_projet_arrondissement=declared_arrondissement,
     )
 
-    perimetre = dossier.perimetre
+    perimetre = dossier.get_projet_perimetre()
 
     assert perimetre == perimetre_arrondissement
     assert perimetre.arrondissement == declared_arrondissement.core_arrondissement

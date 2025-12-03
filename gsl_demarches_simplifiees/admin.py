@@ -174,7 +174,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_demarche__ds_number",
         "ds_state",
         "projet_intitule",
-        "perimetre",
+        "get_projet_perimetre",
         "projet_link",
         "link_to_json",
     )

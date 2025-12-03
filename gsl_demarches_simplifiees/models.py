@@ -500,12 +500,14 @@ class Dossier(DsModel):
             "ds:view-dossier-json", kwargs={"dossier_ds_number": self.ds_number}
         )
 
-    @property
-    def perimetre(self) -> Perimetre | None:
+    def get_projet_perimetre(self) -> Perimetre | None:
         """
-        Retourne le périmètre du projet, à partir de
+        Retourne le périmètre du projet qui sera issu du dossier, à partir de
         l'arrondissement déclaré par le demandeur dans le formulaire DS
         (champ DS porteur_de_projet_arrondissement).
+
+        À défaut d'arrondissement dans le département (cas des n°75 et 90)
+        on retourne un périmètre départemental. @todo
 
         :return: Perimetre
         """
