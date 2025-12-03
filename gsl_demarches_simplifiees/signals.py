@@ -1,3 +1,5 @@
+import logging
+
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
@@ -5,6 +7,8 @@ from gsl_core.models import Arrondissement as CoreArrondissement
 from gsl_demarches_simplifiees.models import Arrondissement as DsArrondissement
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tasks import task_refresh_dossier_from_saved_data
+
+logger = logging.getLogger(__name__)
 
 
 @receiver(pre_save, sender=DsArrondissement)
@@ -22,6 +26,9 @@ def associate_with_core_arrondissement(
         ) and instance.label.endswith(core_arrondissement.name):
             instance.core_arrondissement = core_arrondissement
             return
+    logger.warning(
+        f"Unable to match a CoreArrondissement with DS Arrondissement '{instance.label}'."
+    )
 
 
 @receiver(post_save, sender=DsArrondissement)
