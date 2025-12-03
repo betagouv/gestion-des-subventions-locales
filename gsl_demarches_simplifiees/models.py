@@ -500,35 +500,29 @@ class Dossier(DsModel):
             "ds:view-dossier-json", kwargs={"dossier_ds_number": self.ds_number}
         )
 
-    @property
-    def perimetre(self) -> Perimetre | None:
+    def get_projet_perimetre(self) -> Perimetre | None:
         """
-        Retourne le périmètre du projet, le + précis possible (niveau arrondissement).
-        En premier lieu, on essaie de déterminer le périmètre du projet d'après la
-        commune du siège social du demandeur (ds_demandeur.address.commune).
-        Si on n'a pas l'information, ou si elle n'est pas assez précise, alors on prend
+        Retourne le périmètre du projet qui sera issu du dossier, à partir de
         l'arrondissement déclaré par le demandeur dans le formulaire DS
         (champ DS porteur_de_projet_arrondissement).
+
+        À défaut d'arrondissement dans le département (cas des n°75 et 90)
+        on retourne un périmètre départemental. @todo
 
         :return: Perimetre
         """
         projet_departement, projet_arrondissement = None, None
-        if self.ds_demandeur and self.ds_demandeur.address:
-            commune = self.ds_demandeur.address.commune
-            if commune and commune.departement:
-                projet_departement = commune.departement
-                if commune.arrondissement:
-                    projet_arrondissement = commune.arrondissement
-        if not projet_arrondissement:
-            ds_arrondissement_declaratif = self.porteur_de_projet_arrondissement
-            if ds_arrondissement_declaratif is not None:
-                projet_arrondissement = ds_arrondissement_declaratif.core_arrondissement
-                if projet_arrondissement:
-                    projet_departement = projet_arrondissement.departement
+        ds_arrondissement_declaratif = self.porteur_de_projet_arrondissement
+        if ds_arrondissement_declaratif is not None:
+            projet_arrondissement = ds_arrondissement_declaratif.core_arrondissement
+            if projet_arrondissement:
+                projet_departement = projet_arrondissement.departement
         if projet_arrondissement or projet_departement:
-            return Perimetre.objects.get(
-                departement=projet_departement, arrondissement=projet_arrondissement
-            )
+            return Perimetre.objects.get_or_create(
+                departement=projet_departement,
+                arrondissement=projet_arrondissement,
+                region_id=projet_departement.region_id,
+            )[0]
         return None
 
     @property

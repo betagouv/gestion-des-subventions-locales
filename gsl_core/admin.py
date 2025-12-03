@@ -115,6 +115,7 @@ class DepartementAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
 
 @admin.register(Arrondissement)
 class ArrondissementAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
+    search_fields = ("name", "insee_code")
     resource_classes = (ArrondissementResource,)
 
 

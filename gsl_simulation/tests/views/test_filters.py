@@ -113,7 +113,7 @@ def projets(simulation, perimetre_departemental):
                     annotations_montant_accorde_detr=150_000,
                     annotations_montant_accorde_dsil=150_000,
                     porteur_de_projet_nature=epci,
-                    ds_demandeur__address__commune__departement=perimetre.departement,
+                    porteur_de_projet_arrondissement__core_arrondissement__departement=perimetre.departement,
                 )
                 projet_2024 = ProjetFactory(
                     dossier_ds=dossier_2024,
@@ -131,7 +131,7 @@ def projets(simulation, perimetre_departemental):
                     demande_dispositif_sollicite=dotation,
                     finance_cout_total=2_000_000,
                     porteur_de_projet_nature=commune,
-                    ds_demandeur__address__commune__departement=perimetre.departement,
+                    porteur_de_projet_arrondissement__core_arrondissement__departement=perimetre.departement,
                 )
                 projet_2025 = ProjetFactory(
                     dossier_ds=dossier_2025,
@@ -149,7 +149,7 @@ def projets(simulation, perimetre_departemental):
                     demande_montant=400_000,
                     finance_cout_total=3_000_000,
                     porteur_de_projet_nature=commune,
-                    ds_demandeur__address__commune__departement=perimetre.departement,
+                    porteur_de_projet_arrondissement__core_arrondissement__departement=perimetre.departement,
                 )
                 projet_2024 = ProjetFactory(
                     dossier_ds=dossier_2024,
@@ -166,7 +166,7 @@ def projets(simulation, perimetre_departemental):
                     demande_montant=500_000,
                     finance_cout_total=4_000_000,
                     porteur_de_projet_nature=epci,
-                    ds_demandeur__address__commune__departement=perimetre.departement,
+                    porteur_de_projet_arrondissement__core_arrondissement__departement=perimetre.departement,
                 )
                 projet_2025 = ProjetFactory(
                     dossier_ds=dossier_2025,

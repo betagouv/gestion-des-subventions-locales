@@ -73,7 +73,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_an_other_dotation_than
         annotations_dotation=DOTATION_DSIL,
         demande_montant=400,
         finance_cout_total=4_000,
-        ds_demandeur__address__commune=commune,
+        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
     )
     projet = ProjetFactory(dossier_ds=dossier)
     detr_dotation_projet = DotationProjetFactory(
@@ -102,7 +102,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
         annotations_dotation=DOTATION_DETR,
         demande_montant=400,
         finance_cout_total=4_000,
-        ds_demandeur__address__commune=commune,
+        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
     )
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
@@ -162,9 +162,10 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     dossier = DossierFactory(
         ds_state=Dossier.STATE_EN_INSTRUCTION,
         annotations_dotation=DOTATION_DETR,
+        annotations_montant_accorde=400,  # ?? problem here?
         demande_montant=400,
         finance_cout_total=4_000,
-        ds_demandeur__address__commune=commune,
+        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
     )
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
@@ -220,7 +221,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
         annotations_dotation=DOTATION_DETR,
         demande_montant=400,
         finance_cout_total=4_000,
-        ds_demandeur__address__commune=commune,
+        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
     )
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
@@ -277,7 +278,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
     """
     dossier = DossierFactory(
         ds_state=Dossier.STATE_ACCEPTE,
-        ds_demandeur__address__commune=commune,
+        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
         ds_date_traitement=datetime(2024, 1, 15, tzinfo=UTC),
         annotations_dotation=DOTATION_DETR,
         annotations_montant_accorde_detr=5_000,
@@ -330,7 +331,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
     dossier = DossierFactory(
         ds_state=Dossier.STATE_REFUSE,
         annotations_dotation=DOTATION_DETR,
-        ds_demandeur__address__commune=commune,
+        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
         ds_date_traitement=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
     )
     projet = ProjetFactory(dossier_ds=dossier, perimetre=detr_enveloppe.perimetre)
@@ -382,7 +383,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
     dossier = DossierFactory(
         ds_state=Dossier.STATE_SANS_SUITE,
         annotations_dotation=DOTATION_DETR,
-        ds_demandeur__address__commune=commune,
+        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
         ds_date_traitement=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
     )
     projet = ProjetFactory(dossier_ds=dossier)
@@ -439,7 +440,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_update_from_annotation
         annotations_is_budget_vert=True,
         annotations_is_qpv=True,
         annotations_is_crte=True,
-        ds_demandeur__address__commune=commune,
+        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
         ds_date_traitement=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
     )
     projet = ProjetFactory(

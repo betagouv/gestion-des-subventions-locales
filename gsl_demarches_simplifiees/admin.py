@@ -174,7 +174,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_demarche__ds_number",
         "ds_state",
         "projet_intitule",
-        "perimetre",
+        "get_projet_perimetre",
         "projet_link",
         "link_to_json",
     )
@@ -312,9 +312,32 @@ class ProfileAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     search_fields = ("ds_id", "ds_email")
 
 
+class HasCoreArrondissementFilter(admin.SimpleListFilter):
+    title = "Arrondissement INSEE complété"
+    parameter_name = "has_insee_arr"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("y", "Oui"),
+            ("n", "Non"),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == "y":
+            return queryset.filter(
+                core_arrondissement__isnull=False,
+            )
+        elif self.value() == "n":
+            return queryset.filter(
+                core_arrondissement__isnull=True,
+            )
+
+
 @admin.register(Arrondissement)
 class ArrondissementAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = ("__str__", "core_arrondissement")
+    list_filter = (HasCoreArrondissementFilter,)
+    autocomplete_fields = ("core_arrondissement",)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

@@ -45,7 +45,8 @@ def test_create_projet_from_dossier():
     assert projet.address is not None
     assert projet.address.commune == dossier.projet_adresse.commune
     assert projet.address == dossier.projet_adresse
-    assert projet.perimetre == perimetre
+
+    assert projet.perimetre == dossier.get_projet_perimetre()
 
     other_projet = ProjetService.create_or_update_from_ds_dossier(dossier)
     assert other_projet == projet
