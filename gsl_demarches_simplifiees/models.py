@@ -3,6 +3,7 @@ from django.urls import reverse
 
 from gsl_core.models import Adresse, Perimetre
 from gsl_core.models import Arrondissement as CoreArrondissement
+from gsl_core.models import Departement as CoreDepartement
 from gsl_projet.constants import MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
 
 
@@ -205,6 +206,19 @@ class Dossier(DsModel):
     )
     ds_instructeurs = models.ManyToManyField("gsl_demarches_simplifiees.Profile")
 
+    # --- 0. Type de demande
+
+    demande_type_renouvellement = models.CharField(
+        "Souhaitez-vous effectuer une nouvelle demande ou renouveler une demande précédente ?",
+        blank=True,
+    )
+    demande_numero_demande_precedente = models.CharField(
+        "Précisez le numéro du dossier déposé antérieurement",
+        blank=True,
+    )  # @todo à vérifier, pas sûre qu'on importe les champs de type "lien vers un dossier"
+
+    # --- 1a. identification de la collectivité porteuse du projet
+
     porteur_de_projet_nature = models.ForeignKey(
         "gsl_demarches_simplifiees.NaturePorteurProjet",
         models.SET_NULL,
@@ -212,21 +226,26 @@ class Dossier(DsModel):
         blank=True,
         null=True,
     )
-    porteur_de_projet_arrondissement = models.ForeignKey(
-        "gsl_demarches_simplifiees.Arrondissement",
+    porteur_de_projet_departement = models.ForeignKey(
+        "gsl_demarches_simplifiees.Departement",
         models.SET_NULL,
-        verbose_name="Département et arrondissement du porteur de projet",
+        verbose_name="Département ou collectivité du demandeur",
         blank=True,
         null=True,
     )
-    porteur_de_projet_fonction = models.CharField(
-        "Fonction du porteur de projet", blank=True
+    porteur_de_projet_arrondissement = models.ForeignKey(
+        "gsl_demarches_simplifiees.Arrondissement",
+        models.SET_NULL,
+        verbose_name="Arrondissement du demandeur",
+        blank=True,
+        null=True,
     )
 
-    porteur_de_projet_nom = models.CharField("Nom du porteur de projet", blank=True)
-    porteur_de_projet_prenom = models.CharField(
-        "Prénom du porteur de projet", blank=True
-    )
+    # --- 1b. Identification de la personne chargée du suivi du dossier
+
+    porteur_de_projet_fonction = models.CharField("Fonction", blank=True)
+    porteur_de_projet_nom = models.CharField("Nom", blank=True)
+    porteur_de_projet_prenom = models.CharField("Prénom", blank=True)
     # ---
     maitrise_douvrage_deleguee = models.BooleanField(
         "La maîtrise d'ouvrage de l'opération sera-t-elle déléguée ?", null=True
@@ -234,7 +253,8 @@ class Dossier(DsModel):
     maitrise_douvrage_siret = models.CharField(
         "Identification du maître d'ouvrage", blank=True
     )
-    # ---
+    # --- 2. Présentation de l'opération
+    # --- 2a. Description du projet
     projet_intitule = models.CharField("Intitulé du projet", blank=True)
     projet_adresse = models.ForeignKey(
         Adresse,
@@ -255,16 +275,19 @@ class Dossier(DsModel):
         verbose_name="Zonage spécifique : le projet est il situé dans l'une des zones suivantes ?",
         blank=True,
     )
+    projet_zonage_autre = models.CharField(
+        "Autre zonage : précisez le nom du zonage", blank=True
+    )
     projet_contractualisation = models.ManyToManyField(
         "gsl_demarches_simplifiees.ProjetContractualisation",
         verbose_name="Contractualisation : le projet est-il inscrit dans un ou plusieurs contrats avec l'Etat ?",
         blank=True,
     )
     projet_contractualisation_autre = models.CharField(
-        "Autre contrat : précisez le contrat concerné", blank=True
+        "Autre contrat : précisez le nom du contrat", blank=True
     )
 
-    # ----
+    # --- 2b. Impact environnemental du projet
     environnement_transition_eco = models.BooleanField(
         "Le projet concourt-il aux enjeux de la transition écologique ?", null=True
     )
@@ -276,16 +299,24 @@ class Dossier(DsModel):
     environnement_artif_sols = models.BooleanField(
         "Le projet implique-t-il une artificialisation des sols ?", null=True
     )
-    # ---
+    # --- 2c. Dates prévisionnelles de réalisation du projet
     date_debut = models.DateField(
         "Date de commencement de l'opération", null=True, blank=True
     )
     date_achevement = models.DateField(
         "Date prévisionnelle d'achèvement de l'opération", null=True, blank=True
     )
-    # ---
+    # --- 3. Plan de financement prévisionnel
+    # --- 3a. Dépenses et recettes prévisionnelles
     finance_cout_total = models.DecimalField(
         "Coût total de l'opération (en euros HT)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    finance_cout_total_xpf = models.DecimalField(
+        "Coût total de l'opération (en XPF HT)",
         max_digits=12,
         decimal_places=2,
         null=True,
@@ -294,33 +325,48 @@ class Dossier(DsModel):
     finance_recettes = models.BooleanField(
         "Le projet va-t-il générer des recettes ?", null=True
     )
-    # ---
-    demande_annee_precedente = models.BooleanField(
-        "Avez-vous déjà présenté cette opération au titre de campagnes DETR/DSIL en 2023 ?",
-        null=True,
-    )
-    demande_numero_demande_precedente = models.CharField(
-        "Précisez le numéro du dossier déposé antérieurement",
-        blank=True,
-    )
 
+    # --- 3b. Aides à l'investissement sollicitées
+
+    # @todo c'est un choix multiple dans la DUN
     demande_dispositif_sollicite = models.CharField(
         "Dispositif de financement sollicité",
         blank=True,
     )
+    # @todo renommage en "demande_categorie_detr"
     demande_eligibilite_detr = models.ManyToManyField(
         "gsl_demarches_simplifiees.CritereEligibiliteDetr",
-        verbose_name="Eligibilité de l'opération à la DETR",
+        verbose_name="Catégories prioritaires",
         blank=True,
     )
-
     demande_eligibilite_dsil = models.ManyToManyField(
         "gsl_demarches_simplifiees.CritereEligibiliteDsil",
-        verbose_name="Eligibilité de l'opération à la DSIL",
+        verbose_name="DSIL · Éligibilité de l'opération",
         blank=True,
     )
     demande_montant = models.DecimalField(
-        "Montant de l'aide demandée",
+        "Montant de l'aide demandée (en euros)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    demande_montant_xpf = models.DecimalField(
+        "Montant de l'aide demandée (en XPF)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    demande_montant_detr = models.DecimalField(
+        "dont DETR",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    demande_montant_dsil = models.DecimalField(
+        "dont DSIL",
         max_digits=12,
         decimal_places=2,
         null=True,
@@ -328,10 +374,22 @@ class Dossier(DsModel):
     )
     demande_autres_aides = models.ManyToManyField(
         "gsl_demarches_simplifiees.AutreAide",
-        verbose_name="En 2024, comptez-vous solliciter d'autres aides publiques pour financer cette opération  ?",
+        verbose_name="Comptez-vous solliciter d'autres aides publiques pour financer cette opération  ?",
+        blank=True,
+    )
+    # @todo autres aides : ici on a un couple de champs par type d'aide ; à importer ?
+
+    demande_autre_dsil_detr = models.BooleanField(
+        "Présentez-vous une autre opération au titre de la DETR/DSIL cette année ?",
+        null=True,
+    )
+    demande_priorite_dsil_detr = models.IntegerField(
+        "Si demandé par votre préfecture, précisez le niveau de priorité de ce dossier.",
+        null=True,
         blank=True,
     )
 
+    # ---- Champs non retrouvés dans la DUN:
     demande_autre_precision = models.TextField(
         "Autre - précisez le dispositif de financement concerné",
         blank=True,
@@ -340,24 +398,30 @@ class Dossier(DsModel):
         "Si votre dossier a déjà été déposé, précisez le numéro de dossier",
         blank=True,
     )
-    demande_autre_dsil_detr = models.BooleanField(
-        "Présentez-vous une autre opération au titre de la DETR/DSIL 2024 ?",
+    # supprimé au profit du champ "souhaitez-vous effectuer une nouvelle demande ou renouveler une demande existante"
+    demande_annee_precedente = models.BooleanField(
+        "Avez-vous déjà présenté cette opération au titre de campagnes DETR/DSIL en 2023 ?",
         null=True,
     )
-    demande_priorite_dsil_detr = models.IntegerField(
-        "Si oui, précisez le niveau de priorité de ce dossier.",
-        null=True,
-        blank=True,
-    )
+
     # -- annotations
     annotations_contact = models.CharField(
         "Contact de l'agent instructeur à indiquer au demandeur",
         blank=True,
     )
     annotations_champ_libre = models.TextField(
-        "Champ libre pour le service instructeur",
+        "Champ libre pour le service instructeur 1",
         blank=True,
     )
+    annotations_champ_libre_2 = models.TextField(
+        "Champ libre pour le service instructeur 2",
+        blank=True,
+    )
+    annotations_champ_libre_3 = models.TextField(
+        "Champ libre pour le service instructeur 3",
+        blank=True,
+    )
+
     annotations_dotation = models.CharField(
         "Imputation budgétaire - Choix de la dotation",
         blank=True,
@@ -367,6 +431,35 @@ class Dossier(DsModel):
     )
     annotations_is_qpv = models.BooleanField("Projet situé en QPV", null=True)
     annotations_is_crte = models.BooleanField("Projet rattaché à un CRTE", null=True)
+    annotations_is_frr = models.BooleanField("Projet situé en FRR", null=True)
+    annotations_is_acv = models.BooleanField(
+        "Projet rattaché à un programme Action coeurs de Ville (ACV)", null=True
+    )
+    annotations_is_pvd = models.BooleanField(
+        "Projet rattaché à un programme Petites villes de demain (PVD)", null=True
+    )
+    annotations_is_village_avenir = models.BooleanField(
+        "Projet rattaché à un programme Villages d'avenir", null=True
+    )
+    annotations_is_autre_zonage_local = models.BooleanField(
+        "Projet rattaché à un autre zonage local", null=True
+    )
+    annotations_quel_autre_zonage_local = models.CharField(
+        "Précisez quel zonage.",
+        blank=True,
+    )
+    annotations_is_contrat_local = models.BooleanField(
+        "Projet rattaché à un contrat local", null=True
+    )
+    annotations_quel_contrat_local = models.CharField(
+        "Précisez quel contrat.",
+        blank=True,
+    )
+    # @todo problème:
+    #   annotations_quel_contrat_local et annotations_quel_autre_zonage_local
+    #   ont le même libellé sur DS. Il faudra associer les champs à la main,
+    #   ou changer leur libellé DS.
+
     # TODO remove these three fields at the end of DUN dev
     annotations_assiette = models.DecimalField(
         "Montant des dépenses éligibles retenues (€)",
@@ -411,6 +504,15 @@ class Dossier(DsModel):
         null=True,
         blank=True,
     )
+    annotations_date_ej_detr = models.DateField(
+        "DETR - Date d'engagement juridique",
+        null=True,
+        blank=True,
+    )
+    annotations_numero_ej_detr = models.CharField(
+        "DETR - N° engagement juridique", blank=True
+    )  # @todo ajouter une validation : chaîne de 10 chiffres
+
     # DSIL
     annotations_assiette_dsil = models.DecimalField(
         "DSIL - Montant des dépenses éligibles retenues (en euros)",
@@ -433,9 +535,19 @@ class Dossier(DsModel):
         null=True,
         blank=True,
     )
+    annotations_date_ej_dsil = models.DateField(
+        "DSIL - Date d'engagement juridique",
+        null=True,
+        blank=True,
+    )
+    annotations_numero_ej_dsil = models.CharField(
+        "DSIL - N° engagement juridique",
+        blank=True,
+    )  # @todo ajouter une validation : chaîne de 10 chiffres
 
     _MAPPED_CHAMPS_FIELDS = (
         porteur_de_projet_nature,
+        porteur_de_projet_departement,
         porteur_de_projet_arrondissement,
         porteur_de_projet_fonction,
         porteur_de_projet_nom,
@@ -447,6 +559,7 @@ class Dossier(DsModel):
         projet_immo,
         projet_travaux,
         projet_zonage,
+        projet_zonage_autre,
         projet_contractualisation,
         projet_contractualisation_autre,
         environnement_transition_eco,
@@ -455,13 +568,18 @@ class Dossier(DsModel):
         date_debut,
         date_achevement,
         finance_cout_total,
+        finance_cout_total_xpf,
         finance_recettes,
+        demande_type_renouvellement,
         demande_annee_precedente,
         demande_numero_demande_precedente,
         demande_dispositif_sollicite,
         demande_eligibilite_detr,
         demande_eligibilite_dsil,
         demande_montant,
+        demande_montant_xpf,
+        demande_montant_detr,
+        demande_montant_dsil,
         demande_autres_aides,
         demande_autre_precision,
         demande_autre_numero_dossier,
@@ -471,16 +589,30 @@ class Dossier(DsModel):
     _MAPPED_ANNOTATIONS_FIELDS = (
         annotations_contact,
         annotations_champ_libre,
+        annotations_champ_libre_2,
+        annotations_champ_libre_3,
         annotations_dotation,
         annotations_is_budget_vert,
         annotations_is_qpv,
         annotations_is_crte,
+        annotations_is_acv,
+        annotations_is_autre_zonage_local,
+        annotations_is_contrat_local,
+        annotations_is_frr,
+        annotations_is_pvd,
+        annotations_is_village_avenir,
+        annotations_quel_autre_zonage_local,
+        annotations_quel_contrat_local,
         annotations_assiette_detr,
         annotations_montant_accorde_detr,
         annotations_taux_detr,
+        annotations_date_ej_detr,
+        annotations_numero_ej_detr,
         annotations_assiette_dsil,
         annotations_montant_accorde_dsil,
         annotations_taux_dsil,
+        annotations_date_ej_dsil,
+        annotations_numero_ej_dsil,
     )
     MAPPED_FIELDS = _MAPPED_ANNOTATIONS_FIELDS + _MAPPED_CHAMPS_FIELDS
 
@@ -564,6 +696,21 @@ class NaturePorteurProjet(DsChoiceLibelle):
     class Meta:
         verbose_name = "Nature du porteur de projet"
         verbose_name_plural = "Natures de porteur de projet"
+
+
+class Departement(DsChoiceLibelle):
+    core_arrondissement = models.ForeignKey(
+        CoreDepartement,
+        related_name="ds_departements",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        verbose_name="Département INSEE",
+    )
+
+    class Meta:
+        verbose_name = "Département DS"
+        verbose_name_plural = "Départements DS"
 
 
 class Arrondissement(DsChoiceLibelle):

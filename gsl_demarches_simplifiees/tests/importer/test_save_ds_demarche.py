@@ -193,8 +193,8 @@ def test_new_human_mapping_is_created_if_ds_label_is_unknown(
 
     save_field_mappings(demarche_data_without_dossier, demarche)
 
-    assert FieldMappingForHuman.objects.count() == 223, (
-        "223 human mappings should be created."
+    assert FieldMappingForHuman.objects.count() == 213, (
+        "213 human mappings should be created."
     )
     assert FieldMappingForHuman.objects.filter(label="Commentaire libre").exists()
     assert FieldMappingForHuman.objects.filter(
@@ -246,8 +246,8 @@ def test_new_human_mapping_is_created_if_ds_label_is_unknown(
     assert FieldMappingForComputer.objects.count() == 258, (
         "258 computer mappings should have been created."
     )
-    assert FieldMappingForComputer.objects.exclude(django_field="").count() == 26, (
-        "Only 26 mappings should be associated with an existing field."
+    assert FieldMappingForComputer.objects.exclude(django_field="").count() == 38, (
+        "Only 38 mappings should be associated with an existing field."
     )
 
 
@@ -406,7 +406,7 @@ def test_save_field_mappings_maps_by_verbose_name_direct_match(demarche):
         {
             "__typename": "TextChampDescriptor",
             "id": "FIELD_ID_ARR",
-            "label": "Nom du porteur de projet",
+            "label": "Nom",
         }
     ]
     demarche_data = _minimal_demarche_data_with_descriptors(descriptors)
@@ -438,7 +438,7 @@ def test_save_field_mappings_maps_updates_existing_mapping(
         {
             "__typename": "TextChampDescriptor",
             "id": "fixed_id",
-            "label": "Prénom du porteur de projet",
+            "label": "Prénom",
         }
     ]
     demarche_data = _minimal_demarche_data_with_descriptors(descriptors)
@@ -449,7 +449,7 @@ def test_save_field_mappings_maps_updates_existing_mapping(
     # Assert: still maps to demandeur_arrondissement after normalization
     mapping.refresh_from_db()
     assert mapping.ds_field_id == "fixed_id"
-    assert mapping.ds_field_label == "Prénom du porteur de projet"
+    assert mapping.ds_field_label == "Prénom"
     assert mapping.ds_field_type == "TextChampDescriptor"
     assert mapping.django_field == "porteur_de_projet_prenom"
     assert mapping.updated_at > original_updated_at
