@@ -4,12 +4,14 @@ from ..models import Enveloppe, ProgrammationProjet
 from .factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
+    EnveloppeFactory,
     ProgrammationProjetFactory,
 )
 
 pytestmark = pytest.mark.django_db
 
 test_data = (
+    (EnveloppeFactory, Enveloppe),
     (DetrEnveloppeFactory, Enveloppe),
     (DsilEnveloppeFactory, Enveloppe),
     (ProgrammationProjetFactory, ProgrammationProjet),

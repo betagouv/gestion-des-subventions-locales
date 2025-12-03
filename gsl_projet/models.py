@@ -287,6 +287,20 @@ class Projet(models.Model):
             for dp in self.dotationprojet_set.all()
         )
 
+    @property
+    def display_notification_message(self) -> bool:
+        return not self.all_dotations_have_processing_status
+
+    @property
+    def display_notification_button(self) -> bool:
+        return (
+            any(
+                dp.status == PROJET_STATUS_ACCEPTED
+                for dp in self.dotationprojet_set.all()
+            )
+            and self.notified_at is None
+        )
+
 
 class DotationProjet(models.Model):
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)

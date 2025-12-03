@@ -324,3 +324,113 @@ def test_all_dotations_have_processing_status_when_double_dotations(
     DotationProjetFactory(projet=projet, dotation=DOTATION_DETR, status=first_status)
     DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL, status=second_status)
     assert projet.all_dotations_have_processing_status is expected_value
+
+
+def test_display_notification_button_without_dotations():
+    """Project without any dotations should return False."""
+    projet = ProjetFactory(notified_at=None)
+    assert projet.display_notification_button is False
+
+
+def test_display_notification_button_with_accepted_dotation_and_not_notified():
+    """Project with accepted dotation but not notified should return True."""
+    projet = ProjetFactory(notified_at=None)
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    assert projet.display_notification_button is True
+
+
+@pytest.mark.parametrize(
+    "dotation_status",
+    [
+        PROJET_STATUS_PROCESSING,
+        PROJET_STATUS_REFUSED,
+        PROJET_STATUS_DISMISSED,
+    ],
+)
+def test_display_notification_button_without_accepted_dotation(dotation_status):
+    """Project with non-accepted dotation should return False even if not notified."""
+    projet = ProjetFactory(notified_at=None)
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR, status=dotation_status)
+    assert projet.display_notification_button is False
+
+
+def test_display_notification_button_with_accepted_dotation_but_already_notified():
+    """Project with accepted dotation but already notified should return False."""
+    from django.utils import timezone
+
+    projet = ProjetFactory(notified_at=timezone.now())
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    assert projet.display_notification_button is False
+
+
+@pytest.mark.parametrize(
+    "first_dotation_status, second_dotation_status, expected_display_button",
+    [
+        # When one dotation projet is accepted, we display
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_ACCEPTED, True),
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, True),
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_DISMISSED, True),
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING, True),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_ACCEPTED, True),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_ACCEPTED, True),
+        (PROJET_STATUS_PROCESSING, PROJET_STATUS_ACCEPTED, True),
+        # When no dotation projet is accepted, we don't display
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_REFUSED, False),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED, False),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_PROCESSING, False),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_DISMISSED, False),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING, False),
+        (PROJET_STATUS_PROCESSING, PROJET_STATUS_PROCESSING, False),
+    ],
+)
+def test_display_notification_button_with_double_dotations_not_notified(
+    first_dotation_status, second_dotation_status, expected_display_button
+):
+    """Test display_notification_button with double dotations when not notified."""
+    projet = ProjetFactory(notified_at=None)
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=first_dotation_status
+    )
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=second_dotation_status
+    )
+    assert projet.display_notification_button is expected_display_button
+
+
+@pytest.mark.parametrize(
+    "first_dotation_status, second_dotation_status",
+    [
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_ACCEPTED),
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED),
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_DISMISSED),
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_ACCEPTED),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_ACCEPTED),
+        (PROJET_STATUS_PROCESSING, PROJET_STATUS_ACCEPTED),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_REFUSED),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_PROCESSING),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_DISMISSED),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING),
+        (PROJET_STATUS_PROCESSING, PROJET_STATUS_PROCESSING),
+    ],
+)
+def test_display_notification_button_with_double_dotations_already_notified(
+    first_dotation_status, second_dotation_status
+):
+    """Test display_notification_button with double dotations when already notified."""
+    from django.utils import timezone
+
+    projet = ProjetFactory(notified_at=timezone.now())
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=first_dotation_status
+    )
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=second_dotation_status
+    )
+    # When already notified, button should never be displayed
+    assert projet.display_notification_button is False

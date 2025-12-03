@@ -22,42 +22,7 @@
 {% endblock detr_avis_commission %}
 
 {% block status_action %}
-    <div class="fr-background-alt--blue-france fr-py-4w fr-px-4w">
-        <h2 class="fr-mb-4w fr-h6">
-            <i class="fr-icon-coin-fill blue-color" aria-hidden="true"></i>
-            Décision de financement
-        </h2>
-
-        {% if dotation_projet.programmation_projet.to_notify %}
-            <span class="fr-text--xl projet__to_notify">À notifier <span class="fr-icon-mail-fill"></span></span>
-        {% endif %}
-
-        {% if dotation_projet.programmation_projet.notified_at %}
-            <p>
-                <span class="fr-text--xl projet__to_notify fr-text-label--blue-france">Notifié <span class="fr-icon-checkbox-fill"></span></span>
-            </p>
-            {% if dotation_projet.programmation_projet.status == "accepted" %}
-                <b class="fr-mr-4w fr-icon-check-line green-color">{{ dotation_projet.programmation_projet.get_status_display|remove_first_word }}</b>
-            {% else %}
-                <b class="fr-mr-4w fr-icon-close-line red-color">{{ dotation_projet.programmation_projet.get_status_display|remove_first_word }}</b>
-            {% endif %}
-        {% else %}
-            <div class="fr-mb-2w">
-                {% include "includes/_status_dropdown_buttons.html" %}
-            </div>
-        {% endif %}
-
-        {% if projet.to_notify %}
-            <span class="fr-text--xl projet__to_notify">À notifier <span class="fr-icon-mail-fill"></span></span>
-            <button class="fr-mb-2w fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
-                    id="to_notify_button"
-                    type="button"
-                    hx-get="{% url 'gsl_notification:check-ds-dossier-up-to-date' projet.id %}"
-                    hx-swap="outerHTML">
-                Notifier le demandeur
-            </button>
-        {% endif %}
-    </div>
+    {% include "includes/_status_and_notification_status_card.html" with display_notify_button=True %}
 {% endblock status_action %}
 
 {% block projet_detail_form %}

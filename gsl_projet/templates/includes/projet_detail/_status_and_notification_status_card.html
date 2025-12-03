@@ -2,18 +2,29 @@
     <div class='status_action_header'>
         <h2 class="fr-callout__title">
             <i class="fr-icon-coin-fill blue-color" aria-hidden="true"></i>
-            Décision de financement du projet
+            {% block title %}
+                Décision de financement du projet
+            {% endblock title %}
         </h2>
-        {% if projet.to_notify %}
-            <span class="fr-text--xl projet__to_notify fr-ml-2w">À notifier <span class="fr-icon-mail-fill"></span></span>
-        {% elif projet.notified_at %}
-            <span class="fr-text--xl projet__to_notify fr-ml-2w blue-color">Notifié <span class="fr-icon-checkbox-fill"></span></span>
-        {% else %}
-            <b class="fr-ml-2w"><em>En attente de la décision {{ projet.dotation_not_treated }}.</em></b>
-        {% endif %}
     </div>
+    {% block status_action_content %}
+    {% endblock status_action_content %}
 
-    {% if projet.to_notify %}
+    {% block notification_status_message %}
+        {% if projet.display_notification_message %}
+            <div class="fr-callout__text notification_status_message fr-mb-2w">
+                {% if projet.to_notify %}
+                    <span class="fr-text--xl projet__to_notify">À notifier <span class="fr-icon-mail-fill"></span></span>
+                {% elif projet.notified_at %}
+                    <span class="fr-text--xl projet__to_notify blue-color">Notifié <span class="fr-icon-checkbox-fill"></span></span>
+                {% else %}
+                    <b><em>En attente de la décision {{ projet.dotation_not_treated }}</em></b>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% endblock notification_status_message %}
+
+    {% if display_notify_button|default_if_none:True and projet.display_notification_button %}
         <button class="fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
                 id="to_notify_button"
                 type="button"
