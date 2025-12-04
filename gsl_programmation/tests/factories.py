@@ -13,16 +13,6 @@ from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.tests.factories import DotationProjetFactory
 
 
-class EnveloppeFactory(DjangoModelFactory):
-    class Meta:
-        model = Enveloppe
-
-    dotation = Faker("random_element", elements=(DOTATION_DETR, DOTATION_DSIL))
-    montant = Faker("random_number", digits=5)
-    annee = date.today().year
-    perimetre = SubFactory(PerimetreRegionalFactory)
-
-
 class DsilEnveloppeFactory(DjangoModelFactory):
     class Meta:
         model = Enveloppe

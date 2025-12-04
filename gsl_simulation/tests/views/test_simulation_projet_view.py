@@ -10,8 +10,8 @@ from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
 )
 from gsl_programmation.tests.factories import (
+    DetrEnveloppeFactory,
     DsilEnveloppeFactory,
-    EnveloppeFactory,
     ProgrammationProjetFactory,
 )
 from gsl_projet.constants import (
@@ -201,7 +201,11 @@ def test_status_and_notification_status_card_is_displayed_with_the_correct_title
     client = ClientWithLoggedUserFactory(user)
     projet = ProjetFactory(perimetre=perimetre)
     dotation_projet = DotationProjetFactory(projet=projet, dotation=dotation)
-    enveloppe = EnveloppeFactory(perimetre=perimetre, dotation=dotation)
+    enveloppe = (
+        DetrEnveloppeFactory(perimetre=perimetre)
+        if dotation == DOTATION_DETR
+        else DsilEnveloppeFactory(perimetre=perimetre)
+    )
     simulation = SimulationFactory(enveloppe=enveloppe)
     simulation_projet = SimulationProjetFactory(
         simulation=simulation, dotation_projet=dotation_projet
