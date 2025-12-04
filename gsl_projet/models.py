@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime
 from datetime import timezone as tz
-from typing import TYPE_CHECKING, Iterator, List, Optional, Union
+from typing import TYPE_CHECKING, Iterator, List, Optional, Tuple, Union
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -262,22 +262,9 @@ class Projet(models.Model):
         if hasattr(self, "_status"):
             return self._status
 
-        if any(
-            d.status == PROJET_STATUS_PROCESSING for d in self.dotationprojet_set.all()
-        ):
-            return PROJET_STATUS_PROCESSING
-
-        if any(
-            d.status == PROJET_STATUS_ACCEPTED for d in self.dotationprojet_set.all()
-        ):
-            return PROJET_STATUS_ACCEPTED
-
-        if any(
-            d.status == PROJET_STATUS_DISMISSED for d in self.dotationprojet_set.all()
-        ):
-            return PROJET_STATUS_DISMISSED
-
-        return PROJET_STATUS_REFUSED
+        return projet_status_from_dotation_statuses(
+            list(d.status for d in self.dotationprojet_set.all())
+        )
 
     @property
     def can_have_a_commission_detr_avis(self) -> bool:
@@ -598,3 +585,28 @@ class ProjetNote(BaseModel):
     title = models.CharField(max_length=100)
     content = models.TextField()
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
+
+
+def projet_status_from_dotation_statuses(statuses: List[str] | Tuple[str]) -> str:
+    from gsl_simulation.models import SimulationProjet
+
+    if any(
+        status == PROJET_STATUS_PROCESSING
+        or status == SimulationProjet.STATUS_PROCESSING
+        for status in statuses
+    ):
+        return PROJET_STATUS_PROCESSING
+
+    if any(
+        status == PROJET_STATUS_ACCEPTED or status == SimulationProjet.STATUS_ACCEPTED
+        for status in statuses
+    ):
+        return PROJET_STATUS_ACCEPTED
+
+    if any(
+        status == PROJET_STATUS_DISMISSED or status == SimulationProjet.STATUS_DISMISSED
+        for status in statuses
+    ):
+        return PROJET_STATUS_DISMISSED
+
+    return PROJET_STATUS_REFUSED

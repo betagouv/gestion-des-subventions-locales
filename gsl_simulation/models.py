@@ -112,6 +112,12 @@ class SimulationProjet(BaseModel):
         (STATUS_DISMISSED, "⛔️ Classé sans suite"),
     )
 
+    SIMULATION_PENDING_STATUSES = (
+        STATUS_PROCESSING,
+        STATUS_PROVISIONALLY_ACCEPTED,
+        STATUS_PROVISIONALLY_REFUSED,
+    )
+
     dotation_projet = models.ForeignKey(
         DotationProjet, on_delete=models.CASCADE, null=True
     )

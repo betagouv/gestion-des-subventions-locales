@@ -1,8 +1,6 @@
 import logging
 from decimal import Decimal
 
-from django.db import transaction
-
 from gsl_core.models import Collegue
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.mixins import build_error_message, process_projet_update
@@ -112,48 +110,6 @@ class SimulationProjetService:
         )
 
     @classmethod
-    @transaction.atomic
-    def update_status(
-        cls,
-        simulation_projet: SimulationProjet,
-        new_status: str,
-        user: Collegue,
-    ):
-        if new_status == SimulationProjet.STATUS_ACCEPTED:
-            return cls._accept_a_simulation_projet(simulation_projet, user)
-
-        if new_status in [
-            SimulationProjet.STATUS_REFUSED,
-            SimulationProjet.STATUS_DISMISSED,
-        ]:
-            raise ValueError("Use RefuseProjectForm or DismissProjectForm instead.")
-
-        if (
-            new_status == SimulationProjet.STATUS_PROCESSING
-            and simulation_projet.status
-            in (
-                SimulationProjet.STATUS_ACCEPTED,
-                SimulationProjet.STATUS_REFUSED,
-                SimulationProjet.STATUS_DISMISSED,
-            )
-        ):
-            return cls._set_back_to_processing(simulation_projet)
-
-        if new_status in (
-            SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
-            SimulationProjet.STATUS_PROVISIONALLY_REFUSED,
-        ) and simulation_projet.status in (
-            SimulationProjet.STATUS_ACCEPTED,
-            SimulationProjet.STATUS_REFUSED,
-            SimulationProjet.STATUS_DISMISSED,
-        ):
-            cls._set_back_to_processing(simulation_projet)
-
-        simulation_projet.status = new_status
-        simulation_projet.save()
-        return simulation_projet
-
-    @classmethod
     def update_taux(
         cls, simulation_projet: SimulationProjet, new_taux: float, user: Collegue
     ):
@@ -164,7 +120,7 @@ class SimulationProjetService:
         simulation_projet.save()
 
         if simulation_projet.status == SimulationProjet.STATUS_ACCEPTED:
-            return cls._accept_a_simulation_projet(simulation_projet, user)
+            return cls.accept_a_simulation_projet(simulation_projet, user)
 
         return simulation_projet
 
@@ -176,7 +132,7 @@ class SimulationProjetService:
         simulation_projet.save()
 
         if simulation_projet.status == SimulationProjet.STATUS_ACCEPTED:
-            return cls._accept_a_simulation_projet(simulation_projet, user)
+            return cls.accept_a_simulation_projet(simulation_projet, user)
 
         return simulation_projet
 
@@ -194,7 +150,7 @@ class SimulationProjetService:
     # Private
 
     @classmethod
-    def _accept_a_simulation_projet(
+    def accept_a_simulation_projet(
         cls, simulation_projet: SimulationProjet, user: Collegue
     ):
         dotation_projet = simulation_projet.dotation_projet
@@ -212,17 +168,6 @@ class SimulationProjetService:
             dotation=dotation_projet.dotation,
             user=user,
         )
-
-        updated_simulation_projet = SimulationProjet.objects.get(
-            pk=simulation_projet.pk
-        )
-        return updated_simulation_projet
-
-    @classmethod
-    def _set_back_to_processing(cls, simulation_projet: SimulationProjet):
-        dotation_projet = simulation_projet.dotation_projet
-        dotation_projet.set_back_status_to_processing()
-        dotation_projet.save()
 
         updated_simulation_projet = SimulationProjet.objects.get(
             pk=simulation_projet.pk

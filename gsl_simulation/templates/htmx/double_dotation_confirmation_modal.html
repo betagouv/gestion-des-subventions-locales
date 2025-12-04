@@ -1,38 +1,34 @@
 {% extends "htmx/_base_htmx_modal.html" %}
+{% load simulation_filters %}
 
 {% block button_label %}
-    <span aria-hidden="true">❌</span> Refusé
+    {{ new_simulation_status|status_to_label }}
 {% endblock button_label %}
 
 {% block content %}
     <h1 class="fr-modal__title fr-text-default--error"
         id="{{ modal_id }}-title">
         <i class="fr-icon-warning-fill"></i>
-        Refuser le projet
+        {{ new_simulation_status|status_to_action_word|capfirst }} la demande dotation {{ object.enveloppe.dotation }}
     </h1>
     <p>
-        Ce projet va être refusé dans toutes les simulations dans lesquelles il a été ajouté.
-        Le demandeur va être notifié.
+        Ces changements vont être pris en compte dans toutes les simulations dans lesquelles le projet a été ajouté. Il
+        apparaîtra dans la programmation officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
+    </p>
+    <p>
+        Le demandeur ne va pas être notifié tout de suite car le projet est en double dotation.
+    </p>
+    <p>
+        Êtes-vous sûr⋅e de {{ new_simulation_status|status_to_action_word }} cette demande de dotation&nbsp;?
     </p>
     <form id="{{ modal_id }}-form"
-          hx-post="{% url 'gsl_simulation:refuse-form' simulation_projet.id %}"
+          hx-post="{{ request.path }}"
           hx-encoding="multipart/form-data"
           hx-target="#{{ modal_id }}"
           hx-swap="outerHTML"
           hx-disabled-elt="#{{ modal_id }}-submit-button, #{{ modal_id }}-cancel-button">
         {{ form }}
     </form>
-    {% if simulation_projet.projet.dossier_ds.ds_state == "en_construction" %}
-        <div class="fr-alert fr-alert--info fr-alert--sm fr-mt-6w">
-            <p class="fr-alert__title">
-                Dossier en construction
-            </p>
-            <p>
-                Le dossier de ce projet est actuellement en construction sur Démarches
-                Simplifiées. Le projet sera passé en instruction avant d’être réfusé.
-            </p>
-        </div>
-    {% endif %}
 {% endblock content %}
 
 {% block confirmation_button %}
@@ -40,6 +36,6 @@
             class="fr-btn fr-btn--primary"
             form="{{ modal_id }}-form"
             id="{{ modal_id }}-submit-button">
-        Refuser
+        {{ new_simulation_status|status_to_action_word|capfirst }}
     </button>
 {% endblock confirmation_button %}
