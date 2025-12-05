@@ -19,12 +19,12 @@ urlpatterns = [
         name="programmation-projet-list-dotation",
     ),
     path(
-        "voir/<int:programmation_projet_id>/",
+        "voir/<int:projet_id>/",
         ProgrammationProjetDetailView.as_view(),
         name="programmation-projet-detail",
     ),
     path(
-        "voir/<int:programmation_projet_id>/<str:tab>/",
+        "voir/<int:projet_id>/<str:tab>/",
         ProgrammationProjetDetailView.as_view(),
         name="programmation-projet-tab",
     ),

@@ -21,6 +21,7 @@ from gsl_programmation.views import (
     ProgrammationProjetListView,
 )
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.tests.factories import ProjetFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -36,11 +37,15 @@ def user_with_perimetre():
 
 
 @pytest.fixture
-def programmation_projet(user_with_perimetre):
+def projet(user_with_perimetre):
+    """Projet dans le périmètre de l'utilisateur"""
+    return ProjetFactory(perimetre=user_with_perimetre.perimetre)
+
+
+@pytest.fixture
+def programmation_projet(projet):
     """Projet programmé dans le périmètre de l'utilisateur"""
-    return ProgrammationProjetFactory(
-        dotation_projet__projet__perimetre=user_with_perimetre.perimetre
-    )
+    return ProgrammationProjetFactory(dotation_projet__projet=projet)
 
 
 @pytest.fixture
@@ -351,7 +356,7 @@ class TestProgrammationProjetDetailView:
         """La vue détail nécessite une authentification"""
         url = reverse(
             "gsl_programmation:programmation-projet-detail",
-            kwargs={"programmation_projet_id": programmation_projet.id},
+            kwargs={"projet_id": programmation_projet.projet.id},
         )
         response = Client().get(url)
         assert response.status_code == 302  # Redirection vers login
@@ -363,11 +368,11 @@ class TestProgrammationProjetDetailView:
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
         url = reverse(
             "gsl_programmation:programmation-projet-detail",
-            kwargs={"programmation_projet_id": programmation_projet.id},
+            kwargs={"projet_id": programmation_projet.projet.id},
         )
         response = client.get(url)
         assert response.status_code == 200
-        assert response.context["programmation_projet"] == programmation_projet
+        assert response.context["projet"] == programmation_projet.projet
 
     def test_detail_view_unauthorized_user_gets_404(
         self, user_with_perimetre, other_programmation_projet
@@ -376,7 +381,19 @@ class TestProgrammationProjetDetailView:
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
         url = reverse(
             "gsl_programmation:programmation-projet-detail",
-            kwargs={"programmation_projet_id": other_programmation_projet.id},
+            kwargs={"projet_id": other_programmation_projet.projet.id},
+        )
+        response = client.get(url)
+        assert response.status_code == 404
+
+    def test_view_if_projet_has_no_programmation_projet(
+        self, user_with_perimetre, projet
+    ):
+        """Un utilisateur autorisé reçoit une 404 si le projet n'a pas de programmation projet"""
+        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
+        url = reverse(
+            "gsl_programmation:programmation-projet-detail",
+            kwargs={"projet_id": projet.id},
         )
         response = client.get(url)
         assert response.status_code == 404
@@ -386,7 +403,7 @@ class TestProgrammationProjetDetailView:
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
         url = reverse(
             "gsl_programmation:programmation-projet-detail",
-            kwargs={"programmation_projet_id": programmation_projet.id},
+            kwargs={"projet_id": programmation_projet.projet.id},
         )
         response = client.get(url)
 
@@ -394,7 +411,6 @@ class TestProgrammationProjetDetailView:
         assert "title" in response.context
         assert "projet" in response.context
         assert "dossier" in response.context
-        assert "enveloppe" in response.context
         assert "breadcrumb_dict" in response.context
         assert "menu_dict" in response.context
 
@@ -405,7 +421,7 @@ class TestProgrammationProjetDetailView:
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
         url = reverse(
             "gsl_programmation:programmation-projet-detail",
-            kwargs={"programmation_projet_id": programmation_projet.id},
+            kwargs={"projet_id": programmation_projet.projet.id},
         )
 
         # Testons que le contexte contient bien les données attendues
@@ -413,10 +429,88 @@ class TestProgrammationProjetDetailView:
         assert response.status_code == 200
 
         # Vérifions que les relations sont bien chargées
-        programmation_projet_context = response.context["programmation_projet"]
-        assert hasattr(programmation_projet_context, "projet")
-        assert hasattr(programmation_projet_context.projet, "dossier_ds")
-        assert hasattr(programmation_projet_context, "enveloppe")
+        projet_context = response.context["projet"]
+        assert hasattr(projet_context, "dossier_ds")
+        assert hasattr(projet_context, "perimetre")
+        assert hasattr(projet_context, "demandeur")
+        assert hasattr(projet_context, "dotationprojet_set")
+
+    def test_get_go_back_link_with_dotation_in_query_string(
+        self, user_with_perimetre, programmation_projet
+    ):
+        """Test get_go_back_link quand 'dotation' est dans les paramètres de requête"""
+        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
+        url = reverse(
+            "gsl_programmation:programmation-projet-detail",
+            kwargs={"projet_id": programmation_projet.projet.id},
+        )
+        response = client.get(url + "?dotation=DETR&page=1&search=test")
+        assert response.status_code == 200
+
+        go_back_link = response.context["go_back_link"]
+        expected_url = reverse(
+            "gsl_programmation:programmation-projet-list-dotation",
+            kwargs={"dotation": "DETR"},
+        )
+        assert go_back_link.startswith(expected_url)
+        assert "dotation" not in go_back_link
+        assert "page=1" in go_back_link
+        assert "search=test" in go_back_link
+
+    def test_get_go_back_link_without_dotation_in_query_string(
+        self, user_with_perimetre, programmation_projet
+    ):
+        """Test get_go_back_link quand 'dotation' n'est pas dans les paramètres de requête"""
+        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
+        url = reverse(
+            "gsl_programmation:programmation-projet-detail",
+            kwargs={"projet_id": programmation_projet.projet.id},
+        )
+        response = client.get(url + "?page=1&search=test")
+        assert response.status_code == 200
+
+        go_back_link = response.context["go_back_link"]
+        expected_url = reverse("gsl_programmation:programmation-projet-list")
+        assert go_back_link.startswith(expected_url)
+        assert "page=1" in go_back_link
+        assert "search=test" in go_back_link
+        assert "dotation" not in go_back_link
+
+    def test_get_go_back_link_with_no_query_parameters(
+        self, user_with_perimetre, programmation_projet
+    ):
+        """Test get_go_back_link sans paramètres de requête"""
+        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
+        url = reverse(
+            "gsl_programmation:programmation-projet-detail",
+            kwargs={"projet_id": programmation_projet.projet.id},
+        )
+        response = client.get(url)
+        assert response.status_code == 200
+
+        go_back_link = response.context["go_back_link"]
+        expected_url = reverse("gsl_programmation:programmation-projet-list")
+        assert go_back_link == expected_url
+
+    def test_get_go_back_link_with_dotation_dsil(
+        self, user_with_perimetre, programmation_projet
+    ):
+        """Test get_go_back_link avec dotation DSIL"""
+        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
+        url = reverse(
+            "gsl_programmation:programmation-projet-detail",
+            kwargs={"projet_id": programmation_projet.projet.id},
+        )
+        response = client.get(url + "?dotation=DSIL")
+        assert response.status_code == 200
+
+        go_back_link = response.context["go_back_link"]
+        expected_url = reverse(
+            "gsl_programmation:programmation-projet-list-dotation",
+            kwargs={"dotation": "DSIL"},
+        )
+        assert go_back_link.startswith(expected_url)
+        assert "dotation=DSIL" not in go_back_link
 
 
 class TestProgrammationProjetTabView:
@@ -427,7 +521,7 @@ class TestProgrammationProjetTabView:
         url = reverse(
             "gsl_programmation:programmation-projet-tab",
             kwargs={
-                "programmation_projet_id": programmation_projet.id,
+                "projet_id": programmation_projet.projet.id,
                 "tab": "annotations",
             },
         )
@@ -446,12 +540,12 @@ class TestProgrammationProjetTabView:
 
         url = reverse(
             "gsl_programmation:programmation-projet-tab",
-            kwargs={"programmation_projet_id": programmation_projet.id, "tab": tab},
+            kwargs={"projet_id": programmation_projet.projet.id, "tab": tab},
         )
         response = client.get(url)
         assert response.status_code == 200
         assert response.context["current_tab"] == tab
-        assert response.context["programmation_projet"] == programmation_projet
+        assert response.context["projet"] == programmation_projet.projet
 
     def test_tab_view_with_invalid_tab_returns_404(
         self, user_with_perimetre, programmation_projet
@@ -461,7 +555,7 @@ class TestProgrammationProjetTabView:
         url = reverse(
             "gsl_programmation:programmation-projet-tab",
             kwargs={
-                "programmation_projet_id": programmation_projet.id,
+                "projet_id": programmation_projet.projet.id,
                 "tab": "invalid_tab",
             },
         )
@@ -476,7 +570,7 @@ class TestProgrammationProjetTabView:
         url = reverse(
             "gsl_programmation:programmation-projet-tab",
             kwargs={
-                "programmation_projet_id": other_programmation_projet.id,
+                "projet_id": other_programmation_projet.projet.id,
                 "tab": "annotations",
             },
         )
@@ -495,7 +589,7 @@ class TestProgrammationProjetTabView:
 
         url = reverse(
             "gsl_programmation:programmation-projet-tab",
-            kwargs={"programmation_projet_id": programmation_projet.id, "tab": tab},
+            kwargs={"projet_id": programmation_projet.projet.id, "tab": tab},
         )
         response = client.get(url)
         expected_template = f"gsl_programmation/tab_programmation_projet/tab_{tab}.html"
@@ -507,7 +601,7 @@ class TestProgrammationProjetTabView:
         url = reverse(
             "gsl_programmation:programmation-projet-tab",
             kwargs={
-                "programmation_projet_id": programmation_projet.id,
+                "projet_id": programmation_projet.projet.id,
                 "tab": "annotations",
             },
         )
@@ -517,7 +611,6 @@ class TestProgrammationProjetTabView:
         assert "title" in response.context
         assert "projet" in response.context
         assert "dossier" in response.context
-        assert "enveloppe" in response.context
         assert "breadcrumb_dict" in response.context
         assert "menu_dict" in response.context
 
@@ -532,18 +625,6 @@ class TestTabConstants:
 class TestProgrammationProjetSecurity:
     """Tests de sécurité pour les vues"""
 
-    def test_staff_user_can_access_any_project(self, programmation_projet):
-        """Un utilisateur staff peut accéder à n'importe quel projet"""
-        staff_user = CollegueFactory(is_staff=True)
-        client = ClientWithLoggedUserFactory(user=staff_user)
-
-        url = reverse(
-            "gsl_programmation:programmation-projet-detail",
-            kwargs={"programmation_projet_id": programmation_projet.id},
-        )
-        response = client.get(url)
-        assert response.status_code == 200
-
     def test_regular_user_cannot_access_project_outside_perimeter(
         self, user_with_perimetre, other_programmation_projet
     ):
@@ -552,7 +633,7 @@ class TestProgrammationProjetSecurity:
 
         url = reverse(
             "gsl_programmation:programmation-projet-detail",
-            kwargs={"programmation_projet_id": other_programmation_projet.id},
+            kwargs={"projet_id": other_programmation_projet.projet.id},
         )
         response = client.get(url)
         assert response.status_code == 404

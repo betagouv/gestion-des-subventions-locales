@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Iterator, List, Optional, Union
 
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Count, F, Q, UniqueConstraint
+from django.db.models import Count, Exists, F, OuterRef, Q, UniqueConstraint
 from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
@@ -145,6 +145,17 @@ class ProjetQuerySet(models.QuerySet):
             ),
         ).filter(dotations_count=F("programmation_count"), notified_at__isnull=True)
 
+    def with_at_least_one_programmed_dotation(self):
+        from gsl_programmation.models import ProgrammationProjet
+
+        return self.filter(
+            Exists(
+                ProgrammationProjet.objects.filter(
+                    dotation_projet__projet=OuterRef("pk")
+                )
+            )
+        )
+
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
     def get_queryset(self):
@@ -250,6 +261,23 @@ class Projet(models.Model):
                 and d.programmation_projet.notified_at is None
             )
             for d in self.dotationprojet_set.all()
+        )
+
+    @property
+    def can_display_notification_tab(self) -> bool:
+        return any(
+            d.status == PROJET_STATUS_ACCEPTED for d in self.dotationprojet_set.all()
+        )
+
+    @property
+    def dotation_not_treated(self) -> Optional[POSSIBLE_DOTATIONS]:
+        return next(
+            (
+                d.dotation
+                for d in self.dotationprojet_set.all()
+                if d.status == PROJET_STATUS_PROCESSING
+            ),
+            None,
         )
 
 

@@ -248,7 +248,7 @@
                         </p>
                         <p>
                             <b>Dispositif de financement sollicité :</b>
-                            {{ dossier.demande_dispositif_sollicite }}
+                            {{ projet.dotations|join:", " }}
                         </p>
                         {% block dotations_form %}
                         {% endblock dotations_form %}
