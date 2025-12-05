@@ -55,6 +55,12 @@
 </div>
 <div class="fr-col-12 fr-col-xl-4">
     {% block status_action %}
+        {% if projet.all_dotations_have_processing_status %}
+        {% else %}
+            {% with display_notify_button=False %}
+                {% include "includes/projet_detail/_status_and_notification_status_card.html" %}
+            {% endwith %}
+        {% endif %}
     {% endblock status_action %}
 </div>
 </div>

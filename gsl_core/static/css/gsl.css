@@ -324,6 +324,16 @@ ul.no-list-style li {
   background-image: none;
 }
 
+.notification-button {
+  width: 100%;
+  justify-content: center;
+}
+
+.notification_status_message {
+  display: flex;
+  justify-content: center;
+}
+
 /* dropdown */
 
 .gsl-dropdown > button {
@@ -377,23 +387,23 @@ ul.no-list-style li {
   overflow-y: auto;
 }
 
-.projet__to_notify {
+.projet_notification_status {
   margin-top: 4px;
+  display: flex;
+  gap: 6px;
   text-transform: uppercase;
   font-weight: 700;
   font-style: italic;
+  align-items: center;
+}
+
+.projet__to_notify {
   color: var(--text-default-error);
-  display: flex;
-  gap: 6px;
 }
 
 .projet__notified {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    font-weight: 700;
+  color: var(--blue-france-sun-113-625);
 }
-
 
 /* modal */
 

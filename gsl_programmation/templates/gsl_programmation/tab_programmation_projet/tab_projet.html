@@ -2,29 +2,5 @@
 {% load gsl_filters %}
 
 {% block status_action %}
-    <div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-container fr-pb-2w fr-pt-3w fr-px-3w fr-m-0">
-        <div class='status_action_header'>
-            <h2 class="fr-callout__title">
-                <i class="fr-icon-coin-fill blue-color" aria-hidden="true"></i>
-                Décision de financement du projet
-            </h2>
-            {% if projet.to_notify %}
-                <span class="fr-text--xl projet__to_notify fr-ml-2w">À notifier <span class="fr-icon-mail-fill"></span></span>
-            {% elif projet.notified_at %}
-                <span class="fr-text--xl projet__to_notify fr-ml-2w blue-color">Notifié <span class="fr-icon-checkbox-fill"></span></span>
-            {% else %}
-                <b class="fr-ml-2w"><em>En attente de la décision {{ projet.dotation_not_treated }}.</em></b>
-            {% endif %}
-        </div>
-
-        {% if projet.to_notify %}
-            <button class="fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
-                    id="to_notify_button"
-                    type="button"
-                    hx-get="{% url 'gsl_notification:check-ds-dossier-up-to-date' projet.id %}"
-                    hx-swap="outerHTML">
-                Notifier le demandeur
-            </button>
-        {% endif %}
-    </div>
+    {% include "includes/projet_detail/_status_and_notification_status_card.html" %}
 {% endblock status_action %}
