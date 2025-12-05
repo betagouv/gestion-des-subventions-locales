@@ -576,7 +576,7 @@ class NaturePorteurProjet(DsChoiceLibelle):
 
 
 class Departement(DsChoiceLibelle):
-    core_arrondissement = models.ForeignKey(
+    core_departement = models.ForeignKey(
         CoreDepartement,
         related_name="ds_departements",
         null=True,
