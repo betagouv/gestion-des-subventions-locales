@@ -1,5 +1,6 @@
 import copy
 import logging
+from datetime import datetime
 from unittest import mock
 from unittest.mock import patch
 
@@ -645,6 +646,184 @@ def test_update_ds_annotations_for_one_dotation_dotations_list(user, dossier):
 
         annotations = mock_mutator.dossier_modifier_annotations.call_args[0][2]
         assert annotations[0]["value"]["multipleDropDownList"] == dotations_list
+
+
+class TestUpdateUpdatedAtFromMultipleAnnotations:
+    def test_update_updated_at_from_multiple_annotations_with_user_data(self, dossier):
+        """Test with the actual data structure provided by the user"""
+        ds_service = DsService()
+
+        results = {
+            "data": {
+                "dossierModifierAnnotations": {
+                    "annotations": [
+                        {
+                            "id": "Q2hhbXAtNTQ0MTQ2NA==",
+                            "updatedAt": "2025-12-08T11:26:17+01:00",
+                        },
+                        {
+                            "id": "Q2hhbXAtNTQ0MjcxMg==",
+                            "updatedAt": "2025-12-08T11:35:14+01:00",
+                        },
+                        {
+                            "id": "Q2hhbXAtNTQ0MjcxMw==",
+                            "updatedAt": "2025-12-08T11:35:14+01:00",
+                        },
+                        {
+                            "id": "Q2hhbXAtNTQ0MjcxNA==",
+                            "updatedAt": "2025-12-08T11:26:17+01:00",
+                        },
+                    ],
+                    "errors": None,
+                }
+            }
+        }
+
+        dossier.ds_date_derniere_modification = None
+        dossier.save()
+
+        ds_service._update_updated_at_from_multiple_annotations(dossier, results)
+
+        dossier.refresh_from_db()
+        expected_updated_at = datetime.fromisoformat("2025-12-08T11:35:14+01:00")
+        assert dossier.ds_date_derniere_modification == expected_updated_at
+
+    def test_update_updated_at_from_multiple_annotations_most_recent(self, dossier):
+        """Test that it correctly identifies the most recent updatedAt"""
+        ds_service = DsService()
+
+        results = {
+            "data": {
+                "dossierModifierAnnotations": {
+                    "annotations": [
+                        {"id": "1", "updatedAt": "2025-01-01T10:00:00+01:00"},
+                        {"id": "2", "updatedAt": "2025-01-01T12:00:00+01:00"},
+                        {"id": "3", "updatedAt": "2025-01-01T11:00:00+01:00"},
+                    ],
+                    "errors": None,
+                }
+            }
+        }
+
+        dossier.ds_date_derniere_modification = None
+        dossier.save()
+
+        ds_service._update_updated_at_from_multiple_annotations(dossier, results)
+
+        dossier.refresh_from_db()
+        expected_updated_at = datetime.fromisoformat("2025-01-01T12:00:00+01:00")
+        assert dossier.ds_date_derniere_modification == expected_updated_at
+
+    def test_update_updated_at_from_multiple_annotations_empty_list(self, dossier):
+        """Test with empty annotations list"""
+        ds_service = DsService()
+
+        results = {
+            "data": {
+                "dossierModifierAnnotations": {
+                    "annotations": [],
+                    "errors": None,
+                }
+            }
+        }
+
+        original_date = timezone.make_aware(datetime(2025, 1, 1, 10, 0, 0))
+        dossier.ds_date_derniere_modification = original_date
+        dossier.save()
+
+        ds_service._update_updated_at_from_multiple_annotations(dossier, results)
+
+        dossier.refresh_from_db()
+        # Should not change if no annotations
+        assert dossier.ds_date_derniere_modification == original_date
+
+    def test_update_updated_at_from_multiple_annotations_missing_data(self, dossier):
+        """Test with missing data structure"""
+        ds_service = DsService()
+
+        results = {"data": {}}
+
+        original_date = timezone.make_aware(datetime(2025, 1, 1, 10, 0, 0))
+        dossier.ds_date_derniere_modification = original_date
+        dossier.save()
+
+        ds_service._update_updated_at_from_multiple_annotations(dossier, results)
+
+        dossier.refresh_from_db()
+        # Should not change if data structure is missing
+        assert dossier.ds_date_derniere_modification == original_date
+
+    def test_update_updated_at_from_multiple_annotations_missing_dossier_modifier(
+        self, dossier
+    ):
+        """Test with missing dossierModifierAnnotations key"""
+        ds_service = DsService()
+
+        results = {"data": {"otherKey": "value"}}
+
+        original_date = timezone.make_aware(datetime(2025, 1, 1, 10, 0, 0))
+        dossier.ds_date_derniere_modification = original_date
+        dossier.save()
+
+        ds_service._update_updated_at_from_multiple_annotations(dossier, results)
+
+        dossier.refresh_from_db()
+        # Should not change if dossierModifierAnnotations is missing
+        assert dossier.ds_date_derniere_modification == original_date
+
+    def test_update_updated_at_from_multiple_annotations_single_annotation(
+        self, dossier
+    ):
+        """Test with a single annotation"""
+        ds_service = DsService()
+
+        results = {
+            "data": {
+                "dossierModifierAnnotations": {
+                    "annotations": [
+                        {"id": "1", "updatedAt": "2025-01-15T14:30:00+01:00"},
+                    ],
+                    "errors": None,
+                }
+            }
+        }
+
+        dossier.ds_date_derniere_modification = None
+        dossier.save()
+
+        ds_service._update_updated_at_from_multiple_annotations(dossier, results)
+
+        dossier.refresh_from_db()
+        expected_updated_at = datetime.fromisoformat("2025-01-15T14:30:00+01:00")
+        assert dossier.ds_date_derniere_modification == expected_updated_at
+
+    def test_update_updated_at_from_multiple_annotations_updates_existing_date(
+        self, dossier
+    ):
+        """Test that it updates an existing ds_date_derniere_modification"""
+        ds_service = DsService()
+
+        results = {
+            "data": {
+                "dossierModifierAnnotations": {
+                    "annotations": [
+                        {"id": "1", "updatedAt": "2025-01-20T15:45:00+01:00"},
+                    ],
+                    "errors": None,
+                }
+            }
+        }
+
+        old_date = timezone.make_aware(datetime(2025, 1, 1, 10, 0, 0))
+        dossier.ds_date_derniere_modification = old_date
+        dossier.save()
+
+        ds_service._update_updated_at_from_multiple_annotations(dossier, results)
+
+        dossier.refresh_from_db()
+        expected_updated_at = datetime.fromisoformat("2025-01-20T15:45:00+01:00")
+        assert dossier.ds_date_derniere_modification == expected_updated_at
+        assert dossier.ds_date_derniere_modification != old_date
 
 
 class TestTransformMessage:

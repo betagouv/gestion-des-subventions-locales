@@ -3,7 +3,7 @@ from datetime import timezone as tz
 from typing import TYPE_CHECKING, Iterator, List, Optional, Tuple, Union
 
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import (
     Case,
     Count,
@@ -19,6 +19,7 @@ from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.services import DsService
 from gsl_projet.constants import (
     DOTATION_CHOICES,
     DOTATION_DETR,
@@ -488,10 +489,39 @@ class DotationProjet(models.Model):
         return None
 
     @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
+    def accept_without_ds_update(self, montant: float, enveloppe: "Enveloppe"):
+        self._accept_simulation_projet_and_programmation_projet(
+            montant=montant, enveloppe=enveloppe
+        )
+
+    @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
     def accept(
         self,
         montant: float,
         enveloppe: "Enveloppe",
+        user: Collegue,
+    ):
+        from gsl_projet.services.dotation_projet_services import (
+            DotationProjetService as dps,
+        )
+
+        with transaction.atomic():
+            self._accept_simulation_projet_and_programmation_projet(montant, enveloppe)
+
+            projet_dotation_checked = dps.get_other_accepted_dotations(self)
+            ds_service = DsService()
+            ds_service.update_ds_annotations_for_one_dotation(
+                dossier=self.projet.dossier_ds,
+                user=user,
+                annotations_dotation_to_update=self.dotation,
+                dotations_to_be_checked=[self.dotation] + projet_dotation_checked,
+                assiette=float(self.assiette),
+                montant=float(montant),
+                taux=float(self.taux_retenu),
+            )
+
+    def _accept_simulation_projet_and_programmation_projet(
+        self, montant: float, enveloppe: "Enveloppe"
     ):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet

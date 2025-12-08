@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from logging import getLogger
 from typing import Callable, List, Literal
@@ -145,7 +146,7 @@ class DsService:
             dossier.ds_id, user.ds_id, annotations
         )
         self._check_results(results, dossier, user, "annotations", annotations)
-        # TODO save last updated at in dossier
+        self._update_updated_at_from_multiple_annotations(dossier, results)
         return results
 
     # Private
@@ -204,6 +205,27 @@ class DsService:
             dossier.ds_date_derniere_modification = updated_at
             dossier.save(update_fields=["ds_date_derniere_modification"])
 
+    def _update_updated_at_from_multiple_annotations(
+        self, dossier: Dossier, results: dict
+    ):
+        most_recent_updated_at = None
+        annotations = (
+            results.get("data", {})
+            .get("dossierModifierAnnotations", {})
+            .get("annotations", [])
+        )
+        for annotation in annotations:
+            updated_at = datetime.fromisoformat(annotation.get("updatedAt"))
+            if updated_at and (
+                most_recent_updated_at is None or updated_at > most_recent_updated_at
+            ):
+                most_recent_updated_at = updated_at
+
+        if most_recent_updated_at:
+            dossier.ds_date_derniere_modification = most_recent_updated_at
+            # dossier.save(update_fields=["ds_date_derniere_modification"])
+            dossier.save()
+
     def _get_instructeur_id(self, user: Collegue) -> str:
         instructeur_id = user.ds_id
         if bool(instructeur_id):
@@ -243,8 +265,6 @@ class DsService:
         field: str | None = None,
         value: float | bool | str | None = None,
     ) -> None:
-        print("RIBERY")
-        print(results)
         mutation_key = self.MUTATION_KEYS[mutation_type]
         data = results.get("data", None)
 

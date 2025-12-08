@@ -96,6 +96,16 @@ class DotationProjetService:
         if type(taux) not in [float, Decimal, int] or taux < 0 or taux > 100:
             raise ValueError(f"Le taux {percent(taux)} doit être entre 0% and 100%")
 
+    @classmethod
+    def get_other_accepted_dotations(
+        cls, dotation_projet: DotationProjet
+    ) -> list[POSSIBLE_DOTATIONS]:
+        return [
+            dp.dotation
+            for dp in dotation_projet.other_dotations
+            if dp.status == PROJET_STATUS_ACCEPTED
+        ]
+
     # private
 
     ## -------------------------- Initialize Dotation Projets --------------------------
@@ -150,7 +160,9 @@ class DotationProjetService:
             dotation_projet = cls._create_dotation_projet(projet, dotation)
             enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
             montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
-            dotation_projet.accept(enveloppe=enveloppe, montant=montant)
+            dotation_projet.accept_without_ds_update(
+                montant=montant, enveloppe=enveloppe
+            )
             dotation_projet.save()
             dotation_projets.append(dotation_projet)
         return dotation_projets
@@ -309,7 +321,7 @@ class DotationProjetService:
 
         enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
         montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
-        dotation_projet.accept(enveloppe=enveloppe, montant=montant)
+        dotation_projet.accept_without_ds_update(montant=montant, enveloppe=enveloppe)
         dotation_projet.save()
 
         return dotation_projet
