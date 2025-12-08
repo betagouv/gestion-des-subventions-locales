@@ -169,6 +169,24 @@ def test_error_raised_if_assiette_is_greater_than_cout_total(
         assert dotation_projet.assiette == assiette
 
 
+@pytest.mark.django_db
+def test_get_other_accepted_dotations_with_one_processing_dotation():
+    detr_dp = DotationProjetFactory(dotation=DOTATION_DETR)
+
+    assert detr_dp.other_accepted_dotations == []
+
+    dsil_dp = DotationProjetFactory(
+        projet=detr_dp.projet,
+        status=PROJET_STATUS_PROCESSING,
+        dotation=DOTATION_DSIL,
+    )
+    assert detr_dp.other_accepted_dotations == []
+
+    dsil_dp.status = PROJET_STATUS_ACCEPTED
+    dsil_dp.save()
+    assert detr_dp.other_accepted_dotations == [DOTATION_DSIL]
+
+
 # Accept
 
 

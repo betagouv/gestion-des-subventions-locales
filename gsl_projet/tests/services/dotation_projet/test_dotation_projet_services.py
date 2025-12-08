@@ -476,21 +476,3 @@ def test_validate_taux(taux, should_raise_exception):
             dps.validate_taux(taux)
     else:
         dps.validate_taux(taux)
-
-
-@pytest.mark.django_db
-def test_get_other_accepted_dotations_with_one_processing_dotation():
-    detr_dp = DotationProjetFactory(dotation=DOTATION_DETR)
-
-    assert dps.get_other_accepted_dotations(detr_dp) == []
-
-    dsil_dp = DotationProjetFactory(
-        projet=detr_dp.projet,
-        status=PROJET_STATUS_PROCESSING,
-        dotation=DOTATION_DSIL,
-    )
-    assert dps.get_other_accepted_dotations(detr_dp) == []
-
-    dsil_dp.status = PROJET_STATUS_ACCEPTED
-    dsil_dp.save()
-    assert dps.get_other_accepted_dotations(detr_dp) == [DOTATION_DSIL]

@@ -100,9 +100,9 @@ def test_simulation_projet_transition_are_called(
 
 
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService.accept_a_simulation_projet"
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
-def test_update_status_with_accepted(mock_accept_a_simulation_projet, user):
+def test_update_status_with_accepted(mock_ds_update, user):
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROCESSING
     )
@@ -111,7 +111,15 @@ def test_update_status_with_accepted(mock_accept_a_simulation_projet, user):
     form = SimulationProjetStatusForm(instance=simulation_projet)
     form.save(new_status, user)
 
-    mock_accept_a_simulation_projet.assert_called_once_with(simulation_projet, user)
+    mock_ds_update.assert_called_once_with(
+        dossier=simulation_projet.projet.dossier_ds,
+        user=user,
+        annotations_dotation_to_update=simulation_projet.dotation,
+        dotations_to_be_checked=[simulation_projet.dotation],
+        assiette=simulation_projet.dotation_projet.assiette,
+        montant=simulation_projet.montant,
+        taux=simulation_projet.taux,
+    )
 
 
 @pytest.mark.parametrize(

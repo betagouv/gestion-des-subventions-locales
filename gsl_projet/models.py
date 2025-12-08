@@ -450,6 +450,14 @@ class DotationProjet(models.Model):
         return list(d for d in self.projet.dotationprojet_set.all() if d.pk != self.pk)
 
     @property
+    def other_accepted_dotations(self) -> List[POSSIBLE_DOTATIONS]:
+        return [
+            d.dotation
+            for d in self.other_dotations
+            if d.status == PROJET_STATUS_ACCEPTED
+        ]
+
+    @property
     def last_updated_simulation_projet(self) -> Optional["SimulationProjet"]:
         """
         We use python side sort so we benefit from prefetching !
@@ -491,41 +499,6 @@ class DotationProjet(models.Model):
 
     @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
     def accept_without_ds_update(self, montant: float, enveloppe: "Enveloppe"):
-        self._accept_simulation_projet_and_programmation_projet(
-            montant=montant, enveloppe=enveloppe
-        )
-
-    @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
-    def accept(
-        self,
-        montant: float,
-        enveloppe: "Enveloppe",
-        user: Collegue,
-    ):
-        from gsl_projet.services.dotation_projet_services import (
-            DotationProjetService as dps,
-        )
-
-        with transaction.atomic():
-            self._accept_simulation_projet_and_programmation_projet(montant, enveloppe)
-
-            projet_dotation_checked = dps.get_other_accepted_dotations(self)
-            ds_service = DsService()
-            if hasattr(self, "programmation_projet"):
-                self.programmation_projet.refresh_from_db()
-            ds_service.update_ds_annotations_for_one_dotation(
-                dossier=self.projet.dossier_ds,
-                user=user,
-                annotations_dotation_to_update=self.dotation,
-                dotations_to_be_checked=[self.dotation] + projet_dotation_checked,
-                assiette=floatize(self.assiette),
-                montant=floatize(montant),
-                taux=floatize(self.taux_retenu),
-            )
-
-    def _accept_simulation_projet_and_programmation_projet(
-        self, montant: float, enveloppe: "Enveloppe"
-    ):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -547,6 +520,30 @@ class DotationProjet(models.Model):
                 "status": ProgrammationProjet.STATUS_ACCEPTED,
             },
         )
+
+    @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
+    def accept(
+        self,
+        montant: float,
+        enveloppe: "Enveloppe",
+        user: Collegue,
+    ):
+        with transaction.atomic():
+            self.accept_without_ds_update(montant, enveloppe)
+
+            projet_dotation_checked = self.other_accepted_dotations
+            ds_service = DsService()
+            if hasattr(self, "programmation_projet"):
+                self.programmation_projet.refresh_from_db()
+            ds_service.update_ds_annotations_for_one_dotation(
+                dossier=self.projet.dossier_ds,
+                user=user,
+                annotations_dotation_to_update=self.dotation,
+                dotations_to_be_checked=[self.dotation] + projet_dotation_checked,
+                assiette=floatize(self.assiette),
+                montant=floatize(montant),
+                taux=floatize(self.taux_retenu),
+            )
 
     @transition(field=status, source="*", target=PROJET_STATUS_REFUSED)
     def refuse(self, enveloppe: "Enveloppe"):
