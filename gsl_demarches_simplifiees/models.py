@@ -533,10 +533,22 @@ class Dossier(DsModel):
         elif self.porteur_de_projet_departement:
             ds_departement_declaratif = self.porteur_de_projet_departement
             projet_departement = ds_departement_declaratif.core_departement
-            # Seuls les projets dépendant de départements sans sous-préfecture devraient
-            # avoir un périmètre départemental => a priori il y a un problème à signaler
-            if projet_departement.arrondissement_set.exists():
-                logger.warn(f"Dossier {self.ds_number} is missing arrondissement.")
+            arrondissement_count = projet_departement.arrondissement_set.count()
+            # Dans un département avec plusieurs arrondissements, les dossiers DS
+            # devraient porter un arrondissement renseigné. => Lever une alerte
+            if arrondissement_count > 1:
+                logger.warning(
+                    "Dossier is missing arrondissement.",
+                    extra={
+                        "dossier_ds_number": self.ds_number,
+                        "arrondissement": self.porteur_de_projet_arrondissement,
+                        "departement": projet_departement,
+                    },
+                )
+            elif arrondissement_count == 1:
+                # S'il n'y a qu'un seul arrondissement dans le département :
+                # on prend le département renseigné
+                projet_arrondissement = projet_departement.arrondissement_set.get()
         if projet_arrondissement or projet_departement:
             return Perimetre.objects.get_or_create(
                 departement=projet_departement,

@@ -4,11 +4,12 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('gsl_demarches_simplifiees', '0022_alter_dossier_demande_montant'),
-        ('gsl_demarches_simplifiees', '0022_alter_dossier_porteur_de_projet_arrondissement_and_more'),
+        ("gsl_demarches_simplifiees", "0022_alter_dossier_demande_montant"),
+        (
+            "gsl_demarches_simplifiees",
+            "0022_alter_dossier_porteur_de_projet_arrondissement_and_more",
+        ),
     ]
 
-    operations = [
-    ]
+    operations = []

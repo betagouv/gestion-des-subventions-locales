@@ -35,25 +35,6 @@ def test_get_projet_perimetre_nominal_case_get_arrondissement_if_available():
 
 
 def test_get_perimetre_for_departement_without_arrondissement(caplog):
-    perimetre_departement = PerimetreDepartementalFactory()
-    declared_departement = DsDepartementFactory(
-        core_departement=perimetre_departement.departement
-    )
-    assert not declared_departement.core_departement.arrondissement_set.exists()
-
-    dossier = DossierFactory(
-        porteur_de_projet_arrondissement=None,
-        porteur_de_projet_departement=declared_departement,
-    )
-
-    with caplog.at_level(logging.WARNING):
-        assert dossier.get_projet_perimetre() == perimetre_departement
-    assert len(caplog.records) == 0, "No warning should be raised in this case."
-
-
-def test_get_perimetre_yields_warning_if_arrondissement_is_missing_when_expected(
-    caplog,
-):
     perimetre_arrondissement = PerimetreArrondissementFactory()
     perimetre_departement = PerimetreDepartementalFactory(
         departement=perimetre_arrondissement.departement
@@ -61,7 +42,32 @@ def test_get_perimetre_yields_warning_if_arrondissement_is_missing_when_expected
     declared_departement = DsDepartementFactory(
         core_departement=perimetre_departement.departement
     )
-    assert declared_departement.core_departement.arrondissement_set.exists()
+    assert declared_departement.core_departement.arrondissement_set.count() == 1
+
+    dossier = DossierFactory(
+        porteur_de_projet_arrondissement=None,
+        porteur_de_projet_departement=declared_departement,
+    )
+
+    with caplog.at_level(logging.WARNING):
+        assert dossier.get_projet_perimetre() == perimetre_arrondissement
+    assert len(caplog.records) == 0, "No warning should be raised in this case."
+
+
+def test_get_perimetre_yields_warning_if_arrondissement_is_missing_when_expected(
+    caplog,
+):
+    perimetre_arrondissement = PerimetreArrondissementFactory()
+    another_ds_arrondissement = DsArrondissementFactory(  # noqa F841
+        core_arrondissement__departement=perimetre_arrondissement.departement
+    )
+    perimetre_departement = PerimetreDepartementalFactory(
+        departement=perimetre_arrondissement.departement
+    )
+    declared_departement = DsDepartementFactory(
+        core_departement=perimetre_departement.departement
+    )
+    assert declared_departement.core_departement.arrondissement_set.count() == 2
 
     dossier = DossierFactory(
         porteur_de_projet_arrondissement=None,
