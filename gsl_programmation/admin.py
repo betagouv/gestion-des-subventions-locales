@@ -75,11 +75,16 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = (
-            qs.select_related("perimetre")
-            .select_related("perimetre__region")
-            .select_related("perimetre__departement")
-            .select_related("perimetre__arrondissement")
+        qs = qs.select_related(
+            "perimetre",
+            "perimetre__region",
+            "perimetre__departement",
+            "perimetre__arrondissement",
+            "deleguee_by",
+            "deleguee_by__perimetre",
+            "deleguee_by__perimetre__region",
+            "deleguee_by__perimetre__departement",
+            "deleguee_by__perimetre__arrondissement",
         )
         return qs.annotate(simulations_count=Count("simulation"))
 
@@ -87,7 +92,7 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
 @admin.register(ProgrammationProjet)
 class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = (
-        "__str__",
+        "pk",
         "enveloppe",
         "status",
         "formatted_amount",
@@ -97,6 +102,14 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     autocomplete_fields = ("enveloppe",)
     raw_id_fields = ("dotation_projet",)
     readonly_fields = ("created_at", "updated_at")
+    search_fields = ("dotation_projet__projet__dossier_ds__ds_number",)
+    list_filter = (
+        "status",
+        "enveloppe__dotation",
+        "enveloppe__annee",
+        "enveloppe__perimetre__region__name",
+        "enveloppe__perimetre__departement__name",
+    )
 
     def formatted_amount(self, obj):
         return euro(obj.montant)
@@ -118,5 +131,9 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             "enveloppe__perimetre__region",
             "enveloppe__perimetre__departement",
             "enveloppe__perimetre__arrondissement",
+            "dotation_projet",
+            "dotation_projet__projet",
+            "dotation_projet__projet__dossier_ds",
+            "dotation_projet__projet__dossier_ds__ds_demarche",
         )
         return qs

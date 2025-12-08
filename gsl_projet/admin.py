@@ -2,6 +2,8 @@ from typing import Optional
 
 from django.contrib import admin
 from django.db.models import Count
+from django.urls import reverse
+from django.utils.html import mark_safe
 
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_simulation.models import SimulationProjet
@@ -14,6 +16,13 @@ class DemandeurAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("address",)
     list_display = ("name", "address__commune__departement")
     search_fields = ("name", "siret", "address__commune__name")
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.select_related(
+            "address", "address__commune", "address__commune__departement"
+        )
+        return qs
 
 
 class DotationProjetInline(admin.TabularInline):
@@ -59,8 +68,13 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "status",
         "perimetre__departement",
         "dotations",
+        "demarche",
     )
-    list_filter = ("status", "perimetre__departement")
+    list_filter = (
+        "status",
+        "perimetre__departement",
+        "dossier_ds__ds_demarche__ds_number",
+    )
     actions = ("refresh_from_dossier",)
     inlines = [
         DotationProjetInline,
@@ -69,8 +83,17 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
+        qs = qs.select_related("dossier_ds", "dossier_ds__ds_demarche")
         qs = qs.prefetch_related("dotationprojet_set", "perimetre__departement")
         return qs
+
+    @admin.display(description="Démarche")
+    def demarche(self, obj):
+        return mark_safe(
+            f'<a href="{reverse("admin:gsl_demarches_simplifiees_demarche_change", args=[obj.dossier_ds.ds_demarche.id])}">{obj.dossier_ds.ds_demarche.ds_number}</a>'
+        )
+
+    demarche.admin_order_field = "dossier_ds__ds_demarche__ds_number"
 
     @admin.action(description="Rafraîchir depuis le dossier DS")
     def refresh_from_dossier(self, request, queryset):

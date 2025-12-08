@@ -273,9 +273,9 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 class FieldMappingForHumanAdmin(
     AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin
 ):
-    list_display = ("label", "django_field", "demarche")
+    list_display = ("label", "django_field", "demarche__ds_number")
     resource_classes = (FieldMappingForHumanResource,)
-    list_filter = ("demarche",)
+    list_filter = ("demarche__ds_number",)
     readonly_fields = ("demarche",)
     search_fields = ("label", "django_field")
 
@@ -299,12 +299,17 @@ class FieldMappingForComputerAdmin(
         "ds_field_label",
         "ds_field_type",
         "django_field",
-        "demarche",
+        "demarche__ds_number",
     )
     list_filter = ("demarche__ds_number", "ds_field_type")
     resource_classes = (FieldMappingForComputerResource,)
     search_fields = ("ds_field_label", "django_field", "ds_field_id")
     search_help_text = "Chercher par ID ou intitulé DS, ou par champ Django"
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.select_related("demarche")
+        return qs
 
 
 @admin.register(Profile)
@@ -371,5 +376,11 @@ class CategorieDoperationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
 @admin.register(CritereEligibiliteDetr)
 class CritereEligibiliteDetrAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    list_display = ("id", "label", "demarche")
+    list_display = ("id", "label", "demarche__ds_number")
     readonly_fields = ("demarche", "demarche_revision", "detr_category", "label")
+    list_filter = ("demarche__ds_number",)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.select_related("demarche")
+        return qs
