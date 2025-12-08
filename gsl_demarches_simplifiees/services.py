@@ -23,6 +23,7 @@ class DsService:
         "checkbox": "dossierModifierAnnotationCheckbox",
         "decimal": "dossierModifierAnnotationDecimalNumber",
         "dismiss": "dossierClasserSansSuite",
+        "annotations": "dossierModifierAnnotations",
     }
 
     MUTATION_FUNCTION = {
@@ -30,7 +31,7 @@ class DsService:
         "decimal": "dossier_modifier_annotation_decimal",
     }
 
-    MUTATION_TYPES = Literal["checkbox", "decimal", "dismiss"]
+    MUTATION_TYPES = Literal["checkbox", "decimal", "dismiss", "annotations"]
 
     def __init__(self):
         self.mutator = DsMutator()
@@ -94,6 +95,58 @@ class DsService:
         return self._update_assiette_montant_or_taux(
             dossier, user, dotation, value, "taux"
         )
+
+    def update_ds_annotations_for_one_dotation(
+        self,
+        dossier: Dossier,
+        user: Collegue,
+        annotations_dotation_to_update: POSSIBLE_DOTATIONS,
+        dotations_to_be_checked: list[POSSIBLE_DOTATIONS],
+        assiette: float | None = None,
+        montant: float | None = None,
+        taux: float | None = None,
+    ):
+        annotations = [
+            {
+                "id": self._get_ds_field_id(dossier, "annotations_dotation"),
+                "value": {"multipleDropDownList": dotations_to_be_checked},
+            }
+        ]
+
+        suffix = "dsil" if annotations_dotation_to_update == DOTATION_DSIL else "detr"
+
+        if assiette is not None:
+            annotations.append(
+                {
+                    "id": self._get_ds_field_id(
+                        dossier, f"annotations_assiette_{suffix}"
+                    ),
+                    "value": {"decimalNumber": assiette},
+                }
+            )
+        if montant is not None:
+            annotations.append(
+                {
+                    "id": self._get_ds_field_id(
+                        dossier, f"annotations_montant_accorde_{suffix}"
+                    ),
+                    "value": {"decimalNumber": montant},
+                }
+            )
+        if taux is not None:
+            annotations.append(
+                {
+                    "id": self._get_ds_field_id(dossier, f"annotations_taux_{suffix}"),
+                    "value": {"decimalNumber": taux},
+                }
+            )
+
+        results = self.mutator.dossier_modifier_annotations(
+            dossier.ds_id, user.ds_id, annotations
+        )
+        self._check_results(results, dossier, user, "annotations", annotations)
+        # TODO save last updated at in dossier
+        return results
 
     # Private
 
@@ -190,6 +243,8 @@ class DsService:
         field: str | None = None,
         value: float | bool | str | None = None,
     ) -> None:
+        print("RIBERY")
+        print(results)
         mutation_key = self.MUTATION_KEYS[mutation_type]
         data = results.get("data", None)
 
