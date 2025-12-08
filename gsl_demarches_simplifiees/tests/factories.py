@@ -6,6 +6,7 @@ from django.db.models.signals import post_save
 
 from gsl_core.tests.factories import AdresseFactory
 from gsl_core.tests.factories import ArrondissementFactory as CoreArrondissementFactory
+from gsl_core.tests.factories import DepartementFactory as CoreDepartementFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 
 from ..models import (
@@ -20,6 +21,9 @@ from ..models import (
     NaturePorteurProjet,
     PersonneMorale,
     Profile,
+)
+from ..models import (
+    Departement as DsDepartement,
 )
 
 
@@ -54,6 +58,13 @@ class DsArrondissementFactory(DsLibelleFactory):
         model = DsArrondissement
 
     core_arrondissement = factory.SubFactory(CoreArrondissementFactory)
+
+
+class DsDepartementFactory(DsLibelleFactory):
+    class Meta:
+        model = DsDepartement
+
+    core_departement = factory.SubFactory(CoreDepartementFactory)
 
 
 class CritereEligibiliteDetrFactory(DsLibelleFactory):

@@ -1,60 +1,76 @@
+import logging
+
 import pytest
 
 from gsl_core.tests.factories import (
-    AdresseFactory,
-    CommuneFactory,
     PerimetreArrondissementFactory,
+    PerimetreDepartementalFactory,
 )
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     DsArrondissementFactory,
-    PersonneMoraleFactory,
+    DsDepartementFactory,
 )
 
 pytestmark = pytest.mark.django_db
 
 
-def test_get_declared_arrondissement_even_with_demandeur_arrondissement():
+def test_get_projet_perimetre_nominal_case_get_arrondissement_if_available():
     perimetre_arrondissement = PerimetreArrondissementFactory()
     declared_arrondissement = DsArrondissementFactory(
         core_arrondissement=perimetre_arrondissement.arrondissement
     )
-
-    demandeur = PersonneMoraleFactory()
-    demandeur_arrondissement = demandeur.address.commune.arrondissement
-    assert perimetre_arrondissement.arrondissement != demandeur_arrondissement
+    perimetre_departement = PerimetreDepartementalFactory(
+        departement=perimetre_arrondissement.departement
+    )
+    declared_departement = DsDepartementFactory(
+        core_departement=perimetre_departement.departement
+    )
     dossier = DossierFactory(
-        ds_demandeur=demandeur,
         porteur_de_projet_arrondissement=declared_arrondissement,
+        porteur_de_projet_departement=declared_departement,
     )
 
-    perimetre = dossier.get_projet_perimetre()
-
-    assert perimetre == perimetre_arrondissement
-    assert perimetre.arrondissement != demandeur_arrondissement
+    assert dossier.get_projet_perimetre() == perimetre_arrondissement
 
 
-def test_get_declared_arrondissement_if_no_arrondissement_provided_on_demandeur():
+def test_get_perimetre_for_departement_without_arrondissement(caplog):
+    perimetre_departement = PerimetreDepartementalFactory()
+    declared_departement = DsDepartementFactory(
+        core_departement=perimetre_departement.departement
+    )
+    assert not declared_departement.core_departement.arrondissement_set.exists()
+
+    dossier = DossierFactory(
+        porteur_de_projet_arrondissement=None,
+        porteur_de_projet_departement=declared_departement,
+    )
+
+    with caplog.at_level(logging.WARNING):
+        assert dossier.get_projet_perimetre() == perimetre_departement
+    assert len(caplog.records) == 0, "No warning should be raised in this case."
+
+
+def test_get_perimetre_yields_warning_if_arrondissement_is_missing_when_expected(
+    caplog,
+):
     perimetre_arrondissement = PerimetreArrondissementFactory()
-    demandeur_without_arrondissement = PersonneMoraleFactory(
-        address=AdresseFactory(
-            commune=CommuneFactory(
-                arrondissement=None, departement=perimetre_arrondissement.departement
-            )
-        )
+    perimetre_departement = PerimetreDepartementalFactory(
+        departement=perimetre_arrondissement.departement
     )
-    declared_arrondissement = DsArrondissementFactory(
-        core_arrondissement=perimetre_arrondissement.arrondissement
+    declared_departement = DsDepartementFactory(
+        core_departement=perimetre_departement.departement
     )
+    assert declared_departement.core_departement.arrondissement_set.exists()
+
     dossier = DossierFactory(
-        ds_demandeur=demandeur_without_arrondissement,
-        porteur_de_projet_arrondissement=declared_arrondissement,
+        porteur_de_projet_arrondissement=None,
+        porteur_de_projet_departement=declared_departement,
     )
 
-    perimetre = dossier.get_projet_perimetre()
-
-    assert perimetre == perimetre_arrondissement
-    assert perimetre.arrondissement == declared_arrondissement.core_arrondissement
+    with caplog.at_level(logging.WARNING):
+        assert dossier.get_projet_perimetre() == perimetre_departement
+    assert len(caplog.records) == 1, "A warning should be raised in this case."
 
 
 @pytest.mark.parametrize(

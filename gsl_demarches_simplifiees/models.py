@@ -1,3 +1,5 @@
+from logging import getLogger
+
 from django.db import models
 from django.urls import reverse
 
@@ -5,6 +7,8 @@ from gsl_core.models import Adresse, Perimetre
 from gsl_core.models import Arrondissement as CoreArrondissement
 from gsl_core.models import Departement as CoreDepartement
 from gsl_projet.constants import MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
+
+logger = getLogger(__name__)
 
 
 class DsModel(models.Model):
@@ -516,7 +520,7 @@ class Dossier(DsModel):
         (champ DN porteur_de_projet_arrondissement).
 
         À défaut d'arrondissement dans le département (cas des n°75 et 90)
-        on retourne un périmètre départemental. @todo
+        on retourne un périmètre départemental.
 
         :return: Perimetre
         """
@@ -526,6 +530,13 @@ class Dossier(DsModel):
             projet_arrondissement = ds_arrondissement_declaratif.core_arrondissement
             if projet_arrondissement:
                 projet_departement = projet_arrondissement.departement
+        elif self.porteur_de_projet_departement:
+            ds_departement_declaratif = self.porteur_de_projet_departement
+            projet_departement = ds_departement_declaratif.core_departement
+            # Seuls les projets dépendant de départements sans sous-préfecture devraient
+            # avoir un périmètre départemental => a priori il y a un problème à signaler
+            if projet_departement.arrondissement_set.exists():
+                logger.warn(f"Dossier {self.ds_number} is missing arrondissement.")
         if projet_arrondissement or projet_departement:
             return Perimetre.objects.get_or_create(
                 departement=projet_departement,
