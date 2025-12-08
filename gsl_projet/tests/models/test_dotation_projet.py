@@ -178,9 +178,13 @@ def test_accept_dotation_projet_without_simulation_projet():
 
     enveloppe = DetrEnveloppeFactory(annee=2025)
 
-    dotation_projet.accept(montant=5_000, enveloppe=enveloppe)
+    # --
+
+    dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
     dotation_projet.save()
     dotation_projet.refresh_from_db()
+
+    # --
 
     assert dotation_projet.status == PROJET_STATUS_ACCEPTED
     simulation_projets = SimulationProjet.objects.filter(
@@ -221,9 +225,13 @@ def test_accept_dotation_projet():
 
     enveloppe = DetrEnveloppeFactory(annee=2025)
 
-    dotation_projet.accept(montant=5_000, enveloppe=enveloppe)
+    # --
+
+    dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
     dotation_projet.save()
     dotation_projet.refresh_from_db()
+
+    # --
 
     assert dotation_projet.status == PROJET_STATUS_ACCEPTED
     simulation_projets = SimulationProjet.objects.filter(
@@ -257,9 +265,14 @@ def test_accept_dotation_projet_update_programmation_projet():
         status=ProgrammationProjet.STATUS_REFUSED,
     )
 
-    dotation_projet.accept(montant=5_000, enveloppe=enveloppe)
+    # --
+
+    dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
     dotation_projet.save()
     dotation_projet.refresh_from_db()
+
+    # --
+
     assert dotation_projet.status == PROJET_STATUS_ACCEPTED
 
     programmation_projets = ProgrammationProjet.objects.filter(
@@ -280,7 +293,12 @@ def test_accept_dotation_projet_select_parent_enveloppe():
     )
     parent_enveloppe = DsilEnveloppeFactory()
     child_enveloppe = DsilEnveloppeFactory(deleguee_by=parent_enveloppe)
-    dotation_projet.accept(montant=5_000, enveloppe=child_enveloppe)
+
+    # --
+
+    dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=child_enveloppe)
+
+    # --
 
     programmation_projets = ProgrammationProjet.objects.filter(
         dotation_projet=dotation_projet
@@ -297,7 +315,7 @@ def test_accept_with_a_dotation_enveloppe_different_from_the_dotation():
     )
     enveloppe = DsilEnveloppeFactory()
     with pytest.raises(ValidationError) as exc_info:
-        dotation_projet.accept(montant=5_000, enveloppe=enveloppe)
+        dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
     assert (
         str(exc_info.value.message)
         == "La dotation du projet et de l'enveloppe ne correspondent pas."

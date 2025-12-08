@@ -341,7 +341,7 @@ class TestAcceptOneDoubleDotation:
     """Test accepting one dotation of a double dotation project."""
 
     @mock.patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
     )
     def test_accept_detr_leaves_dsil_processing(
         self, mock_ds_update, double_dotation_projet_detr_dsil, user
@@ -368,7 +368,8 @@ class TestAcceptOneDoubleDotation:
         mock_ds_update.assert_called_once_with(
             dossier=projet.dossier_ds,
             user=user,
-            dotation=DOTATION_DETR,
+            dotations_to_be_checked=[DOTATION_DETR],
+            annotations_dotation_to_update=DOTATION_DETR,
             assiette=detr_dotation.assiette,
             montant=detr_simulation_projet.montant,
             taux=detr_simulation_projet.taux,
@@ -392,7 +393,7 @@ class TestAcceptOneDoubleDotation:
         ).exists()
 
     @mock.patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
     )
     def test_accept_both_dotations_separately(
         self, mock_ds_update, double_dotation_projet_detr_dsil, user
@@ -453,7 +454,7 @@ class TestAcceptOneDoubleDotation:
         ).exists()
 
     @mock.patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
     )
     def test_accept_detr_when_dsil_refused_projet_becomes_accepted(
         self, mock_ds_update, double_dotation_projet_detr_dsil, user

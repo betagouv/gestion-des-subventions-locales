@@ -32,6 +32,7 @@ from gsl_projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
+from gsl_projet.utils.utils import floatize
 
 if TYPE_CHECKING:
     from gsl_demarches_simplifiees.models import CritereEligibiliteDsil, Dossier
@@ -510,14 +511,16 @@ class DotationProjet(models.Model):
 
             projet_dotation_checked = dps.get_other_accepted_dotations(self)
             ds_service = DsService()
+            if hasattr(self, "programmation_projet"):
+                self.programmation_projet.refresh_from_db()
             ds_service.update_ds_annotations_for_one_dotation(
                 dossier=self.projet.dossier_ds,
                 user=user,
                 annotations_dotation_to_update=self.dotation,
                 dotations_to_be_checked=[self.dotation] + projet_dotation_checked,
-                assiette=float(self.assiette),
-                montant=float(montant),
-                taux=float(self.taux_retenu),
+                assiette=floatize(self.assiette),
+                montant=floatize(montant),
+                taux=floatize(self.taux_retenu),
             )
 
     def _accept_simulation_projet_and_programmation_projet(

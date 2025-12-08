@@ -153,7 +153,7 @@ class SimulationProjetService:
     def accept_a_simulation_projet(
         cls, simulation_projet: SimulationProjet, user: Collegue
     ):
-        dotation_projet = simulation_projet.dotation_projet
+        dotation_projet: DotationProjet = simulation_projet.dotation_projet
 
         dotation_projet.accept(
             montant=simulation_projet.montant,
