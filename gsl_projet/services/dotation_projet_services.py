@@ -385,7 +385,7 @@ class DotationProjetService:
                 continue
 
             if dotation_projet.status != PROJET_STATUS_PROCESSING:
-                dotation_projet.set_back_status_to_processing()
+                dotation_projet.set_back_status_to_processing_without_ds()
                 dotation_projet.save()
 
             dotation_projets.append(dotation_projet)
@@ -402,7 +402,7 @@ class DotationProjetService:
                     dotation_projet
                 ):
                     continue
-                dotation_projet.set_back_status_to_processing()
+                dotation_projet.set_back_status_to_processing_without_ds()
                 dotation_projet.save()
             dotation_projets.append(dotation_projet)
         return dotation_projets

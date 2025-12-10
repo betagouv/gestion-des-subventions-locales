@@ -444,8 +444,8 @@ def test_update_ds_annotations_for_one_dotation_annotations_dict(user, dossier):
         ds_service.update_ds_annotations_for_one_dotation(
             dossier=dossier,
             user=user,
-            annotations_dotation_to_update=DOTATION_DSIL,
             dotations_to_be_checked=[DOTATION_DSIL, DOTATION_DETR],
+            annotations_dotation_to_update=DOTATION_DSIL,
             assiette=1000.50,
             montant=500.25,
             taux=50.0,
@@ -520,8 +520,8 @@ def test_update_ds_annotations_for_one_dotation_suffix(
         ds_service.update_ds_annotations_for_one_dotation(
             dossier=dossier,
             user=user,
-            annotations_dotation_to_update=dotation,
             dotations_to_be_checked=[dotation],
+            annotations_dotation_to_update=dotation,
             assiette=1000.0,
             montant=500.0,
             taux=50.0,
@@ -576,8 +576,8 @@ def test_update_ds_annotations_for_one_dotation_optional_params(
         ds_service.update_ds_annotations_for_one_dotation(
             dossier=dossier,
             user=user,
-            annotations_dotation_to_update=DOTATION_DETR,
             dotations_to_be_checked=[DOTATION_DETR],
+            annotations_dotation_to_update=DOTATION_DETR,
             assiette=assiette,
             montant=montant,
             taux=taux,
@@ -626,8 +626,8 @@ def test_update_ds_annotations_for_one_dotation_dotations_list(user, dossier):
         ds_service.update_ds_annotations_for_one_dotation(
             dossier=dossier,
             user=user,
-            annotations_dotation_to_update=DOTATION_DSIL,
             dotations_to_be_checked=dotations_list,
+            annotations_dotation_to_update=DOTATION_DSIL,
         )
 
         annotations = mock_mutator.dossier_modifier_annotations.call_args[0][2]
@@ -640,8 +640,8 @@ def test_update_ds_annotations_for_one_dotation_dotations_list(user, dossier):
         ds_service.update_ds_annotations_for_one_dotation(
             dossier=dossier,
             user=user,
-            annotations_dotation_to_update=DOTATION_DSIL,
             dotations_to_be_checked=dotations_list,
+            annotations_dotation_to_update=DOTATION_DSIL,
         )
 
         annotations = mock_mutator.dossier_modifier_annotations.call_args[0][2]
