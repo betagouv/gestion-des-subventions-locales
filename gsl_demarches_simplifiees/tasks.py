@@ -7,6 +7,7 @@ from gsl_demarches_simplifiees.importer.demarche import (
 from gsl_demarches_simplifiees.importer.dossier import (
     refresh_dossier_from_saved_data,
     save_demarche_dossiers_from_ds,
+    save_one_dossier_from_ds,
 )
 from gsl_demarches_simplifiees.models import Demarche, Dossier
 
@@ -46,6 +47,18 @@ def task_save_demarche_dossiers_from_ds(
     demarche_number, using_updated_since: bool = True
 ):
     return save_demarche_dossiers_from_ds(demarche_number, using_updated_since)
+
+
+#### of one dossier
+@shared_task
+def task_save_one_dossier_from_ds(
+    dossier_number, refresh_only_if_dossier_has_been_updated=False
+):
+    dossier = Dossier.objects.get(ds_number=dossier_number)
+    return save_one_dossier_from_ds(
+        dossier,
+        refresh_only_if_dossier_has_been_updated=refresh_only_if_dossier_has_been_updated,
+    )
 
 
 ### from saved data

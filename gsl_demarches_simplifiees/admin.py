@@ -5,7 +5,6 @@ from django.utils.safestring import mark_safe
 from import_export.admin import ImportExportMixin
 
 from gsl_core.admin import AllPermsForStaffUser
-from gsl_demarches_simplifiees.importer.dossier import save_one_dossier_from_ds
 
 from .importer.demarche import refresh_categories_operation_detr
 from .models import (
@@ -26,6 +25,7 @@ from .tasks import (
     task_refresh_field_mappings_from_demarche_data,
     task_save_demarche_dossiers_from_ds,
     task_save_demarche_from_ds,
+    task_save_one_dossier_from_ds,
 )
 
 
@@ -244,9 +244,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     @admin.action(description="Rafraîchir depuis DS")
     def refresh_from_ds(self, request, queryset):
         for dossier in queryset:
-            save_one_dossier_from_ds.delay(
-                dossier, refresh_only_if_dossier_has_been_updated=False
-            )
+            task_save_one_dossier_from_ds.delay(dossier.ds_number)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
