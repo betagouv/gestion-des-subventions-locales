@@ -4,7 +4,7 @@ from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import pytest
-from django.contrib.messages import INFO, get_messages
+from django.contrib.messages import INFO, SUCCESS, get_messages
 from django.test.html import parse_html
 from django.urls import reverse
 
@@ -87,14 +87,15 @@ def simulation_projet(collegue, simulation):
     )
 
 
+@mock.patch("gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds")
 def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
-    client_with_user_logged, simulation_projet
+    _mock_save_one_dossier_from_ds, client_with_user_logged, simulation_projet
 ):
     page_url = reverse(
         "simulation:simulation-detail", args=[simulation_projet.simulation.slug]
     )
     url = reverse(
-        "simulation:patch-simulation-projet-status",
+        "simulation:simulation-projet-update-programmed-status",
         args=[simulation_projet.id, SimulationProjet.STATUS_ACCEPTED],
     )
     with patch(
@@ -125,7 +126,7 @@ data_test = (
     (
         SimulationProjet.STATUS_ACCEPTED,
         "Le financement de ce projet vient d’être accepté avec la dotation DETR pour 1\xa0000,00\xa0€.",
-        "valid",
+        "accepted",
     ),
     (
         SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
@@ -140,12 +141,14 @@ data_test = (
 )
 
 
+@mock.patch("gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds")
 @mock.patch(
     "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
 )
 @pytest.mark.parametrize("status, expected_message, expected_tag", data_test)
 def test_patch_status_simulation_projet_gives_message(
     mock_ds_update,
+    _mock_save_one_dossier_from_ds,
     client_with_user_logged,
     simulation_projet,
     status,
@@ -162,7 +165,12 @@ def test_patch_status_simulation_projet_gives_message(
         "simulation:simulation-projet-detail", args=[simulation_projet.id]
     )
     url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id, status]
+        (
+            "simulation:simulation-projet-update-simulation-status"
+            if status in SimulationProjet.SIMULATION_PENDING_STATUSES
+            else "simulation:simulation-projet-update-programmed-status"
+        ),
+        args=[simulation_projet.id, status],
     )
     response = client_with_user_logged.post(
         url, headers={"HX-Request": "true", "HX-Request-URL": page_url}, follow=True
@@ -184,7 +192,11 @@ def test_patch_status_simulation_projet_gives_message(
     assert len(messages) == 1
 
     message = list(messages)[0]
-    assert message.level == INFO
+    assert (
+        message.level == INFO
+        if status in SimulationProjet.SIMULATION_PENDING_STATUSES
+        else SUCCESS
+    )
     assert message.message == expected_message
     assert message.extra_tags == expected_tag
 
@@ -194,7 +206,7 @@ def test_patch_status_simulation_projet_invalid_status(
     client_with_user_logged, simulation_projet, data
 ):
     url = reverse(
-        "simulation:patch-simulation-projet-status",
+        "simulation:simulation-projet-update-simulation-status",
         args=[simulation_projet.id, "invalid"],
     )
     response = client_with_user_logged.post(
@@ -229,14 +241,15 @@ def accepted_simulation_projet(collegue, simulation):
     )
 
 
+@mock.patch("gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds")
 def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
-    client_with_user_logged, simulation_projet
+    _mock_save_one_dossier_from_ds, client_with_user_logged, simulation_projet
 ):
     page_url = reverse(
         "simulation:simulation-projet-detail", args=[simulation_projet.id]
     )
     url = reverse(
-        "simulation:patch-simulation-projet-status",
+        "simulation:simulation-projet-update-programmed-status",
         args=[simulation_projet.id, SimulationProjet.STATUS_ACCEPTED],
     )
 
@@ -800,7 +813,7 @@ def test_patch_status_simulation_projet_blocked_when_programmation_notified(
     )
 
     url = reverse(
-        "simulation:patch-simulation-projet-status",
+        "gsl_simulation:simulation-projet-update-programmed-status",
         args=[simulation_projet.id, SimulationProjet.STATUS_ACCEPTED],
     )
 
@@ -815,7 +828,7 @@ def test_patch_status_simulation_projet_blocked_when_programmation_notified(
         )
 
     # Should be blocked
-    assert response.status_code == 200
+    assert response.status_code == 404
     simulation_projet.refresh_from_db()
     assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
     mock_update_ds_montant.assert_not_called()

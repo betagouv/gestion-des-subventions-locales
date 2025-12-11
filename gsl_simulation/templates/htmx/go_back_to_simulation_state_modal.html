@@ -1,22 +1,19 @@
 {% extends "htmx/_base_htmx_modal.html" %}
 {% load simulation_filters %}
 {% block button_label %}
-    <span aria-hidden="true">✔️</span> Accepté provisoirement
+    {{ new_simulation_status|status_to_label }}
 {% endblock button_label %}
 
 {% block content %}
     <h1 class="fr-modal__title processing-color">
-        <span class="fr-icon-draft-fill fr-icon--lg" aria-hidden="true"></span>
-        Revenir au statut “Accepté provisoirement”
+        <span class="fr-icon-draft-fill fr-icon--lg" aria-hidden="true"></span> Revenir au statut «&nbsp;{{ new_simulation_status|status_to_adjective }}&nbsp;»
     </h1>
-    <p id="provisionally_accepted-confirmation-modal-content">
-        Ce projet {{ object.status|status_to_french_word }} va être remis en traitement dans toutes les autres
-        simulations
-        dans lesquelles il a été ajouté. Il n'apparaîtra plus dans la programmation
-        officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
+    <p id="draft-confirmation-modal-content">
+        Ce projet {{ object.status|status_to_adjective }} va être remis en traitement dans toutes les simulations dans
+        lesquelles il a été ajouté. Il n'apparaîtra plus dans la programmation officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
     </p>
     <p>
-        Êtes-vous sûr(e) d'accepter provisoirement le projet&nbsp;?
+        Êtes-vous sûr⋅e de {{ new_simulation_status|status_to_action_word }} le projet&nbsp;?
     </p>
     <form id="{{ modal_id }}-form"
           hx-post="{{ request.path }}"

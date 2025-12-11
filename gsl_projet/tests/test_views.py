@@ -727,7 +727,9 @@ def projets_with_status(demandeur) -> list[Projet]:
         ("dismissed", 5),
     ):
         for _ in range(count):
-            projets.append(ProjetFactory(status=status, demandeur=demandeur))
+            projet = ProjetFactory(demandeur=demandeur)
+            DetrProjetFactory(projet=projet, status=status)
+            projets.append(projet)
     return projets
 
 

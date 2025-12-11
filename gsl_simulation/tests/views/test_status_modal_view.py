@@ -76,7 +76,10 @@ def test_refuse_modal_excludes_notified_projects(
         notified_at=date.today(),
     )
 
-    url = reverse("simulation:refuse-form", args=[simulation_projet.id])
+    url = reverse(
+        "simulation:simulation-projet-update-programmed-status",
+        args=[simulation_projet.id, SimulationProjet.STATUS_REFUSED],
+    )
 
     with patch(
         "gsl_demarches_simplifiees.importer.dossier.save_one_dossier_from_ds",
@@ -98,7 +101,10 @@ def test_refuse_modal_allows_non_notified_projects(
         notified_at=None,
     )
 
-    url = reverse("simulation:refuse-form", args=[simulation_projet.id])
+    url = reverse(
+        "simulation:simulation-projet-update-programmed-status",
+        args=[simulation_projet.id, SimulationProjet.STATUS_REFUSED],
+    )
 
     with patch(
         "gsl_demarches_simplifiees.importer.dossier.save_one_dossier_from_ds",
@@ -110,7 +116,7 @@ def test_refuse_modal_allows_non_notified_projects(
 
 
 @mock.patch("gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds")
-@mock.patch("gsl_demarches_simplifiees.services.DsService.dismiss_in_ds")
+@mock.patch("gsl_simulation.forms.DsService.dismiss_in_ds")
 def test_dismiss_projet(
     mock_dismiss_in_ds,
     mock_save_one_dossier_from_ds,
@@ -119,7 +125,10 @@ def test_dismiss_projet(
 ):
     data = {"justification": "Ma motivation"}
 
-    url = reverse("gsl_simulation:dismiss-form", args=[simulation_projet.id])
+    url = reverse(
+        "gsl_simulation:simulation-projet-update-programmed-status",
+        args=[simulation_projet.id, SimulationProjet.STATUS_DISMISSED],
+    )
     response = client_with_user_logged.post(url, data, headers={"HX-Request": "true"})
 
     assert response.status_code == 200

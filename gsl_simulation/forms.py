@@ -16,9 +16,14 @@ from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.validators import document_file_validator
 from gsl_programmation.models import Enveloppe
-from gsl_projet.constants import PROJET_STATUS_ACCEPTED
+from gsl_projet.constants import (
+    PROJET_STATUS_ACCEPTED,
+)
 from gsl_projet.forms import DSUpdateMixin
-from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.models import (
+    DotationProjet,
+    Projet,
+)
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.utils import compute_taux
 from gsl_simulation.models import Simulation, SimulationProjet
@@ -204,29 +209,43 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
             self.cleaned_data["montant"] = instance.montant
 
 
-class StatusProjetForm(DsfrBaseForm, forms.ModelForm):
-    def __init__(self, status, **kwargs):
-        self.status = status
-        super().__init__(**kwargs)
+class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):
+    """
+    A form to centralize simulation status update **which does not trigger
+    notification** (e.g., all updates except refusal or dismissal of projects which have no other
+    processing dotation).
+    """
 
     def clean(self):
         cleaned_data = super().clean()
-        if (
-            self.status == SimulationProjet.STATUS_ACCEPTED
-            and bool(self.instance.dotation_projet.assiette) is False
-        ):
-            raise ValidationError(
-                "Le projet n'a pas pu être accepté car il manque l'assiette subventionnable. "
-                "Veuillez ajouter le montant des dépenses éligibles retenues avant d'accepter un projet.",
-            )
 
-        if self.instance.dotation_projet.projet.notified_at:
-            raise ValidationError("Notified projet status cannot be changed.")
+        if self.instance.projet.notified_at:
+            raise ValidationError(
+                "Le statut d'un projet déjà notifié ne peut être modifié."
+            )
 
         return cleaned_data
 
+    @transaction.atomic
     def save(self, status, user: Collegue, commit=True):
-        SimulationProjetService.update_status(self.instance, self.status, user)
+        if status == SimulationProjet.STATUS_ACCEPTED:
+            return SimulationProjetService.accept_a_simulation_projet(
+                self.instance, user
+            )
+        elif status == SimulationProjet.STATUS_REFUSED:
+            self.instance.dotation_projet.refuse(enveloppe=self.instance.enveloppe)
+        elif status == SimulationProjet.STATUS_DISMISSED:
+            self.instance.dotation_projet.dismiss(enveloppe=self.instance.enveloppe)
+        elif (
+            status in SimulationProjet.SIMULATION_PENDING_STATUSES
+            and self.instance.status not in SimulationProjet.SIMULATION_PENDING_STATUSES
+        ):
+            self.instance.dotation_projet.set_back_status_to_processing()
+
+        self.instance.dotation_projet.save()
+        self.instance.status = status
+        self.instance.save()
+
         return self.instance
 
     class Meta:
@@ -234,10 +253,9 @@ class StatusProjetForm(DsfrBaseForm, forms.ModelForm):
         fields = ()
 
 
-class RefuseProjetForm(DsfrBaseForm, forms.Form):
+class RefuseProjetForm(SimulationProjetStatusForm):
     justification = forms.CharField(
         label="Motivation envoyée au demandeur (obligatoire)",
-        help_text="Expliquez pourquoi ce dossier est refusé",
         required=True,
         widget=forms.Textarea(attrs={"rows": 3}),
     )
@@ -248,67 +266,62 @@ class RefuseProjetForm(DsfrBaseForm, forms.Form):
         required=False,
     )
 
-    def __init__(self, instance, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.simulation_projet = instance
+    @transaction.atomic
+    def save(self, status, user: Collegue):
+        super().save(status, user)
 
-    def save(self, user: Collegue):
-        with transaction.atomic():
-            self.simulation_projet.dotation_projet.refuse(
-                enveloppe=self.simulation_projet.enveloppe
+        # Dossier was recently refreshed DS thanks to RefuseProjetModalView.
+        # Race conditions remain possible, but should be rare enough and just fail without any side effect.
+        if self.instance.dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:
+            DsMutator().dossier_passer_en_instruction(
+                dossier_id=self.instance.dossier.ds_id,
+                instructeur_id=user.ds_id,
             )
-            self.simulation_projet.dotation_projet.save()
-            # Dossier was recently refreshed DS thanks to RefuseProjetModalView.
-            # Race conditions remain possible, but should be rare enough and just fail without any side effect.
-            if self.simulation_projet.dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:
-                DsMutator().dossier_passer_en_instruction(
-                    dossier_id=self.simulation_projet.dossier.ds_id,
-                    instructeur_id=user.ds_id,
-                )
 
-            DsMutator().dossier_refuser(
-                self.simulation_projet.dossier,
-                user.ds_id,
-                motivation=self.cleaned_data["justification"],
-                document=self.cleaned_data["justification_file"],
-            )
-            self.simulation_projet.dotation_projet.projet.notified_at = timezone.now()
-            self.simulation_projet.dotation_projet.projet.save()
+        DsMutator().dossier_refuser(
+            self.instance.dossier,
+            user.ds_id,
+            motivation=self.cleaned_data["justification"],
+            document=self.cleaned_data["justification_file"],
+        )
+        self.instance.projet.notified_at = timezone.now()
+        self.instance.projet.save()
+
+    class Meta(SimulationProjetStatusForm.Meta):
+        model = SimulationProjet
+        fields = (
+            "justification",
+            "justification_file",
+        )
 
 
-class DismissProjetForm(DsfrBaseForm, forms.Form):
+class DismissProjetForm(SimulationProjetStatusForm):
     justification = forms.CharField(
         label="Motivation envoyée au demandeur (obligatoire)",
-        help_text="Expliquez pourquoi ce dossier est classé sans suite",
         required=True,
         widget=forms.Textarea(attrs={"rows": 3}),
     )
 
-    def __init__(self, instance, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.simulation_projet = instance
+    @transaction.atomic
+    def save(self, status, user: Collegue):
+        super().save(status, user)
+        # Dossier was recently refreshed DS thanks to DismissProjetModalView.
+        # Race conditions remain possible, but should be rare enough and just fail without any side effect.
+        if self.instance.dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:
+            DsMutator().dossier_passer_en_instruction(
+                dossier_id=self.instance.dossier.ds_id,
+                instructeur_id=user.ds_id,
+            )
 
-    def save(self, user: Collegue):
-        with transaction.atomic():
-            self.simulation_projet.dotation_projet.dismiss(
-                enveloppe=self.simulation_projet.enveloppe
-            )
-            self.simulation_projet.dotation_projet.save()
-            # Dossier was recently refreshed DS thanks to DismissProjetModalView.
-            # Race conditions remain possible, but should be rare enough and just fail without any side effect.
-            if self.simulation_projet.dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:
-                DsMutator().dossier_passer_en_instruction(
-                    dossier_id=self.simulation_projet.dossier.ds_id,
-                    instructeur_id=user.ds_id,
-                )
+        ds_service = DsService()
+        ds_service.dismiss_in_ds(
+            self.instance.dossier,
+            user,
+            motivation=self.cleaned_data["justification"],
+        )
+        self.instance.dotation_projet.programmation_projet.notified_at = timezone.now()
+        self.instance.dotation_projet.programmation_projet.save()
 
-            ds_service = DsService()
-            ds_service.dismiss_in_ds(
-                self.simulation_projet.dossier,
-                user,
-                motivation=self.cleaned_data["justification"],
-            )
-            self.simulation_projet.dotation_projet.programmation_projet.notified_at = (
-                timezone.now()
-            )
-            self.simulation_projet.dotation_projet.programmation_projet.save()
+    class Meta(SimulationProjetStatusForm.Meta):
+        model = SimulationProjet
+        fields = ("justification",)

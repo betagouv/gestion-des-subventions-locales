@@ -266,9 +266,12 @@ status_update_expected_status_summary = {
 }
 
 
+@mock.patch("gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds")
 @pytest.mark.django_db
 def test_patch_status_simulation_projet_url_with_htmx(
-    client_with_cote_d_or_user_logged, cote_dorien_simulation_projet
+    _mock_save_one_dossier_from_ds,
+    client_with_cote_d_or_user_logged,
+    cote_dorien_simulation_projet,
 ):
     page_url = reverse(
         "gsl_simulation:simulation-projet-detail",
@@ -276,8 +279,11 @@ def test_patch_status_simulation_projet_url_with_htmx(
     )
     htmx_headers = {"HX-Request": "true", "HX-Request-URL": page_url}
     url = reverse(
-        "simulation:patch-simulation-projet-status",
-        kwargs={"pk": cote_dorien_simulation_projet.pk, "status": "valid"},
+        "simulation:simulation-projet-update-programmed-status",
+        kwargs={
+            "pk": cote_dorien_simulation_projet.pk,
+            "status": SimulationProjet.STATUS_ACCEPTED,
+        },
     )
     with mock.patch(
         "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
@@ -320,7 +326,7 @@ def test_patch_projet_only_if_projet_is_included_in_user_perimetre(
     assert response.status_code == 200
 
     url = reverse(
-        "simulation:patch-simulation-projet-status",
+        "simulation:simulation-projet-update-programmed-status",
         kwargs={"pk": cote_dorien_simulation_projet.pk, "status": "valid"},
     )
     response = client_with_cote_d_or_user_logged.post(
@@ -356,7 +362,7 @@ def test_cant_patch_projet_only_if_projet_is_not_included_in_user_perimetre(
     assert response.status_code == 404
 
     url = reverse(
-        "simulation:patch-simulation-projet-status",
+        "simulation:simulation-projet-update-simulation-status",
         kwargs={"pk": cote_dorien_simulation_projet.pk, "status": "valid"},
     )
     response = client_with_iconnais_user_logged.post(
@@ -379,7 +385,11 @@ def client_with_bourguignon_user_logged(perimetre_bourgogne):
 PATCH_ROUTES_AND_DATA = (
     ("simulation:patch-simulation-projet-taux", {}, {"taux": "0.5"}),
     ("simulation:patch-simulation-projet-montant", {}, {"montant": "400"}),
-    ("simulation:patch-simulation-projet-status", {"status": "valid"}, None),
+    (
+        "simulation:simulation-projet-update-programmed-status",
+        {"status": "valid"},
+        None,
+    ),
     (
         "simulation:patch-projet",
         {},

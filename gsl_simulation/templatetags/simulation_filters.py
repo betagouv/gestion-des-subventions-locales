@@ -1,30 +1,22 @@
 from django import template
 from django.urls import reverse
 
+from gsl_projet.constants import PROJET_STATUS_DISMISSED, PROJET_STATUS_REFUSED
 from gsl_simulation.models import SimulationProjet
 
 register = template.Library()
 
 
-SIMULATION_ONLY_STATUS = [
-    SimulationProjet.STATUS_PROCESSING,
-    SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
-    SimulationProjet.STATUS_PROVISIONALLY_REFUSED,
-]
-
-
 @register.filter(name="status_url")
 def status_url(simulation: SimulationProjet, status):
-    if status == SimulationProjet.STATUS_REFUSED:
-        return reverse("gsl_simulation:refuse-form", kwargs={"pk": simulation.pk})
-    if status == SimulationProjet.STATUS_DISMISSED:
+    if status in SimulationProjet.SIMULATION_PENDING_STATUSES:
         return reverse(
-            "gsl_simulation:dismiss-form",
-            kwargs={"pk": simulation.pk},
+            "simulation:simulation-projet-update-simulation-status",
+            kwargs={"pk": simulation.pk, "status": status},
         )
 
     return reverse(
-        "simulation:patch-simulation-projet-status",
+        "simulation:simulation-projet-update-programmed-status",
         kwargs={"pk": simulation.pk, "status": status},
     )
 
@@ -33,19 +25,50 @@ def status_url(simulation: SimulationProjet, status):
 def status_needs_modal(simulation_projet: SimulationProjet, status):
     """
     Discriminate between status that needs a confirmation modal (GET) and those that don't (POST).
+
+    Could also be named `status_change_affects_programmation`
     """
     return (
-        status not in SIMULATION_ONLY_STATUS
-        or simulation_projet.status not in SIMULATION_ONLY_STATUS
+        status not in SimulationProjet.SIMULATION_PENDING_STATUSES
+        or simulation_projet.status not in SimulationProjet.SIMULATION_PENDING_STATUSES
     )
 
 
-@register.filter(name="status_to_french_word")
-def status_to_french_word(status):
+@register.filter(name="status_to_adjective")
+def status_to_adjective(status, feminine=False):
     return {
-        SimulationProjet.STATUS_ACCEPTED: "validé",
-        SimulationProjet.STATUS_REFUSED: "refusé",
-        SimulationProjet.STATUS_DISMISSED: "classé sans suite",
+        SimulationProjet.STATUS_PROVISIONALLY_REFUSED: f"refusé{'e' if feminine else ''} provisoirement",
+        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: f"accepté{'e' if feminine else ''} provisoirement",
+        SimulationProjet.STATUS_PROCESSING: "en traitement",
+        SimulationProjet.STATUS_ACCEPTED: f"validé{'e' if feminine else ''}",
+        PROJET_STATUS_REFUSED: f"refusé{'e' if feminine else ''}",
+        SimulationProjet.STATUS_REFUSED: f"refusé{'e' if feminine else ''}",
+        SimulationProjet.STATUS_DISMISSED: f"classé{'e' if feminine else ''} sans suite",
+    }[status]
+
+
+@register.filter(name="status_to_action_word")
+def status_to_action_word(status):
+    return {
+        SimulationProjet.STATUS_PROVISIONALLY_REFUSED: "refuser provisoirement",
+        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: "accepter provisoirement",
+        SimulationProjet.STATUS_PROCESSING: "remettre en traitement",
+        PROJET_STATUS_REFUSED: "refuser",
+        SimulationProjet.STATUS_REFUSED: "refuser",
+        SimulationProjet.STATUS_DISMISSED: "classer sans suite",
+    }[status]
+
+
+@register.filter(name="status_to_label")
+def status_to_label(status):
+    return dict(SimulationProjet.STATUS_CHOICES)[status]
+
+
+@register.filter(name="status_to_fr_color")
+def status_to_fr_color(status):
+    return {
+        PROJET_STATUS_REFUSED: "error",
+        PROJET_STATUS_DISMISSED: "warning",
     }[status]
 
 
