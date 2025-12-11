@@ -106,8 +106,10 @@
                             {% for dp in dotation_projets %}
                                 <div>
                                     <span class="projet_status__{{ dp.status }}">{{ dp.get_status_display }}</span>
-                                    {% if dp.status == 'accepted' and dp.programmation_projet.to_notify %}
-                                        <span class="projet__to_notify">À notifier</span>
+                                    {% if projet.to_notify %}
+                                        <span class="projet_notification_status projet__to_notify">À notifier</span>
+                                    {% elif projet.notified_at %}
+                                        <span class="projet_notification_status projet__notified">Notifié</span>
                                     {% endif %}
                                 </div>
                             {% endfor %}

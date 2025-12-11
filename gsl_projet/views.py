@@ -1,6 +1,6 @@
 from functools import cached_property
 
-from django.db.models import Prefetch, Sum
+from django.db.models import Sum
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -118,8 +118,6 @@ class ProjetListViewFilters(BaseProjetFilters):
 
     @property
     def qs(self):
-        from gsl_programmation.models import ProgrammationProjet
-
         qs = super().qs
         qs = qs.annotate(
             montant_retenu_total=Sum("dotationprojet__programmation_projet__montant")
@@ -135,12 +133,7 @@ class ProjetListViewFilters(BaseProjetFilters):
             "dossier_ds__demande_eligibilite_detr",
             "dossier_ds__demande_eligibilite_dsil",
             "dotationprojet_set__detr_categories",
-            Prefetch(
-                "dotationprojet_set__programmation_projet",
-                queryset=ProgrammationProjet.objects.filter(
-                    status=ProgrammationProjet.STATUS_ACCEPTED
-                ),
-            ),
+            "dotationprojet_set__programmation_projet",
         )
         return qs
 
