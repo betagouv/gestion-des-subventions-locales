@@ -5,7 +5,6 @@ from django.utils.safestring import mark_safe
 from import_export.admin import ImportExportMixin
 
 from gsl_core.admin import AllPermsForStaffUser
-from gsl_demarches_simplifiees.importer.dossier import save_one_dossier_from_ds
 
 from .importer.demarche import refresh_categories_operation_detr
 from .models import (
@@ -26,6 +25,7 @@ from .tasks import (
     task_refresh_field_mappings_from_demarche_data,
     task_save_demarche_dossiers_from_ds,
     task_save_demarche_from_ds,
+    task_save_one_dossier_from_ds,
 )
 
 
@@ -244,9 +244,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     @admin.action(description="Rafraîchir depuis DS")
     def refresh_from_ds(self, request, queryset):
         for dossier in queryset:
-            save_one_dossier_from_ds.delay(
-                dossier, refresh_only_if_dossier_has_been_updated=False
-            )
+            task_save_one_dossier_from_ds.delay(dossier.ds_number)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -273,9 +271,9 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 class FieldMappingForHumanAdmin(
     AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin
 ):
-    list_display = ("label", "django_field", "demarche")
+    list_display = ("label", "django_field", "demarche__ds_number")
     resource_classes = (FieldMappingForHumanResource,)
-    list_filter = ("demarche",)
+    list_filter = ("demarche__ds_number",)
     readonly_fields = ("demarche",)
     search_fields = ("label", "django_field")
 
@@ -299,12 +297,17 @@ class FieldMappingForComputerAdmin(
         "ds_field_label",
         "ds_field_type",
         "django_field",
-        "demarche",
+        "demarche__ds_number",
     )
     list_filter = ("demarche__ds_number", "ds_field_type")
     resource_classes = (FieldMappingForComputerResource,)
     search_fields = ("ds_field_label", "django_field", "ds_field_id")
     search_help_text = "Chercher par ID ou intitulé DS, ou par champ Django"
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.select_related("demarche")
+        return qs
 
 
 @admin.register(Profile)
@@ -371,5 +374,11 @@ class CategorieDoperationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
 @admin.register(CritereEligibiliteDetr)
 class CritereEligibiliteDetrAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    list_display = ("id", "label", "demarche")
+    list_display = ("id", "label", "demarche__ds_number")
     readonly_fields = ("demarche", "demarche_revision", "detr_category", "label")
+    list_filter = ("demarche__ds_number",)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.select_related("demarche")
+        return qs
