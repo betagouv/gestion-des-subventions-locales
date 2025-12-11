@@ -41,23 +41,6 @@ if ENV not in ("dev", "test", "staging", "prod"):
 ENV_SEPARATOR = ","
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(ENV_SEPARATOR)
 
-# Init Sentry if the DSN is defined
-SENTRY_DSN = os.getenv("SENTRY_DSN", None)
-if SENTRY_DSN:
-    import sentry_sdk
-    from sentry_sdk.integrations.django import DjangoIntegration
-
-    SENTRY_ENV = os.getenv("SENTRY_ENV", "unknown")
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        integrations=[
-            DjangoIntegration(),
-        ],
-        environment=SENTRY_ENV,
-        enable_logs=True,
-        traces_sample_rate=1.0,
-    )
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -231,7 +214,10 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
 # Logs
-LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")
+APP_LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")
+DJANGO_LOGGING_LEVEL = os.getenv("SERVER_LOGGING_LEVEL", "WARNING")
+SERVER_LOGGING_LEVEL = os.getenv("SERVER_LOGGING_LEVEL", "WARNING")
+handlers = ["console"] + (["sentry"] if ENV in ["staging", "prod"] else [])
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -243,25 +229,70 @@ LOGGING = {
     },
     "handlers": {
         "console": {
-            "level": LOGGING_LEVEL,
+            "level": APP_LOGGING_LEVEL,
             "class": "logging.StreamHandler",
             "stream": sys.stdout,
             "formatter": "verbose",
         },
+        # Sentry : n’est chargé QUE en staging/prod
+        "sentry": {
+            "level": APP_LOGGING_LEVEL,
+            "class": "sentry_sdk.integrations.logging.EventHandler",
+            "formatter": "verbose",
+        },
     },
     "loggers": {
-        "": {
-            "handlers": ["console"],
-            "level": LOGGING_LEVEL,
+        "root": {
+            "handlers": handlers,
+            "level": APP_LOGGING_LEVEL,
             "propagate": True,
         },
+        "django": {
+            "handlers": handlers,
+            "level": DJANGO_LOGGING_LEVEL,
+            "propagate": False,
+        },
         "celery.worker": {
-            "handlers": ["console"],
-            "level": LOGGING_LEVEL,
+            "handlers": handlers,
+            "level": DJANGO_LOGGING_LEVEL,
+            "propagate": False,
+        },
+        "gunicorn": {
+            "handlers": handlers,
+            "level": SERVER_LOGGING_LEVEL,
+            "propagate": False,
+        },
+        "gunicorn.error": {
+            "handlers": handlers,
+            "level": SERVER_LOGGING_LEVEL,
+            "propagate": False,
+        },
+        "gunicorn.access": {
+            "handlers": handlers,
+            "level": SERVER_LOGGING_LEVEL,
             "propagate": False,
         },
     },
 }
+
+# Init Sentry if the DSN is defined
+SENTRY_DSN = os.getenv("SENTRY_DSN", None)
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+
+    SENTRY_ENV = os.getenv("SENTRY_ENV", "unknown")
+    SENTRY_TRACES_SAMPLE_RATE = os.getenv("SENTRY_TRACES_SAMPLE_RATE", 0.1)
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            DjangoIntegration(),
+        ],
+        environment=SENTRY_ENV,
+        enable_logs=True,
+        traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
+    )
+
 
 # Connection to "Pro Connect" (OIDC)
 PROCONNECT_DOMAIN = os.getenv("PROCONNECT_DOMAIN", "fca.integ01.dev-agentconnect.fr")
