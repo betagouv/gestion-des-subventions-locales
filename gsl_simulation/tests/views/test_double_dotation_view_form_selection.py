@@ -389,13 +389,10 @@ class TestFormSelectionWhenAcceptingOneDoubleDotation:
 
         assert response.status_code == 200
 
-        # Verify the correct template is used (accept confirmation)
-        assert "htmx/accept_confirmation_modal.html" in [
+        # Verify the correct template is used (double_dotation_confirmation)
+        assert "htmx/double_dotation_confirmation_modal.html" in [
             t.name for t in response.templates
         ]
-
-        # Note: We don't test the new_projet_status here because accept template doesn't necessarily show it
-        # but we know the form used is SimulationProjetStatusForm
 
 
 class TestFormPostSubmission:

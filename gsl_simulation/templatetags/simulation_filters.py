@@ -1,7 +1,11 @@
 from django import template
 from django.urls import reverse
 
-from gsl_projet.constants import PROJET_STATUS_DISMISSED, PROJET_STATUS_REFUSED
+from gsl_projet.constants import (
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_REFUSED,
+)
 from gsl_simulation.models import SimulationProjet
 
 register = template.Library()
@@ -50,6 +54,8 @@ def status_to_adjective(status, feminine=False):
 @register.filter(name="status_to_action_word")
 def status_to_action_word(status):
     return {
+        PROJET_STATUS_ACCEPTED: "accepter",
+        SimulationProjet.STATUS_ACCEPTED: "accepter",
         SimulationProjet.STATUS_PROVISIONALLY_REFUSED: "refuser provisoirement",
         SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: "accepter provisoirement",
         SimulationProjet.STATUS_PROCESSING: "remettre en traitement",
@@ -67,8 +73,11 @@ def status_to_label(status):
 @register.filter(name="status_to_fr_color")
 def status_to_fr_color(status):
     return {
+        SimulationProjet.STATUS_ACCEPTED: "success",
         PROJET_STATUS_REFUSED: "error",
+        SimulationProjet.STATUS_REFUSED: "error",
         PROJET_STATUS_DISMISSED: "warning",
+        SimulationProjet.STATUS_DISMISSED: "warning",
     }[status]
 
 
