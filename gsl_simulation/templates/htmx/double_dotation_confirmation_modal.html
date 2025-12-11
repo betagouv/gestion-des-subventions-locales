@@ -6,9 +6,9 @@
 {% endblock button_label %}
 
 {% block content %}
-    <h1 class="fr-modal__title fr-text-default--error"
+    <h1 class="fr-modal__title fr-text-default--{{ new_simulation_status|status_to_fr_color }}"
         id="{{ modal_id }}-title">
-        <i class="fr-icon-warning-fill"></i>
+        <i class="fr-icon-{{ new_simulation_status|status_to_fr_color }}-fill"></i>
         {{ new_simulation_status|status_to_action_word|capfirst }} la demande dotation {{ object.enveloppe.dotation }}
     </h1>
     <p>
@@ -19,7 +19,7 @@
         Le demandeur ne va pas être notifié tout de suite car le projet est en double dotation.
     </p>
     <p>
-        Êtes-vous sûr⋅e de {{ new_simulation_status|status_to_action_word }} cette demande de dotation&nbsp;?
+        Voulez-vous {{ new_simulation_status|status_to_action_word }} cette demande de dotation&nbsp;?
     </p>
     <form id="{{ modal_id }}-form"
           hx-post="{{ request.path }}"
