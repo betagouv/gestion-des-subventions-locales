@@ -215,8 +215,7 @@ LOGOUT_REDIRECT_URL = "/"
 
 # Logs
 APP_LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")
-DJANGO_LOGGING_LEVEL = os.getenv("SERVER_LOGGING_LEVEL", "WARNING")
-SERVER_LOGGING_LEVEL = os.getenv("SERVER_LOGGING_LEVEL", "WARNING")
+DJANGO_LOGGING_LEVEL = os.getenv("DJANGO_LOGGING_LEVEL", "ERROR")
 handlers = ["console"] + (["sentry"] if ENV in ["staging", "prod"] else [])
 LOGGING = {
     "version": 1,
@@ -229,14 +228,12 @@ LOGGING = {
     },
     "handlers": {
         "console": {
-            "level": APP_LOGGING_LEVEL,
+            "level": "INFO",
             "class": "logging.StreamHandler",
             "stream": sys.stdout,
             "formatter": "verbose",
         },
-        # Sentry : n’est chargé QUE en staging/prod
         "sentry": {
-            "level": APP_LOGGING_LEVEL,
             "class": "sentry_sdk.integrations.logging.EventHandler",
             "formatter": "verbose",
         },
@@ -258,18 +255,18 @@ LOGGING = {
             "propagate": False,
         },
         "gunicorn": {
-            "handlers": handlers,
-            "level": SERVER_LOGGING_LEVEL,
+            "handlers": ["console"],
+            "level": "INFO",
             "propagate": False,
         },
         "gunicorn.error": {
             "handlers": handlers,
-            "level": SERVER_LOGGING_LEVEL,
+            "level": "ERROR",
             "propagate": False,
         },
         "gunicorn.access": {
-            "handlers": handlers,
-            "level": SERVER_LOGGING_LEVEL,
+            "handlers": ["console"],
+            "level": "INFO",
             "propagate": False,
         },
     },
