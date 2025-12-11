@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
-import logging
 import os
 import sys
 from pathlib import Path
@@ -231,7 +230,9 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
 # Logs
-LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", logging.INFO)
+APP_LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")
+DJANGO_LOGGING_LEVEL = os.getenv("DJANGO_LOGGING_LEVEL", "ERROR")
+handlers = ["console"] + (["sentry"] if ENV in ["staging", "prod"] else [])
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -242,17 +243,46 @@ LOGGING = {
     },
     "handlers": {
         "console": {
-            "level": LOGGING_LEVEL,
+            "level": "INFO",
             "class": "logging.StreamHandler",
             "stream": sys.stdout,
             "formatter": "verbose",
         },
+        "sentry": {
+            "class": "sentry_sdk.integrations.logging.EventHandler",
+            "formatter": "verbose",
+        },
     },
     "loggers": {
-        "": {
-            "handlers": ["console"],
-            "level": LOGGING_LEVEL,
+        "root": {
+            "handlers": handlers,
+            "level": APP_LOGGING_LEVEL,
             "propagate": True,
+        },
+        "django": {
+            "handlers": handlers,
+            "level": DJANGO_LOGGING_LEVEL,
+            "propagate": False,
+        },
+        "celery.worker": {
+            "handlers": handlers,
+            "level": DJANGO_LOGGING_LEVEL,
+            "propagate": False,
+        },
+        "gunicorn": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "gunicorn.error": {
+            "handlers": handlers,
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "gunicorn.access": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
 }
