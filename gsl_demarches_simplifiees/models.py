@@ -18,8 +18,8 @@ class Demarche(DsModel):
     """
     Class used to keep DS' "Démarches" data
     See:
-    https://www.demarches-simplifiees.fr/graphql/schema/index.html#definition-Demarche
-    https://www.demarches-simplifiees.fr/graphql/schema/index.html#definition-DemarcheDescriptor
+    https://www.demarches-simplifiees.fr/graphql/schema/types/Demarche
+    https://www.demarches-simplifiees.fr/graphql/schema/types/DemarcheDescriptor
     """
 
     STATE_BROUILLON = "brouillon"
@@ -105,7 +105,7 @@ class Naf(models.Model):
 
 class PersonneMorale(models.Model):
     """
-    see https://www.demarches-simplifiees.fr/graphql/schema/index.html#definition-PersonneMorale
+    see https://www.demarches-simplifiees.fr/graphql/schema/types/PersonneMorale
     """
 
     siret = models.CharField("SIRET", unique=True, primary_key=True)
@@ -155,7 +155,7 @@ class PersonneMorale(models.Model):
 
 class Dossier(DsModel):
     """
-    See https://www.demarches-simplifiees.fr/graphql/schema/index.html#definition-Dossier
+    See https://www.demarches-simplifiees.fr/graphql/schema/types/Dossier
     """
 
     STATE_ACCEPTE = "accepte"
@@ -320,7 +320,7 @@ class Dossier(DsModel):
         blank=True,
     )
     demande_montant = models.DecimalField(
-        "Montant de l'aide demandée",
+        "Montant de l'aide demandée (en euros)",
         max_digits=12,
         decimal_places=2,
         null=True,
@@ -492,7 +492,7 @@ class Dossier(DsModel):
 
     @property
     def url_on_ds(self):
-        return f"https://www.demarches-simplifiees.fr/procedures/{self.ds_demarche.ds_number}/dossiers/{self.ds_number}"
+        return f"https://demarche.numerique.gouv.fr/procedures/{self.ds_demarche.ds_number}/dossiers/{self.ds_number}"
 
     @property
     def json_url(self):

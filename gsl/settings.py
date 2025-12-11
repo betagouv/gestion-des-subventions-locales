@@ -220,7 +220,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Connection to Démarches simplifiées’ API
 DS_API_TOKEN = os.getenv("DS_API_TOKEN", "")
 DS_API_URL = os.getenv(
-    "DS_API_URL", "https://www.demarches-simplifiees.fr/api/v2/graphql"
+    "DS_API_URL", "https://demarche.numerique.gouv.fr/api/v2/graphql"
 )
 DS_CLIENT_ID = os.getenv("DS_CLIENT_ID", ENV)
 LOGIN_URL = "/comptes/login/"
