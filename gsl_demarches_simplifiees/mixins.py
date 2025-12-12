@@ -45,7 +45,7 @@ logger = getLogger(__name__)
 
 class DSUpdateMixin:
     """
-    Mixin pour factoriser la logique de mise à jour DS dans les formulaires.
+    Mixin pour factoriser la logique de mise à jour DN dans les formulaires.
     Les sous-classes doivent définir :
       - get_dossier_ds(instance)
       - get_fields()
@@ -73,7 +73,7 @@ class DSUpdateMixin:
         if commit:
             if self.user is None:
                 logger.warning(
-                    f"No user provided to {self.__class__.__name__}.save, can't save to DS"
+                    f"No user provided to {self.__class__.__name__}.save, can't save to DN"
                 )
             else:
                 data = {field: self.cleaned_data[field] for field in self.changed_data}
@@ -88,7 +88,7 @@ class DSUpdateMixin:
                 if blocking:
                     error_msg = (
                         "Une erreur est survenue lors de la mise à jour des informations "
-                        f"sur Démarches Simplifiées. {errors['all']}"
+                        f"sur Démarche Numérique. {errors['all']}"
                     )
                     return instance, error_msg
 
@@ -99,7 +99,7 @@ class DSUpdateMixin:
                     fields_msg = build_error_message(errors)
                     error_msg = (
                         "Une erreur est survenue lors de la mise à jour de certaines "
-                        "informations sur Démarches Simplifiées "
+                        "informations sur Démarche Numérique "
                         f"({fields_msg}). Ces modifications n'ont pas été enregistrées."
                     )
 

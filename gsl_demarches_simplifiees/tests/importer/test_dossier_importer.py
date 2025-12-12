@@ -185,7 +185,7 @@ def test_refresh_dossier_instructeurs():
     profile_b = Profile.objects.create(ds_id="B-2", ds_email="b@example.com")
     dossier.ds_instructeurs.add(profile_a, profile_b)
 
-    # Incoming DS data contains B (kept) and C (new); A should be removed
+    # Incoming DN data contains B (kept) and C (new); A should be removed
     ds_payload = {
         "groupeInstructeur": {
             "instructeurs": [
@@ -259,10 +259,10 @@ def test_has_dossier_been_updated_on_ds():
         )
     )
 
-    # Case where DS date is more recent
+    # Case where DN date is more recent
     ds_data_newer = {"dateDerniereModification": "2025-01-01T12:00:00+02:00"}
     assert _has_dossier_been_updated_on_ds(dossier, ds_data_newer) is True
 
-    # Case where DS date is older
+    # Case where DN date is older
     ds_data_older = {"dateDerniereModification": "2023-01-01T12:00:00+02:00"}
     assert _has_dossier_been_updated_on_ds(dossier, ds_data_older) is False

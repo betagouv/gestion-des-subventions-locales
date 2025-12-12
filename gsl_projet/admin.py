@@ -109,7 +109,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     demarche.admin_order_field = "dossier_ds__ds_demarche__ds_number"
 
-    @admin.action(description="Rafraîchir depuis le dossier DS")
+    @admin.action(description="Rafraîchir depuis le dossier DN")
     def refresh_from_dossier(self, request, queryset):
         from gsl_projet.tasks import task_create_or_update_projet_and_co_from_dossier
 

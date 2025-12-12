@@ -81,7 +81,7 @@ def test_update_dotation_projets_from_projet_accepted_creates_new_dotation_proje
     dps._initialize_dotation_projets_from_projet(projet)
     assert projet.dotationprojet_set.count() == 1
 
-    # Projet has been accepted on DS for DETR and DSIL
+    # Projet has been accepted on DN for DETR and DSIL
     dossier.annotations_dotation = "DETR et DSIL"
     dossier.annotations_assiette_detr = 10_000
     dossier.annotations_montant_accorde_detr = 5_000

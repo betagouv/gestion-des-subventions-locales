@@ -129,7 +129,7 @@ class NotificationMessageView(UpdateView):
 
         messages.success(
             self.request,
-            "Le projet accepté a bien été notifié. Un message de notification a bien été envoyé au demandeur dans l’espace Démarches Simplifiées.",
+            "Le projet accepté a bien été notifié. Un message de notification a bien été envoyé au demandeur dans l’espace Démarche Numérique.",
         )
         return redirect(self.get_success_url())
 

@@ -229,7 +229,7 @@ def test_get_instructeur_id(caplog):
 
     with pytest.raises(InstructeurUnknown):
         service._get_instructeur_id(user)
-    assert "User does not have DS id" in caplog.text
+    assert "User does not have DN id" in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -380,7 +380,7 @@ def test_check_results(
 
     final_msg = msg.replace("__MUTATION_KEY__", mutation_data_name)
     assert str(exc_info.value) == final_msg
-    assert "Error in DS mutation" in caplog.text
+    assert "Error in DN mutation" in caplog.text
 
 
 def test_dismiss_in_ds():
@@ -831,7 +831,7 @@ class TestTransformMessage:
         ds = DsService()
         messages = ["Le dossier est déjà en\xa0construction"]
         out = ds._transform_message(messages)
-        assert "Le dossier est en construction sur Démarches Simplifiées." in out
+        assert "Le dossier est en construction sur Démarche Numérique." in out
 
     def test_transform_message_permission_phrase(self):
         ds = DsService()

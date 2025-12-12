@@ -188,7 +188,7 @@ class SimulationProjetService:
         if blocking:
             raise DsServiceException(
                 "Une erreur est survenue lors de la mise à jour des informations "
-                f"sur Démarches Simplifiées. {errors['all']}",
+                f"sur Démarche Numérique. {errors['all']}",
                 level=logging.ERROR,
                 log_message="Blocking error during montant and taux update",
                 extra={
@@ -207,7 +207,7 @@ class SimulationProjetService:
         fields_msg = build_error_message(errors)
         error_msg = (
             "Une erreur est survenue lors de la mise à jour de certaines "
-            "informations sur Démarches Simplifiées "
+            "informations sur Démarche Numérique "
             f"({fields_msg}). Ces modifications n'ont pas été enregistrées."
         )
         raise DsServiceException(

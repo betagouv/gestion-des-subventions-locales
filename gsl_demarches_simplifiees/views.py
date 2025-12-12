@@ -56,7 +56,7 @@ def refresh_one_dossier(request, dossier_ds_number):
         messages.error(
             request,
             (
-                "Une erreur s’est produite lors de l’appel à Démarches Simplifiées. "
+                "Une erreur s’est produite lors de l’appel à Démarche Numérique. "
                 "Essayez à nouveau dans quelques instants."
             ),
         )
@@ -95,8 +95,8 @@ def post_get_ds_demarches_from_numbers(request):
 
     if number_of_demarches_in_the_pipe > 0:
         message = ngettext(
-            "%(count)d démarche va être récupérée depuis DS.",
-            "%(count)d démarches vont être récupérées depuis DS.",
+            "%(count)d démarche va être récupérée depuis DN.",
+            "%(count)d démarches vont être récupérées depuis DN.",
             number_of_demarches_in_the_pipe,
         ) % {"count": number_of_demarches_in_the_pipe}
         messages.success(request, message)

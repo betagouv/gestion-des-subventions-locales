@@ -68,7 +68,7 @@ class CollegueAdmin(AllPermsForStaffUser, UserAdmin, admin.ModelAdmin):
             },
         ),
         (
-            "Démarches Simplifiées",
+            "Démarche Numérique",
             {"fields": ("ds_profile",)},
         ),
         (
@@ -86,7 +86,7 @@ class CollegueAdmin(AllPermsForStaffUser, UserAdmin, admin.ModelAdmin):
         qs = super().get_queryset(request)
         return qs.select_related("perimetre__departement", "perimetre__region")
 
-    @admin.action(description="Association des profils DS aux utilisateurs")
+    @admin.action(description="Association des profils DN aux utilisateurs")
     def associate_ds_profile_to_users(self, request, queryset):
         user_ids = list(queryset.values_list("id", flat=True))
         associate_or_update_ds_profile_to_users(user_ids)

@@ -161,5 +161,5 @@ def test_projet_form_save_with_field_exceptions(projet, user):
         assert projet.dotations == [DOTATION_DSIL]
         assert (
             err_msg
-            == "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées (Budget vert => Some error). Ces modifications n'ont pas été enregistrées."
+            == "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarche Numérique (Budget vert => Some error). Ces modifications n'ont pas été enregistrées."
         )

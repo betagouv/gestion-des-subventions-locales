@@ -30,10 +30,10 @@ def test_launch_graphql_query_token_error_logs_and_raises(caplog):
     with caplog.at_level(logging.CRITICAL):
         with pytest.raises(Exception) as excinfo:
             client.launch_graphql_query("someOperation")
-        assert "Nous n'arrivons pas à nous connecter à Démarches Simplifiées." in str(
+        assert "Nous n'arrivons pas à nous connecter à Démarche Numérique." in str(
             excinfo.value
         )
-        assert "DS forbidden access : token problem ?" in caplog.text
+        assert "DN forbidden access : token problem ?" in caplog.text
 
 
 def test_get_demarche_dossiers_with_updated_since_calls_graphql_with_iso_format():

@@ -16,7 +16,7 @@ class DsModel(models.Model):
 
 class Demarche(DsModel):
     """
-    Class used to keep DS' "Démarches" data
+    Class used to keep DN' "Démarches" data
     See:
     https://www.demarches-simplifiees.fr/graphql/schema/types/Demarche
     https://www.demarches-simplifiees.fr/graphql/schema/types/DemarcheDescriptor
@@ -41,7 +41,7 @@ class Demarche(DsModel):
         null=True,
     )
 
-    # Fields prefixed with ds_ are DS fixed fields,
+    # Fields prefixed with ds_ are DN fixed fields,
     # copied as-is, without any mapping needed.
     ds_id = models.CharField("Identifiant DS", unique=True)
     ds_number = models.IntegerField("Numéro DS", unique=True)  # type Int graphql
@@ -503,8 +503,8 @@ class Dossier(DsModel):
     def get_projet_perimetre(self) -> Perimetre | None:
         """
         Retourne le périmètre du projet qui sera issu du dossier, à partir de
-        l'arrondissement déclaré par le demandeur dans le formulaire DS
-        (champ DS porteur_de_projet_arrondissement).
+        l'arrondissement déclaré par le demandeur dans le formulaire DN
+        (champ DN porteur_de_projet_arrondissement).
 
         À défaut d'arrondissement dans le département (cas des n°75 et 90)
         on retourne un périmètre départemental. @todo

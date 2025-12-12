@@ -50,7 +50,7 @@ class DsClientBase:
             if "errors" in results.keys():
                 for error in results["errors"]:
                     logger.warning(
-                        "DS request error",
+                        "DN request error",
                         extra={
                             "status_code": 200,
                             "operation_name": operation_name,
@@ -59,14 +59,14 @@ class DsClientBase:
                     )
                 if results.get("data", None) is None:
                     raise DsServiceException(
-                        level=logging.ERROR, log_message="DS request returned errors"
+                        level=logging.ERROR, log_message="DN request returned errors"
                     )
             return results
 
         if response.status_code == 403:
             raise DsConnectionError(
                 level=logging.CRITICAL,
-                log_message="DS forbidden access : token problem ?",
+                log_message="DN forbidden access : token problem ?",
                 extra={"error": response.text},
             )
 
@@ -253,7 +253,7 @@ class DsMutator(DsClientBase):
 
     def _upload_attachment(self, dossier_ds_id: str, file: UploadedFile) -> str:
         """
-        Upload a file to Démarches Simplifiées using GraphQL mutation.
+        Upload a file to Démarche Numérique using GraphQL mutation.
 
         :param file: UploadedFile instance. It must be a PDF file.
         :param dossier_id: ID of the dossier to attach the file to.
@@ -315,7 +315,7 @@ class DsMutator(DsClientBase):
             date_modif_ds = timezone.datetime.fromisoformat(date_modif_ds)
             if date_modif_ds > dossier.ds_date_derniere_modification:
                 raise DsServiceException(
-                    f"Le dossier {dossier.ds_number} a été modifié depuis Démarches Simplifiées. "
+                    f"Le dossier {dossier.ds_number} a été modifié depuis Démarche Numérique. "
                     f"Veuillez le mettre à jour manuellement et le réexaminer sur Turgot avant de poursuivre.",
                     level=logging.INFO,
                     log_message="Dossier must be refreshed before accepting",

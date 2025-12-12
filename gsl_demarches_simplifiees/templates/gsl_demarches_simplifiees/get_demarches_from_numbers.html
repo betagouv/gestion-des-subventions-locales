@@ -3,14 +3,14 @@
 {% block content %}
 
     <h1>
-        Chercher des démarches sur Démarches Simplifiées
+        Chercher des démarches sur Démarche Numérique
     </h1>
     {% dsfr_django_messages %}
     <form action="{% url 'ds:post-add-demarches' %}" method="POST">
         {% csrf_token %}
         <div class="fr-input-group">
             <label class="fr-label" for="ds_numbers">
-                Numéros des démarches DS
+                Numéros des démarches DN
                 <span class="fr-hint-text">Un numéro par ligne</span>
             </label>
             <textarea class="fr-input"
@@ -22,7 +22,7 @@
 
         <div class="fr-input-group">
             <button type="submit" class="fr-btn">
-                Chercher les démarches sur DS
+                Chercher les démarches sur DN
             </button>
         </div>
     </form>

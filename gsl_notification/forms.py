@@ -107,7 +107,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.Form):
             ]
         )
 
-        # Dossier was recently refreshed DS
+        # Dossier was recently refreshed DN
         # Race conditions remain possible, but should be rare enough and just fail without any side effect.
         if self.programmation_projet.dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:
             DsMutator().dossier_passer_en_instruction(
