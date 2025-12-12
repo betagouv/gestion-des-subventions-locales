@@ -1,3 +1,15 @@
+mutation dossierModifierAnnotations($input: DossierModifierAnnotationsInput!) {
+  dossierModifierAnnotations(input: $input) {
+    annotations {
+      id
+      updatedAt
+    }
+    errors {
+      message
+    }
+  }
+}
+
 mutation modifierAnnotationCheckbox(
   $input: DossierModifierAnnotationCheckboxInput!
   $includeAnnotations: Boolean = false

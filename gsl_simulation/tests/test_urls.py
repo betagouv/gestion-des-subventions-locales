@@ -286,9 +286,9 @@ def test_patch_status_simulation_projet_url_with_htmx(
         },
     )
     with mock.patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
-    ) as mock_update_ds_assiette_montant_and_taux:
-        mock_update_ds_assiette_montant_and_taux.return_value = None
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+    ) as mock_ds_update:
+        mock_ds_update.return_value = None
         response = client_with_cote_d_or_user_logged.post(
             url, headers=htmx_headers, follow=True
         )

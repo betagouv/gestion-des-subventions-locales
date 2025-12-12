@@ -196,13 +196,8 @@ def test_get_initial_montant_from_dotation_projet_with_an_accepted_programmation
     assert montant == 500
 
 
-@pytest.fixture
-def dotation_projet():
-    return DotationProjetFactory(assiette=1000)
-
-
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
 def test_accept_a_simulation_projet(mock_ds_update, user):
     simulation_projet = SimulationProjetFactory(
@@ -221,7 +216,8 @@ def test_accept_a_simulation_projet(mock_ds_update, user):
     mock_ds_update.assert_called_once_with(
         dossier=simulation_projet.projet.dossier_ds,
         user=user,
-        dotation=simulation_projet.dotation,
+        annotations_dotation_to_update=simulation_projet.dotation,
+        dotations_to_be_checked=[simulation_projet.dotation],
         assiette=simulation_projet.dotation_projet.assiette,
         montant=simulation_projet.montant,
         taux=simulation_projet.taux,
@@ -270,7 +266,7 @@ def test_update_taux(field_name, user):
 
 
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
 @pytest.mark.parametrize(
     "field_name",
@@ -304,7 +300,8 @@ def test_update_taux_of_accepted_montant(mock_ds_update, field_name, user):
     mock_ds_update.assert_called_once_with(
         dossier=simulation_projet.projet.dossier_ds,
         user=user,
-        dotation=simulation_projet.dotation,
+        annotations_dotation_to_update=simulation_projet.dotation,
+        dotations_to_be_checked=[simulation_projet.dotation],
         assiette=simulation_projet.dotation_projet.assiette,
         montant=expected_montant,
         taux=new_taux,
@@ -343,7 +340,7 @@ def test_update_montant(field_name, user):
 
 
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
 @pytest.mark.parametrize(
     "field_name",
@@ -379,7 +376,8 @@ def test_update_montant_of_accepted_montant(mock_ds_update, field_name, user):
     mock_ds_update.assert_called_once_with(
         dossier=simulation_projet.projet.dossier_ds,
         user=user,
-        dotation=simulation_projet.dotation,
+        annotations_dotation_to_update=simulation_projet.dotation,
+        dotations_to_be_checked=[simulation_projet.dotation],
         assiette=simulation_projet.dotation_projet.assiette,
         montant=new_montant,
         taux=new_taux,
@@ -413,11 +411,7 @@ def test_get_simulation_projet_status(projet_status, simulation_projet_status_ex
 
 
 @mock.patch("gsl_projet.models.DotationProjet.accept")
-@mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
-)
 def test_accept_simulation_projet_triggers_transition(
-    mock_ds_update,
     mock_transition_dotation_projet,
     user,
 ):
@@ -428,13 +422,6 @@ def test_accept_simulation_projet_triggers_transition(
     kwargs = {
         "enveloppe": simulation_projet.enveloppe,
         "montant": simulation_projet.montant,
+        "user": user,
     }
     mock_transition_dotation_projet.assert_called_once_with(**kwargs)
-    mock_ds_update.assert_called_once_with(
-        dossier=simulation_projet.dossier,
-        user=user,
-        dotation=simulation_projet.dotation,
-        assiette=simulation_projet.dotation_projet.assiette,
-        montant=simulation_projet.montant,
-        taux=simulation_projet.taux,
-    )

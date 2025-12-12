@@ -1,5 +1,6 @@
 import copy
 import logging
+from datetime import datetime
 from unittest import mock
 from unittest.mock import patch
 
@@ -410,6 +411,419 @@ def test_dismiss_in_ds():
         mock_check_results.assert_called_once_with(
             results, dossier, user, "dismiss", value="motivation"
         )
+
+
+def test_update_ds_annotations_for_one_dotation_annotations_dict(user, dossier):
+    """Test that update_ds_annotations_for_one_dotation builds annotations dict correctly"""
+    ds_service = DsService()
+
+    # Mock field IDs
+    field_ids = {
+        "annotations_dotation": "field_dotations_123",
+        "annotations_assiette_dsil": "field_assiette_dsil_456",
+        "annotations_assiette_detr": "field_assiette_detr_789",
+        "annotations_montant_accorde_dsil": "field_montant_dsil_101",
+        "annotations_montant_accorde_detr": "field_montant_detr_102",
+        "annotations_taux_dsil": "field_taux_dsil_103",
+        "annotations_taux_detr": "field_taux_detr_104",
+    }
+
+    def mock_get_ds_field_id(dossier, field):
+        return field_ids[field]
+
+    with (
+        patch.object(ds_service, "_get_ds_field_id", side_effect=mock_get_ds_field_id),
+        patch.object(ds_service, "mutator") as mock_mutator,
+        patch.object(ds_service, "_check_results") as mock_check_results,
+    ):
+        mock_mutator.dossier_modifier_annotations.return_value = {
+            "data": {"dossierModifierAnnotations": {"clientMutationId": "test"}}
+        }
+
+        # Test with DSIL, all parameters provided
+        ds_service.update_ds_annotations_for_one_dotation(
+            dossier=dossier,
+            user=user,
+            annotations_dotation_to_update=DOTATION_DSIL,
+            dotations_to_be_checked=[DOTATION_DSIL, DOTATION_DETR],
+            assiette=1000.50,
+            montant=500.25,
+            taux=50.0,
+        )
+
+        # Verify annotations dict was built correctly
+        call_args = mock_mutator.dossier_modifier_annotations.call_args
+        annotations = call_args[0][2]  # Third argument is annotations
+
+        assert len(annotations) == 4  # dotations + assiette + montant + taux
+
+        # Check dotations annotation (always first)
+        assert annotations[0] == {
+            "id": "field_dotations_123",
+            "value": {"multipleDropDownList": [DOTATION_DSIL, DOTATION_DETR]},
+        }
+
+        # Check assiette annotation
+        assert annotations[1] == {
+            "id": "field_assiette_dsil_456",
+            "value": {"decimalNumber": 1000.50},
+        }
+
+        # Check montant annotation
+        assert annotations[2] == {
+            "id": "field_montant_dsil_101",
+            "value": {"decimalNumber": 500.25},
+        }
+
+        # Check taux annotation
+        assert annotations[3] == {
+            "id": "field_taux_dsil_103",
+            "value": {"decimalNumber": 50.0},
+        }
+
+        # Verify _check_results was called with annotations
+        mock_check_results.assert_called_once()
+        check_call_args = mock_check_results.call_args[0]
+        assert check_call_args[3] == "annotations"  # mutation_type
+        assert check_call_args[4] == annotations  # value (annotations list)
+
+
+@pytest.mark.parametrize(
+    "dotation, expected_suffix",
+    [(DOTATION_DSIL, "dsil"), (DOTATION_DETR, "detr")],
+)
+def test_update_ds_annotations_for_one_dotation_suffix(
+    user, dossier, dotation, expected_suffix
+):
+    """Test that correct suffix is used based on dotation type"""
+    ds_service = DsService()
+
+    field_ids = {
+        "annotations_dotation": "field_dotations_123",
+        f"annotations_assiette_{expected_suffix}": f"field_assiette_{expected_suffix}_456",
+        f"annotations_montant_accorde_{expected_suffix}": f"field_montant_{expected_suffix}_101",
+        f"annotations_taux_{expected_suffix}": f"field_taux_{expected_suffix}_103",
+    }
+
+    def mock_get_ds_field_id(dossier, field):
+        return field_ids[field]
+
+    with (
+        patch.object(ds_service, "_get_ds_field_id", side_effect=mock_get_ds_field_id),
+        patch.object(ds_service, "mutator") as mock_mutator,
+        patch.object(ds_service, "_check_results"),
+    ):
+        mock_mutator.dossier_modifier_annotations.return_value = {
+            "data": {"dossierModifierAnnotations": {"clientMutationId": "test"}}
+        }
+
+        ds_service.update_ds_annotations_for_one_dotation(
+            dossier=dossier,
+            user=user,
+            annotations_dotation_to_update=dotation,
+            dotations_to_be_checked=[dotation],
+            assiette=1000.0,
+            montant=500.0,
+            taux=50.0,
+        )
+
+        annotations = mock_mutator.dossier_modifier_annotations.call_args[0][2]
+
+        # Verify suffix is used in field IDs
+        assert annotations[1]["id"] == f"field_assiette_{expected_suffix}_456"
+        assert annotations[2]["id"] == f"field_montant_{expected_suffix}_101"
+        assert annotations[3]["id"] == f"field_taux_{expected_suffix}_103"
+
+
+@pytest.mark.parametrize(
+    "assiette, montant, taux, expected_count",
+    [
+        (None, None, None, 1),  # Only dotations
+        (1000.0, None, None, 2),  # dotations + assiette
+        (None, 500.0, None, 2),  # dotations + montant
+        (None, None, 50.0, 2),  # dotations + taux
+        (1000.0, 500.0, None, 3),  # dotations + assiette + montant
+        (1000.0, None, 50.0, 3),  # dotations + assiette + taux
+        (None, 500.0, 50.0, 3),  # dotations + montant + taux
+        (1000.0, 500.0, 50.0, 4),  # All parameters
+    ],
+)
+def test_update_ds_annotations_for_one_dotation_optional_params(
+    user, dossier, assiette, montant, taux, expected_count
+):
+    """Test that optional parameters (assiette, montant, taux) are only included when not None"""
+    ds_service = DsService()
+
+    field_ids = {
+        "annotations_dotation": "field_dotations_123",
+        "annotations_assiette_detr": "field_assiette_detr_456",
+        "annotations_montant_accorde_detr": "field_montant_detr_101",
+        "annotations_taux_detr": "field_taux_detr_103",
+    }
+
+    def mock_get_ds_field_id(dossier, field):
+        return field_ids[field]
+
+    with (
+        patch.object(ds_service, "_get_ds_field_id", side_effect=mock_get_ds_field_id),
+        patch.object(ds_service, "mutator") as mock_mutator,
+        patch.object(ds_service, "_check_results"),
+    ):
+        mock_mutator.dossier_modifier_annotations.return_value = {
+            "data": {"dossierModifierAnnotations": {"clientMutationId": "test"}}
+        }
+
+        ds_service.update_ds_annotations_for_one_dotation(
+            dossier=dossier,
+            user=user,
+            annotations_dotation_to_update=DOTATION_DETR,
+            dotations_to_be_checked=[DOTATION_DETR],
+            assiette=assiette,
+            montant=montant,
+            taux=taux,
+        )
+
+        annotations = mock_mutator.dossier_modifier_annotations.call_args[0][2]
+
+        # Verify correct number of annotations
+        assert len(annotations) == expected_count
+
+        # First annotation should always be dotations
+        assert annotations[0]["id"] == "field_dotations_123"
+        assert "multipleDropDownList" in annotations[0]["value"]
+
+        # Verify only non-None parameters are included
+        annotation_ids = [ann["id"] for ann in annotations[1:]]
+        if assiette is not None:
+            assert "field_assiette_detr_456" in annotation_ids
+        if montant is not None:
+            assert "field_montant_detr_101" in annotation_ids
+        if taux is not None:
+            assert "field_taux_detr_103" in annotation_ids
+
+
+def test_update_ds_annotations_for_one_dotation_dotations_list(user, dossier):
+    """Test that dotations_to_be_checked is correctly passed as multipleDropDownList"""
+    ds_service = DsService()
+
+    field_ids = {
+        "annotations_dotation": "field_dotations_123",
+    }
+
+    def mock_get_ds_field_id(dossier, field):
+        return field_ids[field]
+
+    with (
+        patch.object(ds_service, "_get_ds_field_id", side_effect=mock_get_ds_field_id),
+        patch.object(ds_service, "mutator") as mock_mutator,
+        patch.object(ds_service, "_check_results"),
+    ):
+        mock_mutator.dossier_modifier_annotations.return_value = {
+            "data": {"dossierModifierAnnotations": {"clientMutationId": "test"}}
+        }
+
+        dotations_list = [DOTATION_DSIL]
+        ds_service.update_ds_annotations_for_one_dotation(
+            dossier=dossier,
+            user=user,
+            annotations_dotation_to_update=DOTATION_DSIL,
+            dotations_to_be_checked=dotations_list,
+        )
+
+        annotations = mock_mutator.dossier_modifier_annotations.call_args[0][2]
+
+        # Verify dotations list is correctly formatted
+        assert annotations[0]["value"]["multipleDropDownList"] == dotations_list
+
+        # Test with multiple dotations
+        dotations_list = [DOTATION_DSIL, DOTATION_DETR]
+        ds_service.update_ds_annotations_for_one_dotation(
+            dossier=dossier,
+            user=user,
+            annotations_dotation_to_update=DOTATION_DSIL,
+            dotations_to_be_checked=dotations_list,
+        )
+
+        annotations = mock_mutator.dossier_modifier_annotations.call_args[0][2]
+        assert annotations[0]["value"]["multipleDropDownList"] == dotations_list
+
+
+class TestUpdateUpdatedAtFromMultipleAnnotations:
+    def test_update_updated_at_from_multiple_annotations_with_user_data(self, dossier):
+        """Test with the actual data structure provided by the user"""
+        ds_service = DsService()
+
+        results = {
+            "data": {
+                "dossierModifierAnnotations": {
+                    "annotations": [
+                        {
+                            "id": "Q2hhbXAtNTQ0MTQ2NA==",
+                            "updatedAt": "2025-12-08T11:26:17+01:00",
+                        },
+                        {
+                            "id": "Q2hhbXAtNTQ0MjcxMg==",
+                            "updatedAt": "2025-12-08T11:35:14+01:00",
+                        },
+                        {
+                            "id": "Q2hhbXAtNTQ0MjcxMw==",
+                            "updatedAt": "2025-12-08T11:35:14+01:00",
+                        },
+                        {
+                            "id": "Q2hhbXAtNTQ0MjcxNA==",
+                            "updatedAt": "2025-12-08T11:26:17+01:00",
+                        },
+                    ],
+                    "errors": None,
+                }
+            }
+        }
+
+        dossier.ds_date_derniere_modification = None
+        dossier.save()
+
+        ds_service._update_updated_at_from_multiple_annotations(dossier, results)
+
+        dossier.refresh_from_db()
+        expected_updated_at = datetime.fromisoformat("2025-12-08T11:35:14+01:00")
+        assert dossier.ds_date_derniere_modification == expected_updated_at
+
+    def test_update_updated_at_from_multiple_annotations_most_recent(self, dossier):
+        """Test that it correctly identifies the most recent updatedAt"""
+        ds_service = DsService()
+
+        results = {
+            "data": {
+                "dossierModifierAnnotations": {
+                    "annotations": [
+                        {"id": "1", "updatedAt": "2025-01-01T10:00:00+01:00"},
+                        {"id": "2", "updatedAt": "2025-01-01T12:00:00+01:00"},
+                        {"id": "3", "updatedAt": "2025-01-01T11:00:00+01:00"},
+                    ],
+                    "errors": None,
+                }
+            }
+        }
+
+        dossier.ds_date_derniere_modification = None
+        dossier.save()
+
+        ds_service._update_updated_at_from_multiple_annotations(dossier, results)
+
+        dossier.refresh_from_db()
+        expected_updated_at = datetime.fromisoformat("2025-01-01T12:00:00+01:00")
+        assert dossier.ds_date_derniere_modification == expected_updated_at
+
+    def test_update_updated_at_from_multiple_annotations_empty_list(self, dossier):
+        """Test with empty annotations list"""
+        ds_service = DsService()
+
+        results = {
+            "data": {
+                "dossierModifierAnnotations": {
+                    "annotations": [],
+                    "errors": None,
+                }
+            }
+        }
+
+        original_date = timezone.make_aware(datetime(2025, 1, 1, 10, 0, 0))
+        dossier.ds_date_derniere_modification = original_date
+        dossier.save()
+
+        ds_service._update_updated_at_from_multiple_annotations(dossier, results)
+
+        dossier.refresh_from_db()
+        # Should not change if no annotations
+        assert dossier.ds_date_derniere_modification == original_date
+
+    def test_update_updated_at_from_multiple_annotations_missing_data(self, dossier):
+        """Test with missing data structure"""
+        ds_service = DsService()
+
+        results = {"data": {}}
+
+        original_date = timezone.make_aware(datetime(2025, 1, 1, 10, 0, 0))
+        dossier.ds_date_derniere_modification = original_date
+        dossier.save()
+
+        ds_service._update_updated_at_from_multiple_annotations(dossier, results)
+
+        dossier.refresh_from_db()
+        # Should not change if data structure is missing
+        assert dossier.ds_date_derniere_modification == original_date
+
+    def test_update_updated_at_from_multiple_annotations_missing_dossier_modifier(
+        self, dossier
+    ):
+        """Test with missing dossierModifierAnnotations key"""
+        ds_service = DsService()
+
+        results = {"data": {"otherKey": "value"}}
+
+        original_date = timezone.make_aware(datetime(2025, 1, 1, 10, 0, 0))
+        dossier.ds_date_derniere_modification = original_date
+        dossier.save()
+
+        ds_service._update_updated_at_from_multiple_annotations(dossier, results)
+
+        dossier.refresh_from_db()
+        # Should not change if dossierModifierAnnotations is missing
+        assert dossier.ds_date_derniere_modification == original_date
+
+    def test_update_updated_at_from_multiple_annotations_single_annotation(
+        self, dossier
+    ):
+        """Test with a single annotation"""
+        ds_service = DsService()
+
+        results = {
+            "data": {
+                "dossierModifierAnnotations": {
+                    "annotations": [
+                        {"id": "1", "updatedAt": "2025-01-15T14:30:00+01:00"},
+                    ],
+                    "errors": None,
+                }
+            }
+        }
+
+        dossier.ds_date_derniere_modification = None
+        dossier.save()
+
+        ds_service._update_updated_at_from_multiple_annotations(dossier, results)
+
+        dossier.refresh_from_db()
+        expected_updated_at = datetime.fromisoformat("2025-01-15T14:30:00+01:00")
+        assert dossier.ds_date_derniere_modification == expected_updated_at
+
+    def test_update_updated_at_from_multiple_annotations_updates_existing_date(
+        self, dossier
+    ):
+        """Test that it updates an existing ds_date_derniere_modification"""
+        ds_service = DsService()
+
+        results = {
+            "data": {
+                "dossierModifierAnnotations": {
+                    "annotations": [
+                        {"id": "1", "updatedAt": "2025-01-20T15:45:00+01:00"},
+                    ],
+                    "errors": None,
+                }
+            }
+        }
+
+        old_date = timezone.make_aware(datetime(2025, 1, 1, 10, 0, 0))
+        dossier.ds_date_derniere_modification = old_date
+        dossier.save()
+
+        ds_service._update_updated_at_from_multiple_annotations(dossier, results)
+
+        dossier.refresh_from_db()
+        expected_updated_at = datetime.fromisoformat("2025-01-20T15:45:00+01:00")
+        assert dossier.ds_date_derniere_modification == expected_updated_at
+        assert dossier.ds_date_derniere_modification != old_date
 
 
 class TestTransformMessage:

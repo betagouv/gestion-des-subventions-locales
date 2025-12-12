@@ -153,22 +153,14 @@ class SimulationProjetService:
     def accept_a_simulation_projet(
         cls, simulation_projet: SimulationProjet, user: Collegue
     ):
-        dotation_projet = simulation_projet.dotation_projet
+        dotation_projet: DotationProjet = simulation_projet.dotation_projet
 
         dotation_projet.accept(
-            montant=simulation_projet.montant, enveloppe=simulation_projet.enveloppe
-        )
-        dotation_projet.save()
-
-        cls._update_ds_assiette_montant_and_taux(
-            dossier=dotation_projet.projet.dossier_ds,
-            assiette=dotation_projet.assiette,
             montant=simulation_projet.montant,
-            taux=simulation_projet.taux,
-            dotation=dotation_projet.dotation,
+            enveloppe=simulation_projet.enveloppe,
             user=user,
         )
-
+        dotation_projet.save()
         updated_simulation_projet = SimulationProjet.objects.get(
             pk=simulation_projet.pk
         )

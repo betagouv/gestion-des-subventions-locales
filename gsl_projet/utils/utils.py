@@ -25,3 +25,9 @@ def compute_taux(numerator: float | Decimal, denominator: float | Decimal) -> De
         return Decimal(0)
     except InvalidOperation:
         return Decimal(0)
+
+
+def floatize(value: float | Decimal | None) -> float | None:
+    if value is None:
+        return None
+    return float(value)

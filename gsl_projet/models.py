@@ -3,7 +3,7 @@ from datetime import timezone as tz
 from typing import TYPE_CHECKING, Iterator, List, Optional, Tuple, Union
 
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import (
     Case,
     Count,
@@ -19,6 +19,7 @@ from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.services import DsService
 from gsl_projet.constants import (
     DOTATION_CHOICES,
     DOTATION_DETR,
@@ -31,6 +32,7 @@ from gsl_projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
+from gsl_projet.utils.utils import floatize
 
 if TYPE_CHECKING:
     from gsl_demarches_simplifiees.models import CritereEligibiliteDsil, Dossier
@@ -448,6 +450,14 @@ class DotationProjet(models.Model):
         return list(d for d in self.projet.dotationprojet_set.all() if d.pk != self.pk)
 
     @property
+    def other_accepted_dotations(self) -> List[POSSIBLE_DOTATIONS]:
+        return [
+            d.dotation
+            for d in self.other_dotations
+            if d.status == PROJET_STATUS_ACCEPTED
+        ]
+
+    @property
     def last_updated_simulation_projet(self) -> Optional["SimulationProjet"]:
         """
         We use python side sort so we benefit from prefetching !
@@ -488,11 +498,7 @@ class DotationProjet(models.Model):
         return None
 
     @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
-    def accept(
-        self,
-        montant: float,
-        enveloppe: "Enveloppe",
-    ):
+    def accept_without_ds_update(self, montant: float, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -514,6 +520,30 @@ class DotationProjet(models.Model):
                 "status": ProgrammationProjet.STATUS_ACCEPTED,
             },
         )
+
+    @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
+    def accept(
+        self,
+        montant: float,
+        enveloppe: "Enveloppe",
+        user: Collegue,
+    ):
+        with transaction.atomic():
+            self.accept_without_ds_update(montant, enveloppe)
+
+            projet_dotation_checked = self.other_accepted_dotations
+            ds_service = DsService()
+            if hasattr(self, "programmation_projet"):
+                self.programmation_projet.refresh_from_db()
+            ds_service.update_ds_annotations_for_one_dotation(
+                dossier=self.projet.dossier_ds,
+                user=user,
+                annotations_dotation_to_update=self.dotation,
+                dotations_to_be_checked=[self.dotation] + projet_dotation_checked,
+                assiette=floatize(self.assiette),
+                montant=floatize(montant),
+                taux=floatize(self.taux_retenu),
+            )
 
     @transition(field=status, source="*", target=PROJET_STATUS_REFUSED)
     def refuse(self, enveloppe: "Enveloppe"):

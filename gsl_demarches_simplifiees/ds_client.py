@@ -133,6 +133,24 @@ class DsClient(DsClientBase):
 class DsMutator(DsClientBase):
     filename = "ds_mutations.gql"
 
+    def dossier_modifier_annotations(
+        self,
+        dossier_id: str,
+        instructeur_id: str,
+        annotations: list[dict],
+    ):
+        variables = {
+            "input": {
+                "clientMutationId": settings.DS_CLIENT_ID,
+                "dossierId": dossier_id,
+                "instructeurId": instructeur_id,
+                "annotations": annotations,
+            }
+        }
+        return self.launch_graphql_query(
+            "dossierModifierAnnotations", variables=variables
+        )
+
     def dossier_modifier_annotation_checkbox(
         self,
         dossier_id: str,

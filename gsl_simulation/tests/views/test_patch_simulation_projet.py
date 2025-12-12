@@ -99,9 +99,9 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
         args=[simulation_projet.id, SimulationProjet.STATUS_ACCEPTED],
     )
     with patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
-    ) as mock_update_ds_montant:
-        mock_update_ds_montant.return_value = None
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+    ) as mock_update_ds_annotations_for_one_dotation:
+        mock_update_ds_annotations_for_one_dotation.return_value = None
         response = client_with_user_logged.post(
             url,
             follow=True,
@@ -143,7 +143,7 @@ data_test = (
 
 @mock.patch("gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds")
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
 @pytest.mark.parametrize("status, expected_message, expected_tag", data_test)
 def test_patch_status_simulation_projet_gives_message(
@@ -180,7 +180,8 @@ def test_patch_status_simulation_projet_gives_message(
         mock_ds_update.assert_called_once_with(
             dossier=simulation_projet.projet.dossier_ds,
             user=client_with_user_logged.user,
-            dotation=simulation_projet.dotation,
+            annotations_dotation_to_update=simulation_projet.dotation,
+            dotations_to_be_checked=[simulation_projet.dotation],
             assiette=simulation_projet.dotation_projet.assiette,
             montant=Decimal(simulation_projet.montant),
             taux=Decimal(simulation_projet.taux),
@@ -254,7 +255,7 @@ def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
     )
 
     with patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux",
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation",
         side_effect=DsServiceException("Erreur !"),
     ):
         response = client_with_user_logged.post(
@@ -276,7 +277,7 @@ def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
 
 
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
 def test_patch_taux_simulation_projet(
     mock_ds_update,
@@ -300,7 +301,8 @@ def test_patch_taux_simulation_projet(
     mock_ds_update.assert_called_once_with(
         dossier=accepted_simulation_projet.projet.dossier_ds,
         user=client_with_user_logged.user,
-        dotation=accepted_simulation_projet.dotation,
+        annotations_dotation_to_update=accepted_simulation_projet.dotation,
+        dotations_to_be_checked=[accepted_simulation_projet.dotation],
         assiette=accepted_simulation_projet.dotation_projet.assiette,
         montant=7_500,
         taux=75.0,
@@ -351,7 +353,7 @@ def test_patch_taux_simulation_projet_cancelling_all_when_error_in_ds_update(
     )
 
     with patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux",
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation",
         side_effect=DsServiceException("Erreur !"),
     ):
         response = client_with_user_logged.post(
@@ -375,7 +377,7 @@ def test_patch_taux_simulation_projet_cancelling_all_when_error_in_ds_update(
 
 
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux"
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
 def test_patch_montant_simulation_projet(
     mock_ds_update,
@@ -400,10 +402,11 @@ def test_patch_montant_simulation_projet(
     mock_ds_update.assert_called_once_with(
         dossier=accepted_simulation_projet.projet.dossier_ds,
         user=client_with_user_logged.user,
-        dotation=accepted_simulation_projet.dotation,
+        annotations_dotation_to_update=accepted_simulation_projet.dotation,
+        dotations_to_be_checked=[accepted_simulation_projet.dotation],
         assiette=accepted_simulation_projet.dotation_projet.assiette,
         montant=1267.32,
-        taux=Decimal("12.673"),
+        taux=12.673,
     )
 
     assert response.status_code == 200
@@ -451,7 +454,7 @@ def test_patch_montant_simulation_projet_cancelling_all_when_error_in_ds_update(
     )
 
     with patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_assiette_montant_and_taux",
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation",
         side_effect=DsServiceException("Erreur !"),
     ):
         response = client_with_user_logged.post(

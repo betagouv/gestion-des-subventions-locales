@@ -229,8 +229,10 @@ class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):
     @transaction.atomic
     def save(self, status, user: Collegue, commit=True):
         if status == SimulationProjet.STATUS_ACCEPTED:
-            return SimulationProjetService.accept_a_simulation_projet(
-                self.instance, user
+            self.instance.dotation_projet.accept(
+                montant=self.instance.montant,
+                enveloppe=self.instance.enveloppe,
+                user=user,
             )
         elif status == SimulationProjet.STATUS_REFUSED:
             self.instance.dotation_projet.refuse(enveloppe=self.instance.enveloppe)
