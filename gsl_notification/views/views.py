@@ -36,6 +36,7 @@ from gsl_projet.constants import (
     ARRETE,
     LETTRE,
     POSSIBLES_DOCUMENTS,
+    PROJET_STATUS_ACCEPTED,
 )
 from gsl_projet.models import Projet
 
@@ -162,9 +163,13 @@ class CheckDsDossierUpToDateView(OpenHtmxModalMixin, DetailView):
         if date_modif_ds:
             date_modif_ds = timezone.datetime.fromisoformat(date_modif_ds)
             if date_modif_ds <= dossier.ds_date_derniere_modification:
+                programmation_projet = ProgrammationProjet.objects.filter(
+                    dotation_projet__projet=self.object,
+                    dotation_projet__status=PROJET_STATUS_ACCEPTED,
+                ).first()
                 return HttpResponseClientRedirect(
                     reverse(
-                        "gsl_notification:documents", args=[self.object.id]
+                        "gsl_notification:documents", args=[programmation_projet.id]
                     )  # TODO DUN doesn't work. Waiting for refacto of this view
                 )
 
