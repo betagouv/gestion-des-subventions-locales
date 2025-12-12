@@ -9,7 +9,7 @@ from gsl_demarches_simplifiees.ds_client import DsClient, DsMutator
 
 
 class Command(BaseCommand):
-    help = "Test-only: upload a file to Démarches Simplifiées using DsMutator._upload_attachment and print the blob id."
+    help = "Test-only: upload a file to Démarche Numérique using DsMutator._upload_attachment and print the blob id."
 
     def add_arguments(self, parser):
         parser.add_argument(

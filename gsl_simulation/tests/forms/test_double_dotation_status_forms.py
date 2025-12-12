@@ -74,7 +74,7 @@ class TestRefuseOneDoubleDotation:
     ):
         """
         When refusing DETR with DSIL still processing, use SimulationProjetStatusForm.
-        This form doesn't notify DS, only updates dotation status.
+        This form doesn't notify DN, only updates dotation status.
         """
         detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
@@ -111,7 +111,7 @@ class TestRefuseOneDoubleDotation:
     ):
         """
         When refusing DETR and DSIL already refused, use RefuseProjetForm.
-        This triggers DS notification because all dotations are now refused.
+        This triggers DN notification because all dotations are now refused.
         """
         detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
@@ -142,7 +142,7 @@ class TestRefuseOneDoubleDotation:
             assert form.is_valid()
             form.save(SimulationProjet.STATUS_REFUSED, user)
 
-            # Verify DS was called (because all dotations are now refused)
+            # Verify DN was called (because all dotations are now refused)
             mock_ds_refuser.assert_called_once()
 
         # Verify statuses
@@ -160,7 +160,7 @@ class TestRefuseOneDoubleDotation:
     ):
         """
         When refusing DETR but DSIL accepted, use SimulationProjetStatusForm.
-        Project stays accepted (optimistic status), no DS notification.
+        Project stays accepted (optimistic status), no DN notification.
         """
         detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
@@ -203,7 +203,7 @@ class TestDismissOneDoubleDotation:
     ):
         """
         When dismissing DSIL with DETR still processing, use SimulationProjetStatusForm.
-        This form doesn't notify DS, only updates dotation status.
+        This form doesn't notify DN, only updates dotation status.
         """
         detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
@@ -237,7 +237,7 @@ class TestDismissOneDoubleDotation:
     ):
         """
         When dismissing DSIL and DETR already dismissed, use DismissProjetForm.
-        This triggers DS notification because all dotations are now dismissed.
+        This triggers DN notification because all dotations are now dismissed.
         """
         detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
@@ -272,7 +272,7 @@ class TestDismissOneDoubleDotation:
             assert form.is_valid()
             form.save(SimulationProjet.STATUS_DISMISSED, user)
 
-            # Verify DS was called (because all dotations are now dismissed)
+            # Verify DN was called (because all dotations are now dismissed)
             mock_ds_dismiss.assert_called_once()
 
         # Verify statuses
@@ -289,7 +289,7 @@ class TestDismissOneDoubleDotation:
     ):
         """
         When dismissing DSIL and DETR refused, use DismissProjetForm.
-        Projet becomes dismissed (dismissed takes precedence) and DS notification is sent.
+        Projet becomes dismissed (dismissed takes precedence) and DN notification is sent.
         """
         detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
@@ -324,7 +324,7 @@ class TestDismissOneDoubleDotation:
             assert form.is_valid()
             form.save(SimulationProjet.STATUS_DISMISSED, user)
 
-            # Verify DS was called (dismissed takes precedence over refused)
+            # Verify DN was called (dismissed takes precedence over refused)
             mock_ds_dismiss.assert_called_once()
 
         # Verify statuses
@@ -364,7 +364,7 @@ class TestAcceptOneDoubleDotation:
         form = SimulationProjetStatusForm(instance=detr_simulation_projet)
         form.save(SimulationProjet.STATUS_ACCEPTED, user)
 
-        # Verify DS update was called for DETR
+        # Verify DN update was called for DETR
         mock_ds_update.assert_called_once_with(
             dossier=projet.dossier_ds,
             user=user,
@@ -433,7 +433,7 @@ class TestAcceptOneDoubleDotation:
         form_dsil = SimulationProjetStatusForm(instance=dsil_simulation_projet)
         form_dsil.save(SimulationProjet.STATUS_ACCEPTED, user)
 
-        # Verify both DS updates were called
+        # Verify both DN updates were called
         assert mock_ds_update.call_count == 2
 
         # Verify final statuses

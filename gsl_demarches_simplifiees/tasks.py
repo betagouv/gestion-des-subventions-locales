@@ -12,7 +12,7 @@ from gsl_demarches_simplifiees.importer.dossier import (
 from gsl_demarches_simplifiees.models import Demarche, Dossier
 
 
-## Refresh demarches from DS
+## Refresh demarches from DN
 #### of every demarches => useful in cron tasks !
 @shared_task
 def task_refresh_every_demarche(refresh_only_if_demarche_has_been_updated=True):
@@ -33,7 +33,7 @@ def task_save_demarche_from_ds(
 
 
 ## Refresh dossiers
-### from DS
+### from DN
 #### of every published demarches
 @shared_task
 def task_fetch_ds_dossiers_for_every_published_demarche():
@@ -70,7 +70,7 @@ def task_refresh_dossier_from_saved_data(dossier_number):
 
 
 ## Refresh demarche field mappings
-## from saved data if existing else from DS
+## from saved data if existing else from DN
 @shared_task
 def task_refresh_field_mappings_from_demarche_data(demarche_number):
     return refresh_field_mappings_on_demarche(demarche_number)

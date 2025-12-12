@@ -27,7 +27,7 @@ def associate_with_core_arrondissement(
             instance.core_arrondissement = core_arrondissement
             return
     logger.warning(
-        f"Unable to match a CoreArrondissement with DS Arrondissement '{instance.label}'."
+        f"Unable to match a CoreArrondissement with DN Arrondissement '{instance.label}'."
     )
 
 

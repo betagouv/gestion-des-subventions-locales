@@ -602,7 +602,7 @@ possible_responses = [
                 }
             }
         },
-        "Une erreur est survenue lors de la mise à jour des informations sur Démarches Simplifiées. Vous n'avez pas les droits suffisants pour modifier ce dossier.",
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. Vous n'avez pas les droits suffisants pour modifier ce dossier.",
     ),
     # Invalid payload (ex: wrong dossier id)
     (
@@ -614,7 +614,7 @@ possible_responses = [
             ],
             "data": {"dossierModifierAnnotationDecimalNumber": None},
         },
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field} => dossierModifierAnnotationDecimalNumberPayload not found). Ces modifications n'ont pas été enregistrées.",
+        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarche Numérique ({field} => dossierModifierAnnotationDecimalNumberPayload not found). Ces modifications n'ont pas été enregistrées.",
     ),
     # Invalid field id
     (
@@ -626,7 +626,7 @@ possible_responses = [
             ],
             "data": {"dossierModifierAnnotationDecimalNumber": None},
         },
-        'Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field} => Invalid input: "field_NUL"). Ces modifications n\'ont pas été enregistrées.',
+        'Une erreur est survenue lors de la mise à jour de certaines informations sur Démarche Numérique ({field} => Invalid input: "field_NUL"). Ces modifications n\'ont pas été enregistrées.',
     ),
     # Invalid value
     (
@@ -637,7 +637,7 @@ possible_responses = [
                 }
             ]
         },
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field}). Ces modifications n'ont pas été enregistrées.",
+        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarche Numérique ({field}). Ces modifications n'ont pas été enregistrées.",
     ),
     # Other error
     (
@@ -648,7 +648,7 @@ possible_responses = [
                 }
             }
         },
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field} => Une erreur). Ces modifications n'ont pas été enregistrées.",
+        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarche Numérique ({field} => Une erreur). Ces modifications n'ont pas été enregistrées.",
     ),
 ]
 
@@ -735,7 +735,7 @@ def test_patch_simulation_projet_with_ds_token_error(
     message = list(messages)[0]
     assert message.level == 40
     assert (
-        "Une erreur est survenue lors de la mise à jour des informations sur Démarches Simplifiées. Nous n'arrivons pas à nous connecter à Démarches Simplifiées."
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. Nous n'arrivons pas à nous connecter à Démarche Numérique."
         == message.message
     )
 
@@ -789,7 +789,7 @@ def test_three_fields_update_and_only_one_error(
     message = list(messages)[0]
     assert message.level == 40  # Error
     assert (
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées (Montant => Erreur !). Ces modifications n'ont pas été enregistrées."
+        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarche Numérique (Montant => Erreur !). Ces modifications n'ont pas été enregistrées."
         == message.message
     )
 

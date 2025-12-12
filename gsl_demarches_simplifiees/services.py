@@ -278,7 +278,7 @@ class DsService:
 
             raise DsServiceException(
                 message,
-                log_message="Error in DS mutation",
+                log_message="Error in DN mutation",
                 extra={
                     "dossier_ds_number": dossier.ds_number,
                     "user_id": user.id,
@@ -309,7 +309,7 @@ class DsService:
         message = self._transform_message(messages)
         raise DsServiceException(
             message,
-            log_message="Error in DS mutation",
+            log_message="Error in DN mutation",
             extra={
                 "dossier_ds_number": dossier.ds_number,
                 "user_id": user.id,
@@ -325,7 +325,7 @@ class DsService:
         for message in messages:
             if message == "Le dossier est déjà en\xa0construction":
                 new_messages.append(
-                    "Le dossier est en construction sur Démarches Simplifiées."
+                    "Le dossier est en construction sur Démarche Numérique."
                 )
             elif message == "An object of type Dossier was hidden due to permissions":
                 new_messages.append("Vous n'avez pas accès à ce dossier.")

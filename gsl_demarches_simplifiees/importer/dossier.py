@@ -52,7 +52,7 @@ def save_demarche_dossiers_from_ds(demarche_number, using_updated_since: bool = 
         except Exception as e:
             if not isinstance(e, DsServiceException):
                 logger.exception(
-                    "Error unhandled while saving dossier from DS",
+                    "Error unhandled while saving dossier from DN",
                     extra={
                         "demarche_ds_number": demarche_number,
                         "dossier_ds_number": ds_dossier_number,
@@ -62,7 +62,7 @@ def save_demarche_dossiers_from_ds(demarche_number, using_updated_since: bool = 
                 )
 
     logger.info(
-        "Updated demarche from DS",
+        "Updated demarche from DN",
         extra={
             "demarche_ds_number": demarche_number,
             "dossiers_count": dossiers_count,
@@ -89,13 +89,13 @@ def save_one_dossier_from_ds(
     if has_dossier_been_updated:
         return (
             messages.SUCCESS,
-            "Le dossier a bien été mis à jour depuis Démarches Simplifiées.",
+            "Le dossier a bien été mis à jour depuis Démarche Numérique.",
         )
     return (
         messages.WARNING,
         (
             "Le dossier était déjà à jour sur Turgot, nous ne l’avons pas "
-            "remis à jour depuis Démarches Simplifiées."
+            "remis à jour depuis Démarche Numérique."
         ),
     )
 
@@ -159,7 +159,7 @@ def refresh_dossier_from_saved_data(dossier: Dossier):
 
 def refresh_dossier_instructeurs(dossier_data, dossier: Dossier):
     """
-    Refreshes the instructeurs associated with a dossier based on data from Démarches Simplifiées.
+    Refreshes the instructeurs associated with a dossier based on data from Démarche Numérique.
 
     Assume ds_instructeur has been prefetch_related on dossier
     Noop if no changes, check only IDs does not check emails.

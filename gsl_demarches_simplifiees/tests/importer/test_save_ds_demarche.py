@@ -401,7 +401,7 @@ def _minimal_demarche_data_with_descriptors(descriptors):
 
 
 def test_save_field_mappings_maps_by_verbose_name_direct_match(demarche):
-    # Arrange: DS label equals Dossier.verbose_name for demandeur_arrondissement
+    # Arrange: DN label equals Dossier.verbose_name for demandeur_arrondissement
     descriptors = [
         {
             "__typename": "TextChampDescriptor",

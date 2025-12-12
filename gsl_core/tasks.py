@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 @shared_task
 def associate_or_update_ds_profile_to_users(user_ids: List[int]):
     users = Collegue.objects.filter(pk__in=user_ids)
-    logger.info("Association de profil DS avec les utilisateurs : début")
+    logger.info("Association de profil DN avec les utilisateurs : début")
 
     user_without_email_count = users.filter(email="").count()
     if user_without_email_count > 0:
@@ -31,7 +31,7 @@ def associate_or_update_ds_profile_to_users(user_ids: List[int]):
         .values_list("email", flat=True)
     )
 
-    logger.info("Association de profil DS avec les utilisateurs : fin")
+    logger.info("Association de profil DN avec les utilisateurs : fin")
     if len(emails_of_user_without_profile) > 0:
         logger.info(
             "Des emails n'ont pas été trouvés dans les groupes instructeurs des démarches",

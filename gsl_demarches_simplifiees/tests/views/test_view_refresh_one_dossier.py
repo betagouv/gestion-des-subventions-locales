@@ -88,7 +88,7 @@ def test_refresh_data_with_ds_error_is_shown(exception_class):
 
     with patch(
         "gsl_demarches_simplifiees.views.save_one_dossier_from_ds",
-        side_effect=exception_class("Mock DS Error"),
+        side_effect=exception_class("Mock DN Error"),
     ) as mock_api_call:
         response = client.post(url, {"next": "/next-url"}, follow=False)
 

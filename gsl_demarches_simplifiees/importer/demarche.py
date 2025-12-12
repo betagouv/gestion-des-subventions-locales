@@ -169,7 +169,7 @@ def guess_department_from_demarche(demarche) -> Departement:
 
 def guess_year_from_demarche(demarche: Demarche) -> int:
     """
-    Savoir à quelle année associer les catégories DETR extraites de la démarche DS
+    Savoir à quelle année associer les catégories DETR extraites de la démarche DN
     """
     date_revision = demarche.active_revision_date
     if not date_revision:

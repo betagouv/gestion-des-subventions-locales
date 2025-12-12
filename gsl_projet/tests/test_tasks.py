@@ -65,7 +65,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_an_other_dotation_than
     commune,
 ):
     """
-    On teste le fait qu'un dossier DS avec une annotation_dotation donnée ne supprime pas les dotation_projets avec une autre dotation dans notre application.
+    On teste le fait qu'un dossier DN avec une annotation_dotation donnée ne supprime pas les dotation_projets avec une autre dotation dans notre application.
     Désormais, on ignore l'annotation dotation lorsque le dossier n'est pas accepté. Donc ici, la dotation DSIL ne sera pas instanciée pour ce projet.
     """
     dossier = DossierFactory(
@@ -156,7 +156,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     commune,
 ):
     """
-    On teste le fait qu'un dossier DS en instruction avec un dotation_projet accepté mais pas encore notifié
+    On teste le fait qu'un dossier DN en instruction avec un dotation_projet accepté mais pas encore notifié
     ne modifie pas le statut du projet ni des dotation_projets, simulation_projets et programmation_projets associés.
     """
     dossier = DossierFactory(
@@ -213,7 +213,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     commune,
 ):
     """
-    On teste le fait qu'un dossier DS en instruction avec un dotation_projet accepté mais pas encore notifié
+    On teste le fait qu'un dossier DN en instruction avec un dotation_projet accepté mais pas encore notifié
     ne modifie pas le statut du projet ni des dotation_projets, simulation_projets et programmation_projets associés.
     """
     dossier = DossierFactory(
@@ -274,7 +274,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
     commune, detr_enveloppe
 ):
     """
-    On teste le fait qu'un dossier DS accepté avec un dotation_projet refusé bascule le projet et tout le reste en accepté
+    On teste le fait qu'un dossier DN accepté avec un dotation_projet refusé bascule le projet et tout le reste en accepté
     """
     dossier = DossierFactory(
         ds_state=Dossier.STATE_ACCEPTE,

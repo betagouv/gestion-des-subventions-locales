@@ -563,8 +563,8 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
             else {
                 PROJET_STATUS_ACCEPTED: "Le financement de ce projet vient d’être accepté avec la "
                 f"dotation {self.object.enveloppe.dotation} pour {euro(self.object.montant, 2)}.",
-                PROJET_STATUS_REFUSED: "Le projet a bien été refusé sur Démarches Simplifiées.",
-                PROJET_STATUS_DISMISSED: "Le projet a bien été classé sans suite sur Démarches Simplifiées.",
+                PROJET_STATUS_REFUSED: "Le projet a bien été refusé sur Démarche Numérique.",
+                PROJET_STATUS_DISMISSED: "Le projet a bien été classé sans suite sur Démarche Numérique.",
             }[self.new_project_status]
         )
 

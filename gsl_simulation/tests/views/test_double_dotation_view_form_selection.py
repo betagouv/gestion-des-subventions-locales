@@ -409,7 +409,7 @@ class TestFormPostSubmission:
     ):
         """
         When POSTing to refuse DETR with DSIL already refused,
-        the view should call DS refuser because all dotations are refused.
+        the view should call DN refuser because all dotations are refused.
         """
         detr_dotation = double_dotation_projet["detr_dotation"]
         dsil_dotation = double_dotation_projet["dsil_dotation"]
@@ -439,7 +439,7 @@ class TestFormPostSubmission:
             url, data, headers={"HX-Request": "true"}
         )
 
-        # Verify DS was called
+        # Verify DN was called
         mock_ds_refuser.assert_called_once()
 
         # Verify we get a success response
@@ -450,7 +450,7 @@ class TestFormPostSubmission:
     ):
         """
         When POSTing to refuse DETR with DSIL still processing,
-        the view should NOT call DS because DSIL is not in a final state.
+        the view should NOT call DN because DSIL is not in a final state.
         """
         detr_dotation = double_dotation_projet["detr_dotation"]
         projet = double_dotation_projet["projet"]

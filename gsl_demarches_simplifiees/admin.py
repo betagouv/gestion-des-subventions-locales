@@ -114,7 +114,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         for demarche in queryset:
             task_refresh_field_mappings_from_demarche_data(demarche.ds_number)
 
-    @admin.action(description="Rafraîchir la démarche depuis DS")
+    @admin.action(description="Rafraîchir la démarche depuis DN")
     def save_demarche_from_ds(self, request, queryset):
         for demarche in queryset:
             task_save_demarche_from_ds(demarche.ds_number)
@@ -124,7 +124,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         for demarche in queryset:
             refresh_categories_operation_detr(demarche.ds_number)
 
-    @admin.action(description="Rafraîchir tous les dossiers de la démarche depuis DS")
+    @admin.action(description="Rafraîchir tous les dossiers de la démarche depuis DN")
     def refresh_dossiers_from_ds(self, request, queryset):
         for demarche in queryset:
             task_save_demarche_dossiers_from_ds.delay(
@@ -132,7 +132,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             )
 
     @admin.action(
-        description="Rafraîchir les nouveaux dossiers ou les dossiers modifiés d’une démarche depuis DS depuis la dernière mise à jour"
+        description="Rafraîchir les nouveaux dossiers ou les dossiers modifiés d’une démarche depuis DN depuis la dernière mise à jour"
     )
     def refresh_new_or_modified_dossiers_from_ds(self, request, queryset):
         for demarche in queryset:
@@ -194,14 +194,14 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             },
         ),
         (
-            "Champs DS",
+            "Champs DN",
             {
                 "classes": ("collapse", "open"),
                 "fields": tuple(field.name for field in Dossier._MAPPED_CHAMPS_FIELDS),
             },
         ),
         (
-            "Annotations DS",
+            "Annotations DN",
             {
                 "classes": ("collapse", "open"),
                 "fields": tuple(
@@ -241,7 +241,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         for dossier in queryset:
             task_refresh_dossier_from_saved_data.delay(dossier.ds_number)
 
-    @admin.action(description="Rafraîchir depuis DS")
+    @admin.action(description="Rafraîchir depuis DN")
     def refresh_from_ds(self, request, queryset):
         for dossier in queryset:
             task_save_one_dossier_from_ds.delay(dossier.ds_number)
@@ -302,7 +302,7 @@ class FieldMappingForComputerAdmin(
     list_filter = ("demarche__ds_number", "ds_field_type")
     resource_classes = (FieldMappingForComputerResource,)
     search_fields = ("ds_field_label", "django_field", "ds_field_id")
-    search_help_text = "Chercher par ID ou intitulé DS, ou par champ Django"
+    search_help_text = "Chercher par ID ou intitulé DN, ou par champ Django"
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
