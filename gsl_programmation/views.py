@@ -23,6 +23,7 @@ from gsl_programmation.utils.programmation_projet_filters import (
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
 )
 from gsl_projet.models import CategorieDetr, Projet
 from gsl_projet.utils.filter_utils import FilterUtils
@@ -59,6 +60,22 @@ class ProgrammationProjetDetailView(DetailView):
     def get_context_data(self, **kwargs):
         tab = self.kwargs.get("tab", "projet")
         title = self.object.dossier_ds.projet_intitule
+        if "dotation" in self.request.GET:
+            try:
+                programmation_projet = ProgrammationProjet.objects.get(
+                    dotation_projet__projet=self.object,
+                    dotation_projet__dotation=self.request.GET["dotation"],
+                    dotation_projet__status=PROJET_STATUS_ACCEPTED,
+                )
+            except ProgrammationProjet.DoesNotExist:
+                programmation_projet = ProgrammationProjet.objects.filter(
+                    dotation_projet__projet=self.object,
+                    dotation_projet__status=PROJET_STATUS_ACCEPTED,
+                ).first()
+        else:
+            programmation_projet = ProgrammationProjet.objects.filter(
+                dotation_projet__projet=self.object
+            ).first()
         context = {
             "title": title,
             "projet": self.object,
@@ -76,6 +93,7 @@ class ProgrammationProjetDetailView(DetailView):
             "menu_dict": PROJET_MENU,
             "current_tab": tab,
             "go_back_link": self.get_go_back_link(),
+            "programmation_projet": programmation_projet,
         }
         if tab == "annotations":
             context["projet_notes"] = self.object.notes.all()
