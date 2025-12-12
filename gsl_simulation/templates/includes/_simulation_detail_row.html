@@ -52,14 +52,18 @@
         </ul>
     </td>
     <td class="simulation-status">
-        {% if dotation_projet.programmation_projet.notified_at %}
-            {{ simu.get_status_display }} (notifié)
-        {% else %}
-            {% include "includes/_status_dropdown_buttons.html" with table=True %}
-        {% endif %}
-        {% if dotation_projet.to_notify %}
-            <span class="projet__to_notify">À notifier</span>
-        {% endif %}
+        <div class="simulation-status-notified">
+            {% if dotation_projet.programmation_projet.notified_at %}
+                {{ simu.get_status_display }}
+            {% else %}
+                {% include "includes/_status_dropdown_buttons.html" with table=True %}
+            {% endif %}
+            {% if dotation_projet.programmation_projet.notified_at %}
+                <span class="projet-notification-status projet__notified">Notifié</span>
+            {% elif projet.to_notify %}
+                <span class="projet-notification-status projet__to_notify">À notifier</span>
+            {% endif %}
+        </div>
     </td>
     <td class="fr-cell--right gsl-nowrap">
         <a class="fr-btn--tertiary-no-outline gsl-no-underline"
@@ -102,17 +106,17 @@
                 {% endif %}
             </ul>
         </td>
-        {% if other_dotation_projet.last_updated_simulation_projet.status == "valid" and other_dotation_projet.to_notify %}
-            <td colspan=2 class="other-simulation-status to_notify">
+        <td colspan=2 class="other-simulation-status">
+            <div class="simulation-status-notified">
                 <b>{{ other_dotation_projet.last_updated_simulation_projet.get_status_display }}</b>
-                <span class="projet__to_notify">À notifier</span>
-            </td>
-        {% else %}
-            <td class="other-simulation-status">
-                <b>{{ other_dotation_projet.last_updated_simulation_projet.get_status_display }}</b>
-            </td>
-            <td class="fr-cell--right gsl-nowrap">
-            </td>
-        {% endif %}
+                {% if projet.to_notify %}
+                    <span class="projet-notification-status projet__to_notify">À notifier</span>
+                {% elif projet.notified_at %}
+                    <span class="projet-notification-status projet__notified">Notifié</span>
+                {% endif %}
+            </div>
+        </td>
+        <td class="fr-cell--right gsl-nowrap">
+        </td>
     </tr>
 {% endfor %}

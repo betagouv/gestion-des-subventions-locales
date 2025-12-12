@@ -107,9 +107,9 @@
                                 <div>
                                     <span class="projet_status__{{ dp.status }}">{{ dp.get_status_display }}</span>
                                     {% if projet.to_notify %}
-                                        <span class="projet_notification_status projet__to_notify">À notifier</span>
+                                        <span class="projet-notification-status projet__to_notify">À notifier</span>
                                     {% elif projet.notified_at %}
-                                        <span class="projet_notification_status projet__notified">Notifié</span>
+                                        <span class="projet-notification-status projet__notified">Notifié</span>
                                     {% endif %}
                                 </div>
                             {% endfor %}

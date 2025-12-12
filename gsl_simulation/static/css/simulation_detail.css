@@ -60,10 +60,9 @@
   border-bottom: 1px solid var(--border-disabled-grey);
 }
 
-
 .gsl-projet-table table tbody td.other-simulation-status {
   text-align: end;
-  padding-right: 26px;
+  padding-right: 38px;
 }
 
 .gsl-projet-table table tbody td.other-simulation-status.to_notify {
@@ -115,6 +114,18 @@
 .gsl-projet-table td.simulation-status {
   padding: 0;
   text-align: right;
+}
+
+.gsl-projet-table td.simulation-status .simulation-status-notified,
+.gsl-projet-table td.other-simulation-status .simulation-status-notified {
+  padding: 4px;
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+}
+
+.gsl-projet-table td.simulation-status .simulation-status-notified > .input-status-select {
+  width: 100%;
 }
 
 .gsl-projet-table .input-status-select .fr-btn--sm,

@@ -14,9 +14,9 @@
         {% if projet.display_notification_message %}
             <div class="fr-callout__text notification_status_message fr-mb-2w">
                 {% if projet.to_notify %}
-                    <span class="fr-text--xl projet_notification_status projet__to_notify">À notifier <span class="fr-icon-mail-fill"></span></span>
+                    <span class="fr-text--xl projet-notification-status projet__to_notify">À notifier <span class="fr-icon-mail-fill"></span></span>
                 {% elif projet.notified_at %}
-                    <span class="fr-text--xl projet_notification_status projet__notified">Notifié <span class="fr-icon-checkbox-fill"></span></span>
+                    <span class="fr-text--xl projet-notification-status projet__notified">Notifié <span class="fr-icon-checkbox-fill"></span></span>
                 {% else %}
                     <b><em>En attente de la décision {{ projet.dotation_not_treated }}</em></b>
                 {% endif %}
