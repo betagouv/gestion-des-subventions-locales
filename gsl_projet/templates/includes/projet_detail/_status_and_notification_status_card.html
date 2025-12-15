@@ -25,7 +25,7 @@
     {% endblock notification_status_message %}
 
     {% if display_notify_button|default_if_none:True and projet.display_notification_button %}
-        <button class="fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line notification-button"
+        <button class="fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
                 id="to_notify_button"
                 type="button"
                 hx-get="{% url 'gsl_notification:check-ds-dossier-up-to-date' projet.id %}"

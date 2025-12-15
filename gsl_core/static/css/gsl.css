@@ -324,16 +324,6 @@ ul.no-list-style li {
   background-image: none;
 }
 
-.notification-button {
-  width: 100%;
-  justify-content: center;
-}
-
-.notification_status_message {
-  display: flex;
-  justify-content: center;
-}
-
 /* dropdown */
 
 .gsl-dropdown > button {
