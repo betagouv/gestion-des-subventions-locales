@@ -36,7 +36,6 @@ from gsl_projet.constants import (
     ARRETE,
     LETTRE,
     POSSIBLES_DOCUMENTS,
-    PROJET_STATUS_ACCEPTED,
 )
 from gsl_projet.models import Projet
 
@@ -46,19 +45,17 @@ from gsl_projet.models import Projet
 
 class NotificationDocumentsView(DetailView):
     template_name = "gsl_notification/tab_simulation_projet/tab_notifications.html"
-    pk_url_kwarg = "programmation_projet_id"
-    context_object_name = "programmation_projet"
+    pk_url_kwarg = "projet_id"
+    context_object_name = "projet"
 
     def get_queryset(self):
-        return ProgrammationProjet.objects.visible_to_user(self.request.user)
+        return Projet.objects.for_user(self.request.user)
 
     def get_context_data(self, **kwargs):
-        title = self.object.projet.dossier_ds.projet_intitule
+        title = self.object.dossier_ds.projet_intitule
         return super().get_context_data(
             **{
-                "dotation_projet": self.object.dotation_projet,
-                "dossier": self.object.dotation_projet.projet.dossier_ds,
-                "projet": self.object.projet,
+                "dossier": self.object.dossier_ds,
                 "title": title,
                 "breadcrumb_dict": {
                     "links": [
@@ -72,7 +69,9 @@ class NotificationDocumentsView(DetailView):
                     "current": title,
                 },
                 "is_instructor": self.request.user.ds_id
-                in self.object.dossier.ds_instructeurs.values_list("ds_id", flat=True),
+                in self.object.dossier_ds.ds_instructeurs.values_list(
+                    "ds_id", flat=True
+                ),
             }
         )
 
@@ -163,14 +162,8 @@ class CheckDsDossierUpToDateView(OpenHtmxModalMixin, DetailView):
         if date_modif_ds:
             date_modif_ds = timezone.datetime.fromisoformat(date_modif_ds)
             if date_modif_ds <= dossier.ds_date_derniere_modification:
-                programmation_projet = ProgrammationProjet.objects.filter(
-                    dotation_projet__projet=self.object,
-                    dotation_projet__status=PROJET_STATUS_ACCEPTED,
-                ).first()
                 return HttpResponseClientRedirect(
-                    reverse(
-                        "gsl_notification:documents", args=[programmation_projet.id]
-                    )  # TODO DUN doesn't work. Waiting for refacto of this view
+                    reverse("gsl_notification:documents", args=[self.object.id])
                 )
 
         return super().render_to_response(context, *args, **kwargs)
