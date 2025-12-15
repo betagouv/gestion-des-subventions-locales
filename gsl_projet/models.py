@@ -521,6 +521,7 @@ class DotationProjet(models.Model):
             },
         )
 
+    @transaction.atomic
     @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
     def accept(
         self,
@@ -528,22 +529,21 @@ class DotationProjet(models.Model):
         enveloppe: "Enveloppe",
         user: Collegue,
     ):
-        with transaction.atomic():
-            self.accept_without_ds_update(montant, enveloppe)
+        self.accept_without_ds_update(montant, enveloppe)
 
-            projet_dotation_checked = self.other_accepted_dotations
-            ds_service = DsService()
-            if hasattr(self, "programmation_projet"):
-                self.programmation_projet.refresh_from_db()
-            ds_service.update_ds_annotations_for_one_dotation(
-                dossier=self.projet.dossier_ds,
-                user=user,
-                annotations_dotation_to_update=self.dotation,
-                dotations_to_be_checked=[self.dotation] + projet_dotation_checked,
-                assiette=floatize(self.assiette),
-                montant=floatize(montant),
-                taux=floatize(self.taux_retenu),
-            )
+        projet_dotation_checked = self.other_accepted_dotations
+        ds_service = DsService()
+        if hasattr(self, "programmation_projet"):
+            self.programmation_projet.refresh_from_db()
+        ds_service.update_ds_annotations_for_one_dotation(
+            dossier=self.projet.dossier_ds,
+            user=user,
+            dotations_to_be_checked=[self.dotation] + projet_dotation_checked,
+            annotations_dotation_to_update=self.dotation,
+            assiette=floatize(self.assiette),
+            montant=floatize(montant),
+            taux=floatize(self.taux_retenu),
+        )
 
     @transition(field=status, source="*", target=PROJET_STATUS_REFUSED)
     def refuse(self, enveloppe: "Enveloppe"):
@@ -597,7 +597,7 @@ class DotationProjet(models.Model):
         source=[PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED],
         target=PROJET_STATUS_PROCESSING,
     )
-    def set_back_status_to_processing(self):
+    def set_back_status_to_processing_without_ds(self):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -608,6 +608,21 @@ class DotationProjet(models.Model):
         ProgrammationProjet.objects.filter(dotation_projet=self).delete()
         self.projet.notified_at = None
         self.projet.save()
+
+    @transaction.atomic
+    @transition(
+        field=status,
+        source=[PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED],
+        target=PROJET_STATUS_PROCESSING,
+    )
+    def set_back_status_to_processing(self, user: Collegue):
+        self.set_back_status_to_processing_without_ds()
+        ds_service = DsService()
+        ds_service.update_ds_annotations_for_one_dotation(
+            dossier=self.projet.dossier_ds,
+            user=user,
+            dotations_to_be_checked=self.other_accepted_dotations,
+        )
 
 
 class ProjetNote(BaseModel):

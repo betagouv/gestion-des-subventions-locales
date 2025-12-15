@@ -202,8 +202,17 @@ def test_update_status_with_provisionally_accepted_from_refused_or_accepted_or_d
         status=initial_status,
     )
 
-    form = SimulationProjetStatusForm(instance=simulation_projet)
-    form.save(new_status, user)
+    with mock.patch(
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+    ) as mock_ds_update:
+        form = SimulationProjetStatusForm(instance=simulation_projet)
+        form.save(new_status, user)
+
+        mock_ds_update.assert_called_once_with(
+            dossier=simulation_projet.projet.dossier_ds,
+            user=user,
+            dotations_to_be_checked=[],
+        )
 
     simulation_projet.refresh_from_db()
     assert simulation_projet.status == new_status
@@ -234,8 +243,16 @@ def test_update_status_with_provisionally_accepted_remove_programmation_projet_f
     )
     ProgrammationProjetFactory(dotation_projet=simulation_projet.dotation_projet)
 
-    form = SimulationProjetStatusForm(instance=simulation_projet)
-    form.save(SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED, user)
+    with mock.patch(
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+    ) as mock_ds_update:
+        form = SimulationProjetStatusForm(instance=simulation_projet)
+        form.save(SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED, user)
+        mock_ds_update.assert_called_once_with(
+            dossier=simulation_projet.projet.dossier_ds,
+            user=user,
+            dotations_to_be_checked=[],
+        )
 
     simulation_projet.refresh_from_db()
     assert simulation_projet.status == SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED

@@ -1,4 +1,5 @@
 from decimal import Decimal
+from unittest import mock
 
 import pytest
 from django.db import IntegrityError
@@ -6,7 +7,11 @@ from django.forms import ValidationError
 from django.utils import timezone
 from django_fsm import TransitionNotAllowed
 
-from gsl_core.tests.factories import DepartementFactory, PerimetreFactory
+from gsl_core.tests.factories import (
+    CollegueFactory,
+    DepartementFactory,
+    PerimetreFactory,
+)
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
@@ -511,7 +516,7 @@ def test_dismiss_from_processing():
 # Set back status to processing
 
 
-def test_set_back_status_to_processing_from_accepted():
+def test_set_back_status_to_processing_without_ds_from_accepted():
     dotation_projet = DotationProjetFactory(
         status=PROJET_STATUS_ACCEPTED,
         assiette=50_000,
@@ -532,7 +537,7 @@ def test_set_back_status_to_processing_from_accepted():
     assert dotation_projet.projet.notified_at is not None
 
     # --
-    dotation_projet.set_back_status_to_processing()
+    dotation_projet.set_back_status_to_processing_without_ds()
     dotation_projet.save()
     dotation_projet.refresh_from_db()
 
@@ -568,7 +573,7 @@ def test_set_back_status_to_processing_from_accepted():
         ),
     ],
 )
-def test_set_back_status_to_processing_from_refused_or_dismissed(
+def test_set_back_status_to_processing_without_ds_from_refused_or_dismissed(
     projet_status, programmation_projet_status, simulation_projet_status
 ):
     dotation_projet = DotationProjetFactory(
@@ -589,7 +594,7 @@ def test_set_back_status_to_processing_from_refused_or_dismissed(
 
     # --
 
-    dotation_projet.set_back_status_to_processing()
+    dotation_projet.set_back_status_to_processing_without_ds()
     dotation_projet.save()
     dotation_projet.refresh_from_db()
 
@@ -611,13 +616,36 @@ def test_set_back_status_to_processing_from_refused_or_dismissed(
 
 
 @pytest.mark.parametrize(("status"), [PROJET_STATUS_PROCESSING])
-def test_set_back_status_to_processing_from_other_status_than_accepted_or_refused(
+def test_set_back_status_to_processing_without_ds_from_other_status_than_accepted_or_refused(
     status,
 ):
     dotation_projet = DotationProjetFactory(status=status)
 
     with pytest.raises(TransitionNotAllowed):
-        dotation_projet.set_back_status_to_processing()
+        dotation_projet.set_back_status_to_processing_without_ds()
+
+
+@mock.patch(
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+)
+def test_set_back_status_to_processing_updates_ds_annotations(mock_update_ds):
+    projet = ProjetFactory()
+    user = CollegueFactory()
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    other_dotation = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_ACCEPTED
+    )
+
+    dotation_projet.set_back_status_to_processing(user=user)
+    dotation_projet.save()
+
+    mock_update_ds.assert_called_once_with(
+        dossier=dotation_projet.projet.dossier_ds,
+        user=user,
+        dotations_to_be_checked=[other_dotation.dotation],
+    )
 
 
 @pytest.mark.django_db

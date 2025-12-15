@@ -101,12 +101,18 @@ class DsService:
         self,
         dossier: Dossier,
         user: Collegue,
-        annotations_dotation_to_update: POSSIBLE_DOTATIONS,
         dotations_to_be_checked: list[POSSIBLE_DOTATIONS],
+        annotations_dotation_to_update: POSSIBLE_DOTATIONS | None = None,
         assiette: float | None = None,
         montant: float | None = None,
         taux: float | None = None,
     ):
+        if annotations_dotation_to_update is None:
+            if assiette is not None or montant is not None or taux is not None:
+                raise ValueError(
+                    "annotations_dotation_to_update must be provided if assiette, montant or taux are provided"
+                )
+
         annotations = [
             {
                 "id": self._get_ds_field_id(dossier, "annotations_dotation"),
@@ -114,33 +120,38 @@ class DsService:
             }
         ]
 
-        suffix = "dsil" if annotations_dotation_to_update == DOTATION_DSIL else "detr"
+        if annotations_dotation_to_update:
+            suffix = (
+                "dsil" if annotations_dotation_to_update == DOTATION_DSIL else "detr"
+            )
 
-        if assiette is not None:
-            annotations.append(
-                {
-                    "id": self._get_ds_field_id(
-                        dossier, f"annotations_assiette_{suffix}"
-                    ),
-                    "value": {"decimalNumber": assiette},
-                }
-            )
-        if montant is not None:
-            annotations.append(
-                {
-                    "id": self._get_ds_field_id(
-                        dossier, f"annotations_montant_accorde_{suffix}"
-                    ),
-                    "value": {"decimalNumber": montant},
-                }
-            )
-        if taux is not None:
-            annotations.append(
-                {
-                    "id": self._get_ds_field_id(dossier, f"annotations_taux_{suffix}"),
-                    "value": {"decimalNumber": taux},
-                }
-            )
+            if assiette is not None:
+                annotations.append(
+                    {
+                        "id": self._get_ds_field_id(
+                            dossier, f"annotations_assiette_{suffix}"
+                        ),
+                        "value": {"decimalNumber": assiette},
+                    }
+                )
+            if montant is not None:
+                annotations.append(
+                    {
+                        "id": self._get_ds_field_id(
+                            dossier, f"annotations_montant_accorde_{suffix}"
+                        ),
+                        "value": {"decimalNumber": montant},
+                    }
+                )
+            if taux is not None:
+                annotations.append(
+                    {
+                        "id": self._get_ds_field_id(
+                            dossier, f"annotations_taux_{suffix}"
+                        ),
+                        "value": {"decimalNumber": taux},
+                    }
+                )
 
         results = self.mutator.dossier_modifier_annotations(
             dossier.ds_id, user.ds_id, annotations
