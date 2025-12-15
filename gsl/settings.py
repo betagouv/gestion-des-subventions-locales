@@ -261,7 +261,7 @@ LOGGING = {
             "propagate": False,
         },
         "django.server": {
-            "handlers": ["console"],
+            "handlers": ["django.server"],
             "level": "INFO",
             "propagate": False,
         },
