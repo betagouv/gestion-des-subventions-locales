@@ -44,7 +44,7 @@ urlpatterns = [
         name="check-ds-dossier-up-to-date",
     ),
     path(
-        "<int:programmation_projet_id>/documents/",
+        "<int:projet_id>/documents/",
         NotificationDocumentsView.as_view(),
         name="documents",
     ),
