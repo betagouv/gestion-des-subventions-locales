@@ -221,25 +221,27 @@
                                             Pas de documents ajoutés
                                         {% endif %}
                                     </td>
-                                    <td>
-                                        {% if programmation_projet.projet.to_notify %}
-                                            <span class="projet-notification-status projet__to_notify">À notifier</span>
-                                        {% elif programmation_projet.projet.notified_at %}
-                                            <span class="projet-notification-status projet__notified">
-                                                <span class="fr-icon-checkbox-fill fr-icon--sm" aria-hidden="true"></span>
-                                                Notifié
-                                            </span>
-                                        {% else %}
-                                            <b><em>En attente de la décision {{ programmation_projet.dotation_projet.other_dotations.0.dotation }}</em></b>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <a class="fr-btn--tertiary-no-outline gsl-no-underline"
-                                           href="{{ programmation_projet.get_absolute_url }}{% querystring dotation=programmation_projet.dotation %}">
-                                            <span class="fr-sr-only">Voir le projet programmé {{ programmation_projet.projet.dossier_ds.ds_number }}</span>
-                                            <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
-                                        </a>
-                                    </td>
+                                    {% with rowspan=programmation_projet.dotation_projet.other_dotations|length|add:1 %}
+                                        <td rowspan="{{ rowspan }}">
+                                            {% if programmation_projet.projet.to_notify %}
+                                                <span class="projet-notification-status projet__to_notify">À notifier</span>
+                                            {% elif programmation_projet.projet.notified_at %}
+                                                <span class="projet-notification-status projet__notified">
+                                                    <span class="fr-icon-checkbox-fill fr-icon--sm" aria-hidden="true"></span>
+                                                    Notifié
+                                                </span>
+                                            {% else %}
+                                                <b><em>En attente de la décision {{ programmation_projet.dotation_projet.other_dotations.0.dotation }}</em></b>
+                                            {% endif %}
+                                        </td>
+                                        <td rowspan="{{ rowspan }}">
+                                            <a class="fr-btn--tertiary-no-outline gsl-no-underline"
+                                               href="{{ programmation_projet.get_absolute_url }}{% querystring dotation=programmation_projet.dotation %}">
+                                                <span class="fr-sr-only">Voir le projet programmé {{ programmation_projet.projet.dossier_ds.ds_number }}</span>
+                                                <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
+                                            </a>
+                                        </td>
+                                    {% endwith %}
                                 </tr>
                                 {% for other_dotation in programmation_projet.dotation_projet.other_dotations %}
                                     <tr class="other-dotation-row">
@@ -276,7 +278,7 @@
                                         <td class="other-simulation-status">
                                             <b>{{ other_dotation.last_updated_simulation_projet.get_status_display }}</b>
                                         </td>
-                                        <td colspan=3 class="fr-cell--right gsl-nowrap">
+                                        <td colspan=1 class="fr-cell--right gsl-nowrap">
                                         </td>
                                     </tr>
                                 {% endfor %}
