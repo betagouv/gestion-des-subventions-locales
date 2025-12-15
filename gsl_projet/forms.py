@@ -5,10 +5,11 @@ from django import forms
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
+from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.mixins import DsUpdatableFields, DSUpdateMixin
+from gsl_demarches_simplifiees.services import DsService
 from gsl_projet.constants import DOTATION_CHOICES
 from gsl_projet.models import CategorieDetr, DotationProjet, Projet, ProjetNote
-from gsl_projet.services.projet_services import ProjetService
 
 logger = getLogger(__name__)
 
@@ -54,9 +55,10 @@ class ProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
             "is_attached_to_a_crte",
         ]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["dotations"].initial = self.instance.dotations
+        self.user = user
 
     def is_valid(self):
         valid = super().is_valid()
@@ -67,27 +69,32 @@ class ProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
 
     def save(self, commit=True):
         instance: Projet = super().save(commit=False)
-        return self._save_with_ds(instance, commit)
+        error_msg = None
+        if not commit:
+            return instance, error_msg
 
-    def get_dossier_ds(self, instance):
-        return instance.dossier_ds
+        ds_service = DsService()
+        try:
+            ds_service.update_checkboxes_annotations(
+                dossier=instance.dossier_ds,
+                user=self.user,
+                annotations_to_update={
+                    "annotations_is_qpv": self.cleaned_data.get("is_in_qpv"),
+                    "annotations_is_crte": self.cleaned_data.get(
+                        "is_attached_to_a_crte"
+                    ),
+                    "annotations_is_budget_vert": self.cleaned_data.get(
+                        "is_budget_vert"
+                    ),
+                },
+            )
+        except DsServiceException as e:
+            error_msg = f"Une erreur est survenue lors de l'envoi à Démarche Simplifiées. {str(e)}"
 
-    def get_fields(self):
-        return self.Meta.fields
+        if error_msg is None:
+            instance.save()
 
-    def reset_field(self, field, instance):
-        self._reset_field(field, instance)
-
-    def post_save(self, instance):
-        dotations = self.cleaned_data.get("dotations")
-        if dotations:
-            ProjetService.update_dotation(instance, dotations)
-
-    def _reset_field(self, field: str, projet: Projet):
-        if field in ["is_in_qpv", "is_attached_to_a_crte", "is_budget_vert"]:
-            initial_field_value = self[field].initial
-            self.cleaned_data[field] = initial_field_value
-            setattr(projet, field, initial_field_value)
+        return instance, error_msg
 
 
 class DotationProjetForm(ModelForm):

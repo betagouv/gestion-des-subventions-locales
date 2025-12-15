@@ -11,7 +11,7 @@ from dsfr.forms import DsfrBaseForm
 
 from gsl_core.models import Collegue
 from gsl_demarches_simplifiees.ds_client import DsMutator
-from gsl_demarches_simplifiees.mixins import DsUpdatableFields
+from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.validators import document_file_validator
@@ -19,7 +19,6 @@ from gsl_programmation.models import Enveloppe
 from gsl_projet.constants import (
     PROJET_STATUS_ACCEPTED,
 )
-from gsl_projet.forms import DSUpdateMixin
 from gsl_projet.models import (
     DotationProjet,
     Projet,
@@ -76,7 +75,7 @@ class SimulationForm(DsfrBaseForm, ModelForm):
         fields = ["title", "enveloppe"]
 
 
-class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
+class SimulationProjetForm(ModelForm, DsfrBaseForm):
     assiette = forms.DecimalField(
         label="Montant des dépenses éligibles retenues (€)",
         max_digits=12,
@@ -114,8 +113,9 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
         model = SimulationProjet
         fields = ["montant"]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.user = user
         self.fields["taux"].initial = self.instance.taux
 
         dotation_projet = (
@@ -161,52 +161,25 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
 
     def save(self, commit=True) -> tuple[SimulationProjet, str | None]:
         instance: SimulationProjet = super().save(commit=False)
+        error_msg = None
+        if not commit:
+            return instance, error_msg
 
         if instance.dotation_projet.status == PROJET_STATUS_ACCEPTED:
-            return self._save_with_ds(
-                instance, dotation=instance.dotation, commit=commit
-            )
+            try:
+                instance.dotation_projet.accept(
+                    montant=instance.montant,
+                    enveloppe=instance.enveloppe,
+                    user=self.user,
+                )
+            except DsServiceException as e:
+                error_msg = f"Une erreur est survenue lors de l'envoi à Démarche Simplifiées. {str(e)}"
 
-        return self._save_without_ds(instance, commit=commit)
+        if error_msg is None:
+            instance.save()
+            instance.dotation_projet.save()
 
-    def get_dossier_ds(self, instance):
-        return instance.projet.dossier_ds
-
-    def get_fields(self) -> list[DsUpdatableFields]:
-        if self.instance.status == SimulationProjet.STATUS_ACCEPTED:
-            return ["assiette", "montant", "taux"]
-        return ["assiette"]
-
-    def reset_field(self, field, instance):
-        self._reset_field(field, instance, instance.dotation_projet)
-
-    def post_save(self, instance):
-        instance.dotation_projet.save()
-
-    def _reset_field(
-        self, field: str, instance: SimulationProjet, dotation_projet: DotationProjet
-    ):
-        if field == "assiette":
-            self.cleaned_data["assiette"] = self["assiette"].initial
-            dotation_projet.assiette = self["assiette"].initial
-            self.cleaned_data["taux"] = compute_taux(
-                instance.montant, dotation_projet.assiette
-            )
-
-        if field == "montant":
-            self.cleaned_data["montant"] = self["montant"].initial
-            instance.montant = self["montant"].initial
-            self.cleaned_data["taux"] = compute_taux(
-                instance.montant, dotation_projet.assiette
-            )
-
-        if field == "taux":
-            initial_taux = self.fields["taux"].initial
-            self.cleaned_data["taux"] = initial_taux
-            instance.montant = DotationProjetService.compute_montant_from_taux(
-                dotation_projet, initial_taux
-            )
-            self.cleaned_data["montant"] = instance.montant
+        return instance, error_msg
 
 
 class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):

@@ -160,6 +160,23 @@ class DsService:
         self._update_updated_at_from_multiple_annotations(dossier, results)
         return results
 
+    def update_checkboxes_annotations(  # TODO test this function
+        self, dossier: Dossier, user: Collegue, annotations_to_update: dict[str, bool]
+    ):
+        annotations = [
+            {
+                "id": self._get_ds_field_id(dossier, annotation_key),
+                "value": {"checkbox": annotation_value},
+            }
+            for annotation_key, annotation_value in annotations_to_update.items()
+        ]
+        results = self.mutator.dossier_modifier_annotations(
+            dossier.ds_id, user.ds_id, annotations
+        )
+        self._check_results(results, dossier, user, "annotations", annotations)
+        self._update_updated_at_from_multiple_annotations(dossier, results)
+        return results
+
     # Private
 
     def _update_assiette_montant_or_taux(
