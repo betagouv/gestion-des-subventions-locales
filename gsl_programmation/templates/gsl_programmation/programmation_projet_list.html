@@ -72,7 +72,6 @@
                     {% endif %}
                     <p>
                         Les projets acceptés et refusés de vos simulations {{ enveloppe.dotation }} apparaissent ici.
-                        {% comment %}Pour générer un lot d’arrêtés, sélectionnez les projets concernés par le même modèle d’arrêté et cliquez sur la flèche d’action multiples dans l’en-tête du tableau.{% endcomment %}
                     </p>
                 </div>
 
@@ -278,7 +277,14 @@
                                         <td class="other-simulation-status">
                                             <b>{{ other_dotation.last_updated_simulation_projet.get_status_display }}</b>
                                         </td>
-                                        <td colspan=1 class="fr-cell--right gsl-nowrap">
+                                        <td>
+                                            <ul>
+                                                {% for document in other_dotation.programmation_projet.documents_summary %}
+                                                    <li>
+                                                        {{ document }}
+                                                    </li>
+                                                {% endfor %}
+                                            </ul>
                                         </td>
                                     </tr>
                                 {% endfor %}
