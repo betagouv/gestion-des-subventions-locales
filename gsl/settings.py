@@ -17,6 +17,7 @@ from pathlib import Path
 import dj_database_url
 from csp.constants import NONCE, SELF
 from dotenv import load_dotenv
+from sentry_sdk.integrations.logging import LoggingIntegration
 
 load_dotenv()  # take environment variables from .env.
 
@@ -216,14 +217,18 @@ LOGOUT_REDIRECT_URL = "/"
 # Logs
 APP_LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")
 DJANGO_LOGGING_LEVEL = os.getenv("DJANGO_LOGGING_LEVEL", "ERROR")
-handlers = ["console"] + (["sentry"] if ENV in ["staging", "prod"] else [])
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
             "()": "gsl.utils.logging_formatters.DynamicExtraFormatter",
-            "format": "%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
+            "format": "%(name)-12s %(levelname)-8s %(message)s",
+        },
+        "django.server": {
+            "()": "django.utils.log.ServerFormatter",
+            "format": "[{server_time}] {message}",
+            "style": "{",
         },
     },
     "handlers": {
@@ -233,24 +238,40 @@ LOGGING = {
             "stream": sys.stdout,
             "formatter": "verbose",
         },
+        "django.server": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "stream": sys.stdout,
+            "formatter": "django.server",
+        },
         "sentry": {
-            "class": "sentry_sdk.integrations.logging.EventHandler",
+            "class": "sentry_sdk.integrations.logging.SentryLogsHandler",
             "formatter": "verbose",
         },
     },
     "loggers": {
         "root": {
-            "handlers": handlers,
+            "handlers": ["console", "sentry"],
             "level": APP_LOGGING_LEVEL,
             "propagate": True,
         },
         "django": {
-            "handlers": handlers,
+            "handlers": ["console", "sentry"],
             "level": DJANGO_LOGGING_LEVEL,
             "propagate": False,
         },
+        "django.server": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "celery": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
         "celery.worker": {
-            "handlers": handlers,
+            "handlers": ["console", "sentry"],
             "level": DJANGO_LOGGING_LEVEL,
             "propagate": False,
         },
@@ -260,11 +281,11 @@ LOGGING = {
             "propagate": False,
         },
         "gunicorn.error": {
-            "handlers": handlers,
-            "level": "ERROR",
+            "handlers": ["console", "sentry"],
+            "level": "INFO",
             "propagate": False,
         },
-        "gunicorn.access": {
+        "pikepdf": {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
@@ -284,6 +305,9 @@ if SENTRY_DSN:
         dsn=SENTRY_DSN,
         integrations=[
             DjangoIntegration(),
+            LoggingIntegration(
+                sentry_logs_level=None,
+            ),
         ],
         environment=SENTRY_ENV,
         enable_logs=True,
