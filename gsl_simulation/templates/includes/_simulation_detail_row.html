@@ -108,7 +108,7 @@
         </td>
         <td colspan=2 class="other-simulation-status">
             <div class="simulation-status-notified">
-                <b>{{ other_dotation_projet.last_updated_simulation_projet.get_status_display }}</b>
+                {{ other_dotation_projet.last_updated_simulation_projet.get_status_display }}
                 {% if projet.to_notify %}
                     <span class="projet-notification-status projet__to_notify">À notifier</span>
                 {% elif projet.notified_at %}
