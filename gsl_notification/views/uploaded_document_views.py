@@ -1,7 +1,10 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import StreamingHttpResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods
+from django.views.generic import UpdateView
 
+from gsl_notification.forms import ChooseDocumentTypeForUploadForm
 from gsl_notification.models import (
     Annexe,
 )
@@ -19,31 +22,45 @@ from gsl_notification.views.views import (
     _redirect_to_documents_view,
 )
 from gsl_programmation.models import ProgrammationProjet
+from gsl_projet.constants import PROJET_STATUS_ACCEPTED
+from gsl_projet.models import Projet
 
 
-@require_http_methods(["GET"])
-def choose_type_for_document_upload(request, programmation_projet_id):
-    programmation_projet = get_object_or_404(
-        ProgrammationProjet.objects.visible_to_user(request.user),
-        id=programmation_projet_id,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+class ChooseDocumentTypeForUploadView(LoginRequiredMixin, UpdateView):
+    model = Projet
+    template_name = (
+        "gsl_notification/uploaded_document/choose_upload_document_type.html"
     )
-    context = {"programmation_projet": programmation_projet}
-    return render(
-        request,
-        "gsl_notification/uploaded_document/choose_upload_document_type.html",
-        context=context,
-    )
+    form_class = ChooseDocumentTypeForUploadForm
+    pk_url_kwarg = "projet_id"
+
+    def get_queryset(self):
+        # Only projects visible to user with accepted dotations
+        return (
+            Projet.objects.for_user(self.request.user)
+            .filter(dotationprojet__status=PROJET_STATUS_ACCEPTED)
+            .distinct()
+        )
+
+    def form_valid(self, form):
+        document = form.cleaned_data["document"]
+        return redirect(
+            "gsl_notification:upload-a-document",
+            projet_id=self.object.pk,
+            dotation=document["dotation"],
+            document_type=document["type"],
+        )
 
 
 # Upload document ------------------------------------------------------------------
 
 
 @require_http_methods(["GET", "POST"])
-def create_uploaded_document_view(request, programmation_projet_id, document_type):
+def create_uploaded_document_view(request, projet_id, dotation, document_type):
     programmation_projet = get_object_or_404(
         ProgrammationProjet.objects.visible_to_user(request.user),
-        id=programmation_projet_id,
+        dotation_projet__projet_id=projet_id,
+        enveloppe__dotation=dotation,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
     uploaded_doc_class = get_uploaded_document_class(document_type)
@@ -59,11 +76,15 @@ def create_uploaded_document_view(request, programmation_projet_id, document_typ
             )
             form.save()
 
-            return _redirect_to_documents_view(programmation_projet.projet.id)
+            return _redirect_to_documents_view(projet_id)
     else:
         form = uploaded_doc_form()
 
-    context = {"form": form, "document_type": document_type}
+    context = {
+        "form": form,
+        "document_type": document_type,
+        "dotation": dotation,
+    }
     _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
     )
