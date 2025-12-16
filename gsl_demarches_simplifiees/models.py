@@ -536,7 +536,9 @@ class Dossier(DsModel):
         return f"{self.porteur_de_projet_nom} {self.porteur_de_projet_prenom}"
 
     @property
-    def demande_montant_is_greater_thant_min_montant_for_detr_commission(self):
+    def demande_montant_is_greater_than_min_montant_for_detr_commission(self):
+        if self.demande_montant is None:
+            return False
         return self.demande_montant >= MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
 
 
