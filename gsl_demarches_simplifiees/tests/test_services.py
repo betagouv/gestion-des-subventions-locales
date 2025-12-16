@@ -345,10 +345,68 @@ possible_responses = [
         {"data": {"__MUTATION_KEY__": {"errors": [{"message": "Une erreur"}]}}},
         "Une erreur",
     ),
+    # Invalid annotation type
+    (
+        {
+            "data": {
+                "__MUTATION_KEY__": {
+                    "errors": [
+                        {
+                            "message": 'L‘annotation "Q2hhbXAtNTQ0MTQ4Mg==" n’est pas de type attendu'
+                        }
+                    ]
+                }
+            }
+        },
+        'L‘annotation "Q2hhbXAtNTQ0MTQ4Mg==" n’est pas de type attendu',
+    ),
+    # Si je me trompe dans le type de la valeur passée
+    (
+        {
+            "errors": [
+                {
+                    "message": "Variable $input of type DossierModifierAnnotationsInput! was provided invalid value for annotations.3.value.checkbox (Could not coerce value 5000 to Boolean)"
+                }
+            ]
+        },
+        "Variable $input of type DossierModifierAnnotationsInput! was provided invalid value for annotations.3.value.checkbox (Could not coerce value 5000 to Boolean)",
+    ),
+    # Si je me trompe dans l'id d'une annotation passée
+    (
+        {"errors": [{"message": 'Invalid input: "Q2hhbXAtNTQ0MTQ4Mg="'}]},
+        'Invalid input: "Q2hhbXAtNTQ0MTQ4Mg="',
+    ),
+    # id du dossier inconnu
+    (
+        {"errors": [{"message": "DossierModifierAnnotationsPayload not found"}]},
+        "DossierModifierAnnotationsPayload not found",
+    ),
+    # instructeur inconnu
+    (
+        {
+            "errors": [
+                {"message": "L’instructeur n’a pas les droits d’accès à ce dossier"}
+            ]
+        },
+        "L’instructeur n’a pas les droits d’accès à ce dossier",
+    ),
+    # Si je me trompe, ex: j'ai mis annotation au lieu de annotations
+    (
+        {
+            "errors": [
+                {
+                    "message": "Variable $input of type DossierModifierAnnotationsInput! was provided invalid value for annotation (Field is not defined on DossierModifierAnnotationsInput), annotations (Expected value to not be null)"
+                }
+            ]
+        },
+        "Variable $input of type DossierModifierAnnotationsInput! was provided invalid value for annotation (Field is not defined on DossierModifierAnnotationsInput), annotations (Expected value to not be null)",
+    ),
 ]
 
 
-@pytest.mark.parametrize("mutation_type", ("checkbox", "decimal", "dismiss"))
+@pytest.mark.parametrize(
+    "mutation_type", ("checkbox", "decimal", "dismiss", "annotations")
+)
 @pytest.mark.parametrize("mocked_response, msg", possible_responses)
 def test_check_results(
     user,
@@ -375,12 +433,19 @@ def test_check_results(
             dossier,
             user,
             mutation_type,
-            value,
+            value=value,
         )
 
     final_msg = msg.replace("__MUTATION_KEY__", mutation_data_name)
     assert str(exc_info.value) == final_msg
-    assert "Error in DN mutation" in caplog.text
+    record = caplog.records[0]
+    assert "Error in DN mutation" in record.message
+    assert record.dossier_ds_number == dossier.ds_number
+    assert record.user_id == user.id
+    assert record.mutation_key == mutation_data_name
+    assert record.field is None
+    assert record.value == value
+    assert record.error == [final_msg]
 
 
 def test_dismiss_in_ds():
@@ -485,7 +550,7 @@ def test_update_ds_annotations_for_one_dotation_annotations_dict(user, dossier):
         mock_check_results.assert_called_once()
         check_call_args = mock_check_results.call_args[0]
         assert check_call_args[3] == "annotations"  # mutation_type
-        assert check_call_args[4] == annotations  # value (annotations list)
+        assert mock_check_results.call_args[1] == {"value": annotations}
 
 
 @pytest.mark.parametrize(

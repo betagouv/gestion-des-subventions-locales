@@ -156,7 +156,7 @@ class DsService:
         results = self.mutator.dossier_modifier_annotations(
             dossier.ds_id, user.ds_id, annotations
         )
-        self._check_results(results, dossier, user, "annotations", annotations)
+        self._check_results(results, dossier, user, "annotations", value=annotations)
         self._update_updated_at_from_multiple_annotations(dossier, results)
         return results
 
@@ -173,7 +173,7 @@ class DsService:
         results = self.mutator.dossier_modifier_annotations(
             dossier.ds_id, user.ds_id, annotations
         )
-        self._check_results(results, dossier, user, "annotations", annotations)
+        self._check_results(results, dossier, user, "annotations", value=annotations)
         self._update_updated_at_from_multiple_annotations(dossier, results)
         return results
 

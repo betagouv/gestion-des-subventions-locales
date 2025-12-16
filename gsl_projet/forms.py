@@ -1,12 +1,10 @@
 from logging import getLogger
-from typing import List
 
 from django import forms
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
 from gsl_demarches_simplifiees.exceptions import DsServiceException
-from gsl_demarches_simplifiees.mixins import DsUpdatableFields, DSUpdateMixin
 from gsl_demarches_simplifiees.services import DsService
 from gsl_projet.constants import DOTATION_CHOICES
 from gsl_projet.models import CategorieDetr, DotationProjet, Projet, ProjetNote
@@ -14,7 +12,7 @@ from gsl_projet.models import CategorieDetr, DotationProjet, Projet, ProjetNote
 logger = getLogger(__name__)
 
 
-class ProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
+class ProjetForm(ModelForm, DsfrBaseForm):
     BUDGET_VERT_CHOICES = [
         (None, "Non Renseigné"),
         (True, "Oui"),
@@ -49,7 +47,7 @@ class ProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
 
     class Meta:
         model = Projet
-        fields: List[DsUpdatableFields] = [
+        fields = [
             "is_budget_vert",
             "is_in_qpv",
             "is_attached_to_a_crte",
