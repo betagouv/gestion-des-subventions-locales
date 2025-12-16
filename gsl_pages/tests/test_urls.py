@@ -12,7 +12,6 @@ from gsl_core.tests.factories import (
     "url_name, template_name",
     (
         ("accessibilite", "gsl_pages/accessibilite.html"),
-        ("coming-features", "gsl_pages/coming_features.html"),
         ("no-perimeter", "gsl_pages/no_perimetre.html"),
     ),
 )
