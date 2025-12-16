@@ -184,12 +184,21 @@ def guess_year_from_demarche(demarche: Demarche) -> int:
 
 
 def extract_categories_operation_detr(demarche_data: dict, demarche: Demarche):
+    """
+    Récupère toutes les valeurs possibles de catégorie DETR de la démarche DN,
+    pour créer à la fois les gsl_projet.CategorieDetr
+    et les gsl_demarches_simplifiees.CritereEligibiliteDetr nécessaires.
+    :param demarche_data: le JSON brut de la démarche (avec champs, sans dossiers)
+    :param demarche:  l'objet Django Demarche
+    :return: rien
+    """
     from gsl_projet.models import CategorieDetr
 
     try:
+        # on cherche les correspondances techniques qui sont des "critères DETR"
         mapping = FieldMappingForComputer.objects.filter(
             demarche=demarche, django_field="demande_eligibilite_detr"
-        ).get()
+        ).get()  # on ne va pas vouloir un get() ici, mais un all()
     except FieldMappingForComputer.DoesNotExist:
         return
     demande_eligibilite_detr_field_id = mapping.ds_field_id
@@ -199,12 +208,19 @@ def extract_categories_operation_detr(demarche_data: dict, demarche: Demarche):
         if field["id"] == demande_eligibilite_detr_field_id:
             options = field["options"]
             break
+            # logique à changer ici : on va avoir plusieurs sets d'options pertinents
+            # à traiter chacun pour un département.
 
-    departement = guess_department_from_demarche(demarche)
+    departement = guess_department_from_demarche(
+        demarche
+    )  # guess from libellé du champ, avec la DUN.
+    # on pourrait aussi stocker le departement ou le périmètre sur le FieldMappingForComputer pour plus de robustesse.
     if not departement:
         return
 
-    year = guess_year_from_demarche(demarche)
+    year = guess_year_from_demarche(
+        demarche
+    )  # voir comment on devine l'année (date de révision ?)
     if not year:
         return
 
