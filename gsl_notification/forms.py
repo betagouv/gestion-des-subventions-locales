@@ -20,33 +20,43 @@ from gsl_projet.constants import ARRETE, LETTRE, PROJET_STATUS_ACCEPTED
 from gsl_projet.models import Projet
 
 
-class ChooseDocumentTypeForGenerationForm(DsfrBaseForm, ModelForm):
-    class RadioSelect(forms.RadioSelect):
-        """
-        The class name needs to be RadioSelect for DsfrBaseForm to do its magic, so we do the definition inside
-        the form to avoir polluting the namespace.
-        """
+class RadioSelect(forms.RadioSelect):
+    """
+    The class name needs to be RadioSelect for DsfrBaseForm to do its magic.
+    """
 
-        def create_option(
-            self, name, value, label, selected, index, subindex=None, attrs=None
-        ):
-            if not value:
-                attrs = {**(attrs or {}), "disabled": "disabled"}
+    def create_option(
+        self, name, value, label, selected, index, subindex=None, attrs=None
+    ):
+        if not value:
+            attrs = {**(attrs or {}), "disabled": "disabled"}
+            label = {
+                "label": label,
+                "help_text": "Le document a déjà été généré pour cette dotation.",
+            }
 
-            return super().create_option(
-                name, value, label, selected if value else False, index, attrs=attrs
-            )
+        return super().create_option(
+            name, value, label, selected if value else False, index, attrs=attrs
+        )
 
+
+class BaseChooseDocumentTypeForm(DsfrBaseForm, ModelForm):
     document = forms.ChoiceField(
-        choices=(
-            (model.__name__, model._meta.verbose_name)
-            for model in (Arrete, LettreNotification)
-        ),
         widget=RadioSelect,
         required=True,
+        choices=[],
         label="Type de document",
     )
 
+    def clean_document(self):
+        doc_type, dotation = self.cleaned_data["document"].split("-")
+        return {
+            "type": doc_type,
+            "dotation": dotation,
+        }
+
+
+class ChooseDocumentTypeForGenerationForm(BaseChooseDocumentTypeForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["document"].choices = [
@@ -66,12 +76,48 @@ class ChooseDocumentTypeForGenerationForm(DsfrBaseForm, ModelForm):
             )
         ]
 
-    def clean_document(self):
-        doc_type, dotation = self.cleaned_data["document"].split("-")
-        return {
-            "type": doc_type,
-            "dotation": dotation,
-        }
+    class Meta:
+        model = Projet
+        fields = ()
+
+
+class ChooseDocumentTypeForUploadForm(BaseChooseDocumentTypeForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        choices = []
+        for dp in self.instance.dotationprojet_set.filter(
+            status=PROJET_STATUS_ACCEPTED
+        ):
+            # Check if ProgrammationProjet exists for this dotation
+            try:
+                prog_projet = ProgrammationProjet.objects.get(
+                    dotation_projet=dp, dotation_projet__projet=self.instance
+                )
+                # ArreteEtLettreSignes (disable if already exists)
+                existing_arrete = hasattr(prog_projet, "arrete_et_lettre_signes")
+
+                choices.append(
+                    (
+                        (
+                            ""
+                            if existing_arrete
+                            else f"arrete_et_lettre_signes-{dp.dotation}"
+                        ),
+                        f"Arrêté et lettre signés {dp.dotation.upper()}",
+                    )
+                )
+
+                # Annexe (always enabled, multiple allowed)
+                choices.append(
+                    (
+                        f"annexe-{dp.dotation}",
+                        f"Annexe {dp.dotation.upper()}",
+                    )
+                )
+            except ProgrammationProjet.DoesNotExist:
+                continue
+
+        self.fields["document"].choices = choices
 
     class Meta:
         model = Projet

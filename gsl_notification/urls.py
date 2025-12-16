@@ -19,7 +19,7 @@ from gsl_notification.views.modele_views import (
     get_generic_modele,
 )
 from gsl_notification.views.uploaded_document_views import (
-    choose_type_for_document_upload,
+    ChooseDocumentTypeForUploadView,
     create_uploaded_document_view,
     delete_uploaded_document_view,
     download_uploaded_document,
@@ -107,12 +107,12 @@ urlpatterns = [
     ),
     # Uploaded files
     path(
-        "<int:programmation_projet_id>/televersement/choix-du-type/",
-        choose_type_for_document_upload,
+        "<int:projet_id>/televersement/choix-du-type/",
+        ChooseDocumentTypeForUploadView.as_view(),
         name="choose-uploaded-document-type",
     ),
     path(
-        "<int:programmation_projet_id>/televersement/<str:document_type>/creer/",
+        "<int:projet_id>/televersement/<str:dotation>/<str:document_type>/creer/",
         create_uploaded_document_view,
         name="upload-a-document",
     ),
