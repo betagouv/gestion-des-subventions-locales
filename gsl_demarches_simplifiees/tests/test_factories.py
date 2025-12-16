@@ -3,6 +3,7 @@ import pytest
 from gsl_demarches_simplifiees.models import (
     Arrondissement,
     Demarche,
+    Departement,
     Dossier,
     FieldMappingForComputer,
     NaturePorteurProjet,
@@ -14,6 +15,7 @@ from .factories import (
     DemarcheFactory,
     DossierFactory,
     DsArrondissementFactory,
+    DsDepartementFactory,
     FieldMappingForComputerFactory,
     NaturePorteurProjetFactory,
     PersonneMoraleFactory,
@@ -27,6 +29,7 @@ test_data = (
     (DossierFactory, Dossier),
     (NaturePorteurProjetFactory, NaturePorteurProjet),
     (DsArrondissementFactory, Arrondissement),
+    (DsDepartementFactory, Departement),
     (PersonneMoraleFactory, PersonneMorale),
     (FieldMappingForComputerFactory, FieldMappingForComputer),
     (ProfileFactory, Profile),

@@ -1,9 +1,14 @@
+from logging import getLogger
+
 from django.db import models
 from django.urls import reverse
 
 from gsl_core.models import Adresse, Perimetre
 from gsl_core.models import Arrondissement as CoreArrondissement
+from gsl_core.models import Departement as CoreDepartement
 from gsl_projet.constants import MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
+
+logger = getLogger(__name__)
 
 
 class DsModel(models.Model):
@@ -212,10 +217,17 @@ class Dossier(DsModel):
         blank=True,
         null=True,
     )
+    porteur_de_projet_departement = models.ForeignKey(
+        "gsl_demarches_simplifiees.Departement",
+        models.SET_NULL,
+        verbose_name="Département ou collectivité du demandeur",
+        blank=True,
+        null=True,
+    )
     porteur_de_projet_arrondissement = models.ForeignKey(
         "gsl_demarches_simplifiees.Arrondissement",
         models.SET_NULL,
-        verbose_name="Département et arrondissement du porteur de projet",
+        verbose_name="Arrondissement du demandeur",
         blank=True,
         null=True,
     )
@@ -436,6 +448,7 @@ class Dossier(DsModel):
 
     _MAPPED_CHAMPS_FIELDS = (
         porteur_de_projet_nature,
+        porteur_de_projet_departement,
         porteur_de_projet_arrondissement,
         porteur_de_projet_fonction,
         porteur_de_projet_nom,
@@ -507,7 +520,7 @@ class Dossier(DsModel):
         (champ DN porteur_de_projet_arrondissement).
 
         À défaut d'arrondissement dans le département (cas des n°75 et 90)
-        on retourne un périmètre départemental. @todo
+        on retourne un périmètre départemental.
 
         :return: Perimetre
         """
@@ -517,6 +530,25 @@ class Dossier(DsModel):
             projet_arrondissement = ds_arrondissement_declaratif.core_arrondissement
             if projet_arrondissement:
                 projet_departement = projet_arrondissement.departement
+        elif self.porteur_de_projet_departement:
+            ds_departement_declaratif = self.porteur_de_projet_departement
+            projet_departement = ds_departement_declaratif.core_departement
+            arrondissement_count = projet_departement.arrondissement_set.count()
+            # Dans un département avec plusieurs arrondissements, les dossiers DS
+            # devraient porter un arrondissement renseigné. => Lever une alerte
+            if arrondissement_count > 1:
+                logger.warning(
+                    "Dossier is missing arrondissement.",
+                    extra={
+                        "dossier_ds_number": self.ds_number,
+                        "arrondissement": self.porteur_de_projet_arrondissement,
+                        "departement": projet_departement,
+                    },
+                )
+            elif arrondissement_count == 1:
+                # S'il n'y a qu'un seul arrondissement dans le département :
+                # on prend le département renseigné
+                projet_arrondissement = projet_departement.arrondissement_set.get()
         if projet_arrondissement or projet_departement:
             return Perimetre.objects.get_or_create(
                 departement=projet_departement,
@@ -564,6 +596,21 @@ class NaturePorteurProjet(DsChoiceLibelle):
     class Meta:
         verbose_name = "Nature du porteur de projet"
         verbose_name_plural = "Natures de porteur de projet"
+
+
+class Departement(DsChoiceLibelle):
+    core_departement = models.ForeignKey(
+        CoreDepartement,
+        related_name="ds_departements",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        verbose_name="Département INSEE",
+    )
+
+    class Meta:
+        verbose_name = "Département DS"
+        verbose_name_plural = "Départements DS"
 
 
 class Arrondissement(DsChoiceLibelle):

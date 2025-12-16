@@ -12,6 +12,7 @@ from .models import (
     CritereEligibiliteDetr,
     CritereEligibiliteDsil,
     Demarche,
+    Departement,
     Dossier,
     FieldMappingForComputer,
     FieldMappingForHuman,
@@ -345,6 +346,39 @@ class ArrondissementAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         qs = qs.select_related("core_arrondissement")
+        return qs
+
+
+class HasCoreDepartementFilter(admin.SimpleListFilter):
+    title = "Département INSEE complété"
+    parameter_name = "has_insee_dpt"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("y", "Oui"),
+            ("n", "Non"),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == "y":
+            return queryset.filter(
+                core_departement__isnull=False,
+            )
+        elif self.value() == "n":
+            return queryset.filter(
+                core_departement__isnull=True,
+            )
+
+
+@admin.register(Departement)
+class DepartementAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    list_display = ("__str__", "core_departement")
+    list_filter = (HasCoreDepartementFilter,)
+    autocomplete_fields = ("core_departement",)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.select_related("core_departement")
         return qs
 
 
