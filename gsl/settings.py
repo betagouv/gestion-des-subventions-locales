@@ -361,8 +361,10 @@ CONTENT_SECURITY_POLICY = {
 
 CONTENT_SECURITY_POLICY_REPORT_ONLY = {}
 
-# Dev configuration
+# Cookie configuration
 
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
 
 # Storage
 AWS_ACCESS_KEY_ID = os.getenv("SCALEWAY_S3_KEY")
