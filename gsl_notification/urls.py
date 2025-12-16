@@ -27,12 +27,12 @@ from gsl_notification.views.uploaded_document_views import (
 )
 from gsl_notification.views.views import (
     CheckDsDossierUpToDateView,
+    ChooseDocumentTypeForGenerationView,
     DownloadDocumentView,
     NotificationDocumentsView,
     NotificationMessageView,
     PrintDocumentView,
     change_document_view,
-    choose_type_for_document_generation,
     delete_document_view,
     select_modele,
 )
@@ -49,23 +49,23 @@ urlpatterns = [
         name="documents",
     ),
     path(
-        "<int:programmation_projet_id>/message/",
+        "<int:projet_id>/message/",
         NotificationMessageView.as_view(),
         name="message",
     ),
     # Generated files
     path(
-        "<int:programmation_projet_id>/choix-du-type/",
-        choose_type_for_document_generation,
+        "<int:pk>/choix-du-type/",
+        ChooseDocumentTypeForGenerationView.as_view(),
         name="choose-generated-document-type",
     ),
     path(
-        "<int:programmation_projet_id>/selection-d-un-modele/<str:document_type>",
+        "<int:projet_id>/selection-d-un-modele/<str:dotation>/<str:document_type>",
         select_modele,
         name="select-modele",
     ),
     path(
-        "<int:programmation_projet_id>/modifier-document/<str:document_type>",
+        "<int:projet_id>/modifier-document/<str:dotation>/<str:document_type>",
         change_document_view,
         name="modifier-document",
     ),

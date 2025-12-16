@@ -3,7 +3,7 @@
 {% load static gsl_filters %}
 {% block notification_content %}
     <a class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-arrow-left-s-line fr-mb-4w"
-       href="{% url 'gsl_notification:documents' programmation_projet.id %}">
+       href="{% url 'gsl_notification:documents' projet.id %}">
         Annuler la génération
     </a>
 
@@ -18,7 +18,8 @@
             <b>Modèle choisi :</b> {{ modele.name }}
         </p>
         <button class="fr-btn fr-btn--secondary">
-            <a href="{% url 'gsl_notification:select-modele' programmation_projet.id document_type %}">Modifier le modèle</a>
+            <a href="{% url 'gsl_notification:select-modele' programmation_projet.projet.id modele.dotation document_type %}">Modifier
+            le modèle</a>
         </button>
         {% include "includes/_arrete_form.html" %}
     </div>

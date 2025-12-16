@@ -16,7 +16,10 @@ from gsl_core.decorators import htmx_only
 from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsServiceException
-from gsl_notification.forms import NotificationMessageForm
+from gsl_notification.forms import (
+    ChooseDocumentTypeForGenerationForm,
+    NotificationMessageForm,
+)
 from gsl_notification.models import (
     GeneratedDocument,
 )
@@ -172,36 +175,44 @@ class CheckDsDossierUpToDateView(OpenHtmxModalMixin, DetailView):
 # Edition form for arrêté --------------------------------------------------------------
 
 
-@require_http_methods(["GET"])
-def choose_type_for_document_generation(request, programmation_projet_id):
-    programmation_projet = get_object_or_404(
-        ProgrammationProjet.objects.visible_to_user(request.user),
-        id=programmation_projet_id,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+class ChooseDocumentTypeForGenerationView(UpdateView):
+    template_name = (
+        "gsl_notification/generated_document/choose_generated_document_type.html"
     )
-    context = {
-        "programmation_projet": programmation_projet,
-        "dossier": programmation_projet.dossier,
-        "cancel_link": reverse(
-            "gsl_notification:documents", args=[programmation_projet_id]
-        ),
-        "next_step_link": reverse(
-            "gsl_notification:select-modele", args=[programmation_projet.id, "type"]
-        ),
-    }
-    return render(
-        request,
-        "gsl_notification/generated_document/choose_generated_document_type.html",
-        context=context,
-    )
+    context_object_name = "projet"
+    form_class = ChooseDocumentTypeForGenerationForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["cancel_link"] = reverse(
+            "gsl_programmation:programmation-projet-detail", args=[self.object.id]
+        )
+        return context
+
+    def get_queryset(self):
+        return Projet.objects.for_user(self.request.user)
+
+    def form_valid(self, form):
+        return redirect(
+            reverse(
+                "gsl_notification:select-modele",
+                args=[
+                    self.object.id,
+                    form.cleaned_data["document"]["dotation"],
+                    form.cleaned_data["document"]["type"],
+                ],
+            )
+        )
 
 
 @require_http_methods(["GET"])
-def select_modele(request, programmation_projet_id, document_type):
+def select_modele(request, projet_id, dotation, document_type):
     programmation_projet = get_object_or_404(
-        ProgrammationProjet.objects.visible_to_user(request.user),
-        id=programmation_projet_id,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        ProgrammationProjet.objects.visible_to_user(request.user).filter(
+            status=ProgrammationProjet.STATUS_ACCEPTED
+        ),
+        dotation_projet__projet_id=projet_id,
+        enveloppe__dotation=dotation,
     )
     _, page_title, page_step_title, _ = (
         _get_pp_attribute_page_title_and_page_step_title(
@@ -211,7 +222,10 @@ def select_modele(request, programmation_projet_id, document_type):
 
     dotation = programmation_projet.dotation_projet.dotation
     perimetres = get_modele_perimetres(dotation, request.user.perimetre)
-    modele_class = get_modele_class(document_type)
+    try:
+        modele_class = get_modele_class(document_type)
+    except ValueError:
+        raise Http404("Le type de document sélectionné n'existe pas.")
     modeles = modele_class.objects.filter(dotation=dotation, perimetre__in=perimetres)
 
     context = {
@@ -220,9 +234,7 @@ def select_modele(request, programmation_projet_id, document_type):
         "document_type": document_type,
         "page_title": page_title,
         "page_step_title": page_step_title,
-        "cancel_link": reverse(
-            "gsl_notification:documents", args=[programmation_projet_id]
-        ),
+        "cancel_link": reverse("gsl_notification:documents", args=[projet_id]),
         "modeles_list": [
             {
                 "name": obj.name,
@@ -233,7 +245,8 @@ def select_modele(request, programmation_projet_id, document_type):
                         "href": reverse(
                             "notification:modifier-document",
                             kwargs={
-                                "programmation_projet_id": programmation_projet.id,
+                                "projet_id": projet_id,
+                                "dotation": dotation,
                                 "document_type": document_type,
                             },
                             query={"modele_id": obj.id},
@@ -253,11 +266,11 @@ def select_modele(request, programmation_projet_id, document_type):
 
 @csp_update({"style-src": [SELF, UNSAFE_INLINE]})
 @require_http_methods(["GET", "POST"])
-def change_document_view(request, programmation_projet_id, document_type):
+def change_document_view(request, projet_id, dotation, document_type):
     programmation_projet = get_object_or_404(
-        ProgrammationProjet.objects.visible_to_user(request.user),
-        id=programmation_projet_id,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        ProgrammationProjet.objects.visible_to_user(request.user).to_notify(),
+        dotation_projet__projet_id=projet_id,
+        enveloppe__dotation=dotation,
     )
     modele = None
     pp_attribute, page_title, page_step_title, is_creating = (
@@ -297,7 +310,7 @@ def change_document_view(request, programmation_projet_id, document_type):
             form.save()
 
             _add_success_message(request, is_creating, document_type, document.name)
-            return _redirect_to_documents_view(request, programmation_projet.id)
+            return _redirect_to_documents_view(programmation_projet.projet.id)
         else:
             messages.error(request, "Erreur dans le formulaire")
             document = form.instance
@@ -368,13 +381,12 @@ def _add_success_message(
 def delete_document_view(request, document_type, document_id):
     document_class = get_document_class(document_type)
     document = get_object_or_404(document_class, id=document_id)
-    programmation_projet_id = document.programmation_projet.id
 
     document.delete()
 
     messages.success(request, "Le document a bien été supprimé.")
 
-    return _redirect_to_documents_view(request, programmation_projet_id)
+    return _redirect_to_documents_view(document.programmation_projet.projet.id)
 
 
 # View and Download views -----------------------------------------------------------------------
@@ -420,11 +432,11 @@ class DownloadDocumentView(PrintDocumentView):
 # utils --------------------------------------------------------------------------------
 
 
-def _redirect_to_documents_view(request, programmation_projet_id):
+def _redirect_to_documents_view(projet_id):
     return redirect(
         reverse(
             "gsl_notification:documents",
-            kwargs={"programmation_projet_id": programmation_projet_id},
+            kwargs={"projet_id": projet_id},
         )
     )
 

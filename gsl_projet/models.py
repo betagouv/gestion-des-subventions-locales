@@ -392,6 +392,37 @@ class Projet(models.Model):
             and self.notified_at is None
         )
 
+    @property
+    def documents(self):
+        from gsl_notification.models import (
+            Annexe,
+            Arrete,
+            ArreteEtLettreSignes,
+            LettreNotification,
+        )
+
+        return sorted(
+            (
+                document
+                for document in (
+                    *Arrete.objects.filter(
+                        programmation_projet__dotation_projet__projet=self
+                    ),
+                    *LettreNotification.objects.filter(
+                        programmation_projet__dotation_projet__projet=self
+                    ),
+                    *ArreteEtLettreSignes.objects.filter(
+                        programmation_projet__dotation_projet__projet=self
+                    ),
+                    *Annexe.objects.filter(
+                        programmation_projet__dotation_projet__projet=self
+                    ),
+                )
+                if document
+            ),
+            key=lambda d: d.created_at,
+        )
+
 
 class DotationProjet(models.Model):
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)

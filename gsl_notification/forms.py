@@ -1,5 +1,6 @@
 from django import forms
 from django.db import transaction
+from django.forms import ModelForm
 from django.utils import timezone
 from dsfr.forms import DsfrBaseForm
 
@@ -15,7 +16,66 @@ from gsl_notification.models import (
 )
 from gsl_notification.utils import merge_documents_into_pdf
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import ARRETE, LETTRE
+from gsl_projet.constants import ARRETE, LETTRE, PROJET_STATUS_ACCEPTED
+from gsl_projet.models import Projet
+
+
+class ChooseDocumentTypeForGenerationForm(DsfrBaseForm, ModelForm):
+    class RadioSelect(forms.RadioSelect):
+        """
+        The class name needs to be RadioSelect for DsfrBaseForm to do its magic, so we do the definition inside
+        the form to avoir polluting the namespace.
+        """
+
+        def create_option(
+            self, name, value, label, selected, index, subindex=None, attrs=None
+        ):
+            if not value:
+                attrs = {**(attrs or {}), "disabled": "disabled"}
+
+            return super().create_option(
+                name, value, label, selected if value else False, index, attrs=attrs
+            )
+
+    document = forms.ChoiceField(
+        choices=(
+            (model.__name__, model._meta.verbose_name)
+            for model in (Arrete, LettreNotification)
+        ),
+        widget=RadioSelect,
+        required=True,
+        label="Type de document",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["document"].choices = [
+            (
+                (
+                    ""
+                    if model.objects.filter(
+                        programmation_projet__dotation_projet=dp
+                    ).exists()
+                    else f"{model.document_type}-{dp.dotation}"
+                ),
+                f"{model._meta.verbose_name} {dp.dotation}",
+            )
+            for model in (Arrete, LettreNotification)
+            for dp in self.instance.dotationprojet_set.filter(
+                status=PROJET_STATUS_ACCEPTED
+            )
+        ]
+
+    def clean_document(self):
+        doc_type, dotation = self.cleaned_data["document"].split("-")
+        return {
+            "type": doc_type,
+            "dotation": dotation,
+        }
+
+    class Meta:
+        model = Projet
+        fields = ()
 
 
 class ArreteForm(forms.ModelForm, DsfrBaseForm):

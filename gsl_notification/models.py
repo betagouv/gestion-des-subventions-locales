@@ -130,6 +130,7 @@ class ModeleLettreNotification(ModeleDocument):
 
 
 class GeneratedDocument(models.Model):
+    document_type = None
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
     updated_at = models.DateTimeField(auto_now=True)
@@ -164,10 +165,6 @@ class GeneratedDocument(models.Model):
         raise NotImplementedError
 
     @property
-    def document_type(self):
-        raise NotImplementedError
-
-    @property
     def file_type(self):
         return "pdf"
 
@@ -188,6 +185,7 @@ class GeneratedDocument(models.Model):
 
 
 class Arrete(GeneratedDocument):
+    document_type = ARRETE
     programmation_projet = models.OneToOneField(
         "gsl_programmation.ProgrammationProjet",
         on_delete=models.CASCADE,
@@ -204,15 +202,12 @@ class Arrete(GeneratedDocument):
         return f"Arrêté #{self.id}"
 
     @property
-    def document_type(self):
-        return ARRETE
-
-    @property
     def name(self):
         return f"arrêté-attributif-{self.created_at.strftime('%Y-%m-%d')} - N°{self.programmation_projet.dossier.ds_number}.pdf"
 
 
 class LettreNotification(GeneratedDocument):
+    document_type = LETTRE
     programmation_projet = models.OneToOneField(
         "gsl_programmation.ProgrammationProjet",
         on_delete=models.CASCADE,
@@ -227,10 +222,6 @@ class LettreNotification(GeneratedDocument):
 
     def __str__(self):
         return f"Lettre de notification #{self.id}"
-
-    @property
-    def document_type(self):
-        return LETTRE
 
     @property
     def name(self):
