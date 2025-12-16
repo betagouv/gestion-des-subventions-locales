@@ -9,7 +9,7 @@
     <h1 class="fr-modal__title fr-text-default--{{ new_projet_status|status_to_fr_color }}"
         id="{{ modal_id }}-title">
         <i class="fr-icon-{{ new_projet_status|status_to_fr_color }}-fill"></i>
-        {{ new_projet_status|status_to_action_word|capfirst }} le projet sur DN
+        {{ new_projet_status|status_to_action_word|capfirst }} le projet sur Démarche Numérique
         {% if simulation_projet.dotation_projet.other_dotations|length > 0 %}
             ({{ new_simulation_status|status_to_action_word|capfirst }} {{ simulation_projet.enveloppe.dotation }} et
             {{ simulation_projet.dotation_projet.other_dotations.0.status|status_to_action_word }}

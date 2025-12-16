@@ -321,8 +321,8 @@ class DismissProjetForm(SimulationProjetStatusForm):
             user,
             motivation=self.cleaned_data["justification"],
         )
-        self.instance.dotation_projet.programmation_projet.notified_at = timezone.now()
-        self.instance.dotation_projet.programmation_projet.save()
+        self.instance.projet.notified_at = timezone.now()
+        self.instance.projet.save()
 
     class Meta(SimulationProjetStatusForm.Meta):
         model = SimulationProjet
