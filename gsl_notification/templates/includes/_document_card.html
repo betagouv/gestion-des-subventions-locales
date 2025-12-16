@@ -8,6 +8,9 @@
                 Importé
             {% endif %}
         </span>
+        <span class="fr-tag fr-tag--success">
+            {{ document.programmation_projet.enveloppe.dotation }}
+        </span>
 
         <details name="document-actions">
             <summary class="fr-btn fr-btn--tertiary fr-btn--icon-only fr-icon-more-fill arrete-card__actions-button"
@@ -16,25 +19,26 @@
             <ul class="new-gsl-dropdown-content arrete-card__actions no-list-style fr-m-0">
                 {% if document.is_generated %}
                     <li>
-                        <a href="{% url "notification:modifier-document" document.programmation_projet.id document.document_type %}"
+                        <a href="{% url "notification:modifier-document" document.programmation_projet.projet.id document.programmation_projet.dotation document.document_type %}"
                            class="fr-btn fr-btn--secondary arrete-card__action">
                             Modifier
                         </a>
                     </li>
+                {% else %}
+                    <li>
+                        <button type="button"
+                                class="fr-btn fr-btn--secondary arrete-card__action"
+                                data-fr-opened="false"
+                                aria-controls="delete-document-confirmation-modal"
+                                aria-expanded="false"
+                                data-name="{{ document.name }}"
+                                data-type="{{ document.document_type }}"
+                                data-form-action="{% url "notification:delete-uploaded-document" document.document_type document.id %}"
+                                data-action="delete-notification-document-modal#updateModaleTitleAndSubmitAction">
+                            Supprimer
+                        </button>
+                    </li>
                 {% endif %}
-                <li>
-                    <button type="button"
-                            class="fr-btn fr-btn--secondary arrete-card__action"
-                            data-fr-opened="false"
-                            aria-controls="delete-document-confirmation-modal"
-                            aria-expanded="false"
-                            data-name="{{ document.name }}"
-                            data-type="{{ document.document_type }}"
-                            data-form-action="{% url "notification:delete-uploaded-document" document.document_type document.id %}"
-                            data-action="delete-notification-document-modal#updateModaleTitleAndSubmitAction">
-                        Supprimer
-                    </button>
-                </li>
             </ul>
         </details>
     </div>

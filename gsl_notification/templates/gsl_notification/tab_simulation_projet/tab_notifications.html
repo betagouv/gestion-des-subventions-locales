@@ -48,12 +48,12 @@
                     Imprimer tous les documents
                 </button>
             </div>
-            {% if programmation_projet.documents %}
+            {% if projet.documents %}
                 <ul class="arrete-list"
                     data-controller="delete-notification-document-modal"
                     data-delete-notification-document-modal-modal-id-value="delete-document-confirmation-modal"
                     data-delete-notification-document-modal-form-id-value="delete-document-form">
-                    {% for document in programmation_projet.documents %}
+                    {% for document in projet.documents %}
                         {% include "includes/_document_card.html" %}
                     {% endfor %}
                 </ul>
@@ -64,7 +64,7 @@
             {% endif %}
         </div>
 
-        {% if programmation_projet.notified_at %}
+        {% if projet.notified_at %}
             <h3 class="fr-mt-6w">
                 <i class="fr-icon-mail-fill blue-color" aria-hidden="true"></i> Message de notification
             </h3>

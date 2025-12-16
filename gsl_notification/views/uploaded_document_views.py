@@ -59,7 +59,7 @@ def create_uploaded_document_view(request, programmation_projet_id, document_typ
             )
             form.save()
 
-            return _redirect_to_documents_view(request, programmation_projet.id)
+            return _redirect_to_documents_view(programmation_projet.projet.id)
     else:
         form = uploaded_doc_form()
 
@@ -83,11 +83,10 @@ def create_uploaded_document_view(request, programmation_projet_id, document_typ
 def delete_uploaded_document_view(request, document_type, document_id):
     doc_class = get_uploaded_document_class(document_type)
     doc = get_object_or_404(doc_class, id=document_id)
-    programmation_projet_id = doc.programmation_projet.id
 
     doc.delete()
 
-    return _redirect_to_documents_view(request, programmation_projet_id)
+    return _redirect_to_documents_view(doc.programmation_projet.projet.id)
 
 
 @uploaded_document_visible_by_user
