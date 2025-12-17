@@ -64,6 +64,34 @@ def test_montant_field(simulation_projet):
     assert not form.is_valid()
 
 
+def test_empty_montant_is_converted_to_zero(simulation_projet):
+    """Test that an empty montant field is converted to 0 to avoid IntegrityError"""
+    # Test with empty string
+    data = {"montant": ""}
+    form = SimulationProjetForm(instance=simulation_projet, data=data)
+
+    assert form.is_valid()
+    assert form.cleaned_data["montant"] == 0
+
+    # Should be able to save without IntegrityError
+    form.save()
+    simulation_projet.refresh_from_db()
+    assert simulation_projet.montant == 0
+
+    # Reset for next test
+    simulation_projet.montant = 200
+    simulation_projet.save()
+
+    # Test with missing montant field (not in data)
+    data = {}
+    form = SimulationProjetForm(instance=simulation_projet, data=data)
+
+    assert form.is_valid()
+    # When montant is not in data, it should keep the initial value, not be None
+    # But if it were None, it would be converted to 0
+    assert form.cleaned_data.get("montant") is not None
+
+
 def test_taux_field(simulation_projet):
     form = SimulationProjetForm(instance=simulation_projet)
     assert "taux" in form.fields
