@@ -1,8 +1,7 @@
 import copy
 import logging
 from datetime import datetime
-from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
@@ -39,187 +38,6 @@ def dossier():
 @pytest.fixture
 def ds_field():
     return FieldMappingForComputerFactory(ds_field_id=101112)
-
-
-@pytest.mark.parametrize(
-    "function, field_name",
-    (
-        ("update_ds_is_in_qpv", "annotations_is_qpv"),
-        ("update_ds_is_attached_to_a_crte", "annotations_is_crte"),
-    ),
-)
-@mock.patch.object(DsService, "_update_boolean_field")
-def test_update_boolean_field_functions_call_generic_function_success(
-    update_boolean_field_mocker, user, dossier, function, field_name
-):
-    ds_service = DsService()
-
-    ds_service_function = getattr(ds_service, function)
-    ds_service_function(dossier, user, "true")
-    update_boolean_field_mocker.assert_called_once_with(
-        dossier, user, "true", field_name
-    )
-
-
-@pytest.mark.parametrize(
-    "value, expected_param", ((True, True), (False, False), ("", False))
-)
-@mock.patch.object(DsService, "_update_boolean_field")
-def test_update_ds_is_budget_vert_functions_call_generic_function_success(
-    update_boolean_field_mocker, user, dossier, value, expected_param
-):
-    ds_service = DsService()
-
-    ds_service.update_ds_is_budget_vert(dossier, user, value)
-    update_boolean_field_mocker.assert_called_once_with(
-        dossier, user, expected_param, "annotations_is_budget_vert"
-    )
-
-
-@pytest.mark.parametrize(
-    "function, field_name",
-    (
-        ("update_ds_assiette", "annotations_assiette"),
-        ("update_ds_montant", "annotations_montant_accorde"),
-        ("update_ds_taux", "annotations_taux"),
-    ),
-)
-@pytest.mark.parametrize(
-    "dotation",
-    (DOTATION_DSIL, DOTATION_DETR),
-)
-@mock.patch.object(DsService, "_update_decimal_field")
-def test_update_decimal_field_functions_call_generic_function_success(
-    update_decimal_field_mocker, user, dossier, function, field_name, dotation
-):
-    ds_service = DsService()
-
-    suffix = "dsil" if dotation == DOTATION_DSIL else "detr"
-    field_complete_name = f"{field_name}_{suffix}"
-
-    ds_service_function = getattr(ds_service, function)
-    ds_service_function(dossier, user, dotation, 250.33)
-    update_decimal_field_mocker.assert_called_once_with(
-        dossier, user, 250.33, field_complete_name
-    )
-
-
-@mock.patch.object(DsService, "_update_decimal_field")
-def test_update_decimal_field_functions_with_None(
-    update_boolean_field_mocker, user, dossier
-):
-    ds_service = DsService()
-    ds_service_function = getattr(ds_service, "update_ds_assiette")
-
-    ds_service_function(dossier, user, DOTATION_DSIL, None)
-    update_boolean_field_mocker.assert_called_once_with(
-        dossier, user, 0, "annotations_assiette_dsil"
-    )
-
-
-@pytest.mark.parametrize(
-    "function, mutation_type",
-    (("_update_boolean_field", "checkbox"), ("_update_decimal_field", "decimal")),
-)
-@mock.patch.object(DsService, "_update_annotation_field")
-def test_update_annotation_field_is_called_by_mutation_type_functions(
-    update_annotation_field_mocker, user, dossier, function, mutation_type
-):
-    ds_service = DsService()
-    if mutation_type == "checkbox":
-        value = True
-    else:
-        value = 1.5
-
-    ds_service_function = getattr(ds_service, function)
-    ds_service_function(dossier, user, value, "field")
-    update_annotation_field_mocker.assert_called_once_with(
-        dossier, user, value, "field", mutation_type
-    )
-
-
-@pytest.mark.parametrize(
-    "function, mutation_type",
-    (
-        ("dossier_modifier_annotation_checkbox", "checkbox"),
-        ("dossier_modifier_annotation_decimal", "decimal"),
-    ),
-)
-def test_update_annotation_field_success(
-    user, dossier, ds_field, function, mutation_type
-):
-    ds_service = DsService()
-
-    value = True if mutation_type == "checkbox" else 1.5
-    mutation_data_name = DsService.MUTATION_KEYS[mutation_type]
-
-    with (
-        patch(
-            "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
-            return_value=ds_field,
-        ),
-        patch.object(ds_service, "mutator") as mock_mutator,
-    ):
-        mock_function = getattr(mock_mutator, function)
-        mock_function.return_value = {
-            "data": {
-                mutation_data_name: {
-                    "clientMutationId": "dev",
-                    "errors": None,
-                }
-            }
-        }
-
-        result = ds_service._update_annotation_field(
-            dossier, user, value, "field", mutation_type
-        )
-        assert "data" in result
-
-
-@pytest.mark.parametrize(
-    "function, mutation_type",
-    (
-        ("dossier_modifier_annotation_checkbox", "checkbox"),
-        ("dossier_modifier_annotation_decimal", "decimal"),
-    ),
-)
-def test_update_annotation_field_updates_ds_date_derniere_modification(
-    user, dossier, ds_field, function, mutation_type
-):
-    ds_service = DsService()
-
-    value = True if mutation_type == "checkbox" else 1.5
-    mutation_data_name = DsService.MUTATION_KEYS[mutation_type]
-    updated_at_iso = "2025-01-15T10:30:00+00:00"
-    expected_updated_at = timezone.datetime.fromisoformat(updated_at_iso)
-
-    dossier.ds_date_derniere_modification = None
-    dossier.save()
-
-    with (
-        patch(
-            "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
-            return_value=ds_field,
-        ),
-        patch.object(ds_service, "mutator") as mock_mutator,
-    ):
-        mock_function = getattr(mock_mutator, function)
-        mock_function.return_value = {
-            "data": {
-                mutation_data_name: {
-                    "clientMutationId": "dev",
-                    "errors": None,
-                },
-                "updatedAt": updated_at_iso,
-            }
-        }
-
-        ds_service._update_annotation_field(
-            dossier, user, value, "field", mutation_type
-        )
-
-        dossier.refresh_from_db()
-        assert dossier.ds_date_derniere_modification == expected_updated_at
 
 
 def test_get_instructeur_id(caplog):
@@ -281,7 +99,7 @@ def test_get_ds_field_id(dossier: Dossier, field, field_name, caplog):
 
 @pytest.mark.parametrize(
     "mutation_type",
-    ("checkbox", "decimal", "dismiss"),
+    ("dismiss", "annotations"),
 )
 def test_check_results_with_uncorrect_user_rights(dossier, user, mutation_type, caplog):
     caplog.set_level(logging.INFO)
@@ -404,9 +222,7 @@ possible_responses = [
 ]
 
 
-@pytest.mark.parametrize(
-    "mutation_type", ("checkbox", "decimal", "dismiss", "annotations")
-)
+@pytest.mark.parametrize("mutation_type", ("dismiss", "annotations"))
 @pytest.mark.parametrize("mocked_response, msg", possible_responses)
 def test_check_results(
     user,
@@ -889,6 +705,278 @@ class TestUpdateUpdatedAtFromMultipleAnnotations:
         expected_updated_at = datetime.fromisoformat("2025-01-20T15:45:00+01:00")
         assert dossier.ds_date_derniere_modification == expected_updated_at
         assert dossier.ds_date_derniere_modification != old_date
+
+
+class TestUpdateCheckboxesAnnotations:
+    def test_update_checkboxes_annotations_success_single_checkbox(self, user, dossier):
+        """Test updating a single checkbox annotation"""
+        ds_service = DsService()
+
+        field_ids = {
+            "annotations_is_qpv": "field_qpv_123",
+        }
+
+        mock_get_ds_field_id = MagicMock(
+            side_effect=lambda dossier, field: field_ids[field]
+        )
+
+        with (
+            patch.object(ds_service, "_get_ds_field_id", mock_get_ds_field_id),
+            patch.object(ds_service, "mutator") as mock_mutator,
+            patch.object(ds_service, "_check_results") as mock_check_results,
+            patch.object(
+                ds_service, "_update_updated_at_from_multiple_annotations"
+            ) as mock_update_updated_at,
+        ):
+            mock_mutator.dossier_modifier_annotations.return_value = {
+                "data": {
+                    "dossierModifierAnnotations": {
+                        "clientMutationId": "test",
+                        "annotations": [
+                            {
+                                "id": "field_qpv_123",
+                                "updatedAt": "2025-01-15T10:30:00+00:00",
+                            }
+                        ],
+                    }
+                }
+            }
+
+            annotations_to_update = {"annotations_is_qpv": True}
+            result = ds_service.update_checkboxes_annotations(
+                dossier=dossier, user=user, annotations_to_update=annotations_to_update
+            )
+
+            # Verify _get_ds_field_id was called for each annotation
+            assert mock_get_ds_field_id.call_count == 1
+            mock_get_ds_field_id.assert_called_with(dossier, "annotations_is_qpv")
+
+            # Verify mutator was called with correct parameters
+            mock_mutator.dossier_modifier_annotations.assert_called_once()
+            call_args = mock_mutator.dossier_modifier_annotations.call_args
+            assert call_args[0][0] == dossier.ds_id  # dossier_id
+            assert call_args[0][1] == user.ds_id  # user_id
+
+            # Verify annotations structure
+            annotations = call_args[0][2]
+            assert len(annotations) == 1
+            assert annotations[0] == {
+                "id": "field_qpv_123",
+                "value": {"checkbox": True},
+            }
+
+            # Verify _check_results was called
+            mock_check_results.assert_called_once()
+            check_call_args = mock_check_results.call_args[0]
+            assert (
+                check_call_args[0]
+                == mock_mutator.dossier_modifier_annotations.return_value
+            )
+            assert check_call_args[1] == dossier
+            assert check_call_args[2] == user
+            assert check_call_args[3] == "annotations"
+            assert mock_check_results.call_args[1] == {"value": annotations}
+
+            # Verify _update_updated_at_from_multiple_annotations was called
+            mock_update_updated_at.assert_called_once_with(
+                dossier, mock_mutator.dossier_modifier_annotations.return_value
+            )
+
+            # Verify return value
+            assert result == mock_mutator.dossier_modifier_annotations.return_value
+
+    def test_update_checkboxes_annotations_success_multiple_checkboxes(
+        self, user, dossier
+    ):
+        """Test updating multiple checkbox annotations"""
+        ds_service = DsService()
+
+        field_ids = {
+            "annotations_is_qpv": "field_qpv_123",
+            "annotations_is_crte": "field_crte_456",
+            "annotations_is_budget_vert": "field_budget_vert_789",
+        }
+
+        mock_get_ds_field_id = MagicMock(
+            side_effect=lambda dossier, field: field_ids[field]
+        )
+
+        with (
+            patch.object(ds_service, "_get_ds_field_id", mock_get_ds_field_id),
+            patch.object(ds_service, "mutator") as mock_mutator,
+            patch.object(ds_service, "_check_results"),
+            patch.object(ds_service, "_update_updated_at_from_multiple_annotations"),
+        ):
+            mock_mutator.dossier_modifier_annotations.return_value = {
+                "data": {
+                    "dossierModifierAnnotations": {
+                        "clientMutationId": "test",
+                        "annotations": [
+                            {
+                                "id": "field_qpv_123",
+                                "updatedAt": "2025-01-15T10:30:00+00:00",
+                            },
+                            {
+                                "id": "field_crte_456",
+                                "updatedAt": "2025-01-15T10:30:00+00:00",
+                            },
+                            {
+                                "id": "field_budget_vert_789",
+                                "updatedAt": "2025-01-15T10:30:00+00:00",
+                            },
+                        ],
+                    }
+                }
+            }
+
+            annotations_to_update = {
+                "annotations_is_qpv": True,
+                "annotations_is_crte": False,
+                "annotations_is_budget_vert": True,
+            }
+            ds_service.update_checkboxes_annotations(
+                dossier=dossier, user=user, annotations_to_update=annotations_to_update
+            )
+
+            # Verify _get_ds_field_id was called for each annotation
+            assert mock_get_ds_field_id.call_count == 3
+            assert mock_get_ds_field_id.call_args_list[0][0] == (
+                dossier,
+                "annotations_is_qpv",
+            )
+            assert mock_get_ds_field_id.call_args_list[1][0] == (
+                dossier,
+                "annotations_is_crte",
+            )
+            assert mock_get_ds_field_id.call_args_list[2][0] == (
+                dossier,
+                "annotations_is_budget_vert",
+            )
+
+            # Verify annotations structure
+            call_args = mock_mutator.dossier_modifier_annotations.call_args
+            annotations = call_args[0][2]
+            assert len(annotations) == 3
+
+            # Verify annotations are in the correct format
+            annotation_dict = {
+                ann["id"]: ann["value"]["checkbox"] for ann in annotations
+            }
+            assert annotation_dict["field_qpv_123"] is True
+            assert annotation_dict["field_crte_456"] is False
+            assert annotation_dict["field_budget_vert_789"] is True
+
+    def test_update_checkboxes_annotations_annotations_dict_structure(
+        self, user, dossier
+    ):
+        """Test that annotations dict is built correctly with proper structure"""
+        ds_service = DsService()
+
+        field_ids = {
+            "annotations_is_qpv": "field_qpv_123",
+            "annotations_is_crte": "field_crte_456",
+        }
+
+        def mock_get_ds_field_id(dossier, field):
+            return field_ids[field]
+
+        with (
+            patch.object(
+                ds_service, "_get_ds_field_id", side_effect=mock_get_ds_field_id
+            ),
+            patch.object(ds_service, "mutator") as mock_mutator,
+            patch.object(ds_service, "_check_results"),
+            patch.object(ds_service, "_update_updated_at_from_multiple_annotations"),
+        ):
+            mock_mutator.dossier_modifier_annotations.return_value = {
+                "data": {"dossierModifierAnnotations": {"clientMutationId": "test"}}
+            }
+
+            annotations_to_update = {
+                "annotations_is_qpv": True,
+                "annotations_is_crte": False,
+            }
+            ds_service.update_checkboxes_annotations(
+                dossier=dossier, user=user, annotations_to_update=annotations_to_update
+            )
+
+            # Verify annotations structure
+            call_args = mock_mutator.dossier_modifier_annotations.call_args
+            annotations = call_args[0][2]
+
+            # Check structure of each annotation
+            for annotation in annotations:
+                assert "id" in annotation
+                assert "value" in annotation
+                assert "checkbox" in annotation["value"]
+                assert isinstance(annotation["value"]["checkbox"], bool)
+
+            # Verify specific values
+            assert annotations[0]["id"] == "field_qpv_123"
+            assert annotations[0]["value"]["checkbox"] is True
+            assert annotations[1]["id"] == "field_crte_456"
+            assert annotations[1]["value"]["checkbox"] is False
+
+    def test_update_checkboxes_annotations_calls_helper_methods(self, user, dossier):
+        """Test that all helper methods are called correctly"""
+        ds_service = DsService()
+
+        field_ids = {
+            "annotations_is_qpv": "field_qpv_123",
+        }
+
+        def mock_get_ds_field_id(dossier, field):
+            return field_ids[field]
+
+        with (
+            patch.object(
+                ds_service, "_get_ds_field_id", side_effect=mock_get_ds_field_id
+            ) as mock_get_field_id,
+            patch.object(ds_service, "mutator") as mock_mutator,
+            patch.object(ds_service, "_check_results") as mock_check_results,
+            patch.object(
+                ds_service, "_update_updated_at_from_multiple_annotations"
+            ) as mock_update_updated_at,
+        ):
+            mock_response = {
+                "data": {
+                    "dossierModifierAnnotations": {
+                        "clientMutationId": "test",
+                        "annotations": [
+                            {
+                                "id": "field_qpv_123",
+                                "updatedAt": "2025-01-15T10:30:00+00:00",
+                            }
+                        ],
+                    }
+                }
+            }
+            mock_mutator.dossier_modifier_annotations.return_value = mock_response
+
+            annotations_to_update = {"annotations_is_qpv": True}
+            ds_service.update_checkboxes_annotations(
+                dossier=dossier, user=user, annotations_to_update=annotations_to_update
+            )
+
+            # Verify _get_ds_field_id was called
+            mock_get_field_id.assert_called()
+
+            # Verify mutator was called with correct dossier and user IDs
+            mock_mutator.dossier_modifier_annotations.assert_called_once()
+            call_args = mock_mutator.dossier_modifier_annotations.call_args
+            assert call_args[0][0] == dossier.ds_id
+            assert call_args[0][1] == user.ds_id
+
+            # Verify _check_results was called with correct parameters
+            mock_check_results.assert_called_once()
+            check_call_args = mock_check_results.call_args
+            assert check_call_args[0][0] == mock_response
+            assert check_call_args[0][1] == dossier
+            assert check_call_args[0][2] == user
+            assert check_call_args[0][3] == "annotations"
+
+            # Verify _update_updated_at_from_multiple_annotations was called
+            mock_update_updated_at.assert_called_once_with(dossier, mock_response)
 
 
 class TestTransformMessage:

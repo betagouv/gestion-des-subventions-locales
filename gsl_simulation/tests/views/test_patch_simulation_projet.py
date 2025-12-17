@@ -516,7 +516,7 @@ def test_patch_simulation_projet(
     mock_resp = MagicMock()
     mock_resp.status_code = 200
     mock_resp.json.return_value = {
-        "data": {"dossierModifierAnnotationDecimalNumber": {"clientMutationId": "test"}}
+        "data": {"dossierModifierAnnotations": {"clientMutationId": "test"}}
     }
 
     with (
@@ -593,7 +593,7 @@ possible_responses = [
     (
         {
             "data": {
-                "dossierModifierAnnotationDecimalNumber": {
+                "dossierModifierAnnotations": {
                     "errors": [
                         {
                             "message": "L’instructeur n’a pas les droits d’accès à ce dossier"
@@ -609,12 +609,12 @@ possible_responses = [
         {
             "errors": [
                 {
-                    "message": "dossierModifierAnnotationDecimalNumberPayload not found",
+                    "message": "dossierModifierAnnotationsPayload not found",
                 }
             ],
-            "data": {"dossierModifierAnnotationDecimalNumber": None},
+            "data": {"dossierModifierAnnotations": None},
         },
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarche Numérique ({field} => dossierModifierAnnotationDecimalNumberPayload not found). Ces modifications n'ont pas été enregistrées.",
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. dossierModifierAnnotationsPayload not found",
     ),
     # Invalid field id
     (
@@ -624,31 +624,29 @@ possible_responses = [
                     "message": 'Invalid input: "field_NUL"',
                 }
             ],
-            "data": {"dossierModifierAnnotationDecimalNumber": None},
+            "data": {"dossierModifierAnnotations": None},
         },
-        'Une erreur est survenue lors de la mise à jour de certaines informations sur Démarche Numérique ({field} => Invalid input: "field_NUL"). Ces modifications n\'ont pas été enregistrées.',
+        'Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. Invalid input: "field_NUL"',
     ),
     # Invalid value
     (
         {
             "errors": [
                 {
-                    "message": 'Variable $input of type dossierModifierAnnotationDecimalNumberInput! was provided invalid value for value (Could not coerce value "RIGOLO" to Boolean)',
+                    "message": 'Variable $input of type dossierModifierAnnotationsInput! was provided invalid value for value (Could not coerce value "RIGOLO" to Boolean)',
                 }
-            ]
+            ],
         },
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarche Numérique ({field}). Ces modifications n'ont pas été enregistrées.",
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. ",
     ),
     # Other error
     (
         {
             "data": {
-                "dossierModifierAnnotationDecimalNumber": {
-                    "errors": [{"message": "Une erreur"}]
-                }
+                "dossierModifierAnnotations": {"errors": [{"message": "Une erreur"}]}
             }
         },
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarche Numérique ({field} => Une erreur). Ces modifications n'ont pas été enregistrées.",
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. Une erreur",
     ),
 ]
 
@@ -669,14 +667,10 @@ def test_patch_simulation_projet_with_ds_error(
 
     with (
         patch(
-            "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
-            return_value=ds_field,
+            "gsl_demarches_simplifiees.services.DsService._get_ds_field_id",
+            return_value=ds_field.ds_field_id,
         ),
         patch("requests.post", return_value=mock_resp),
-        patch(
-            "gsl_demarches_simplifiees.services.DsService.update_ds_taux",
-            return_value=True,
-        ),
     ):
         url = reverse(
             "simulation:simulation-projet-detail",
@@ -692,8 +686,7 @@ def test_patch_simulation_projet_with_ds_error(
     assert len(messages) == 1
     message = list(messages)[0]
     assert message.level == 40
-    final_msg = error_msg.replace("{field}", "Assiette")
-    assert final_msg == message.message
+    assert error_msg == message.message
 
     accepted_simulation_projet.dotation_projet.refresh_from_db()
 
@@ -743,60 +736,3 @@ def test_patch_simulation_projet_with_ds_token_error(
 
     assert response.status_code == 200
     assert accepted_simulation_projet.dotation_projet.assiette == 1_000
-
-
-def test_three_fields_update_and_only_one_error(
-    perimetre_departemental, accepted_simulation_projet
-):
-    accepted_simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
-    accepted_simulation_projet.dotation_projet.save()
-    user = CollegueWithDSProfileFactory(perimetre=perimetre_departemental)
-    client = ClientWithLoggedUserFactory(user)
-    data = {
-        "assiette": 20_000,
-        "montant": 4_000,
-        "taux": 20.0,
-    }
-
-    with (
-        patch(
-            "gsl_demarches_simplifiees.services.DsService.update_ds_assiette",
-            return_value=True,
-        ),
-        patch(
-            "gsl_demarches_simplifiees.services.DsService.update_ds_montant",
-            side_effect=DsServiceException("Erreur !"),
-        ),
-        patch(
-            "gsl_demarches_simplifiees.services.DsService.update_ds_taux",
-            return_value=True,
-        ),
-    ):
-        url = reverse(
-            "simulation:simulation-projet-detail",
-            args=[accepted_simulation_projet.id],
-        )
-        response = client.post(
-            url,
-            data,
-            follow=True,
-        )
-
-    assert response.status_code == 200
-
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-    message = list(messages)[0]
-    assert message.level == 40  # Error
-    assert (
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarche Numérique (Montant => Erreur !). Ces modifications n'ont pas été enregistrées."
-        == message.message
-    )
-
-    accepted_simulation_projet.projet.refresh_from_db()
-    accepted_simulation_projet.dotation_projet.refresh_from_db()
-
-    # Only this field has been updated
-    assert accepted_simulation_projet.dotation_projet.assiette == 20_000
-
-    assert accepted_simulation_projet.montant == 1_000  # default

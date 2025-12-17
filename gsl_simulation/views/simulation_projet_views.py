@@ -548,7 +548,7 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
 
             form.add_error(
                 None,
-                f"Une erreur est survenue lors de l'envoi à Démarche Simplifiées. {str(e)}",
+                f"Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. {str(e)}",
             )
             return super().form_invalid(form)
 

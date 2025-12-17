@@ -4,6 +4,7 @@ import pytest
 from django import forms
 
 from gsl_core.tests.factories import CollegueWithDSProfileFactory
+from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.forms import ProjetForm
 from gsl_projet.models import Projet
@@ -137,29 +138,28 @@ def test_projet_form_save_with_multiple_dotations(projet):
 
 @pytest.mark.django_db
 def test_projet_form_save_with_field_exceptions(projet, user):
-    with patch(
-        "gsl_demarches_simplifiees.mixins.process_projet_update"
-    ) as mock_process_projet_update:
-        mock_process_projet_update.return_value = (
-            {"is_budget_vert": "Some error"},
-            False,
-        )
+    data = {
+        "is_in_qpv": True,
+        "is_attached_to_a_crte": True,
+        "is_budget_vert": False,
+        "dotations": [DOTATION_DSIL],
+    }
+    form = ProjetForm(instance=projet, data=data, user=user)
+    assert form.is_valid()
 
-        data = {
-            "is_in_qpv": True,
-            "is_attached_to_a_crte": True,
-            "is_budget_vert": False,
-            "dotations": [DOTATION_DSIL],
-        }
-        form = ProjetForm(instance=projet, data=data, user=user)
-        assert form.is_valid()
+    with patch(
+        "gsl_demarches_simplifiees.services.DsService.update_checkboxes_annotations"
+    ) as mock_update_annotations:
+        mock_update_annotations.side_effect = DsServiceException("Some error")
         projet, err_msg = form.save(commit=True)
-        assert isinstance(projet, Projet)
-        assert projet.is_in_qpv is True
-        assert projet.is_attached_to_a_crte is True
-        assert projet.is_budget_vert is None  # Default value
-        assert projet.dotations == [DOTATION_DSIL]
-        assert (
-            err_msg
-            == "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarche Numérique (Budget vert => Some error). Ces modifications n'ont pas été enregistrées."
-        )
+
+    projet.refresh_from_db()
+    assert isinstance(projet, Projet)
+    assert projet.is_in_qpv is False  # not updated
+    assert projet.is_attached_to_a_crte is False  # not updated
+    assert projet.is_budget_vert is None  # Default value
+    assert projet.dotations == [DOTATION_DSIL]
+    assert (
+        err_msg
+        == "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. Some error"
+    )

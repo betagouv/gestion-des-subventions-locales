@@ -1,7 +1,6 @@
 from datetime import datetime
-from decimal import Decimal
 from logging import getLogger
-from typing import Callable, List, Literal
+from typing import List, Literal
 
 from django.core.exceptions import FieldDoesNotExist
 
@@ -21,18 +20,11 @@ logger = getLogger(__name__)
 
 class DsService:
     MUTATION_KEYS = {
-        "checkbox": "dossierModifierAnnotationCheckbox",
-        "decimal": "dossierModifierAnnotationDecimalNumber",
         "dismiss": "dossierClasserSansSuite",
         "annotations": "dossierModifierAnnotations",
     }
 
-    MUTATION_FUNCTION = {
-        "checkbox": "dossier_modifier_annotation_checkbox",
-        "decimal": "dossier_modifier_annotation_decimal",
-    }
-
-    MUTATION_TYPES = Literal["checkbox", "decimal", "dismiss", "annotations"]
+    MUTATION_TYPES = Literal["dismiss", "annotations"]
 
     def __init__(self):
         self.mutator = DsMutator()
@@ -48,54 +40,6 @@ class DsService:
         return results
 
     # Annotations
-
-    def update_ds_is_in_qpv(self, dossier: Dossier, user: Collegue, value: bool):
-        return self._update_boolean_field(dossier, user, value, "annotations_is_qpv")
-
-    def update_ds_is_budget_vert(
-        self, dossier: Dossier, user: Collegue, value: bool | str
-    ):
-        return self._update_boolean_field(
-            dossier, user, bool(value), "annotations_is_budget_vert"
-        )
-
-    def update_ds_is_attached_to_a_crte(
-        self, dossier: Dossier, user: Collegue, value: bool
-    ):
-        return self._update_boolean_field(dossier, user, value, "annotations_is_crte")
-
-    def update_ds_assiette(
-        self,
-        dossier: Dossier,
-        user: Collegue,
-        dotation: POSSIBLE_DOTATIONS,
-        value: float | None,
-    ):
-        return self._update_assiette_montant_or_taux(
-            dossier, user, dotation, value, "assiette"
-        )
-
-    def update_ds_montant(
-        self,
-        dossier: Dossier,
-        user: Collegue,
-        dotation: POSSIBLE_DOTATIONS,
-        value: float | None,
-    ):
-        return self._update_assiette_montant_or_taux(
-            dossier, user, dotation, value, "montant_accorde"
-        )
-
-    def update_ds_taux(
-        self,
-        dossier: Dossier,
-        user: Collegue,
-        dotation: POSSIBLE_DOTATIONS,
-        value: float | None,
-    ):
-        return self._update_assiette_montant_or_taux(
-            dossier, user, dotation, value, "taux"
-        )
 
     def update_ds_annotations_for_one_dotation(
         self,
@@ -160,13 +104,13 @@ class DsService:
         self._update_updated_at_from_multiple_annotations(dossier, results)
         return results
 
-    def update_checkboxes_annotations(  # TODO test this function
+    def update_checkboxes_annotations(
         self, dossier: Dossier, user: Collegue, annotations_to_update: dict[str, bool]
     ):
         annotations = [
             {
                 "id": self._get_ds_field_id(dossier, annotation_key),
-                "value": {"checkbox": annotation_value},
+                "value": {"checkbox": bool(annotation_value)},
             }
             for annotation_key, annotation_value in annotations_to_update.items()
         ]
@@ -178,54 +122,6 @@ class DsService:
         return results
 
     # Private
-
-    def _update_assiette_montant_or_taux(
-        self,
-        dossier: Dossier,
-        user: Collegue,
-        dotation: POSSIBLE_DOTATIONS,
-        value: float | None,
-        field_name: str,
-    ):
-        suffix = "dsil" if dotation == DOTATION_DSIL else "detr"
-        field = f"annotations_{field_name}_{suffix}"
-        if value is None:
-            value = 0
-        return self._update_decimal_field(dossier, user, value, field)
-
-    def _update_boolean_field(
-        self, dossier: Dossier, user: Collegue, value: bool, field: str
-    ):
-        return self._update_annotation_field(dossier, user, value, field, "checkbox")
-
-    def _update_decimal_field(
-        self, dossier: Dossier, user: Collegue, value: float | Decimal, field: str
-    ):
-        return self._update_annotation_field(
-            dossier, user, float(value), field, "decimal"
-        )
-
-    def _update_annotation_field(
-        self,
-        dossier: Dossier,
-        user: Collegue,
-        value: float | bool,
-        field: str,
-        mutation_type: MUTATION_TYPES,
-    ):
-        instructeur_id = self._get_instructeur_id(user)
-        ds_field_id = self._get_ds_field_id(dossier, field)
-
-        mutator_function_name = self.MUTATION_FUNCTION[mutation_type]
-
-        mutator_function: Callable[[str, str, str, bool | float], dict] = getattr(
-            self.mutator, mutator_function_name
-        )
-        results = mutator_function(dossier.ds_id, instructeur_id, ds_field_id, value)
-
-        self._check_results(results, dossier, user, mutation_type, field, value)
-        self._update_updated_at(dossier, results)
-        return results
 
     def _update_updated_at(self, dossier: Dossier, results: dict):
         updated_at = results.get("data", {}).get("updatedAt")
@@ -318,7 +214,7 @@ class DsService:
             )
 
         mutation_data = data.get(mutation_key)
-        if "errors" not in mutation_data:
+        if mutation_data is None or "errors" not in mutation_data:
             return
 
         errors = mutation_data["errors"]

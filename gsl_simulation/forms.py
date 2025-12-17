@@ -173,7 +173,7 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
                     user=self.user,
                 )
             except DsServiceException as e:
-                error_msg = f"Une erreur est survenue lors de l'envoi à Démarche Simplifiées. {str(e)}"
+                error_msg = f"Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. {str(e)}"
 
         if error_msg is None:
             instance.save()

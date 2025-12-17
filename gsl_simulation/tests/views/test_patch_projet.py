@@ -11,7 +11,7 @@ from gsl_core.tests.factories import (
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
-from gsl_demarches_simplifiees.exceptions import DsServiceException
+from gsl_demarches_simplifiees.exceptions import InstructeurUnknown
 from gsl_demarches_simplifiees.tests.factories import (
     FieldMappingForComputerFactory,
 )
@@ -114,7 +114,7 @@ def test_patch_projet(
     mock_resp.status_code = 200
     mock_resp.json.return_value = {
         "data": {
-            "dossierModifierAnnotationCheckbox": {
+            "dossierModifierAnnotations": {
                 "clientMutationId": "test",
             }
         }
@@ -186,7 +186,7 @@ possible_responses = [
     (
         {
             "data": {
-                "dossierModifierAnnotationCheckbox": {
+                "dossierModifierAnnotations": {
                     "errors": [
                         {
                             "message": "L’instructeur n’a pas les droits d’accès à ce dossier"
@@ -202,12 +202,12 @@ possible_responses = [
         {
             "errors": [
                 {
-                    "message": "DossierModifierAnnotationCheckboxPayload not found",
+                    "message": "dossierModifierAnnotationsPayload not found",
                 }
             ],
-            "data": {"dossierModifierAnnotationCheckbox": None},
+            "data": {"dossierModifierAnnotations": None},
         },
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarche Numérique ({field} => DossierModifierAnnotationCheckboxPayload not found). Ces modifications n'ont pas été enregistrées.",
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. dossierModifierAnnotationsPayload not found",
     ),
     # Invalid field id
     (
@@ -217,31 +217,29 @@ possible_responses = [
                     "message": 'Invalid input: "field_NUL"',
                 }
             ],
-            "data": {"dossierModifierAnnotationCheckbox": None},
+            "data": {"dossierModifierAnnotations": None},
         },
-        'Une erreur est survenue lors de la mise à jour de certaines informations sur Démarche Numérique ({field} => Invalid input: "field_NUL"). Ces modifications n\'ont pas été enregistrées.',
+        'Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. Invalid input: "field_NUL"',
     ),
     # Invalid value
     (
         {
             "errors": [
                 {
-                    "message": 'Variable $input of type DossierModifierAnnotationCheckboxInput! was provided invalid value for value (Could not coerce value "RIGOLO" to Boolean)',
+                    "message": 'Variable $input of type dossierModifierAnnotationsInput! was provided invalid value for value (Could not coerce value "RIGOLO" to Boolean)',
                 }
             ]
         },
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarche Numérique ({field}). Ces modifications n'ont pas été enregistrées.",
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. ",
     ),
     # Other error
     (
         {
             "data": {
-                "dossierModifierAnnotationCheckbox": {
-                    "errors": [{"message": "Une erreur"}]
-                }
+                "dossierModifierAnnotations": {"errors": [{"message": "Une erreur"}]}
             }
         },
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarche Numérique ({field} => Une erreur). Ces modifications n'ont pas été enregistrées.",
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. Une erreur",
     ),
 ]
 
@@ -284,8 +282,7 @@ def test_patch_projet_with_ds_service_exception_send_correct_error_msg_to_user_a
     assert len(messages) == 1
     message = list(messages)[0]
     assert message.level == 40  # Error
-    final_msg = msg.replace("{field}", "QPV")
-    assert message.message == final_msg
+    assert message.message == msg
 
     accepted_simulation_projet.projet.refresh_from_db()
 
@@ -296,6 +293,7 @@ def test_patch_projet_with_ds_service_exception_send_correct_error_msg_to_user_a
 def test_patch_projet_with_user_without_ds_profile(
     perimetre_departemental,
     accepted_simulation_projet,
+    ds_field,
 ):
     user = CollegueFactory(perimetre=perimetre_departemental)
     client = ClientWithLoggedUserFactory(user)
@@ -308,13 +306,23 @@ def test_patch_projet_with_user_without_ds_profile(
         "simulation:patch-projet",
         args=[accepted_simulation_projet.id],
     )
-    response = client.post(
-        url,
-        data,
-        follow=True,
-    )
+    with (
+        patch(
+            "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
+            return_value=ds_field,
+        ),
+        patch(
+            "gsl_demarches_simplifiees.services.DsService.update_checkboxes_annotations",
+            side_effect=InstructeurUnknown(extra={"user_id": user.id}),
+        ),
+    ):
+        resp = client.post(
+            url,
+            data,
+            follow=True,
+        )
 
-    messages = get_messages(response.wsgi_request)
+    messages = get_messages(resp.wsgi_request)
     assert len(messages) == 1
     message = list(messages)[0]
     assert message.level == 40  # Error
@@ -325,7 +333,7 @@ def test_patch_projet_with_user_without_ds_profile(
 
     accepted_simulation_projet.projet.refresh_from_db()
 
-    assert response.status_code == 200
+    assert resp.status_code == 200
     assert accepted_simulation_projet.projet.is_in_qpv is False
 
 
@@ -372,56 +380,3 @@ def test_patch_projet_with_user_with_ds_connection_error(
 
     assert response.status_code == 200
     assert accepted_simulation_projet.projet.is_in_qpv is False
-
-
-def test_two_fields_update_and_only_one_error(
-    perimetre_departemental, accepted_simulation_projet
-):
-    collegue = CollegueFactory(perimetre=perimetre_departemental)
-    client = ClientWithLoggedUserFactory(collegue)
-    accepted_simulation_projet.projet.is_in_qpv = False
-    accepted_simulation_projet.projet.is_attached_to_a_crte = False
-    accepted_simulation_projet.projet.save()
-    data = {
-        "is_in_qpv": "on",
-        "is_attached_to_a_crte": "on",
-        "dotations": [DOTATION_DSIL],
-    }
-
-    with (
-        patch(
-            "gsl_demarches_simplifiees.services.DsService.update_ds_is_in_qpv",
-            return_value=True,
-        ),
-        patch(
-            "gsl_demarches_simplifiees.services.DsService.update_ds_is_attached_to_a_crte",
-            side_effect=DsServiceException("Erreur !"),
-        ),
-    ):
-        url = reverse(
-            "simulation:patch-projet",
-            args=[accepted_simulation_projet.id],
-        )
-        response = client.post(
-            url,
-            data,
-            follow=True,
-        )
-
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-    message = list(messages)[0]
-    assert message.level == 40  # Error
-    assert (
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarche Numérique (CRTE => Erreur !). Ces modifications n'ont pas été enregistrées."
-        == message.message
-    )
-
-    accepted_simulation_projet.projet.refresh_from_db()
-
-    assert response.status_code == 200
-
-    assert (
-        accepted_simulation_projet.projet.is_in_qpv is True
-    )  # Only this field has been updated
-    assert accepted_simulation_projet.projet.is_attached_to_a_crte is False

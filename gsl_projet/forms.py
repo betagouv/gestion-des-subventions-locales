@@ -8,6 +8,7 @@ from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.services import DsService
 from gsl_projet.constants import DOTATION_CHOICES
 from gsl_projet.models import CategorieDetr, DotationProjet, Projet, ProjetNote
+from gsl_projet.services.projet_services import ProjetService
 
 logger = getLogger(__name__)
 
@@ -87,10 +88,14 @@ class ProjetForm(ModelForm, DsfrBaseForm):
                 },
             )
         except DsServiceException as e:
-            error_msg = f"Une erreur est survenue lors de l'envoi à Démarche Simplifiées. {str(e)}"
+            error_msg = f"Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. {str(e)}"
 
         if error_msg is None:
             instance.save()
+
+        dotations = self.cleaned_data.get("dotations")
+        if dotations:
+            ProjetService.update_dotation(instance, dotations)
 
         return instance, error_msg
 
