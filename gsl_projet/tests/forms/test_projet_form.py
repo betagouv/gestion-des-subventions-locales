@@ -33,6 +33,12 @@ def test_projet_form_fields(projet):
         "is_budget_vert",
         "is_in_qpv",
         "is_attached_to_a_crte",
+        "is_frr",
+        "is_acv",
+        "is_pvd",
+        "is_va",
+        "is_autre_zonage_local",
+        "is_contrat_local",
         "dotations",
     ]
     assert list(form.fields.keys()) == expected_fields
