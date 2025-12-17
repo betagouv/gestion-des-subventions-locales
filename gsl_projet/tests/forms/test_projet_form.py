@@ -14,7 +14,7 @@ from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 @pytest.fixture
 def projet():
     projet = ProjetFactory(
-        is_in_qpv=False, is_attached_to_a_crte=False, is_budget_vert=None
+        is_in_qpv=False, is_attached_to_a_crte=False, is_budget_vert=False
     )
     DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
     return projet
@@ -38,14 +38,12 @@ def test_projet_form_fields(projet):
     assert list(form.fields.keys()) == expected_fields
 
     budget_field = form.fields["is_budget_vert"]
-    assert isinstance(budget_field, forms.ChoiceField)
+    assert isinstance(budget_field, forms.BooleanField)
     assert budget_field.required is False
-    assert budget_field.choices == [
-        (None, "Non Renseigné"),
-        (True, "Oui"),
-        (False, "Non"),
-    ]
-    assert budget_field.label == "Transition écologique"
+    assert (
+        budget_field.label
+        == "Projet concourant à la transition écologique au sens budget vert"
+    )
 
     budget_field = form.fields["is_in_qpv"]
     assert isinstance(budget_field, forms.BooleanField)
@@ -80,10 +78,10 @@ def test_projet_form_validation(projet):
     }
     form = ProjetForm(instance=projet, data=invalid_data)
     assert not form.is_valid()
-    assert "is_budget_vert" in form.errors
     assert "dotations" in form.errors
 
     # BooleanField cast string value to boolean
+    assert "is_budget_vert" not in form.errors
     assert "is_in_qpv" not in form.errors
     assert "is_attached_to_a_crte" not in form.errors
 
@@ -148,7 +146,7 @@ def test_projet_form_save_with_field_exceptions(projet, user):
     data = {
         "is_in_qpv": True,
         "is_attached_to_a_crte": True,
-        "is_budget_vert": False,
+        "is_budget_vert": True,
         "dotations": [DOTATION_DSIL],
     }
     form = ProjetForm(instance=projet, data=data, user=user)
@@ -167,5 +165,5 @@ def test_projet_form_save_with_field_exceptions(projet, user):
     assert isinstance(projet, Projet)
     assert projet.is_in_qpv is False  # not updated
     assert projet.is_attached_to_a_crte is False  # not updated
-    assert projet.is_budget_vert is None  # Default value
+    assert projet.is_budget_vert is False  # Default value
     assert projet.dotations == [DOTATION_DETR]  # Default value
