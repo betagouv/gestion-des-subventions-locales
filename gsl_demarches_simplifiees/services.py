@@ -25,6 +25,7 @@ class DsService:
         "decimal": "dossierModifierAnnotationDecimalNumber",
         "dismiss": "dossierClasserSansSuite",
         "annotations": "dossierModifierAnnotations",
+        "passer_en_instruction": "dossierPasserEnInstruction",
     }
 
     MUTATION_FUNCTION = {

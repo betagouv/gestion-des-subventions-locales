@@ -115,6 +115,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.Form):
             ds.passer_en_instruction(
                 dossier=self.programmation_projet.dossier, user=user
             )
+            self.programmation_projet.dossier.refresh_from_db()
         with transaction.atomic():
             self.programmation_projet.projet.notified_at = timezone.now()
             self.programmation_projet.projet.save()
