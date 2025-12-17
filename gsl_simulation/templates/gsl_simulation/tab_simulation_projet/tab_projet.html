@@ -31,7 +31,7 @@
 
 {% block transition_ecologique_content %}
     <p>
-        <b>Le projet concourt-il aux enjeux de la transition écologique au sens budget vert :</b>
+        <b>Le projet concourt-il aux enjeux de la transition écologique au sens budget vert&nbsp;:</b>&nbsp;{{ projet.dossier.environnement_transition_eco|yesno:"Oui,Non,Non renseigné" }}
     </p>
     {% include "includes/forms/_is_budget_vert_form.html" %}
 {% endblock transition_ecologique_content %}

@@ -70,7 +70,7 @@ def accepted_simulation_projet(user, simulation):
         status=PROJET_STATUS_PROCESSING,
         assiette=10_000,
         projet__perimetre=user.perimetre,
-        projet__is_budget_vert=None,
+        projet__is_budget_vert=False,
         dotation=DOTATION_DETR,
     )
 
@@ -88,9 +88,8 @@ def accepted_simulation_projet(user, simulation):
 @pytest.mark.parametrize(
     "field, data, expected_value",
     (
-        ("is_budget_vert", {"is_budget_vert": "True"}, True),
-        ("is_budget_vert", {"is_budget_vert": "False"}, False),
-        ("is_budget_vert", {"is_budget_vert": ""}, None),
+        ("is_budget_vert", {"is_budget_vert": "on"}, True),
+        ("is_budget_vert", {}, False),
         ("is_attached_to_a_crte", {"is_attached_to_a_crte": "on"}, True),
         ("is_attached_to_a_crte", {}, False),
         ("is_in_qpv", {"is_in_qpv": "on"}, True),
@@ -164,7 +163,7 @@ def test_patch_projet_with_invalid_form(
         data,
         follow=True,
     )
-    assert "is_budget_vert" in response.context["projet_form"].errors
+    assert "dotations" in response.context["projet_form"].errors
 
     messages = get_messages(response.wsgi_request)
     assert len(messages) == 1
@@ -178,7 +177,7 @@ def test_patch_projet_with_invalid_form(
     assert response.templates[0].name == "gsl_simulation/simulation_projet_detail.html"
 
     accepted_simulation_projet.projet.refresh_from_db()
-    assert accepted_simulation_projet.projet.is_budget_vert is None  # Default value
+    assert accepted_simulation_projet.projet.is_budget_vert is False  # Default value
 
 
 possible_responses = [

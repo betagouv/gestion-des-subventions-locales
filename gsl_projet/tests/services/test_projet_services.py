@@ -13,7 +13,7 @@ from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, PROJET_STATUS_PROCESSING
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
-from gsl_projet.services.projet_services import ProjetService
+from gsl_projet.services.projet_services import ProjetService as ps
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationProjetFactory
@@ -24,7 +24,7 @@ def test_create_or_update_projet_from_dossier_with_existing_projet():
     dossier = DossierFactory(projet_adresse=AdresseFactory())
     projet = ProjetFactory(dossier_ds=dossier)
 
-    assert ProjetService.create_or_update_from_ds_dossier(dossier) == projet
+    assert ps.create_or_update_from_ds_dossier(dossier) == projet
 
 
 @pytest.mark.django_db
@@ -39,7 +39,7 @@ def test_create_projet_from_dossier():
     )
     assert dossier.ds_demandeur.address.commune.departement == perimetre.departement
 
-    projet = ProjetService.create_or_update_from_ds_dossier(dossier)
+    projet = ps.create_or_update_from_ds_dossier(dossier)
 
     assert isinstance(projet, Projet)
     assert projet.address is not None
@@ -48,7 +48,7 @@ def test_create_projet_from_dossier():
 
     assert projet.perimetre == dossier.get_projet_perimetre()
 
-    other_projet = ProjetService.create_or_update_from_ds_dossier(dossier)
+    other_projet = ps.create_or_update_from_ds_dossier(dossier)
     assert other_projet == projet
 
 
@@ -74,7 +74,7 @@ def other_projets():
 @pytest.mark.django_db
 def test_get_total_cost(projets_with_finance_cout_total):
     qs = Projet.objects.all()
-    assert ProjetService.get_total_cost(qs) == 40_000
+    assert ps.get_total_cost(qs) == 40_000
 
 
 @pytest.mark.django_db
@@ -84,7 +84,7 @@ def test_get_same_total_cost_even_if_there_is_other_projets(
 ):
     projet_ids = [projet.id for projet in projets_with_finance_cout_total]
     qs = Projet.objects.filter(id__in=projet_ids).all()
-    assert ProjetService.get_total_cost(qs) == 40_000
+    assert ps.get_total_cost(qs) == 40_000
 
 
 @pytest.mark.django_db
@@ -111,7 +111,7 @@ def test_get_total_amount_granted():
     )
 
     qs = Projet.objects.all()
-    assert ProjetService.get_total_amount_granted(qs) == 30_000
+    assert ps.get_total_amount_granted(qs) == 30_000
 
 
 @pytest.fixture
@@ -141,7 +141,7 @@ def test_get_total_amount_asked(
 ):
     projet_ids = [projet.id for projet in projets_with_demande_montant]
     qs = Projet.objects.filter(id__in=projet_ids).all()
-    assert ProjetService.get_total_amount_asked(qs) == 15_000 + 25_000
+    assert ps.get_total_amount_asked(qs) == 15_000 + 25_000
 
 
 @pytest.fixture
@@ -188,87 +188,60 @@ def create_projets():
 
 #     ordering = "date_desc"
 #     qs = Projet.objects.all()
-#     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
+#     ordered_qs = ps.add_ordering_to_projets_qs(qs, ordering)
 
 #     assert list(ordered_qs) == [projet3, projet2, projet1]
 
 #     ordering = "date_asc"
-#     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
+#     ordered_qs = ps.add_ordering_to_projets_qs(qs, ordering)
 
 #     assert list(ordered_qs) == [projet1, projet2, projet3]
 
 #     ordering = "cout_desc"
-#     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
+#     ordered_qs = ps.add_ordering_to_projets_qs(qs, ordering)
 
 #     assert list(ordered_qs) == [projet2, projet3, projet1]
 
 #     ordering = "cout_asc"
-#     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
+#     ordered_qs = ps.add_ordering_to_projets_qs(qs, ordering)
 
 #     assert list(ordered_qs) == [projet1, projet3, projet2]
 
 #     ordering = "demandeur_desc"
-#     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
+#     ordered_qs = ps.add_ordering_to_projets_qs(qs, ordering)
 #     assert list(ordered_qs) == [projet2, projet1, projet3]
 
 #     ordering = "demandeur_asc"
-#     ordered_qs = ProjetService.add_ordering_to_projets_qs(qs, ordering)
+#     ordered_qs = ps.add_ordering_to_projets_qs(qs, ordering)
 #     assert list(ordered_qs) == [projet3, projet1, projet2]
 
 
 @pytest.mark.parametrize(
-    "is_in_qpv, expected_result",
+    "annotation_value, expected_result",
     [
         (True, True),
         (False, False),
         (None, False),
     ],
 )
-@pytest.mark.django_db
-def test_get_is_in_qpv_with_true_value(is_in_qpv, expected_result):
-    dossier = DossierFactory(annotations_is_qpv=is_in_qpv)
-    assert ProjetService.get_is_in_qpv(dossier) == expected_result
-
-
 @pytest.mark.parametrize(
-    "is_attached_to_a_crte, expected_result",
-    [
-        (True, True),
-        (False, False),
-        (None, False),
-    ],
+    "annotation_field_name, projet_service_method",
+    (
+        ("annotations_is_qpv", ps.get_is_in_qpv),
+        ("annotations_is_crte", ps.get_is_attached_to_a_crte),
+        ("annotations_is_budget_vert", ps.get_is_budget_vert),
+    ),
 )
 @pytest.mark.django_db
 def test_get_is_attached_to_a_crte_with_true_value(
-    is_attached_to_a_crte, expected_result
+    annotation_field_name,
+    projet_service_method,
+    annotation_value,
+    expected_result,
 ):
-    dossier = DossierFactory(annotations_is_crte=is_attached_to_a_crte)
-    assert ProjetService.get_is_attached_to_a_crte(dossier) == expected_result
-
-
-@pytest.mark.parametrize(
-    "annotations_is_budget_vert, environnement_transition_eco, expected_result",
-    [
-        (True, True, True),
-        (True, False, True),
-        (True, None, True),
-        (False, True, False),
-        (False, False, False),
-        (False, None, False),
-        (None, True, True),
-        (None, False, False),
-        (None, None, None),
-    ],
-)
-@pytest.mark.django_db
-def test_get_is_budget_vert(
-    annotations_is_budget_vert, environnement_transition_eco, expected_result
-):
-    dossier = DossierFactory(
-        annotations_is_budget_vert=annotations_is_budget_vert,
-        environnement_transition_eco=environnement_transition_eco,
-    )
-    assert ProjetService.get_is_budget_vert(dossier) == expected_result
+    dossier = DossierFactory()
+    setattr(dossier, annotation_field_name, annotation_value)
+    assert projet_service_method(dossier) == expected_result
 
 
 @pytest.fixture
@@ -279,7 +252,7 @@ def projet():
 @pytest.mark.django_db
 def test_update_dotation_with_no_value(projet, caplog):
     with caplog.at_level(logging.WARNING):
-        ProjetService.update_dotation(projet, [])
+        ps.update_dotation(projet, [])
     assert "Projet must have at least one dotation" in caplog.text
     assert projet.dotations == []
 
@@ -287,7 +260,7 @@ def test_update_dotation_with_no_value(projet, caplog):
 @pytest.mark.django_db
 def test_update_dotation_with_more_than_2_values(projet, caplog):
     with caplog.at_level(logging.WARNING):
-        ProjetService.update_dotation(projet, [DOTATION_DETR, DOTATION_DSIL, "unknown"])
+        ps.update_dotation(projet, [DOTATION_DETR, DOTATION_DSIL, "unknown"])
     assert "Projet can't have more than two dotations" in caplog.text
     assert projet.dotations == []
 
@@ -305,7 +278,7 @@ def test_update_dotation_from_one_dotation_to_another(
     ProgrammationProjetFactory.create(dotation_projet=original_dotation_projet)
 
     new_dotation = DOTATION_DSIL if dotation == DOTATION_DETR else DOTATION_DETR
-    ProjetService.update_dotation(projet, [new_dotation])
+    ps.update_dotation(projet, [new_dotation])
 
     assert projet.dotations == [new_dotation]
     assert projet.dotationprojet_set.count() == 1
@@ -334,7 +307,7 @@ def test_update_dotation_from_one_to_two(
     SimulationProjetFactory.create_batch(3, dotation_projet=original_dotation_projet)
     ProgrammationProjetFactory.create(dotation_projet=original_dotation_projet)
 
-    ProjetService.update_dotation(projet, [DOTATION_DETR, DOTATION_DSIL])
+    ps.update_dotation(projet, [DOTATION_DETR, DOTATION_DSIL])
 
     assert projet.dotationprojet_set.count() == 2
     assert all(
