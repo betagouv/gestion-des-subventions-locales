@@ -1,4 +1,5 @@
 from typing import cast
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -64,7 +65,10 @@ def test_montant_field(simulation_projet):
     assert not form.is_valid()
 
 
-def test_empty_montant_is_converted_to_zero(simulation_projet):
+@mock.patch(
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+)
+def test_empty_montant_is_converted_to_zero(_mock, simulation_projet):
     """Test that an empty montant field is converted to 0 to avoid IntegrityError"""
     # Test with empty string
     data = {"montant": ""}
@@ -245,7 +249,10 @@ def test_save_with_dn_error(simulation_projet, user):
     assert simulation_projet.taux == 20  # not updated
 
 
-def test_remove_assiette_field():
+@mock.patch(
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+)
+def test_remove_assiette_field(_mock):
     simulation_projet = SimulationProjetFactory(
         dotation_projet__projet__dossier_ds__finance_cout_total=10_000,
         dotation_projet__assiette=1_000,

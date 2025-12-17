@@ -32,9 +32,23 @@ class ProjetService:
             )
         projet.address = ds_dossier.projet_adresse
         projet.perimetre = ds_dossier.get_projet_perimetre()
-        projet.is_in_qpv = cls.get_is_in_qpv(ds_dossier)
-        projet.is_attached_to_a_crte = cls.get_is_attached_to_a_crte(ds_dossier)
-        projet.is_budget_vert = cls.get_is_budget_vert(ds_dossier)
+        projet.is_in_qpv = cls._get_boolean_value(ds_dossier, "annotations_is_qpv")
+        projet.is_attached_to_a_crte = cls._get_boolean_value(
+            ds_dossier, "annotations_is_crte"
+        )
+        projet.is_budget_vert = cls._get_boolean_value(
+            ds_dossier, "annotations_is_budget_vert"
+        )
+        projet.is_frr = cls._get_boolean_value(ds_dossier, "annotations_is_frr")
+        projet.is_acv = cls._get_boolean_value(ds_dossier, "annotations_is_acv")
+        projet.is_pvd = cls._get_boolean_value(ds_dossier, "annotations_is_pvd")
+        projet.is_va = cls._get_boolean_value(ds_dossier, "annotations_is_va")
+        projet.is_autre_zonage_local = cls._get_boolean_value(
+            ds_dossier, "annotations_is_autre_zonage_local"
+        )
+        projet.is_contrat_local = cls._get_boolean_value(
+            ds_dossier, "annotations_is_contrat_local"
+        )
 
         if ds_dossier.ds_demandeur:
             projet.demandeur, _ = Demandeur.objects.get_or_create(
@@ -69,18 +83,6 @@ class ProjetService:
         ).aggregate(total=Sum("montant"))["total"]
 
     @classmethod
-    def get_is_in_qpv(cls, ds_dossier: Dossier) -> bool:
-        return bool(ds_dossier.annotations_is_qpv)
-
-    @classmethod
-    def get_is_attached_to_a_crte(cls, ds_dossier: Dossier) -> bool:
-        return bool(ds_dossier.annotations_is_crte)
-
-    @classmethod
-    def get_is_budget_vert(cls, ds_dossier: Dossier) -> bool | None:
-        return bool(ds_dossier.annotations_is_budget_vert)
-
-    @classmethod
     def update_dotation(cls, projet: Projet, dotations: list[POSSIBLE_DOTATIONS]):
         from gsl_projet.services.dotation_projet_services import DotationProjetService
 
@@ -110,3 +112,9 @@ class ProjetService:
         DotationProjet.objects.filter(
             projet=projet, dotation__in=dotation_to_remove
         ).delete()
+
+    # Private
+
+    @classmethod
+    def _get_boolean_value(cls, ds_dossier: Dossier, annotation_name: str) -> bool:
+        return bool(getattr(ds_dossier, annotation_name))

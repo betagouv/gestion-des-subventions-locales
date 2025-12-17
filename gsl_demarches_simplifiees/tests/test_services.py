@@ -60,16 +60,16 @@ def test_get_instructeur_id(caplog):
             "Projet concourant à la transition écologique au sens budget vert",
         ),
         (
-            "annotations_assiette",
-            "Montant des dépenses éligibles retenues (€)",
+            "annotations_assiette_detr",
+            "DETR - Montant des dépenses éligibles retenues (en euros)",
         ),
         (
-            "annotations_montant_accorde",
-            "Montant définitif de la subvention (€)",
+            "annotations_montant_accorde_detr",
+            "DETR - Montant définitif de la subvention (en euros)",
         ),
         (
-            "annotations_taux",
-            "Taux de subvention (%)",
+            "annotations_taux_detr",
+            "DETR - Taux de subvention (%)",
         ),
         ("field_unknown", "field_unknown"),
     ),
@@ -795,6 +795,12 @@ class TestUpdateCheckboxesAnnotations:
             "annotations_is_qpv": "field_qpv_123",
             "annotations_is_crte": "field_crte_456",
             "annotations_is_budget_vert": "field_budget_vert_789",
+            "annotations_is_frr": "field_frr_101",
+            "annotations_is_acv": "field_acv_102",
+            "annotations_is_pvd": "field_pvd_103",
+            "annotations_is_va": "field_va_104",
+            "annotations_is_autre_zonage_local": "field_autre_zonage_local_105",
+            "annotations_is_contrat_local": "field_contrat_local_106",
         }
 
         mock_get_ds_field_id = MagicMock(
@@ -824,6 +830,38 @@ class TestUpdateCheckboxesAnnotations:
                                 "id": "field_budget_vert_789",
                                 "updatedAt": "2025-01-15T10:30:00+00:00",
                             },
+                            {
+                                "id": "field_frr_101",
+                                "updatedAt": "2025-01-15T10:30:00+00:00",
+                            },
+                            {
+                                "id": "field_acv_102",
+                                "updatedAt": "2025-01-15T10:30:00+00:00",
+                            },
+                            {
+                                "id": "field_pvd_103",
+                                "updatedAt": "2025-01-15T10:30:00+00:00",
+                            },
+                            {
+                                "id": "field_va_104",
+                                "updatedAt": "2025-01-15T10:30:00+00:00",
+                            },
+                            {
+                                "id": "field_autre_zonage_local_105",
+                                "updatedAt": "2025-01-15T10:30:00+00:00",
+                            },
+                            {
+                                "id": "field_contrat_local_106",
+                                "updatedAt": "2025-01-15T10:30:00+00:00",
+                            },
+                            {
+                                "id": "field_autre_zonage_local_105",
+                                "updatedAt": "2025-01-15T10:30:00+00:00",
+                            },
+                            {
+                                "id": "field_contrat_local_106",
+                                "updatedAt": "2025-01-15T10:30:00+00:00",
+                            },
                         ],
                     }
                 }
@@ -833,13 +871,19 @@ class TestUpdateCheckboxesAnnotations:
                 "annotations_is_qpv": True,
                 "annotations_is_crte": False,
                 "annotations_is_budget_vert": True,
+                "annotations_is_frr": False,
+                "annotations_is_acv": True,
+                "annotations_is_pvd": False,
+                "annotations_is_va": True,
+                "annotations_is_autre_zonage_local": False,
+                "annotations_is_contrat_local": True,
             }
             ds_service.update_checkboxes_annotations(
                 dossier=dossier, user=user, annotations_to_update=annotations_to_update
             )
 
             # Verify _get_ds_field_id was called for each annotation
-            assert mock_get_ds_field_id.call_count == 3
+            assert mock_get_ds_field_id.call_count == 9
             assert mock_get_ds_field_id.call_args_list[0][0] == (
                 dossier,
                 "annotations_is_qpv",
@@ -852,11 +896,35 @@ class TestUpdateCheckboxesAnnotations:
                 dossier,
                 "annotations_is_budget_vert",
             )
+            assert mock_get_ds_field_id.call_args_list[3][0] == (
+                dossier,
+                "annotations_is_frr",
+            )
+            assert mock_get_ds_field_id.call_args_list[4][0] == (
+                dossier,
+                "annotations_is_acv",
+            )
+            assert mock_get_ds_field_id.call_args_list[5][0] == (
+                dossier,
+                "annotations_is_pvd",
+            )
+            assert mock_get_ds_field_id.call_args_list[6][0] == (
+                dossier,
+                "annotations_is_va",
+            )
+            assert mock_get_ds_field_id.call_args_list[7][0] == (
+                dossier,
+                "annotations_is_autre_zonage_local",
+            )
+            assert mock_get_ds_field_id.call_args_list[8][0] == (
+                dossier,
+                "annotations_is_contrat_local",
+            )
 
             # Verify annotations structure
             call_args = mock_mutator.dossier_modifier_annotations.call_args
             annotations = call_args[0][2]
-            assert len(annotations) == 3
+            assert len(annotations) == 9
 
             # Verify annotations are in the correct format
             annotation_dict = {
@@ -865,6 +933,13 @@ class TestUpdateCheckboxesAnnotations:
             assert annotation_dict["field_qpv_123"] is True
             assert annotation_dict["field_crte_456"] is False
             assert annotation_dict["field_budget_vert_789"] is True
+            assert annotation_dict["field_frr_101"] is False
+            assert annotation_dict["field_acv_102"] is True
+            assert annotation_dict["field_pvd_103"] is False
+            assert annotation_dict["field_va_104"] is True
+            assert annotation_dict["field_autre_zonage_local_105"] is False
+            assert annotation_dict["field_contrat_local_106"] is True
+            assert annotation_dict["field_autre_zonage_local_105"] is False
 
     def test_update_checkboxes_annotations_annotations_dict_structure(
         self, user, dossier
