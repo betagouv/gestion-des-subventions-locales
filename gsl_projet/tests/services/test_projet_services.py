@@ -225,23 +225,28 @@ def create_projets():
     ],
 )
 @pytest.mark.parametrize(
-    "annotation_field_name, projet_service_method",
+    "annotation_field_name",
     (
-        ("annotations_is_qpv", ps.get_is_in_qpv),
-        ("annotations_is_crte", ps.get_is_attached_to_a_crte),
-        ("annotations_is_budget_vert", ps.get_is_budget_vert),
+        "annotations_is_qpv",
+        "annotations_is_crte",
+        "annotations_is_budget_vert",
+        "annotations_is_frr",
+        "annotations_is_acv",
+        "annotations_is_pvd",
+        "annotations_is_va",
+        "annotations_is_autre_zonage_local",
+        "annotations_is_contrat_local",
     ),
 )
 @pytest.mark.django_db
-def test_get_is_attached_to_a_crte_with_true_value(
+def test_get_boolean_value(
     annotation_field_name,
-    projet_service_method,
     annotation_value,
     expected_result,
 ):
     dossier = DossierFactory()
     setattr(dossier, annotation_field_name, annotation_value)
-    assert projet_service_method(dossier) == expected_result
+    assert ps._get_boolean_value(dossier, annotation_field_name) == expected_result
 
 
 @pytest.fixture

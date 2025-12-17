@@ -379,6 +379,23 @@ class Dossier(DsModel):
     )
     annotations_is_qpv = models.BooleanField("Projet situé en QPV", null=True)
     annotations_is_crte = models.BooleanField("Projet rattaché à un CRTE", null=True)
+    annotations_is_frr = models.BooleanField("Projet situé en FRR", null=True)
+    annotations_is_acv = models.BooleanField(
+        "Projet rattaché à un programme Action coeurs de Ville (ACV)", null=True
+    )
+    annotations_is_pvd = models.BooleanField(
+        "Projet rattaché à un programme Petites villes de demain (PVD)", null=True
+    )
+    annotations_is_va = models.BooleanField(
+        "Projet rattaché à un programme Villages d'avenir", null=True
+    )
+    annotations_is_autre_zonage_local = models.BooleanField(
+        "Projet rattaché à un autre zonage local", null=True
+    )
+    annotations_is_contrat_local = models.BooleanField(
+        "Projet rattaché à un contrat local", null=True
+    )
+
     # TODO remove these three fields at the end of DUN dev
     annotations_assiette = models.DecimalField(
         "Montant des dépenses éligibles retenues (€)",
@@ -488,6 +505,12 @@ class Dossier(DsModel):
         annotations_is_budget_vert,
         annotations_is_qpv,
         annotations_is_crte,
+        annotations_is_frr,
+        annotations_is_acv,
+        annotations_is_pvd,
+        annotations_is_va,
+        annotations_is_autre_zonage_local,
+        annotations_is_contrat_local,
         annotations_assiette_detr,
         annotations_montant_accorde_detr,
         annotations_taux_detr,
