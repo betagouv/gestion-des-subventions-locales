@@ -247,6 +247,36 @@ class Projet(models.Model):
         null=False,
         default=False,
     )
+    is_frr = models.BooleanField(
+        "Projet situé en FRR",
+        null=False,
+        default=False,
+    )
+    is_acv = models.BooleanField(
+        "Projet rattaché à un programme Action coeurs de Ville (ACV)",
+        null=False,
+        default=False,
+    )
+    is_pvd = models.BooleanField(
+        "Projet rattaché à un programme Petites villes de demain (PVD)",
+        null=False,
+        default=False,
+    )
+    is_va = models.BooleanField(
+        "Projet rattaché à un programme Villages d'avenir",
+        null=False,
+        default=False,
+    )
+    is_autre_zonage_local = models.BooleanField(
+        "Projet rattaché à un autre zonage local",
+        null=False,
+        default=False,
+    )
+    is_contrat_local = models.BooleanField(
+        "Projet rattaché à un contrat local",
+        null=False,
+        default=False,
+    )
     free_comment = models.TextField("Commentaires libres", blank=True, default="")
 
     objects = ProjetManager()

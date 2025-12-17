@@ -32,6 +32,42 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
     )
 
+    is_frr = forms.BooleanField(
+        label="Projet situé en FRR",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+    )
+
+    is_acv = forms.BooleanField(
+        label="Projet rattaché à un programme Action coeurs de Ville (ACV)",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+    )
+
+    is_pvd = forms.BooleanField(
+        label="Projet rattaché à un programme Petites villes de demain (PVD)",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+    )
+
+    is_va = forms.BooleanField(
+        label="Projet rattaché à un programme Villages d'avenir",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+    )
+
+    is_autre_zonage_local = forms.BooleanField(
+        label="Projet rattaché à un autre zonage local",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+    )
+
+    is_contrat_local = forms.BooleanField(
+        label="Projet rattaché à un contrat local",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+    )
+
     dotations = forms.MultipleChoiceField(
         choices=DOTATION_CHOICES,
         required=False,
@@ -44,6 +80,12 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             "is_budget_vert",
             "is_in_qpv",
             "is_attached_to_a_crte",
+            "is_frr",
+            "is_acv",
+            "is_pvd",
+            "is_va",
+            "is_autre_zonage_local",
+            "is_contrat_local",
         ]
 
     def __init__(self, *args, user=None, **kwargs):
@@ -72,6 +114,16 @@ class ProjetForm(ModelForm, DsfrBaseForm):
                 "annotations_is_qpv": self.cleaned_data.get("is_in_qpv"),
                 "annotations_is_crte": self.cleaned_data.get("is_attached_to_a_crte"),
                 "annotations_is_budget_vert": self.cleaned_data.get("is_budget_vert"),
+                "annotations_is_frr": self.cleaned_data.get("is_frr"),
+                "annotations_is_acv": self.cleaned_data.get("is_acv"),
+                "annotations_is_pvd": self.cleaned_data.get("is_pvd"),
+                "annotations_is_va": self.cleaned_data.get("is_va"),
+                "annotations_is_autre_zonage_local": self.cleaned_data.get(
+                    "is_autre_zonage_local"
+                ),
+                "annotations_is_contrat_local": self.cleaned_data.get(
+                    "is_contrat_local"
+                ),
             },
         )
 
