@@ -73,7 +73,6 @@ def test_staff_ds_allowed(req):
         reverse("login"),
         reverse("logout"),
         reverse("no-perimeter"),
-        reverse("coming-features"),
     ],
 )
 def test_authorized_paths_allowed(req, path):

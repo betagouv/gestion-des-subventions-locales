@@ -17,7 +17,6 @@ class CheckPerimeterMiddleware:
             reverse("login"),
             reverse("logout"),
             reverse("no-perimeter"),
-            reverse("coming-features"),
         ]
         excluded_beginning_paths = ["/admin/", "/oidc/", "/__debug__/"]
         admin_allowed_paths = ["/ds/"]
