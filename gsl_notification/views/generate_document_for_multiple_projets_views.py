@@ -3,7 +3,12 @@ import logging
 import zipfile
 
 from django.contrib import messages
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.http import (
+    Http404,
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseForbidden,
+)
 from django.shortcuts import get_list_or_404, get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -16,7 +21,7 @@ from gsl import settings
 from gsl_notification.models import Arrete, LettreNotification
 from gsl_notification.utils import (
     get_doc_title,
-    get_document_class,
+    get_generated_document_class,
     get_logo_base64,
     get_modele_class,
     get_modele_perimetres,
@@ -247,7 +252,10 @@ def save_documents(
         )
         programmation_projets = filterset.qs.to_notify()
 
-    document_class = get_document_class(document_type)
+    try:
+        document_class = get_generated_document_class(document_type)
+    except ValueError:
+        return Http404("Type de document inconnu")
 
     modele_class = get_modele_class(document_type)
     perimetres = get_modele_perimetres(dotation, request.user.perimetre)
