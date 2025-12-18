@@ -159,11 +159,30 @@ def save_field_mappings(demarche_data, demarche):
             FieldMappingForHuman.objects.create(label=ds_label, demarche=demarche)
 
 
-def guess_department_from_demarche(demarche) -> Departement:
+def guess_department_from_demarche(demarche: Demarche) -> Departement:
     if demarche.perimetre and demarche.perimetre.departement:
         return demarche.perimetre.departement
     for departement in Departement.objects.all():
         if departement.name in demarche.ds_title:
+            return departement
+
+
+def guess_department_from_mapping(mapping: FieldMappingForComputer) -> Departement:
+    # Essayons d'extraire le code département du libellé du champ.
+    # Le libellé du champ DS est structuré de la façon suivante :
+    # Catégories prioritaires (67 - Bas-Rhin)
+    # On split la chaîne sur la parenthèse ouvrante et on récupère le 2e morceau,
+    # puis on split le morceau sur " " et on récupère le premier morceau.
+    departement_code = mapping.ds_field_label.split("(")[1].split(" ")[
+        0
+    ]  # todo gérer les erreurs
+    try:
+        return Departement.objects.filter(insee_code=departement_code)
+    except Departement.DoesNotExist:
+        pass
+    # Sinon regardons si on trouve un département nommé dans le libellé du champ.
+    for departement in Departement.objects.all():
+        if departement.name in mapping.ds_field_label:
             return departement
 
 
@@ -196,52 +215,52 @@ def extract_categories_operation_detr(demarche_data: dict, demarche: Demarche):
 
     try:
         # on cherche les correspondances techniques qui sont des "critères DETR"
-        mapping = FieldMappingForComputer.objects.filter(
+        mappings = FieldMappingForComputer.objects.filter(
             demarche=demarche, django_field="demande_eligibilite_detr"
-        ).get()  # on ne va pas vouloir un get() ici, mais un all()
+        ).all()
     except FieldMappingForComputer.DoesNotExist:
         return
-    demande_eligibilite_detr_field_id = mapping.ds_field_id
 
-    options = []
-    for field in demarche_data["activeRevision"]["champDescriptors"]:
-        if field["id"] == demande_eligibilite_detr_field_id:
-            options = field["options"]
-            break
-            # logique à changer ici : on va avoir plusieurs sets d'options pertinents
-            # à traiter chacun pour un département.
+    for mapping in mappings:
+        demande_eligibilite_detr_field_id = mapping.ds_field_id
 
-    departement = guess_department_from_demarche(
-        demarche
-    )  # guess from libellé du champ, avec la DUN.
-    # on pourrait aussi stocker le departement ou le périmètre sur le FieldMappingForComputer pour plus de robustesse.
-    if not departement:
-        return
+        options = []
+        for field in demarche_data["activeRevision"]["champDescriptors"]:
+            if field["id"] == demande_eligibilite_detr_field_id:
+                options = field["options"]
+                break
 
-    year = guess_year_from_demarche(
-        demarche
-    )  # voir comment on devine l'année (date de révision ?)
-    if not year:
-        return
+        departement = guess_department_from_mapping(mapping)
+        # on pourrait aussi stocker le departement ou le périmètre sur le FieldMappingForComputer pour plus de robustesse.
+        if not departement:
+            return
 
-    current_detr_category_ids = set()
-    for sort_order, label in enumerate(options, 1):
-        detr_cat, _ = CategorieDetr.objects.update_or_create(
-            departement=departement,
-            rang=sort_order,
-            annee=year,
-            defaults={"libelle": label, "is_current": True},
-        )
-        current_detr_category_ids.add(detr_cat.id)
-        CritereEligibiliteDetr.objects.update_or_create(
-            label=label,
-            demarche=demarche,
-            demarche_revision=demarche_data["activeRevision"]["id"],
-            defaults={"detr_category": detr_cat},
-        )
-    # tout ce qui est dans le même département mais
-    # n'est pas dans current_detr_categories :
-    # on passe current à false
-    CategorieDetr.objects.exclude(id__in=current_detr_category_ids).filter(
-        departement=departement
-    ).update(is_current=False)
+        year = guess_year_from_demarche(
+            demarche
+        )  # voir comment on devine l'année (date de révision ?)
+        if not year:
+            return
+
+        current_detr_category_ids = set()
+        for sort_order, label in enumerate(options, 1):
+            detr_cat, _ = CategorieDetr.objects.update_or_create(
+                departement=departement,
+                rang=sort_order,
+                annee=year,
+                defaults={"libelle": label, "is_current": True},
+            )
+            current_detr_category_ids.add(detr_cat.id)
+            # si on restait dans l'idée de simplifier "méchamment", on enlèverait ceci :
+            CritereEligibiliteDetr.objects.update_or_create(
+                label=label,
+                demarche=demarche,
+                demarche_revision=demarche_data["activeRevision"]["id"],
+                defaults={"detr_category": detr_cat},
+            )
+            # et il faudrait supprimer les contraintes d'unicité spécifiques à CritereEligibiliteDetr.
+        # tout ce qui est dans le même département mais
+        # n'est pas dans current_detr_categories :
+        # on passe current à false
+        CategorieDetr.objects.exclude(id__in=current_detr_category_ids).filter(
+            departement=departement
+        ).update(is_current=False)
