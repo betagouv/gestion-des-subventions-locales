@@ -24,21 +24,20 @@
                             Modifier
                         </a>
                     </li>
-                {% else %}
-                    <li>
-                        <button type="button"
-                                class="fr-btn fr-btn--secondary arrete-card__action"
-                                data-fr-opened="false"
-                                aria-controls="delete-document-confirmation-modal"
-                                aria-expanded="false"
-                                data-name="{{ document.name }}"
-                                data-type="{{ document.document_type }}"
-                                data-form-action="{% url "notification:delete-uploaded-document" document.document_type document.id %}"
-                                data-action="delete-notification-document-modal#updateModaleTitleAndSubmitAction">
-                            Supprimer
-                        </button>
-                    </li>
                 {% endif %}
+                <li>
+                    <button type="button"
+                            class="fr-btn fr-btn--secondary arrete-card__action"
+                            data-fr-opened="false"
+                            aria-controls="delete-document-confirmation-modal"
+                            aria-expanded="false"
+                            data-name="{{ document.name }}"
+                            data-type="{{ document.document_type }}"
+                            data-form-action="{% url "notification:delete-document" document.document_type document.id %}"
+                            data-action="delete-notification-document-modal#updateModaleTitleAndSubmitAction">
+                        Supprimer
+                    </button>
+                </li>
             </ul>
         </details>
     </div>

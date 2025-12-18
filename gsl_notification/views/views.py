@@ -7,8 +7,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
-from django.views.decorators.http import require_http_methods
-from django.views.generic import DetailView, UpdateView
+from django.views.decorators.http import require_http_methods, require_POST
+from django.views.generic import DeleteView, DetailView, UpdateView
 from django_htmx.http import HttpResponseClientRedirect
 from django_weasyprint import WeasyTemplateResponseMixin
 
@@ -25,14 +25,12 @@ from gsl_notification.models import (
 )
 from gsl_notification.utils import (
     get_doc_title,
-    get_document_class,
     get_form_class,
+    get_generated_document_class,
     get_modele_class,
     get_modele_perimetres,
+    get_uploaded_document_class,
     replace_mentions_in_html,
-)
-from gsl_notification.views.decorators import (
-    document_visible_by_user,
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
@@ -278,9 +276,12 @@ def change_document_view(request, projet_id, dotation, document_type):
             document_type, programmation_projet, step=1
         )
     )
-    document_class = get_document_class(document_type)
-    modele_class = get_modele_class(document_type)
-    form_class = get_form_class(document_type)
+    try:
+        document_class = get_generated_document_class(document_type)
+        modele_class = get_modele_class(document_type)
+        form_class = get_form_class(document_type)
+    except ValueError:
+        raise Http404("Le type de document sélectionné n'existe pas.")
 
     if hasattr(programmation_projet, pp_attribute):
         document = getattr(programmation_projet, pp_attribute)
@@ -310,7 +311,12 @@ def change_document_view(request, projet_id, dotation, document_type):
             form.save()
 
             _add_success_message(request, is_creating, document_type, document.name)
-            return _redirect_to_documents_view(programmation_projet.projet.id)
+            return redirect(
+                reverse(
+                    "gsl_notification:documents",
+                    kwargs={"projet_id": projet_id},
+                )
+            )
         else:
             messages.error(request, "Erreur dans le formulaire")
             document = form.instance
@@ -376,17 +382,36 @@ def _add_success_message(
 # Suppression d'arrêté -----------------------------------------------------------------
 
 
-@document_visible_by_user
-@require_http_methods(["POST"])
-def delete_document_view(request, document_type, document_id):
-    document_class = get_document_class(document_type)
-    document = get_object_or_404(document_class, id=document_id)
+@method_decorator(require_POST, name="dispatch")
+class DeleteDocumentView(DeleteView):
+    context_object_name = "document"
+    pk_url_kwarg = "document_id"
 
-    document.delete()
+    def get_queryset(self):
+        try:
+            document_class = get_generated_document_class(self.kwargs["document_type"])
+        except ValueError:
+            try:
+                document_class = get_uploaded_document_class(
+                    self.kwargs["document_type"]
+                )
+            except ValueError:
+                raise Http404("Le type de document sélectionné n'existe pas.")
+        return document_class.objects.filter(
+            programmation_projet__dotation_projet__projet__in=Projet.objects.for_user(
+                self.request.user
+            )
+        )
 
-    messages.success(request, "Le document a bien été supprimé.")
+    def form_valid(self, form):
+        messages.success(self.request, "Le document a bien été supprimé.")
+        return super().form_valid(form)
 
-    return _redirect_to_documents_view(document.programmation_projet.projet.id)
+    def get_success_url(self):
+        return reverse(
+            "gsl_notification:documents",
+            kwargs={"projet_id": self.object.programmation_projet.projet.id},
+        )
 
 
 # View and Download views -----------------------------------------------------------------------
@@ -400,12 +425,18 @@ class PrintDocumentView(WeasyTemplateResponseMixin, DetailView):
     # show pdf in-line (default: True, show download dialog)
     pdf_attachment = False
 
-    def get_object(self, queryset=None):
+    def get_queryset(self):
         self.document_type = self.kwargs["document_type"]
-        document_id = self.kwargs["document_id"]
-        document_class = get_document_class(self.document_type)
-        doc = get_object_or_404(document_class, id=document_id)
-        return doc
+        try:
+            document_class = get_generated_document_class(self.document_type)
+        except ValueError:
+            raise Http404("Le type de document sélectionné n'existe pas.")
+
+        return document_class.objects.filter(
+            programmation_projet__dotation_projet__projet__in=Projet.objects.for_user(
+                self.request.user
+            )
+        )
 
     def get_pdf_filename(self):
         return self.get_object().name
@@ -427,18 +458,6 @@ class PrintDocumentView(WeasyTemplateResponseMixin, DetailView):
 
 class DownloadDocumentView(PrintDocumentView):
     pdf_attachment = True
-
-
-# utils --------------------------------------------------------------------------------
-
-
-def _redirect_to_documents_view(projet_id):
-    return redirect(
-        reverse(
-            "gsl_notification:documents",
-            kwargs={"projet_id": projet_id},
-        )
-    )
 
 
 def _enrich_context_for_create_or_get_arrete_view(

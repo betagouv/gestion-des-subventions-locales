@@ -1,6 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import StreamingHttpResponse
+from django.http import Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods
 from django.views.generic import UpdateView
 
@@ -14,12 +15,8 @@ from gsl_notification.utils import (
     get_uploaded_form_class,
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
-from gsl_notification.views.decorators import (
-    uploaded_document_visible_by_user,
-)
 from gsl_notification.views.views import (
     _enrich_context_for_create_or_get_arrete_view,
-    _redirect_to_documents_view,
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import PROJET_STATUS_ACCEPTED
@@ -63,7 +60,10 @@ def create_uploaded_document_view(request, projet_id, dotation, document_type):
         enveloppe__dotation=dotation,
         status=ProgrammationProjet.STATUS_ACCEPTED,
     )
-    uploaded_doc_class = get_uploaded_document_class(document_type)
+    try:
+        uploaded_doc_class = get_uploaded_document_class(document_type)
+    except ValueError:
+        raise Http404("Le type de document sélectionné n'existe pas.")
     uploaded_doc_form = get_uploaded_form_class(document_type)
 
     if request.method == "POST":
@@ -76,7 +76,12 @@ def create_uploaded_document_view(request, projet_id, dotation, document_type):
             )
             form.save()
 
-            return _redirect_to_documents_view(projet_id)
+            return redirect(
+                reverse(
+                    "gsl_notification:documents",
+                    kwargs={"projet_id": projet_id},
+                )
+            )
     else:
         form = uploaded_doc_form()
 
@@ -96,25 +101,20 @@ def create_uploaded_document_view(request, projet_id, dotation, document_type):
     )
 
 
-# Suppression d'arrêté et lettre signés ----------------------------------------------------------
-
-
-@uploaded_document_visible_by_user
-@require_http_methods(["POST"])
-def delete_uploaded_document_view(request, document_type, document_id):
-    doc_class = get_uploaded_document_class(document_type)
-    doc = get_object_or_404(doc_class, id=document_id)
-
-    doc.delete()
-
-    return _redirect_to_documents_view(doc.programmation_projet.projet.id)
-
-
-@uploaded_document_visible_by_user
 @require_GET
 def download_uploaded_document(request, document_type, document_id, download=True):
-    doc_class = get_uploaded_document_class(document_type)
-    doc = get_object_or_404(doc_class, id=document_id)
+    try:
+        doc_class = get_uploaded_document_class(document_type)
+    except ValueError:
+        raise Http404("Le type de document sélectionné n'existe pas.")
+    doc = get_object_or_404(
+        doc_class.objects.filter(
+            programmation_projet__dotation_projet__projet__in=Projet.objects.for_user(
+                request.user
+            )
+        ),
+        id=document_id,
+    )
     s3_object = get_s3_object(doc.file.name)
 
     response = StreamingHttpResponse(
@@ -127,7 +127,6 @@ def download_uploaded_document(request, document_type, document_id, download=Tru
     return response
 
 
-@uploaded_document_visible_by_user
 @require_GET
 def view_uploaded_document(request, document_type, document_id):
     return download_uploaded_document(request, document_type, document_id, False)

@@ -1,8 +1,5 @@
 from django.urls import path
 
-from gsl_notification.views.decorators import (
-    document_visible_by_user,
-)
 from gsl_notification.views.generate_document_for_multiple_projets_views import (
     choose_type_for_multiple_document_generation,
     download_documents,
@@ -21,19 +18,18 @@ from gsl_notification.views.modele_views import (
 from gsl_notification.views.uploaded_document_views import (
     ChooseDocumentTypeForUploadView,
     create_uploaded_document_view,
-    delete_uploaded_document_view,
     download_uploaded_document,
     view_uploaded_document,
 )
 from gsl_notification.views.views import (
     CheckDsDossierUpToDateView,
     ChooseDocumentTypeForGenerationView,
+    DeleteDocumentView,
     DownloadDocumentView,
     NotificationDocumentsView,
     NotificationMessageView,
     PrintDocumentView,
     change_document_view,
-    delete_document_view,
     select_modele,
 )
 
@@ -71,17 +67,17 @@ urlpatterns = [
     ),
     path(
         "document/<str:document_type>/<int:document_id>/download/",
-        document_visible_by_user(DownloadDocumentView.as_view()),
+        DownloadDocumentView.as_view(),
         name="document-download",
     ),
     path(
         "document/<str:document_type>/<int:document_id>/view/",
-        document_visible_by_user(PrintDocumentView.as_view()),
+        PrintDocumentView.as_view(),
         name="document-view",
     ),
     path(
         "document/<str:document_type>/<int:document_id>/delete/",
-        delete_document_view,
+        DeleteDocumentView.as_view(),
         name="delete-document",
     ),
     # Generated files for multiple projets
@@ -125,11 +121,6 @@ urlpatterns = [
         "document-televerse/<str:document_type>/<int:document_id>/view/",
         view_uploaded_document,
         name="uploaded-document-view",
-    ),
-    path(
-        "document-televerse/<str:document_type>/<int:document_id>/delete/",
-        delete_uploaded_document_view,
-        name="delete-uploaded-document",
     ),
     # Modèles d'arrêtés
     path(
