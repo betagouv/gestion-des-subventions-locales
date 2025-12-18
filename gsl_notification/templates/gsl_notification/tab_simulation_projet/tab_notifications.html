@@ -64,10 +64,10 @@
             {% endif %}
         </div>
 
+        <h3 class="fr-mt-6w">
+            <i class="fr-icon-mail-fill blue-color" aria-hidden="true"></i> Message de notification
+        </h3>
         {% if projet.notified_at %}
-            <h3 class="fr-mt-6w">
-                <i class="fr-icon-mail-fill blue-color" aria-hidden="true"></i> Message de notification
-            </h3>
             <p class="fr-text-default--success">
                 Message de notification envoyé le {{ programmation_projet.notified_at|date }} sur Démarche Numérique.
             </p>
@@ -77,9 +77,30 @@
                     data-fr-opened="false">
                 Rédiger le message de notification
             </button>
+        {% elif not projet.can_send_notification %}
+            {% if projet.dotation_not_treated %}
+                <p class="fr-mt-3w fr-mb-1w">
+                    La dotation {{ projet.dotation_not_treated }} est en attente de traitement.
+                </p>
+            {% endif %}
+            {% if projet.dotationprojet_set.without_signed_document|length > 0 %}
+                <p class="fr-mt-3w fr-mb-1w">
+                    Ajoutez les documents suivants pour notifier le demandeur&nbsp;:
+                </p>
+                <ul>
+                    {% for dotation_projet in projet.dotationprojet_set.without_signed_document %}
+                        <li>
+                            Arrêté et lettre de notification signés {{ dotation_projet.dotation }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            <a class="fr-btn fr-mt-2w fr-icon-edit-line fr-btn--icon-right">
+                Rédiger le message de notification
+            </a>
         {% else %}
-            <a {% if programmation_projet.arrete_et_lettre_signes %}href="{% url 'gsl_notification:message' programmation_projet.id %}" {% endif %}
-               class="fr-btn fr-mt-6w fr-icon-edit-line fr-btn--icon-right">
+            <a href="{% url 'gsl_notification:message' projet.id %}"
+               class="fr-btn fr-mt-3w fr-icon-edit-line fr-btn--icon-right">
                 Rédiger le message de notification
             </a>
         {% endif %}
