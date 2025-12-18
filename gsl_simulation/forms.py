@@ -135,6 +135,9 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
         simulation_projet = self.instance
         dotation_projet: DotationProjet = self.instance.dotation_projet
 
+        if cleaned_data.get("montant") is None:
+            cleaned_data["montant"] = 0
+
         if "assiette" in self.changed_data or "montant" in self.changed_data:
             assiette = cleaned_data.get("assiette")
             if assiette is None:
