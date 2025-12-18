@@ -730,7 +730,9 @@ class FieldMappingForComputer(DsModel):
         help_text="Libellé au moment où ce champ a été rencontré pour la première fois — il a pu changer depuis !",
     )
     ds_field_type = models.CharField("Type de champ DS")
-    django_field = models.CharField("Champ Django", choices=mapping_field_choices)
+    django_field = models.CharField(
+        "Champ Django", choices=mapping_field_choices, blank=True
+    )
     field_mapping_for_human = models.ForeignKey(
         FieldMappingForHuman,
         on_delete=models.SET_NULL,
