@@ -21,9 +21,9 @@
             demandeur</a>
 
         </li>
-        {% if dotation_projet.programmation_projet and dotation_projet.programmation_projet.status == "accepted" %}
+        {% if projet.can_display_notification_tab %}
             <li>
-                {% url 'gsl_notification:documents' dotation_projet.programmation_projet.id as notifications_url %}
+                {% url 'gsl_notification:documents' projet.id as notifications_url %}
                 <a href="{{ notifications_url }}{% querystring %}"
                    {% if request.path == notifications_url %}aria-selected="true"{% endif %}
                    class="fr-tabs__tab fr-icon-mail-fill fr-tabs__tab--icon-left">Notifications du demandeur</a>
