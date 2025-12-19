@@ -176,6 +176,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {
+            "min_length": 15,
+        },
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
@@ -358,8 +361,10 @@ CONTENT_SECURITY_POLICY = {
 
 CONTENT_SECURITY_POLICY_REPORT_ONLY = {}
 
-# Dev configuration
+# Cookie configuration
 
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
 
 # Storage
 AWS_ACCESS_KEY_ID = os.getenv("SCALEWAY_S3_KEY")
