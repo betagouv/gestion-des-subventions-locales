@@ -82,20 +82,18 @@ class NotificationMessageView(UpdateView):
         "gsl_notification/tab_simulation_projet/tab_notifications_message.html"
     )
 
-    pk_url_kwarg = "programmation_projet_id"
-    context_object_name = "programmation_projet"
+    pk_url_kwarg = "projet_id"
+    context_object_name = "projet"
     form_class = NotificationMessageForm
 
     def get_queryset(self):
-        return ProgrammationProjet.objects.visible_to_user(self.request.user)
+        return Projet.objects.for_user(self.request.user).can_send_notification()
 
     def get_context_data(self, **kwargs):
-        title = self.object.projet.dossier_ds.projet_intitule
+        title = self.object.dossier_ds.projet_intitule
         return super().get_context_data(
             **{
-                "dotation_projet": self.object.dotation_projet,
-                "dossier": self.object.dotation_projet.projet.dossier_ds,
-                "projet": self.object.projet,
+                "dossier": self.object.dossier_ds,
                 "title": title,
                 "breadcrumb_dict": {
                     "links": [
@@ -137,7 +135,7 @@ class NotificationMessageView(UpdateView):
     def get_success_url(self):
         return reverse(
             "gsl_programmation:programmation-projet-detail",
-            args=[self.object.projet.id],
+            args=[self.object.id],
         )
 
 

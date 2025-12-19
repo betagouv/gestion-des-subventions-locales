@@ -193,7 +193,7 @@ class AnnexeChoiceField(forms.ModelMultipleChoiceField):
         return f"Annexe - {obj.name}"
 
 
-class NotificationMessageForm(DsfrBaseForm, forms.Form):
+class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
     annexes = AnnexeChoiceField(
         widget=forms.CheckboxSelectMultiple,
         queryset=Annexe.objects.none(),
@@ -209,29 +209,39 @@ class NotificationMessageForm(DsfrBaseForm, forms.Form):
     def save(self, user):
         justificatif_file = merge_documents_into_pdf(
             [
-                self.programmation_projet.arrete_et_lettre_signes,
+                *ArreteEtLettreSignes.objects.filter(
+                    programmation_projet__dotation_projet__projet=self.instance
+                ),
                 *self.cleaned_data["annexes"],
             ]
         )
 
         # Dossier was recently refreshed DN
         # Race conditions remain possible, but should be rare enough and just fail without any side effect.
-        if self.programmation_projet.dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:
+        if self.instance.dossier_ds.ds_state == Dossier.STATE_EN_CONSTRUCTION:
             ds = DsService()
             ds.passer_en_instruction(
-                dossier=self.programmation_projet.dossier, user=user
+                dossier=self.instance.dossier_ds, user=user
             )
         with transaction.atomic():
-            self.programmation_projet.projet.notified_at = timezone.now()
-            self.programmation_projet.projet.save()
+            self.instance.notified_at = timezone.now()
+            self.instance.save()
+            # TODO use DSService
             DsMutator().dossier_accepter(
-                self.programmation_projet.dossier,
+                self.instance.dossier_ds,
                 user.ds_id,
                 motivation=self.cleaned_data.get("justification", ""),
                 document=justificatif_file,
             )
 
-    def __init__(self, *args, instance: ProgrammationProjet, **kwargs):
+            return self.instance
+
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.programmation_projet = instance
-        self.fields["annexes"].queryset = self.programmation_projet.annexes.all()
+        self.fields["annexes"].queryset = Annexe.objects.filter(
+            programmation_projet__dotation_projet__projet=self.instance
+        )
+
+    class Meta:
+        model = Projet
+        fields = ()

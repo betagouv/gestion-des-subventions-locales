@@ -360,6 +360,13 @@ class Projet(models.Model):
         )
 
     @property
+    def can_send_notification(self) -> bool:
+        return (
+            self.to_notify
+            and not self.dotationprojet_set.without_signed_document().exists()
+        )
+
+    @property
     def can_display_notification_tab(self) -> bool:
         return any(
             d.status == PROJET_STATUS_ACCEPTED for d in self.dotationprojet_set.all()
