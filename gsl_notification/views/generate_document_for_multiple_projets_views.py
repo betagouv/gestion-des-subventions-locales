@@ -14,10 +14,12 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_POST
+from django.views.generic import FormView
 from django_weasyprint.utils import django_url_fetcher
 from weasyprint import HTML
 
 from gsl import settings
+from gsl_notification.forms import ChooseDocumentTypeForMultipleGenerationForm
 from gsl_notification.models import Arrete, LettreNotification
 from gsl_notification.utils import (
     get_doc_title,
@@ -47,63 +49,73 @@ logger = logging.getLogger(__name__)
 DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR = "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
 
 
-@require_GET
-def choose_type_for_multiple_document_generation(request, dotation):
-    if dotation not in DOTATIONS:
-        return HttpResponseBadRequest("Dotation inconnue")
+class ChooseDocumentTypeForMultipleGenerationView(FormView):
+    template_name = "gsl_notification/generated_document/multiple/choose_generated_document_type.html"
+    form_class = ChooseDocumentTypeForMultipleGenerationForm
 
-    try:
-        ids = _get_pp_ids(request)
-        if len(ids) == 1:
-            return redirect(
-                reverse(
-                    "gsl_notification:choose-generated-document-type",
-                    kwargs={"programmation_projet_id": ids[0]},
-                )
+    def dispatch(self, request, *args, **kwargs):
+        dotation = kwargs["dotation"]
+        if dotation not in DOTATIONS:
+            return Http404("Dotation inconnue")
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        return redirect(
+            reverse(
+                "gsl_notification:select-modele-multiple",
+                kwargs={
+                    "dotation": self.kwargs["dotation"],
+                    "document_type": form.cleaned_data["document"],
+                },
             )
-        programmation_projets = get_list_or_404(
-            ProgrammationProjet,
-            id__in=ids,
-            status=ProgrammationProjet.STATUS_ACCEPTED,
-            dotation_projet__projet__notified_at=None,
-            dotation_projet__dotation=dotation,
         )
-        if len(programmation_projets) < len(ids):
-            return HttpResponseBadRequest(
-                DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
-            )
+
+    def get_context_data(self, **kwargs):
         try:
-            _check_if_projets_are_accessible_for_user(request, programmation_projets)
-        except ValueError as e:
-            return HttpResponseForbidden(str(e))
+            ids = _get_pp_ids(self.request)
+            programmation_projets = get_list_or_404(
+                ProgrammationProjet,
+                id__in=ids,
+                status=ProgrammationProjet.STATUS_ACCEPTED,
+                dotation_projet__projet__notified_at=None,
+                dotation_projet__dotation=self.kwargs["dotation"],
+            )
+            if len(programmation_projets) == 1:
+                return redirect(
+                    reverse(
+                        "gsl_notification:choose-generated-document-type",
+                        args=[programmation_projets[0].projet.id],
+                    )
+                )
+            if len(programmation_projets) < len(ids):
+                return HttpResponseBadRequest(
+                    DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+                )
+            try:
+                _check_if_projets_are_accessible_for_user(
+                    self.request, programmation_projets
+                )
+            except ValueError as e:
+                return HttpResponseForbidden(str(e))
 
-    except ValueError:
-        filterset = ProgrammationProjetFilters(
-            data=request.GET,
-            request=request,
-            select_related_objs=[],
-            prefetch_related_objs=[],
-        )
-        programmation_projets = filterset.qs.to_notify()
+        except ValueError:
+            filterset = ProgrammationProjetFilters(
+                data=self.request.GET,
+                request=self.request,
+                select_related_objs=[],
+                prefetch_related_objs=[],
+            )
+            programmation_projets = filterset.qs.to_notify()
 
-    title = f"{len(programmation_projets)} projets {dotation} sélectionnés"
-    go_back_link = _get_go_back_link(dotation)
-    context = {
-        "programmation_projets": programmation_projets,
-        "page_title": title,
-        "go_back_link": go_back_link,
-        "cancel_link": go_back_link,
-        "next_step_link": reverse(
-            "gsl_notification:select-modele-multiple",
-            args=[dotation, "type"],
-            query=request.GET,
-        ),
-    }
-    return render(
-        request,
-        "gsl_notification/generated_document/multiple/choose_generated_document_type.html",
-        context=context,
-    )
+        title = f"{len(programmation_projets)} projets {self.kwargs['dotation']} sélectionnés"
+        go_back_link = _get_go_back_link(self.kwargs["dotation"])
+        context = super().get_context_data(**kwargs)
+        context = {
+            **context,
+            "page_title": title,
+            "cancel_link": go_back_link,
+        }
+        return context
 
 
 @require_GET
