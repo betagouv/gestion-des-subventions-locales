@@ -84,7 +84,14 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
         min_value=0,
         required=False,
         localize=True,
-        widget=forms.TextInput(attrs={"form": "simulation_projet_form", "min": 0}),
+        widget=forms.TextInput(
+            attrs={
+                "form": "simulation_projet_form",
+                "min": 0,
+                "data-bind-amount-fields-target": "assiette",
+                "data-action": "blur->bind-amount-fields#formatAssiette input->bind-amount-fields#onAssietteInput",
+            }
+        ),
     )
 
     montant = forms.DecimalField(
@@ -94,7 +101,14 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
         min_value=0,
         required=False,
         localize=True,
-        widget=forms.TextInput(attrs={"form": "simulation_projet_form", "min": 0}),
+        widget=forms.TextInput(
+            attrs={
+                "form": "simulation_projet_form",
+                "min": 0,
+                "data-bind-amount-fields-target": "montant",
+                "data-action": "blur->bind-amount-fields#formatMontant input->bind-amount-fields#onMontantInput",
+            }
+        ),
     )
 
     taux = forms.DecimalField(
@@ -106,7 +120,13 @@ class SimulationProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
         required=False,
         localize=True,
         widget=forms.TextInput(
-            attrs={"form": "simulation_projet_form", "min": 0, "max": 100}
+            attrs={
+                "form": "simulation_projet_form",
+                "min": 0,
+                "max": 100,
+                "data-bind-amount-fields-target": "taux",
+                "data-action": "blur->bind-amount-fields#formatTaux input->bind-amount-fields#onTauxInput",
+            }
         ),
     )
 
