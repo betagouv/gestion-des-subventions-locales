@@ -176,6 +176,7 @@ class ChooseDocumentTypeForGenerationView(UpdateView):
         "gsl_notification/generated_document/choose_generated_document_type.html"
     )
     context_object_name = "projet"
+    pk_url_kwarg = "projet_id"
     form_class = ChooseDocumentTypeForGenerationForm
 
     def get_context_data(self, **kwargs):

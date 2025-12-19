@@ -1,6 +1,5 @@
 from django import forms
 from django.db import transaction
-from django.forms import ModelForm
 from django.utils import timezone
 from dsfr.forms import DsfrBaseForm
 
@@ -40,24 +39,24 @@ class RadioSelect(forms.RadioSelect):
         )
 
 
-class BaseChooseDocumentTypeForm(DsfrBaseForm, ModelForm):
+class BaseChooseDocumentTypeForm(DsfrBaseForm, forms.Form):
     document = forms.ChoiceField(
         widget=RadioSelect,
         required=True,
-        choices=[],
+        choices=(
+            (
+                model.document_type,
+                model._meta.verbose_name,
+            )
+            for model in (Arrete, LettreNotification)
+        ),
         label="Type de document",
     )
 
-    def clean_document(self):
-        doc_type, dotation = self.cleaned_data["document"].split("-")
-        return {
-            "type": doc_type,
-            "dotation": dotation,
-        }
-
 
 class ChooseDocumentTypeForGenerationForm(BaseChooseDocumentTypeForm):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, instance, **kwargs):
+        # Not a ModelForm, but we get instance from the view which is an UpdateView.
         super().__init__(*args, **kwargs)
         self.fields["document"].choices = [
             (
@@ -71,23 +70,28 @@ class ChooseDocumentTypeForGenerationForm(BaseChooseDocumentTypeForm):
                 f"{model._meta.verbose_name} {dp.dotation}",
             )
             for model in (Arrete, LettreNotification)
-            for dp in self.instance.dotationprojet_set.filter(
-                status=PROJET_STATUS_ACCEPTED
-            )
+            for dp in instance.dotationprojet_set.filter(status=PROJET_STATUS_ACCEPTED)
         ]
 
-    class Meta:
-        model = Projet
-        fields = ()
+    def clean_document(self):
+        doc_type, dotation = self.cleaned_data["document"].split("-")
+        return {
+            "type": doc_type,
+            "dotation": dotation,
+        }
+
+
+class ChooseDocumentTypeForMultipleGenerationForm(BaseChooseDocumentTypeForm):
+    pass
 
 
 class ChooseDocumentTypeForUploadForm(BaseChooseDocumentTypeForm):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, instance, **kwargs):
+        # Not a ModelForm, but we get instance from the view which is an UpdateView.
         super().__init__(*args, **kwargs)
+        self.instance = instance
         choices = []
-        for dp in self.instance.dotationprojet_set.filter(
-            status=PROJET_STATUS_ACCEPTED
-        ):
+        for dp in instance.dotationprojet_set.filter(status=PROJET_STATUS_ACCEPTED):
             # Check if ProgrammationProjet exists for this dotation
             try:
                 prog_projet = ProgrammationProjet.objects.get(
@@ -119,9 +123,12 @@ class ChooseDocumentTypeForUploadForm(BaseChooseDocumentTypeForm):
 
         self.fields["document"].choices = choices
 
-    class Meta:
-        model = Projet
-        fields = ()
+    def clean_document(self):
+        doc_type, dotation = self.cleaned_data["document"].split("-")
+        return {
+            "type": doc_type,
+            "dotation": dotation,
+        }
 
 
 class ArreteForm(forms.ModelForm, DsfrBaseForm):
@@ -220,9 +227,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
         # Race conditions remain possible, but should be rare enough and just fail without any side effect.
         if self.instance.dossier_ds.ds_state == Dossier.STATE_EN_CONSTRUCTION:
             ds = DsService()
-            ds.passer_en_instruction(
-                dossier=self.instance.dossier_ds, user=user
-            )
+            ds.passer_en_instruction(dossier=self.instance.dossier_ds, user=user)
         with transaction.atomic():
             self.instance.notified_at = timezone.now()
             self.instance.save()

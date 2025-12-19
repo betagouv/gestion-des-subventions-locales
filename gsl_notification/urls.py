@@ -1,7 +1,7 @@
 from django.urls import path
 
 from gsl_notification.views.generate_document_for_multiple_projets_views import (
-    choose_type_for_multiple_document_generation,
+    ChooseDocumentTypeForMultipleGenerationView,
     download_documents,
     save_documents,
     select_modele_multiple,
@@ -51,7 +51,7 @@ urlpatterns = [
     ),
     # Generated files
     path(
-        "<int:pk>/choix-du-type/",
+        "<int:projet_id>/choix-du-type/",
         ChooseDocumentTypeForGenerationView.as_view(),
         name="choose-generated-document-type",
     ),
@@ -83,7 +83,7 @@ urlpatterns = [
     # Generated files for multiple projets
     path(
         "<str:dotation>/choix-du-type/",
-        choose_type_for_multiple_document_generation,
+        ChooseDocumentTypeForMultipleGenerationView.as_view(),
         name="choose-generated-document-type-multiple",
     ),
     path(

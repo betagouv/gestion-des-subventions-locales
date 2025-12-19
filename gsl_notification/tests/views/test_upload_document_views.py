@@ -14,7 +14,8 @@ from gsl_notification.tests.factories import (
     ArreteEtLettreSignesFactory,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import ANNEXE, ARRETE_ET_LETTRE_SIGNES
+from gsl_projet.constants import ANNEXE, ARRETE_ET_LETTRE_SIGNES, PROJET_STATUS_ACCEPTED
+from gsl_projet.tests.factories import DetrProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -42,6 +43,33 @@ def correct_perimetre_client_with_user_logged(perimetre):
 def different_perimetre_client_with_user_logged():
     user = CollegueFactory()
     return ClientWithLoggedUserFactory(user)
+
+
+### choose-uploaded-document-type -----------------------------
+
+
+def test_choose_uploaded_document_type_displays_correctly(perimetre):
+    """Test that the upload document type choice page displays correctly"""
+    # Create a user with perimetre
+    user = CollegueFactory(perimetre=perimetre)
+    client = ClientWithLoggedUserFactory(user)
+
+    # Create a projet with an accepted DETR dotation
+    projet = ProjetFactory(perimetre=perimetre)
+    DetrProjetFactory(projet=projet, status=PROJET_STATUS_ACCEPTED)
+
+    # Make GET request to the URL
+    url = reverse(
+        "gsl_notification:choose-uploaded-document-type",
+        kwargs={"projet_id": projet.id},
+    )
+    response = client.get(url)
+
+    # Check response
+    assert response.status_code == 200
+    assert "gsl_notification/uploaded_document/choose_upload_document_type.html" in [
+        t.name for t in response.templates
+    ]
 
 
 ### upload-a-document -----------------------------
