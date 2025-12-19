@@ -25,6 +25,7 @@ class DsService:
         "decimal": "dossierModifierAnnotationDecimalNumber",
         "dismiss": "dossierClasserSansSuite",
         "annotations": "dossierModifierAnnotations",
+        "passer_en_instruction": "dossierPasserEnInstruction",
     }
 
     MUTATION_FUNCTION = {
@@ -38,6 +39,19 @@ class DsService:
         self.mutator = DsMutator()
 
     # Status
+
+    def passer_en_instruction(self, dossier: Dossier, user: Collegue):
+        results = self.mutator.dossier_passer_en_instruction(dossier.ds_id, user.ds_id)
+        self._check_results(results, dossier, user, "passer_en_instruction")
+        dossier.ds_state = Dossier.STATE_EN_INSTRUCTION
+        dossier.ds_date_derniere_modification = (
+            results.get("data", {})
+            .get("dossierPasserEnInstruction")
+            .get("dossier")
+            .get("dateDerniereModification")
+        )
+        dossier.save()
+        return results
 
     def dismiss_in_ds(self, dossier: Dossier, user: Collegue, motivation: str):
         instructeur_id = self._get_instructeur_id(user)
@@ -214,7 +228,7 @@ class DsService:
         updated_at = results.get("data", {}).get("updatedAt")
         if updated_at:
             dossier.ds_date_derniere_modification = updated_at
-            dossier.save(update_fields=["ds_date_derniere_modification"])
+            dossier.save()
 
     def _update_updated_at_from_multiple_annotations(
         self, dossier: Dossier, results: dict
@@ -234,7 +248,6 @@ class DsService:
 
         if most_recent_updated_at:
             dossier.ds_date_derniere_modification = most_recent_updated_at
-            # dossier.save(update_fields=["ds_date_derniere_modification"])
             dossier.save()
 
     def _get_instructeur_id(self, user: Collegue) -> str:
