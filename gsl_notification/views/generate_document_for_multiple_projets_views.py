@@ -70,30 +70,30 @@ class ChooseDocumentTypeForMultipleGenerationView(FormView):
             )
         )
 
-    def get_context_data(self, **kwargs):
+    def get(self, request, *args, **kwargs):
         try:
             ids = _get_pp_ids(self.request)
-            programmation_projets = get_list_or_404(
+            self.programmation_projets = get_list_or_404(
                 ProgrammationProjet,
                 id__in=ids,
                 status=ProgrammationProjet.STATUS_ACCEPTED,
                 dotation_projet__projet__notified_at=None,
                 dotation_projet__dotation=self.kwargs["dotation"],
             )
-            if len(programmation_projets) == 1:
+            if len(self.programmation_projets) == 1:
                 return redirect(
                     reverse(
                         "gsl_notification:choose-generated-document-type",
-                        args=[programmation_projets[0].projet.id],
+                        args=[self.programmation_projets[0].projet.id],
                     )
                 )
-            if len(programmation_projets) < len(ids):
+            if len(self.programmation_projets) < len(ids):
                 return HttpResponseBadRequest(
                     DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
                 )
             try:
                 _check_if_projets_are_accessible_for_user(
-                    self.request, programmation_projets
+                    self.request, self.programmation_projets
                 )
             except ValueError as e:
                 return HttpResponseForbidden(str(e))
@@ -105,9 +105,10 @@ class ChooseDocumentTypeForMultipleGenerationView(FormView):
                 select_related_objs=[],
                 prefetch_related_objs=[],
             )
-            programmation_projets = filterset.qs.to_notify()
+            self.programmation_projets = filterset.qs.to_notify()
 
-        title = f"{len(programmation_projets)} projets {self.kwargs['dotation']} sélectionnés"
+    def get_context_data(self, **kwargs):
+        title = f"{len(self.programmation_projets)} projets {self.kwargs['dotation']} sélectionnés"
         go_back_link = _get_go_back_link(self.kwargs["dotation"])
         context = super().get_context_data(**kwargs)
         context = {
@@ -224,17 +225,6 @@ def save_documents(
 
     try:
         ids = _get_pp_ids(request)
-        pp_count = len(ids)
-        if pp_count == 1:
-            return redirect(
-                reverse(
-                    "gsl_notification:modifier-document",
-                    kwargs={
-                        "programmation_projet_id": ids[0],
-                        "document_type": document_type,
-                    },
-                )
-            )
         programmation_projets = get_list_or_404(
             ProgrammationProjet,
             id__in=ids,
@@ -242,6 +232,17 @@ def save_documents(
             dotation_projet__projet__notified_at=None,
             dotation_projet__dotation=dotation,
         )
+        if len(programmation_projets) == 1:
+            return redirect(
+                reverse(
+                    "gsl_notification:modifier-document",
+                    kwargs={
+                        "projet_id": programmation_projets[0].projet.id,
+                        "dotation": programmation_projets[0].dotation_projet.dotation,
+                        "document_type": document_type,
+                    },
+                )
+            )
         if len(programmation_projets) < len(ids):
             return HttpResponseBadRequest(
                 DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR

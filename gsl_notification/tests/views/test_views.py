@@ -61,13 +61,14 @@ pytestmark = pytest.mark.django_db
 def test_get_documents_with_not_correct_perimetre_and_without_arrete(
     programmation_projet, different_perimetre_client_with_user_logged
 ):
+    projet = programmation_projet.dotation_projet.projet
     url = reverse(
         "notification:documents",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": projet.id,
         },
     )
-    assert url == f"/notification/{programmation_projet.id}/documents/"
+    assert url == f"/notification/{projet.id}/documents/"
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
@@ -75,13 +76,14 @@ def test_get_documents_with_not_correct_perimetre_and_without_arrete(
 def test_get_documents_with_correct_perimetre_and_without_arrete(
     programmation_projet, correct_perimetre_client_with_user_logged
 ):
+    projet = programmation_projet.dotation_projet.projet
     url = reverse(
         "notification:documents",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": projet.id,
         },
     )
-    assert url == f"/notification/{programmation_projet.id}/documents/"
+    assert url == f"/notification/{projet.id}/documents/"
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 200
     assert (
@@ -165,7 +167,8 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele(
     url = reverse(
         "notification:select-modele",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": programmation_projet.dotation_projet.projet.id,
+            "dotation": programmation_projet.enveloppe.dotation,
             "document_type": document_type,
         },
     )
@@ -173,10 +176,12 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele(
     assert len(response.context["modeles_list"]) == 1, (
         "Seul le modèle avec le bon périmètre doit être proposé"
     )
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
     assert response.context["modeles_list"][0] == {
         "actions": [
             {
-                "href": f"/notification/{programmation_projet.id}/modifier-document/{document_type}?modele_id={detr_modele_dep_1.id}",
+                "href": f"/notification/{projet.id}/modifier-document/{dotation}/{document_type}?modele_id={detr_modele_dep_1.id}",
                 "label": "Sélectionner",
             },
         ],
@@ -185,7 +190,7 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele(
     }
     assert (
         url
-        == f"/notification/{programmation_projet.id}/selection-d-un-modele/{document_type}"
+        == f"/notification/{projet.id}/selection-d-un-modele/{dotation}/{document_type}"
     )
 
 
@@ -221,16 +226,18 @@ def test_modify_arrete_url_with_not_correct_perimetre(
         )
     else:
         assert not hasattr(programmation_projet, "arrete")
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": projet.id,
+            "dotation": dotation,
             "document_type": document_type,
         },
     )
     assert (
-        url
-        == f"/notification/{programmation_projet.id}/modifier-document/{document_type}"
+        url == f"/notification/{projet.id}/modifier-document/{dotation}/{document_type}"
     )
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
@@ -244,16 +251,18 @@ def test_modify_arrete_url_with_not_correct_perimetre(
 def test_modify_document_url_without_arrete(
     programmation_projet, correct_perimetre_client_with_user_logged, document_type
 ):
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": projet.id,
+            "dotation": dotation,
             "document_type": document_type,
         },
     )
     assert (
-        url
-        == f"/notification/{programmation_projet.id}/modifier-document/{document_type}"
+        url == f"/notification/{projet.id}/modifier-document/{dotation}/{document_type}"
     )
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
@@ -275,16 +284,18 @@ def test_modify_arrete_url_with_arrete(
     document = factory(
         programmation_projet=programmation_projet, content="<p>Contenu de l’arrêté</p>"
     )
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": projet.id,
+            "dotation": dotation,
             "document_type": document_type,
         },
     )
     assert (
-        url
-        == f"/notification/{programmation_projet.id}/modifier-document/{document_type}"
+        url == f"/notification/{projet.id}/modifier-document/{dotation}/{document_type}"
     )
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 200
@@ -322,17 +333,19 @@ def test_modify_arrete_url_without_document_and_with_modele_id(
         perimetre=correct_perimetre_client_with_user_logged.user.perimetre,
         dotation=programmation_projet.dotation_projet.dotation,
     )
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": projet.id,
+            "dotation": dotation,
             "document_type": document_type,
         },
     )
     data = {"modele_id": modele.id}
     assert (
-        url
-        == f"/notification/{programmation_projet.id}/modifier-document/{document_type}"
+        url == f"/notification/{projet.id}/modifier-document/{dotation}/{document_type}"
     )
     response = correct_perimetre_client_with_user_logged.get(url, data)
     assert response.status_code == 200
@@ -365,17 +378,19 @@ def test_modify_arrete_url_without_document_and_with_wrong_modele_id(
         dotation=programmation_projet.dotation_projet.dotation,
     )
 
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": projet.id,
+            "dotation": dotation,
             "document_type": document_type,
         },
     )
     data = {"modele_id": modele.id}
     assert (
-        url
-        == f"/notification/{programmation_projet.id}/modifier-document/{document_type}"
+        url == f"/notification/{projet.id}/modifier-document/{dotation}/{document_type}"
     )
     response = correct_perimetre_client_with_user_logged.get(url, data)
     assert response.status_code == 404
@@ -404,19 +419,21 @@ def test_modify_arrete_url_with_document_and_with_correct_modele_id(
         dotation=programmation_projet.dotation_projet.dotation,
     )
     factory(
-        programmation_projet=programmation_projet, content="<p>Contenu de l’arrêté</p>"
+        programmation_projet=programmation_projet, content="<p>Contenu de l'arrêté</p>"
     )
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": projet.id,
+            "dotation": dotation,
             "document_type": document_type,
         },
     )
     data = {"modele_id": modele.id}
     assert (
-        url
-        == f"/notification/{programmation_projet.id}/modifier-document/{document_type}"
+        url == f"/notification/{projet.id}/modifier-document/{dotation}/{document_type}"
     )
     response = correct_perimetre_client_with_user_logged.get(url, data=data)
     assert response.status_code == 200
@@ -452,24 +469,28 @@ def test_modify_arrete_url_with_document_and_with_wrong_modele_id(
 ):
     modele = modele_factory(
         perimetre=correct_perimetre_client_with_user_logged.user.perimetre,
-        dotation="DSIL"
-        if programmation_projet.dotation_projet.dotation == "DETR"
-        else "DETR",
+        dotation=(
+            "DSIL"
+            if programmation_projet.dotation_projet.dotation == "DETR"
+            else "DETR"
+        ),
     )
     factory(
         programmation_projet=programmation_projet, content="<p>Contenu de l’arrêté</p>"
     )
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": projet.id,
+            "dotation": dotation,
             "document_type": document_type,
         },
     )
     data = {"modele_id": modele.id}
     assert (
-        url
-        == f"/notification/{programmation_projet.id}/modifier-document/{document_type}"
+        url == f"/notification/{projet.id}/modifier-document/{dotation}/{document_type}"
     )
     response = correct_perimetre_client_with_user_logged.get(url, data=data)
     assert response.status_code == 404
@@ -486,10 +507,13 @@ def test_change_document_view_valid_but_with_wrong_perimetre(
     programmation_projet, different_perimetre_client_with_user_logged, document_type
 ):
     assert not hasattr(programmation_projet, "arrete")
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": projet.id,
+            "dotation": dotation,
             "document_type": document_type,
         },
     )
@@ -522,10 +546,13 @@ def test_change_document_view_valid_without_existing_document(
         dotation=programmation_projet.dotation,
         perimetre=programmation_projet.projet.perimetre,
     )
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": projet.id,
+            "dotation": dotation,
             "document_type": document_type,
         },
     )
@@ -538,7 +565,7 @@ def test_change_document_view_valid_without_existing_document(
     }
     response = correct_perimetre_client_with_user_logged.post(url, data)
     assert response.status_code == 302
-    assert response["Location"] == f"/notification/{programmation_projet.id}/documents/"
+    assert response["Location"] == f"/notification/{projet.id}/documents/"
     assert document_model.objects.count() == 1
     document = document_model.objects.first()
     assert document.content == "<p>Le contenu</p>"
@@ -552,12 +579,12 @@ def test_change_document_view_valid_without_existing_document(
     if document_type == ARRETE:
         assert (
             message.message
-            == f"L'arrêté “arrêté-attributif-2025-08-11 - N°{programmation_projet.dossier.ds_number}.pdf” a bien été créé."
+            == f"L'arrêté “arrêté-attributif-DETR-2025-08-11 - N°{programmation_projet.dossier.ds_number}.pdf” a bien été créé."
         )
     else:
         assert (
             message.message
-            == f"La lettre de notification “lettre-notification-2025-08-11 - N°{programmation_projet.dossier.ds_number}.pdf” a bien été créée."
+            == f"La lettre de notification “lettre-notification-DETR-2025-08-11 - N°{programmation_projet.dossier.ds_number}.pdf” a bien été créée."
         )
 
 
@@ -580,10 +607,13 @@ def test_change_document_view_valid_with_existing_document(
         programmation_projet=programmation_projet, content="<p>Ancien contenu</p>"
     )
     new_modele = modele_factory(dotation=programmation_projet.dotation)
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": projet.id,
+            "dotation": dotation,
             "document_type": document_type,
         },
     )
@@ -595,7 +625,7 @@ def test_change_document_view_valid_with_existing_document(
     }
     response = correct_perimetre_client_with_user_logged.post(url, data)
     assert response.status_code == 302
-    assert response["Location"] == f"/notification/{programmation_projet.id}/documents/"
+    assert response["Location"] == f"/notification/{projet.id}/documents/"
     document.refresh_from_db()
     assert document.content == "<p>Le contenu</p>"
     assert document.created_by == correct_perimetre_client_with_user_logged.user
@@ -608,12 +638,12 @@ def test_change_document_view_valid_with_existing_document(
     if document_type == ARRETE:
         assert (
             message.message
-            == f"L'arrêté “arrêté-attributif-2025-08-11 - N°{programmation_projet.dossier.ds_number}.pdf” a bien été modifié."
+            == f"L'arrêté “arrêté-attributif-DETR-2025-08-11 - N°{programmation_projet.dossier.ds_number}.pdf” a bien été modifié."
         )
     else:
         assert (
             message.message
-            == f"La lettre de notification “lettre-notification-2025-08-11 - N°{programmation_projet.dossier.ds_number}.pdf” a bien été modifiée."
+            == f"La lettre de notification “lettre-notification-DETR-2025-08-11 - N°{programmation_projet.dossier.ds_number}.pdf” a bien été modifiée."
         )
 
 
@@ -636,10 +666,13 @@ def test_change_document_view_invalid(
         content="<p>Ancien contenu</p>",
     )
 
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": projet.id,
+            "dotation": dotation,
             "document_type": document_type,
         },
     )
@@ -814,8 +847,9 @@ def test_delete_document_with_correct_perimetre(
 
     response = correct_perimetre_client_with_user_logged.post(url)
 
+    projet = programmation_projet.dotation_projet.projet
     expected_redirect_url = reverse(
-        "gsl_notification:documents", args=[programmation_projet.id]
+        "gsl_notification:documents", kwargs={"projet_id": projet.id}
     )
     assert response.status_code == 302
     assert response.url == expected_redirect_url

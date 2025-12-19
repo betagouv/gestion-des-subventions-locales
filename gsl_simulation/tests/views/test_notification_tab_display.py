@@ -82,7 +82,7 @@ class TestNotificationTabDisplaySimpleDotation:
         # Check notification tab link is present
         notification_url = reverse(
             "gsl_notification:documents",
-            kwargs={"programmation_projet_id": programmation_projet.id},
+            kwargs={"projet_id": programmation_projet.projet.id},
         )
         assert notification_url in response.content.decode()
         assert "Notifications du demandeur" in response.content.decode()
@@ -156,7 +156,7 @@ class TestNotificationTabDisplayDoubleDotation:
         # Check notification tab link IS present (at least one is accepted)
         notification_url = reverse(
             "gsl_notification:documents",
-            kwargs={"programmation_projet_id": detr_programmation.id},
+            kwargs={"projet_id": detr_programmation.projet.id},
         )
         assert notification_url in response.content.decode()
         assert "Notifications du demandeur" in response.content.decode()
@@ -198,7 +198,7 @@ class TestNotificationTabDisplayDoubleDotation:
         # Check notification tab link IS present (at least one is accepted)
         notification_url = reverse(
             "gsl_notification:documents",
-            kwargs={"programmation_projet_id": dsil_programmation.id},
+            kwargs={"projet_id": dsil_programmation.projet.id},
         )
         assert notification_url in response.content.decode()
         assert "Notifications du demandeur" in response.content.decode()
@@ -240,7 +240,7 @@ class TestNotificationTabDisplayDoubleDotation:
         # Check notification tab link IS present (links to first accepted one)
         notification_url = reverse(
             "gsl_notification:documents",
-            kwargs={"programmation_projet_id": detr_programmation.id},
+            kwargs={"projet_id": detr_programmation.projet.id},
         )
         assert notification_url in response.content.decode()
         assert "Notifications du demandeur" in response.content.decode()
