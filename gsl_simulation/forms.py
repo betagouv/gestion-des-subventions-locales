@@ -11,7 +11,6 @@ from dsfr.forms import DsfrBaseForm
 
 from gsl_core.models import Collegue
 from gsl_demarches_simplifiees.ds_client import DsMutator
-from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.validators import document_file_validator
@@ -159,27 +158,23 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
 
         return cleaned_data
 
+    @transaction.atomic
     def save(self, commit=True) -> tuple[SimulationProjet, str | None]:
         instance: SimulationProjet = super().save(commit=False)
-        error_msg = None
         if not commit:
-            return instance, error_msg
+            return instance
 
         if instance.dotation_projet.status == PROJET_STATUS_ACCEPTED:
-            try:
-                instance.dotation_projet.accept(
-                    montant=instance.montant,
-                    enveloppe=instance.enveloppe,
-                    user=self.user,
-                )
-            except DsServiceException as e:
-                error_msg = f"Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. {str(e)}"
+            instance.dotation_projet.accept(
+                montant=instance.montant,
+                enveloppe=instance.enveloppe,
+                user=self.user,
+            )
 
-        if error_msg is None:
-            instance.save()
-            instance.dotation_projet.save()
+        instance.save()
+        instance.dotation_projet.save()
 
-        return instance, error_msg
+        return instance
 
 
 class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):

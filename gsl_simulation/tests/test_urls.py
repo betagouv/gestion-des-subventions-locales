@@ -462,12 +462,15 @@ def test_regional_user_can_patch_projet_if_simulation_projet_is_associated_to_ds
         route,
         kwargs={"pk": cote_dorien_dsil_simulation_projet.pk, **kwargs},
     )
-    response = client_with_bourguignon_user_logged.post(
-        url,
-        data,
-        headers={"HX-Request": "true", "HX-Request-URL": page_url},
-        follow=True,
-    )
+    with mock.patch(
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation",
+    ):
+        response = client_with_bourguignon_user_logged.post(
+            url,
+            data,
+            headers={"HX-Request": "true", "HX-Request-URL": page_url},
+            follow=True,
+        )
     assert response.status_code == 200
 
 

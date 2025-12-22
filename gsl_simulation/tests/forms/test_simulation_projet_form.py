@@ -117,7 +117,10 @@ def test_coherent_new_montant_and_new_taux(simulation_projet, initial_data):
     assert form.is_valid()
     assert form.cleaned_data["montant"] == 300
     assert form.cleaned_data["taux"] == 30
-    form.save()
+    with patch(
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+    ):
+        form.save()
     assert simulation_projet.montant == 300
     assert simulation_projet.taux == 30
 
@@ -132,7 +135,10 @@ def test_incoherent_new_montant_and_new_taux(simulation_projet, initial_data):
     assert form.is_valid()
     assert form.cleaned_data["montant"] == 400
     assert form.cleaned_data["taux"] == 40
-    form.save()
+    with patch(
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+    ):
+        form.save()
     assert simulation_projet.montant == 400
     assert simulation_projet.taux == 40
 
@@ -148,7 +154,10 @@ def test_incoherent_new_assiette_and_new_taux(simulation_projet, initial_data):
     assert form.cleaned_data["assiette"] == 2_000
     assert form.cleaned_data["montant"] == 200
     assert form.cleaned_data["taux"] == 10
-    form.save()
+    with patch(
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+    ):
+        form.save()
     assert simulation_projet.dotation_projet.assiette == 2_000
     assert simulation_projet.montant == 200
     assert simulation_projet.taux == 10
@@ -197,12 +206,11 @@ def test_save_with_dn_error(simulation_projet, user):
         "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
     ) as mock_update_ds:
         mock_update_ds.side_effect = DsServiceException("Some error")
-        simulation_projet, error_msg = form.save()
+        try:
+            simulation_projet = form.save()
+        except DsServiceException as e:
+            assert str(e) == "Some error"
 
-    assert (
-        error_msg
-        == "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. Some error"
-    )
     simulation_projet.refresh_from_db()
     assert simulation_projet.dotation_projet.assiette == 1_000  # not updated
     assert simulation_projet.montant == 200  # not updated

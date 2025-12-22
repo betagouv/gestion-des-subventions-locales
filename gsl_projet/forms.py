@@ -1,10 +1,10 @@
 from logging import getLogger
 
 from django import forms
+from django.db import transaction
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
-from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.services import DsService
 from gsl_projet.constants import DOTATION_CHOICES
 from gsl_projet.models import CategorieDetr, DotationProjet, Projet, ProjetNote
@@ -66,38 +66,30 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             valid = False
         return valid
 
+    @transaction.atomic
     def save(self, commit=True):
         instance: Projet = super().save(commit=False)
-        error_msg = None
         if not commit:
-            return instance, error_msg
+            return instance
 
         ds_service = DsService()
-        try:
-            ds_service.update_checkboxes_annotations(
-                dossier=instance.dossier_ds,
-                user=self.user,
-                annotations_to_update={
-                    "annotations_is_qpv": self.cleaned_data.get("is_in_qpv"),
-                    "annotations_is_crte": self.cleaned_data.get(
-                        "is_attached_to_a_crte"
-                    ),
-                    "annotations_is_budget_vert": self.cleaned_data.get(
-                        "is_budget_vert"
-                    ),
-                },
-            )
-        except DsServiceException as e:
-            error_msg = f"Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. {str(e)}"
+        ds_service.update_checkboxes_annotations(
+            dossier=instance.dossier_ds,
+            user=self.user,
+            annotations_to_update={
+                "annotations_is_qpv": self.cleaned_data.get("is_in_qpv"),
+                "annotations_is_crte": self.cleaned_data.get("is_attached_to_a_crte"),
+                "annotations_is_budget_vert": self.cleaned_data.get("is_budget_vert"),
+            },
+        )
 
-        if error_msg is None:
-            instance.save()
+        instance.save()
 
         dotations = self.cleaned_data.get("dotations")
         if dotations:
             ProjetService.update_dotation(instance, dotations)
 
-        return instance, error_msg
+        return instance
 
 
 class DotationProjetForm(ModelForm):

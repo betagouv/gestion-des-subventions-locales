@@ -97,7 +97,7 @@ def test_is_in_qpv_or_is_attached_to_a_crte_projet_form_validation(projet):
     }
     form = ProjetForm(instance=projet, data=invalid_data)
     assert form.is_valid()
-    projet, _ = form.save(commit=False)
+    projet = form.save(commit=False)
     assert isinstance(projet, Projet)
     assert projet.is_in_qpv is True
     assert projet.is_attached_to_a_crte is True
@@ -113,7 +113,10 @@ def test_projet_form_save(projet):
     }
     form = ProjetForm(instance=projet, data=data)
     assert form.is_valid()
-    projet, _ = form.save(commit=True)
+    with patch(
+        "gsl_demarches_simplifiees.services.DsService.update_checkboxes_annotations"
+    ):
+        projet = form.save(commit=True)
     assert isinstance(projet, Projet)
     assert projet.is_in_qpv is True
     assert projet.is_attached_to_a_crte is True
@@ -131,7 +134,11 @@ def test_projet_form_save_with_multiple_dotations(projet):
     }
     form = ProjetForm(instance=projet, data=data)
     assert form.is_valid()
-    projet, _ = form.save(commit=True)
+    with patch(
+        "gsl_demarches_simplifiees.services.DsService.update_checkboxes_annotations"
+    ):
+        projet = form.save(commit=True)
+
     assert DOTATION_DSIL in projet.dotations
     assert DOTATION_DETR in projet.dotations
 
@@ -151,15 +158,14 @@ def test_projet_form_save_with_field_exceptions(projet, user):
         "gsl_demarches_simplifiees.services.DsService.update_checkboxes_annotations"
     ) as mock_update_annotations:
         mock_update_annotations.side_effect = DsServiceException("Some error")
-        projet, err_msg = form.save(commit=True)
+        try:
+            projet = form.save(commit=True)
+        except DsServiceException as e:
+            assert str(e) == "Some error"
 
     projet.refresh_from_db()
     assert isinstance(projet, Projet)
     assert projet.is_in_qpv is False  # not updated
     assert projet.is_attached_to_a_crte is False  # not updated
     assert projet.is_budget_vert is None  # Default value
-    assert projet.dotations == [DOTATION_DSIL]
-    assert (
-        err_msg
-        == "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. Some error"
-    )
+    assert projet.dotations == [DOTATION_DETR]  # Default value

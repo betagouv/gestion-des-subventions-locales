@@ -108,6 +108,7 @@ class ProjetService:
                 dotation_projet
             )
 
+        # TODO DUN : update DS if removing an accepted dotation
         DotationProjet.objects.filter(
             projet=projet, dotation__in=dotation_to_remove
         ).delete()
