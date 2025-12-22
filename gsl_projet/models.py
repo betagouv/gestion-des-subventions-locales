@@ -244,7 +244,7 @@ class Projet(models.Model):
     )
     is_budget_vert = models.BooleanField(
         "Projet concourant à la transition écologique au sens budget vert",
-        null=True,
+        null=False,
         default=False,
     )
     free_comment = models.TextField("Commentaires libres", blank=True, default="")

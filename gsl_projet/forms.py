@@ -14,18 +14,10 @@ logger = getLogger(__name__)
 
 
 class ProjetForm(ModelForm, DsfrBaseForm):
-    BUDGET_VERT_CHOICES = [
-        (None, "Non Renseigné"),
-        (True, "Oui"),
-        (False, "Non"),
-    ]
-
-    is_budget_vert = forms.TypedChoiceField(
-        label="Transition écologique",
-        choices=BUDGET_VERT_CHOICES,
+    is_budget_vert = forms.BooleanField(
+        label="Projet concourant à la transition écologique au sens budget vert",
         required=False,
-        coerce=lambda x: {"True": True, "False": False, "": None}.get(x, None),
-        widget=forms.Select(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
     )
 
     is_in_qpv = forms.BooleanField(
