@@ -159,19 +159,43 @@ class BaseSimulationProjetView(UpdateView):
         return kwargs
 
     def form_valid(self, form: SimulationProjetForm):
-        _, error_msg = form.save()
-        if error_msg:
-            messages.error(self.request, error_msg)
-        else:
+        try:
+            form.save()
             messages.success(
                 self.request,
                 "Les modifications ont été enregistrées avec succès.",
             )
+        except DsServiceException as e:
+            form.add_error(
+                None,
+                f"Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. {str(e)}",
+            )
+            return self.form_invalid(form)
+
         simulation_projet = self.get_object()
 
         return redirect_to_same_page_or_to_simulation_detail_by_default(
             self.request,
             simulation_projet,
+        )
+
+    def form_invalid(self, form: SimulationProjetForm):
+        self.set_main_error_message(form)
+
+        simulation_projet = self.get_object()
+
+        view = SimulationProjetDetailView()
+        view.request = self.request
+        view.kwargs = {"pk": simulation_projet.id}
+        view.object = simulation_projet  # nécessaire pour get_context_data
+
+        view.request = self.request
+        view.kwargs = {"pk": simulation_projet.id}
+        context = view.get_context_data(object=simulation_projet)
+
+        self.enrich_context_with_invalid_form(context, form)
+        return render(
+            self.request, "gsl_simulation/simulation_projet_detail.html", context
         )
 
     def set_main_error_message(self, form):
@@ -196,23 +220,8 @@ class ProjetFormView(BaseSimulationProjetView):
         kwargs.update({"instance": simulation_projet.projet})
         return kwargs
 
-    def form_invalid(self, form: SimulationProjetForm):
-        self.set_main_error_message(form)
-
-        simulation_projet = self.get_object()
-
-        view = SimulationProjetDetailView()
-        view.request = self.request
-        view.kwargs = {"pk": simulation_projet.id}
-        view.object = simulation_projet  # nécessaire pour get_context_data
-
-        view.request = self.request
-        view.kwargs = {"pk": simulation_projet.id}
-        context = view.get_context_data(object=simulation_projet)
+    def enrich_context_with_invalid_form(self, context, form):
         context["projet_form"] = form
-        return render(
-            self.request, "gsl_simulation/simulation_projet_detail.html", context
-        )
 
 
 class SimulationProjetDetailView(BaseSimulationProjetView):
@@ -246,14 +255,8 @@ class SimulationProjetDetailView(BaseSimulationProjetView):
 
         return context
 
-    def form_invalid(self, form: SimulationProjetForm):
-        self.set_main_error_message(form)
-
-        return render(
-            self.request,
-            self.get_template_names(),
-            self.get_context_data(simulation_projet_form=form),
-        )
+    def enrich_context_with_invalid_form(self, context, form):
+        context["simulation_projet_form"] = form
 
 
 def redirect_to_same_page_or_to_simulation_detail_by_default(
@@ -548,7 +551,7 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
 
             form.add_error(
                 None,
-                f"Une erreur est survenue lors de l'envoi à Démarche Simplifiées. {str(e)}",
+                f"Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. {str(e)}",
             )
             return super().form_invalid(form)
 
