@@ -78,7 +78,7 @@
 
 {% block montants_form %}
     {% if other_dotation_montants %}
-        <h6>
+        <h6 class="fr-mb-2w fr-mt-6w">
             {{ dotation_projet.dotation }}
         </h6>
     {% endif %}
@@ -86,7 +86,7 @@
     {% include "includes/forms/_montants_form.html" %}
 
     {% if other_dotation_montants %}
-        <h6>
+        <h6 class="fr-mb-2w fr-mt-6w">
             {{ other_dotation_montants.dotation }}
         </h6>
         {% include "includes/projet_detail/dotation_montant_info.html" with assiette=other_dotation_montants.assiette montant=other_dotation_montants.montant taux=other_dotation_montants.taux %}

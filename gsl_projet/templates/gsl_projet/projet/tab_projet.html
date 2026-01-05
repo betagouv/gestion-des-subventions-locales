@@ -301,7 +301,7 @@
                         {% block montants_form %}
                             {% for dotation_projet in projet.dotationprojet_set.all %}
                                 {% if projet.dotationprojet_set.all|length > 1 %}
-                                    <h6>
+                                    <h6 class="fr-mb-2w fr-mt-6w">
                                         {{ dotation_projet.dotation }}
                                     </h6>
                                 {% endif %}
