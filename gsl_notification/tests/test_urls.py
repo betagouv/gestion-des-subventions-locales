@@ -18,7 +18,7 @@ from gsl_projet.constants import (
 def test_documents_url():
     url = reverse(
         "gsl_notification:documents",
-        kwargs={"programmation_projet_id": 123},
+        kwargs={"projet_id": 123},
     )
     assert url == "/notification/123/documents/"
 
@@ -29,7 +29,7 @@ def test_documents_url():
 def test_choose_type_for_document_generation_url():
     url = reverse(
         "gsl_notification:choose-generated-document-type",
-        kwargs={"programmation_projet_id": 123},
+        kwargs={"projet_id": 123},
     )
     assert url == "/notification/123/choix-du-type/"
 
@@ -38,18 +38,29 @@ def test_choose_type_for_document_generation_url():
 def test_select_modele_url(document_type):
     url = reverse(
         "gsl_notification:select-modele",
-        kwargs={"programmation_projet_id": 123, "document_type": document_type},
+        kwargs={
+            "projet_id": 123,
+            "dotation": DOTATION_DETR,
+            "document_type": document_type,
+        },
     )
-    assert url == f"/notification/123/selection-d-un-modele/{document_type}"
+    assert (
+        url
+        == f"/notification/123/selection-d-un-modele/{DOTATION_DETR}/{document_type}"
+    )
 
 
 @pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
 def test_modifier_document_url(document_type):
     url = reverse(
         "gsl_notification:modifier-document",
-        kwargs={"programmation_projet_id": 123, "document_type": document_type},
+        kwargs={
+            "projet_id": 123,
+            "dotation": DOTATION_DETR,
+            "document_type": document_type,
+        },
     )
-    assert url == f"/notification/123/modifier-document/{document_type}"
+    assert url == f"/notification/123/modifier-document/{DOTATION_DETR}/{document_type}"
 
 
 @pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
@@ -118,9 +129,9 @@ def test_save_documents(dotation, document_type):
 def test_create_arrete_et_lettre_signes_url(doc_type):
     url = reverse(
         "gsl_notification:upload-a-document",
-        kwargs={"programmation_projet_id": 123, "document_type": doc_type},
+        kwargs={"projet_id": 123, "dotation": DOTATION_DETR, "document_type": doc_type},
     )
-    assert url == f"/notification/123/televersement/{doc_type}/creer/"
+    assert url == f"/notification/123/televersement/{DOTATION_DETR}/{doc_type}/creer/"
 
 
 @pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNES, ANNEXE))
@@ -135,10 +146,10 @@ def test_uploaded_document_download_url(doc_type):
 @pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNES, ANNEXE))
 def test_uploaded_document_delete_url(doc_type):
     url = reverse(
-        "gsl_notification:delete-uploaded-document",
+        "gsl_notification:delete-document",
         kwargs={"document_type": doc_type, "document_id": 789},
     )
-    assert url == f"/notification/document-televerse/{doc_type}/789/delete/"
+    assert url == f"/notification/document/{doc_type}/789/delete/"
 
 
 # Modele Arrete URLs
