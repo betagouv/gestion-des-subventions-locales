@@ -5,5 +5,7 @@
 {% endblock title %}
 
 {% block status_action_content %}
-    {% include "includes/_status_dropdown_buttons.html" %}
+    {% if dotation_projet.projet.notified_at is None %}
+        {% include "includes/_status_dropdown_buttons.html" %}
+    {% endif %}
 {% endblock status_action_content %}
