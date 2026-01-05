@@ -40,6 +40,8 @@ from gsl_simulation.views.simulation_views import (
 
 pytestmark = pytest.mark.django_db
 
+CURRENT_YEAR = datetime.now().year
+
 
 @pytest.fixture
 def perimetre_departemental():
@@ -73,7 +75,7 @@ def simulations(perimetre_departemental):
 @pytest.fixture
 def detr_enveloppe(perimetre_departemental):
     return DetrEnveloppeFactory(
-        perimetre=perimetre_departemental, annee=2025, montant=1_000_000
+        perimetre=perimetre_departemental, annee=CURRENT_YEAR + 1, montant=1_000_000
     )
 
 
@@ -91,7 +93,7 @@ def projets(simulation, perimetre_departemental):
         label="Commune", type=NaturePorteurProjet.COMMUNES
     )
     for perimetre in (perimetre_departemental, other_perimeter):
-        for year in (2024, 2025):
+        for year in (CURRENT_YEAR - 1, CURRENT_YEAR):
             DetrEnveloppeFactory(perimetre=perimetre, annee=year)
             DsilEnveloppeFactory(perimetre=perimetre, annee=year)
 
@@ -103,10 +105,10 @@ def projets(simulation, perimetre_departemental):
                 Dossier.STATE_REFUSE,
                 Dossier.STATE_SANS_SUITE,
             ):
-                dossier_2024 = DossierFactory(
+                dossier_last_year = DossierFactory(
                     ds_state=state,
-                    ds_date_depot=datetime(2023, 10, 1, tzinfo=UTC),
-                    ds_date_traitement=datetime(2024, 1, 1, tzinfo=UTC),
+                    ds_date_depot=datetime(CURRENT_YEAR - 2, 10, 1, tzinfo=UTC),
+                    ds_date_traitement=datetime(CURRENT_YEAR - 1, 1, 1, tzinfo=UTC),
                     demande_montant=200_000,
                     demande_dispositif_sollicite=dotation,
                     finance_cout_total=1_000_000,
@@ -115,16 +117,16 @@ def projets(simulation, perimetre_departemental):
                     porteur_de_projet_nature=epci,
                     porteur_de_projet_arrondissement__core_arrondissement__departement=perimetre.departement,
                 )
-                projet_2024 = ProjetFactory(
-                    dossier_ds=dossier_2024,
+                projet_last_year = ProjetFactory(
+                    dossier_ds=dossier_last_year,
                     perimetre=perimetre,
                     demandeur=demandeur,
                 )
-                projets.append(projet_2024)
+                projets.append(projet_last_year)
 
-                dossier_2025 = DossierFactory(
+                dossier_current_year = DossierFactory(
                     ds_state=state,
-                    ds_date_traitement=datetime(2025, 1, 1, tzinfo=UTC),
+                    ds_date_traitement=datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC),
                     demande_montant=300_000,
                     annotations_montant_accorde_detr=120_000,
                     annotations_montant_accorde_dsil=120_000,
@@ -133,17 +135,17 @@ def projets(simulation, perimetre_departemental):
                     porteur_de_projet_nature=commune,
                     porteur_de_projet_arrondissement__core_arrondissement__departement=perimetre.departement,
                 )
-                projet_2025 = ProjetFactory(
-                    dossier_ds=dossier_2025,
+                projet_current_year = ProjetFactory(
+                    dossier_ds=dossier_current_year,
                     demandeur=demandeur,
                     perimetre=perimetre,
                 )
-                projets.append(projet_2025)
+                projets.append(projet_current_year)
             demandeur = DemandeurFactory()
             for state in (Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION):
-                dossier_2024 = DossierFactory(
+                dossier_last_year = DossierFactory(
                     ds_state=state,
-                    ds_date_depot=datetime(2024, 2, 12, tzinfo=UTC),
+                    ds_date_depot=datetime(CURRENT_YEAR - 1, 2, 12, tzinfo=UTC),
                     ds_date_traitement=None,
                     demande_dispositif_sollicite=dotation,
                     demande_montant=400_000,
@@ -151,16 +153,16 @@ def projets(simulation, perimetre_departemental):
                     porteur_de_projet_nature=commune,
                     porteur_de_projet_arrondissement__core_arrondissement__departement=perimetre.departement,
                 )
-                projet_2024 = ProjetFactory(
-                    dossier_ds=dossier_2024,
+                projet_last_year = ProjetFactory(
+                    dossier_ds=dossier_last_year,
                     demandeur=demandeur,
                     perimetre=perimetre,
                 )
-                projets.append(projet_2024)
+                projets.append(projet_last_year)
 
-                dossier_2025 = DossierFactory(
+                dossier_current_year = DossierFactory(
                     ds_state=state,
-                    ds_date_depot=datetime(2025, 2, 12, tzinfo=UTC),
+                    ds_date_depot=datetime(CURRENT_YEAR, 2, 12, tzinfo=UTC),
                     ds_date_traitement=None,
                     demande_dispositif_sollicite=dotation,
                     demande_montant=500_000,
@@ -168,12 +170,12 @@ def projets(simulation, perimetre_departemental):
                     porteur_de_projet_nature=epci,
                     porteur_de_projet_arrondissement__core_arrondissement__departement=perimetre.departement,
                 )
-                projet_2025 = ProjetFactory(
-                    dossier_ds=dossier_2025,
+                projet_current_year = ProjetFactory(
+                    dossier_ds=dossier_current_year,
                     demandeur=demandeur,
                     perimetre=perimetre,
                 )
-                projets.append(projet_2025)
+                projets.append(projet_current_year)
     for projet in projets:
         DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
     return projets
@@ -311,21 +313,21 @@ def test_view_with_order(req, simulation, create_simulation_projets):
 
 def test_view_with_multiple_simulations(req, perimetre_departemental):
     state = Dossier.STATE_EN_INSTRUCTION
-    dossier_2024 = DossierFactory(
+    dossier_current_year = DossierFactory(
         ds_state=state,
-        ds_date_depot=datetime(2023, 10, 1, tzinfo=UTC),
-        ds_date_traitement=datetime(2024, 1, 1, tzinfo=UTC),
+        ds_date_depot=datetime(CURRENT_YEAR - 1, 10, 1, tzinfo=UTC),
+        ds_date_traitement=datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC),
         annotations_montant_accorde=150_000,
         demande_montant=200_000,
         demande_dispositif_sollicite="DETR",
     )
     projet = ProjetFactory(
-        dossier_ds=dossier_2024,
+        dossier_ds=dossier_current_year,
         perimetre=perimetre_departemental,
     )
 
     enveloppe = DetrEnveloppeFactory(
-        perimetre=perimetre_departemental, annee=2024, montant=1_000_000
+        perimetre=perimetre_departemental, annee=CURRENT_YEAR, montant=1_000_000
     )
     simulation_1 = SimulationFactory(enveloppe=enveloppe)
     simulation_2 = SimulationFactory(enveloppe=enveloppe)

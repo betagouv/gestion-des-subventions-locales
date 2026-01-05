@@ -32,6 +32,8 @@ from gsl_simulation.forms import _add_enveloppe_projets_to_simulation
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationFactory
 
+CURRENT_YEAR = datetime.now(tz=UTC).year
+
 
 @pytest.fixture
 def arrondissement_perimetre():
@@ -77,14 +79,44 @@ def detr_projets(
 ) -> list[DotationProjetFactory]:
     detr_projets = []
     for montant, assiette, state, date_traitement in (
-        (1_000, 3_000, Dossier.STATE_EN_CONSTRUCTION, datetime(2024, 1, 1, tzinfo=UTC)),
-        (600, None, Dossier.STATE_EN_INSTRUCTION, datetime(2023, 1, 1, tzinfo=UTC)),
-        (2_000, 3_000, Dossier.STATE_ACCEPTE, datetime(2024, 1, 1, tzinfo=UTC)),
-        (2_000, 4_000, Dossier.STATE_ACCEPTE, datetime(2025, 1, 1, tzinfo=UTC)),
-        (1_500, None, Dossier.STATE_REFUSE, datetime(2024, 1, 1, tzinfo=UTC)),
-        (1_500, None, Dossier.STATE_REFUSE, datetime(2025, 1, 1, tzinfo=UTC)),
-        (6_500, None, Dossier.STATE_SANS_SUITE, datetime(2024, 1, 1, tzinfo=UTC)),
-        (2_500, None, Dossier.STATE_SANS_SUITE, datetime(2025, 1, 1, tzinfo=UTC)),
+        (
+            1_000,
+            3_000,
+            Dossier.STATE_EN_CONSTRUCTION,
+            datetime(CURRENT_YEAR - 1, 1, 1, tzinfo=UTC),
+        ),
+        (
+            600,
+            None,
+            Dossier.STATE_EN_INSTRUCTION,
+            datetime(CURRENT_YEAR - 2, 1, 1, tzinfo=UTC),
+        ),
+        (
+            2_000,
+            3_000,
+            Dossier.STATE_ACCEPTE,
+            datetime(CURRENT_YEAR - 1, 1, 1, tzinfo=UTC),
+        ),
+        (2_000, 4_000, Dossier.STATE_ACCEPTE, datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC)),
+        (
+            1_500,
+            None,
+            Dossier.STATE_REFUSE,
+            datetime(CURRENT_YEAR - 1, 1, 1, tzinfo=UTC),
+        ),
+        (1_500, None, Dossier.STATE_REFUSE, datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC)),
+        (
+            6_500,
+            None,
+            Dossier.STATE_SANS_SUITE,
+            datetime(CURRENT_YEAR - 1, 1, 1, tzinfo=UTC),
+        ),
+        (
+            2_500,
+            None,
+            Dossier.STATE_SANS_SUITE,
+            datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC),
+        ),
     ):
         status = DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS[state]
         projet = ProjetFactory(
@@ -107,14 +139,49 @@ def dsil_projets(
 ) -> list[DotationProjetFactory]:
     dotation_projets = []
     for montant, assiette, state, date_traitement in (
-        (1_000, 4_000, Dossier.STATE_EN_CONSTRUCTION, datetime(2024, 1, 1, tzinfo=UTC)),
-        (600, None, Dossier.STATE_EN_INSTRUCTION, datetime(2023, 1, 1, tzinfo=UTC)),
-        (2_000, 4_000, Dossier.STATE_ACCEPTE, datetime(2024, 12, 21, tzinfo=UTC)),
-        (5_000, 10_000, Dossier.STATE_ACCEPTE, datetime(2025, 1, 1, tzinfo=UTC)),
-        (3_500, None, Dossier.STATE_REFUSE, datetime(2024, 12, 31, tzinfo=UTC)),
-        (1_500, None, Dossier.STATE_REFUSE, datetime(2025, 1, 1, tzinfo=UTC)),
-        (2_500, None, Dossier.STATE_SANS_SUITE, datetime(2024, 12, 13, tzinfo=UTC)),
-        (2_500, None, Dossier.STATE_SANS_SUITE, datetime(2025, 1, 1, tzinfo=UTC)),
+        (
+            1_000,
+            4_000,
+            Dossier.STATE_EN_CONSTRUCTION,
+            datetime(CURRENT_YEAR - 1, 1, 1, tzinfo=UTC),
+        ),
+        (
+            600,
+            None,
+            Dossier.STATE_EN_INSTRUCTION,
+            datetime(CURRENT_YEAR - 2, 1, 1, tzinfo=UTC),
+        ),
+        (
+            2_000,
+            4_000,
+            Dossier.STATE_ACCEPTE,
+            datetime(CURRENT_YEAR - 1, 12, 21, tzinfo=UTC),
+        ),
+        (
+            5_000,
+            10_000,
+            Dossier.STATE_ACCEPTE,
+            datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC),
+        ),
+        (
+            3_500,
+            None,
+            Dossier.STATE_REFUSE,
+            datetime(CURRENT_YEAR - 1, 12, 31, tzinfo=UTC),
+        ),
+        (1_500, None, Dossier.STATE_REFUSE, datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC)),
+        (
+            2_500,
+            None,
+            Dossier.STATE_SANS_SUITE,
+            datetime(CURRENT_YEAR - 1, 12, 13, tzinfo=UTC),
+        ),
+        (
+            2_500,
+            None,
+            Dossier.STATE_SANS_SUITE,
+            datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC),
+        ),
     ):
         status = DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS[state]
         projet = ProjetFactory(
