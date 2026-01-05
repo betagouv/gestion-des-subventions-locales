@@ -3,10 +3,10 @@ from unittest.mock import patch
 
 import pytest
 from django import forms
-from django.core.exceptions import ValidationError
 
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import CollegueWithDSProfileFactory
+from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_projet.constants import PROJET_STATUS_ACCEPTED
 from gsl_projet.tests.factories import DetrProjetFactory
 from gsl_simulation.forms import SimulationProjetForm
@@ -145,7 +145,10 @@ def test_coherent_new_montant_and_new_taux(simulation_projet, initial_data):
     assert form.is_valid()
     assert form.cleaned_data["montant"] == 300
     assert form.cleaned_data["taux"] == 30
-    form.save()
+    with patch(
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+    ):
+        form.save()
     assert simulation_projet.montant == 300
     assert simulation_projet.taux == 30
 
@@ -160,7 +163,10 @@ def test_incoherent_new_montant_and_new_taux(simulation_projet, initial_data):
     assert form.is_valid()
     assert form.cleaned_data["montant"] == 400
     assert form.cleaned_data["taux"] == 40
-    form.save()
+    with patch(
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+    ):
+        form.save()
     assert simulation_projet.montant == 400
     assert simulation_projet.taux == 40
 
@@ -176,7 +182,10 @@ def test_incoherent_new_assiette_and_new_taux(simulation_projet, initial_data):
     assert form.cleaned_data["assiette"] == 2_000
     assert form.cleaned_data["montant"] == 200
     assert form.cleaned_data["taux"] == 10
-    form.save()
+    with patch(
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+    ):
+        form.save()
     assert simulation_projet.dotation_projet.assiette == 2_000
     assert simulation_projet.montant == 200
     assert simulation_projet.taux == 10
@@ -214,84 +223,26 @@ def user() -> Collegue:
     return cast(Collegue, CollegueWithDSProfileFactory())
 
 
-def test_save_with_ds_and_assiette_field_exceptions(simulation_projet, user):
+def test_save_with_dn_error(simulation_projet, user):
     simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
     simulation_projet.dotation_projet.save()
-
     data = {"assiette": 400, "montant": 300, "taux": 75}
     form = SimulationProjetForm(instance=simulation_projet, data=data, user=user)
     assert form.is_valid()
 
     with patch(
-        "gsl_demarches_simplifiees.mixins.process_projet_update"
-    ) as mock_process:
-        mock_process.return_value = ({"assiette": "Some error"}, False)
-        form.save()
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+    ) as mock_update_ds:
+        mock_update_ds.side_effect = DsServiceException("Some error")
+        try:
+            simulation_projet = form.save()
+        except DsServiceException as e:
+            assert str(e) == "Some error"
 
     simulation_projet.refresh_from_db()
     assert simulation_projet.dotation_projet.assiette == 1_000  # not updated
-    assert simulation_projet.montant == 300  # updated
-    assert simulation_projet.taux == 30  # computed
-
-
-def test_save_with_ds_montant_field_exceptions(simulation_projet, user):
-    simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
-    simulation_projet.dotation_projet.save()
-
-    data = {"assiette": 400, "montant": 300, "taux": 75}
-    form = SimulationProjetForm(instance=simulation_projet, data=data, user=user)
-    assert form.is_valid()
-
-    with patch(
-        "gsl_demarches_simplifiees.mixins.process_projet_update"
-    ) as mock_process:
-        mock_process.return_value = ({"montant": "Some error"}, False)
-        form.save()
-
-    simulation_projet.refresh_from_db()
-    assert simulation_projet.dotation_projet.assiette == 400  # updated
     assert simulation_projet.montant == 200  # not updated
-    assert simulation_projet.taux == 50  # computed
-
-
-def test_save_with_ds_and_assiette_field_exceptions_and_montant_cleaned(
-    simulation_projet, user
-):
-    simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
-    simulation_projet.dotation_projet.save()
-
-    data = {"assiette": 2_000, "montant": 1_500, "taux": 75}
-    form = SimulationProjetForm(instance=simulation_projet, data=data, user=user)
-    assert form.is_valid()
-
-    with patch(
-        "gsl_demarches_simplifiees.mixins.process_projet_update"
-    ) as mock_process:
-        mock_process.return_value = ({"assiette": "Some error"}, False)
-
-        # Error because assiette update is cancelled (=> 1_000) and then montant is higher than assiette, so model cleans do the job
-        with pytest.raises(ValidationError):
-            form.save()
-
-
-def test_get_fields(simulation_projet):
-    simulation_projet = SimulationProjetFactory(
-        montant=200, status=SimulationProjet.STATUS_ACCEPTED
-    )
-    form = SimulationProjetForm(instance=simulation_projet)
-    assert form.get_fields() == ["assiette", "montant", "taux"]
-
-    for status in [
-        SimulationProjet.STATUS_REFUSED,
-        SimulationProjet.STATUS_DISMISSED,
-        SimulationProjet.STATUS_PROCESSING,
-        SimulationProjet.STATUS_PROCESSING,
-        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
-        SimulationProjet.STATUS_PROVISIONALLY_REFUSED,
-    ]:
-        simulation_projet = SimulationProjetFactory(montant=200, status=status)
-        form = SimulationProjetForm(instance=simulation_projet)
-        assert form.get_fields() == ["assiette"]
+    assert simulation_projet.taux == 20  # not updated
 
 
 def test_remove_assiette_field():

@@ -512,7 +512,7 @@ class DotationProjet(models.Model):
             montant=montant,
         )
 
-        ProgrammationProjet.objects.update_or_create(
+        programmation_projet, _ = ProgrammationProjet.objects.update_or_create(
             dotation_projet=self,
             enveloppe=enveloppe.delegation_root,
             defaults={
@@ -520,6 +520,7 @@ class DotationProjet(models.Model):
                 "status": ProgrammationProjet.STATUS_ACCEPTED,
             },
         )
+        self.programmation_projet = programmation_projet
 
     @transaction.atomic
     @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
@@ -533,8 +534,6 @@ class DotationProjet(models.Model):
 
         projet_dotation_checked = self.other_accepted_dotations
         ds_service = DsService()
-        if hasattr(self, "programmation_projet"):
-            self.programmation_projet.refresh_from_db()
         ds_service.update_ds_annotations_for_one_dotation(
             dossier=self.projet.dossier_ds,
             user=user,

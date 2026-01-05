@@ -10,42 +10,6 @@ mutation dossierModifierAnnotations($input: DossierModifierAnnotationsInput!) {
   }
 }
 
-mutation modifierAnnotationCheckbox(
-  $input: DossierModifierAnnotationCheckboxInput!
-  $includeAnnotations: Boolean = false
-) {
-  dossierModifierAnnotationCheckbox(input: $input) {
-    clientMutationId
-    annotation @include(if: $includeAnnotations) {
-      id
-      label
-      stringValue
-      updatedAt
-    }
-    errors {
-      message
-    }
-  }
-}
-
-mutation modifierAnnotationDecimalNumber(
-  $input: DossierModifierAnnotationDecimalNumberInput!
-  $includeAnnotations: Boolean = false
-) {
-  dossierModifierAnnotationDecimalNumber(input: $input) {
-    clientMutationId
-    annotation @include(if: $includeAnnotations) {
-      id
-      label
-      stringValue
-      updatedAt
-    }
-    errors {
-      message
-    }
-  }
-}
-
 mutation dossierRepasserEnInstruction(
   $input: DossierRepasserEnInstructionInput!
 ) {

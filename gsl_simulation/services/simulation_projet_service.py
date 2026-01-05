@@ -2,12 +2,8 @@ import logging
 from decimal import Decimal
 
 from gsl_core.models import Collegue
-from gsl_demarches_simplifiees.exceptions import DsServiceException
-from gsl_demarches_simplifiees.mixins import build_error_message, process_projet_update
-from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
-    POSSIBLE_DOTATIONS,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
     PROJET_STATUS_PROCESSING,
@@ -165,58 +161,3 @@ class SimulationProjetService:
             pk=simulation_projet.pk
         )
         return updated_simulation_projet
-
-    @classmethod
-    def _update_ds_assiette_montant_and_taux(
-        cls,
-        dossier: Dossier,
-        assiette: float,
-        montant: float,
-        taux: float,
-        dotation: POSSIBLE_DOTATIONS,
-        user: Collegue,
-    ) -> None:
-        data = {
-            "assiette": assiette,
-            "montant": montant,
-            "taux": taux,
-        }
-        errors, blocking = process_projet_update(
-            data, dossier, ["assiette", "montant", "taux"], dotation=dotation, user=user
-        )
-
-        if blocking:
-            raise DsServiceException(
-                "Une erreur est survenue lors de la mise à jour des informations "
-                f"sur Démarche Numérique. {errors['all']}",
-                level=logging.ERROR,
-                log_message="Blocking error during montant and taux update",
-                extra={
-                    "dossier_ds_number": dossier.ds_number,
-                    "assiette": assiette,
-                    "montant": montant,
-                    "taux": taux,
-                },
-            )
-
-        error_msg = None
-
-        if not errors:
-            return
-
-        fields_msg = build_error_message(errors)
-        error_msg = (
-            "Une erreur est survenue lors de la mise à jour de certaines "
-            "informations sur Démarche Numérique "
-            f"({fields_msg}). Ces modifications n'ont pas été enregistrées."
-        )
-        raise DsServiceException(
-            error_msg,
-            level=logging.ERROR,
-            log_message="Error during montant and taux update",
-            extra={
-                "dossier_ds_number": dossier.ds_number,
-                "montant": montant,
-                "taux": taux,
-            },
-        )
