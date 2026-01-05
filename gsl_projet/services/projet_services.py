@@ -78,9 +78,7 @@ class ProjetService:
 
     @classmethod
     def get_is_budget_vert(cls, ds_dossier: Dossier) -> bool | None:
-        if ds_dossier.annotations_is_budget_vert is not None:
-            return ds_dossier.annotations_is_budget_vert
-        return ds_dossier.environnement_transition_eco
+        return bool(ds_dossier.annotations_is_budget_vert)
 
     @classmethod
     def update_dotation(cls, projet: Projet, dotations: list[POSSIBLE_DOTATIONS]):

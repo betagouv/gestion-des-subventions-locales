@@ -1,8 +1,13 @@
 <div class="form-disabled-before-value-change fr-mb-2w">
     {% csrf_token %}
-    <div class="fr-callout fr-background-alt--blue-france fr-py-2w fr-pl-3w">
-        {{ projet_form.is_budget_vert.label_tag }}
-        {{ projet_form.is_budget_vert }}
+    <div class="fr-callout fr-background-alt--blue-france fr-py-2w fr-px-2w">
+        <div class="fr-fieldset__element fr-mb-0">
+            <div class="fr-checkbox-group">
+
+                {{ projet_form.is_budget_vert }}
+                {{ projet_form.is_budget_vert.label_tag }}
+            </div>
+        </div>
     </div>
     <button class="fr-btn"
             id="submit-is-in-qpv-and-is-attached-to-a-crte"

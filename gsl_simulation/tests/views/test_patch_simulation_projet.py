@@ -227,7 +227,7 @@ def accepted_simulation_projet(collegue, simulation):
         status=PROJET_STATUS_PROCESSING,
         assiette=10_000,
         projet__perimetre=collegue.perimetre,
-        projet__is_budget_vert=None,
+        projet__is_budget_vert=False,
         dotation=DOTATION_DETR,
     )
 
