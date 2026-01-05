@@ -40,7 +40,6 @@ document.querySelectorAll('.dotation-dropdown button').forEach(button => {
       content.style.display = wasContentDisplayed ? 'none' : 'grid'
 
       if (wasContentDisplayed) {
-        selectedElement = content // eslint-disable-line
         selectedForm = content.closest('form')
         const fieldset = content.closest('fieldset')
         const initialValues = content.dataset.initialDotations.split(',')
