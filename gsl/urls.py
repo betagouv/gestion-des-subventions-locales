@@ -10,6 +10,10 @@ from django.urls import include, path
 
 from gsl import settings
 
+admin.site.site_header = "Back-office Turgot - " + settings.ENV
+admin.site.index_title = "Back-office Turgot - " + settings.ENV
+admin.site.site_title = "Back-office Turgot - " + settings.ENV
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("gsl_oidc.urls")),
