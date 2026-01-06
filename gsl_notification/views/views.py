@@ -120,7 +120,7 @@ class NotificationMessageView(UpdateView):
 
     def form_valid(self, form):
         try:
-            form.save(instructeur_id=self.request.user.ds_id)
+            form.save(user=self.request.user)
         except DsServiceException as e:
             messages.error(
                 self.request,

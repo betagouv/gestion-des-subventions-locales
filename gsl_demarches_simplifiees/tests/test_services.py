@@ -1,6 +1,7 @@
 import copy
 import logging
 from datetime import datetime
+from datetime import timezone as dt_timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -292,6 +293,69 @@ def test_dismiss_in_ds():
         mock_check_results.assert_called_once_with(
             results, dossier, user, "dismiss", value="motivation"
         )
+
+
+def test_passer_en_instruction(user, dossier):
+    """Test that passer_en_instruction updates dossier state and date correctly"""
+    ds_service = DsService()
+    expected_date_str = "2024-01-15T10:30:00+01:00"
+    expected_date = datetime.fromisoformat(expected_date_str)
+
+    mock_results = {
+        "data": {
+            "dossierPasserEnInstruction": {
+                "dossier": {"dateDerniereModification": expected_date_str}
+            }
+        }
+    }
+
+    with (
+        patch(
+            "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_passer_en_instruction"
+        ) as mock_dossier_passer_en_instruction,
+        patch(
+            "gsl_demarches_simplifiees.services.DsService._check_results"
+        ) as mock_check_results,
+    ):
+        mock_dossier_passer_en_instruction.return_value = mock_results
+
+        # Set initial state to en_construction
+        dossier.ds_state = Dossier.STATE_EN_CONSTRUCTION
+        dossier.ds_date_derniere_modification = None
+        dossier.save()
+
+        result = ds_service.passer_en_instruction(dossier, user)
+
+        # Verify the mutator was called with correct parameters
+        mock_dossier_passer_en_instruction.assert_called_once_with(
+            dossier.ds_id, user.ds_id
+        )
+
+        # Verify _check_results was called
+        mock_check_results.assert_called_once_with(
+            mock_results, dossier, user, "passer_en_instruction"
+        )
+
+        # Verify dossier state was updated
+        dossier.refresh_from_db()
+        assert dossier.ds_state == Dossier.STATE_EN_INSTRUCTION
+
+        # Verify date was updated (Django converts ISO string to datetime)
+        assert dossier.ds_date_derniere_modification is not None
+        assert isinstance(dossier.ds_date_derniere_modification, datetime)
+        # Compare the datetime values (accounting for timezone conversion)
+        assert (
+            abs(
+                (
+                    dossier.ds_date_derniere_modification
+                    - expected_date.astimezone(dt_timezone.utc)
+                ).total_seconds()
+            )
+            < 1
+        )
+
+        # Verify return value
+        assert result == mock_results
 
 
 def test_update_ds_annotations_for_one_dotation_annotations_dict(user, dossier):

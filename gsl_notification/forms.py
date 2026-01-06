@@ -5,6 +5,7 @@ from dsfr.forms import DsfrBaseForm
 
 from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.models import (
     Annexe,
     Arrete,
@@ -99,7 +100,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.Form):
         widget=forms.Textarea,
     )
 
-    def save(self, instructeur_id):
+    def save(self, user):
         justificatif_file = merge_documents_into_pdf(
             [
                 self.programmation_projet.arrete_et_lettre_signes,
@@ -110,17 +111,16 @@ class NotificationMessageForm(DsfrBaseForm, forms.Form):
         # Dossier was recently refreshed DN
         # Race conditions remain possible, but should be rare enough and just fail without any side effect.
         if self.programmation_projet.dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:
-            DsMutator().dossier_passer_en_instruction(
-                dossier_id=self.programmation_projet.dossier.ds_id,
-                instructeur_id=instructeur_id,
+            ds = DsService()
+            ds.passer_en_instruction(
+                dossier=self.programmation_projet.dossier, user=user
             )
-
         with transaction.atomic():
             self.programmation_projet.projet.notified_at = timezone.now()
             self.programmation_projet.projet.save()
             DsMutator().dossier_accepter(
                 self.programmation_projet.dossier,
-                instructeur_id,
+                user.ds_id,
                 motivation=self.cleaned_data.get("justification", ""),
                 document=justificatif_file,
             )
