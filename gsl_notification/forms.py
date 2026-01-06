@@ -15,7 +15,120 @@ from gsl_notification.models import (
 )
 from gsl_notification.utils import merge_documents_into_pdf
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import ARRETE, LETTRE
+from gsl_projet.constants import ARRETE, LETTRE, PROJET_STATUS_ACCEPTED
+from gsl_projet.models import Projet
+
+
+class RadioSelect(forms.RadioSelect):
+    """
+    The class name needs to be RadioSelect for DsfrBaseForm to do its magic.
+    """
+
+    def create_option(
+        self, name, value, label, selected, index, subindex=None, attrs=None
+    ):
+        if not value:
+            attrs = {**(attrs or {}), "disabled": "disabled"}
+            label = {
+                "label": label,
+                "help_text": "Le document a déjà été généré pour cette dotation.",
+            }
+
+        return super().create_option(
+            name, value, label, selected if value else False, index, attrs=attrs
+        )
+
+
+class BaseChooseDocumentTypeForm(DsfrBaseForm, forms.Form):
+    document = forms.ChoiceField(
+        widget=RadioSelect,
+        required=True,
+        choices=(
+            (
+                model.document_type,
+                model._meta.verbose_name,
+            )
+            for model in (Arrete, LettreNotification)
+        ),
+        label="Type de document",
+    )
+
+
+class ChooseDocumentTypeForGenerationForm(BaseChooseDocumentTypeForm):
+    def __init__(self, *args, instance, **kwargs):
+        # Not a ModelForm, but we get instance from the view which is an UpdateView.
+        super().__init__(*args, **kwargs)
+        self.fields["document"].choices = [
+            (
+                (
+                    ""
+                    if model.objects.filter(
+                        programmation_projet__dotation_projet=dp
+                    ).exists()
+                    else f"{model.document_type}-{dp.dotation}"
+                ),
+                f"{model._meta.verbose_name} {dp.dotation}",
+            )
+            for model in (Arrete, LettreNotification)
+            for dp in instance.dotationprojet_set.filter(status=PROJET_STATUS_ACCEPTED)
+        ]
+
+    def clean_document(self):
+        doc_type, dotation = self.cleaned_data["document"].split("-")
+        return {
+            "type": doc_type,
+            "dotation": dotation,
+        }
+
+
+class ChooseDocumentTypeForMultipleGenerationForm(BaseChooseDocumentTypeForm):
+    pass
+
+
+class ChooseDocumentTypeForUploadForm(BaseChooseDocumentTypeForm):
+    def __init__(self, *args, instance, **kwargs):
+        # Not a ModelForm, but we get instance from the view which is an UpdateView.
+        super().__init__(*args, **kwargs)
+        self.instance = instance
+        choices = []
+        for dp in instance.dotationprojet_set.filter(status=PROJET_STATUS_ACCEPTED):
+            # Check if ProgrammationProjet exists for this dotation
+            try:
+                prog_projet = ProgrammationProjet.objects.get(
+                    dotation_projet=dp, dotation_projet__projet=self.instance
+                )
+                # ArreteEtLettreSignes (disable if already exists)
+                existing_arrete = hasattr(prog_projet, "arrete_et_lettre_signes")
+
+                choices.append(
+                    (
+                        (
+                            ""
+                            if existing_arrete
+                            else f"arrete_et_lettre_signes-{dp.dotation}"
+                        ),
+                        f"Arrêté et lettre signés {dp.dotation.upper()}",
+                    )
+                )
+
+                # Annexe (always enabled, multiple allowed)
+                choices.append(
+                    (
+                        f"annexe-{dp.dotation}",
+                        f"Annexe {dp.dotation.upper()}",
+                    )
+                )
+            except ProgrammationProjet.DoesNotExist:
+                continue
+
+        self.fields["document"].choices = choices
+
+    def clean_document(self):
+        doc_type, dotation = self.cleaned_data["document"].split("-")
+        return {
+            "type": doc_type,
+            "dotation": dotation,
+        }
 
 
 class ArreteForm(forms.ModelForm, DsfrBaseForm):
@@ -87,7 +200,7 @@ class AnnexeChoiceField(forms.ModelMultipleChoiceField):
         return f"Annexe - {obj.name}"
 
 
-class NotificationMessageForm(DsfrBaseForm, forms.Form):
+class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
     annexes = AnnexeChoiceField(
         widget=forms.CheckboxSelectMultiple,
         queryset=Annexe.objects.none(),
@@ -103,29 +216,37 @@ class NotificationMessageForm(DsfrBaseForm, forms.Form):
     def save(self, user):
         justificatif_file = merge_documents_into_pdf(
             [
-                self.programmation_projet.arrete_et_lettre_signes,
+                *ArreteEtLettreSignes.objects.filter(
+                    programmation_projet__dotation_projet__projet=self.instance
+                ),
                 *self.cleaned_data["annexes"],
             ]
         )
 
         # Dossier was recently refreshed DN
         # Race conditions remain possible, but should be rare enough and just fail without any side effect.
-        if self.programmation_projet.dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:
+        if self.instance.dossier_ds.ds_state == Dossier.STATE_EN_CONSTRUCTION:
             ds = DsService()
-            ds.passer_en_instruction(
-                dossier=self.programmation_projet.dossier, user=user
-            )
+            ds.passer_en_instruction(dossier=self.instance.dossier_ds, user=user)
         with transaction.atomic():
-            self.programmation_projet.projet.notified_at = timezone.now()
-            self.programmation_projet.projet.save()
+            self.instance.notified_at = timezone.now()
+            self.instance.save()
+            # TODO use DSService
             DsMutator().dossier_accepter(
-                self.programmation_projet.dossier,
+                self.instance.dossier_ds,
                 user.ds_id,
                 motivation=self.cleaned_data.get("justification", ""),
                 document=justificatif_file,
             )
 
-    def __init__(self, *args, instance: ProgrammationProjet, **kwargs):
+            return self.instance
+
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.programmation_projet = instance
-        self.fields["annexes"].queryset = self.programmation_projet.annexes.all()
+        self.fields["annexes"].queryset = Annexe.objects.filter(
+            programmation_projet__dotation_projet__projet=self.instance
+        )
+
+    class Meta:
+        model = Projet
+        fields = ()

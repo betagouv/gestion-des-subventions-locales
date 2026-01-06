@@ -202,6 +202,11 @@ class ProjetQuerySet(models.QuerySet):
             ),
         ).filter(dotations_count=F("programmation_count"), notified_at__isnull=True)
 
+    def can_send_notification(self):
+        return self.to_notify().exclude(
+            dotationprojet__in=DotationProjet.objects.without_signed_document()
+        )
+
     def with_at_least_one_programmed_dotation(self):
         from gsl_programmation.models import ProgrammationProjet
 
@@ -355,6 +360,13 @@ class Projet(models.Model):
         )
 
     @property
+    def can_send_notification(self) -> bool:
+        return (
+            self.to_notify
+            and not self.dotationprojet_set.without_signed_document().exists()
+        )
+
+    @property
     def can_display_notification_tab(self) -> bool:
         return any(
             d.status == PROJET_STATUS_ACCEPTED for d in self.dotationprojet_set.all()
@@ -392,6 +404,46 @@ class Projet(models.Model):
             and self.notified_at is None
         )
 
+    @property
+    def documents(self):
+        from gsl_notification.models import (
+            Annexe,
+            Arrete,
+            ArreteEtLettreSignes,
+            LettreNotification,
+        )
+
+        return sorted(
+            (
+                document
+                for document in (
+                    *Arrete.objects.filter(
+                        programmation_projet__dotation_projet__projet=self
+                    ),
+                    *LettreNotification.objects.filter(
+                        programmation_projet__dotation_projet__projet=self
+                    ),
+                    *ArreteEtLettreSignes.objects.filter(
+                        programmation_projet__dotation_projet__projet=self
+                    ),
+                    *Annexe.objects.filter(
+                        programmation_projet__dotation_projet__projet=self
+                    ),
+                )
+                if document
+            ),
+            key=lambda d: d.created_at,
+        )
+
+
+class DotationProjetQuerySet(models.QuerySet):
+    def without_signed_document(self):
+        return self.filter(
+            programmation_projet__isnull=False,
+            status=PROJET_STATUS_ACCEPTED,
+            programmation_projet__arrete_et_lettre_signes__isnull=True,
+        )
+
 
 class DotationProjet(models.Model):
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
@@ -416,6 +468,8 @@ class DotationProjet(models.Model):
     detr_categories = models.ManyToManyField(
         CategorieDetr, verbose_name="Catégories d’opération DETR"
     )
+
+    objects = DotationProjetQuerySet.as_manager()
 
     class Meta:
         unique_together = ("projet", "dotation")

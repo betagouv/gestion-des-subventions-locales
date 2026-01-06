@@ -1,10 +1,7 @@
 from django.urls import path
 
-from gsl_notification.views.decorators import (
-    document_visible_by_user,
-)
 from gsl_notification.views.generate_document_for_multiple_projets_views import (
-    choose_type_for_multiple_document_generation,
+    ChooseDocumentTypeForMultipleGenerationView,
     download_documents,
     save_documents,
     select_modele_multiple,
@@ -19,21 +16,20 @@ from gsl_notification.views.modele_views import (
     get_generic_modele,
 )
 from gsl_notification.views.uploaded_document_views import (
-    choose_type_for_document_upload,
+    ChooseDocumentTypeForUploadView,
     create_uploaded_document_view,
-    delete_uploaded_document_view,
     download_uploaded_document,
     view_uploaded_document,
 )
 from gsl_notification.views.views import (
     CheckDsDossierUpToDateView,
+    ChooseDocumentTypeForGenerationView,
+    DeleteDocumentView,
     DownloadDocumentView,
     NotificationDocumentsView,
     NotificationMessageView,
     PrintDocumentView,
     change_document_view,
-    choose_type_for_document_generation,
-    delete_document_view,
     select_modele,
 )
 
@@ -44,50 +40,50 @@ urlpatterns = [
         name="check-ds-dossier-up-to-date",
     ),
     path(
-        "<int:programmation_projet_id>/documents/",
+        "<int:projet_id>/documents/",
         NotificationDocumentsView.as_view(),
         name="documents",
     ),
     path(
-        "<int:programmation_projet_id>/message/",
+        "<int:projet_id>/message/",
         NotificationMessageView.as_view(),
         name="message",
     ),
     # Generated files
     path(
-        "<int:programmation_projet_id>/choix-du-type/",
-        choose_type_for_document_generation,
+        "<int:projet_id>/choix-du-type/",
+        ChooseDocumentTypeForGenerationView.as_view(),
         name="choose-generated-document-type",
     ),
     path(
-        "<int:programmation_projet_id>/selection-d-un-modele/<str:document_type>",
+        "<int:projet_id>/selection-d-un-modele/<str:dotation>/<str:document_type>",
         select_modele,
         name="select-modele",
     ),
     path(
-        "<int:programmation_projet_id>/modifier-document/<str:document_type>",
+        "<int:projet_id>/modifier-document/<str:dotation>/<str:document_type>",
         change_document_view,
         name="modifier-document",
     ),
     path(
         "document/<str:document_type>/<int:document_id>/download/",
-        document_visible_by_user(DownloadDocumentView.as_view()),
+        DownloadDocumentView.as_view(),
         name="document-download",
     ),
     path(
         "document/<str:document_type>/<int:document_id>/view/",
-        document_visible_by_user(PrintDocumentView.as_view()),
+        PrintDocumentView.as_view(),
         name="document-view",
     ),
     path(
         "document/<str:document_type>/<int:document_id>/delete/",
-        delete_document_view,
+        DeleteDocumentView.as_view(),
         name="delete-document",
     ),
     # Generated files for multiple projets
     path(
         "<str:dotation>/choix-du-type/",
-        choose_type_for_multiple_document_generation,
+        ChooseDocumentTypeForMultipleGenerationView.as_view(),
         name="choose-generated-document-type-multiple",
     ),
     path(
@@ -107,12 +103,12 @@ urlpatterns = [
     ),
     # Uploaded files
     path(
-        "<int:programmation_projet_id>/televersement/choix-du-type/",
-        choose_type_for_document_upload,
+        "<int:projet_id>/televersement/choix-du-type/",
+        ChooseDocumentTypeForUploadView.as_view(),
         name="choose-uploaded-document-type",
     ),
     path(
-        "<int:programmation_projet_id>/televersement/<str:document_type>/creer/",
+        "<int:projet_id>/televersement/<str:dotation>/<str:document_type>/creer/",
         create_uploaded_document_view,
         name="upload-a-document",
     ),
@@ -125,11 +121,6 @@ urlpatterns = [
         "document-televerse/<str:document_type>/<int:document_id>/view/",
         view_uploaded_document,
         name="uploaded-document-view",
-    ),
-    path(
-        "document-televerse/<str:document_type>/<int:document_id>/delete/",
-        delete_uploaded_document_view,
-        name="delete-uploaded-document",
     ),
     # Modèles d'arrêtés
     path(

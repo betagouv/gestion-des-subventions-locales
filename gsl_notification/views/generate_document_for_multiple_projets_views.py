@@ -3,20 +3,28 @@ import logging
 import zipfile
 
 from django.contrib import messages
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.core.exceptions import PermissionDenied
+from django.http import (
+    Http404,
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseForbidden,
+)
 from django.shortcuts import get_list_or_404, get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_POST
+from django.views.generic import FormView
 from django_weasyprint.utils import django_url_fetcher
 from weasyprint import HTML
 
 from gsl import settings
+from gsl_notification.forms import ChooseDocumentTypeForMultipleGenerationForm
 from gsl_notification.models import Arrete, LettreNotification
 from gsl_notification.utils import (
     get_doc_title,
-    get_document_class,
+    get_generated_document_class,
     get_logo_base64,
     get_modele_class,
     get_modele_perimetres,
@@ -42,63 +50,76 @@ logger = logging.getLogger(__name__)
 DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR = "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
 
 
-@require_GET
-def choose_type_for_multiple_document_generation(request, dotation):
-    if dotation not in DOTATIONS:
-        return HttpResponseBadRequest("Dotation inconnue")
+class ChooseDocumentTypeForMultipleGenerationView(FormView):
+    template_name = "gsl_notification/generated_document/multiple/choose_generated_document_type.html"
+    form_class = ChooseDocumentTypeForMultipleGenerationForm
 
-    try:
-        ids = _get_pp_ids(request)
-        if len(ids) == 1:
-            return redirect(
-                reverse(
-                    "gsl_notification:choose-generated-document-type",
-                    kwargs={"programmation_projet_id": ids[0]},
-                )
-            )
-        programmation_projets = get_list_or_404(
-            ProgrammationProjet,
-            id__in=ids,
-            status=ProgrammationProjet.STATUS_ACCEPTED,
-            dotation_projet__projet__notified_at=None,
-            dotation_projet__dotation=dotation,
-        )
-        if len(programmation_projets) < len(ids):
-            return HttpResponseBadRequest(
-                DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
-            )
+    def dispatch(self, request, *args, **kwargs):
+        dotation = kwargs["dotation"]
+        if dotation not in DOTATIONS:
+            raise Http404("Dotation inconnue")
+
         try:
-            _check_if_projets_are_accessible_for_user(request, programmation_projets)
-        except ValueError as e:
-            return HttpResponseForbidden(str(e))
+            ids = _get_pp_ids(self.request)
+            self.programmation_projets = get_list_or_404(
+                ProgrammationProjet,
+                id__in=ids,
+                status=ProgrammationProjet.STATUS_ACCEPTED,
+                dotation_projet__projet__notified_at=None,
+                dotation_projet__dotation=self.kwargs["dotation"],
+            )
+            if len(self.programmation_projets) < len(ids):
+                return HttpResponseBadRequest(
+                    DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+                )
 
-    except ValueError:
-        filterset = ProgrammationProjetFilters(
-            data=request.GET,
-            request=request,
-            select_related_objs=[],
-            prefetch_related_objs=[],
+            if len(self.programmation_projets) == 1:
+                return redirect(
+                    reverse(
+                        "gsl_notification:choose-generated-document-type",
+                        args=[self.programmation_projets[0].projet.id],
+                    )
+                )
+            try:
+                _check_if_projets_are_accessible_for_user(
+                    self.request, self.programmation_projets
+                )
+            except PermissionDenied as e:
+                return HttpResponseForbidden(str(e))
+
+        except ValueError:
+            filterset = ProgrammationProjetFilters(
+                data=self.request.GET,
+                request=self.request,
+                select_related_objs=[],
+                prefetch_related_objs=[],
+            )
+            self.programmation_projets = filterset.qs.to_notify()
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        return redirect(
+            reverse(
+                "gsl_notification:select-modele-multiple",
+                kwargs={
+                    "dotation": self.kwargs["dotation"],
+                    "document_type": form.cleaned_data["document"],
+                },
+                query=self.request.GET,
+            )
         )
-        programmation_projets = filterset.qs.to_notify()
 
-    title = f"{len(programmation_projets)} projets {dotation} sélectionnés"
-    go_back_link = _get_go_back_link(dotation)
-    context = {
-        "programmation_projets": programmation_projets,
-        "page_title": title,
-        "go_back_link": go_back_link,
-        "cancel_link": go_back_link,
-        "next_step_link": reverse(
-            "gsl_notification:select-modele-multiple",
-            args=[dotation, "type"],
-            query=request.GET,
-        ),
-    }
-    return render(
-        request,
-        "gsl_notification/generated_document/multiple/choose_generated_document_type.html",
-        context=context,
-    )
+    def get_context_data(self, **kwargs):
+        title = f"{len(self.programmation_projets)} projets {self.kwargs['dotation']} sélectionnés"
+        go_back_link = _get_go_back_link(self.kwargs["dotation"])
+        context = super().get_context_data(**kwargs)
+        context = {
+            **context,
+            "page_title": title,
+            "cancel_link": go_back_link,
+        }
+        return context
 
 
 @require_GET
@@ -110,17 +131,6 @@ def select_modele_multiple(request, dotation, document_type):
 
     try:
         ids = _get_pp_ids(request)
-        pp_count = len(ids)
-        if pp_count == 1:
-            return redirect(
-                reverse(
-                    "gsl_notification:select-modele",
-                    kwargs={
-                        "programmation_projet_id": ids[0],
-                        "document_type": document_type,
-                    },
-                )
-            )
         programmation_projets = get_list_or_404(
             ProgrammationProjet,
             id__in=ids,
@@ -128,13 +138,27 @@ def select_modele_multiple(request, dotation, document_type):
             dotation_projet__projet__notified_at=None,
             dotation_projet__dotation=dotation,
         )
-        if len(programmation_projets) < len(ids):
+        pp_count = len(programmation_projets)
+        if pp_count < len(ids):
             return HttpResponseBadRequest(
                 DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
             )
+
+        if pp_count == 1:
+            return redirect(
+                reverse(
+                    "gsl_notification:select-modele",
+                    kwargs={
+                        "dotation": dotation,
+                        "projet_id": programmation_projets[0].projet.id,
+                        "document_type": document_type,
+                    },
+                )
+            )
+
         try:
             _check_if_projets_are_accessible_for_user(request, programmation_projets)
-        except ValueError as e:
+        except PermissionDenied as e:
             return HttpResponseForbidden(str(e))
 
     except ValueError:
@@ -207,17 +231,6 @@ def save_documents(
 
     try:
         ids = _get_pp_ids(request)
-        pp_count = len(ids)
-        if pp_count == 1:
-            return redirect(
-                reverse(
-                    "gsl_notification:modifier-document",
-                    kwargs={
-                        "programmation_projet_id": ids[0],
-                        "document_type": document_type,
-                    },
-                )
-            )
         programmation_projets = get_list_or_404(
             ProgrammationProjet,
             id__in=ids,
@@ -225,13 +238,24 @@ def save_documents(
             dotation_projet__projet__notified_at=None,
             dotation_projet__dotation=dotation,
         )
+        if len(programmation_projets) == 1:
+            return redirect(
+                reverse(
+                    "gsl_notification:modifier-document",
+                    kwargs={
+                        "projet_id": programmation_projets[0].projet.id,
+                        "dotation": programmation_projets[0].dotation_projet.dotation,
+                        "document_type": document_type,
+                    },
+                )
+            )
         if len(programmation_projets) < len(ids):
             return HttpResponseBadRequest(
                 DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
             )
         try:
             _check_if_projets_are_accessible_for_user(request, programmation_projets)
-        except ValueError as e:
+        except PermissionDenied as e:
             return HttpResponseForbidden(str(e))
 
     except ValueError:
@@ -247,7 +271,10 @@ def save_documents(
         )
         programmation_projets = filterset.qs.to_notify()
 
-    document_class = get_document_class(document_type)
+    try:
+        document_class = get_generated_document_class(document_type)
+    except ValueError:
+        raise Http404("Type de document inconnu")
 
     modele_class = get_modele_class(document_type)
     perimetres = get_modele_perimetres(dotation, request.user.perimetre)
@@ -310,14 +337,6 @@ def download_documents(request, dotation, document_type):
 
     try:
         ids = _get_pp_ids(request)
-        pp_count = len(ids)
-        if pp_count == 1:
-            return redirect(
-                reverse(
-                    "gsl_notification:choose-generated-document-type",
-                    kwargs={"programmation_projet_id": ids[0]},
-                )
-            )
         programmation_projets = get_list_or_404(
             ProgrammationProjet.objects.select_related(*attr_select_related),
             id__in=ids,
@@ -329,9 +348,18 @@ def download_documents(request, dotation, document_type):
             return HttpResponseBadRequest(
                 DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
             )
+
+        if len(programmation_projets) == 1:
+            return redirect(
+                reverse(
+                    "gsl_notification:choose-generated-document-type",
+                    kwargs={"projet_id": programmation_projets[0].projet.id},
+                )
+            )
+
         try:
             _check_if_projets_are_accessible_for_user(request, programmation_projets)
-        except ValueError as e:
+        except PermissionDenied as e:
             return HttpResponseForbidden(str(e))
     except ValueError:
         filterset = ProgrammationProjetFilters(
@@ -384,7 +412,7 @@ def _check_if_projets_are_accessible_for_user(request, programmation_projets):
     )
 
     if len(projet_ids) != len(projet_ids_visible_by_user):
-        raise ValueError("Un ou plusieurs projets sont hors de votre périmètre.")
+        raise PermissionDenied("Un ou plusieurs projets sont hors de votre périmètre.")
 
 
 def _get_attribute_page_title_and_page_step_title(

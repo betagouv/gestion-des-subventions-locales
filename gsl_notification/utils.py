@@ -212,7 +212,7 @@ def get_modele_class(modele_type):
     return ModeleArrete
 
 
-def get_document_class(document_type):
+def get_generated_document_class(document_type):
     if document_type not in [ARRETE, LETTRE]:
         raise ValueError("Type inconnu")
     if document_type == LETTRE:
