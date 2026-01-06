@@ -226,6 +226,7 @@ def select_modele(request, projet_id, dotation, document_type):
     modeles = modele_class.objects.filter(dotation=dotation, perimetre__in=perimetres)
 
     context = {
+        "projet": programmation_projet.projet,
         "programmation_projet": programmation_projet,
         "dotation": programmation_projet.dotation,
         "document_type": document_type,
@@ -265,7 +266,9 @@ def select_modele(request, projet_id, dotation, document_type):
 @require_http_methods(["GET", "POST"])
 def change_document_view(request, projet_id, dotation, document_type):
     programmation_projet = get_object_or_404(
-        ProgrammationProjet.objects.visible_to_user(request.user).to_notify(),
+        ProgrammationProjet.objects.visible_to_user(request.user).filter(
+            status=ProgrammationProjet.STATUS_ACCEPTED
+        ),
         dotation_projet__projet_id=projet_id,
         enveloppe__dotation=dotation,
     )
