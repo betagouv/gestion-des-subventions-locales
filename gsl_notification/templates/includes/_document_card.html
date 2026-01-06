@@ -1,16 +1,18 @@
 {% load static %}
 <li class="arrete-card fr-mt-4w">
     <div class="arrete-card__header">
-        <span class="fr-tag">
-            {% if document.is_generated %}
-                Créé sur Turgot
-            {% else %}
-                Importé
-            {% endif %}
-        </span>
-        <span class="fr-tag fr-tag--success">
-            {{ document.programmation_projet.enveloppe.dotation }}
-        </span>
+        <div>
+            <span class="fr-tag">
+                {% if document.is_generated %}
+                    Créé sur Turgot
+                {% else %}
+                    Importé
+                {% endif %}
+            </span>
+            <span class="fr-tag fr-tag--success">
+                {{ document.programmation_projet.enveloppe.dotation }}
+            </span>
+        </div>
 
         <details name="document-actions">
             <summary class="fr-btn fr-btn--tertiary fr-btn--icon-only fr-icon-more-fill arrete-card__actions-button"
