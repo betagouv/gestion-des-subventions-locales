@@ -1,11 +1,12 @@
 from django.db import models
-from django.db.models import Count
+from django.db.models import Count, QuerySet, Sum
 from django.forms import ValidationError
+from django_extensions.db.fields import AutoSlugField
 
 from gsl_core.models import BaseModel, Collegue
 from gsl_programmation.models import Enveloppe
 from gsl_programmation.services.enveloppe_service import EnveloppeService
-from gsl_projet.models import DotationProjet
+from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.utils.utils import compute_taux
 
 
@@ -13,9 +14,17 @@ class Simulation(BaseModel):
     title = models.CharField(verbose_name="Titre")
     created_by = models.ForeignKey(Collegue, on_delete=models.SET_NULL, null=True)
     enveloppe = models.ForeignKey(
-        Enveloppe, on_delete=models.PROTECT, verbose_name="Dotation associée"
+        Enveloppe,
+        on_delete=models.PROTECT,
+        verbose_name="Enveloppe de dotation associée",
     )
-    slug = models.SlugField(verbose_name="Clé d’URL", unique=True, max_length=120)
+    slug = AutoSlugField(
+        verbose_name="Clé d’URL",
+        unique=True,
+        max_length=120,
+        populate_from="title",
+        blank=False,
+    )
 
     class Meta:
         verbose_name = "Simulation"
@@ -30,6 +39,9 @@ class Simulation(BaseModel):
 
     def get_absolute_url(self):
         from django.urls import reverse
+
+        if not self.slug:
+            return reverse("simulation:simulation-form")
 
         return reverse("simulation:simulation-detail", kwargs={"slug": self.slug})
 
@@ -51,6 +63,21 @@ class Simulation(BaseModel):
         summary = {item["status"]: item["count"] for item in status_count}
 
         return {**default_status_summary, **summary}
+
+    def get_total_amount_granted(self, qs: QuerySet[Projet]):
+        statuses_to_include = (
+            SimulationProjet.STATUS_ACCEPTED,
+            SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
+        )
+        return (
+            qs.filter(
+                dotationprojet__simulationprojet__simulation=self,
+                dotationprojet__simulationprojet__status__in=statuses_to_include,
+            ).aggregate(Sum("dotationprojet__simulationprojet__montant"))[
+                "dotationprojet__simulationprojet__montant__sum"
+            ]
+            or 0.0
+        )
 
 
 class SimulationProjetQuerySet(models.QuerySet):
@@ -83,6 +110,12 @@ class SimulationProjet(BaseModel):
         (STATUS_PROVISIONALLY_REFUSED, "✖️ Refusé provisoirement"),
         (STATUS_REFUSED, "❌ Refusé"),
         (STATUS_DISMISSED, "⛔️ Classé sans suite"),
+    )
+
+    SIMULATION_PENDING_STATUSES = (
+        STATUS_PROCESSING,
+        STATUS_PROVISIONALLY_ACCEPTED,
+        STATUS_PROVISIONALLY_REFUSED,
     )
 
     dotation_projet = models.ForeignKey(
@@ -135,6 +168,10 @@ class SimulationProjet(BaseModel):
     @property
     def enveloppe(self):
         return self.simulation.enveloppe
+
+    @property
+    def dotation(self):
+        return self.dotation_projet.dotation
 
     @property
     def taux(self):

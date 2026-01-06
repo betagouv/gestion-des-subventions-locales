@@ -34,7 +34,7 @@ const getMessage = () => {
 }
 
 const openConfirmatioModal = () => {
-  modalId = 'dotation-confirmation-modal-content' // eslint-disable-line
+  const modalId = 'dotation-confirmation-modal-content'
   const modal = document.getElementById(modalId)  // eslint-disable-line
   const message = modal.querySelector('#modal-body')
   const title = modal.querySelector('#modal-title')

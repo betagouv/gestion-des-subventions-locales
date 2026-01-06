@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 class DsServiceException(Exception):
     DEFAULT_MESSAGE = ""
     DEFAULT_LOG_LEVEL = logging.WARNING
-    DEFAULT_LOG_MESSAGE = "DS service error"
+    DEFAULT_LOG_MESSAGE = "DN service error"
 
     def __init__(self, message=None, level=None, log_message=None, extra=None, *args):
         if message is None:
@@ -17,23 +17,25 @@ class DsServiceException(Exception):
         if log_message is None:
             log_message = self.DEFAULT_LOG_MESSAGE
 
+        super().__init__(message, *args)
+
         logger.log(
             level,
             log_message or message,
             extra=extra,
-            exc_info=level >= logging.ERROR,
+            exc_info=self if level >= logging.ERROR else None,
+            stack_info=level >= logging.ERROR,
         )
-        super().__init__(message, *args)
 
 
 class DsConnectionError(DsServiceException):
-    DEFAULT_MESSAGE = "Nous n'arrivons pas à nous connecter à Démarches Simplifiées."
-    DEFAULT_LOG_MESSAGE = "DS connection error"
+    DEFAULT_MESSAGE = "Nous n'arrivons pas à nous connecter à Démarche Numérique."
+    DEFAULT_LOG_MESSAGE = "DN connection error"
 
 
 class InstructeurUnknown(DsServiceException):
-    DEFAULT_MESSAGE = "Nous ne connaissons pas votre identifiant DS."
-    DEFAULT_LOG_MESSAGE = "User does not have DS id"
+    DEFAULT_MESSAGE = "Nous ne connaissons pas votre identifiant DN."
+    DEFAULT_LOG_MESSAGE = "User does not have DN id"
 
 
 class FieldError(DsServiceException):

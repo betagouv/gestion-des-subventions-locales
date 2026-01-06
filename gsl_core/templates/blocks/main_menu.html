@@ -39,20 +39,13 @@
                            {% if "/programmation/" in request.path or "/notification/" in request.path %}aria-current="true"{% endif %}>3 - Programmations</a>
                     </li>
                 {% endif %}
-                <li class="fr-nav__item">
-                    {% url 'coming-features' as coming_features_url %}
-                    <a class="fr-nav__link"
-                       href="{{ coming_features_url }}"
-                       target="_self"
-                       {% if request.path == coming_features_url %}aria-current="true"{% endif %}>Fonctionnalités à venir</a>
-                </li>
                 {% if request.user.is_staff %}
                     <li class="fr-nav__item">
                         <button class="fr-nav__btn"
                                 aria-expanded="false"
                                 aria-controls="menu-resources"
                                 {% if '/ds/' in request.path %}aria-current="true"{% endif %}>
-                            ⚙️ Administration DS ⚙️
+                            ⚙️ Administration DN ⚙️
                         </button>
                         <div class="fr-collapse fr-menu" id="menu-resources">
                             <ul class="fr-menu__list">

@@ -2,13 +2,13 @@
 {% load static gsl_filters %}
 {% block notification_content %}
     <a class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-arrow-left-s-line fr-mb-4w"
-       href="{% url 'gsl_notification:documents' programmation_projet.id %}">
+       href="{% url 'gsl_notification:documents' projet.id %}">
         Annuler la notification
     </a>
 
     <div class="arrete-container">
         <h3 class="fr-mb-3w">
-            Envoi du message de notification sur Démarches Simplifiées
+            Envoi du message de notification sur Démarche Numérique
         </h3>
 
         <form method="post">
@@ -19,19 +19,24 @@
                 <legend class="fr-fieldset__legend" id="documents-legend">
                     {{ form.annexes.label }}
                 </legend>
-                <div class="fr-fieldset__element">
-                    <div class="fr-checkbox-group">
-                        <input type="checkbox"
-                               id="arrete"
-                               name="arrete"
-                               checked
-                               disabled
-                               class="fr-checkbox">
-                        <label class="fr-label" for="arrete">
-                            Lettre et arrêté signés - {{ programmation_projet.arrete_et_lettre_signes.name }}
-                        </label>
-                    </div>
-                </div>
+                {% for dotation_projet in projet.dotationprojet_set.all %}
+                    {% if dotation_projet.programmation_projet.arrete_et_lettre_signes %}
+                        <div class="fr-fieldset__element">
+                            <div class="fr-checkbox-group">
+                                <input type="checkbox"
+                                       id="arrete"
+                                       name="arrete"
+                                       checked
+                                       disabled
+                                       class="fr-checkbox">
+                                <label class="fr-label" for="arrete">
+                                    Lettre et arrêté signés {{ dotation_projet.dotation }}
+                                    - {{ dotation_projet.programmation_projet.arrete_et_lettre_signes.name }}
+                                </label>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
                 {% for doc in form.annexes %}
                     <div class="fr-fieldset__element">
                         {{ doc }}
@@ -41,7 +46,7 @@
             </fieldset>
             <p class="fr-mb-2w fr-mt-2w">
                 Les pièces jointes vont être compressées en un seul fichier. Le message va être envoyé au demandeur
-                dans la messagerie de ce dossier, sur Démarches simplifiées.
+                dans la messagerie de ce dossier, sur Démarche Numérique.
             </p>
             <div class="input-group fr-mb-2w">
                 <label class="fr-label" for="id_justification">
@@ -51,13 +56,13 @@
                 </label>
                 {{ form.justification }}
             </div>
-            {% if programmation_projet.dossier.ds_state == "en_construction" %}
+            {% if projet.dossier_ds.ds_state == "en_construction" %}
                 <div class="fr-alert fr-alert--info fr-alert--sm fr-mt-2w">
                     <p class="fr-alert__title">
                         Dossier en construction
                     </p>
                     <p>
-                        Le dossier de ce projet est actuellement en construction sur Démarches Simplifiées. Le
+                        Le dossier de ce projet est actuellement en construction sur Démarche Numérique. Le
                         projet sera passé en instruction avant d'être réfusé.
                     </p>
                 </div>

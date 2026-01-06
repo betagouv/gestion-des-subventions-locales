@@ -13,6 +13,7 @@ class SimulationFactory(DjangoModelFactory):
         model = Simulation
 
     slug = Sequence(lambda n: f"simulation-{n}")
+    title = Sequence(lambda n: f"Simulation {n}")
     enveloppe = SubFactory(DetrEnveloppeFactory)
 
 

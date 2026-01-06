@@ -2,7 +2,7 @@
 {% load static dsfr_tags %}
 {% block content %}
     <h1>
-        Correspondances de champs Django / DS pour la démarche {{ demarche.ds_number }}
+        Correspondances de champs Django / DN pour la démarche {{ demarche.ds_number }}
     </h1>
     <h2>
         {{ demarche.ds_title }}
@@ -17,17 +17,17 @@
                                 Champ Django
                             </th>
                             <th>
-                                Champ DS
+                                Champ DN
                             </th>
                         </tr>
                         {% for mapping in existing_mappings %}
                             <tr>
                                 <td>
-                                    {{ mapping.django_field }}
+                                    {{ mapping.django_field|default:"Champ non trouvé" }}
                                     <br>
-                                    {{ mapping.django_field_label }}
+                                    {{ mapping.django_field_label|default:"-" }}
                                     <br>
-                                    {{ mapping.django_field_type }}
+                                    {{ mapping.django_field_type|default:"-" }}
                                 </td>
                                 <td>
                                     {{ mapping.ds_field_label }}

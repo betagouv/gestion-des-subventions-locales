@@ -30,18 +30,10 @@
 {% endblock tab_projet %}
 
 {% block modal %}
-    {% include "includes/modals/_go_back_to_provisionally_accepted_modal.html" %}
-    {% include "includes/modals/_go_back_to_provisionally_refused_modal.html" %}
-    {% include "includes/modals/_go_back_to_processing_modal.html" %}
-    {% include "includes/modals/_accept_confirmation_modal.html" %}
-    {% include "includes/modals/_refuse_confirmation_modal.html" %}
-    {% include "includes/modals/_dismiss_confirmation_modal.html" %}
     {% ui_confirmation_modal modal_id="dotation-confirmation-modal-content" title="Modification de la dotation" icon="fr-icon-arrow-right-line" text="Ce projet sera aussi affiché dans les simulations DSIL." action_text="Je confirme" form="projet_form" is_title_red=False %}
 {% endblock modal %}
 
 {% block extra_js %}
-    <script type="module"
-            src="{% static 'js/simulationProjetStatusConfirmation.js' %}"></script>
     <script type="module"
             src="{% static 'js/handleInteractionInSimulationProjet.js' %}"></script>
 {% endblock extra_js %}

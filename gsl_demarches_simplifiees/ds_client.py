@@ -3,6 +3,7 @@ import hashlib
 import json
 import logging
 from collections.abc import Iterator
+from datetime import datetime
 from logging import getLogger
 from pathlib import Path
 
@@ -40,29 +41,38 @@ class DsClientBase:
             response = requests.post(self.url, json=data, headers=headers)
 
         except requests.exceptions.ConnectionError as e:
-            raise DsConnectionError(extra={"erreur": str(e)})
+            raise DsConnectionError(
+                extra={"erreur": str(e), "operation_name": operation_name}
+            )
 
         if response.status_code == 200:
             results = response.json()
             if "errors" in results.keys():
                 for error in results["errors"]:
-                    logger.warning(f"DS request error : {error['message']}")
+                    logger.warning(
+                        "DN request error",
+                        extra={
+                            "status_code": 200,
+                            "operation_name": operation_name,
+                            "error": error["message"],
+                        },
+                    )
                 if results.get("data", None) is None:
                     raise DsServiceException(
-                        level=logging.ERROR, log_message="DS request returned errors"
+                        level=logging.ERROR, log_message="DN request returned errors"
                     )
             return results
 
         if response.status_code == 403:
             raise DsConnectionError(
                 level=logging.CRITICAL,
-                log_message="DS forbidden access : token problem ?",
+                log_message="DN forbidden access : token problem ?",
                 extra={"error": response.text},
             )
 
         raise DsConnectionError(
             level=logging.ERROR,
-            log_message="HTTP Error while running query.",
+            log_message="HTTP Error while running query",
             extra={"status_code": response.status_code, "error": response.text},
         )
 
@@ -85,7 +95,9 @@ class DsClient(DsClientBase):
         }
         return self.launch_graphql_query("getDemarche", variables=variables)
 
-    def get_demarche_dossiers(self, demarche_number) -> Iterator[dict]:
+    def get_demarche_dossiers(
+        self, demarche_number, updated_since: datetime | None = None
+    ) -> Iterator[dict]:
         """
         Get all dossiers from one given demarche
         :param demarche_number:
@@ -94,6 +106,7 @@ class DsClient(DsClientBase):
         variables = {
             "demarcheNumber": demarche_number,
             "includeDossiers": True,
+            "updatedSince": updated_since.isoformat() if updated_since else None,
         }
         result = self.launch_graphql_query("getDemarche", variables=variables)
         yield from result["data"]["demarche"]["dossiers"]["nodes"]
@@ -120,48 +133,22 @@ class DsClient(DsClientBase):
 class DsMutator(DsClientBase):
     filename = "ds_mutations.gql"
 
-    def dossier_modifier_annotation_checkbox(
+    def dossier_modifier_annotations(
         self,
         dossier_id: str,
         instructeur_id: str,
-        field_id: str,
-        value: bool,
-        include_annotations=False,
+        annotations: list[dict],
     ):
         variables = {
             "input": {
                 "clientMutationId": settings.DS_CLIENT_ID,
-                "annotationId": field_id,
                 "dossierId": dossier_id,
                 "instructeurId": instructeur_id,
-                "value": value,
-            },
-            "includeAnnotations": include_annotations,
+                "annotations": annotations,
+            }
         }
         return self.launch_graphql_query(
-            "modifierAnnotationCheckbox", variables=variables
-        )
-
-    def dossier_modifier_annotation_decimal(
-        self,
-        dossier_id: str,
-        instructeur_id: str,
-        field_id: str,
-        value: float,
-        include_annotations=False,
-    ):
-        variables = {
-            "input": {
-                "clientMutationId": settings.DS_CLIENT_ID,
-                "annotationId": field_id,
-                "dossierId": dossier_id,
-                "instructeurId": instructeur_id,
-                "value": value,
-            },
-            "includeAnnotations": include_annotations,
-        }
-        return self.launch_graphql_query(
-            "modifierAnnotationDecimalNumber", variables=variables
+            "dossierModifierAnnotations", variables=variables
         )
 
     def dossier_repasser_en_instruction(
@@ -222,7 +209,7 @@ class DsMutator(DsClientBase):
 
     def _upload_attachment(self, dossier_ds_id: str, file: UploadedFile) -> str:
         """
-        Upload a file to Démarches Simplifiées using GraphQL mutation.
+        Upload a file to Démarche Numérique using GraphQL mutation.
 
         :param file: UploadedFile instance. It must be a PDF file.
         :param dossier_id: ID of the dossier to attach the file to.
@@ -284,12 +271,12 @@ class DsMutator(DsClientBase):
             date_modif_ds = timezone.datetime.fromisoformat(date_modif_ds)
             if date_modif_ds > dossier.ds_date_derniere_modification:
                 raise DsServiceException(
-                    f"Le dossier {dossier.ds_number} a été modifié depuis Démarches Simplifiées. "
+                    f"Le dossier {dossier.ds_number} a été modifié depuis Démarche Numérique. "
                     f"Veuillez le mettre à jour manuellement et le réexaminer sur Turgot avant de poursuivre.",
                     level=logging.INFO,
                     log_message="Dossier must be refreshed before accepting",
                     extra={
-                        "dossier_id": dossier.id,
+                        "dossier_ds_number": dossier.ds_number,
                     },
                 )
 

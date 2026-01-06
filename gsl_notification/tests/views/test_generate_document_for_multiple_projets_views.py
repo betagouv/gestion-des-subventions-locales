@@ -61,27 +61,10 @@ def client(perimetre):
     return ClientWithLoggedUserFactory(user)
 
 
-## choose_type_for_multiple_document_generation
-
-
-def test_choose_type_for_multiple_document_generation_method_allowed(
-    client,
-):
-    url = reverse(
-        "notification:choose-generated-document-type-multiple",
-        kwargs={
-            "dotation": DOTATION_DETR,
-        },
-    )
-    assert url == f"/notification/{DOTATION_DETR}/choix-du-type/"
-    response = client.post(url)
-    assert response.status_code == 405
-
-
 def test_choose_type_for_multiple_document_generation_with_wrong_dotation(client):
     url = reverse("notification:choose-generated-document-type-multiple", args=["raté"])
     response = client.get(url)
-    assert response.status_code == 400
+    assert response.status_code == 404
 
 
 def test_choose_type_for_multiple_document_generation_no_id(client):
@@ -105,18 +88,13 @@ def test_choose_type_for_multiple_document_generation_no_id(client):
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=datetime.now(UTC),
     )
-    ProgrammationProjetFactory.create_batch(
-        2,
-        dotation_projet__projet__perimetre=client.user.perimetre,
-        status=ProgrammationProjet.STATUS_REFUSED,
-    )
 
     url = reverse(
         "notification:choose-generated-document-type-multiple", args=[DOTATION_DETR]
     )
     response = client.get(url)
     assert response.status_code == 200
-    assert len(response.context["programmation_projets"]) == 3
+    assert response.context["page_title"] == "3 projets DETR sélectionnés"
     assert (
         response.templates[0].name
         == "gsl_notification/generated_document/multiple/choose_generated_document_type.html"
@@ -141,9 +119,7 @@ def test_choose_type_for_multiple_document_generation_no_id_and_with_filter_args
     )
     response = client.get(url, data)
     assert response.status_code == 200
-    assert len(response.context["programmation_projets"]) == 2
-    for pp in response.context["programmation_projets"]:
-        assert pp.dotation_projet.projet.dossier_ds.finance_cout_total >= 100_000
+    assert response.context["page_title"] == "2 projets DETR sélectionnés"
     assert (
         response.templates[0].name
         == "gsl_notification/generated_document/multiple/choose_generated_document_type.html"
@@ -155,7 +131,8 @@ def test_choose_type_for_multiple_document_generation_one_id(
 ):
     url = (
         reverse(
-            "notification:choose-generated-document-type-multiple", args=[DOTATION_DETR]
+            "notification:choose-generated-document-type-multiple",
+            args=[programmation_projet.dotation_projet.dotation],
         )
         + f"?ids={programmation_projet.id}"
     )
@@ -163,7 +140,7 @@ def test_choose_type_for_multiple_document_generation_one_id(
     assert response.status_code == 302
     assert response["Location"] == reverse(
         "gsl_notification:choose-generated-document-type",
-        kwargs={"programmation_projet_id": programmation_projet.id},
+        kwargs={"projet_id": programmation_projet.projet.id},
     )
 
 
@@ -222,15 +199,15 @@ def test_choose_type_correctly(client, programmation_projets):
         response.templates[0].name
         == "gsl_notification/generated_document/multiple/choose_generated_document_type.html"
     )
-    assert response.context["programmation_projets"] == programmation_projets
     assert response.context["page_title"] == "3 projets DETR sélectionnés"
-    assert response.context["go_back_link"] == "/programmation/liste/DETR/"
     assert response.context["cancel_link"] == "/programmation/liste/DETR/"
+    response = client.post(url, data={"document": "lettre"})
+    assert response.status_code == 302
     assert (
-        response.context["next_step_link"]
+        response["Location"]
         == reverse(
             "gsl_notification:select-modele-multiple",
-            args=[DOTATION_DETR, "type"],
+            args=[DOTATION_DETR, "lettre"],
         )
         + f"?ids={'%2C'.join(pp_ids)}"
     )
@@ -286,11 +263,6 @@ def test_select_modele_multiple_no_id(client):
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=datetime.now(UTC),
     )
-    ProgrammationProjetFactory.create_batch(
-        2,
-        dotation_projet__projet__perimetre=client.user.perimetre,
-        status=ProgrammationProjet.STATUS_REFUSED,
-    )
 
     url = reverse("notification:select-modele-multiple", args=[DOTATION_DETR, LETTRE])
     response = client.get(url)
@@ -329,7 +301,7 @@ def test_select_modele_multiple_one_id(client, programmation_projet):
     url = (
         reverse(
             "notification:select-modele-multiple",
-            args=[DOTATION_DETR, LETTRE],
+            args=[programmation_projet.dotation_projet.dotation, LETTRE],
         )
         + f"?ids={programmation_projet.id}"
     )
@@ -338,7 +310,8 @@ def test_select_modele_multiple_one_id(client, programmation_projet):
     assert response["Location"] == reverse(
         "gsl_notification:select-modele",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "dotation": programmation_projet.dotation_projet.dotation,
+            "projet_id": programmation_projet.dotation_projet.projet.id,
             "document_type": LETTRE,
         },
     )
@@ -480,11 +453,6 @@ def test_save_documents_no_id(client, detr_lettre_modele):
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=datetime.now(UTC),
     )
-    ProgrammationProjetFactory.create_batch(
-        2,
-        dotation_projet__projet__perimetre=client.user.perimetre,
-        status=ProgrammationProjet.STATUS_REFUSED,
-    )
 
     url = reverse(
         "notification:save-documents",
@@ -568,7 +536,11 @@ def test_save_documents_one_id(client, detr_lettre_modele, programmation_projet)
     url = (
         reverse(
             "notification:save-documents",
-            args=[DOTATION_DETR, LETTRE, detr_lettre_modele.id],
+            args=[
+                programmation_projet.dotation_projet.dotation,
+                LETTRE,
+                detr_lettre_modele.id,
+            ],
         )
         + f"?ids={programmation_projet.id}"
     )
@@ -577,7 +549,8 @@ def test_save_documents_one_id(client, detr_lettre_modele, programmation_projet)
     assert response["Location"] == reverse(
         "gsl_notification:modifier-document",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "dotation": programmation_projet.dotation_projet.dotation,
+            "projet_id": programmation_projet.dotation_projet.projet.id,
             "document_type": LETTRE,
         },
     )
@@ -786,12 +759,6 @@ def test_download_documents_no_id(client):
         dotation_projet__projet__perimetre=client.user.perimetre,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=datetime.now(UTC),
-    )
-
-    pps += ProgrammationProjetFactory.create_batch(
-        2,
-        dotation_projet__projet__perimetre=client.user.perimetre,
-        status=ProgrammationProjet.STATUS_REFUSED,
     )
 
     for pp in pps:

@@ -386,7 +386,8 @@ class TestProgrammationProjetQuerySet:
         result = ProgrammationProjet.objects.to_notify()
 
         assert accepted_and_no_notified_at in result
-        assert result.count() == 1
+        assert _refused_and_no_notified_at in result
+        assert result.count() == 2
 
 
 @pytest.mark.django_db

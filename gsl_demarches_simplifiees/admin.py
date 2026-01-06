@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.db.models import Count
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 from import_export.admin import ImportExportMixin
 
@@ -11,6 +12,7 @@ from .models import (
     CritereEligibiliteDetr,
     CritereEligibiliteDsil,
     Demarche,
+    Departement,
     Dossier,
     FieldMappingForComputer,
     FieldMappingForHuman,
@@ -21,7 +23,10 @@ from .models import (
 from .resources import FieldMappingForComputerResource, FieldMappingForHumanResource
 from .tasks import (
     task_refresh_dossier_from_saved_data,
-    task_refresh_field_mappings_on_demarche,
+    task_refresh_field_mappings_from_demarche_data,
+    task_save_demarche_dossiers_from_ds,
+    task_save_demarche_from_ds,
+    task_save_one_dossier_from_ds,
 )
 
 
@@ -38,9 +43,16 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_title",
         "ds_state",
         "dossiers_count",
+        "fields_count",
         "link_to_json",
     )
-    actions = ("refresh_field_mappings", "extract_detr_categories")
+    actions = (
+        "save_demarche_from_ds",
+        "refresh_field_mappings",
+        "extract_detr_categories",
+        "refresh_dossiers_from_ds",
+        "refresh_new_or_modified_dossiers_from_ds",
+    )
     autocomplete_fields = ("perimetre",)
     fieldsets = (
         (None, {"fields": ("ds_number", "ds_id", "ds_title", "ds_state")}),
@@ -90,15 +102,44 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     dossiers_count.admin_order_field = "dossier_count"
     dossiers_count.short_description = "# de dossiers"
 
-    @admin.action(description="Rafraîchir les correspondances de champs")
+    def fields_count(self, obj) -> int:
+        return obj.fieldmappingforcomputer_set.count()
+
+    fields_count.admin_order_field = "fields_count"
+    fields_count.short_description = "# de champs"
+
+    @admin.action(
+        description="Rafraîchir les correspondances de champs depuis les données sauvegardées"
+    )
     def refresh_field_mappings(self, request, queryset):
         for demarche in queryset:
-            task_refresh_field_mappings_on_demarche(demarche.ds_number)
+            task_refresh_field_mappings_from_demarche_data(demarche.ds_number)
+
+    @admin.action(description="Rafraîchir la démarche depuis DN")
+    def save_demarche_from_ds(self, request, queryset):
+        for demarche in queryset:
+            task_save_demarche_from_ds(demarche.ds_number)
 
     @admin.action(description="Extraction des catégories DETR")
     def extract_detr_categories(self, request, queryset):
         for demarche in queryset:
             refresh_categories_operation_detr(demarche.ds_number)
+
+    @admin.action(description="Rafraîchir tous les dossiers de la démarche depuis DN")
+    def refresh_dossiers_from_ds(self, request, queryset):
+        for demarche in queryset:
+            task_save_demarche_dossiers_from_ds.delay(
+                demarche.ds_number, using_updated_since=False
+            )
+
+    @admin.action(
+        description="Rafraîchir les nouveaux dossiers ou les dossiers modifiés d’une démarche depuis DN depuis la dernière mise à jour"
+    )
+    def refresh_new_or_modified_dossiers_from_ds(self, request, queryset):
+        for demarche in queryset:
+            task_save_demarche_dossiers_from_ds.delay(
+                demarche.ds_number, using_updated_since=True
+            )
 
     def link_to_json(self, obj):
         return mark_safe(f'<a href="{obj.json_url}">JSON brut</a>')
@@ -133,9 +174,12 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_number",
         "ds_demarche__ds_number",
         "ds_state",
-        "link_to_json",
         "projet_intitule",
+        "get_projet_perimetre",
+        "projet_link",
+        "link_to_json",
     )
+    readonly_fields = ("projet_link",)
 
     fieldsets = (
         (
@@ -151,14 +195,14 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             },
         ),
         (
-            "Champs DS",
+            "Champs DN",
             {
                 "classes": ("collapse", "open"),
                 "fields": tuple(field.name for field in Dossier._MAPPED_CHAMPS_FIELDS),
             },
         ),
         (
-            "Annotations DS",
+            "Annotations DN",
             {
                 "classes": ("collapse", "open"),
                 "fields": tuple(
@@ -185,7 +229,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             {"classes": ("collapse", "open"), "fields": ("raw_ds_data",)},
         ),
     )
-    actions = ("refresh_from_db",)
+    actions = ("refresh_from_db", "refresh_from_ds")
     raw_id_fields = (
         "projet_adresse",
         "ds_demandeur",
@@ -198,22 +242,39 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         for dossier in queryset:
             task_refresh_dossier_from_saved_data.delay(dossier.ds_number)
 
+    @admin.action(description="Rafraîchir depuis DN")
+    def refresh_from_ds(self, request, queryset):
+        for dossier in queryset:
+            task_save_one_dossier_from_ds.delay(dossier.ds_number)
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = qs.select_related("ds_demarche")
+        qs = qs.select_related("ds_demarche", "projet")
         return qs
 
     def link_to_json(self, obj):
         return mark_safe(f'<a href="{obj.json_url}">JSON brut</a>')
+
+    def projet_link(self, obj):
+        return (
+            mark_safe(
+                f'<a href="{reverse("admin:gsl_projet_projet_change", args=[obj.projet.id])}">{obj.projet.id}</a>'
+            )
+            if obj.projet
+            else None
+        )
+
+    projet_link.short_description = "Projet"
+    projet_link.admin_order_field = "projet__id"
 
 
 @admin.register(FieldMappingForHuman)
 class FieldMappingForHumanAdmin(
     AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin
 ):
-    list_display = ("label", "django_field", "demarche")
+    list_display = ("label", "django_field", "demarche__ds_number")
     resource_classes = (FieldMappingForHumanResource,)
-    list_filter = ("demarche",)
+    list_filter = ("demarche__ds_number",)
     readonly_fields = ("demarche",)
     search_fields = ("label", "django_field")
 
@@ -237,26 +298,87 @@ class FieldMappingForComputerAdmin(
         "ds_field_label",
         "ds_field_type",
         "django_field",
-        "demarche",
+        "demarche__ds_number",
     )
     list_filter = ("demarche__ds_number", "ds_field_type")
     resource_classes = (FieldMappingForComputerResource,)
     search_fields = ("ds_field_label", "django_field", "ds_field_id")
-    search_help_text = "Chercher par ID ou intitulé DS, ou par champ Django"
+    search_help_text = "Chercher par ID ou intitulé DN, ou par champ Django"
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.select_related("demarche")
+        return qs
 
 
 @admin.register(Profile)
 class ProfileAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    pass
+    search_fields = ("ds_id", "ds_email")
+
+
+class HasCoreArrondissementFilter(admin.SimpleListFilter):
+    title = "Arrondissement INSEE complété"
+    parameter_name = "has_insee_arr"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("y", "Oui"),
+            ("n", "Non"),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == "y":
+            return queryset.filter(
+                core_arrondissement__isnull=False,
+            )
+        elif self.value() == "n":
+            return queryset.filter(
+                core_arrondissement__isnull=True,
+            )
 
 
 @admin.register(Arrondissement)
 class ArrondissementAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = ("__str__", "core_arrondissement")
+    list_filter = (HasCoreArrondissementFilter,)
+    autocomplete_fields = ("core_arrondissement",)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         qs = qs.select_related("core_arrondissement")
+        return qs
+
+
+class HasCoreDepartementFilter(admin.SimpleListFilter):
+    title = "Département INSEE complété"
+    parameter_name = "has_insee_dpt"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("y", "Oui"),
+            ("n", "Non"),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == "y":
+            return queryset.filter(
+                core_departement__isnull=False,
+            )
+        elif self.value() == "n":
+            return queryset.filter(
+                core_departement__isnull=True,
+            )
+
+
+@admin.register(Departement)
+class DepartementAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    list_display = ("__str__", "core_departement")
+    list_filter = (HasCoreDepartementFilter,)
+    autocomplete_fields = ("core_departement",)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.select_related("core_departement")
         return qs
 
 
@@ -286,5 +408,11 @@ class CategorieDoperationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
 @admin.register(CritereEligibiliteDetr)
 class CritereEligibiliteDetrAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    list_display = ("id", "label", "demarche")
+    list_display = ("id", "label", "demarche__ds_number")
     readonly_fields = ("demarche", "demarche_revision", "detr_category", "label")
+    list_filter = ("demarche__ds_number",)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.select_related("demarche")
+        return qs

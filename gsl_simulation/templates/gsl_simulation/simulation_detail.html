@@ -2,12 +2,16 @@
 {% load static dsfr_tags gsl_filters %}
 
 {% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/projet_list.css' %}">
     <link rel="stylesheet" href="{% static 'css/simulation_detail.css' %}">
 {% endblock extra_css %}
 
 {% block content %}
     <h1>
         {{ title }}
+        <div class="simulation-menu">
+            {% include "includes/modals/_simulation_actions_menu.html" %}
+        </div>
     </h1>
     {% include "includes/_status_summary.html" %}
     <div class="gsl-dropdown fr-mt-2w fr-mb-2w">
@@ -72,7 +76,7 @@
                     <th class="max_160_width">
                         Catégorie d’opération
                     </th>
-                    <th class="max_160_width">
+                    <th class="max_180_width">
                         Statut
                     </th>
                     <th>
@@ -102,18 +106,10 @@
 {% endblock content %}
 
 {% block modal %}
-    {% include "includes/modals/_accept_confirmation_modal.html" %}
-    {% include "includes/modals/_refuse_confirmation_modal.html" %}
-    {% include "includes/modals/_dismiss_confirmation_modal.html" %}
-    {% include "includes/modals/_go_back_to_processing_modal.html" %}
-    {% include "includes/modals/_go_back_to_provisionally_accepted_modal.html" %}
-    {% include "includes/modals/_go_back_to_provisionally_refused_modal.html" %}
     {% include "includes/modals/_dotation_update_confirmation_modal.html" %}
 {% endblock modal %}
 
 {% block extra_js %}
-    <script type="module"
-            src="{% static 'js/simulationProjetStatusConfirmation.js' %}"></script>
     <script type="module"
             src="{% static 'js/handleInteractionsInSimulation.js' %}"></script>
 {% endblock extra_js %}

@@ -1,0 +1,11 @@
+{% extends "includes/projet_detail/_status_and_notification_status_card.html" %}
+
+{% block title %}
+    Décision de financement du projet {{ dotation_projet.dotation }}
+{% endblock title %}
+
+{% block status_action_content %}
+    {% if dotation_projet.projet.notified_at is None %}
+        {% include "includes/_status_dropdown_buttons.html" %}
+    {% endif %}
+{% endblock status_action_content %}

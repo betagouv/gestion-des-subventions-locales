@@ -59,12 +59,12 @@
 
 .euro-input-wrap > input::-webkit-outer-spin-button,
 .euro-input-wrap > input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
+  appearance: none;
   margin: 0;
 }
 
 .euro-input-wrap > input[type="number"] {
-  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .euro-input-symbol {

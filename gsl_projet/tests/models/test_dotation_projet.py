@@ -1,11 +1,17 @@
 from decimal import Decimal
+from unittest import mock
 
 import pytest
 from django.db import IntegrityError
 from django.forms import ValidationError
+from django.utils import timezone
 from django_fsm import TransitionNotAllowed
 
-from gsl_core.tests.factories import DepartementFactory, PerimetreFactory
+from gsl_core.tests.factories import (
+    CollegueFactory,
+    DepartementFactory,
+    PerimetreFactory,
+)
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
@@ -168,6 +174,24 @@ def test_error_raised_if_assiette_is_greater_than_cout_total(
         assert dotation_projet.assiette == assiette
 
 
+@pytest.mark.django_db
+def test_get_other_accepted_dotations_with_one_processing_dotation():
+    detr_dp = DotationProjetFactory(dotation=DOTATION_DETR)
+
+    assert detr_dp.other_accepted_dotations == []
+
+    dsil_dp = DotationProjetFactory(
+        projet=detr_dp.projet,
+        status=PROJET_STATUS_PROCESSING,
+        dotation=DOTATION_DSIL,
+    )
+    assert detr_dp.other_accepted_dotations == []
+
+    dsil_dp.status = PROJET_STATUS_ACCEPTED
+    dsil_dp.save()
+    assert detr_dp.other_accepted_dotations == [DOTATION_DSIL]
+
+
 # Accept
 
 
@@ -177,9 +201,13 @@ def test_accept_dotation_projet_without_simulation_projet():
 
     enveloppe = DetrEnveloppeFactory(annee=2025)
 
-    dotation_projet.accept(montant=5_000, enveloppe=enveloppe)
+    # --
+
+    dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
     dotation_projet.save()
     dotation_projet.refresh_from_db()
+
+    # --
 
     assert dotation_projet.status == PROJET_STATUS_ACCEPTED
     simulation_projets = SimulationProjet.objects.filter(
@@ -220,9 +248,13 @@ def test_accept_dotation_projet():
 
     enveloppe = DetrEnveloppeFactory(annee=2025)
 
-    dotation_projet.accept(montant=5_000, enveloppe=enveloppe)
+    # --
+
+    dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
     dotation_projet.save()
     dotation_projet.refresh_from_db()
+
+    # --
 
     assert dotation_projet.status == PROJET_STATUS_ACCEPTED
     simulation_projets = SimulationProjet.objects.filter(
@@ -256,9 +288,14 @@ def test_accept_dotation_projet_update_programmation_projet():
         status=ProgrammationProjet.STATUS_REFUSED,
     )
 
-    dotation_projet.accept(montant=5_000, enveloppe=enveloppe)
+    # --
+
+    dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
     dotation_projet.save()
     dotation_projet.refresh_from_db()
+
+    # --
+
     assert dotation_projet.status == PROJET_STATUS_ACCEPTED
 
     programmation_projets = ProgrammationProjet.objects.filter(
@@ -279,7 +316,12 @@ def test_accept_dotation_projet_select_parent_enveloppe():
     )
     parent_enveloppe = DsilEnveloppeFactory()
     child_enveloppe = DsilEnveloppeFactory(deleguee_by=parent_enveloppe)
-    dotation_projet.accept(montant=5_000, enveloppe=child_enveloppe)
+
+    # --
+
+    dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=child_enveloppe)
+
+    # --
 
     programmation_projets = ProgrammationProjet.objects.filter(
         dotation_projet=dotation_projet
@@ -296,7 +338,7 @@ def test_accept_with_a_dotation_enveloppe_different_from_the_dotation():
     )
     enveloppe = DsilEnveloppeFactory()
     with pytest.raises(ValidationError) as exc_info:
-        dotation_projet.accept(montant=5_000, enveloppe=enveloppe)
+        dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
     assert (
         str(exc_info.value.message)
         == "La dotation du projet et de l'enveloppe ne correspondent pas."
@@ -474,9 +516,11 @@ def test_dismiss_from_processing():
 # Set back status to processing
 
 
-def test_set_back_status_to_processing_from_accepted():
+def test_set_back_status_to_processing_without_ds_from_accepted():
     dotation_projet = DotationProjetFactory(
-        status=PROJET_STATUS_ACCEPTED, assiette=50_000
+        status=PROJET_STATUS_ACCEPTED,
+        assiette=50_000,
+        projet__notified_at=timezone.now(),
     )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
@@ -490,9 +534,14 @@ def test_set_back_status_to_processing_from_accepted():
         montant=10_000,
     )
 
-    dotation_projet.set_back_status_to_processing()
+    assert dotation_projet.projet.notified_at is not None
+
+    # --
+    dotation_projet.set_back_status_to_processing_without_ds()
     dotation_projet.save()
     dotation_projet.refresh_from_db()
+
+    # --
 
     assert dotation_projet.status == PROJET_STATUS_PROCESSING
     assert (
@@ -506,24 +555,50 @@ def test_set_back_status_to_processing_from_accepted():
         assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
         assert simulation_projet.montant == 10_000
         assert simulation_projet.taux == 20
+    assert dotation_projet.projet.notified_at is None
 
 
-def test_set_back_status_to_processing_from_refused():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_REFUSED)
+@pytest.mark.parametrize(
+    ("projet_status, programmation_projet_status, simulation_projet_status"),
+    [
+        (
+            PROJET_STATUS_REFUSED,
+            ProgrammationProjet.STATUS_REFUSED,
+            SimulationProjet.STATUS_REFUSED,
+        ),
+        (
+            PROJET_STATUS_DISMISSED,
+            ProgrammationProjet.STATUS_DISMISSED,
+            SimulationProjet.STATUS_DISMISSED,
+        ),
+    ],
+)
+def test_set_back_status_to_processing_without_ds_from_refused_or_dismissed(
+    projet_status, programmation_projet_status, simulation_projet_status
+):
+    dotation_projet = DotationProjetFactory(
+        status=projet_status, projet__notified_at=timezone.now()
+    )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_REFUSED,
+        status=programmation_projet_status,
     )
     SimulationProjetFactory.create_batch(
         3,
         dotation_projet=dotation_projet,
-        status=SimulationProjet.STATUS_REFUSED,
+        status=simulation_projet_status,
         montant=0,
     )
 
-    dotation_projet.set_back_status_to_processing()
+    assert dotation_projet.projet.notified_at is not None
+
+    # --
+
+    dotation_projet.set_back_status_to_processing_without_ds()
     dotation_projet.save()
     dotation_projet.refresh_from_db()
+
+    # --
 
     assert dotation_projet.status == PROJET_STATUS_PROCESSING
     assert (
@@ -537,16 +612,40 @@ def test_set_back_status_to_processing_from_refused():
         assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
         assert simulation_projet.montant == 0
         assert simulation_projet.taux == 0
+    assert dotation_projet.projet.notified_at is None
 
 
 @pytest.mark.parametrize(("status"), [PROJET_STATUS_PROCESSING])
-def test_set_back_status_to_processing_from_other_status_than_accepted_or_refused(
+def test_set_back_status_to_processing_without_ds_from_other_status_than_accepted_or_refused(
     status,
 ):
     dotation_projet = DotationProjetFactory(status=status)
 
     with pytest.raises(TransitionNotAllowed):
-        dotation_projet.set_back_status_to_processing()
+        dotation_projet.set_back_status_to_processing_without_ds()
+
+
+@mock.patch(
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+)
+def test_set_back_status_to_processing_updates_ds_annotations(mock_update_ds):
+    projet = ProjetFactory()
+    user = CollegueFactory()
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    other_dotation = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_ACCEPTED
+    )
+
+    dotation_projet.set_back_status_to_processing(user=user)
+    dotation_projet.save()
+
+    mock_update_ds.assert_called_once_with(
+        dossier=dotation_projet.projet.dossier_ds,
+        user=user,
+        dotations_to_be_checked=[other_dotation.dotation],
+    )
 
 
 @pytest.mark.django_db

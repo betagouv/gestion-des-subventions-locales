@@ -2,6 +2,7 @@
 {% load static dsfr_tags gsl_filters %}
 
 {% block extra_css %}
+    <link rel="stylesheet" href="{% static "css/messages.css" %}">
     <link rel="stylesheet" href="{% static "css/projet_list.css" %}">
     <link rel="stylesheet"
           href="{% static "css/programmation_projet_list.css" %}">
@@ -71,7 +72,6 @@
                     {% endif %}
                     <p>
                         Les projets acceptés et refusés de vos simulations {{ enveloppe.dotation }} apparaissent ici.
-                        {% comment %}Pour générer un lot d’arrêtés, sélectionnez les projets concernés par le même modèle d’arrêté et cliquez sur la flèche d’action multiples dans l’en-tête du tableau.{% endcomment %}
                     </p>
                 </div>
 
@@ -161,7 +161,7 @@
                             {% for programmation_projet in programmation_projets %}
                                 <tr>
                                     <td>
-                                        {% if programmation_projet.to_notify %}
+                                        {% if programmation_projet.projet.to_notify %}
                                             <div class="fr-checkbox-group fr-checkbox-group--sm">
                                                 <input id="checkbox-{{ programmation_projet.id }}"
                                                        type="checkbox"
@@ -220,24 +220,74 @@
                                             Pas de documents ajoutés
                                         {% endif %}
                                     </td>
-                                    <td>
-                                        {% if programmation_projet.to_notify %}
-                                            <span class="projet__to_notify">À notifier</span>
-                                        {% else %}
-                                            <span class="blue-color projet__notified">
-                                                <span class="fr-icon-checkbox-fill" aria-hidden="true"></span>
-                                                Notifié
-                                            </span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <a class="fr-btn--tertiary-no-outline gsl-no-underline"
-                                           href="{{ programmation_projet.get_absolute_url }}{% querystring %}">
-                                            <span class="fr-sr-only">Voir le projet programmé {{ programmation_projet.projet.dossier_ds.ds_number }}</span>
-                                            <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
-                                        </a>
-                                    </td>
+                                    {% with rowspan=programmation_projet.dotation_projet.other_dotations|length|add:1 %}
+                                        <td rowspan="{{ rowspan }}">
+                                            {% if programmation_projet.projet.to_notify %}
+                                                <span class="projet-notification-status projet__to_notify">À notifier</span>
+                                            {% elif programmation_projet.projet.notified_at %}
+                                                <span class="projet-notification-status projet__notified">
+                                                    <span class="fr-icon-checkbox-fill fr-icon--sm" aria-hidden="true"></span>
+                                                    Notifié
+                                                </span>
+                                            {% else %}
+                                                <b><em>En attente de la décision {{ programmation_projet.dotation_projet.other_dotations.0.dotation }}</em></b>
+                                            {% endif %}
+                                        </td>
+                                        <td rowspan="{{ rowspan }}">
+                                            <a class="fr-btn--tertiary-no-outline gsl-no-underline"
+                                               href="{{ programmation_projet.get_absolute_url }}{% querystring dotation=programmation_projet.dotation %}">
+                                                <span class="fr-sr-only">Voir le projet programmé {{ programmation_projet.projet.dossier_ds.ds_number }}</span>
+                                                <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
+                                            </a>
+                                        </td>
+                                    {% endwith %}
                                 </tr>
+                                {% for other_dotation in programmation_projet.dotation_projet.other_dotations %}
+                                    <tr class="other-dotation-row">
+                                        <td colspan=5 class="information-other-dotation">
+                                            Informations pour la dotation {{ other_dotation.dotation }}
+                                        </td>
+                                        <td class="gsl-money">
+                                            <div class="gsl-money">
+                                                {{ other_dotation.last_updated_simulation_projet.montant|euro:2 }}
+                                            </div>
+                                        </td>
+                                        <td class="gsl-money">
+                                            <div class="gsl-money">
+                                                {{ other_dotation.last_updated_simulation_projet.taux|percent }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <ul class="no-list-style">
+                                                {% if other_dotation.dotation == "DETR" %}
+                                                    {% for c in other_dotation.detr_categories.all %}
+                                                        <li>
+                                                            {{ c.label }}
+                                                        </li>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    {% for c in other_dotation.projet.dossier_ds.demande_eligibilite_dsil.all %}
+                                                        <li>
+                                                            {{ c }}
+                                                        </li>
+                                                    {% endfor %}
+                                                {% endif %}
+                                            </ul>
+                                        </td>
+                                        <td class="other-simulation-status">
+                                            {{ other_dotation.last_updated_simulation_projet.get_status_display }}
+                                        </td>
+                                        <td>
+                                            <ul>
+                                                {% for document in other_dotation.programmation_projet.documents_summary %}
+                                                    <li>
+                                                        {{ document }}
+                                                    </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
                             {% empty %}
                                 <tr>
                                     <td colspan="12">

@@ -1,0 +1,59 @@
+{% extends "htmx/_base_htmx_modal.html" %}
+{% load simulation_filters %}
+
+{% block button_label %}
+    {{ new_simulation_status|status_to_label }}
+{% endblock button_label %}
+
+{% block content %}
+    <h1 class="fr-modal__title fr-text-default--{{ new_projet_status|status_to_fr_color }}"
+        id="{{ modal_id }}-title">
+        <i class="fr-icon-{{ new_projet_status|status_to_fr_color }}-fill"></i>
+        {{ new_projet_status|status_to_action_word|capfirst }} le projet sur Démarche Numérique
+        {% if simulation_projet.dotation_projet.other_dotations|length > 0 %}
+            ({{ new_simulation_status|status_to_action_word|capfirst }} {{ simulation_projet.enveloppe.dotation }} et
+            {{ simulation_projet.dotation_projet.other_dotations.0.status|status_to_action_word }}
+            {{ simulation_projet.dotation_projet.other_dotations.0.dotation }})
+        {% endif %}
+    </h1>
+    <p>
+        Ce changement va être prise en compte dans toutes les simulations dans lesquelles ce projet a été
+        ajouté. Le demandeur va être notifié.
+    </p>
+    {% if simulation_projet.dotation_projet.other_dotations|length > 0 %}
+        <p>
+            Expliquer pourquoi la dotation {{ simulation_projet.enveloppe.dotation }}
+            est {{ new_simulation_status|status_to_adjective:1 }}
+            et la dotation {{ simulation_projet.dotation_projet.other_dotations.0.dotation }}
+            est {{ simulation_projet.dotation_projet.other_dotations.0.status|status_to_adjective:1 }}.
+        </p>
+    {% endif %}
+    <form id="{{ modal_id }}-form"
+          hx-post="{{ request.path }}"
+          hx-encoding="multipart/form-data"
+          hx-target="#{{ modal_id }}"
+          hx-swap="outerHTML"
+          hx-disabled-elt="#{{ modal_id }}-submit-button, #{{ modal_id }}-cancel-button">
+        {{ form }}
+    </form>
+    {% if simulation_projet.projet.dossier_ds.ds_state == "en_construction" %}
+        <div class="fr-alert fr-alert--info fr-alert--sm fr-mt-6w">
+            <p class="fr-alert__title">
+                Dossier en construction
+            </p>
+            <p>
+                Le dossier de ce projet est actuellement en construction sur Démarche Numérique.
+                Le projet sera passé en instruction avant d’être réfusé.
+            </p>
+        </div>
+    {% endif %}
+{% endblock content %}
+
+{% block confirmation_button %}
+    <button type="submit"
+            class="fr-btn fr-btn--primary"
+            form="{{ modal_id }}-form"
+            id="{{ modal_id }}-submit-button">
+        {{ new_projet_status|status_to_action_word|capfirst }}
+    </button>
+{% endblock confirmation_button %}

@@ -1,14 +1,14 @@
 <div hx-swap-oob="beforeend:body">
-    <div class="fr-modal"
-         id="dossier-not-up-to-date-modal"
-         aria-labelledby="dossier-not-up-to-date-modal-title"
-         aria-hidden="true">
+    <dialog class="fr-modal"
+            id="{{ modal_id }}"
+            aria-labelledby="{{ modal_id }}-title"
+            aria-hidden="true">
         <div class="fr-container fr-container--fluid fr-container-md">
             <div class="fr-grid-row fr-grid-row--center">
                 <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
                     <div class="fr-modal__body">
                         <div class="fr-modal__header">
-                            <button aria-controls="dossier-not-up-to-date-modal"
+                            <button aria-controls="{{ modal_id }}"
                                     title="Fermer"
                                     type="button"
                                     class="fr-btn--close fr-btn close-modal">
@@ -16,30 +16,27 @@
                             </button>
                         </div>
                         <div class="fr-modal__content">
-                            <h1 class="fr-modal__title" id="dossier-not-up-to-date-modal-title">
+                            <h1 class="fr-modal__title" id="{{ modal_id }}-title">
                                 <i class="fr-icon-warning-fill"></i>Des informations ont été modifiées sur
-                                Démarches Simplifiées
+                                Démarche Numérique
                             </h1>
                             <p>
-                                Les informations des dossiers sont récupérées sur Démarches Simplifiées et mises à jour
+                                Les informations des dossiers sont récupérées sur Démarche Numérique et mises à jour
                                 sur
-                                Turgot toutes les 12h.
-                                <b>Nous remarquons des changements sur ce dossier, sur Démarches Simplifiées, qui datent
+                                Turgot toutes les heures.
+                                <b>Nous remarquons des changements sur ce dossier, sur Démarche Numérique, qui datent
                                     de
-                                    moins de 12h</b>.
+                                    moins d'une heure</b>.
                                 </p>
                                 <p>
-                                    Vous devez actualiser depuis DS les informations de ce dossier et le réexaminer avant de
+                                    Vous devez actualiser depuis DN les informations de ce dossier et le réexaminer avant de
                                     le
                                     notifier.
                                 </p>
-                                <form action="{% url "gsl_demarches_simplifiees:refresh-one-dossier" object.dossier.ds_number %}"
+                                <form action="{% url "gsl_demarches_simplifiees:refresh-one-dossier" projet.dossier_ds.ds_number %}"
                                       method="post"
                                       id="refresh-dossier-form">
                                     {% csrf_token %}
-                                    <input type="hidden"
-                                           name="next"
-                                           value="{% url 'gsl_programmation:programmation-projet-detail' object.id %}" />
                                 </form>
                             </div>
                             <div class="fr-modal__footer">
@@ -48,11 +45,12 @@
                                         <button type="submit"
                                                 form="refresh-dossier-form"
                                                 class="fr-btn fr-icon-refresh-line">
-                                            Actualiser depuis DS
+                                            Actualiser depuis DN
                                         </button>
                                     </li>
                                     <li>
-                                        <button class="fr-btn fr-btn--secondary close-modal">
+                                        <button class="fr-btn fr-btn--secondary close-modal"
+                                                aria-controls="{{ modal_id }}">
                                             Annuler
                                         </button>
                                     </li>
@@ -62,12 +60,12 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </dialog>
     </div>
     <button class="fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
-            id="to_notify_button"
+            id="{{ modal_button_id }}"
             type="button"
-            aria-controls="dossier-not-up-to-date-modal"
+            aria-controls="{{ modal_id }}"
             data-fr-opened="false">
         Notifier le demandeur
     </button>

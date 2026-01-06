@@ -176,6 +176,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {
+            "min_length": 15,
+        },
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
@@ -204,7 +207,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Connection to Démarches simplifiées’ API
 DS_API_TOKEN = os.getenv("DS_API_TOKEN", "")
 DS_API_URL = os.getenv(
-    "DS_API_URL", "https://www.demarches-simplifiees.fr/api/v2/graphql"
+    "DS_API_URL", "https://demarche.numerique.gouv.fr/api/v2/graphql"
 )
 DS_CLIENT_ID = os.getenv("DS_CLIENT_ID", ENV)
 LOGIN_URL = "/comptes/login/"
@@ -261,7 +264,7 @@ LOGGING = {
             "propagate": False,
         },
         "django.server": {
-            "handlers": ["console"],
+            "handlers": ["django.server"],
             "level": "INFO",
             "propagate": False,
         },
@@ -358,8 +361,10 @@ CONTENT_SECURITY_POLICY = {
 
 CONTENT_SECURITY_POLICY_REPORT_ONLY = {}
 
-# Dev configuration
+# Cookie configuration
 
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
 
 # Storage
 AWS_ACCESS_KEY_ID = os.getenv("SCALEWAY_S3_KEY")

@@ -2,9 +2,6 @@ import logging
 from decimal import Decimal
 
 from gsl_core.models import Collegue
-from gsl_demarches_simplifiees.exceptions import DsServiceException
-from gsl_demarches_simplifiees.mixins import build_error_message, process_projet_update
-from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
     PROJET_STATUS_ACCEPTED,
@@ -15,6 +12,8 @@ from gsl_projet.constants import (
 from gsl_projet.models import DotationProjet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_simulation.models import Simulation, SimulationProjet
+
+logger = logging.getLogger(__name__)
 
 
 class SimulationProjetService:
@@ -91,13 +90,13 @@ class SimulationProjetService:
         cls, value: Decimal, dotation_projet: DotationProjet, value_label: str
     ):
         if dotation_projet.assiette_or_cout_total is None:
-            logging.warning(
+            logger.warning(
                 f"Le projet de dotation {dotation_projet.dotation} (id: {dotation_projet.pk}) n'a ni assiette ni coût total."
             )
             return value
 
         if value and value > dotation_projet.assiette_or_cout_total:
-            logging.warning(
+            logger.warning(
                 f"Le projet de dotation {dotation_projet.dotation} (id: {dotation_projet.pk}) a une assiette plus petite que {value_label}."
             )
 
@@ -105,47 +104,6 @@ class SimulationProjetService:
             value,
             dotation_projet.assiette_or_cout_total,
         )
-
-    @classmethod
-    def update_status(
-        cls,
-        simulation_projet: SimulationProjet,
-        new_status: str,
-        user: Collegue,
-    ):
-        if new_status == SimulationProjet.STATUS_ACCEPTED:
-            return cls._accept_a_simulation_projet(simulation_projet, user)
-
-        if new_status in [
-            SimulationProjet.STATUS_REFUSED,
-            SimulationProjet.STATUS_DISMISSED,
-        ]:
-            raise ValueError("Use RefuseProjectForm or DismissProjectForm instead.")
-
-        if (
-            new_status == SimulationProjet.STATUS_PROCESSING
-            and simulation_projet.status
-            in (
-                SimulationProjet.STATUS_ACCEPTED,
-                SimulationProjet.STATUS_REFUSED,
-                SimulationProjet.STATUS_DISMISSED,
-            )
-        ):
-            return cls._set_back_to_processing(simulation_projet)
-
-        if new_status in (
-            SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
-            SimulationProjet.STATUS_PROVISIONALLY_REFUSED,
-        ) and simulation_projet.status in (
-            SimulationProjet.STATUS_ACCEPTED,
-            SimulationProjet.STATUS_REFUSED,
-            SimulationProjet.STATUS_DISMISSED,
-        ):
-            cls._set_back_to_processing(simulation_projet)
-
-        simulation_projet.status = new_status
-        simulation_projet.save()
-        return simulation_projet
 
     @classmethod
     def update_taux(
@@ -158,7 +116,7 @@ class SimulationProjetService:
         simulation_projet.save()
 
         if simulation_projet.status == SimulationProjet.STATUS_ACCEPTED:
-            return cls._accept_a_simulation_projet(simulation_projet, user)
+            return cls.accept_a_simulation_projet(simulation_projet, user)
 
         return simulation_projet
 
@@ -170,7 +128,7 @@ class SimulationProjetService:
         simulation_projet.save()
 
         if simulation_projet.status == SimulationProjet.STATUS_ACCEPTED:
-            return cls._accept_a_simulation_projet(simulation_projet, user)
+            return cls.accept_a_simulation_projet(simulation_projet, user)
 
         return simulation_projet
 
@@ -188,74 +146,18 @@ class SimulationProjetService:
     # Private
 
     @classmethod
-    def _accept_a_simulation_projet(
+    def accept_a_simulation_projet(
         cls, simulation_projet: SimulationProjet, user: Collegue
     ):
-        dotation_projet = simulation_projet.dotation_projet
+        dotation_projet: DotationProjet = simulation_projet.dotation_projet
 
         dotation_projet.accept(
-            montant=simulation_projet.montant, enveloppe=simulation_projet.enveloppe
-        )
-        dotation_projet.save()
-
-        cls._update_ds_montant_and_taux(
-            dossier=dotation_projet.projet.dossier_ds,
             montant=simulation_projet.montant,
-            taux=simulation_projet.taux,
+            enveloppe=simulation_projet.enveloppe,
             user=user,
         )
-
-        updated_simulation_projet = SimulationProjet.objects.get(
-            pk=simulation_projet.pk
-        )
-        return updated_simulation_projet
-
-    @classmethod
-    def _set_back_to_processing(cls, simulation_projet: SimulationProjet):
-        dotation_projet = simulation_projet.dotation_projet
-        dotation_projet.set_back_status_to_processing()
         dotation_projet.save()
-
         updated_simulation_projet = SimulationProjet.objects.get(
             pk=simulation_projet.pk
         )
         return updated_simulation_projet
-
-    @classmethod
-    def _update_ds_montant_and_taux(
-        cls, dossier: Dossier, montant: float, taux: float, user: Collegue
-    ) -> None:
-        data = {
-            "montant": montant,
-            "taux": taux,
-        }
-        errors, blocking = process_projet_update(
-            data, dossier, ["montant", "taux"], user
-        )
-
-        if blocking:
-            raise DsServiceException(
-                "Une erreur est survenue lors de la mise à jour des informations "
-                f"sur Démarches Simplifiées. {errors['all']}",
-                level=logging.ERROR,
-                log_message="Blocking error during montant and taux update",
-                extra={"dossier_id": dossier.id, "montant": montant, "taux": taux},
-            )
-
-        error_msg = None
-
-        if not errors:
-            return
-
-        fields_msg = build_error_message(errors)
-        error_msg = (
-            "Une erreur est survenue lors de la mise à jour de certaines "
-            "informations sur Démarches Simplifiées "
-            f"({fields_msg}). Ces modifications n'ont pas été enregistrées."
-        )
-        raise DsServiceException(
-            error_msg,
-            level=logging.ERROR,
-            log_message="Error during montant and taux update",
-            extra={"dossier_id": dossier.id, "montant": montant, "taux": taux},
-        )

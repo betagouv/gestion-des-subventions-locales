@@ -9,7 +9,7 @@
             <div class="fr-callout__text">
                 <ul class="no-list-style">
                     <li>
-                    <b><span class="blue-color">Numéro de dossier (Démarches Simplifiées)</span>
+                    <b><span class="blue-color">Numéro de dossier (Démarche Numérique)</span>
                 : {{ dossier.ds_number|stringformat:"s" }}</b>
             </li>
             <li>
@@ -24,7 +24,7 @@
                 <span aria-hidden="true">📆</span> Date de dépôt : {{ dossier.ds_date_depot|date }}
             </li>
             <li>
-                <span aria-hidden="true">📆</span> Date de modification Démarches Simplifiées
+                <span aria-hidden="true">📆</span> Date de modification Démarche Numérique
                 : {{ dossier.ds_date_derniere_modification|date }}
             </li>
         </ul>
@@ -55,6 +55,12 @@
 </div>
 <div class="fr-col-12 fr-col-xl-4">
     {% block status_action %}
+        {% if projet.all_dotations_have_processing_status %}
+        {% else %}
+            {% with display_notify_button=False %}
+                {% include "includes/projet_detail/_status_and_notification_status_card.html" %}
+            {% endwith %}
+        {% endif %}
     {% endblock status_action %}
 </div>
 </div>
@@ -248,7 +254,7 @@
                         </p>
                         <p>
                             <b>Dispositif de financement sollicité :</b>
-                            {{ dossier.demande_dispositif_sollicite }}
+                            {{ projet.dotations|join:", " }}
                         </p>
                         {% block dotations_form %}
                         {% endblock dotations_form %}
@@ -295,7 +301,7 @@
                         {% block montants_form %}
                             {% for dotation_projet in projet.dotationprojet_set.all %}
                                 {% if projet.dotationprojet_set.all|length > 1 %}
-                                    <h6>
+                                    <h6 class="fr-mb-2w fr-mt-6w">
                                         {{ dotation_projet.dotation }}
                                     </h6>
                                 {% endif %}

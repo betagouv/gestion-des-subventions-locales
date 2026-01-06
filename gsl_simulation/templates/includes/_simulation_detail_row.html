@@ -1,50 +1,104 @@
 {% load gsl_filters %}
 
-{% with other_simu=other_dotations_simu|get:projet.id %}
-    <tr id="simulation-{{ simu.pk }}"
-        hx-swap-oob="true"
-        {% if other_simu %}class="row-with-double-dotations"{% endif %}>
-        <td>
-            <input type="checkbox"
-                   name="simu[{{ simu.pk }}]"
-                   aria-label="Sélectionner le projet {{ projet.dossier_ds.projet_intitule }}">
-        </td>
-        <td>
-            {{ projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}
-        </td>
-        <td>
-            {{ projet.dossier_ds.projet_intitule }}
-        </td>
-        <td>
-            {{ projet.demandeur.name | format_demandeur_nom }}
-        </td>
-        <td>
-            {% include "includes/table_forms/_dotation_form.html" with simu=simu %}
+<tr id="simulation-{{ simu.pk }}"
+    hx-swap-oob="true"
+    {% if dotation_projet.other_dotations|length > 0 %}class="row-with-double-dotations"{% endif %}>
+    <td>
+        <input type="checkbox"
+               name="simu[{{ simu.pk }}]"
+               aria-label="Sélectionner le projet {{ projet.dossier_ds.projet_intitule }}">
+    </td>
+    <td>
+        {{ projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}
+    </td>
+    <td>
+        {{ projet.dossier_ds.projet_intitule }}
+    </td>
+    <td>
+        {{ projet.demandeur.name | format_demandeur_nom }}
+    </td>
+    <td>
+        {% include "includes/table_forms/_dotation_form.html" with simu=simu %}
+    </td>
+    <td class="gsl-money">
+        {{ projet.dossier_ds.finance_cout_total|euro:2 }}
+    </td>
+    <td class="gsl-money">
+        {{ projet.dossier_ds.demande_montant|euro:2 }}
+        <br>
+        {{ dotation_projet.taux_de_subvention_sollicite|percent }}
+    </td>
+    <td class="gsl-money">
+        {% include "includes/table_forms/_montant_form.html" %}
+    </td>
+    <td class="gsl-money">
+        {% include "includes/table_forms/_taux_form.html" %}
+    </td>
+    <td>
+        <ul class="no-list-style">
+            {% if dotation_projet.dotation == "DETR" %}
+                {% for c in dotation_projet.detr_categories.all %}
+                    <li>
+                        {{ c.label }}
+                    </li>
+                {% endfor %}
+            {% else %}
+                {% for c in projet.dossier_ds.demande_eligibilite_dsil.all %}
+                    <li>
+                        {{ c }}
+                    </li>
+                {% endfor %}
+            {% endif %}
+        </ul>
+    </td>
+    <td class="simulation-status">
+        <div class="simulation-status-notified">
+            {% if dotation_projet.programmation_projet.notified_at %}
+                {{ simu.get_status_display }}
+            {% else %}
+                {% include "includes/_status_dropdown_buttons.html" with table=True %}
+            {% endif %}
+            {% if dotation_projet.programmation_projet.notified_at %}
+                <span class="projet-notification-status projet__notified">Notifié</span>
+            {% elif projet.to_notify %}
+                <span class="projet-notification-status projet__to_notify">À notifier</span>
+            {% endif %}
+        </div>
+    </td>
+    <td class="fr-cell--right gsl-nowrap">
+        <a class="fr-btn--tertiary-no-outline gsl-no-underline"
+           href="{{ simu.get_absolute_url }}{% querystring %}">
+            <span class="fr-sr-only">Voir le projet {{ projet.dossier_ds.ds_number }}</span>
+            <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
+        </a>
+    </td>
+</tr>
+
+{% for other_dotation_projet in dotation_projet.other_dotations %}
+    <tr id="other-simulation-{{ simu.pk }}" class="other-dotation-row">
+        <td colspan=7 class="information-other-dotation">
+            Informations pour la dotation {{ other_dotation_projet.dotation }}
         </td>
         <td class="gsl-money">
-            {{ projet.dossier_ds.finance_cout_total|euro:2 }}
+            <div class="gsl-money">
+                <b>{{ other_dotation_projet.last_updated_simulation_projet.montant|euro:2 }}</b>
+            </div>
         </td>
         <td class="gsl-money">
-            {{ projet.dossier_ds.demande_montant|euro:2 }}
-            <br>
-            {{ dotation_projet.taux_de_subvention_sollicite|percent }}
-        </td>
-        <td class="gsl-money">
-            {% include "includes/table_forms/_montant_form.html" %}
-        </td>
-        <td class="gsl-money">
-            {% include "includes/table_forms/_taux_form.html" %}
+            <div class="gsl-money">
+                <b>{{ other_dotation_projet.last_updated_simulation_projet.taux|percent }}</b>
+            </div>
         </td>
         <td>
             <ul class="no-list-style">
-                {% if dotation_projet.dotation == "DETR" %}
-                    {% for c in dotation_projet.detr_categories.all %}
+                {% if other_dotation_projet.dotation == "DETR" %}
+                    {% for c in other_dotation_projet.detr_categories.all %}
                         <li>
                             {{ c.label }}
                         </li>
                     {% endfor %}
                 {% else %}
-                    {% for c in projet.dossier_ds.demande_eligibilite_dsil.all %}
+                    {% for c in other_dotation_projet.projet.dossier_ds.demande_eligibilite_dsil.all %}
                         <li>
                             {{ c }}
                         </li>
@@ -52,69 +106,17 @@
                 {% endif %}
             </ul>
         </td>
-        <td class="simulation-status">
-            {% if dotation_projet.programmation_projet.notified_at %}
-                {{ simu.get_status_display }} (notifié)
-            {% else %}
-                {% include "includes/table_forms/_status_form.html" %}
-            {% endif %}
-            {% if dotation_projet.programmation_projet.to_notify %}
-                <span class="projet__to_notify">À notifier</span>
-            {% endif %}
+        <td colspan=2 class="other-simulation-status">
+            <div class="simulation-status-notified">
+                {{ other_dotation_projet.last_updated_simulation_projet.get_status_display }}
+                {% if projet.to_notify %}
+                    <span class="projet-notification-status projet__to_notify">À notifier</span>
+                {% elif projet.notified_at %}
+                    <span class="projet-notification-status projet__notified">Notifié</span>
+                {% endif %}
+            </div>
         </td>
         <td class="fr-cell--right gsl-nowrap">
-            <a class="fr-btn--tertiary-no-outline gsl-no-underline"
-               href="{{ simu.get_absolute_url }}{% querystring %}">
-                <span class="fr-sr-only">Voir le projet {{ projet.dossier_ds.ds_number }}</span>
-                <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
-            </a>
         </td>
     </tr>
-
-    {% if other_simu %}
-        <tr id="other-simulation-{{ simu.pk }}" class="other-simulation-row">
-            <td colspan=7 class="information-other-dotation">
-                Informations pour la dotation {{ other_simu.dotation_projet.dotation }}
-            </td>
-            <td class="gsl-money">
-                <div class="gsl-money">
-                    <b>{{ other_simu.montant|euro:2 }}</b>
-                </div>
-            </td>
-            <td class="gsl-money">
-                <div class="gsl-money">
-                    <b>{{ other_simu.taux|percent }}</b>
-                </div>
-            </td>
-            <td>
-                <ul class="no-list-style">
-                    {% if other_simu.dotation_projet.dotation == "DETR" %}
-                        {% for c in other_simu.dotation_projet.detr_categories.all %}
-                            <li>
-                                {{ c.label }}
-                            </li>
-                        {% endfor %}
-                    {% else %}
-                        {% for c in other_simu.dotation_projet.projet.dossier_ds.demande_eligibilite_dsil.all %}
-                            <li>
-                                {{ c }}
-                            </li>
-                        {% endfor %}
-                    {% endif %}
-                </ul>
-            </td>
-            {% if other_simu.status == "valid" and other_simu.dotation_projet.programmation_projet.to_notify %}
-                <td colspan=2 class="other-simulation-status to_notify">
-                    <b>{{ other_simu.get_status_display }}</b>
-                    <span class="projet__to_notify">À notifier</span>
-                </td>
-            {% else %}
-                <td class="other-simulation-status">
-                    <b>{{ other_simu.get_status_display }}</b>
-                </td>
-                <td class="fr-cell--right gsl-nowrap">
-                </td>
-            {% endif %}
-        </tr>
-    {% endif %}
-{% endwith %}
+{% endfor %}

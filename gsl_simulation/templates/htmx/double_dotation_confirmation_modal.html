@@ -1,0 +1,41 @@
+{% extends "htmx/_base_htmx_modal.html" %}
+{% load simulation_filters %}
+
+{% block button_label %}
+    {{ new_simulation_status|status_to_label }}
+{% endblock button_label %}
+
+{% block content %}
+    <h1 class="fr-modal__title fr-text-default--{{ new_simulation_status|status_to_fr_color }}"
+        id="{{ modal_id }}-title">
+        <i class="fr-icon-{{ new_simulation_status|status_to_fr_color }}-fill"></i>
+        {{ new_simulation_status|status_to_action_word|capfirst }} la demande dotation {{ object.enveloppe.dotation }}
+    </h1>
+    <p>
+        Ces changements vont être pris en compte dans toutes les simulations dans lesquelles le projet a été ajouté. Il
+        apparaîtra dans la programmation officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
+    </p>
+    <p>
+        Le demandeur ne va pas être notifié tout de suite car le projet est en double dotation.
+    </p>
+    <p>
+        Voulez-vous {{ new_simulation_status|status_to_action_word }} cette demande de dotation&nbsp;?
+    </p>
+    <form id="{{ modal_id }}-form"
+          hx-post="{{ request.path }}"
+          hx-encoding="multipart/form-data"
+          hx-target="#{{ modal_id }}"
+          hx-swap="outerHTML"
+          hx-disabled-elt="#{{ modal_id }}-submit-button, #{{ modal_id }}-cancel-button">
+        {{ form }}
+    </form>
+{% endblock content %}
+
+{% block confirmation_button %}
+    <button type="submit"
+            class="fr-btn fr-btn--primary"
+            form="{{ modal_id }}-form"
+            id="{{ modal_id }}-submit-button">
+        {{ new_simulation_status|status_to_action_word|capfirst }}
+    </button>
+{% endblock confirmation_button %}

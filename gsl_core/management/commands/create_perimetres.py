@@ -4,6 +4,8 @@ from django.core.management.base import BaseCommand
 
 from gsl_core.models import Arrondissement, Perimetre
 
+logger = logging.getLogger(__name__)
+
 
 class Command(BaseCommand):
     """
@@ -41,4 +43,4 @@ class Command(BaseCommand):
             if is_created:
                 i += 1
 
-        logging.info(f"Et voilà le travail, {i} périmètres ont été créés")
+        logger.info(f"Et voilà le travail, {i} périmètres ont été créés")

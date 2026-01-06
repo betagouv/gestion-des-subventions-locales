@@ -1,14 +1,25 @@
 from datetime import UTC, date, datetime
 from datetime import timezone as tz
-from typing import TYPE_CHECKING, Iterator, Union
+from typing import TYPE_CHECKING, Iterator, List, Optional, Tuple, Union
 
 from django.core.exceptions import ValidationError
-from django.db import models
-from django.db.models import Q, UniqueConstraint
+from django.db import models, transaction
+from django.db.models import (
+    Case,
+    Count,
+    Exists,
+    F,
+    OuterRef,
+    Q,
+    UniqueConstraint,
+    Value,
+    When,
+)
 from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.services import DsService
 from gsl_projet.constants import (
     DOTATION_CHOICES,
     DOTATION_DETR,
@@ -21,10 +32,12 @@ from gsl_projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
+from gsl_projet.utils.utils import floatize
 
 if TYPE_CHECKING:
     from gsl_demarches_simplifiees.models import CritereEligibiliteDsil, Dossier
     from gsl_programmation.models import Enveloppe
+    from gsl_simulation.models import SimulationProjet
 
 
 class CategorieDetrQueryset(models.QuerySet):
@@ -86,6 +99,51 @@ class ProjetQuerySet(models.QuerySet):
 
         return self.for_perimetre(user.perimetre)
 
+    def annotate_status(self):
+        # Check if all dotations have a programmation_projet
+        has_processing = Exists(
+            DotationProjet.objects.filter(
+                projet=OuterRef("pk"), status=PROJET_STATUS_PROCESSING
+            )
+        )
+
+        # Count dotations with specific programmation status
+        has_accepted = Exists(
+            DotationProjet.objects.filter(
+                projet=OuterRef("pk"),
+                status=PROJET_STATUS_ACCEPTED,
+            )
+        )
+
+        has_dismissed = Exists(
+            DotationProjet.objects.filter(
+                projet=OuterRef("pk"),
+                status=PROJET_STATUS_DISMISSED,
+            )
+        )
+
+        return self.annotate(
+            _status=Case(
+                # If not all dotations have programmation, return PROCESSING
+                When(
+                    has_processing,
+                    then=Value(PROJET_STATUS_PROCESSING),
+                ),
+                # If any dotation is ACCEPTED, return ACCEPTED
+                When(
+                    has_accepted,
+                    then=Value(PROJET_STATUS_ACCEPTED),
+                ),
+                # If any dotation is DISMISSED, return DISMISSED
+                When(
+                    has_dismissed,
+                    then=Value(PROJET_STATUS_DISMISSED),
+                ),
+                # Otherwise return REFUSED
+                default=Value(PROJET_STATUS_REFUSED),
+            )
+        )
+
     def for_perimetre(self, perimetre: Perimetre | None):
         if perimetre is None:
             return self
@@ -136,6 +194,30 @@ class ProjetQuerySet(models.QuerySet):
         )
         return projet_qs_not_processed_before_the_start_of_the_year
 
+    def to_notify(self):
+        return self.annotate(
+            dotations_count=Count("dotationprojet"),
+            programmation_count=Count(
+                "dotationprojet__programmation_projet",
+            ),
+        ).filter(dotations_count=F("programmation_count"), notified_at__isnull=True)
+
+    def can_send_notification(self):
+        return self.to_notify().exclude(
+            dotationprojet__in=DotationProjet.objects.without_signed_document()
+        )
+
+    def with_at_least_one_programmed_dotation(self):
+        from gsl_programmation.models import ProgrammationProjet
+
+        return self.filter(
+            Exists(
+                ProgrammationProjet.objects.filter(
+                    dotation_projet__projet=OuterRef("pk")
+                )
+            )
+        )
+
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
     def get_queryset(self):
@@ -155,10 +237,8 @@ class Projet(models.Model):
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT, null=True)
     perimetre = models.ForeignKey(Perimetre, on_delete=models.PROTECT, null=True)
 
-    status = models.CharField(
-        verbose_name="Statut",
-        choices=PROJET_STATUS_CHOICES,
-        default=PROJET_STATUS_PROCESSING,
+    notified_at = models.DateTimeField(
+        verbose_name="Date de notification", null=True, blank=True
     )
 
     is_in_qpv = models.BooleanField("Projet situé en QPV", null=False, default=False)
@@ -169,7 +249,37 @@ class Projet(models.Model):
     )
     is_budget_vert = models.BooleanField(
         "Projet concourant à la transition écologique au sens budget vert",
-        null=True,
+        null=False,
+        default=False,
+    )
+    is_frr = models.BooleanField(
+        "Projet situé en FRR",
+        null=False,
+        default=False,
+    )
+    is_acv = models.BooleanField(
+        "Projet rattaché à un programme Action coeurs de Ville (ACV)",
+        null=False,
+        default=False,
+    )
+    is_pvd = models.BooleanField(
+        "Projet rattaché à un programme Petites villes de demain (PVD)",
+        null=False,
+        default=False,
+    )
+    is_va = models.BooleanField(
+        "Projet rattaché à un programme Villages d'avenir",
+        null=False,
+        default=False,
+    )
+    is_autre_zonage_local = models.BooleanField(
+        "Projet rattaché à un autre zonage local",
+        null=False,
+        default=False,
+    )
+    is_contrat_local = models.BooleanField(
+        "Projet rattaché à un contrat local",
+        null=False,
         default=False,
     )
     free_comment = models.TextField("Commentaires libres", blank=True, default="")
@@ -183,6 +293,15 @@ class Projet(models.Model):
         from django.urls import reverse
 
         return reverse("projet:get-projet", kwargs={"projet_id": self.id})
+
+    @property
+    def status(self):
+        if hasattr(self, "_status"):
+            return self._status
+
+        return projet_status_from_dotation_statuses(
+            list(d.status for d in self.dotationprojet_set.all())
+        )
 
     @property
     def can_have_a_commission_detr_avis(self) -> bool:
@@ -227,13 +346,103 @@ class Projet(models.Model):
 
     @property
     def to_notify(self) -> bool:
-        from gsl_programmation.models import ProgrammationProjet
+        """
+        Returns True if the projet has not been notified yet, and all dotations have a programmation.
 
-        return ProgrammationProjet.objects.filter(
-            dotation_projet__projet=self,
-            status=ProgrammationProjet.STATUS_ACCEPTED,
-            notified_at__isnull=True,
-        ).exists()
+        Does not check if the programmation has been accepted or refused ! This is not necessary.
+        """
+        return all(
+            (
+                hasattr(d, "programmation_projet")
+                and d.programmation_projet.notified_at is None
+            )
+            for d in self.dotationprojet_set.all()
+        )
+
+    @property
+    def can_send_notification(self) -> bool:
+        return (
+            self.to_notify
+            and not self.dotationprojet_set.without_signed_document().exists()
+        )
+
+    @property
+    def can_display_notification_tab(self) -> bool:
+        return any(
+            d.status == PROJET_STATUS_ACCEPTED for d in self.dotationprojet_set.all()
+        )
+
+    @property
+    def dotation_not_treated(self) -> Optional[POSSIBLE_DOTATIONS]:
+        return next(
+            (
+                dp.dotation
+                for dp in self.dotationprojet_set.all()
+                if dp.status == PROJET_STATUS_PROCESSING
+            ),
+            None,
+        )
+
+    @property
+    def all_dotations_have_processing_status(self) -> bool:
+        return all(
+            dp.status == PROJET_STATUS_PROCESSING
+            for dp in self.dotationprojet_set.all()
+        )
+
+    @property
+    def display_notification_message(self) -> bool:
+        return not self.all_dotations_have_processing_status
+
+    @property
+    def display_notification_button(self) -> bool:
+        return (
+            any(
+                dp.status == PROJET_STATUS_ACCEPTED
+                for dp in self.dotationprojet_set.all()
+            )
+            and self.notified_at is None
+        )
+
+    @property
+    def documents(self):
+        from gsl_notification.models import (
+            Annexe,
+            Arrete,
+            ArreteEtLettreSignes,
+            LettreNotification,
+        )
+
+        return sorted(
+            (
+                document
+                for document in (
+                    *Arrete.objects.filter(
+                        programmation_projet__dotation_projet__projet=self
+                    ),
+                    *LettreNotification.objects.filter(
+                        programmation_projet__dotation_projet__projet=self
+                    ),
+                    *ArreteEtLettreSignes.objects.filter(
+                        programmation_projet__dotation_projet__projet=self
+                    ),
+                    *Annexe.objects.filter(
+                        programmation_projet__dotation_projet__projet=self
+                    ),
+                )
+                if document
+            ),
+            key=lambda d: d.created_at,
+        )
+
+
+class DotationProjetQuerySet(models.QuerySet):
+    def without_signed_document(self):
+        return self.filter(
+            programmation_projet__isnull=False,
+            status=PROJET_STATUS_ACCEPTED,
+            programmation_projet__arrete_et_lettre_signes__isnull=True,
+        )
 
 
 class DotationProjet(models.Model):
@@ -259,6 +468,8 @@ class DotationProjet(models.Model):
     detr_categories = models.ManyToManyField(
         CategorieDetr, verbose_name="Catégories d’opération DETR"
     )
+
+    objects = DotationProjetQuerySet.as_manager()
 
     class Meta:
         unique_together = ("projet", "dotation")
@@ -319,6 +530,30 @@ class DotationProjet(models.Model):
         return self.projet.dossier_ds
 
     @property
+    def other_dotations(self) -> List["DotationProjet"]:
+        return list(d for d in self.projet.dotationprojet_set.all() if d.pk != self.pk)
+
+    @property
+    def other_accepted_dotations(self) -> List[POSSIBLE_DOTATIONS]:
+        return [
+            d.dotation
+            for d in self.other_dotations
+            if d.status == PROJET_STATUS_ACCEPTED
+        ]
+
+    @property
+    def last_updated_simulation_projet(self) -> Optional["SimulationProjet"]:
+        """
+        We use python side sort so we benefit from prefetching !
+        """
+        simulations = sorted(
+            self.simulationprojet_set.all(),
+            key=lambda s: s.updated_at,
+            reverse=True,
+        )
+        return simulations[0] if len(simulations) else None
+
+    @property
     def assiette_or_cout_total(self):
         if self.assiette is not None:
             return self.assiette
@@ -347,7 +582,7 @@ class DotationProjet(models.Model):
         return None
 
     @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
-    def accept(self, montant: float, enveloppe: "Enveloppe"):
+    def accept_without_ds_update(self, montant: float, enveloppe: "Enveloppe"):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -361,13 +596,36 @@ class DotationProjet(models.Model):
             montant=montant,
         )
 
-        ProgrammationProjet.objects.update_or_create(
+        programmation_projet, _ = ProgrammationProjet.objects.update_or_create(
             dotation_projet=self,
             enveloppe=enveloppe.delegation_root,
             defaults={
                 "montant": montant,
                 "status": ProgrammationProjet.STATUS_ACCEPTED,
             },
+        )
+        self.programmation_projet = programmation_projet
+
+    @transaction.atomic
+    @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
+    def accept(
+        self,
+        montant: float,
+        enveloppe: "Enveloppe",
+        user: Collegue,
+    ):
+        self.accept_without_ds_update(montant, enveloppe)
+
+        projet_dotation_checked = self.other_accepted_dotations
+        ds_service = DsService()
+        ds_service.update_ds_annotations_for_one_dotation(
+            dossier=self.projet.dossier_ds,
+            user=user,
+            dotations_to_be_checked=[self.dotation] + projet_dotation_checked,
+            annotations_dotation_to_update=self.dotation,
+            assiette=floatize(self.assiette),
+            montant=floatize(montant),
+            taux=floatize(self.taux_retenu),
         )
 
     @transition(field=status, source="*", target=PROJET_STATUS_REFUSED)
@@ -422,7 +680,7 @@ class DotationProjet(models.Model):
         source=[PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED],
         target=PROJET_STATUS_PROCESSING,
     )
-    def set_back_status_to_processing(self):
+    def set_back_status_to_processing_without_ds(self):
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -431,6 +689,23 @@ class DotationProjet(models.Model):
         )
 
         ProgrammationProjet.objects.filter(dotation_projet=self).delete()
+        self.projet.notified_at = None
+        self.projet.save()
+
+    @transaction.atomic
+    @transition(
+        field=status,
+        source=[PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED],
+        target=PROJET_STATUS_PROCESSING,
+    )
+    def set_back_status_to_processing(self, user: Collegue):
+        self.set_back_status_to_processing_without_ds()
+        ds_service = DsService()
+        ds_service.update_ds_annotations_for_one_dotation(
+            dossier=self.projet.dossier_ds,
+            user=user,
+            dotations_to_be_checked=self.other_accepted_dotations,
+        )
 
 
 class ProjetNote(BaseModel):
@@ -438,3 +713,28 @@ class ProjetNote(BaseModel):
     title = models.CharField(max_length=100)
     content = models.TextField()
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
+
+
+def projet_status_from_dotation_statuses(statuses: List[str] | Tuple[str]) -> str:
+    from gsl_simulation.models import SimulationProjet
+
+    if any(
+        status == PROJET_STATUS_PROCESSING
+        or status == SimulationProjet.STATUS_PROCESSING
+        for status in statuses
+    ):
+        return PROJET_STATUS_PROCESSING
+
+    if any(
+        status == PROJET_STATUS_ACCEPTED or status == SimulationProjet.STATUS_ACCEPTED
+        for status in statuses
+    ):
+        return PROJET_STATUS_ACCEPTED
+
+    if any(
+        status == PROJET_STATUS_DISMISSED or status == SimulationProjet.STATUS_DISMISSED
+        for status in statuses
+    ):
+        return PROJET_STATUS_DISMISSED
+
+    return PROJET_STATUS_REFUSED

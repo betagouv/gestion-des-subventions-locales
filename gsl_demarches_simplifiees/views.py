@@ -12,6 +12,7 @@ from django.views.decorators.http import require_GET, require_POST
 from django.views.generic.list import ListView
 from django_celery_results.models import TaskResult
 
+from gsl.settings import ALLOWED_HOSTS
 from gsl_projet.models import Projet
 
 from .exceptions import DsServiceException
@@ -55,16 +56,20 @@ def refresh_one_dossier(request, dossier_ds_number):
         messages.error(
             request,
             (
-                "Une erreur s’est produite lors de l’appel à Démarches Simplifiées. "
+                "Une erreur s’est produite lors de l’appel à Démarche Numérique. "
                 "Essayez à nouveau dans quelques instants."
             ),
         )
 
-    next = request.POST.get("next", "/")
-    is_next_safe = url_has_allowed_host_and_scheme(next, "", True)
-    if not is_next_safe:
-        next = "/"
-    return redirect(next)
+    url = request.POST.get("next")
+    if not url:
+        url = request.headers.get("Referer")
+
+    is_url_safe = url_has_allowed_host_and_scheme(url, allowed_hosts=ALLOWED_HOSTS)
+    if is_url_safe:
+        return redirect(url)
+
+    return redirect("/")
 
 
 @staff_member_required
@@ -90,8 +95,8 @@ def post_get_ds_demarches_from_numbers(request):
 
     if number_of_demarches_in_the_pipe > 0:
         message = ngettext(
-            "%(count)d démarche va être récupérée depuis DS.",
-            "%(count)d démarches vont être récupérées depuis DS.",
+            "%(count)d démarche va être récupérée depuis DN.",
+            "%(count)d démarches vont être récupérées depuis DN.",
             number_of_demarches_in_the_pipe,
         ) % {"count": number_of_demarches_in_the_pipe}
         messages.success(request, message)
@@ -150,5 +155,7 @@ def view_dossier_json(request, dossier_ds_number):
 @require_POST
 def fetch_demarche_dossiers(request):
     demarche_ds_number = int(request.POST.get("demarche_ds_number"))
-    task_save_demarche_dossiers_from_ds.delay(demarche_ds_number)
+    task_save_demarche_dossiers_from_ds.delay(
+        demarche_ds_number, using_updated_since=False
+    )
     return redirect("ds:liste-demarches")

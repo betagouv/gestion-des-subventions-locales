@@ -14,6 +14,10 @@
             <form method="POST">
                 {% csrf_token %}
                 {{ form }}
+                <p class="text-align-right">
+                    <a class="fr-link"
+                       href="{% url 'gsl_projet:enveloppe-create' %}?next={{ request.path }}">Créer une nouvelle sous-enveloppe</a>
+                </p>
                 <button class="fr-btn" type="submit">
                     Créer une simulation
                 </button>

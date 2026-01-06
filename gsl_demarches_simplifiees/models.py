@@ -1,9 +1,14 @@
+from logging import getLogger
+
 from django.db import models
 from django.urls import reverse
 
 from gsl_core.models import Adresse, Perimetre
 from gsl_core.models import Arrondissement as CoreArrondissement
+from gsl_core.models import Departement as CoreDepartement
 from gsl_projet.constants import MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
+
+logger = getLogger(__name__)
 
 
 class DsModel(models.Model):
@@ -16,10 +21,10 @@ class DsModel(models.Model):
 
 class Demarche(DsModel):
     """
-    Class used to keep DS' "Démarches" data
+    Class used to keep DN' "Démarches" data
     See:
-    https://www.demarches-simplifiees.fr/graphql/schema/index.html#definition-Demarche
-    https://www.demarches-simplifiees.fr/graphql/schema/index.html#definition-DemarcheDescriptor
+    https://www.demarches-simplifiees.fr/graphql/schema/types/Demarche
+    https://www.demarches-simplifiees.fr/graphql/schema/types/DemarcheDescriptor
     """
 
     STATE_BROUILLON = "brouillon"
@@ -41,7 +46,7 @@ class Demarche(DsModel):
         null=True,
     )
 
-    # Fields prefixed with ds_ are DS fixed fields,
+    # Fields prefixed with ds_ are DN fixed fields,
     # copied as-is, without any mapping needed.
     ds_id = models.CharField("Identifiant DS", unique=True)
     ds_number = models.IntegerField("Numéro DS", unique=True)  # type Int graphql
@@ -61,6 +66,9 @@ class Demarche(DsModel):
     )
     active_revision_date = models.DateTimeField(
         "Date de publication de la révision active", blank=True, null=True
+    )
+    updated_since = models.DateTimeField(
+        "Date de dernière mise à jour des dossiers", blank=True, null=True
     )
 
     class Meta:
@@ -102,7 +110,7 @@ class Naf(models.Model):
 
 class PersonneMorale(models.Model):
     """
-    see https://www.demarches-simplifiees.fr/graphql/schema/index.html#definition-PersonneMorale
+    see https://www.demarches-simplifiees.fr/graphql/schema/types/PersonneMorale
     """
 
     siret = models.CharField("SIRET", unique=True, primary_key=True)
@@ -152,7 +160,7 @@ class PersonneMorale(models.Model):
 
 class Dossier(DsModel):
     """
-    See https://www.demarches-simplifiees.fr/graphql/schema/index.html#definition-Dossier
+    See https://www.demarches-simplifiees.fr/graphql/schema/types/Dossier
     """
 
     STATE_ACCEPTE = "accepte"
@@ -209,10 +217,17 @@ class Dossier(DsModel):
         blank=True,
         null=True,
     )
+    porteur_de_projet_departement = models.ForeignKey(
+        "gsl_demarches_simplifiees.Departement",
+        models.SET_NULL,
+        verbose_name="Département ou collectivité du demandeur",
+        blank=True,
+        null=True,
+    )
     porteur_de_projet_arrondissement = models.ForeignKey(
         "gsl_demarches_simplifiees.Arrondissement",
         models.SET_NULL,
-        verbose_name="Département et arrondissement du porteur de projet",
+        verbose_name="Arrondissement du demandeur",
         blank=True,
         null=True,
     )
@@ -317,7 +332,7 @@ class Dossier(DsModel):
         blank=True,
     )
     demande_montant = models.DecimalField(
-        "Montant de l'aide demandée",
+        "Montant de l'aide demandée (en euros)",
         max_digits=12,
         decimal_places=2,
         null=True,
@@ -364,6 +379,24 @@ class Dossier(DsModel):
     )
     annotations_is_qpv = models.BooleanField("Projet situé en QPV", null=True)
     annotations_is_crte = models.BooleanField("Projet rattaché à un CRTE", null=True)
+    annotations_is_frr = models.BooleanField("Projet situé en FRR", null=True)
+    annotations_is_acv = models.BooleanField(
+        "Projet rattaché à un programme Action coeurs de Ville (ACV)", null=True
+    )
+    annotations_is_pvd = models.BooleanField(
+        "Projet rattaché à un programme Petites villes de demain (PVD)", null=True
+    )
+    annotations_is_va = models.BooleanField(
+        "Projet rattaché à un programme Villages d'avenir", null=True
+    )
+    annotations_is_autre_zonage_local = models.BooleanField(
+        "Projet rattaché à un autre zonage local", null=True
+    )
+    annotations_is_contrat_local = models.BooleanField(
+        "Projet rattaché à un contrat local", null=True
+    )
+
+    # TODO remove these three fields at the end of DUN dev
     annotations_assiette = models.DecimalField(
         "Montant des dépenses éligibles retenues (€)",
         max_digits=12,
@@ -385,9 +418,54 @@ class Dossier(DsModel):
         null=True,
         blank=True,
     )
+    # DETR
+    annotations_assiette_detr = models.DecimalField(
+        "DETR - Montant des dépenses éligibles retenues (en euros)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    annotations_montant_accorde_detr = models.DecimalField(
+        "DETR - Montant définitif de la subvention (en euros)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    annotations_taux_detr = models.DecimalField(
+        "DETR - Taux de subvention (%)",
+        max_digits=6,
+        decimal_places=3,
+        null=True,
+        blank=True,
+    )
+    # DSIL
+    annotations_assiette_dsil = models.DecimalField(
+        "DSIL - Montant des dépenses éligibles retenues (en euros)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    annotations_montant_accorde_dsil = models.DecimalField(
+        "DSIL - Montant définitif de la subvention (en euros)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    annotations_taux_dsil = models.DecimalField(
+        "DSIL - Taux de subvention (%)",
+        max_digits=6,
+        decimal_places=3,
+        null=True,
+        blank=True,
+    )
 
     _MAPPED_CHAMPS_FIELDS = (
         porteur_de_projet_nature,
+        porteur_de_projet_departement,
         porteur_de_projet_arrondissement,
         porteur_de_projet_fonction,
         porteur_de_projet_nom,
@@ -427,9 +505,18 @@ class Dossier(DsModel):
         annotations_is_budget_vert,
         annotations_is_qpv,
         annotations_is_crte,
-        annotations_assiette,
-        annotations_montant_accorde,
-        annotations_taux,
+        annotations_is_frr,
+        annotations_is_acv,
+        annotations_is_pvd,
+        annotations_is_va,
+        annotations_is_autre_zonage_local,
+        annotations_is_contrat_local,
+        annotations_assiette_detr,
+        annotations_montant_accorde_detr,
+        annotations_taux_detr,
+        annotations_assiette_dsil,
+        annotations_montant_accorde_dsil,
+        annotations_taux_dsil,
     )
     MAPPED_FIELDS = _MAPPED_ANNOTATIONS_FIELDS + _MAPPED_CHAMPS_FIELDS
 
@@ -441,7 +528,7 @@ class Dossier(DsModel):
 
     @property
     def url_on_ds(self):
-        return f"https://www.demarches-simplifiees.fr/procedures/{self.ds_demarche.ds_number}/dossiers/{self.ds_number}"
+        return f"https://demarche.numerique.gouv.fr/procedures/{self.ds_demarche.ds_number}/dossiers/{self.ds_number}"
 
     @property
     def json_url(self):
@@ -449,35 +536,48 @@ class Dossier(DsModel):
             "ds:view-dossier-json", kwargs={"dossier_ds_number": self.ds_number}
         )
 
-    @property
-    def perimetre(self) -> Perimetre | None:
+    def get_projet_perimetre(self) -> Perimetre | None:
         """
-        Retourne le périmètre du projet, le + précis possible (niveau arrondissement).
-        En premier lieu, on essaie de déterminer le périmètre du projet d'après la
-        commune du siège social du demandeur (ds_demandeur.address.commune).
-        Si on n'a pas l'information, ou si elle n'est pas assez précise, alors on prend
-        l'arrondissement déclaré par le demandeur dans le formulaire DS
-        (champ DS porteur_de_projet_arrondissement).
+        Retourne le périmètre du projet qui sera issu du dossier, à partir de
+        l'arrondissement déclaré par le demandeur dans le formulaire DN
+        (champ DN porteur_de_projet_arrondissement).
+
+        À défaut d'arrondissement dans le département (cas des n°75 et 90)
+        on retourne un périmètre départemental.
 
         :return: Perimetre
         """
         projet_departement, projet_arrondissement = None, None
-        if self.ds_demandeur and self.ds_demandeur.address:
-            commune = self.ds_demandeur.address.commune
-            if commune and commune.departement:
-                projet_departement = commune.departement
-                if commune.arrondissement:
-                    projet_arrondissement = commune.arrondissement
-        if not projet_arrondissement:
-            ds_arrondissement_declaratif = self.porteur_de_projet_arrondissement
-            if ds_arrondissement_declaratif is not None:
-                projet_arrondissement = ds_arrondissement_declaratif.core_arrondissement
-                if projet_arrondissement:
-                    projet_departement = projet_arrondissement.departement
+        ds_arrondissement_declaratif = self.porteur_de_projet_arrondissement
+        if ds_arrondissement_declaratif is not None:
+            projet_arrondissement = ds_arrondissement_declaratif.core_arrondissement
+            if projet_arrondissement:
+                projet_departement = projet_arrondissement.departement
+        elif self.porteur_de_projet_departement:
+            ds_departement_declaratif = self.porteur_de_projet_departement
+            projet_departement = ds_departement_declaratif.core_departement
+            arrondissement_count = projet_departement.arrondissement_set.count()
+            # Dans un département avec plusieurs arrondissements, les dossiers DS
+            # devraient porter un arrondissement renseigné. => Lever une alerte
+            if arrondissement_count > 1:
+                logger.warning(
+                    "Dossier is missing arrondissement.",
+                    extra={
+                        "dossier_ds_number": self.ds_number,
+                        "arrondissement": self.porteur_de_projet_arrondissement,
+                        "departement": projet_departement,
+                    },
+                )
+            elif arrondissement_count == 1:
+                # S'il n'y a qu'un seul arrondissement dans le département :
+                # on prend le département renseigné
+                projet_arrondissement = projet_departement.arrondissement_set.get()
         if projet_arrondissement or projet_departement:
-            return Perimetre.objects.get(
-                departement=projet_departement, arrondissement=projet_arrondissement
-            )
+            return Perimetre.objects.get_or_create(
+                departement=projet_departement,
+                arrondissement=projet_arrondissement,
+                region_id=projet_departement.region_id,
+            )[0]
         return None
 
     @property
@@ -491,7 +591,9 @@ class Dossier(DsModel):
         return f"{self.porteur_de_projet_nom} {self.porteur_de_projet_prenom}"
 
     @property
-    def demande_montant_is_greater_thant_min_montant_for_detr_commission(self):
+    def demande_montant_is_greater_than_min_montant_for_detr_commission(self):
+        if self.demande_montant is None:
+            return False
         return self.demande_montant >= MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
 
 
@@ -519,6 +621,21 @@ class NaturePorteurProjet(DsChoiceLibelle):
     class Meta:
         verbose_name = "Nature du porteur de projet"
         verbose_name_plural = "Natures de porteur de projet"
+
+
+class Departement(DsChoiceLibelle):
+    core_departement = models.ForeignKey(
+        CoreDepartement,
+        related_name="ds_departements",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        verbose_name="Département INSEE",
+    )
+
+    class Meta:
+        verbose_name = "Département DS"
+        verbose_name_plural = "Départements DS"
 
 
 class Arrondissement(DsChoiceLibelle):
@@ -605,10 +722,6 @@ def mapping_field_choices():
     )
 
 
-def reversed_mapping():
-    return
-
-
 class FieldMappingForHuman(DsModel):
     label = models.CharField("Libellé du champ DS", unique=True)
     django_field = models.CharField(
@@ -640,7 +753,9 @@ class FieldMappingForComputer(DsModel):
         help_text="Libellé au moment où ce champ a été rencontré pour la première fois — il a pu changer depuis !",
     )
     ds_field_type = models.CharField("Type de champ DS")
-    django_field = models.CharField("Champ Django", choices=mapping_field_choices)
+    django_field = models.CharField(
+        "Champ Django", choices=mapping_field_choices, blank=True
+    )
     field_mapping_for_human = models.ForeignKey(
         FieldMappingForHuman,
         on_delete=models.SET_NULL,
@@ -662,7 +777,11 @@ class FieldMappingForComputer(DsModel):
         return f"Correspondance technique {self.pk}"
 
     def django_field_label(self):
-        return Dossier._meta.get_field(self.django_field).verbose_name
+        if self.django_field:
+            return Dossier._meta.get_field(self.django_field).verbose_name
+        return None
 
     def django_field_type(self):
-        return str(Dossier._meta.get_field(self.django_field).__class__)[32:-2]
+        if self.django_field:
+            return str(Dossier._meta.get_field(self.django_field).__class__)[32:-2]
+        return None

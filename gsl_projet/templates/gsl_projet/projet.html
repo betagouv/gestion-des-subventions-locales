@@ -26,10 +26,14 @@
         </h1>
         <div class="projet-header__status">
             {% block status_badge %}
-                <span class="fr-badge fr-text--xl fr-mt-2v fr-ml-5w badge-projet-status badge-projet-status__{{ projet.status }}">{{ projet.get_status_display|remove_first_word }}</span>
-                {% if projet.to_notify %}
-                    <span class="fr-text--xl fr-mt-2v projet__to_notify">À notifier <span class="fr-icon-mail-fill"></span></span>
-                {% endif %}
+                {% for dotation_projet in dotation_projets %}
+                    <span class="fr-badge fr-text--xl fr-mt-2v fr-ml-5w badge-projet-status badge-projet-status__{{ dotation_projet.status }}">
+                        {% if dotation_projets|length > 1 %}
+                            {{ dotation_projet.dotation }}
+                        {% endif %}
+                        {{ dotation_projet.get_status_display|remove_first_word }}
+                    </span>
+                {% endfor %}
             {% endblock status_badge %}
         </div>
     </div>
@@ -40,9 +44,9 @@
                 <a href="{{ dossier.url_on_ds }}"
                    target="_blank"
                    rel="noreferrer noopener"
-                   title="Voir le dossier sur Démarches Simplifiées - nouvelle fenêtre"
+                   title="Voir le dossier sur Démarche Numérique - nouvelle fenêtre"
                    class="fr-btn fr-btn--icon-right fr-icon-external-link-line fr-btn--secondary">
-                    Voir le dossier sur Démarches Simplifiées
+                    Voir le dossier sur Démarche Numérique
                     <span class="fr-sr-only">(nouvelle fenêtre)</span>
                 </a>
             </li>
@@ -55,13 +59,13 @@
                     <button type="submit"
                             class="fr-btn fr-btn--icon-right fr-icon-refresh-line"
                             aria-describedby="info-refresh-from-ds">
-                        Actualiser depuis DS
+                        Actualiser depuis DN
                     </button>
                     <span class="fr-tooltip fr-placement"
                           id="info-refresh-from-ds"
                           role="tooltip">
                         Rafraîchir le dossier sur Turgot à partir des données
-                        provenant de Démarches Simplifiées
+                        provenant de Démarche Numérique
                     </span>
                 </form>
             </li>

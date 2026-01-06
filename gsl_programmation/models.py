@@ -3,6 +3,7 @@ from functools import cached_property
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Sum
+from typing_extensions import deprecated
 
 from gsl_core.models import Perimetre
 from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
@@ -12,8 +13,14 @@ from gsl_projet.utils.utils import compute_taux
 
 class EnveloppeQueryset(models.QuerySet):
     @transaction.atomic
-    def create(self, **kwargs):
-        new_obj = super().create(**kwargs)
+    def create(
+        self, dotation: str | None = None, perimetre: Perimetre | None = None, **kwargs
+    ):
+        # Business constraints (there for safety but should never raise, we have form validation)
+        if dotation == DOTATION_DETR and perimetre.type == Perimetre.TYPE_REGION:
+            raise ValueError("For a DETR Enveloppe, region perimeter is not allowed")
+
+        new_obj = super().create(dotation=dotation, perimetre=perimetre, **kwargs)
         if (
             new_obj.deleguee_by is not None
             or (
@@ -50,7 +57,7 @@ class Enveloppe(models.Model):
     )
     annee = models.IntegerField(verbose_name="Année")
     perimetre = models.ForeignKey(
-        Perimetre, on_delete=models.PROTECT, verbose_name="Périmètre", null=True
+        Perimetre, on_delete=models.PROTECT, verbose_name="Périmètre"
     )
 
     deleguee_by = models.ForeignKey(
@@ -203,7 +210,7 @@ class ProgrammationProjetQuerySet(models.QuerySet):
         )
 
     def to_notify(self):
-        return self.filter(status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None)
+        return self.filter(dotation_projet__projet__in=Projet.objects.to_notify())
 
     def visible_to_user(self, user):
         if user.is_staff:
@@ -252,9 +259,6 @@ class ProgrammationProjet(models.Model):
         verbose_name="Justification", blank=True, null=False, default=""
     )
 
-    notified_at = models.DateTimeField(
-        verbose_name="Date de notification", null=True, blank=True
-    )
     created_at = models.DateTimeField(
         verbose_name="Date de création", auto_now_add=True
     )
@@ -271,12 +275,13 @@ class ProgrammationProjet(models.Model):
     def __str__(self):
         return f"Projet programmé {self.pk}"
 
+    # TODO DUN: remove it ?
     def get_absolute_url(self):
         from django.urls import reverse
 
         return reverse(
             "gsl_programmation:programmation-projet-detail",
-            kwargs={"programmation_projet_id": self.pk},
+            kwargs={"projet_id": self.projet.id},
         )
 
     @property
@@ -292,12 +297,23 @@ class ProgrammationProjet(models.Model):
         return compute_taux(self.montant, self.dotation_projet.assiette_or_cout_total)
 
     @property
+    @deprecated("Use `Projet.to_notify` instead.")
     def to_notify(self):
-        return self.notified_at is None and self.status == self.STATUS_ACCEPTED
+        return self.projet.to_notify
 
     @property
     def dotation(self):
         return self.dotation_projet.dotation
+
+    @property
+    @deprecated("Use `Projet.notified_at` instead.")
+    def notified_at(self):
+        return self.projet.notified_at
+
+    @notified_at.setter
+    @deprecated("Use `Projet.notified_at` instead.")
+    def notified_at(self, value):
+        self.projet.notified_at = value
 
     @property
     def documents(self):

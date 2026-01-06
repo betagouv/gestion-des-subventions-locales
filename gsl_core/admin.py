@@ -68,7 +68,7 @@ class CollegueAdmin(AllPermsForStaffUser, UserAdmin, admin.ModelAdmin):
             },
         ),
         (
-            "Démarches Simplifiées",
+            "Démarche Numérique",
             {"fields": ("ds_profile",)},
         ),
         (
@@ -79,14 +79,14 @@ class CollegueAdmin(AllPermsForStaffUser, UserAdmin, admin.ModelAdmin):
         ),
         ("Dates", {"fields": ("last_login", "date_joined")}),
     )
-    autocomplete_fields = ["perimetre"]
+    autocomplete_fields = ["perimetre", "ds_profile"]
     actions = ("associate_ds_profile_to_users",)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related("perimetre__departement", "perimetre__region")
 
-    @admin.action(description="Association des profils DS aux utilisateurs")
+    @admin.action(description="Association des profils DN aux utilisateurs")
     def associate_ds_profile_to_users(self, request, queryset):
         user_ids = list(queryset.values_list("id", flat=True))
         associate_or_update_ds_profile_to_users(user_ids)
@@ -110,11 +110,13 @@ class RegionAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
 
 @admin.register(Departement)
 class DepartementAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
+    search_fields = ("name", "insee_code")
     resource_classes = (DepartementResource,)
 
 
 @admin.register(Arrondissement)
 class ArrondissementAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
+    search_fields = ("name", "insee_code")
     resource_classes = (ArrondissementResource,)
 
 
@@ -136,7 +138,13 @@ class CommuneAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
 
 @admin.register(Perimetre)
 class PerimetreAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    search_fields = ("departement__name", "region__name", "arrondissement__name")
+    search_fields = (
+        "departement__insee_code",
+        "arrondissement__insee_code",
+        "departement__name",
+        "region__name",
+        "arrondissement__name",
+    )
     list_display = (
         "__str__",
         "type",

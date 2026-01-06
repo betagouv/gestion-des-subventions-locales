@@ -1,0 +1,26 @@
+{% load simulation_filters %}
+<div class="fr-nav fr-translate input-status-select input-status-{{ simu.status }} fr-mb-2w"
+     id="status-dropdown-{{ simu.pk }}">
+    <div class="fr-nav__item{% if table %}fr-nav__item--align-right{% endif %}">
+        <button class="fr-select fr-btn--{% if table %}sm{% else %}lg{% endif %} fr-dropdown__button"
+                aria-expanded="false"
+                aria-controls="status-dropdown-{{ simu.pk }}"
+                aria-label="{{ simu.get_status_display }}. Changer le statut du projet">
+            {{ simu.get_status_display }}
+        </button>
+        <div class="fr-collapse fr-menu"
+             aria-label="Options de statut"
+             id="status-dropdown-{{ simu.pk }}">
+            <ul class="fr-menu__list">
+                {% for key, value in simu.STATUS_CHOICES %}
+                    <li>
+                        <button class="fr-nav__link fr-activ simulation_projet_status_option"
+                                {% if simu.status == key %} disabled="disabled" aria-current="true" {% elif simu|status_needs_modal:key %} hx-get="{{ simu|status_url:key }}" hx-swap="outerHTML" {% else %} hx-post="{{ simu|status_url:key }}" hx-vals='{"status": "{{ key }}"}' hx-disabled-elt="#status-dropdown-{{ simu.pk }} button"{% endif %}>
+                            {{ value|split_symbol_and_status|safe }}
+                        </button>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>

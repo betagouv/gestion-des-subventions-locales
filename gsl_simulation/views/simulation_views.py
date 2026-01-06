@@ -2,11 +2,14 @@ from datetime import date
 from functools import cached_property
 
 from django.core.paginator import Paginator
-from django.db.models import Count, Prefetch, QuerySet
+from django.db.models import Prefetch
 from django.forms import NumberInput
 from django.http import HttpResponse
-from django.shortcuts import redirect, render
-from django.urls import reverse
+from django.shortcuts import redirect
+from django.urls import reverse, reverse_lazy
+from django.utils.decorators import method_decorator
+from django.views.decorators.http import require_POST
+from django.views.generic import CreateView, DeleteView
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 from django_filters import MultipleChoiceFilter, NumberFilter
@@ -15,7 +18,7 @@ from django_filters.views import FilterView
 from gsl_core.models import Perimetre
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, DOTATIONS
-from gsl_projet.models import CategorieDetr, DotationProjet, Projet
+from gsl_projet.models import CategorieDetr, DotationProjet
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
@@ -31,8 +34,6 @@ from gsl_simulation.resources import (
     DetrSimulationProjetResource,
     DsilSimulationProjetResource,
 )
-from gsl_simulation.services.simulation_service import SimulationService
-from gsl_simulation.tasks import add_enveloppe_projets_to_simulation
 
 
 class SimulationListView(ListView):
@@ -224,16 +225,11 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                 "status_summary": simulation.get_projet_status_summary(),
                 "total_cost": ProjetService.get_total_cost(qs),
                 "total_amount_asked": ProjetService.get_total_amount_asked(qs),
-                "total_amount_granted": SimulationService.get_total_amount_granted(
-                    qs, simulation
-                ),
+                "total_amount_granted": simulation.get_total_amount_granted(qs),
                 "available_states": SimulationProjet.STATUS_CHOICES,
                 "filter_params": self.request.GET.urlencode(),
                 "enveloppe": simulation.enveloppe,
                 "dotations": DOTATIONS,
-                "other_dotations_simu": self._get_other_dotations_simulation_projet(
-                    current_page.object_list, simulation.enveloppe.dotation
-                ),
                 "export_types": FilteredProjetsExportView.EXPORT_TYPES,
                 "breadcrumb_dict": {
                     "links": [
@@ -256,6 +252,11 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         qs = qs.filter(dotationprojet__simulationprojet__simulation=simulation)
         qs = qs.select_related("demandeur", "address", "address__commune")
         qs = qs.prefetch_related(
+            "dotationprojet_set",
+            "dotationprojet_set__programmation_projet",
+            "dotationprojet_set__simulationprojet_set",
+            "dotationprojet_set__detr_categories",
+            "dossier_ds__demande_eligibilite_dsil",
             Prefetch(
                 "dotationprojet_set",
                 queryset=DotationProjet.objects.filter(
@@ -270,9 +271,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             ),
             "dotation_projet__programmation_projet",
         )
-        if simulation.dotation == DOTATION_DSIL:
-            qs = qs.prefetch_related("dossier_ds__demande_eligibilite_dsil")
-        else:
+        if simulation.dotation == DOTATION_DETR:
             qs = qs.prefetch_related(
                 "dotation_projet__detr_categories",
             )
@@ -299,48 +298,6 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             ).all()
         )
 
-    def _get_other_dotations_simulation_projet(
-        self, projets: QuerySet[Projet], current_dotation: str
-    ) -> dict[int, SimulationProjet]:
-        projet_ids = set(projets.values_list("id", flat=True))
-        ids_of_double_dotation_projet = set(
-            Projet.objects.annotate(dotation_projet_count=Count("dotationprojet"))
-            .filter(dotation_projet_count__gt=1, id__in=projet_ids)
-            .values_list("id", flat=True)
-        )
-        if not ids_of_double_dotation_projet:
-            return {}
-
-        # Récupère tous les SimulationProjet concernés en une seule requête
-        other_simulation_projets = (
-            SimulationProjet.objects.select_related(
-                "dotation_projet",
-                "dotation_projet__projet",
-                "dotation_projet__projet__dossier_ds",
-            )
-            .filter(dotation_projet__projet__id__in=ids_of_double_dotation_projet)
-            .exclude(simulation__enveloppe__dotation=current_dotation)
-            .order_by("dotation_projet__projet__id", "-updated_at")
-        )
-        if current_dotation == DOTATION_DSIL:
-            other_simulation_projets = other_simulation_projets.prefetch_related(
-                "dotation_projet__detr_categories"
-            )
-        else:
-            other_simulation_projets = other_simulation_projets.prefetch_related(
-                "dotation_projet__projet__dossier_ds__demande_eligibilite_dsil",
-            )
-        # On ne garde que le SimulationProjet le plus récent pour chaque projet_id
-        projet_id_to_last_updated_other_dotation_simulation_projet = {
-            pid: None for pid in ids_of_double_dotation_projet
-        }
-        for sp in other_simulation_projets:
-            pid = sp.dotation_projet.projet_id
-            if not projet_id_to_last_updated_other_dotation_simulation_projet[pid]:
-                projet_id_to_last_updated_other_dotation_simulation_projet[pid] = sp
-
-        return projet_id_to_last_updated_other_dotation_simulation_projet
-
     # This method is used to prevent caching of the page
     # This is useful for the row update with htmx
     def render_to_response(self, context, **response_kwargs):
@@ -351,36 +308,41 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         return response
 
 
-def simulation_form(request):
-    if request.method == "POST":
-        form = SimulationForm(request.POST, user=request.user)
-        if form.is_valid():
-            simulation = SimulationService.create_simulation(
-                request.user, form.cleaned_data["title"], form.cleaned_data["dotation"]
-            )
-            add_enveloppe_projets_to_simulation(simulation.id)
-            return redirect("simulation:simulation-list")
-        else:
-            return render(
-                request, "gsl_simulation/simulation_form.html", {"form": form}
-            )
-    else:
-        form = SimulationForm(user=request.user)
-        context = {
-            "breadcrumb_dict": {
-                "links": [
-                    {
-                        "url": reverse("gsl_simulation:simulation-list"),
-                        "title": "Mes simulations de programmation",
-                    },
-                ],
-                "current": "Création d'une simulation de programmation",
-            }
-        }
-        context["form"] = form
-        context["title"] = "Création d'une simulation de programmation"
+@method_decorator(require_POST, name="dispatch")
+class SimulationDeleteView(DeleteView):
+    success_url = reverse_lazy("simulation:simulation-list")
 
-        return render(request, "gsl_simulation/simulation_form.html", context)
+    def get_queryset(self):
+        visible_by_user_enveloppes = EnveloppeService.get_enveloppes_visible_for_a_user(
+            self.request.user
+        )
+        return Simulation.objects.filter(
+            enveloppe__in=visible_by_user_enveloppes
+        ).order_by("-created_at")
+
+
+class SimulationCreateView(CreateView):
+    model = Simulation
+    form_class = SimulationForm
+    template_name = "gsl_simulation/simulation_form.html"
+    success_url = reverse_lazy("simulation:simulation-list")
+
+    def get_form_kwargs(self):
+        return {"user": self.request.user, **super().get_form_kwargs()}
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["breadcrumb_dict"] = {
+            "links": [
+                {
+                    "url": reverse("gsl_simulation:simulation-list"),
+                    "title": "Mes simulations de programmation",
+                },
+            ],
+            "current": "Création d'une simulation de programmation",
+        }
+        context["title"] = "Création d'une simulation de programmation"
+        return context
 
 
 class FilteredProjetsExportView(SimulationDetailView):

@@ -55,7 +55,8 @@
                     "deleteNotificationDocumentModal": "/static/js/deleteNotificationDocumentModal.js",
                     "chooseDocumentType": "/static/js/chooseDocumentType.js",
                     "checkboxSelection": "/static/js/checkboxSelection.js",
-                    "processModal": "/static/js/controllers/processModal.js"
+                    "processModal": "/static/js/controllers/processModal.js",
+                    "bindAmountFields": "/static/js/controllers/bindAmountTields.js"
                 }
             }
             </script>
@@ -120,9 +121,9 @@
             import { TipTapEditor } from "tiptapEditor"
             import { ModeleArreteForm } from "modeleArreteForm"
             import { DeleteNotificationDocumentModal } from "deleteNotificationDocumentModal"
-            import { ChooseDocumentType } from "chooseDocumentType"
             import { CheckboxSelection } from "checkboxSelection"
             import { ProcessModal } from "processModal"
+            import { BindAmountFields } from "bindAmountFields"
 
             window.Stimulus = Application.start()
 
@@ -131,9 +132,9 @@
             Stimulus.register("tiptap-editor", TipTapEditor)
             Stimulus.register("modele-arrete-form", ModeleArreteForm)
             Stimulus.register("delete-notification-document-modal", DeleteNotificationDocumentModal)
-            Stimulus.register("choose-document-type", ChooseDocumentType)
             Stimulus.register("checkbox-selection", CheckboxSelection)
             Stimulus.register("process-modal", ProcessModal)
+            Stimulus.register("bind-amount-fields", BindAmountFields)
         </script>
 
         {% block extra_js %}

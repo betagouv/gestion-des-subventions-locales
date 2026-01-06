@@ -1,0 +1,57 @@
+{% extends "htmx/_base_htmx_modal.html" %}
+{% load simulation_filters %}
+
+{% block button_label %}
+    {{ new_simulation_status|status_to_label }}
+{% endblock button_label %}
+
+{% block content %}
+    <h1 class="fr-modal__title success-color">
+        <span class="fr-icon-checkbox-fill fr-icon--lg" aria-hidden="true"></span> Accepter le
+        financement du projet
+        {% if simulation_projet.dotation_projet.other_dotations|length > 0 %}
+            ({{ new_simulation_status|status_to_action_word|capfirst }} {{ simulation_projet.enveloppe.dotation }} et
+            {{ simulation_projet.dotation_projet.other_dotations.0.status|status_to_action_word }}
+            {{ simulation_projet.dotation_projet.other_dotations.0.dotation }})
+        {% endif %}
+    </h1>
+    {% if object.dotation_projet.assiette or new_simulation_status != "valid" %}
+        <p>
+            Ces changements vont être pris en compte dans toutes les simulations dans lesquelles le projet a été ajouté.
+            Il apparaîtra dans la programmation officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
+        </p>
+        <p>
+            Le demandeur ne va pas être notifié tout de suite.
+        </p>
+        <p>
+            Êtes-vous sûr(e) d'accepter ce projet&nbsp;?
+        </p>
+        <form id="{{ modal_id }}-form"
+              hx-post="{{ request.path }}"
+              hx-target="#{{ modal_id }}"
+              hx-swap="outerHTML"
+              hx-disabled-elt="#{{ modal_id }}-submit-button, #{{ modal_id }}-cancel-button">
+            {{ form.non_field_errors }}
+        </form>
+    {% else %}
+        <div class="fr-alert fr-alert--error fr-alert--sm fr-mt-6w">
+            <p class="fr-alert__title">
+                Impossible d'accepter le projet
+            </p>
+            <p>
+                Le projet ne peut pas être accepté car il manque l'assiette subventionnable.
+                Veuillez ajouter le montant des dépenses éligibles retenues avant d'accepter un projet.
+            </p>
+        </div>
+    {% endif %}
+{% endblock content %}
+
+{% block confirmation_button %}
+    <button type="submit"
+            class="fr-btn fr-btn--primary"
+            {% if not object.dotation_projet.assiette and new_simulation_status == "valid" %}disabled="disabled"{% endif %}
+            form="{{ modal_id }}-form"
+            id="{{ modal_id }}-submit-button">
+        Confirmer
+    </button>
+{% endblock confirmation_button %}

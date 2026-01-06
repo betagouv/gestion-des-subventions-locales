@@ -95,7 +95,9 @@ class Adresse(BaseModel):
         ):
             region, _ = Region.objects.get_or_create(
                 insee_code=raw_ds_data.get("regionCode"),
-                name=raw_ds_data.get("regionName"),
+                defaults={
+                    "name": raw_ds_data.get("regionName"),
+                },
             )
             departement, _ = Departement.objects.get_or_create(
                 insee_code=raw_ds_data.get("departmentCode"),

@@ -31,8 +31,8 @@
   padding-right: 16px;
 }
 
-.simulation-status {
-  text-align: right;
+.simulation-menu {
+  display: inline-block;
 }
 
 .dotation-dropdown > button {
@@ -55,25 +55,14 @@
   font-size: small;
 }
 
-/* other dotation */
-.other-simulation-row {
-  background-color: var(--background-default-grey-hover);
-  min-height: 40px;
-  height: 40px;
-}
 
 .gsl-projet-table table tbody tr.row-with-double-dotations td{ /* cette longue liste est utile pour être plus spécifique que .gsl-projet-table table tbody tr td */
   border-bottom: 1px solid var(--border-disabled-grey);
 }
 
-.information-other-dotation {
-  text-align: end;
-  font-style: italic;
-}
-
 .gsl-projet-table table tbody td.other-simulation-status {
   text-align: end;
-  padding-right: 26px;
+  padding-right: 38px;
 }
 
 .gsl-projet-table table tbody td.other-simulation-status.to_notify {
@@ -122,27 +111,60 @@
 
 /* status select */
 
-.status-select {
+.gsl-projet-table td.simulation-status {
+  padding: 0;
+  text-align: right;
+}
+
+.gsl-projet-table td.simulation-status .simulation-status-notified,
+.gsl-projet-table td.other-simulation-status .simulation-status-notified {
+  padding: 4px;
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+}
+
+.gsl-projet-table td.simulation-status .simulation-status-notified > .input-status-select {
+  width: 100%;
+}
+
+.gsl-projet-table .input-status-select .fr-btn--sm,
+.gsl-projet-table .input-status-select .fr-nav__link {
+  font-size: .6rem;
+  padding: .25rem 2rem .25rem .5rem;
+  text-align: right;
+}
+
+.gsl-projet-table .status-select {
   font-weight: bold;
 }
 
-.status-select:has(> option[value="valid"]:checked){
-  color: var(--text-default-success)
+.gsl-projet-table .input-status-select .fr-btn--tertiary {
+  color: var(--text-default-grey);
 }
 
-.status-select:has(> option[value="cancelled"]:checked){
-  color: var(--text-default-error)
+.gsl-projet-table .input-status-valid .fr-btn.fr-btn--tertiary {
+  color: var(--text-default-success);
 }
 
-.status-select:has(> option[value="provisionally_accepted"]:checked){
-  color: var(--text-default-info)
+.gsl-projet-table .input-status-cancelled .fr-btn.fr-btn--tertiary {
+  color: var(--text-default-error);
 }
 
-.status-select:has(> option[value="provisionally_refused"]:checked){
-  color: var(--text-action-high-orange-terre-battue)
+.gsl-projet-table .input-status-provisionally_accepted .fr-btn.fr-btn--tertiary {
+  color: var(--text-default-info);
 }
 
-/* inputs */
+.gsl-projet-table .input-status-provisionally_refused .fr-btn.fr-btn--tertiary {
+  color: var(--text-action-high-orange-terre-battue);
+}
+
+.simulation_projet_status_option {
+  justify-content:flex-start;
+  gap:8px;
+}
+
+/* text inputs */
 
 .input-status-color-valid{
   background-color: var(--background-alt-green-emeraude);

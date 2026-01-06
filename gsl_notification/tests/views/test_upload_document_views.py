@@ -14,7 +14,8 @@ from gsl_notification.tests.factories import (
     ArreteEtLettreSignesFactory,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import ANNEXE, ARRETE_ET_LETTRE_SIGNES
+from gsl_projet.constants import ANNEXE, ARRETE_ET_LETTRE_SIGNES, PROJET_STATUS_ACCEPTED
+from gsl_projet.tests.factories import DetrProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -44,6 +45,33 @@ def different_perimetre_client_with_user_logged():
     return ClientWithLoggedUserFactory(user)
 
 
+### choose-uploaded-document-type -----------------------------
+
+
+def test_choose_uploaded_document_type_displays_correctly(perimetre):
+    """Test that the upload document type choice page displays correctly"""
+    # Create a user with perimetre
+    user = CollegueFactory(perimetre=perimetre)
+    client = ClientWithLoggedUserFactory(user)
+
+    # Create a projet with an accepted DETR dotation
+    projet = ProjetFactory(perimetre=perimetre)
+    DetrProjetFactory(projet=projet, status=PROJET_STATUS_ACCEPTED)
+
+    # Make GET request to the URL
+    url = reverse(
+        "gsl_notification:choose-uploaded-document-type",
+        kwargs={"projet_id": projet.id},
+    )
+    response = client.get(url)
+
+    # Check response
+    assert response.status_code == 200
+    assert "gsl_notification/uploaded_document/choose_upload_document_type.html" in [
+        t.name for t in response.templates
+    ]
+
+
 ### upload-a-document -----------------------------
 
 
@@ -52,16 +80,18 @@ def different_perimetre_client_with_user_logged():
 def test_create_uploaded_document_view_with_not_correct_perimetre_and_without_arrete(
     programmation_projet, different_perimetre_client_with_user_logged, doc_type
 ):
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
     url = reverse(
         "notification:upload-a-document",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": projet.id,
+            "dotation": dotation,
             "document_type": doc_type,
         },
     )
     assert (
-        url
-        == f"/notification/{programmation_projet.id}/televersement/{doc_type}/creer/"
+        url == f"/notification/{projet.id}/televersement/{dotation}/{doc_type}/creer/"
     )
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
@@ -71,16 +101,18 @@ def test_create_uploaded_document_view_with_not_correct_perimetre_and_without_ar
 def test_create_uploaded_document_view_with_correct_perimetre_and_without_arrete(
     programmation_projet, correct_perimetre_client_with_user_logged, doc_type
 ):
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
     url = reverse(
         "notification:upload-a-document",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": projet.id,
+            "dotation": dotation,
             "document_type": doc_type,
         },
     )
     assert (
-        url
-        == f"/notification/{programmation_projet.id}/televersement/{doc_type}/creer/"
+        url == f"/notification/{projet.id}/televersement/{dotation}/{doc_type}/creer/"
     )
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 200
@@ -98,10 +130,13 @@ def test_create_uploaded_document_view_with_correct_perimetre_and_without_arrete
 def test_create_uploaded_document_view_valid_but_with_invalid_user_perimetre(
     programmation_projet, different_perimetre_client_with_user_logged, doc_type
 ):
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
     url = reverse(
         "notification:upload-a-document",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": projet.id,
+            "dotation": dotation,
             "document_type": doc_type,
         },
     )
@@ -119,10 +154,13 @@ def test_create_uploaded_document_view_valid_but_with_invalid_user_perimetre(
 def test_create_uploaded_document_view_valid(
     programmation_projet, correct_perimetre_client_with_user_logged, doc_type
 ):
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
     url = reverse(
         "notification:upload-a-document",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": projet.id,
+            "dotation": dotation,
             "document_type": doc_type,
         },
     )
@@ -134,7 +172,7 @@ def test_create_uploaded_document_view_valid(
     }
     response = correct_perimetre_client_with_user_logged.post(url, data)
     assert response.status_code == 302
-    assert response["Location"] == f"/notification/{programmation_projet.id}/documents/"
+    assert response["Location"] == f"/notification/{projet.id}/documents/"
     if doc_type == ARRETE_ET_LETTRE_SIGNES:
         assert programmation_projet.arrete_et_lettre_signes is not None
         doc = programmation_projet.arrete_et_lettre_signes
@@ -150,10 +188,13 @@ def test_create_uploaded_document_view_valid(
 def test_create_uploaded_document_view_invalid(
     programmation_projet, correct_perimetre_client_with_user_logged, doc_type
 ):
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
     url = reverse(
         "notification:upload-a-document",
         kwargs={
-            "programmation_projet_id": programmation_projet.id,
+            "projet_id": projet.id,
+            "dotation": dotation,
             "document_type": doc_type,
         },
     )

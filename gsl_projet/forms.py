@@ -1,11 +1,11 @@
 from logging import getLogger
-from typing import List
 
 from django import forms
+from django.db import transaction
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
-from gsl_demarches_simplifiees.mixins import DsUpdatableFields, DSUpdateMixin
+from gsl_demarches_simplifiees.services import DsService
 from gsl_projet.constants import DOTATION_CHOICES
 from gsl_projet.models import CategorieDetr, DotationProjet, Projet, ProjetNote
 from gsl_projet.services.projet_services import ProjetService
@@ -13,19 +13,11 @@ from gsl_projet.services.projet_services import ProjetService
 logger = getLogger(__name__)
 
 
-class ProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
-    BUDGET_VERT_CHOICES = [
-        (None, "Non Renseigné"),
-        (True, "Oui"),
-        (False, "Non"),
-    ]
-
-    is_budget_vert = forms.TypedChoiceField(
-        label="Transition écologique",
-        choices=BUDGET_VERT_CHOICES,
+class ProjetForm(ModelForm, DsfrBaseForm):
+    is_budget_vert = forms.BooleanField(
+        label="Projet concourant à la transition écologique au sens budget vert",
         required=False,
-        coerce=lambda x: {"True": True, "False": False, "": None}.get(x, None),
-        widget=forms.Select(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
     )
 
     is_in_qpv = forms.BooleanField(
@@ -40,6 +32,42 @@ class ProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
         widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
     )
 
+    is_frr = forms.BooleanField(
+        label="Projet situé en FRR",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+    )
+
+    is_acv = forms.BooleanField(
+        label="Projet rattaché à un programme Action coeurs de Ville (ACV)",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+    )
+
+    is_pvd = forms.BooleanField(
+        label="Projet rattaché à un programme Petites villes de demain (PVD)",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+    )
+
+    is_va = forms.BooleanField(
+        label="Projet rattaché à un programme Villages d'avenir",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+    )
+
+    is_autre_zonage_local = forms.BooleanField(
+        label="Projet rattaché à un autre zonage local",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+    )
+
+    is_contrat_local = forms.BooleanField(
+        label="Projet rattaché à un contrat local",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+    )
+
     dotations = forms.MultipleChoiceField(
         choices=DOTATION_CHOICES,
         required=False,
@@ -48,15 +76,22 @@ class ProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
 
     class Meta:
         model = Projet
-        fields: List[DsUpdatableFields] = [
+        fields = [
             "is_budget_vert",
             "is_in_qpv",
             "is_attached_to_a_crte",
+            "is_frr",
+            "is_acv",
+            "is_pvd",
+            "is_va",
+            "is_autre_zonage_local",
+            "is_contrat_local",
         ]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["dotations"].initial = self.instance.dotations
+        self.user = user
 
     def is_valid(self):
         valid = super().is_valid()
@@ -65,29 +100,40 @@ class ProjetForm(DSUpdateMixin, ModelForm, DsfrBaseForm):
             valid = False
         return valid
 
+    @transaction.atomic
     def save(self, commit=True):
         instance: Projet = super().save(commit=False)
-        return self._save_with_ds(instance, commit)
+        if not commit:
+            return instance
 
-    def get_dossier_ds(self, instance):
-        return instance.dossier_ds
+        ds_service = DsService()
+        ds_service.update_checkboxes_annotations(
+            dossier=instance.dossier_ds,
+            user=self.user,
+            annotations_to_update={
+                "annotations_is_qpv": self.cleaned_data.get("is_in_qpv"),
+                "annotations_is_crte": self.cleaned_data.get("is_attached_to_a_crte"),
+                "annotations_is_budget_vert": self.cleaned_data.get("is_budget_vert"),
+                "annotations_is_frr": self.cleaned_data.get("is_frr"),
+                "annotations_is_acv": self.cleaned_data.get("is_acv"),
+                "annotations_is_pvd": self.cleaned_data.get("is_pvd"),
+                "annotations_is_va": self.cleaned_data.get("is_va"),
+                "annotations_is_autre_zonage_local": self.cleaned_data.get(
+                    "is_autre_zonage_local"
+                ),
+                "annotations_is_contrat_local": self.cleaned_data.get(
+                    "is_contrat_local"
+                ),
+            },
+        )
 
-    def get_fields(self):
-        return self.Meta.fields
+        instance.save()
 
-    def reset_field(self, field, instance):
-        self._reset_field(field, instance)
-
-    def post_save(self, instance):
         dotations = self.cleaned_data.get("dotations")
         if dotations:
             ProjetService.update_dotation(instance, dotations)
 
-    def _reset_field(self, field: str, projet: Projet):
-        if field in ["is_in_qpv", "is_attached_to_a_crte", "is_budget_vert"]:
-            initial_field_value = self[field].initial
-            self.cleaned_data[field] = initial_field_value
-            setattr(projet, field, initial_field_value)
+        return instance
 
 
 class DotationProjetForm(ModelForm):

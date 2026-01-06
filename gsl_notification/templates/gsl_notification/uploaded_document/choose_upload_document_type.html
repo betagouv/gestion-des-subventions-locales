@@ -2,55 +2,21 @@
 {% load static gsl_filters %}
 {% block notification_content %}
     <a class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-arrow-left-s-line fr-mb-4w"
-       href="{% url 'gsl_notification:documents' programmation_projet.id %}">
-        Annuler la génération
+       href="{% url 'gsl_notification:documents' projet.id %}">
+        Annuler l'import
     </a>
 
-    <div class="arrete-container" data-controller="choose-document-type">
+    <div class="arrete-container">
         <h2 class="fr-mb-3w">
             Importer un document
         </h2>
 
-        <div class="fr-radio-group fr-mb-2w"
-             {% if programmation_projet.arrete_et_lettre_signes %}aria-describedby="tooltip-import-arrete-et-lettre-signes"{% endif %}>
-            <input type="radio"
-                   name="type"
-                   value="arrete_et_lettre_signes"
-                   dsfr="dsfr"
-                   id="arrete_et_lettre_signes"
-                   {% if programmation_projet.arrete_et_lettre_signes %}disabled {% endif %}
-                   data-choose-document-type-target="radio"
-                   data-action="click->choose-document-type#setSelectedValue">
-            <label class="fr-label" for="arrete_et_lettre_signes">
-                Arrêté et lettre de notification signés
-            </label>
-            {% if programmation_projet.arrete_et_lettre_signes %}
-                <span class="fr-tooltip fr-placement"
-                      id="tooltip-import-arrete-et-lettre-signes"
-                      role="tooltip">
-                    Ce document a déjà été importé pour ce projet.
-                </span>
-            {% endif %}
-        </div>
-
-        <div class="fr-radio-group">
-            <input type="radio"
-                   name="type"
-                   value="annexe"
-                   dsfr="dsfr"
-                   id="annexe"
-                   {% if programmation_projet.arrete_et_lettre_signes %}checked {% endif %}
-                   data-choose-document-type-target="radio"
-                   data-action="choose-document-type#setSelectedValue">
-            <label class="fr-label" for="annexe">
-                Annexe
-            </label>
-        </div>
-
-        <a class="fr-btn fr-btn--icon-left fr-icon-file-text-line fr-mt-4w"
-           data-href="{% url 'gsl_notification:upload-a-document' programmation_projet.id "type" %}"
-           data-choose-document-type-target="button">
-            Créer sur Turgot
-        </a>
+        <form method="post">
+            {% csrf_token %}
+            {{ form }}
+            <button class="fr-btn fr-btn--icon-left fr-icon-file-text-line" type="submit">
+                Importer sur Turgot
+            </button>
+        </form>
     </div>
 {% endblock notification_content %}

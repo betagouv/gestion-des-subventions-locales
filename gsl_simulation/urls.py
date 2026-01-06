@@ -10,14 +10,17 @@ from gsl_simulation.views.simulation_projet_annotations_views import (
     get_note_card,
 )
 from gsl_simulation.views.simulation_projet_views import (
-    DismissProjetModalView,
+    ProgrammationStatusUpdateView,
     ProjetFormView,
-    RefuseProjetModalView,
     SimulationProjetDetailView,
+    SimulationProjetStatusUpdateView,
     patch_dotation_projet,
     patch_montant_simulation_projet,
-    patch_status_simulation_projet,
     patch_taux_simulation_projet,
+)
+from gsl_simulation.views.simulation_views import (
+    SimulationCreateView,
+    SimulationDeleteView,
 )
 
 urlpatterns = [
@@ -32,6 +35,11 @@ urlpatterns = [
             simulation_views.SimulationDetailView.as_view()
         ),
         name="simulation-detail",
+    ),
+    path(
+        "<int:pk>/supprimer/",
+        SimulationDeleteView.as_view(),
+        name="simulation-delete",
     ),
     path(
         "voir/<slug:slug>/<str:type>/",
@@ -68,23 +76,18 @@ urlpatterns = [
         name="patch-simulation-projet-montant",
     ),
     path(
-        "modifier-le-statut-d-un-projet-de-simulation/<int:pk>/",
-        patch_status_simulation_projet,
-        name="patch-simulation-projet-status",
+        "<int:pk>/simuler/<str:status>/",
+        SimulationProjetStatusUpdateView.as_view(),
+        name="simulation-projet-update-simulation-status",
     ),
     path(
-        "<int:pk>/refuser/",
-        RefuseProjetModalView.as_view(),
-        name="refuse-form",
-    ),
-    path(
-        "<int:pk>/classer-sans-suite/",
-        DismissProjetModalView.as_view(),
-        name="dismiss-form",
+        "<int:pk>/programmer/<str:status>/",
+        ProgrammationStatusUpdateView.as_view(),
+        name="simulation-projet-update-programmed-status",
     ),
     path(
         "creation-simulation",
-        simulation_views.simulation_form,
+        SimulationCreateView.as_view(),
         name="simulation-form",
     ),
     path(

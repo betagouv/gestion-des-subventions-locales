@@ -49,3 +49,7 @@ class ProgrammationProjetFactory(DjangoModelFactory):
     )
 
     montant = Faker("random_number", digits=5)
+
+    @factory.post_generation
+    def save_projet(obj, create, extracted, **kwargs):
+        obj.dotation_projet.projet.save()

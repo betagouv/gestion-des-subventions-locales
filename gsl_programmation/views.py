@@ -1,6 +1,7 @@
 from functools import cached_property
 
 from django.contrib import messages
+from django.contrib.auth.views import RedirectURLMixin
 from django.db.models import ProtectedError
 from django.http import Http404
 from django.shortcuts import redirect
@@ -19,15 +20,19 @@ from gsl_programmation.models import Enveloppe, ProgrammationProjet
 from gsl_programmation.utils.programmation_projet_filters import (
     ProgrammationProjetFilters,
 )
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.models import CategorieDetr
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+)
+from gsl_projet.models import CategorieDetr, Projet
 from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_page import PROJET_MENU
 
 
 class ProgrammationProjetDetailView(DetailView):
-    model = ProgrammationProjet
-    pk_url_kwarg = "programmation_projet_id"
+    model = Projet
+    pk_url_kwarg = "projet_id"
 
     ALLOWED_TABS = {"annotations", "historique"}
 
@@ -41,28 +46,41 @@ class ProgrammationProjetDetailView(DetailView):
 
     def get_queryset(self):
         return (
-            ProgrammationProjet.objects.visible_to_user(self.request.user)
+            Projet.objects.for_user(self.request.user)
+            .with_at_least_one_programmed_dotation()
             .select_related(
-                "dotation_projet",
-                "dotation_projet__projet",
-                "dotation_projet__projet__dossier_ds",
-                "dotation_projet__projet__perimetre",
-                "dotation_projet__projet__demandeur",
-                "enveloppe",
-                "enveloppe__perimetre",
+                "dossier_ds",
+                "perimetre",
+                "perimetre__departement",
+                "demandeur",
             )
-            .prefetch_related("dotation_projet__detr_categories")
+            .prefetch_related("dotationprojet_set__detr_categories")
         )
 
     def get_context_data(self, **kwargs):
         tab = self.kwargs.get("tab", "projet")
-        title = self.object.projet.dossier_ds.projet_intitule
+        title = self.object.dossier_ds.projet_intitule
+        if "dotation" in self.request.GET:
+            try:
+                programmation_projet = ProgrammationProjet.objects.get(
+                    dotation_projet__projet=self.object,
+                    dotation_projet__dotation=self.request.GET["dotation"],
+                    dotation_projet__status=PROJET_STATUS_ACCEPTED,
+                )
+            except ProgrammationProjet.DoesNotExist:
+                programmation_projet = ProgrammationProjet.objects.filter(
+                    dotation_projet__projet=self.object,
+                    dotation_projet__status=PROJET_STATUS_ACCEPTED,
+                ).first()
+        else:
+            programmation_projet = ProgrammationProjet.objects.filter(
+                dotation_projet__projet=self.object
+            ).first()
         context = {
             "title": title,
-            "programmation_projet": self.object,
-            "projet": self.object.projet,
-            "dossier": self.object.projet.dossier_ds,
-            "enveloppe": self.object.enveloppe,
+            "projet": self.object,
+            "dotation_projets": self.object.dotationprojet_set.all(),
+            "dossier": self.object.dossier_ds,
             "breadcrumb_dict": {
                 "links": [
                     {
@@ -74,11 +92,29 @@ class ProgrammationProjetDetailView(DetailView):
             },
             "menu_dict": PROJET_MENU,
             "current_tab": tab,
+            "go_back_link": self.get_go_back_link(),
+            "programmation_projet": programmation_projet,
         }
         if tab == "annotations":
-            context["projet_notes"] = self.object.projet.notes.all()
+            context["projet_notes"] = self.object.notes.all()
 
         return super().get_context_data(**context)
+
+    def get_go_back_link(self):
+        url = reverse("gsl_programmation:programmation-projet-list")
+        if "dotation" in self.request.GET:
+            url = reverse(
+                "gsl_programmation:programmation-projet-list-dotation",
+                kwargs={"dotation": self.request.GET["dotation"]},
+            )
+        if self.request.GET.urlencode():
+            params = self.request.GET.copy()
+            params.pop("dotation", None)
+
+            if params:
+                url += "?" + params.urlencode()
+
+        return url
 
 
 class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
@@ -89,6 +125,19 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
     paginate_by = 25
     ordering = ["-created_at"]
     STATE_MAPPINGS = {key: value for key, value in ProgrammationProjet.STATUS_CHOICES}
+
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .select_related("dotation_projet", "dotation_projet__projet")
+            .prefetch_related(
+                "dotation_projet__projet__dotationprojet_set",
+                "dotation_projet__projet__dotationprojet_set__programmation_projet",
+                "dotation_projet__projet__dotationprojet_set__simulationprojet_set",
+                "dotation_projet__projet__dotationprojet_set__detr_categories",
+            )
+        )
 
     def get(self, request, *args, **kwargs):
         self.perimetre: Perimetre = self.request.user.perimetre
@@ -210,10 +259,10 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
         return CategorieDetr.objects.current_for_departement(perimetre.departement)
 
 
-class EnveloppeCreateView(CreateView):
+class EnveloppeCreateView(RedirectURLMixin, CreateView):
     model = Enveloppe
     form_class = SubEnveloppeCreateForm
-    success_url = reverse_lazy("gsl_projet:list")
+    next_page = reverse_lazy("gsl_projet:list")
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()

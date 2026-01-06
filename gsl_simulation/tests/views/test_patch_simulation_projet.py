@@ -4,7 +4,8 @@ from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import pytest
-from django.contrib.messages import INFO, get_messages
+from django.contrib.messages import INFO, SUCCESS, get_messages
+from django.test.html import parse_html
 from django.urls import reverse
 
 from gsl_core.templatetags.gsl_filters import percent
@@ -86,21 +87,25 @@ def simulation_projet(collegue, simulation):
     )
 
 
+@mock.patch("gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds")
 def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
-    client_with_user_logged, simulation_projet
+    _mock_save_one_dossier_from_ds, client_with_user_logged, simulation_projet
 ):
+    page_url = reverse(
+        "simulation:simulation-detail", args=[simulation_projet.simulation.slug]
+    )
     url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+        "simulation:simulation-projet-update-programmed-status",
+        args=[simulation_projet.id, SimulationProjet.STATUS_ACCEPTED],
     )
     with patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
-    ) as mock_update_ds_montant:
-        mock_update_ds_montant.return_value = None
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+    ) as mock_update_ds_annotations_for_one_dotation:
+        mock_update_ds_annotations_for_one_dotation.return_value = None
         response = client_with_user_logged.post(
             url,
-            {"status": f"{SimulationProjet.STATUS_ACCEPTED}"},
             follow=True,
-            headers={"HX-Request": "true"},
+            headers={"HX-Request": "true", "HX-Request-URL": page_url},
         )
 
     updated_simulation_projet = SimulationProjet.objects.get(id=simulation_projet.id)
@@ -111,20 +116,17 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
     assert response.status_code == 200
     assert updated_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
     assert dotation_projet.status == PROJET_STATUS_ACCEPTED
-    assert "1 projet validé" in response.content.decode()
-    assert "0 projet refusé" in response.content.decode()
-    assert "0 projet notifié" in response.content.decode()
-    assert (
-        '<span hx-swap-oob="innerHTML" id="total-amount-granted">1\xa0000\xa0€</span>'
-        in response.content.decode()
-    )
+    assert "1 projet validé" in parse_html(response.content.decode())
+    assert "0 projet refusé" in parse_html(response.content.decode())
+    assert "0 projet notifié" in parse_html(response.content.decode())
+    assert 'id="total-amount-granted">1\xa0000\xa0€</span>' in response.content.decode()
 
 
 data_test = (
     (
         SimulationProjet.STATUS_ACCEPTED,
         "Le financement de ce projet vient d’être accepté avec la dotation DETR pour 1\xa0000,00\xa0€.",
-        "valid",
+        "accepted",
     ),
     (
         SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
@@ -139,12 +141,14 @@ data_test = (
 )
 
 
+@mock.patch("gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds")
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
 @pytest.mark.parametrize("status, expected_message, expected_tag", data_test)
 def test_patch_status_simulation_projet_gives_message(
     mock_ds_update,
+    _mock_save_one_dossier_from_ds,
     client_with_user_logged,
     simulation_projet,
     status,
@@ -157,16 +161,28 @@ def test_patch_status_simulation_projet_gives_message(
         simulation_projet.dotation_projet.save()
         simulation_projet.save()
 
-    data = {"status": status}
-    url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+    page_url = reverse(
+        "simulation:simulation-projet-detail", args=[simulation_projet.id]
     )
-    response = client_with_user_logged.post(url, data, follow=True)
+    url = reverse(
+        (
+            "simulation:simulation-projet-update-simulation-status"
+            if status in SimulationProjet.SIMULATION_PENDING_STATUSES
+            else "simulation:simulation-projet-update-programmed-status"
+        ),
+        args=[simulation_projet.id, status],
+    )
+    response = client_with_user_logged.post(
+        url, headers={"HX-Request": "true", "HX-Request-URL": page_url}, follow=True
+    )
 
     if status == SimulationProjet.STATUS_ACCEPTED:
         mock_ds_update.assert_called_once_with(
             dossier=simulation_projet.projet.dossier_ds,
             user=client_with_user_logged.user,
+            annotations_dotation_to_update=simulation_projet.dotation,
+            dotations_to_be_checked=[simulation_projet.dotation],
+            assiette=simulation_projet.dotation_projet.assiette,
             montant=Decimal(simulation_projet.montant),
             taux=Decimal(simulation_projet.taux),
         )
@@ -177,7 +193,11 @@ def test_patch_status_simulation_projet_gives_message(
     assert len(messages) == 1
 
     message = list(messages)[0]
-    assert message.level == INFO
+    assert (
+        message.level == INFO
+        if status in SimulationProjet.SIMULATION_PENDING_STATUSES
+        else SUCCESS
+    )
     assert message.message == expected_message
     assert message.extra_tags == expected_tag
 
@@ -187,17 +207,17 @@ def test_patch_status_simulation_projet_invalid_status(
     client_with_user_logged, simulation_projet, data
 ):
     url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+        "simulation:simulation-projet-update-simulation-status",
+        args=[simulation_projet.id, "invalid"],
     )
     response = client_with_user_logged.post(
         url,
-        {"status": "invalid"},
         follow=True,
         headers={"HX-Request": "true"},
     )
 
     updated_simulation_projet = SimulationProjet.objects.get(id=simulation_projet.id)
-    assert response.status_code == 500
+    assert response.status_code == 404
     assert updated_simulation_projet.status == SimulationProjet.STATUS_PROCESSING
 
 
@@ -207,7 +227,7 @@ def accepted_simulation_projet(collegue, simulation):
         status=PROJET_STATUS_PROCESSING,
         assiette=10_000,
         projet__perimetre=collegue.perimetre,
-        projet__is_budget_vert=None,
+        projet__is_budget_vert=False,
         dotation=DOTATION_DETR,
     )
 
@@ -222,20 +242,25 @@ def accepted_simulation_projet(collegue, simulation):
     )
 
 
+@mock.patch("gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds")
 def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
-    client_with_user_logged, simulation_projet
+    _mock_save_one_dossier_from_ds, client_with_user_logged, simulation_projet
 ):
+    page_url = reverse(
+        "simulation:simulation-projet-detail", args=[simulation_projet.id]
+    )
     url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
+        "simulation:simulation-projet-update-programmed-status",
+        args=[simulation_projet.id, SimulationProjet.STATUS_ACCEPTED],
     )
 
     with patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux",
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation",
         side_effect=DsServiceException("Erreur !"),
     ):
         response = client_with_user_logged.post(
             url,
-            {"status": "valid"},
+            headers={"HX-Request": "true", "HX-Request-URL": page_url},
             follow=True,
         )
     assert response.status_code == 200
@@ -252,7 +277,7 @@ def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
 
 
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
 def test_patch_taux_simulation_projet(
     mock_ds_update,
@@ -276,6 +301,9 @@ def test_patch_taux_simulation_projet(
     mock_ds_update.assert_called_once_with(
         dossier=accepted_simulation_projet.projet.dossier_ds,
         user=client_with_user_logged.user,
+        annotations_dotation_to_update=accepted_simulation_projet.dotation,
+        dotations_to_be_checked=[accepted_simulation_projet.dotation],
+        assiette=accepted_simulation_projet.dotation_projet.assiette,
         montant=7_500,
         taux=75.0,
     )
@@ -325,7 +353,7 @@ def test_patch_taux_simulation_projet_cancelling_all_when_error_in_ds_update(
     )
 
     with patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux",
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation",
         side_effect=DsServiceException("Erreur !"),
     ):
         response = client_with_user_logged.post(
@@ -349,7 +377,7 @@ def test_patch_taux_simulation_projet_cancelling_all_when_error_in_ds_update(
 
 
 @mock.patch(
-    "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
 def test_patch_montant_simulation_projet(
     mock_ds_update,
@@ -374,8 +402,11 @@ def test_patch_montant_simulation_projet(
     mock_ds_update.assert_called_once_with(
         dossier=accepted_simulation_projet.projet.dossier_ds,
         user=client_with_user_logged.user,
+        annotations_dotation_to_update=accepted_simulation_projet.dotation,
+        dotations_to_be_checked=[accepted_simulation_projet.dotation],
+        assiette=accepted_simulation_projet.dotation_projet.assiette,
         montant=1267.32,
-        taux=Decimal("12.673"),
+        taux=12.673,
     )
 
     assert response.status_code == 200
@@ -423,7 +454,7 @@ def test_patch_montant_simulation_projet_cancelling_all_when_error_in_ds_update(
     )
 
     with patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux",
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation",
         side_effect=DsServiceException("Erreur !"),
     ):
         response = client_with_user_logged.post(
@@ -485,7 +516,7 @@ def test_patch_simulation_projet(
     mock_resp = MagicMock()
     mock_resp.status_code = 200
     mock_resp.json.return_value = {
-        "data": {"dossierModifierAnnotationDecimalNumber": {"clientMutationId": "test"}}
+        "data": {"dossierModifierAnnotations": {"clientMutationId": "test"}}
     }
 
     with (
@@ -562,7 +593,7 @@ possible_responses = [
     (
         {
             "data": {
-                "dossierModifierAnnotationDecimalNumber": {
+                "dossierModifierAnnotations": {
                     "errors": [
                         {
                             "message": "L’instructeur n’a pas les droits d’accès à ce dossier"
@@ -571,19 +602,19 @@ possible_responses = [
                 }
             }
         },
-        "Une erreur est survenue lors de la mise à jour des informations sur Démarches Simplifiées. Vous n'avez pas les droits suffisants pour modifier ce dossier.",
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. Vous n'avez pas les droits suffisants pour modifier ce dossier.",
     ),
     # Invalid payload (ex: wrong dossier id)
     (
         {
             "errors": [
                 {
-                    "message": "dossierModifierAnnotationDecimalNumberPayload not found",
+                    "message": "dossierModifierAnnotationsPayload not found",
                 }
             ],
-            "data": {"dossierModifierAnnotationDecimalNumber": None},
+            "data": {"dossierModifierAnnotations": None},
         },
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field} => dossierModifierAnnotationDecimalNumberPayload not found). Ces modifications n'ont pas été enregistrées.",
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. dossierModifierAnnotationsPayload not found",
     ),
     # Invalid field id
     (
@@ -593,31 +624,29 @@ possible_responses = [
                     "message": 'Invalid input: "field_NUL"',
                 }
             ],
-            "data": {"dossierModifierAnnotationDecimalNumber": None},
+            "data": {"dossierModifierAnnotations": None},
         },
-        'Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field} => Invalid input: "field_NUL"). Ces modifications n\'ont pas été enregistrées.',
+        'Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. Invalid input: "field_NUL"',
     ),
     # Invalid value
     (
         {
             "errors": [
                 {
-                    "message": 'Variable $input of type dossierModifierAnnotationDecimalNumberInput! was provided invalid value for value (Could not coerce value "RIGOLO" to Boolean)',
+                    "message": 'Variable $input of type dossierModifierAnnotationsInput! was provided invalid value for value (Could not coerce value "RIGOLO" to Boolean)',
                 }
-            ]
+            ],
         },
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field}). Ces modifications n'ont pas été enregistrées.",
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. ",
     ),
     # Other error
     (
         {
             "data": {
-                "dossierModifierAnnotationDecimalNumber": {
-                    "errors": [{"message": "Une erreur"}]
-                }
+                "dossierModifierAnnotations": {"errors": [{"message": "Une erreur"}]}
             }
         },
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées ({field} => Une erreur). Ces modifications n'ont pas été enregistrées.",
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. Une erreur",
     ),
 ]
 
@@ -626,6 +655,7 @@ possible_responses = [
 def test_patch_simulation_projet_with_ds_error(
     client_with_user_logged, accepted_simulation_projet, ds_field, response, error_msg
 ):
+    accepted_simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
     accepted_simulation_projet.dotation_projet.assiette = 1_000
     accepted_simulation_projet.montant = 500
     accepted_simulation_projet.save()
@@ -637,14 +667,10 @@ def test_patch_simulation_projet_with_ds_error(
 
     with (
         patch(
-            "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
-            return_value=ds_field,
+            "gsl_demarches_simplifiees.services.DsService._get_ds_field_id",
+            return_value=ds_field.ds_field_id,
         ),
         patch("requests.post", return_value=mock_resp),
-        patch(
-            "gsl_demarches_simplifiees.services.DsService.update_ds_taux",
-            return_value=True,
-        ),
     ):
         url = reverse(
             "simulation:simulation-projet-detail",
@@ -660,8 +686,7 @@ def test_patch_simulation_projet_with_ds_error(
     assert len(messages) == 1
     message = list(messages)[0]
     assert message.level == 40
-    final_msg = error_msg.replace("{field}", "Assiette")
-    assert final_msg == message.message
+    assert error_msg == message.message
 
     accepted_simulation_projet.dotation_projet.refresh_from_db()
 
@@ -672,6 +697,7 @@ def test_patch_simulation_projet_with_ds_error(
 def test_patch_simulation_projet_with_ds_token_error(
     client_with_user_logged, accepted_simulation_projet, ds_field
 ):
+    accepted_simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
     accepted_simulation_projet.dotation_projet.assiette = 1_000
     accepted_simulation_projet.montant = 500
     accepted_simulation_projet.save()
@@ -702,7 +728,7 @@ def test_patch_simulation_projet_with_ds_token_error(
     message = list(messages)[0]
     assert message.level == 40
     assert (
-        "Une erreur est survenue lors de la mise à jour des informations sur Démarches Simplifiées. Nous n'arrivons pas à nous connecter à Démarches Simplifiées."
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. Nous n'arrivons pas à nous connecter à Démarche Numérique."
         == message.message
     )
 
@@ -710,93 +736,3 @@ def test_patch_simulation_projet_with_ds_token_error(
 
     assert response.status_code == 200
     assert accepted_simulation_projet.dotation_projet.assiette == 1_000
-
-
-def test_three_fields_update_and_only_one_error(
-    perimetre_departemental, accepted_simulation_projet
-):
-    user = CollegueWithDSProfileFactory(perimetre=perimetre_departemental)
-    client = ClientWithLoggedUserFactory(user)
-    data = {
-        "assiette": 20_000,
-        "montant": 4_000,
-        "taux": 20.0,
-    }
-
-    with (
-        patch(
-            "gsl_demarches_simplifiees.services.DsService.update_ds_assiette",
-            return_value=True,
-        ),
-        patch(
-            "gsl_demarches_simplifiees.services.DsService.update_ds_montant",
-            side_effect=DsServiceException("Erreur !"),
-        ),
-        patch(
-            "gsl_demarches_simplifiees.services.DsService.update_ds_taux",
-            return_value=True,
-        ),
-    ):
-        url = reverse(
-            "simulation:simulation-projet-detail",
-            args=[accepted_simulation_projet.id],
-        )
-        response = client.post(
-            url,
-            data,
-            follow=True,
-        )
-
-    assert response.status_code == 200
-
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-    message = list(messages)[0]
-    assert message.level == 40  # Error
-    assert (
-        "Une erreur est survenue lors de la mise à jour de certaines informations sur Démarches Simplifiées (Montant => Erreur !). Ces modifications n'ont pas été enregistrées."
-        == message.message
-    )
-
-    accepted_simulation_projet.projet.refresh_from_db()
-    accepted_simulation_projet.dotation_projet.refresh_from_db()
-
-    # Only this field has been updated
-    assert accepted_simulation_projet.dotation_projet.assiette == 20_000
-
-    assert accepted_simulation_projet.montant == 1_000  # default
-
-
-def test_patch_status_simulation_projet_blocked_when_programmation_notified(
-    client_with_user_logged, simulation_projet
-):
-    from datetime import date
-
-    from gsl_programmation.tests.factories import ProgrammationProjetFactory
-
-    # Mark the programmation as notified for this dotation_projet
-    ProgrammationProjetFactory(
-        dotation_projet=simulation_projet.dotation_projet,
-        notified_at=date.today(),
-    )
-
-    url = reverse(
-        "simulation:patch-simulation-projet-status", args=[simulation_projet.id]
-    )
-
-    with patch(
-        "gsl_simulation.services.simulation_projet_service.SimulationProjetService._update_ds_montant_and_taux"
-    ) as mock_update_ds_montant:
-        mock_update_ds_montant.return_value = None
-        response = client_with_user_logged.post(
-            url,
-            {"status": f"{SimulationProjet.STATUS_ACCEPTED}"},
-            follow=True,
-            headers={"HX-Request": "true"},
-        )
-
-    # Should be blocked
-    assert response.status_code == 500
-    simulation_projet.refresh_from_db()
-    assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
-    mock_update_ds_montant.assert_not_called()

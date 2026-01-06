@@ -124,7 +124,7 @@ class DossierConverter:
             return datetime.date(*(int(s) for s in ds_field_data["date"].split("-")))
 
         raise NotImplementedError(
-            f"DS Fields of type '{ds_typename}' are not supported"
+            f"DN Fields of type '{ds_typename}' are not supported"
         )
 
     def _prepare_address_for_injection(
