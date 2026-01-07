@@ -175,7 +175,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_demarche__ds_number",
         "ds_state",
         "projet_intitule",
-        "get_projet_perimetre",
+        "perimetre",
         "projet_link",
         "link_to_json",
     )
@@ -237,6 +237,11 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     search_fields = ("ds_number", "projet_intitule")
     readonly_fields = [field.name for field in Dossier._meta.fields]
 
+    def perimetre(self, obj) -> int:
+        return obj.get_projet_perimetre()
+
+    perimetre.short_description = "Périmètre"
+
     @admin.action(description="Rafraîchir depuis la base de données")
     def refresh_from_db(self, request, queryset):
         for dossier in queryset:
@@ -249,7 +254,16 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = qs.select_related("ds_demarche", "projet")
+        qs = qs.select_related(
+            "ds_demarche",
+            "projet",
+            "porteur_de_projet_arrondissement",
+            "porteur_de_projet_arrondissement__core_arrondissement",
+            "porteur_de_projet_arrondissement__core_arrondissement",
+            "porteur_de_projet_departement",
+        ).prefetch_related(
+            "porteur_de_projet_arrondissement__core_arrondissement__departement",
+        )
         return qs
 
     def link_to_json(self, obj):
