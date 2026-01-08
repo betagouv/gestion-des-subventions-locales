@@ -176,10 +176,9 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_state",
         "projet_intitule",
         "perimetre",
-        "projet_link",
+        "admin_projet_link",
         "link_to_json",
     )
-    readonly_fields = ("projet_link",)
 
     fieldsets = (
         (
@@ -191,6 +190,9 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
                     "ds_number",
                     "ds_state",
                     "ds_demandeur",
+                    "admin_projet_link",
+                    "app_projet_link",
+                    "link_to_ds",
                 )
             },
         ),
@@ -235,7 +237,11 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_demandeur",
     )
     search_fields = ("ds_number", "projet_intitule")
-    readonly_fields = [field.name for field in Dossier._meta.fields]
+    readonly_fields = [field.name for field in Dossier._meta.fields] + [
+        "admin_projet_link",
+        "app_projet_link",
+        "link_to_ds",
+    ]
 
     def perimetre(self, obj) -> int:
         return obj.get_projet_perimetre()
@@ -269,7 +275,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def link_to_json(self, obj):
         return mark_safe(f'<a href="{obj.json_url}">JSON brut</a>')
 
-    def projet_link(self, obj):
+    def admin_projet_link(self, obj):
         return (
             mark_safe(
                 f'<a href="{reverse("admin:gsl_projet_projet_change", args=[obj.projet.id])}">{obj.projet.id}</a>'
@@ -278,8 +284,24 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             else None
         )
 
-    projet_link.short_description = "Projet"
-    projet_link.admin_order_field = "projet__id"
+    admin_projet_link.short_description = "Projet"
+    admin_projet_link.admin_order_field = "projet__id"
+
+    def app_projet_link(self, obj):
+        if obj.projet:
+            url = reverse("projet:get-projet", args=[obj.projet.id])
+            return mark_safe(f'<a href="{url}">Voir le projet ({obj.projet.id})</a>')
+        return None
+
+    app_projet_link.short_description = "Lien vers la page projet"
+    app_projet_link.admin_order_field = "projet__id"
+
+    def link_to_ds(self, obj):
+        return mark_safe(
+            f'<a href="{obj.url_on_ds}" target="_blank">Voir sur Démarche Numérique ({obj.ds_number})</a>'
+        )
+
+    link_to_ds.short_description = "Démarche Numérique"
 
 
 @admin.register(FieldMappingForHuman)
