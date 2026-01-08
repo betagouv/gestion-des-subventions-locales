@@ -112,6 +112,17 @@ class RegionAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
 class DepartementAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
     search_fields = ("name", "insee_code")
     resource_classes = (DepartementResource,)
+    list_display = ("name", "insee_code", "region", "active")
+    list_filter = ("region", "active")
+    actions = ("activate_departement", "deactivate_departement")
+
+    @admin.action(description="Activer le département")
+    def activate_departement(self, request, queryset):
+        queryset.update(active=True)
+
+    @admin.action(description="Désactiver le département")
+    def deactivate_departement(self, request, queryset):
+        queryset.update(active=False)
 
 
 @admin.register(Arrondissement)
