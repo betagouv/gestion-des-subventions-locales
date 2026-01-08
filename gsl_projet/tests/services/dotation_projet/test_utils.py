@@ -127,6 +127,35 @@ def test_get_enveloppe_from_dotation_projet_with_a_next_year_date(perimetres, ca
     assert getattr(record, "perimetre", None) == arr_dijon
 
 
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "date_traitement,expected_annee",
+    [
+        (timezone.datetime(2025, 10, 1, tzinfo=UTC), 2025),
+        (timezone.datetime(2025, 11, 1, tzinfo=UTC), 2026),
+        (timezone.datetime(2026, 10, 1, tzinfo=UTC), 2026),
+        (timezone.datetime(2026, 11, 1, tzinfo=UTC), 2027),
+    ],
+)
+def test_get_enveloppe_from_dotation_projet_with_a_date_traitement_after_november(
+    perimetres, date_traitement, expected_annee
+):
+    arr_dijon, _, region_bfc, *_ = perimetres
+    DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+    DsilEnveloppeFactory(perimetre=region_bfc, annee=2026)
+    DsilEnveloppeFactory(perimetre=region_bfc, annee=2027)
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DSIL,
+        status=PROJET_STATUS_ACCEPTED,
+        projet__perimetre=arr_dijon,
+        projet__dossier_ds__ds_date_traitement=date_traitement,
+    )
+
+    enveloppe = dps._get_root_enveloppe_from_dotation_projet(dotation_projet)
+    assert enveloppe.annee == expected_annee
+
+
 # -- get_dotations_from_field --
 
 

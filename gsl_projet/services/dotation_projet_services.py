@@ -419,6 +419,10 @@ class DotationProjetService:
     @classmethod
     def _get_root_enveloppe_from_dotation_projet(cls, dotation_projet: DotationProjet):
         year = dotation_projet.dossier_ds.ds_date_traitement.year
+        # If the dossier is accepted after November, we need to use the next year
+        if dotation_projet.dossier_ds.ds_date_traitement.month >= 11:
+            year = year + 1
+
         enveloppe_qs = Enveloppe.objects.filter(
             dotation=dotation_projet.dotation,
             annee=year,
@@ -438,6 +442,7 @@ class DotationProjetService:
                     "dotation": dotation_projet.dotation,
                     "year": year,
                     "perimetre": projet_perimetre,
+                    "date_traitement": dotation_projet.dossier_ds.ds_date_traitement,
                 },
             )
             raise Enveloppe.DoesNotExist(
