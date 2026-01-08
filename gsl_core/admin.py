@@ -1,8 +1,15 @@
+import logging
+from io import BytesIO
+
+import openpyxl
+import tablib
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models import Count
 from import_export.admin import ImportMixin
+from import_export.formats.base_formats import CSV
 from import_export.forms import ImportForm
 
 from gsl_core.models import (
@@ -23,6 +30,8 @@ from .resources import (
     DepartementResource,
     RegionResource,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class CollegueImportForm(ImportForm):
@@ -78,7 +87,6 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
         Excel files (.xlsx/.xls) are automatically preprocessed to CSV by import_action(),
         so only CSV format is needed.
         """
-        from import_export.formats.base_formats import CSV
 
         return [CSV]
 
@@ -133,6 +141,7 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
         Examples:
             1 -> '01'
             10 -> '10'
+            10.0 -> '10' (Excel float values)
             '2A' -> '2A' (Corsica)
             '2B' -> '2B' (Corsica)
         """
@@ -143,12 +152,39 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
             return dept_str.upper()
 
         # Handle numeric codes - pad with zero if needed
+        # Convert through float first to handle Excel's numeric cells (e.g., 10.0)
         try:
-            dept_int = int(dept_str)
+            dept_float = float(dept_str)
+            dept_int = int(dept_float)
             return f"{dept_int:02d}"
         except ValueError:
             # Non-numeric, return as-is
             return dept_str
+
+    @staticmethod
+    def _normalize_arrondissement_code(arr_code) -> str:
+        """
+        Normalize arrondissement code to string, handling Excel float values.
+
+        Arrondissement INSEE codes are 3 digits (e.g., '011' for first arrondissement of department 01).
+
+        Examples:
+            11 -> '011'
+            11.0 -> '011' (Excel float values)
+            '011' -> '011' (already string with padding)
+        """
+        arr_str = str(arr_code).strip()
+
+        # Try to convert through float→int to handle Excel floats (e.g., 11.0 → 11)
+        # Then pad to 3 digits for proper arrondissement format
+        try:
+            arr_float = float(arr_str)
+            arr_int = int(arr_float)
+            # Arrondissement codes are typically 3 digits
+            return f"{arr_int:03d}"
+        except ValueError:
+            # Non-numeric, return as-is (e.g., Corsica codes like '2A1')
+            return arr_str
 
     @staticmethod
     def _is_valid_email(email) -> bool:
@@ -171,13 +207,6 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
         Returns:
             tablib.Dataset with columns: email, departement_code, arrondissement_code
         """
-        import logging
-
-        import openpyxl
-        import tablib
-
-        logger = logging.getLogger(__name__)
-
         wb = openpyxl.load_workbook(import_file, read_only=True)
         ws = wb.active
 
@@ -207,7 +236,7 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
 
             # Update state: new arrondissement section
             if perimetre_name and arr_code:
-                current_arrondissement = str(arr_code).strip()
+                current_arrondissement = self._normalize_arrondissement_code(arr_code)
                 logger.debug(
                     f"Row {row_idx}: New arrondissement section - {current_arrondissement}"
                 )
@@ -259,10 +288,6 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
 
             # Check if Excel file (by extension)
             if import_file.name.endswith((".xlsx", ".xls")):
-                from io import BytesIO
-
-                from django.core.files.uploadedfile import InMemoryUploadedFile
-
                 try:
                     # Reset file pointer to beginning for openpyxl
                     import_file.seek(0)

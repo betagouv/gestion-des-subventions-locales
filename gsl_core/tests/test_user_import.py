@@ -155,6 +155,55 @@ class TestExcelUserDataParser:
         assert dataset[0][1] == "2A"
         assert dataset[1][1] == "2B"
 
+    def test_parse_handles_float_department_codes(self):
+        """Test that float department codes from Excel are converted to integers"""
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.append([None, None, None, None, None])  # Row 1: empty
+        ws.append(
+            [None, "Département", "Périmètre", "Code arrondissement", "Contacts"]
+        )  # Row 2: headers
+
+        # Simulate openpyxl returning floats for numeric cells
+        ws.append([10.0, "AUBE", None, None, "test@aube.fr"])  # Float value
+        ws.append([1.0, "AIN", None, None, "test@ain.fr"])  # Float requiring padding
+
+        buffer = BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+
+        admin = CollegueAdmin(Collegue, None)
+        dataset = admin.parse_excel_to_dataset(buffer)
+
+        assert len(dataset) == 2
+        assert dataset[0][1] == "10"  # Not "10.0"
+        assert dataset[1][1] == "01"  # Padded single digit
+
+    def test_parse_handles_float_arrondissement_codes(self):
+        """Test that float arrondissement codes from Excel are converted and padded"""
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.append([None, None, None, None, None])  # Row 1: empty
+        ws.append(
+            [None, "Département", "Périmètre", "Code arrondissement", "Contacts"]
+        )  # Row 2: headers
+
+        # Department section
+        ws.append(["01", "AIN", None, None, "dept@ain.fr"])
+        # Arrondissement with float code (Excel stores '011' as 11.0)
+        ws.append([None, None, "SP de Belley", 11.0, "arr@ain.fr"])
+
+        buffer = BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+
+        admin = CollegueAdmin(Collegue, None)
+        dataset = admin.parse_excel_to_dataset(buffer)
+
+        assert len(dataset) == 2
+        assert dataset[0] == ("dept@ain.fr", "01", None)  # Dept level
+        assert dataset[1] == ("arr@ain.fr", "01", "011")  # Arr code normalized to 011
+
     def test_parse_skips_invalid_emails(self):
         """Test that rows without valid emails are skipped"""
         wb = openpyxl.Workbook()
