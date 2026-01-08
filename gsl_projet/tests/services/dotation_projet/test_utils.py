@@ -129,16 +129,20 @@ def test_get_enveloppe_from_dotation_projet_with_a_next_year_date(perimetres, ca
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "date_traitement,expected_annee",
+    "date_traitement, allow_next_year, expected_annee",
     [
-        (timezone.datetime(2025, 10, 1, tzinfo=UTC), 2025),
-        (timezone.datetime(2025, 11, 1, tzinfo=UTC), 2026),
-        (timezone.datetime(2026, 10, 1, tzinfo=UTC), 2026),
-        (timezone.datetime(2026, 11, 1, tzinfo=UTC), 2027),
+        (timezone.datetime(2025, 10, 1, tzinfo=UTC), False, 2025),
+        (timezone.datetime(2025, 11, 1, tzinfo=UTC), False, 2025),
+        (timezone.datetime(2026, 10, 1, tzinfo=UTC), False, 2026),
+        (timezone.datetime(2026, 11, 1, tzinfo=UTC), False, 2026),
+        (timezone.datetime(2025, 10, 1, tzinfo=UTC), True, 2025),
+        (timezone.datetime(2025, 11, 1, tzinfo=UTC), True, 2026),
+        (timezone.datetime(2026, 10, 1, tzinfo=UTC), True, 2026),
+        (timezone.datetime(2026, 11, 1, tzinfo=UTC), True, 2027),
     ],
 )
 def test_get_enveloppe_from_dotation_projet_with_a_date_traitement_after_november(
-    perimetres, date_traitement, expected_annee
+    perimetres, date_traitement, allow_next_year, expected_annee
 ):
     arr_dijon, _, region_bfc, *_ = perimetres
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
@@ -152,7 +156,9 @@ def test_get_enveloppe_from_dotation_projet_with_a_date_traitement_after_novembe
         projet__dossier_ds__ds_date_traitement=date_traitement,
     )
 
-    enveloppe = dps._get_root_enveloppe_from_dotation_projet(dotation_projet)
+    enveloppe = dps._get_root_enveloppe_from_dotation_projet(
+        dotation_projet, allow_next_year=allow_next_year
+    )
     assert enveloppe.annee == expected_annee
 
 
