@@ -556,6 +556,15 @@ class Dossier(DsModel):
         elif self.porteur_de_projet_departement:
             ds_departement_declaratif = self.porteur_de_projet_departement
             projet_departement = ds_departement_declaratif.core_departement
+            if projet_departement is None:
+                logger.warning(
+                    "Dossier is missing departement.",
+                    extra={
+                        "dossier_ds_number": self.ds_number,
+                        "departement": ds_departement_declaratif,
+                    },
+                )
+                return None
             arrondissement_count = projet_departement.arrondissement_set.count()
             # Dans un département avec plusieurs arrondissements, les dossiers DS
             # devraient porter un arrondissement renseigné. => Lever une alerte
