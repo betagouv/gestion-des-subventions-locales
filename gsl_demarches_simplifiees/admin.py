@@ -261,15 +261,19 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = qs.select_related(
-            "ds_demarche",
-            "projet",
-            "porteur_de_projet_arrondissement",
-            "porteur_de_projet_arrondissement__core_arrondissement",
-            "porteur_de_projet_arrondissement__core_arrondissement",
-            "porteur_de_projet_departement",
-        ).prefetch_related(
-            "porteur_de_projet_arrondissement__core_arrondissement__departement",
+        qs = (
+            qs.select_related(
+                "ds_demarche",
+                "projet",
+                "porteur_de_projet_arrondissement",
+                "porteur_de_projet_arrondissement__core_arrondissement",
+                "porteur_de_projet_arrondissement__core_arrondissement",
+                "porteur_de_projet_departement",
+            )
+            .prefetch_related(
+                "porteur_de_projet_arrondissement__core_arrondissement__departement",
+            )
+            .defer("raw_ds_data")
         )
         return qs
 
