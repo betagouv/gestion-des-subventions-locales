@@ -181,7 +181,7 @@ class Dossier(DsModel):
 
     ds_demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
     ds_id = models.CharField("Identifiant DS")
-    ds_number = models.IntegerField("Numéro DS")
+    ds_number = models.IntegerField("Numéro DS", unique=True)
     ds_state = models.CharField("État DS", choices=DS_STATE_VALUES)
     ds_date_depot = models.DateTimeField("Date de dépôt", null=True, blank=True)
     ds_date_passage_en_construction = models.DateTimeField(
@@ -556,6 +556,15 @@ class Dossier(DsModel):
         elif self.porteur_de_projet_departement:
             ds_departement_declaratif = self.porteur_de_projet_departement
             projet_departement = ds_departement_declaratif.core_departement
+            if projet_departement is None:
+                logger.warning(
+                    "Dossier is missing departement.",
+                    extra={
+                        "dossier_ds_number": self.ds_number,
+                        "departement": ds_departement_declaratif,
+                    },
+                )
+                return None
             arrondissement_count = projet_departement.arrondissement_set.count()
             # Dans un département avec plusieurs arrondissements, les dossiers DS
             # devraient porter un arrondissement renseigné. => Lever une alerte

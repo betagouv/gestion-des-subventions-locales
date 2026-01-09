@@ -8,6 +8,7 @@ from django.utils.timezone import datetime
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.importer.dossier import (
+    _is_dossier_in_active_departement,
     _save_dossier_data_and_refresh_dossier_and_projet_and_co,
     refresh_dossier_instructeurs,
     save_demarche_dossiers_from_ds,
@@ -22,8 +23,26 @@ def test_save_demarche_dossiers_from_ds_calls_save_dossier_data_and_refresh_doss
     demarche_number = 123
     DemarcheFactory(ds_number=demarche_number)
     ds_dossiers = [
-        {"id": "DOSS-1", "number": 20240001},
-        {"id": "DOSS-2", "number": 20240002},
+        {
+            "id": "DOSS-1",
+            "number": 20240001,
+            "champs": [
+                {
+                    "label": "Département ou collectivité du demandeur",
+                    "stringValue": "75 - Paris",
+                }
+            ],
+        },
+        {
+            "id": "DOSS-2",
+            "number": 20240002,
+            "champs": [
+                {
+                    "label": "Département ou collectivité du demandeur",
+                    "stringValue": "75 - Paris",
+                }
+            ],
+        },
     ]
 
     with patch(
@@ -31,19 +50,23 @@ def test_save_demarche_dossiers_from_ds_calls_save_dossier_data_and_refresh_doss
         return_value=ds_dossiers,
     ):
         with patch(
-            "gsl_demarches_simplifiees.importer.dossier._save_dossier_data_and_refresh_dossier_and_projet_and_co"
-        ) as target_function:
-            save_demarche_dossiers_from_ds(demarche_number)
+            "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
+            return_value=["75"],
+        ):
+            with patch(
+                "gsl_demarches_simplifiees.importer.dossier._save_dossier_data_and_refresh_dossier_and_projet_and_co"
+            ) as target_function:
+                save_demarche_dossiers_from_ds(demarche_number)
 
-            assert target_function.call_count == 2
-            assert Dossier.objects.filter(ds_id="DOSS-1").exists()
-            assert Dossier.objects.filter(ds_id="DOSS-2").exists()
-            dossier_1 = Dossier.objects.get(ds_id="DOSS-1")
-            assert dossier_1.ds_number == 20240001
-            assert dossier_1.ds_demarche.ds_number == demarche_number
-            dossier_2 = Dossier.objects.get(ds_id="DOSS-2")
-            assert dossier_2.ds_number == 20240002
-            assert dossier_2.ds_demarche.ds_number == demarche_number
+                assert target_function.call_count == 2
+                assert Dossier.objects.filter(ds_id="DOSS-1").exists()
+                assert Dossier.objects.filter(ds_id="DOSS-2").exists()
+                dossier_1 = Dossier.objects.get(ds_id="DOSS-1")
+                assert dossier_1.ds_number == 20240001
+                assert dossier_1.ds_demarche.ds_number == demarche_number
+                dossier_2 = Dossier.objects.get(ds_id="DOSS-2")
+                assert dossier_2.ds_number == 20240002
+                assert dossier_2.ds_demarche.ds_number == demarche_number
 
 
 @pytest.mark.django_db
@@ -63,6 +86,12 @@ def test_save_demarche_dossiers_from_ds_update_raw_ds_data_dossiers():
             "id": "DOSS-1",
             "number": 20240001,
             "dateDerniereModification": "2025-01-01T12:09:33+02:00",
+            "champs": [
+                {
+                    "label": "Département ou collectivité du demandeur",
+                    "stringValue": "75 - Paris",
+                }
+            ],
         },
     ]
 
@@ -70,13 +99,17 @@ def test_save_demarche_dossiers_from_ds_update_raw_ds_data_dossiers():
         "gsl_demarches_simplifiees.ds_client.DsClient.get_demarche_dossiers",
         return_value=ds_dossiers,
     ):
-        save_demarche_dossiers_from_ds(demarche_number)
+        with patch(
+            "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
+            return_value=["75"],
+        ):
+            save_demarche_dossiers_from_ds(demarche_number)
 
-        assert Dossier.objects.count() == 1
-        dossier.refresh_from_db()
+            assert Dossier.objects.count() == 1
+            dossier.refresh_from_db()
 
-        assert dossier.ds_number == 20240001
-        assert dossier.raw_ds_data == ds_dossiers[0]
+            assert dossier.ds_number == 20240001
+            assert dossier.raw_ds_data == ds_dossiers[0]
 
 
 @pytest.mark.django_db
@@ -90,12 +123,24 @@ def test_save_demarche_dossiers_from_ds_with_one_empty_data(caplog):
             "id": "DOSS-1",
             "number": 20240001,
             "dateDerniereModification": "2025-01-01T12:09:33+02:00",
+            "champs": [
+                {
+                    "label": "Département ou collectivité du demandeur",
+                    "stringValue": "75 - Paris",
+                }
+            ],
         },
         None,
         {
             "id": "DOSS-2",
             "number": 20240002,
             "dateDerniereModification": "2025-01-01T12:09:33+02:00",
+            "champs": [
+                {
+                    "label": "Département ou collectivité du demandeur",
+                    "stringValue": "75 - Paris",
+                }
+            ],
         },
     ]
 
@@ -103,10 +148,14 @@ def test_save_demarche_dossiers_from_ds_with_one_empty_data(caplog):
         "gsl_demarches_simplifiees.ds_client.DsClient.get_demarche_dossiers",
         return_value=ds_dossiers,
     ):
-        save_demarche_dossiers_from_ds(demarche_number)
+        with patch(
+            "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
+            return_value=["75"],
+        ):
+            save_demarche_dossiers_from_ds(demarche_number)
 
-        assert Dossier.objects.count() == 2
-        assert "Dossier data is empty" in caplog.text
+            assert Dossier.objects.count() == 2
+            assert "Dossier data is empty" in caplog.text
 
 
 @pytest.mark.django_db
@@ -266,3 +315,156 @@ def test_has_dossier_been_updated_on_ds():
     # Case where DN date is older
     ds_data_older = {"dateDerniereModification": "2023-01-01T12:00:00+02:00"}
     assert _has_dossier_been_updated_on_ds(dossier, ds_data_older) is False
+
+
+# test _is_dossier_in_active_departement
+
+
+def test_is_dossier_in_active_departement_department_found_and_in_active_list():
+    """Test when department field is found and code is in active departments."""
+    raw_data = {
+        "champs": [
+            {
+                "label": "Département ou collectivité du demandeur",
+                "stringValue": "75 - Paris",
+            }
+        ]
+    }
+    departements_actifs = ["75", "13", "69"]
+    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is True
+
+
+def test_is_dossier_in_active_departement_department_found_but_not_in_active_list():
+    """Test when department field is found but code is NOT in active departments."""
+    raw_data = {
+        "champs": [
+            {
+                "label": "Département ou collectivité du demandeur",
+                "stringValue": "75 - Paris",
+            }
+        ]
+    }
+    departements_actifs = ["13", "69", "92"]
+    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is False
+
+
+def test_is_dossier_in_active_departement_empty_value():
+    """Test when department field is found but value is empty."""
+    raw_data = {
+        "champs": [
+            {
+                "label": "Département ou collectivité du demandeur",
+                "stringValue": "",
+            }
+        ]
+    }
+    departements_actifs = ["75", "13", "69"]
+    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is False
+
+
+def test_is_dossier_in_active_departement_whitespace_only_value():
+    """Test when department field has only whitespace."""
+    raw_data = {
+        "champs": [
+            {
+                "label": "Département ou collectivité du demandeur",
+                "stringValue": "   ",
+            }
+        ]
+    }
+    departements_actifs = ["75", "13", "69"]
+    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is False
+
+
+def test_is_dossier_in_active_departement_field_not_found():
+    """Test when department field is not found in champs."""
+    raw_data = {
+        "champs": [
+            {"label": "Autre champ", "stringValue": "75 - Paris"},
+        ]
+    }
+    departements_actifs = ["75", "13", "69"]
+    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is False
+
+
+def test_is_dossier_in_active_departement_no_champs_key():
+    """Test when champs key is missing from raw_data."""
+    raw_data = {}
+    departements_actifs = ["75", "13", "69"]
+    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is False
+
+
+def test_is_dossier_in_active_departement_empty_champs():
+    """Test when champs is an empty list."""
+    raw_data = {"champs": []}
+    departements_actifs = ["75", "13", "69"]
+    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is False
+
+
+def test_is_dossier_in_active_departement_with_whitespace_in_code():
+    """Test when department code has whitespace that should be stripped."""
+    raw_data = {
+        "champs": [
+            {
+                "label": "Département ou collectivité du demandeur",
+                "stringValue": "  75  - Paris",
+            }
+        ]
+    }
+    departements_actifs = ["75", "13", "69"]
+    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is True
+
+
+def test_is_dossier_in_active_departement_with_different_format():
+    """Test with different format variations."""
+    raw_data = {
+        "champs": [
+            {
+                "label": "Département ou collectivité du demandeur",
+                "stringValue": "13- Bouches-du-Rhône",
+            }
+        ]
+    }
+    departements_actifs = ["13", "69"]
+    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is True
+
+
+def test_is_dossier_in_active_departement_with_list_of_strings():
+    """Test that it works with list of strings for active departments."""
+    raw_data = {
+        "champs": [
+            {
+                "label": "Département ou collectivité du demandeur",
+                "stringValue": "69 - Rhône",
+            }
+        ]
+    }
+    departements_actifs = ["69", "75"]
+    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is True
+
+
+def test_is_dossier_in_active_departement_with_set():
+    """Test that it works with a set for active departments."""
+    raw_data = {
+        "champs": [
+            {
+                "label": "Département ou collectivité du demandeur",
+                "stringValue": "92 - Hauts-de-Seine",
+            }
+        ]
+    }
+    departements_actifs = {"92", "75", "13"}
+    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is True
+
+
+def test_is_dossier_in_active_departement_no_stringValue_key():
+    """Test when stringValue key is missing from the champ."""
+    raw_data = {
+        "champs": [
+            {
+                "label": "Département ou collectivité du demandeur",
+            }
+        ]
+    }
+    departements_actifs = ["75", "13", "69"]
+    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is False

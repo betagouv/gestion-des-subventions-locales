@@ -1,8 +1,10 @@
 import logging
+from typing import Iterable
 
 from django.contrib import messages
 from django.utils import timezone
 
+from gsl_core.models import Departement
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverter
@@ -21,6 +23,7 @@ def save_demarche_dossiers_from_ds(demarche_number, using_updated_since: bool = 
     demarche_dossiers = client.get_demarche_dossiers(
         demarche_number, updated_since=updated_since
     )
+    active_departement_insee_codes = _get_active_departement_insee_codes()
     dossiers_count = 0
     for dossier_data in demarche_dossiers:
         dossiers_count += 1
@@ -39,6 +42,20 @@ def save_demarche_dossiers_from_ds(demarche_number, using_updated_since: bool = 
         try:
             ds_id = dossier_data["id"]
             ds_dossier_number = dossier_data["number"]
+
+            must_create_or_update_dossier = _is_dossier_in_active_departement(
+                dossier_data, active_departement_insee_codes
+            )
+            if not must_create_or_update_dossier:
+                logger.info(
+                    "Dossier is not in an active departement",
+                    extra={
+                        "demarche_ds_number": demarche_number,
+                        "dossier_ds_number": ds_dossier_number,
+                    },
+                )
+                continue
+
             dossier, _ = Dossier.objects.get_or_create(
                 ds_id=ds_id,
                 defaults={
@@ -62,7 +79,7 @@ def save_demarche_dossiers_from_ds(demarche_number, using_updated_since: bool = 
                 )
 
     logger.info(
-        "Updated demarche from DN",
+        "Demarche dossiers has been updated from DN",
         extra={
             "demarche_ds_number": demarche_number,
             "dossiers_count": dossiers_count,
@@ -146,6 +163,31 @@ def _has_dossier_been_updated_on_ds(dossier: Dossier, dossier_data: dict) -> boo
 
     date_modif_ds = timezone.datetime.fromisoformat(date_modif_ds)
     return date_modif_ds > dossier.ds_date_derniere_modification
+
+
+def _get_active_departement_insee_codes():
+    return Departement.objects.filter(active=True).values_list("insee_code", flat=True)
+
+
+def _is_dossier_in_active_departement(
+    raw_data: dict, departements_actifs: Iterable[str]
+) -> bool:
+    champs = raw_data.get("champs", [])
+
+    for champ in champs:
+        if champ.get("label") == "Département ou collectivité du demandeur":
+            valeur = champ.get("stringValue", "").strip()
+
+            if not valeur:
+                return False
+
+            # Exemple valeur : "75 - Paris"
+            code_insee = valeur.split("-")[0].strip()
+
+            return code_insee in set(departements_actifs)
+
+    # Champ non trouvé
+    return False
 
 
 def refresh_dossier_from_saved_data(dossier: Dossier):

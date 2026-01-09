@@ -33,6 +33,7 @@ class Departement(BaseModel):
     insee_code = models.CharField("Code INSEE", unique=True, primary_key=True)
     name = models.CharField("Nom")
     region = models.ForeignKey(Region, on_delete=models.PROTECT)
+    active = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Département"
