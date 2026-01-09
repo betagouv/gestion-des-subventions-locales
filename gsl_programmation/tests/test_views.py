@@ -169,8 +169,10 @@ class TestProgrammationProjetListViewGetEnveloppe:
         with pytest.raises(Http404) as exc_info:
             view._get_enveloppe_from_user_perimetre(perimetre, enveloppe_qs)
 
-        assert "Aucune enveloppe trouvée pour le périmètre de l'utilisateur" in str(
-            exc_info.value
+        # Check the custom user_message attribute
+        assert (
+            exc_info.value.user_message
+            == "Aucune enveloppe trouvée pour le périmètre de l'utilisateur."
         )
 
     def test_get_enveloppe_priority_order(self):

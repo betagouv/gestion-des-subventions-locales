@@ -158,9 +158,10 @@ def test_choose_type_with_one_wrong_perimetre_pp(client, programmation_projets):
     )
     response = client.get(url)
     assert response.status_code == 403
+    # Check that the custom user message appears in the rendered 403 page
     assert (
-        response.content
-        == b"Un ou plusieurs projets sont hors de votre p\xc3\xa9rim\xc3\xa8tre."
+        "Un ou plusieurs projets sont hors de votre périmètre."
+        in response.content.decode("utf-8")
     )
 
 
@@ -331,9 +332,10 @@ def test_select_modele_multiple_with_one_wrong_perimetre_pp(
     )
     response = client.get(url)
     assert response.status_code == 403
+    # Check that the custom user message appears in the response
     assert (
-        response.content
-        == b"Un ou plusieurs projets sont hors de votre p\xc3\xa9rim\xc3\xa8tre."
+        "Un ou plusieurs projets sont hors de votre périmètre."
+        in response.content.decode("utf-8")
     )
 
 
@@ -616,9 +618,10 @@ def test_save_documents_with_one_wrong_perimetre_pp(
     )
     response = client.post(url)
     assert response.status_code == 403
+    # Check that the custom user message appears in the response
     assert (
-        response.content
-        == b"Un ou plusieurs projets sont hors de votre p\xc3\xa9rim\xc3\xa8tre."
+        "Un ou plusieurs projets sont hors de votre périmètre."
+        in response.content.decode("utf-8")
     )
 
 
@@ -835,9 +838,10 @@ def test_download_documents_with_one_wrong_perimetre_pp(client, programmation_pr
     )
     response = client.get(url)
     assert response.status_code == 403
+    # Check that the custom user message appears in the response
     assert (
-        response.content
-        == b"Un ou plusieurs projets sont hors de votre p\xc3\xa9rim\xc3\xa8tre."
+        "Un ou plusieurs projets sont hors de votre périmètre."
+        in response.content.decode("utf-8")
     )
 
 

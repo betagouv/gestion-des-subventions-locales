@@ -1,10 +1,11 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import Http404, StreamingHttpResponse
+from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods
 from django.views.generic import UpdateView
 
+from gsl_core.exceptions import Http404
 from gsl_notification.forms import ChooseDocumentTypeForUploadForm
 from gsl_notification.models import (
     Annexe,
@@ -63,7 +64,7 @@ def create_uploaded_document_view(request, projet_id, dotation, document_type):
     try:
         uploaded_doc_class = get_uploaded_document_class(document_type)
     except ValueError:
-        raise Http404("Le type de document sélectionné n'existe pas.")
+        raise Http404(user_message="Le type de document sélectionné n'existe pas.")
     uploaded_doc_form = get_uploaded_form_class(document_type)
 
     if request.method == "POST":
@@ -106,7 +107,7 @@ def download_uploaded_document(request, document_type, document_id, download=Tru
     try:
         doc_class = get_uploaded_document_class(document_type)
     except ValueError:
-        raise Http404("Le type de document sélectionné n'existe pas.")
+        raise Http404(user_message="Le type de document sélectionné n'existe pas.")
     doc = get_object_or_404(
         doc_class.objects.filter(
             programmation_projet__dotation_projet__projet__in=Projet.objects.for_user(

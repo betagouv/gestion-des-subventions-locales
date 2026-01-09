@@ -1,13 +1,13 @@
 from functools import cached_property
 
 from django.db.models import Sum
-from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET
 from django.views.generic import ListView
 from django_filters.views import FilterView
 
+from gsl_core.exceptions import Http404
 from gsl_projet.constants import PROJET_STATUS_CHOICES
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomSelectWidget
@@ -29,7 +29,7 @@ def projet_visible_by_user(func):
             Projet.objects.for_user(user).filter(id=projet.id).exists()
         )
         if not is_projet_visible_by_user:
-            raise Http404("No %s matches the given query." % Projet._meta.object_name)
+            raise Http404(user_message="Projet non trouvé")
 
         return func(*args, **kwargs)
 
