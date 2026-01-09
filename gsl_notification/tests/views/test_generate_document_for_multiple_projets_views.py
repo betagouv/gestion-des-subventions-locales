@@ -1,10 +1,12 @@
 import io
 import zipfile
 from datetime import UTC, datetime
+from html import unescape
 from unittest.mock import patch
 
 import pytest
 from django.contrib.messages import get_messages
+from django.test import override_settings
 from django.urls import reverse
 
 from gsl_core.tests.factories import (
@@ -165,6 +167,7 @@ def test_choose_type_with_one_wrong_perimetre_pp(client, programmation_projets):
     )
 
 
+@override_settings(DEBUG=False)
 def test_choose_type_with_one_wrong_dotation_pp(client, programmation_projets):
     wrong_perimetre_pp = ProgrammationProjetFactory(
         dotation_projet__dotation=DOTATION_DSIL
@@ -178,10 +181,10 @@ def test_choose_type_with_one_wrong_dotation_pp(client, programmation_projets):
         + f"?ids={ids}"
     )
     response = client.get(url)
-    assert response.status_code == 400
+    assert response.status_code == 404
     assert (
-        response.content
-        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
+        "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
+        in unescape(response.content.decode("utf-8"))
     )
 
 
@@ -229,18 +232,20 @@ def test_select_modele_multiple_method_allowed(
     assert response.status_code == 405
 
 
+@override_settings(DEBUG=False)
 def test_select_modele_multiple_with_wrong_dotation(client):
     url = reverse("notification:select-modele-multiple", args=["raté", LETTRE])
     response = client.get(url)
-    assert response.status_code == 400
-    assert response.content == b"Dotation inconnue"
+    assert response.status_code == 404
+    assert "Dotation inconnue" in unescape(response.content.decode("utf-8"))
 
 
+@override_settings(DEBUG=False)
 def test_select_modele_multiple_with_wrong_document_type(client):
     url = reverse("notification:select-modele-multiple", args=[DOTATION_DETR, "raté"])
     response = client.get(url)
-    assert response.status_code == 400
-    assert response.content == b"Type de document inconnu"
+    assert response.status_code == 404
+    assert "Type de document inconnu" in unescape(response.content.decode("utf-8"))
 
 
 def test_select_modele_multiple_no_id(client):
@@ -352,10 +357,10 @@ def test_select_modele_multiple_with_one_wrong_dotation_pp(
         + f"?ids={ids}"
     )
     response = client.get(url)
-    assert response.status_code == 400
+    assert response.status_code == 404
     assert (
-        response.content
-        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
+        "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
+        in unescape(response.content.decode("utf-8"))
     )
 
 
@@ -415,23 +420,25 @@ def test_save_documents_method_allowed(client, detr_lettre_modele):
     assert response.status_code == 405
 
 
+@override_settings(DEBUG=False)
 def test_save_documents_with_wrong_dotation(client, detr_lettre_modele):
     url = reverse(
         "notification:save-documents", args=["raté", LETTRE, detr_lettre_modele.id]
     )
     response = client.post(url)
-    assert response.status_code == 400
-    assert response.content == b"Dotation inconnue"
+    assert response.status_code == 404
+    assert "Dotation inconnue" in unescape(response.content.decode("utf-8"))
 
 
+@override_settings(DEBUG=False)
 def test_save_documents_with_wrong_document_type(client, detr_lettre_modele):
     url = reverse(
         "notification:save-documents",
         args=[DOTATION_DETR, "raté", detr_lettre_modele.id],
     )
     response = client.post(url)
-    assert response.status_code == 400
-    assert response.content == b"Type de document inconnu"
+    assert response.status_code == 404
+    assert "Type de document inconnu" in unescape(response.content.decode("utf-8"))
 
 
 def test_save_documents_no_id(client, detr_lettre_modele):
@@ -642,10 +649,10 @@ def test_save_documents_with_one_wrong_dotation_pp(
         + f"?ids={ids}"
     )
     response = client.post(url)
-    assert response.status_code == 400
+    assert response.status_code == 404
     assert (
-        response.content
-        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
+        "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
+        in unescape(response.content.decode("utf-8"))
     )
 
 
@@ -722,21 +729,23 @@ def test_download_documents_method_allowed(client):
     assert response.status_code == 405
 
 
+@override_settings(DEBUG=False)
 def test_download_documents_with_wrong_dotation(client):
     url = reverse("notification:download-documents", args=["raté", LETTRE])
     response = client.get(url)
-    assert response.status_code == 400
-    assert response.content == b"Dotation inconnue"
+    assert response.status_code == 404
+    assert "Dotation inconnue" in unescape(response.content.decode("utf-8"))
 
 
+@override_settings(DEBUG=False)
 def test_download_documents_with_wrong_document_type(client):
     url = reverse(
         "notification:download-documents",
         args=[DOTATION_DETR, "raté"],
     )
     response = client.get(url)
-    assert response.status_code == 400
-    assert response.content == b"Type de document inconnu"
+    assert response.status_code == 404
+    assert "Type de document inconnu" in unescape(response.content.decode("utf-8"))
 
 
 def test_download_documents_no_id(client):
@@ -863,10 +872,10 @@ def test_download_documents_with_one_wrong_dotation_pp(client, programmation_pro
         + f"?ids={ids}"
     )
     response = client.get(url)
-    assert response.status_code == 400
+    assert response.status_code == 404
     assert (
-        response.content
-        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
+        "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
+        in unescape(response.content.decode("utf-8"))
     )
 
 
@@ -886,10 +895,10 @@ def test_download_documents_with_one_already_notified(client, programmation_proj
         + f"?ids={ids}"
     )
     response = client.get(url)
-    assert response.status_code == 400
+    assert response.status_code == 404
     assert (
-        response.content
-        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
+        "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
+        in unescape(response.content.decode("utf-8"))
     )
 
 
@@ -909,10 +918,10 @@ def test_download_documents_with_one_refused(client, programmation_projets):
         + f"?ids={ids}"
     )
     response = client.get(url)
-    assert response.status_code == 400
+    assert response.status_code == 404
     assert (
-        response.content
-        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
+        "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
+        in unescape(response.content.decode("utf-8"))
     )
 
 
@@ -933,10 +942,10 @@ def test_download_documents_with_missing_doc(client, programmation_projets):
         + f"?ids={ids}"
     )
     response = client.get(url)
-    assert response.status_code == 400
+    assert response.status_code == 404
     assert (
-        response.content
-        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
+        "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
+        in unescape(response.content.decode("utf-8"))
     )
 
 
@@ -954,10 +963,10 @@ def test_download_documents_with_duplicate_id(client, programmation_projets):
         + f"?ids={ids}"
     )
     response = client.get(url)
-    assert response.status_code == 400
+    assert response.status_code == 404
     assert (
-        response.content
-        == b"Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet d\xc3\xa9j\xc3\xa0 notifi\xc3\xa9 ou refus\xc3\xa9, projet associ\xc3\xa9 \xc3\xa0 une autre dotation)."
+        "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
+        in unescape(response.content.decode("utf-8"))
     )
 
 
