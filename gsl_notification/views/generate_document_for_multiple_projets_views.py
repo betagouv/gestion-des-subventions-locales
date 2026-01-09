@@ -3,10 +3,7 @@ import logging
 import zipfile
 
 from django.contrib import messages
-from django.http import (
-    HttpResponse,
-    HttpResponseBadRequest,
-)
+from django.http import HttpResponse
 from django.shortcuts import get_list_or_404, get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -67,8 +64,8 @@ class ChooseDocumentTypeForMultipleGenerationView(FormView):
                 dotation_projet__dotation=self.kwargs["dotation"],
             )
             if len(self.programmation_projets) < len(ids):
-                return HttpResponseBadRequest(
-                    DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+                raise Http404(
+                    user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
                 )
 
             if len(self.programmation_projets) == 1:
@@ -120,9 +117,9 @@ class ChooseDocumentTypeForMultipleGenerationView(FormView):
 @require_GET
 def select_modele_multiple(request, dotation, document_type):
     if dotation not in DOTATIONS:
-        return HttpResponseBadRequest("Dotation inconnue")
+        raise Http404(user_message="Dotation inconnue")
     if document_type not in [ARRETE, LETTRE]:
-        return HttpResponseBadRequest("Type de document inconnu")
+        raise Http404(user_message="Type de document inconnu")
 
     try:
         ids = _get_pp_ids(request)
@@ -135,8 +132,8 @@ def select_modele_multiple(request, dotation, document_type):
         )
         pp_count = len(programmation_projets)
         if pp_count < len(ids):
-            return HttpResponseBadRequest(
-                DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+            raise Http404(
+                user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
             )
 
         if pp_count == 1:
@@ -217,9 +214,9 @@ def save_documents(
     modele_id: int,
 ):
     if dotation not in DOTATIONS:
-        return HttpResponseBadRequest("Dotation inconnue")
+        raise Http404(user_message="Dotation inconnue")
     if document_type not in [ARRETE, LETTRE]:
-        return HttpResponseBadRequest("Type de document inconnu")
+        raise Http404(user_message="Type de document inconnu")
 
     try:
         ids = _get_pp_ids(request)
@@ -242,8 +239,8 @@ def save_documents(
                 )
             )
         if len(programmation_projets) < len(ids):
-            return HttpResponseBadRequest(
-                DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+            raise Http404(
+                user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
             )
         _check_if_projets_are_accessible_for_user(request, programmation_projets)
 
@@ -311,9 +308,9 @@ def save_documents(
 @require_GET
 def download_documents(request, dotation, document_type):
     if dotation not in DOTATIONS:
-        return HttpResponseBadRequest("Dotation inconnue")
+        raise Http404(user_message="Dotation inconnue")
     if document_type not in [ARRETE, LETTRE]:
-        return HttpResponseBadRequest("Type de document inconnu")
+        raise Http404(user_message="Type de document inconnu")
 
     pp_attr = get_programmation_projet_attribute(document_type)
     attr_select_related = [
@@ -334,8 +331,8 @@ def download_documents(request, dotation, document_type):
             dotation_projet__projet__notified_at=None,
         )
         if len(programmation_projets) < len(ids):
-            return HttpResponseBadRequest(
-                DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+            raise Http404(
+                user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
             )
 
         if len(programmation_projets) == 1:
@@ -364,7 +361,7 @@ def download_documents(request, dotation, document_type):
         ProgrammationProjet.lettre_notification.RelatedObjectDoesNotExist,
         ProgrammationProjet.arrete.RelatedObjectDoesNotExist,
     ):
-        return HttpResponseBadRequest("Un des projets n'a pas le document demandé.")
+        raise Http404(user_message="Un des projets n'a pas le document demandé.")
 
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
