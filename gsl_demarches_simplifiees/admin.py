@@ -109,23 +109,25 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     fields_count.short_description = "# de champs"
 
     @admin.action(
-        description="Rafraîchir les correspondances de champs depuis les données sauvegardées"
+        description="🔍🛢️ Rafraîchir les correspondances de champs depuis les données sauvegardées"
     )
     def refresh_field_mappings(self, request, queryset):
         for demarche in queryset:
             task_refresh_field_mappings_from_demarche_data(demarche.ds_number)
 
-    @admin.action(description="Rafraîchir la démarche depuis DN")
+    @admin.action(description="📃☁️ Rafraîchir la démarche depuis DN")
     def save_demarche_from_ds(self, request, queryset):
         for demarche in queryset:
             task_save_demarche_from_ds(demarche.ds_number)
 
-    @admin.action(description="Extraction des catégories DETR")
+    @admin.action(description="🔍 Extraction des catégories DETR")
     def extract_detr_categories(self, request, queryset):
         for demarche in queryset:
             refresh_categories_operation_detr(demarche.ds_number)
 
-    @admin.action(description="Rafraîchir tous les dossiers de la démarche depuis DN")
+    @admin.action(
+        description="🗂️☁️ Rafraîchir tous les dossiers de la démarche depuis DN"
+    )
     def refresh_dossiers_from_ds(self, request, queryset):
         for demarche in queryset:
             task_save_demarche_dossiers_from_ds.delay(
@@ -133,7 +135,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             )
 
     @admin.action(
-        description="Rafraîchir les nouveaux dossiers ou les dossiers modifiés d’une démarche depuis DN depuis la dernière mise à jour"
+        description="🗂️☁️ Rafraîchir les nouveaux dossiers ou les dossiers modifiés d’une démarche depuis DN depuis la dernière mise à jour"
     )
     def refresh_new_or_modified_dossiers_from_ds(self, request, queryset):
         for demarche in queryset:
@@ -248,12 +250,12 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     perimetre.short_description = "Périmètre"
 
-    @admin.action(description="Rafraîchir depuis la base de données")
+    @admin.action(description="🛢️ Rafraîchir depuis la base de données")
     def refresh_from_db(self, request, queryset):
         for dossier in queryset:
             task_refresh_dossier_from_saved_data.delay(dossier.ds_number)
 
-    @admin.action(description="Rafraîchir depuis DN")
+    @admin.action(description="☁️ Rafraîchir depuis DN")
     def refresh_from_ds(self, request, queryset):
         for dossier in queryset:
             task_save_one_dossier_from_ds.delay(dossier.ds_number)

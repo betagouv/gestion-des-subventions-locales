@@ -44,13 +44,13 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
     def region_name(self, obj):
         return obj.perimetre.region.name
 
-    region_name.admin_order_field = "region_name"
+    region_name.admin_order_field = "perimetre__region__name"
     region_name.short_description = "Région"
 
     def departement_name(self, obj):
         return obj.perimetre.departement.name if obj.perimetre.departement else None
 
-    departement_name.admin_order_field = "departement_name"
+    departement_name.admin_order_field = "perimetre__departement__name"
     departement_name.short_description = "Département"
 
     def arrondissement_name(self, obj):
@@ -58,7 +58,7 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
             obj.perimetre.arrondissement.name if obj.perimetre.arrondissement else None
         )
 
-    arrondissement_name.admin_order_field = "arrondissement_name"
+    arrondissement_name.admin_order_field = "perimetre__arrondissement__name"
     arrondissement_name.short_description = "Arrondissement"
 
     def formatted_amount(self, obj):

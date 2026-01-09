@@ -222,7 +222,8 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
             return enveloppe
 
         perimetre_enveloppe_qs = enveloppe_qs.filter(
-            perimetre__departement=perimetre.departement
+            perimetre__departement=perimetre.departement,
+            perimetre__arrondissement=None,
         )
         enveloppe = perimetre_enveloppe_qs.first()
         if enveloppe is not None:
