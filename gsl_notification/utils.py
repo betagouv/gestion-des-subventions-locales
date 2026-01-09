@@ -10,10 +10,10 @@ from bs4 import BeautifulSoup
 from django.core.files import File
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models.fields.files import FieldFile
-from django.http import Http404
 from pikepdf import Pdf
 
 from gsl import settings
+from gsl_core.exceptions import Http404
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_notification.models import (
@@ -201,7 +201,7 @@ def get_s3_object(file_name):
     try:
         return s3.get_object(Bucket=bucket, Key=file_name)
     except s3.exceptions.NoSuchKey:
-        raise Http404("Fichier non trouvé")
+        raise Http404(user_message="Fichier non trouvé")
 
 
 def get_modele_class(modele_type):

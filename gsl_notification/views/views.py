@@ -1,7 +1,6 @@
 from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
 from django.contrib import messages
-from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -13,6 +12,7 @@ from django_htmx.http import HttpResponseClientRedirect
 from django_weasyprint import WeasyTemplateResponseMixin
 
 from gsl_core.decorators import htmx_only
+from gsl_core.exceptions import Http404
 from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsServiceException
@@ -222,7 +222,7 @@ def select_modele(request, projet_id, dotation, document_type):
     try:
         modele_class = get_modele_class(document_type)
     except ValueError:
-        raise Http404("Le type de document sélectionné n'existe pas.")
+        raise Http404(user_message="Le type de document sélectionné n'existe pas.")
     modeles = modele_class.objects.filter(dotation=dotation, perimetre__in=perimetres)
 
     context = {
@@ -283,7 +283,7 @@ def change_document_view(request, projet_id, dotation, document_type):
         modele_class = get_modele_class(document_type)
         form_class = get_form_class(document_type)
     except ValueError:
-        raise Http404("Le type de document sélectionné n'existe pas.")
+        raise Http404(user_message="Le type de document sélectionné n'existe pas.")
 
     if hasattr(programmation_projet, pp_attribute):
         document = getattr(programmation_projet, pp_attribute)
@@ -305,7 +305,7 @@ def change_document_view(request, projet_id, dotation, document_type):
         )
 
     if modele is None:
-        raise Http404("Il n'y a pas de modèle sélectionné.")
+        raise Http404(user_message="Il n'y a pas de modèle sélectionné.")
 
     if request.method == "POST":
         form = form_class(request.POST, instance=document)
@@ -398,7 +398,9 @@ class DeleteDocumentView(DeleteView):
                     self.kwargs["document_type"]
                 )
             except ValueError:
-                raise Http404("Le type de document sélectionné n'existe pas.")
+                raise Http404(
+                    user_message="Le type de document sélectionné n'existe pas."
+                )
         return document_class.objects.filter(
             programmation_projet__dotation_projet__projet__in=Projet.objects.for_user(
                 self.request.user
@@ -432,7 +434,7 @@ class PrintDocumentView(WeasyTemplateResponseMixin, DetailView):
         try:
             document_class = get_generated_document_class(self.document_type)
         except ValueError:
-            raise Http404("Le type de document sélectionné n'existe pas.")
+            raise Http404(user_message="Le type de document sélectionné n'existe pas.")
 
         return document_class.objects.filter(
             programmation_projet__dotation_projet__projet__in=Projet.objects.for_user(
