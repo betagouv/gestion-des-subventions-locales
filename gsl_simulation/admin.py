@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.db.models import Count
+from django.urls import reverse
+from django.utils.safestring import mark_safe
 
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_core.models import Perimetre
@@ -65,7 +67,7 @@ class SimulationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("created_by",)
     autocomplete_fields = ("enveloppe", "created_by")
     list_display = (
-        "__str__",
+        "id",
         "enveloppe",
         "created_at",
         "slug",
@@ -100,19 +102,27 @@ class SimulationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 @admin.register(SimulationProjet)
 class SimulationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = (
-        "__str__",
+        "id",
+        "dossier_link",
+        "projet_link",
         "intitule",
         "simulation",
         "status",
     )
-    search_fields = ("dotation_projet__projet__dossier_ds__projet_intitule",)
+    search_fields = (
+        "dotation_projet__projet__dossier_ds__projet_intitule",
+        "dotation_projet__projet__id",
+        "dotation_projet__projet__dossier_ds__ds_number",
+    )
     raw_id_fields = (
         "dotation_projet",
         "simulation",
     )
     fields = (
+        "dossier_link",
+        "projet_link",
         "dotation_projet",
-        "projet",
+        "intitule",
         "simulation",
         "montant",
         "taux",
@@ -121,7 +131,10 @@ class SimulationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "updated_at",
     )
     readonly_fields = (
-        "projet",
+        "intitule",
+        "taux",
+        "dossier_link",
+        "projet_link",
         "created_at",
         "updated_at",
     )
@@ -137,3 +150,29 @@ class SimulationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def intitule(self, obj):
         return obj.dotation_projet.projet.dossier_ds.projet_intitule
+
+    def dossier_link(self, obj):
+        if obj.dotation_projet.projet.dossier_ds:
+            url = reverse(
+                "admin:gsl_demarches_simplifiees_dossier_change",
+                args=[obj.dotation_projet.projet.dossier_ds.id],
+            )
+            return mark_safe(
+                f'<a href="{url}">{obj.dotation_projet.projet.dossier_ds.ds_number}</a>'
+            )
+        return None
+
+    dossier_link.short_description = "Dossier"
+    dossier_link.admin_order_field = "dotation_projet__projet__dossier_ds__ds_number"
+
+    def projet_link(self, obj):
+        if obj.dotation_projet.projet.dossier_ds:
+            url = reverse(
+                "admin:gsl_projet_projet_change",
+                args=[obj.dotation_projet.projet.id],
+            )
+            return mark_safe(f'<a href="{url}">{obj.dotation_projet.projet.id}</a>')
+        return None
+
+    projet_link.short_description = "Projet"
+    projet_link.admin_order_field = "dotation_projet__projet__id"

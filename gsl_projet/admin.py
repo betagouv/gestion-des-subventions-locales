@@ -3,7 +3,7 @@ from typing import Optional
 from django.contrib import admin
 from django.db.models import Count
 from django.urls import reverse
-from django.utils.html import mark_safe
+from django.utils.safestring import mark_safe
 
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_simulation.models import SimulationProjet
@@ -130,9 +130,22 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 @admin.register(DotationProjet)
 class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("projet",)
-    list_display = ("id", "projet", "dotation", "status", "simulation_count")
+    list_display = (
+        "id",
+        "dossier_link",
+        "projet_link",
+        "dotation",
+        "status",
+        "simulation_count",
+    )
+    search_fields = (
+        "projet__dossier_ds__ds_number",
+        "dotation",
+        "projet__id",
+    )
     list_filter = ("dotation", "status")
     inlines = [SimulationProjetInline]
+    readonly_fields = ("dossier_link", "projet_link")
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -153,3 +166,30 @@ class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def simulation_count(self, obj):
         return obj.simulation_count
+
+    simulation_count.admin_order_field = "simulation_count"
+    simulation_count.short_description = "Nb de simulations"
+
+    def dossier_link(self, obj):
+        if obj.projet.dossier_ds:
+            url = reverse(
+                "admin:gsl_demarches_simplifiees_dossier_change",
+                args=[obj.projet.dossier_ds.id],
+            )
+            return mark_safe(f'<a href="{url}">{obj.projet.dossier_ds.ds_number}</a>')
+        return None
+
+    dossier_link.short_description = "Dossier"
+    dossier_link.admin_order_field = "projet__dossier_ds__ds_number"
+
+    def projet_link(self, obj):
+        if obj.projet.dossier_ds:
+            url = reverse(
+                "admin:gsl_projet_projet_change",
+                args=[obj.projet.id],
+            )
+            return mark_safe(f'<a href="{url}">{obj.projet.id}</a>')
+        return None
+
+    projet_link.short_description = "Projet"
+    projet_link.admin_order_field = "projet__id"
