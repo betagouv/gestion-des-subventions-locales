@@ -177,7 +177,9 @@ class DotationProjetService:
         dotation_projets = []
         for dotation in dotations:
             dotation_projet = cls._create_dotation_projet(projet, dotation)
-            enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
+            enveloppe = cls._get_root_enveloppe_from_dotation_projet(
+                dotation_projet, allow_next_year=True
+            )
             dotation_projet.refuse(enveloppe=enveloppe)
             dotation_projet.save()
             dotation_projets.append(dotation_projet)
@@ -193,7 +195,9 @@ class DotationProjetService:
         dotation_projets = []
         for dotation in dotations:
             dotation_projet = cls._create_dotation_projet(projet, dotation)
-            enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
+            enveloppe = cls._get_root_enveloppe_from_dotation_projet(
+                dotation_projet, allow_next_year=True
+            )
             dotation_projet.dismiss(enveloppe=enveloppe)
             dotation_projet.save()
             dotation_projets.append(dotation_projet)
@@ -334,7 +338,7 @@ class DotationProjetService:
         for dotation_projet in projet.dotationprojet_set.all():
             if dotation_projet.status != PROJET_STATUS_REFUSED:
                 enveloppe = cls._get_root_enveloppe_from_dotation_projet(
-                    dotation_projet
+                    dotation_projet, allow_next_year=True
                 )
                 dotation_projet.refuse(enveloppe=enveloppe)
                 dotation_projet.save()
@@ -352,7 +356,7 @@ class DotationProjetService:
                 PROJET_STATUS_REFUSED,
             ]:
                 enveloppe = cls._get_root_enveloppe_from_dotation_projet(
-                    dotation_projet
+                    dotation_projet, allow_next_year=True
                 )
                 dotation_projet.dismiss(enveloppe=enveloppe)
                 dotation_projet.save()
@@ -417,8 +421,22 @@ class DotationProjetService:
         return None
 
     @classmethod
-    def _get_root_enveloppe_from_dotation_projet(cls, dotation_projet: DotationProjet):
+    def _get_root_enveloppe_from_dotation_projet(
+        cls, dotation_projet: DotationProjet, allow_next_year: bool = False
+    ):
+        """
+        Get the root enveloppe from a dotation projet.
+        Args:
+            allow_next_year: If True, allow the use of the next year if the dossier is accepted after November.
+        """
+
         year = dotation_projet.dossier_ds.ds_date_traitement.year
+        if (
+            allow_next_year
+            and dotation_projet.dossier_ds.ds_date_traitement.month >= 11
+        ):
+            year = year + 1
+
         enveloppe_qs = Enveloppe.objects.filter(
             dotation=dotation_projet.dotation,
             annee=year,
@@ -438,6 +456,7 @@ class DotationProjetService:
                     "dotation": dotation_projet.dotation,
                     "year": year,
                     "perimetre": projet_perimetre,
+                    "date_traitement": dotation_projet.dossier_ds.ds_date_traitement,
                 },
             )
             raise Enveloppe.DoesNotExist(

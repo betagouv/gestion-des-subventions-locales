@@ -181,7 +181,7 @@ class Dossier(DsModel):
 
     ds_demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
     ds_id = models.CharField("Identifiant DS")
-    ds_number = models.IntegerField("Numéro DS")
+    ds_number = models.IntegerField("Numéro DS", unique=True)
     ds_state = models.CharField("État DS", choices=DS_STATE_VALUES)
     ds_date_depot = models.DateTimeField("Date de dépôt", null=True, blank=True)
     ds_date_passage_en_construction = models.DateTimeField(
