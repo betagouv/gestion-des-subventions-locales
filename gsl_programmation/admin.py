@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.db.models import Count
+from django.urls import reverse
+from django.utils.safestring import mark_safe
 from import_export.admin import ImportExportMixin
 
 from gsl_core.admin import AllPermsForStaffUser
@@ -44,13 +46,13 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
     def region_name(self, obj):
         return obj.perimetre.region.name
 
-    region_name.admin_order_field = "region_name"
+    region_name.admin_order_field = "perimetre__region__name"
     region_name.short_description = "Région"
 
     def departement_name(self, obj):
         return obj.perimetre.departement.name if obj.perimetre.departement else None
 
-    departement_name.admin_order_field = "departement_name"
+    departement_name.admin_order_field = "perimetre__departement__name"
     departement_name.short_description = "Département"
 
     def arrondissement_name(self, obj):
@@ -58,7 +60,7 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
             obj.perimetre.arrondissement.name if obj.perimetre.arrondissement else None
         )
 
-    arrondissement_name.admin_order_field = "arrondissement_name"
+    arrondissement_name.admin_order_field = "perimetre__arrondissement__name"
     arrondissement_name.short_description = "Arrondissement"
 
     def formatted_amount(self, obj):
@@ -92,16 +94,22 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
 @admin.register(ProgrammationProjet)
 class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = (
-        "pk",
+        "id",
         "enveloppe",
         "status",
         "formatted_amount",
         "formatted_taux",
         "notified_at",
+        "dossier_link",
     )
     autocomplete_fields = ("enveloppe",)
     raw_id_fields = ("dotation_projet",)
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+        "dossier_link",
+        "projet_link",
+    )
     search_fields = ("dotation_projet__projet__dossier_ds__ds_number",)
     list_filter = (
         "status",
@@ -109,6 +117,7 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "enveloppe__annee",
         "enveloppe__perimetre__region__name",
         "enveloppe__perimetre__departement__name",
+        "dotation_projet__projet__dossier_ds__ds_demarche__ds_number",
     )
 
     def formatted_amount(self, obj):
@@ -137,3 +146,29 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             "dotation_projet__projet__dossier_ds__ds_demarche",
         )
         return qs
+
+    def dossier_link(self, obj):
+        if obj.dotation_projet.projet.dossier_ds:
+            url = reverse(
+                "admin:gsl_demarches_simplifiees_dossier_change",
+                args=[obj.dotation_projet.projet.dossier_ds.id],
+            )
+            return mark_safe(
+                f'<a href="{url}">{obj.dotation_projet.projet.dossier_ds.ds_number}</a>'
+            )
+        return None
+
+    dossier_link.short_description = "Dossier"
+    dossier_link.admin_order_field = "dotation_projet__projet__dossier_ds__ds_number"
+
+    def projet_link(self, obj):
+        if obj.dotation_projet.projet.dossier_ds:
+            url = reverse(
+                "admin:gsl_projet_projet_change",
+                args=[obj.dotation_projet.projet.id],
+            )
+            return mark_safe(f'<a href="{url}">{obj.dotation_projet.projet.id}</a>')
+        return None
+
+    projet_link.short_description = "Projet"
+    projet_link.admin_order_field = "dotation_projet__projet__id"
