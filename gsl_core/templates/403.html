@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+{% endblock breadcrumb %}
+
+{% block content %}
+    <h1>
+        Accès interdit
+    </h1>
+
+    <div class="fr-alert fr-alert--error fr-my-4w">
+        <h3 class="fr-alert__title">
+            Vous n'avez pas les permissions nécessaires pour accéder à cette page
+        </h3>
+        {% if exception.user_message %}
+            <p>
+                {{ exception.user_message }}
+            </p>
+        {% else %}
+            <p>
+                Veuillez <a href="mailto:dgcl-turgot@dgcl.gouv.fr">nous contacter</a> si vous pensez qu'il s'agit d'une
+                erreur.
+            </p>
+        {% endif %}
+    </div>
+
+    <p class="fr-mt-4w">
+        <a href="{% url 'index' %}" class="fr-btn">
+            Retour à l'accueil
+        </a>
+    </p>
+{% endblock content %}

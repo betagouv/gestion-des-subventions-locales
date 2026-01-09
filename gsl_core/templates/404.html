@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}
+{% endblock breadcrumb %}
+
+{% block content %}
+    <h1>
+        Page non trouvée
+    </h1>
+
+    <div class="fr-alert fr-alert--error fr-my-4w">
+        <h3 class="fr-alert__title">
+            La page que vous recherchez est introuvable
+        </h3>
+        {% if exception.user_message %}
+            <p>
+                {{ exception.user_message }}
+            </p>
+        {% else %}
+            <p>
+                Veuillez vérifier l'URL ou retourner à la page d'accueil.
+            </p>
+        {% endif %}
+    </div>
+
+    <p class="fr-mt-4w">
+        <a href="{% url 'index' %}" class="fr-btn">
+            Retour à l'accueil
+        </a>
+    </p>
+{% endblock content %}
