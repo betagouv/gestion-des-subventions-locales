@@ -169,13 +169,12 @@ class PersonneMoraleAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
 @admin.register(Dossier)
 class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    list_filter = ("ds_demarche__ds_number", "ds_state")
+    list_filter = ("ds_state",)
     list_display = (
         "ds_number",
         "ds_demarche__ds_number",
         "ds_state",
         "projet_intitule",
-        "perimetre",
         "admin_projet_link",
         "link_to_json",
     )
