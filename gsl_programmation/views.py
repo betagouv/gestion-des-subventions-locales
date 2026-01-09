@@ -3,7 +3,6 @@ from functools import cached_property
 from django.contrib import messages
 from django.contrib.auth.views import RedirectURLMixin
 from django.db.models import ProtectedError
-from django.http import Http404
 from django.shortcuts import redirect
 from django.template.defaultfilters import pluralize
 from django.urls import reverse, reverse_lazy
@@ -14,6 +13,7 @@ from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 from django_filters.views import FilterView
 
+from gsl_core.exceptions import Http404
 from gsl_core.models import Perimetre
 from gsl_programmation.forms import SubEnveloppeCreateForm, SubEnveloppeUpdateForm
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
@@ -148,7 +148,7 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
                 dotation=DOTATION_DETR,
             )
         if self.dotation not in (DOTATION_DETR, DOTATION_DSIL):
-            raise Http404("Dotation non reconnue.")
+            raise Http404(user_message="Dotation non reconnue.")
 
         if (
             self.dotation == DOTATION_DETR
@@ -234,7 +234,9 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
         if enveloppe is not None:
             return enveloppe
 
-        raise Http404("Aucune enveloppe trouvée pour le périmètre de l'utilisateur.")
+        raise Http404(
+            user_message="Aucune enveloppe trouvée pour le périmètre de l'utilisateur."
+        )
 
     # Filter functions
 
