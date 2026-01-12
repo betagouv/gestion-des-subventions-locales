@@ -69,15 +69,34 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
     resource_classes = (CollegueResource,)
     import_template_name = "admin/gsl_core/collegue/import.html"
 
+    search_fields = (
+        "username",
+        "first_name",
+        "last_name",
+        "email",
+        "perimetre__departement__insee_code",
+    )
+
     list_display = (
         "username",
         "email",
         "first_name",
         "last_name",
-        "is_staff",
-        "perimetre",
+        "is_active",
+        "is_staff_custom",
+        "is_superuser_custom",
+        "perimetre_type",
+        "perimetre_custom",
         "last_login",
         "ds_profile",
+    )
+
+    list_filter = (
+        "is_active",
+        "is_staff",
+        "is_superuser",
+        "perimetre__departement",
+        "perimetre__region",
     )
 
     def get_import_formats(self):
@@ -122,16 +141,72 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
         ("Dates", {"fields": ("last_login", "date_joined")}),
     )
     autocomplete_fields = ["perimetre", "ds_profile"]
-    actions = ("associate_ds_profile_to_users",)
+    actions = ("associate_ds_profile_to_users", "deactivate_users", "activate_users")
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related("perimetre__departement", "perimetre__region")
 
-    @admin.action(description="Association des profils DN aux utilisateurs")
+    @admin.action(description="🔃 Association des profils DN aux utilisateurs")
     def associate_ds_profile_to_users(self, request, queryset):
         user_ids = list(queryset.values_list("id", flat=True))
         associate_or_update_ds_profile_to_users(user_ids)
+
+    @admin.action(description="🚫 Désactivation des utilisateurs")
+    def deactivate_users(self, request, queryset):
+        queryset.update(is_active=False)
+
+    @admin.action(description="✅ Réactivation des utilisateurs")
+    def activate_users(self, request, queryset):
+        queryset.update(is_active=True)
+
+    def is_staff_custom(self, obj):
+        return obj.is_staff
+
+    is_staff_custom.short_description = "Equipe"
+    is_staff_custom.boolean = True
+
+    def is_superuser_custom(self, obj):
+        return obj.is_superuser
+
+    is_superuser_custom.short_description = "Super"
+    is_superuser_custom.boolean = True
+
+    def perimetre_custom(self, obj):
+        if obj.perimetre is None:
+            return None
+        if obj.perimetre.arrondissement is not None:
+            return f"{obj.perimetre.arrondissement.insee_code} - {obj.perimetre.arrondissement.name}"
+        if obj.perimetre.departement is not None:
+            return f"{obj.perimetre.departement.insee_code}"
+        if obj.perimetre.region is not None:
+            return obj.perimetre.region.name
+        return obj.perimetre
+
+    perimetre_custom.short_description = "Périmètre"
+    perimetre_custom.admin_order_field = "perimetre__departement__insee_code"
+
+    def perimetre_type(self, obj):
+        if obj.perimetre is None:
+            return None
+        if obj.perimetre.arrondissement is not None:
+            return "Arr"
+        if obj.perimetre.departement is not None:
+            return "Dpt"
+        if obj.perimetre.region is not None:
+            return "Rgn"
+
+    perimetre_type.short_description = "Type"
+
+    def departement(self, obj):
+        if obj.perimetre is None:
+            return None
+        if obj.perimetre.departement is not None:
+            return obj.perimetre.departement.name
+        return None
+
+    departement.short_description = "Département"
+    departement.admin_order_field = "perimetre__departement__name"
 
     @staticmethod
     def _normalize_department_code(dept_code) -> str:
