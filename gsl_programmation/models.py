@@ -192,31 +192,6 @@ class ProgrammationProjetQuerySet(models.QuerySet):
             kwargs["enveloppe"] = kwargs["enveloppe"].delegation_root
         return super().create(**kwargs)
 
-    def for_enveloppe(self, enveloppe: Enveloppe | None):
-        if enveloppe is None:
-            return self.none()
-
-        if enveloppe.deleguee_by is None:
-            return self.filter(enveloppe=enveloppe)
-
-        if enveloppe.perimetre is None:
-            return self.filter(enveloppe=enveloppe.deleguee_by)
-
-        if enveloppe.perimetre.arrondissement:
-            return self.filter(
-                enveloppe=enveloppe.deleguee_by,
-                dotation_projet__projet__perimetre__arrondissement=enveloppe.perimetre.arrondissement,
-            )
-
-        if enveloppe.perimetre.departement:
-            return self.filter(
-                enveloppe=enveloppe.deleguee_by,
-                dotation_projet__projet__perimetre__departement=enveloppe.perimetre.departement,
-            )
-        raise ValueError(
-            "L'enveloppe déléguée doit avoir un périmètre arrondissement ou département."
-        )
-
     def to_notify(self):
         return self.filter(dotation_projet__projet__in=Projet.objects.to_notify())
 
