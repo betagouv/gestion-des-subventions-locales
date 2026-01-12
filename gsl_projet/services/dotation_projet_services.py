@@ -38,6 +38,7 @@ class DotationProjetService:
         dotation_projets = cls._update_dotation_projets_from_projet(projet)
 
         cls._update_detr_categories(dotation_projets)
+        cls._add_dotation_projets_to_all_concerned_simulations(dotation_projets)
         return dotation_projets
 
     @classmethod
@@ -587,3 +588,33 @@ class DotationProjetService:
         ):
             return True
         return False
+
+    @classmethod
+    def _add_dotation_projets_to_all_concerned_simulations(
+        cls, dotation_projets: list[DotationProjet]
+    ):
+        from gsl_simulation.services.simulation_projet_service import (
+            SimulationProjetService,
+        )
+
+        for dotation_projet in dotation_projets:
+            simulations = cls._get_simulation_concerning_by_this_dotation_projet(
+                dotation_projet
+            )
+            for simulation in simulations:
+                SimulationProjetService.create_or_update_simulation_projet_from_dotation_projet(
+                    dotation_projet, simulation
+                )
+
+    @classmethod
+    def _get_simulation_concerning_by_this_dotation_projet(
+        cls, dotation_projet: DotationProjet
+    ):
+        return (
+            Simulation.objects.containing_perimetre(dotation_projet.projet.perimetre)
+            .filter(
+                enveloppe__dotation=dotation_projet.dotation,
+                enveloppe__annee__gte=date.today().year,
+            )
+            .exclude(simulationprojet__dotation_projet=dotation_projet)
+        )
