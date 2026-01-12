@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
 from django.db.models import ProtectedError
 from django.db.models.fields import files
-from django.http import Http404, HttpResponseRedirect
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
@@ -17,6 +17,7 @@ from django.views.generic import FormView, ListView
 from formtools.wizard.views import SessionWizardView
 
 from gsl import settings
+from gsl_core.exceptions import Http404
 from gsl_core.models import Perimetre
 from gsl_notification.forms import (
     ModeleDocumentStepOneForm,
@@ -63,7 +64,7 @@ class ModeleListView(ListView):
 
     def dispatch(self, request, dotation, *args, **kwargs):
         if dotation not in DOTATIONS:
-            raise Http404("Dotation inconnue")
+            raise Http404(user_message="Dotation inconnue")
         self.perimetres = self.get_modele_perimetres(dotation, request.user.perimetre)
         self.dotation = dotation
         response = super().dispatch(request, *args, **kwargs)
@@ -127,7 +128,7 @@ class ChooseModeleDocumentType(FormView):
 
     def dispatch(self, request, dotation, *args, **kwargs):
         if dotation not in DOTATIONS:
-            raise Http404("Dotation inconnue")
+            raise Http404(user_message="Dotation inconnue")
         self.dotation = dotation
         return super().dispatch(request, *args, **kwargs)
 
@@ -181,7 +182,7 @@ class CreateModelDocumentWizard(SessionWizardView):
         **kwargs,
     ):
         if dotation not in DOTATIONS:
-            raise Http404("Dotation inconnue")
+            raise Http404(user_message="Dotation inconnue")
         self.dotation = dotation
         self.modele_type = modele_type
         self._class = get_modele_class(modele_type)
@@ -336,7 +337,7 @@ class UpdateModele(CreateModelDocumentWizard):
             dotation, request.user.perimetre
         )
         if self.instance.perimetre not in self.possible_modele_perimetres:
-            raise Http404("Modèle non existant")
+            raise Http404(user_message="Modèle non existant")
 
         self.initial_instance = self.instance
         response = super().dispatch(
@@ -417,7 +418,7 @@ def get_generic_modele(request, dotation):
         return render(request, "gsl_notification/modele/generique/detr_modele.html")
     elif dotation == DOTATION_DSIL:
         return render(request, "gsl_notification/modele/generique/dsil_modele.html")
-    raise Http404("Dotation inconnue")
+    raise Http404(user_message="Dotation inconnue")
 
 
 def _add_error_message(request, objects_count: int, modele_type: str):

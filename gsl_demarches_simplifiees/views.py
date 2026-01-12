@@ -3,7 +3,7 @@ import logging
 from celery import states
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import Http404, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -13,6 +13,7 @@ from django.views.generic.list import ListView
 from django_celery_results.models import TaskResult
 
 from gsl.settings import ALLOWED_HOSTS
+from gsl_core.exceptions import Http404
 from gsl_projet.models import Projet
 
 from .exceptions import DsServiceException
@@ -37,7 +38,7 @@ def dossier_visible_by_user(func):
             .exists()
         )
         if not is_projet_visible_by_user:
-            raise Http404("No %s matches the given query." % Projet._meta.object_name)
+            raise Http404(user_message="Dossier non trouvé")
 
         return func(*args, **kwargs)
 
