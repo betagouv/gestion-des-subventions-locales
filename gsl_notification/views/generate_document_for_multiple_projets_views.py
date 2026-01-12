@@ -3,13 +3,7 @@ import logging
 import zipfile
 
 from django.contrib import messages
-from django.core.exceptions import PermissionDenied
-from django.http import (
-    Http404,
-    HttpResponse,
-    HttpResponseBadRequest,
-    HttpResponseForbidden,
-)
+from django.http import HttpResponse
 from django.shortcuts import get_list_or_404, get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -20,6 +14,7 @@ from django_weasyprint.utils import django_url_fetcher
 from weasyprint import HTML
 
 from gsl import settings
+from gsl_core.exceptions import Http404, PermissionDenied
 from gsl_notification.forms import ChooseDocumentTypeForMultipleGenerationForm
 from gsl_notification.models import Arrete, LettreNotification
 from gsl_notification.utils import (
@@ -57,7 +52,7 @@ class ChooseDocumentTypeForMultipleGenerationView(FormView):
     def dispatch(self, request, *args, **kwargs):
         dotation = kwargs["dotation"]
         if dotation not in DOTATIONS:
-            raise Http404("Dotation inconnue")
+            raise Http404(user_message="Dotation inconnue")
 
         try:
             ids = _get_pp_ids(self.request)
@@ -69,8 +64,8 @@ class ChooseDocumentTypeForMultipleGenerationView(FormView):
                 dotation_projet__dotation=self.kwargs["dotation"],
             )
             if len(self.programmation_projets) < len(ids):
-                return HttpResponseBadRequest(
-                    DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+                raise Http404(
+                    user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
                 )
 
             if len(self.programmation_projets) == 1:
@@ -80,12 +75,9 @@ class ChooseDocumentTypeForMultipleGenerationView(FormView):
                         args=[self.programmation_projets[0].projet.id],
                     )
                 )
-            try:
-                _check_if_projets_are_accessible_for_user(
-                    self.request, self.programmation_projets
-                )
-            except PermissionDenied as e:
-                return HttpResponseForbidden(str(e))
+            _check_if_projets_are_accessible_for_user(
+                self.request, self.programmation_projets
+            )
 
         except ValueError:
             filterset = ProgrammationProjetFilters(
@@ -125,9 +117,9 @@ class ChooseDocumentTypeForMultipleGenerationView(FormView):
 @require_GET
 def select_modele_multiple(request, dotation, document_type):
     if dotation not in DOTATIONS:
-        return HttpResponseBadRequest("Dotation inconnue")
+        raise Http404(user_message="Dotation inconnue")
     if document_type not in [ARRETE, LETTRE]:
-        return HttpResponseBadRequest("Type de document inconnu")
+        raise Http404(user_message="Type de document inconnu")
 
     try:
         ids = _get_pp_ids(request)
@@ -140,8 +132,8 @@ def select_modele_multiple(request, dotation, document_type):
         )
         pp_count = len(programmation_projets)
         if pp_count < len(ids):
-            return HttpResponseBadRequest(
-                DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+            raise Http404(
+                user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
             )
 
         if pp_count == 1:
@@ -156,10 +148,7 @@ def select_modele_multiple(request, dotation, document_type):
                 )
             )
 
-        try:
-            _check_if_projets_are_accessible_for_user(request, programmation_projets)
-        except PermissionDenied as e:
-            return HttpResponseForbidden(str(e))
+        _check_if_projets_are_accessible_for_user(request, programmation_projets)
 
     except ValueError:
         filterset = ProgrammationProjetFilters(
@@ -225,9 +214,9 @@ def save_documents(
     modele_id: int,
 ):
     if dotation not in DOTATIONS:
-        return HttpResponseBadRequest("Dotation inconnue")
+        raise Http404(user_message="Dotation inconnue")
     if document_type not in [ARRETE, LETTRE]:
-        return HttpResponseBadRequest("Type de document inconnu")
+        raise Http404(user_message="Type de document inconnu")
 
     try:
         ids = _get_pp_ids(request)
@@ -250,13 +239,10 @@ def save_documents(
                 )
             )
         if len(programmation_projets) < len(ids):
-            return HttpResponseBadRequest(
-                DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+            raise Http404(
+                user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
             )
-        try:
-            _check_if_projets_are_accessible_for_user(request, programmation_projets)
-        except PermissionDenied as e:
-            return HttpResponseForbidden(str(e))
+        _check_if_projets_are_accessible_for_user(request, programmation_projets)
 
     except ValueError:
         filterset = ProgrammationProjetFilters(
@@ -274,7 +260,7 @@ def save_documents(
     try:
         document_class = get_generated_document_class(document_type)
     except ValueError:
-        raise Http404("Type de document inconnu")
+        raise Http404(user_message="Type de document inconnu")
 
     modele_class = get_modele_class(document_type)
     perimetres = get_modele_perimetres(dotation, request.user.perimetre)
@@ -322,9 +308,9 @@ def save_documents(
 @require_GET
 def download_documents(request, dotation, document_type):
     if dotation not in DOTATIONS:
-        return HttpResponseBadRequest("Dotation inconnue")
+        raise Http404(user_message="Dotation inconnue")
     if document_type not in [ARRETE, LETTRE]:
-        return HttpResponseBadRequest("Type de document inconnu")
+        raise Http404(user_message="Type de document inconnu")
 
     pp_attr = get_programmation_projet_attribute(document_type)
     attr_select_related = [
@@ -345,8 +331,8 @@ def download_documents(request, dotation, document_type):
             dotation_projet__projet__notified_at=None,
         )
         if len(programmation_projets) < len(ids):
-            return HttpResponseBadRequest(
-                DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+            raise Http404(
+                user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
             )
 
         if len(programmation_projets) == 1:
@@ -357,10 +343,7 @@ def download_documents(request, dotation, document_type):
                 )
             )
 
-        try:
-            _check_if_projets_are_accessible_for_user(request, programmation_projets)
-        except PermissionDenied as e:
-            return HttpResponseForbidden(str(e))
+        _check_if_projets_are_accessible_for_user(request, programmation_projets)
     except ValueError:
         filterset = ProgrammationProjetFilters(
             data=request.GET,
@@ -378,7 +361,7 @@ def download_documents(request, dotation, document_type):
         ProgrammationProjet.lettre_notification.RelatedObjectDoesNotExist,
         ProgrammationProjet.arrete.RelatedObjectDoesNotExist,
     ):
-        return HttpResponseBadRequest("Un des projets n'a pas le document demandé.")
+        raise Http404(user_message="Un des projets n'a pas le document demandé.")
 
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
@@ -412,7 +395,9 @@ def _check_if_projets_are_accessible_for_user(request, programmation_projets):
     )
 
     if len(projet_ids) != len(projet_ids_visible_by_user):
-        raise PermissionDenied("Un ou plusieurs projets sont hors de votre périmètre.")
+        raise PermissionDenied(
+            user_message="Un ou plusieurs projets sont hors de votre périmètre."
+        )
 
 
 def _get_attribute_page_title_and_page_step_title(

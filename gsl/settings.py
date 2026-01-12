@@ -304,6 +304,7 @@ if SENTRY_DSN:
 
     SENTRY_ENV = os.getenv("SENTRY_ENV", "unknown")
     SENTRY_TRACES_SAMPLE_RATE = os.getenv("SENTRY_TRACES_SAMPLE_RATE", 0.1)
+    SENTRY_PROFILES_SAMPLE_RATE = os.getenv("SENTRY_PROFILES_SAMPLE_RATE", None)
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         integrations=[
@@ -315,6 +316,7 @@ if SENTRY_DSN:
         environment=SENTRY_ENV,
         enable_logs=True,
         traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
+        profiles_sample_rate=SENTRY_PROFILES_SAMPLE_RATE,
     )
 
 

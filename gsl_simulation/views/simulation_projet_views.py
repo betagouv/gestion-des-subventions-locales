@@ -2,7 +2,7 @@ import json
 
 from django.contrib import messages
 from django.db import transaction
-from django.http import Http404, HttpRequest
+from django.http import HttpRequest
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import resolve, reverse
@@ -14,6 +14,7 @@ from django_htmx.http import HttpResponseClientRefresh
 
 from gsl.settings import ALLOWED_HOSTS
 from gsl_core.decorators import htmx_only
+from gsl_core.exceptions import Http404
 from gsl_core.templatetags.gsl_filters import euro
 from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.exceptions import DsServiceException
@@ -426,7 +427,7 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         if self.kwargs["status"] not in SimulationProjet.SIMULATION_PENDING_STATUSES:
-            raise Http404
+            raise Http404(user_message="Statut de simulation invalide")
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
@@ -472,7 +473,7 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
             self.kwargs["status"] not in (s[0] for s in SimulationProjet.STATUS_CHOICES)
             or self.kwargs["status"] in SimulationProjet.SIMULATION_PENDING_STATUSES
         ):
-            raise Http404
+            raise Http404(user_message="Statut de simulation invalide")
 
         try:
             return super().dispatch(request, *args, **kwargs)
