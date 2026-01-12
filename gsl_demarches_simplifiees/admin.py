@@ -94,6 +94,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             "perimetre__departement",
             "perimetre__arrondissement",
         )
+        qs = qs.defer("raw_ds_data")
         return qs.annotate(dossier_count=Count("dossier"))
 
     def dossiers_count(self, obj) -> int:
@@ -273,7 +274,10 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             .prefetch_related(
                 "porteur_de_projet_arrondissement__core_arrondissement__departement",
             )
-            .defer("raw_ds_data")
+            .defer(
+                "raw_ds_data",  # Main Dossier
+                "ds_demarche__raw_ds_data",  # Related Demarche
+            )
         )
         return qs
 

@@ -145,6 +145,10 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             "dotation_projet__projet__dossier_ds",
             "dotation_projet__projet__dossier_ds__ds_demarche",
         )
+        qs = qs.defer(
+            "dotation_projet__projet__dossier_ds__raw_ds_data",
+            "dotation_projet__projet__dossier_ds__ds_demarche__raw_ds_data",
+        )
         return qs
 
     def dossier_link(self, obj):
