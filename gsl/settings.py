@@ -315,8 +315,10 @@ if SENTRY_DSN:
         ],
         environment=SENTRY_ENV,
         enable_logs=True,
-        traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
-        profiles_sample_rate=SENTRY_PROFILES_SAMPLE_RATE,
+        traces_sample_rate=float(SENTRY_TRACES_SAMPLE_RATE),
+        profiles_sample_rate=(
+            float(SENTRY_PROFILES_SAMPLE_RATE) if SENTRY_PROFILES_SAMPLE_RATE else None
+        ),
     )
 
 
