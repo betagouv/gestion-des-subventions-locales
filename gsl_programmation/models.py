@@ -43,6 +43,11 @@ class EnveloppeQueryset(models.QuerySet):
         new_obj.save(update_fields=["deleguee_by"])
         return new_obj
 
+    def for_current_year(self):
+        return self.filter(
+            annee=self.order_by("-annee").values_list("annee", flat=True).first()
+        )
+
 
 class EnveloppeManager(models.Manager.from_queryset(EnveloppeQueryset)):
     pass
@@ -187,30 +192,13 @@ class ProgrammationProjetQuerySet(models.QuerySet):
             kwargs["enveloppe"] = kwargs["enveloppe"].delegation_root
         return super().create(**kwargs)
 
-    def for_enveloppe(self, enveloppe: Enveloppe | None):
-        if enveloppe is None or enveloppe.deleguee_by is None:
-            return self.filter(enveloppe=enveloppe)
-
-        if enveloppe.perimetre is None:
-            return self.filter(enveloppe=enveloppe.deleguee_by)
-
-        if enveloppe.perimetre.arrondissement:
-            return self.filter(
-                enveloppe=enveloppe.deleguee_by,
-                dotation_projet__projet__perimetre__arrondissement=enveloppe.perimetre.arrondissement,
-            )
-
-        if enveloppe.perimetre.departement:
-            return self.filter(
-                enveloppe=enveloppe.deleguee_by,
-                dotation_projet__projet__perimetre__departement=enveloppe.perimetre.departement,
-            )
-        raise ValueError(
-            "L'enveloppe déléguée doit avoir un périmètre arrondissement ou département."
-        )
-
     def to_notify(self):
         return self.filter(dotation_projet__projet__in=Projet.objects.to_notify())
+
+    def for_perimetre(self, perimetre):
+        return self.filter(
+            dotation_projet__projet__in=Projet.objects.for_perimetre(perimetre)
+        )
 
     def visible_to_user(self, user):
         if user.is_staff:
