@@ -172,12 +172,13 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
                 "perimetre__arrondissement",
             )
             .filter(dotation=self.dotation)
-            .order_by("-annee")
+            .for_current_year()
         )
 
-        self.enveloppe = self._get_enveloppe_from_user_perimetre(
-            self.perimetre, enveloppe_qs
-        )
+        try:
+            self.enveloppe = enveloppe_qs.get(perimetre=self.perimetre)
+        except Enveloppe.DoesNotExist:
+            self.enveloppe = None
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -188,7 +189,7 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
         context.update(
             {
                 "enveloppe": self.enveloppe,
-                "dotation": self.enveloppe.dotation,
+                "dotation": self.dotation,
                 "title": title,
                 "to_notify_projets_count": self.object_list.to_notify().count(),
                 "activate_all_projets_selection": self.object_list.count()
@@ -207,36 +208,6 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
         )
 
         return context
-
-    def _get_enveloppe_from_user_perimetre(self, perimetre, enveloppe_qs):
-        """
-        Returns the enveloppe corresponding to the user's perimetre.
-        If no enveloppe is found, it returns None.
-        """
-        if not perimetre:
-            return enveloppe_qs.first()
-
-        perimetre_enveloppe_qs = enveloppe_qs.filter(perimetre=perimetre)
-        enveloppe = perimetre_enveloppe_qs.first()
-        if enveloppe is not None:
-            return enveloppe
-
-        perimetre_enveloppe_qs = enveloppe_qs.filter(
-            perimetre__departement=perimetre.departement,
-            perimetre__arrondissement=None,
-        )
-        enveloppe = perimetre_enveloppe_qs.first()
-        if enveloppe is not None:
-            return enveloppe
-
-        perimetre_enveloppe_qs = enveloppe_qs.filter(perimetre__region=perimetre.region)
-        enveloppe = perimetre_enveloppe_qs.first()
-        if enveloppe is not None:
-            return enveloppe
-
-        raise Http404(
-            user_message="Aucune enveloppe trouvée pour le périmètre de l'utilisateur."
-        )
 
     # Filter functions
 
