@@ -33,6 +33,10 @@ def no_perimeter_view(request):
     return render(request, "gsl_pages/no_perimetre.html")
 
 
+def user_help_view(request):
+    return render(request, "gsl_pages/user_help.html")
+
+
 @login_not_required
 def custom_404_view(request, exception):
     """Pass exception object (not string) to template for duck typing."""
