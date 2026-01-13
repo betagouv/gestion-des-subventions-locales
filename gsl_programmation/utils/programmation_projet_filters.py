@@ -8,7 +8,10 @@ from django_filters import (
 
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
-from gsl_programmation.models import Enveloppe, ProgrammationProjet
+from gsl_programmation.models import (
+    Enveloppe,
+    ProgrammationProjet,
+)
 from gsl_projet.models import CategorieDetr
 from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
@@ -187,6 +190,7 @@ class ProgrammationProjetFilters(FilterSet):
         prefetch_related_objs = kwargs.pop(
             "prefetch_related_objs", self.DEFAULT_PREFETCH_RELATED_OBJS
         )
+        defer = kwargs.pop("defer", [])
         super().__init__(*args, **kwargs)
         if hasattr(self.request, "user") and self.request.user.perimetre:
             perimetre = self.request.user.perimetre
@@ -202,6 +206,7 @@ class ProgrammationProjetFilters(FilterSet):
                 )
         self.select_related_objs = select_related_objs
         self.prefetch_related_objs = prefetch_related_objs
+        self.defer = defer
 
     @property
     def qs(self):
@@ -216,46 +221,20 @@ class ProgrammationProjetFilters(FilterSet):
                 "perimetre__arrondissement",
             )
             .filter(dotation=self.dotation)
-            .order_by("-annee")
+            .for_current_year()
         )
 
-        self.enveloppe = self._get_enveloppe_from_user_perimetre(
-            self.perimetre, enveloppe_qs
-        )
         qs = (
             super()
-            .qs.for_enveloppe(enveloppe=self.enveloppe)
+            .qs.filter(
+                enveloppe__in=enveloppe_qs,
+            )
+            .for_perimetre(self.request.user.perimetre)
             .select_related(*self.select_related_objs)
             .prefetch_related(*self.prefetch_related_objs)
+            .defer(*self.defer)
         )
         if not qs.query.order_by:
             qs = qs.order_by("-created_at")
 
         return qs
-
-    def _get_enveloppe_from_user_perimetre(self, perimetre, enveloppe_qs):
-        """
-        Returns the enveloppe corresponding to the user's perimetre.
-        If no enveloppe is found, it returns None.
-        """
-        if not perimetre:
-            return enveloppe_qs.first()
-
-        perimetre_enveloppe_qs = enveloppe_qs.filter(perimetre=perimetre)
-        enveloppe = perimetre_enveloppe_qs.first()
-        if enveloppe is not None:
-            return enveloppe
-
-        perimetre_enveloppe_qs = enveloppe_qs.filter(
-            perimetre__departement=perimetre.departement
-        )
-        enveloppe = perimetre_enveloppe_qs.first()
-        if enveloppe is not None:
-            return enveloppe
-
-        perimetre_enveloppe_qs = enveloppe_qs.filter(perimetre__region=perimetre.region)
-        enveloppe = perimetre_enveloppe_qs.first()
-        if enveloppe is not None:
-            return enveloppe
-
-        return None
