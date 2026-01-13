@@ -3,11 +3,22 @@ from django.db.models import Count, QuerySet, Sum
 from django.forms import ValidationError
 from django_extensions.db.fields import AutoSlugField
 
-from gsl_core.models import BaseModel, Collegue
+from gsl_core.models import BaseModel, Collegue, Perimetre
 from gsl_programmation.models import Enveloppe
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.utils.utils import compute_taux
+
+
+class SimulationQuerySet(models.QuerySet):
+    def containing_perimetre(self, perimetre: Perimetre):
+        ancestors_qs = perimetre.ancestors()
+        perimetres_to_filter = list(ancestors_qs) + [perimetre]
+        return self.filter(enveloppe__perimetre__in=perimetres_to_filter)
+
+
+class SimulationManager(models.Manager.from_queryset(SimulationQuerySet)):
+    pass
 
 
 class Simulation(BaseModel):
@@ -25,6 +36,8 @@ class Simulation(BaseModel):
         populate_from="title",
         blank=False,
     )
+
+    objects = SimulationManager()
 
     class Meta:
         verbose_name = "Simulation"
