@@ -13,6 +13,7 @@ from gsl_core.tests.factories import (
     (
         ("accessibilite", "gsl_pages/accessibilite.html"),
         ("no-perimeter", "gsl_pages/no_perimetre.html"),
+        ("user-help", "gsl_pages/user_help.html"),
     ),
 )
 @pytest.mark.django_db
