@@ -1,10 +1,19 @@
 from django.urls import path
+from django.views.generic import TemplateView
 
 from . import views
 
 urlpatterns = [
     path("", views.index_view, name="index"),
     path("accessibilite/", views.accessibility_view, name="accessibilite"),
-    path("sans-perimetre/", views.no_perimeter_view, name="no-perimeter"),
-    path("aide-utilisation/", views.user_help_view, name="user-help"),
+    path(
+        "sans-perimetre/",
+        TemplateView.as_view(template_name="gsl_pages/no_perimetre.html"),
+        name="no-perimeter",
+    ),
+    path(
+        "aide-utilisation/",
+        TemplateView.as_view(template_name="gsl_pages/user_help.html"),
+        name="user-help",
+    ),
 ]
