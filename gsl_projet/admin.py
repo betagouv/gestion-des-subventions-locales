@@ -98,6 +98,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         qs = qs.select_related("dossier_ds", "dossier_ds__ds_demarche")
+        qs = qs.defer("dossier_ds__raw_ds_data", "dossier_ds__ds_demarche__raw_ds_data")
         qs = qs.prefetch_related("dotationprojet_set", "perimetre__departement")
         return qs
 
@@ -151,6 +152,7 @@ class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         qs = super().get_queryset(request)
         qs = qs.annotate(simulation_count=Count("simulationprojet"))
         qs = qs.select_related("projet", "projet__dossier_ds")
+        qs = qs.defer("projet__dossier_ds__raw_ds_data")
         qs = qs.prefetch_related("simulationprojet_set")
         return qs
 

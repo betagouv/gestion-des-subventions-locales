@@ -190,6 +190,7 @@ class ProgrammationProjetFilters(FilterSet):
         prefetch_related_objs = kwargs.pop(
             "prefetch_related_objs", self.DEFAULT_PREFETCH_RELATED_OBJS
         )
+        defer = kwargs.pop("defer", [])
         super().__init__(*args, **kwargs)
         if hasattr(self.request, "user") and self.request.user.perimetre:
             perimetre = self.request.user.perimetre
@@ -205,6 +206,7 @@ class ProgrammationProjetFilters(FilterSet):
                 )
         self.select_related_objs = select_related_objs
         self.prefetch_related_objs = prefetch_related_objs
+        self.defer = defer
 
     @property
     def qs(self):
@@ -230,6 +232,7 @@ class ProgrammationProjetFilters(FilterSet):
             .for_perimetre(self.request.user.perimetre)
             .select_related(*self.select_related_objs)
             .prefetch_related(*self.prefetch_related_objs)
+            .defer(*self.defer)
         )
         if not qs.query.order_by:
             qs = qs.order_by("-created_at")

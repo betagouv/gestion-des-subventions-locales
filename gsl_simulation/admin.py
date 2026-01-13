@@ -144,6 +144,7 @@ class SimulationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         qs = (
             qs.select_related("dotation_projet__projet")
             .select_related("dotation_projet__projet__dossier_ds")
+            .defer("dotation_projet__projet__dossier_ds__raw_ds_data")
             .select_related("simulation")
         )
         return qs

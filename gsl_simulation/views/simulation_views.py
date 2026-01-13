@@ -276,6 +276,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                 "dotation_projet__detr_categories",
             )
 
+        qs = qs.defer("dossier_ds__raw_ds_data")
         qs.distinct()
         return qs
 
