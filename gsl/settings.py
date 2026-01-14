@@ -311,7 +311,8 @@ if SENTRY_DSN:
         env_sampling_rate = float(SENTRY_TRACES_SAMPLE_RATE)
 
         # Set /static/ requests tracing rate to 1% of other requests tracing rate
-        if sampling_context.transaction.name.startswith("/static/"):
+        transaction_name = sampling_context["transaction_context"]["name"]
+        if transaction_name and transaction_name.startswith("/static/"):
             return env_sampling_rate / 100
         return env_sampling_rate
 
