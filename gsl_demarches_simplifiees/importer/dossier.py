@@ -38,9 +38,21 @@ def save_demarche_dossiers_from_ds(demarche_number, using_updated_since: bool = 
             )
             continue
 
-        _create_or_update_dossier_from_ds_data(
-            dossier_data, active_departement_insee_codes, demarche, dossiers_count
-        )
+        try:
+            _create_or_update_dossier_from_ds_data(
+                dossier_data, active_departement_insee_codes, demarche
+            )
+        except Exception as e:
+            if not isinstance(e, DsServiceException):
+                extra = {
+                    "demarche_ds_number": demarche.ds_number,
+                    "dossier_ds_number": dossier_data["number"],
+                    "error": str(e),
+                    "i": dossiers_count,
+                }
+                logger.exception(
+                    "Error unhandled while saving dossier from DN", extra=extra
+                )
 
     logger.info(
         "Demarche dossiers has been updated from DN",
@@ -210,47 +222,33 @@ def _create_or_update_dossier_from_ds_data(
     dossier_data: dict | None,
     active_departement_insee_codes: Iterable[str],
     demarche: Demarche | None = None,
-    iterator: int | None = None,
 ):
-    try:
-        ds_id = dossier_data["id"]
-        ds_dossier_number = dossier_data["number"]
-        if demarche is None:
-            demarche_number = dossier_data["demarche"]["number"]
-            demarche = Demarche.objects.get(ds_number=demarche_number)
+    ds_id = dossier_data["id"]
+    ds_dossier_number = dossier_data["number"]
+    if demarche is None:
+        demarche_number = dossier_data["demarche"]["number"]
+        demarche = Demarche.objects.get(ds_number=demarche_number)
 
-        must_create_or_update_dossier = _is_dossier_in_active_departement(
-            dossier_data, active_departement_insee_codes
-        )
-        if not must_create_or_update_dossier:
-            logger.info(
-                "Dossier is not in an active departement",
-                extra={
-                    "demarche_ds_number": demarche.ds_number,
-                    "dossier_ds_number": ds_dossier_number,
-                },
-            )
-            return
-
-        dossier, _ = Dossier.objects.get_or_create(
-            ds_id=ds_id,
-            defaults={
-                "ds_demarche": demarche,
-                "ds_number": ds_dossier_number,
-            },
-        )
-        _save_dossier_data_and_refresh_dossier_and_projet_and_co(
-            dossier, dossier_data, async_refresh=True
-        )
-    except Exception as e:
-        if not isinstance(e, DsServiceException):
-            extra = {
+    must_create_or_update_dossier = _is_dossier_in_active_departement(
+        dossier_data, active_departement_insee_codes
+    )
+    if not must_create_or_update_dossier:
+        logger.info(
+            "Dossier is not in an active departement",
+            extra={
                 "demarche_ds_number": demarche.ds_number,
                 "dossier_ds_number": ds_dossier_number,
-                "error": str(e),
-            }
-            if iterator is not None:
-                extra["i"] = iterator
-            logger.exception(
-                "Error unhandled while saving dossier from DN", extra=extra
-            )
+            },
+        )
+        return
+
+    dossier, _ = Dossier.objects.get_or_create(
+        ds_id=ds_id,
+        defaults={
+            "ds_demarche": demarche,
+            "ds_number": ds_dossier_number,
+        },
+    )
+    _save_dossier_data_and_refresh_dossier_and_projet_and_co(
+        dossier, dossier_data, async_refresh=True
+    )
