@@ -125,7 +125,7 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
 data_test = (
     (
         SimulationProjet.STATUS_ACCEPTED,
-        "Le financement de ce projet vient d’être accepté avec la dotation DETR pour 1\xa0000,00\xa0€.",
+        "La demande de financement avec la dotation DETR a bien été acceptée avec un montant de 1 000,00 €.",
         "accepted",
     ),
     (
@@ -135,7 +135,7 @@ data_test = (
     ),
     (
         SimulationProjet.STATUS_PROCESSING,
-        "Le projet est revenu en traitement.",
+        "La demande de financement avec la dotation DETR est bien repassée en traitement.",
         "draft",
     ),
 )
