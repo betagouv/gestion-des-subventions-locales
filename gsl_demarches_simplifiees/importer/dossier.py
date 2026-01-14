@@ -27,7 +27,6 @@ def save_demarche_dossiers_from_ds(demarche_number, using_updated_since: bool = 
     dossiers_count = 0
     for dossier_data in demarche_dossiers:
         dossiers_count += 1
-        ds_dossier_number = None
 
         if dossier_data is None:
             logger.info(
@@ -39,44 +38,9 @@ def save_demarche_dossiers_from_ds(demarche_number, using_updated_since: bool = 
             )
             continue
 
-        try:
-            ds_id = dossier_data["id"]
-            ds_dossier_number = dossier_data["number"]
-
-            must_create_or_update_dossier = _is_dossier_in_active_departement(
-                dossier_data, active_departement_insee_codes
-            )
-            if not must_create_or_update_dossier:
-                logger.info(
-                    "Dossier is not in an active departement",
-                    extra={
-                        "demarche_ds_number": demarche_number,
-                        "dossier_ds_number": ds_dossier_number,
-                    },
-                )
-                continue
-
-            dossier, _ = Dossier.objects.get_or_create(
-                ds_id=ds_id,
-                defaults={
-                    "ds_demarche": demarche,
-                    "ds_number": ds_dossier_number,
-                },
-            )
-            _save_dossier_data_and_refresh_dossier_and_projet_and_co(
-                dossier, dossier_data, async_refresh=True
-            )
-        except Exception as e:
-            if not isinstance(e, DsServiceException):
-                logger.exception(
-                    "Error unhandled while saving dossier from DN",
-                    extra={
-                        "demarche_ds_number": demarche_number,
-                        "dossier_ds_number": ds_dossier_number,
-                        "error": str(e),
-                        "i": dossiers_count,
-                    },
-                )
+        _create_or_update_dossier_from_ds_data(
+            dossier_data, active_departement_insee_codes, demarche, dossiers_count
+        )
 
     logger.info(
         "Demarche dossiers has been updated from DN",
@@ -115,6 +79,58 @@ def save_one_dossier_from_ds(
             "remis à jour depuis Démarche Numérique."
         ),
     )
+
+
+def create_or_update_dossier_from_ds_data(ds_number: str):
+    client = DsClient()
+    dossier_data = client.get_one_dossier(ds_number)
+    active_departement_insee_codes = _get_active_departement_insee_codes()
+    return _create_or_update_dossier_from_ds_data(
+        dossier_data, active_departement_insee_codes
+    )
+
+
+def refresh_dossier_from_saved_data(dossier: Dossier):
+    dossier_converter = DossierConverter(dossier.raw_ds_data, dossier)
+    dossier_converter.fill_unmapped_fields()
+    dossier_converter.convert_all_fields()
+    try:
+        dossier.save()
+    except Exception as e:
+        logger.error(str(e), extra={"dossier_id": dossier.id})
+        raise e
+
+    ProjetService.create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+
+
+def refresh_dossier_instructeurs(dossier_data, dossier: Dossier):
+    """
+    Refreshes the instructeurs associated with a dossier based on data from Démarche Numérique.
+
+    Assume ds_instructeur has been prefetch_related on dossier
+    Noop if no changes, check only IDs does not check emails.
+    """
+    if "groupeInstructeur" not in dossier_data:
+        # Should not happen except in tests
+        return
+    instructeurs_data = dossier_data["groupeInstructeur"]["instructeurs"]
+
+    # Remove instructeurs that are not in the new data
+    for profile in dossier.ds_instructeurs.all():
+        if profile.ds_id not in (i["id"] for i in instructeurs_data):
+            dossier.ds_instructeurs.remove(profile)
+
+    # Add instructeurs that are not already in the dossier
+    dossier_instructeurs_ids = [p.ds_id for p in dossier.ds_instructeurs.all()]
+    for instructeur_data in instructeurs_data:
+        if instructeur_data["id"] not in dossier_instructeurs_ids:
+            instructeur, _ = Profile.objects.get_or_create(
+                ds_id=instructeur_data["id"], ds_email=instructeur_data["email"]
+            )
+            dossier.ds_instructeurs.add(instructeur)
+
+
+### Private methods
 
 
 def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
@@ -190,41 +206,51 @@ def _is_dossier_in_active_departement(
     return False
 
 
-def refresh_dossier_from_saved_data(dossier: Dossier):
-    dossier_converter = DossierConverter(dossier.raw_ds_data, dossier)
-    dossier_converter.fill_unmapped_fields()
-    dossier_converter.convert_all_fields()
+def _create_or_update_dossier_from_ds_data(
+    dossier_data: dict | None,
+    active_departement_insee_codes: Iterable[str],
+    demarche: Demarche | None = None,
+    iterator: int | None = None,
+):
     try:
-        dossier.save()
-    except Exception as e:
-        logger.error(str(e), extra={"dossier_id": dossier.id})
-        raise e
+        ds_id = dossier_data["id"]
+        ds_dossier_number = dossier_data["number"]
+        if demarche is None:
+            demarche_number = dossier_data["demarche"]["number"]
+            demarche = Demarche.objects.get(ds_number=demarche_number)
 
-    ProjetService.create_or_update_projet_and_co_from_dossier(dossier.ds_number)
-
-
-def refresh_dossier_instructeurs(dossier_data, dossier: Dossier):
-    """
-    Refreshes the instructeurs associated with a dossier based on data from Démarche Numérique.
-
-    Assume ds_instructeur has been prefetch_related on dossier
-    Noop if no changes, check only IDs does not check emails.
-    """
-    if "groupeInstructeur" not in dossier_data:
-        # Should not happen except in tests
-        return
-    instructeurs_data = dossier_data["groupeInstructeur"]["instructeurs"]
-
-    # Remove instructeurs that are not in the new data
-    for profile in dossier.ds_instructeurs.all():
-        if profile.ds_id not in (i["id"] for i in instructeurs_data):
-            dossier.ds_instructeurs.remove(profile)
-
-    # Add instructeurs that are not already in the dossier
-    dossier_instructeurs_ids = [p.ds_id for p in dossier.ds_instructeurs.all()]
-    for instructeur_data in instructeurs_data:
-        if instructeur_data["id"] not in dossier_instructeurs_ids:
-            instructeur, _ = Profile.objects.get_or_create(
-                ds_id=instructeur_data["id"], ds_email=instructeur_data["email"]
+        must_create_or_update_dossier = _is_dossier_in_active_departement(
+            dossier_data, active_departement_insee_codes
+        )
+        if not must_create_or_update_dossier:
+            logger.info(
+                "Dossier is not in an active departement",
+                extra={
+                    "demarche_ds_number": demarche.ds_number,
+                    "dossier_ds_number": ds_dossier_number,
+                },
             )
-            dossier.ds_instructeurs.add(instructeur)
+            return
+
+        dossier, _ = Dossier.objects.get_or_create(
+            ds_id=ds_id,
+            defaults={
+                "ds_demarche": demarche,
+                "ds_number": ds_dossier_number,
+            },
+        )
+        _save_dossier_data_and_refresh_dossier_and_projet_and_co(
+            dossier, dossier_data, async_refresh=True
+        )
+    except Exception as e:
+        if not isinstance(e, DsServiceException):
+            extra = {
+                "demarche_ds_number": demarche.ds_number,
+                "dossier_ds_number": ds_dossier_number,
+                "error": str(e),
+            }
+            if iterator is not None:
+                extra["i"] = iterator
+            logger.exception(
+                "Error unhandled while saving dossier from DN", extra=extra
+            )
