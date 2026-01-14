@@ -279,3 +279,26 @@ def test_remove_assiette_field(_mock):
     assert simulation_projet.dotation_projet.assiette is None
     assert simulation_projet.montant == 200
     assert simulation_projet.taux == 2
+
+
+def test_simulation_projet_form_cannot_change_amounts_when_notified():
+    """Test that assiette, montant, taux cannot be changed for a notified project"""
+    from django.utils import timezone
+
+    dotation_projet = DetrProjetFactory(assiette=1_000)
+    simulation_projet = SimulationProjetFactory(
+        dotation_projet=dotation_projet,
+        montant=200,
+    )
+    simulation_projet.dotation_projet.projet.notified_at = timezone.now()
+    simulation_projet.dotation_projet.projet.save()
+
+    # Try to change montant
+    data = {"assiette": 1_000, "montant": 500, "taux": 20}
+    form = SimulationProjetForm(instance=simulation_projet, data=data)
+    assert not form.is_valid()
+    assert "__all__" in form.errors
+    assert (
+        "Les montants d'un projet déjà notifié ne peuvent être modifiés."
+        in form.errors["__all__"]
+    )
