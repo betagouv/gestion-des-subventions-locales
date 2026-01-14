@@ -91,7 +91,7 @@ class TestFormSelectionWhenRefusingOneDoubleDotation:
     ):
         """
         When refusing DETR with DSIL still PROCESSING, the view should use SimulationProjetStatusForm
-        and show the double_dotation_confirmation_modal template.
+        and show the notify_later_confirmation_modal template.
         """
         detr_dotation = double_dotation_projet["detr_dotation"]
         projet = double_dotation_projet["projet"]
@@ -116,7 +116,7 @@ class TestFormSelectionWhenRefusingOneDoubleDotation:
         assert response.status_code == 200
 
         # Verify the correct template is used (double dotation confirmation)
-        assert "htmx/double_dotation_confirmation_modal.html" in [
+        assert "htmx/notify_later_confirmation_modal.html" in [
             t.name for t in response.templates
         ]
 
@@ -178,7 +178,7 @@ class TestFormSelectionWhenRefusingOneDoubleDotation:
     ):
         """
         When refusing DETR with DSIL ACCEPTED, the view should use SimulationProjetStatusForm
-        and show the accept_confirmation_modal template (because projet is optimistically ACCEPTED).
+        and show the notify_later_confirmation_modal template (because projet is optimistically ACCEPTED).
         Project status should be ACCEPTED (optimistic).
         """
         detr_dotation = double_dotation_projet["detr_dotation"]
@@ -209,7 +209,7 @@ class TestFormSelectionWhenRefusingOneDoubleDotation:
         assert response.status_code == 200
 
         # Verify the correct template is used (accept confirmation because projet becomes ACCEPTED)
-        assert "htmx/accept_confirmation_modal.html" in [
+        assert "htmx/notify_later_confirmation_modal.html" in [
             t.name for t in response.templates
         ]
 
@@ -228,7 +228,7 @@ class TestFormSelectionWhenDismissingOneDoubleDotation:
     ):
         """
         When dismissing DSIL with DETR still PROCESSING, the view should use SimulationProjetStatusForm
-        and show the double_dotation_confirmation_modal template.
+        and show the notify_later_confirmation_modal template.
         """
         dsil_dotation = double_dotation_projet["dsil_dotation"]
         projet = double_dotation_projet["projet"]
@@ -253,7 +253,7 @@ class TestFormSelectionWhenDismissingOneDoubleDotation:
         assert response.status_code == 200
 
         # Verify the correct template is used (double dotation confirmation)
-        assert "htmx/double_dotation_confirmation_modal.html" in [
+        assert "htmx/notify_later_confirmation_modal.html" in [
             t.name for t in response.templates
         ]
 
@@ -365,7 +365,7 @@ class TestFormSelectionWhenAcceptingOneDoubleDotation:
     ):
         """
         When accepting DETR with DSIL still PROCESSING, the view should use SimulationProjetStatusForm
-        and show the accept_confirmation_modal template.
+        and show the notify_later_confirmation_modal template.
         """
         detr_dotation = double_dotation_projet["detr_dotation"]
         projet = double_dotation_projet["projet"]
@@ -390,7 +390,7 @@ class TestFormSelectionWhenAcceptingOneDoubleDotation:
         assert response.status_code == 200
 
         # Verify the correct template is used (double_dotation_confirmation)
-        assert "htmx/double_dotation_confirmation_modal.html" in [
+        assert "htmx/notify_later_confirmation_modal.html" in [
             t.name for t in response.templates
         ]
 

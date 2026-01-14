@@ -519,11 +519,11 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
             i.ds_id for i in self.object.dossier.ds_instructeurs.all()
         ]:
             return ["htmx/not_instructeur_error.html"]
-        if self.new_project_status == PROJET_STATUS_PROCESSING:
-            return ["htmx/double_dotation_confirmation_modal.html"]
-
-        if self.new_project_status == PROJET_STATUS_ACCEPTED:
-            return ["htmx/accept_confirmation_modal.html"]
+        if self.new_project_status in [
+            PROJET_STATUS_PROCESSING,
+            PROJET_STATUS_ACCEPTED,
+        ]:
+            return ["htmx/notify_later_confirmation_modal.html"]
 
         if self.new_project_status in [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED]:
             return ["htmx/notify_project_confirmation_modal.html"]
