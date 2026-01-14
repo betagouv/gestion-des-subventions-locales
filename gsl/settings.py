@@ -308,11 +308,18 @@ if SENTRY_DSN:
     SENTRY_PROFILES_SAMPLE_RATE = os.getenv("SENTRY_PROFILES_SAMPLE_RATE", None)
 
     def trace_sampler(sampling_context: SamplingContext) -> float | None:
+        # See examples in https://docs.sentry.io/platforms/python/tracing/configure-sampling/#2-sampling-function-traces_sampler
+        parent_sampling_decision = sampling_context["parent_sampled"]
+        if parent_sampling_decision is not None:
+            return float(parent_sampling_decision)
+
         env_sampling_rate = float(SENTRY_TRACES_SAMPLE_RATE)
 
         # Set /static/ requests tracing rate to 1% of other requests tracing rate
-        transaction_name = sampling_context["transaction_context"]["name"]
-        if transaction_name and transaction_name.startswith("/static/"):
+        wsgi_environ = sampling_context.get("wsgi_environ", None)
+        if wsgi_environ is not None and wsgi_environ["PATH_INFO"].startswith(
+            "/static/"
+        ):
             return env_sampling_rate / 100
         return env_sampling_rate
 
