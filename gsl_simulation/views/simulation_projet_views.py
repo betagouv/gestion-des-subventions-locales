@@ -450,7 +450,7 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
                 {
                     SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: "Le projet est accepté provisoirement dans cette simulation.",
                     SimulationProjet.STATUS_PROVISIONALLY_REFUSED: "Le projet est refusé provisoirement dans cette simulation.",
-                    SimulationProjet.STATUS_PROCESSING: "Le projet est revenu en traitement.",
+                    SimulationProjet.STATUS_PROCESSING: f"La demande de financement avec la dotation {self.object.dotation_projet.dotation} est bien repassée en traitement.",
                 }[self.kwargs["status"]],
                 extra_tags=self.kwargs["status"],
             )
