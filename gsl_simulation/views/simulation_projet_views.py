@@ -557,14 +557,11 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         if self.new_project_status in [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED]:
             ds_message = " Le dossier a bien été mis à jour sur Démarche Numérique."
 
-            other_dismissed_dotations = self.object.projet.dotationprojet_set.filter(
-                status=PROJET_STATUS_DISMISSED
-            )
             if (
-                self.kwargs["status"] == SimulationProjet.STATUS_REFUSED
-                and other_dismissed_dotations.exists()
+                self.new_project_status == PROJET_STATUS_DISMISSED
+                and self.kwargs["status"] == SimulationProjet.STATUS_REFUSED
             ):
-                other_dotation = other_dismissed_dotations.first().dotation
+                other_dotation = self.object.dotation_projet.other_dotations[0].dotation
                 ds_message = f" Sachant que la dotation {other_dotation} a été classée sans suite, le dossier a bien été classé sans suite sur Démarche Numérique."
 
         return message + ds_message
