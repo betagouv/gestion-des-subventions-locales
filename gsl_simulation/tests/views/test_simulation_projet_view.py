@@ -708,3 +708,104 @@ def test_status_and_notification_status_card_does_not_display_notification_butto
     assert response.status_code == 200
     assert 'id="to_notify_button"' not in response.content.decode()
     assert "Notifier le demandeur" not in response.content.decode()
+
+
+class TestNotifiedProjectDisplayOnDetailPage:
+    """Tests for display of notified projects on detail page (text instead of forms)"""
+
+    def test_notified_project_shows_text_instead_of_dotation_form(self):
+        """
+        Notified projects should show dotation as text instead of checkbox form
+        """
+        perimetre = PerimetreArrondissementFactory()
+        collegue = CollegueFactory(perimetre=perimetre)
+        client = ClientWithLoggedUserFactory(user=collegue)
+
+        projet = ProjetFactory(
+            perimetre=perimetre,
+            notified_at=datetime.now(tz=timezone.utc),
+        )
+        dotation_projet = DetrProjetFactory(projet=projet)
+        enveloppe = DetrEnveloppeFactory(perimetre=perimetre)
+        simulation = SimulationFactory(enveloppe=enveloppe)
+        simulation_projet = SimulationProjetFactory(
+            simulation=simulation, dotation_projet=dotation_projet
+        )
+
+        response = client.get(
+            reverse(
+                "simulation:simulation-projet-detail",
+                kwargs={"pk": simulation_projet.pk},
+            )
+        )
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        # Should NOT have the dotation checkbox form
+        assert 'id="dotation-fieldset"' not in content
+        # Should show dotation as text
+        assert "Dispositif" in content
+        assert "DETR" in content
+
+    def test_notified_project_shows_text_instead_of_montant_form(self):
+        """
+        Notified projects should show montant as text instead of input form
+        """
+        perimetre = PerimetreArrondissementFactory()
+        collegue = CollegueFactory(perimetre=perimetre)
+        client = ClientWithLoggedUserFactory(user=collegue)
+
+        projet = ProjetFactory(
+            perimetre=perimetre,
+            notified_at=datetime.now(tz=timezone.utc),
+        )
+        dotation_projet = DetrProjetFactory(projet=projet, assiette=10_000)
+        enveloppe = DetrEnveloppeFactory(perimetre=perimetre)
+        simulation = SimulationFactory(enveloppe=enveloppe)
+        simulation_projet = SimulationProjetFactory(
+            simulation=simulation, dotation_projet=dotation_projet, montant=5_000
+        )
+
+        response = client.get(
+            reverse(
+                "simulation:simulation-projet-detail",
+                kwargs={"pk": simulation_projet.pk},
+            )
+        )
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        # Should NOT have the montant form
+        assert 'id="simulation_projet_form"' not in content
+        # Should show "Montant accordé" text (from dotation_montant_info.html)
+        assert "Montant accordé" in content
+
+    def test_non_notified_project_shows_forms(self):
+        """
+        Non-notified projects should still show editable forms
+        """
+        perimetre = PerimetreArrondissementFactory()
+        collegue = CollegueFactory(perimetre=perimetre)
+        client = ClientWithLoggedUserFactory(user=collegue)
+
+        projet = ProjetFactory(perimetre=perimetre, notified_at=None)
+        dotation_projet = DetrProjetFactory(projet=projet)
+        enveloppe = DetrEnveloppeFactory(perimetre=perimetre)
+        simulation = SimulationFactory(enveloppe=enveloppe)
+        simulation_projet = SimulationProjetFactory(
+            simulation=simulation, dotation_projet=dotation_projet
+        )
+
+        response = client.get(
+            reverse(
+                "simulation:simulation-projet-detail",
+                kwargs={"pk": simulation_projet.pk},
+            )
+        )
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        # Should have the dotation checkbox form
+        assert 'id="dotation-fieldset"' in content
+        # Should have the montant form
+        assert 'id="simulation_projet_form"' in content

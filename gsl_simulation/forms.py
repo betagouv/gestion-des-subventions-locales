@@ -154,6 +154,15 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         simulation_projet = self.instance
         dotation_projet: DotationProjet = self.instance.dotation_projet
 
+        if dotation_projet.projet.notified_at:
+            financial_fields_changed = any(
+                field in self.changed_data for field in ("assiette", "montant", "taux")
+            )
+            if financial_fields_changed:
+                raise ValidationError(
+                    "Les montants d'un projet déjà notifié ne peuvent être modifiés."
+                )
+
         if cleaned_data.get("montant") is None:
             cleaned_data["montant"] = 0
 

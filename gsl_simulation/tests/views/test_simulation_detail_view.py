@@ -224,3 +224,67 @@ class TestDoubleDotationDisplayOnDetrSimulation:
         assert response.status_code == 200
         content = response.content.decode()
         assert "other-dotation-row" not in content
+
+
+class TestNotifiedProjectDisplayOnSimulationTable:
+    """Tests for display of notified projects in simulation table (text instead of forms)"""
+
+    def test_notified_project_shows_text_instead_of_montant_and_dotation_form(
+        self, client_logged_in, detr_envelope
+    ):
+        """
+        Notified projects should show montant as text instead of input field
+        """
+        perimetre = detr_envelope.perimetre
+        projet = ProjetFactory(perimetre=perimetre, notified_at=timezone.now())
+        detr_dotation = DetrProjetFactory(projet=projet)
+
+        detr_simulation = SimulationFactory(enveloppe=detr_envelope)
+        simu = SimulationProjetFactory(
+            simulation=detr_simulation,
+            dotation_projet=detr_dotation,
+            montant=5000,
+        )
+
+        url = reverse(
+            "gsl_simulation:simulation-detail",
+            kwargs={"slug": detr_simulation.slug},
+        )
+        response = client_logged_in.get(url)
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        # Should NOT have the montant input form for this simulation projet
+        assert f'id="id-montant-{simu.id}"' not in content
+        # Should show formatted amount
+        assert "5\xa0000" in content
+        # Should NOT have the dotation dropdown form for notified projects
+        assert "simulation-projet-dotation-form" not in content
+        # Should show dotation as text
+        assert "DETR" in content
+
+    def test_non_notified_project_shows_forms(self, client_logged_in, detr_envelope):
+        """
+        Non-notified projects should still show editable forms
+        """
+        perimetre = detr_envelope.perimetre
+        projet = ProjetFactory(perimetre=perimetre, notified_at=None)
+        detr_dotation = DetrProjetFactory(projet=projet)
+
+        detr_simulation = SimulationFactory(enveloppe=detr_envelope)
+        simu = SimulationProjetFactory(
+            simulation=detr_simulation, dotation_projet=detr_dotation
+        )
+
+        url = reverse(
+            "gsl_simulation:simulation-detail",
+            kwargs={"slug": detr_simulation.slug},
+        )
+        response = client_logged_in.get(url)
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        # Should have the dotation dropdown form
+        assert "simulation-projet-dotation-form" in content
+        # Should have the montant input form
+        assert f'id="id-montant-{simu.id}"' in content
