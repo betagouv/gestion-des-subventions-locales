@@ -452,7 +452,7 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
                 {
                     SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: "Le projet est accepté provisoirement dans cette simulation.",
                     SimulationProjet.STATUS_PROVISIONALLY_REFUSED: "Le projet est refusé provisoirement dans cette simulation.",
-                    SimulationProjet.STATUS_PROCESSING: "Le projet est revenu en traitement.",
+                    SimulationProjet.STATUS_PROCESSING: f"La demande de financement avec la dotation {self.object.dotation_projet.dotation} est bien repassée en traitement.",
                 }[self.kwargs["status"]],
                 extra_tags=self.kwargs["status"],
             )
@@ -545,6 +545,29 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
             .prefetch_related("dotation_projet__projet__dossier_ds__ds_instructeurs")
         )
 
+    def get_success_message(self):
+        SIMU_PROJET_STATUS_TO_MESSAGE = {
+            SimulationProjet.STATUS_ACCEPTED: f"La demande de financement avec la dotation {self.object.enveloppe.dotation} a bien été acceptée avec un montant de {euro(self.object.montant, 2)}.",
+            SimulationProjet.STATUS_REFUSED: f"La demande de financement avec la dotation {self.object.enveloppe.dotation} a bien été refusée.",
+            SimulationProjet.STATUS_DISMISSED: f"La demande de financement avec la dotation {self.object.enveloppe.dotation} a bien été classée sans suite.",
+        }
+
+        message = SIMU_PROJET_STATUS_TO_MESSAGE[self.kwargs["status"]]
+
+        ds_message = ""
+
+        if self.new_project_status in [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED]:
+            ds_message = " Le dossier a bien été mis à jour sur Démarche Numérique."
+
+            if (
+                self.new_project_status == PROJET_STATUS_DISMISSED
+                and self.kwargs["status"] == SimulationProjet.STATUS_REFUSED
+            ):
+                other_dotation = self.object.dotation_projet.other_dotations[0].dotation
+                ds_message = f" Sachant que la dotation {other_dotation} a été classée sans suite, le dossier a bien été classé sans suite sur Démarche Numérique."
+
+        return message + ds_message
+
     def form_valid(self, form):
         try:
             form.save(status=self.kwargs["status"], user=self.request.user)
@@ -560,21 +583,7 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
             )
             return super().form_invalid(form)
 
-        message = (
-            {
-                SimulationProjet.STATUS_ACCEPTED: "Le financement de ce projet vient d’être accepté avec la "
-                f"dotation {self.object.enveloppe.dotation} pour {euro(self.object.montant, 2)}.",
-                SimulationProjet.STATUS_REFUSED: "La demande de dotation a bien été refusée.",
-                SimulationProjet.STATUS_DISMISSED: "La demande de dotation a bien été classée sans suite.",
-            }[self.kwargs["status"]]
-            if self.new_project_status == PROJET_STATUS_PROCESSING
-            else {
-                PROJET_STATUS_ACCEPTED: "Le financement de ce projet vient d’être accepté avec la "
-                f"dotation {self.object.enveloppe.dotation} pour {euro(self.object.montant, 2)}.",
-                PROJET_STATUS_REFUSED: "Le projet a bien été refusé sur Démarche Numérique.",
-                PROJET_STATUS_DISMISSED: "Le projet a bien été classé sans suite sur Démarche Numérique.",
-            }[self.new_project_status]
-        )
+        message = self.get_success_message()
 
         messages.success(
             self.request,
