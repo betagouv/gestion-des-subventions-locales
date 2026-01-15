@@ -3,14 +3,25 @@ from unittest import mock
 
 import pytest
 
-from gsl_core.tests.factories import AdresseFactory, PerimetreArrondissementFactory
+from gsl_core.tests.factories import (
+    AdresseFactory,
+    CollegueFactory,
+    PerimetreArrondissementFactory,
+)
+from gsl_demarches_simplifiees.exceptions import DsServiceException
+from gsl_demarches_simplifiees.services import DsService
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     NaturePorteurProjetFactory,
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, PROJET_STATUS_PROCESSING
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_PROCESSING,
+)
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.services.projet_services import ProjetService as ps
@@ -254,18 +265,23 @@ def projet():
     return ProjetFactory()
 
 
+@pytest.fixture
+def user():
+    return CollegueFactory()
+
+
 @pytest.mark.django_db
-def test_update_dotation_with_no_value(projet, caplog):
+def test_update_dotation_with_no_value(projet, user, caplog):
     with caplog.at_level(logging.WARNING):
-        ps.update_dotation(projet, [])
+        ps.update_dotation(projet, [], user)
     assert "Projet must have at least one dotation" in caplog.text
     assert projet.dotations == []
 
 
 @pytest.mark.django_db
-def test_update_dotation_with_more_than_2_values(projet, caplog):
+def test_update_dotation_with_more_than_2_values(projet, user, caplog):
     with caplog.at_level(logging.WARNING):
-        ps.update_dotation(projet, [DOTATION_DETR, DOTATION_DSIL, "unknown"])
+        ps.update_dotation(projet, [DOTATION_DETR, DOTATION_DSIL, "unknown"], user)
     assert "Projet can't have more than two dotations" in caplog.text
     assert projet.dotations == []
 
@@ -276,14 +292,16 @@ def test_update_dotation_with_more_than_2_values(projet, caplog):
 )
 @pytest.mark.django_db
 def test_update_dotation_from_one_dotation_to_another(
-    mock_create_simulation_projets, dotation, projet
+    mock_create_simulation_projets, dotation, projet, user
 ):
-    original_dotation_projet = DotationProjetFactory(projet=projet, dotation=dotation)
+    original_dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
+    )
     SimulationProjetFactory.create_batch(3, dotation_projet=original_dotation_projet)
     ProgrammationProjetFactory.create(dotation_projet=original_dotation_projet)
 
     new_dotation = DOTATION_DSIL if dotation == DOTATION_DETR else DOTATION_DETR
-    ps.update_dotation(projet, [new_dotation])
+    ps.update_dotation(projet, [new_dotation], user)
 
     assert projet.dotations == [new_dotation]
     assert projet.dotationprojet_set.count() == 1
@@ -304,7 +322,7 @@ def test_update_dotation_from_one_dotation_to_another(
 )
 @pytest.mark.django_db
 def test_update_dotation_from_one_to_two(
-    mock_create_simulation_projets, original_dotation, projet
+    mock_create_simulation_projets, original_dotation, projet, user
 ):
     original_dotation_projet = DotationProjetFactory(
         projet=projet, dotation=original_dotation
@@ -312,7 +330,7 @@ def test_update_dotation_from_one_to_two(
     SimulationProjetFactory.create_batch(3, dotation_projet=original_dotation_projet)
     ProgrammationProjetFactory.create(dotation_projet=original_dotation_projet)
 
-    ps.update_dotation(projet, [DOTATION_DETR, DOTATION_DSIL])
+    ps.update_dotation(projet, [DOTATION_DETR, DOTATION_DSIL], user)
 
     assert projet.dotationprojet_set.count() == 2
     assert all(
@@ -325,3 +343,168 @@ def test_update_dotation_from_one_to_two(
     assert new_dotation_projet.status == PROJET_STATUS_PROCESSING
     assert new_dotation_projet.assiette is None
     assert new_dotation_projet.detr_avis_commission is None
+
+
+@pytest.mark.parametrize("dotation", [DOTATION_DETR, DOTATION_DSIL])
+@mock.patch.object(DsService, "update_ds_annotations_for_one_dotation")
+@pytest.mark.django_db
+def test_update_dotation_removes_accepted_dotation_calls_ds_service(
+    mock_update_ds_annotations,
+    dotation,
+    projet,
+    user,
+):
+    """Test that removing an ACCEPTED dotation_projet calls DS service"""
+    accepted_dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=dotation, status=PROJET_STATUS_ACCEPTED
+    )
+
+    new_dotation = DOTATION_DSIL if dotation == DOTATION_DETR else DOTATION_DETR
+    ps.update_dotation(projet, [new_dotation], user)
+
+    # Verify DS service was called with correct parameters
+    mock_update_ds_annotations.assert_called_once_with(
+        dossier=projet.dossier_ds,
+        user=user,
+        dotations_to_be_checked=accepted_dotation_projet.other_accepted_dotations,
+    )
+
+    # Verify the dotation_projet was deleted
+    assert DotationProjet.objects.filter(pk=accepted_dotation_projet.pk).count() == 0
+
+
+@pytest.mark.parametrize("dotation", [DOTATION_DETR, DOTATION_DSIL])
+@mock.patch.object(DsService, "update_ds_annotations_for_one_dotation")
+@pytest.mark.django_db
+def test_update_dotation_removes_processing_dotation_no_ds_service_call(
+    mock_update_ds_annotations,
+    dotation,
+    projet,
+    user,
+):
+    """Test that removing a PROCESSING dotation_projet does NOT call DS service"""
+    processing_dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
+    )
+
+    new_dotation = DOTATION_DSIL if dotation == DOTATION_DETR else DOTATION_DETR
+    ps.update_dotation(projet, [new_dotation], user)
+
+    # Verify DS service was NOT called
+    mock_update_ds_annotations.assert_not_called()
+
+    # Verify the dotation_projet was deleted
+    assert DotationProjet.objects.filter(pk=processing_dotation_projet.pk).count() == 0
+
+
+@pytest.mark.parametrize("dotation_to_remove", [DOTATION_DETR, DOTATION_DSIL])
+@mock.patch.object(DsService, "update_ds_annotations_for_one_dotation")
+@pytest.mark.django_db
+def test_update_dotation_removes_accepted_dotation_keeps_other_accepted_dotations_in_dn(
+    mock_update_ds_annotations,
+    dotation_to_remove,
+    projet,
+    user,
+):
+    """Test that removing an ACCEPTED dotation_projet passes other_accepted_dotations correctly"""
+    # Create two accepted dotations
+    dotation_to_keep = (
+        DOTATION_DSIL if dotation_to_remove == DOTATION_DETR else DOTATION_DETR
+    )
+    accepted_dotation_to_remove = DotationProjetFactory(
+        projet=projet, dotation=dotation_to_remove, status=PROJET_STATUS_ACCEPTED
+    )
+    accepted_dotation_to_keep = DotationProjetFactory(
+        projet=projet, dotation=dotation_to_keep, status=PROJET_STATUS_ACCEPTED
+    )
+
+    # Remove one dotation
+    ps.update_dotation(projet, [dotation_to_keep], user)
+
+    # Verify DS service was called with the other accepted dotation
+    mock_update_ds_annotations.assert_called_once_with(
+        dossier=projet.dossier_ds,
+        user=user,
+        dotations_to_be_checked=[dotation_to_keep],
+    )
+
+    # Verify the removed dotation_projet was deleted
+    assert DotationProjet.objects.filter(pk=accepted_dotation_to_remove.pk).count() == 0
+    # Verify the kept dotation_projet still exists
+    assert DotationProjet.objects.filter(pk=accepted_dotation_to_keep.pk).count() == 1
+
+
+@pytest.mark.parametrize("dotation_to_remove", [DOTATION_DETR, DOTATION_DSIL])
+@mock.patch.object(DsService, "update_ds_annotations_for_one_dotation")
+@pytest.mark.django_db
+def test_update_dotation_removes_accepted_dotation_with_processing_dotation(
+    mock_update_ds_annotations,
+    dotation_to_remove,
+    projet,
+    user,
+):
+    """Test that removing an ACCEPTED dotation_projet ignores PROCESSING dotations in other_accepted_dotations"""
+    # Create one accepted and one processing dotation
+    dotation_to_keep = (
+        DOTATION_DSIL if dotation_to_remove == DOTATION_DETR else DOTATION_DETR
+    )
+    accepted_dotation_to_remove = DotationProjetFactory(
+        projet=projet, dotation=dotation_to_remove, status=PROJET_STATUS_ACCEPTED
+    )
+    processing_dotation_to_keep = DotationProjetFactory(
+        projet=projet, dotation=dotation_to_keep, status=PROJET_STATUS_PROCESSING
+    )
+
+    # Remove the accepted dotation
+    ps.update_dotation(projet, [dotation_to_keep], user)
+
+    # Verify DS service was called with empty list (no other accepted dotations)
+    mock_update_ds_annotations.assert_called_once_with(
+        dossier=projet.dossier_ds,
+        user=user,
+        dotations_to_be_checked=[],
+    )
+
+    # Verify the removed dotation_projet was deleted
+    assert DotationProjet.objects.filter(pk=accepted_dotation_to_remove.pk).count() == 0
+    # Verify the kept dotation_projet still exists
+    assert DotationProjet.objects.filter(pk=processing_dotation_to_keep.pk).count() == 1
+
+
+@pytest.mark.parametrize("dotation_to_remove", [DOTATION_DETR, DOTATION_DSIL])
+@mock.patch.object(DsService, "update_ds_annotations_for_one_dotation")
+@pytest.mark.django_db
+def test_update_dotation_with_dn_error_cancel_update(
+    mock_update_ds_annotations,
+    dotation_to_remove,
+    projet,
+    user,
+):
+    """Test that removing an ACCEPTED dotation_projet cancels the update if there is an error in the DS service"""
+    # Create one accepted and one processing dotation
+    dotation_to_keep = (
+        DOTATION_DSIL if dotation_to_remove == DOTATION_DETR else DOTATION_DETR
+    )
+    accepted_dotation_to_remove = DotationProjetFactory(
+        projet=projet, dotation=dotation_to_remove, status=PROJET_STATUS_ACCEPTED
+    )
+    processing_dotation_to_keep = DotationProjetFactory(
+        projet=projet, dotation=dotation_to_keep, status=PROJET_STATUS_PROCESSING
+    )
+    mock_update_ds_annotations.side_effect = DsServiceException("Error in DS service")
+
+    # Remove the accepted dotation
+    with pytest.raises(DsServiceException):
+        ps.update_dotation(projet, [dotation_to_keep], user)
+
+    # Verify DS service was called with empty list (no other accepted dotations)
+    mock_update_ds_annotations.assert_called_once_with(
+        dossier=projet.dossier_ds,
+        user=user,
+        dotations_to_be_checked=[],
+    )
+
+    # Verify the removed dotation_projet still exists
+    assert DotationProjet.objects.filter(pk=accepted_dotation_to_remove.pk).count() == 1
+    # Verify the kept dotation_projet still exists
+    assert DotationProjet.objects.filter(pk=processing_dotation_to_keep.pk).count() == 1
