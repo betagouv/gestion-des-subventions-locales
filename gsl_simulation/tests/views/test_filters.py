@@ -317,7 +317,7 @@ def test_view_with_multiple_simulations(req, perimetre_departemental):
         ds_state=state,
         ds_date_depot=datetime(CURRENT_YEAR - 1, 10, 1, tzinfo=UTC),
         ds_date_traitement=datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC),
-        annotations_montant_accorde=150_000,
+        annotations_montant_accorde_detr=150_000,
         demande_montant=200_000,
         demande_dispositif_sollicite="DETR",
     )
