@@ -1,6 +1,9 @@
+from unittest.mock import patch
+
 import pytest
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 
 from gsl_core.tests.factories import CollegueFactory, PerimetreDepartementalFactory
 from gsl_notification.models import ModeleArrete
@@ -68,12 +71,157 @@ def generated_document_properties(type, modele_factory, factory):
         ),
     ),
 )
+def test_generated_document_save_calculates_size(modele_factory, factory):
+    """Test that the save method calculates and saves the size field"""
+    programmation_projet = ProgrammationProjetFactory(
+        status=ProgrammationProjet.STATUS_ACCEPTED
+    )
+    modele = modele_factory()
+
+    # Mock the logo base64 to avoid external requests
+    with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
+        document = factory(
+            programmation_projet=programmation_projet,
+            content="<p>Test content</p>",
+            modele=modele,
+        )
+
+    # Verify size is calculated and saved
+    assert document.size is not None
+    assert isinstance(document.size, int)
+    assert document.size > 0
+    # A minimal PDF should be at least 100 bytes
+    assert document.size >= 100
+
+    # Verify size is persisted in database
+    document.refresh_from_db()
+    assert document.size is not None
+    assert document.size > 0
+
+
+@override_settings(GENERATE_DOCUMENT_SIZE=True)
+@patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64")
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "modele_factory, factory",
+    (
+        (ModeleArreteFactory, ArreteFactory),
+        (
+            ModeleLettreNotificationFactory,
+            LettreNotificationFactory,
+        ),
+    ),
+)
+def test_generated_document_save_updates_size_on_content_change(
+    mock_get_logo_base64, modele_factory, factory
+):
+    """Test that the save method recalculates size when content changes"""
+    programmation_projet = ProgrammationProjetFactory(
+        status=ProgrammationProjet.STATUS_ACCEPTED
+    )
+    modele = modele_factory()
+
+    # Mock the logo base64 to avoid external requests - keep it active for both saves
+    with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
+        document = factory(
+            programmation_projet=programmation_projet,
+            content="<p>Short content</p>",
+            modele=modele,
+        )
+
+        initial_size = document.size
+        assert initial_size is not None
+
+        # Update content with longer content
+        document.content = (
+            "<p>This is a much longer content that should result in a larger PDF file size when generated</p>"
+            * 10
+        )
+        document.save()
+
+        # Verify size was recalculated
+        assert document.size is not None
+        assert document.size != initial_size
+        # The new size should be different (likely larger due to more content)
+        document.refresh_from_db()
+        assert document.size != initial_size
+
+
+@override_settings(GENERATE_DOCUMENT_SIZE=True)
+@pytest.mark.django_db
+@patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64")
+@pytest.mark.parametrize(
+    "modele_factory, factory",
+    (
+        (ModeleArreteFactory, ArreteFactory),
+        (
+            ModeleLettreNotificationFactory,
+            LettreNotificationFactory,
+        ),
+    ),
+)
+def test_generated_document_save_with_different_content_sizes(
+    mock_get_logo_base64, modele_factory, factory
+):
+    """Test that size calculation works correctly with different content sizes"""
+    # Create separate programmation_projets since Arrete/LettreNotification have OneToOneField
+    programmation_projet1 = ProgrammationProjetFactory(
+        status=ProgrammationProjet.STATUS_ACCEPTED
+    )
+    programmation_projet2 = ProgrammationProjetFactory(
+        status=ProgrammationProjet.STATUS_ACCEPTED
+    )
+    modele = modele_factory()
+
+    # Mock the logo base64 to avoid external requests - keep it active for both document creations
+    with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
+        # Create document with minimal content
+        document1 = factory(
+            programmation_projet=programmation_projet1,
+            content="<p>Minimal</p>",
+            modele=modele,
+        )
+        size1 = document1.size
+
+        # Create another document with more content
+        document2 = factory(
+            programmation_projet=programmation_projet2,
+            content="<p>" + "Long content " * 100 + "</p>",
+            modele=modele,
+        )
+        size2 = document2.size
+
+        # Both should have valid sizes
+        assert size1 is not None
+        assert size2 is not None
+        assert size1 > 0
+        assert size2 > 0
+        # Size2 should generally be larger than size1 (though PDF compression might affect this)
+        # At minimum, both should be valid PDF sizes
+        assert size1 >= 100
+        assert size2 >= 100
+        assert size2 > size1
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "modele_factory, factory",
+    (
+        (ModeleArreteFactory, ArreteFactory),
+        (
+            ModeleLettreNotificationFactory,
+            LettreNotificationFactory,
+        ),
+    ),
+)
 def test_generate_document_validation_error_when_pp_and_model_have_different_dotation(
     modele_factory, factory
 ):
     pp = ProgrammationProjetFactory(dotation_projet__dotation=DOTATION_DSIL)
     modele = modele_factory(dotation=DOTATION_DETR)
-    document = factory(programmation_projet=pp, modele=modele)
+    # Mock the logo base64 to avoid external requests during save()
+    with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
+        document = factory(programmation_projet=pp, modele=modele)
     with pytest.raises(ValidationError) as exc_info:
         document.clean()
 
