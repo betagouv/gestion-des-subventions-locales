@@ -99,7 +99,7 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "status",
         "formatted_amount",
         "formatted_taux",
-        "notified_at",
+        "notified_at_custom",
         "dossier_link",
     )
     autocomplete_fields = ("enveloppe",)
@@ -120,6 +120,12 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "dotation_projet__projet__dossier_ds__ds_demarche__ds_number",
     )
 
+    def notified_at_custom(self, obj):
+        return obj.projet.notified_at
+
+    notified_at_custom.short_description = "Date de notification"
+    notified_at_custom.admin_order_field = "dotation_projet__projet__notified_at"
+
     def formatted_amount(self, obj):
         return euro(obj.montant)
 
@@ -129,7 +135,6 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def formatted_taux(self, obj):
         return percent(obj.taux)
 
-    formatted_taux.admin_order_field = "taux"
     formatted_taux.short_description = "Taux"
 
     def get_queryset(self, request):

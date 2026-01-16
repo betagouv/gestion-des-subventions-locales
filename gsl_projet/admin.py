@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from gsl_core.admin import AllPermsForStaffUser
+from gsl_programmation.models import ProgrammationProjet
 from gsl_simulation.models import SimulationProjet
 
 from .constants import PROJET_STATUS_CHOICES
@@ -36,28 +37,6 @@ class DotationProjetInline(admin.TabularInline):
 class CategorieDetrAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = ("departement_id", "annee", "rang", "libelle")
     list_filter = ("departement", "annee")
-
-
-class SimulationProjetInline(admin.TabularInline):
-    model = SimulationProjet
-    extra = 0
-    show_change_link = True
-    fields = [
-        "simulation",
-        "montant",
-        "taux",
-        "status",
-        "created_at",
-        "updated_at",
-    ]
-    readonly_fields = [
-        "simulation",
-        "montant",
-        "taux",
-        "status",
-        "created_at",
-        "updated_at",
-    ]
 
 
 class ProjetStatusFilter(admin.SimpleListFilter):
@@ -128,6 +107,50 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     get_status_display.short_description = "Statut"
 
 
+class SimulationProjetInline(admin.TabularInline):
+    model = SimulationProjet
+    extra = 0
+    show_change_link = True
+    fields = [
+        "simulation",
+        "montant",
+        "taux",
+        "status",
+        "created_at",
+        "updated_at",
+    ]
+    readonly_fields = [
+        "simulation",
+        "montant",
+        "taux",
+        "status",
+        "created_at",
+        "updated_at",
+    ]
+
+
+class ProgrammationProjetInline(admin.TabularInline):
+    model = ProgrammationProjet
+    extra = 0
+    show_change_link = True
+    fields = [
+        "enveloppe",
+        "montant",
+        "taux",
+        "status",
+        "created_at",
+        "updated_at",
+    ]
+    readonly_fields = [
+        "enveloppe",
+        "montant",
+        "taux",
+        "status",
+        "created_at",
+        "updated_at",
+    ]
+
+
 @admin.register(DotationProjet)
 class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("projet",)
@@ -145,7 +168,7 @@ class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "projet__id",
     )
     list_filter = ("dotation", "status")
-    inlines = [SimulationProjetInline]
+    inlines = [SimulationProjetInline, ProgrammationProjetInline]
     readonly_fields = ("dossier_link", "projet_link")
 
     def get_queryset(self, request):
