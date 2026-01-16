@@ -140,7 +140,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
 
         dotations = self.cleaned_data.get("dotations")
         if dotations:
-            ProjetService.update_dotation(instance, dotations)
+            ProjetService.update_dotation(instance, dotations, self.user)
 
         return instance
 
