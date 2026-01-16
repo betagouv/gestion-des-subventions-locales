@@ -85,11 +85,14 @@ class CollegueResource(resources.ModelResource):
     - email: User email address (used for upsert)
     - departement_code: Department INSEE code (e.g., '01', '2A')
     - arrondissement_code: Arrondissement INSEE code (e.g., '011') or None for dept-level
+    - first_name: User's first name (Prénom)
+    - last_name: User's last name (Nom)
 
     The resource will:
     - Create or update users by email
     - Set username = email
     - Create/find the appropriate Perimetre
+    - Set first_name and last_name if provided
     - Set unusable password for new users (ProConnect OIDC authentication)
     - Set is_active=True, is_staff=False by default
     """
@@ -97,6 +100,8 @@ class CollegueResource(resources.ModelResource):
     email = Field(attribute="email", column_name="email")
     departement_code = Field(column_name="departement_code")
     arrondissement_code = Field(column_name="arrondissement_code")
+    first_name = Field(attribute="first_name", column_name="first_name")
+    last_name = Field(attribute="last_name", column_name="last_name")
 
     class Meta:
         model = Collegue
@@ -109,6 +114,8 @@ class CollegueResource(resources.ModelResource):
             "is_staff",
             "departement_code",
             "arrondissement_code",
+            "first_name",
+            "last_name",
         )
         skip_unchanged = True
 
