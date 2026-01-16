@@ -1,6 +1,7 @@
 import os
 from secrets import token_urlsafe
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
@@ -140,9 +141,33 @@ class GeneratedDocument(models.Model):
         default="",
         help_text="Contenu HTML du document, utilisé pour les exports.",
     )
+    size = models.IntegerField(
+        verbose_name="Taille du document",
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         abstract = True
+
+    def save(self, *args, **kwargs):
+        from gsl_notification.utils import generate_pdf_for_generated_document
+
+        if getattr(settings, "GENERATE_DOCUMENT_SIZE", True):
+            pdf_bytes = generate_pdf_for_generated_document(self)
+            self.size = len(pdf_bytes)
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        if (
+            hasattr(self, "programmation_projet")
+            and hasattr(self, "modele")
+            and self.programmation_projet.dotation != self.modele.dotation
+        ):
+            raise ValidationError(
+                "Le modèle doit avoir la même dotation que le projet de programmation."
+            )
+        return super().clean()
 
     def get_download_url(self):
         return reverse(
@@ -167,21 +192,6 @@ class GeneratedDocument(models.Model):
     @property
     def file_type(self):
         return "pdf"
-
-    @property
-    def size(self):  # TODO: Implement a proper name logic
-        return 12345
-
-    def clean(self):
-        if (
-            hasattr(self, "programmation_projet")
-            and hasattr(self, "modele")
-            and self.programmation_projet.dotation != self.modele.dotation
-        ):
-            raise ValidationError(
-                "Le modèle doit avoir la même dotation que le projet de programmation."
-            )
-        return super().clean()
 
 
 class Arrete(GeneratedDocument):

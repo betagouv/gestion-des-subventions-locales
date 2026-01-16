@@ -5,22 +5,15 @@ import zipfile
 from django.contrib import messages
 from django.http import HttpResponse
 from django.shortcuts import get_list_or_404, get_object_or_404, redirect, render
-from django.template.loader import render_to_string
 from django.urls import reverse
-from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_POST
 from django.views.generic import FormView
-from django_weasyprint.utils import django_url_fetcher
-from weasyprint import HTML
 
-from gsl import settings
 from gsl_core.exceptions import Http404, PermissionDenied
 from gsl_notification.forms import ChooseDocumentTypeForMultipleGenerationForm
-from gsl_notification.models import Arrete, LettreNotification
 from gsl_notification.utils import (
-    get_doc_title,
+    generate_pdf_for_generated_document,
     get_generated_document_class,
-    get_logo_base64,
     get_modele_class,
     get_modele_perimetres,
     get_programmation_projet_attribute,
@@ -370,7 +363,7 @@ def download_documents(request, dotation, document_type):
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for i, document in enumerate(documents, start=1):
-            pdf_content = _generate_pdf_for_document(document, document_type)
+            pdf_content = generate_pdf_for_generated_document(document)
             filename = f"{document.name}"
             zip_file.writestr(filename, pdf_content)
             logger.info(f"#{i} {document} généré")
@@ -431,23 +424,3 @@ def _get_go_back_link(dotation: str):
         "gsl_programmation:programmation-projet-list-dotation",
         kwargs={"dotation": dotation},
     )
-
-
-def _generate_pdf_for_document(document: Arrete | LettreNotification, document_type):
-    context = {
-        "doc_title": get_doc_title(document_type),
-        "logo": get_logo_base64(document.modele.logo.url),
-        "alt_logo": document.modele.logo_alt_text,
-        "top_right_text": document.modele.top_right_text.strip(),
-        "content": mark_safe(document.content),
-    }
-
-    html_string = render_to_string("gsl_notification/pdf/document.html", context)
-
-    pdf_content = HTML(
-        string=html_string,
-        url_fetcher=django_url_fetcher,
-        base_url=settings.STATIC_ROOT,
-    ).write_pdf()
-
-    return pdf_content

@@ -10,7 +10,11 @@ from bs4 import BeautifulSoup
 from django.core.files import File
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models.fields.files import FieldFile
+from django.template.loader import render_to_string
+from django.utils.safestring import mark_safe
+from django_weasyprint.utils import django_url_fetcher
 from pikepdf import Pdf
+from weasyprint import HTML
 
 from gsl import settings
 from gsl_core.exceptions import Http404
@@ -287,6 +291,32 @@ def _get_uploaded_document_pdf(document: Annexe | ArreteEtLettreSignes) -> io.By
         )
     )
     return output
+
+
+def generate_pdf_for_generated_document(document: Arrete | LettreNotification) -> bytes:
+    """
+    Generate PDF bytes for a GeneratedDocument (Arrete or LettreNotification).
+
+    This function generates the PDF content for a document and returns it as bytes.
+    It can be used to calculate the document size without actually serving it.
+    """
+    context = {
+        "doc_title": get_doc_title(document.document_type),
+        "logo": get_logo_base64(document.modele.logo.url),
+        "alt_logo": document.modele.logo_alt_text,
+        "top_right_text": document.modele.top_right_text.strip(),
+        "content": mark_safe(document.content),
+    }
+
+    html_string = render_to_string("gsl_notification/pdf/document.html", context)
+
+    pdf_content = HTML(
+        string=html_string,
+        url_fetcher=django_url_fetcher,
+        base_url=settings.STATIC_ROOT,
+    ).write_pdf()
+
+    return pdf_content
 
 
 def merge_documents_into_pdf(

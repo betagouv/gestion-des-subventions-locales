@@ -52,6 +52,7 @@ class ArreteFactory(factory.django.DjangoModelFactory):
     created_at = datetime.datetime.now(datetime.UTC)
     updated_at = datetime.datetime.now(datetime.UTC)
     content = "<p>Contenu du doc</p>"
+    size = 100000  # 100 KB
 
 
 class LettreNotificationFactory(ArreteFactory):
