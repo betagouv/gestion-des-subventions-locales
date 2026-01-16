@@ -274,19 +274,25 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
         Excel structure:
         - Row 2: Headers
         - Row 3+: Hierarchical data with merged cells:
-            - Department section: (dept_code, dept_name, None, None, email)
-            - Department emails: (None, None, None, None, email) - inherits department
-            - Arrondissement section: (None, None, perimeter_name, arr_code, email)
-            - Arrondissement emails: (None, None, None, None, email) - inherits arrondissement
+            - Department section: (dept_code, dept_name, None, None, email, prenom, nom)
+            - Department emails: (None, None, None, None, email, prenom, nom) - inherits department
+            - Arrondissement section: (None, None, perimeter_name, arr_code, email, prenom, nom)
+            - Arrondissement emails: (None, None, None, None, email, prenom, nom) - inherits arrondissement
 
         Returns:
-            tablib.Dataset with columns: email, departement_code, arrondissement_code
+            tablib.Dataset with columns: email, departement_code, arrondissement_code, first_name, last_name
         """
         wb = openpyxl.load_workbook(import_file, read_only=True)
         ws = wb.active
 
         dataset = tablib.Dataset()
-        dataset.headers = ["email", "departement_code", "arrondissement_code"]
+        dataset.headers = [
+            "email",
+            "departement_code",
+            "arrondissement_code",
+            "first_name",
+            "last_name",
+        ]
 
         current_department = None
         current_arrondissement = None
@@ -300,6 +306,8 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
             perimetre_name = row[2] if len(row) > 2 else None
             arr_code = row[3] if len(row) > 3 else None
             email = row[4] if len(row) > 4 else None
+            prenom = row[5] if len(row) > 5 else None
+            nom = row[6] if len(row) > 6 else None
 
             # Update state: new department section
             if dept_code is not None:
@@ -330,11 +338,17 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
                     )
                     continue
 
+                # Clean first_name and last_name (strip whitespace if present)
+                first_name = str(prenom).strip() if prenom else None
+                last_name = str(nom).strip() if nom else None
+
                 dataset.append(
                     [
                         email_clean,
                         current_department,
                         current_arrondissement,  # May be None for dept-level
+                        first_name,
+                        last_name,
                     ]
                 )
 
