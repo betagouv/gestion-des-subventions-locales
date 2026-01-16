@@ -39,13 +39,6 @@ class Demarche(DsModel):
         (STATE_PUBLIEE, "Publiée"),
     )
 
-    perimetre = models.ForeignKey(
-        Perimetre,
-        on_delete=models.PROTECT,
-        verbose_name="Périmètre",
-        null=True,
-    )
-
     # Fields prefixed with ds_ are DN fixed fields,
     # copied as-is, without any mapping needed.
     ds_id = models.CharField("Identifiant DS", unique=True)
