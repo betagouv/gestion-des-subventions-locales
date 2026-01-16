@@ -6,14 +6,11 @@
 {% endblock button_label %}
 
 {% block content %}
-    <h1 class="fr-modal__title success-color">
-        <span class="fr-icon-checkbox-fill fr-icon--lg" aria-hidden="true"></span> Accepter le
-        financement du projet
-        {% if simulation_projet.dotation_projet.other_dotations|length > 0 %}
-            ({{ new_simulation_status|status_to_action_word|capfirst }} {{ simulation_projet.enveloppe.dotation }} et
-            {{ simulation_projet.dotation_projet.other_dotations.0.status|status_to_action_word }}
-            {{ simulation_projet.dotation_projet.other_dotations.0.dotation }})
-        {% endif %}
+    <h1 class="fr-modal__title fr-text-default--{{ new_simulation_status|status_to_fr_color }}"
+        id="{{ modal_id }}-title">
+        <span class="fr-icon-{{ new_simulation_status|status_to_fr_color }}-fill fr-icon--lg"
+              aria-hidden="true"></span>
+        {{ new_simulation_status|status_to_action_word|capfirst }} la demande {{ object.enveloppe.dotation }}
     </h1>
     {% if object.dotation_projet.assiette or new_simulation_status != "valid" %}
         <p>
@@ -21,17 +18,22 @@
             Il apparaîtra dans la programmation officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
         </p>
         <p>
-            Le demandeur ne va pas être notifié tout de suite.
+            {% if simulation_projet.dotation_projet.other_dotations|length > 0 and new_simulation_status != "valid" %}
+                Le demandeur ne va pas être notifié tout de suite car le projet est en double dotation.
+            {% else %}
+                Le demandeur ne va pas être notifié tout de suite.
+            {% endif %}
         </p>
         <p>
-            Êtes-vous sûr(e) d'accepter ce projet&nbsp;?
+            Voulez-vous {{ new_simulation_status|status_to_action_word }} cette demande de dotation&nbsp;?
         </p>
         <form id="{{ modal_id }}-form"
               hx-post="{{ request.path }}"
+              hx-encoding="multipart/form-data"
               hx-target="#{{ modal_id }}"
               hx-swap="outerHTML"
               hx-disabled-elt="#{{ modal_id }}-submit-button, #{{ modal_id }}-cancel-button">
-            {{ form.non_field_errors }}
+            {{ form }}
         </form>
     {% else %}
         <div class="fr-alert fr-alert--error fr-alert--sm fr-mt-6w">
@@ -52,6 +54,6 @@
             {% if not object.dotation_projet.assiette and new_simulation_status == "valid" %}disabled="disabled"{% endif %}
             form="{{ modal_id }}-form"
             id="{{ modal_id }}-submit-button">
-        Confirmer
+        {{ new_simulation_status|status_to_action_word|capfirst }}
     </button>
 {% endblock confirmation_button %}
