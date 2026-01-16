@@ -173,3 +173,40 @@ def test_projet_form_save_with_field_exceptions(projet, user):
     assert projet.is_attached_to_a_crte is False  # not updated
     assert projet.is_budget_vert is False  # Default value
     assert projet.dotations == [DOTATION_DETR]  # Default value
+
+
+@pytest.mark.django_db
+def test_projet_form_cannot_change_dotations_when_notified(projet):
+    """Test that dotations cannot be changed for a notified project"""
+    from django.utils import timezone
+
+    projet.notified_at = timezone.now()
+    projet.save()
+
+    # Try to change dotations from DETR to DSIL
+    data = {
+        "dotations": [DOTATION_DSIL],
+    }
+    form = ProjetForm(instance=projet, data=data)
+    assert not form.is_valid()
+    assert "dotations" in form.errors
+    assert (
+        "Les dotations d'un projet déjà notifié ne peuvent être modifiées."
+        in form.errors["dotations"]
+    )
+
+
+@pytest.mark.django_db
+def test_projet_form_allows_same_dotations_when_notified(projet):
+    """Test that keeping the same dotations is allowed for a notified project"""
+    from django.utils import timezone
+
+    projet.notified_at = timezone.now()
+    projet.save()
+
+    # Keep the same dotations (DETR)
+    data = {
+        "dotations": [DOTATION_DETR],
+    }
+    form = ProjetForm(instance=projet, data=data)
+    assert form.is_valid()

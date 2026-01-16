@@ -1,6 +1,7 @@
 from logging import getLogger
 
 from django import forms
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
@@ -99,6 +100,14 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             self.add_error("dotations", "Veuillez sélectionner au moins une dotation.")
             valid = False
         return valid
+
+    def clean_dotations(self):
+        dotations = self.cleaned_data.get("dotations")
+        if self.instance.notified_at and set(dotations) != set(self.instance.dotations):
+            raise ValidationError(
+                "Les dotations d'un projet déjà notifié ne peuvent être modifiées."
+            )
+        return dotations
 
     @transaction.atomic
     def save(self, commit=True):

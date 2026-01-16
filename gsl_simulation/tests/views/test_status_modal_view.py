@@ -150,6 +150,6 @@ def test_dismiss_projet(
     assert message.level == 25
     assert (
         message.message
-        == "Le projet a bien été classé sans suite sur Démarche Numérique."
+        == "La demande de financement avec la dotation DETR a bien été classée sans suite. Le dossier a bien été mis à jour sur Démarche Numérique."
     )
     assert message.extra_tags == "dismissed"

@@ -1,46 +1,53 @@
-<div class="form-disabled-before-value-change fr-mb-4w"
-     id="dotations-form-container"
-     data-controller="double-dotation"
-     data-double-dotation-initial-dotations-value="{{ initial_dotations }}">
-    {% csrf_token %}
-    <fieldset id="dotation-fieldset"
-              class=" fr-fieldset fr-callout fr-background-alt--blue-france fr-py-2w fr-px-2w"
-              aria-labelledby="titre-dotation">
-        <div id="titre-dotation" class="fr-m-1w fr-my-1w">
-            <b>
-                Imputation budgétaire - Choix de la dotation
-            </b>
-            <br />
-            <small class="fr-hint-text">
-                Préciser la ligne budgétaire vers laquelle le projet doit être orienté
-            </small>
-        </div>
-
-        {% if projet_form.errors.dotations %}
-            <div class="fr-messages-group" aria-live="assertive">
-                {% for err in projet_form.errors.dotations %}
-                    <p class="fr-message fr-message--error">
-                        {{ err }}
-                    </p>
-                {% endfor %}
+{% if projet.notified_at %}
+    <p>
+        <b>Dispositif{{ projet.dotations|pluralize }} de financement retenu{{ projet.dotations|pluralize }}</b>
+        {{ projet.dotations|join:" et " }}
+    </p>
+{% else %}
+    <div class="form-disabled-before-value-change fr-mb-4w"
+         id="dotations-form-container"
+         data-controller="double-dotation"
+         data-double-dotation-initial-dotations-value="{{ initial_dotations }}">
+        {% csrf_token %}
+        <fieldset id="dotation-fieldset"
+                  class=" fr-fieldset fr-callout fr-background-alt--blue-france fr-py-2w fr-px-2w"
+                  aria-labelledby="titre-dotation">
+            <div id="titre-dotation" class="fr-m-1w fr-my-1w">
+                <b>
+                    Imputation budgétaire - Choix de la dotation
+                </b>
+                <br />
+                <small class="fr-hint-text">
+                    Préciser la ligne budgétaire vers laquelle le projet doit être orienté
+                </small>
             </div>
-        {% endif %}
 
-        {% for df in projet_form.dotations %}
-            <div class="fr-fieldset__element fr-mb-1w"
-                 data-action="click->double-dotation#updateSelectedDotations"
-                 data-double-dotation-target="input">
-                {{ df }}
-            </div>
-        {% endfor %}
+            {% if projet_form.errors.dotations %}
+                <div class="fr-messages-group" aria-live="assertive">
+                    {% for err in projet_form.errors.dotations %}
+                        <p class="fr-message fr-message--error">
+                            {{ err }}
+                        </p>
+                    {% endfor %}
+                </div>
+            {% endif %}
 
-    </fieldset>
-    <button id="submit-dotation"
-            class="fr-btn"
-            type="submit"
-            form="projet_form"
-            data-action="double-dotation#sumbit"
-            disabled>
-        Enregistrer
-    </button>
-</div>
+            {% for df in projet_form.dotations %}
+                <div class="fr-fieldset__element fr-mb-1w"
+                     data-action="click->double-dotation#updateSelectedDotations"
+                     data-double-dotation-target="input">
+                    {{ df }}
+                </div>
+            {% endfor %}
+
+        </fieldset>
+        <button id="submit-dotation"
+                class="fr-btn"
+                type="submit"
+                form="projet_form"
+                data-action="double-dotation#sumbit"
+                disabled>
+            Enregistrer
+        </button>
+    </div>
+{% endif %}

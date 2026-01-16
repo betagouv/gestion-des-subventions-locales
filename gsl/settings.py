@@ -18,6 +18,7 @@ import dj_database_url
 from csp.constants import NONCE, SELF
 from dotenv import load_dotenv
 from sentry_sdk.integrations.logging import LoggingIntegration
+from sentry_sdk.types import SamplingContext
 
 load_dotenv()  # take environment variables from .env.
 
@@ -33,7 +34,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG")
 ENV = os.getenv("ENV")
-if ENV not in ("dev", "test", "staging", "prod"):
+if ENV not in ("dev", "test", "staging", "prod", "demo"):
     raise ValueError(
         f"ENV must be one of 'dev', 'test', 'staging' or 'prod'. Got {ENV} instead."
     )
@@ -305,6 +306,23 @@ if SENTRY_DSN:
     SENTRY_ENV = os.getenv("SENTRY_ENV", "unknown")
     SENTRY_TRACES_SAMPLE_RATE = os.getenv("SENTRY_TRACES_SAMPLE_RATE", 0.1)
     SENTRY_PROFILES_SAMPLE_RATE = os.getenv("SENTRY_PROFILES_SAMPLE_RATE", None)
+
+    def trace_sampler(sampling_context: SamplingContext) -> float | None:
+        # See examples in https://docs.sentry.io/platforms/python/tracing/configure-sampling/#2-sampling-function-traces_sampler
+        parent_sampling_decision = sampling_context["parent_sampled"]
+        if parent_sampling_decision is not None:
+            return float(parent_sampling_decision)
+
+        env_sampling_rate = float(SENTRY_TRACES_SAMPLE_RATE)
+
+        # Set /static/ requests tracing rate to 1% of other requests tracing rate
+        wsgi_environ = sampling_context.get("wsgi_environ", None)
+        if wsgi_environ is not None and wsgi_environ["PATH_INFO"].startswith(
+            "/static/"
+        ):
+            return env_sampling_rate / 100
+        return env_sampling_rate
+
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         integrations=[
@@ -315,7 +333,7 @@ if SENTRY_DSN:
         ],
         environment=SENTRY_ENV,
         enable_logs=True,
-        traces_sample_rate=float(SENTRY_TRACES_SAMPLE_RATE),
+        traces_sampler=trace_sampler,
         profiles_sample_rate=(
             float(SENTRY_PROFILES_SAMPLE_RATE) if SENTRY_PROFILES_SAMPLE_RATE else None
         ),

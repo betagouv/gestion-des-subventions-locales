@@ -37,7 +37,7 @@ from gsl_projet.tests.factories import (
     ProjetFactory,
 )
 from gsl_simulation.models import Simulation, SimulationProjet
-from gsl_simulation.tests.factories import SimulationFactory
+from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
 CURRENT_YEAR = datetime.datetime.now().year
 
@@ -479,3 +479,296 @@ def test_validate_taux(taux, should_raise_exception):
             dps.validate_taux(taux)
     else:
         dps.validate_taux(taux)
+
+
+# -- _get_simulation_concerning_by_this_dotation_projet --
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_get_simulation_concerning_by_this_dotation_projet_filters_by_perimetre(
+    perimetres,
+):
+    """Test that the function returns simulations containing the projet's perimetre."""
+    arr_dijon, dep_21, region_bfc, arr_nanterre, dep_92, region_idf = perimetres
+
+    # Create a projet with arrondissement perimetre
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__perimetre=arr_dijon,
+    )
+
+    # Create simulations with different perimetres
+    sim_arr_dijon = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_dep_21 = SimulationFactory(
+        enveloppe__perimetre=dep_21,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    # This should not be included (different perimetre hierarchy)
+    sim_arr_nanterre = SimulationFactory(
+        enveloppe__perimetre=arr_nanterre,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+
+    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+
+    # Should include simulations with arr_dijon and dep_21 (ancestor)
+    assert sim_arr_dijon in results
+    assert sim_dep_21 in results
+    # Should not include simulation with different perimetre
+    assert sim_arr_nanterre not in results
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_get_simulation_concerning_by_this_dotation_projet_filters_by_dotation(
+    perimetres,
+):
+    """Test that the function only returns simulations with matching dotation."""
+    arr_dijon, dep_21, *_ = perimetres
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__perimetre=arr_dijon,
+    )
+
+    # Create simulations with different dotations
+    sim_detr = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_dsil = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+
+    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+
+    assert sim_detr in results
+    assert sim_dsil not in results
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_get_simulation_concerning_by_this_dotation_projet_filters_by_year(
+    perimetres,
+):
+    """Test that the function only returns simulations with year >= current year."""
+    arr_dijon, *_ = perimetres
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__perimetre=arr_dijon,
+    )
+
+    # Create simulations with different years
+    sim_current_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_next_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR + 1,
+    )
+    sim_previous_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR - 1,
+    )
+
+    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+
+    assert sim_current_year in results
+    assert sim_next_year in results
+    assert sim_previous_year not in results
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_get_simulation_concerning_by_this_dotation_projet_excludes_existing_simulation_projet(
+    perimetres,
+):
+    """Test that the function excludes simulations that already have a SimulationProjet for this dotation_projet."""
+    arr_dijon, *_ = perimetres
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__perimetre=arr_dijon,
+    )
+
+    # Create simulations
+    sim_with_existing = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_without_existing = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+
+    # Create a SimulationProjet for one simulation
+    SimulationProjetFactory(
+        simulation=sim_with_existing,
+        dotation_projet=dotation_projet,
+    )
+
+    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+
+    assert sim_with_existing not in results
+    assert sim_without_existing in results
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_get_simulation_concerning_by_this_dotation_projet_with_department_perimetre(
+    perimetres,
+):
+    """Test that the function works correctly with department-level perimetres."""
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DSIL,
+        projet__perimetre=dep_21,
+    )
+
+    # Create simulations
+    sim_arr_dijon = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_dep_21 = SimulationFactory(
+        enveloppe__perimetre=dep_21,
+        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_region_bfc = SimulationFactory(
+        enveloppe__perimetre=region_bfc,
+        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+
+    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+
+    # Should include both department and region (ancestor)
+    assert sim_dep_21 in results
+    assert sim_region_bfc in results
+
+    # Should not include arrondissement
+    assert sim_arr_dijon not in results
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_get_simulation_concerning_by_this_dotation_projet_with_region_perimetre(
+    perimetres,
+):
+    """Test that the function works correctly with region-level perimetres."""
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DSIL,
+        projet__perimetre=region_bfc,
+    )
+
+    # Create simulations
+    sim_arr_dijon = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_dep_21 = SimulationFactory(
+        enveloppe__perimetre=dep_21,
+        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_region_bfc = SimulationFactory(
+        enveloppe__perimetre=region_bfc,
+        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    # Different region should not be included
+    _, _, _, _, _, region_idf = perimetres
+    sim_region_idf = SimulationFactory(
+        enveloppe__perimetre=region_idf,
+        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+
+    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+
+    # Only region should be included
+    assert sim_region_bfc in results
+
+    assert sim_arr_dijon not in results
+    assert sim_dep_21 not in results
+    assert sim_region_idf not in results
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_get_simulation_concerning_by_this_dotation_projet_combines_all_filters(
+    perimetres,
+):
+    """Test that the function correctly combines all filters."""
+    arr_dijon, dep_21, *_ = perimetres
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__perimetre=arr_dijon,
+    )
+
+    # Create a simulation that matches all criteria
+    sim_valid = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+
+    # Create simulations that fail different criteria
+    sim_wrong_dotation = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_wrong_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR - 1,
+    )
+    sim_wrong_perimetre = SimulationFactory(
+        enveloppe__perimetre=dep_21,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_existing = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    SimulationProjetFactory(
+        simulation=sim_existing,
+        dotation_projet=dotation_projet,
+    )
+
+    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+
+    assert sim_valid in results
+    assert sim_wrong_dotation not in results
+    assert sim_wrong_year not in results
+    # sim_wrong_perimetre should be included since dep_21 is an ancestor of arr_dijon
+    # and containing_perimetre includes ancestors
+    assert sim_wrong_perimetre in results
+    assert sim_existing not in results
