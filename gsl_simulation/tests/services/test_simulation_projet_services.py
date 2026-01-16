@@ -14,6 +14,7 @@ from gsl_programmation.tests.factories import (
 )
 from gsl_projet.constants import (
     DOTATION_DETR,
+    DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
     PROJET_STATUS_PROCESSING,
@@ -61,7 +62,7 @@ def test_update_simulation_projets_from_dotation_projet_calls_create_or_update(
 
 def test_create_or_update_simulation_projet_from_dotation_projet_when_no_simulation_projet_exists():
     dotation_projet = DotationProjetFactory(
-        projet__dossier_ds__annotations_montant_accorde=1_000,
+        projet__dossier_ds__annotations_montant_accorde_detr=1_000,
         projet__dossier_ds__finance_cout_total=10_000,
         status=PROJET_STATUS_ACCEPTED,
         dotation=DOTATION_DETR,
@@ -84,7 +85,7 @@ def test_create_or_update_simulation_projet_from_dotation_projet_when_no_simulat
 def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_exists():
     simulation = SimulationFactory()
     dotation_projet = DotationProjetFactory(
-        projet__dossier_ds__annotations_montant_accorde=1_000,
+        projet__dossier_ds__annotations_montant_accorde_detr=1_000,
         projet__dossier_ds__finance_cout_total=10_000,
         status=PROJET_STATUS_ACCEPTED,
         dotation=simulation.enveloppe.dotation,
@@ -111,6 +112,7 @@ def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_e
     assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
 
 
+@pytest.mark.parametrize("dotation", (DOTATION_DETR, DOTATION_DSIL))
 @pytest.mark.parametrize(
     "annotations_montant_accorde, demande_montant, assiette, log",
     (
@@ -119,10 +121,16 @@ def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_e
     ),
 )
 def test_get_initial_montant_from_dotation_projet_must_log_if_there_is_a_problem(
-    annotations_montant_accorde, demande_montant, assiette, log, caplog
+    dotation, annotations_montant_accorde, demande_montant, assiette, log, caplog
 ):
     dp = DotationProjetFactory(
-        projet__dossier_ds__annotations_montant_accorde=annotations_montant_accorde,
+        projet__dossier_ds__annotations_montant_accorde_detr=annotations_montant_accorde
+        if dotation == DOTATION_DETR
+        else None,
+        projet__dossier_ds__annotations_montant_accorde_dsil=annotations_montant_accorde
+        if dotation == DOTATION_DSIL
+        else None,
+        dotation=dotation,
         projet__dossier_ds__demande_montant=demande_montant,
         assiette=assiette,
     )
@@ -138,6 +146,7 @@ def test_get_initial_montant_from_dotation_projet_must_log_if_there_is_a_problem
     )
 
 
+@pytest.mark.parametrize("dotation", (DOTATION_DETR, DOTATION_DSIL))
 @pytest.mark.parametrize(
     "field", ("assiette", "projet__dossier_ds__finance_cout_total")
 )
@@ -154,6 +163,7 @@ def test_get_initial_montant_from_dotation_projet_must_log_if_there_is_a_problem
     ),
 )
 def test_get_initial_montant_from_dotation_projet(
+    dotation,
     field,
     status,
     annotations_montant_accorde,
@@ -162,7 +172,13 @@ def test_get_initial_montant_from_dotation_projet(
     expected_montant,
 ):
     dotation_projet = DotationProjetFactory(
-        projet__dossier_ds__annotations_montant_accorde=annotations_montant_accorde,
+        projet__dossier_ds__annotations_montant_accorde_detr=annotations_montant_accorde
+        if dotation == DOTATION_DETR
+        else None,
+        projet__dossier_ds__annotations_montant_accorde_dsil=annotations_montant_accorde
+        if dotation == DOTATION_DSIL
+        else None,
+        dotation=dotation,
         projet__dossier_ds__demande_montant=demande_montant,
         assiette=assiette_or_finance_cout_total if field == "assiette" else None,
         projet__dossier_ds__finance_cout_total=(
@@ -179,13 +195,21 @@ def test_get_initial_montant_from_dotation_projet(
     assert montant == expected_montant
 
 
-def test_get_initial_montant_from_dotation_projet_with_an_accepted_programmation_projet():
+@pytest.mark.parametrize("dotation", (DOTATION_DETR, DOTATION_DSIL))
+def test_get_initial_montant_from_dotation_projet_with_an_accepted_programmation_projet(
+    dotation,
+):
     projet = ProjetFactory(
-        dossier_ds__annotations_montant_accorde=400_000_000,
+        dossier_ds__annotations_montant_accorde_detr=400_000_000
+        if dotation == DOTATION_DETR
+        else None,
+        dossier_ds__annotations_montant_accorde_dsil=400_000_000
+        if dotation == DOTATION_DSIL
+        else None,
         dossier_ds__finance_cout_total=100_000_000,
         dossier_ds__demande_montant=100_202_500,
     )
-    dotation_projet = DotationProjetFactory(projet=projet)
+    dotation_projet = DotationProjetFactory(projet=projet, dotation=dotation)
     ProgrammationProjetFactory(dotation_projet=dotation_projet, montant=500)
 
     montant = SimulationProjetService.get_initial_montant_from_dotation_projet(

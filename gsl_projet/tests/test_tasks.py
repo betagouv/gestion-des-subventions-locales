@@ -162,7 +162,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     dossier = DossierFactory(
         ds_state=Dossier.STATE_EN_INSTRUCTION,
         annotations_dotation=DOTATION_DETR,
-        annotations_montant_accorde=400,  # ?? problem here?
+        annotations_montant_accorde_detr=400,
         demande_montant=400,
         finance_cout_total=4_000,
         porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,

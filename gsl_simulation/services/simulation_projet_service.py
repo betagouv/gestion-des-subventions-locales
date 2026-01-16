@@ -4,6 +4,8 @@ from decimal import Decimal
 from gsl_core.models import Collegue
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
     PROJET_STATUS_PROCESSING,
@@ -69,9 +71,14 @@ class SimulationProjetService:
 
         dossier = dotation_projet.projet.dossier_ds
 
-        if dossier.annotations_montant_accorde:
+        if dotation_projet.dotation == DOTATION_DETR:
+            dossier_montant_annotations = dossier.annotations_montant_accorde_detr
+        elif dotation_projet.dotation == DOTATION_DSIL:
+            dossier_montant_annotations = dossier.annotations_montant_accorde_dsil
+
+        if dossier_montant_annotations:
             return cls._select_minimum_between_value_and_assiette_or_cout_total(
-                dossier.annotations_montant_accorde,
+                dossier_montant_annotations,
                 dotation_projet,
                 "le montant accordé issu des annotations",
             )
