@@ -263,7 +263,6 @@ class ProgrammationProjet(models.Model):
     def __str__(self):
         return f"Projet programmé {self.pk}"
 
-    # TODO DUN: remove it ?
     def get_absolute_url(self):
         from django.urls import reverse
 
