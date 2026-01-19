@@ -1,6 +1,7 @@
 import pytest
 
 from gsl_core.tests.factories import CollegueFactory, PerimetreDepartementalFactory
+from gsl_programmation.models import ProgrammationProjet as pp
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import (
     DOTATION_DETR,
@@ -181,6 +182,81 @@ def test_for_user_and_at_least_one_programmated_dotation():
     assert (
         Projet.objects.for_user(user).with_at_least_one_programmed_dotation().count()
         == 1
+    )
+
+
+def test_with_at_least_one_accepted_dotation():
+    """Project with at least one accepted programmation should be included."""
+    projet = ProjetFactory()
+    dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    ProgrammationProjetFactory(dotation_projet=dotation, status=pp.STATUS_ACCEPTED)
+    assert Projet.objects.with_at_least_one_accepted_dotation().count() == 1
+    assert projet in Projet.objects.with_at_least_one_accepted_dotation()
+
+
+def test_with_at_least_one_accepted_dotation_without_programmation():
+    """Project without programmation should not be included."""
+    projet = ProjetFactory()
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    assert Projet.objects.with_at_least_one_accepted_dotation().count() == 0
+    assert projet not in Projet.objects.with_at_least_one_accepted_dotation()
+
+
+def test_with_at_least_one_accepted_dotation_with_non_accepted_status():
+    """Project with programmation but not accepted status should not be included."""
+    projet = ProjetFactory()
+    dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    ProgrammationProjetFactory(dotation_projet=dotation, status=pp.STATUS_REFUSED)
+    assert Projet.objects.with_at_least_one_accepted_dotation().count() == 0
+    assert projet not in Projet.objects.with_at_least_one_accepted_dotation()
+
+
+def test_with_at_least_one_accepted_dotation_when_projet_has_two_accepted_programmations():
+    """Project with two accepted programmations should be included once."""
+    projet = ProjetFactory()
+    dotation_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    dotation_dsil = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+    ProgrammationProjetFactory(dotation_projet=dotation_detr, status=pp.STATUS_ACCEPTED)
+    ProgrammationProjetFactory(dotation_projet=dotation_dsil, status=pp.STATUS_ACCEPTED)
+    assert Projet.objects.with_at_least_one_accepted_dotation().count() == 1
+    assert projet in Projet.objects.with_at_least_one_accepted_dotation()
+
+
+def test_with_at_least_one_accepted_dotation_with_one_accepted_one_refused():
+    """Project with one accepted and one refused programmation should be included."""
+    projet = ProjetFactory()
+    dotation_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    dotation_dsil = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+    ProgrammationProjetFactory(dotation_projet=dotation_detr, status=pp.STATUS_ACCEPTED)
+    ProgrammationProjetFactory(dotation_projet=dotation_dsil, status=pp.STATUS_REFUSED)
+    assert Projet.objects.with_at_least_one_accepted_dotation().count() == 1
+    assert projet in Projet.objects.with_at_least_one_accepted_dotation()
+
+
+def test_with_at_least_one_accepted_dotation_for_user():
+    """Test with_at_least_one_accepted_dotation combined with for_user filter."""
+    perimetre = PerimetreDepartementalFactory()
+    user = CollegueFactory(perimetre=perimetre)
+    projet = ProjetFactory(perimetre=perimetre)
+    dotation_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    ProgrammationProjetFactory(dotation_projet=dotation_detr, status=pp.STATUS_ACCEPTED)
+
+    projet_not_in_perimeter = ProjetFactory()
+    dotation_detr_not_in_perimeter = DotationProjetFactory(
+        projet=projet_not_in_perimeter, dotation=DOTATION_DETR
+    )
+    ProgrammationProjetFactory(
+        dotation_projet=dotation_detr_not_in_perimeter,
+        status=pp.STATUS_ACCEPTED,
+    )
+
+    assert (
+        Projet.objects.for_user(user).with_at_least_one_accepted_dotation().count() == 1
+    )
+    assert projet in Projet.objects.for_user(user).with_at_least_one_accepted_dotation()
+    assert (
+        projet_not_in_perimeter
+        not in Projet.objects.for_user(user).with_at_least_one_accepted_dotation()
     )
 
 

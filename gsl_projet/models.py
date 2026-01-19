@@ -218,6 +218,18 @@ class ProjetQuerySet(models.QuerySet):
             )
         )
 
+    def with_at_least_one_accepted_dotation(self):
+        from gsl_programmation.models import ProgrammationProjet
+
+        return self.filter(
+            Exists(
+                ProgrammationProjet.objects.filter(
+                    dotation_projet__projet=OuterRef("pk"),
+                    status=PROJET_STATUS_ACCEPTED,
+                )
+            )
+        )
+
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
     def get_queryset(self):
