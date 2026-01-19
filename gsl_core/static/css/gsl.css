@@ -458,3 +458,8 @@ ul.no-list-style li {
 .fr-icon-spin::after {
   animation: spin 1s linear infinite;
 }
+
+.fr-icon-loader::before,
+.fr-icon-loader::after {
+  mask-image: url("../img/refresh-line.svg") !important;
+}
