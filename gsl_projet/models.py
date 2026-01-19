@@ -226,7 +226,6 @@ class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
             .get_queryset()
             .select_related("dossier_ds")
             .prefetch_related("dotationprojet_set")
-            .defer("dossier_ds__raw_ds_data")
         )
 
 

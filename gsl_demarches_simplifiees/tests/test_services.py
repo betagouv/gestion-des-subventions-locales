@@ -88,13 +88,13 @@ def test_get_ds_field_id(dossier: Dossier, field, field_name, caplog):
 
     assert (
         str(exc_info.value)
-        == f'Le champ "{field_name}" n\'existe pas dans la démarche {dossier.ds_demarche.ds_number}.'
+        == f'Le champ "{field_name}" n\'existe pas dans la démarche {dossier.ds_demarche_number}.'
     )
     assert len(caplog.records) == 1
     record = caplog.records[0]
     assert record.message == "Field not found in demarche"
     assert getattr(record, "field_name") == field_name
-    assert getattr(record, "demarche_ds_number") == dossier.ds_demarche.ds_number
+    assert getattr(record, "demarche_ds_number") == dossier.ds_demarche_number
     assert getattr(record, "dossier_ds_number") == dossier.ds_number
 
 

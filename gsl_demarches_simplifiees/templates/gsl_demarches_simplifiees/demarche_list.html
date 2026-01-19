@@ -41,7 +41,7 @@
                                     <span class="fr-sr-only">de la démarche {{ demarche.ds_number }}</span>
                                 </button>
                             </form>
-                            <a href="{% url "admin:gsl_demarches_simplifiees_dossier_changelist" %}{% querystring ds_demarche__ds_number=demarche.ds_number %}"
+                            <a href=" {% url "admin:gsl_demarches_simplifiees_dossier_changelist" %}{% querystring ds_demarche_number=demarche.ds_number %}"
                                class="fr-btn fr-btn--sm fr-mr-3v">
                                 <span class="fr-icon-folder-2-fill fr-icon--sm fr-mr-2v" aria-hidden="true"></span>
                                 Liste des dossiers

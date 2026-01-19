@@ -83,7 +83,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         qs = qs.defer("raw_ds_data")
-        return qs.annotate(dossier_count=Count("dossier"))
+        return qs.annotate(dossier_count=Count("dossierdata"))
 
     def dossiers_count(self, obj) -> int:
         return obj.dossier_count
@@ -163,7 +163,6 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_filter = ("ds_state",)
     list_display = (
         "ds_number",
-        "ds_demarche__ds_number",
         "ds_state",
         "projet_intitule",
         "admin_projet_link",
@@ -175,7 +174,6 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             "Informations générales",
             {
                 "fields": (
-                    "ds_demarche",
                     "ds_id",
                     "ds_number",
                     "ds_state",
@@ -218,7 +216,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         ),
         (
             "Données brutes",
-            {"classes": ("collapse", "open"), "fields": ("raw_ds_data",)},
+            {"classes": ("collapse", "open"), "fields": ("link_to_json",)},
         ),
     )
     actions = ("refresh_from_db", "refresh_from_ds")
@@ -231,6 +229,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "admin_projet_link",
         "app_projet_link",
         "link_to_ds",
+        "link_to_json",
     ]
 
     def perimetre(self, obj) -> int:
@@ -252,7 +251,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         qs = super().get_queryset(request)
         qs = (
             qs.select_related(
-                "ds_demarche",
+                "ds_data__ds_demarche",
                 "projet",
                 "porteur_de_projet_arrondissement",
                 "porteur_de_projet_arrondissement__core_arrondissement",
@@ -263,8 +262,8 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
                 "porteur_de_projet_arrondissement__core_arrondissement__departement",
             )
             .defer(
-                "raw_ds_data",  # Main Dossier
-                "ds_demarche__raw_ds_data",  # Related Demarche
+                "ds_data__raw_data",  # Main Dossier
+                "ds_data__ds_demarche__raw_ds_data",  # Related Demarche
             )
         )
         return qs

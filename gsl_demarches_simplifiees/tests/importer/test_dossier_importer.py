@@ -63,10 +63,10 @@ def test_save_demarche_dossiers_from_ds_calls_save_dossier_data_and_refresh_doss
                 assert Dossier.objects.filter(ds_id="DOSS-2").exists()
                 dossier_1 = Dossier.objects.get(ds_id="DOSS-1")
                 assert dossier_1.ds_number == 20240001
-                assert dossier_1.ds_demarche.ds_number == demarche_number
+                assert dossier_1.ds_data.ds_demarche.ds_number == demarche_number
                 dossier_2 = Dossier.objects.get(ds_id="DOSS-2")
                 assert dossier_2.ds_number == 20240002
-                assert dossier_2.ds_demarche.ds_number == demarche_number
+                assert dossier_2.ds_data.ds_demarche.ds_number == demarche_number
 
 
 @pytest.mark.django_db
@@ -78,7 +78,7 @@ def test_save_demarche_dossiers_from_ds_update_raw_ds_data_dossiers():
         ds_id="DOSS-1",
         ds_number=20240001,
         ds_date_derniere_modification="2025-01-01T12:09:33+02:00",
-        raw_ds_data={"some_field": "some_value"},
+        ds_data__raw_data={"some_field": "some_value"},
     )
 
     ds_dossiers = [
@@ -109,7 +109,7 @@ def test_save_demarche_dossiers_from_ds_update_raw_ds_data_dossiers():
             dossier.refresh_from_db()
 
             assert dossier.ds_number == 20240001
-            assert dossier.raw_ds_data == ds_dossiers[0]
+            assert dossier.ds_data.raw_data == ds_dossiers[0]
 
 
 @pytest.mark.django_db

@@ -8,7 +8,7 @@ from gsl_core.models import Departement
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverter
-from gsl_demarches_simplifiees.models import Demarche, Dossier, Profile
+from gsl_demarches_simplifiees.models import Demarche, Dossier, DossierData, Profile
 from gsl_projet.services.projet_services import ProjetService
 
 logger = logging.getLogger(__name__)
@@ -103,7 +103,7 @@ def create_or_update_dossier_from_ds_data(ds_number: str):
 
 
 def refresh_dossier_from_saved_data(dossier: Dossier):
-    dossier_converter = DossierConverter(dossier.raw_ds_data, dossier)
+    dossier_converter = DossierConverter(dossier.ds_data.raw_data, dossier)
     dossier_converter.fill_unmapped_fields()
     dossier_converter.convert_all_fields()
     try:
@@ -157,7 +157,13 @@ def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
         must_refresh_dossier = True
 
     refresh_dossier_instructeurs(dossier_data, dossier)
-    dossier.raw_ds_data = dossier_data
+    if dossier.ds_data is None:
+        dossier.ds_data = DossierData.objects.create(
+            dossier=dossier, ds_data=dossier_data
+        )
+    else:
+        dossier.ds_data.raw_data = dossier_data
+        dossier.ds_data.save()
     dossier.save()
 
     if must_refresh_dossier:
@@ -242,13 +248,16 @@ def _create_or_update_dossier_from_ds_data(
         )
         return
 
-    dossier, _ = Dossier.objects.get_or_create(
-        ds_id=ds_id,
-        defaults={
-            "ds_demarche": demarche,
-            "ds_number": ds_dossier_number,
-        },
-    )
+    try:
+        dossier = Dossier.objects.get(ds_id=ds_id)
+    except Dossier.DoesNotExist:
+        dossier = Dossier.objects.create(
+            ds_id=ds_id,
+            ds_number=ds_dossier_number,
+            ds_data=DossierData.objects.create(ds_demarche=demarche),
+            ds_demarche_number=demarche.ds_number,
+        )
+
     _save_dossier_data_and_refresh_dossier_and_projet_and_co(
         dossier, dossier_data, async_refresh=True
     )

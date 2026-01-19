@@ -10,6 +10,7 @@ from gsl_demarches_simplifiees.models import (
     CritereEligibiliteDetr,
     Demarche,
     Dossier,
+    DossierData,
     FieldMappingForComputer,
     PersonneMorale,
 )
@@ -55,7 +56,12 @@ def dossier_ds_number():
 @pytest.fixture
 def dossier(dossier_ds_id, demarche, dossier_ds_number):
     return Dossier.objects.create(
-        ds_id=dossier_ds_id, ds_demarche=demarche, ds_number=dossier_ds_number
+        ds_id=dossier_ds_id,
+        ds_demarche_number=demarche.ds_number,
+        ds_number=dossier_ds_number,
+        ds_data=DossierData.objects.create(
+            ds_demarche=demarche,
+        ),
     )
 
 
@@ -76,12 +82,12 @@ def test_init_dossier_converter(ds_dossier_data, dossier):
     FieldMappingForComputer.objects.create(
         ds_field_id="TEST_ID_un_champ_hors_annotation",
         django_field=Dossier._MAPPED_CHAMPS_FIELDS[0].name,
-        demarche=dossier.ds_demarche,
+        demarche=dossier.ds_data.ds_demarche,
     )
     FieldMappingForComputer.objects.create(
         ds_field_id="TEST_ID_un_champ_annotation",
         django_field=Dossier._MAPPED_ANNOTATIONS_FIELDS[0].name,
-        demarche=dossier.ds_demarche,
+        demarche=dossier.ds_data.ds_demarche,
     )
     dossier_converter = DossierConverter(ds_dossier_data, dossier)
 
@@ -379,7 +385,7 @@ def test_inject_correct_category_detr_value_with_several_demarches(
         demarche_revision="tata",
     )
     good_critere_detr = CritereEligibiliteDetr.objects.create(
-        demarche=dossier.ds_demarche,
+        demarche=dossier.ds_data.ds_demarche,
         label=libelle,
         demarche_revision=demarche_revision,
     )
