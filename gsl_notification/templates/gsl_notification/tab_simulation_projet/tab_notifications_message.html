@@ -6,12 +6,12 @@
         Annuler la notification
     </a>
 
-    <div class="arrete-container">
+    <div class="arrete-container" data-controller="form-utils">
         <h3 class="fr-mb-3w">
             Envoi du message de notification sur Démarche Numérique
         </h3>
 
-        <form method="post">
+        <form method="post" data-action="submit->form-utils#disableButton">
             {% csrf_token %}
             {{ form.non_field_errors }}
             <fieldset class="fr-fieldset{% if form.annexes.errors %} fr-fieldset--error{% endif %}"
