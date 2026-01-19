@@ -66,7 +66,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "gsl.settings"
+DJANGO_SETTINGS_MODULE = "gsl.settings_test"
 addopts = "--reuse-db"
 
 [tool.ruff.lint]

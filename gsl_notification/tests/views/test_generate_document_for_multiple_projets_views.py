@@ -18,9 +18,7 @@ from gsl_notification.tests.factories import (
     LettreNotificationFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl_notification.views.generate_document_for_multiple_projets_views import (
-    _generate_pdf_for_document,
-)
+from gsl_notification.utils import generate_pdf_for_generated_document
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, LETTRE
@@ -781,7 +779,7 @@ def test_download_documents_no_id(client):
         args=[DOTATION_DETR, LETTRE],
     )
     with patch(
-        "gsl_notification.views.generate_document_for_multiple_projets_views.get_logo_base64",
+        "gsl_notification.utils.get_logo_base64",
         return_value="mocked_base64",
     ):
         response = client.get(url)
@@ -816,7 +814,7 @@ def test_download_documents_no_id_with_filters(client):
         args=[DOTATION_DETR, LETTRE],
     )
     with patch(
-        "gsl_notification.views.generate_document_for_multiple_projets_views.get_logo_base64",
+        "gsl_notification.utils.get_logo_base64",
         return_value="mocked_base64",
     ):
         response = client.get(url, data)
@@ -983,7 +981,7 @@ def test_download_documents_correctly(client, programmation_projets):
         + f"?ids={ids}"
     )
     with patch(
-        "gsl_notification.views.generate_document_for_multiple_projets_views.get_logo_base64",
+        "gsl_notification.utils.get_logo_base64",
         return_value="mocked_base64",
     ):
         response = client.get(url)
@@ -1002,10 +1000,10 @@ def test_generate_pdf_for_document_unit(detr_lettre_modele, programmation_projet
         content="<p>Test PDF</p>",
     )
     with patch(
-        "gsl_notification.views.generate_document_for_multiple_projets_views.get_logo_base64",
+        "gsl_notification.utils.get_logo_base64",
         return_value="mocked_base64",
     ):
-        pdf_bytes = _generate_pdf_for_document(document, LETTRE)
+        pdf_bytes = generate_pdf_for_generated_document(document)
     assert isinstance(pdf_bytes, bytes)
     assert pdf_bytes[:4] == b"%PDF"
     assert len(pdf_bytes) > 100
