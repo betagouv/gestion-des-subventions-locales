@@ -159,12 +159,14 @@ def save_field_mappings(demarche_data, demarche):
             FieldMappingForHuman.objects.create(label=ds_label, demarche=demarche)
 
 
+# TODO categories : rework this function
 def guess_department_from_demarche(demarche) -> Departement:
-    if demarche.perimetre and demarche.perimetre.departement:
-        return demarche.perimetre.departement
-    for departement in Departement.objects.all():
-        if departement.name in demarche.ds_title:
-            return departement
+    # if demarche.perimetre and demarche.perimetre.departement:
+    #     return demarche.perimetre.departement
+    # for departement in Departement.objects.all():
+    #     if departement.name in demarche.ds_title:
+    #         return departement
+    pass
 
 
 def guess_year_from_demarche(demarche: Demarche) -> int:

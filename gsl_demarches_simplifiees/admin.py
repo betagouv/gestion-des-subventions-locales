@@ -35,11 +35,10 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     readonly_fields = tuple(
         field.name
         for field in Demarche._meta.get_fields()
-        if field.name not in ("perimetre", "raw_ds_data")
+        if field.name not in ("raw_ds_data")
     )
     list_display = (
         "ds_number",
-        "perimetre",
         "ds_title",
         "ds_state",
         "dossiers_count",
@@ -53,13 +52,8 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "refresh_dossiers_from_ds",
         "refresh_new_or_modified_dossiers_from_ds",
     )
-    autocomplete_fields = ("perimetre",)
     fieldsets = (
         (None, {"fields": ("ds_number", "ds_id", "ds_title", "ds_state")}),
-        (
-            "Configuration Turgot",
-            {"fields": ("perimetre",)},
-        ),
         (
             "Dates",
             {
@@ -88,12 +82,6 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = qs.select_related(
-            "perimetre",
-            "perimetre__region",
-            "perimetre__departement",
-            "perimetre__arrondissement",
-        )
         qs = qs.defer("raw_ds_data")
         return qs.annotate(dossier_count=Count("dossier"))
 

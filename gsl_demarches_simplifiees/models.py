@@ -39,13 +39,6 @@ class Demarche(DsModel):
         (STATE_PUBLIEE, "Publiée"),
     )
 
-    perimetre = models.ForeignKey(
-        Perimetre,
-        on_delete=models.PROTECT,
-        verbose_name="Périmètre",
-        null=True,
-    )
-
     # Fields prefixed with ds_ are DN fixed fields,
     # copied as-is, without any mapping needed.
     ds_id = models.CharField("Identifiant DS", unique=True)
@@ -396,28 +389,6 @@ class Dossier(DsModel):
         "Projet rattaché à un contrat local", null=True
     )
 
-    # TODO remove these three fields at the end of DUN dev
-    annotations_assiette = models.DecimalField(
-        "Montant des dépenses éligibles retenues (€)",
-        max_digits=12,
-        decimal_places=2,
-        null=True,
-        blank=True,
-    )
-    annotations_montant_accorde = models.DecimalField(
-        "Montant définitif de la subvention (€)",
-        max_digits=12,
-        decimal_places=2,
-        null=True,
-        blank=True,
-    )
-    annotations_taux = models.DecimalField(
-        "Taux de subvention (%)",
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        blank=True,
-    )
     # DETR
     annotations_assiette_detr = models.DecimalField(
         "DETR - Montant des dépenses éligibles retenues (en euros)",
