@@ -5,7 +5,7 @@
         {% for field in projet_form %}
             {% if field.name != "dotations" and field.name != "is_budget_vert" %}
                 {% if field.name == "autre_zonage_local" or field.name == "contrat_local" %}
-                    <div class="fr-fieldset__element">
+                    <div class="fr-fieldset__element hidden" id="{{ field.name }}-wrapper">
                         {{ field.label_tag }}
                         {{ field }}
                         {% if field.errors %}
@@ -28,26 +28,3 @@
         Enregistrer
     </button>
 </div>
-
-<script>
-(function() {
-    const checkbox = document.querySelector('input[name="is_autre_zonage_local"]');
-    const fieldContainer = document.getElementById('autre_zonage_local_field');
-    
-    if (!checkbox || !fieldContainer) return;
-    
-    function toggleField() {
-        if (checkbox.checked) {
-            fieldContainer.style.display = 'block';
-        } else {
-            fieldContainer.style.display = 'none';
-        }
-    }
-    
-    // Initialiser l'état au chargement
-    toggleField();
-    
-    // Écouter les changements
-    checkbox.addEventListener('change', toggleField);
-})();
-</script>

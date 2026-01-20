@@ -65,7 +65,12 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     is_autre_zonage_local = forms.BooleanField(
         label="Projet rattaché à un autre zonage local",
         required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(
+            attrs={
+                "form": "projet_form",
+                "data-toggle": "autre-zonage-local",
+            }
+        ),
     )
     autre_zonage_local = forms.CharField(
         label="Nom du zonage local",
@@ -76,7 +81,12 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     is_contrat_local = forms.BooleanField(
         label="Projet rattaché à un contrat local",
         required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(
+            attrs={
+                "form": "projet_form",
+                "data-toggle": "contrat-local",
+            }
+        ),
     )
 
     contrat_local = forms.CharField(
@@ -175,6 +185,12 @@ class ProjetForm(ModelForm, DsfrBaseForm):
                 "annotations_is_contrat_local": self.cleaned_data.get(
                     "is_contrat_local"
                 ),
+            },
+            text_annotations_to_update={
+                "annotations_autre_zonage_local": self.cleaned_data.get(
+                    "autre_zonage_local"
+                ),
+                "annotations_contrat_local": self.cleaned_data.get("contrat_local"),
             },
         )
 
