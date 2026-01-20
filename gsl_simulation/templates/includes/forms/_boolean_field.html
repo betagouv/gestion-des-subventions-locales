@@ -1,0 +1,15 @@
+<div class="fr-fieldset__element">
+    <div class="fr-checkbox-group">
+        {{ field }}
+        {{ field.label_tag }}
+    </div>
+    {% if field.errors %}
+        <div class="fr-messages-group">
+            {% for error in field.errors %}
+                <p class="fr-message fr-message--error">
+                    {{ error }}
+                </p>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>

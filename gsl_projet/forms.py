@@ -67,11 +67,22 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         required=False,
         widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
     )
+    autre_zonage_local = forms.CharField(
+        label="Nom du zonage local",
+        required=False,
+        widget=forms.TextInput(attrs={"form": "projet_form"}),
+    )
 
     is_contrat_local = forms.BooleanField(
         label="Projet rattaché à un contrat local",
         required=False,
         widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+    )
+
+    contrat_local = forms.CharField(
+        label="Nom du contrat local",
+        required=False,
+        widget=forms.TextInput(attrs={"form": "projet_form"}),
     )
 
     dotations = forms.MultipleChoiceField(
@@ -91,7 +102,9 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             "is_pvd",
             "is_va",
             "is_autre_zonage_local",
+            "autre_zonage_local",
             "is_contrat_local",
+            "contrat_local",
         ]
 
     def __init__(self, *args, user=None, **kwargs):
@@ -113,6 +126,30 @@ class ProjetForm(ModelForm, DsfrBaseForm):
                 "Les dotations d'un projet déjà notifié ne peuvent être modifiées."
             )
         return dotations
+
+    def clean_autre_zonage_local(self):
+        is_autre_zonage_local = self.cleaned_data.get("is_autre_zonage_local")
+        autre_zonage_local = self.cleaned_data.get("autre_zonage_local")
+        if is_autre_zonage_local and not autre_zonage_local:
+            self.add_error(
+                "autre_zonage_local",
+                "Ce champ est obligatoire si le projet est rattaché à un autre zonage local.",
+            )
+        if not is_autre_zonage_local:
+            autre_zonage_local = ""
+        return autre_zonage_local
+
+    def clean_contrat_local(self):
+        is_contrat_local = self.cleaned_data.get("is_contrat_local")
+        contrat_local = self.cleaned_data.get("contrat_local")
+        if is_contrat_local and not contrat_local:
+            self.add_error(
+                "contrat_local",
+                "Ce champ est obligatoire si le projet est rattaché à un contrat local.",
+            )
+        if not is_contrat_local:
+            contrat_local = ""
+        return contrat_local
 
     @transaction.atomic
     def save(self, commit=True):

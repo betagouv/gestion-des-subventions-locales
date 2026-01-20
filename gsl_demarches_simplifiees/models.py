@@ -402,9 +402,11 @@ class Dossier(TimestampedModel):
     annotations_is_autre_zonage_local = models.BooleanField(
         "Projet rattaché à un autre zonage local", null=True
     )
+    annotations_autre_zonage_local = models.CharField("Zonage local", blank=True)
     annotations_is_contrat_local = models.BooleanField(
         "Projet rattaché à un contrat local", null=True
     )
+    annotations_contrat_local = models.CharField("Contrat local", blank=True)
 
     # DETR
     annotations_assiette_detr = models.DecimalField(
