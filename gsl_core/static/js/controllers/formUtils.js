@@ -1,7 +1,7 @@
 import { Controller } from 'stimulus'
 
 export class FormUtils extends Controller {
-  static targets = ['form']
+  static targets = ['form', 'container']
 
   disableButton (evt) {
     const btn = evt.target
@@ -9,6 +9,14 @@ export class FormUtils extends Controller {
     btn.classList.add('fr-icon-spin')
     btn.setAttribute('disabled', '1')
     btn.setAttribute('data-action', 'form-utils#enableButton')
+  }
+
+  disableButtons () {
+    if (!this.containerTarget) return
+    const buttons = this.containerTarget.querySelectorAll('button')
+    buttons.forEach(btn => {
+      btn.setAttribute('disabled', '1')
+    })
   }
 
   enableButton (evt) { // not used for now

@@ -1,4 +1,10 @@
 {% extends "includes/modals/modal_base.html" %}
+{% block controller %}
+    form-utils
+{% endblock controller %}
+{% block data_controller_attributes %}
+    data-form-utils-target="container"
+{% endblock data_controller_attributes %}
 {% block modal_id %}
     dotation-confirmation-modal-content
 {% endblock modal_id %}
@@ -13,7 +19,9 @@
 {% endblock content %}
 
 {% block confirmation_button %}
-    <button class="fr-btn fr-btn--primary" id="confirm-dotation-update">
+    <button class="fr-btn fr-btn--primary"
+            id="confirm-dotation-update"
+            data-action="click->form-utils#disableButtons">
         Je confirme
     </button>
 {% endblock confirmation_button %}
