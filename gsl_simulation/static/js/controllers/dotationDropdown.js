@@ -85,6 +85,12 @@ export class DotationDropdown extends Controller {
     const newDotationValues = this.updateSelectedDotations()
     const initialDotationValues = this.initialDotationsValue
 
+    // Check if at least one dotation is selected
+    if (newDotationValues.length === 0) {
+      this._openErrorModal()
+      return
+    }
+
     if (this._arraysEqual(newDotationValues, initialDotationValues)) {
       return
     }
@@ -161,6 +167,16 @@ export class DotationDropdown extends Controller {
       })
     })
 
+    // Bind Escape key to close and reset form
+    this._unbindEscapeHandler()
+    this.boundEscapeHandler = (evt) => {
+      if (evt.key === 'Escape') {
+        evt.preventDefault()
+        this._closeModalAndResetForm(modal)
+      }
+    }
+    document.addEventListener('keydown', this.boundEscapeHandler)
+
     // Open modal using DSFR
     if (typeof dsfr !== 'undefined') {
       dsfr(modal).modal.disclose()
@@ -175,6 +191,7 @@ export class DotationDropdown extends Controller {
       this.formTarget.reset()
     }
     this._updateButtonText()
+    this._unbindEscapeHandler()
   }
 
   _setConfimationButtonForm (modal) {
@@ -219,6 +236,17 @@ export class DotationDropdown extends Controller {
   _submitForm () {
     if (this.hasFormTarget) {
       this.formTarget.submit()
+    }
+  }
+
+  _openErrorModal () {
+    window.alert('Veuillez sélectionner au moins une dotation.')
+  }
+
+  _unbindEscapeHandler () {
+    if (this.boundEscapeHandler) {
+      document.removeEventListener('keydown', this.boundEscapeHandler)
+      this.boundEscapeHandler = null
     }
   }
 }
