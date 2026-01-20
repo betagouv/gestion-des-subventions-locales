@@ -146,7 +146,6 @@ class BaseSimulationProjetView(UpdateView):
                 "dotation_projet__projet",
                 "dotation_projet__projet__dossier_ds",
             )
-            .defer("dotation_projet__projet__dossier_ds__raw_ds_data")
             .prefetch_related("dotation_projet__projet__dotationprojet_set")
         )
 

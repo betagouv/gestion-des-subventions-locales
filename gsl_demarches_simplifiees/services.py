@@ -178,7 +178,7 @@ class DsService:
     def _get_ds_field_id(self, dossier: Dossier, field: str) -> str:
         try:
             ds_field = FieldMappingForComputer.objects.get(
-                demarche=dossier.ds_demarche_id, django_field=field
+                demarche=dossier.ds_data.ds_demarche_id, django_field=field
             )
             return ds_field.ds_field_id
 
@@ -190,10 +190,10 @@ class DsService:
                 pass
 
             raise FieldError(
-                f'Le champ "{field_name}" n\'existe pas dans la démarche {dossier.ds_demarche.ds_number}.',
+                f'Le champ "{field_name}" n\'existe pas dans la démarche {dossier.ds_demarche_number}.',
                 extra={
                     "field_name": field_name,
-                    "demarche_ds_number": dossier.ds_demarche.ds_number,
+                    "demarche_ds_number": dossier.ds_demarche_number,
                     "dossier_ds_number": dossier.ds_number,
                 },
             )

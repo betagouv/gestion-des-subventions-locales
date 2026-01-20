@@ -78,7 +78,6 @@ class ChooseDocumentTypeForMultipleGenerationView(FormView):
                 request=self.request,
                 select_related_objs=[],
                 prefetch_related_objs=[],
-                defer=[],
             )
             self.programmation_projets = filterset.qs.to_notify()
 
@@ -248,9 +247,6 @@ def save_documents(
                 "dotation_projet__projet__perimetre__departement",
             ],
             prefetch_related_objs=[],
-            defer=[
-                "dotation_projet__projet__dossier_ds__raw_ds_data",
-            ],
         )
         programmation_projets = filterset.qs.to_notify()
 

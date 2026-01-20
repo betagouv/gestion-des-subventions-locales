@@ -16,6 +16,7 @@ from ..models import (
     CritereEligibiliteDetr,
     Demarche,
     Dossier,
+    DossierData,
     DsChoiceLibelle,
     FieldMappingForComputer,
     NaturePorteurProjet,
@@ -87,12 +88,21 @@ class ProfileFactory(factory.django.DjangoModelFactory):
     ds_email = factory.Faker("email")
 
 
+class DossierDataFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = DossierData
+
+    raw_data = {}
+    ds_demarche = factory.SubFactory(DemarcheFactory)
+
+
 @factory.django.mute_signals(post_save)
 class DossierFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Dossier
 
-    ds_demarche = factory.SubFactory(DemarcheFactory)
+    ds_data = factory.SubFactory(DossierDataFactory)
+    ds_demarche_number = factory.SelfAttribute("ds_data.ds_demarche.ds_number")
     ds_id = factory.Sequence(lambda n: f"dossier-{n}")
     ds_number = factory.Faker("random_int", min=1000000, max=9999999)
     ds_state = Dossier.STATE_EN_INSTRUCTION
