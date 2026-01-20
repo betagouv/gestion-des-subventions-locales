@@ -187,7 +187,9 @@ def test_get_other_accepted_dotations_with_one_processing_dotation():
     )
     assert detr_dp.other_accepted_dotations == []
 
-    dsil_dp.status = PROJET_STATUS_ACCEPTED
+    # Use accept transition instead of direct assignment
+    enveloppe = DsilEnveloppeFactory()
+    dsil_dp.accept_without_ds_update(montant=0, enveloppe=enveloppe)
     dsil_dp.save()
     assert detr_dp.other_accepted_dotations == [DOTATION_DSIL]
 

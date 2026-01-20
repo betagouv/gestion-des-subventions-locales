@@ -57,7 +57,8 @@
                     "checkboxSelection": "/static/js/checkboxSelection.js",
                     "processModal": "/static/js/controllers/processModal.js",
                     "bindAmountFields": "/static/js/controllers/bindAmountTields.js",
-                    "formUtils": "/static/js/controllers/formUtils.js"
+                    "formUtils": "/static/js/controllers/formUtils.js",
+                    "dotationDropdown": "/static/js/controllers/dotationDropdown.js"
                 }
             }
             </script>
@@ -127,6 +128,8 @@
             import { BindAmountFields } from "bindAmountFields"
             import { FormUtils } from "formUtils"
             
+            import { DotationDropdown } from "dotationDropdown"
+
             window.Stimulus = Application.start()
 
             Stimulus.register("double-dotation", DoubleDotation)
@@ -138,6 +141,7 @@
             Stimulus.register("process-modal", ProcessModal)
             Stimulus.register("bind-amount-fields", BindAmountFields)
             Stimulus.register("form-utils", FormUtils)
+            Stimulus.register("dotation-dropdown", DotationDropdown)
         </script>
 
         {% block extra_js %}
