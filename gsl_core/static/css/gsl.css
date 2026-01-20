@@ -295,7 +295,7 @@ ul.no-list-style li {
 }
 
 .processing-color {
-  color: var(--text-mention-grey);
+  color: var(--text-default-grey);
 }
 
 .dismiss-color {

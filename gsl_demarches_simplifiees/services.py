@@ -23,9 +23,12 @@ class DsService:
         "dismiss": "dossierClasserSansSuite",
         "annotations": "dossierModifierAnnotations",
         "passer_en_instruction": "dossierPasserEnInstruction",
+        "repasser_en_instruction": "dossierRepasserEnInstruction",
     }
 
-    MUTATION_TYPES = Literal["dismiss", "annotations"]
+    MUTATION_TYPES = Literal[
+        "dismiss", "annotations", "passer_en_instruction", "repasser_en_instruction"
+    ]
 
     def __init__(self):
         self.mutator = DsMutator()
@@ -40,6 +43,26 @@ class DsService:
             results.get("data", {})
             .get("dossierPasserEnInstruction")
             .get("dossier")
+            .get("dateDerniereModification")
+        )
+        dossier.ds_date_derniere_modification = (
+            datetime.fromisoformat(date_derniere_modification)
+            if date_derniere_modification
+            else None
+        )
+        dossier.save()
+        return results
+
+    def repasser_en_instruction(self, dossier: Dossier, user: Collegue):
+        results = self.mutator.dossier_repasser_en_instruction(
+            dossier.ds_id, user.ds_id
+        )
+        self._check_results(results, dossier, user, "repasser_en_instruction")
+        dossier.ds_state = Dossier.STATE_EN_INSTRUCTION
+        date_derniere_modification = (
+            results.get("data", {})
+            .get("dossierRepasserEnInstruction", {})
+            .get("dossier", {})
             .get("dateDerniereModification")
         )
         dossier.ds_date_derniere_modification = (
