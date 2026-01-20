@@ -442,3 +442,24 @@ ul.no-list-style li {
 .arrete-step-1-more-info img {
     max-width: 80%;
 }
+
+/* Spinner animation for loading buttons */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fr-icon-spin::before,
+.fr-icon-spin::after {
+  animation: spin 1s linear infinite;
+}
+
+.fr-icon-loader::before,
+.fr-icon-loader::after {
+  mask-image: url("../img/refresh-line.svg") !important;
+}
