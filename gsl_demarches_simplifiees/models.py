@@ -277,13 +277,16 @@ class Dossier(TimestampedModel):
         verbose_name="Zonage spécifique : le projet est il situé dans l'une des zones suivantes ?",
         blank=True,
     )
+    projet_zonage_autre = models.CharField(
+        "Autre zonage : précisez le nom du zonage", blank=True
+    )
     projet_contractualisation = models.ManyToManyField(
         "gsl_demarches_simplifiees.ProjetContractualisation",
         verbose_name="Contractualisation : le projet est-il inscrit dans un ou plusieurs contrats avec l'Etat ?",
         blank=True,
     )
     projet_contractualisation_autre = models.CharField(
-        "Autre contrat : précisez le contrat concerné", blank=True
+        "Autre contrat : précisez le nom du contrat", blank=True
     )
 
     # ----
@@ -402,11 +405,15 @@ class Dossier(TimestampedModel):
     annotations_is_autre_zonage_local = models.BooleanField(
         "Projet rattaché à un autre zonage local", null=True
     )
-    annotations_autre_zonage_local = models.CharField("Zonage local", blank=True)
+    annotations_autre_zonage_local = models.CharField(
+        "Zonage local", blank=True
+    )  # "Précisez lequel." dans DN => le renseigner à la main via le BO
     annotations_is_contrat_local = models.BooleanField(
         "Projet rattaché à un contrat local", null=True
     )
-    annotations_contrat_local = models.CharField("Contrat local", blank=True)
+    annotations_contrat_local = models.CharField(
+        "Contrat local", blank=True
+    )  # "Précisez lequel." dans DN => le renseigner à la main via le BO
 
     # DETR
     annotations_assiette_detr = models.DecimalField(
@@ -467,6 +474,7 @@ class Dossier(TimestampedModel):
         projet_immo,
         projet_travaux,
         projet_zonage,
+        projet_zonage_autre,
         projet_contractualisation,
         projet_contractualisation_autre,
         environnement_transition_eco,
