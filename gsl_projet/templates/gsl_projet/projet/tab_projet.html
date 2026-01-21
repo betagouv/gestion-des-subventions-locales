@@ -115,7 +115,7 @@
                     </ul>
                 </section>
                 <section>
-                    <h2>
+                    <h2 id="presentation_de_lopération">
                         <i class="fr-icon-article-fill blue-color" aria-hidden="true"></i>
                         2 - Présentation de l’opération
                     </h2>
@@ -206,6 +206,23 @@
                     {% endif %}
 
                     {% block projet_areas_and_contracts %}
+                        <h5>
+                            Informations spécifiées par l'instructeur
+                        </h5>
+                        {% if projet.areas_and_contracts_provided_by_instructor|length > 0 %}
+                            <ul class="fr-highlight fr-highlight--beige-gris-galet fr-ml-0 fr-mb-4w">
+
+                                {% for zonage in projet.areas_and_contracts_provided_by_instructor %}
+                                    <li>
+                                        {{ zonage }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>
+                                <i>Aucune information spécifiée par l'instructeur</i>
+                            </p>
+                        {% endif %}
 
                     {% endblock projet_areas_and_contracts %}
 

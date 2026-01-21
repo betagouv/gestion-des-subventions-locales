@@ -449,6 +449,25 @@ class Projet(models.Model):
             key=lambda d: d.created_at,
         )
 
+    @property
+    def areas_and_contracts_provided_by_instructor(self) -> List[str]:
+        ZONAGE_AND_CONTRACTS_FIELDS = [
+            "is_in_qpv",
+            "is_attached_to_a_crte",
+            "is_frr",
+            "is_acv",
+            "is_pvd",
+            "is_va",
+            "is_autre_zonage_local",
+            "is_contrat_local",
+        ]
+
+        return [
+            self._meta.get_field(field).verbose_name
+            for field in ZONAGE_AND_CONTRACTS_FIELDS
+            if getattr(self, field)
+        ]
+
 
 class DotationProjetQuerySet(models.QuerySet):
     def without_signed_document(self):
