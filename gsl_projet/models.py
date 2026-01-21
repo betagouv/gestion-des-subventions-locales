@@ -610,8 +610,8 @@ class DotationProjet(models.Model):
 
         programmation_projet, _ = ProgrammationProjet.objects.update_or_create(
             dotation_projet=self,
-            enveloppe=enveloppe.delegation_root,
             defaults={
+                "enveloppe": enveloppe.delegation_root,
                 "montant": montant,
                 "status": ProgrammationProjet.STATUS_ACCEPTED,
             },
@@ -657,8 +657,8 @@ class DotationProjet(models.Model):
 
         ProgrammationProjet.objects.update_or_create(
             dotation_projet=self,
-            enveloppe=enveloppe.delegation_root,
             defaults={
+                "enveloppe": enveloppe.delegation_root,
                 "montant": 0,
                 "status": ProgrammationProjet.STATUS_REFUSED,
             },
@@ -680,8 +680,8 @@ class DotationProjet(models.Model):
 
         ProgrammationProjet.objects.update_or_create(
             dotation_projet=self,
-            enveloppe=enveloppe.delegation_root,
             defaults={
+                "enveloppe": enveloppe.delegation_root,
                 "montant": 0,
                 "status": ProgrammationProjet.STATUS_DISMISSED,
             },

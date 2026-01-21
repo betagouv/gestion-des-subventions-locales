@@ -109,7 +109,7 @@ def refresh_dossier_from_saved_data(dossier: Dossier):
     try:
         dossier.save()
     except Exception as e:
-        logger.error(str(e), extra={"dossier_id": dossier.id})
+        logger.error(str(e), extra={"dossier_ds_number": dossier.ds_number})
         raise e
 
     ProjetService.create_or_update_projet_and_co_from_dossier(dossier.ds_number)
