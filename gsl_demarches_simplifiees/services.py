@@ -128,7 +128,7 @@ class DsService:
         dossier: Dossier,
         user: Collegue,
         annotations_to_update: dict[str, bool],
-        text_annotations_to_update: dict[str, str],
+        text_annotations_to_update: dict[str, str] = {},
     ):
         annotations = [
             {
