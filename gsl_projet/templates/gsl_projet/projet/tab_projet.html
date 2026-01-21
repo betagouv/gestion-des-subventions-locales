@@ -97,10 +97,10 @@
         </div>
         <div class="fr-col gsl-projet">
             <section>
-                <h3 id="porteur_de_projet">
+                <h2 id="porteur_de_projet">
                     <i class="fr-icon-user-fill blue-color" aria-hidden="true"></i>
                     1 - Porteur de projet
-                </h3>
+                </h2>
                 <ul>
                     <li>
                         <b>Nature du porteur de projet</b> : {{ dossier.porteur_de_projet_nature }}
@@ -115,13 +115,13 @@
                     </ul>
                 </section>
                 <section>
-                    <h3>
+                    <h2>
                         <i class="fr-icon-article-fill blue-color" aria-hidden="true"></i>
                         2 - Présentation de l’opération
-                    </h3>
-                    <h4 id="presentation_projet">
+                    </h2>
+                    <h3 id="presentation_projet">
                         Projet
-                    </h4>
+                    </h3>
                     <ul>
                         <li>
                             <b>Intitulé :</b> {{ dossier.projet_intitule }}
@@ -138,9 +138,9 @@
                         {# <li><b>Délibération du conseil municipal ou de l’organe délibérant de l’EPCI :</b> todo </li>#}
                         {# <li><b>Document de présentation du projet :</b> </li>#}
                     </ul>
-                    <h4 id="presentation_dates">
+                    <h3 id="presentation_dates">
                         Dates
-                    </h4>
+                    </h3>
                     <ul>
                         <li>
                             Début des travaux : {{ dossier.date_debut }}
@@ -149,8 +149,12 @@
                             Achèvement : {{ dossier.date_achevement }}
                         </li>
                     </ul>
-                    <h4 id="presentation_details_proj">
+                    <h3 id="presentation_details_proj">
                         Détails du projet
+                    </h3>
+                    <h4 id="presentation_details_proj_immobilier">
+                        <span class="fr-icon-building-fill fr-mr-2v" aria-hidden="true"></span>
+                        Informations relatives à l'immobilier
                     </h4>
                     <ul>
                         <li>
@@ -161,51 +165,53 @@
                             Travaux au sein du projet : {{ dossier.projet_travaux|yesno:"Oui,Non,Non renseigné" }}
                         </li>
                     </ul>
-                    {% if dossier.projet_zonage.count > 0 or projet.is_in_qpv %}
-                        <div class="fr-highlight fr-highlight--beige-gris-galet fr-ml-0 fr-mb-4w">
-                            <h5 class="fr-text--md fr-mb-1v">
-                                Zonage spécifique :
-                            </h5>
-                            <ul>
-                                {% for zone in dossier.projet_zonage.all %}
-                                    <li>
-                                        {{ zone }}
-                                    </li>
-                                {% endfor %}
-                                {% if projet.is_in_qpv %}
-                                    <li>
-                                        Projet situé en QPV
-                                    </li>
-                                {% endif %}
-                            </ul>
-                        </div>
-                    {% endif %}
-                    {% if dossier.projet_contractualisation.count > 0 or projet.is_attached_to_a_crte %}
-                        <div class="fr-highlight fr-highlight--beige-gris-galet fr-ml-0">
-                            <h5 class="fr-text--md fr-mb-1v">
-                                Contractualisation avec l’État :
-                            </h5>
-                            <ul>
-                                {% for contrat in dossier.projet_contractualisation.all %}
-                                    <li>
-                                        {{ contrat }}
-                                    </li>
-                                {% endfor %}
-                                {% if projet.is_attached_to_a_crte %}
-                                    <li>
-                                        Projet rattaché à un CRTE
-                                    </li>
-                                {% endif %}
-                            </ul>
-                        </div>
-                    {% endif %}
-
-                    {% block projet_detail_form %}
-                    {% endblock projet_detail_form %}
-
-                    <h4 id="presentation_transition_eco">
-                        Transition écologique
+                    <h4 id="presentation_details_proj_immobilier">
+                        <span class="fr-icon-france-fill fr-mr-2v" aria-hidden="true"></span>
+                        Informations relatives aux zonages et à la contractualisation
                     </h4>
+                    <h5 id="presentation_details_proj_immobilier_user_choice">
+                        Informations spécifiées par le demandeur
+                    </h5>
+                    <h6 class="fr-text--md fr-mb-1v">
+                        Zonage spécifique :
+                    </h6>
+                    {% if dossier.projet_zonage.count > 0 %}
+                        <ul>
+                            {% for zone in dossier.projet_zonage.all %}
+                                <li>
+                                    {{ zone }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>
+                            <i>Aucun zonage spécifique</i>
+                        </p>
+                    {% endif %}
+                    <h6 class="fr-text--md fr-mb-1v">
+                        Contractualisation avec l’État :
+                    </h6>
+                    {% if dossier.projet_contractualisation.count > 0 %}
+                        <ul>
+                            {% for contrat in dossier.projet_contractualisation.all %}
+                                <li>
+                                    {{ contrat }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>
+                            <i>Aucune contractualisation avec l’État</i>
+                        </p>
+                    {% endif %}
+
+                    {% block projet_areas_and_contracts %}
+
+                    {% endblock projet_areas_and_contracts %}
+
+                    <h3 id="presentation_transition_eco">
+                        Transition écologique
+                    </h3>
                     {% block transition_ecologique_content %}
                         <p>
                             <b>Le projet concourt-il aux enjeux de la transition écologique au sens budget vert
@@ -231,23 +237,23 @@
                         </p>
                     </section>
                     <section>
-                        <h3>
+                        <h2>
                             <i class="fr-icon-money-euro-circle-fill blue-color" aria-hidden="true"></i>
                             3 - Plan de financement prévisionnel
-                        </h3>
+                        </h2>
 
-                        <h4 id="detail_financement">
+                        <h3 id="detail_financement">
                             Détail du financement
-                        </h4>
+                        </h3>
 
                         <p>
                             Le projet va-t-il générer des recettes
                             ? {{ dossier.finance_recettes|yesno:"Oui,Non,Non renseigné" }}
                         </p>
 
-                        <h4 id="dispositifs_sollicites">
+                        <h3 id="dispositifs_sollicites">
                             Dispositifs de financement sollicités
-                        </h4>
+                        </h3>
                         <p>
                             <b>Opération présentée dans la campagne DETR/DSIL précédente :</b>
                             {{ dossier.demande_annee_precedente|yesno:"Oui,Non,Non renseigné" }}
@@ -285,9 +291,9 @@
                             {% endfor %}
                         {% endblock categories %}
 
-                        <h4 id="couts_financement">
+                        <h3 id="couts_financement">
                             Coûts de financement
-                        </h4>
+                        </h3>
                         <div class="fr-highlight fr-highlight--beige-gris-galet fr-ml-0 fr-mb-4w">
                             <p>
                                 <b>Coût total de l’opération :</b>
