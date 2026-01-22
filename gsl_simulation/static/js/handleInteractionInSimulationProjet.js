@@ -28,17 +28,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function toggleContratLocal () {
     if (checkbox.checked) {
-      wrapper.classList.remove('hidden')
+      wrapper.classList.remove('fr-hidden')
     } else {
-      wrapper.classList.add('hidden')
+      wrapper.classList.add('fr-hidden')
     }
   }
 
   function toggleAutreZonageLocal () {
     if (checkbox2.checked) {
-      wrapper2.classList.remove('hidden')
+      wrapper2.classList.remove('fr-hidden')
     } else {
-      wrapper2.classList.add('hidden')
+      wrapper2.classList.add('fr-hidden')
     }
   }
 
