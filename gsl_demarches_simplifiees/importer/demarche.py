@@ -16,6 +16,7 @@ IMPORTED_DS_FIELDS = (
     "CheckboxChampDescriptor",
     "DateChampDescriptor",
     "DecimalNumberChampDescriptor",
+    "DossierLinkChampDescriptor",
     "DropDownListChampDescriptor",
     "IntegerNumberChampDescriptor",
     "LinkedDropDownListChampDescriptor",

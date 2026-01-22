@@ -216,6 +216,11 @@ ul.no-list-style li {
     padding-left: 1.5em;
 }
 
+/* Nécessaire car on utilise pas la structure de
+div et de classes du DSFR, hors le sélecteur ne s'applique que dans .fr-table__content */
+.gsl-projet-table .fr-cell--center {
+  text-align: center;
+}
 
 
 .fr-table__footer {

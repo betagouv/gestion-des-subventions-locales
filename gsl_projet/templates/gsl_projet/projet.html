@@ -20,6 +20,11 @@
             </div>
         </div>
     </div>
+    {% if projet.dossier_ds.demande_numero_demande_precedente %}
+        <p class="fr-tag fr-tag--icon-left fr-mb-1w fr-icon-arrow-turn-back-line">
+            Reporté
+        </p>
+    {% endif %}
     <div class="projet-header">
         <h1>
             {{ dossier.projet_intitule|lower|capfirst }}
