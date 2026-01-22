@@ -213,22 +213,18 @@ export class DotationDropdown extends Controller {
   _getMessage (newValues, initialValues) {
     if (initialValues.length === 2) {
       if (newValues.length === 1) {
-        const dotationToRemove = initialValues
-          .filter((dotation) => !newValues.includes(dotation))
-          .pop()
+        const dotationToRemove = newValues[0] === 'DETR' ? 'DSIL' : 'DETR'
         return `<strong>Vous souhaitez modifier la dotation de financement choisie par le demandeur.</strong> Les enveloppes demandées étaient DETR et DSIL. Ce projet sera supprimé des simulations <strong>${dotationToRemove}</strong>.`
       }
     }
 
     if (newValues.length === 2) {
-      const newDotation = newValues
-        .filter((dotation) => !initialValues.includes(dotation))
-        .pop()
+      const newDotation = initialValues[0] === 'DETR' ? 'DSIL' : 'DETR'
       return `Ce projet sera aussi affiché dans les simulations ${newDotation}.`
     }
     if (newValues.length === 1 && initialValues.length === 1) {
-      const dotationToRemove = initialValues[0]
-      const newDotation = newValues[0]
+      const dotationToRemove = initialValues[0] === 'DETR' ? 'DETR' : 'DSIL'
+      const newDotation = newValues[0] === 'DETR' ? 'DETR' : 'DSIL'
       return `<strong>Vous souhaitez modifier la dotation de financement choisie par le demandeur.</strong> L'enveloppe demandée était ${dotationToRemove}, la nouvelle enveloppe attribuée est ${newDotation}. Ce projet sera ajouté dans vos simulations ${newDotation} et sera supprimé des simulations ${dotationToRemove}.`
     }
   }

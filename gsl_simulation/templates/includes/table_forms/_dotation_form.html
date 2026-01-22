@@ -7,7 +7,7 @@
           method="POST"
           data-controller="dotation-dropdown"
           data-dotation-dropdown-target="form"
-          data-dotation-dropdown-initial-dotations-value="[{% for dotation in projet.dotations %}&quot;{{ dotation }}&quot;{% if not forloop.last %},{% endif %}{% endfor %}]">
+          data-dotation-dropdown-initial-dotations-value='{{ projet.dotations|json_filter }}'>
         {% csrf_token %}
         <div class="dotation-dropdown">
             <button type="button"
