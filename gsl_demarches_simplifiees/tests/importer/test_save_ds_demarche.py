@@ -243,11 +243,17 @@ def test_new_human_mapping_is_created_if_ds_label_is_unknown(
         ).count()
         == 6
     )
-    assert FieldMappingForComputer.objects.count() == 258, (
-        "258 computer mappings should have been created."
+    assert (
+        FieldMappingForComputer.objects.filter(
+            ds_field_type="DossierLinkChampDescriptor"
+        ).count()
+        == 1
     )
-    assert FieldMappingForComputer.objects.exclude(django_field="").count() == 32, (
-        "Only 32 mappings should be associated with an existing field."
+    assert FieldMappingForComputer.objects.count() == 259, (
+        "259 computer mappings should have been created."
+    )
+    assert FieldMappingForComputer.objects.exclude(django_field="").count() == 33, (
+        "Only 33 mappings should be associated with an existing field."
     )
 
 

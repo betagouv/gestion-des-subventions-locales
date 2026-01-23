@@ -94,7 +94,7 @@ class DossierConverter:
         if ds_typename == "CheckboxChamp":
             return ds_field_data["checked"]
 
-        if ds_typename in ("TextChamp", "SiretChamp"):
+        if ds_typename in ("TextChamp", "SiretChamp", "DossierLinkChamp"):
             return ds_field_data["stringValue"]
 
         if ds_typename == "DecimalNumberChamp":
