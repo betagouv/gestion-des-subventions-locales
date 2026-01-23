@@ -45,7 +45,7 @@ class SimulationProjetService:
         )
         simulation_projet, _ = SimulationProjet.objects.update_or_create(
             dotation_projet=dotation_projet,
-            simulation_id=simulation.id,
+            simulation=simulation,
             defaults={
                 "montant": montant,
                 "status": simulation_projet_status,

@@ -75,7 +75,7 @@ def simulations(perimetre_departemental):
 @pytest.fixture
 def detr_enveloppe(perimetre_departemental):
     return DetrEnveloppeFactory(
-        perimetre=perimetre_departemental, annee=CURRENT_YEAR + 1, montant=1_000_000
+        perimetre=perimetre_departemental, annee=CURRENT_YEAR, montant=1_000_000
     )
 
 
