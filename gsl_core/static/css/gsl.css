@@ -468,3 +468,4 @@ div et de classes du DSFR, hors le sélecteur ne s'applique que dans .fr-table__
 .fr-icon-loader::after {
   mask-image: url("../img/refresh-line.svg") !important;
 }
+

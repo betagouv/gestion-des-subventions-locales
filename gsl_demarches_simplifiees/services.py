@@ -124,7 +124,11 @@ class DsService:
         return results
 
     def update_checkboxes_annotations(
-        self, dossier: Dossier, user: Collegue, annotations_to_update: dict[str, bool]
+        self,
+        dossier: Dossier,
+        user: Collegue,
+        annotations_to_update: dict[str, bool],
+        text_annotations_to_update: dict[str, str] = None,
     ):
         annotations = [
             {
@@ -133,6 +137,14 @@ class DsService:
             }
             for annotation_key, annotation_value in annotations_to_update.items()
         ]
+        if text_annotations_to_update:
+            for annotation_key, annotation_value in text_annotations_to_update.items():
+                annotations.append(
+                    {
+                        "id": self._get_ds_field_id(dossier, annotation_key),
+                        "value": {"text": annotation_value},
+                    }
+                )
         results = self.mutator.dossier_modifier_annotations(
             dossier.ds_id, user.ds_id, annotations
         )

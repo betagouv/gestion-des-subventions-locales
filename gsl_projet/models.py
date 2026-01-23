@@ -289,11 +289,13 @@ class Projet(models.Model):
         null=False,
         default=False,
     )
+    autre_zonage_local = models.CharField("Nom du zonage local", blank=True)
     is_contrat_local = models.BooleanField(
         "Projet rattaché à un contrat local",
         null=False,
         default=False,
     )
+    contrat_local = models.CharField("Nom du contrat local", blank=True)
     free_comment = models.TextField("Commentaires libres", blank=True, default="")
 
     objects = ProjetManager()
