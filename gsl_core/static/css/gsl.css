@@ -300,7 +300,7 @@ div et de classes du DSFR, hors le sélecteur ne s'applique que dans .fr-table__
 }
 
 .processing-color {
-  color: var(--text-mention-grey);
+  color: var(--text-default-grey);
 }
 
 .dismiss-color {

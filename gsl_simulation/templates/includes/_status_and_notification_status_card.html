@@ -9,3 +9,16 @@
         {% include "includes/_status_dropdown_buttons.html" %}
     {% endif %}
 {% endblock status_action_content %}
+
+{% block notification_action_content %}
+    {{ block.super }}
+    {% if dotation_projet.projet.notified_at %}
+        <div class="fr-mb-2w">
+            <button class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-draft-fill processing-color"
+                    hx-get="{% url 'simulation:simulation-projet-update-simulation-status' pk=simu.id status="draft" %}"
+                    hx-swap="outerHTML">
+                Repasser en traitement
+            </button>
+        </div>
+    {% endif %}
+{% endblock notification_action_content %}

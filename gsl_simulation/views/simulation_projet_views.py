@@ -431,9 +431,7 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        return SimulationProjet.objects.in_user_perimeter(self.request.user).exclude(
-            dotation_projet__projet__notified_at__isnull=False
-        )
+        return SimulationProjet.objects.in_user_perimeter(self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
