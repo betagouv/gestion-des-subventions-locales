@@ -9,6 +9,7 @@ from gsl_core.admin import AllPermsForStaffUser
 from .importer.demarche import refresh_categories_operation_detr
 from .models import (
     Arrondissement,
+    CategorieDsil,
     CritereEligibiliteDetr,
     CritereEligibiliteDsil,
     Demarche,
@@ -431,6 +432,18 @@ class NaturePorteurProjetAdmin(
 
     dossiers_count.admin_order_field = "dossier_count"
     dossiers_count.short_description = "# de dossiers"
+
+
+@admin.register(CategorieDsil)
+class CategorieDsilAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    list_display = ("id", "label", "rank", "active", "deactivated_at")
+    readonly_fields = ("demarche", "label", "deactivated_at", "active")
+    list_filter = ("demarche__ds_number", "active", "deactivated_at")
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.select_related("demarche")
+        return qs
 
 
 @admin.register(CritereEligibiliteDsil)

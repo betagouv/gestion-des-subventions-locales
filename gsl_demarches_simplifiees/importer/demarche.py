@@ -3,6 +3,7 @@ from django.utils import timezone
 from gsl_core.models import Departement
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.models import (
+    CategorieDsil,
     CritereEligibiliteDetr,
     Demarche,
     Dossier,
@@ -53,6 +54,7 @@ def save_demarche_from_ds(
     save_groupe_instructeurs(demarche_data, demarche)
     save_field_mappings(demarche_data, demarche)
     extract_categories_operation_detr(demarche_data, demarche)
+    save_categories_dsil(demarche_data, demarche)
 
 
 def refresh_field_mappings_on_demarche(demarche_number):
@@ -60,6 +62,7 @@ def refresh_field_mappings_on_demarche(demarche_number):
     if demarche.raw_ds_data:
         save_field_mappings(demarche.raw_ds_data, demarche)
         extract_categories_operation_detr(demarche.raw_ds_data, demarche)
+        save_categories_dsil(demarche.raw_ds_data, demarche)
     else:
         save_demarche_from_ds(demarche_number)
 
@@ -158,6 +161,31 @@ def save_field_mappings(demarche_data, demarche):
 
         if not qs_human_mapping.exists() and not computer_mapping.django_field:
             FieldMappingForHuman.objects.create(label=ds_label, demarche=demarche)
+
+
+def save_categories_dsil(demarche_data, demarche):
+    mapping = FieldMappingForComputer.objects.get(
+        demarche=demarche, django_field="demande_categorie_dsil"
+    )
+    demande_categorie_dsil_field_id = mapping.ds_field_id
+    options = []
+    for field in demarche_data["activeRevision"]["champDescriptors"]:
+        if field["id"] == demande_categorie_dsil_field_id:
+            options = field["options"]
+            break
+    categories = []
+    for sort_order, label in enumerate(options, 1):
+        category, _ = CategorieDsil.objects.update_or_create(
+            demarche=demarche,
+            label=label,
+            rank=sort_order,
+            defaults={"active": True},
+        )
+        categories.append(category)
+
+    CategorieDsil.objects.filter(demarche=demarche, active=True).exclude(
+        id__in=[category.id for category in categories]
+    ).update(active=False, deactivated_at=timezone.now())
 
 
 # TODO categories : rework this function
