@@ -11,7 +11,7 @@ from gsl_projet.constants import MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
 logger = getLogger(__name__)
 
 
-class DsModel(models.Model):
+class TimestampedModel(models.Model):
     created_at = models.DateTimeField("Date de création", auto_now_add=True)
     updated_at = models.DateTimeField("Date de modification", auto_now=True)
 
@@ -19,7 +19,7 @@ class DsModel(models.Model):
         abstract = True
 
 
-class Demarche(DsModel):
+class Demarche(TimestampedModel):
     """
     Class used to keep DN' "Démarches" data
     See:
@@ -37,13 +37,6 @@ class Demarche(DsModel):
         (STATE_CLOSE, "Close"),
         (STATE_DEPUBLIEE, "Dépubliée"),
         (STATE_PUBLIEE, "Publiée"),
-    )
-
-    perimetre = models.ForeignKey(
-        Perimetre,
-        on_delete=models.PROTECT,
-        verbose_name="Périmètre",
-        null=True,
     )
 
     # Fields prefixed with ds_ are DN fixed fields,
@@ -158,7 +151,25 @@ class PersonneMorale(models.Model):
         return self
 
 
-class Dossier(DsModel):
+class DossierData(TimestampedModel):
+    """
+    See https://www.demarches-simplifiees.fr/graphql/schema/types/Dossier
+    """
+
+    ds_demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
+    raw_data = models.JSONField("Données DS brutes", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Données de dossier DN"
+        verbose_name_plural = "Données de dossiers DN"
+
+    def __str__(self):
+        if "number" in self.raw_data:
+            return f"Données de dossier #{self.raw_data['number']}"
+        return "Données de dossier (vide)"
+
+
+class Dossier(TimestampedModel):
     """
     See https://www.demarches-simplifiees.fr/graphql/schema/types/Dossier
     """
@@ -177,11 +188,10 @@ class Dossier(DsModel):
         (STATE_SANS_SUITE, "Classé sans suite"),
     )
 
-    raw_ds_data = models.JSONField("Données DS brutes", null=True, blank=True)
-
-    ds_demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
+    ds_data = models.OneToOneField(DossierData, on_delete=models.CASCADE)
     ds_id = models.CharField("Identifiant DS")
     ds_number = models.IntegerField("Numéro DS", unique=True)
+    ds_demarche_number = models.IntegerField("Numéro de la démarche")
     ds_state = models.CharField("État DS", choices=DS_STATE_VALUES)
     ds_date_depot = models.DateTimeField("Date de dépôt", null=True, blank=True)
     ds_date_passage_en_construction = models.DateTimeField(
@@ -396,28 +406,6 @@ class Dossier(DsModel):
         "Projet rattaché à un contrat local", null=True
     )
 
-    # TODO remove these three fields at the end of DUN dev
-    annotations_assiette = models.DecimalField(
-        "Montant des dépenses éligibles retenues (€)",
-        max_digits=12,
-        decimal_places=2,
-        null=True,
-        blank=True,
-    )
-    annotations_montant_accorde = models.DecimalField(
-        "Montant définitif de la subvention (€)",
-        max_digits=12,
-        decimal_places=2,
-        null=True,
-        blank=True,
-    )
-    annotations_taux = models.DecimalField(
-        "Taux de subvention (%)",
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        blank=True,
-    )
     # DETR
     annotations_assiette_detr = models.DecimalField(
         "DETR - Montant des dépenses éligibles retenues (en euros)",
@@ -528,7 +516,7 @@ class Dossier(DsModel):
 
     @property
     def url_on_ds(self):
-        return f"https://demarche.numerique.gouv.fr/procedures/{self.ds_demarche.ds_number}/dossiers/{self.ds_number}"
+        return f"https://demarche.numerique.gouv.fr/procedures/{self.ds_demarche_number}/dossiers/{self.ds_number}"
 
     @property
     def json_url(self):
@@ -606,7 +594,7 @@ class Dossier(DsModel):
         return self.demande_montant >= MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
 
 
-class DsChoiceLibelle(DsModel):
+class DsChoiceLibelle(TimestampedModel):
     label = models.CharField("Libellé", unique=True)
 
     class Meta:
@@ -712,7 +700,7 @@ class AutreAide(DsChoiceLibelle):
     pass
 
 
-class Profile(DsModel):
+class Profile(TimestampedModel):
     ds_id = models.CharField("Identifiant DS", unique=True)
     ds_email = models.EmailField("E-mail", unique=True)
 
@@ -731,7 +719,7 @@ def mapping_field_choices():
     )
 
 
-class FieldMappingForHuman(DsModel):
+class FieldMappingForHuman(TimestampedModel):
     label = models.CharField("Libellé du champ DS", unique=True)
     django_field = models.CharField(
         "Champ correspondant dans Django",
@@ -754,7 +742,7 @@ class FieldMappingForHuman(DsModel):
         return f"Réconciliation {self.pk}"
 
 
-class FieldMappingForComputer(DsModel):
+class FieldMappingForComputer(TimestampedModel):
     demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
     ds_field_id = models.CharField("ID du champ DS")
     ds_field_label = models.CharField(

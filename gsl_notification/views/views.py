@@ -50,7 +50,9 @@ class NotificationDocumentsView(DetailView):
     context_object_name = "projet"
 
     def get_queryset(self):
-        return Projet.objects.for_user(self.request.user)
+        return Projet.objects.for_user(
+            self.request.user
+        ).with_at_least_one_accepted_dotation()
 
     def get_context_data(self, **kwargs):
         title = self.object.dossier_ds.projet_intitule
@@ -187,7 +189,9 @@ class ChooseDocumentTypeForGenerationView(UpdateView):
         return context
 
     def get_queryset(self):
-        return Projet.objects.for_user(self.request.user)
+        return Projet.objects.for_user(
+            self.request.user
+        ).with_at_least_one_accepted_dotation()
 
     def form_valid(self, form):
         return redirect(

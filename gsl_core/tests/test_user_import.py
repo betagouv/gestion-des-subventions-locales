@@ -60,22 +60,44 @@ def sample_excel_file():
     ws = wb.active
 
     # Row 1: empty
-    ws.append([None, None, None, None, None])
+    ws.append([None, None, None, None, None, None, None])
 
     # Row 2: Headers
-    ws.append([None, "Département", "Périmètre", "Code arrondissement", "Contacts"])
+    ws.append(
+        [
+            None,
+            "Département",
+            "Périmètre",
+            "Code arrondissement",
+            "Contacts",
+            "Prénom",
+            "Nom",
+        ]
+    )
 
     # Row 3-5: Department section for AIN (01)
-    ws.append(["01", "AIN", None, None, "pref@ain.gouv.fr"])
-    ws.append([None, None, None, None, "user1@ain.gouv.fr"])
-    ws.append([None, None, None, None, "user2@ain.gouv.fr"])
+    ws.append(["01", "AIN", None, None, "pref@ain.gouv.fr", "Jean-Claude", "Dupont"])
+    ws.append([None, None, None, None, "user1@ain.gouv.fr", "Marie", "De La Fontaine"])
+    ws.append(
+        [None, None, None, None, "user2@ain.gouv.fr", "Pierre Jean", "Durand-Martin"]
+    )
 
     # Row 6-7: Arrondissement section (Belley - 011)
-    ws.append([None, None, "SP de Belley", "011", "arr-user1@ain.gouv.fr"])
-    ws.append([None, None, None, None, "arr-user2@ain.gouv.fr"])
+    ws.append(
+        [
+            None,
+            None,
+            "SP de Belley",
+            "011",
+            "arr-user1@ain.gouv.fr",
+            "Sophie",
+            "Bernard",
+        ]
+    )
+    ws.append([None, None, None, None, "arr-user2@ain.gouv.fr", "Luc", "Petit"])
 
     # Row for another department
-    ws.append(["10", "AUBE", None, None, "pref@aube.gouv.fr"])
+    ws.append(["10", "AUBE", None, None, "pref@aube.gouv.fr", "Alice", "Robert"])
 
     # Save to BytesIO buffer
     buffer = BytesIO()
@@ -93,23 +115,35 @@ def admin_client(geographic_data):
 
 class TestExcelUserDataParser:
     def test_parse_hierarchical_structure(self, sample_excel_file, geographic_data):
-        """Test parser correctly handles department/arrondissement state tracking"""
+        """Test parser correctly handles department/arrondissement state tracking and name parsing"""
         admin = CollegueAdmin(Collegue, None)
         dataset = admin.parse_excel_to_dataset(sample_excel_file)
 
         assert len(dataset) == 6
 
         # Department-level users (AIN - 01)
-        assert dataset[0] == ("pref@ain.gouv.fr", "01", None)
-        assert dataset[1] == ("user1@ain.gouv.fr", "01", None)
-        assert dataset[2] == ("user2@ain.gouv.fr", "01", None)
+        assert dataset[0] == ("pref@ain.gouv.fr", "01", None, "Jean-Claude", "Dupont")
+        assert dataset[1] == (
+            "user1@ain.gouv.fr",
+            "01",
+            None,
+            "Marie",
+            "De La Fontaine",
+        )
+        assert dataset[2] == (
+            "user2@ain.gouv.fr",
+            "01",
+            None,
+            "Pierre Jean",
+            "Durand-Martin",
+        )
 
         # Arrondissement-level users (Belley - 011)
-        assert dataset[3] == ("arr-user1@ain.gouv.fr", "01", "011")
-        assert dataset[4] == ("arr-user2@ain.gouv.fr", "01", "011")
+        assert dataset[3] == ("arr-user1@ain.gouv.fr", "01", "011", "Sophie", "Bernard")
+        assert dataset[4] == ("arr-user2@ain.gouv.fr", "01", "011", "Luc", "Petit")
 
         # Department-level user (AUBE - 10)
-        assert dataset[5] == ("pref@aube.gouv.fr", "10", None)
+        assert dataset[5] == ("pref@aube.gouv.fr", "10", None, "Alice", "Robert")
 
     def test_parse_normalizes_department_codes(self):
         """Test department code normalization (1 -> '01', 10 -> '10')"""
@@ -183,15 +217,23 @@ class TestExcelUserDataParser:
         """Test that float arrondissement codes from Excel are converted and padded"""
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.append([None, None, None, None, None])  # Row 1: empty
+        ws.append([None, None, None, None, None, None, None])  # Row 1: empty
         ws.append(
-            [None, "Département", "Périmètre", "Code arrondissement", "Contacts"]
+            [
+                None,
+                "Département",
+                "Périmètre",
+                "Code arrondissement",
+                "Contacts",
+                "Prénom",
+                "Nom",
+            ]
         )  # Row 2: headers
 
         # Department section
-        ws.append(["01", "AIN", None, None, "dept@ain.fr"])
+        ws.append(["01", "AIN", None, None, "dept@ain.fr", "Jean", "Test"])
         # Arrondissement with float code (Excel stores '011' as 11.0)
-        ws.append([None, None, "SP de Belley", 11.0, "arr@ain.fr"])
+        ws.append([None, None, "SP de Belley", 11.0, "arr@ain.fr", "Marie", "Test"])
 
         buffer = BytesIO()
         wb.save(buffer)
@@ -201,8 +243,14 @@ class TestExcelUserDataParser:
         dataset = admin.parse_excel_to_dataset(buffer)
 
         assert len(dataset) == 2
-        assert dataset[0] == ("dept@ain.fr", "01", None)  # Dept level
-        assert dataset[1] == ("arr@ain.fr", "01", "011")  # Arr code normalized to 011
+        assert dataset[0] == ("dept@ain.fr", "01", None, "Jean", "Test")  # Dept level
+        assert dataset[1] == (
+            "arr@ain.fr",
+            "01",
+            "011",
+            "Marie",
+            "Test",
+        )  # Arr code normalized to 011
 
     def test_parse_skips_invalid_emails(self):
         """Test that rows without valid emails are skipped"""
@@ -255,20 +303,30 @@ class TestExcelUserDataParser:
         """Test that arrondissement state resets when new department starts"""
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.append([None, None, None, None, None])  # Row 1: empty
+        ws.append([None, None, None, None, None, None, None])  # Row 1: empty
         ws.append(
-            [None, "Département", "Périmètre", "Code arrondissement", "Contacts"]
+            [
+                None,
+                "Département",
+                "Périmètre",
+                "Code arrondissement",
+                "Contacts",
+                "Prénom",
+                "Nom",
+            ]
         )  # Row 2: headers
 
         # First department with arrondissement
-        ws.append(["01", "AIN", None, None, "dept1@ain.fr"])
-        ws.append([None, None, "SP de Belley", "011", "arr@ain.fr"])
-        ws.append([None, None, None, None, "arr2@ain.fr"])  # Still in arr context
+        ws.append(["01", "AIN", None, None, "dept1@ain.fr", "Jean", "Dupont"])
+        ws.append([None, None, "SP de Belley", "011", "arr@ain.fr", "Marie", "Martin"])
+        ws.append(
+            [None, None, None, None, "arr2@ain.fr", "Pierre", "Durand"]
+        )  # Still in arr context
 
         # Second department - should reset arr context
-        ws.append(["10", "AUBE", None, None, "dept2@aube.fr"])
+        ws.append(["10", "AUBE", None, None, "dept2@aube.fr", "Sophie", "Bernard"])
         ws.append(
-            [None, None, None, None, "dept2-user@aube.fr"]
+            [None, None, None, None, "dept2-user@aube.fr", "Luc", "Petit"]
         )  # Back to dept context
 
         buffer = BytesIO()
@@ -281,13 +339,95 @@ class TestExcelUserDataParser:
         assert len(dataset) == 5
 
         # First dept-level
-        assert dataset[0] == ("dept1@ain.fr", "01", None)
+        assert dataset[0] == ("dept1@ain.fr", "01", None, "Jean", "Dupont")
         # Arr-level
-        assert dataset[1] == ("arr@ain.fr", "01", "011")
-        assert dataset[2] == ("arr2@ain.fr", "01", "011")
+        assert dataset[1] == ("arr@ain.fr", "01", "011", "Marie", "Martin")
+        assert dataset[2] == ("arr2@ain.fr", "01", "011", "Pierre", "Durand")
         # Second dept-level (arr context reset)
-        assert dataset[3] == ("dept2@aube.fr", "10", None)
-        assert dataset[4] == ("dept2-user@aube.fr", "10", None)
+        assert dataset[3] == ("dept2@aube.fr", "10", None, "Sophie", "Bernard")
+        assert dataset[4] == ("dept2-user@aube.fr", "10", None, "Luc", "Petit")
+
+    def test_parse_handles_names_with_dashes_and_spaces(self):
+        """Test that names with dashes and spaces are correctly parsed"""
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.append([None, None, None, None, None, None, None])  # Row 1: empty
+        ws.append(
+            [
+                None,
+                "Département",
+                "Périmètre",
+                "Code arrondissement",
+                "Contacts",
+                "Prénom",
+                "Nom",
+            ]
+        )  # Row 2: headers
+
+        # Test various name formats with dashes and spaces
+        ws.append(
+            ["01", "AIN", None, None, "user1@ain.fr", "Jean-Claude", "Dupont"]
+        )  # First name with dash
+        ws.append(
+            [None, None, None, None, "user2@ain.fr", "Marie-France", "De La Fontaine"]
+        )  # Both with dash/space
+        ws.append(
+            [None, None, None, None, "user3@ain.fr", "Pierre Jean", "Durand-Martin"]
+        )  # First name with space, last name with dash
+        ws.append(
+            [None, None, None, None, "user4@ain.fr", "Anne Marie", "Van Der Berg"]
+        )  # Both with spaces
+        ws.append(
+            [
+                None,
+                None,
+                None,
+                None,
+                "user5@ain.fr",
+                "Jean-Pierre Louis",
+                "De Saint-Exupéry",
+            ]
+        )  # Complex names with both
+
+        buffer = BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+
+        admin = CollegueAdmin(Collegue, None)
+        dataset = admin.parse_excel_to_dataset(buffer)
+
+        assert len(dataset) == 5
+
+        # Verify all names are preserved exactly
+        assert dataset[0] == ("user1@ain.fr", "01", None, "Jean-Claude", "Dupont")
+        assert dataset[1] == (
+            "user2@ain.fr",
+            "01",
+            None,
+            "Marie-France",
+            "De La Fontaine",
+        )
+        assert dataset[2] == (
+            "user3@ain.fr",
+            "01",
+            None,
+            "Pierre Jean",
+            "Durand-Martin",
+        )
+        assert dataset[3] == (
+            "user4@ain.fr",
+            "01",
+            None,
+            "Anne Marie",
+            "Van Der Berg",
+        )
+        assert dataset[4] == (
+            "user5@ain.fr",
+            "01",
+            None,
+            "Jean-Pierre Louis",
+            "De Saint-Exupéry",
+        )
 
 
 @pytest.mark.django_db
@@ -295,9 +435,15 @@ class TestCollegueResource:
     def test_import_creates_new_users_department_level(self, geographic_data):
         """Test resource creates users with department-level perimetre"""
         dataset = tablib.Dataset()
-        dataset.headers = ["email", "departement_code", "arrondissement_code"]
-        dataset.append(["user1@ain.gouv.fr", "01", None])
-        dataset.append(["user2@ain.gouv.fr", "01", None])
+        dataset.headers = [
+            "email",
+            "departement_code",
+            "arrondissement_code",
+            "first_name",
+            "last_name",
+        ]
+        dataset.append(["user1@ain.gouv.fr", "01", None, "Jean", "Dupont"])
+        dataset.append(["user2@ain.gouv.fr", "01", None, "Marie", "Martin"])
 
         resource = CollegueResource()
         result = resource.import_data(dataset, dry_run=False)
@@ -311,6 +457,12 @@ class TestCollegueResource:
         assert user1.is_active is True
         assert user1.is_staff is False
         assert not user1.has_usable_password()
+        assert user1.first_name == "Jean"
+        assert user1.last_name == "Dupont"
+
+        user2 = Collegue.objects.get(email="user2@ain.gouv.fr")
+        assert user2.first_name == "Marie"
+        assert user2.last_name == "Martin"
 
         # Verify perimetre
         assert user1.perimetre.departement.insee_code == "01"
@@ -319,8 +471,14 @@ class TestCollegueResource:
     def test_import_creates_new_users_arrondissement_level(self, geographic_data):
         """Test resource creates users with arrondissement-level perimetre"""
         dataset = tablib.Dataset()
-        dataset.headers = ["email", "departement_code", "arrondissement_code"]
-        dataset.append(["user@ain.gouv.fr", "01", "011"])
+        dataset.headers = [
+            "email",
+            "departement_code",
+            "arrondissement_code",
+            "first_name",
+            "last_name",
+        ]
+        dataset.append(["user@ain.gouv.fr", "01", "011", "Sophie", "Bernard"])
 
         resource = CollegueResource()
         result = resource.import_data(dataset, dry_run=False)
@@ -343,8 +501,14 @@ class TestCollegueResource:
 
         # Import should update perimetre from arrondissement to department level
         dataset = tablib.Dataset()
-        dataset.headers = ["email", "departement_code", "arrondissement_code"]
-        dataset.append(["existing@ain.gouv.fr", "01", None])
+        dataset.headers = [
+            "email",
+            "departement_code",
+            "arrondissement_code",
+            "first_name",
+            "last_name",
+        ]
+        dataset.append(["existing@ain.gouv.fr", "01", None, "Jean", "Dupont"])
 
         resource = CollegueResource()
         result = resource.import_data(dataset, dry_run=False)
@@ -368,9 +532,15 @@ class TestCollegueResource:
 
         # Import both new and existing
         dataset = tablib.Dataset()
-        dataset.headers = ["email", "departement_code", "arrondissement_code"]
-        dataset.append(["existing@ain.gouv.fr", "01", None])
-        dataset.append(["newuser@ain.gouv.fr", "01", None])
+        dataset.headers = [
+            "email",
+            "departement_code",
+            "arrondissement_code",
+            "first_name",
+            "last_name",
+        ]
+        dataset.append(["existing@ain.gouv.fr", "01", None, "Jean", "Dupont"])
+        dataset.append(["newuser@ain.gouv.fr", "01", None, "Marie", "Martin"])
 
         resource = CollegueResource()
         result = resource.import_data(dataset, dry_run=False)
@@ -391,10 +561,20 @@ class TestCollegueResource:
         initial_count = Perimetre.objects.count()
 
         dataset = tablib.Dataset()
-        dataset.headers = ["email", "departement_code", "arrondissement_code"]
-        dataset.append(["user1@ain.gouv.fr", "01", None])
-        dataset.append(["user2@ain.gouv.fr", "01", None])  # Same perimetre
-        dataset.append(["user3@ain.gouv.fr", "01", "011"])  # Different perimetre
+        dataset.headers = [
+            "email",
+            "departement_code",
+            "arrondissement_code",
+            "first_name",
+            "last_name",
+        ]
+        dataset.append(["user1@ain.gouv.fr", "01", None, "Jean", "Dupont"])
+        dataset.append(
+            ["user2@ain.gouv.fr", "01", None, "Marie", "Martin"]
+        )  # Same perimetre
+        dataset.append(
+            ["user3@ain.gouv.fr", "01", "011", "Pierre", "Durand"]
+        )  # Different perimetre
 
         resource = CollegueResource()
         resource.import_data(dataset, dry_run=False)
@@ -410,8 +590,16 @@ class TestCollegueResource:
     def test_import_handles_missing_department(self):
         """Test error when department not found in database"""
         dataset = tablib.Dataset()
-        dataset.headers = ["email", "departement_code", "arrondissement_code"]
-        dataset.append(["test@example.com", "99", None])  # Non-existent dept
+        dataset.headers = [
+            "email",
+            "departement_code",
+            "arrondissement_code",
+            "first_name",
+            "last_name",
+        ]
+        dataset.append(
+            ["test@example.com", "99", None, "Jean", "Dupont"]
+        )  # Non-existent dept
 
         resource = CollegueResource()
         result = resource.import_data(dataset, dry_run=True)
@@ -425,8 +613,16 @@ class TestCollegueResource:
     def test_import_handles_missing_arrondissement(self):
         """Test error when arrondissement not found in database"""
         dataset = tablib.Dataset()
-        dataset.headers = ["email", "departement_code", "arrondissement_code"]
-        dataset.append(["test@example.com", "01", "999"])  # Non-existent arr
+        dataset.headers = [
+            "email",
+            "departement_code",
+            "arrondissement_code",
+            "first_name",
+            "last_name",
+        ]
+        dataset.append(
+            ["test@example.com", "01", "999", "Jean", "Dupont"]
+        )  # Non-existent arr
 
         resource = CollegueResource()
         result = resource.import_data(dataset, dry_run=True)
@@ -440,8 +636,14 @@ class TestCollegueResource:
     def test_import_handles_missing_department_code(self):
         """Test error when department_code is missing"""
         dataset = tablib.Dataset()
-        dataset.headers = ["email", "departement_code", "arrondissement_code"]
-        dataset.append(["test@example.com", None, None])
+        dataset.headers = [
+            "email",
+            "departement_code",
+            "arrondissement_code",
+            "first_name",
+            "last_name",
+        ]
+        dataset.append(["test@example.com", None, None, "Jean", "Dupont"])
 
         resource = CollegueResource()
         result = resource.import_data(dataset, dry_run=True)
@@ -454,14 +656,62 @@ class TestCollegueResource:
         initial_count = Collegue.objects.count()
 
         dataset = tablib.Dataset()
-        dataset.headers = ["email", "departement_code", "arrondissement_code"]
-        dataset.append(["user@ain.gouv.fr", "01", None])
+        dataset.headers = [
+            "email",
+            "departement_code",
+            "arrondissement_code",
+            "first_name",
+            "last_name",
+        ]
+        dataset.append(["user@ain.gouv.fr", "01", None, "Jean", "Dupont"])
 
         resource = CollegueResource()
         result = resource.import_data(dataset, dry_run=True)
 
         assert result.totals["new"] == 1  # Shows what would be created
         assert Collegue.objects.count() == initial_count  # But doesn't actually create
+
+    def test_import_handles_names_with_dashes_and_spaces(self, geographic_data):
+        """Test resource correctly imports names with dashes and spaces"""
+        dataset = tablib.Dataset()
+        dataset.headers = [
+            "email",
+            "departement_code",
+            "arrondissement_code",
+            "first_name",
+            "last_name",
+        ]
+        dataset.append(["user1@ain.gouv.fr", "01", None, "Jean-Claude", "Dupont"])
+        dataset.append(
+            ["user2@ain.gouv.fr", "01", None, "Marie-France", "De La Fontaine"]
+        )
+        dataset.append(
+            ["user3@ain.gouv.fr", "01", None, "Pierre Jean", "Durand-Martin"]
+        )
+        dataset.append(["user4@ain.gouv.fr", "01", None, "Anne Marie", "Van Der Berg"])
+
+        resource = CollegueResource()
+        result = resource.import_data(dataset, dry_run=False)
+
+        assert result.totals["new"] == 4
+        assert result.totals["error"] == 0
+
+        # Verify names are preserved exactly
+        user1 = Collegue.objects.get(email="user1@ain.gouv.fr")
+        assert user1.first_name == "Jean-Claude"
+        assert user1.last_name == "Dupont"
+
+        user2 = Collegue.objects.get(email="user2@ain.gouv.fr")
+        assert user2.first_name == "Marie-France"
+        assert user2.last_name == "De La Fontaine"
+
+        user3 = Collegue.objects.get(email="user3@ain.gouv.fr")
+        assert user3.first_name == "Pierre Jean"
+        assert user3.last_name == "Durand-Martin"
+
+        user4 = Collegue.objects.get(email="user4@ain.gouv.fr")
+        assert user4.first_name == "Anne Marie"
+        assert user4.last_name == "Van Der Berg"
 
 
 @pytest.mark.django_db
@@ -480,13 +730,17 @@ class TestIntegration:
         assert result.totals["new"] > 0
         assert result.totals["error"] == 0
 
-        # Step 3: Verify users exist with correct perimetres
+        # Step 3: Verify users exist with correct perimetres and names
         user = Collegue.objects.get(email="pref@ain.gouv.fr")
         assert user.perimetre.departement.insee_code == "01"
         assert user.perimetre.arrondissement is None
+        assert user.first_name == "Jean-Claude"
+        assert user.last_name == "Dupont"
 
         arr_user = Collegue.objects.get(email="arr-user1@ain.gouv.fr")
         assert arr_user.perimetre.arrondissement.insee_code == "011"
+        assert arr_user.first_name == "Sophie"
+        assert arr_user.last_name == "Bernard"
 
     def test_re_import_updates_instead_of_duplicating(
         self, sample_excel_file, geographic_data
@@ -638,9 +892,13 @@ class TestCollegueAdminExcelImportEndToEnd:
         # Department-level users
         pref_user = Collegue.objects.get(email="pref@ain.gouv.fr")
         assert pref_user.perimetre == geographic_data["perimetre_dept"]
+        assert pref_user.first_name == "Jean-Claude"
+        assert pref_user.last_name == "Dupont"
 
         user1 = Collegue.objects.get(email="user1@ain.gouv.fr")
         assert user1.perimetre == geographic_data["perimetre_dept"]
+        assert user1.first_name == "Marie"
+        assert user1.last_name == "De La Fontaine"
 
         user2 = Collegue.objects.get(email="user2@ain.gouv.fr")
         assert user2.perimetre == geographic_data["perimetre_dept"]
@@ -648,6 +906,8 @@ class TestCollegueAdminExcelImportEndToEnd:
         # Arrondissement-level users
         arr_user1 = Collegue.objects.get(email="arr-user1@ain.gouv.fr")
         assert arr_user1.perimetre == geographic_data["perimetre_arr"]
+        assert arr_user1.first_name == "Sophie"
+        assert arr_user1.last_name == "Bernard"
 
         arr_user2 = Collegue.objects.get(email="arr-user2@ain.gouv.fr")
         assert arr_user2.perimetre == geographic_data["perimetre_arr"]
@@ -664,14 +924,24 @@ class TestCollegueAdminExcelImportEndToEnd:
         ws = wb.active
 
         # Row 1: empty
-        ws.append([None, None, None, None, None])
+        ws.append([None, None, None, None, None, None, None])
 
         # Row 2: Headers
-        ws.append([None, "Département", "Périmètre", "Code arrondissement", "Contacts"])
+        ws.append(
+            [
+                None,
+                "Département",
+                "Périmètre",
+                "Code arrondissement",
+                "Contacts",
+                "Prénom",
+                "Nom",
+            ]
+        )
 
         # Row 3-4: Department users for AIN (01)
-        ws.append(["01", "AIN", None, None, "simple1@ain.gouv.fr"])
-        ws.append([None, None, None, None, "simple2@ain.gouv.fr"])
+        ws.append(["01", "AIN", None, None, "simple1@ain.gouv.fr", "Paul", "Lefebvre"])
+        ws.append([None, None, None, None, "simple2@ain.gouv.fr", "Claire", "Moreau"])
 
         buffer = BytesIO()
         wb.save(buffer)
@@ -729,9 +999,13 @@ class TestCollegueAdminExcelImportEndToEnd:
         final_count = Collegue.objects.count()
         assert final_count == initial_count + 2
 
-        # Verify users exist with correct perimetre
+        # Verify users exist with correct perimetre and names
         user1 = Collegue.objects.get(email="simple1@ain.gouv.fr")
         assert user1.perimetre == geographic_data["perimetre_dept"]
+        assert user1.first_name == "Paul"
+        assert user1.last_name == "Lefebvre"
 
         user2 = Collegue.objects.get(email="simple2@ain.gouv.fr")
         assert user2.perimetre == geographic_data["perimetre_dept"]
+        assert user2.first_name == "Claire"
+        assert user2.last_name == "Moreau"

@@ -149,7 +149,11 @@ def view_demarche_json(request, demarche_ds_number):
 @staff_member_required
 def view_dossier_json(request, dossier_ds_number):
     dossier = get_object_or_404(Dossier, ds_number=dossier_ds_number)
-    return JsonResponse(dossier.raw_ds_data or {})
+    return JsonResponse(
+        dossier.ds_data.raw_data
+        if (dossier.ds_data and dossier.ds_data.raw_data)
+        else {}
+    )
 
 
 @staff_member_required

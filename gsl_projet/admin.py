@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from gsl_core.admin import AllPermsForStaffUser
+from gsl_programmation.models import ProgrammationProjet
 from gsl_simulation.models import SimulationProjet
 
 from .constants import PROJET_STATUS_CHOICES
@@ -38,28 +39,6 @@ class CategorieDetrAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_filter = ("departement", "annee")
 
 
-class SimulationProjetInline(admin.TabularInline):
-    model = SimulationProjet
-    extra = 0
-    show_change_link = True
-    fields = [
-        "simulation",
-        "montant",
-        "taux",
-        "status",
-        "created_at",
-        "updated_at",
-    ]
-    readonly_fields = [
-        "simulation",
-        "montant",
-        "taux",
-        "status",
-        "created_at",
-        "updated_at",
-    ]
-
-
 class ProjetStatusFilter(admin.SimpleListFilter):
     title = "Statut"
     parameter_name = "status"
@@ -82,12 +61,10 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "get_status_display",
         "perimetre__departement",
         "dotations",
-        "demarche",
     )
     list_filter = (
         ProjetStatusFilter,
         "perimetre__departement",
-        "dossier_ds__ds_demarche__ds_number",
     )
     actions = ("refresh_from_dossier",)
     inlines = [
@@ -97,18 +74,17 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = qs.select_related("dossier_ds", "dossier_ds__ds_demarche")
-        qs = qs.defer("dossier_ds__raw_ds_data", "dossier_ds__ds_demarche__raw_ds_data")
+        qs = qs.select_related(
+            "dossier_ds",
+            "dossier_ds__ds_data",
+            "dossier_ds__ds_data__ds_demarche",
+        )
+        qs = qs.defer(
+            "dossier_ds__ds_data__raw_data",
+            "dossier_ds__ds_data__ds_demarche__raw_ds_data",
+        )
         qs = qs.prefetch_related("dotationprojet_set", "perimetre__departement")
         return qs
-
-    @admin.display(description="Démarche")
-    def demarche(self, obj):
-        return mark_safe(
-            f'<a href="{reverse("admin:gsl_demarches_simplifiees_demarche_change", args=[obj.dossier_ds.ds_demarche.id])}">{obj.dossier_ds.ds_demarche.ds_number}</a>'
-        )
-
-    demarche.admin_order_field = "dossier_ds__ds_demarche__ds_number"
 
     @admin.action(description="Rafraîchir depuis le dossier DN")
     def refresh_from_dossier(self, request, queryset):
@@ -128,6 +104,50 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     get_status_display.short_description = "Statut"
 
 
+class SimulationProjetInline(admin.TabularInline):
+    model = SimulationProjet
+    extra = 0
+    show_change_link = True
+    fields = [
+        "simulation",
+        "montant",
+        "taux",
+        "status",
+        "created_at",
+        "updated_at",
+    ]
+    readonly_fields = [
+        "simulation",
+        "montant",
+        "taux",
+        "status",
+        "created_at",
+        "updated_at",
+    ]
+
+
+class ProgrammationProjetInline(admin.TabularInline):
+    model = ProgrammationProjet
+    extra = 0
+    show_change_link = True
+    fields = [
+        "enveloppe",
+        "montant",
+        "taux",
+        "status",
+        "created_at",
+        "updated_at",
+    ]
+    readonly_fields = [
+        "enveloppe",
+        "montant",
+        "taux",
+        "status",
+        "created_at",
+        "updated_at",
+    ]
+
+
 @admin.register(DotationProjet)
 class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("projet",)
@@ -145,14 +165,13 @@ class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "projet__id",
     )
     list_filter = ("dotation", "status")
-    inlines = [SimulationProjetInline]
+    inlines = [SimulationProjetInline, ProgrammationProjetInline]
     readonly_fields = ("dossier_link", "projet_link")
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         qs = qs.annotate(simulation_count=Count("simulationprojet"))
         qs = qs.select_related("projet", "projet__dossier_ds")
-        qs = qs.defer("projet__dossier_ds__raw_ds_data")
         qs = qs.prefetch_related("simulationprojet_set")
         return qs
 

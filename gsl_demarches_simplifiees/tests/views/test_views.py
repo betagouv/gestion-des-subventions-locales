@@ -44,12 +44,12 @@ def test_admin_can_view_demarche_json(
 
 @pytest.fixture
 def dossier_with_raw_data():
-    return DossierFactory(raw_ds_data={"titi": "tata"})
+    return DossierFactory(ds_data__raw_data={"titi": "tata"})
 
 
 @pytest.fixture
 def dossier_without_raw_data():
-    return DossierFactory(raw_ds_data=None)
+    return DossierFactory(ds_data__raw_data=None)
 
 
 def test_admin_can_view_dossier_json(

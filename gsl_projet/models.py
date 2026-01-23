@@ -218,6 +218,18 @@ class ProjetQuerySet(models.QuerySet):
             )
         )
 
+    def with_at_least_one_accepted_dotation(self):
+        from gsl_programmation.models import ProgrammationProjet
+
+        return self.filter(
+            Exists(
+                ProgrammationProjet.objects.filter(
+                    dotation_projet__projet=OuterRef("pk"),
+                    status=PROJET_STATUS_ACCEPTED,
+                )
+            )
+        )
+
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
     def get_queryset(self):
@@ -226,7 +238,6 @@ class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
             .get_queryset()
             .select_related("dossier_ds")
             .prefetch_related("dotationprojet_set")
-            .defer("dossier_ds__raw_ds_data")
         )
 
 
@@ -599,8 +610,8 @@ class DotationProjet(models.Model):
 
         programmation_projet, _ = ProgrammationProjet.objects.update_or_create(
             dotation_projet=self,
-            enveloppe=enveloppe.delegation_root,
             defaults={
+                "enveloppe": enveloppe.delegation_root,
                 "montant": montant,
                 "status": ProgrammationProjet.STATUS_ACCEPTED,
             },
@@ -646,8 +657,8 @@ class DotationProjet(models.Model):
 
         ProgrammationProjet.objects.update_or_create(
             dotation_projet=self,
-            enveloppe=enveloppe.delegation_root,
             defaults={
+                "enveloppe": enveloppe.delegation_root,
                 "montant": 0,
                 "status": ProgrammationProjet.STATUS_REFUSED,
             },
@@ -669,8 +680,8 @@ class DotationProjet(models.Model):
 
         ProgrammationProjet.objects.update_or_create(
             dotation_projet=self,
-            enveloppe=enveloppe.delegation_root,
             defaults={
+                "enveloppe": enveloppe.delegation_root,
                 "montant": 0,
                 "status": ProgrammationProjet.STATUS_DISMISSED,
             },
