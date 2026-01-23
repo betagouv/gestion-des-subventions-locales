@@ -336,11 +336,13 @@ class Projet(models.Model):
 
     @property
     def dotations(self) -> list[POSSIBLE_DOTATIONS]:
-        return [
-            dotation.dotation
-            for dotation in self.dotationprojet_set.all()
-            if dotation.dotation in [DOTATION_DETR, DOTATION_DSIL]
-        ]
+        return sorted(
+            [
+                dotation.dotation
+                for dotation in self.dotationprojet_set.all()
+                if dotation.dotation in [DOTATION_DETR, DOTATION_DSIL]
+            ]
+        )
 
     @property
     def has_double_dotations(self):

@@ -1,9 +1,11 @@
+import json
 import re
 from decimal import Decimal
 from typing import Any
 
 from django import template
 from django.template.defaultfilters import floatformat
+from django.utils.safestring import mark_safe
 
 from gsl_simulation.models import SimulationProjet
 
@@ -143,3 +145,9 @@ def format_demandeur_nom(nom):
     texte_final = texte_final.replace(" d ", " d'").replace(" d' ", " d'")
 
     return texte_final
+
+
+@register.filter
+def json_filter(value):
+    """Safely serialize a Python value to JSON string."""
+    return mark_safe(json.dumps(value))
