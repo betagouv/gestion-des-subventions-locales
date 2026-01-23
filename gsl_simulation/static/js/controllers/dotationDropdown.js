@@ -24,8 +24,10 @@ export class DotationDropdown extends Controller {
     const isOpen = this._isOpen()
 
     if (isOpen) {
-      this._close()
-      this._handleDotationChange()
+      if (this._handleDotationChange()) {
+        // Close dropdown if dotation change was successful
+        this._close()
+      }
     } else {
       this._open()
     }
@@ -46,6 +48,15 @@ export class DotationDropdown extends Controller {
   // Called when checkbox changes
   checkboxChange () {
     this._updateButtonText()
+
+    const newDotationValues = this.updateSelectedDotations()
+
+    // Check if at least one dotation is selected
+    this.inputTargets[this.inputTargets.length - 1].setCustomValidity(
+      newDotationValues.length === 0
+        ? 'Veuillez sélectionner au moins une dotation.'
+        : '')
+    this.inputTargets[this.inputTargets.length - 1].reportValidity()
   }
 
   // Private
@@ -76,8 +87,9 @@ export class DotationDropdown extends Controller {
     }
 
     if (!this.element.contains(event.target) && this._isOpen()) {
-      this._close()
-      this._handleDotationChange()
+      if (this._handleDotationChange()) {
+        this._close()
+      }
     }
   }
 
@@ -87,12 +99,14 @@ export class DotationDropdown extends Controller {
 
     // Check if at least one dotation is selected
     if (newDotationValues.length === 0) {
-      this._openErrorModal()
-      return
+      this.inputTargets[this.inputTargets.length - 1].setCustomValidity(
+        'Veuillez sélectionner au moins une dotation.')
+      this.inputTargets[this.inputTargets.length - 1].reportValidity()
+      return false
     }
 
     if (this._arraysEqual(newDotationValues, initialDotationValues)) {
-      return
+      return true
     }
 
     if (
@@ -102,6 +116,8 @@ export class DotationDropdown extends Controller {
     } else {
       this._submitForm()
     }
+
+    return true
   }
 
   _updateButtonText () {
@@ -233,10 +249,6 @@ export class DotationDropdown extends Controller {
     if (this.hasFormTarget) {
       this.formTarget.submit()
     }
-  }
-
-  _openErrorModal () {
-    window.alert('Veuillez sélectionner au moins une dotation.')
   }
 
   _unbindEscapeHandler () {
