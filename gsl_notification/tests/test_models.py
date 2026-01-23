@@ -186,7 +186,7 @@ def test_generated_document_save_with_different_content_sizes(
         # Create another document with more content
         document2 = factory(
             programmation_projet=programmation_projet2,
-            content="<p>" + "Long content " * 100 + "</p>",
+            content="<p>" + "Long content " * 1000 + "</p>",
             modele=modele,
         )
         size2 = document2.size
