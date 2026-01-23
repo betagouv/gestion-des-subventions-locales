@@ -7,7 +7,7 @@ from django.db import migrations, models
 def move_dossier_data(apps, schema_editor):
     Dossier = apps.get_model("gsl_demarches_simplifiees", "Dossier")
     DossierData = apps.get_model("gsl_demarches_simplifiees", "DossierData")
-    for dossier in Dossier.objects.all():
+    for dossier in Dossier.objects.iterator():
         dossier_data = DossierData.objects.create(
             ds_demarche=dossier.ds_demarche,
             raw_data=dossier.raw_ds_data,
