@@ -259,5 +259,8 @@ def _create_or_update_dossier_from_ds_data(
         )
 
     _save_dossier_data_and_refresh_dossier_and_projet_and_co(
-        dossier, dossier_data, async_refresh=True
+        dossier,
+        dossier_data,
+        async_refresh=True,
+        refresh_only_if_dossier_has_been_updated=False,
     )
