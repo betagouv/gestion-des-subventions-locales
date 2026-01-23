@@ -79,13 +79,13 @@ ul.no-list-style li {
     border-right: 1px solid #ddd;
 }
 
-.gsl-projet h4 {
+.gsl-projet h3 {
     display: flex;
     align-items: center;
     margin: 2em 0 1em;
 }
 
-.gsl-projet h4::before {
+.gsl-projet h3::before {
     content: "";
     background: #000091;
     width: 1.1em;
@@ -93,12 +93,20 @@ ul.no-list-style li {
     margin: 0 .5em .1em 0;
 }
 
-.gsl-projet h4::after {
+.gsl-projet h3::after {
     content: "";
     flex-grow: 1;
     margin-left: 1em;
     height: 1px;
     background: #ddd;
+}
+
+.gsl-projet h4 {
+    font-size: 1.25rem;
+}
+
+.gsl-projet h5 {
+    font-size: 1.125rem;
 }
 
 .gsl-projet > section {

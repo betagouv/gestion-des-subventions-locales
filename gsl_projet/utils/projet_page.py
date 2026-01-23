@@ -30,10 +30,6 @@ PROJET_MENU = {
             "label": "3 – Plan de financement prévisionnel",
             "items": (
                 {
-                    "label": "Coûts de financement",
-                    "link": "#couts_financement",
-                },
-                {
                     "label": "Détails  du financement",
                     "link": "#detail_financement",
                 },
@@ -41,10 +37,10 @@ PROJET_MENU = {
                     "label": "Dispositifs de financement sollicités",
                     "link": "#dispositifs_sollicites",
                 },
-                # {
-                #    "label": "Autres opérations en demande de subvention DETR/DSIL 2024",
-                #    "link": "(OR) the link (fragment) of the menu item",
-                # },
+                {
+                    "label": "Coûts de financement",
+                    "link": "#couts_financement",
+                },
             ),
         },
     ),
