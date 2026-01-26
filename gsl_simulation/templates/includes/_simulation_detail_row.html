@@ -35,21 +35,11 @@
         {% include "includes/table_forms/_taux_form.html" %}
     </td>
     <td>
-        <ul class="no-list-style">
-            {% if dotation_projet.dotation == "DETR" %}
-                {% for c in dotation_projet.detr_categories.all %}
-                    <li>
-                        {{ c.label }}
-                    </li>
-                {% endfor %}
-            {% else %}
-                {% for c in projet.dossier_ds.demande_eligibilite_dsil.all %}
-                    <li>
-                        {{ c }}
-                    </li>
-                {% endfor %}
-            {% endif %}
-        </ul>
+        {% if dotation_projet.dotation == "DSIL" %}
+            {{ projet.dossier_ds.demande_categorie_dsil.label }}
+        {% elif dotation_projet.dotation == "DETR" %}
+            {{ dotation_projet.detr_categories.all.first.label }}
+        {% endif %}
     </td>
     <td class="simulation-status">
         <div class="simulation-status-notified">
@@ -90,21 +80,11 @@
             </div>
         </td>
         <td>
-            <ul class="no-list-style">
-                {% if other_dotation_projet.dotation == "DETR" %}
-                    {% for c in other_dotation_projet.detr_categories.all %}
-                        <li>
-                            {{ c.label }}
-                        </li>
-                    {% endfor %}
-                {% else %}
-                    {% for c in other_dotation_projet.projet.dossier_ds.demande_eligibilite_dsil.all %}
-                        <li>
-                            {{ c }}
-                        </li>
-                    {% endfor %}
-                {% endif %}
-            </ul>
+            {% if other_dotation_projet.dotation == "DSIL" %}
+                {{ other_dotation_projet.projet.dossier_ds.demande_categorie_dsil.label }}
+            {% elif other_dotation_projet.dotation == "DETR" %}
+                {{ other_dotation_projet.detr_categories.all.first.label }}
+            {% endif %}
         </td>
         <td colspan=2 class="other-simulation-status">
             <div class="simulation-status-notified">

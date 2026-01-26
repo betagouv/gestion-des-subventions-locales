@@ -195,17 +195,14 @@
                                         {{ programmation_projet.taux|percent }}
                                     </td>
                                     <td>
-                                        <ul class="no-list-style">
-                                            {% for categorie in programmation_projet.dotation_projet.detr_categories.all %}
-                                                <li>
-                                                    {{ categorie.label }}
-                                                </li>
-                                            {% endfor %}
-                                        </ul>
+                                        {% if dotation == "DSIL" %}
+                                            {{ programmation_projet.projet.dossier_ds.demande_categorie_dsil.label }}
+                                        {% elif dotation == "DETR" %}
+                                            {{ programmation_projet.dotation_projet.detr_categories.all.first.label }}
+                                        {% endif %}
                                     </td>
                                     <td>
                                         {{ programmation_projet.get_status_display }}
-
                                     </td>
                                     <td>
                                         {% if programmation_projet.documents_summary %}
@@ -258,21 +255,10 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <ul class="no-list-style">
-                                                {% if other_dotation.dotation == "DETR" %}
-                                                    {% for c in other_dotation.detr_categories.all %}
-                                                        <li>
-                                                            {{ c.label }}
-                                                        </li>
-                                                    {% endfor %}
-                                                {% else %}
-                                                    {% for c in other_dotation.projet.dossier_ds.demande_eligibilite_dsil.all %}
-                                                        <li>
-                                                            {{ c }}
-                                                        </li>
-                                                    {% endfor %}
-                                                {% endif %}
-                                            </ul>
+                                            {% if other_dotation.dotation == "DSIL" %}
+                                                {{ other_dotation.projet.dossier_ds.demande_categorie_dsil.label }}
+                                            {% elif other_dotation.dotation == "DETR" %}
+                                            {% endif %}
                                         </td>
                                         <td class="other-simulation-status">
                                             {{ other_dotation.last_updated_simulation_projet.get_status_display }}

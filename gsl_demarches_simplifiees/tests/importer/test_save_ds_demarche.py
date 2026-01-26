@@ -195,8 +195,8 @@ def test_new_human_mapping_is_created_if_ds_label_is_unknown(
 
     save_field_mappings(demarche_data_without_dossier, demarche)
 
-    assert FieldMappingForHuman.objects.count() == 217, (
-        "217 human mappings should be created."
+    assert FieldMappingForHuman.objects.count() == 216, (
+        "216 human mappings should be created."
     )
     assert FieldMappingForHuman.objects.filter(label="Commentaire libre").exists()
     assert FieldMappingForHuman.objects.filter(
@@ -254,8 +254,8 @@ def test_new_human_mapping_is_created_if_ds_label_is_unknown(
     assert FieldMappingForComputer.objects.count() == 259, (
         "259 computer mappings should have been created."
     )
-    assert FieldMappingForComputer.objects.exclude(django_field="").count() == 33, (
-        "Only 33 mappings should be associated with an existing field."
+    assert FieldMappingForComputer.objects.exclude(django_field="").count() == 34, (
+        "Only 34 mappings should be associated with an existing field."
     )
 
 

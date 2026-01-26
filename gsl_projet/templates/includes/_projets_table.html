@@ -104,17 +104,15 @@
                             {% endfor %}
                         </td>
                         <td>
-                            <ul class="no-list-style">
-                                {% for categorie in projet.categories_doperation %}
-                                    <li>
-                                        {% if categorie.class == CategorieDetr %}
-                                            {{ categorie.label }}
-                                        {% else %}
-                                            {{ categorie }}
-                                        {% endif %}
-                                    </li>
-                                {% endfor %}
-                            </ul>
+                            {% for dp in dotation_projets %}
+                                <div>
+                                    {% if dp.dotation == "DSIL" %}
+                                        {{ projet.dossier_ds.demande_categorie_dsil.label }}
+                                    {% elif dp.dotation == "DETR" %}
+                                        {{ dotation_projet.detr_categories.all.first.label }}
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
                         </td>
                         <td class="dotation_attribute">
                             {% for dp in dotation_projets %}

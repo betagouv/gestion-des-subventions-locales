@@ -173,8 +173,6 @@ class DossierConverter:
                     dossier, django_field_object, injectable_value
                 )
 
-            elif not issubclass(django_field_object.related_model, DsChoiceLibelle):
-                raise NotImplementedError("Can only inject DsChoiceLibelle objects")
             else:
                 injectable_value, _ = (
                     django_field_object.related_model.objects.get_or_create(
