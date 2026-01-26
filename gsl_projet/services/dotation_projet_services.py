@@ -32,10 +32,10 @@ class DotationProjetService:
         # check for initialisation
         if projet.dotationprojet_set.count() == 0:
             dotation_projets = cls._initialize_dotation_projets_from_projet(projet)
-            return dotation_projets
 
-        # check for updates
-        dotation_projets = cls._update_dotation_projets_from_projet(projet)
+        else:
+            # check for updates
+            dotation_projets = cls._update_dotation_projets_from_projet(projet)
 
         cls._update_detr_categories(dotation_projets)
         cls._add_dotation_projets_to_all_concerned_simulations(dotation_projets)
@@ -610,7 +610,7 @@ class DotationProjetService:
     def _get_simulation_concerning_by_this_dotation_projet(
         cls, dotation_projet: DotationProjet
     ):
-        return (
+        qs = (
             Simulation.objects.containing_perimetre(dotation_projet.projet.perimetre)
             .filter(
                 enveloppe__dotation=dotation_projet.dotation,
@@ -618,3 +618,14 @@ class DotationProjetService:
             )
             .exclude(simulationprojet__dotation_projet=dotation_projet)
         )
+
+        if (
+            dotation_projet.dossier_ds.ds_state
+            in [Dossier.STATE_ACCEPTE, Dossier.STATE_SANS_SUITE, Dossier.STATE_REFUSE]
+            and dotation_projet.dossier_ds.ds_date_traitement is not None
+        ):
+            qs = qs.exclude(
+                enveloppe__annee__gte=dotation_projet.projet.dossier_ds.ds_date_traitement.year
+                + 1,
+            )
+        return qs

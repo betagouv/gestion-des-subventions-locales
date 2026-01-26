@@ -1,8 +1,10 @@
 import datetime
 import re
+from datetime import UTC
 from decimal import Decimal
 
 import pytest
+from django.utils import timezone
 from freezegun import freeze_time
 
 from gsl_core.templatetags.gsl_filters import euro, percent
@@ -748,7 +750,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_combines_all_filters(
         enveloppe__dotation=DOTATION_DETR,
         enveloppe__annee=CURRENT_YEAR - 1,
     )
-    sim_wrong_perimetre = SimulationFactory(
+    sim_dep_perimetre = SimulationFactory(
         enveloppe__perimetre=dep_21,
         enveloppe__dotation=DOTATION_DETR,
         enveloppe__annee=CURRENT_YEAR,
@@ -768,7 +770,195 @@ def test_get_simulation_concerning_by_this_dotation_projet_combines_all_filters(
     assert sim_valid in results
     assert sim_wrong_dotation not in results
     assert sim_wrong_year not in results
-    # sim_wrong_perimetre should be included since dep_21 is an ancestor of arr_dijon
+    # sim_dep_perimetre should be included since dep_21 is an ancestor of arr_dijon
     # and containing_perimetre includes ancestors
-    assert sim_wrong_perimetre in results
+    assert sim_dep_perimetre in results
     assert sim_existing not in results
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "dossier_state",
+    [Dossier.STATE_ACCEPTE, Dossier.STATE_SANS_SUITE, Dossier.STATE_REFUSE],
+)
+def test_get_simulation_concerning_by_this_dotation_projet_excludes_future_years_for_terminal_state_with_treatment_date(
+    perimetres, dossier_state
+):
+    """Test that the function excludes simulations for years >= (treatment_year + 1) when dossier is in terminal state with treatment date."""
+    arr_dijon, *_ = perimetres
+    last_year = CURRENT_YEAR - 1
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__perimetre=arr_dijon,
+        projet__dossier_ds__ds_state=dossier_state,
+        projet__dossier_ds__ds_date_traitement=timezone.datetime(
+            last_year, 6, 15, tzinfo=UTC
+        ),
+    )
+
+    # Create simulations with different years
+    SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=last_year,
+    )
+    SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR + 1,
+    )
+
+    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+
+    assert results.count() == 0, (
+        "Should not include any simulations, because the dossier has been treated in the last year"
+    )
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_get_simulation_concerning_by_this_dotation_projet_does_not_exclude_when_terminal_state_without_treatment_date(
+    perimetres,
+):
+    """Test that the function does not exclude future years when dossier is in terminal state but has no treatment date."""
+    arr_dijon, *_ = perimetres
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__perimetre=arr_dijon,
+        projet__dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+        projet__dossier_ds__ds_date_traitement=None,
+    )
+
+    # Create simulations with different years
+    sim_last_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR - 1,
+    )
+    sim_current_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_next_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR + 1,
+    )
+
+    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+    assert results.count() == 2, (
+        "Should include all future years since there's no treatment date"
+    )
+
+    # Should include all future years since there's no treatment date
+    assert sim_current_year in results
+    assert sim_next_year in results
+
+    # Should not include last year
+    assert sim_last_year not in results
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_get_simulation_concerning_by_this_dotation_projet_does_not_exclude_when_not_terminal_state(
+    perimetres,
+):
+    """Test that the function does not exclude future years when dossier is not in terminal state."""
+    arr_dijon, *_ = perimetres
+    treatment_year = CURRENT_YEAR - 1
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__perimetre=arr_dijon,
+        projet__dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+        projet__dossier_ds__ds_date_traitement=timezone.datetime(
+            treatment_year, 6, 15, tzinfo=UTC
+        ),
+    )
+
+    # Create simulations with different years
+    sim_last_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR - 1,
+    )
+    sim_current_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_next_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR + 1,
+    )
+
+    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+
+    assert results.count() == 2, (
+        "Should include all future years since dossier is not in terminal state"
+    )
+
+    # Should include all future years since dossier is not in terminal state
+    assert sim_current_year in results
+    assert sim_next_year in results
+
+    # Should not include last year
+    assert sim_last_year not in results
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_get_simulation_concerning_by_this_dotation_projet_excludes_correctly_when_treatment_year_is_current_year(
+    perimetres,
+):
+    """Test that the function correctly excludes when treatment year is current year."""
+    arr_dijon, *_ = perimetres
+    treatment_year = CURRENT_YEAR
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__perimetre=arr_dijon,
+        projet__dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
+        projet__dossier_ds__ds_date_traitement=timezone.datetime(
+            treatment_year, 6, 15, tzinfo=UTC
+        ),
+    )
+
+    # Create simulations with different years
+    sim_last_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR - 1,
+    )
+    sim_current_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_next_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR + 1,
+    )
+
+    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+
+    assert results.count() == 1, (
+        "Should include only current year since treatment year is current year"
+    )
+
+    # Should include current year (treatment_year)
+    assert sim_current_year in results
+    # Should exclude years >= treatment_year + 1
+    assert sim_next_year not in results
+    assert sim_last_year not in results
