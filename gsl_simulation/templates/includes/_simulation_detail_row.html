@@ -38,7 +38,7 @@
         {% if dotation_projet.dotation == "DSIL" %}
             {{ projet.dossier_ds.demande_categorie_dsil.label }}
         {% elif dotation_projet.dotation == "DETR" %}
-            {{ dotation_projet.detr_categories.all.first.label }}
+            {{ projet.dossier_ds.demande_categorie_detr.label }}
         {% endif %}
     </td>
     <td class="simulation-status">
@@ -83,7 +83,7 @@
             {% if other_dotation_projet.dotation == "DSIL" %}
                 {{ other_dotation_projet.projet.dossier_ds.demande_categorie_dsil.label }}
             {% elif other_dotation_projet.dotation == "DETR" %}
-                {{ other_dotation_projet.detr_categories.all.first.label }}
+                {{ other_dotation_projet.projet.dossier_ds.demande_categorie_detr.label }}
             {% endif %}
         </td>
         <td colspan=2 class="other-simulation-status">

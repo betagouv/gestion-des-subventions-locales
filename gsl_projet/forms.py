@@ -274,6 +274,7 @@ class DotationProjetForm(ModelForm):
         ),
     )
 
+    # TODO : useless now. Remove it if we don't allow to set DETR category
     detr_categories = forms.ModelMultipleChoiceField(
         queryset=CategorieDetr.objects.none(),
         required=False,
