@@ -847,29 +847,6 @@ def mapping_field_choices():
     )
 
 
-class FieldMappingForHuman(TimestampedModel):
-    label = models.CharField("Libellé du champ DS", unique=True)
-    django_field = models.CharField(
-        "Champ correspondant dans Django",
-        choices=mapping_field_choices,
-        blank=True,
-    )
-    demarche = models.ForeignKey(
-        Demarche,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        verbose_name="Démarche sur laquelle ce libellé de champ a été trouvé la première fois",
-    )
-
-    class Meta:
-        verbose_name = "Réconciliation de champ"
-        verbose_name_plural = "Réconciliations de champs"
-
-    def __str__(self):
-        return f"Réconciliation {self.pk}"
-
-
 class FieldMappingForComputer(TimestampedModel):
     demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
     ds_field_id = models.CharField("ID du champ DS")
@@ -880,12 +857,6 @@ class FieldMappingForComputer(TimestampedModel):
     ds_field_type = models.CharField("Type de champ DS")
     django_field = models.CharField(
         "Champ Django", choices=mapping_field_choices, blank=True
-    )
-    field_mapping_for_human = models.ForeignKey(
-        FieldMappingForHuman,
-        on_delete=models.SET_NULL,
-        null=True,
-        help_text="Réconciliation utilisée pour créer cette correspondance",
     )
 
     class Meta:

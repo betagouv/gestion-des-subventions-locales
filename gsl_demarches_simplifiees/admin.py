@@ -14,12 +14,11 @@ from .models import (
     Departement,
     Dossier,
     FieldMappingForComputer,
-    FieldMappingForHuman,
     NaturePorteurProjet,
     PersonneMorale,
     Profile,
 )
-from .resources import FieldMappingForComputerResource, FieldMappingForHumanResource
+from .resources import FieldMappingForComputerResource
 from .tasks import (
     task_refresh_dossier_from_saved_data,
     task_refresh_field_mappings_from_demarche_data,
@@ -293,22 +292,6 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         )
 
     link_to_ds.short_description = "Démarche Numérique"
-
-
-@admin.register(FieldMappingForHuman)
-class FieldMappingForHumanAdmin(
-    AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin
-):
-    list_display = ("label", "django_field", "demarche__ds_number")
-    resource_classes = (FieldMappingForHumanResource,)
-    list_filter = ("demarche__ds_number",)
-    readonly_fields = ("demarche",)
-    search_fields = ("label", "django_field")
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        qs = qs.select_related("demarche")
-        return qs
 
 
 @admin.register(FieldMappingForComputer)

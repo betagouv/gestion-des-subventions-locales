@@ -1,12 +1,7 @@
 from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
 
-from .models import Demarche, FieldMappingForComputer, FieldMappingForHuman
-
-
-class FieldMappingForHumanResource(resources.ModelResource):
-    class Meta:
-        model = FieldMappingForHuman
+from .models import Demarche, FieldMappingForComputer
 
 
 class FieldMappingForComputerResource(resources.ModelResource):

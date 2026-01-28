@@ -21,7 +21,6 @@ from gsl_demarches_simplifiees.models import (
     CategorieDsil,
     Demarche,
     FieldMappingForComputer,
-    FieldMappingForHuman,
     Profile,
 )
 from gsl_demarches_simplifiees.tests.factories import (
@@ -202,7 +201,6 @@ def test_save_groupe_instructeurs_if_already_exists(
 
 
 def test_computer_mappings_are_created(demarche, demarche_data_without_dossier):
-    assert FieldMappingForHuman.objects.count() == 0
     assert FieldMappingForComputer.objects.count() == 0
 
     save_field_mappings(demarche_data_without_dossier, demarche)
@@ -267,48 +265,6 @@ def test_computer_mappings_are_created(demarche, demarche_data_without_dossier):
         django_field="porteur_de_projet_arrondissement"
     ).count()
     assert porteur_de_projet_arrondissement_mappings == 98
-
-
-def test_existing_human_mapping_is_used_if_possible(
-    demarche, demarche_data_without_dossier
-):
-    FieldMappingForHuman.objects.create(
-        label="Arrondissement du demandeur (01 - Ain)",
-        django_field="porteur_de_projet_arrondissement",
-    )
-    assert FieldMappingForComputer.objects.count() == 0
-
-    save_field_mappings(demarche_data_without_dossier, demarche)
-
-    assert FieldMappingForComputer.objects.count() > 1
-    assert FieldMappingForComputer.objects.filter(
-        ds_field_label="Arrondissement du demandeur (01 - Ain)",
-        ds_field_id="Q2hhbXAtNTY0MDAxNQ==",
-        django_field="porteur_de_projet_arrondissement",
-        ds_field_type="DropDownListChampDescriptor",
-    ).exists()
-
-
-def test_ds_field_id_is_used_even_if_ds_label_changes(
-    demarche_data_without_dossier, demarche
-):
-    FieldMappingForComputer.objects.create(
-        ds_field_label="Un champ qui a changé de nom dans DS",
-        ds_field_id="TEST_ID_MjkzNDM2MA==",
-        django_field="projet_contractualisation_autre",
-        demarche=demarche,
-        ds_field_type="TextChampDescriptor",
-    )
-    assert FieldMappingForHuman.objects.count() == 0
-
-    save_field_mappings(demarche_data_without_dossier, demarche)
-
-    assert (
-        FieldMappingForHuman.objects.filter(
-            label="Un champ qui ne porte pas ce nom-là dans Django"
-        ).count()
-        == 0
-    )
 
 
 def _minimal_demarche_data_with_descriptors(descriptors):
