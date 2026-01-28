@@ -408,8 +408,16 @@ class Dossier(TimestampedModel):
         "Contact de l'agent instructeur à indiquer au demandeur",
         blank=True,
     )
-    annotations_champ_libre = models.TextField(
-        "Champ libre pour le service instructeur",
+    annotations_champ_libre_1 = models.TextField(
+        "Champ libre pour le service instructeur 1",
+        blank=True,
+    )
+    annotations_champ_libre_2 = models.TextField(
+        "Champ libre pour le service instructeur 2",
+        blank=True,
+    )
+    annotations_champ_libre_3 = models.TextField(
+        "Champ libre pour le service instructeur 3",
         blank=True,
     )
     annotations_dotation = models.CharField(
@@ -527,7 +535,9 @@ class Dossier(TimestampedModel):
     )
     _MAPPED_ANNOTATIONS_FIELDS = (
         annotations_contact,
-        annotations_champ_libre,
+        annotations_champ_libre_1,
+        annotations_champ_libre_2,
+        annotations_champ_libre_3,
         annotations_dotation,
         annotations_is_budget_vert,
         annotations_is_qpv,
@@ -662,6 +672,14 @@ class Dossier(TimestampedModel):
             )
 
         return dotations
+
+    @property
+    def has_annotations_champ_libre(self):
+        return (
+            bool(self.annotations_champ_libre_1)
+            or bool(self.annotations_champ_libre_2)
+            or bool(self.annotations_champ_libre_3)
+        )
 
 
 class DsChoiceLibelle(TimestampedModel):

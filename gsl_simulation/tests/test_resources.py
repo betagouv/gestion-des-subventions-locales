@@ -43,7 +43,9 @@ def test_dsil_meta_fields():
         "is_budget_vert",
         "demande_priorite_dsil_detr",
         "priorite",
-        "annotations",
+        "champ_libre_1",
+        "champ_libre_2",
+        "champ_libre_3",
     )
 
 
@@ -71,7 +73,9 @@ def test_detr_meta_fields():
         "is_budget_vert",
         "demande_priorite_dsil_detr",
         "priorite",
-        "annotations",
+        "champ_libre_1",
+        "champ_libre_2",
+        "champ_libre_3",
         "can_have_a_commission_detr_avis",
         "detr_avis_commission",
     )
@@ -90,7 +94,9 @@ def projet():
         date_debut=date(2025, 1, 1),
         date_achevement=date(2025, 5, 1),
         demande_priorite_dsil_detr=2,
-        annotations_champ_libre="Ceci est une annotation",
+        annotations_champ_libre_1="Ceci est une annotation",
+        annotations_champ_libre_2="Ceci est une annotation 2",
+        annotations_champ_libre_3="Ceci est une annotation 3",
     )
     demandeur = DemandeurFactory(
         name="Commune de Baume-les-Messieurs",
@@ -136,11 +142,11 @@ def test_detr_simulation_projet(detr_simulation_projet):
     splited_data = export_data.split("\n")
     assert (
         splited_data[0]
-        == "Date de dépôt du dossier,Numéro de dossier DS,Intitulé du projet,Demandeur,Nom et prénom du demandeur,Code INSEE commune du demandeur,Code INSEE commune du demandeur,Projet en double dotation,Coût total du projet,Assiette subventionnable,Montant demandé,Taux demandé par rapport au coût total,Montant prévsionnel accordé,Taux prévsionnel accordé,Statut de la simulation,Date de début des travaux,Date de fin des travaux,Projet situé dans un QPV,Projet rattaché à un CRTE,Projet concourant à la transition écologique,Priorité du projet,Annotation de l’instructeur,Montant demandé supérieur à 100 000€ ?,Avis de la commission\r"
+        == "Date de dépôt du dossier,Numéro de dossier DS,Intitulé du projet,Demandeur,Nom et prénom du demandeur,Code INSEE commune du demandeur,Code INSEE commune du demandeur,Projet en double dotation,Coût total du projet,Assiette subventionnable,Montant demandé,Taux demandé par rapport au coût total,Montant prévsionnel accordé,Taux prévsionnel accordé,Statut de la simulation,Date de début des travaux,Date de fin des travaux,Projet situé dans un QPV,Projet rattaché à un CRTE,Projet concourant à la transition écologique,Priorité du projet,Champ libre 1,Champ libre 2,Champ libre 3,Montant demandé supérieur à 100 000€ ?,Avis de la commission\r"
     )
     assert (
         splited_data[1]
-        == "01/12/2024,12345678,Intitulé,Commune de Baume-les-Messieurs,Jean-Marc Jancovici,39210,Lons-le-Saunier,Non,120000.00,100000.00,30000.00,25.00,25000.00,25.000,🔄 En traitement,01/01/2025,01/05/2025,Oui,Non,Non,2,Ceci est une annotation,Non,Oui\r"
+        == "01/12/2024,12345678,Intitulé,Commune de Baume-les-Messieurs,Jean-Marc Jancovici,39210,Lons-le-Saunier,Non,120000.00,100000.00,30000.00,25.00,25000.00,25.000,🔄 En traitement,01/01/2025,01/05/2025,Oui,Non,Non,2,Ceci est une annotation,Ceci est une annotation 2,Ceci est une annotation 3,Non,Oui\r"
     )
 
 
@@ -173,9 +179,9 @@ def test_dsil_simulation_projet(dsil_simulation_projet):
     splited_data = export_data.split("\n")
     assert (
         splited_data[0]
-        == "Date de dépôt du dossier,Numéro de dossier DS,Intitulé du projet,Demandeur,Nom et prénom du demandeur,Code INSEE commune du demandeur,Code INSEE commune du demandeur,Projet en double dotation,Coût total du projet,Assiette subventionnable,Montant demandé,Taux demandé par rapport au coût total,Montant prévsionnel accordé,Taux prévsionnel accordé,Statut de la simulation,Date de début des travaux,Date de fin des travaux,Projet situé dans un QPV,Projet rattaché à un CRTE,Projet concourant à la transition écologique,Priorité du projet,Annotation de l’instructeur\r"
+        == "Date de dépôt du dossier,Numéro de dossier DS,Intitulé du projet,Demandeur,Nom et prénom du demandeur,Code INSEE commune du demandeur,Code INSEE commune du demandeur,Projet en double dotation,Coût total du projet,Assiette subventionnable,Montant demandé,Taux demandé par rapport au coût total,Montant prévsionnel accordé,Taux prévsionnel accordé,Statut de la simulation,Date de début des travaux,Date de fin des travaux,Projet situé dans un QPV,Projet rattaché à un CRTE,Projet concourant à la transition écologique,Priorité du projet,Champ libre 1,Champ libre 2,Champ libre 3\r"
     )
     assert (
         splited_data[1]
-        == "01/12/2024,12345678,Intitulé,Commune de Baume-les-Messieurs,Jean-Marc Jancovici,39210,Lons-le-Saunier,Non,120000.00,90000.00,30000.00,25.00,30000.00,33.333,✅ Accepté,01/01/2025,01/05/2025,Oui,Non,Non,2,Ceci est une annotation\r"
+        == "01/12/2024,12345678,Intitulé,Commune de Baume-les-Messieurs,Jean-Marc Jancovici,39210,Lons-le-Saunier,Non,120000.00,90000.00,30000.00,25.00,30000.00,33.333,✅ Accepté,01/01/2025,01/05/2025,Oui,Non,Non,2,Ceci est une annotation,Ceci est une annotation 2,Ceci est une annotation 3\r"
     )
