@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static dsfr_tags gsl_filters %}
+{% load static dsfr_tags gsl_filters custom_pluralize %}
 
 {% block content %}
     <h1>
@@ -31,6 +31,10 @@
     {% include "includes/_enveloppe_summary.html" %}
 
     {% include "includes/_projet_list_filters.html" %}
+
+    <p class="fr-mb-0">
+        {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
+    </p>
 
     {% include "includes/_projets_table.html" %}
 

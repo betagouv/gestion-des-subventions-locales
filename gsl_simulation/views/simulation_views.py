@@ -219,7 +219,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         context.update(
             {
                 "simulation": simulation,
-                "simulations_paginator": current_page,
+                "simulation_paginator": current_page,
                 "simulation_projets_list": current_page.object_list,
                 "title": f"{simulation.enveloppe.dotation} {simulation.enveloppe.annee} – {simulation.title}",
                 "status_summary": simulation.get_projet_status_summary(),

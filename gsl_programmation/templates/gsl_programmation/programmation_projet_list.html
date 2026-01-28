@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static dsfr_tags gsl_filters %}
+{% load static dsfr_tags gsl_filters custom_pluralize %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static "css/messages.css" %}">
@@ -79,6 +79,10 @@
                 {% with component_included_in_parent=True %}
                     {% include "includes/_projet_list_filters.html" %}
                 {% endwith %}
+
+                <p class="fr-mb-0">
+                    {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
+                </p>
 
                 <div class="fr-table--lg gsl-projet-table" id="programmation-projet-table">
                     <table data-controller="checkbox-selection"
