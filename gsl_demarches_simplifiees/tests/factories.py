@@ -14,7 +14,6 @@ from ..models import (
 )
 from ..models import (
     CategorieDetr,
-    CritereEligibiliteDetr,
     Demarche,
     Dossier,
     DossierData,
@@ -67,11 +66,6 @@ class DsDepartementFactory(DsLibelleFactory):
         model = DsDepartement
 
     core_departement = factory.SubFactory(CoreDepartementFactory)
-
-
-class CritereEligibiliteDetrFactory(DsLibelleFactory):
-    class Meta:
-        model = CritereEligibiliteDetr
 
 
 class NaturePorteurProjetFactory(factory.django.DjangoModelFactory):

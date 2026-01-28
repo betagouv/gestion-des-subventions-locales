@@ -71,15 +71,6 @@ def refresh_field_mappings_on_demarche(demarche_number):
         save_demarche_from_ds(demarche_number)
 
 
-# TODO remove this function ?
-def refresh_categories_operation_detr(demarche_number):
-    demarche = Demarche.objects.get(ds_number=demarche_number)
-    if demarche.raw_ds_data:
-        save_categories_detr(demarche.raw_ds_data, demarche)
-    else:
-        save_demarche_from_ds(demarche_number)
-
-
 def update_or_create_demarche(demarche_data):
     ds_fields = ("id", "number", "title", "state", "date_creation", "date_fermeture")
     django_data = {
@@ -213,7 +204,9 @@ def _save_categorie_detr_from_field(
 ) -> None:
     departement = _get_departement_from_field_mapping(field_mapping)
     if not departement:
-        logger.info("no departement found for field mapping %s", field_mapping)
+        logger.info(
+            f"No departement found for field mapping (#{field_mapping.id} - {field_mapping.ds_field_label})"
+        )
         return
 
     options = field["options"]
@@ -250,77 +243,3 @@ def _get_departement_from_field_mapping(field_mapping) -> Departement | None:
         return get_departement_from_field_label(label)
     except ValueError:
         return None
-
-
-# TODO categories : rework this function
-# def guess_department_from_demarche(demarche) -> Departement:
-#     # if demarche.perimetre and demarche.perimetre.departement:
-#     #     return demarche.perimetre.departement
-#     # for departement in Departement.objects.all():
-#     #     if departement.name in demarche.ds_title:
-#     #         return departement
-#     pass
-
-
-# def guess_year_from_demarche(demarche: Demarche) -> int:
-#     """
-#     Savoir à quelle année associer les catégories DETR extraites de la démarche DN
-#     """
-#     date_revision = demarche.active_revision_date
-#     if not date_revision:
-#         # à défaut de date de dernière révision,
-#         # on regarde la date de création de la démarche.
-#         date_revision = demarche.ds_date_creation
-
-#     if date_revision.month >= 9:
-#         return date_revision.year + 1
-#     else:
-#         return date_revision.year
-
-
-# def extract_categories_operation_detr(demarche_data: dict, demarche: Demarche):
-#     from gsl_projet.models import CategorieDetr
-
-#     try:
-#         mapping = FieldMappingForComputer.objects.filter(
-#             demarche=demarche, django_field="demande_eligibilite_detr"
-#         ).get()
-#     except FieldMappingForComputer.DoesNotExist:
-#         return
-#     demande_eligibilite_detr_field_id = mapping.ds_field_id
-
-#     options = []
-#     for field in demarche_data["activeRevision"]["champDescriptors"]:
-#         if field["id"] == demande_eligibilite_detr_field_id:
-#             options = field["options"]
-#             break
-
-#     departement = guess_department_from_demarche(demarche)
-#     if not departement:
-#         return
-
-#     year = guess_year_from_demarche(demarche)
-#     if not year:
-#         return
-
-#     current_detr_category_ids = set()
-#     for sort_order, label in enumerate(options, 1):
-#         detr_cat, _ = CategorieDetr.objects.update_or_create(
-#             departement=departement,
-#             rang=sort_order,
-#             annee=year,
-#             defaults={"libelle": label, "is_current": True},
-#         )
-#         current_detr_category_ids.add(detr_cat.id)
-#         CritereEligibiliteDetr.objects.update_or_create(
-#             label=label,
-#             demarche=demarche,
-#             demarche_revision=demarche_data["activeRevision"]["id"],
-#             defaults={"detr_category": detr_cat},
-#         )
-#     # tout ce qui est dans le même département mais
-#     # n'est pas dans current_detr_categories :
-#     # on passe current à false
-#     CategorieDetr.objects.exclude(id__in=current_detr_category_ids).filter(
-#         departement=departement
-#     ).update(is_current=False)

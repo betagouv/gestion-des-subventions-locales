@@ -376,19 +376,6 @@ class Dossier(TimestampedModel):
         null=True,
     )
 
-    # TODO : remove this model
-    demande_eligibilite_detr = models.ManyToManyField(
-        "gsl_demarches_simplifiees.CritereEligibiliteDetr",
-        verbose_name="Eligibilité de l'opération à la DETR",
-        blank=True,
-    )
-    # TODO : remove this model
-    demande_eligibilite_dsil = models.ManyToManyField(
-        "gsl_demarches_simplifiees.CritereEligibiliteDsil",
-        verbose_name="Eligibilité de l'opération à la DSIL",
-        blank=True,
-    )
-
     demande_montant = models.DecimalField(
         "Montant de l'aide demandée (en euros)",
         max_digits=12,
@@ -542,8 +529,6 @@ class Dossier(TimestampedModel):
         demande_dispositif_sollicite,
         demande_categorie_dsil,
         demande_categorie_detr,
-        demande_eligibilite_detr,
-        demande_eligibilite_dsil,
         demande_montant,
         demande_autres_aides,
         demande_autre_precision,
@@ -766,42 +751,6 @@ class ProjetContractualisation(DsChoiceLibelle):
 
 class ObjectifEnvironnemental(DsChoiceLibelle):
     pass
-
-
-# TODO : remove this model
-class CritereEligibiliteDetr(DsChoiceLibelle):
-    label = models.CharField("Libellé", unique=False)
-
-    demarche = models.ForeignKey(
-        Demarche, on_delete=models.PROTECT, null=True, verbose_name="Démarche"
-    )
-    demarche_revision = models.CharField(
-        blank=True, default="", verbose_name="Révision"
-    )
-    detr_category = models.ForeignKey(
-        "gsl_projet.CategorieDetr",
-        on_delete=models.SET_NULL,
-        null=True,
-        verbose_name="Catégorie d’opération DETR",
-    )
-
-    class Meta:
-        verbose_name = "Catégorie DETR"
-        verbose_name_plural = "Catégories DETR"
-        constraints = (
-            models.UniqueConstraint(
-                fields=("label", "demarche", "demarche_revision"),
-                name="unique_%(class)s_label_per_demarche_revision",
-                nulls_distinct=False,
-            ),
-        )
-
-
-# TODO : remove this model
-class CritereEligibiliteDsil(DsChoiceLibelle):
-    class Meta:
-        verbose_name = "Catégorie DSIL"
-        verbose_name_plural = "Catégories DSIL"
 
 
 class CategorieQuerySet(models.QuerySet):

@@ -227,6 +227,7 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
 
         return (perimetre, *perimetre.children())
 
+    # TODO category : useless now. Remove it unless we use it to filter DETR projects.
     @cached_property
     def categorie_detr_choices(self):
         perimetre = self._get_perimetre()

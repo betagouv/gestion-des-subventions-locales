@@ -255,8 +255,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             "dotationprojet_set",
             "dotationprojet_set__programmation_projet",
             "dotationprojet_set__simulationprojet_set",
-            # "dotationprojet_set__detr_categories", # TODO : useless now. Remove it if we don't allow to set DETR category. The code is commented to enhance performance.
-            # "dossier_ds__demande_eligibilite_dsil",
+            # "dotationprojet_set__detr_categories", # TODO category : useless now. Remove it if we don't allow to set DETR category. The code is commented to enhance performance.
             "dossier_ds__demande_categorie_detr",
             "dossier_ds__demande_categorie_dsil",
             Prefetch(
@@ -273,10 +272,11 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             ),
             "dotation_projet__programmation_projet",
         )
-        if simulation.dotation == DOTATION_DETR:
-            qs = qs.prefetch_related(
-                "dotation_projet__detr_categories",
-            )
+        # TODO category : useless now. Remove it if we don't allow to set DETR category.
+        # if simulation.dotation == DOTATION_DETR:
+        #     qs = qs.prefetch_related(
+        #         "dotation_projet__detr_categories",
+        #     )
 
         qs.distinct()
         return qs
@@ -288,6 +288,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
         perimetre = self.perimetre
         return (perimetre, *perimetre.children())
 
+    # TODO category : useless now. Remove it unless we use it to filter DETR projects.
     @cached_property
     def categorie_detr_choices(self):
         simulation = self.get_object()

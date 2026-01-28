@@ -130,11 +130,10 @@ class ProjetListViewFilters(BaseProjetFilters):
             "perimetre",
             "demandeur",
             "dossier_ds",
+            "dossier_ds__demande_categorie_detr",
             "dossier_ds__demande_categorie_dsil",
         ).prefetch_related(
-            "dossier_ds__demande_eligibilite_detr",
-            "dossier_ds__demande_eligibilite_dsil",
-            "dotationprojet_set__detr_categories",
+            # "dotationprojet_set__detr_categories", # TODO category : useless now. Remove it if we don't allow to set DETR category. The code is commented to enhance performance.
             "dotationprojet_set__programmation_projet",
         )
         return qs
@@ -186,6 +185,7 @@ class ProjetListView(FilterView, ListView, FilterUtils):
 
         return (perimetre, *perimetre.children())
 
+    # TODO category : useless now. Remove it unless we use it to filter DETR projects.
     @cached_property
     def categorie_detr_choices(self):
         perimetre = self._get_perimetre()
