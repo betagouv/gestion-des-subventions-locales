@@ -169,6 +169,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "projet_intitule",
         "admin_projet_link",
         "link_to_json",
+        "demande_categorie_detr",
     )
 
     fieldsets = (
@@ -445,6 +446,7 @@ class CategorieDetrAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "rank",
         "active",
         "deactivated_at",
+        "dossiers_count",
     )
     readonly_fields = ("demarche", "departement", "label", "deactivated_at", "active")
     list_filter = (
@@ -457,7 +459,14 @@ class CategorieDetrAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         qs = qs.select_related("demarche")
+        qs = qs.annotate(dossier_count=Count("dossier"))
         return qs
+
+    def dossiers_count(self, obj) -> int:
+        return obj.dossier_count
+
+    dossiers_count.admin_order_field = "dossier_count"
+    dossiers_count.short_description = "# de dossiers"
 
 
 @admin.register(CategorieDsil)

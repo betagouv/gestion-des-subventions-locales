@@ -1,17 +1,16 @@
-import re
 from logging import getLogger
 
 from django.utils import timezone
 
 from gsl_core.models import Departement
 from gsl_demarches_simplifiees.ds_client import DsClient
+from gsl_demarches_simplifiees.importer.utils import get_departement_from_field_label
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     CategorieDsil,
     Demarche,
     Dossier,
     FieldMappingForComputer,
-    FieldMappingForHuman,
     Profile,
 )
 
@@ -115,6 +114,12 @@ def save_groupe_instructeurs(demarche_data, demarche):
             demarche.ds_instructeurs.add(instructeur)
 
 
+DN_DEPARTEMENT_FIELD_TO_DJANGO_FIELD_MAP = {
+    "Catégories prioritaires": "demande_categorie_detr",
+    "Arrondissement du demandeur": "porteur_de_projet_arrondissement",
+}
+
+
 def save_field_mappings(demarche_data, demarche):
     reversed_mapping = {
         field.verbose_name: field.name for field in Dossier.MAPPED_FIELDS
@@ -130,7 +135,6 @@ def save_field_mappings(demarche_data, demarche):
 
         ds_label = champ_descriptor["label"]
         ds_id = champ_descriptor["id"]
-        qs_human_mapping = FieldMappingForHuman.objects.filter(label=ds_label)
         computer_mapping, created = FieldMappingForComputer.objects.get_or_create(
             ds_field_id=ds_id,
             demarche=demarche,
@@ -149,15 +153,6 @@ def save_field_mappings(demarche_data, demarche):
                 computer_mapping.ds_field_type = ds_type
                 computer_mapping.save()
 
-        if qs_human_mapping.exists():  # we have a label which is known
-            human_mapping = qs_human_mapping.get()
-            if human_mapping.django_field:
-                computer_mapping.django_field = human_mapping.django_field
-                computer_mapping.field_mapping_for_human = human_mapping
-                computer_mapping.save()
-                continue
-
-        # Try direct mapping on verbose_name with original
         if ds_label in reversed_mapping:
             django_field = reversed_mapping.get(ds_label)
             if django_field != computer_mapping.django_field:
@@ -165,8 +160,11 @@ def save_field_mappings(demarche_data, demarche):
                 computer_mapping.save()
                 continue
 
-        if not qs_human_mapping.exists() and not computer_mapping.django_field:
-            FieldMappingForHuman.objects.create(label=ds_label, demarche=demarche)
+        for dn_field, django_field in DN_DEPARTEMENT_FIELD_TO_DJANGO_FIELD_MAP.items():
+            if ds_label.startswith(dn_field):
+                computer_mapping.django_field = django_field
+                computer_mapping.save()
+                continue
 
 
 def save_categories_dsil(demarche_data, demarche):
@@ -247,20 +245,10 @@ def _save_categorie_detr_from_field(
 
 
 def _get_departement_from_field_mapping(field_mapping) -> Departement | None:
-    """
-    Extract département from a field mapping whose ds_field_label follows the pattern:
-    "Catégories prioritaires (87 - Haute-Vienne)", "Catégories prioritaires (2A - Corse-du-Sud)", etc.
-
-    Returns the core Departement with the matching insee_code, or None if not parseable or not found.
-    """
     label = getattr(field_mapping, "ds_field_label", "") or ""
-    match = re.match(r".*\(\s*([^-\s]+)\s*-\s*[^)]+\s*\)", label)
-    if not match:
-        return None
-    insee_code = match.group(1).strip()
     try:
-        return Departement.objects.get(insee_code=insee_code)
-    except Departement.DoesNotExist:
+        return get_departement_from_field_label(label)
+    except ValueError:
         return None
 
 

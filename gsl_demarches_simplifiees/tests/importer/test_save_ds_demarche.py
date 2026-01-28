@@ -36,11 +36,11 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def demarche():
     return DemarcheFactory(
-        ds_id="un-id-qui-nest-pas-un-vrai==",
-        ds_number=123456,
+        ds_id="UHJvY2VkdXJlLTEzMTAxNg==",
+        ds_number=131016,
         ds_title="Titre de la démarche pour le Bas-Rhin",
         ds_state=Demarche.STATE_PUBLIEE,
-        active_revision_id="TEST_ID_MTYyNjE0",
+        active_revision_id="UHJvY2VkdXJlUmV2aXNpb24tMjM1OTE5",
     )
 
 
@@ -76,12 +76,14 @@ def test_save_demarche_from_ds_with_refresh_only_if_demarche_has_been_updated(
 
     demarche.refresh_from_db()
 
-    assert demarche.active_revision_id == "TEST_ID_MTYyNjE0"
-
+    assert demarche.active_revision_id == "UHJvY2VkdXJlUmV2aXNpb24tMjM1OTE5"
     assert demarche.updated_at == original_updated_at
 
 
+# Mocked because save_categories_detr needs Departements to be created
+@patch("gsl_demarches_simplifiees.importer.demarche.save_categories_detr")
 def test_save_demarche_from_ds_even_if_active_revision_id_is_the_same(
+    _save_categories_detr,
     demarche_data_without_dossier,
     demarche,
 ):
@@ -103,13 +105,13 @@ def test_save_demarche_from_ds_even_if_active_revision_id_is_the_same(
 
     demarche.refresh_from_db()
 
-    assert demarche.active_revision_id == "TEST_ID_MTYyNjE0"
+    assert demarche.active_revision_id == "UHJvY2VkdXJlUmV2aXNpb24tMjM1OTE5"
     assert demarche.updated_at > original_updated_at
 
 
 def test_get_existing_demarche_updates_ds_fields(demarche_data_without_dossier):
     existing_demarche = Demarche.objects.create(
-        ds_id="un-id-qui-nest-pas-un-vrai==",
+        ds_id="UHJvY2VkdXJlLTEzMTAxNg==",
         ds_number=666666,
         ds_title="Le titre qui va changer",
         ds_state=Demarche.STATE_PUBLIEE,
@@ -117,31 +119,41 @@ def test_get_existing_demarche_updates_ds_fields(demarche_data_without_dossier):
     returned_demarche = update_or_create_demarche(demarche_data_without_dossier)
     assert existing_demarche.ds_id == returned_demarche.ds_id
     assert existing_demarche.pk == returned_demarche.pk
-    assert returned_demarche.ds_title == "Titre de la démarche"
-    assert returned_demarche.ds_number == 123456
-    assert returned_demarche.ds_state == "brouillon"
+    assert (
+        returned_demarche.ds_title
+        == " Demande de subvention au titre de la DETR et de la DSIL - TEST TURGOT 2"
+    )
+    assert returned_demarche.ds_number == 131016
+    assert returned_demarche.ds_state == "publiee"
     assert isinstance(returned_demarche.active_revision_date, datetime)
-    assert returned_demarche.active_revision_date.year == 2023
-    assert returned_demarche.active_revision_date.month == 10
-    assert returned_demarche.active_revision_date.day == 7
-    assert returned_demarche.active_revision_id == "TEST_ID_MTYyNjE0"
+    assert returned_demarche.active_revision_date.year == 2025
+    assert returned_demarche.active_revision_date.month == 12
+    assert returned_demarche.active_revision_date.day == 19
+    assert returned_demarche.active_revision_id == "UHJvY2VkdXJlUmV2aXNpb24tMjM1OTE5"
     assert returned_demarche.raw_ds_data == demarche_data_without_dossier
     existing_demarche.refresh_from_db()
-    assert existing_demarche.ds_title == "Titre de la démarche"
-    assert existing_demarche.active_revision_id == "TEST_ID_MTYyNjE0"
+    assert (
+        existing_demarche.ds_title
+        == " Demande de subvention au titre de la DETR et de la DSIL - TEST TURGOT 2"
+    )
+
+    assert existing_demarche.active_revision_id == "UHJvY2VkdXJlUmV2aXNpb24tMjM1OTE5"
 
 
 def test_get_new_demarche_prefills_ds_fields(demarche_data_without_dossier):
     demarche = update_or_create_demarche(demarche_data_without_dossier)
-    assert demarche.ds_id == "un-id-qui-nest-pas-un-vrai=="
-    assert demarche.ds_number == 123456
-    assert demarche.ds_title == "Titre de la démarche"
-    assert demarche.ds_state == "brouillon"
+    assert demarche.ds_id == "UHJvY2VkdXJlLTEzMTAxNg=="
+    assert demarche.ds_number == 131016
+    assert (
+        demarche.ds_title
+        == " Demande de subvention au titre de la DETR et de la DSIL - TEST TURGOT 2"
+    )
+    assert demarche.ds_state == "publiee"
     assert isinstance(demarche.active_revision_date, datetime)
-    assert demarche.active_revision_date.year == 2023
-    assert demarche.active_revision_date.month == 10
-    assert demarche.active_revision_date.day == 7
-    assert demarche.active_revision_id == "TEST_ID_MTYyNjE0"
+    assert demarche.active_revision_date.year == 2025
+    assert demarche.active_revision_date.month == 12
+    assert demarche.active_revision_date.day == 19
+    assert demarche.active_revision_id == "UHJvY2VkdXJlUmV2aXNpb24tMjM1OTE5"
     assert demarche.raw_ds_data == demarche_data_without_dossier
 
 
@@ -189,21 +201,11 @@ def test_save_groupe_instructeurs_if_already_exists(
     assert Profile.objects.count() == 2
 
 
-def test_new_human_mapping_is_created_if_ds_label_is_unknown(
-    demarche, demarche_data_without_dossier
-):
+def test_computer_mappings_are_created(demarche, demarche_data_without_dossier):
     assert FieldMappingForHuman.objects.count() == 0
     assert FieldMappingForComputer.objects.count() == 0
 
     save_field_mappings(demarche_data_without_dossier, demarche)
-
-    assert FieldMappingForHuman.objects.count() == 216, (
-        "216 human mappings should be created."
-    )
-    assert FieldMappingForHuman.objects.filter(label="Commentaire libre").exists()
-    assert FieldMappingForHuman.objects.filter(
-        label="Catégories prioritaires (21 - Côte-d'Or)"
-    ).exists()
 
     assert (
         FieldMappingForComputer.objects.filter(
@@ -221,7 +223,7 @@ def test_new_human_mapping_is_created_if_ds_label_is_unknown(
         FieldMappingForComputer.objects.filter(
             ds_field_type="DropDownListChampDescriptor"
         ).count()
-        == 163
+        == 171
     )
     assert (
         FieldMappingForComputer.objects.filter(
@@ -233,32 +235,38 @@ def test_new_human_mapping_is_created_if_ds_label_is_unknown(
         FieldMappingForComputer.objects.filter(
             ds_field_type="TextChampDescriptor"
         ).count()
-        == 16
+        == 18
     )
     assert (
         FieldMappingForComputer.objects.filter(
             ds_field_type="YesNoChampDescriptor"
         ).count()
-        == 9
+        == 8
     )
     assert (
         FieldMappingForComputer.objects.filter(
             ds_field_type="MultipleDropDownListChampDescriptor"
         ).count()
-        == 6
+        == 7
     )
     assert (
         FieldMappingForComputer.objects.filter(
             ds_field_type="DossierLinkChampDescriptor"
         ).count()
-        == 1
+        == 4
     )
-    assert FieldMappingForComputer.objects.count() == 259, (
-        "259 computer mappings should have been created."
-    )
-    assert FieldMappingForComputer.objects.exclude(django_field="").count() == 34, (
-        "Only 34 mappings should be associated with an existing field."
-    )
+    assert FieldMappingForComputer.objects.count() == 294
+    assert FieldMappingForComputer.objects.exclude(django_field="").count() == 238
+
+    demande_categorie_detr_mappings = FieldMappingForComputer.objects.filter(
+        django_field="demande_categorie_detr"
+    ).count()
+    assert demande_categorie_detr_mappings == 100
+
+    porteur_de_projet_arrondissement_mappings = FieldMappingForComputer.objects.filter(
+        django_field="porteur_de_projet_arrondissement"
+    ).count()
+    assert porteur_de_projet_arrondissement_mappings == 98
 
 
 def test_existing_human_mapping_is_used_if_possible(
@@ -301,47 +309,6 @@ def test_ds_field_id_is_used_even_if_ds_label_changes(
         ).count()
         == 0
     )
-
-
-# TODO update this test during dun detr categories ticket
-# def test_categories_detr_are_created(demarche_data_without_dossier, demarche):
-#     # arrange
-#     FieldMappingForComputer.objects.create(
-#         demarche=demarche,
-#         django_field="demande_eligibilite_detr",
-#         ds_field_id="ID_DU_CHAMP_ELIGIBILTIE_DETR",
-#     )
-#     demarche.perimetre = PerimetreDepartementalFactory()
-#     demarche.ds_date_creation = timezone.datetime.fromisoformat(
-#         "2023-10-07T14:47:24+02:00"
-#     )
-
-#     # act
-#     extract_categories_operation_detr(demarche_data_without_dossier, demarche)
-
-#     # assert
-#     assert CategorieDetr.objects.count() == 2
-#     first_category = CategorieDetr.objects.first()
-#     assert first_category.rang == 1
-#     assert first_category.libelle == "Premier choix"
-#     assert first_category.annee == 2024
-#     assert first_category.departement == demarche.perimetre.departement
-
-
-@pytest.mark.skip(reason="extract_categories_operation_detr is commented out")
-def test_no_error_if_cannot_guess_departement(demarche_data_without_dossier, demarche):
-    # arrange
-    FieldMappingForComputer.objects.create(
-        demarche=demarche,
-        django_field="demande_eligibilite_detr",
-        ds_field_id="ID_DU_CHAMP_ELIGIBILTIE_DETR",
-    )
-
-    # act
-    # extract_categories_operation_detr(demarche_data_without_dossier, demarche)
-
-    # assert
-    assert CategorieDetr.objects.count() == 0
 
 
 def _minimal_demarche_data_with_descriptors(descriptors):

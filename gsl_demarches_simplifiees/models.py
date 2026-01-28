@@ -847,6 +847,13 @@ class CategorieDetr(Categorie):
     class Meta:
         verbose_name = "Catégorie DETR"
         verbose_name_plural = "Catégories DETR"
+        constraints = (
+            models.UniqueConstraint(
+                fields=("label", "demarche", "departement"),
+                name="unique_categorie_detr_label_per_demarche_departement",
+                nulls_distinct=False,
+            ),
+        )
 
     def __str__(self):
         return f"Catégorie DETR {self.pk} - {self.label}"
@@ -856,6 +863,13 @@ class CategorieDsil(Categorie):
     class Meta:
         verbose_name = "Catégorie DSIL"
         verbose_name_plural = "Catégories DSIL"
+        constraints = (
+            models.UniqueConstraint(
+                fields=("label", "demarche"),
+                name="unique_categorie_dsil_label_per_demarche",
+                nulls_distinct=False,
+            ),
+        )
 
     def __str__(self):
         return f"Catégorie DSIL {self.pk} - {self.label}"
