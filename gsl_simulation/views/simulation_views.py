@@ -255,8 +255,10 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             "dotationprojet_set",
             "dotationprojet_set__programmation_projet",
             "dotationprojet_set__simulationprojet_set",
-            "dotationprojet_set__detr_categories",
-            "dossier_ds__demande_eligibilite_dsil",
+            # "dotationprojet_set__detr_categories", # TODO : useless now. Remove it if we don't allow to set DETR category. The code is commented to enhance performance.
+            # "dossier_ds__demande_eligibilite_dsil",
+            "dossier_ds__demande_categorie_detr",
+            "dossier_ds__demande_categorie_dsil",
             Prefetch(
                 "dotationprojet_set",
                 queryset=DotationProjet.objects.filter(
