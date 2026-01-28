@@ -21,7 +21,7 @@ from gsl_projet.models import Projet
 from .exceptions import DsServiceException
 from .forms import DossierReporteSansPieceForm
 from .importer.dossier import save_one_dossier_from_ds
-from .models import Demarche, Dossier, FieldMappingForComputer
+from .models import Demarche, Dossier, FieldMapping
 from .tasks import task_save_demarche_dossiers_from_ds, task_save_demarche_from_ds
 
 logger = logging.getLogger(__name__)
@@ -138,7 +138,7 @@ def get_demarche_mapping(request, demarche_ds_number):
     context = {
         "demarche": demarche,
         "django_fields": Dossier.MAPPED_FIELDS,
-        "existing_mappings": FieldMappingForComputer.objects.filter(demarche=demarche),
+        "existing_mappings": FieldMapping.objects.filter(demarche=demarche),
     }
     return render(request, "gsl_demarches_simplifiees/demarche_mapping.html", context)
 

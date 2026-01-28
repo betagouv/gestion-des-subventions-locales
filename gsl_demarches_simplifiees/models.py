@@ -847,7 +847,7 @@ def mapping_field_choices():
     )
 
 
-class FieldMappingForComputer(TimestampedModel):
+class FieldMapping(TimestampedModel):
     demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
     ds_field_id = models.CharField("ID du champ DS")
     ds_field_label = models.CharField(
@@ -860,8 +860,8 @@ class FieldMappingForComputer(TimestampedModel):
     )
 
     class Meta:
-        verbose_name = "Correspondance technique"
-        verbose_name_plural = "Correspondances techniques"
+        verbose_name = "Correspondance de champ"
+        verbose_name_plural = "Correspondances de champ"
         constraints = (
             models.UniqueConstraint(
                 fields=("demarche", "ds_field_id"),
@@ -870,7 +870,7 @@ class FieldMappingForComputer(TimestampedModel):
         )
 
     def __str__(self):
-        return f"Correspondance technique {self.pk}"
+        return f"Correspondance de champ {self.pk}"
 
     def django_field_label(self):
         if self.django_field:

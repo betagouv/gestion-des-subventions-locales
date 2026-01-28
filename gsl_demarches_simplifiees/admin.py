@@ -13,12 +13,12 @@ from .models import (
     Demarche,
     Departement,
     Dossier,
-    FieldMappingForComputer,
+    FieldMapping,
     NaturePorteurProjet,
     PersonneMorale,
     Profile,
 )
-from .resources import FieldMappingForComputerResource
+from .resources import FieldMappingResource
 from .tasks import (
     task_refresh_dossier_from_saved_data,
     task_refresh_field_mappings_from_demarche_data,
@@ -90,7 +90,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     dossiers_count.short_description = "# de dossiers"
 
     def fields_count(self, obj) -> int:
-        return obj.fieldmappingforcomputer_set.count()
+        return obj.fieldmapping_set.count()
 
     fields_count.admin_order_field = "fields_count"
     fields_count.short_description = "# de champs"
@@ -294,13 +294,11 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     link_to_ds.short_description = "Démarche Numérique"
 
 
-@admin.register(FieldMappingForComputer)
-class FieldMappingForComputerAdmin(
-    AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin
-):
+@admin.register(FieldMapping)
+class FieldMappingAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
     readonly_fields = [
         field.name
-        for field in FieldMappingForComputer._meta.get_fields()
+        for field in FieldMapping._meta.get_fields()
         if field.name != "django_field"
     ]
     list_display = (
@@ -311,7 +309,7 @@ class FieldMappingForComputerAdmin(
         "demarche__ds_number",
     )
     list_filter = ("demarche__ds_number", "ds_field_type")
-    resource_classes = (FieldMappingForComputerResource,)
+    resource_classes = (FieldMappingResource,)
     search_fields = ("ds_field_label", "django_field", "ds_field_id")
     search_help_text = "Chercher par ID ou intitulé DN, ou par champ Django"
 
@@ -421,6 +419,12 @@ class CategorieDsilAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         qs = super().get_queryset(request)
         qs = qs.select_related("demarche")
         return qs
+
+    def dossiers_count(self, obj) -> int:
+        return obj.dossiers_count
+
+    dossiers_count.admin_order_field = "dossiers_count"
+    dossiers_count.short_description = "# de dossiers"
 
 
 @admin.register(CategorieDetr)

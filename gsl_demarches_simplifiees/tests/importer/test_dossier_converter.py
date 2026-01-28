@@ -12,7 +12,7 @@ from gsl_demarches_simplifiees.models import (
     Demarche,
     Dossier,
     DossierData,
-    FieldMappingForComputer,
+    FieldMapping,
     PersonneMorale,
 )
 from gsl_demarches_simplifiees.tests.factories import (
@@ -82,12 +82,12 @@ def dossier_converter(ds_dossier_data, dossier):
 
 
 def test_init_dossier_converter(ds_dossier_data, dossier):
-    FieldMappingForComputer.objects.create(
+    FieldMapping.objects.create(
         ds_field_id="TEST_ID_un_champ_hors_annotation",
         django_field=Dossier._MAPPED_CHAMPS_FIELDS[0].name,
         demarche=dossier.ds_data.ds_demarche,
     )
-    FieldMappingForComputer.objects.create(
+    FieldMapping.objects.create(
         ds_field_id="TEST_ID_un_champ_annotation",
         django_field=Dossier._MAPPED_ANNOTATIONS_FIELDS[0].name,
         demarche=dossier.ds_data.ds_demarche,

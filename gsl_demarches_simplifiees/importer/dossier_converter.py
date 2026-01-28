@@ -11,7 +11,7 @@ from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     Dossier,
     DsChoiceLibelle,
-    FieldMappingForComputer,
+    FieldMapping,
     PersonneMorale,
 )
 
@@ -41,7 +41,7 @@ class DossierConverter:
                 ds_dossier_data["champs"], ds_dossier_data["annotations"]
             )
         }
-        computed_mappings = FieldMappingForComputer.objects.filter(
+        computed_mappings = FieldMapping.objects.filter(
             ds_field_id__in=self.ds_field_id_to_field_data.keys()
         ).exclude(django_field="")
 

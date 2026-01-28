@@ -1,10 +1,10 @@
 from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
 
-from .models import Demarche, FieldMappingForComputer
+from .models import Demarche, FieldMapping
 
 
-class FieldMappingForComputerResource(resources.ModelResource):
+class FieldMappingResource(resources.ModelResource):
     demarche = fields.Field(
         column_name="demarche",
         attribute="demarche",
@@ -12,5 +12,5 @@ class FieldMappingForComputerResource(resources.ModelResource):
     )
 
     class Meta:
-        model = FieldMappingForComputer
+        model = FieldMapping
         import_id_fields = ("demarche", "ds_field_id")

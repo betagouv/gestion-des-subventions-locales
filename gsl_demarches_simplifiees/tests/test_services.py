@@ -8,7 +8,7 @@ import pytest
 from django.utils import timezone
 
 from gsl_core.tests.factories import CollegueFactory
-from gsl_demarches_simplifiees.models import Dossier, FieldMappingForComputer
+from gsl_demarches_simplifiees.models import Dossier, FieldMapping
 from gsl_demarches_simplifiees.services import (
     DsService,
     DsServiceException,
@@ -18,7 +18,7 @@ from gsl_demarches_simplifiees.services import (
 )
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
-    FieldMappingForComputerFactory,
+    FieldMappingFactory,
     ProfileFactory,
 )
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
@@ -38,7 +38,7 @@ def dossier():
 
 @pytest.fixture
 def ds_field():
-    return FieldMappingForComputerFactory(ds_field_id=101112)
+    return FieldMappingFactory(ds_field_id=101112)
 
 
 def test_get_instructeur_id(caplog):
@@ -80,8 +80,8 @@ def test_get_ds_field_id(dossier: Dossier, field, field_name, caplog):
     ds_service = DsService()
 
     with patch(
-        "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
-        side_effect=FieldMappingForComputer.DoesNotExist,
+        "gsl_demarches_simplifiees.services.FieldMapping.objects.get",
+        side_effect=FieldMapping.DoesNotExist,
     ):
         with pytest.raises(FieldError) as exc_info:
             ds_service._get_ds_field_id(dossier, field)

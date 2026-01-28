@@ -16,7 +16,7 @@ from gsl_core.tests.factories import (
 from gsl_demarches_simplifiees.models import Dossier, NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
-    FieldMappingForComputerFactory,
+    FieldMappingFactory,
     NaturePorteurProjetFactory,
 )
 from gsl_programmation.tests.factories import (
@@ -61,7 +61,7 @@ def view() -> SimulationListView:
 
 @pytest.fixture
 def ds_field():
-    return FieldMappingForComputerFactory(ds_field_id=101112)
+    return FieldMappingFactory(ds_field_id=101112)
 
 
 @pytest.fixture
