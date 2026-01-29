@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import views
+from .views import DossierSansPieceUpdateView
 
 urlpatterns = [
     path(
@@ -47,5 +48,10 @@ urlpatterns = [
         "dossier/<int:dossier_ds_number>/refresh/",
         views.refresh_one_dossier,
         name="refresh-one-dossier",
+    ),
+    path(
+        "dossier/<int:pk>/renseigner/",
+        DossierSansPieceUpdateView.as_view(),
+        name="dossier-sans-piece-update",
     ),
 ]
