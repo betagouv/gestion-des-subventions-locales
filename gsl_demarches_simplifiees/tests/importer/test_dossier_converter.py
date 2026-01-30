@@ -5,16 +5,19 @@ from pathlib import Path
 import pytest
 
 from gsl_core.models import Adresse
+from gsl_core.tests.factories import DepartementFactory, RegionFactory
 from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverter
 from gsl_demarches_simplifiees.models import (
-    CritereEligibiliteDetr,
+    CategorieDetr,
     Demarche,
     Dossier,
     DossierData,
     FieldMappingForComputer,
     PersonneMorale,
 )
-from gsl_demarches_simplifiees.tests.factories import DemarcheFactory
+from gsl_demarches_simplifiees.tests.factories import (
+    CategorieDetrFactory,
+)
 
 pytestmark = [
     pytest.mark.django_db,
@@ -91,17 +94,22 @@ def test_init_dossier_converter(ds_dossier_data, dossier):
     )
     dossier_converter = DossierConverter(ds_dossier_data, dossier)
 
-    assert "TEST_ID_un_champ_hors_annotation" in dossier_converter.ds_fields_by_id
-    assert "TEST_ID_un_champ_annotation" in dossier_converter.ds_fields_by_id
-    assert len(dossier_converter.ds_fields_by_id) == (
+    assert (
+        "TEST_ID_un_champ_hors_annotation"
+        in dossier_converter.ds_field_id_to_field_data
+    )
+    assert "TEST_ID_un_champ_annotation" in dossier_converter.ds_field_id_to_field_data
+    assert len(dossier_converter.ds_field_id_to_field_data) == (
         len(ds_dossier_data["champs"]) + len(ds_dossier_data["annotations"])
     )
     assert (
-        dossier_converter.ds_id_to_django_field["TEST_ID_un_champ_hors_annotation"]
+        dossier_converter.ds_field_id_to_django_field[
+            "TEST_ID_un_champ_hors_annotation"
+        ]
         == Dossier._MAPPED_CHAMPS_FIELDS[0]
     )
     assert (
-        dossier_converter.ds_id_to_django_field["TEST_ID_un_champ_annotation"]
+        dossier_converter.ds_field_id_to_django_field["TEST_ID_un_champ_annotation"]
         == Dossier._MAPPED_ANNOTATIONS_FIELDS[0]
     )
 
@@ -331,7 +339,10 @@ def test_extract_field_data(input, expected, dossier_converter):
 
 def test_inject_scalar_value(dossier_converter, dossier):
     dossier_converter.inject_into_field(
-        dossier, Dossier._meta.get_field("date_achevement"), datetime.date(2025, 2, 2)
+        dossier,
+        Dossier._meta.get_field("date_achevement"),
+        datetime.date(2025, 2, 2),
+        "",
     )
     dossier.save()
     assert dossier.date_achevement == datetime.date(2025, 2, 2)
@@ -342,6 +353,7 @@ def test_inject_foreign_key_value(dossier_converter, dossier):
         dossier,
         Dossier._meta.get_field("porteur_de_projet_arrondissement"),
         "67 - Bas-Rhin - arrondissement de Haguenau-Wissembourg",
+        "Arrondissement du demandeur (67 - Bas-Rhin)",
     )
     dossier.save()
     assert (
@@ -359,6 +371,7 @@ def test_inject_manytomany_value(dossier_converter, dossier):
             "Territoires Engagées pour la Nature (TEN)",
             "Site patrimonial remarquable (SPR)",
         ],
+        "Zonage",
     )
     dossier.save()
     assert len(dossier.projet_zonage.all()) == 3
@@ -369,36 +382,10 @@ def test_inject_string_into_manytomany_value(dossier_converter, dossier):
         dossier,
         Dossier._meta.get_field("projet_zonage"),
         "Territoires d'industrie (TI)",
+        "Zonage",
     )
     dossier.save()
     assert len(dossier.projet_zonage.all()) == 1
-
-
-def test_inject_correct_category_detr_value_with_several_demarches(
-    dossier_converter, dossier
-):
-    libelle = "1. Valeur du premier choix"
-    demarche_revision = ""
-    other_critere_detr = CritereEligibiliteDetr.objects.create(
-        demarche=DemarcheFactory(ds_title="Démarche qui n'a rien à voir"),
-        label=libelle,
-        demarche_revision="tata",
-    )
-    good_critere_detr = CritereEligibiliteDetr.objects.create(
-        demarche=dossier.ds_data.ds_demarche,
-        label=libelle,
-        demarche_revision=demarche_revision,
-    )
-    dossier_converter.ds_demarche_revision = demarche_revision
-    dossier_converter.inject_into_field(
-        dossier,
-        Dossier._meta.get_field("demande_eligibilite_detr"),
-        libelle,
-    )
-    dossier.save()
-    dossier_critere = dossier.demande_eligibilite_detr.first()
-    assert dossier_critere == good_critere_detr
-    assert dossier_critere != other_critere_detr
 
 
 def test_inject_address_value(dossier_converter, dossier):
@@ -419,9 +406,52 @@ def test_inject_address_value(dossier_converter, dossier):
             "regionName": "Grand Est",
             "regionCode": "44",
         },
+        "Adresse du projet",
     )
     dossier.save()
     assert Adresse.objects.count() == 1
     assert dossier.projet_adresse.label.startswith("2 Rue des Ecoles")
     assert dossier.projet_adresse.commune.name == "Schirrhein"
     assert dossier.projet_adresse.commune.insee_code == "67449"
+
+
+# --- inject_into_field CategorieDetr (demande_categorie_detr) ---
+
+
+def test_inject_into_field_categorie_detr_resolves_by_label_and_departement_from_label(
+    dossier_converter,
+    dossier,
+):
+    """Injecting into demande_categorie_detr uses label to get département and finds CategorieDetr."""
+    region = RegionFactory()
+    dep_87 = DepartementFactory(region=region, insee_code="87", name="Haute-Vienne")
+    category_label = "1. Première catégorie prioritaire"
+    categorie_detr = CategorieDetrFactory(
+        demarche=dossier.ds_data.ds_demarche,
+        departement=dep_87,
+        label=category_label,
+    )
+    field = Dossier._meta.get_field("demande_categorie_detr")
+    ds_field_label = "Catégories prioritaires (87 - Haute-Vienne)"
+
+    dossier_converter.inject_into_field(dossier, field, category_label, ds_field_label)
+    dossier.save()
+
+    assert dossier.demande_categorie_detr_id == categorie_detr.pk
+    assert dossier.demande_categorie_detr.label == category_label
+    assert dossier.demande_categorie_detr.departement == dep_87
+
+
+def test_inject_into_field_categorie_detr_raises_when_category_not_found(
+    dossier_converter,
+    dossier,
+):
+    region = RegionFactory()
+    DepartementFactory(region=region, insee_code="87", name="Haute-Vienne")
+    field = Dossier._meta.get_field("demande_categorie_detr")
+    ds_field_label = "Catégories prioritaires (87 - Haute-Vienne)"
+
+    with pytest.raises(CategorieDetr.DoesNotExist):
+        dossier_converter.inject_into_field(
+            dossier, field, "Inexistant label", ds_field_label
+        )

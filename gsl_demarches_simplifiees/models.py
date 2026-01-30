@@ -369,18 +369,13 @@ class Dossier(TimestampedModel):
         on_delete=models.PROTECT,
         null=True,
     )
-    demande_eligibilite_detr = models.ManyToManyField(
-        "gsl_demarches_simplifiees.CritereEligibiliteDetr",
-        verbose_name="Eligibilité de l'opération à la DETR",
-        blank=True,
+    demande_categorie_detr = models.ForeignKey(
+        "gsl_demarches_simplifiees.CategorieDetr",
+        verbose_name="Catégories prioritaires",
+        on_delete=models.PROTECT,
+        null=True,
     )
 
-    # TODO : remove this model
-    demande_eligibilite_dsil = models.ManyToManyField(
-        "gsl_demarches_simplifiees.CritereEligibiliteDsil",
-        verbose_name="Eligibilité de l'opération à la DSIL",
-        blank=True,
-    )
     demande_montant = models.DecimalField(
         "Montant de l'aide demandée (en euros)",
         max_digits=12,
@@ -533,8 +528,7 @@ class Dossier(TimestampedModel):
         demande_numero_demande_precedente,
         demande_dispositif_sollicite,
         demande_categorie_dsil,
-        demande_eligibilite_detr,
-        demande_eligibilite_dsil,
+        demande_categorie_detr,
         demande_montant,
         demande_autres_aides,
         demande_autre_precision,
@@ -759,51 +753,16 @@ class ObjectifEnvironnemental(DsChoiceLibelle):
     pass
 
 
-class CritereEligibiliteDetr(DsChoiceLibelle):
-    label = models.CharField("Libellé", unique=False)
-
-    demarche = models.ForeignKey(
-        Demarche, on_delete=models.PROTECT, null=True, verbose_name="Démarche"
-    )
-    demarche_revision = models.CharField(
-        blank=True, default="", verbose_name="Révision"
-    )
-    detr_category = models.ForeignKey(
-        "gsl_projet.CategorieDetr",
-        on_delete=models.SET_NULL,
-        null=True,
-        verbose_name="Catégorie d’opération DETR",
-    )
-
-    class Meta:
-        verbose_name = "Catégorie DETR"
-        verbose_name_plural = "Catégories DETR"
-        constraints = (
-            models.UniqueConstraint(
-                fields=("label", "demarche", "demarche_revision"),
-                name="unique_%(class)s_label_per_demarche_revision",
-                nulls_distinct=False,
-            ),
-        )
-
-
-# TODO : remove this model
-class CritereEligibiliteDsil(DsChoiceLibelle):
-    class Meta:
-        verbose_name = "Catégorie DSIL"
-        verbose_name_plural = "Catégories DSIL"
-
-
-class CategorieDsilQuerySet(models.QuerySet):
+class CategorieQuerySet(models.QuerySet):
     def active(self):
         return self.filter(active=True)
 
 
-class CategorieDsilManager(models.Manager.from_queryset(CategorieDsilQuerySet)):
+class CategorieManager(models.Manager.from_queryset(CategorieQuerySet)):
     pass
 
 
-class CategorieDsil(TimestampedModel):
+class Categorie(TimestampedModel):
     demarche = models.ForeignKey(
         Demarche, on_delete=models.PROTECT, verbose_name="Démarche"
     )
@@ -814,19 +773,55 @@ class CategorieDsil(TimestampedModel):
         "Date de désactivation", null=True, blank=True
     )
 
-    objects = CategorieDsilManager()
+    objects = CategorieManager()
 
     class Meta:
-        verbose_name = "Catégorie DSIL"
-        verbose_name_plural = "Catégories DSIL"
-
-    def __str__(self):
-        return f"Catégorie DSIL {self.pk} - {self.label}"
+        abstract = True
 
     def deactivate(self):
         self.active = False
         self.deactivated_at = timezone.now()
         self.save()
+
+
+class CategorieDetr(Categorie):
+    parent_label = models.CharField("Libellé de la catégorie parente", blank=True)
+    departement = models.ForeignKey(
+        CoreDepartement,
+        verbose_name="Département",
+        on_delete=models.PROTECT,
+        related_name="categories_detr",
+    )
+
+    class Meta:
+        verbose_name = "Catégorie DETR"
+        verbose_name_plural = "Catégories DETR"
+        constraints = (
+            models.UniqueConstraint(
+                fields=("label", "demarche", "departement"),
+                name="unique_categorie_detr_label_per_demarche_departement",
+                nulls_distinct=False,
+            ),
+        )
+
+    def __str__(self):
+        return f"Catégorie DETR {self.pk} - {self.label}"
+
+
+class CategorieDsil(Categorie):
+    class Meta:
+        verbose_name = "Catégorie DSIL"
+        verbose_name_plural = "Catégories DSIL"
+        constraints = (
+            models.UniqueConstraint(
+                fields=("label", "demarche"),
+                name="unique_categorie_dsil_label_per_demarche",
+                nulls_distinct=False,
+            ),
+        )
+
+    def __str__(self):
+        return f"Catégorie DSIL {self.pk} - {self.label}"
 
 
 class AutreAide(DsChoiceLibelle):

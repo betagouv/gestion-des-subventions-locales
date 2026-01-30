@@ -274,6 +274,7 @@ class DotationProjetForm(ModelForm):
         ),
     )
 
+    # TODO : useless now. Remove it if we don't allow to set DETR category
     detr_categories = forms.ModelMultipleChoiceField(
         queryset=CategorieDetr.objects.none(),
         required=False,
@@ -283,16 +284,17 @@ class DotationProjetForm(ModelForm):
 
     def __init__(self, *args, departement=None, **kwargs):
         super().__init__(*args, **kwargs)
-        departement = (
-            self.instance.projet.perimetre.departement if self.instance.projet else None
-        )
-        if departement is not None:
-            self.fields[
-                "detr_categories"
-            ].queryset = CategorieDetr.objects.current_for_departement(departement)
-        else:
-            self.fields["detr_categories"].queryset = CategorieDetr.objects.none()
-        self.fields["detr_categories"].label_from_instance = lambda obj: obj.label
+        # TODO : useless now. Remove it if we don't allow to set DETR category. The code is commented to enhance performance.
+        # departement = (
+        #     self.instance.projet.perimetre.departement if self.instance.projet else None
+        # )
+        # # if departement is not None:
+        # #     self.fields[
+        # #         "detr_categories"
+        # #     ].queryset = CategorieDetr.objects.current_for_departement(departement)
+        # # else:
+        # #     self.fields["detr_categories"].queryset = CategorieDetr.objects.none()
+        # self.fields["detr_categories"].label_from_instance = lambda obj: obj.label
 
     def clean_detr_avis_commission(self):
         value = self.cleaned_data.get("detr_avis_commission")

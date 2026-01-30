@@ -95,6 +95,7 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
         "is_active",
         "is_staff",
         "is_superuser",
+        "last_login",
         "perimetre__departement",
         "perimetre__region",
     )

@@ -13,7 +13,7 @@ from ..models import (
     Arrondissement as DsArrondissement,
 )
 from ..models import (
-    CritereEligibiliteDetr,
+    CategorieDetr,
     Demarche,
     Dossier,
     DossierData,
@@ -66,11 +66,6 @@ class DsDepartementFactory(DsLibelleFactory):
         model = DsDepartement
 
     core_departement = factory.SubFactory(CoreDepartementFactory)
-
-
-class CritereEligibiliteDetrFactory(DsLibelleFactory):
-    class Meta:
-        model = CritereEligibiliteDetr
 
 
 class NaturePorteurProjetFactory(factory.django.DjangoModelFactory):
@@ -132,3 +127,14 @@ class FieldMappingForComputerFactory(factory.django.DjangoModelFactory):
 
     demarche = factory.SubFactory(DemarcheFactory)
     django_field = factory.fuzzy.FuzzyChoice(CHOICES)
+
+
+class CategorieDetrFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = CategorieDetr
+
+    demarche = factory.SubFactory(DemarcheFactory)
+    departement = factory.SubFactory(CoreDepartementFactory)
+    label = factory.Faker("word", locale="fr_FR")
+    rank = factory.Faker("random_int", min=1, max=10)
+    active = True

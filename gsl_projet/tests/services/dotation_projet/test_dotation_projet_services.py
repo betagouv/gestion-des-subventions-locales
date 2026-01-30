@@ -15,7 +15,6 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import (
-    CritereEligibiliteDetrFactory,
     DossierFactory,
 )
 from gsl_programmation.tests.factories import (
@@ -34,7 +33,6 @@ from gsl_projet.services.dotation_projet_services import (
     DotationProjetService as dps,
 )
 from gsl_projet.tests.factories import (
-    CategorieDetrFactory,
     DotationProjetFactory,
     ProjetFactory,
 )
@@ -172,41 +170,41 @@ def test_create_or_update_dotation_projet_from_projet_also_refuse_dsil_dotation_
 
 # -- create_simulation_projets_from_dotation_projet --
 
+# TODO category : useless now. Remove it if we don't allow to set DETR category.
+# @pytest.mark.django_db
+# @pytest.mark.parametrize(
+#     "dotation",
+#     (DOTATION_DETR, DOTATION_DSIL),
+# )
+# def test_create_or_update_dotation_projet_add_detr_categories(dotation):
+#     projet = ProjetFactory(
+#         dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+#     )
+#     dotation_projet = DotationProjetFactory(
+#         projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
+#     )
+#     categorie_detr = CategorieDetrFactory()
+#     projet.dossier_ds.demande_eligibilite_detr.add(
+#         CritereEligibiliteDetrFactory(detr_category=categorie_detr)
+#     )
 
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "dotation",
-    (DOTATION_DETR, DOTATION_DSIL),
-)
-def test_create_or_update_dotation_projet_add_detr_categories(dotation):
-    projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
-    )
-    dotation_projet = DotationProjetFactory(
-        projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
-    )
-    categorie_detr = CategorieDetrFactory()
-    projet.dossier_ds.demande_eligibilite_detr.add(
-        CritereEligibiliteDetrFactory(detr_category=categorie_detr)
-    )
+#     # ------
 
-    # ------
+#     dps.create_or_update_dotation_projet_from_projet(projet)
 
-    dps.create_or_update_dotation_projet_from_projet(projet)
+#     # ------
 
-    # ------
+#     assert DotationProjet.objects.count() == 1
 
-    assert DotationProjet.objects.count() == 1
+#     dotation_projet = DotationProjet.objects.first()
+#     assert dotation_projet.projet == projet
+#     assert dotation_projet.dotation == dotation
+#     assert dotation_projet.status == PROJET_STATUS_PROCESSING
 
-    dotation_projet = DotationProjet.objects.first()
-    assert dotation_projet.projet == projet
-    assert dotation_projet.dotation == dotation
-    assert dotation_projet.status == PROJET_STATUS_PROCESSING
-
-    if dotation_projet.dotation == DOTATION_DSIL:
-        assert dotation_projet.detr_categories.count() == 0
-    else:
-        assert categorie_detr in dotation_projet.detr_categories.all()
+#     if dotation_projet.dotation == DOTATION_DSIL:
+#         assert dotation_projet.detr_categories.count() == 0
+#     else:
+#         assert categorie_detr in dotation_projet.detr_categories.all()
 
 
 @pytest.fixture

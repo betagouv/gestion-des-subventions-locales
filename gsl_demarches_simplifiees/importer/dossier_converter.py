@@ -6,7 +6,9 @@ from logging import getLogger
 from django.db import models
 
 from gsl_core.models import Adresse
+from gsl_demarches_simplifiees.importer.utils import get_departement_from_field_label
 from gsl_demarches_simplifiees.models import (
+    CategorieDetr,
     Dossier,
     DsChoiceLibelle,
     FieldMappingForComputer,
@@ -33,19 +35,19 @@ class DossierConverter:
     )
 
     def __init__(self, ds_dossier_data: dict, dossier: Dossier):
-        self.ds_fields_by_id = {
+        self.ds_field_id_to_field_data = {
             champ["id"]: champ
             for champ in chain(
                 ds_dossier_data["champs"], ds_dossier_data["annotations"]
             )
         }
         computed_mappings = FieldMappingForComputer.objects.filter(
-            ds_field_id__in=self.ds_fields_by_id.keys()
+            ds_field_id__in=self.ds_field_id_to_field_data.keys()
         ).exclude(django_field="")
 
         self.ds_dossier_data = ds_dossier_data
         self.ds_demarche_revision = ds_dossier_data["demarche"]["revision"]["id"]
-        self.ds_id_to_django_field = {
+        self.ds_field_id_to_django_field = {
             mapping.ds_field_id: Dossier._meta.get_field(mapping.django_field)
             for mapping in computed_mappings.all()
         }
@@ -72,19 +74,18 @@ class DossierConverter:
         self.dossier.ds_demandeur = demandeur
 
     def convert_all_fields(self):
-        for ds_field_id in self.ds_id_to_django_field:
-            ds_field_data = self.ds_fields_by_id[ds_field_id]
-            django_field_object = self.ds_id_to_django_field[ds_field_id]
+        for ds_field_id in self.ds_field_id_to_django_field:
+            ds_field_data = self.ds_field_id_to_field_data[ds_field_id]
+            django_field_object = self.ds_field_id_to_django_field[ds_field_id]
             self.convert_one_field(ds_field_data, django_field_object)
 
     def convert_one_field(self, ds_field_data, django_field_object):
-        """
-        :param ds_field_id:
-        :return:
-        """
         try:
+            label = ds_field_data["label"]
             injectable_value = self.extract_ds_data(ds_field_data)
-            self.inject_into_field(self.dossier, django_field_object, injectable_value)
+            self.inject_into_field(
+                self.dossier, django_field_object, injectable_value, label
+            )
         except NotImplementedError as e:
             print(e)
 
@@ -128,7 +129,7 @@ class DossierConverter:
 
     def _prepare_address_for_injection(
         self, dossier: Dossier, django_field_object: models.Field, injectable_value
-    ):
+    ) -> Adresse:
         adresse = dossier.__getattribute__(django_field_object.name) or Adresse()
         adresse.update_from_raw_ds_data(injectable_value)
         adresse.save()
@@ -147,7 +148,11 @@ class DossierConverter:
         return arguments
 
     def inject_into_field(
-        self, dossier: Dossier, django_field_object: models.Field, injectable_value
+        self,
+        dossier: Dossier,
+        django_field_object: models.Field,
+        injectable_value,
+        label: str,
     ):
         if isinstance(django_field_object, models.ManyToManyField):
             if isinstance(injectable_value, str) or not isinstance(
@@ -171,6 +176,13 @@ class DossierConverter:
             if issubclass(django_field_object.related_model, Adresse):
                 injectable_value = self._prepare_address_for_injection(
                     dossier, django_field_object, injectable_value
+                )
+            elif issubclass(django_field_object.related_model, CategorieDetr):
+                departement = get_departement_from_field_label(label)
+                injectable_value = CategorieDetr.objects.get(
+                    demarche__ds_number=self.dossier.ds_demarche_number,
+                    label=injectable_value,
+                    departement=departement,
                 )
 
             else:

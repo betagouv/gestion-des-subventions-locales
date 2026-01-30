@@ -37,7 +37,6 @@ class DotationProjetService:
             # check for updates
             dotation_projets = cls._update_dotation_projets_from_projet(projet)
 
-        cls._update_detr_categories(dotation_projets)
         cls._add_dotation_projets_to_all_concerned_simulations(dotation_projets)
         return dotation_projets
 
@@ -563,19 +562,6 @@ class DotationProjetService:
                 },
             )
         return dotations
-
-    @classmethod
-    def _update_detr_categories(cls, dotation_projets: list[DotationProjet]):
-        for dotation_projet in dotation_projets:
-            if dotation_projet.dotation != DOTATION_DETR:
-                continue
-
-            for (
-                critere
-            ) in dotation_projet.projet.dossier_ds.demande_eligibilite_detr.filter(
-                detr_category__isnull=False
-            ):
-                dotation_projet.detr_categories.add(critere.detr_category)
 
     @classmethod
     def _is_programmation_projet_created_after_date_of_passage_en_instruction(

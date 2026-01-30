@@ -109,7 +109,7 @@
                                     {% if dp.dotation == "DSIL" %}
                                         {{ projet.dossier_ds.demande_categorie_dsil.label }}
                                     {% elif dp.dotation == "DETR" %}
-                                        {{ dotation_projet.detr_categories.all.first.label }}
+                                        {{ projet.dossier_ds.demande_categorie_detr.label }}
                                     {% endif %}
                                 </div>
                             {% endfor %}

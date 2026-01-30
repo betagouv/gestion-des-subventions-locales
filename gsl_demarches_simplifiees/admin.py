@@ -6,12 +6,10 @@ from import_export.admin import ImportExportMixin
 
 from gsl_core.admin import AllPermsForStaffUser
 
-from .importer.demarche import refresh_categories_operation_detr
 from .models import (
     Arrondissement,
+    CategorieDetr,
     CategorieDsil,
-    CritereEligibiliteDetr,
-    CritereEligibiliteDsil,
     Demarche,
     Departement,
     Dossier,
@@ -49,7 +47,6 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     actions = (
         "save_demarche_from_ds",
         "refresh_field_mappings",
-        "extract_detr_categories",
         "refresh_dossiers_from_ds",
         "refresh_new_or_modified_dossiers_from_ds",
     )
@@ -63,6 +60,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
                     "ds_date_fermeture",
                     "active_revision_date",
                     "active_revision_id",
+                    "updated_since",
                 )
             },
         ),
@@ -84,12 +82,12 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         qs = qs.defer("raw_ds_data")
-        return qs.annotate(dossier_count=Count("dossierdata"))
+        return qs.annotate(dossiers_count=Count("dossierdata"))
 
     def dossiers_count(self, obj) -> int:
-        return obj.dossier_count
+        return obj.dossiers_count
 
-    dossiers_count.admin_order_field = "dossier_count"
+    dossiers_count.admin_order_field = "dossiers_count"
     dossiers_count.short_description = "# de dossiers"
 
     def fields_count(self, obj) -> int:
@@ -109,11 +107,6 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def save_demarche_from_ds(self, request, queryset):
         for demarche in queryset:
             task_save_demarche_from_ds(demarche.ds_number)
-
-    @admin.action(description="🔍 Extraction des catégories DETR")
-    def extract_detr_categories(self, request, queryset):
-        for demarche in queryset:
-            refresh_categories_operation_detr(demarche.ds_number)
 
     @admin.action(
         description="🗂️☁️ Rafraîchir tous les dossiers de la démarche depuis DN"
@@ -168,6 +161,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "projet_intitule",
         "admin_projet_link",
         "link_to_json",
+        "demande_categorie_detr",
     )
 
     fieldsets = (
@@ -425,39 +419,57 @@ class NaturePorteurProjetAdmin(
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.annotate(dossier_count=Count("dossier"))
+        return qs.annotate(dossiers_count=Count("dossier"))
 
     def dossiers_count(self, obj) -> int:
-        return obj.dossier_count
+        return obj.dossiers_count
 
-    dossiers_count.admin_order_field = "dossier_count"
+    dossiers_count.admin_order_field = "dossiers_count"
     dossiers_count.short_description = "# de dossiers"
 
 
 @admin.register(CategorieDsil)
 class CategorieDsilAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    list_display = ("id", "label", "rank", "active", "deactivated_at")
+    list_display = ("id", "label", "rank", "active", "deactivated_at", "dossiers_count")
     readonly_fields = ("demarche", "label", "deactivated_at", "active")
     list_filter = ("demarche__ds_number", "active", "deactivated_at")
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         qs = qs.select_related("demarche")
+        qs = qs.annotate(dossiers_count=Count("dossier"))
         return qs
 
+    def dossiers_count(self, obj) -> int:
+        return obj.dossiers_count
 
-@admin.register(CritereEligibiliteDsil)
-class CategorieDoperationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    list_display = ("id", "label")
+    dossiers_count.admin_order_field = "dossiers_count"
+    dossiers_count.short_description = "# de dossiers"
 
 
-@admin.register(CritereEligibiliteDetr)
-class CritereEligibiliteDetrAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    list_display = ("id", "label", "demarche__ds_number")
-    readonly_fields = ("demarche", "demarche_revision", "detr_category", "label")
-    list_filter = ("demarche__ds_number",)
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        qs = qs.select_related("demarche")
-        return qs
+@admin.register(CategorieDetr)
+class CategorieDetrAdmin(CategorieDsilAdmin):
+    list_display = (
+        "id",
+        "departement",
+        "label",
+        "parent_label",
+        "rank",
+        "active",
+        "deactivated_at",
+        "dossiers_count",
+    )
+    readonly_fields = (
+        "demarche",
+        "departement",
+        "label",
+        "deactivated_at",
+        "active",
+        "dossiers_count",
+    )
+    list_filter = (
+        "departement",
+        "active",
+        "deactivated_at",
+        "demarche__ds_number",
+    )
