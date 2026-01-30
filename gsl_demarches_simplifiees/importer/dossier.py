@@ -106,6 +106,7 @@ def refresh_dossier_from_saved_data(dossier: Dossier):
     dossier_converter = DossierConverter(dossier.ds_data.raw_data, dossier)
     dossier_converter.fill_unmapped_fields()
     dossier_converter.convert_all_fields()
+    dossier_converter.associate_perimetre()
     try:
         dossier.save()
     except Exception as e:

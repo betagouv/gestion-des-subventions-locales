@@ -27,7 +27,7 @@ class ProjetService:
                 dossier_ds=ds_dossier,
             )
         projet.address = ds_dossier.projet_adresse
-        projet.perimetre = ds_dossier.get_projet_perimetre()
+        projet.perimetre = ds_dossier.perimetre
         projet.is_in_qpv = cls._get_boolean_value(ds_dossier, "annotations_is_qpv")
         projet.is_attached_to_a_crte = cls._get_boolean_value(
             ds_dossier, "annotations_is_crte"

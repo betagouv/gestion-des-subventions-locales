@@ -4,14 +4,10 @@ import factory
 import factory.fuzzy
 from django.db.models.signals import post_save
 
-from gsl_core.tests.factories import AdresseFactory
-from gsl_core.tests.factories import ArrondissementFactory as CoreArrondissementFactory
+from gsl_core.tests.factories import AdresseFactory, ArrondissementFactory
 from gsl_core.tests.factories import DepartementFactory as CoreDepartementFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 
-from ..models import (
-    Arrondissement as DsArrondissement,
-)
 from ..models import (
     CategorieDetr,
     CategorieDsil,
@@ -55,11 +51,11 @@ class DsLibelleFactory(factory.django.DjangoModelFactory):
     label = factory.Sequence(lambda n: f"dslibelle-{n}")
 
 
-class DsArrondissementFactory(DsLibelleFactory):
-    class Meta:
-        model = DsArrondissement
+# class DsArrondissementFactory(DsLibelleFactory):
+#     class Meta:
+#         model = DsArrondissement
 
-    core_arrondissement = factory.SubFactory(CoreArrondissementFactory)
+#     core_arrondissement = factory.SubFactory(CoreArrondissementFactory)
 
 
 class DsDepartementFactory(DsLibelleFactory):
@@ -103,7 +99,7 @@ class DossierFactory(factory.django.DjangoModelFactory):
     ds_number = factory.Faker("random_int", min=1000000, max=9999999)
     ds_state = Dossier.STATE_EN_INSTRUCTION
     ds_demandeur = factory.SubFactory(PersonneMoraleFactory)
-    porteur_de_projet_arrondissement = factory.SubFactory(DsArrondissementFactory)
+    porteur_de_projet_arrondissement = factory.SubFactory(ArrondissementFactory)
     ds_date_depot = factory.Faker(
         "date_time_this_year", before_now=True, tzinfo=timezone.utc
     )
