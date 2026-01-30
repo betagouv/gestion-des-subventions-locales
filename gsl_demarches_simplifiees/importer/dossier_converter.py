@@ -5,8 +5,12 @@ from logging import getLogger
 
 from django.db import models
 
-from gsl_core.models import Adresse
-from gsl_demarches_simplifiees.importer.utils import get_departement_from_field_label
+from gsl_core.models import Adresse, Arrondissement, Departement, Perimetre
+from gsl_demarches_simplifiees.importer.utils import (
+    get_arrondissement_from_value,
+    get_departement_from_field_label,
+    get_departement_from_value,
+)
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     Dossier,
@@ -210,7 +214,10 @@ class DossierConverter:
                     label=injectable_value,
                     departement=departement,
                 )
-
+            elif issubclass(django_field_object.related_model, Arrondissement):
+                injectable_value = get_arrondissement_from_value(injectable_value)
+            elif issubclass(django_field_object.related_model, Departement):
+                injectable_value = get_departement_from_value(injectable_value)
             else:
                 injectable_value, _ = (
                     django_field_object.related_model.objects.get_or_create(
@@ -234,3 +241,26 @@ class DossierConverter:
             }
             logger.warning("Value of DateChamp is uncorrect.", extra=extra)
             return None
+
+    def associate_perimetre(self):
+        self.dossier.perimetre = self._get_perimetre()
+
+    def _get_perimetre(self) -> Perimetre | None:
+        arrondissement = self.dossier.porteur_de_projet_arrondissement
+        if arrondissement is not None:
+            return Perimetre.objects.get(arrondissement=arrondissement)
+
+        departement = self.dossier.porteur_de_projet_departement
+        if departement is not None:
+            return Perimetre.objects.get(departement=departement, arrondissement=None)
+
+        logger.warning(
+            "Dossier is missing arrondissement and departement.",
+            extra={
+                "dossier_ds_number": self.ds_number,
+                "arrondissement": self.dossier.porteur_de_projet_arrondissement,
+                "departement": self.dossier.porteur_de_projet_departement,
+            },
+        )
+
+        return None
