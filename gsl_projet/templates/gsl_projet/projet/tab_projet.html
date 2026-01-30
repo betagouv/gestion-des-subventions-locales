@@ -109,7 +109,8 @@
                         <b>Département et arrondissement :</b> {{ dossier.porteur_de_projet_arrondissement }}
                     </li>
                     <li>
-                        <b>La maîtrise d’ouvrage de l’opération sera-t-elle déléguée ?</b> {{ dossier.maitrise_douvrage_deleguee|yesno:"Oui,Non,Non renseigné" }}
+                        <b>La maîtrise d’ouvrage de l’opération sera-t-elle déléguée?</b>
+                        {{ dossier.maitrise_douvrage_deleguee|yesno:"Oui,Non,Non renseigné" }}
                     </li>
                 </ul>
             </section>
@@ -243,7 +244,8 @@
                 </h3>
                 {% block transition_ecologique_content %}
                     <p>
-                        <b>Le projet concourt-il aux enjeux de la transition écologique au sens budget vert : </b>{{ projet.is_budget_vert|yesno:"Oui,Non,Non renseigné" }}
+                        <b>Le projet concourt-il aux enjeux de la transition écologique au sens budget vert: </b>
+                        {{ projet.is_budget_vert|yesno:"Oui,Non,Non renseigné" }}
                     </p>
                 {% endblock transition_ecologique_content %}
                 {% if dossier.environnement_objectifs.count > 0 %}
@@ -282,13 +284,32 @@
                 <h3 id="dispositifs_sollicites">
                     Dispositifs de financement sollicités
                 </h3>
+
+                {% if projet.dossier_ds.is_sans_pieces %}
+                    <div class="fr-alert fr-alert--info fr-mb-3w">
+                        <p>
+                            Le projet est a été reporté sans dépôt de nouveau dossier complet.
+                            Les informations ci-dessous ont été renseignées à la main par l'instructeur depuis
+                            le précédent dossier.
+                        </p>
+                        <p>
+                            Vous pouvez <a href="{% url 'gsl_demarches_simplifiees:dossier-sans-piece-update' projet.dossier_ds.pk %}">les
+                            modifier</a> si une erreur a été faite.
+                        </p>
+                    </div>
+                {% endif %}
+
                 <p>
                     <b>Opération présentée dans la campagne DETR/DSIL précédente :</b>
-                    {{ dossier.demande_annee_precedente|yesno:"Oui,Non,Non renseigné" }}
+                    {% if dossier.demande_numero_demande_precedente %}
+                        Oui
+                    {% else %}
+                        Non
+                    {% endif %}
                 </p>
                 <p>
                     <b>Dispositif de financement sollicité :</b>
-                    {{ projet.dotations|join:", " }}
+                    {{ projet.dossier_ds.dotations_demande|join:", " }}
                 </p>
                 {% block dotations_form %}
                 {% endblock dotations_form %}

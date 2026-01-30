@@ -5,10 +5,12 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import ngettext
 from django.views.decorators.http import require_GET, require_POST
+from django.views.generic import UpdateView
 from django.views.generic.list import ListView
 from django_celery_results.models import TaskResult
 
@@ -17,6 +19,7 @@ from gsl_core.exceptions import Http404
 from gsl_projet.models import Projet
 
 from .exceptions import DsServiceException
+from .forms import DossierReporteSansPieceForm
 from .importer.dossier import save_one_dossier_from_ds
 from .models import Demarche, Dossier, FieldMappingForComputer
 from .tasks import task_save_demarche_dossiers_from_ds, task_save_demarche_from_ds
@@ -164,3 +167,15 @@ def fetch_demarche_dossiers(request):
         demarche_ds_number, using_updated_since=False
     )
     return redirect("ds:liste-demarches")
+
+
+class DossierSansPieceUpdateView(UpdateView):
+    model = Dossier
+    form_class = DossierReporteSansPieceForm
+    template_name = "gsl_demarches_simplifiees/dossier_sans_piece_update.html"
+
+    def get_success_url(self):
+        return reverse("gsl_projet:get-projet", args=[self.object.projet.pk])
+
+    def get_queryset(self):
+        return Dossier.objects.for_user(self.request.user).sans_pieces()

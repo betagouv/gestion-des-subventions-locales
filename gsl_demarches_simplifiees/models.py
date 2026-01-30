@@ -3,10 +3,14 @@ from logging import getLogger
 from django.db import models
 from django.urls import reverse
 
-from gsl_core.models import Adresse, Perimetre
+from gsl_core.models import Adresse, Collegue, Perimetre
 from gsl_core.models import Arrondissement as CoreArrondissement
 from gsl_core.models import Departement as CoreDepartement
-from gsl_projet.constants import MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
+)
 
 logger = getLogger(__name__)
 
@@ -169,6 +173,31 @@ class DossierData(TimestampedModel):
         return "Données de dossier (vide)"
 
 
+class DossierQuerySet(models.QuerySet):
+    def for_user(self, user: Collegue):
+        if user.perimetre is None:
+            if user.is_staff or user.is_superuser:
+                return self
+            return self.none()
+
+        return self.for_perimetre(user.perimetre)
+
+    def for_perimetre(self, perimetre: Perimetre | None):
+        if perimetre is None:
+            return self
+        if perimetre.arrondissement:
+            return self.filter(
+                projet__perimetre__arrondissement=perimetre.arrondissement
+            )
+        if perimetre.departement:
+            return self.filter(projet__perimetre__departement=perimetre.departement)
+        if perimetre.region:
+            return self.filter(projet__perimetre__region=perimetre.region)
+
+    def sans_pieces(self):
+        return self.filter(demande_renouvellement__contains="SANS")
+
+
 class Dossier(TimestampedModel):
     """
     See https://www.demarches-simplifiees.fr/graphql/schema/types/Dossier
@@ -320,9 +349,9 @@ class Dossier(TimestampedModel):
         "Le projet va-t-il générer des recettes ?", null=True
     )
     # ---
-    demande_annee_precedente = models.BooleanField(
-        "Avez-vous déjà présenté cette opération au titre de campagnes DETR/DSIL en 2023 ?",
-        null=True,
+    demande_renouvellement = models.CharField(
+        "Souhaitez-vous effectuer une nouvelle demande ou renouveler une demande précédente ?",
+        blank=True,
     )
     demande_numero_demande_precedente = models.CharField(
         "Précisez le numéro du dossier déposé antérieurement",
@@ -484,7 +513,7 @@ class Dossier(TimestampedModel):
         date_achevement,
         finance_cout_total,
         finance_recettes,
-        demande_annee_precedente,
+        demande_renouvellement,
         demande_numero_demande_precedente,
         demande_dispositif_sollicite,
         demande_eligibilite_detr,
@@ -519,6 +548,8 @@ class Dossier(TimestampedModel):
         annotations_taux_dsil,
     )
     MAPPED_FIELDS = _MAPPED_ANNOTATIONS_FIELDS + _MAPPED_CHAMPS_FIELDS
+
+    objects = models.Manager.from_queryset(DossierQuerySet)()
 
     class Meta:
         verbose_name = "Dossier"
@@ -604,6 +635,33 @@ class Dossier(TimestampedModel):
         if self.demande_montant is None:
             return False
         return self.demande_montant >= MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
+
+    @property
+    def is_sans_pieces(self) -> bool:
+        return "SANS" in self.demande_renouvellement
+
+    @property
+    def dotations_demande(self):
+        dotations = []
+
+        if not self.demande_dispositif_sollicite:
+            return dotations
+
+        if DOTATION_DETR in self.demande_dispositif_sollicite:
+            dotations.append(DOTATION_DETR)
+        if DOTATION_DSIL in self.demande_dispositif_sollicite:
+            dotations.append(DOTATION_DSIL)
+
+        if not dotations:
+            logger.warning(
+                "Champ demande_dispositif_sollicite invalide.",
+                extra={
+                    "dossier_ds_number": self.ds_number,
+                    "value": self.demande_dispositif_sollicite,
+                },
+            )
+
+        return dotations
 
 
 class DsChoiceLibelle(TimestampedModel):
