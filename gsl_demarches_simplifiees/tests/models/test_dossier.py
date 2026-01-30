@@ -96,3 +96,30 @@ def test_taux_demande(demande_montant, finance_cout_total, expected_taux):
         finance_cout_total=finance_cout_total,
     )
     assert dossier.taux_demande == expected_taux
+
+
+@pytest.mark.parametrize(
+    "annotations_champ_libre_1, annotations_champ_libre_2, annotations_champ_libre_3, expected_has_annotations_champ_libre",
+    (
+        ("", "", "", False),
+        ("", "", "test", True),
+        ("", "test", "", True),
+        ("", "test", "test", True),
+        ("test", "", "", True),
+        ("test", "", "test", True),
+        ("test", "test", "", True),
+        ("test", "test", "test", True),
+    ),
+)
+def test_has_annotations_champ_libre(
+    annotations_champ_libre_1,
+    annotations_champ_libre_2,
+    annotations_champ_libre_3,
+    expected_has_annotations_champ_libre,
+):
+    dossier = DossierFactory(
+        annotations_champ_libre_1=annotations_champ_libre_1,
+        annotations_champ_libre_2=annotations_champ_libre_2,
+        annotations_champ_libre_3=annotations_champ_libre_3,
+    )
+    assert dossier.has_annotations_champ_libre == expected_has_annotations_champ_libre

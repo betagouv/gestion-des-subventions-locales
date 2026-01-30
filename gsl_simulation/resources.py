@@ -107,9 +107,17 @@ class DsilSimulationProjetResource(ModelResource):
         attribute="projet__dossier_ds__demande_priorite_dsil_detr",
         column_name="Priorité du projet",
     )
-    annotations = Field(
-        attribute="projet__dossier_ds__annotations_champ_libre",
-        column_name="Annotation de l’instructeur",
+    champ_libre_1 = Field(
+        attribute="projet__dossier_ds__annotations_champ_libre_1",
+        column_name="Champ libre 1",
+    )
+    champ_libre_2 = Field(
+        attribute="projet__dossier_ds__annotations_champ_libre_2",
+        column_name="Champ libre 2",
+    )
+    champ_libre_3 = Field(
+        attribute="projet__dossier_ds__annotations_champ_libre_3",
+        column_name="Champ libre 3",
     )
 
     class Meta:
@@ -137,7 +145,9 @@ class DsilSimulationProjetResource(ModelResource):
             "is_budget_vert",
             "demande_priorite_dsil_detr",
             "priorite",
-            "annotations",
+            "champ_libre_1",
+            "champ_libre_2",
+            "champ_libre_3",
         )
 
 

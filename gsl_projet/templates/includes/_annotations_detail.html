@@ -3,17 +3,39 @@
           aria-hidden="true"></span>
     Notes pour l’instruction du projet
 </h2>
-<h3>
-    Annotation privée de Démarche Numérique
-</h3>
-{% if projet.dossier_ds.annotations_champ_libre %}
-    <p class="fr-background-alt--blue-france fr-p-2w">
-        {{ projet.dossier_ds.annotations_champ_libre }}
-    </p>
+{% if projet.dossier_ds.has_annotations_champ_libre %}
+    {% if projet.dossier_ds.annotations_champ_libre_1 %}
+        <h3>
+            Champ libre pour le service instructeur 1 (Démarche Numérique)
+        </h3>
+        <div class="fr-background-alt--blue-france fr-mb-4w fr-p-2w note-champ-libre">
+            {{ projet.dossier_ds.annotations_champ_libre_1|linebreaks }}
+        </div>
+    {% endif %}
+    {% if projet.dossier_ds.annotations_champ_libre_2 %}
+        <h3>
+            Champ libre pour le service instructeur 2 (Démarche Numérique)
+        </h3>
+        <div class="fr-background-alt--blue-france fr-mb-4w fr-p-2w note-champ-libre">
+            {{ projet.dossier_ds.annotations_champ_libre_2|linebreaks }}
+        </div>
+    {% endif %}
+    {% if projet.dossier_ds.annotations_champ_libre_3 %}
+        <h3>
+            Champ libre pour le service instructeur 3 (Démarche Numérique)
+        </h3>
+        <div class="fr-background-alt--blue-france fr-mb-4w fr-p-2w note-champ-libre">
+            {{ projet.dossier_ds.annotations_champ_libre_3|linebreaks }}
+        </div>
+    {% endif %}
 {% else %}
+    <h3>
+        Champ libre pour le service instructeur (Démarche Numérique)
+    </h3>
     <p>
-        <i>Aucune annotation privée n’a été renseignée.</i>
+        <i>Aucun champ libre n’a été renseigné.</i>
     </p>
 {% endif %}
+
 {% block block_projet_notes %}
 {% endblock block_projet_notes %}
