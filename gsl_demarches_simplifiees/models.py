@@ -368,12 +368,14 @@ class Dossier(TimestampedModel):
         verbose_name="DSIL · Éligibilité de l'opération",
         on_delete=models.PROTECT,
         null=True,
+        blank=True,
     )
     demande_categorie_detr = models.ForeignKey(
         "gsl_demarches_simplifiees.CategorieDetr",
         verbose_name="Catégories prioritaires",
         on_delete=models.PROTECT,
         null=True,
+        blank=True,
     )
 
     demande_montant = models.DecimalField(
@@ -805,7 +807,7 @@ class CategorieDetr(Categorie):
         )
 
     def __str__(self):
-        return f"Catégorie DETR {self.pk} - {self.label}"
+        return f"{self.label}"
 
 
 class CategorieDsil(Categorie):
@@ -821,7 +823,7 @@ class CategorieDsil(Categorie):
         )
 
     def __str__(self):
-        return f"Catégorie DSIL {self.pk} - {self.label}"
+        return f"{self.label}"
 
 
 class AutreAide(DsChoiceLibelle):

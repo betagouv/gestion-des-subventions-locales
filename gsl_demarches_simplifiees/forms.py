@@ -2,8 +2,8 @@ from django import forms
 from django.forms.widgets import CheckboxSelectMultiple
 from dsfr.forms import DsfrBaseForm
 
-from gsl_demarches_simplifiees.models import Dossier
-from gsl_projet.constants import DOTATION_CHOICES
+from gsl_demarches_simplifiees.models import CategorieDetr, CategorieDsil, Dossier
+from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 
 
@@ -41,7 +41,37 @@ class DossierReporteSansPieceForm(forms.ModelForm, DsfrBaseForm):
         required=True, label="Montant de l'aide demandée"
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        demarche = self.instance.ds_data.ds_demarche
+
+        try:
+            departement = self.instance.projet.perimetre.departement
+        except (AttributeError, Dossier.projet.RelatedObjectDoesNotExist):
+            departement = None
+
+        if departement:
+            self.fields[
+                "demande_categorie_detr"
+            ].queryset = CategorieDetr.objects.filter(
+                demarche=demarche, departement=departement, active=True
+            )
+        else:
+            self.fields[
+                "demande_categorie_detr"
+            ].queryset = CategorieDetr.objects.none()
+
+        self.fields["demande_categorie_dsil"].queryset = CategorieDsil.objects.filter(
+            demarche=demarche, active=True
+        )
+
     def save(self, commit=True):
+        dotations = self.cleaned_data.get("demande_dispositif_sollicite", [])
+        if DOTATION_DETR not in dotations:
+            self.instance.demande_categorie_detr = None
+        if DOTATION_DSIL not in dotations:
+            self.instance.demande_categorie_dsil = None
+
         instance = super().save(commit=commit)
         service = DotationProjetService()
         service.create_or_update_dotation_projet_from_projet(instance.projet)
@@ -53,6 +83,8 @@ class DossierReporteSansPieceForm(forms.ModelForm, DsfrBaseForm):
             "demande_dispositif_sollicite",
             "finance_cout_total",
             "demande_montant",
+            "demande_categorie_detr",
+            "demande_categorie_dsil",
         ]
         widgets = {
             "finance_cout_total": forms.TextInput(attrs={"inputmode": "numeric"}),
