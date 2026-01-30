@@ -418,7 +418,7 @@ class CategorieDsilAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         qs = qs.select_related("demarche")
-        return qs
+        return qs.annotate(dossiers_count=Count("dossier"))
 
     def dossiers_count(self, obj) -> int:
         return obj.dossiers_count
