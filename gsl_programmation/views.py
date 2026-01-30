@@ -50,8 +50,8 @@ class ProgrammationProjetDetailView(DetailView):
             .with_at_least_one_programmed_dotation()
             .select_related(
                 "dossier_ds",
-                "perimetre",
-                "perimetre__departement",
+                "dossier_ds__perimetre",
+                "dossier_ds__perimetre__departement",
                 "demandeur",
             )
             .prefetch_related("dotationprojet_set__detr_categories")

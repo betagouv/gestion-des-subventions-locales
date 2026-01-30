@@ -61,7 +61,9 @@ def dsil_envelope(user_with_departement_perimetre):
 @pytest.fixture
 def double_dotation_projet(user_with_departement_perimetre):
     """Project eligible for both DETR and DSIL (double dotation)"""
-    projet = ProjetFactory(perimetre=user_with_departement_perimetre.perimetre)
+    projet = ProjetFactory(
+        dossier_ds__perimetre=user_with_departement_perimetre.perimetre
+    )
     # Create both DETR and DSIL dotations for same project
     detr_dotation = DetrProjetFactory(projet=projet)
     dsil_dotation = DsilProjetFactory(projet=projet)

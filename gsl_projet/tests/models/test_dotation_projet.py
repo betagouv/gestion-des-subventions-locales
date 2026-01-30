@@ -654,7 +654,7 @@ def test_categorie_detr_departement_constraint():
     dep2 = DepartementFactory()
 
     perimetre = PerimetreFactory(departement=dep1)
-    projet = ProjetFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
 
     cat_ok = CategorieDetrFactory(
         libelle="Cat OK", rang=1, annee=2024, departement=dep1

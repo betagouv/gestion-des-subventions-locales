@@ -69,7 +69,7 @@ def accepted_simulation_projet(user, simulation):
     dotation_projet = DotationProjetFactory(
         status=PROJET_STATUS_PROCESSING,
         assiette=10_000,
-        projet__perimetre=user.perimetre,
+        projet__dossier_ds__perimetre=user.perimetre,
         projet__is_budget_vert=False,
         dotation=DOTATION_DETR,
     )

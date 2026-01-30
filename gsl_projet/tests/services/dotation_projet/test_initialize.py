@@ -71,7 +71,7 @@ def test_initialize_dotation_projets_from_projet_accepted_with_annotations_dotat
         dossier_ds__annotations_montant_accorde_detr=5_000,
         dossier_ds__annotations_montant_accorde_dsil=15_000,
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
-        perimetre=arr_dijon,
+        dossier_ds__perimetre=arr_dijon,
     )
 
     dotation_projets = dps._initialize_dotation_projets_from_projet_accepted(projet)
@@ -111,7 +111,7 @@ def test_initialize_dotation_projets_from_projet_accepted_with_empty_annotations
         dossier_ds__annotations_assiette_detr=None,
         dossier_ds__annotations_montant_accorde_detr=None,
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
-        perimetre=arr_dijon,
+        dossier_ds__perimetre=arr_dijon,
     )
 
     # --
@@ -172,7 +172,7 @@ def test_initialize_dotation_projets_from_projet_refused(perimetres):
         dossier_ds__annotations_assiette_detr=10_000,
         dossier_ds__annotations_assiette_dsil=None,
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
-        perimetre=arr_dijon,
+        dossier_ds__perimetre=arr_dijon,
     )
 
     dotation_projets = dps._initialize_dotation_projets_from_projet_refused(projet)
@@ -213,7 +213,7 @@ def test_initialize_dotation_projets_from_projet_sans_suite(perimetres):
         dossier_ds__annotations_assiette_detr=10_000,
         dossier_ds__annotations_assiette_dsil=None,
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
-        perimetre=arr_dijon,
+        dossier_ds__perimetre=arr_dijon,
     )
 
     dotation_projets = dps._initialize_dotation_projets_from_projet_sans_suite(projet)

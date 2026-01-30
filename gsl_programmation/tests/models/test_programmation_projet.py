@@ -117,7 +117,7 @@ def arrondisement_perimetre() -> Perimetre:
 
 @pytest.fixture
 def projet(arrondisement_perimetre) -> Projet:
-    return ProjetFactory(perimetre=arrondisement_perimetre)
+    return ProjetFactory(dossier_ds__perimetre=arrondisement_perimetre)
 
 
 @pytest.fixture
@@ -231,7 +231,7 @@ def test_programmation_projet_with_a_projet_in_enveloppe_perimetre_must_be_okay(
     projet_perimetre = PerimetreArrondissementFactory()
     enveloppe_perimetre = PerimetreRegionalFactory(region=projet_perimetre.region)
     dotation_projet = DotationProjetFactory(
-        projet__perimetre=projet_perimetre, dotation=DOTATION_DSIL
+        projet__dossier_ds__perimetre=projet_perimetre, dotation=DOTATION_DSIL
     )
     enveloppe = DsilEnveloppeFactory(perimetre=enveloppe_perimetre)
 

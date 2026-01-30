@@ -54,7 +54,7 @@ def client_with_user_logged(collegue):
 def simulation_projet(collegue, simulation):
     dotation_projet = DotationProjetFactory(
         status=PROJET_STATUS_PROCESSING,
-        projet__perimetre=collegue.perimetre,
+        projet__dossier_ds__perimetre=collegue.perimetre,
         dotation=DOTATION_DETR,
         assiette=10_000,
     )

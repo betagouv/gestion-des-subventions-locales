@@ -244,7 +244,7 @@ def save_documents(
             select_related_objs=[
                 "dotation_projet__projet__dossier_ds",
                 "dotation_projet__projet__dossier_ds__ds_demandeur",
-                "dotation_projet__projet__perimetre__departement",
+                "dotation_projet__projet__dossier_ds__perimetre__departement",
             ],
             prefetch_related_objs=[],
         )

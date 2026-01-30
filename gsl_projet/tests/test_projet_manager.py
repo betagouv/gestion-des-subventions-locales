@@ -63,8 +63,10 @@ def test_filter_perimetre_arrondissement():
     # Arrange
     arrondissement = ArrondissementFactory()
     perimetre = PerimetreArrondissementFactory(arrondissement=arrondissement)
-    arrondissement_projet = ProjetFactory(perimetre=perimetre)
-    unrelated_projet = ProjetFactory(perimetre=PerimetreArrondissementFactory())
+    arrondissement_projet = ProjetFactory(dossier_ds__perimetre=perimetre)
+    unrelated_projet = ProjetFactory(
+        dossier_ds__perimetre=PerimetreArrondissementFactory()
+    )
 
     # Act
     unfiltered_projets = set(Projet.objects.for_perimetre(None).all())
@@ -89,12 +91,12 @@ def departement() -> Departement:
 def projets(departement) -> list[Projet]:
     arrondissement = ArrondissementFactory(departement=departement)
     projet_with_arrondissement = ProjetFactory(
-        perimetre=PerimetreArrondissementFactory(
+        dossier_ds__perimetre=PerimetreArrondissementFactory(
             departement=departement, arrondissement=arrondissement
         )
     )
     projet_with_departement = ProjetFactory(
-        perimetre=PerimetreDepartementalFactory(departement=departement)
+        dossier_ds__perimetre=PerimetreDepartementalFactory(departement=departement)
     )
     projet_without_perimetre = ProjetFactory()
 
@@ -263,7 +265,7 @@ def test_for_enveloppe_with_projet_type_and_enveloppe_dotation(
     )
     enveloppe = enveloppe_factory(annee=2024, perimetre=perimetre)
     projet = ProjetFactory(
-        perimetre=perimetre,
+        dossier_ds__perimetre=perimetre,
         dossier_ds__ds_date_depot=datetime(2024, 3, 1, tzinfo=UTC),
         dossier_ds__ds_date_traitement=datetime(2024, 5, 1, tzinfo=UTC),
     )
@@ -293,7 +295,7 @@ def test_for_year_2024_and_for_not_processed_states(submitted_year, count):
         dossier_ds__demande_dispositif_sollicite=enveloppe.dotation,
         dossier_ds__ds_date_depot=datetime(submitted_year, 12, 31, tzinfo=tz.utc),
         dossier_ds__ds_date_traitement=datetime(submitted_year + 1, 5, 1, tzinfo=UTC),
-        perimetre=perimetre,
+        dossier_ds__perimetre=perimetre,
     )
     DotationProjetFactory(projet=projet, dotation=enveloppe.dotation)
     print(f"Test with {projet.dossier_ds.ds_state}")
@@ -326,7 +328,7 @@ def test_for_year_2024_and_for_processed_states(submitted_year, processed_year, 
     projet = ProcessedProjetFactory(
         dossier_ds__ds_date_depot=datetime(submitted_year, 12, 31, tzinfo=tz.utc),
         dossier_ds__ds_date_traitement=datetime(processed_year, 12, 31, tzinfo=tz.utc),
-        perimetre=perimetre,
+        dossier_ds__perimetre=perimetre,
     )
     DotationProjetFactory(projet=projet, dotation=enveloppe.dotation)
     print(f"Test with {projet.dossier_ds.ds_state}")
