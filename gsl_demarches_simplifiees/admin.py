@@ -168,12 +168,9 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_number",
         "ds_state",
         "projet_intitule",
+        "departement",
         "admin_projet_link",
         "link_to_json",
-        "demande_categorie_detr",
-        "porteur_de_projet_arrondissement",
-        "porteur_de_projet_departement",
-        "perimetre",
     )
 
     fieldsets = (
@@ -232,6 +229,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_demandeur",
     )
     search_fields = ("ds_number", "projet_intitule")
+    list_filter = ("ds_state", "perimetre__departement")
     readonly_fields = [field.name for field in Dossier._meta.fields] + [
         "admin_projet_link",
         "app_projet_link",
@@ -251,20 +249,13 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = (
-            qs.select_related(
-                "ds_data__ds_demarche",
-                "projet",
-                "porteur_de_projet_arrondissement",
-                "porteur_de_projet_departement",
-            )
-            .prefetch_related(
-                "porteur_de_projet_arrondissement__departement",
-            )
-            .defer(
-                "ds_data__raw_data",  # Main Dossier
-                "ds_data__ds_demarche__raw_ds_data",  # Related Demarche
-            )
+        qs = qs.select_related(
+            "ds_data__ds_demarche",
+            "projet",
+            "perimetre__departement",
+        ).defer(
+            "ds_data__raw_data",  # Main Dossier
+            "ds_data__ds_demarche__raw_ds_data",  # Related Demarche
         )
         return qs
 
@@ -298,6 +289,14 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         )
 
     link_to_ds.short_description = "Démarche Numérique"
+
+    def departement(self, obj):
+        if obj.perimetre is None:
+            return None
+        return obj.perimetre.departement.insee_code
+
+    departement.admin_order_field = "perimetre__departement__insee_code"
+    departement.short_description = "Département"
 
 
 @admin.register(FieldMapping)

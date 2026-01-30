@@ -25,7 +25,7 @@ pytestmark = pytest.mark.django_db()
 def test_projet_detail_page_has_no_status_and_notification_status_card_when_all_dotation_projet_have_processing_status():
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
-    projet = ProjetFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     DotationProjetFactory(projet=projet, status=PROJET_STATUS_PROCESSING)
     url = reverse(
         "gsl_projet:get-projet",
@@ -48,7 +48,7 @@ def test_projet_detail_page_has_status_and_notification_status_card_with_not_pro
 ):
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
-    projet = ProjetFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     DotationProjetFactory(projet=projet, status=status)
     url = reverse(
         "gsl_projet:get-projet",
@@ -82,7 +82,7 @@ def test_projet_detail_page_has_status_and_notification_status_card_with_not_pro
 ):
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
-    projet = ProjetFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     DotationProjetFactory(projet=projet, status=dotation_status_1)
     DotationProjetFactory(projet=projet, status=dotation_status_2)
     url = reverse(
@@ -148,7 +148,7 @@ def test_projet_detail_page_has_correct_notification_status_message_when_no_noti
 ):
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
-    projet = ProjetFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
 
     dotation_projet_detr = DotationProjetFactory(
         projet=projet, status=dotation_status_1, dotation=DOTATION_DETR
@@ -207,7 +207,7 @@ def test_projet_detail_page_has_correct_notification_status_message_when_already
 ):
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
-    projet = ProjetFactory(perimetre=perimetre, notified_at=datetime.now())
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=datetime.now())
 
     dotation_projet_detr = DotationProjetFactory(
         projet=projet, status=dotation_status_1, dotation=DOTATION_DETR

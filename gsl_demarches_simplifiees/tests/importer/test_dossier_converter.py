@@ -5,7 +5,11 @@ from pathlib import Path
 import pytest
 
 from gsl_core.models import Adresse
-from gsl_core.tests.factories import DepartementFactory, RegionFactory
+from gsl_core.tests.factories import (
+    ArrondissementFactory,
+    DepartementFactory,
+    RegionFactory,
+)
 from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverter
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
@@ -394,6 +398,7 @@ def test_inject_scalar_value(dossier_converter, dossier):
 
 
 def test_inject_foreign_key_value(dossier_converter, dossier):
+    ArrondissementFactory(name="Haguenau-Wissembourg")
     dossier_converter.inject_into_field(
         dossier,
         Dossier._meta.get_field("porteur_de_projet_arrondissement"),
@@ -401,10 +406,7 @@ def test_inject_foreign_key_value(dossier_converter, dossier):
         "Arrondissement du demandeur (67 - Bas-Rhin)",
     )
     dossier.save()
-    assert (
-        dossier.porteur_de_projet_arrondissement.label
-        == "67 - Bas-Rhin - arrondissement de Haguenau-Wissembourg"
-    )
+    assert dossier.porteur_de_projet_arrondissement.name == "Haguenau-Wissembourg"
 
 
 def test_inject_manytomany_value(dossier_converter, dossier):

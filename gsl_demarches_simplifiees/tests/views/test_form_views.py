@@ -31,9 +31,9 @@ class TestDossierSansPieceUpdateViewCategories:
         perimetre = user_with_perimetre.perimetre
         dossier = DossierFactory(
             demande_renouvellement="REPORT SANS PIECES",
-            porteur_de_projet_arrondissement__core_arrondissement=perimetre.arrondissement,
+            perimetre=perimetre,
         )
-        ProjetFactory(dossier_ds=dossier, perimetre=perimetre)
+        ProjetFactory(dossier_ds=dossier)
         return dossier
 
     def test_post_with_categories_saves_them(
@@ -80,9 +80,9 @@ class TestDossierSansPieceUpdateView:
         perimetre = user_with_perimetre.perimetre
         dossier = DossierFactory(
             demande_renouvellement="REPORT SANS PIECES",
-            porteur_de_projet_arrondissement__core_arrondissement=perimetre.arrondissement,
+            perimetre=perimetre,
         )
-        ProjetFactory(dossier_ds=dossier, perimetre=perimetre)
+        ProjetFactory(dossier_ds=dossier)
         return dossier
 
     def test_view_get_accessible_for_user_with_perimeter(
@@ -99,9 +99,9 @@ class TestDossierSansPieceUpdateView:
         perimetre = user_with_perimetre.perimetre
         dossier = DossierFactory(
             demande_renouvellement="NOUVELLE DEMANDE",
-            porteur_de_projet_arrondissement__core_arrondissement=perimetre.arrondissement,
+            perimetre=perimetre,
         )
-        ProjetFactory(dossier_ds=dossier, perimetre=perimetre)
+        ProjetFactory(dossier_ds=dossier)
 
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
         url = reverse("ds:dossier-sans-piece-update", args=[dossier.pk])
@@ -113,9 +113,9 @@ class TestDossierSansPieceUpdateView:
         other_perimetre = PerimetreArrondissementFactory()
         dossier = DossierFactory(
             demande_renouvellement="REPORT SANS PIECES",
-            porteur_de_projet_arrondissement__core_arrondissement=other_perimetre.arrondissement,
+            perimetre=other_perimetre,
         )
-        ProjetFactory(dossier_ds=dossier, perimetre=other_perimetre)
+        ProjetFactory(dossier_ds=dossier)
 
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
         url = reverse("ds:dossier-sans-piece-update", args=[dossier.pk])

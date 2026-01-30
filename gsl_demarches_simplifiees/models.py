@@ -187,13 +187,11 @@ class DossierQuerySet(models.QuerySet):
         if perimetre is None:
             return self
         if perimetre.arrondissement:
-            return self.filter(
-                projet__perimetre__arrondissement=perimetre.arrondissement
-            )
+            return self.filter(perimetre__arrondissement=perimetre.arrondissement)
         if perimetre.departement:
-            return self.filter(projet__perimetre__departement=perimetre.departement)
+            return self.filter(perimetre__departement=perimetre.departement)
         if perimetre.region:
-            return self.filter(projet__perimetre__region=perimetre.region)
+            return self.filter(perimetre__region=perimetre.region)
 
     def sans_pieces(self):
         return self.filter(demande_renouvellement__contains="SANS")
@@ -666,36 +664,6 @@ class NaturePorteurProjet(DsChoiceLibelle):
     class Meta:
         verbose_name = "Nature du porteur de projet"
         verbose_name_plural = "Natures de porteur de projet"
-
-
-# class Departement(DsChoiceLibelle):
-#     core_departement = models.ForeignKey(
-#         CoreDepartement,
-#         related_name="ds_departements",
-#         null=True,
-#         blank=True,
-#         on_delete=models.PROTECT,
-#         verbose_name="Département INSEE",
-#     )
-
-#     class Meta:
-#         verbose_name = "Département DS"
-#         verbose_name_plural = "Départements DS"
-
-
-# class Arrondissement(DsChoiceLibelle):
-#     core_arrondissement = models.ForeignKey(
-#         CoreArrondissement,
-#         related_name="ds_arrondissements",
-#         null=True,
-#         blank=True,
-#         on_delete=models.PROTECT,
-#         verbose_name="Arrondissement INSEE",
-#     )
-
-#     class Meta:
-#         verbose_name = "Arrondissement DS"
-#         verbose_name_plural = "Arrondissements DS"
 
 
 class ProjetZonage(DsChoiceLibelle):

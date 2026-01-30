@@ -36,12 +36,12 @@ def test_list(client_with_55_user_logged):
 
 @pytest.fixture
 def projets_from_55(perimetre_departement_55):
-    return ProjetFactory.create_batch(3, perimetre=perimetre_departement_55)
+    return ProjetFactory.create_batch(3, dossier_ds__perimetre=perimetre_departement_55)
 
 
 @pytest.fixture
 def projets_from_88(perimetre_departement_88):
-    return ProjetFactory.create_batch(5, perimetre=perimetre_departement_88)
+    return ProjetFactory.create_batch(5, dossier_ds__perimetre=perimetre_departement_88)
 
 
 @pytest.mark.django_db

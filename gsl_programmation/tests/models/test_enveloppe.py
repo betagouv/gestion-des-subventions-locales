@@ -41,7 +41,7 @@ def simulation(detr_enveloppe):
 def submitted_projets(perimetre_departemental):
     projets = SubmittedProjetFactory.create_batch(
         4,
-        perimetre=perimetre_departemental,
+        dossier_ds__perimetre=perimetre_departemental,
         dossier_ds__demande_montant=20_000,
         dossier_ds__ds_date_depot=datetime(2021, 12, 1, tzinfo=UTC),
         dossier_ds__demande_dispositif_sollicite="DETR",
@@ -56,7 +56,7 @@ def programmation_projets(perimetre_departemental, detr_enveloppe):
     for _ in range(3):
         dotation_projet = DotationProjetFactory(
             dotation=DOTATION_DETR,
-            projet__perimetre=perimetre_departemental,
+            projet__dossier_ds__perimetre=perimetre_departemental,
             projet__dossier_ds__demande_montant=30_000,
             projet__dossier_ds__ds_date_depot=datetime(2020, 12, 1, tzinfo=UTC),
             projet__dossier_ds__ds_date_traitement=datetime(2021, 10, 1, tzinfo=UTC),
@@ -71,7 +71,7 @@ def programmation_projets(perimetre_departemental, detr_enveloppe):
     for montant in (200_000, 300_000):
         dotation_projet = DotationProjetFactory(
             dotation=DOTATION_DETR,
-            projet__perimetre=perimetre_departemental,
+            projet__dossier_ds__perimetre=perimetre_departemental,
             projet__dossier_ds__demande_montant=40_000,
             projet__dossier_ds__ds_date_depot=datetime(2020, 12, 1, tzinfo=UTC),
             projet__dossier_ds__ds_date_traitement=datetime(2021, 7, 1, tzinfo=UTC),
@@ -171,7 +171,7 @@ class TestDelegatedEnveloppe:
 
         ProgrammationProjetFactory(
             enveloppe=self.detr_enveloppe,
-            dotation_projet__projet__perimetre=perimetre_arr_1,
+            dotation_projet__projet__dossier_ds__perimetre=perimetre_arr_1,
             status=ProgrammationProjet.STATUS_ACCEPTED,
             montant=200_000,
             dotation_projet__projet__dossier_ds__demande_montant=500_000,
@@ -182,7 +182,7 @@ class TestDelegatedEnveloppe:
         )
         ProgrammationProjetFactory(
             enveloppe=self.detr_enveloppe,
-            dotation_projet__projet__perimetre=perimetre_arr_2,
+            dotation_projet__projet__dossier_ds__perimetre=perimetre_arr_2,
             status=ProgrammationProjet.STATUS_REFUSED,
             montant=0,
             dotation_projet__projet__dossier_ds__demande_montant=400_000,
@@ -248,7 +248,7 @@ class TestDelegatedEnveloppeWithTreeLevels:
         ProgrammationProjetFactory(
             enveloppe=self.dsil_enveloppe,
             dotation_projet__dotation=DOTATION_DSIL,
-            dotation_projet__projet__perimetre=arrondissement,
+            dotation_projet__projet__dossier_ds__perimetre=arrondissement,
             status=ProgrammationProjet.STATUS_ACCEPTED,
             montant=200_000,
             dotation_projet__projet__dossier_ds__demande_montant=500_000,
@@ -259,7 +259,7 @@ class TestDelegatedEnveloppeWithTreeLevels:
         ProgrammationProjetFactory(
             enveloppe=self.dsil_enveloppe,
             dotation_projet__dotation=DOTATION_DSIL,
-            dotation_projet__projet__perimetre=arrondissement,
+            dotation_projet__projet__dossier_ds__perimetre=arrondissement,
             status=ProgrammationProjet.STATUS_REFUSED,
             montant=0,
             dotation_projet__projet__dossier_ds__demande_montant=400_000,

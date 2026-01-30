@@ -4,7 +4,6 @@ from gsl_core.tests.factories import (
     AdresseFactory,
     CollegueFactory,
     DepartementFactory,
-    PerimetreArrondissementFactory,
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
@@ -36,11 +35,6 @@ class ProjetFactory(factory.django.DjangoModelFactory):
     address = factory.SubFactory(AdresseFactory)
     departement = factory.SubFactory(DepartementFactory)
     demandeur = factory.SubFactory(DemandeurFactory)
-    perimetre = factory.LazyAttribute(
-        lambda obj: PerimetreArrondissementFactory(
-            arrondissement=obj.dossier_ds.ds_demandeur.address.commune.arrondissement
-        )
-    )
 
 
 class SubmittedProjetFactory(ProjetFactory):

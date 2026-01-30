@@ -86,7 +86,7 @@ class TestGetSuccessMessageWhenSimpleDotation:
     )
     def test_accepted_status(self, collegue, client_with_user_logged, dotation):
         """Test message when projet status is ACCEPTED."""
-        projet = ProjetFactory(perimetre=collegue.perimetre)
+        projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
         dotation_projet = DotationProjetFactory(
             projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
         )
@@ -137,7 +137,7 @@ class TestGetSuccessMessageWhenSimpleDotation:
         verbe,
     ):
         """Test message when projet status is REFUSED or DISMISSED."""
-        projet = ProjetFactory(perimetre=collegue.perimetre)
+        projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
         dotation_projet = DotationProjetFactory(
             projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
         )
@@ -181,7 +181,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
     def test_with_accepted_status_when_other_dotation_is_accepted(
         self, collegue, client_with_user_logged, dotation
     ):
-        projet = ProjetFactory(perimetre=collegue.perimetre)
+        projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
         _other_dotation_projet = DotationProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
@@ -236,7 +236,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         status,
         verbe,
     ):
-        projet = ProjetFactory(perimetre=collegue.perimetre)
+        projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
         _other_dotation_projet = DotationProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
@@ -279,7 +279,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
     def test_with_accepted_status_when_other_dotation_is_refused(
         self, collegue, client_with_user_logged, dotation
     ):
-        projet = ProjetFactory(perimetre=collegue.perimetre)
+        projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
         _other_dotation_projet = DotationProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
@@ -322,7 +322,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
     def test_with_refused_status_when_other_dotation_is_refused(
         self, collegue, client_with_user_logged, dotation
     ):
-        projet = ProjetFactory(perimetre=collegue.perimetre)
+        projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
         _other_dotation_projet = DotationProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
@@ -368,7 +368,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         client_with_user_logged,
         dotation,
     ):
-        projet = ProjetFactory(perimetre=collegue.perimetre)
+        projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
         _other_dotation_projet = DotationProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
@@ -411,7 +411,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
     def test_with_accepted_status_when_other_dotation_is_dismissed(
         self, collegue, client_with_user_logged, dotation
     ):
-        projet = ProjetFactory(perimetre=collegue.perimetre)
+        projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
         _other_dotation_projet = DotationProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
@@ -457,7 +457,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
     def test_with_refused_status_when_other_dotation_is_dismissed(
         self, collegue, client_with_user_logged, dotation
     ):
-        projet = ProjetFactory(perimetre=collegue.perimetre)
+        projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
         _other_dotation_projet = DotationProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
@@ -501,7 +501,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
     def test_with_dismissed_status_when_other_dotation_is_dismissed(
         self, collegue, client_with_user_logged, dotation
     ):
-        projet = ProjetFactory(perimetre=collegue.perimetre)
+        projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
         _other_dotation_projet = DotationProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],

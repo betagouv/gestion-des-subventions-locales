@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(
             set_arrondissement_and_departement_to_null,
-            reverse_code=set_arrondissement_and_departement_to_null,
+            reverse_code=migrations.RunPython.noop,
         ),
         migrations.AlterField(
             model_name="dossier",
@@ -67,5 +67,9 @@ class Migration(migrations.Migration):
         ),
         migrations.DeleteModel(
             name="Departement",
+        ),
+        migrations.RunPython(
+            migrations.RunPython.noop,
+            reverse_code=set_arrondissement_and_departement_to_null,
         ),
     ]

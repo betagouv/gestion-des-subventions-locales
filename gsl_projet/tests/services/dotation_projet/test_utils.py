@@ -63,7 +63,7 @@ def test_get_root_enveloppe_from_dotation_projet_with_a_detr_and_arrondissement_
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
-        projet__perimetre=arr_dijon,
+        projet__dossier_ds__perimetre=arr_dijon,
     )
     dep_detr_enveloppe = DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     _arr_detr_enveloppe = DetrEnveloppeFactory(
@@ -83,7 +83,7 @@ def test_get_root_enveloppe_from_dotation_projet_with_a_dsil_and_region_projet(
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DSIL,
         status=PROJET_STATUS_ACCEPTED,
-        projet__perimetre=arr_dijon,
+        projet__dossier_ds__perimetre=arr_dijon,
     )
     region_dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
     dep_dsil_enveloppe_delegated = DsilEnveloppeFactory(
@@ -105,7 +105,7 @@ def test_get_enveloppe_from_dotation_projet_with_a_next_year_date(perimetres, ca
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DSIL,
         status=PROJET_STATUS_ACCEPTED,
-        projet__perimetre=arr_dijon,
+        projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_date_traitement=timezone.datetime(
             2026, 1, 15, tzinfo=UTC
         ),
@@ -152,7 +152,7 @@ def test_get_enveloppe_from_dotation_projet_with_a_date_traitement_after_novembe
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DSIL,
         status=PROJET_STATUS_ACCEPTED,
-        projet__perimetre=arr_dijon,
+        projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_date_traitement=date_traitement,
     )
 
