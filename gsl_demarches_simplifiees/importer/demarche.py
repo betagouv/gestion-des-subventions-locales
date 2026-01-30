@@ -10,7 +10,7 @@ from gsl_demarches_simplifiees.models import (
     CategorieDsil,
     Demarche,
     Dossier,
-    FieldMappingForComputer,
+    FieldMapping,
     Profile,
 )
 
@@ -126,7 +126,7 @@ def save_field_mappings(demarche_data, demarche):
 
         ds_label = champ_descriptor["label"]
         ds_id = champ_descriptor["id"]
-        computer_mapping, created = FieldMappingForComputer.objects.get_or_create(
+        computer_mapping, created = FieldMapping.objects.get_or_create(
             ds_field_id=ds_id,
             demarche=demarche,
             defaults={
@@ -155,11 +155,11 @@ def save_field_mappings(demarche_data, demarche):
             if ds_label.startswith(dn_field):
                 computer_mapping.django_field = django_field
                 computer_mapping.save()
-                continue
+                break
 
 
 def save_categories_dsil(demarche_data, demarche):
-    mapping = FieldMappingForComputer.objects.get(
+    mapping = FieldMapping.objects.get(
         demarche=demarche, django_field="demande_categorie_dsil"
     )
     demande_categorie_dsil_field_id = mapping.ds_field_id
@@ -183,7 +183,7 @@ def save_categories_dsil(demarche_data, demarche):
 
 
 def save_categories_detr(demarche_data: dict, demarche: Demarche) -> None:
-    field_mappings = FieldMappingForComputer.objects.filter(
+    field_mappings = FieldMapping.objects.filter(
         demarche=demarche, django_field="demande_categorie_detr"
     )
     for field in demarche_data["activeRevision"]["champDescriptors"]:
@@ -192,7 +192,7 @@ def save_categories_detr(demarche_data: dict, demarche: Demarche) -> None:
 
         try:
             field_mapping = field_mappings.get(ds_field_label=field["label"])
-        except FieldMappingForComputer.DoesNotExist:
+        except FieldMapping.DoesNotExist:
             logger.info("No field mapping found for field %s", field["label"])
             continue
 
@@ -200,7 +200,7 @@ def save_categories_detr(demarche_data: dict, demarche: Demarche) -> None:
 
 
 def _save_categorie_detr_from_field(
-    field: dict, field_mapping: FieldMappingForComputer, demarche: Demarche
+    field: dict, field_mapping: FieldMapping, demarche: Demarche
 ) -> None:
     departement = _get_departement_from_field_mapping(field_mapping)
     if not departement:

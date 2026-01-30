@@ -847,30 +847,7 @@ def mapping_field_choices():
     )
 
 
-class FieldMappingForHuman(TimestampedModel):
-    label = models.CharField("Libellé du champ DS", unique=True)
-    django_field = models.CharField(
-        "Champ correspondant dans Django",
-        choices=mapping_field_choices,
-        blank=True,
-    )
-    demarche = models.ForeignKey(
-        Demarche,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        verbose_name="Démarche sur laquelle ce libellé de champ a été trouvé la première fois",
-    )
-
-    class Meta:
-        verbose_name = "Réconciliation de champ"
-        verbose_name_plural = "Réconciliations de champs"
-
-    def __str__(self):
-        return f"Réconciliation {self.pk}"
-
-
-class FieldMappingForComputer(TimestampedModel):
+class FieldMapping(TimestampedModel):
     demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
     ds_field_id = models.CharField("ID du champ DS")
     ds_field_label = models.CharField(
@@ -881,16 +858,10 @@ class FieldMappingForComputer(TimestampedModel):
     django_field = models.CharField(
         "Champ Django", choices=mapping_field_choices, blank=True
     )
-    field_mapping_for_human = models.ForeignKey(
-        FieldMappingForHuman,
-        on_delete=models.SET_NULL,
-        null=True,
-        help_text="Réconciliation utilisée pour créer cette correspondance",
-    )
 
     class Meta:
-        verbose_name = "Correspondance technique"
-        verbose_name_plural = "Correspondances techniques"
+        verbose_name = "Correspondance de champ"
+        verbose_name_plural = "Correspondances de champ"
         constraints = (
             models.UniqueConstraint(
                 fields=("demarche", "ds_field_id"),
@@ -899,7 +870,7 @@ class FieldMappingForComputer(TimestampedModel):
         )
 
     def __str__(self):
-        return f"Correspondance technique {self.pk}"
+        return f"Correspondance de champ {self.pk}"
 
     def django_field_label(self):
         if self.django_field:

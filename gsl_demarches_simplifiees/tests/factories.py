@@ -18,7 +18,7 @@ from ..models import (
     Dossier,
     DossierData,
     DsChoiceLibelle,
-    FieldMappingForComputer,
+    FieldMapping,
     NaturePorteurProjet,
     PersonneMorale,
     Profile,
@@ -121,9 +121,9 @@ class DossierFactory(factory.django.DjangoModelFactory):
 CHOICES = [field.name for field in Dossier.MAPPED_FIELDS]
 
 
-class FieldMappingForComputerFactory(factory.django.DjangoModelFactory):
+class FieldMappingFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = FieldMappingForComputer
+        model = FieldMapping
 
     demarche = factory.SubFactory(DemarcheFactory)
     django_field = factory.fuzzy.FuzzyChoice(CHOICES)

@@ -12,7 +12,7 @@ from gsl_demarches_simplifiees.exceptions import (
     InstructeurUnknown,
     UserRightsError,
 )
-from gsl_demarches_simplifiees.models import Dossier, FieldMappingForComputer
+from gsl_demarches_simplifiees.models import Dossier, FieldMapping
 from gsl_projet.constants import DOTATION_DSIL, POSSIBLE_DOTATIONS
 
 logger = getLogger(__name__)
@@ -212,12 +212,12 @@ class DsService:
 
     def _get_ds_field_id(self, dossier: Dossier, field: str) -> str:
         try:
-            ds_field = FieldMappingForComputer.objects.get(
+            ds_field = FieldMapping.objects.get(
                 demarche=dossier.ds_data.ds_demarche_id, django_field=field
             )
             return ds_field.ds_field_id
 
-        except FieldMappingForComputer.DoesNotExist:
+        except FieldMapping.DoesNotExist:
             field_name = field
             try:
                 field_name = Dossier._meta.get_field(field).verbose_name

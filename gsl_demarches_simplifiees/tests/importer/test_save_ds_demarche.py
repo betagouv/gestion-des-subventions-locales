@@ -20,14 +20,13 @@ from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     CategorieDsil,
     Demarche,
-    FieldMappingForComputer,
-    FieldMappingForHuman,
+    FieldMapping,
     Profile,
 )
 from gsl_demarches_simplifiees.tests.factories import (
     CategorieDetrFactory,
     DemarcheFactory,
-    FieldMappingForComputerFactory,
+    FieldMappingFactory,
 )
 
 pytestmark = pytest.mark.django_db
@@ -202,113 +201,55 @@ def test_save_groupe_instructeurs_if_already_exists(
 
 
 def test_computer_mappings_are_created(demarche, demarche_data_without_dossier):
-    assert FieldMappingForHuman.objects.count() == 0
-    assert FieldMappingForComputer.objects.count() == 0
+    assert FieldMapping.objects.count() == 0
 
     save_field_mappings(demarche_data_without_dossier, demarche)
 
     assert (
-        FieldMappingForComputer.objects.filter(
-            ds_field_type="CheckboxChampDescriptor"
-        ).count()
+        FieldMapping.objects.filter(ds_field_type="CheckboxChampDescriptor").count()
         == 15
     )
     assert (
-        FieldMappingForComputer.objects.filter(
+        FieldMapping.objects.filter(
             ds_field_type="DecimalNumberChampDescriptor"
         ).count()
         == 6
     )
     assert (
-        FieldMappingForComputer.objects.filter(
-            ds_field_type="DropDownListChampDescriptor"
-        ).count()
+        FieldMapping.objects.filter(ds_field_type="DropDownListChampDescriptor").count()
         == 171
     )
     assert (
-        FieldMappingForComputer.objects.filter(
-            ds_field_type="SiretChampDescriptor"
-        ).count()
-        == 1
+        FieldMapping.objects.filter(ds_field_type="SiretChampDescriptor").count() == 1
     )
     assert (
-        FieldMappingForComputer.objects.filter(
-            ds_field_type="TextChampDescriptor"
-        ).count()
-        == 18
+        FieldMapping.objects.filter(ds_field_type="TextChampDescriptor").count() == 18
     )
     assert (
-        FieldMappingForComputer.objects.filter(
-            ds_field_type="YesNoChampDescriptor"
-        ).count()
-        == 8
+        FieldMapping.objects.filter(ds_field_type="YesNoChampDescriptor").count() == 8
     )
     assert (
-        FieldMappingForComputer.objects.filter(
+        FieldMapping.objects.filter(
             ds_field_type="MultipleDropDownListChampDescriptor"
         ).count()
         == 7
     )
     assert (
-        FieldMappingForComputer.objects.filter(
-            ds_field_type="DossierLinkChampDescriptor"
-        ).count()
+        FieldMapping.objects.filter(ds_field_type="DossierLinkChampDescriptor").count()
         == 4
     )
-    assert FieldMappingForComputer.objects.count() == 294
-    assert FieldMappingForComputer.objects.exclude(django_field="").count() == 242
+    assert FieldMapping.objects.count() == 294
+    assert FieldMapping.objects.exclude(django_field="").count() == 242
 
-    demande_categorie_detr_mappings = FieldMappingForComputer.objects.filter(
+    demande_categorie_detr_mappings = FieldMapping.objects.filter(
         django_field="demande_categorie_detr"
     ).count()
     assert demande_categorie_detr_mappings == 100
 
-    porteur_de_projet_arrondissement_mappings = FieldMappingForComputer.objects.filter(
+    porteur_de_projet_arrondissement_mappings = FieldMapping.objects.filter(
         django_field="porteur_de_projet_arrondissement"
     ).count()
     assert porteur_de_projet_arrondissement_mappings == 98
-
-
-def test_existing_human_mapping_is_used_if_possible(
-    demarche, demarche_data_without_dossier
-):
-    FieldMappingForHuman.objects.create(
-        label="Arrondissement du demandeur (01 - Ain)",
-        django_field="porteur_de_projet_arrondissement",
-    )
-    assert FieldMappingForComputer.objects.count() == 0
-
-    save_field_mappings(demarche_data_without_dossier, demarche)
-
-    assert FieldMappingForComputer.objects.count() > 1
-    assert FieldMappingForComputer.objects.filter(
-        ds_field_label="Arrondissement du demandeur (01 - Ain)",
-        ds_field_id="Q2hhbXAtNTY0MDAxNQ==",
-        django_field="porteur_de_projet_arrondissement",
-        ds_field_type="DropDownListChampDescriptor",
-    ).exists()
-
-
-def test_ds_field_id_is_used_even_if_ds_label_changes(
-    demarche_data_without_dossier, demarche
-):
-    FieldMappingForComputer.objects.create(
-        ds_field_label="Un champ qui a changé de nom dans DS",
-        ds_field_id="TEST_ID_MjkzNDM2MA==",
-        django_field="projet_contractualisation_autre",
-        demarche=demarche,
-        ds_field_type="TextChampDescriptor",
-    )
-    assert FieldMappingForHuman.objects.count() == 0
-
-    save_field_mappings(demarche_data_without_dossier, demarche)
-
-    assert (
-        FieldMappingForHuman.objects.filter(
-            label="Un champ qui ne porte pas ce nom-là dans Django"
-        ).count()
-        == 0
-    )
 
 
 def _minimal_demarche_data_with_descriptors(descriptors):
@@ -346,9 +287,7 @@ def test_save_field_mappings_maps_by_verbose_name_direct_match(demarche):
     save_field_mappings(demarche_data, demarche)
 
     # Assert: a computer mapping exists and is mapped to the Django field
-    mapping = FieldMappingForComputer.objects.get(
-        demarche=demarche, ds_field_id="FIELD_ID_ARR"
-    )
+    mapping = FieldMapping.objects.get(demarche=demarche, ds_field_id="FIELD_ID_ARR")
     assert mapping.django_field == "porteur_de_projet_nom"
 
 
@@ -356,7 +295,7 @@ def test_save_field_mappings_maps_updates_existing_mapping(
     demarche,
 ):
     # Arrange: a mapping already exists
-    mapping = FieldMappingForComputerFactory(
+    mapping = FieldMappingFactory(
         demarche=demarche,
         ds_field_id="fixed_id",
         ds_field_label="a_label",
@@ -390,7 +329,7 @@ def test_save_field_mappings_dont_update_existing_mapping_if_ds_label_and_type_a
     demarche,
 ):
     # Arrange: a mapping already exists
-    mapping = FieldMappingForComputerFactory(
+    mapping = FieldMappingFactory(
         demarche=demarche,
         ds_field_id="fixed_id",
         ds_field_label="Prénom du porteur de projet",
@@ -419,7 +358,7 @@ def test_save_field_mappings_dont_update_existing_mapping_if_ds_label_and_type_a
 def test_save_categories_dsil_creates_new_categories(demarche):
     # Arrange
     field_id = "CATEGORY_FIELD_ID"
-    FieldMappingForComputerFactory(
+    FieldMappingFactory(
         demarche=demarche,
         django_field="demande_categorie_dsil",
         ds_field_id=field_id,
@@ -459,7 +398,7 @@ def test_save_categories_dsil_creates_new_categories(demarche):
 def test_save_categories_dsil_updates_existing_categories(demarche):
     # Arrange
     field_id = "CATEGORY_FIELD_ID"
-    FieldMappingForComputerFactory(
+    FieldMappingFactory(
         demarche=demarche,
         django_field="demande_categorie_dsil",
         ds_field_id=field_id,
@@ -503,7 +442,7 @@ def test_save_categories_dsil_updates_existing_categories(demarche):
 def test_save_categories_dsil_deactivates_old_categories(demarche):
     # Arrange
     field_id = "CATEGORY_FIELD_ID"
-    FieldMappingForComputerFactory(
+    FieldMappingFactory(
         demarche=demarche,
         django_field="demande_categorie_dsil",
         ds_field_id=field_id,
@@ -553,7 +492,7 @@ def test_save_categories_dsil_deactivates_old_categories(demarche):
 def test_save_categories_dsil_handles_empty_options(demarche):
     # Arrange
     field_id = "CATEGORY_FIELD_ID"
-    FieldMappingForComputerFactory(
+    FieldMappingFactory(
         demarche=demarche,
         django_field="demande_categorie_dsil",
         ds_field_id=field_id,
@@ -604,14 +543,14 @@ def test_save_categories_dsil_raises_error_if_mapping_not_found(demarche):
     }
 
     # Act & Assert
-    with pytest.raises(FieldMappingForComputer.DoesNotExist):
+    with pytest.raises(FieldMapping.DoesNotExist):
         save_categories_dsil(demarche_data, demarche)
 
 
 def test_save_categories_dsil_handles_field_not_in_descriptors(demarche):
     # Arrange
     field_id = "CATEGORY_FIELD_ID"
-    FieldMappingForComputerFactory(
+    FieldMappingFactory(
         demarche=demarche,
         django_field="demande_categorie_dsil",
         ds_field_id=field_id,
@@ -639,7 +578,7 @@ def test_save_categories_dsil_handles_field_not_in_descriptors(demarche):
 def test_save_categories_dsil_preserves_inactive_categories(demarche):
     # Arrange
     field_id = "CATEGORY_FIELD_ID"
-    FieldMappingForComputerFactory(
+    FieldMappingFactory(
         demarche=demarche,
         django_field="demande_categorie_dsil",
         ds_field_id=field_id,
@@ -693,7 +632,7 @@ def test_get_departement_from_field_mapping_returns_departement_when_label_match
     demarche, ds_field_label, insee_code
 ):
     DepartementFactory(insee_code=insee_code, name="Test")
-    mapping = FieldMappingForComputerFactory(
+    mapping = FieldMappingFactory(
         demarche=demarche,
         ds_field_label=ds_field_label,
     )
@@ -707,7 +646,7 @@ def test_get_departement_from_field_mapping_returns_departement_when_label_match
 def test_get_departement_from_field_mapping_returns_none_when_label_does_not_match(
     demarche,
 ):
-    mapping = FieldMappingForComputerFactory(
+    mapping = FieldMappingFactory(
         demarche=demarche,
         ds_field_label="Some other field without (code - name) pattern",
     )
@@ -720,7 +659,7 @@ def test_get_departement_from_field_mapping_returns_none_when_label_does_not_mat
 def test_get_departement_from_field_mapping_returns_none_when_departement_does_not_exist(
     demarche,
 ):
-    mapping = FieldMappingForComputerFactory(
+    mapping = FieldMappingFactory(
         demarche=demarche,
         ds_field_label="Catégories prioritaires (99 - Inexistante)",
     )
@@ -732,7 +671,7 @@ def test_get_departement_from_field_mapping_returns_none_when_departement_does_n
 
 
 def test_get_departement_from_field_mapping_returns_none_for_empty_label(demarche):
-    mapping = FieldMappingForComputerFactory(
+    mapping = FieldMappingFactory(
         demarche=demarche,
         ds_field_label="",
     )
@@ -750,7 +689,7 @@ def test_save_categorie_detr_from_field_creates_categories(
 ):
     ds_departement = DepartementFactory(insee_code="87", name="Haute-Vienne")
 
-    field_mapping = FieldMappingForComputerFactory(
+    field_mapping = FieldMappingFactory(
         demarche=demarche,
         ds_field_label="Catégories prioritaires (87 - Haute-Vienne)",
     )
@@ -779,7 +718,7 @@ def test_save_categorie_detr_from_field_sets_parent_label_for_options_after_dash
 ):
     ds_departement = DepartementFactory(insee_code="91", name="Essonne")
 
-    field_mapping = FieldMappingForComputerFactory(
+    field_mapping = FieldMappingFactory(
         demarche=demarche,
         ds_field_label="Catégories prioritaires (91 - Essonne)",
     )
@@ -813,7 +752,7 @@ def test_save_categorie_detr_from_field_sets_parent_label_for_options_after_dash
 def test_save_categorie_detr_from_field_updates_existing_category(demarche):
     ds_departement = DepartementFactory(insee_code="07", name="Ardèche")
 
-    field_mapping = FieldMappingForComputerFactory(
+    field_mapping = FieldMappingFactory(
         demarche=demarche,
         ds_field_label="Catégories prioritaires (07 - Ardèche)",
     )
@@ -846,7 +785,7 @@ def test_save_categorie_detr_from_field_updates_existing_category(demarche):
 def test_save_categorie_detr_from_field_deactivates_removed_options(demarche):
     departement = DepartementFactory(insee_code="2A", name="Corse-du-Sud")
 
-    field_mapping = FieldMappingForComputerFactory(
+    field_mapping = FieldMappingFactory(
         demarche=demarche,
         ds_field_label="Catégories prioritaires (2A - Corse-du-Sud)",
     )
@@ -881,7 +820,7 @@ def test_save_categorie_detr_from_field_does_nothing_when_no_departement(
 ):
     mock_get_departement.return_value = None
 
-    field_mapping = FieldMappingForComputerFactory(
+    field_mapping = FieldMappingFactory(
         demarche=demarche,
         ds_field_label="Catégories prioritaires (99 - Inexistante)",
     )
@@ -910,7 +849,7 @@ def test_save_categorie_detr_with_other_ranks(
             active=True,
         )
 
-    field_mapping = FieldMappingForComputerFactory(
+    field_mapping = FieldMappingFactory(
         demarche=demarche,
         ds_field_label="Catégories prioritaires (87 - Haute-Vienne)",
     )
@@ -950,7 +889,7 @@ def test_save_categorie_detr_with_other_ranks_and_parent_label(
             active=True,
         )
 
-    field_mapping = FieldMappingForComputerFactory(
+    field_mapping = FieldMappingFactory(
         demarche=demarche,
         ds_field_label="Catégories prioritaires (87 - Haute-Vienne)",
     )
@@ -1000,7 +939,7 @@ def test_save_categorie_detr_with_other_ranks_and_parent_label_and_deactivated_a
         deactivated_at=timezone.now(),
     )
 
-    field_mapping = FieldMappingForComputerFactory(
+    field_mapping = FieldMappingFactory(
         demarche=demarche,
         ds_field_label="Catégories prioritaires (87 - Haute-Vienne)",
     )

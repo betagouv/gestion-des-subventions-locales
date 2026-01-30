@@ -16,7 +16,7 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.tests.factories import (
-    FieldMappingForComputerFactory,
+    FieldMappingFactory,
 )
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
@@ -43,7 +43,7 @@ def perimetre_departemental():
 
 @pytest.fixture
 def ds_field():
-    return FieldMappingForComputerFactory(ds_field_id=101112)
+    return FieldMappingFactory(ds_field_id=101112)
 
 
 @pytest.fixture
@@ -521,7 +521,7 @@ def test_patch_simulation_projet(
 
     with (
         patch(
-            "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
+            "gsl_demarches_simplifiees.services.FieldMapping.objects.get",
             return_value=ds_field,
         ),
         patch("requests.post", return_value=mock_resp),
@@ -708,7 +708,7 @@ def test_patch_simulation_projet_with_ds_token_error(
 
     with (
         patch(
-            "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
+            "gsl_demarches_simplifiees.services.FieldMapping.objects.get",
             return_value=ds_field,
         ),
         patch("requests.post", return_value=mock_resp),
