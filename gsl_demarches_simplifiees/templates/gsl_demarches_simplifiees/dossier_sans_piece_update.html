@@ -20,7 +20,7 @@
             </div>
         </div>
     </div>
-    {% if dossier_ds.demande_numero_demande_precedente %}
+    {% if dossier.demande_numero_demande_precedente %}
         <p class="fr-tag fr-tag--icon-left fr-mb-1w fr-icon-arrow-turn-back-line">
             Reporté
         </p>
@@ -31,7 +31,7 @@
         </h1>
         <div class="projet-header__status">
             {% block status_badge %}
-                {% for dotation_projet in dossier_ds.projet.dotation_projets %}
+                {% for dotation_projet in dossier.projet.dotation_projets %}
                     <span class="fr-badge fr-text--xl fr-mt-2v fr-ml-5w badge-projet-status badge-projet-status__{{ dotation_projet.status }}">
                         {% if dotation_projets|length > 1 %}
                             {{ dotation_projet.dotation }}
