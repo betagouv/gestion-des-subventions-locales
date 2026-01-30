@@ -129,6 +129,8 @@ class ProjetListViewFilters(BaseProjetFilters):
             "address__commune",
             "perimetre",
             "demandeur",
+            "dossier_ds",
+            "dossier_ds__demande_categorie_dsil",
         ).prefetch_related(
             "dossier_ds__demande_eligibilite_detr",
             "dossier_ds__demande_eligibilite_dsil",

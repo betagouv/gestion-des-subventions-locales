@@ -130,12 +130,18 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
         return (
             super()
             .get_queryset()
-            .select_related("dotation_projet", "dotation_projet__projet")
+            .select_related(
+                "dotation_projet",
+                "dotation_projet__projet",
+                "dotation_projet__projet__dossier_ds",
+                "dotation_projet__projet__dossier_ds__demande_categorie_dsil",
+            )
             .prefetch_related(
                 "dotation_projet__projet__dotationprojet_set",
                 "dotation_projet__projet__dotationprojet_set__programmation_projet",
                 "dotation_projet__projet__dotationprojet_set__simulationprojet_set",
                 "dotation_projet__projet__dotationprojet_set__detr_categories",
+                "annexes",
             )
         )
 

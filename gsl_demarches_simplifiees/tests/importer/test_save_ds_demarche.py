@@ -9,12 +9,14 @@ from django.utils import timezone
 from gsl_demarches_simplifiees.importer.demarche import (
     extract_categories_operation_detr,
     guess_year_from_demarche,
+    save_categories_dsil,
     save_demarche_from_ds,
     save_field_mappings,
     save_groupe_instructeurs,
     update_or_create_demarche,
 )
 from gsl_demarches_simplifiees.models import (
+    CategorieDsil,
     Demarche,
     FieldMappingForComputer,
     FieldMappingForHuman,
@@ -193,8 +195,8 @@ def test_new_human_mapping_is_created_if_ds_label_is_unknown(
 
     save_field_mappings(demarche_data_without_dossier, demarche)
 
-    assert FieldMappingForHuman.objects.count() == 217, (
-        "217 human mappings should be created."
+    assert FieldMappingForHuman.objects.count() == 216, (
+        "216 human mappings should be created."
     )
     assert FieldMappingForHuman.objects.filter(label="Commentaire libre").exists()
     assert FieldMappingForHuman.objects.filter(
@@ -252,8 +254,8 @@ def test_new_human_mapping_is_created_if_ds_label_is_unknown(
     assert FieldMappingForComputer.objects.count() == 259, (
         "259 computer mappings should have been created."
     )
-    assert FieldMappingForComputer.objects.exclude(django_field="").count() == 33, (
-        "Only 33 mappings should be associated with an existing field."
+    assert FieldMappingForComputer.objects.exclude(django_field="").count() == 34, (
+        "Only 34 mappings should be associated with an existing field."
     )
 
 
@@ -489,3 +491,263 @@ def test_save_field_mappings_dont_update_existing_mapping_if_ds_label_and_type_a
     # Assert: updated_at is the same as created_at
     mapping.refresh_from_db()
     assert mapping.updated_at == original_updated_at
+
+
+def test_save_categories_dsil_creates_new_categories(demarche):
+    # Arrange
+    field_id = "CATEGORY_FIELD_ID"
+    FieldMappingForComputerFactory(
+        demarche=demarche,
+        django_field="demande_categorie_dsil",
+        ds_field_id=field_id,
+    )
+    demarche_data = {
+        "activeRevision": {
+            "id": "REV_ID",
+            "champDescriptors": [
+                {
+                    "id": field_id,
+                    "label": "Catégorie DSIL",
+                    "options": ["Catégorie 1", "Catégorie 2", "Catégorie 3"],
+                }
+            ],
+        }
+    }
+
+    # Act
+    save_categories_dsil(demarche_data, demarche)
+
+    # Assert
+    categories = CategorieDsil.objects.filter(demarche=demarche, active=True).order_by(
+        "rank"
+    )
+    assert categories.count() == 3
+    assert categories[0].label == "Catégorie 1"
+    assert categories[0].rank == 1
+    assert categories[0].active is True
+    assert categories[1].label == "Catégorie 2"
+    assert categories[1].rank == 2
+    assert categories[1].active is True
+    assert categories[2].label == "Catégorie 3"
+    assert categories[2].rank == 3
+    assert categories[2].active is True
+
+
+def test_save_categories_dsil_updates_existing_categories(demarche):
+    # Arrange
+    field_id = "CATEGORY_FIELD_ID"
+    FieldMappingForComputerFactory(
+        demarche=demarche,
+        django_field="demande_categorie_dsil",
+        ds_field_id=field_id,
+    )
+    # Create existing category
+    existing_category = CategorieDsil.objects.create(
+        demarche=demarche,
+        label="Catégorie 1",
+        rank=1,
+        active=True,
+    )
+    demarche_data = {
+        "activeRevision": {
+            "id": "REV_ID",
+            "champDescriptors": [
+                {
+                    "id": field_id,
+                    "label": "Catégorie DSIL",
+                    "options": ["Catégorie 1", "Catégorie 2"],
+                }
+            ],
+        }
+    }
+
+    # Act
+    save_categories_dsil(demarche_data, demarche)
+
+    # Assert
+    existing_category.refresh_from_db()
+    assert existing_category.active is True
+    assert existing_category.rank == 1
+    categories = CategorieDsil.objects.filter(demarche=demarche, active=True).order_by(
+        "rank"
+    )
+    assert categories.count() == 2
+    assert categories[0].id == existing_category.id
+    assert categories[1].label == "Catégorie 2"
+    assert categories[1].rank == 2
+
+
+def test_save_categories_dsil_deactivates_old_categories(demarche):
+    # Arrange
+    field_id = "CATEGORY_FIELD_ID"
+    FieldMappingForComputerFactory(
+        demarche=demarche,
+        django_field="demande_categorie_dsil",
+        ds_field_id=field_id,
+    )
+    # Create old categories
+    old_category_1 = CategorieDsil.objects.create(
+        demarche=demarche,
+        label="Ancienne Catégorie 1",
+        rank=1,
+        active=True,
+    )
+    old_category_2 = CategorieDsil.objects.create(
+        demarche=demarche,
+        label="Ancienne Catégorie 2",
+        rank=2,
+        active=True,
+    )
+    demarche_data = {
+        "activeRevision": {
+            "id": "REV_ID",
+            "champDescriptors": [
+                {
+                    "id": field_id,
+                    "label": "Catégorie DSIL",
+                    "options": ["Nouvelle Catégorie"],
+                }
+            ],
+        }
+    }
+
+    # Act
+    save_categories_dsil(demarche_data, demarche)
+
+    # Assert
+    old_category_1.refresh_from_db()
+    old_category_2.refresh_from_db()
+    assert old_category_1.active is False
+    assert old_category_1.deactivated_at is not None
+    assert old_category_2.active is False
+    assert old_category_2.deactivated_at is not None
+
+    active_categories = CategorieDsil.objects.filter(demarche=demarche, active=True)
+    assert active_categories.count() == 1
+    assert active_categories[0].label == "Nouvelle Catégorie"
+
+
+def test_save_categories_dsil_handles_empty_options(demarche):
+    # Arrange
+    field_id = "CATEGORY_FIELD_ID"
+    FieldMappingForComputerFactory(
+        demarche=demarche,
+        django_field="demande_categorie_dsil",
+        ds_field_id=field_id,
+    )
+    # Create existing category
+    old_category = CategorieDsil.objects.create(
+        demarche=demarche,
+        label="Ancienne Catégorie",
+        rank=1,
+        active=True,
+    )
+    demarche_data = {
+        "activeRevision": {
+            "id": "REV_ID",
+            "champDescriptors": [
+                {
+                    "id": field_id,
+                    "label": "Catégorie DSIL",
+                    "options": [],
+                }
+            ],
+        }
+    }
+
+    # Act
+    save_categories_dsil(demarche_data, demarche)
+
+    # Assert
+    old_category.refresh_from_db()
+    assert old_category.active is False
+    assert old_category.deactivated_at is not None
+    assert CategorieDsil.objects.filter(demarche=demarche, active=True).count() == 0
+
+
+def test_save_categories_dsil_raises_error_if_mapping_not_found(demarche):
+    # Arrange - no mapping created
+    demarche_data = {
+        "activeRevision": {
+            "id": "REV_ID",
+            "champDescriptors": [
+                {
+                    "id": "SOME_FIELD_ID",
+                    "label": "Catégorie DSIL",
+                    "options": ["Catégorie 1"],
+                }
+            ],
+        }
+    }
+
+    # Act & Assert
+    with pytest.raises(FieldMappingForComputer.DoesNotExist):
+        save_categories_dsil(demarche_data, demarche)
+
+
+def test_save_categories_dsil_handles_field_not_in_descriptors(demarche):
+    # Arrange
+    field_id = "CATEGORY_FIELD_ID"
+    FieldMappingForComputerFactory(
+        demarche=demarche,
+        django_field="demande_categorie_dsil",
+        ds_field_id=field_id,
+    )
+    demarche_data = {
+        "activeRevision": {
+            "id": "REV_ID",
+            "champDescriptors": [
+                {
+                    "id": "OTHER_FIELD_ID",
+                    "label": "Autre champ",
+                    "options": ["Option 1"],
+                }
+            ],
+        }
+    }
+
+    # Act
+    save_categories_dsil(demarche_data, demarche)
+
+    # Assert - no categories should be created, existing ones should be deactivated
+    assert CategorieDsil.objects.filter(demarche=demarche, active=True).count() == 0
+
+
+def test_save_categories_dsil_preserves_inactive_categories(demarche):
+    # Arrange
+    field_id = "CATEGORY_FIELD_ID"
+    FieldMappingForComputerFactory(
+        demarche=demarche,
+        django_field="demande_categorie_dsil",
+        ds_field_id=field_id,
+    )
+    # Create an inactive category (should remain inactive)
+    inactive_category = CategorieDsil.objects.create(
+        demarche=demarche,
+        label="Inactive Category",
+        rank=1,
+        active=False,
+        deactivated_at=timezone.now(),
+    )
+    demarche_data = {
+        "activeRevision": {
+            "id": "REV_ID",
+            "champDescriptors": [
+                {
+                    "id": field_id,
+                    "label": "Catégorie DSIL",
+                    "options": ["Nouvelle Catégorie"],
+                }
+            ],
+        }
+    }
+
+    # Act
+    save_categories_dsil(demarche_data, demarche)
+
+    # Assert
+    inactive_category.refresh_from_db()
+    assert inactive_category.active is False
+    # The inactive category should remain unchanged
+    assert CategorieDsil.objects.filter(demarche=demarche, active=False).count() == 1
+    assert CategorieDsil.objects.filter(demarche=demarche, active=True).count() == 1

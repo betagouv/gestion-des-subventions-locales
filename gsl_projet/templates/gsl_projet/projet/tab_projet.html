@@ -317,26 +317,13 @@
                 {% block categories %}
                     {% for dotation_projet in dotation_projets %}
                         <p>
-                            <b>Catégories d'opération {{ dotation_projet.dotation }}</b>
+                            <b>Catégorie d'opération {{ dotation_projet.dotation }}</b> :
+                            {% if dotation_projet.dotation == "DSIL" %}
+                                {{ dotation_projet.projet.dossier_ds.demande_categorie_dsil.label }}
+                            {% elif dotation_projet.dotation == "DETR" %}
+                                {{ dotation_projet.detr_categories.all.first.label }}
+                            {% endif %}
                         </p>
-
-                        {% if dotation_projet.dotation == "DSIL" %}
-                            <ul class="fr-text--sm">
-                                {% for critere in dossier.demande_eligibilite_dsil.all %}
-                                    <li>
-                                        {{ critere }}
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        {% elif dotation_projet.dotation == "DETR" %}
-                            <ul class="fr-text--sm">
-                                {% for categorie in dotation_projet.detr_categories.all %}
-                                    <li>
-                                        {{ categorie.libelle }}
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        {% endif %}
                     {% endfor %}
                 {% endblock categories %}
 

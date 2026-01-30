@@ -2,6 +2,7 @@ from logging import getLogger
 
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 
 from gsl_core.models import Adresse, Collegue, Perimetre
 from gsl_core.models import Arrondissement as CoreArrondissement
@@ -362,12 +363,19 @@ class Dossier(TimestampedModel):
         "Dispositif de financement sollicité",
         blank=True,
     )
+    demande_categorie_dsil = models.ForeignKey(
+        "gsl_demarches_simplifiees.CategorieDsil",
+        verbose_name="DSIL · Éligibilité de l'opération",
+        on_delete=models.PROTECT,
+        null=True,
+    )
     demande_eligibilite_detr = models.ManyToManyField(
         "gsl_demarches_simplifiees.CritereEligibiliteDetr",
         verbose_name="Eligibilité de l'opération à la DETR",
         blank=True,
     )
 
+    # TODO : remove this model
     demande_eligibilite_dsil = models.ManyToManyField(
         "gsl_demarches_simplifiees.CritereEligibiliteDsil",
         verbose_name="Eligibilité de l'opération à la DSIL",
@@ -524,6 +532,7 @@ class Dossier(TimestampedModel):
         demande_renouvellement,
         demande_numero_demande_precedente,
         demande_dispositif_sollicite,
+        demande_categorie_dsil,
         demande_eligibilite_detr,
         demande_eligibilite_dsil,
         demande_montant,
@@ -778,10 +787,46 @@ class CritereEligibiliteDetr(DsChoiceLibelle):
         )
 
 
+# TODO : remove this model
 class CritereEligibiliteDsil(DsChoiceLibelle):
     class Meta:
         verbose_name = "Catégorie DSIL"
         verbose_name_plural = "Catégories DSIL"
+
+
+class CategorieDsilQuerySet(models.QuerySet):
+    def active(self):
+        return self.filter(active=True)
+
+
+class CategorieDsilManager(models.Manager.from_queryset(CategorieDsilQuerySet)):
+    pass
+
+
+class CategorieDsil(TimestampedModel):
+    demarche = models.ForeignKey(
+        Demarche, on_delete=models.PROTECT, verbose_name="Démarche"
+    )
+    label = models.CharField("Libellé")
+    rank = models.IntegerField("Rang", null=True)
+    active = models.BooleanField("Active", default=True)
+    deactivated_at = models.DateTimeField(
+        "Date de désactivation", null=True, blank=True
+    )
+
+    objects = CategorieDsilManager()
+
+    class Meta:
+        verbose_name = "Catégorie DSIL"
+        verbose_name_plural = "Catégories DSIL"
+
+    def __str__(self):
+        return f"Catégorie DSIL {self.pk} - {self.label}"
+
+    def deactivate(self):
+        self.active = False
+        self.deactivated_at = timezone.now()
+        self.save()
 
 
 class AutreAide(DsChoiceLibelle):
