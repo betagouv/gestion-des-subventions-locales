@@ -230,9 +230,6 @@ class ProjetQuerySet(models.QuerySet):
             )
         )
 
-    def dossier_sans_pieces(self):
-        return self.filter(dossier_ds__demande_renouvellement__contains="SANS")
-
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
     def get_queryset(self):
