@@ -1,3 +1,5 @@
+from itertools import groupby
+
 from django import forms
 from django.forms.widgets import CheckboxSelectMultiple
 from dsfr.forms import DsfrBaseForm
@@ -45,25 +47,37 @@ class DossierReporteSansPieceForm(forms.ModelForm, DsfrBaseForm):
         super().__init__(*args, **kwargs)
         demarche = self.instance.ds_data.ds_demarche
 
+        self.fields["demande_categorie_dsil"].queryset = CategorieDsil.objects.filter(
+            demarche=demarche, active=True
+        )
+
         try:
             departement = self.instance.projet.perimetre.departement
         except (AttributeError, Dossier.projet.RelatedObjectDoesNotExist):
             departement = None
 
         if departement:
-            self.fields[
-                "demande_categorie_detr"
-            ].queryset = CategorieDetr.objects.filter(
+            detr_qs = CategorieDetr.objects.filter(
                 demarche=demarche, departement=departement, active=True
-            )
+            ).order_by("parent_label", "rank", "label")
+            self.fields["demande_categorie_detr"].queryset = detr_qs
+
+            if detr_qs.count() != detr_qs.filter(parent_label="").count():
+                # Group choices by parent_label for optgroup display
+                field = self.fields["demande_categorie_detr"]
+                choices = []
+                if field.empty_label is not None:
+                    choices.append(("", field.empty_label))
+                for parent_label, categories in groupby(
+                    detr_qs, key=lambda c: c.parent_label or ""
+                ):
+                    group_choices = [(c.pk, str(c)) for c in categories]
+                    choices.append((parent_label or "—", group_choices))
+                field.choices = choices
         else:
             self.fields[
                 "demande_categorie_detr"
             ].queryset = CategorieDetr.objects.none()
-
-        self.fields["demande_categorie_dsil"].queryset = CategorieDsil.objects.filter(
-            demarche=demarche, active=True
-        )
 
     def save(self, commit=True):
         dotations = self.cleaned_data.get("demande_dispositif_sollicite", [])

@@ -809,6 +809,12 @@ class CategorieDetr(Categorie):
     def __str__(self):
         return f"{self.label}"
 
+    @property
+    def complete_label(self):
+        if self.parent_label:
+            return f"{self.parent_label} - {self.label}"
+        return self.label
+
 
 class CategorieDsil(Categorie):
     class Meta:
