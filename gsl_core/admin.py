@@ -3,11 +3,14 @@ from io import BytesIO
 
 import openpyxl
 import tablib
+from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models import Count
+from django.urls import reverse
+from django.utils.safestring import mark_safe
 from import_export.admin import ImportMixin
 from import_export.formats.base_formats import CSV
 from import_export.forms import ImportForm
@@ -22,6 +25,7 @@ from gsl_core.models import (
     Region,
 )
 from gsl_core.tasks import associate_or_update_ds_profile_to_users
+from gsl_simulation.models import Simulation
 
 from .resources import (
     ArrondissementResource,
@@ -88,8 +92,23 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
         "perimetre_type",
         "perimetre_custom",
         "last_login",
-        "ds_profile",
+        "last_simulation_created_in_perimetre",
+        "comment",
+        "dn_profile",
     )
+
+    list_editable = ("comment",)
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == "comment":
+            kwargs["widget"] = forms.Textarea(
+                attrs={
+                    "rows": 1,
+                    "cols": 40,
+                    "style": "resize: vertical; min-height: 1.5em;",
+                }
+            )
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
 
     list_filter = (
         "is_active",
@@ -116,7 +135,10 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
 
     fieldsets = (
         (None, {"fields": ("username", "password")}),
-        ("Informations personnelles", {"fields": ("first_name", "last_name", "email")}),
+        (
+            "Informations personnelles",
+            {"fields": ("first_name", "last_name", "email", "comment")},
+        ),
         (
             "ProConnect",
             {
@@ -208,6 +230,35 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
 
     departement.short_description = "Département"
     departement.admin_order_field = "perimetre__departement__name"
+
+    def last_simulation_created_in_perimetre(self, obj):
+        perimetre = obj.perimetre
+        if perimetre is None:
+            return None
+
+        last_simulation = (
+            Simulation.objects.filter(
+                enveloppe__perimetre__in=list(perimetre.ancestors()) + [perimetre]
+            )
+            .order_by("-created_at")
+            .first()
+        )
+
+        return last_simulation.created_at if last_simulation else None
+
+    last_simulation_created_in_perimetre.short_description = (
+        "Dernière simulation créée (périmètre)"
+    )
+
+    def dn_profile(self, obj):
+        if obj.ds_profile is None:
+            return None
+        return mark_safe(
+            f"<a href='{reverse('admin:gsl_demarches_simplifiees_profile_change', args=[obj.ds_profile.id])}'>{obj.ds_profile.id}</a>"
+        )
+
+    dn_profile.short_description = "Profil DN"
+    dn_profile.admin_order_field = "ds_profile__id"
 
     @staticmethod
     def _normalize_department_code(dept_code) -> str:
