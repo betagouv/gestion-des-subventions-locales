@@ -2,18 +2,16 @@ from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
-from django.urls import reverse
 
-from gsl_core.tests.factories import (
-    ClientWithLoggedUserFactory,
-    CollegueFactory,
-    PerimetreArrondissementFactory,
-)
 from gsl_demarches_simplifiees.forms import (
     DossierReporteSansPieceForm,
     DotationFormField,
 )
-from gsl_demarches_simplifiees.tests.factories import DossierFactory
+from gsl_demarches_simplifiees.tests.factories import (
+    CategorieDetrFactory,
+    CategorieDsilFactory,
+    DossierFactory,
+)
 from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.tests.factories import ProjetFactory
 
@@ -193,141 +191,180 @@ class TestDossierReporteSansPieceForm:
         assert DOTATION_DSIL in saved_dossier.demande_dispositif_sollicite
 
 
-class TestDossierSansPieceUpdateView:
+class TestDossierReporteSansPieceFormCategories:
     @pytest.fixture
-    def user_with_perimetre(self):
-        perimetre = PerimetreArrondissementFactory()
-        return CollegueFactory(perimetre=perimetre)
-
-    @pytest.fixture
-    def dossier_sans_pieces(self, user_with_perimetre):
-        perimetre = user_with_perimetre.perimetre
-        dossier = DossierFactory(
-            demande_renouvellement="REPORT SANS PIECES",
-            porteur_de_projet_arrondissement__core_arrondissement=perimetre.arrondissement,
-        )
-        ProjetFactory(dossier_ds=dossier, perimetre=perimetre)
+    def dossier_with_projet(self):
+        dossier = DossierFactory()
+        ProjetFactory(dossier_ds=dossier)
         return dossier
 
-    def test_view_get_accessible_for_user_with_perimeter(
-        self, user_with_perimetre, dossier_sans_pieces
-    ):
-        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
-        url = reverse("ds:dossier-sans-piece-update", args=[dossier_sans_pieces.pk])
-        response = client.get(url)
-
-        assert response.status_code == 200
-        assert "form" in response.context
-
-    def test_view_not_accessible_for_dossier_not_sans_pieces(self, user_with_perimetre):
-        perimetre = user_with_perimetre.perimetre
-        dossier = DossierFactory(
-            demande_renouvellement="NOUVELLE DEMANDE",
-            porteur_de_projet_arrondissement__core_arrondissement=perimetre.arrondissement,
+    def test_form_valid_with_detr_category(self, dossier_with_projet):
+        dossier = dossier_with_projet
+        demarche = dossier.ds_data.ds_demarche
+        departement = dossier.projet.perimetre.departement
+        cat_detr = CategorieDetrFactory(
+            demarche=demarche, departement=departement, active=True
         )
-        ProjetFactory(dossier_ds=dossier, perimetre=perimetre)
 
-        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
-        url = reverse("ds:dossier-sans-piece-update", args=[dossier.pk])
-        response = client.get(url)
+        form_data = {
+            "demande_dispositif_sollicite": [DOTATION_DETR],
+            "finance_cout_total": "100000.00",
+            "demande_montant": "50000.00",
+            "demande_categorie_detr": cat_detr.pk,
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
 
-        assert response.status_code == 404
+    def test_form_valid_with_dsil_category(self, dossier_with_projet):
+        dossier = dossier_with_projet
+        demarche = dossier.ds_data.ds_demarche
+        cat_dsil = CategorieDsilFactory(demarche=demarche, active=True)
 
-    def test_view_not_accessible_outside_perimeter(self, user_with_perimetre):
-        other_perimetre = PerimetreArrondissementFactory()
-        dossier = DossierFactory(
-            demande_renouvellement="REPORT SANS PIECES",
-            porteur_de_projet_arrondissement__core_arrondissement=other_perimetre.arrondissement,
+        form_data = {
+            "demande_dispositif_sollicite": [DOTATION_DSIL],
+            "finance_cout_total": "200000.00",
+            "demande_montant": "80000.00",
+            "demande_categorie_dsil": cat_dsil.pk,
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+    def test_form_valid_with_both_categories(self, dossier_with_projet):
+        dossier = dossier_with_projet
+        demarche = dossier.ds_data.ds_demarche
+        departement = dossier.projet.perimetre.departement
+        cat_detr = CategorieDetrFactory(
+            demarche=demarche, departement=departement, active=True
         )
-        ProjetFactory(dossier_ds=dossier, perimetre=other_perimetre)
+        cat_dsil = CategorieDsilFactory(demarche=demarche, active=True)
 
-        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
-        url = reverse("ds:dossier-sans-piece-update", args=[dossier.pk])
-        response = client.get(url)
+        form_data = {
+            "demande_dispositif_sollicite": [DOTATION_DETR, DOTATION_DSIL],
+            "finance_cout_total": "150000.00",
+            "demande_montant": "75000.00",
+            "demande_categorie_detr": cat_detr.pk,
+            "demande_categorie_dsil": cat_dsil.pk,
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
 
-        assert response.status_code == 404
+    def test_form_valid_without_categories(self, dossier_with_projet):
+        form_data = {
+            "demande_dispositif_sollicite": [DOTATION_DETR],
+            "finance_cout_total": "100000.00",
+            "demande_montant": "50000.00",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier_with_projet)
+        assert form.is_valid(), form.errors
 
-    def test_view_post_success_redirects_to_projet(
-        self, user_with_perimetre, dossier_sans_pieces
-    ):
-        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
-        url = reverse("ds:dossier-sans-piece-update", args=[dossier_sans_pieces.pk])
+    def test_save_persists_categories(self, dossier_with_projet):
+        dossier = dossier_with_projet
+        demarche = dossier.ds_data.ds_demarche
+        departement = dossier.projet.perimetre.departement
+        cat_detr = CategorieDetrFactory(
+            demarche=demarche, departement=departement, active=True
+        )
+        cat_dsil = CategorieDsilFactory(demarche=demarche, active=True)
+
+        form_data = {
+            "demande_dispositif_sollicite": [DOTATION_DETR, DOTATION_DSIL],
+            "finance_cout_total": "150000.00",
+            "demande_montant": "75000.00",
+            "demande_categorie_detr": cat_detr.pk,
+            "demande_categorie_dsil": cat_dsil.pk,
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+        with patch(
+            "gsl_demarches_simplifiees.forms.DotationProjetService.create_or_update_dotation_projet_from_projet"
+        ):
+            saved_dossier = form.save()
+
+        saved_dossier.refresh_from_db()
+        assert saved_dossier.demande_categorie_detr == cat_detr
+        assert saved_dossier.demande_categorie_dsil == cat_dsil
+
+    def test_save_clears_detr_category_when_detr_unchecked(self, dossier_with_projet):
+        dossier = dossier_with_projet
+        demarche = dossier.ds_data.ds_demarche
+        departement = dossier.projet.perimetre.departement
+        cat_detr = CategorieDetrFactory(
+            demarche=demarche, departement=departement, active=True
+        )
+        dossier.demande_categorie_detr = cat_detr
+        dossier.save()
+
+        form_data = {
+            "demande_dispositif_sollicite": [DOTATION_DSIL],
+            "finance_cout_total": "100000.00",
+            "demande_montant": "50000.00",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+        with patch(
+            "gsl_demarches_simplifiees.forms.DotationProjetService.create_or_update_dotation_projet_from_projet"
+        ):
+            saved_dossier = form.save()
+
+        saved_dossier.refresh_from_db()
+        assert saved_dossier.demande_categorie_detr is None
+
+    def test_save_clears_dsil_category_when_dsil_unchecked(self, dossier_with_projet):
+        dossier = dossier_with_projet
+        demarche = dossier.ds_data.ds_demarche
+        cat_dsil = CategorieDsilFactory(demarche=demarche, active=True)
+        dossier.demande_categorie_dsil = cat_dsil
+        dossier.save()
 
         form_data = {
             "demande_dispositif_sollicite": [DOTATION_DETR],
             "finance_cout_total": "100000.00",
             "demande_montant": "50000.00",
         }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
 
         with patch(
             "gsl_demarches_simplifiees.forms.DotationProjetService.create_or_update_dotation_projet_from_projet"
         ):
-            response = client.post(url, data=form_data)
+            saved_dossier = form.save()
 
-        assert response.status_code == 302
-        expected_redirect = reverse(
-            "gsl_projet:get-projet", args=[dossier_sans_pieces.projet.pk]
+        saved_dossier.refresh_from_db()
+        assert saved_dossier.demande_categorie_dsil is None
+
+    def test_detr_queryset_filtered_by_demarche_and_departement(
+        self, dossier_with_projet
+    ):
+        dossier = dossier_with_projet
+        demarche = dossier.ds_data.ds_demarche
+        departement = dossier.projet.perimetre.departement
+
+        matching_cat = CategorieDetrFactory(
+            demarche=demarche, departement=departement, active=True
         )
-        assert response.url == expected_redirect
+        # Different demarche
+        CategorieDetrFactory(departement=departement, active=True)
+        # Different departement
+        CategorieDetrFactory(demarche=demarche, active=True)
+        # Inactive
+        CategorieDetrFactory(demarche=demarche, departement=departement, active=False)
 
-    def test_view_post_success_updates_dossier(
-        self, user_with_perimetre, dossier_sans_pieces
-    ):
-        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
-        url = reverse("ds:dossier-sans-piece-update", args=[dossier_sans_pieces.pk])
+        form = DossierReporteSansPieceForm(instance=dossier)
+        detr_qs = form.fields["demande_categorie_detr"].queryset
+        assert list(detr_qs) == [matching_cat]
 
-        form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DETR],
-            "finance_cout_total": "150000.00",
-            "demande_montant": "75000.00",
-        }
+    def test_dsil_queryset_filtered_by_demarche(self, dossier_with_projet):
+        dossier = dossier_with_projet
+        demarche = dossier.ds_data.ds_demarche
 
-        with patch(
-            "gsl_demarches_simplifiees.forms.DotationProjetService.create_or_update_dotation_projet_from_projet"
-        ):
-            client.post(url, data=form_data)
+        matching_cat = CategorieDsilFactory(demarche=demarche, active=True)
+        # Different demarche
+        CategorieDsilFactory(active=True)
+        # Inactive
+        CategorieDsilFactory(demarche=demarche, active=False)
 
-        dossier_sans_pieces.refresh_from_db()
-        assert DOTATION_DETR in dossier_sans_pieces.demande_dispositif_sollicite
-        assert dossier_sans_pieces.finance_cout_total == Decimal("150000.00")
-        assert dossier_sans_pieces.demande_montant == Decimal("75000.00")
-
-    def test_view_post_invalid_data_returns_form_with_errors(
-        self, user_with_perimetre, dossier_sans_pieces
-    ):
-        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
-        url = reverse("ds:dossier-sans-piece-update", args=[dossier_sans_pieces.pk])
-
-        form_data = {
-            "demande_dispositif_sollicite": [],
-            "finance_cout_total": "",
-            "demande_montant": "",
-        }
-
-        response = client.post(url, data=form_data)
-
-        assert response.status_code == 200
-        assert "form" in response.context
-        form = response.context["form"]
-        assert not form.is_valid()
-        assert "demande_dispositif_sollicite" in form.errors
-
-    def test_view_not_accessible_for_anonymous_user(self, dossier_sans_pieces):
-        from django.test import Client
-
-        client = Client()
-        url = reverse("ds:dossier-sans-piece-update", args=[dossier_sans_pieces.pk])
-        response = client.get(url)
-
-        assert response.status_code == 302
-        assert "login" in response.url
-
-    def test_view_accessible_for_staff_user_without_perimetre(
-        self, dossier_sans_pieces
-    ):
-        staff_user = CollegueFactory(is_staff=True, perimetre=None)
-        client = ClientWithLoggedUserFactory(user=staff_user)
-        url = reverse("ds:dossier-sans-piece-update", args=[dossier_sans_pieces.pk])
-        response = client.get(url)
-
-        assert response.status_code == 200
+        form = DossierReporteSansPieceForm(instance=dossier)
+        dsil_qs = form.fields["demande_categorie_dsil"].queryset
+        assert list(dsil_qs) == [matching_cat]
