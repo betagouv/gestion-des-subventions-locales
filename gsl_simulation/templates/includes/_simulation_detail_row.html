@@ -8,8 +8,15 @@
                name="simu[{{ simu.pk }}]"
                aria-label="Sélectionner le projet {{ projet.dossier_ds.projet_intitule }}">
     </td>
-    <td>
+    <td class="fr-cell--center">
         {{ projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}
+        {% if projet.dossier_ds.demande_numero_demande_precedente %}
+            <br />
+            <span class="fr-tag fr-tag--sm fr-tag--icon-left fr-icon-arrow-turn-back-line fr-mt-0-5v">
+                Reporté
+            </span>
+        {% endif %}
+
     </td>
     <td>
         {{ projet.dossier_ds.projet_intitule }}
