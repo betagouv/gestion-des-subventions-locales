@@ -83,11 +83,30 @@ class DossierConverter:
         try:
             label = ds_field_data["label"]
             injectable_value = self.extract_ds_data(ds_field_data)
-            self.inject_into_field(
-                self.dossier, django_field_object, injectable_value, label
-            )
+
+            try:
+                self.inject_into_field(
+                    self.dossier, django_field_object, injectable_value, label
+                )
+            except CategorieDetr.DoesNotExist:
+                logger.warning(
+                    "CategorieDetr not found.",
+                    extra={
+                        "categorie_detr_label": label,
+                        "dossier_ds_number": self.dossier.ds_number,
+                    },
+                )
+                return
+
         except NotImplementedError as e:
-            print(e)
+            logger.warning(
+                "Error while converting field.",
+                extra={
+                    "error": str(e),
+                    "dossier_ds_number": self.dossier.ds_number,
+                    "field_label": label,
+                },
+            )
 
     def extract_ds_data(self, ds_field_data):
         ds_typename = ds_field_data["__typename"]
@@ -121,7 +140,7 @@ class DossierConverter:
             return ds_field_data["address"] or ds_field_data["stringValue"]
 
         if ds_typename == "DateChamp":
-            return datetime.date(*(int(s) for s in ds_field_data["date"].split("-")))
+            return self._extract_date_from_value(ds_field_data)
 
         raise NotImplementedError(
             f"DN Fields of type '{ds_typename}' are not supported"
@@ -202,3 +221,16 @@ class DossierConverter:
                 )
 
         dossier.__setattr__(django_field_object.name, injectable_value)
+
+    def _extract_date_from_value(self, ds_field_data: dict) -> datetime.date | None:
+        value = ds_field_data["date"]
+        try:
+            return datetime.date(*(int(s) for s in ds_field_data["date"].split("-")))
+        except ValueError:
+            extra = {
+                "value": value,
+                "dossier_ds_number": self.dossier.ds_number,
+                "label": ds_field_data["label"],
+            }
+            logger.warning("Value of DateChamp is uncorrect.", extra=extra)
+            return None
