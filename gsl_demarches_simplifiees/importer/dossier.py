@@ -93,7 +93,7 @@ def save_one_dossier_from_ds(
     )
 
 
-def create_or_update_dossier_from_ds_data(ds_number: str):
+def create_or_update_dossier_from_ds_number(ds_number: str):
     client = DsClient()
     dossier_data = client.get_one_dossier(ds_number)
     active_departement_insee_codes = _get_active_departement_insee_codes()
