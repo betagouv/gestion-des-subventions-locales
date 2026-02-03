@@ -71,6 +71,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         DotationProjetInline,
     ]
     search_fields = ("dossier_ds__ds_number", "dossier_ds__projet_intitule")
+    readonly_fields = ("created_at", "updated_at")
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -166,7 +167,7 @@ class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     )
     list_filter = ("dotation", "status")
     inlines = [SimulationProjetInline, ProgrammationProjetInline]
-    readonly_fields = ("dossier_link", "projet_link")
+    readonly_fields = ("created_at", "updated_at", "dossier_link", "projet_link")
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
