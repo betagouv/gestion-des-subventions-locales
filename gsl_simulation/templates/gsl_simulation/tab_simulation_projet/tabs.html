@@ -7,10 +7,10 @@
                class="fr-tabs__tab fr-icon-article-fill fr-tabs__tab--icon-left">Projet</a>
         </li>
         <li>
-            {% url "simulation:simulation-projet-tab" pk=simu.id tab="annotations" as annotations_url %}
-            <a href="{{ annotations_url }}{% querystring %}"
-               {% if request.path == annotations_url %}aria-selected="true"{% endif %}
-               class="fr-tabs__tab fr-icon-edit-fill fr-tabs__tab--icon-left">Annotations</a>
+            {% url "simulation:simulation-projet-tab" pk=simu.id tab="notes" as notes_url %}
+            <a href="{{ notes_url }}{% querystring %}"
+               {% if request.path == notes_url %}aria-selected="true"{% endif %}
+               class="fr-tabs__tab fr-icon-edit-fill fr-tabs__tab--icon-left">Notes</a>
         </li>
         <li role="presentation">
             {% url "simulation:simulation-projet-tab" pk=simu.id tab="historique" as historique_url %}
