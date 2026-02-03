@@ -18,7 +18,7 @@ from django.db.models import (
 from django_fsm import FSMField, transition
 
 from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
-from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.models import Dossier, TimestampedModel
 from gsl_demarches_simplifiees.services import DsService
 from gsl_projet.constants import (
     DOTATION_CHOICES,
@@ -242,7 +242,7 @@ class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
         )
 
 
-class Projet(models.Model):
+class Projet(TimestampedModel):
     dossier_ds = models.OneToOneField(Dossier, on_delete=models.PROTECT)
     demandeur = models.ForeignKey(Demandeur, on_delete=models.PROTECT, null=True)
 
@@ -472,7 +472,7 @@ class DotationProjetQuerySet(models.QuerySet):
         )
 
 
-class DotationProjet(models.Model):
+class DotationProjet(TimestampedModel):
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
     dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
     # TODO pr_dotation put back protected=True, once every status transition is handled ?
