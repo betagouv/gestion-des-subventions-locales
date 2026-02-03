@@ -34,7 +34,7 @@ class ProgrammationProjetDetailView(DetailView):
     model = Projet
     pk_url_kwarg = "projet_id"
 
-    ALLOWED_TABS = {"annotations", "historique"}
+    ALLOWED_TABS = {"notes", "historique"}
 
     def get_template_names(self):
         if "tab" in self.kwargs:
@@ -95,7 +95,7 @@ class ProgrammationProjetDetailView(DetailView):
             "go_back_link": self.get_go_back_link(),
             "programmation_projet": programmation_projet,
         }
-        if tab == "annotations":
+        if tab == "notes":
             context["projet_notes"] = self.object.notes.all()
 
         return super().get_context_data(**context)

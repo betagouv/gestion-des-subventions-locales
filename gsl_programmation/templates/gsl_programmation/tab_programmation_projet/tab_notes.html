@@ -2,11 +2,11 @@
 {% load static %}
 
 {% block tab_projet %}
-    {% include "includes/_annotations_detail.html" %}
+    {% include "includes/_notes_detail.html" %}
     {% block block_projet_notes %}
         {% if projet_notes %}
             <h3>
-                Annotations créées ici
+                Notes créées ici
             </h3>
             {% for note in projet_notes %}
                 {% include "includes/_note_card.html" with allow_update=False %}

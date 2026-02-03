@@ -43,7 +43,7 @@ def test_projet_note_form_save(client_with_user_logged, simulation_projet):
 
     url = reverse(
         "simulation:simulation-projet-tab",
-        kwargs={"pk": simulation_projet.pk, "tab": "annotations"},
+        kwargs={"pk": simulation_projet.pk, "tab": "notes"},
     )
     response = client_with_user_logged.post(
         url,
@@ -69,7 +69,7 @@ def test_projet_note_form_save_with_error(client_with_user_logged, simulation_pr
 
     url = reverse(
         "simulation:simulation-projet-tab",
-        kwargs={"pk": simulation_projet.pk, "tab": "annotations"},
+        kwargs={"pk": simulation_projet.pk, "tab": "notes"},
     )
     response = client_with_user_logged.post(
         url,
@@ -121,7 +121,7 @@ def test_projet_note_deletion(
 
     url = reverse(
         "simulation:simulation-projet-tab",
-        kwargs={"pk": simulation_projet.pk, "tab": "annotations"},
+        kwargs={"pk": simulation_projet.pk, "tab": "notes"},
     )
     response = client_with_user_logged.post(
         url,

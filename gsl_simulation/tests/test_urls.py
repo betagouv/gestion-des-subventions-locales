@@ -520,25 +520,25 @@ def test_get_simulation_projet_detail_url(
 def test_post_simulation_projet_detail_url(
     cote_d_or_perimetre, cote_dorien_simulation_projet
 ):
-    annotations_tab_url = reverse(
+    notes_tab_url = reverse(
         "simulation:simulation-projet-tab",
-        kwargs={"pk": cote_dorien_simulation_projet.pk, "tab": "annotations"},
+        kwargs={"pk": cote_dorien_simulation_projet.pk, "tab": "notes"},
     )
-    client = get_client_with_referer(cote_d_or_perimetre, annotations_tab_url)
+    client = get_client_with_referer(cote_d_or_perimetre, notes_tab_url)
 
     response = client.post(
-        annotations_tab_url,
+        notes_tab_url,
         {"title": "Titre de la note", "content": "Contenu de la note"},
         follow=True,
     )
     assert response.status_code == 200
     assert (
         response.templates[0].name
-        == "gsl_simulation/tab_simulation_projet/tab_annotations.html"
+        == "gsl_simulation/tab_simulation_projet/tab_notes.html"
     )
     assert response.context["simu"] == cote_dorien_simulation_projet
     assert response.context["projet"] == cote_dorien_simulation_projet.projet
-    # Specific context for the annotations tab
+    # Specific context for the notes tab
     assert response.context["projet_note_form"].__class__ == ProjetNoteForm
     notes = cote_dorien_simulation_projet.projet.notes
     assert notes.count() == 1
@@ -551,13 +551,13 @@ def test_post_simulation_projet_detail_url(
 def test_post_simulation_for_a_user_not_in_perimetre(
     client_with_iconnais_user_logged, cote_dorien_simulation_projet
 ):
-    annotations_tab_url = reverse(
+    notes_tab_url = reverse(
         "simulation:simulation-projet-tab",
-        kwargs={"pk": cote_dorien_simulation_projet.pk, "tab": "annotations"},
+        kwargs={"pk": cote_dorien_simulation_projet.pk, "tab": "notes"},
     )
 
     response = client_with_iconnais_user_logged.post(
-        annotations_tab_url,
+        notes_tab_url,
         {"title": "Titre de la note", "content": "Contenu de la note"},
         follow=True,
     )
@@ -570,7 +570,7 @@ def test_post_simulation_for_a_user_not_in_perimetre(
     "tab_name,expected_template",
     (
         ("historique", "gsl_simulation/tab_simulation_projet/tab_historique.html"),
-        ("annotations", "gsl_simulation/tab_simulation_projet/tab_annotations.html"),
+        ("notes", "gsl_simulation/tab_simulation_projet/tab_notes.html"),
     ),
 )
 @pytest.mark.django_db
