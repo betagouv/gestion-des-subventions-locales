@@ -6,6 +6,7 @@ from django.db.models import Sum
 from typing_extensions import deprecated
 
 from gsl_core.models import Perimetre
+from gsl_demarches_simplifiees.models import TimestampedModel
 from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.utils.utils import compute_taux
@@ -53,7 +54,7 @@ class EnveloppeManager(models.Manager.from_queryset(EnveloppeQueryset)):
     pass
 
 
-class Enveloppe(models.Model):
+class Enveloppe(TimestampedModel):
     dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
     montant = models.DecimalField(
         "Montant",
