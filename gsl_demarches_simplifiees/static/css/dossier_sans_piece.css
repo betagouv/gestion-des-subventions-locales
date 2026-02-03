@@ -13,3 +13,7 @@ form:has(input[value="DETR"]:checked) :has(> #id_demande_categorie_detr) {
 form:has(input[value="DSIL"]:checked) :has(> #id_demande_categorie_dsil) {
     display: block;
 }
+
+.dossier-sans-piece-update-container {
+    border: 1px solid var(--border-default-grey);
+}
