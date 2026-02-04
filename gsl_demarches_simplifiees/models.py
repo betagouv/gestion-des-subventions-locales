@@ -136,6 +136,9 @@ class PersonneMorale(models.Model):
 
     def update_from_raw_ds_data(self, ds_data):
         self.siret = ds_data.get("siret")
+        if ds_data.get("__typename") == "PersonneMoraleIncomplete":
+            return self
+
         self.naf, _ = Naf.objects.get_or_create(
             code=ds_data.get("naf"), defaults={"libelle": ds_data.get("libelleNaf")}
         )
