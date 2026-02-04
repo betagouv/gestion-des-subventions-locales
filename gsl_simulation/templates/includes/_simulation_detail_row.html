@@ -45,7 +45,11 @@
         {% if dotation_projet.dotation == "DSIL" %}
             {{ projet.dossier_ds.demande_categorie_dsil.label }}
         {% elif dotation_projet.dotation == "DETR" %}
-            {{ projet.dossier_ds.demande_categorie_detr.label }}
+            {% if projet.dossier_ds.demande_has_categorie_detr == False %}
+                Hors catégorie
+            {% else %}
+                {{ projet.dossier_ds.demande_categorie_detr.label }}
+            {% endif %}
         {% endif %}
     </td>
     <td class="simulation-status">
