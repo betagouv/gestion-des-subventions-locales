@@ -519,7 +519,6 @@ class CommuneAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
 class PerimetreAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     search_fields = (
         "departement__insee_code",
-        "arrondissement__insee_code",
         "departement__name",
         "region__name",
         "arrondissement__name",
@@ -532,6 +531,18 @@ class PerimetreAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "arrondissement_id",
         "user_count",
     )
+
+    def has_add_permission(self, request):
+        """Disable add permission - keep autocomplete but prevent creation."""
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        """Disable change permission - keep autocomplete but prevent editing."""
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        """Disable delete permission - keep autocomplete but prevent deletion."""
+        return False
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
