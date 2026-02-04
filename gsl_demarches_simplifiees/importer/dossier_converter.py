@@ -115,7 +115,7 @@ class DossierConverter:
             return ds_field_data["values"]
 
         if ds_typename == "LinkedDropDownListChamp":
-            return ds_field_data["secondaryValue"]
+            return self._extract_linked_dropdown_list_value(ds_field_data)
 
         if ds_typename == "AddressChamp":
             return ds_field_data["address"] or ds_field_data["stringValue"]
@@ -147,6 +147,12 @@ class DossierConverter:
                 if "demarche_revision" in fields:
                     arguments["demarche_revision"] = self.ds_demarche_revision
         return arguments
+
+    def _extract_linked_dropdown_list_value(self, ds_field_data):
+        secondary_value = ds_field_data["secondaryValue"]
+        if secondary_value:
+            return secondary_value
+        return ds_field_data["primaryValue"]
 
     def inject_into_field(
         self,
