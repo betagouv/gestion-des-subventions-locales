@@ -89,18 +89,16 @@ class TestProgrammationProjetFilters:
         nature_departement = NaturePorteurProjetFactory(type=NaturePorteurProjet.EPCI)
 
         # Créer des dossiers avec différents porteurs
-        dossier_commune = DossierFactory(porteur_de_projet_nature=nature_commune)
+        dossier_commune = DossierFactory(
+            porteur_de_projet_nature=nature_commune, perimetre=arrondissement
+        )
         dossier_departement = DossierFactory(
-            porteur_de_projet_nature=nature_departement
+            porteur_de_projet_nature=nature_departement, perimetre=arrondissement
         )
 
         # Créer des projets et programmations
-        projet_commune = ProjetFactory(
-            dossier_ds=dossier_commune, perimetre=arrondissement
-        )
-        projet_departement = ProjetFactory(
-            dossier_ds=dossier_departement, perimetre=arrondissement
-        )
+        projet_commune = ProjetFactory(dossier_ds=dossier_commune)
+        projet_departement = ProjetFactory(dossier_ds=dossier_departement)
 
         dotation_commune = DotationProjetFactory(
             projet=projet_commune, dotation=DOTATION_DETR
@@ -128,14 +126,20 @@ class TestProgrammationProjetFilters:
     def test_cout_min_max_filter(self, mock_request, enveloppe, arrondissement):
         """Test les filtres par coût total min et max"""
         # Créer des dossiers avec différents coûts
-        dossier_petit = DossierFactory(finance_cout_total=Decimal("50000.00"))
-        dossier_moyen = DossierFactory(finance_cout_total=Decimal("150000.00"))
-        dossier_grand = DossierFactory(finance_cout_total=Decimal("300000.00"))
+        dossier_petit = DossierFactory(
+            finance_cout_total=Decimal("50000.00"), perimetre=arrondissement
+        )
+        dossier_moyen = DossierFactory(
+            finance_cout_total=Decimal("150000.00"), perimetre=arrondissement
+        )
+        dossier_grand = DossierFactory(
+            finance_cout_total=Decimal("300000.00"), perimetre=arrondissement
+        )
 
         # Créer les programmations
-        projet_petit = ProjetFactory(dossier_ds=dossier_petit, perimetre=arrondissement)
-        projet_moyen = ProjetFactory(dossier_ds=dossier_moyen, perimetre=arrondissement)
-        projet_grand = ProjetFactory(dossier_ds=dossier_grand, perimetre=arrondissement)
+        projet_petit = ProjetFactory(dossier_ds=dossier_petit)
+        projet_moyen = ProjetFactory(dossier_ds=dossier_moyen)
+        projet_grand = ProjetFactory(dossier_ds=dossier_grand)
 
         dotation_petit = DotationProjetFactory(
             projet=projet_petit, dotation=DOTATION_DETR
@@ -180,14 +184,20 @@ class TestProgrammationProjetFilters:
     ):
         """Test les filtres par montant demandé min et max"""
         # Créer des dossiers avec différents montants demandés
-        dossier_petit = DossierFactory(demande_montant=Decimal("20000.00"))
-        dossier_moyen = DossierFactory(demande_montant=Decimal("80000.00"))
-        dossier_grand = DossierFactory(demande_montant=Decimal("150000.00"))
+        dossier_petit = DossierFactory(
+            demande_montant=Decimal("20000.00"), perimetre=arrondissement
+        )
+        dossier_moyen = DossierFactory(
+            demande_montant=Decimal("80000.00"), perimetre=arrondissement
+        )
+        dossier_grand = DossierFactory(
+            demande_montant=Decimal("150000.00"), perimetre=arrondissement
+        )
 
         # Créer les programmations
-        projet_petit = ProjetFactory(dossier_ds=dossier_petit, perimetre=arrondissement)
-        projet_moyen = ProjetFactory(dossier_ds=dossier_moyen, perimetre=arrondissement)
-        projet_grand = ProjetFactory(dossier_ds=dossier_grand, perimetre=arrondissement)
+        projet_petit = ProjetFactory(dossier_ds=dossier_petit)
+        projet_moyen = ProjetFactory(dossier_ds=dossier_moyen)
+        projet_grand = ProjetFactory(dossier_ds=dossier_grand)
 
         dotation_petit = DotationProjetFactory(
             projet=projet_petit, dotation=DOTATION_DETR
@@ -232,9 +242,9 @@ class TestProgrammationProjetFilters:
     ):
         """Test les filtres par montant retenu (programmé) min et max"""
         # Créer des programmations avec différents montants
-        projet1 = ProjetFactory(perimetre=arrondissement)
-        projet2 = ProjetFactory(perimetre=arrondissement)
-        projet3 = ProjetFactory(perimetre=arrondissement)
+        projet1 = ProjetFactory(dossier_ds__perimetre=arrondissement)
+        projet2 = ProjetFactory(dossier_ds__perimetre=arrondissement)
+        projet3 = ProjetFactory(dossier_ds__perimetre=arrondissement)
 
         dotation1 = DotationProjetFactory(projet=projet1, dotation=DOTATION_DETR)
         dotation2 = DotationProjetFactory(projet=projet2, dotation=DOTATION_DETR)
@@ -271,8 +281,8 @@ class TestProgrammationProjetFilters:
     def test_status_filter(self, mock_request, enveloppe, arrondissement):
         """Test le filtre par statut de programmation"""
         # Créer des programmations avec différents statuts
-        projet1 = ProjetFactory(perimetre=arrondissement)
-        projet2 = ProjetFactory(perimetre=arrondissement)
+        projet1 = ProjetFactory(dossier_ds__perimetre=arrondissement)
+        projet2 = ProjetFactory(dossier_ds__perimetre=arrondissement)
 
         dotation1 = DotationProjetFactory(projet=projet1, dotation=DOTATION_DETR)
         dotation2 = DotationProjetFactory(projet=projet2, dotation=DOTATION_DETR)
@@ -316,8 +326,8 @@ class TestProgrammationProjetFilters:
         )
 
         # Créer des projets dans différents territoires
-        projet_arr1 = ProjetFactory(perimetre=arrondissement)
-        projet_arr2 = ProjetFactory(perimetre=autre_arrondissement)
+        projet_arr1 = ProjetFactory(dossier_ds__perimetre=arrondissement)
+        projet_arr2 = ProjetFactory(dossier_ds__perimetre=autre_arrondissement)
 
         dotation_projet1 = DotationProjetFactory(
             projet=projet_arr1, dotation=DOTATION_DETR
@@ -358,8 +368,8 @@ class TestProgrammationProjetFilters:
         categorie2 = CategorieDetrFactory(departement=departement.departement)
 
         # Créer des projets avec différentes catégories
-        projet1 = ProjetFactory(perimetre=arrondissement)
-        projet2 = ProjetFactory(perimetre=arrondissement)
+        projet1 = ProjetFactory(dossier_ds__perimetre=arrondissement)
+        projet2 = ProjetFactory(dossier_ds__perimetre=arrondissement)
 
         dotation_projet1 = DotationProjetFactory(projet=projet1, dotation=DOTATION_DETR)
         dotation_projet2 = DotationProjetFactory(projet=projet2, dotation=DOTATION_DETR)
@@ -391,8 +401,8 @@ class TestProgrammationProjetFilters:
         from django.utils import timezone
 
         # Créer des projets avec différents états de notification
-        projet1 = ProjetFactory(perimetre=arrondissement)
-        projet2 = ProjetFactory(perimetre=arrondissement)
+        projet1 = ProjetFactory(dossier_ds__perimetre=arrondissement)
+        projet2 = ProjetFactory(dossier_ds__perimetre=arrondissement)
 
         dotation1 = DotationProjetFactory(projet=projet1, dotation=DOTATION_DETR)
         dotation2 = DotationProjetFactory(projet=projet2, dotation=DOTATION_DETR)
@@ -435,15 +445,15 @@ class TestProgrammationProjetFilters:
         demandeur_a = DemandeurFactory(name="Alpha")
         demandeur_z = DemandeurFactory(name="Zulu")
 
-        dossier_a = DossierFactory(finance_cout_total=Decimal("100000.00"))
-        dossier_z = DossierFactory(finance_cout_total=Decimal("200000.00"))
+        dossier_a = DossierFactory(
+            finance_cout_total=Decimal("100000.00"), perimetre=arrondissement
+        )
+        dossier_z = DossierFactory(
+            finance_cout_total=Decimal("200000.00"), perimetre=arrondissement
+        )
 
-        projet_a = ProjetFactory(
-            dossier_ds=dossier_a, perimetre=arrondissement, demandeur=demandeur_a
-        )
-        projet_z = ProjetFactory(
-            dossier_ds=dossier_z, perimetre=arrondissement, demandeur=demandeur_z
-        )
+        projet_a = ProjetFactory(dossier_ds=dossier_a, demandeur=demandeur_a)
+        projet_z = ProjetFactory(dossier_ds=dossier_z, demandeur=demandeur_z)
 
         dotation_a = DotationProjetFactory(projet=projet_a, dotation=DOTATION_DETR)
         dotation_z = DotationProjetFactory(projet=projet_z, dotation=DOTATION_DETR)
@@ -507,9 +517,10 @@ class TestProgrammationProjetFilters:
             porteur_de_projet_nature=nature_commune,
             finance_cout_total=Decimal("150000.00"),
             demande_montant=Decimal("75000.00"),
+            perimetre=arrondissement,
         )
 
-        projet = ProjetFactory(dossier_ds=dossier, perimetre=arrondissement)
+        projet = ProjetFactory(dossier_ds=dossier)
         dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
 
         prog_match = ProgrammationProjetFactory(
@@ -523,8 +534,9 @@ class TestProgrammationProjetFilters:
         autre_dossier = DossierFactory(
             porteur_de_projet_nature=nature_commune,
             finance_cout_total=Decimal("50000.00"),  # Trop petit
+            perimetre=arrondissement,
         )
-        autre_projet = ProjetFactory(dossier_ds=autre_dossier, perimetre=arrondissement)
+        autre_projet = ProjetFactory(dossier_ds=autre_dossier)
         autre_dotation = DotationProjetFactory(
             projet=autre_projet, dotation=DOTATION_DETR
         )
@@ -564,8 +576,8 @@ class TestProgrammationProjetFilters:
 
     def test_empty_filters(self, mock_request, enveloppe, arrondissement):
         """Test que sans filtres, tous les projets de l'enveloppe sont retournés"""
-        projet1 = ProjetFactory(perimetre=arrondissement)
-        projet2 = ProjetFactory(perimetre=arrondissement)
+        projet1 = ProjetFactory(dossier_ds__perimetre=arrondissement)
+        projet2 = ProjetFactory(dossier_ds__perimetre=arrondissement)
 
         dotation1 = DotationProjetFactory(projet=projet1, dotation=DOTATION_DETR)
         dotation2 = DotationProjetFactory(projet=projet2, dotation=DOTATION_DETR)

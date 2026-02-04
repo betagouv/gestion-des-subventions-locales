@@ -34,7 +34,7 @@ def user_with_perimetre():
 @pytest.fixture
 def projet(user_with_perimetre):
     """Projet dans le périmètre de l'utilisateur"""
-    return ProjetFactory(perimetre=user_with_perimetre.perimetre)
+    return ProjetFactory(dossier_ds__perimetre=user_with_perimetre.perimetre)
 
 
 @pytest.fixture
@@ -77,7 +77,7 @@ class TestProgrammationProjetListViewWithDotation:
             annee=2024,  # DSIL programmation can only be on Region
         )
         return ProgrammationProjetFactory(
-            dotation_projet__projet__perimetre=user_with_perimetre.perimetre,
+            dotation_projet__projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
             enveloppe=dsil_enveloppe,
         )
 
@@ -87,7 +87,7 @@ class TestProgrammationProjetListViewWithDotation:
             perimetre=user_with_perimetre.perimetre, annee=2024
         )
         return ProgrammationProjetFactory(
-            dotation_projet__projet__perimetre=user_with_perimetre.perimetre,
+            dotation_projet__projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
             enveloppe=detr_enveloppe,
         )
 

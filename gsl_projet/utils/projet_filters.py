@@ -244,7 +244,7 @@ class BaseProjetFilters(FilterSet):
             perimetres.add(perimetre)
             for child in perimetre.children():
                 perimetres.add(child)
-        return queryset.filter(perimetre__in=perimetres)
+        return queryset.filter(dossier_ds__perimetre__in=perimetres)
 
     categorie_detr = MultipleChoiceFilter(
         method="filter_categorie_detr",

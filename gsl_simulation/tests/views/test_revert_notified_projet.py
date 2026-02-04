@@ -73,7 +73,7 @@ def notified_simulation_projet(collegue, detr_simulation):
     """A simulation projet with a notified projet."""
     dotation_projet = DotationProjetFactory(
         status=PROJET_STATUS_ACCEPTED,
-        projet__perimetre=collegue.perimetre,
+        projet__dossier_ds__perimetre=collegue.perimetre,
         projet__notified_at=timezone.now(),
         dotation=DOTATION_DETR,
         assiette=10_000,
@@ -95,7 +95,7 @@ def non_notified_simulation_projet(collegue, detr_simulation):
     """A simulation projet with a non-notified projet."""
     dotation_projet = DotationProjetFactory(
         status=PROJET_STATUS_PROCESSING,
-        projet__perimetre=collegue.perimetre,
+        projet__dossier_ds__perimetre=collegue.perimetre,
         projet__notified_at=None,
         dotation=DOTATION_DETR,
         assiette=10_000,
@@ -112,7 +112,7 @@ def non_notified_simulation_projet(collegue, detr_simulation):
 def double_dotation_projet(collegue, detr_simulation, dsil_simulation):
     """A projet with both DETR and DSIL dotations."""
     projet = ProjetFactory(
-        perimetre=collegue.perimetre,
+        dossier_ds__perimetre=collegue.perimetre,
         notified_at=timezone.now(),
     )
 

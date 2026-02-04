@@ -4,14 +4,14 @@ import factory
 import factory.fuzzy
 from django.db.models.signals import post_save
 
-from gsl_core.tests.factories import AdresseFactory
-from gsl_core.tests.factories import ArrondissementFactory as CoreArrondissementFactory
+from gsl_core.tests.factories import (
+    AdresseFactory,
+    ArrondissementFactory,
+    PerimetreArrondissementFactory,
+)
 from gsl_core.tests.factories import DepartementFactory as CoreDepartementFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 
-from ..models import (
-    Arrondissement as DsArrondissement,
-)
 from ..models import (
     CategorieDetr,
     CategorieDsil,
@@ -23,9 +23,6 @@ from ..models import (
     NaturePorteurProjet,
     PersonneMorale,
     Profile,
-)
-from ..models import (
-    Departement as DsDepartement,
 )
 
 
@@ -53,20 +50,6 @@ class DsLibelleFactory(factory.django.DjangoModelFactory):
         model = DsChoiceLibelle
 
     label = factory.Sequence(lambda n: f"dslibelle-{n}")
-
-
-class DsArrondissementFactory(DsLibelleFactory):
-    class Meta:
-        model = DsArrondissement
-
-    core_arrondissement = factory.SubFactory(CoreArrondissementFactory)
-
-
-class DsDepartementFactory(DsLibelleFactory):
-    class Meta:
-        model = DsDepartement
-
-    core_departement = factory.SubFactory(CoreDepartementFactory)
 
 
 class NaturePorteurProjetFactory(factory.django.DjangoModelFactory):
@@ -97,13 +80,14 @@ class DossierFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Dossier
 
+    perimetre = factory.SubFactory(PerimetreArrondissementFactory)
     ds_data = factory.SubFactory(DossierDataFactory)
     ds_demarche_number = factory.SelfAttribute("ds_data.ds_demarche.ds_number")
     ds_id = factory.Sequence(lambda n: f"dossier-{n}")
     ds_number = factory.Faker("random_int", min=1000000, max=9999999)
     ds_state = Dossier.STATE_EN_INSTRUCTION
     ds_demandeur = factory.SubFactory(PersonneMoraleFactory)
-    porteur_de_projet_arrondissement = factory.SubFactory(DsArrondissementFactory)
+    porteur_de_projet_arrondissement = factory.SubFactory(ArrondissementFactory)
     ds_date_depot = factory.Faker(
         "date_time_this_year", before_now=True, tzinfo=timezone.utc
     )

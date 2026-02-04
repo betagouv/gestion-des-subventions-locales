@@ -151,7 +151,7 @@ def categorie_detr_c(perimetre_arrondissement):
 
 
 def projet_with_categories_detr(categories, perimetre):
-    projet = ProjetFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     dotationprojet = DetrProjetFactory(projet=projet)
     for categorie in categories:
         dotationprojet.detr_categories.add(categorie)

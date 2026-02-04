@@ -26,7 +26,7 @@ def client_with_user_logged(perimetre):
 @pytest.fixture
 def simulation_projet(perimetre):
     dotation_projet = DotationProjetFactory(
-        projet__perimetre=perimetre,
+        projet__dossier_ds__perimetre=perimetre,
         dotation=DOTATION_DETR,
     )
     simulation = SimulationFactory(enveloppe=DetrEnveloppeFactory(perimetre=perimetre))

@@ -42,8 +42,8 @@ class ProgrammationProjetFactory(DjangoModelFactory):
     enveloppe = factory.LazyAttribute(
         lambda obj: DetrEnveloppeFactory(
             perimetre=PerimetreDepartementalFactory(
-                departement=obj.dotation_projet.projet.perimetre.departement,
-                region=obj.dotation_projet.projet.perimetre.region,
+                departement=obj.dotation_projet.projet.dossier_ds.perimetre.departement,
+                region=obj.dotation_projet.projet.dossier_ds.perimetre.region,
             )
         )
     )

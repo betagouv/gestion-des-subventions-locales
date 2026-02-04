@@ -125,8 +125,8 @@ def detr_projets(
                 demande_dispositif_sollicite=DOTATION_DETR,
                 ds_state=state,
                 ds_date_traitement=date_traitement,
+                perimetre=arrondissement_perimetre,
             ),
-            perimetre=arrondissement_perimetre,
         )
         detr_projet = DetrProjetFactory(projet=projet, status=status, assiette=assiette)
         detr_projets.append(detr_projet)
@@ -190,8 +190,8 @@ def dsil_projets(
                 demande_dispositif_sollicite="DSIL",
                 ds_state=state,
                 ds_date_traitement=date_traitement,
+                perimetre=arrondissement_perimetre,
             ),
-            perimetre=arrondissement_perimetre,
         )
         dsil_projet = DsilProjetFactory(projet=projet, status=status, assiette=assiette)
         dotation_projets.append(dsil_projet)
@@ -368,7 +368,7 @@ def test_add_enveloppe_projets_to_DETR_simulation_containing_DETR_in_demande_dis
 ):
     projet = ProjetFactory(
         dossier_ds__demande_dispositif_sollicite=demande_dispositif_sollicite,
-        perimetre=arrondissement_perimetre,
+        dossier_ds__perimetre=arrondissement_perimetre,
     )
     DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
 
@@ -403,7 +403,7 @@ def test_add_enveloppe_projets_to_DSIL_simulation_containing_DSIL_in_demande_dis
 ):
     projet = ProjetFactory(
         dossier_ds__demande_dispositif_sollicite=demande_dispositif_sollicite,
-        perimetre=arrondissement_perimetre,
+        dossier_ds__perimetre=arrondissement_perimetre,
     )
     DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
 

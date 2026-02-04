@@ -59,7 +59,7 @@ def client_with_user_logged(collegue):
 @pytest.fixture
 def double_dotation_projet(collegue):
     """Create a projet with both DETR and DSIL dotations."""
-    projet = ProjetFactory(perimetre=collegue.perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
 
     # Add the collegue as an instructeur on the dossier
     projet.dossier_ds.ds_instructeurs.add(collegue.ds_profile)

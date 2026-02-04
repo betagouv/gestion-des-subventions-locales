@@ -36,14 +36,16 @@ def perimetre():
 
 @pytest.fixture
 def programmation_projet(perimetre):
-    return ProgrammationProjetFactory(dotation_projet__projet__perimetre=perimetre)
+    return ProgrammationProjetFactory(
+        dotation_projet__projet__dossier_ds__perimetre=perimetre
+    )
 
 
 @pytest.fixture
 def programmation_projets(perimetre):
     return ProgrammationProjetFactory.create_batch(
         3,
-        dotation_projet__projet__perimetre=perimetre,
+        dotation_projet__projet__dossier_ds__perimetre=perimetre,
         dotation_projet__dotation=DOTATION_DETR,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=None,
@@ -71,7 +73,7 @@ def test_choose_type_for_multiple_document_generation_no_id(client):
     # Must be selected (good perimetre, status and notified_at)
     ProgrammationProjetFactory.create_batch(
         3,
-        dotation_projet__projet__perimetre=client.user.perimetre,
+        dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=None,
     )
@@ -84,7 +86,7 @@ def test_choose_type_for_multiple_document_generation_no_id(client):
     )
     ProgrammationProjetFactory.create_batch(
         4,
-        dotation_projet__projet__perimetre=client.user.perimetre,
+        dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=datetime.now(UTC),
     )
@@ -109,7 +111,7 @@ def test_choose_type_for_multiple_document_generation_no_id_and_with_filter_args
     for amount in [50_000, 100_000, 150_000]:
         ProgrammationProjetFactory(
             dotation_projet__projet__dossier_ds__finance_cout_total=amount,
-            dotation_projet__projet__perimetre=client.user.perimetre,
+            dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
             status=ProgrammationProjet.STATUS_ACCEPTED,
             notified_at=None,
         )
@@ -250,7 +252,7 @@ def test_select_modele_multiple_no_id(client):
     # Must be selected (good perimetre, status and notified_at)
     ProgrammationProjetFactory.create_batch(
         3,
-        dotation_projet__projet__perimetre=client.user.perimetre,
+        dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=None,
     )
@@ -263,7 +265,7 @@ def test_select_modele_multiple_no_id(client):
     )
     ProgrammationProjetFactory.create_batch(
         4,
-        dotation_projet__projet__perimetre=client.user.perimetre,
+        dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=datetime.now(UTC),
     )
@@ -285,7 +287,7 @@ def test_select_modele_multiple_no_id_and_with_filter_args(client):
     for amount in [50_000, 100_000, 150_000]:
         ProgrammationProjetFactory(
             montant=amount,
-            dotation_projet__projet__perimetre=client.user.perimetre,
+            dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
             status=ProgrammationProjet.STATUS_ACCEPTED,
             notified_at=None,
         )
@@ -443,7 +445,7 @@ def test_save_documents_no_id(client, detr_lettre_modele):
     # Must be selected (good perimetre, status and notified_at)
     pps = ProgrammationProjetFactory.create_batch(
         3,
-        dotation_projet__projet__perimetre=client.user.perimetre,
+        dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=None,
     )
@@ -456,7 +458,7 @@ def test_save_documents_no_id(client, detr_lettre_modele):
     )
     ProgrammationProjetFactory.create_batch(
         4,
-        dotation_projet__projet__perimetre=client.user.perimetre,
+        dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=datetime.now(UTC),
     )
@@ -499,7 +501,7 @@ def test_save_documents_no_id_and_with_filter_args(client, detr_lettre_modele):
         pps.append(
             ProgrammationProjetFactory(
                 montant=amount,
-                dotation_projet__projet__perimetre=client.user.perimetre,
+                dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
                 status=ProgrammationProjet.STATUS_ACCEPTED,
                 notified_at=None,
             )
@@ -634,7 +636,7 @@ def test_save_documents_with_one_wrong_dotation_pp(
     client, programmation_projets, detr_lettre_modele
 ):
     wrong_dotation_pp = ProgrammationProjetFactory(
-        dotation_projet__projet__perimetre=client.user.perimetre,
+        dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
         dotation_projet__dotation=DOTATION_DSIL,
     )
     programmation_projets.append(wrong_dotation_pp)
@@ -752,7 +754,7 @@ def test_download_documents_no_id(client):
     pps += ProgrammationProjetFactory.create_batch(
         3,
         dotation_projet__dotation=DOTATION_DETR,
-        dotation_projet__projet__perimetre=client.user.perimetre,
+        dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=None,
     )
@@ -766,7 +768,7 @@ def test_download_documents_no_id(client):
 
     pps += ProgrammationProjetFactory.create_batch(
         4,
-        dotation_projet__projet__perimetre=client.user.perimetre,
+        dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=datetime.now(UTC),
     )
@@ -799,7 +801,7 @@ def test_download_documents_no_id_with_filters(client):
         pps.append(
             ProgrammationProjetFactory(
                 dotation_projet__dotation=DOTATION_DETR,
-                dotation_projet__projet__perimetre=client.user.perimetre,
+                dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
                 dotation_projet__projet__dossier_ds__demande_montant=amount,
                 status=ProgrammationProjet.STATUS_ACCEPTED,
                 notified_at=None,

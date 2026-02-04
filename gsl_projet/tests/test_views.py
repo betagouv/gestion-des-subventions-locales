@@ -529,7 +529,7 @@ def projets_with_montant_retenu(demandeur, perimetre) -> list[Projet]:
     ):
         projet = ProjetFactory(
             demandeur=demandeur,
-            perimetre=perimetre,
+            dossier_ds__perimetre=perimetre,
         )
         detr_projet = DetrProjetFactory(projet=projet)
         if detr_montant is not None:
@@ -787,9 +787,9 @@ def perimetre_brest(perimetre_29):
 @pytest.fixture
 def projets_29(perimetre_29, perimetre_quimper, perimetre_brest):
     return [
-        ProjetFactory(perimetre=perimetre_29),
-        ProjetFactory(perimetre=perimetre_quimper),
-        ProjetFactory(perimetre=perimetre_brest),
+        ProjetFactory(dossier_ds__perimetre=perimetre_29),
+        ProjetFactory(dossier_ds__perimetre=perimetre_quimper),
+        ProjetFactory(dossier_ds__perimetre=perimetre_brest),
     ]
 
 

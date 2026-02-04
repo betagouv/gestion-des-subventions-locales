@@ -64,7 +64,9 @@ def dsil_envelope(user_with_departement_perimetre):
 @pytest.fixture
 def double_dotation_projet(user_with_departement_perimetre):
     """Project eligible for both DETR and DSIL (double dotation)"""
-    projet = ProjetFactory(perimetre=user_with_departement_perimetre.perimetre)
+    projet = ProjetFactory(
+        dossier_ds__perimetre=user_with_departement_perimetre.perimetre
+    )
     # Create both DETR and DSIL dotations for same project
     detr_dotation = DetrProjetFactory(projet=projet)
     dsil_dotation = DsilProjetFactory(projet=projet)
@@ -207,7 +209,7 @@ class TestDoubleDotationDisplayOnDetrSimulation:
         Projects with only DETR dotation should not display secondary row
         """
         perimetre = detr_envelope.perimetre
-        projet = ProjetFactory(perimetre=perimetre)
+        projet = ProjetFactory(dossier_ds__perimetre=perimetre)
         detr_dotation = DetrProjetFactory(projet=projet)
 
         detr_simulation = SimulationFactory(enveloppe=detr_envelope)
@@ -236,7 +238,9 @@ class TestNotifiedProjectDisplayOnSimulationTable:
         Notified projects should show montant as text instead of input field
         """
         perimetre = detr_envelope.perimetre
-        projet = ProjetFactory(perimetre=perimetre, notified_at=timezone.now())
+        projet = ProjetFactory(
+            dossier_ds__perimetre=perimetre, notified_at=timezone.now()
+        )
         detr_dotation = DetrProjetFactory(projet=projet)
 
         detr_simulation = SimulationFactory(enveloppe=detr_envelope)
@@ -268,7 +272,7 @@ class TestNotifiedProjectDisplayOnSimulationTable:
         Non-notified projects should still show editable forms
         """
         perimetre = detr_envelope.perimetre
-        projet = ProjetFactory(perimetre=perimetre, notified_at=None)
+        projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
         detr_dotation = DetrProjetFactory(projet=projet)
 
         detr_simulation = SimulationFactory(enveloppe=detr_envelope)

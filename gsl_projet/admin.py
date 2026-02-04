@@ -59,12 +59,12 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "__str__",
         "dossier_ds__projet_intitule",
         "get_status_display",
-        "perimetre__departement",
+        "dossier_ds__perimetre__departement",
         "dotations",
     )
     list_filter = (
         ProjetStatusFilter,
-        "perimetre__departement",
+        "dossier_ds__perimetre__departement",
     )
     actions = ("refresh_from_dossier",)
     inlines = [
