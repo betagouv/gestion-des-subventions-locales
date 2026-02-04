@@ -239,7 +239,7 @@ def test_computer_mappings_are_created(demarche, demarche_data_without_dossier):
         == 4
     )
     assert FieldMapping.objects.count() == 294
-    assert FieldMapping.objects.exclude(django_field="").count() == 242
+    assert FieldMapping.objects.exclude(django_field="").count() == 243
 
     demande_categorie_detr_mappings = FieldMapping.objects.filter(
         django_field="demande_categorie_detr"
