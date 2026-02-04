@@ -202,7 +202,11 @@
                                         {% if dotation == "DSIL" %}
                                             {{ programmation_projet.projet.dossier_ds.demande_categorie_dsil.label }}
                                         {% elif dotation == "DETR" %}
-                                            {{ programmation_projet.projet.dossier_ds.demande_categorie_detr.label }}
+                                            {% if programmation_projet.projet.dossier_ds.demande_has_categorie_detr == False %}
+                                                Hors catégorie
+                                            {% else %}
+                                                {{ programmation_projet.projet.dossier_ds.demande_categorie_detr.label }}
+                                            {% endif %}
                                         {% endif %}
                                     </td>
                                     <td>

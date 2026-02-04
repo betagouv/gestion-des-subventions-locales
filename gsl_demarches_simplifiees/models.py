@@ -363,10 +363,8 @@ class Dossier(TimestampedModel):
         "Dispositif de financement sollicité",
         blank=True,
     )
-    demande_categorie_dsil = models.ForeignKey(
-        "gsl_demarches_simplifiees.CategorieDsil",
-        verbose_name="DSIL · Éligibilité de l'opération",
-        on_delete=models.PROTECT,
+    demande_has_categorie_detr = models.BooleanField(
+        "DETR · Le projet s'inscrit-il dans une des catégories prioritaires définies par la commission départementale d'élus ?",
         null=True,
         blank=True,
     )
@@ -377,7 +375,13 @@ class Dossier(TimestampedModel):
         null=True,
         blank=True,
     )
-
+    demande_categorie_dsil = models.ForeignKey(
+        "gsl_demarches_simplifiees.CategorieDsil",
+        verbose_name="DSIL · Éligibilité de l'opération",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+    )
     demande_montant = models.DecimalField(
         "Montant de l'aide demandée (en euros)",
         max_digits=12,
@@ -529,8 +533,9 @@ class Dossier(TimestampedModel):
         demande_renouvellement,
         demande_numero_demande_precedente,
         demande_dispositif_sollicite,
-        demande_categorie_dsil,
+        demande_has_categorie_detr,
         demande_categorie_detr,
+        demande_categorie_dsil,
         demande_montant,
         demande_autres_aides,
         demande_autre_precision,

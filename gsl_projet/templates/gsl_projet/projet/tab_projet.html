@@ -321,6 +321,10 @@
                                 <b>Catégorie d'opération DSIL</b> :
                                 {{ dotation_projet.projet.dossier_ds.demande_categorie_dsil.label }}
                             </p>
+                        {% elif dotation_projet.dotation == "DETR" and dotation_projet.projet.dossier_ds.demande_has_categorie_detr == False %}
+                            <p>
+                                <b>Catégorie d'opération DETR</b> : Hors catégorie
+                            </p>
                         {% elif dotation_projet.dotation == "DETR" and dotation_projet.projet.dossier_ds.demande_categorie_detr %}
                             <p>
                                 <b>Catégorie d'opération DETR</b> :
