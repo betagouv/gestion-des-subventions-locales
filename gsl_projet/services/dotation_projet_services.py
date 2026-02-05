@@ -246,6 +246,7 @@ class DotationProjetService:
         cls, projet: Projet
     ) -> list[DotationProjet]:
         dossier_status = projet.dossier_ds.ds_state
+        cls._update_assiette_from_dossier(projet)
         if dossier_status in (
             Dossier.STATE_ACCEPTE,
             Dossier.STATE_REFUSE,
@@ -480,6 +481,16 @@ class DotationProjetService:
             )
 
         return None
+
+    @classmethod
+    def _update_assiette_from_dossier(cls, projet: Projet):
+        for dotation_projet in projet.dotationprojet_set.all():
+            assiette = cls._get_assiette_from_dossier(
+                projet.dossier_ds, dotation_projet.dotation
+            )
+            if assiette is not None:
+                dotation_projet.assiette = assiette
+            dotation_projet.save()
 
     @classmethod
     def _get_assiette_from_dossier(
