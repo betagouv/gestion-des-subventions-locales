@@ -243,3 +243,89 @@ def test_get_boolean_value(
     dossier = DossierFactory()
     setattr(dossier, annotation_field_name, annotation_value)
     assert ps._get_boolean_value(dossier, annotation_field_name) == expected_result
+
+
+@pytest.mark.django_db
+def test_create_or_update_projet_syncs_autre_zonage_local():
+    """Test that autre_zonage_local is synced from DN dossier to projet"""
+    dossier = DossierFactory(projet_adresse=AdresseFactory())
+    dossier.annotations_is_autre_zonage_local = True
+    dossier.annotations_autre_zonage_local = "Zonage Test ABC"
+    dossier.save()
+
+    projet = ps.create_or_update_from_ds_dossier(dossier)
+
+    assert projet.is_autre_zonage_local is True
+    assert projet.autre_zonage_local == "Zonage Test ABC"
+
+
+@pytest.mark.django_db
+def test_create_or_update_projet_syncs_contrat_local():
+    """Test that contrat_local is synced from DN dossier to projet"""
+    dossier = DossierFactory(projet_adresse=AdresseFactory())
+    dossier.annotations_is_contrat_local = True
+    dossier.annotations_contrat_local = "Contrat Test XYZ"
+    dossier.save()
+
+    projet = ps.create_or_update_from_ds_dossier(dossier)
+
+    assert projet.is_contrat_local is True
+    assert projet.contrat_local == "Contrat Test XYZ"
+
+
+@pytest.mark.django_db
+def test_create_or_update_projet_syncs_both_text_fields():
+    """Test that both autre_zonage_local and contrat_local are synced from DN dossier"""
+    dossier = DossierFactory(projet_adresse=AdresseFactory())
+    dossier.annotations_is_autre_zonage_local = True
+    dossier.annotations_autre_zonage_local = "Zonage ABC"
+    dossier.annotations_is_contrat_local = True
+    dossier.annotations_contrat_local = "Contrat XYZ"
+    dossier.save()
+
+    projet = ps.create_or_update_from_ds_dossier(dossier)
+
+    assert projet.is_autre_zonage_local is True
+    assert projet.autre_zonage_local == "Zonage ABC"
+    assert projet.is_contrat_local is True
+    assert projet.contrat_local == "Contrat XYZ"
+
+
+@pytest.mark.django_db
+def test_create_or_update_projet_syncs_empty_text_fields():
+    """Test that empty text fields are synced correctly when checkboxes are False"""
+    dossier = DossierFactory(projet_adresse=AdresseFactory())
+    dossier.annotations_is_autre_zonage_local = False
+    dossier.annotations_autre_zonage_local = ""
+    dossier.annotations_is_contrat_local = False
+    dossier.annotations_contrat_local = ""
+    dossier.save()
+
+    projet = ps.create_or_update_from_ds_dossier(dossier)
+
+    assert projet.is_autre_zonage_local is False
+    assert projet.autre_zonage_local == ""
+    assert projet.is_contrat_local is False
+    assert projet.contrat_local == ""
+
+
+@pytest.mark.django_db
+def test_update_existing_projet_syncs_text_fields():
+    """Test that updating an existing projet syncs text fields from DN"""
+    dossier = DossierFactory(projet_adresse=AdresseFactory())
+    projet = ProjetFactory(dossier_ds=dossier)
+
+    # Update dossier with new text field values
+    dossier.annotations_is_autre_zonage_local = True
+    dossier.annotations_autre_zonage_local = "Updated Zonage"
+    dossier.annotations_is_contrat_local = True
+    dossier.annotations_contrat_local = "Updated Contrat"
+    dossier.save()
+
+    updated_projet = ps.create_or_update_from_ds_dossier(dossier)
+
+    assert updated_projet == projet  # Same instance
+    assert updated_projet.is_autre_zonage_local is True
+    assert updated_projet.autre_zonage_local == "Updated Zonage"
+    assert updated_projet.is_contrat_local is True
+    assert updated_projet.contrat_local == "Updated Contrat"

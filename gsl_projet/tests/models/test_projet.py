@@ -510,3 +510,85 @@ def test_display_notification_button_with_double_dotations_already_notified(
     )
     # When already notified, button should never be displayed
     assert projet.display_notification_button is False
+
+
+def test_zonage_and_contracts_provided_by_instructor_empty():
+    """Project with no zonage or contract fields set should return empty list."""
+    projet = ProjetFactory()
+    assert projet.areas_and_contracts_provided_by_instructor == []
+
+
+def test_zonage_and_contracts_provided_by_instructor_single_field():
+    """Project with one zonage field set should return that field's label."""
+    projet = ProjetFactory(is_in_qpv=True)
+    result = projet.areas_and_contracts_provided_by_instructor
+    assert len(result) == 1
+    assert "Projet situé en QPV" in result
+
+
+def test_zonage_and_contracts_provided_by_instructor_multiple_fields():
+    """Project with multiple zonage/contract fields set should return all their labels."""
+    projet = ProjetFactory(
+        is_in_qpv=True,
+        is_attached_to_a_crte=True,
+        is_frr=True,
+    )
+    result = projet.areas_and_contracts_provided_by_instructor
+    assert len(result) == 3
+    assert "Projet situé en QPV" in result
+    assert "Projet rattaché à un CRTE" in result
+    assert "Projet situé en FRR" in result
+
+
+def test_zonage_and_contracts_provided_by_instructor_all_fields():
+    """Project with all zonage/contract fields set should return all labels."""
+    projet = ProjetFactory(
+        is_in_qpv=True,
+        is_attached_to_a_crte=True,
+        is_frr=True,
+        is_acv=True,
+        is_pvd=True,
+        is_va=True,
+        is_autre_zonage_local=True,
+        is_contrat_local=True,
+    )
+    result = projet.areas_and_contracts_provided_by_instructor
+    assert len(result) == 8
+    assert "Projet situé en QPV" in result
+    assert "Projet rattaché à un CRTE" in result
+    assert "Projet situé en FRR" in result
+    assert "Projet rattaché à un programme Action coeurs de Ville (ACV)" in result
+    assert "Projet rattaché à un programme Petites villes de demain (PVD)" in result
+    assert "Projet rattaché à un programme Villages d'avenir" in result
+    assert "Projet rattaché à un autre zonage local" in result
+    assert "Projet rattaché à un contrat local" in result
+
+
+def test_zonage_and_contracts_provided_by_instructor_excludes_false_fields():
+    """Project should only include fields that are True, not False."""
+    projet = ProjetFactory(
+        is_in_qpv=True,
+        is_attached_to_a_crte=False,
+        is_frr=True,
+        is_acv=False,
+    )
+    result = projet.areas_and_contracts_provided_by_instructor
+    assert len(result) == 2
+    assert "Projet situé en QPV" in result
+    assert "Projet situé en FRR" in result
+    assert "Projet rattaché à un CRTE" not in result
+    assert "Projet rattaché à un programme Action coeurs de Ville (ACV)" not in result
+
+
+def test_zonage_and_contracts_provided_by_instructor_excludes_other_fields():
+    """Project should not include is_budget_vert even if True."""
+    projet = ProjetFactory(
+        is_in_qpv=True,
+        is_budget_vert=True,  # This field is not in the list
+    )
+    result = projet.areas_and_contracts_provided_by_instructor
+    assert len(result) == 1
+    assert "Projet situé en QPV" in result
+    assert (
+        "Projet concourant à la transition écologique au sens budget vert" not in result
+    )

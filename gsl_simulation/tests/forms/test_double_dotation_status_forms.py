@@ -654,8 +654,11 @@ class TestNotificationBehaviorWithDoubleDotation:
         with mock.patch(
             "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
         ):
-            form_back = SimulationProjetStatusForm(instance=detr_simulation_projet)
-            form_back.save(SimulationProjet.STATUS_PROCESSING, user)
+            with mock.patch(
+                "gsl_demarches_simplifiees.services.DsService.repasser_en_instruction"
+            ):
+                form_back = SimulationProjetStatusForm(instance=detr_simulation_projet)
+                form_back.save(SimulationProjet.STATUS_PROCESSING, user)
 
         # DETR programmation should be removed, DSIL should remain
         assert not ProgrammationProjet.objects.filter(

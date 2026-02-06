@@ -56,8 +56,14 @@
             {% for projet in object_list %}
                 {% with projet.dotationprojet_set.all|sort:"dotation" as dotation_projets %}
                     <tr>
-                        <td>
+                        <td class="fr-cell--center">
                             {{ projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}
+                            {% if projet.dossier_ds.demande_numero_demande_precedente %}
+                                <br />
+                                <span class="fr-tag fr-tag--sm fr-tag--icon-left fr-icon-arrow-turn-back-line fr-mt-0-5v">
+                                    Reporté
+                                </span>
+                            {% endif %}
                         </td>
                         <td>
                             {{ projet.dossier_ds.projet_intitule }}
@@ -68,17 +74,25 @@
                         <td>
                             {{ projet.dossier_ds.ds_number }}
                         </td>
-                        <td class="dotation_attribute">
-                            {% for dp in dotation_projets %}
-                                <span>{{ dp.dotation }}</span>
-                            {% endfor %}
-                        </td>
-                        <td class="gsl-money">
-                            {{ projet.dossier_ds.finance_cout_total|euro }}
-                        </td>
-                        <td class="gsl-money">
-                            {{ projet.dossier_ds.demande_montant|euro }}
-                        </td>
+                        {% if projet.dossier_ds.is_sans_pieces and not projet.dossier_ds.demande_dispositif_sollicite %}
+                            <td class="gsl-money" colspan="3">
+                                <a href="{% url 'gsl_demarches_simplifiees:dossier-sans-piece-update' projet.dossier_ds.pk %}"
+                                   class="fr-link fr-link--xs fr-link--icon-right fr-icon-edit-line">Renseigner les
+                                informations</a>
+                            </td>
+                        {% else %}
+                            <td class="dotation_attribute">
+                                {% for dp in dotation_projets %}
+                                    <span>{{ dp.dotation }}</span>
+                                {% endfor %}
+                            </td>
+                            <td class="gsl-money">
+                                {{ projet.dossier_ds.finance_cout_total|euro }}
+                            </td>
+                            <td class="gsl-money">
+                                {{ projet.dossier_ds.demande_montant|euro }}
+                            </td>
+                        {% endif %}
                         <td class="gsl-money {% if projet.montant_retenu is not None %} gsl_projet_table__montant_retenu {% endif %} dotation_attribute">
                             {% for dp in dotation_projets %}
                                 <span>{{ dp.montant_retenu|euro }}</span>
@@ -90,17 +104,19 @@
                             {% endfor %}
                         </td>
                         <td>
-                            <ul class="no-list-style">
-                                {% for categorie in projet.categories_doperation %}
-                                    <li>
-                                        {% if categorie.class == CategorieDetr %}
-                                            {{ categorie.label }}
+                            {% for dp in dotation_projets %}
+                                <div>
+                                    {% if dp.dotation == "DSIL" %}
+                                        {{ projet.dossier_ds.demande_categorie_dsil.label }}
+                                    {% elif dp.dotation == "DETR" %}
+                                        {% if projet.dossier_ds.demande_has_categorie_detr == False %}
+                                            Hors catégorie
                                         {% else %}
-                                            {{ categorie }}
+                                            {{ projet.dossier_ds.demande_categorie_detr.complete_label }}
                                         {% endif %}
-                                    </li>
-                                {% endfor %}
-                            </ul>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
                         </td>
                         <td class="dotation_attribute">
                             {% for dp in dotation_projets %}

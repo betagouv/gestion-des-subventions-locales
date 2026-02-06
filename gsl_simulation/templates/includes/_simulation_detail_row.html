@@ -8,8 +8,15 @@
                name="simu[{{ simu.pk }}]"
                aria-label="Sélectionner le projet {{ projet.dossier_ds.projet_intitule }}">
     </td>
-    <td>
+    <td class="fr-cell--center">
         {{ projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}
+        {% if projet.dossier_ds.demande_numero_demande_precedente %}
+            <br />
+            <span class="fr-tag fr-tag--sm fr-tag--icon-left fr-icon-arrow-turn-back-line fr-mt-0-5v">
+                Reporté
+            </span>
+        {% endif %}
+
     </td>
     <td>
         {{ projet.dossier_ds.projet_intitule }}
@@ -35,21 +42,15 @@
         {% include "includes/table_forms/_taux_form.html" %}
     </td>
     <td>
-        <ul class="no-list-style">
-            {% if dotation_projet.dotation == "DETR" %}
-                {% for c in dotation_projet.detr_categories.all %}
-                    <li>
-                        {{ c.label }}
-                    </li>
-                {% endfor %}
+        {% if dotation_projet.dotation == "DSIL" %}
+            {{ projet.dossier_ds.demande_categorie_dsil.label }}
+        {% elif dotation_projet.dotation == "DETR" %}
+            {% if projet.dossier_ds.demande_has_categorie_detr == False %}
+                Hors catégorie
             {% else %}
-                {% for c in projet.dossier_ds.demande_eligibilite_dsil.all %}
-                    <li>
-                        {{ c }}
-                    </li>
-                {% endfor %}
+                {{ projet.dossier_ds.demande_categorie_detr.complete_label }}
             {% endif %}
-        </ul>
+        {% endif %}
     </td>
     <td class="simulation-status">
         <div class="simulation-status-notified">
@@ -90,21 +91,15 @@
             </div>
         </td>
         <td>
-            <ul class="no-list-style">
-                {% if other_dotation_projet.dotation == "DETR" %}
-                    {% for c in other_dotation_projet.detr_categories.all %}
-                        <li>
-                            {{ c.label }}
-                        </li>
-                    {% endfor %}
+            {% if other_dotation_projet.dotation == "DSIL" %}
+                {{ other_dotation_projet.projet.dossier_ds.demande_categorie_dsil.label }}
+            {% elif other_dotation_projet.dotation == "DETR" %}
+                {% if other_dotation_projet.projet.dossier_ds.demande_has_categorie_detr == False %}
+                    Hors catégorie
                 {% else %}
-                    {% for c in other_dotation_projet.projet.dossier_ds.demande_eligibilite_dsil.all %}
-                        <li>
-                            {{ c }}
-                        </li>
-                    {% endfor %}
+                    {{ other_dotation_projet.projet.dossier_ds.demande_categorie_detr.complete_label }}
                 {% endif %}
-            </ul>
+            {% endif %}
         </td>
         <td colspan=2 class="other-simulation-status">
             <div class="simulation-status-notified">

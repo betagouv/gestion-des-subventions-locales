@@ -8,7 +8,7 @@ import pytest
 from django.utils import timezone
 
 from gsl_core.tests.factories import CollegueFactory
-from gsl_demarches_simplifiees.models import Dossier, FieldMappingForComputer
+from gsl_demarches_simplifiees.models import Dossier, FieldMapping
 from gsl_demarches_simplifiees.services import (
     DsService,
     DsServiceException,
@@ -18,7 +18,7 @@ from gsl_demarches_simplifiees.services import (
 )
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
-    FieldMappingForComputerFactory,
+    FieldMappingFactory,
     ProfileFactory,
 )
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
@@ -38,7 +38,7 @@ def dossier():
 
 @pytest.fixture
 def ds_field():
-    return FieldMappingForComputerFactory(ds_field_id=101112)
+    return FieldMappingFactory(ds_field_id=101112)
 
 
 def test_get_instructeur_id(caplog):
@@ -80,8 +80,8 @@ def test_get_ds_field_id(dossier: Dossier, field, field_name, caplog):
     ds_service = DsService()
 
     with patch(
-        "gsl_demarches_simplifiees.services.FieldMappingForComputer.objects.get",
-        side_effect=FieldMappingForComputer.DoesNotExist,
+        "gsl_demarches_simplifiees.services.FieldMapping.objects.get",
+        side_effect=FieldMapping.DoesNotExist,
     ):
         with pytest.raises(FieldError) as exc_info:
             ds_service._get_ds_field_id(dossier, field)
@@ -1116,6 +1116,133 @@ class TestUpdateCheckboxesAnnotations:
 
             # Verify _update_updated_at_from_multiple_annotations was called
             mock_update_updated_at.assert_called_once_with(dossier, mock_response)
+
+    def test_update_checkboxes_annotations_with_text_annotations(self, user, dossier):
+        """Test updating checkboxes annotations with text annotations"""
+        ds_service = DsService()
+
+        field_ids = {
+            "annotations_is_autre_zonage_local": "field_autre_zonage_local_checkbox_123",
+            "annotations_autre_zonage_local": "field_autre_zonage_local_text_456",
+            "annotations_is_contrat_local": "field_contrat_local_checkbox_789",
+            "annotations_contrat_local": "field_contrat_local_text_101",
+        }
+
+        mock_get_ds_field_id = MagicMock(
+            side_effect=lambda dossier, field: field_ids[field]
+        )
+
+        with (
+            patch.object(ds_service, "_get_ds_field_id", mock_get_ds_field_id),
+            patch.object(ds_service, "mutator") as mock_mutator,
+            patch.object(ds_service, "_check_results"),
+            patch.object(ds_service, "_update_updated_at_from_multiple_annotations"),
+        ):
+            mock_mutator.dossier_modifier_annotations.return_value = {
+                "data": {
+                    "dossierModifierAnnotations": {
+                        "clientMutationId": "test",
+                        "annotations": [
+                            {
+                                "id": "field_autre_zonage_local_checkbox_123",
+                                "updatedAt": "2025-01-15T10:30:00+00:00",
+                            },
+                            {
+                                "id": "field_autre_zonage_local_text_456",
+                                "updatedAt": "2025-01-15T10:30:00+00:00",
+                            },
+                            {
+                                "id": "field_contrat_local_checkbox_789",
+                                "updatedAt": "2025-01-15T10:30:00+00:00",
+                            },
+                            {
+                                "id": "field_contrat_local_text_101",
+                                "updatedAt": "2025-01-15T10:30:00+00:00",
+                            },
+                        ],
+                    }
+                }
+            }
+
+            annotations_to_update = {
+                "annotations_is_autre_zonage_local": True,
+                "annotations_is_contrat_local": True,
+            }
+            text_annotations_to_update = {
+                "annotations_autre_zonage_local": "Zonage Test ABC",
+                "annotations_contrat_local": "Contrat Test XYZ",
+            }
+            ds_service.update_checkboxes_annotations(
+                dossier=dossier,
+                user=user,
+                annotations_to_update=annotations_to_update,
+                text_annotations_to_update=text_annotations_to_update,
+            )
+
+            # Verify _get_ds_field_id was called for all annotations (checkboxes + text)
+            assert mock_get_ds_field_id.call_count == 4
+
+            # Verify annotations structure
+            call_args = mock_mutator.dossier_modifier_annotations.call_args
+            annotations = call_args[0][2]
+            assert len(annotations) == 4
+
+            # Verify checkbox annotations
+            checkbox_annotations = [
+                ann for ann in annotations if "checkbox" in ann["value"]
+            ]
+            assert len(checkbox_annotations) == 2
+            checkbox_dict = {
+                ann["id"]: ann["value"]["checkbox"] for ann in checkbox_annotations
+            }
+            assert checkbox_dict["field_autre_zonage_local_checkbox_123"] is True
+            assert checkbox_dict["field_contrat_local_checkbox_789"] is True
+
+            # Verify text annotations
+            text_annotations = [ann for ann in annotations if "text" in ann["value"]]
+            assert len(text_annotations) == 2
+            text_dict = {ann["id"]: ann["value"]["text"] for ann in text_annotations}
+            assert text_dict["field_autre_zonage_local_text_456"] == "Zonage Test ABC"
+            assert text_dict["field_contrat_local_text_101"] == "Contrat Test XYZ"
+
+    def test_update_checkboxes_annotations_with_empty_text_annotations(
+        self, user, dossier
+    ):
+        """Test updating checkboxes annotations with empty text annotations dict"""
+        ds_service = DsService()
+
+        field_ids = {
+            "annotations_is_qpv": "field_qpv_123",
+        }
+
+        mock_get_ds_field_id = MagicMock(
+            side_effect=lambda dossier, field: field_ids[field]
+        )
+
+        with (
+            patch.object(ds_service, "_get_ds_field_id", mock_get_ds_field_id),
+            patch.object(ds_service, "mutator") as mock_mutator,
+            patch.object(ds_service, "_check_results"),
+            patch.object(ds_service, "_update_updated_at_from_multiple_annotations"),
+        ):
+            mock_mutator.dossier_modifier_annotations.return_value = {
+                "data": {"dossierModifierAnnotations": {"clientMutationId": "test"}}
+            }
+
+            annotations_to_update = {"annotations_is_qpv": True}
+            text_annotations_to_update = {}
+            ds_service.update_checkboxes_annotations(
+                dossier=dossier,
+                user=user,
+                annotations_to_update=annotations_to_update,
+                text_annotations_to_update=text_annotations_to_update,
+            )
+
+            # Verify only checkbox annotation was sent
+            call_args = mock_mutator.dossier_modifier_annotations.call_args
+            annotations = call_args[0][2]
+            assert len(annotations) == 1
+            assert annotations[0]["value"]["checkbox"] is True
 
 
 class TestTransformMessage:

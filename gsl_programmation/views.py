@@ -130,12 +130,18 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
         return (
             super()
             .get_queryset()
-            .select_related("dotation_projet", "dotation_projet__projet")
+            .select_related(
+                "dotation_projet",
+                "dotation_projet__projet",
+                "dotation_projet__projet__dossier_ds",
+                "dotation_projet__projet__dossier_ds__demande_categorie_dsil",
+            )
             .prefetch_related(
                 "dotation_projet__projet__dotationprojet_set",
                 "dotation_projet__projet__dotationprojet_set__programmation_projet",
                 "dotation_projet__projet__dotationprojet_set__simulationprojet_set",
                 "dotation_projet__projet__dotationprojet_set__detr_categories",
+                "annexes",
             )
         )
 
@@ -221,6 +227,7 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
 
         return (perimetre, *perimetre.children())
 
+    # TODO category : useless now. Remove it unless we use it to filter DETR projects.
     @cached_property
     def categorie_detr_choices(self):
         perimetre = self._get_perimetre()

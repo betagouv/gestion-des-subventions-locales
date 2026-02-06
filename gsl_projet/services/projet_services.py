@@ -42,9 +42,11 @@ class ProjetService:
         projet.is_autre_zonage_local = cls._get_boolean_value(
             ds_dossier, "annotations_is_autre_zonage_local"
         )
+        projet.autre_zonage_local = ds_dossier.annotations_autre_zonage_local
         projet.is_contrat_local = cls._get_boolean_value(
             ds_dossier, "annotations_is_contrat_local"
         )
+        projet.contrat_local = ds_dossier.annotations_contrat_local
 
         if ds_dossier.ds_demandeur:
             projet.demandeur, _ = Demandeur.objects.get_or_create(

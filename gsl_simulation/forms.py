@@ -216,16 +216,6 @@ class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):
     processing dotation).
     """
 
-    def clean(self):
-        cleaned_data = super().clean()
-
-        if self.instance.projet.notified_at:
-            raise ValidationError(
-                "Le statut d'un projet déjà notifié ne peut être modifié."
-            )
-
-        return cleaned_data
-
     @transaction.atomic
     def save(self, status, user: Collegue, commit=True):
         if status == SimulationProjet.STATUS_ACCEPTED:

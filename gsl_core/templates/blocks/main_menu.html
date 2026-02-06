@@ -38,12 +38,6 @@
                            target="_self"
                            {% if "/programmation/" in request.path or "/notification/" in request.path %}aria-current="true"{% endif %}>3 - Programmations</a>
                     </li>
-                    <li class="fr-nav__item">
-                        <a class="fr-nav__link"
-                           href="{% url "user-help" %}"
-                           target="_self"
-                           {% if "/aide-utilisation/" in request.path %}aria-current="true"{% endif %}>Aide à l'utilisation</a>
-                    </li>
                 {% endif %}
                 {% if request.user.is_staff %}
                     <li class="fr-nav__item">

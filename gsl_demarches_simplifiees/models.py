@@ -2,11 +2,16 @@ from logging import getLogger
 
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 
-from gsl_core.models import Adresse, Perimetre
+from gsl_core.models import Adresse, Collegue, Perimetre
 from gsl_core.models import Arrondissement as CoreArrondissement
 from gsl_core.models import Departement as CoreDepartement
-from gsl_projet.constants import MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
+)
 
 logger = getLogger(__name__)
 
@@ -131,6 +136,9 @@ class PersonneMorale(models.Model):
 
     def update_from_raw_ds_data(self, ds_data):
         self.siret = ds_data.get("siret")
+        if ds_data.get("__typename") == "PersonneMoraleIncomplete":
+            return self
+
         self.naf, _ = Naf.objects.get_or_create(
             code=ds_data.get("naf"), defaults={"libelle": ds_data.get("libelleNaf")}
         )
@@ -167,6 +175,31 @@ class DossierData(TimestampedModel):
         if "number" in self.raw_data:
             return f"Données de dossier #{self.raw_data['number']}"
         return "Données de dossier (vide)"
+
+
+class DossierQuerySet(models.QuerySet):
+    def for_user(self, user: Collegue):
+        if user.perimetre is None:
+            if user.is_staff or user.is_superuser:
+                return self
+            return self.none()
+
+        return self.for_perimetre(user.perimetre)
+
+    def for_perimetre(self, perimetre: Perimetre | None):
+        if perimetre is None:
+            return self
+        if perimetre.arrondissement:
+            return self.filter(
+                projet__perimetre__arrondissement=perimetre.arrondissement
+            )
+        if perimetre.departement:
+            return self.filter(projet__perimetre__departement=perimetre.departement)
+        if perimetre.region:
+            return self.filter(projet__perimetre__region=perimetre.region)
+
+    def sans_pieces(self):
+        return self.filter(demande_renouvellement__contains="SANS")
 
 
 class Dossier(TimestampedModel):
@@ -277,13 +310,16 @@ class Dossier(TimestampedModel):
         verbose_name="Zonage spécifique : le projet est il situé dans l'une des zones suivantes ?",
         blank=True,
     )
+    projet_zonage_autre = models.CharField(
+        "Autre zonage : précisez le nom du zonage", blank=True
+    )
     projet_contractualisation = models.ManyToManyField(
         "gsl_demarches_simplifiees.ProjetContractualisation",
         verbose_name="Contractualisation : le projet est-il inscrit dans un ou plusieurs contrats avec l'Etat ?",
         blank=True,
     )
     projet_contractualisation_autre = models.CharField(
-        "Autre contrat : précisez le contrat concerné", blank=True
+        "Autre contrat : précisez le nom du contrat", blank=True
     )
 
     # ----
@@ -317,9 +353,9 @@ class Dossier(TimestampedModel):
         "Le projet va-t-il générer des recettes ?", null=True
     )
     # ---
-    demande_annee_precedente = models.BooleanField(
-        "Avez-vous déjà présenté cette opération au titre de campagnes DETR/DSIL en 2023 ?",
-        null=True,
+    demande_renouvellement = models.CharField(
+        "Souhaitez-vous effectuer une nouvelle demande ou renouveler une demande précédente ?",
+        blank=True,
     )
     demande_numero_demande_precedente = models.CharField(
         "Précisez le numéro du dossier déposé antérieurement",
@@ -330,15 +366,23 @@ class Dossier(TimestampedModel):
         "Dispositif de financement sollicité",
         blank=True,
     )
-    demande_eligibilite_detr = models.ManyToManyField(
-        "gsl_demarches_simplifiees.CritereEligibiliteDetr",
-        verbose_name="Eligibilité de l'opération à la DETR",
+    demande_has_categorie_detr = models.BooleanField(
+        "DETR · Le projet s'inscrit-il dans une des catégories prioritaires définies par la commission départementale d'élus ?",
+        null=True,
         blank=True,
     )
-
-    demande_eligibilite_dsil = models.ManyToManyField(
-        "gsl_demarches_simplifiees.CritereEligibiliteDsil",
-        verbose_name="Eligibilité de l'opération à la DSIL",
+    demande_categorie_detr = models.ForeignKey(
+        "gsl_demarches_simplifiees.CategorieDetr",
+        verbose_name="Catégories prioritaires",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+    )
+    demande_categorie_dsil = models.ForeignKey(
+        "gsl_demarches_simplifiees.CategorieDsil",
+        verbose_name="DSIL · Éligibilité de l'opération",
+        on_delete=models.PROTECT,
+        null=True,
         blank=True,
     )
     demande_montant = models.DecimalField(
@@ -376,8 +420,16 @@ class Dossier(TimestampedModel):
         "Contact de l'agent instructeur à indiquer au demandeur",
         blank=True,
     )
-    annotations_champ_libre = models.TextField(
-        "Champ libre pour le service instructeur",
+    annotations_champ_libre_1 = models.TextField(
+        "Champ libre pour le service instructeur 1",
+        blank=True,
+    )
+    annotations_champ_libre_2 = models.TextField(
+        "Champ libre pour le service instructeur 2",
+        blank=True,
+    )
+    annotations_champ_libre_3 = models.TextField(
+        "Champ libre pour le service instructeur 3",
         blank=True,
     )
     annotations_dotation = models.CharField(
@@ -402,9 +454,15 @@ class Dossier(TimestampedModel):
     annotations_is_autre_zonage_local = models.BooleanField(
         "Projet rattaché à un autre zonage local", null=True
     )
+    annotations_autre_zonage_local = models.CharField(
+        "Zonage local", blank=True
+    )  # "Précisez lequel." dans DN => le renseigner à la main via le BO
     annotations_is_contrat_local = models.BooleanField(
         "Projet rattaché à un contrat local", null=True
     )
+    annotations_contrat_local = models.CharField(
+        "Contrat local", blank=True
+    )  # "Précisez lequel." dans DN => le renseigner à la main via le BO
 
     # DETR
     annotations_assiette_detr = models.DecimalField(
@@ -465,6 +523,7 @@ class Dossier(TimestampedModel):
         projet_immo,
         projet_travaux,
         projet_zonage,
+        projet_zonage_autre,
         projet_contractualisation,
         projet_contractualisation_autre,
         environnement_transition_eco,
@@ -474,11 +533,12 @@ class Dossier(TimestampedModel):
         date_achevement,
         finance_cout_total,
         finance_recettes,
-        demande_annee_precedente,
+        demande_renouvellement,
         demande_numero_demande_precedente,
         demande_dispositif_sollicite,
-        demande_eligibilite_detr,
-        demande_eligibilite_dsil,
+        demande_has_categorie_detr,
+        demande_categorie_detr,
+        demande_categorie_dsil,
         demande_montant,
         demande_autres_aides,
         demande_autre_precision,
@@ -488,7 +548,9 @@ class Dossier(TimestampedModel):
     )
     _MAPPED_ANNOTATIONS_FIELDS = (
         annotations_contact,
-        annotations_champ_libre,
+        annotations_champ_libre_1,
+        annotations_champ_libre_2,
+        annotations_champ_libre_3,
         annotations_dotation,
         annotations_is_budget_vert,
         annotations_is_qpv,
@@ -498,7 +560,9 @@ class Dossier(TimestampedModel):
         annotations_is_pvd,
         annotations_is_va,
         annotations_is_autre_zonage_local,
+        annotations_autre_zonage_local,
         annotations_is_contrat_local,
+        annotations_contrat_local,
         annotations_assiette_detr,
         annotations_montant_accorde_detr,
         annotations_taux_detr,
@@ -507,6 +571,8 @@ class Dossier(TimestampedModel):
         annotations_taux_dsil,
     )
     MAPPED_FIELDS = _MAPPED_ANNOTATIONS_FIELDS + _MAPPED_CHAMPS_FIELDS
+
+    objects = models.Manager.from_queryset(DossierQuerySet)()
 
     class Meta:
         verbose_name = "Dossier"
@@ -593,6 +659,41 @@ class Dossier(TimestampedModel):
             return False
         return self.demande_montant >= MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
 
+    @property
+    def is_sans_pieces(self) -> bool:
+        return "SANS" in self.demande_renouvellement
+
+    @property
+    def dotations_demande(self):
+        dotations = []
+
+        if not self.demande_dispositif_sollicite:
+            return dotations
+
+        if DOTATION_DETR in self.demande_dispositif_sollicite:
+            dotations.append(DOTATION_DETR)
+        if DOTATION_DSIL in self.demande_dispositif_sollicite:
+            dotations.append(DOTATION_DSIL)
+
+        if not dotations:
+            logger.warning(
+                "Champ demande_dispositif_sollicite invalide.",
+                extra={
+                    "dossier_ds_number": self.ds_number,
+                    "value": self.demande_dispositif_sollicite,
+                },
+            )
+
+        return dotations
+
+    @property
+    def has_annotations_champ_libre(self):
+        return (
+            bool(self.annotations_champ_libre_1)
+            or bool(self.annotations_champ_libre_2)
+            or bool(self.annotations_champ_libre_3)
+        )
+
 
 class DsChoiceLibelle(TimestampedModel):
     label = models.CharField("Libellé", unique=True)
@@ -662,20 +763,44 @@ class ObjectifEnvironnemental(DsChoiceLibelle):
     pass
 
 
-class CritereEligibiliteDetr(DsChoiceLibelle):
-    label = models.CharField("Libellé", unique=False)
+class CategorieQuerySet(models.QuerySet):
+    def active(self):
+        return self.filter(active=True)
 
+
+class CategorieManager(models.Manager.from_queryset(CategorieQuerySet)):
+    pass
+
+
+class Categorie(TimestampedModel):
     demarche = models.ForeignKey(
-        Demarche, on_delete=models.PROTECT, null=True, verbose_name="Démarche"
+        Demarche, on_delete=models.PROTECT, verbose_name="Démarche"
     )
-    demarche_revision = models.CharField(
-        blank=True, default="", verbose_name="Révision"
+    label = models.CharField("Libellé")
+    rank = models.IntegerField("Rang", null=True)
+    active = models.BooleanField("Active", default=True)
+    deactivated_at = models.DateTimeField(
+        "Date de désactivation", null=True, blank=True
     )
-    detr_category = models.ForeignKey(
-        "gsl_projet.CategorieDetr",
-        on_delete=models.SET_NULL,
-        null=True,
-        verbose_name="Catégorie d’opération DETR",
+
+    objects = CategorieManager()
+
+    class Meta:
+        abstract = True
+
+    def deactivate(self):
+        self.active = False
+        self.deactivated_at = timezone.now()
+        self.save()
+
+
+class CategorieDetr(Categorie):
+    parent_label = models.CharField("Libellé de la catégorie parente", blank=True)
+    departement = models.ForeignKey(
+        CoreDepartement,
+        verbose_name="Département",
+        on_delete=models.PROTECT,
+        related_name="categories_detr",
     )
 
     class Meta:
@@ -683,17 +808,36 @@ class CritereEligibiliteDetr(DsChoiceLibelle):
         verbose_name_plural = "Catégories DETR"
         constraints = (
             models.UniqueConstraint(
-                fields=("label", "demarche", "demarche_revision"),
-                name="unique_%(class)s_label_per_demarche_revision",
+                fields=("label", "demarche", "departement"),
+                name="unique_categorie_detr_label_per_demarche_departement",
                 nulls_distinct=False,
             ),
         )
 
+    def __str__(self):
+        return f"{self.label}"
 
-class CritereEligibiliteDsil(DsChoiceLibelle):
+    @property
+    def complete_label(self):
+        if self.parent_label:
+            return f"{self.parent_label} - {self.label}"
+        return self.label
+
+
+class CategorieDsil(Categorie):
     class Meta:
         verbose_name = "Catégorie DSIL"
         verbose_name_plural = "Catégories DSIL"
+        constraints = (
+            models.UniqueConstraint(
+                fields=("label", "demarche"),
+                name="unique_categorie_dsil_label_per_demarche",
+                nulls_distinct=False,
+            ),
+        )
+
+    def __str__(self):
+        return f"{self.label}"
 
 
 class AutreAide(DsChoiceLibelle):
@@ -719,30 +863,7 @@ def mapping_field_choices():
     )
 
 
-class FieldMappingForHuman(TimestampedModel):
-    label = models.CharField("Libellé du champ DS", unique=True)
-    django_field = models.CharField(
-        "Champ correspondant dans Django",
-        choices=mapping_field_choices,
-        blank=True,
-    )
-    demarche = models.ForeignKey(
-        Demarche,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        verbose_name="Démarche sur laquelle ce libellé de champ a été trouvé la première fois",
-    )
-
-    class Meta:
-        verbose_name = "Réconciliation de champ"
-        verbose_name_plural = "Réconciliations de champs"
-
-    def __str__(self):
-        return f"Réconciliation {self.pk}"
-
-
-class FieldMappingForComputer(TimestampedModel):
+class FieldMapping(TimestampedModel):
     demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
     ds_field_id = models.CharField("ID du champ DS")
     ds_field_label = models.CharField(
@@ -753,16 +874,10 @@ class FieldMappingForComputer(TimestampedModel):
     django_field = models.CharField(
         "Champ Django", choices=mapping_field_choices, blank=True
     )
-    field_mapping_for_human = models.ForeignKey(
-        FieldMappingForHuman,
-        on_delete=models.SET_NULL,
-        null=True,
-        help_text="Réconciliation utilisée pour créer cette correspondance",
-    )
 
     class Meta:
-        verbose_name = "Correspondance technique"
-        verbose_name_plural = "Correspondances techniques"
+        verbose_name = "Correspondance de champ"
+        verbose_name_plural = "Correspondances de champ"
         constraints = (
             models.UniqueConstraint(
                 fields=("demarche", "ds_field_id"),
@@ -771,7 +886,7 @@ class FieldMappingForComputer(TimestampedModel):
         )
 
     def __str__(self):
-        return f"Correspondance technique {self.pk}"
+        return f"Correspondance de champ {self.pk}"
 
     def django_field_label(self):
         if self.django_field:

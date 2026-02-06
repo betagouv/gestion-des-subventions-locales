@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load static gsl_filters %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static "css/projet_detail.css" %}">
+    <link rel="stylesheet" href="{% static "css/dossier_sans_piece.css" %}">
+{% endblock extra_css %}
+
+{% block content %}
+    <div class="fr-container--fluid">
+        <div class="fr-grid-row">
+            <div class="fr-col">
+                {% block go_back_button %}
+                    <div class="fr-mb-4w">
+                        <a href="{% url "projet:list" %}{% querystring %}"
+                           class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+                            Retour à la liste des projets
+                        </a>
+                    </div>
+                {% endblock go_back_button %}
+            </div>
+        </div>
+    </div>
+    {% if dossier.demande_numero_demande_precedente %}
+        <p class="fr-tag fr-tag--icon-left fr-mb-1w fr-icon-arrow-turn-back-line">
+            Reporté
+        </p>
+    {% endif %}
+    <div class="projet-header">
+        <h1>
+            {{ dossier.projet_intitule|lower|capfirst }}
+        </h1>
+        {% with dossier.projet.dotationprojet_set.all as dotation_projets %}
+            {% if dotation_projets %}
+                <div class="projet-header__status">
+                    {% block status_badge %}
+                        {% for dotation_projet in dotation_projets %}
+                            <span class="fr-badge fr-text--xl fr-mt-2v fr-ml-5w badge-projet-status badge-projet-status__{{ dotation_projet.status }}">
+                                {% if dotation_projets|length > 1 %}
+                                    {{ dotation_projet.dotation }}
+                                {% endif %}
+                                {{ dotation_projet.get_status_display|remove_first_word }}
+                            </span>
+                        {% endfor %}
+                    {% endblock status_badge %}
+                </div>
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <ul class="fr-btns-group--right fr-btns-group--inline fr-mb-4w">
+        {% if dossier.ds_number %}
+            <li>
+                <a href="{{ dossier.url_on_ds }}"
+                   target="_blank"
+                   rel="noreferrer noopener"
+                   title="Voir le dossier sur Démarche Numérique - nouvelle fenêtre"
+                   class="fr-btn fr-btn--icon-right fr-icon-external-link-line fr-btn--secondary">
+                    Voir le dossier sur Démarche Numérique
+                    <span class="fr-sr-only">(nouvelle fenêtre)</span>
+                </a>
+            </li>
+        {% endif %}
+    </ul>
+    <div class="fr-grid-row fr-grid-row--gutters fr-mb-6w dossier-sans-piece-update-container fr-p-4w">
+        <div class="fr-col-12 fr-col-lg-9">
+            <h2>
+                Mettre à jour les informations du précédent dossier
+            </h2>
+            <p>
+                <b>
+                    Ce dossier est un dossier redéposé depuis un précédent dossier.
+                    Vous devez consulter le précédent dossier sur DN, et mettre à jour ici les informations.
+                </b>
+            </p>
+        </div>
+        <div class="fr-col-12 fr-col-md-6 fr-col-xl-6">
+            <form method="post">
+                {% csrf_token %}
+
+                {{ form }}
+                <button class="fr-btn fr-btn--primery" type="submit">
+                    Enregistrer
+                </button>
+            </form>
+        </div>
+    </div>
+{% endblock content %}

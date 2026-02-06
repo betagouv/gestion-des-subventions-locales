@@ -5,16 +5,20 @@ from pathlib import Path
 import pytest
 
 from gsl_core.models import Adresse
+from gsl_core.tests.factories import DepartementFactory, RegionFactory
 from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverter
 from gsl_demarches_simplifiees.models import (
-    CritereEligibiliteDetr,
+    CategorieDetr,
     Demarche,
     Dossier,
     DossierData,
-    FieldMappingForComputer,
+    FieldMapping,
+    Naf,
     PersonneMorale,
 )
-from gsl_demarches_simplifiees.tests.factories import DemarcheFactory
+from gsl_demarches_simplifiees.tests.factories import (
+    CategorieDetrFactory,
+)
 
 pytestmark = [
     pytest.mark.django_db,
@@ -79,29 +83,34 @@ def dossier_converter(ds_dossier_data, dossier):
 
 
 def test_init_dossier_converter(ds_dossier_data, dossier):
-    FieldMappingForComputer.objects.create(
+    FieldMapping.objects.create(
         ds_field_id="TEST_ID_un_champ_hors_annotation",
         django_field=Dossier._MAPPED_CHAMPS_FIELDS[0].name,
         demarche=dossier.ds_data.ds_demarche,
     )
-    FieldMappingForComputer.objects.create(
+    FieldMapping.objects.create(
         ds_field_id="TEST_ID_un_champ_annotation",
         django_field=Dossier._MAPPED_ANNOTATIONS_FIELDS[0].name,
         demarche=dossier.ds_data.ds_demarche,
     )
     dossier_converter = DossierConverter(ds_dossier_data, dossier)
 
-    assert "TEST_ID_un_champ_hors_annotation" in dossier_converter.ds_fields_by_id
-    assert "TEST_ID_un_champ_annotation" in dossier_converter.ds_fields_by_id
-    assert len(dossier_converter.ds_fields_by_id) == (
+    assert (
+        "TEST_ID_un_champ_hors_annotation"
+        in dossier_converter.ds_field_id_to_field_data
+    )
+    assert "TEST_ID_un_champ_annotation" in dossier_converter.ds_field_id_to_field_data
+    assert len(dossier_converter.ds_field_id_to_field_data) == (
         len(ds_dossier_data["champs"]) + len(ds_dossier_data["annotations"])
     )
     assert (
-        dossier_converter.ds_id_to_django_field["TEST_ID_un_champ_hors_annotation"]
+        dossier_converter.ds_field_id_to_django_field[
+            "TEST_ID_un_champ_hors_annotation"
+        ]
         == Dossier._MAPPED_CHAMPS_FIELDS[0]
     )
     assert (
-        dossier_converter.ds_id_to_django_field["TEST_ID_un_champ_annotation"]
+        dossier_converter.ds_field_id_to_django_field["TEST_ID_un_champ_annotation"]
         == Dossier._MAPPED_ANNOTATIONS_FIELDS[0]
     )
 
@@ -125,6 +134,50 @@ def test_demandeur_is_properly_found_if_already_existing(
     assert PersonneMorale.objects.count() == 1
     assert isinstance(dossier_converter.dossier.ds_demandeur, PersonneMorale)
     assert dossier_converter.dossier.ds_demandeur.siret == existing_demandeur.siret
+
+
+def test_fill_unmapped_fields_with_personne_morale_incomplete_does_not_create_naf_nor_adresse(
+    demarche,
+    dossier_ds_id,
+    dossier_ds_number,
+):
+    """With demandeur_data PersonneMoraleIncomplete (only __typename + siret), no Naf nor Adresse are created."""
+    ds_dossier_data = {
+        "champs": [],
+        "annotations": [],
+        "demarche": {"revision": {"id": "rev-1"}},
+        "state": "en_construction",
+        "dateDepot": "2024-10-16T10:09:32+02:00",
+        "dateDerniereModification": "2024-10-16T10:09:33+02:00",
+        "datePassageEnConstruction": "2024-10-16T10:09:32+02:00",
+        "datePassageEnInstruction": None,
+        "dateDerniereModificationChamps": "2024-10-16T10:09:29+02:00",
+        "dateTraitement": None,
+        "demandeur": {
+            "__typename": "PersonneMoraleIncomplete",
+            "siret": "21240521100013",
+        },
+    }
+    dossier = Dossier.objects.create(
+        ds_id=dossier_ds_id,
+        ds_demarche_number=demarche.ds_number,
+        ds_number=dossier_ds_number,
+        ds_data=DossierData.objects.create(ds_demarche=demarche),
+    )
+    converter = DossierConverter(ds_dossier_data, dossier)
+
+    assert Naf.objects.count() == 0
+    assert Adresse.objects.count() == 0
+
+    converter.fill_unmapped_fields()
+
+    assert isinstance(converter.dossier.ds_demandeur, PersonneMorale)
+    assert converter.dossier.ds_demandeur.siret == "21240521100013"
+    assert converter.dossier.ds_demandeur.address_id is None
+    assert converter.dossier.ds_demandeur.naf_id is None
+    # No Naf nor Adresse were created by update_from_raw_ds_data
+    assert Naf.objects.count() == 0
+    assert Adresse.objects.count() == 0
 
 
 extract_field_test_data = (
@@ -331,7 +384,10 @@ def test_extract_field_data(input, expected, dossier_converter):
 
 def test_inject_scalar_value(dossier_converter, dossier):
     dossier_converter.inject_into_field(
-        dossier, Dossier._meta.get_field("date_achevement"), datetime.date(2025, 2, 2)
+        dossier,
+        Dossier._meta.get_field("date_achevement"),
+        datetime.date(2025, 2, 2),
+        "",
     )
     dossier.save()
     assert dossier.date_achevement == datetime.date(2025, 2, 2)
@@ -342,6 +398,7 @@ def test_inject_foreign_key_value(dossier_converter, dossier):
         dossier,
         Dossier._meta.get_field("porteur_de_projet_arrondissement"),
         "67 - Bas-Rhin - arrondissement de Haguenau-Wissembourg",
+        "Arrondissement du demandeur (67 - Bas-Rhin)",
     )
     dossier.save()
     assert (
@@ -359,6 +416,7 @@ def test_inject_manytomany_value(dossier_converter, dossier):
             "Territoires Engagées pour la Nature (TEN)",
             "Site patrimonial remarquable (SPR)",
         ],
+        "Zonage",
     )
     dossier.save()
     assert len(dossier.projet_zonage.all()) == 3
@@ -369,36 +427,10 @@ def test_inject_string_into_manytomany_value(dossier_converter, dossier):
         dossier,
         Dossier._meta.get_field("projet_zonage"),
         "Territoires d'industrie (TI)",
+        "Zonage",
     )
     dossier.save()
     assert len(dossier.projet_zonage.all()) == 1
-
-
-def test_inject_correct_category_detr_value_with_several_demarches(
-    dossier_converter, dossier
-):
-    libelle = "1. Valeur du premier choix"
-    demarche_revision = ""
-    other_critere_detr = CritereEligibiliteDetr.objects.create(
-        demarche=DemarcheFactory(ds_title="Démarche qui n'a rien à voir"),
-        label=libelle,
-        demarche_revision="tata",
-    )
-    good_critere_detr = CritereEligibiliteDetr.objects.create(
-        demarche=dossier.ds_data.ds_demarche,
-        label=libelle,
-        demarche_revision=demarche_revision,
-    )
-    dossier_converter.ds_demarche_revision = demarche_revision
-    dossier_converter.inject_into_field(
-        dossier,
-        Dossier._meta.get_field("demande_eligibilite_detr"),
-        libelle,
-    )
-    dossier.save()
-    dossier_critere = dossier.demande_eligibilite_detr.first()
-    assert dossier_critere == good_critere_detr
-    assert dossier_critere != other_critere_detr
 
 
 def test_inject_address_value(dossier_converter, dossier):
@@ -419,9 +451,52 @@ def test_inject_address_value(dossier_converter, dossier):
             "regionName": "Grand Est",
             "regionCode": "44",
         },
+        "Adresse du projet",
     )
     dossier.save()
     assert Adresse.objects.count() == 1
     assert dossier.projet_adresse.label.startswith("2 Rue des Ecoles")
     assert dossier.projet_adresse.commune.name == "Schirrhein"
     assert dossier.projet_adresse.commune.insee_code == "67449"
+
+
+# --- inject_into_field CategorieDetr (demande_categorie_detr) ---
+
+
+def test_inject_into_field_categorie_detr_resolves_by_label_and_departement_from_label(
+    dossier_converter,
+    dossier,
+):
+    """Injecting into demande_categorie_detr uses label to get département and finds CategorieDetr."""
+    region = RegionFactory()
+    dep_87 = DepartementFactory(region=region, insee_code="87", name="Haute-Vienne")
+    category_label = "1. Première catégorie prioritaire"
+    categorie_detr = CategorieDetrFactory(
+        demarche=dossier.ds_data.ds_demarche,
+        departement=dep_87,
+        label=category_label,
+    )
+    field = Dossier._meta.get_field("demande_categorie_detr")
+    ds_field_label = "Catégories prioritaires (87 - Haute-Vienne)"
+
+    dossier_converter.inject_into_field(dossier, field, category_label, ds_field_label)
+    dossier.save()
+
+    assert dossier.demande_categorie_detr_id == categorie_detr.pk
+    assert dossier.demande_categorie_detr.label == category_label
+    assert dossier.demande_categorie_detr.departement == dep_87
+
+
+def test_inject_into_field_categorie_detr_raises_when_category_not_found(
+    dossier_converter,
+    dossier,
+):
+    region = RegionFactory()
+    DepartementFactory(region=region, insee_code="87", name="Haute-Vienne")
+    field = Dossier._meta.get_field("demande_categorie_detr")
+    ds_field_label = "Catégories prioritaires (87 - Haute-Vienne)"
+
+    with pytest.raises(CategorieDetr.DoesNotExist):
+        dossier_converter.inject_into_field(
+            dossier, field, "Inexistant label", ds_field_label
+        )

@@ -93,7 +93,7 @@ def save_one_dossier_from_ds(
     )
 
 
-def create_or_update_dossier_from_ds_data(ds_number: str):
+def create_or_update_dossier_from_ds_number(ds_number: str):
     client = DsClient()
     dossier_data = client.get_one_dossier(ds_number)
     active_departement_insee_codes = _get_active_departement_insee_codes()
@@ -259,5 +259,8 @@ def _create_or_update_dossier_from_ds_data(
         )
 
     _save_dossier_data_and_refresh_dossier_and_projet_and_co(
-        dossier, dossier_data, async_refresh=True
+        dossier,
+        dossier_data,
+        async_refresh=True,
+        refresh_only_if_dossier_has_been_updated=False,
     )

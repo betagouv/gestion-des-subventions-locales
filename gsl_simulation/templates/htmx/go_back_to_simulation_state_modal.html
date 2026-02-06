@@ -1,17 +1,53 @@
 {% extends "htmx/_base_htmx_modal.html" %}
 {% load simulation_filters %}
-{% block button_label %}
-    {{ new_simulation_status|status_to_label }}
-{% endblock button_label %}
+{% if action_origin == "button" %}
+    {% block button %}
+        <button class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-draft-fill processing-color"
+                id="{{ modal_button_id }}"
+                aria-controls="{{ modal_id }}"
+                type="button"
+                data-fr-opened="false">
+            Repasser en traitement
+        </button>
+    {% endblock button %}
+{% else %}
+    {% block button_label %}
+        {{ new_simulation_status|status_to_label }}
+    {% endblock button_label %}
+{% endif %}
 
 {% block content %}
     <h1 class="fr-modal__title processing-color">
-        <span class="fr-icon-draft-fill fr-icon--lg" aria-hidden="true"></span> Revenir au statut «&nbsp;{{ new_simulation_status|status_to_adjective }}&nbsp;»
+        <span class="fr-icon-draft-fill fr-icon--lg" aria-hidden="true"></span>
+        {% if object.dotation_projet.other_dotations|length == 0 %}
+            Revenir au statut «&nbsp;{{ new_simulation_status|status_to_adjective }}&nbsp;»
+        {% else %}
+            Remettre la demande de financement {{ object.dotation_projet.dotation }}
+            {{ new_simulation_status|status_to_adjective }}
+        {% endif %}
+
+        {% if object.projet.notified_at %}
+            et prévenir le demandeur sur la messagerie de Démarche Numérique
+        {% endif %}
     </h1>
+    {% if object.projet.notified_at %}
+        <p>
+            Attention, vous vous apprêtez à repasser le statut du projet
+            «&nbsp;{{ object.projet.dossier_ds.projet_intitule }}&nbsp;» en
+            traitement, alors que
+            celui-ci est déjà {{ object.status|status_to_adjective }} et notifié.
+        </p>
+    {% endif %}
     <p id="draft-confirmation-modal-content">
         Ce projet {{ object.status|status_to_adjective }} va être remis en traitement dans toutes les simulations dans
-        lesquelles il a été ajouté. Il n'apparaîtra plus dans la programmation officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
+        lesquelles il a été ajouté. Il n'apparaîtra plus dans la programmation
+        officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
     </p>
+    {% if object.projet.notified_at %}
+        <p>
+            Le demandeur sera notifié via la messagerie de Démarches Numériques et le projet repassera en instruction.
+        </p>
+    {% endif %}
     <p>
         Êtes-vous sûr⋅e de {{ new_simulation_status|status_to_action_word }} le projet&nbsp;?
     </p>
@@ -29,6 +65,11 @@
             class="fr-btn fr-btn--primary"
             form="{{ modal_id }}-form"
             id="{{ modal_id }}-submit-button">
-        Oui
+        {% spaceless %}
+            Oui
+            {% if object.projet.notified_at %}
+                , repasser le dossier en traitement
+            {% endif %}
+        {% endspaceless %}
     </button>
 {% endblock confirmation_button %}

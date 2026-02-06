@@ -12,8 +12,8 @@ urlpatterns = [
         name="no-perimeter",
     ),
     path(
-        "aide-utilisation/",
+        "aide-et-contact/",
         TemplateView.as_view(template_name="gsl_pages/user_help.html"),
-        name="user-help",
+        name="user-help-and-contact",
     ),
 ]

@@ -86,6 +86,7 @@ class PerimetreArrondissementFactory(PerimetreFactory):
 class CollegueFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Collegue
+        django_get_or_create = ("email",)
 
     username = factory.Sequence(lambda n: f"collegue_{n}")
     email = factory.Faker("email")

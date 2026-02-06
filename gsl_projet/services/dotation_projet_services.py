@@ -32,12 +32,11 @@ class DotationProjetService:
         # check for initialisation
         if projet.dotationprojet_set.count() == 0:
             dotation_projets = cls._initialize_dotation_projets_from_projet(projet)
-            return dotation_projets
 
-        # check for updates
-        dotation_projets = cls._update_dotation_projets_from_projet(projet)
+        else:
+            # check for updates
+            dotation_projets = cls._update_dotation_projets_from_projet(projet)
 
-        cls._update_detr_categories(dotation_projets)
         cls._add_dotation_projets_to_all_concerned_simulations(dotation_projets)
         return dotation_projets
 
@@ -247,6 +246,7 @@ class DotationProjetService:
         cls, projet: Projet
     ) -> list[DotationProjet]:
         dossier_status = projet.dossier_ds.ds_state
+        cls._update_assiette_from_dossier(projet)
         if dossier_status in (
             Dossier.STATE_ACCEPTE,
             Dossier.STATE_REFUSE,
@@ -483,6 +483,16 @@ class DotationProjetService:
         return None
 
     @classmethod
+    def _update_assiette_from_dossier(cls, projet: Projet):
+        for dotation_projet in projet.dotationprojet_set.all():
+            assiette = cls._get_assiette_from_dossier(
+                projet.dossier_ds, dotation_projet.dotation
+            )
+            if assiette is not None:
+                dotation_projet.assiette = assiette
+            dotation_projet.save()
+
+    @classmethod
     def _get_assiette_from_dossier(
         cls,
         dossier: Dossier,
@@ -565,19 +575,6 @@ class DotationProjetService:
         return dotations
 
     @classmethod
-    def _update_detr_categories(cls, dotation_projets: list[DotationProjet]):
-        for dotation_projet in dotation_projets:
-            if dotation_projet.dotation != DOTATION_DETR:
-                continue
-
-            for (
-                critere
-            ) in dotation_projet.projet.dossier_ds.demande_eligibilite_detr.filter(
-                detr_category__isnull=False
-            ):
-                dotation_projet.detr_categories.add(critere.detr_category)
-
-    @classmethod
     def _is_programmation_projet_created_after_date_of_passage_en_instruction(
         cls, dotation_projet: DotationProjet
     ):
@@ -610,7 +607,7 @@ class DotationProjetService:
     def _get_simulation_concerning_by_this_dotation_projet(
         cls, dotation_projet: DotationProjet
     ):
-        return (
+        qs = (
             Simulation.objects.containing_perimetre(dotation_projet.projet.perimetre)
             .filter(
                 enveloppe__dotation=dotation_projet.dotation,
@@ -618,3 +615,14 @@ class DotationProjetService:
             )
             .exclude(simulationprojet__dotation_projet=dotation_projet)
         )
+
+        if (
+            dotation_projet.dossier_ds.ds_state
+            in [Dossier.STATE_ACCEPTE, Dossier.STATE_SANS_SUITE, Dossier.STATE_REFUSE]
+            and dotation_projet.dossier_ds.ds_date_traitement is not None
+        ):
+            qs = qs.exclude(
+                enveloppe__annee__gte=dotation_projet.projet.dossier_ds.ds_date_traitement.year
+                + 1,
+            )
+        return qs

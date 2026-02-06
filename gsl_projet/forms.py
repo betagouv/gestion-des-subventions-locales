@@ -65,13 +65,34 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     is_autre_zonage_local = forms.BooleanField(
         label="Projet rattaché à un autre zonage local",
         required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(
+            attrs={
+                "form": "projet_form",
+                "data-toggle": "autre-zonage-local",
+            }
+        ),
+    )
+    autre_zonage_local = forms.CharField(
+        label="Nom du zonage local",
+        required=False,
+        widget=forms.TextInput(attrs={"form": "projet_form"}),
     )
 
     is_contrat_local = forms.BooleanField(
         label="Projet rattaché à un contrat local",
         required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(
+            attrs={
+                "form": "projet_form",
+                "data-toggle": "contrat-local",
+            }
+        ),
+    )
+
+    contrat_local = forms.CharField(
+        label="Nom du contrat local",
+        required=False,
+        widget=forms.TextInput(attrs={"form": "projet_form"}),
     )
 
     dotations = forms.MultipleChoiceField(
@@ -91,7 +112,9 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             "is_pvd",
             "is_va",
             "is_autre_zonage_local",
+            "autre_zonage_local",
             "is_contrat_local",
+            "contrat_local",
         ]
 
     def __init__(self, *args, user=None, **kwargs):
@@ -113,6 +136,30 @@ class ProjetForm(ModelForm, DsfrBaseForm):
                 "Les dotations d'un projet déjà notifié ne peuvent être modifiées."
             )
         return dotations
+
+    def clean_autre_zonage_local(self):
+        is_autre_zonage_local = self.cleaned_data.get("is_autre_zonage_local")
+        autre_zonage_local = self.cleaned_data.get("autre_zonage_local")
+        if is_autre_zonage_local and not autre_zonage_local:
+            self.add_error(
+                "autre_zonage_local",
+                "Ce champ est obligatoire si le projet est rattaché à un autre zonage local.",
+            )
+        if not is_autre_zonage_local:
+            autre_zonage_local = ""
+        return autre_zonage_local
+
+    def clean_contrat_local(self):
+        is_contrat_local = self.cleaned_data.get("is_contrat_local")
+        contrat_local = self.cleaned_data.get("contrat_local")
+        if is_contrat_local and not contrat_local:
+            self.add_error(
+                "contrat_local",
+                "Ce champ est obligatoire si le projet est rattaché à un contrat local.",
+            )
+        if not is_contrat_local:
+            contrat_local = ""
+        return contrat_local
 
     @transaction.atomic
     def save(self, commit=True):
@@ -138,6 +185,12 @@ class ProjetForm(ModelForm, DsfrBaseForm):
                 "annotations_is_contrat_local": self.cleaned_data.get(
                     "is_contrat_local"
                 ),
+            },
+            text_annotations_to_update={
+                "annotations_autre_zonage_local": self.cleaned_data.get(
+                    "autre_zonage_local"
+                ),
+                "annotations_contrat_local": self.cleaned_data.get("contrat_local"),
             },
         )
 
@@ -221,6 +274,7 @@ class DotationProjetForm(ModelForm):
         ),
     )
 
+    # TODO : useless now. Remove it if we don't allow to set DETR category
     detr_categories = forms.ModelMultipleChoiceField(
         queryset=CategorieDetr.objects.none(),
         required=False,
@@ -230,16 +284,17 @@ class DotationProjetForm(ModelForm):
 
     def __init__(self, *args, departement=None, **kwargs):
         super().__init__(*args, **kwargs)
-        departement = (
-            self.instance.projet.perimetre.departement if self.instance.projet else None
-        )
-        if departement is not None:
-            self.fields[
-                "detr_categories"
-            ].queryset = CategorieDetr.objects.current_for_departement(departement)
-        else:
-            self.fields["detr_categories"].queryset = CategorieDetr.objects.none()
-        self.fields["detr_categories"].label_from_instance = lambda obj: obj.label
+        # TODO : useless now. Remove it if we don't allow to set DETR category. The code is commented to enhance performance.
+        # departement = (
+        #     self.instance.projet.perimetre.departement if self.instance.projet else None
+        # )
+        # # if departement is not None:
+        # #     self.fields[
+        # #         "detr_categories"
+        # #     ].queryset = CategorieDetr.objects.current_for_departement(departement)
+        # # else:
+        # #     self.fields["detr_categories"].queryset = CategorieDetr.objects.none()
+        # self.fields["detr_categories"].label_from_instance = lambda obj: obj.label
 
     def clean_detr_avis_commission(self):
         value = self.cleaned_data.get("detr_avis_commission")

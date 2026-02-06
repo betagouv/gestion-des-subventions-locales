@@ -1,21 +1,27 @@
+from logging import getLogger
+
 from django.utils import timezone
 
 from gsl_core.models import Departement
 from gsl_demarches_simplifiees.ds_client import DsClient
+from gsl_demarches_simplifiees.importer.utils import get_departement_from_field_label
 from gsl_demarches_simplifiees.models import (
-    CritereEligibiliteDetr,
+    CategorieDetr,
+    CategorieDsil,
     Demarche,
     Dossier,
-    FieldMappingForComputer,
-    FieldMappingForHuman,
+    FieldMapping,
     Profile,
 )
+
+logger = getLogger(__name__)
 
 IMPORTED_DS_FIELDS = (
     "AddressChampDescriptor",
     "CheckboxChampDescriptor",
     "DateChampDescriptor",
     "DecimalNumberChampDescriptor",
+    "DossierLinkChampDescriptor",
     "DropDownListChampDescriptor",
     "IntegerNumberChampDescriptor",
     "LinkedDropDownListChampDescriptor",
@@ -51,22 +57,16 @@ def save_demarche_from_ds(
     demarche = update_or_create_demarche(demarche_data)
     save_groupe_instructeurs(demarche_data, demarche)
     save_field_mappings(demarche_data, demarche)
-    extract_categories_operation_detr(demarche_data, demarche)
+    save_categories_detr(demarche_data, demarche)
+    save_categories_dsil(demarche_data, demarche)
 
 
 def refresh_field_mappings_on_demarche(demarche_number):
     demarche = Demarche.objects.get(ds_number=demarche_number)
     if demarche.raw_ds_data:
         save_field_mappings(demarche.raw_ds_data, demarche)
-        extract_categories_operation_detr(demarche.raw_ds_data, demarche)
-    else:
-        save_demarche_from_ds(demarche_number)
-
-
-def refresh_categories_operation_detr(demarche_number):
-    demarche = Demarche.objects.get(ds_number=demarche_number)
-    if demarche.raw_ds_data:
-        extract_categories_operation_detr(demarche.raw_ds_data, demarche)
+        save_categories_detr(demarche.raw_ds_data, demarche)
+        save_categories_dsil(demarche.raw_ds_data, demarche)
     else:
         save_demarche_from_ds(demarche_number)
 
@@ -105,6 +105,12 @@ def save_groupe_instructeurs(demarche_data, demarche):
             demarche.ds_instructeurs.add(instructeur)
 
 
+DN_DEPARTEMENT_FIELD_TO_DJANGO_FIELD_MAP = {
+    "Catégories prioritaires": "demande_categorie_detr",
+    "Arrondissement du demandeur": "porteur_de_projet_arrondissement",
+}
+
+
 def save_field_mappings(demarche_data, demarche):
     reversed_mapping = {
         field.verbose_name: field.name for field in Dossier.MAPPED_FIELDS
@@ -120,8 +126,7 @@ def save_field_mappings(demarche_data, demarche):
 
         ds_label = champ_descriptor["label"]
         ds_id = champ_descriptor["id"]
-        qs_human_mapping = FieldMappingForHuman.objects.filter(label=ds_label)
-        computer_mapping, created = FieldMappingForComputer.objects.get_or_create(
+        computer_mapping, created = FieldMapping.objects.get_or_create(
             ds_field_id=ds_id,
             demarche=demarche,
             defaults={
@@ -139,15 +144,6 @@ def save_field_mappings(demarche_data, demarche):
                 computer_mapping.ds_field_type = ds_type
                 computer_mapping.save()
 
-        if qs_human_mapping.exists():  # we have a label which is known
-            human_mapping = qs_human_mapping.get()
-            if human_mapping.django_field:
-                computer_mapping.django_field = human_mapping.django_field
-                computer_mapping.field_mapping_for_human = human_mapping
-                computer_mapping.save()
-                continue
-
-        # Try direct mapping on verbose_name with original
         if ds_label in reversed_mapping:
             django_field = reversed_mapping.get(ds_label)
             if django_field != computer_mapping.django_field:
@@ -155,79 +151,104 @@ def save_field_mappings(demarche_data, demarche):
                 computer_mapping.save()
                 continue
 
-        if not qs_human_mapping.exists() and not computer_mapping.django_field:
-            FieldMappingForHuman.objects.create(label=ds_label, demarche=demarche)
+        for dn_field, django_field in DN_DEPARTEMENT_FIELD_TO_DJANGO_FIELD_MAP.items():
+            if ds_label.startswith(dn_field):
+                computer_mapping.django_field = django_field
+                computer_mapping.save()
+                break
 
 
-# TODO categories : rework this function
-def guess_department_from_demarche(demarche) -> Departement:
-    # if demarche.perimetre and demarche.perimetre.departement:
-    #     return demarche.perimetre.departement
-    # for departement in Departement.objects.all():
-    #     if departement.name in demarche.ds_title:
-    #         return departement
-    pass
-
-
-def guess_year_from_demarche(demarche: Demarche) -> int:
-    """
-    Savoir à quelle année associer les catégories DETR extraites de la démarche DN
-    """
-    date_revision = demarche.active_revision_date
-    if not date_revision:
-        # à défaut de date de dernière révision,
-        # on regarde la date de création de la démarche.
-        date_revision = demarche.ds_date_creation
-
-    if date_revision.month >= 9:
-        return date_revision.year + 1
-    else:
-        return date_revision.year
-
-
-def extract_categories_operation_detr(demarche_data: dict, demarche: Demarche):
-    from gsl_projet.models import CategorieDetr
-
-    try:
-        mapping = FieldMappingForComputer.objects.filter(
-            demarche=demarche, django_field="demande_eligibilite_detr"
-        ).get()
-    except FieldMappingForComputer.DoesNotExist:
-        return
-    demande_eligibilite_detr_field_id = mapping.ds_field_id
-
+def save_categories_dsil(demarche_data, demarche):
+    mapping = FieldMapping.objects.get(
+        demarche=demarche, django_field="demande_categorie_dsil"
+    )
+    demande_categorie_dsil_field_id = mapping.ds_field_id
     options = []
     for field in demarche_data["activeRevision"]["champDescriptors"]:
-        if field["id"] == demande_eligibilite_detr_field_id:
+        if field["id"] == demande_categorie_dsil_field_id:
             options = field["options"]
             break
-
-    departement = guess_department_from_demarche(demarche)
-    if not departement:
-        return
-
-    year = guess_year_from_demarche(demarche)
-    if not year:
-        return
-
-    current_detr_category_ids = set()
+    categories = []
     for sort_order, label in enumerate(options, 1):
-        detr_cat, _ = CategorieDetr.objects.update_or_create(
-            departement=departement,
-            rang=sort_order,
-            annee=year,
-            defaults={"libelle": label, "is_current": True},
-        )
-        current_detr_category_ids.add(detr_cat.id)
-        CritereEligibiliteDetr.objects.update_or_create(
-            label=label,
+        category, _ = CategorieDsil.objects.update_or_create(
             demarche=demarche,
-            demarche_revision=demarche_data["activeRevision"]["id"],
-            defaults={"detr_category": detr_cat},
+            label=label,
+            defaults={"rank": sort_order, "active": True, "deactivated_at": None},
         )
-    # tout ce qui est dans le même département mais
-    # n'est pas dans current_detr_categories :
-    # on passe current à false
-    CategorieDetr.objects.exclude(id__in=current_detr_category_ids).filter(
-        departement=departement
-    ).update(is_current=False)
+        categories.append(category)
+
+    CategorieDsil.objects.filter(demarche=demarche, active=True).exclude(
+        id__in=[category.id for category in categories]
+    ).update(active=False, deactivated_at=timezone.now())
+
+
+def save_categories_detr(demarche_data: dict, demarche: Demarche) -> None:
+    field_mappings = FieldMapping.objects.filter(
+        demarche=demarche, django_field="demande_categorie_detr"
+    )
+    for field in demarche_data["activeRevision"]["champDescriptors"]:
+        if "Catégories prioritaires " not in field["label"]:
+            continue
+
+        try:
+            field_mapping = field_mappings.get(ds_field_label=field["label"])
+        except FieldMapping.DoesNotExist:
+            logger.info("No field mapping found for field %s", field["label"])
+            continue
+
+        _save_categorie_detr_from_field(field, field_mapping, demarche)
+
+
+def _save_categorie_detr_from_field(
+    field: dict, field_mapping: FieldMapping, demarche: Demarche
+) -> None:
+    departement = _get_departement_from_field_mapping(field_mapping)
+    if not departement:
+        logger.info(
+            f"No departement found for field mapping (#{field_mapping.id} - {field_mapping.ds_field_label})"
+        )
+        return
+
+    options = field["options"]
+    categories = []
+    parent_label = ""
+    for sort_order, label in enumerate(options, 1):
+        if label.startswith("--"):
+            parent_label = label.strip("--")
+
+            next_option = options[sort_order] if sort_order < len(options) else None
+            is_next_option_a_parent = next_option is None or next_option.startswith(
+                "--"
+            )
+            if not is_next_option_a_parent:
+                continue
+
+            label = parent_label
+            parent_label = ""
+
+        category, _ = CategorieDetr.objects.update_or_create(
+            demarche=demarche,
+            label=label,
+            departement=departement,
+            defaults={
+                "rank": sort_order,
+                "active": True,
+                "deactivated_at": None,
+                "parent_label": parent_label,
+            },
+        )
+        categories.append(category)
+
+    CategorieDetr.objects.filter(
+        demarche=demarche, departement=departement, active=True
+    ).exclude(id__in=[category.id for category in categories]).update(
+        active=False, deactivated_at=timezone.now()
+    )
+
+
+def _get_departement_from_field_mapping(field_mapping) -> Departement | None:
+    label = getattr(field_mapping, "ds_field_label", "") or ""
+    try:
+        return get_departement_from_field_label(label)
+    except ValueError:
+        return None

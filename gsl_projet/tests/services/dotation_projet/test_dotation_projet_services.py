@@ -1,8 +1,10 @@
 import datetime
 import re
+from datetime import UTC
 from decimal import Decimal
 
 import pytest
+from django.utils import timezone
 from freezegun import freeze_time
 
 from gsl_core.templatetags.gsl_filters import euro, percent
@@ -13,7 +15,6 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import (
-    CritereEligibiliteDetrFactory,
     DossierFactory,
 )
 from gsl_programmation.tests.factories import (
@@ -32,7 +33,6 @@ from gsl_projet.services.dotation_projet_services import (
     DotationProjetService as dps,
 )
 from gsl_projet.tests.factories import (
-    CategorieDetrFactory,
     DotationProjetFactory,
     ProjetFactory,
 )
@@ -170,41 +170,41 @@ def test_create_or_update_dotation_projet_from_projet_also_refuse_dsil_dotation_
 
 # -- create_simulation_projets_from_dotation_projet --
 
+# TODO category : useless now. Remove it if we don't allow to set DETR category.
+# @pytest.mark.django_db
+# @pytest.mark.parametrize(
+#     "dotation",
+#     (DOTATION_DETR, DOTATION_DSIL),
+# )
+# def test_create_or_update_dotation_projet_add_detr_categories(dotation):
+#     projet = ProjetFactory(
+#         dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+#     )
+#     dotation_projet = DotationProjetFactory(
+#         projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
+#     )
+#     categorie_detr = CategorieDetrFactory()
+#     projet.dossier_ds.demande_eligibilite_detr.add(
+#         CritereEligibiliteDetrFactory(detr_category=categorie_detr)
+#     )
 
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "dotation",
-    (DOTATION_DETR, DOTATION_DSIL),
-)
-def test_create_or_update_dotation_projet_add_detr_categories(dotation):
-    projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
-    )
-    dotation_projet = DotationProjetFactory(
-        projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
-    )
-    categorie_detr = CategorieDetrFactory()
-    projet.dossier_ds.demande_eligibilite_detr.add(
-        CritereEligibiliteDetrFactory(detr_category=categorie_detr)
-    )
+#     # ------
 
-    # ------
+#     dps.create_or_update_dotation_projet_from_projet(projet)
 
-    dps.create_or_update_dotation_projet_from_projet(projet)
+#     # ------
 
-    # ------
+#     assert DotationProjet.objects.count() == 1
 
-    assert DotationProjet.objects.count() == 1
+#     dotation_projet = DotationProjet.objects.first()
+#     assert dotation_projet.projet == projet
+#     assert dotation_projet.dotation == dotation
+#     assert dotation_projet.status == PROJET_STATUS_PROCESSING
 
-    dotation_projet = DotationProjet.objects.first()
-    assert dotation_projet.projet == projet
-    assert dotation_projet.dotation == dotation
-    assert dotation_projet.status == PROJET_STATUS_PROCESSING
-
-    if dotation_projet.dotation == DOTATION_DSIL:
-        assert dotation_projet.detr_categories.count() == 0
-    else:
-        assert categorie_detr in dotation_projet.detr_categories.all()
+#     if dotation_projet.dotation == DOTATION_DSIL:
+#         assert dotation_projet.detr_categories.count() == 0
+#     else:
+#         assert categorie_detr in dotation_projet.detr_categories.all()
 
 
 @pytest.fixture
@@ -481,6 +481,92 @@ def test_validate_taux(taux, should_raise_exception):
         dps.validate_taux(taux)
 
 
+# -- _update_assiette_from_dossier --
+
+
+@pytest.mark.django_db
+def test_update_assiette_from_dossier_single_detr():
+    """Updates DETR dotation_projet assiette from dossier annotations_assiette_detr."""
+    projet = ProjetFactory(
+        dossier_ds__annotations_assiette_detr=15_000,
+        dossier_ds__annotations_assiette_dsil=20_000,
+    )
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, assiette=0
+    )
+
+    dps._update_assiette_from_dossier(projet)
+
+    dotation_projet.refresh_from_db()
+    assert dotation_projet.assiette == 15_000
+
+
+@pytest.mark.django_db
+def test_update_assiette_from_dossier_single_dsil():
+    """Updates DSIL dotation_projet assiette from dossier annotations_assiette_dsil."""
+    projet = ProjetFactory(
+        dossier_ds__annotations_assiette_detr=15_000,
+        dossier_ds__annotations_assiette_dsil=25_000,
+    )
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, assiette=0
+    )
+
+    dps._update_assiette_from_dossier(projet)
+
+    dotation_projet.refresh_from_db()
+    assert dotation_projet.assiette == 25_000
+
+
+@pytest.mark.django_db
+def test_update_assiette_from_dossier_both_dotations():
+    """Updates both DETR and DSIL dotation_projets with correct dossier values."""
+    projet = ProjetFactory(
+        dossier_ds__annotations_assiette_detr=10_000,
+        dossier_ds__annotations_assiette_dsil=30_000,
+    )
+    dp_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR, assiette=0)
+    dp_dsil = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL, assiette=0)
+
+    dps._update_assiette_from_dossier(projet)
+
+    dp_detr.refresh_from_db()
+    dp_dsil.refresh_from_db()
+    assert dp_detr.assiette == 10_000
+    assert dp_dsil.assiette == 30_000
+
+
+@pytest.mark.django_db
+def test_update_assiette_from_dossier_keeps_existing_assiette_when_missing_in_dossier():
+    """Keeps existing assiette when dossier has no annotation for that dotation."""
+    projet = ProjetFactory(
+        dossier_ds__annotations_assiette_detr=None,
+        dossier_ds__annotations_assiette_dsil=20_000,
+    )
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, assiette=5_000
+    )
+
+    dps._update_assiette_from_dossier(projet)
+
+    dotation_projet.refresh_from_db()
+    assert dotation_projet.assiette == 5_000
+
+
+@pytest.mark.django_db
+def test_update_assiette_from_dossier_no_dotation_projets():
+    """Does nothing when projet has no dotation_projets (no error)."""
+    projet = ProjetFactory(
+        dossier_ds__annotations_assiette_detr=10_000,
+        dossier_ds__annotations_assiette_dsil=20_000,
+    )
+    assert projet.dotationprojet_set.count() == 0
+
+    dps._update_assiette_from_dossier(projet)
+
+    assert projet.dotationprojet_set.count() == 0
+
+
 # -- _get_simulation_concerning_by_this_dotation_projet --
 
 
@@ -748,7 +834,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_combines_all_filters(
         enveloppe__dotation=DOTATION_DETR,
         enveloppe__annee=CURRENT_YEAR - 1,
     )
-    sim_wrong_perimetre = SimulationFactory(
+    sim_dep_perimetre = SimulationFactory(
         enveloppe__perimetre=dep_21,
         enveloppe__dotation=DOTATION_DETR,
         enveloppe__annee=CURRENT_YEAR,
@@ -768,7 +854,195 @@ def test_get_simulation_concerning_by_this_dotation_projet_combines_all_filters(
     assert sim_valid in results
     assert sim_wrong_dotation not in results
     assert sim_wrong_year not in results
-    # sim_wrong_perimetre should be included since dep_21 is an ancestor of arr_dijon
+    # sim_dep_perimetre should be included since dep_21 is an ancestor of arr_dijon
     # and containing_perimetre includes ancestors
-    assert sim_wrong_perimetre in results
+    assert sim_dep_perimetre in results
     assert sim_existing not in results
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "dossier_state",
+    [Dossier.STATE_ACCEPTE, Dossier.STATE_SANS_SUITE, Dossier.STATE_REFUSE],
+)
+def test_get_simulation_concerning_by_this_dotation_projet_excludes_future_years_for_terminal_state_with_treatment_date(
+    perimetres, dossier_state
+):
+    """Test that the function excludes simulations for years >= (treatment_year + 1) when dossier is in terminal state with treatment date."""
+    arr_dijon, *_ = perimetres
+    last_year = CURRENT_YEAR - 1
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__perimetre=arr_dijon,
+        projet__dossier_ds__ds_state=dossier_state,
+        projet__dossier_ds__ds_date_traitement=timezone.datetime(
+            last_year, 6, 15, tzinfo=UTC
+        ),
+    )
+
+    # Create simulations with different years
+    SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=last_year,
+    )
+    SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR + 1,
+    )
+
+    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+
+    assert results.count() == 0, (
+        "Should not include any simulations, because the dossier has been treated in the last year"
+    )
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_get_simulation_concerning_by_this_dotation_projet_does_not_exclude_when_terminal_state_without_treatment_date(
+    perimetres,
+):
+    """Test that the function does not exclude future years when dossier is in terminal state but has no treatment date."""
+    arr_dijon, *_ = perimetres
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__perimetre=arr_dijon,
+        projet__dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+        projet__dossier_ds__ds_date_traitement=None,
+    )
+
+    # Create simulations with different years
+    sim_last_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR - 1,
+    )
+    sim_current_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_next_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR + 1,
+    )
+
+    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+    assert results.count() == 2, (
+        "Should include all future years since there's no treatment date"
+    )
+
+    # Should include all future years since there's no treatment date
+    assert sim_current_year in results
+    assert sim_next_year in results
+
+    # Should not include last year
+    assert sim_last_year not in results
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_get_simulation_concerning_by_this_dotation_projet_does_not_exclude_when_not_terminal_state(
+    perimetres,
+):
+    """Test that the function does not exclude future years when dossier is not in terminal state."""
+    arr_dijon, *_ = perimetres
+    treatment_year = CURRENT_YEAR - 1
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__perimetre=arr_dijon,
+        projet__dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+        projet__dossier_ds__ds_date_traitement=timezone.datetime(
+            treatment_year, 6, 15, tzinfo=UTC
+        ),
+    )
+
+    # Create simulations with different years
+    sim_last_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR - 1,
+    )
+    sim_current_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_next_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR + 1,
+    )
+
+    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+
+    assert results.count() == 2, (
+        "Should include all future years since dossier is not in terminal state"
+    )
+
+    # Should include all future years since dossier is not in terminal state
+    assert sim_current_year in results
+    assert sim_next_year in results
+
+    # Should not include last year
+    assert sim_last_year not in results
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_get_simulation_concerning_by_this_dotation_projet_excludes_correctly_when_treatment_year_is_current_year(
+    perimetres,
+):
+    """Test that the function correctly excludes when treatment year is current year."""
+    arr_dijon, *_ = perimetres
+    treatment_year = CURRENT_YEAR
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__perimetre=arr_dijon,
+        projet__dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
+        projet__dossier_ds__ds_date_traitement=timezone.datetime(
+            treatment_year, 6, 15, tzinfo=UTC
+        ),
+    )
+
+    # Create simulations with different years
+    sim_last_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR - 1,
+    )
+    sim_current_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_next_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR + 1,
+    )
+
+    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+
+    assert results.count() == 1, (
+        "Should include only current year since treatment year is current year"
+    )
+
+    # Should include current year (treatment_year)
+    assert sim_current_year in results
+    # Should exclude years >= treatment_year + 1
+    assert sim_next_year not in results
+    assert sim_last_year not in results

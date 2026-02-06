@@ -12,7 +12,7 @@ from gsl_demarches_simplifiees.exceptions import (
     InstructeurUnknown,
     UserRightsError,
 )
-from gsl_demarches_simplifiees.models import Dossier, FieldMappingForComputer
+from gsl_demarches_simplifiees.models import Dossier, FieldMapping
 from gsl_projet.constants import DOTATION_DSIL, POSSIBLE_DOTATIONS
 
 logger = getLogger(__name__)
@@ -23,9 +23,12 @@ class DsService:
         "dismiss": "dossierClasserSansSuite",
         "annotations": "dossierModifierAnnotations",
         "passer_en_instruction": "dossierPasserEnInstruction",
+        "repasser_en_instruction": "dossierRepasserEnInstruction",
     }
 
-    MUTATION_TYPES = Literal["dismiss", "annotations"]
+    MUTATION_TYPES = Literal[
+        "dismiss", "annotations", "passer_en_instruction", "repasser_en_instruction"
+    ]
 
     def __init__(self):
         self.mutator = DsMutator()
@@ -40,6 +43,26 @@ class DsService:
             results.get("data", {})
             .get("dossierPasserEnInstruction")
             .get("dossier")
+            .get("dateDerniereModification")
+        )
+        dossier.ds_date_derniere_modification = (
+            datetime.fromisoformat(date_derniere_modification)
+            if date_derniere_modification
+            else None
+        )
+        dossier.save()
+        return results
+
+    def repasser_en_instruction(self, dossier: Dossier, user: Collegue):
+        results = self.mutator.dossier_repasser_en_instruction(
+            dossier.ds_id, user.ds_id
+        )
+        self._check_results(results, dossier, user, "repasser_en_instruction")
+        dossier.ds_state = Dossier.STATE_EN_INSTRUCTION
+        date_derniere_modification = (
+            results.get("data", {})
+            .get("dossierRepasserEnInstruction", {})
+            .get("dossier", {})
             .get("dateDerniereModification")
         )
         dossier.ds_date_derniere_modification = (
@@ -124,7 +147,11 @@ class DsService:
         return results
 
     def update_checkboxes_annotations(
-        self, dossier: Dossier, user: Collegue, annotations_to_update: dict[str, bool]
+        self,
+        dossier: Dossier,
+        user: Collegue,
+        annotations_to_update: dict[str, bool],
+        text_annotations_to_update: dict[str, str] = None,
     ):
         annotations = [
             {
@@ -133,6 +160,14 @@ class DsService:
             }
             for annotation_key, annotation_value in annotations_to_update.items()
         ]
+        if text_annotations_to_update:
+            for annotation_key, annotation_value in text_annotations_to_update.items():
+                annotations.append(
+                    {
+                        "id": self._get_ds_field_id(dossier, annotation_key),
+                        "value": {"text": annotation_value},
+                    }
+                )
         results = self.mutator.dossier_modifier_annotations(
             dossier.ds_id, user.ds_id, annotations
         )
@@ -177,12 +212,12 @@ class DsService:
 
     def _get_ds_field_id(self, dossier: Dossier, field: str) -> str:
         try:
-            ds_field = FieldMappingForComputer.objects.get(
+            ds_field = FieldMapping.objects.get(
                 demarche=dossier.ds_data.ds_demarche_id, django_field=field
             )
             return ds_field.ds_field_id
 
-        except FieldMappingForComputer.DoesNotExist:
+        except FieldMapping.DoesNotExist:
             field_name = field
             try:
                 field_name = Dossier._meta.get_field(field).verbose_name

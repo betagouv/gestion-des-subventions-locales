@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime
 from datetime import timezone as tz
-from typing import TYPE_CHECKING, Iterator, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
@@ -35,7 +35,7 @@ from gsl_projet.constants import (
 from gsl_projet.utils.utils import floatize
 
 if TYPE_CHECKING:
-    from gsl_demarches_simplifiees.models import CritereEligibiliteDsil, Dossier
+    from gsl_demarches_simplifiees.models import Dossier
     from gsl_programmation.models import Enveloppe
     from gsl_simulation.models import SimulationProjet
 
@@ -45,6 +45,7 @@ class CategorieDetrQueryset(models.QuerySet):
         return self.filter(departement=departement, is_current=True)
 
 
+# TODO : useless now. Remove it if we don't allow to set DETR category
 class CategorieDetr(models.Model):
     libelle = models.CharField("Libellé")
     rang = models.IntegerField("Rang", default=0)
@@ -289,11 +290,13 @@ class Projet(models.Model):
         null=False,
         default=False,
     )
+    autre_zonage_local = models.CharField("Nom du zonage local", blank=True)
     is_contrat_local = models.BooleanField(
         "Projet rattaché à un contrat local",
         null=False,
         default=False,
     )
+    contrat_local = models.CharField("Nom du contrat local", blank=True)
     free_comment = models.TextField("Commentaires libres", blank=True, default="")
 
     objects = ProjetManager()
@@ -324,21 +327,14 @@ class Projet(models.Model):
         )
 
     @property
-    def categories_doperation(
-        self,
-    ) -> Iterator[Union["CategorieDetr", "CritereEligibiliteDsil"]]:
-        if self.dotation_detr:
-            yield from self.dotation_detr.detr_categories.all()
-        if DOTATION_DSIL in self.dossier_ds.demande_dispositif_sollicite:
-            yield from self.dossier_ds.demande_eligibilite_dsil.all()
-
-    @property
     def dotations(self) -> list[POSSIBLE_DOTATIONS]:
-        return [
-            dotation.dotation
-            for dotation in self.dotationprojet_set.all()
-            if dotation.dotation in [DOTATION_DETR, DOTATION_DSIL]
-        ]
+        return sorted(
+            [
+                dotation.dotation
+                for dotation in self.dotationprojet_set.all()
+                if dotation.dotation in [DOTATION_DETR, DOTATION_DSIL]
+            ]
+        )
 
     @property
     def has_double_dotations(self):
@@ -447,6 +443,25 @@ class Projet(models.Model):
             key=lambda d: d.created_at,
         )
 
+    @property
+    def areas_and_contracts_provided_by_instructor(self) -> List[str]:
+        ZONAGE_AND_CONTRACTS_FIELDS = [
+            "is_in_qpv",
+            "is_attached_to_a_crte",
+            "is_frr",
+            "is_acv",
+            "is_pvd",
+            "is_va",
+            "is_autre_zonage_local",
+            "is_contrat_local",
+        ]
+
+        return [
+            self._meta.get_field(field).verbose_name
+            for field in ZONAGE_AND_CONTRACTS_FIELDS
+            if getattr(self, field)
+        ]
+
 
 class DotationProjetQuerySet(models.QuerySet):
     def without_signed_document(self):
@@ -477,6 +492,7 @@ class DotationProjet(models.Model):
         help_text="Pour les projets de plus de 100 000 €",
         null=True,
     )
+    # TODO : useless now. Remove it if we don't allow to set DETR category
     detr_categories = models.ManyToManyField(
         CategorieDetr, verbose_name="Catégories d’opération DETR"
     )
@@ -711,8 +727,11 @@ class DotationProjet(models.Model):
         target=PROJET_STATUS_PROCESSING,
     )
     def set_back_status_to_processing(self, user: Collegue):
+        is_notified = self.projet.notified_at is not None
         self.set_back_status_to_processing_without_ds()
         ds_service = DsService()
+        if is_notified:
+            ds_service.repasser_en_instruction(self.projet.dossier_ds, user)
         ds_service.update_ds_annotations_for_one_dotation(
             dossier=self.projet.dossier_ds,
             user=user,

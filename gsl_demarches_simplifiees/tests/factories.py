@@ -13,12 +13,13 @@ from ..models import (
     Arrondissement as DsArrondissement,
 )
 from ..models import (
-    CritereEligibiliteDetr,
+    CategorieDetr,
+    CategorieDsil,
     Demarche,
     Dossier,
     DossierData,
     DsChoiceLibelle,
-    FieldMappingForComputer,
+    FieldMapping,
     NaturePorteurProjet,
     PersonneMorale,
     Profile,
@@ -66,11 +67,6 @@ class DsDepartementFactory(DsLibelleFactory):
         model = DsDepartement
 
     core_departement = factory.SubFactory(CoreDepartementFactory)
-
-
-class CritereEligibiliteDetrFactory(DsLibelleFactory):
-    class Meta:
-        model = CritereEligibiliteDetr
 
 
 class NaturePorteurProjetFactory(factory.django.DjangoModelFactory):
@@ -126,9 +122,30 @@ class DossierFactory(factory.django.DjangoModelFactory):
 CHOICES = [field.name for field in Dossier.MAPPED_FIELDS]
 
 
-class FieldMappingForComputerFactory(factory.django.DjangoModelFactory):
+class FieldMappingFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = FieldMappingForComputer
+        model = FieldMapping
 
     demarche = factory.SubFactory(DemarcheFactory)
     django_field = factory.fuzzy.FuzzyChoice(CHOICES)
+
+
+class CategorieDetrFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = CategorieDetr
+
+    demarche = factory.SubFactory(DemarcheFactory)
+    departement = factory.SubFactory(CoreDepartementFactory)
+    label = factory.Faker("word", locale="fr_FR")
+    rank = factory.Faker("random_int", min=1, max=10)
+    active = True
+
+
+class CategorieDsilFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = CategorieDsil
+
+    demarche = factory.SubFactory(DemarcheFactory)
+    label = factory.Faker("word", locale="fr_FR")
+    rank = factory.Faker("random_int", min=1, max=10)
+    active = True

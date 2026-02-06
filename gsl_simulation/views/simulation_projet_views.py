@@ -149,10 +149,32 @@ class BaseSimulationProjetView(UpdateView):
             .prefetch_related("dotation_projet__projet__dotationprojet_set")
         )
 
+    def get_template_names(self):
+        if "tab" in self.kwargs:
+            tab = self.kwargs["tab"]
+            if tab not in self.ALLOWED_TABS:
+                raise Http404
+            return [f"gsl_simulation/tab_simulation_projet/tab_{tab}.html"]
+        return ["gsl_simulation/simulation_projet_detail.html"]
+
     def get_object(self, queryset=None) -> SimulationProjet:
         if not hasattr(self, "_simulation_projet"):
             self._simulation_projet = super().get_object(queryset)
         return self._simulation_projet
+
+    def get_context_data(self, with_specific_info_for_main_tab=True, **kwargs):
+        context = super().get_context_data(**kwargs)
+        simulation_projet = self.get_object()
+        _enrich_simulation_projet_context_with_generic_info_for_all_tabs(
+            context, simulation_projet
+        )
+
+        if with_specific_info_for_main_tab:
+            _enrich_simulation_projet_context_with_specific_info_for_main_tab(
+                context, simulation_projet
+            )
+
+        return context
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -236,28 +258,6 @@ class SimulationProjetDetailView(BaseSimulationProjetView):
 
     def get_queryset(self):
         return super().get_queryset().in_user_perimeter(self.request.user)
-
-    def get_template_names(self):
-        if "tab" in self.kwargs:
-            tab = self.kwargs["tab"]
-            if tab not in self.ALLOWED_TABS:
-                raise Http404
-            return [f"gsl_simulation/tab_simulation_projet/tab_{tab}.html"]
-        return ["gsl_simulation/simulation_projet_detail.html"]
-
-    def get_context_data(self, with_specific_info_for_main_tab=True, **kwargs):
-        context = super().get_context_data(**kwargs)
-        simulation_projet = self.get_object()
-        _enrich_simulation_projet_context_with_generic_info_for_all_tabs(
-            context, simulation_projet
-        )
-
-        if with_specific_info_for_main_tab:
-            _enrich_simulation_projet_context_with_specific_info_for_main_tab(
-                context, simulation_projet
-            )
-
-        return context
 
     def enrich_context_with_invalid_form(self, context, form):
         context["simulation_projet_form"] = form
@@ -431,9 +431,7 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        return SimulationProjet.objects.in_user_perimeter(self.request.user).exclude(
-            dotation_projet__projet__notified_at__isnull=False
-        )
+        return SimulationProjet.objects.in_user_perimeter(self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

@@ -22,12 +22,12 @@
 {% endblock detr_avis_commission %}
 
 {% block status_action %}
-    {% include "includes/_status_and_notification_status_card.html" with display_notify_button=True %}
+    {% include "includes/_status_and_notification_status_card.html" %}
 {% endblock status_action %}
 
-{% block projet_detail_form %}
-    {% include "includes/forms/_is_qpv_and_is_attached_to_a_crte_form.html" %}
-{% endblock projet_detail_form %}
+{% block projet_areas_and_contracts %}
+    {% include "includes/forms/_boolean_fields_projet_form.html" %}
+{% endblock projet_areas_and_contracts %}
 
 {% block transition_ecologique_content %}
     <p>
@@ -39,42 +39,6 @@
 {% block dotations_form %}
     {% include "includes/forms/_dotations_form.html" %}
 {% endblock dotations_form %}
-
-{% block categories %}
-    {% for dotation_projet in dotation_projets %}
-        <p>
-            <b>Catégories d'opération {{ dotation_projet.dotation }}</b>
-        </p>
-
-        {% if dotation_projet.dotation == "DSIL" %}
-            <p class="fr-text--sm">
-                <b>Catégories choisies</b>
-            </p>
-            <ul class="fr-text--sm">
-                {% for critere in dossier.demande_eligibilite_dsil.all %}
-                    <li>
-                        {{ critere }}
-                    </li>
-                {% endfor %}
-            </ul>
-        {% elif dotation_projet.dotation == "DETR" %}
-            <p class="fr-text--sm">
-                <b>Catégories choisies</b>
-            </p>
-            <ul class="fr-text--sm">
-                {% for categorie in dotation_projet.detr_categories.all %}
-                    <li>
-                        {{ categorie.libelle }}
-                    </li>
-                {% endfor %}
-            </ul>
-            {% if enveloppe.dotation == 'DETR' %}
-                {% include "includes/forms/_detr_categories_form.html" %}
-            {% endif %}
-        {% endif %}
-    {% endfor %}
-
-{% endblock categories %}
 
 {% block montants_form %}
     {% if other_dotation_montants %}
