@@ -481,7 +481,7 @@ class Dossier(TimestampedModel):
     )
     annotations_taux_detr = models.DecimalField(
         "DETR - Taux de subvention (%)",
-        max_digits=6,
+        max_digits=12,
         decimal_places=3,
         null=True,
         blank=True,
@@ -503,7 +503,7 @@ class Dossier(TimestampedModel):
     )
     annotations_taux_dsil = models.DecimalField(
         "DSIL - Taux de subvention (%)",
-        max_digits=6,
+        max_digits=12,
         decimal_places=3,
         null=True,
         blank=True,
