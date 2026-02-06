@@ -130,7 +130,7 @@ data_test = (
     ),
     (
         SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
-        "Le projet est accepté provisoirement dans cette simulation.",
+        "La dotation DETR est acceptée provisoirement dans cette simulation.",
         "provisionally_accepted",
     ),
     (

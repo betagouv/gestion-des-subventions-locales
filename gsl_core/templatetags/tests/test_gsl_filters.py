@@ -52,8 +52,8 @@ def test_remove_first_word():
     (
         ("valid", "Projet accepté"),
         ("cancelled", "Projet refusé"),
-        ("provisionally_accepted", "Projet accepté provisoirement"),
-        ("provisionally_refused", "Projet refusé provisoirement"),
+        ("provisionally_accepted", "Dotation acceptée provisoirement"),
+        ("provisionally_refused", "Dotation refusée provisoirement"),
         ("dismissed", "Projet classé sans suite"),
         ("draft", "Projet en traitement"),
         ("projet_note_deletion", "Suppression de la note"),
