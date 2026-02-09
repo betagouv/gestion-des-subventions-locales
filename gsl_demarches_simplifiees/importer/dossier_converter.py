@@ -248,16 +248,36 @@ class DossierConverter:
     def _get_perimetre(self) -> Perimetre | None:
         arrondissement = self.dossier.porteur_de_projet_arrondissement
         if arrondissement is not None:
-            return Perimetre.objects.get(arrondissement=arrondissement)
+            try:
+                return Perimetre.objects.get(arrondissement=arrondissement)
+            except Perimetre.DoesNotExist:
+                logger.exception(
+                    "Perimetre not found.",
+                    extra={
+                        "dossier_ds_number": self.dossier.ds_number,
+                        "arrondissement": arrondissement,
+                    },
+                )
 
         departement = self.dossier.porteur_de_projet_departement
         if departement is not None:
-            return Perimetre.objects.get(departement=departement, arrondissement=None)
+            try:
+                return Perimetre.objects.get(
+                    departement=departement, arrondissement=None
+                )
+            except Perimetre.DoesNotExist:
+                logger.exception(
+                    "Perimetre not found.",
+                    extra={
+                        "dossier_ds_number": self.dossier.ds_number,
+                        "departement": departement,
+                    },
+                )
 
         logger.warning(
             "Dossier is missing arrondissement and departement.",
             extra={
-                "dossier_ds_number": self.ds_number,
+                "dossier_ds_number": self.dossier.ds_number,
                 "arrondissement": self.dossier.porteur_de_projet_arrondissement,
                 "departement": self.dossier.porteur_de_projet_departement,
             },

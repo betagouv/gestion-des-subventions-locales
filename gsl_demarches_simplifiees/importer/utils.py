@@ -1,6 +1,9 @@
 import re
+from logging import getLogger
 
 from gsl_core.models import Arrondissement, Departement
+
+logger = getLogger(__name__)
 
 
 def get_departement_from_field_label(label: str) -> Departement | None:
@@ -32,7 +35,13 @@ def get_arrondissement_from_value(value: str) -> Arrondissement | None:
     try:
         return Arrondissement.objects.get(name=name)
     except Arrondissement.DoesNotExist:
-        raise ValueError(f"Arrondissement not found: {name}")
+        logger.exception(
+            "Arrondissement not found.",
+            extra={
+                "name": name,
+            },
+        )
+        raise
 
 
 def get_departement_from_value(value: str) -> Departement | None:
@@ -52,4 +61,10 @@ def get_departement_from_value(value: str) -> Departement | None:
     try:
         return Departement.objects.get(insee_code=insee_code)
     except Departement.DoesNotExist:
-        raise ValueError(f"Departement not found: {insee_code}")
+        logger.exception(
+            "Departement not found.",
+            extra={
+                "insee_code": insee_code,
+            },
+        )
+        raise
