@@ -5,11 +5,12 @@ from logging import getLogger
 
 from django.db import models
 
-from gsl_core.models import Adresse, Arrondissement, Departement, Perimetre
+from gsl_core.models import Adresse, Arrondissement, Departement
 from gsl_demarches_simplifiees.importer.utils import (
     get_arrondissement_from_value,
     get_departement_from_field_label,
     get_departement_from_value,
+    get_perimetre_from_dossier,
 )
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
@@ -243,44 +244,4 @@ class DossierConverter:
             return None
 
     def associate_perimetre(self):
-        self.dossier.perimetre = self._get_perimetre()
-
-    def _get_perimetre(self) -> Perimetre | None:
-        arrondissement = self.dossier.porteur_de_projet_arrondissement
-        if arrondissement is not None:
-            try:
-                return Perimetre.objects.get(arrondissement=arrondissement)
-            except Perimetre.DoesNotExist:
-                logger.exception(
-                    "Perimetre not found.",
-                    extra={
-                        "dossier_ds_number": self.dossier.ds_number,
-                        "arrondissement": arrondissement,
-                    },
-                )
-
-        departement = self.dossier.porteur_de_projet_departement
-        if departement is not None:
-            try:
-                return Perimetre.objects.get(
-                    departement=departement, arrondissement=None
-                )
-            except Perimetre.DoesNotExist:
-                logger.exception(
-                    "Perimetre not found.",
-                    extra={
-                        "dossier_ds_number": self.dossier.ds_number,
-                        "departement": departement,
-                    },
-                )
-
-        logger.warning(
-            "Dossier is missing arrondissement and departement.",
-            extra={
-                "dossier_ds_number": self.dossier.ds_number,
-                "arrondissement": self.dossier.porteur_de_projet_arrondissement,
-                "departement": self.dossier.porteur_de_projet_departement,
-            },
-        )
-
-        return None
+        self.dossier.perimetre = get_perimetre_from_dossier(self.dossier)

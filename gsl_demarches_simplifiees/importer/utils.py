@@ -1,7 +1,8 @@
 import re
 from logging import getLogger
 
-from gsl_core.models import Arrondissement, Departement
+from gsl_core.models import Arrondissement, Departement, Perimetre
+from gsl_demarches_simplifiees.models import Dossier
 
 logger = getLogger(__name__)
 
@@ -68,3 +69,42 @@ def get_departement_from_value(value: str) -> Departement | None:
             },
         )
         raise
+
+
+def get_perimetre_from_dossier(dossier: Dossier) -> Perimetre | None:
+    arrondissement = dossier.porteur_de_projet_arrondissement
+    if arrondissement is not None:
+        try:
+            return Perimetre.objects.get(arrondissement=arrondissement)
+        except Perimetre.DoesNotExist:
+            logger.exception(
+                "Perimetre not found.",
+                extra={
+                    "dossier_ds_number": dossier.ds_number,
+                    "arrondissement": arrondissement,
+                },
+            )
+
+    departement = dossier.porteur_de_projet_departement
+    if departement is not None:
+        try:
+            return Perimetre.objects.get(departement=departement, arrondissement=None)
+        except Perimetre.DoesNotExist:
+            logger.exception(
+                "Perimetre not found.",
+                extra={
+                    "dossier_ds_number": dossier.ds_number,
+                    "departement": departement,
+                },
+            )
+
+    logger.warning(
+        "Dossier is missing arrondissement and departement.",
+        extra={
+            "dossier_ds_number": dossier.ds_number,
+            "arrondissement": dossier.porteur_de_projet_arrondissement,
+            "departement": dossier.porteur_de_projet_departement,
+        },
+    )
+
+    return None

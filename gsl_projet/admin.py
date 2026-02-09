@@ -59,7 +59,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "__str__",
         "dossier_ds__projet_intitule",
         "get_status_display",
-        "dossier_ds__perimetre__departement",
+        "dossier_departement",
         "dotations",
     )
     list_filter = (
@@ -79,12 +79,14 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             "dossier_ds",
             "dossier_ds__ds_data",
             "dossier_ds__ds_data__ds_demarche",
+            "dossier_ds__perimetre",
+            "dossier_ds__perimetre__departement",
         )
         qs = qs.defer(
             "dossier_ds__ds_data__raw_data",
             "dossier_ds__ds_data__ds_demarche__raw_ds_data",
         )
-        qs = qs.prefetch_related("dotationprojet_set", "perimetre__departement")
+        qs = qs.prefetch_related("dotationprojet_set")
         return qs
 
     @admin.action(description="Rafraîchir depuis le dossier DN")
@@ -103,6 +105,14 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         return dict(PROJET_STATUS_CHOICES)[obj.status]
 
     get_status_display.short_description = "Statut"
+
+    def dossier_departement(self, obj):
+        return obj.dossier_ds.perimetre.departement.insee_code
+
+    dossier_departement.short_description = "Département"
+    dossier_departement.admin_order_field = (
+        "dossier_ds__perimetre__departement__insee_code"
+    )
 
 
 class SimulationProjetInline(admin.TabularInline):

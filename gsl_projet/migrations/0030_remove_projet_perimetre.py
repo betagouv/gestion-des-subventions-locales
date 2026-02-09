@@ -6,6 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
     dependencies = [
         ("gsl_projet", "0029_projet_autre_zonage_local_projet_contrat_local"),
+        ("gsl_demarches_simplifiees", "0044_associate_perimetre_to_dossier"),
     ]
 
     operations = [
