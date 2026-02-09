@@ -4,7 +4,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
-from gsl_core.models import Adresse, Collegue, Perimetre
+from gsl_core.models import Adresse, BaseModel, Collegue, Perimetre
 from gsl_core.models import Arrondissement as CoreArrondissement
 from gsl_core.models import Departement as CoreDepartement
 from gsl_projet.constants import (
@@ -16,15 +16,7 @@ from gsl_projet.constants import (
 logger = getLogger(__name__)
 
 
-class TimestampedModel(models.Model):
-    created_at = models.DateTimeField("Date de création", auto_now_add=True)
-    updated_at = models.DateTimeField("Date de modification", auto_now=True)
-
-    class Meta:
-        abstract = True
-
-
-class Demarche(TimestampedModel):
+class Demarche(BaseModel):
     """
     Class used to keep DN' "Démarches" data
     See:
@@ -159,7 +151,7 @@ class PersonneMorale(models.Model):
         return self
 
 
-class DossierData(TimestampedModel):
+class DossierData(BaseModel):
     """
     See https://www.demarches-simplifiees.fr/graphql/schema/types/Dossier
     """
@@ -202,7 +194,7 @@ class DossierQuerySet(models.QuerySet):
         return self.filter(demande_renouvellement__contains="SANS")
 
 
-class Dossier(TimestampedModel):
+class Dossier(BaseModel):
     """
     See https://www.demarches-simplifiees.fr/graphql/schema/types/Dossier
     """
@@ -695,7 +687,7 @@ class Dossier(TimestampedModel):
         )
 
 
-class DsChoiceLibelle(TimestampedModel):
+class DsChoiceLibelle(BaseModel):
     label = models.CharField("Libellé", unique=True)
 
     class Meta:
@@ -772,7 +764,7 @@ class CategorieManager(models.Manager.from_queryset(CategorieQuerySet)):
     pass
 
 
-class Categorie(TimestampedModel):
+class Categorie(BaseModel):
     demarche = models.ForeignKey(
         Demarche, on_delete=models.PROTECT, verbose_name="Démarche"
     )
@@ -844,7 +836,7 @@ class AutreAide(DsChoiceLibelle):
     pass
 
 
-class Profile(TimestampedModel):
+class Profile(BaseModel):
     ds_id = models.CharField("Identifiant DS", unique=True)
     ds_email = models.EmailField("E-mail", unique=True)
 
@@ -863,7 +855,7 @@ def mapping_field_choices():
     )
 
 
-class FieldMapping(TimestampedModel):
+class FieldMapping(BaseModel):
     demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
     ds_field_id = models.CharField("ID du champ DS")
     ds_field_label = models.CharField(
