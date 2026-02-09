@@ -326,7 +326,7 @@ class TestProgrammationProjetTabView:
             "gsl_programmation:programmation-projet-tab",
             kwargs={
                 "projet_id": programmation_projet.projet.id,
-                "tab": "annotations",
+                "tab": "notes",
             },
         )
         response = Client().get(url)
@@ -334,7 +334,7 @@ class TestProgrammationProjetTabView:
 
     @pytest.mark.parametrize(
         "tab",
-        ("annotations", "historique"),
+        ("notes", "historique"),
     )
     def test_tab_view_with_valid_tab(
         self, user_with_perimetre, programmation_projet, tab
@@ -375,7 +375,7 @@ class TestProgrammationProjetTabView:
             "gsl_programmation:programmation-projet-tab",
             kwargs={
                 "projet_id": other_programmation_projet.projet.id,
-                "tab": "annotations",
+                "tab": "notes",
             },
         )
         response = client.get(url)
@@ -383,7 +383,7 @@ class TestProgrammationProjetTabView:
 
     @pytest.mark.parametrize(
         "tab",
-        ("annotations", "historique"),
+        ("notes", "historique"),
     )
     def test_tab_view_uses_correct_template(
         self, user_with_perimetre, programmation_projet, tab
@@ -406,12 +406,12 @@ class TestProgrammationProjetTabView:
             "gsl_programmation:programmation-projet-tab",
             kwargs={
                 "projet_id": programmation_projet.projet.id,
-                "tab": "annotations",
+                "tab": "notes",
             },
         )
         response = client.get(url)
 
-        assert response.context["current_tab"] == "annotations"
+        assert response.context["current_tab"] == "notes"
         assert "title" in response.context
         assert "projet" in response.context
         assert "dossier" in response.context
@@ -422,7 +422,7 @@ class TestProgrammationProjetTabView:
 class TestTabConstants:
     def test_programmation_projet_tabs_constant(self):
         """Test que la constante ALLOWED_TABS contient les bons onglets"""
-        expected_tabs = {"annotations", "historique"}
+        expected_tabs = {"notes", "historique"}
         assert ProgrammationProjetDetailView.ALLOWED_TABS == expected_tabs
 
 
