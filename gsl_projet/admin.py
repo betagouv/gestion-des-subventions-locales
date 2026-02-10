@@ -95,6 +95,13 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
                 projet.dossier_ds.ds_number
             )
 
+    def get_deleted_objects(self, objs, request):
+        deleted_objects, model_count, perms_needed, protected = (
+            super().get_deleted_objects(objs, request)
+        )
+        perms_needed.remove(DotationProjet._meta.verbose_name)
+        return deleted_objects, model_count, perms_needed, protected
+
     def dotations(self, obj):
         return ", ".join(obj.dotations)
 
