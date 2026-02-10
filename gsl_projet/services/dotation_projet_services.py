@@ -245,8 +245,10 @@ class DotationProjetService:
     def _update_dotation_projets_from_projet(
         cls, projet: Projet
     ) -> list[DotationProjet]:
-        dossier_status = projet.dossier_ds.ds_state
         cls._update_assiette_from_dossier(projet)
+
+        dossier_status = projet.dossier_ds.ds_state
+
         if dossier_status in (
             Dossier.STATE_ACCEPTE,
             Dossier.STATE_REFUSE,
@@ -295,15 +297,15 @@ class DotationProjetService:
             return projet.dotationprojet_set.all()
 
         dotations_to_remove = set(projet.dotations) - set(dotations_to_accept)
-        dotation_projets = []
         for dotation in dotations_to_accept:
-            dotation_projet = cls._accept_dotation_projet(projet, dotation)
-            dotation_projets.append(dotation_projet)
+            cls._accept_dotation_projet(projet, dotation)
 
         for dotation in dotations_to_remove:
-            DotationProjet.objects.filter(projet=projet, dotation=dotation).delete()
+            DotationProjet.objects.filter(projet=projet, dotation=dotation).exclude(
+                status__in=[PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED]
+            ).delete()
 
-        return dotation_projets
+        return projet.dotationprojet_set.all()
 
     @classmethod
     def _accept_dotation_projet(
@@ -545,7 +547,7 @@ class DotationProjetService:
         dotations_value = getattr(projet.dossier_ds, field)
         dotations: list[Any] = []
 
-        if not dotations_value:
+        if not dotations_value or dotations_value == "[]":
             logger.warning(
                 log_message_if_missing,
                 extra={

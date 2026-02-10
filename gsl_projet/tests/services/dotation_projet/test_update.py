@@ -110,37 +110,99 @@ def test_update_dotation_projets_from_projet_accepted_creates_new_dotation_proje
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_update_dotation_projets_from_projet_accepted_removes_dotation_projets(
+@pytest.mark.parametrize(
+    "dotation_status",
+    (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED),
+)
+def test_update_dotation_projets_from_projet_accepted_keeps_dotation_projets_if_refused_or_dismissed(
     perimetres,
+    dotation_status,
 ):
-    """Test _update_dotation_projets_from_projet_accepted removes dotation projets not in annotations_dotation"""
+    """Test _update_dotation_projets_from_projet_accepted keeps dotation projets not in annotations_dotation if not refused or dismissed"""
+    # Arrange
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
 
-    projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
-        dossier_ds__annotations_dotation="DETR et DSIL",
-        dossier_ds__annotations_assiette_detr=10_000,
-        dossier_ds__annotations_assiette_dsil=20_000,
-        dossier_ds__annotations_montant_accorde_detr=5_000,
-        dossier_ds__annotations_montant_accorde_dsil=15_000,
-        dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
-        dossier_ds__perimetre=arr_dijon,
+    dossier = DossierFactory(
+        ds_state=Dossier.STATE_EN_INSTRUCTION,
+        demande_dispositif_sollicite="DETR et DSIL",
+        ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
+        perimetre=arr_dijon,
     )
+    projet = ProjetFactory(dossier_ds=dossier)
 
     dps._initialize_dotation_projets_from_projet(projet)
     assert projet.dotationprojet_set.count() == 2
 
-    # Update to remove DSIL
+    projet.dotationprojet_set.filter(dotation=DOTATION_DSIL).update(
+        status=dotation_status
+    )
+
+    # Act
     projet.dossier_ds.annotations_dotation = "DETR"
+    projet.dossier_ds.annotations_assiette_detr = 10_000
+    projet.dossier_ds.annotations_montant_accorde_detr = 5_000
     projet.dossier_ds.save()
 
     dotation_projets = dps._update_dotation_projets_from_projet_accepted(projet)
 
+    # Assert
+    assert len(dotation_projets) == 2
+    assert projet.dotationprojet_set.count() == 2
+    assert DotationProjet.objects.filter(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    ).exists()
+    assert DotationProjet.objects.filter(
+        projet=projet, dotation=DOTATION_DSIL, status=dotation_status
+    ).exists()
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
+@pytest.mark.parametrize(
+    "dotation_status",
+    (PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING),
+)
+def test_update_dotation_projets_from_projet_accepted_removes_dotation_projets_if_accepted_or_dismissed(
+    perimetres,
+    dotation_status,
+):
+    """Test _update_dotation_projets_from_projet_accepted removes dotation projets if accepted or processing"""
+    # Arrange
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+
+    dossier = DossierFactory(
+        ds_state=Dossier.STATE_EN_INSTRUCTION,
+        demande_dispositif_sollicite="DETR et DSIL",
+        ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
+        perimetre=arr_dijon,
+    )
+    projet = ProjetFactory(dossier_ds=dossier)
+
+    dps._initialize_dotation_projets_from_projet(projet)
+    assert projet.dotationprojet_set.count() == 2
+
+    projet.dotationprojet_set.filter(dotation=DOTATION_DSIL).update(
+        status=dotation_status
+    )
+
+    # Act
+    projet.dossier_ds.annotations_dotation = "DETR"
+    projet.dossier_ds.annotations_assiette_detr = 10_000
+    projet.dossier_ds.annotations_montant_accorde_detr = 5_000
+    projet.dossier_ds.save()
+
+    dotation_projets = dps._update_dotation_projets_from_projet_accepted(projet)
+
+    # Assert
     assert len(dotation_projets) == 1
     assert projet.dotationprojet_set.count() == 1
-    assert DotationProjet.objects.filter(projet=projet, dotation=DOTATION_DETR).exists()
+    assert DotationProjet.objects.filter(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    ).exists()
     assert not DotationProjet.objects.filter(
         projet=projet, dotation=DOTATION_DSIL
     ).exists()
