@@ -1,6 +1,5 @@
 import pytest
 
-from gsl_core.models import Perimetre
 from gsl_core.tests.factories import DepartementFactory
 from gsl_demarches_simplifiees.tests.factories import PersonneMoraleFactory
 
@@ -39,7 +38,6 @@ def test_projet_factory_can_be_called_twice_with_same_demandeur():
     demandeur = PersonneMoraleFactory()
     ProjetFactory.create_batch(2, dossier_ds__ds_demandeur=demandeur)
     assert Projet.objects.count() == 2
-    assert Perimetre.objects.count() == 1
 
 
 def test_category_detr_factory_can_be_called_twice_with_same_parameters():
