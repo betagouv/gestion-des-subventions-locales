@@ -481,7 +481,7 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
 
 
 @admin.register(Adresse)
-class AdresseAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+class AdresseAdmin(admin.ModelAdmin):
     list_display = ("label", "postal_code", "commune")
     autocomplete_fields = ("commune",)
 
@@ -492,12 +492,12 @@ class AdresseAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
 
 @admin.register(Region)
-class RegionAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
+class RegionAdmin(ImportMixin, admin.ModelAdmin):
     resource_classes = (RegionResource,)
 
 
 @admin.register(Departement)
-class DepartementAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
+class DepartementAdmin(ImportMixin, admin.ModelAdmin):
     search_fields = ("name", "insee_code")
     resource_classes = (DepartementResource,)
     list_display = ("name", "insee_code", "region", "active")
@@ -514,13 +514,13 @@ class DepartementAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
 
 
 @admin.register(Arrondissement)
-class ArrondissementAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
+class ArrondissementAdmin(ImportMixin, admin.ModelAdmin):
     search_fields = ("name", "insee_code")
     resource_classes = (ArrondissementResource,)
 
 
 @admin.register(Commune)
-class CommuneAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
+class CommuneAdmin(ImportMixin, admin.ModelAdmin):
     resource_classes = (CommuneResource,)
     list_display = ("name", "insee_code", "departement", "arrondissement")
     list_filter = ("departement__region", "departement", "arrondissement")
@@ -536,7 +536,7 @@ class CommuneAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
 
 
 @admin.register(Perimetre)
-class PerimetreAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+class PerimetreAdmin(admin.ModelAdmin):
     search_fields = (
         "departement__insee_code",
         "departement__name",
