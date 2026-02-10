@@ -2,7 +2,7 @@ import re
 from logging import getLogger
 
 from gsl_core.models import Arrondissement, Departement, Perimetre
-from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.models import CategorieDetr, Dossier
 
 logger = getLogger(__name__)
 
@@ -19,7 +19,14 @@ def get_departement_from_field_label(label: str) -> Departement | None:
     try:
         return Departement.objects.get(insee_code=insee_code)
     except Departement.DoesNotExist:
-        raise ValueError(f"Departement not found: {insee_code}")
+        logger.exception(
+            "Departement not found.",
+            extra={
+                "label": label,
+                "insee_code": insee_code,
+            },
+        )
+        raise
 
 
 def get_arrondissement_from_value(value: str) -> Arrondissement | None:
@@ -39,7 +46,7 @@ def get_arrondissement_from_value(value: str) -> Arrondissement | None:
         logger.exception(
             "Arrondissement not found.",
             extra={
-                "name": name,
+                "value": value,
             },
         )
         raise
@@ -65,6 +72,7 @@ def get_departement_from_value(value: str) -> Departement | None:
         logger.exception(
             "Departement not found.",
             extra={
+                "value": value,
                 "insee_code": insee_code,
             },
         )
@@ -108,3 +116,24 @@ def get_perimetre_from_dossier(dossier: Dossier) -> Perimetre | None:
     )
 
     return None
+
+
+def get_categorie_detr_from_value(
+    value: str, departement: Departement, ds_demarche_number: str
+) -> CategorieDetr | None:
+    try:
+        return CategorieDetr.objects.get(
+            demarche__ds_number=ds_demarche_number,
+            label=value,
+            departement=departement,
+        )
+    except CategorieDetr.DoesNotExist:
+        logger.exception(
+            "CategorieDetr not found.",
+            extra={
+                "ds_demarche_number": ds_demarche_number,
+                "value": value,
+                "departement": departement,
+            },
+        )
+        raise

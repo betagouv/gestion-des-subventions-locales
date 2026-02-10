@@ -1,5 +1,6 @@
 import pytest
 
+from gsl_core.models import Arrondissement, Departement
 from gsl_core.tests.factories import (
     ArrondissementFactory,
     DepartementFactory,
@@ -52,7 +53,7 @@ def test_get_departement_from_field_label_raises_when_no_pattern_in_label():
 
 @pytest.mark.django_db
 def test_get_departement_from_field_label_raises_when_departement_does_not_exist():
-    with pytest.raises(ValueError, match="Departement not found: 99"):
+    with pytest.raises(Departement.DoesNotExist):
         get_departement_from_field_label("Catégories prioritaires (99 - Inexist-ant)")
 
 
@@ -103,9 +104,15 @@ def test_get_departement_from_value_raises_when_no_pattern():
 
 
 @pytest.mark.django_db
-def test_get_departement_from_value_raises_when_departement_does_not_exist():
-    with pytest.raises(ValueError, match="Departement not found: 99"):
+def test_get_departement_from_value_raises_when_departement_does_not_exist(caplog):
+    with pytest.raises(Departement.DoesNotExist):
         get_departement_from_value("99 - Inexist-ant")
+
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.message == "Departement not found."
+    assert record.insee_code == "99"
+    assert record.value == "99 - Inexist-ant"
 
 
 # --- get_arrondissement_from_value ---
@@ -147,6 +154,13 @@ def test_get_arrondissement_from_value_raises_when_no_pattern():
 
 
 @pytest.mark.django_db
-def test_get_arrondissement_from_value_raises_when_arrondissement_does_not_exist():
-    with pytest.raises(ValueError, match="Arrondissement not found: Inexist-ant"):
+def test_get_arrondissement_from_value_raises_when_arrondissement_does_not_exist(
+    caplog,
+):
+    with pytest.raises(Arrondissement.DoesNotExist):
         get_arrondissement_from_value("10 - Aube - arrondissement de Inexist-ant")
+
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.message == "Arrondissement not found."
+    assert record.value == "10 - Aube - arrondissement de Inexist-ant"

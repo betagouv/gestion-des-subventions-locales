@@ -6,10 +6,9 @@ from django.db import migrations, models
 
 def set_arrondissement_and_departement_to_null(apps, schema_editor):
     Dossier = apps.get_model("gsl_demarches_simplifiees", "Dossier")
-    for dossier in Dossier.objects.all():
-        dossier.porteur_de_projet_arrondissement = None
-        dossier.porteur_de_projet_departement = None
-        dossier.save()
+    Dossier.objects.all().update(
+        porteur_de_projet_arrondissement=None, porteur_de_projet_departement=None
+    )
 
 
 class Migration(migrations.Migration):
