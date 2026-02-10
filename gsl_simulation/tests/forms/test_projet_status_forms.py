@@ -326,7 +326,7 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
     child_enveloppe = DetrEnveloppeFactory(deleguee_by=mother_enveloppe)
     simulation = SimulationFactory(enveloppe=child_enveloppe)
     dotation_projet = DotationProjetFactory(
-        projet__perimetre=child_enveloppe.perimetre, dotation=DOTATION_DETR
+        projet__dossier_ds__perimetre=child_enveloppe.perimetre, dotation=DOTATION_DETR
     )
 
     simulation_projet = SimulationProjetFactory(

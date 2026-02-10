@@ -5,7 +5,11 @@ from pathlib import Path
 import pytest
 
 from gsl_core.models import Adresse
-from gsl_core.tests.factories import DepartementFactory, RegionFactory
+from gsl_core.tests.factories import (
+    ArrondissementFactory,
+    DepartementFactory,
+    RegionFactory,
+)
 from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverter
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
@@ -394,6 +398,7 @@ def test_inject_scalar_value(dossier_converter, dossier):
 
 
 def test_inject_foreign_key_value(dossier_converter, dossier):
+    ArrondissementFactory(name="Haguenau-Wissembourg")
     dossier_converter.inject_into_field(
         dossier,
         Dossier._meta.get_field("porteur_de_projet_arrondissement"),
@@ -401,10 +406,7 @@ def test_inject_foreign_key_value(dossier_converter, dossier):
         "Arrondissement du demandeur (67 - Bas-Rhin)",
     )
     dossier.save()
-    assert (
-        dossier.porteur_de_projet_arrondissement.label
-        == "67 - Bas-Rhin - arrondissement de Haguenau-Wissembourg"
-    )
+    assert dossier.porteur_de_projet_arrondissement.name == "Haguenau-Wissembourg"
 
 
 def test_inject_manytomany_value(dossier_converter, dossier):
@@ -500,3 +502,73 @@ def test_inject_into_field_categorie_detr_raises_when_category_not_found(
         dossier_converter.inject_into_field(
             dossier, field, "Inexistant label", ds_field_label
         )
+
+
+def test_convert_all_fields_continues_when_categorie_detr_does_not_exist(
+    dossier, caplog
+):
+    """convert_all_fields should skip fields raising CategorieDetr.DoesNotExist and continue."""
+    # Create the departement referenced in the DS field label
+    region = RegionFactory()
+    DepartementFactory(region=region, insee_code="87", name="Haute-Vienne")
+
+    # Minimal DS dossier data with two mapped fields:
+    # - one mapped to demande_categorie_detr that will fail (no CategorieDetr)
+    # - one mapped to projet_intitule that should still be imported
+    ds_dossier_data = {
+        "champs": [
+            {
+                "id": "FIELD_CATEG_DETR",
+                "champDescriptorId": "FIELD_CATEG_DETR",
+                "__typename": "TextChamp",
+                "label": "Catégories prioritaires (87 - Haute-Vienne)",
+                "stringValue": "1. Première catégorie prioritaire",
+            },
+            {
+                "id": "FIELD_INTITULE",
+                "champDescriptorId": "FIELD_INTITULE",
+                "__typename": "TextChamp",
+                "label": "Intitulé du projet",
+                "stringValue": "Mon super projet",
+            },
+        ],
+        "annotations": [],
+        "demarche": {"revision": {"id": "rev-1"}},
+    }
+
+    # Map DS fields to Django fields on Dossier
+    FieldMapping.objects.create(
+        demarche=dossier.ds_data.ds_demarche,
+        ds_field_id="FIELD_CATEG_DETR",
+        ds_field_label="Catégories prioritaires (87 - Haute-Vienne)",
+        ds_field_type="TextChamp",
+        django_field="demande_categorie_detr",
+    )
+    FieldMapping.objects.create(
+        demarche=dossier.ds_data.ds_demarche,
+        ds_field_id="FIELD_INTITULE",
+        ds_field_label="Intitulé du projet",
+        ds_field_type="TextChamp",
+        django_field="projet_intitule",
+    )
+
+    converter = DossierConverter(ds_dossier_data, dossier)
+
+    assert dossier.demande_categorie_detr_id is None
+    assert dossier.projet_intitule == ""
+
+    # CategorieDetr.DoesNotExist raised while injecting demande_categorie_detr
+    # must be swallowed by convert_one_field, so convert_all_fields finishes
+    # and still imports the other mapped field.
+    converter.convert_all_fields()
+
+    assert dossier.demande_categorie_detr_id is None
+    assert dossier.projet_intitule == "Mon super projet"
+
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.message == "CategorieDetr not found."
+    assert record.ds_demarche_number == dossier.ds_demarche_number
+    assert record.value == "1. Première catégorie prioritaire"
+    assert record.departement.name == "Haute-Vienne"
+    assert record.departement.insee_code == "87"

@@ -8,7 +8,8 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.db.models import Count
+from django.db import models
+from django.db.models import Count, OuterRef, Subquery
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from import_export.admin import ImportMixin
@@ -174,7 +175,35 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.select_related("perimetre__departement", "perimetre__region")
+
+        last_simulation_subquery = (
+            Simulation.objects.filter(
+                models.Q(enveloppe__perimetre=OuterRef("perimetre"))
+                | models.Q(
+                    enveloppe__perimetre__region_id=OuterRef("perimetre__region_id"),
+                    enveloppe__perimetre__departement_id__isnull=True,
+                    enveloppe__perimetre__arrondissement_id__isnull=True,
+                )
+                | models.Q(
+                    enveloppe__perimetre__region_id=OuterRef("perimetre__region_id"),
+                    enveloppe__perimetre__departement_id=OuterRef(
+                        "perimetre__departement_id"
+                    ),
+                    enveloppe__perimetre__arrondissement_id__isnull=True,
+                )
+            )
+            .order_by("-created_at")
+            .values("created_at")[:1]
+        )
+
+        return qs.select_related(
+            "perimetre__departement",
+            "perimetre__region",
+            "perimetre__arrondissement",
+            "ds_profile",
+        ).annotate(
+            _last_simulation_created_at=Subquery(last_simulation_subquery),
+        )
 
     @admin.action(description="🔃 Association des profils DN aux utilisateurs")
     def associate_ds_profile_to_users(self, request, queryset):
@@ -238,22 +267,13 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
     departement.admin_order_field = "perimetre__departement__name"
 
     def last_simulation_created_in_perimetre(self, obj):
-        perimetre = obj.perimetre
-        if perimetre is None:
-            return None
-
-        last_simulation = (
-            Simulation.objects.filter(
-                enveloppe__perimetre__in=list(perimetre.ancestors()) + [perimetre]
-            )
-            .order_by("-created_at")
-            .first()
-        )
-
-        return last_simulation.created_at if last_simulation else None
+        return obj._last_simulation_created_at
 
     last_simulation_created_in_perimetre.short_description = (
         "Dernière simulation créée (périmètre)"
+    )
+    last_simulation_created_in_perimetre.admin_order_field = (
+        "_last_simulation_created_at"
     )
 
     def dn_profile(self, obj):
@@ -467,7 +487,7 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
 
 
 @admin.register(Adresse)
-class AdresseAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+class AdresseAdmin(admin.ModelAdmin):
     list_display = ("label", "postal_code", "commune")
     autocomplete_fields = ("commune",)
 
@@ -478,12 +498,12 @@ class AdresseAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
 
 @admin.register(Region)
-class RegionAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
+class RegionAdmin(ImportMixin, admin.ModelAdmin):
     resource_classes = (RegionResource,)
 
 
 @admin.register(Departement)
-class DepartementAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
+class DepartementAdmin(ImportMixin, admin.ModelAdmin):
     search_fields = ("name", "insee_code")
     resource_classes = (DepartementResource,)
     list_display = ("name", "insee_code", "region", "active")
@@ -500,13 +520,13 @@ class DepartementAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
 
 
 @admin.register(Arrondissement)
-class ArrondissementAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
+class ArrondissementAdmin(ImportMixin, admin.ModelAdmin):
     search_fields = ("name", "insee_code")
     resource_classes = (ArrondissementResource,)
 
 
 @admin.register(Commune)
-class CommuneAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
+class CommuneAdmin(ImportMixin, admin.ModelAdmin):
     resource_classes = (CommuneResource,)
     list_display = ("name", "insee_code", "departement", "arrondissement")
     list_filter = ("departement__region", "departement", "arrondissement")
@@ -522,7 +542,7 @@ class CommuneAdmin(AllPermsForStaffUser, ImportMixin, admin.ModelAdmin):
 
 
 @admin.register(Perimetre)
-class PerimetreAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+class PerimetreAdmin(admin.ModelAdmin):
     search_fields = (
         "departement__insee_code",
         "departement__name",

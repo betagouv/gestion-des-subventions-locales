@@ -115,11 +115,10 @@ def projets(simulation, perimetre_departemental):
                     annotations_montant_accorde_detr=150_000,
                     annotations_montant_accorde_dsil=150_000,
                     porteur_de_projet_nature=epci,
-                    porteur_de_projet_arrondissement__core_arrondissement__departement=perimetre.departement,
+                    perimetre=perimetre,
                 )
                 projet_last_year = ProjetFactory(
                     dossier_ds=dossier_last_year,
-                    perimetre=perimetre,
                     demandeur=demandeur,
                 )
                 projets.append(projet_last_year)
@@ -133,12 +132,11 @@ def projets(simulation, perimetre_departemental):
                     demande_dispositif_sollicite=dotation,
                     finance_cout_total=2_000_000,
                     porteur_de_projet_nature=commune,
-                    porteur_de_projet_arrondissement__core_arrondissement__departement=perimetre.departement,
+                    perimetre=perimetre,
                 )
                 projet_current_year = ProjetFactory(
                     dossier_ds=dossier_current_year,
                     demandeur=demandeur,
-                    perimetre=perimetre,
                 )
                 projets.append(projet_current_year)
             demandeur = DemandeurFactory()
@@ -151,12 +149,11 @@ def projets(simulation, perimetre_departemental):
                     demande_montant=400_000,
                     finance_cout_total=3_000_000,
                     porteur_de_projet_nature=commune,
-                    porteur_de_projet_arrondissement__core_arrondissement__departement=perimetre.departement,
+                    perimetre=perimetre,
                 )
                 projet_last_year = ProjetFactory(
                     dossier_ds=dossier_last_year,
                     demandeur=demandeur,
-                    perimetre=perimetre,
                 )
                 projets.append(projet_last_year)
 
@@ -168,12 +165,11 @@ def projets(simulation, perimetre_departemental):
                     demande_montant=500_000,
                     finance_cout_total=4_000_000,
                     porteur_de_projet_nature=epci,
-                    porteur_de_projet_arrondissement__core_arrondissement__departement=perimetre.departement,
+                    perimetre=perimetre,
                 )
                 projet_current_year = ProjetFactory(
                     dossier_ds=dossier_current_year,
                     demandeur=demandeur,
-                    perimetre=perimetre,
                 )
                 projets.append(projet_current_year)
     for projet in projets:
@@ -320,10 +316,10 @@ def test_view_with_multiple_simulations(req, perimetre_departemental):
         annotations_montant_accorde_detr=150_000,
         demande_montant=200_000,
         demande_dispositif_sollicite="DETR",
+        perimetre=perimetre_departemental,
     )
     projet = ProjetFactory(
         dossier_ds=dossier_current_year,
-        perimetre=perimetre_departemental,
     )
 
     enveloppe = DetrEnveloppeFactory(
@@ -533,7 +529,9 @@ def test_view_with_territory_filter():
     simulation = SimulationFactory(enveloppe=enveloppe)
 
     dotation_projets_A = DotationProjetFactory.create_batch(
-        2, dotation=enveloppe.dotation, projet__perimetre=perimetre_arrondissement_A
+        2,
+        dotation=enveloppe.dotation,
+        projet__dossier_ds__perimetre=perimetre_arrondissement_A,
     )
     for dotation_projet_A in dotation_projets_A:
         SimulationProjetFactory(
@@ -541,7 +539,9 @@ def test_view_with_territory_filter():
             dotation_projet=dotation_projet_A,
         )
     dotation_projets_B = DotationProjetFactory.create_batch(
-        3, dotation=enveloppe.dotation, projet__perimetre=perimetre_arrondissement_B
+        3,
+        dotation=enveloppe.dotation,
+        projet__dossier_ds__perimetre=perimetre_arrondissement_B,
     )
 
     for dotation_projet_B in dotation_projets_B:

@@ -57,7 +57,7 @@ class TestNotificationTabDisplaySimpleDotation:
         """Notification tab should be shown for accepted projects (simple dotation)."""
         # Create accepted DETR projet
         dotation_projet = DotationProjetFactory(
-            projet__perimetre=collegue.perimetre,
+            projet__dossier_ds__perimetre=collegue.perimetre,
             dotation=DOTATION_DETR,
             status=PROJET_STATUS_ACCEPTED,
         )
@@ -93,7 +93,7 @@ class TestNotificationTabDisplaySimpleDotation:
         """Notification tab should NOT be shown for processing projects (simple dotation)."""
         # Create processing DETR projet
         dotation_projet = DotationProjetFactory(
-            projet__perimetre=collegue.perimetre,
+            projet__dossier_ds__perimetre=collegue.perimetre,
             dotation=DOTATION_DETR,
             status=PROJET_STATUS_PROCESSING,
         )
@@ -124,7 +124,7 @@ class TestNotificationTabDisplayDoubleDotation:
     ):
         """Notification tab shown when DETR is accepted but DSIL is still processing."""
         # Create projet with both dotations
-        projet = ProjetFactory(perimetre=collegue.perimetre)
+        projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
 
         # DETR accepted
         detr_dotation = DotationProjetFactory(
@@ -166,7 +166,7 @@ class TestNotificationTabDisplayDoubleDotation:
     ):
         """Notification tab shown when DSIL is accepted but DETR is refused."""
         # Create projet with both dotations
-        projet = ProjetFactory(perimetre=collegue.perimetre)
+        projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
 
         # DETR refused
         DotationProjetFactory(
@@ -208,7 +208,7 @@ class TestNotificationTabDisplayDoubleDotation:
     ):
         """Notification tab shown when both DETR and DSIL are accepted."""
         # Create projet with both dotations
-        projet = ProjetFactory(perimetre=collegue.perimetre)
+        projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
 
         # Both accepted
         detr_dotation = DotationProjetFactory(
@@ -250,7 +250,7 @@ class TestNotificationTabDisplayDoubleDotation:
     ):
         """Notification tab NOT shown when both DETR and DSIL are still processing."""
         # Create projet with both dotations
-        projet = ProjetFactory(perimetre=collegue.perimetre)
+        projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
 
         # Both processing
         detr_dotation = DotationProjetFactory(
@@ -283,7 +283,7 @@ class TestNotificationTabDisplayDoubleDotation:
     ):
         """Notification tab NOT shown when both DETR and DSIL are refused."""
         # Create projet with both dotations
-        projet = ProjetFactory(perimetre=collegue.perimetre)
+        projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
 
         # Both refused
         detr_dotation = DotationProjetFactory(

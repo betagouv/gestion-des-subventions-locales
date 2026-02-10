@@ -169,7 +169,7 @@ def test_with_at_least_one_programmed_dotation_when_projet_has_two_programmated_
 def test_for_user_and_at_least_one_programmated_dotation():
     perimetre = PerimetreDepartementalFactory()
     user = CollegueFactory(perimetre=perimetre)
-    projet = ProjetFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     dotation_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
     ProgrammationProjetFactory(dotation_projet=dotation_detr)
 
@@ -237,7 +237,7 @@ def test_with_at_least_one_accepted_dotation_for_user():
     """Test with_at_least_one_accepted_dotation combined with for_user filter."""
     perimetre = PerimetreDepartementalFactory()
     user = CollegueFactory(perimetre=perimetre)
-    projet = ProjetFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     dotation_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
     ProgrammationProjetFactory(dotation_projet=dotation_detr, status=pp.STATUS_ACCEPTED)
 

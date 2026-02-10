@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 from django.utils import timezone
 
+from gsl_core.models import Departement
 from gsl_core.tests.factories import DepartementFactory
 from gsl_demarches_simplifiees.importer.demarche import (
     _get_departement_from_field_mapping,
@@ -644,20 +645,23 @@ def test_get_departement_from_field_mapping_returns_departement_when_label_match
 
 
 def test_get_departement_from_field_mapping_returns_none_when_label_does_not_match(
-    demarche,
+    demarche, caplog
 ):
     mapping = FieldMappingFactory(
         demarche=demarche,
         ds_field_label="Some other field without (code - name) pattern",
     )
+    with pytest.raises(Departement.DoesNotExist):
+        _get_departement_from_field_mapping(mapping)
 
-    result = _get_departement_from_field_mapping(mapping)
-
-    assert result is None
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.message == "Departement not found."
+    assert record.insee_code == "code"
 
 
 def test_get_departement_from_field_mapping_returns_none_when_departement_does_not_exist(
-    demarche,
+    demarche, caplog
 ):
     mapping = FieldMappingFactory(
         demarche=demarche,
@@ -665,9 +669,13 @@ def test_get_departement_from_field_mapping_returns_none_when_departement_does_n
     )
     # No Departement with insee_code=99 in DB
 
-    result = _get_departement_from_field_mapping(mapping)
+    with pytest.raises(Departement.DoesNotExist):
+        _get_departement_from_field_mapping(mapping)
 
-    assert result is None
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.message == "Departement not found."
+    assert record.insee_code == "99"
 
 
 def test_get_departement_from_field_mapping_returns_none_for_empty_label(demarche):

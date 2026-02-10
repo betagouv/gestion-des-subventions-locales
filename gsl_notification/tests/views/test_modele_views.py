@@ -32,7 +32,9 @@ def perimetre():
 
 @pytest.fixture
 def programmation_projet(perimetre):
-    return ProgrammationProjetFactory(dotation_projet__projet__perimetre=perimetre)
+    return ProgrammationProjetFactory(
+        dotation_projet__projet__dossier_ds__perimetre=perimetre
+    )
 
 
 @pytest.fixture

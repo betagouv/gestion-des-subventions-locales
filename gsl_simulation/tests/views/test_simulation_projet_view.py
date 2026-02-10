@@ -173,7 +173,7 @@ def test_status_and_notification_status_card_is_displayed_everytime(status):
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     client = ClientWithLoggedUserFactory(user)
-    projet = ProjetFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     dotation_projet = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
     enveloppe = DsilEnveloppeFactory(perimetre=perimetre)
     simulation = SimulationFactory(enveloppe=enveloppe)
@@ -199,7 +199,7 @@ def test_status_and_notification_status_card_is_displayed_with_the_correct_title
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     client = ClientWithLoggedUserFactory(user)
-    projet = ProjetFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     dotation_projet = DotationProjetFactory(projet=projet, dotation=dotation)
     enveloppe = (
         DetrEnveloppeFactory(perimetre=perimetre)
@@ -246,7 +246,7 @@ def test_status_and_notification_status_card_displays_the_notification_status_or
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     client = ClientWithLoggedUserFactory(user)
-    projet = ProjetFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     dotation_projet = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DSIL, status=dotation_status
     )
@@ -307,7 +307,7 @@ def test_status_and_notification_status_card_displays_the_notification_status_or
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     client = ClientWithLoggedUserFactory(user)
-    projet = ProjetFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     dotation_projet_1 = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DSIL, status=dotation_1_status
     )
@@ -373,7 +373,7 @@ def test_status_and_notification_status_card_displays_the_correct_notification_s
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     client = ClientWithLoggedUserFactory(user)
-    projet = ProjetFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     dotation_projet_1 = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DSIL, status=dotation_1_status
     )
@@ -439,7 +439,7 @@ def test_status_and_notification_status_card_displays_the_correct_notification_s
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     client = ClientWithLoggedUserFactory(user)
-    projet = ProjetFactory(perimetre=perimetre, notified_at=notified_at)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=notified_at)
     dotation_projet_1 = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DSIL, status=dotation_1_status
     )
@@ -511,7 +511,7 @@ def test_status_and_notification_status_card_displays_notification_button_simple
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     client = ClientWithLoggedUserFactory(user)
-    projet = ProjetFactory(perimetre=perimetre, notified_at=None)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
     dotation_projet = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DSIL, status=dotation_status
     )
@@ -560,7 +560,9 @@ def test_status_and_notification_status_card_does_not_display_notification_butto
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     client = ClientWithLoggedUserFactory(user)
-    projet = ProjetFactory(perimetre=perimetre, notified_at=datetime.now(timezone.utc))
+    projet = ProjetFactory(
+        dossier_ds__perimetre=perimetre, notified_at=datetime.now(timezone.utc)
+    )
     dotation_projet = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DSIL, status=dotation_status
     )
@@ -611,7 +613,7 @@ def test_status_and_notification_status_card_displays_notification_button_double
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     client = ClientWithLoggedUserFactory(user)
-    projet = ProjetFactory(perimetre=perimetre, notified_at=None)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
     dotation_projet_1 = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DSIL, status=dotation_status_1
     )
@@ -676,7 +678,9 @@ def test_status_and_notification_status_card_does_not_display_notification_butto
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     client = ClientWithLoggedUserFactory(user)
-    projet = ProjetFactory(perimetre=perimetre, notified_at=datetime.now(timezone.utc))
+    projet = ProjetFactory(
+        dossier_ds__perimetre=perimetre, notified_at=datetime.now(timezone.utc)
+    )
     dotation_projet_1 = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DSIL, status=dotation_status_1
     )
@@ -722,7 +726,7 @@ class TestNotifiedProjectDisplayOnDetailPage:
         client = ClientWithLoggedUserFactory(user=collegue)
 
         projet = ProjetFactory(
-            perimetre=perimetre,
+            dossier_ds__perimetre=perimetre,
             notified_at=datetime.now(tz=timezone.utc),
         )
         dotation_projet = DetrProjetFactory(projet=projet)
@@ -756,7 +760,7 @@ class TestNotifiedProjectDisplayOnDetailPage:
         client = ClientWithLoggedUserFactory(user=collegue)
 
         projet = ProjetFactory(
-            perimetre=perimetre,
+            dossier_ds__perimetre=perimetre,
             notified_at=datetime.now(tz=timezone.utc),
         )
         dotation_projet = DetrProjetFactory(projet=projet, assiette=10_000)
@@ -788,7 +792,7 @@ class TestNotifiedProjectDisplayOnDetailPage:
         collegue = CollegueFactory(perimetre=perimetre)
         client = ClientWithLoggedUserFactory(user=collegue)
 
-        projet = ProjetFactory(perimetre=perimetre, notified_at=None)
+        projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
         dotation_projet = DetrProjetFactory(projet=projet)
         enveloppe = DetrEnveloppeFactory(perimetre=perimetre)
         simulation = SimulationFactory(enveloppe=enveloppe)

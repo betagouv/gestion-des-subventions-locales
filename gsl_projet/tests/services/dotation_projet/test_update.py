@@ -72,10 +72,10 @@ def test_update_dotation_projets_from_projet_accepted_creates_new_dotation_proje
         annotations_assiette_detr=None,
         annotations_montant_accorde_detr=None,
         ds_date_traitement=None,
+        perimetre=arr_dijon,
     )
     projet = ProjetFactory(
         dossier_ds=dossier,
-        perimetre=arr_dijon,
     )
 
     dps._initialize_dotation_projets_from_projet(projet)
@@ -126,7 +126,7 @@ def test_update_dotation_projets_from_projet_accepted_removes_dotation_projets(
         dossier_ds__annotations_montant_accorde_detr=5_000,
         dossier_ds__annotations_montant_accorde_dsil=15_000,
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
-        perimetre=arr_dijon,
+        dossier_ds__perimetre=arr_dijon,
     )
 
     dps._initialize_dotation_projets_from_projet(projet)
@@ -160,7 +160,7 @@ def test_update_dotation_projets_from_projet_accepted_with_empty_annotations_dot
         dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="DETR",
         dossier_ds__ds_date_traitement=None,
-        perimetre=arr_dijon,
+        dossier_ds__perimetre=arr_dijon,
     )
 
     dps._initialize_dotation_projets_from_projet(projet)
@@ -210,7 +210,7 @@ def test_update_dotation_projets_from_projet_refused(perimetres):
     projet = ProjetFactory(
         dossier_ds__ds_state=Dossier.STATE_REFUSE,
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
-        perimetre=arr_dijon,
+        dossier_ds__perimetre=arr_dijon,
     )
 
     # Create existing dotation projets with different statuses
@@ -243,7 +243,7 @@ def test_update_dotation_projets_from_projet_refused_does_not_update_already_ref
     projet = ProjetFactory(
         dossier_ds__ds_state=Dossier.STATE_REFUSE,
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
-        perimetre=arr_dijon,
+        dossier_ds__perimetre=arr_dijon,
     )
 
     # Create already refused dotation projet
@@ -269,7 +269,7 @@ def test_update_dotation_projets_from_projet_sans_suite(perimetres):
     projet = ProjetFactory(
         dossier_ds__ds_state=Dossier.STATE_SANS_SUITE,
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
-        perimetre=arr_dijon,
+        dossier_ds__perimetre=arr_dijon,
     )
 
     # Create existing dotation projets with different statuses
@@ -302,7 +302,7 @@ def test_update_dotation_projets_from_projet_sans_suite_does_not_update_already_
     projet = ProjetFactory(
         dossier_ds__ds_state=Dossier.STATE_SANS_SUITE,
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
-        perimetre=arr_dijon,
+        dossier_ds__perimetre=arr_dijon,
     )
 
     # Create already dismissed and refused dotation projets
@@ -383,7 +383,7 @@ def test_update_dotation_projets_from_projet_back_to_instruction_with_one_accept
         dossier_ds__ds_date_passage_en_instruction=timezone.datetime(
             2025, 1, 15, tzinfo=UTC
         ),
-        perimetre=arr_dijon,
+        dossier_ds__perimetre=arr_dijon,
     )
 
     # Create one accepted and one dismissed dotation projet
@@ -434,7 +434,7 @@ def test_update_dotation_projets_from_projet_back_to_instruction_with_a_programm
             2025, 1, 20, tzinfo=UTC
         ),
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
-        perimetre=arr_dijon,
+        dossier_ds__perimetre=arr_dijon,
     )
 
     # Create two accepted dotation projets
@@ -489,7 +489,7 @@ def test_update_dotation_projets_from_projet_back_to_instruction_with_one_accept
             2025, 1, 20, tzinfo=UTC
         ),
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
-        perimetre=arr_dijon,
+        dossier_ds__perimetre=arr_dijon,
     )
 
     # Create two accepted dotation projets
