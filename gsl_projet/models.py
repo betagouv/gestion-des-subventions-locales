@@ -242,7 +242,7 @@ class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
         )
 
 
-class Projet(models.Model):
+class Projet(BaseModel):
     dossier_ds = models.OneToOneField(Dossier, on_delete=models.PROTECT)
     demandeur = models.ForeignKey(Demandeur, on_delete=models.PROTECT, null=True)
 
@@ -472,7 +472,7 @@ class DotationProjetQuerySet(models.QuerySet):
         )
 
 
-class DotationProjet(models.Model):
+class DotationProjet(BaseModel):
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
     dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
     # TODO pr_dotation put back protected=True, once every status transition is handled ?
