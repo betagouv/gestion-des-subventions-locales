@@ -8,7 +8,8 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.db.models import Count
+from django.db import models
+from django.db.models import Count, OuterRef, Subquery
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from import_export.admin import ImportMixin
@@ -168,8 +169,34 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
+
+        last_simulation_subquery = (
+            Simulation.objects.filter(
+                models.Q(enveloppe__perimetre=OuterRef("perimetre"))
+                | models.Q(
+                    enveloppe__perimetre__region_id=OuterRef("perimetre__region_id"),
+                    enveloppe__perimetre__departement_id__isnull=True,
+                    enveloppe__perimetre__arrondissement_id__isnull=True,
+                )
+                | models.Q(
+                    enveloppe__perimetre__region_id=OuterRef("perimetre__region_id"),
+                    enveloppe__perimetre__departement_id=OuterRef(
+                        "perimetre__departement_id"
+                    ),
+                    enveloppe__perimetre__arrondissement_id__isnull=True,
+                )
+            )
+            .order_by("-created_at")
+            .values("created_at")[:1]
+        )
+
         return qs.select_related(
-            "perimetre__departement", "perimetre__region", "perimetre__arrondissement"
+            "perimetre__departement",
+            "perimetre__region",
+            "perimetre__arrondissement",
+            "ds_profile",
+        ).annotate(
+            _last_simulation_created_at=Subquery(last_simulation_subquery),
         )
 
     @admin.action(description="🔃 Association des profils DN aux utilisateurs")
@@ -234,22 +261,13 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
     departement.admin_order_field = "perimetre__departement__name"
 
     def last_simulation_created_in_perimetre(self, obj):
-        perimetre = obj.perimetre
-        if perimetre is None:
-            return None
-
-        last_simulation = (
-            Simulation.objects.filter(
-                enveloppe__perimetre__in=list(perimetre.ancestors()) + [perimetre]
-            )
-            .order_by("-created_at")
-            .first()
-        )
-
-        return last_simulation.created_at if last_simulation else None
+        return obj._last_simulation_created_at
 
     last_simulation_created_in_perimetre.short_description = (
         "Dernière simulation créée (périmètre)"
+    )
+    last_simulation_created_in_perimetre.admin_order_field = (
+        "_last_simulation_created_at"
     )
 
     def dn_profile(self, obj):
