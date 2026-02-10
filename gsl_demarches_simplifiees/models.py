@@ -136,6 +136,9 @@ class PersonneMorale(models.Model):
 
     def update_from_raw_ds_data(self, ds_data):
         self.siret = ds_data.get("siret")
+        if ds_data.get("__typename") == "PersonneMoraleIncomplete":
+            return self
+
         self.naf, _ = Naf.objects.get_or_create(
             code=ds_data.get("naf"), defaults={"libelle": ds_data.get("libelleNaf")}
         )
@@ -363,19 +366,25 @@ class Dossier(TimestampedModel):
         "Dispositif de financement sollicité",
         blank=True,
     )
-    demande_categorie_dsil = models.ForeignKey(
-        "gsl_demarches_simplifiees.CategorieDsil",
-        verbose_name="DSIL · Éligibilité de l'opération",
-        on_delete=models.PROTECT,
+    demande_has_categorie_detr = models.BooleanField(
+        "DETR · Le projet s'inscrit-il dans une des catégories prioritaires définies par la commission départementale d'élus ?",
         null=True,
+        blank=True,
     )
     demande_categorie_detr = models.ForeignKey(
         "gsl_demarches_simplifiees.CategorieDetr",
         verbose_name="Catégories prioritaires",
         on_delete=models.PROTECT,
         null=True,
+        blank=True,
     )
-
+    demande_categorie_dsil = models.ForeignKey(
+        "gsl_demarches_simplifiees.CategorieDsil",
+        verbose_name="DSIL · Éligibilité de l'opération",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+    )
     demande_montant = models.DecimalField(
         "Montant de l'aide demandée (en euros)",
         max_digits=12,
@@ -472,7 +481,7 @@ class Dossier(TimestampedModel):
     )
     annotations_taux_detr = models.DecimalField(
         "DETR - Taux de subvention (%)",
-        max_digits=6,
+        max_digits=12,
         decimal_places=3,
         null=True,
         blank=True,
@@ -494,7 +503,7 @@ class Dossier(TimestampedModel):
     )
     annotations_taux_dsil = models.DecimalField(
         "DSIL - Taux de subvention (%)",
-        max_digits=6,
+        max_digits=12,
         decimal_places=3,
         null=True,
         blank=True,
@@ -527,8 +536,9 @@ class Dossier(TimestampedModel):
         demande_renouvellement,
         demande_numero_demande_precedente,
         demande_dispositif_sollicite,
-        demande_categorie_dsil,
+        demande_has_categorie_detr,
         demande_categorie_detr,
+        demande_categorie_dsil,
         demande_montant,
         demande_autres_aides,
         demande_autre_precision,
@@ -805,7 +815,13 @@ class CategorieDetr(Categorie):
         )
 
     def __str__(self):
-        return f"Catégorie DETR {self.pk} - {self.label}"
+        return f"{self.label}"
+
+    @property
+    def complete_label(self):
+        if self.parent_label:
+            return f"{self.parent_label} - {self.label}"
+        return self.label
 
 
 class CategorieDsil(Categorie):
@@ -821,7 +837,7 @@ class CategorieDsil(Categorie):
         )
 
     def __str__(self):
-        return f"Catégorie DSIL {self.pk} - {self.label}"
+        return f"{self.label}"
 
 
 class AutreAide(DsChoiceLibelle):

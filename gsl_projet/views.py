@@ -60,7 +60,7 @@ def get_projet(request, projet_id):
     return render(request, "gsl_projet/projet.html", context)
 
 
-PROJET_TABS = {"annotations", "historique"}
+PROJET_TABS = {"notes", "historique"}
 
 
 @projet_visible_by_user

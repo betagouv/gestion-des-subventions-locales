@@ -215,7 +215,16 @@ def _save_categorie_detr_from_field(
     for sort_order, label in enumerate(options, 1):
         if label.startswith("--"):
             parent_label = label.strip("--")
-            continue
+
+            next_option = options[sort_order] if sort_order < len(options) else None
+            is_next_option_a_parent = next_option is None or next_option.startswith(
+                "--"
+            )
+            if not is_next_option_a_parent:
+                continue
+
+            label = parent_label
+            parent_label = ""
 
         category, _ = CategorieDetr.objects.update_or_create(
             demarche=demarche,

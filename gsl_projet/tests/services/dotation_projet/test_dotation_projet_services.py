@@ -481,6 +481,92 @@ def test_validate_taux(taux, should_raise_exception):
         dps.validate_taux(taux)
 
 
+# -- _update_assiette_from_dossier --
+
+
+@pytest.mark.django_db
+def test_update_assiette_from_dossier_single_detr():
+    """Updates DETR dotation_projet assiette from dossier annotations_assiette_detr."""
+    projet = ProjetFactory(
+        dossier_ds__annotations_assiette_detr=15_000,
+        dossier_ds__annotations_assiette_dsil=20_000,
+    )
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, assiette=0
+    )
+
+    dps._update_assiette_from_dossier(projet)
+
+    dotation_projet.refresh_from_db()
+    assert dotation_projet.assiette == 15_000
+
+
+@pytest.mark.django_db
+def test_update_assiette_from_dossier_single_dsil():
+    """Updates DSIL dotation_projet assiette from dossier annotations_assiette_dsil."""
+    projet = ProjetFactory(
+        dossier_ds__annotations_assiette_detr=15_000,
+        dossier_ds__annotations_assiette_dsil=25_000,
+    )
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, assiette=0
+    )
+
+    dps._update_assiette_from_dossier(projet)
+
+    dotation_projet.refresh_from_db()
+    assert dotation_projet.assiette == 25_000
+
+
+@pytest.mark.django_db
+def test_update_assiette_from_dossier_both_dotations():
+    """Updates both DETR and DSIL dotation_projets with correct dossier values."""
+    projet = ProjetFactory(
+        dossier_ds__annotations_assiette_detr=10_000,
+        dossier_ds__annotations_assiette_dsil=30_000,
+    )
+    dp_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR, assiette=0)
+    dp_dsil = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL, assiette=0)
+
+    dps._update_assiette_from_dossier(projet)
+
+    dp_detr.refresh_from_db()
+    dp_dsil.refresh_from_db()
+    assert dp_detr.assiette == 10_000
+    assert dp_dsil.assiette == 30_000
+
+
+@pytest.mark.django_db
+def test_update_assiette_from_dossier_keeps_existing_assiette_when_missing_in_dossier():
+    """Keeps existing assiette when dossier has no annotation for that dotation."""
+    projet = ProjetFactory(
+        dossier_ds__annotations_assiette_detr=None,
+        dossier_ds__annotations_assiette_dsil=20_000,
+    )
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, assiette=5_000
+    )
+
+    dps._update_assiette_from_dossier(projet)
+
+    dotation_projet.refresh_from_db()
+    assert dotation_projet.assiette == 5_000
+
+
+@pytest.mark.django_db
+def test_update_assiette_from_dossier_no_dotation_projets():
+    """Does nothing when projet has no dotation_projets (no error)."""
+    projet = ProjetFactory(
+        dossier_ds__annotations_assiette_detr=10_000,
+        dossier_ds__annotations_assiette_dsil=20_000,
+    )
+    assert projet.dotationprojet_set.count() == 0
+
+    dps._update_assiette_from_dossier(projet)
+
+    assert projet.dotationprojet_set.count() == 0
+
+
 # -- _get_simulation_concerning_by_this_dotation_projet --
 
 

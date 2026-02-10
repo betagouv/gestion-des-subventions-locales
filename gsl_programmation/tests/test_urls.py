@@ -25,7 +25,7 @@ def test_programmation_projet_detail_url():
 
 @pytest.mark.parametrize(
     "tab",
-    ("annotations", "historique"),
+    ("notes", "historique"),
 )
 def test_programmation_projet_tab_url(tab):
     """Test de l'URL des onglets"""

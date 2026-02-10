@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.db.models import Count
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.safestring import mark_safe
 from import_export.admin import ImportExportMixin
 
@@ -38,6 +39,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = (
         "ds_number",
         "ds_title",
+        "date_de_derniere_mise_a_jour",
         "ds_state",
         "dossiers_count",
         "fields_count",
@@ -94,6 +96,16 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     fields_count.admin_order_field = "fields_count"
     fields_count.short_description = "# de champs"
+
+    def date_de_derniere_mise_a_jour(self, obj) -> str:
+        return (
+            timezone.localtime(obj.updated_since).strftime("%d/%m/%Y %H:%M")
+            if obj.updated_since
+            else ""
+        )
+
+    date_de_derniere_mise_a_jour.admin_order_field = "updated_since"
+    date_de_derniere_mise_a_jour.short_description = "Date de dernière mise à jour"
 
     @admin.action(
         description="🔍🛢️ Rafraîchir les correspondances de champs depuis les données sauvegardées"
@@ -417,7 +429,6 @@ class CategorieDsilAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = qs.select_related("demarche")
         return qs.annotate(dossiers_count=Count("dossier"))
 
     def dossiers_count(self, obj) -> int:
@@ -453,3 +464,8 @@ class CategorieDetrAdmin(CategorieDsilAdmin):
         "deactivated_at",
         "demarche__ds_number",
     )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.select_related("departement")
+        return qs.annotate(dossiers_count=Count("dossier"))

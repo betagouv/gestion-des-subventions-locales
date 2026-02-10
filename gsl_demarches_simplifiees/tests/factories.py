@@ -14,6 +14,7 @@ from ..models import (
 )
 from ..models import (
     CategorieDetr,
+    CategorieDsil,
     Demarche,
     Dossier,
     DossierData,
@@ -135,6 +136,16 @@ class CategorieDetrFactory(factory.django.DjangoModelFactory):
 
     demarche = factory.SubFactory(DemarcheFactory)
     departement = factory.SubFactory(CoreDepartementFactory)
+    label = factory.Faker("word", locale="fr_FR")
+    rank = factory.Faker("random_int", min=1, max=10)
+    active = True
+
+
+class CategorieDsilFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = CategorieDsil
+
+    demarche = factory.SubFactory(DemarcheFactory)
     label = factory.Faker("word", locale="fr_FR")
     rank = factory.Faker("random_int", min=1, max=10)
     active = True

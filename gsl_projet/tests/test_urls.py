@@ -68,7 +68,7 @@ def test_projet_detail_visible_by_user_with_correct_perimetre(
 @pytest.mark.parametrize(
     "tab_name,template",
     (
-        ("annotations", "gsl_projet/projet/tab_annotations.html"),
+        ("notes", "gsl_projet/projet/tab_notes.html"),
         ("historique", "gsl_projet/projet/tab_historique.html"),
     ),
 )
