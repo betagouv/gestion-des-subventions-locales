@@ -327,7 +327,7 @@ class FieldMappingAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmi
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = qs.select_related("demarche")
+        qs = qs.select_related("demarche").defer("demarche__raw_ds_data")
         return qs
 
 
