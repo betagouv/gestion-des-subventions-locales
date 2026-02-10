@@ -25,7 +25,7 @@ class ProgrammationProjetFilters(FilterSet):
         "dotation_projet",
         "dotation_projet__projet",
         "dotation_projet__projet__dossier_ds",
-        "dotation_projet__projet__perimetre",
+        "dotation_projet__projet__dossier_ds__perimetre",
         "dotation_projet__projet__demandeur",
         "enveloppe",
         "enveloppe__perimetre",
@@ -118,7 +118,9 @@ class ProgrammationProjetFilters(FilterSet):
             perimetres.add(perimetre)
             for child in perimetre.children():
                 perimetres.add(child)
-        return queryset.filter(dotation_projet__projet__perimetre__in=perimetres)
+        return queryset.filter(
+            dotation_projet__projet__dossier_ds__perimetre__in=perimetres
+        )
 
     categorie_detr = MultipleChoiceFilter(
         method="filter_categorie_detr",

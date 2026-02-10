@@ -129,7 +129,7 @@ def client_with_cote_d_or_user_logged(cote_d_or_perimetre):
 @pytest.fixture
 def cote_dorien_simulation_projet(cote_d_or_perimetre):
     dotation_projet = DotationProjetFactory(
-        projet__perimetre=cote_d_or_perimetre,
+        projet__dossier_ds__perimetre=cote_d_or_perimetre,
         projet__dossier_ds__finance_cout_total=1_000_000,
         dotation=DOTATION_DETR,
         assiette=500_000,
@@ -434,7 +434,9 @@ def test_regional_user_cant_patch_projet_if_simulation_projet_is_associated_to_d
 @pytest.fixture
 def cote_dorien_dsil_simulation_projet(cote_d_or_perimetre):
     dotation_projet = DotationProjetFactory(
-        projet__perimetre=cote_d_or_perimetre, assiette=1_000, dotation=DOTATION_DSIL
+        projet__dossier_ds__perimetre=cote_d_or_perimetre,
+        assiette=1_000,
+        dotation=DOTATION_DSIL,
     )
     simulation = SimulationFactory(
         enveloppe=DsilEnveloppeFactory(perimetre=cote_d_or_perimetre)

@@ -8,11 +8,9 @@ from import_export.admin import ImportExportMixin
 from gsl_core.admin import AllPermsForStaffUser
 
 from .models import (
-    Arrondissement,
     CategorieDetr,
     CategorieDsil,
     Demarche,
-    Departement,
     Dossier,
     FieldMapping,
     NaturePorteurProjet,
@@ -170,9 +168,9 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_number",
         "ds_state",
         "projet_intitule",
+        "departement",
         "admin_projet_link",
         "link_to_json",
-        "demande_categorie_detr",
     )
 
     fieldsets = (
@@ -231,17 +229,13 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_demandeur",
     )
     search_fields = ("ds_number", "projet_intitule")
+    list_filter = ("ds_state", "perimetre__departement")
     readonly_fields = [field.name for field in Dossier._meta.fields] + [
         "admin_projet_link",
         "app_projet_link",
         "link_to_ds",
         "link_to_json",
     ]
-
-    def perimetre(self, obj) -> int:
-        return obj.get_projet_perimetre()
-
-    perimetre.short_description = "Périmètre"
 
     @admin.action(description="🛢️ Rafraîchir depuis la base de données")
     def refresh_from_db(self, request, queryset):
@@ -255,22 +249,13 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = (
-            qs.select_related(
-                "ds_data__ds_demarche",
-                "projet",
-                "porteur_de_projet_arrondissement",
-                "porteur_de_projet_arrondissement__core_arrondissement",
-                "porteur_de_projet_arrondissement__core_arrondissement",
-                "porteur_de_projet_departement",
-            )
-            .prefetch_related(
-                "porteur_de_projet_arrondissement__core_arrondissement__departement",
-            )
-            .defer(
-                "ds_data__raw_data",  # Main Dossier
-                "ds_data__ds_demarche__raw_ds_data",  # Related Demarche
-            )
+        qs = qs.select_related(
+            "ds_data__ds_demarche",
+            "projet",
+            "perimetre__departement",
+        ).defer(
+            "ds_data__raw_data",  # Main Dossier
+            "ds_data__ds_demarche__raw_ds_data",  # Related Demarche
         )
         return qs
 
@@ -305,6 +290,14 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     link_to_ds.short_description = "Démarche Numérique"
 
+    def departement(self, obj):
+        if obj.perimetre is None:
+            return None
+        return obj.perimetre.departement.insee_code
+
+    departement.admin_order_field = "perimetre__departement__insee_code"
+    departement.short_description = "Département"
+
 
 @admin.register(FieldMapping)
 class FieldMappingAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
@@ -334,72 +327,6 @@ class FieldMappingAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmi
 @admin.register(Profile)
 class ProfileAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     search_fields = ("ds_id", "ds_email")
-
-
-class HasCoreArrondissementFilter(admin.SimpleListFilter):
-    title = "Arrondissement INSEE complété"
-    parameter_name = "has_insee_arr"
-
-    def lookups(self, request, model_admin):
-        return (
-            ("y", "Oui"),
-            ("n", "Non"),
-        )
-
-    def queryset(self, request, queryset):
-        if self.value() == "y":
-            return queryset.filter(
-                core_arrondissement__isnull=False,
-            )
-        elif self.value() == "n":
-            return queryset.filter(
-                core_arrondissement__isnull=True,
-            )
-
-
-@admin.register(Arrondissement)
-class ArrondissementAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    list_display = ("__str__", "core_arrondissement")
-    list_filter = (HasCoreArrondissementFilter,)
-    autocomplete_fields = ("core_arrondissement",)
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        qs = qs.select_related("core_arrondissement")
-        return qs
-
-
-class HasCoreDepartementFilter(admin.SimpleListFilter):
-    title = "Département INSEE complété"
-    parameter_name = "has_insee_dpt"
-
-    def lookups(self, request, model_admin):
-        return (
-            ("y", "Oui"),
-            ("n", "Non"),
-        )
-
-    def queryset(self, request, queryset):
-        if self.value() == "y":
-            return queryset.filter(
-                core_departement__isnull=False,
-            )
-        elif self.value() == "n":
-            return queryset.filter(
-                core_departement__isnull=True,
-            )
-
-
-@admin.register(Departement)
-class DepartementAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    list_display = ("__str__", "core_departement")
-    list_filter = (HasCoreDepartementFilter,)
-    autocomplete_fields = ("core_departement",)
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        qs = qs.select_related("core_departement")
-        return qs
 
 
 @admin.register(NaturePorteurProjet)

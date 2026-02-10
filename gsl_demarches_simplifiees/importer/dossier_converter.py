@@ -5,8 +5,14 @@ from logging import getLogger
 
 from django.db import models
 
-from gsl_core.models import Adresse
-from gsl_demarches_simplifiees.importer.utils import get_departement_from_field_label
+from gsl_core.models import Adresse, Arrondissement, Departement
+from gsl_demarches_simplifiees.importer.utils import (
+    get_arrondissement_from_value,
+    get_categorie_detr_from_value,
+    get_departement_from_field_label,
+    get_departement_from_value,
+    get_perimetre_from_dossier,
+)
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     Dossier,
@@ -88,14 +94,11 @@ class DossierConverter:
                 self.inject_into_field(
                     self.dossier, django_field_object, injectable_value, label
                 )
-            except CategorieDetr.DoesNotExist:
-                logger.warning(
-                    "CategorieDetr not found.",
-                    extra={
-                        "categorie_detr_label": label,
-                        "dossier_ds_number": self.dossier.ds_number,
-                    },
-                )
+            except (
+                CategorieDetr.DoesNotExist,
+                Departement.DoesNotExist,
+                Arrondissement.DoesNotExist,
+            ):
                 return
 
         except NotImplementedError as e:
@@ -205,12 +208,15 @@ class DossierConverter:
                 )
             elif issubclass(django_field_object.related_model, CategorieDetr):
                 departement = get_departement_from_field_label(label)
-                injectable_value = CategorieDetr.objects.get(
-                    demarche__ds_number=self.dossier.ds_demarche_number,
-                    label=injectable_value,
-                    departement=departement,
+                injectable_value = get_categorie_detr_from_value(
+                    injectable_value,
+                    departement,
+                    dossier.ds_demarche_number,
                 )
-
+            elif issubclass(django_field_object.related_model, Arrondissement):
+                injectable_value = get_arrondissement_from_value(injectable_value)
+            elif issubclass(django_field_object.related_model, Departement):
+                injectable_value = get_departement_from_value(injectable_value)
             else:
                 injectable_value, _ = (
                     django_field_object.related_model.objects.get_or_create(
@@ -234,3 +240,6 @@ class DossierConverter:
             }
             logger.warning("Value of DateChamp is uncorrect.", extra=extra)
             return None
+
+    def associate_perimetre(self):
+        self.dossier.perimetre = get_perimetre_from_dossier(self.dossier)

@@ -4,9 +4,14 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
-from gsl_core.models import Adresse, BaseModel, Collegue, Perimetre
-from gsl_core.models import Arrondissement as CoreArrondissement
-from gsl_core.models import Departement as CoreDepartement
+from gsl_core.models import (
+    Adresse,
+    Arrondissement,
+    BaseModel,
+    Collegue,
+    Departement,
+    Perimetre,
+)
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -182,13 +187,11 @@ class DossierQuerySet(models.QuerySet):
         if perimetre is None:
             return self
         if perimetre.arrondissement:
-            return self.filter(
-                projet__perimetre__arrondissement=perimetre.arrondissement
-            )
+            return self.filter(perimetre__arrondissement=perimetre.arrondissement)
         if perimetre.departement:
-            return self.filter(projet__perimetre__departement=perimetre.departement)
+            return self.filter(perimetre__departement=perimetre.departement)
         if perimetre.region:
-            return self.filter(projet__perimetre__region=perimetre.region)
+            return self.filter(perimetre__region=perimetre.region)
 
     def sans_pieces(self):
         return self.filter(demande_renouvellement__contains="SANS")
@@ -213,6 +216,9 @@ class Dossier(BaseModel):
         (STATE_SANS_SUITE, "Classé sans suite"),
     )
 
+    perimetre = models.ForeignKey(
+        Perimetre, on_delete=models.PROTECT, null=True, blank=True
+    )
     ds_data = models.OneToOneField(DossierData, on_delete=models.CASCADE)
     ds_id = models.CharField("Identifiant DS")
     ds_number = models.IntegerField("Numéro DS", unique=True)
@@ -253,14 +259,14 @@ class Dossier(BaseModel):
         null=True,
     )
     porteur_de_projet_departement = models.ForeignKey(
-        "gsl_demarches_simplifiees.Departement",
+        Departement,
         models.SET_NULL,
         verbose_name="Département ou collectivité du demandeur",
         blank=True,
         null=True,
     )
     porteur_de_projet_arrondissement = models.ForeignKey(
-        "gsl_demarches_simplifiees.Arrondissement",
+        Arrondissement,
         models.SET_NULL,
         verbose_name="Arrondissement du demandeur",
         blank=True,
@@ -582,59 +588,6 @@ class Dossier(BaseModel):
             "ds:view-dossier-json", kwargs={"dossier_ds_number": self.ds_number}
         )
 
-    def get_projet_perimetre(self) -> Perimetre | None:
-        """
-        Retourne le périmètre du projet qui sera issu du dossier, à partir de
-        l'arrondissement déclaré par le demandeur dans le formulaire DN
-        (champ DN porteur_de_projet_arrondissement).
-
-        À défaut d'arrondissement dans le département (cas des n°75 et 90)
-        on retourne un périmètre départemental.
-
-        :return: Perimetre
-        """
-        projet_departement, projet_arrondissement = None, None
-        ds_arrondissement_declaratif = self.porteur_de_projet_arrondissement
-        if ds_arrondissement_declaratif is not None:
-            projet_arrondissement = ds_arrondissement_declaratif.core_arrondissement
-            if projet_arrondissement:
-                projet_departement = projet_arrondissement.departement
-        elif self.porteur_de_projet_departement:
-            ds_departement_declaratif = self.porteur_de_projet_departement
-            projet_departement = ds_departement_declaratif.core_departement
-            if projet_departement is None:
-                logger.warning(
-                    "Dossier is missing departement.",
-                    extra={
-                        "dossier_ds_number": self.ds_number,
-                        "departement": ds_departement_declaratif,
-                    },
-                )
-                return None
-            arrondissement_count = projet_departement.arrondissement_set.count()
-            # Dans un département avec plusieurs arrondissements, les dossiers DS
-            # devraient porter un arrondissement renseigné. => Lever une alerte
-            if arrondissement_count > 1:
-                logger.warning(
-                    "Dossier is missing arrondissement.",
-                    extra={
-                        "dossier_ds_number": self.ds_number,
-                        "arrondissement": self.porteur_de_projet_arrondissement,
-                        "departement": projet_departement,
-                    },
-                )
-            elif arrondissement_count == 1:
-                # S'il n'y a qu'un seul arrondissement dans le département :
-                # on prend le département renseigné
-                projet_arrondissement = projet_departement.arrondissement_set.get()
-        if projet_arrondissement or projet_departement:
-            return Perimetre.objects.get_or_create(
-                departement=projet_departement,
-                arrondissement=projet_arrondissement,
-                region_id=projet_departement.region_id,
-            )[0]
-        return None
-
     @property
     def taux_demande(self):
         if self.finance_cout_total and self.demande_montant:
@@ -713,36 +666,6 @@ class NaturePorteurProjet(DsChoiceLibelle):
         verbose_name_plural = "Natures de porteur de projet"
 
 
-class Departement(DsChoiceLibelle):
-    core_departement = models.ForeignKey(
-        CoreDepartement,
-        related_name="ds_departements",
-        null=True,
-        blank=True,
-        on_delete=models.PROTECT,
-        verbose_name="Département INSEE",
-    )
-
-    class Meta:
-        verbose_name = "Département DS"
-        verbose_name_plural = "Départements DS"
-
-
-class Arrondissement(DsChoiceLibelle):
-    core_arrondissement = models.ForeignKey(
-        CoreArrondissement,
-        related_name="ds_arrondissements",
-        null=True,
-        blank=True,
-        on_delete=models.PROTECT,
-        verbose_name="Arrondissement INSEE",
-    )
-
-    class Meta:
-        verbose_name = "Arrondissement DS"
-        verbose_name_plural = "Arrondissements DS"
-
-
 class ProjetZonage(DsChoiceLibelle):
     pass
 
@@ -789,7 +712,7 @@ class Categorie(BaseModel):
 class CategorieDetr(Categorie):
     parent_label = models.CharField("Libellé de la catégorie parente", blank=True)
     departement = models.ForeignKey(
-        CoreDepartement,
+        Departement,
         verbose_name="Département",
         on_delete=models.PROTECT,
         related_name="categories_detr",

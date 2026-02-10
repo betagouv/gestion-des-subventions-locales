@@ -33,7 +33,9 @@ def perimetre():
 
 @pytest.fixture
 def programmation_projet(perimetre):
-    return ProgrammationProjetFactory(dotation_projet__projet__perimetre=perimetre)
+    return ProgrammationProjetFactory(
+        dotation_projet__projet__dossier_ds__perimetre=perimetre
+    )
 
 
 @pytest.fixture
@@ -158,7 +160,7 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele(
     programmation_projet = ProgrammationProjetFactory(
         dotation_projet__dotation=DOTATION_DETR,
         status=ProgrammationProjet.STATUS_ACCEPTED,
-        dotation_projet__projet__perimetre=departement_1,
+        dotation_projet__projet__dossier_ds__perimetre=departement_1,
     )
 
     user = CollegueFactory(perimetre=departement_1)
