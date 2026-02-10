@@ -167,6 +167,12 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
     autocomplete_fields = ["perimetre", "ds_profile"]
     actions = ("associate_ds_profile_to_users", "deactivate_users", "activate_users")
 
+    def get_readonly_fields(self, request, obj=None):
+        readonly = list(super().get_readonly_fields(request, obj))
+        if not request.user.is_superuser:
+            readonly += ["is_superuser", "is_staff"]
+        return readonly
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
 
