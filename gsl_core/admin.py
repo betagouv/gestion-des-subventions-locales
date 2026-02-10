@@ -146,7 +146,9 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.select_related("perimetre__departement", "perimetre__region")
+        return qs.select_related(
+            "perimetre__departement", "perimetre__region", "perimetre__arrondissement"
+        )
 
     @admin.action(description="🔃 Association des profils DN aux utilisateurs")
     def associate_ds_profile_to_users(self, request, queryset):
