@@ -316,14 +316,21 @@
 
                 {% block categories %}
                     {% for dotation_projet in dotation_projets %}
-                        <p>
-                            <b>Catégorie d'opération {{ dotation_projet.dotation }}</b> :
-                            {% if dotation_projet.dotation == "DSIL" %}
+                        {% if dotation_projet.dotation == "DSIL" and dotation_projet.projet.dossier_ds.demande_categorie_dsil %}
+                            <p>
+                                <b>Catégorie d'opération DSIL</b> :
                                 {{ dotation_projet.projet.dossier_ds.demande_categorie_dsil.label }}
-                            {% elif dotation_projet.dotation == "DETR" %}
-                                {{ dotation_projet.projet.dossier_ds.demande_categorie_detr.label }}
-                            {% endif %}
-                        </p>
+                            </p>
+                        {% elif dotation_projet.dotation == "DETR" and dotation_projet.projet.dossier_ds.demande_has_categorie_detr == False %}
+                            <p>
+                                <b>Catégorie d'opération DETR</b> : Hors catégorie
+                            </p>
+                        {% elif dotation_projet.dotation == "DETR" and dotation_projet.projet.dossier_ds.demande_categorie_detr %}
+                            <p>
+                                <b>Catégorie d'opération DETR</b> :
+                                {{ dotation_projet.projet.dossier_ds.demande_categorie_detr.complete_label }}
+                            </p>
+                        {% endif %}
                     {% endfor %}
                 {% endblock categories %}
 

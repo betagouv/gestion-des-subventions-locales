@@ -13,6 +13,7 @@ from gsl_demarches_simplifiees.models import (
     Dossier,
     DossierData,
     FieldMapping,
+    Naf,
     PersonneMorale,
 )
 from gsl_demarches_simplifiees.tests.factories import (
@@ -133,6 +134,50 @@ def test_demandeur_is_properly_found_if_already_existing(
     assert PersonneMorale.objects.count() == 1
     assert isinstance(dossier_converter.dossier.ds_demandeur, PersonneMorale)
     assert dossier_converter.dossier.ds_demandeur.siret == existing_demandeur.siret
+
+
+def test_fill_unmapped_fields_with_personne_morale_incomplete_does_not_create_naf_nor_adresse(
+    demarche,
+    dossier_ds_id,
+    dossier_ds_number,
+):
+    """With demandeur_data PersonneMoraleIncomplete (only __typename + siret), no Naf nor Adresse are created."""
+    ds_dossier_data = {
+        "champs": [],
+        "annotations": [],
+        "demarche": {"revision": {"id": "rev-1"}},
+        "state": "en_construction",
+        "dateDepot": "2024-10-16T10:09:32+02:00",
+        "dateDerniereModification": "2024-10-16T10:09:33+02:00",
+        "datePassageEnConstruction": "2024-10-16T10:09:32+02:00",
+        "datePassageEnInstruction": None,
+        "dateDerniereModificationChamps": "2024-10-16T10:09:29+02:00",
+        "dateTraitement": None,
+        "demandeur": {
+            "__typename": "PersonneMoraleIncomplete",
+            "siret": "21240521100013",
+        },
+    }
+    dossier = Dossier.objects.create(
+        ds_id=dossier_ds_id,
+        ds_demarche_number=demarche.ds_number,
+        ds_number=dossier_ds_number,
+        ds_data=DossierData.objects.create(ds_demarche=demarche),
+    )
+    converter = DossierConverter(ds_dossier_data, dossier)
+
+    assert Naf.objects.count() == 0
+    assert Adresse.objects.count() == 0
+
+    converter.fill_unmapped_fields()
+
+    assert isinstance(converter.dossier.ds_demandeur, PersonneMorale)
+    assert converter.dossier.ds_demandeur.siret == "21240521100013"
+    assert converter.dossier.ds_demandeur.address_id is None
+    assert converter.dossier.ds_demandeur.naf_id is None
+    # No Naf nor Adresse were created by update_from_raw_ds_data
+    assert Naf.objects.count() == 0
+    assert Adresse.objects.count() == 0
 
 
 extract_field_test_data = (

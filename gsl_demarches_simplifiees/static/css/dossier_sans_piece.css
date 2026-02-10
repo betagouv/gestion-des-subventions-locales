@@ -1,0 +1,19 @@
+/* Hide category fields by default */
+form :has(> #id_demande_categorie_detr),
+form :has(> #id_demande_categorie_dsil) {
+    display: none;
+}
+
+/* Show DETR category when DETR dotation is checked */
+form:has(input[value="DETR"]:checked) :has(> #id_demande_categorie_detr) {
+    display: block;
+}
+
+/* Show DSIL category when DSIL dotation is checked */
+form:has(input[value="DSIL"]:checked) :has(> #id_demande_categorie_dsil) {
+    display: block;
+}
+
+.dossier-sans-piece-update-container {
+    border: 1px solid var(--border-default-grey);
+}

@@ -175,6 +175,10 @@ class DossierSansPieceUpdateView(UpdateView):
     template_name = "gsl_demarches_simplifiees/dossier_sans_piece_update.html"
 
     def get_success_url(self):
+        messages.success(
+            self.request,
+            "Les informations du dossier ont été mises à jour avec succès.",
+        )
         return reverse("gsl_projet:get-projet", args=[self.object.projet.pk])
 
     def get_queryset(self):

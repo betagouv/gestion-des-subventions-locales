@@ -239,7 +239,7 @@ def test_computer_mappings_are_created(demarche, demarche_data_without_dossier):
         == 4
     )
     assert FieldMapping.objects.count() == 294
-    assert FieldMapping.objects.exclude(django_field="").count() == 242
+    assert FieldMapping.objects.exclude(django_field="").count() == 243
 
     demande_categorie_detr_mappings = FieldMapping.objects.filter(
         django_field="demande_categorie_detr"
@@ -969,3 +969,50 @@ def test_save_categorie_detr_with_other_ranks_and_parent_label_and_deactivated_a
     assert categories[1].parent_label == ""
     assert categories[1].active is True
     assert categories[1].deactivated_at is None
+
+
+def test_save_categorie_detr_with_some_categories_with_children_and_some_without(
+    demarche,
+):
+    # Arrange
+    ds_departement = DepartementFactory(insee_code="87", name="Haute-Vienne")
+    field_mapping = FieldMappingFactory(
+        demarche=demarche,
+        ds_field_label="Catégories prioritaires (87 - Haute-Vienne)",
+    )
+    field = {
+        "label": "Catégories prioritaires (87 - Haute-Vienne)",
+        "options": [
+            "--Parent 1--",
+            "Catégorie B",
+            "--Parent 2--",
+            "--Parent 3--",
+            "--Parent 4--",
+            "Catégorie D",
+        ],
+    }
+
+    # Act
+    _save_categorie_detr_from_field(field, field_mapping, demarche)
+
+    # Assert
+    categories = CategorieDetr.objects.filter(
+        demarche=demarche, departement=ds_departement
+    ).order_by("rank")
+    assert categories.count() == 4
+
+    assert categories[0].label == "Catégorie B"
+    assert categories[0].rank == 2
+    assert categories[0].parent_label == "Parent 1"
+
+    assert categories[1].label == "Parent 2"
+    assert categories[1].rank == 3
+    assert categories[1].parent_label == ""
+
+    assert categories[2].label == "Parent 3"
+    assert categories[2].rank == 4
+    assert categories[2].parent_label == ""
+
+    assert categories[3].label == "Catégorie D"
+    assert categories[3].rank == 6
+    assert categories[3].parent_label == "Parent 4"

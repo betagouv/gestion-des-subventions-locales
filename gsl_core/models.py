@@ -331,6 +331,7 @@ class Collegue(AbstractUser):
         null=True,
         blank=True,
     )
+    comment = models.TextField("Commentaire", blank=True, default="")
 
     @property
     def ds_id(self) -> str:
