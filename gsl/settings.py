@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     "django_htmx",
     "django_filters",
     "django_extensions",
+    "axes",
     # gsl apps:
     "ui",
     "gsl_core",
@@ -91,6 +92,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
     "gsl_core.middlewares.CheckPerimeterMiddleware",
+    "axes.middleware.AxesMiddleware",  # should be the last middleware in the MIDDLEWARE list.
 ]
 
 if DEBUG:
@@ -102,6 +104,7 @@ if DEBUG:
     ]
 
 AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesBackend",
     "gsl_oidc.backends.OIDCAuthenticationBackend",
     "django.contrib.auth.backends.ModelBackend",
 ]
@@ -400,3 +403,8 @@ AWS_S3_ENDPOINT_URL = os.getenv(
 )
 
 MAX_POST_FILE_SIZE_IN_MO = os.getenv("MAX_POST_FILE_SIZE_IN_MO", 20)
+
+# Axes configuration
+
+AXES_FAILURE_LIMIT = os.getenv("AXES_FAILURE_LIMIT", 5)
+AXES_ONLY_USER_FAILURES = True
