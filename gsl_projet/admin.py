@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from gsl_core.admin import AllPermsForStaffUser
+from gsl_core.models import Arrondissement
 from gsl_programmation.models import ProgrammationProjet
 from gsl_simulation.models import SimulationProjet
 
@@ -52,6 +53,32 @@ class ProjetStatusFilter(admin.SimpleListFilter):
         return queryset
 
 
+class ArrondissementFilter(admin.SimpleListFilter):
+    title = "Arrondissement"
+    parameter_name = "arrondissement"
+
+    def lookups(self, request, model_admin):
+        departement_id = request.GET.get(
+            "dossier_ds__perimetre__departement__insee_code__exact"
+        )
+
+        if not departement_id:
+            return []  # Aucun arrondissement tant que département non choisi
+
+        arrondissements = Arrondissement.objects.filter(
+            departement__pk=departement_id
+        ).order_by("insee_code")
+
+        return [(a.insee_code, (f"{a.pk} - {a.name}")) for a in arrondissements]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(
+                dossier_ds__perimetre__arrondissement__pk=self.value()
+            )
+        return queryset
+
+
 @admin.register(Projet)
 class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("address", "demandeur", "dossier_ds")
@@ -64,6 +91,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     )
     list_filter = (
         ProjetStatusFilter,
+        ArrondissementFilter,
         "dossier_ds__perimetre__departement",
     )
     actions = ("refresh_from_dossier",)
@@ -72,6 +100,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     ]
     search_fields = ("dossier_ds__ds_number", "dossier_ds__projet_intitule")
     readonly_fields = ("created_at", "updated_at")
+    raw_id_fields = ("dossier_ds",)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

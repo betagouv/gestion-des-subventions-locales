@@ -6,6 +6,7 @@ from django.utils.safestring import mark_safe
 from import_export.admin import ImportExportMixin
 
 from gsl_core.admin import AllPermsForStaffUser
+from gsl_core.models import Arrondissement
 
 from .models import (
     CategorieDetr,
@@ -161,6 +162,28 @@ class PersonneMoraleAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     search_fields = ("siret", "siren", "raison_sociale")
 
 
+class ArrondissementFilter(admin.SimpleListFilter):
+    title = "Arrondissement"
+    parameter_name = "arrondissement"
+
+    def lookups(self, request, model_admin):
+        departement_id = request.GET.get("perimetre__departement__insee_code__exact")
+
+        if not departement_id:
+            return []  # Aucun arrondissement tant que département non choisi
+
+        arrondissements = Arrondissement.objects.filter(
+            departement__pk=departement_id
+        ).order_by("insee_code")
+
+        return [(a.insee_code, (f"{a.pk} - {a.name}")) for a in arrondissements]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(perimetre__arrondissement__pk=self.value())
+        return queryset
+
+
 @admin.register(Dossier)
 class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_filter = ("ds_state",)
@@ -229,7 +252,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_demandeur",
     )
     search_fields = ("ds_number", "projet_intitule")
-    list_filter = ("ds_state", "perimetre__departement")
+    list_filter = ("ds_state", ArrondissementFilter, "perimetre__departement")
     readonly_fields = [field.name for field in Dossier._meta.fields] + [
         "admin_projet_link",
         "app_projet_link",
