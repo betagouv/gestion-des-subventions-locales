@@ -400,3 +400,8 @@ AWS_S3_ENDPOINT_URL = os.getenv(
 )
 
 MAX_POST_FILE_SIZE_IN_MO = os.getenv("MAX_POST_FILE_SIZE_IN_MO", 20)
+
+# Antivirus (ClamAV)
+BYPASS_ANTIVIRUS = ENV in ("dev", "test")
+# Default is Scalingo default dir https://github.com/Scalingo/clamav-buildpack
+CLAMAV_CONFIG_FILE = os.getenv("CLAMAV_CONFIG_FILE", "/app/clamav/conf/clamd.conf")
