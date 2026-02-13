@@ -118,7 +118,7 @@ def test_update_dotation_projets_from_projet_accepted_keeps_dotation_projets_if_
     perimetres,
     dotation_status,
 ):
-    """Test _update_dotation_projets_from_projet_accepted keeps dotation projets not in annotations_dotation if not refused or dismissed"""
+    """Test _update_dotation_projets_from_projet_accepted keeps dotation projets not in annotations_dotation if refused or dismissed"""
     # Arrange
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
@@ -164,7 +164,7 @@ def test_update_dotation_projets_from_projet_accepted_keeps_dotation_projets_if_
     "dotation_status",
     (PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING),
 )
-def test_update_dotation_projets_from_projet_accepted_removes_dotation_projets_if_accepted_or_dismissed(
+def test_update_dotation_projets_from_projet_accepted_removes_dotation_projets_if_accepted_or_processing(
     perimetres,
     dotation_status,
 ):
