@@ -9,6 +9,7 @@ dependencies = [
     "bs4",
     "celery",
     "dj-database-url",
+    "django-axes",
     "django_celery_results",
     "django-celery-beat",
     "django-csp",
