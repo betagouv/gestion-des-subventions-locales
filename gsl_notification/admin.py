@@ -36,7 +36,10 @@ class ArreteEtLettreSignesAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "file",
         "created_by",
         "created_at",
+        "last_scan",
+        "is_infected",
     )
+    readonly_fields = ("last_scan", "is_infected")
 
 
 @admin.register(Annexe)

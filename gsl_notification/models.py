@@ -242,6 +242,16 @@ class UploadedDocument(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
 
+    last_scan = models.DateTimeField(
+        verbose_name="Dernière analyse antivirus",
+        null=True,
+        blank=True,
+    )
+    is_infected = models.BooleanField(
+        verbose_name="Fichier infecté",
+        null=True,
+    )
+
     class Meta:
         abstract = True
 
