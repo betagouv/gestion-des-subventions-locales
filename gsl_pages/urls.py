@@ -1,3 +1,4 @@
+from csp.decorators import csp_update
 from django.urls import path
 from django.views.generic import TemplateView
 
@@ -13,7 +14,9 @@ urlpatterns = [
     ),
     path(
         "aide-et-contact/",
-        TemplateView.as_view(template_name="gsl_pages/user_help.html"),
+        csp_update({"default-src": "turgot-video.s3.fr-par.scw.cloud"})(
+            TemplateView.as_view(template_name="gsl_pages/user_help.html")
+        ),
         name="user-help-and-contact",
     ),
 ]
