@@ -193,14 +193,18 @@ class TestProgrammationProjetDetailView:
     def test_view_if_projet_has_no_programmation_projet(
         self, user_with_perimetre, projet
     ):
-        """Un utilisateur autorisé reçoit une 404 si le projet n'a pas de programmation projet"""
+        """Un utilisateur autorisé est redirigé si le projet n'a pas de programmation projet"""
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
         url = reverse(
             "gsl_programmation:programmation-projet-detail",
             kwargs={"projet_id": projet.id},
         )
         response = client.get(url)
-        assert response.status_code == 404
+        assert response.status_code == 302
+        assert response.url == reverse("gsl_programmation:programmation-projet-list")
+        messages_list = list(response.wsgi_request._messages)
+        assert len(messages_list) == 1
+        assert str(messages_list[0]) == "Ce projet n'est plus en programmation."
 
     def test_detail_view_context_data(self, user_with_perimetre, programmation_projet):
         """Test du contexte de la vue détail"""

@@ -3,6 +3,7 @@ from functools import cached_property
 from django.contrib import messages
 from django.contrib.auth.views import RedirectURLMixin
 from django.db.models import ProtectedError
+from django.http import Http404 as DjangoHttp404
 from django.shortcuts import redirect
 from django.template.defaultfilters import pluralize
 from django.urls import reverse, reverse_lazy
@@ -35,6 +36,22 @@ class ProgrammationProjetDetailView(DetailView):
     pk_url_kwarg = "projet_id"
 
     ALLOWED_TABS = {"notes", "historique"}
+
+    def get(self, request, *args, **kwargs):
+        try:
+            return super().get(request, *args, **kwargs)
+        except DjangoHttp404:
+            # The Projet may exist but no longer have a ProgrammationProjet
+            # (e.g., after a DN refresh reverting the status to processing).
+            # Only handle this on the main detail page, not on tab sub-requests.
+            if "tab" not in kwargs and (
+                Projet.objects.for_user(request.user)
+                .filter(pk=kwargs["projet_id"])
+                .exists()
+            ):
+                messages.warning(request, "Ce projet n'est plus en programmation.")
+                return redirect("gsl_programmation:programmation-projet-list")
+            raise
 
     def get_template_names(self):
         if "tab" in self.kwargs:
