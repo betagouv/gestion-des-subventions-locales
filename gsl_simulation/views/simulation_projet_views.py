@@ -246,6 +246,32 @@ class ProjetFormView(BaseSimulationProjetView):
         kwargs.update({"instance": simulation_projet.projet})
         return kwargs
 
+    def form_valid(self, form: ProjetForm):
+        try:
+            form.save()
+            messages.success(
+                self.request,
+                "Les modifications ont été enregistrées avec succès.",
+            )
+        except DsServiceException as e:
+            error_msg = f"Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. {str(e)}"
+            form.add_error(None, error_msg)
+            return self.form_invalid(form, with_error_message_intro=False)
+
+        # When a dotation is removed, the DotationProjet is deleted,
+        # which CASCADE deletes the SimulationProjet. Redirect to the
+        # simulation project list instead of the now-deleted detail page.
+        if not SimulationProjet.objects.filter(pk=self.object.pk).exists():
+            return redirect(
+                "simulation:simulation-detail",
+                slug=self.object.simulation.slug,
+            )
+
+        return redirect_to_same_page_or_to_simulation_detail_by_default(
+            self.request,
+            self.object,
+        )
+
     def enrich_context_with_invalid_form(self, context, form):
         context["projet_form"] = form
 
