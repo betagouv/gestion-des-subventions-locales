@@ -31,3 +31,9 @@ def custom_404_view(request, exception):
 def custom_403_view(request, exception):
     """Pass exception object (not string) to template for duck typing."""
     return render(request, "403.html", {"exception": exception}, status=403)
+
+
+@login_not_required
+def custom_500_view(request):
+    """Render 500 with request context so {% url %}, {% static %} and DSFR context processors work."""
+    return render(request, "500.html", status=500)
