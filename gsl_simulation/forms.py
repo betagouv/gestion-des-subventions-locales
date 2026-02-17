@@ -84,7 +84,7 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         localize=True,
         widget=forms.TextInput(
             attrs={
-                "form": "simulation_projet_form",
+                "form": "simulation-projet-form",
                 "min": 0,
                 "data-bind-amount-fields-target": "assiette",
                 "data-action": "blur->bind-amount-fields#formatAssiette input->bind-amount-fields#onAssietteInput",
@@ -101,7 +101,7 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         localize=True,
         widget=forms.TextInput(
             attrs={
-                "form": "simulation_projet_form",
+                "form": "simulation-projet-form",
                 "min": 0,
                 "data-bind-amount-fields-target": "montant",
                 "data-action": "blur->bind-amount-fields#formatMontant input->bind-amount-fields#onMontantInput",
@@ -119,7 +119,7 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         localize=True,
         widget=forms.TextInput(
             attrs={
-                "form": "simulation_projet_form",
+                "form": "simulation-projet-form",
                 "min": 0,
                 "max": 100,
                 "data-bind-amount-fields-target": "taux",
