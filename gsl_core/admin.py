@@ -69,6 +69,23 @@ class AllPermsForStaffUser:
         return self.has_module_permission(request)
 
 
+class AllPermsForSuperUserAndViewOnlyForStaffUser:
+    def has_module_permission(self, request):
+        return request.user.is_staff or request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return self.has_module_permission(request)
+
+    def has_add_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+
 @admin.register(Collegue)
 class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdmin):
     resource_classes = (CollegueResource,)
@@ -487,7 +504,7 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
 
 
 @admin.register(Adresse)
-class AdresseAdmin(admin.ModelAdmin):
+class AdresseAdmin(AllPermsForSuperUserAndViewOnlyForStaffUser, admin.ModelAdmin):
     list_display = ("label", "postal_code", "commune")
     autocomplete_fields = ("commune",)
 
@@ -498,15 +515,19 @@ class AdresseAdmin(admin.ModelAdmin):
 
 
 @admin.register(Region)
-class RegionAdmin(ImportMixin, admin.ModelAdmin):
+class RegionAdmin(
+    AllPermsForSuperUserAndViewOnlyForStaffUser, ImportMixin, admin.ModelAdmin
+):
     resource_classes = (RegionResource,)
 
 
 @admin.register(Departement)
-class DepartementAdmin(ImportMixin, admin.ModelAdmin):
+class DepartementAdmin(
+    AllPermsForSuperUserAndViewOnlyForStaffUser, ImportMixin, admin.ModelAdmin
+):
     search_fields = ("name", "insee_code")
     resource_classes = (DepartementResource,)
-    list_display = ("name", "insee_code", "region", "active")
+    list_display = ("insee_code", "name", "region", "active")
     list_filter = ("region", "active")
     actions = ("activate_departement", "deactivate_departement")
 
@@ -520,13 +541,27 @@ class DepartementAdmin(ImportMixin, admin.ModelAdmin):
 
 
 @admin.register(Arrondissement)
-class ArrondissementAdmin(ImportMixin, admin.ModelAdmin):
+class ArrondissementAdmin(
+    AllPermsForSuperUserAndViewOnlyForStaffUser, ImportMixin, admin.ModelAdmin
+):
     search_fields = ("name", "insee_code")
+    list_display = (
+        "insee_code",
+        "name",
+        "departement__name",
+        "departement__region__name",
+    )
     resource_classes = (ArrondissementResource,)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related("departement", "departement__region")
 
 
 @admin.register(Commune)
-class CommuneAdmin(ImportMixin, admin.ModelAdmin):
+class CommuneAdmin(
+    AllPermsForSuperUserAndViewOnlyForStaffUser, ImportMixin, admin.ModelAdmin
+):
     resource_classes = (CommuneResource,)
     list_display = ("name", "insee_code", "departement", "arrondissement")
     list_filter = ("departement__region", "departement", "arrondissement")
@@ -542,7 +577,7 @@ class CommuneAdmin(ImportMixin, admin.ModelAdmin):
 
 
 @admin.register(Perimetre)
-class PerimetreAdmin(admin.ModelAdmin):
+class PerimetreAdmin(AllPermsForSuperUserAndViewOnlyForStaffUser, admin.ModelAdmin):
     search_fields = (
         "departement__insee_code",
         "departement__name",
