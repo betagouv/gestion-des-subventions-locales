@@ -23,43 +23,43 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     is_budget_vert = forms.BooleanField(
         label="Projet concourant à la transition écologique au sens budget vert",
         required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
     )
 
     is_in_qpv = forms.BooleanField(
         label="Projet situé en QPV",
         required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
     )
 
     is_attached_to_a_crte = forms.BooleanField(
         label="Projet rattaché à un CRTE",
         required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
     )
 
     is_frr = forms.BooleanField(
         label="Projet situé en FRR",
         required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
     )
 
     is_acv = forms.BooleanField(
         label="Projet rattaché à un programme Action coeurs de Ville (ACV)",
         required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
     )
 
     is_pvd = forms.BooleanField(
         label="Projet rattaché à un programme Petites villes de demain (PVD)",
         required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
     )
 
     is_va = forms.BooleanField(
         label="Projet rattaché à un programme Villages d'avenir",
         required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
     )
 
     is_autre_zonage_local = forms.BooleanField(
@@ -67,7 +67,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         required=False,
         widget=forms.CheckboxInput(
             attrs={
-                "form": "projet_form",
+                "form": "projet-form",
                 "data-toggle": "autre-zonage-local",
             }
         ),
@@ -75,7 +75,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     autre_zonage_local = forms.CharField(
         label="Nom du zonage local",
         required=False,
-        widget=forms.TextInput(attrs={"form": "projet_form"}),
+        widget=forms.TextInput(attrs={"form": "projet-form"}),
     )
 
     is_contrat_local = forms.BooleanField(
@@ -83,7 +83,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         required=False,
         widget=forms.CheckboxInput(
             attrs={
-                "form": "projet_form",
+                "form": "projet-form",
                 "data-toggle": "contrat-local",
             }
         ),
@@ -92,13 +92,13 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     contrat_local = forms.CharField(
         label="Nom du contrat local",
         required=False,
-        widget=forms.TextInput(attrs={"form": "projet_form"}),
+        widget=forms.TextInput(attrs={"form": "projet-form"}),
     )
 
     dotations = forms.MultipleChoiceField(
         choices=DOTATION_CHOICES,
         required=False,
-        widget=forms.CheckboxSelectMultiple(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxSelectMultiple(attrs={"form": "projet-form"}),
     )
 
     class Meta:
@@ -270,7 +270,7 @@ class DotationProjetForm(ModelForm):
         choices=DETR_AVIS_CHOICES,
         required=False,
         widget=forms.Select(
-            attrs={"form": "dotation_projet_form", "class": "fr-select"}
+            attrs={"form": "dotation-projet-form", "class": "fr-select"}
         ),
     )
 
@@ -278,7 +278,7 @@ class DotationProjetForm(ModelForm):
     detr_categories = forms.ModelMultipleChoiceField(
         queryset=CategorieDetr.objects.none(),
         required=False,
-        widget=forms.CheckboxSelectMultiple(attrs={"form": "dotation_projet_form"}),
+        widget=forms.CheckboxSelectMultiple(attrs={"form": "dotation-projet-form"}),
         label="Catégories d'opération DETR",
     )
 

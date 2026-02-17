@@ -780,7 +780,7 @@ class TestNotifiedProjectDisplayOnDetailPage:
         assert response.status_code == 200
         content = response.content.decode()
         # Should NOT have the montant form
-        assert 'id="simulation_projet_form"' not in content
+        assert 'id="simulation-projet-form"' not in content
         # Should show "Montant accordé" text (from dotation_montant_info.html)
         assert "Montant accordé" in content
 
@@ -812,4 +812,4 @@ class TestNotifiedProjectDisplayOnDetailPage:
         # Should have the dotation checkbox form
         assert 'id="dotation-fieldset"' in content
         # Should have the montant form
-        assert 'id="simulation_projet_form"' in content
+        assert 'id="simulation-projet-form"' in content
