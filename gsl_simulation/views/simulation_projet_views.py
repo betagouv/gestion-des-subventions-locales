@@ -2,6 +2,7 @@ import json
 
 from django.contrib import messages
 from django.db import transaction
+from django.http import Http404 as DjangoHttp404
 from django.http import HttpRequest
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
@@ -284,6 +285,22 @@ class SimulationProjetDetailView(BaseSimulationProjetView):
 
     def get_queryset(self):
         return super().get_queryset().in_user_perimeter(self.request.user)
+
+    def get(self, request, *args, **kwargs):
+        try:
+            return super().get(request, *args, **kwargs)
+        except DjangoHttp404:
+            # The SimulationProjet may have been CASCADE-deleted after a
+            # DotationProjet deletion (e.g., DN refresh reverting status).
+            # Only handle this on the main detail page, not on tab sub-requests.
+            # Re-raise if the object still exists (e.g. perimeter mismatch).
+            if (
+                "tab" not in kwargs
+                and not SimulationProjet.objects.filter(pk=kwargs["pk"]).exists()
+            ):
+                messages.warning(request, "Ce projet n'est plus dans cette simulation.")
+                return redirect("simulation:simulation-list")
+            raise
 
     def enrich_context_with_invalid_form(self, context, form):
         context["simulation_projet_form"] = form

@@ -519,6 +519,25 @@ def test_get_simulation_projet_detail_url(
 
 
 @pytest.mark.django_db
+def test_get_simulation_projet_detail_redirects_when_deleted(
+    client_with_cote_d_or_user_logged, cote_dorien_simulation_projet
+):
+    pk = cote_dorien_simulation_projet.pk
+    cote_dorien_simulation_projet.delete()
+
+    url = reverse(
+        "simulation:simulation-projet-detail",
+        kwargs={"pk": pk},
+    )
+    response = client_with_cote_d_or_user_logged.get(url)
+    assert response.status_code == 302
+    assert response.url == reverse("simulation:simulation-list")
+    messages_list = list(response.wsgi_request._messages)
+    assert len(messages_list) == 1
+    assert str(messages_list[0]) == "Ce projet n'est plus dans cette simulation."
+
+
+@pytest.mark.django_db
 def test_post_simulation_projet_detail_url(
     cote_d_or_perimetre, cote_dorien_simulation_projet
 ):
