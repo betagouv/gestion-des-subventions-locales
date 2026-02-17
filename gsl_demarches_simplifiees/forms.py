@@ -4,7 +4,12 @@ from django import forms
 from django.forms.widgets import CheckboxSelectMultiple
 from dsfr.forms import DsfrBaseForm
 
-from gsl_demarches_simplifiees.models import CategorieDetr, CategorieDsil, Dossier
+from gsl_demarches_simplifiees.models import (
+    CategorieDetr,
+    CategorieDsil,
+    Demarche,
+    Dossier,
+)
 from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 
@@ -104,3 +109,18 @@ class DossierReporteSansPieceForm(forms.ModelForm, DsfrBaseForm):
             "finance_cout_total": forms.TextInput(attrs={"inputmode": "numeric"}),
             "demande_montant": forms.TextInput(attrs={"inputmode": "numeric"}),
         }
+
+
+class RefreshDossiersDepotForm(forms.Form):
+    """Formulaire admin : rafraîchir les dossiers d'une démarche déposés après une date."""
+
+    demarche = forms.ModelChoiceField(
+        queryset=Demarche.objects.defer("raw_ds_data").order_by("ds_number"),
+        label="Démarche",
+        empty_label=None,
+    )
+    updated_after = forms.DateTimeField(
+        label="Date et heure de dépôt (dossiers déposés après)",
+        help_text="Seuls les dossiers déposés après cette date seront rafraîchis depuis Démarches Numériques.",
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+    )

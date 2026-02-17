@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from typing import Iterable
 
 from django.contrib import messages
@@ -14,12 +15,32 @@ from gsl_projet.services.projet_services import ProjetService
 logger = logging.getLogger(__name__)
 
 
-def save_demarche_dossiers_from_ds(demarche_number, using_updated_since: bool = True):
+def save_demarche_dossiers_from_ds(
+    demarche_number,
+    using_updated_since: bool = True,
+    updated_since: datetime | None = None,
+):
+    """
+    Récupère les dossiers de la démarche depuis Démarches Numériques et les enregistre.
+
+    :param demarche_number: numéro de la démarche
+    :param using_updated_since: si True, ne récupère que les dossiers modifiés depuis
+        demarche.updated_since
+    :param updated_since: si renseigné, ne récupère que les dossiers déposés/modifiés après cette
+        date/heure (updatedSince côté API).
+    """
     new_updated_since = timezone.now()
 
     demarche = Demarche.objects.get(ds_number=demarche_number)
     client = DsClient()
-    updated_since = demarche.updated_since if using_updated_since else None
+    if not updated_since:
+        updated_since = demarche.updated_since if using_updated_since else None
+    else:
+        updated_since = (
+            updated_since
+            if timezone.is_aware(updated_since)
+            else timezone.make_aware(updated_since)
+        )
     demarche_dossiers = client.get_demarche_dossiers(
         demarche_number, updated_since=updated_since
     )

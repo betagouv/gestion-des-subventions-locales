@@ -1,0 +1,11 @@
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+
+{% block object-tools-items %}
+    <li>
+        <a href="{{ refresh_dossiers_depot_url }}" class="addlink">
+            Rafraîchir les dossiers déposés après une date
+        </a>
+    </li>
+    {{ block.super }}
+{% endblock object-tools-items %}

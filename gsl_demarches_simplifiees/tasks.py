@@ -1,4 +1,7 @@
+from datetime import datetime
+
 from celery import shared_task
+from django.utils import timezone
 
 from gsl_demarches_simplifiees.importer.demarche import (
     refresh_field_mappings_on_demarche,
@@ -44,9 +47,24 @@ def task_fetch_ds_dossiers_for_every_published_demarche():
 #### of one demarche
 @shared_task
 def task_save_demarche_dossiers_from_ds(
-    demarche_number, using_updated_since: bool = True
+    demarche_number,
+    using_updated_since: bool = True,
+    updated_after_iso: str | None = None,
 ):
-    return save_demarche_dossiers_from_ds(demarche_number, using_updated_since)
+    """
+    :param updated_after_iso: date/heure en ISO (optionnel) — ne rafraîchir que les
+        dossiers déposés après cette date/heure.
+    """
+    updated_after = None
+    if updated_after_iso:
+        updated_after = datetime.fromisoformat(updated_after_iso.replace("Z", "+00:00"))
+        if timezone.is_naive(updated_after):
+            updated_after = timezone.make_aware(updated_after)
+    return save_demarche_dossiers_from_ds(
+        demarche_number,
+        using_updated_since=using_updated_since,
+        updated_since=updated_after,
+    )
 
 
 #### of one dossier
