@@ -178,7 +178,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             **self.admin_site.each_context(request),
             "form": form,
             "opts": self.model._meta,
-            "title": "Rafraîchir les dossiers déposés après une date",
+            "title": "Rafraîchir les dossiers déposés/modifiés après une date",
         }
         return render(
             request,
