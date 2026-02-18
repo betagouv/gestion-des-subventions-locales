@@ -116,7 +116,7 @@
                                     </details>
                                 </th>
                                 <th>
-                                    Initulé du projet
+                                    Intitulé du projet
                                 </th>
                                 <th>
                                     Demandeur
@@ -179,10 +179,16 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {{ programmation_projet.projet.dossier_ds.projet_intitule }}
+                                        <span class="max-3-lines"
+                                              title="{{ programmation_projet.projet.dossier_ds.projet_intitule }}">
+                                            {{ programmation_projet.projet.dossier_ds.projet_intitule }}
+                                        </span>
                                     </td>
                                     <td>
-                                        {{ programmation_projet.projet.demandeur.name | format_demandeur_nom }}
+                                        <span class="max-3-lines"
+                                              title="{{ programmation_projet.projet.demandeur.name | format_demandeur_nom }}">
+                                            {{ programmation_projet.projet.demandeur.name | format_demandeur_nom }}
+                                        </span>
                                     </td>
                                     <td class="gsl-money">
                                         {{ programmation_projet.projet.dossier_ds.finance_cout_total|euro }}
@@ -200,12 +206,18 @@
                                     </td>
                                     <td>
                                         {% if dotation == "DSIL" %}
-                                            {{ programmation_projet.projet.dossier_ds.demande_categorie_dsil.label }}
+                                            <span class="max-3-lines"
+                                                  title="{{ programmation_projet.projet.dossier_ds.demande_categorie_dsil.label }}">
+                                                {{ programmation_projet.projet.dossier_ds.demande_categorie_dsil.label }}
+                                            </span>
                                         {% elif dotation == "DETR" %}
                                             {% if programmation_projet.projet.dossier_ds.demande_has_categorie_detr == False %}
                                                 Hors catégorie
                                             {% else %}
-                                                {{ programmation_projet.projet.dossier_ds.demande_categorie_detr.complete_label }}
+                                                <span class="max-3-lines"
+                                                      title="{{ programmation_projet.projet.dossier_ds.demande_categorie_detr.complete_label }}">
+                                                    {{ programmation_projet.projet.dossier_ds.demande_categorie_detr.complete_label }}
+                                                </span>
                                             {% endif %}
                                         {% endif %}
                                     </td>
@@ -264,8 +276,19 @@
                                         </td>
                                         <td>
                                             {% if other_dotation.dotation == "DSIL" %}
-                                                {{ other_dotation.projet.dossier_ds.demande_categorie_dsil.label }}
+                                                <span class="max-3-lines"
+                                                      title="{{ other_dotation.projet.dossier_ds.demande_categorie_dsil.label }}">
+                                                    {{ other_dotation.projet.dossier_ds.demande_categorie_dsil.label }}
+                                                </span>
                                             {% elif other_dotation.dotation == "DETR" %}
+                                                {% if other_dotation.projet.dossier_ds.demande_has_categorie_detr == False %}
+                                                    Hors catégorie
+                                                {% else %}
+                                                    <span class="max-3-lines"
+                                                          title="{{ other_dotation.projet.dossier_ds.demande_categorie_detr.complete_label }}">
+                                                        {{ other_dotation.projet.dossier_ds.demande_categorie_detr.complete_label }}
+                                                    </span>
+                                                {% endif %}
                                             {% endif %}
                                         </td>
                                         <td class="other-simulation-status">

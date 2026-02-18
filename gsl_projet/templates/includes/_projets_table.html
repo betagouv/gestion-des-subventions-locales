@@ -66,10 +66,15 @@
                             {% endif %}
                         </td>
                         <td>
-                            {{ projet.dossier_ds.projet_intitule }}
+                            <span class="max-3-lines" title="{{ projet.dossier_ds.projet_intitule }}">
+                                {{ projet.dossier_ds.projet_intitule }}
+                            </span>
                         </td>
                         <td>
-                            {{ projet.demandeur.name | format_demandeur_nom }}
+                            <span class="max-3-lines"
+                                  title="{{ projet.demandeur.name | format_demandeur_nom }}">
+                                {{ projet.demandeur.name | format_demandeur_nom }}
+                            </span>
                         </td>
                         <td>
                             {{ projet.dossier_ds.ds_number }}
@@ -107,12 +112,18 @@
                             {% for dp in dotation_projets %}
                                 <div>
                                     {% if dp.dotation == "DSIL" %}
-                                        {{ projet.dossier_ds.demande_categorie_dsil.label }}
+                                        <span class="max-3-lines"
+                                              title="{{ projet.dossier_ds.demande_categorie_dsil.label }}">
+                                            {{ projet.dossier_ds.demande_categorie_dsil.label }}
+                                        </span>
                                     {% elif dp.dotation == "DETR" %}
                                         {% if projet.dossier_ds.demande_has_categorie_detr == False %}
                                             Hors catégorie
                                         {% else %}
-                                            {{ projet.dossier_ds.demande_categorie_detr.complete_label }}
+                                            <span class="max-3-lines"
+                                                  title="{{ projet.dossier_ds.demande_categorie_detr.complete_label }}">
+                                                {{ projet.dossier_ds.demande_categorie_detr.complete_label }}
+                                            </span>
                                         {% endif %}
                                     {% endif %}
                                 </div>
