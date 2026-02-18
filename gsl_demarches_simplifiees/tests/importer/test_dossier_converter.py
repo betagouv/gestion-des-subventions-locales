@@ -65,11 +65,9 @@ def dossier_ds_number():
 def dossier(dossier_ds_id, demarche, dossier_ds_number):
     return Dossier.objects.create(
         ds_id=dossier_ds_id,
-        ds_demarche_number=demarche.ds_number,
+        ds_demarche=demarche,
         ds_number=dossier_ds_number,
-        ds_data=DossierData.objects.create(
-            ds_demarche=demarche,
-        ),
+        ds_data=DossierData.objects.create(),
     )
 
 
@@ -90,12 +88,12 @@ def test_init_dossier_converter(ds_dossier_data, dossier):
     FieldMapping.objects.create(
         ds_field_id="TEST_ID_un_champ_hors_annotation",
         django_field=Dossier._MAPPED_CHAMPS_FIELDS[0].name,
-        demarche=dossier.ds_data.ds_demarche,
+        demarche=dossier.ds_demarche,
     )
     FieldMapping.objects.create(
         ds_field_id="TEST_ID_un_champ_annotation",
         django_field=Dossier._MAPPED_ANNOTATIONS_FIELDS[0].name,
-        demarche=dossier.ds_data.ds_demarche,
+        demarche=dossier.ds_demarche,
     )
     dossier_converter = DossierConverter(ds_dossier_data, dossier)
 
@@ -164,9 +162,9 @@ def test_fill_unmapped_fields_with_personne_morale_incomplete_does_not_create_na
     }
     dossier = Dossier.objects.create(
         ds_id=dossier_ds_id,
-        ds_demarche_number=demarche.ds_number,
+        ds_demarche=demarche,
         ds_number=dossier_ds_number,
-        ds_data=DossierData.objects.create(ds_demarche=demarche),
+        ds_data=DossierData.objects.create(),
     )
     converter = DossierConverter(ds_dossier_data, dossier)
 
@@ -474,7 +472,7 @@ def test_inject_into_field_categorie_detr_resolves_by_label_and_departement_from
     dep_87 = DepartementFactory(region=region, insee_code="87", name="Haute-Vienne")
     category_label = "1. Première catégorie prioritaire"
     categorie_detr = CategorieDetrFactory(
-        demarche=dossier.ds_data.ds_demarche,
+        demarche=dossier.ds_demarche,
         departement=dep_87,
         label=category_label,
     )
@@ -538,14 +536,14 @@ def test_convert_all_fields_continues_when_categorie_detr_does_not_exist(
 
     # Map DS fields to Django fields on Dossier
     FieldMapping.objects.create(
-        demarche=dossier.ds_data.ds_demarche,
+        demarche=dossier.ds_demarche,
         ds_field_id="FIELD_CATEG_DETR",
         ds_field_label="Catégories prioritaires (87 - Haute-Vienne)",
         ds_field_type="TextChamp",
         django_field="demande_categorie_detr",
     )
     FieldMapping.objects.create(
-        demarche=dossier.ds_data.ds_demarche,
+        demarche=dossier.ds_demarche,
         ds_field_id="FIELD_INTITULE",
         ds_field_label="Intitulé du projet",
         ds_field_type="TextChamp",

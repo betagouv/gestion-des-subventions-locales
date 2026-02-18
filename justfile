@@ -24,6 +24,9 @@ shell: (manage "shell")
 makemigrations: (manage "makemigrations")
     ruff format */migrations/*.py
 
+migr app migration_number:
+    python manage.py migrate {{app}} {{migration_number}}
+
 test:
     pytest
 

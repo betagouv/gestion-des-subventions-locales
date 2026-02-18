@@ -45,7 +45,7 @@ class DossierReporteSansPieceForm(forms.ModelForm, DsfrBaseForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        demarche = self.instance.ds_data.ds_demarche
+        demarche = self.instance.ds_demarche
 
         self.fields["demande_categorie_dsil"].queryset = CategorieDsil.objects.filter(
             demarche=demarche, active=True
