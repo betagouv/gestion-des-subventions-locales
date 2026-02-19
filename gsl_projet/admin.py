@@ -131,7 +131,10 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         deleted_objects, model_count, perms_needed, protected = (
             super().get_deleted_objects(objs, request)
         )
-        perms_needed.remove(DotationProjet._meta.verbose_name)
+        try:
+            perms_needed.remove(DotationProjet._meta.verbose_name)
+        except KeyError:
+            pass
         return deleted_objects, model_count, perms_needed, protected
 
     def dotations(self, obj):
