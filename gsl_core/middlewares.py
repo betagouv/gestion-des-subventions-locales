@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from django.shortcuts import redirect
 from django.urls import reverse
 
@@ -39,7 +41,9 @@ class OTPVerificationMiddleware:
         ).exists()
 
         if has_confirmed_device:
-            return redirect(f"{reverse('otp-verify')}?next={request.path}")
+            return redirect(
+                f"{reverse('otp-verify')}?{urlencode({'next': request.path})}"
+            )
 
         return redirect("otp-setup")
 

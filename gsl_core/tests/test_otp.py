@@ -59,7 +59,7 @@ class TestOTPMiddlewareEnforcement:
         TOTPDevice.objects.create(user=staff_user, confirmed=True, name="test")
         response = staff_client.get("/projets/")
         assert response.status_code == 302
-        assert "next=/projets/" in response["Location"]
+        assert "next=%2Fprojets%2F" in response["Location"]
 
     def test_staff_after_verification_passes_through(self, staff_client, staff_user):
         device = TOTPDevice.objects.create(user=staff_user, confirmed=True, name="test")
@@ -168,6 +168,26 @@ class TestOTPVerifyFlow:
         )
         assert response.status_code == 302
         assert response["Location"] == "/admin/"
+
+    def test_verify_rejects_external_next_url(self, staff_client, staff_user):
+        device = TOTPDevice.objects.create(user=staff_user, confirmed=True, name="test")
+        token = _generate_valid_token(device)
+
+        response = staff_client.post(
+            reverse("otp-verify"), {"token": token, "next": "https://evil.com"}
+        )
+        assert response.status_code == 302
+        assert response["Location"] == "/"
+
+    def test_verify_rejects_protocol_relative_next_url(self, staff_client, staff_user):
+        device = TOTPDevice.objects.create(user=staff_user, confirmed=True, name="test")
+        token = _generate_valid_token(device)
+
+        response = staff_client.post(
+            reverse("otp-verify"), {"token": token, "next": "//evil.com"}
+        )
+        assert response.status_code == 302
+        assert response["Location"] == "/"
 
     def test_verify_redirects_non_staff(self, regular_client):
         response = regular_client.get(reverse("otp-verify"))

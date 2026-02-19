@@ -3,6 +3,7 @@ import io
 import segno
 from django.conf import settings
 from django.shortcuts import redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django_otp import login as otp_login
 from django_otp.plugins.otp_totp.models import TOTPDevice
@@ -77,7 +78,12 @@ class OTPVerifyView(View):
         return super().dispatch(request, *args, **kwargs)
 
     def _get_next_url(self, request):
-        return request.GET.get("next", request.POST.get("next", "/"))
+        next_url = request.GET.get("next", request.POST.get("next", "/"))
+        if not url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts={request.get_host()}
+        ):
+            return "/"
+        return next_url
 
     def get(self, request):
         return render(
