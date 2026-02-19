@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load static dsfr_tags %}
+
+{% block breadcrumb %}
+{% endblock breadcrumb %}
+
+{% block title %}
+    <title>Configuration de l'authentification à deux facteurs — {{ SITE_CONFIG.site_title }}</title>
+{% endblock title %}
+
+{% block content %}
+    <div class="fr-container fr-container--fluid fr-mb-md-14v">
+        <div class="fr-grid-row fr-grid-row-gutters fr-grid-row--center">
+            <div class="fr-col-12 fr-col-md-10 fr-col-lg-8">
+                <div class="fr-container fr-background-alt--grey fr-px-md-0 fr-py-10v fr-py-md-14v">
+                    <div class="fr-grid-row fr-grid-row-gutters fr-grid-row--center">
+                        <div class="fr-col-12 fr-col-md-9 fr-col-lg-8">
+                            <h1>
+                                Configuration de l'authentification à deux facteurs
+                            </h1>
+
+                            <p>
+                                En tant qu'utilisateur avec des droits d'administration,
+                                vous devez configurer l'authentification à deux facteurs (2FA)
+                                pour sécuriser votre compte.
+                            </p>
+
+                            <h2>
+                                1. Scannez le QR code
+                            </h2>
+                            <p>
+                                Ouvrez votre application d'authentification
+                                (Google Authenticator, Microsoft Authenticator, Authy, etc.)
+                                et scannez le QR code ci-dessous :
+                            </p>
+
+                            <div class="fr-my-4v" style="text-align: center;">
+                                {{ qr_svg|safe }}
+                            </div>
+
+                            <details class="fr-mb-4v">
+                                <summary>
+                                    Impossible de scanner le QR code ?
+                                </summary>
+                                <p class="fr-mt-2v">
+                                    Entrez manuellement cette clé dans votre application :
+                                </p>
+                                <code class="fr-p-2v" style="word-break: break-all;">{{ secret }}</code>
+                            </details>
+
+                            <h2>
+                                2. Entrez le code de vérification
+                            </h2>
+
+                            {% if error %}
+                                <div class="fr-alert fr-alert--error fr-mb-4v">
+                                    <p>
+                                        {{ error }}
+                                    </p>
+                                </div>
+                            {% endif %}
+
+                            <form method="post">
+                                {% csrf_token %}
+                                <div class="fr-input-group {% if error %}fr-input-group--error{% endif %}">
+                                    <label class="fr-label" for="token">
+                                        Code à 6 chiffres
+                                    </label>
+                                    <input class="fr-input {% if error %}fr-input--error{% endif %}"
+                                           type="text"
+                                           id="token"
+                                           name="token"
+                                           inputmode="numeric"
+                                           autocomplete="one-time-code"
+                                           pattern="[0-9]{6}"
+                                           maxlength="6"
+                                           required
+                                           autofocus>
+                                </div>
+                                <button class="fr-btn fr-mt-4v" type="submit">
+                                    Valider
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

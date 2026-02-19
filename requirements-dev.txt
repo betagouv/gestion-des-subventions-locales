@@ -110,6 +110,7 @@ django==5.2.8
     #   django-fsm-2
     #   django-htmx
     #   django-import-export
+    #   django-otp
     #   django-referrer-policy
     #   django-storages
     #   django-timezone-field
@@ -141,6 +142,8 @@ django-fsm-2==4.1.0
 django-htmx==1.26.0
     # via gsl (pyproject.toml)
 django-import-export==4.3.14
+    # via gsl (pyproject.toml)
+django-otp==1.7.0
     # via gsl (pyproject.toml)
 django-referrer-policy==1.0
     # via gsl (pyproject.toml)
@@ -336,6 +339,8 @@ ruff==0.14.6
     #   pytest-ruff
 s3transfer==0.15.0
     # via boto3
+segno==1.6.6
+    # via gsl (pyproject.toml)
 sentry-sdk==2.46.0
     # via gsl (pyproject.toml)
 six==1.17.0
