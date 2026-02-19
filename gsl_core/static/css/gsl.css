@@ -144,7 +144,7 @@ ul.no-list-style li {
 
 .gsl-projet-table thead th,
 .gsl-projet-table thead th .fr-badge {
-    font-size: calc(9rem / 16); /* = 9px */
+    font-size: 0.75rem;
 }
 
 .max_180_width {
@@ -177,6 +177,14 @@ ul.no-list-style li {
     text-overflow: ellipsis;
 }
 
+.max-3-lines {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
 .gsl_projet_table__total {
     width: 100%;
     justify-content: center;
@@ -206,7 +214,7 @@ ul.no-list-style li {
 .gsl-projet-table,
 .gsl-projet-table table tbody td .fr-select,
 .gsl-projet-table table tbody td .fr-input {
-    font-size: .6rem; /* = 10px */
+    font-size: .75rem; /* = 10px */
 }
 
 .gsl-projet-table table {
