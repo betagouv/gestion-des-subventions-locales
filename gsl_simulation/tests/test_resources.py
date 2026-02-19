@@ -142,7 +142,7 @@ def test_detr_simulation_projet(detr_simulation_projet):
     splited_data = export_data.split("\n")
     assert (
         splited_data[0]
-        == "Date de dépôt du dossier,Numéro de dossier DS,Intitulé du projet,Demandeur,Nom et prénom du demandeur,Code INSEE commune du demandeur,Code INSEE commune du demandeur,Projet en double dotation,Coût total du projet,Assiette subventionnable,Montant demandé,Taux demandé par rapport au coût total,Montant prévsionnel accordé,Taux prévsionnel accordé,Statut de la simulation,Date de début des travaux,Date de fin des travaux,Projet situé dans un QPV,Projet rattaché à un CRTE,Projet concourant à la transition écologique,Priorité du projet,Champ libre 1,Champ libre 2,Champ libre 3,Montant demandé supérieur à 100 000€ ?,Avis de la commission\r"
+        == "Date de dépôt du dossier,Numéro de dossier DS,Intitulé du projet,Demandeur,Nom et prénom du demandeur,Code INSEE commune du demandeur,Arrondissement du demandeur,Projet en double dotation,Coût total du projet,Assiette subventionnable,Montant demandé,Taux demandé par rapport au coût total,Montant prévsionnel accordé,Taux prévsionnel accordé,Statut de la simulation,Date de début des travaux,Date de fin des travaux,Projet situé dans un QPV,Projet rattaché à un CRTE,Projet concourant à la transition écologique,Priorité du projet,Champ libre 1,Champ libre 2,Champ libre 3,Montant demandé supérieur à 100 000€ ?,Avis de la commission\r"
     )
     assert (
         splited_data[1]
@@ -179,7 +179,7 @@ def test_dsil_simulation_projet(dsil_simulation_projet):
     splited_data = export_data.split("\n")
     assert (
         splited_data[0]
-        == "Date de dépôt du dossier,Numéro de dossier DS,Intitulé du projet,Demandeur,Nom et prénom du demandeur,Code INSEE commune du demandeur,Code INSEE commune du demandeur,Projet en double dotation,Coût total du projet,Assiette subventionnable,Montant demandé,Taux demandé par rapport au coût total,Montant prévsionnel accordé,Taux prévsionnel accordé,Statut de la simulation,Date de début des travaux,Date de fin des travaux,Projet situé dans un QPV,Projet rattaché à un CRTE,Projet concourant à la transition écologique,Priorité du projet,Champ libre 1,Champ libre 2,Champ libre 3\r"
+        == "Date de dépôt du dossier,Numéro de dossier DS,Intitulé du projet,Demandeur,Nom et prénom du demandeur,Code INSEE commune du demandeur,Arrondissement du demandeur,Projet en double dotation,Coût total du projet,Assiette subventionnable,Montant demandé,Taux demandé par rapport au coût total,Montant prévsionnel accordé,Taux prévsionnel accordé,Statut de la simulation,Date de début des travaux,Date de fin des travaux,Projet situé dans un QPV,Projet rattaché à un CRTE,Projet concourant à la transition écologique,Priorité du projet,Champ libre 1,Champ libre 2,Champ libre 3\r"
     )
     assert (
         splited_data[1]
