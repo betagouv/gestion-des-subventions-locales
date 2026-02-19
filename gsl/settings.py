@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "dsfr",
     "import_export",
     "formtools",
+    "django_json_widget",
     "django_htmx",
     "django_filters",
     "django_extensions",

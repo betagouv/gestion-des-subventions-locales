@@ -19,6 +19,7 @@ dependencies = [
     "django-fsm-2",
     "django-htmx",
     "django-import-export",
+    "django-json-widget",
     "django-referrer-policy",
     "django-storages[s3]",
     "django",
