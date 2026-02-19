@@ -135,6 +135,7 @@ def patch_dotation_projet(request, pk):
 
 class BaseSimulationProjetView(UpdateView):
     form_class = SimulationProjetForm
+    template_name = "gsl_simulation/simulation_projet_detail.html"
 
     def get_queryset(self) -> SimulationProjetQuerySet:
         return (
@@ -149,14 +150,6 @@ class BaseSimulationProjetView(UpdateView):
             )
             .prefetch_related("dotation_projet__projet__dotationprojet_set")
         )
-
-    def get_template_names(self):
-        if "tab" in self.kwargs:
-            tab = self.kwargs["tab"]
-            if tab not in self.ALLOWED_TABS:
-                raise Http404
-            return [f"gsl_simulation/tab_simulation_projet/tab_{tab}.html"]
-        return ["gsl_simulation/simulation_projet_detail.html"]
 
     def get_object(self, queryset=None) -> SimulationProjet:
         if not hasattr(self, "_simulation_projet"):
@@ -281,8 +274,6 @@ class SimulationProjetDetailView(BaseSimulationProjetView):
     model = SimulationProjet
     form_class = SimulationProjetForm
 
-    ALLOWED_TABS = {"historique"}
-
     def get_queryset(self):
         return super().get_queryset().in_user_perimeter(self.request.user)
 
@@ -292,12 +283,8 @@ class SimulationProjetDetailView(BaseSimulationProjetView):
         except DjangoHttp404:
             # The SimulationProjet may have been CASCADE-deleted after a
             # DotationProjet deletion (e.g., DN refresh reverting status).
-            # Only handle this on the main detail page, not on tab sub-requests.
             # Re-raise if the object still exists (e.g. perimeter mismatch).
-            if (
-                "tab" not in kwargs
-                and not SimulationProjet.objects.filter(pk=kwargs["pk"]).exists()
-            ):
+            if not SimulationProjet.objects.filter(pk=kwargs["pk"]).exists():
                 messages.warning(request, "Ce projet n'est plus dans cette simulation.")
                 return redirect("simulation:simulation-list")
             raise

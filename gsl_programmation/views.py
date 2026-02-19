@@ -34,8 +34,7 @@ from gsl_projet.utils.projet_page import PROJET_MENU
 class ProgrammationProjetDetailView(DetailView):
     model = Projet
     pk_url_kwarg = "projet_id"
-
-    ALLOWED_TABS = {"notes", "historique"}
+    tab_name = None
 
     def get(self, request, *args, **kwargs):
         try:
@@ -43,8 +42,7 @@ class ProgrammationProjetDetailView(DetailView):
         except DjangoHttp404:
             # The Projet may exist but no longer have a ProgrammationProjet
             # (e.g., after a DN refresh reverting the status to processing).
-            # Only handle this on the main detail page, not on tab sub-requests.
-            if "tab" not in kwargs and (
+            if (
                 Projet.objects.for_user(request.user)
                 .filter(pk=kwargs["projet_id"])
                 .exists()
@@ -54,11 +52,10 @@ class ProgrammationProjetDetailView(DetailView):
             raise
 
     def get_template_names(self):
-        if "tab" in self.kwargs:
-            tab = self.kwargs["tab"]
-            if tab not in self.ALLOWED_TABS:
-                raise Http404
-            return [f"gsl_programmation/tab_programmation_projet/tab_{tab}.html"]
+        if self.tab_name:
+            return [
+                f"gsl_programmation/tab_programmation_projet/tab_{self.tab_name}.html"
+            ]
         return ["gsl_programmation/programmation_projet_detail.html"]
 
     def get_queryset(self):
@@ -75,7 +72,7 @@ class ProgrammationProjetDetailView(DetailView):
         )
 
     def get_context_data(self, **kwargs):
-        tab = self.kwargs.get("tab", "projet")
+        tab = self.tab_name or "projet"
         title = self.object.dossier_ds.projet_intitule
         if "dotation" in self.request.GET:
             try:

@@ -13,9 +13,6 @@ from gsl_programmation.tests.factories import (
     DsilEnveloppeFactory,
     ProgrammationProjetFactory,
 )
-from gsl_programmation.views import (
-    ProgrammationProjetDetailView,
-)
 from gsl_projet.tests.factories import ProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -321,97 +318,65 @@ class TestProgrammationProjetDetailView:
         assert "dotation=DSIL" not in go_back_link
 
 
-class TestProgrammationProjetTabView:
-    """Tests pour la vue onglets d'un projet programmé"""
+class TestProgrammationProjetNotesView:
+    """Tests pour la vue notes d'un projet programmé"""
 
-    def test_tab_view_requires_login(self, programmation_projet):
-        """La vue onglet nécessite une authentification"""
+    def test_notes_view_requires_login(self, programmation_projet):
+        """La vue notes nécessite une authentification"""
         url = reverse(
-            "gsl_programmation:programmation-projet-tab",
-            kwargs={
-                "projet_id": programmation_projet.projet.id,
-                "tab": "notes",
-            },
+            "gsl_programmation:programmation-projet-notes",
+            kwargs={"projet_id": programmation_projet.projet.id},
         )
         response = Client().get(url)
         assert response.status_code == 302  # Redirection vers login
 
-    @pytest.mark.parametrize(
-        "tab",
-        ("notes", "historique"),
-    )
-    def test_tab_view_with_valid_tab(
-        self, user_with_perimetre, programmation_projet, tab
+    def test_notes_view_with_authorized_user(
+        self, user_with_perimetre, programmation_projet
     ):
-        """Un utilisateur autorisé peut accéder aux onglets valides"""
+        """Un utilisateur autorisé peut accéder à l'onglet notes"""
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
 
         url = reverse(
-            "gsl_programmation:programmation-projet-tab",
-            kwargs={"projet_id": programmation_projet.projet.id, "tab": tab},
+            "gsl_programmation:programmation-projet-notes",
+            kwargs={"projet_id": programmation_projet.projet.id},
         )
         response = client.get(url)
         assert response.status_code == 200
-        assert response.context["current_tab"] == tab
+        assert response.context["current_tab"] == "notes"
         assert response.context["projet"] == programmation_projet.projet
 
-    def test_tab_view_with_invalid_tab_returns_404(
-        self, user_with_perimetre, programmation_projet
-    ):
-        """Un onglet invalide retourne une 404"""
-        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
-        url = reverse(
-            "gsl_programmation:programmation-projet-tab",
-            kwargs={
-                "projet_id": programmation_projet.projet.id,
-                "tab": "invalid_tab",
-            },
-        )
-        response = client.get(url)
-        assert response.status_code == 404
-
-    def test_tab_view_unauthorized_user_gets_404(
+    def test_notes_view_unauthorized_user_gets_404(
         self, user_with_perimetre, other_programmation_projet
     ):
-        """Un utilisateur non autorisé reçoit une 404 même avec un onglet valide"""
+        """Un utilisateur non autorisé reçoit une 404"""
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
         url = reverse(
-            "gsl_programmation:programmation-projet-tab",
-            kwargs={
-                "projet_id": other_programmation_projet.projet.id,
-                "tab": "notes",
-            },
+            "gsl_programmation:programmation-projet-notes",
+            kwargs={"projet_id": other_programmation_projet.projet.id},
         )
         response = client.get(url)
         assert response.status_code == 404
 
-    @pytest.mark.parametrize(
-        "tab",
-        ("notes", "historique"),
-    )
-    def test_tab_view_uses_correct_template(
-        self, user_with_perimetre, programmation_projet, tab
+    def test_notes_view_uses_correct_template(
+        self, user_with_perimetre, programmation_projet
     ):
-        """Chaque onglet utilise le bon template"""
+        """L'onglet notes utilise le bon template"""
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
 
         url = reverse(
-            "gsl_programmation:programmation-projet-tab",
-            kwargs={"projet_id": programmation_projet.projet.id, "tab": tab},
+            "gsl_programmation:programmation-projet-notes",
+            kwargs={"projet_id": programmation_projet.projet.id},
         )
         response = client.get(url)
-        expected_template = f"gsl_programmation/tab_programmation_projet/tab_{tab}.html"
+        expected_template = "gsl_programmation/tab_programmation_projet/tab_notes.html"
         assert expected_template in [t.name for t in response.templates]
 
-    def test_tab_view_context_data(self, user_with_perimetre, programmation_projet):
-        """Test du contexte de la vue onglet"""
+    def test_notes_view_context_data(self, user_with_perimetre, programmation_projet):
+        """Test du contexte de la vue notes"""
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
         url = reverse(
-            "gsl_programmation:programmation-projet-tab",
-            kwargs={
-                "projet_id": programmation_projet.projet.id,
-                "tab": "notes",
-            },
+            "gsl_programmation:programmation-projet-notes",
+            kwargs={"projet_id": programmation_projet.projet.id},
         )
         response = client.get(url)
 
@@ -421,13 +386,6 @@ class TestProgrammationProjetTabView:
         assert "dossier" in response.context
         assert "breadcrumb_dict" in response.context
         assert "menu_dict" in response.context
-
-
-class TestTabConstants:
-    def test_programmation_projet_tabs_constant(self):
-        """Test que la constante ALLOWED_TABS contient les bons onglets"""
-        expected_tabs = {"notes", "historique"}
-        assert ProgrammationProjetDetailView.ALLOWED_TABS == expected_tabs
 
 
 class TestProgrammationProjetSecurity:
