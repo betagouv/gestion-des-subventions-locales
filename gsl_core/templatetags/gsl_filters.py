@@ -42,6 +42,24 @@ def euro(value, decimals=0):
 
 
 @register.filter
+def euro_value(value, decimals=0):
+    """Format as number without € symbol (for table cells where unit is in header)."""
+    if not isinstance(value, (float, int, Decimal)) or isinstance(value, bool):
+        return "—"
+    return floatformat(value, f"{decimals}g")
+
+
+@register.filter
+def percent_value(value, decimals=0):
+    """Format as number without % symbol (for table cells where unit is in header)."""
+    if value is None or value == "":
+        return "—"
+    if not isinstance(value, Decimal):
+        return value
+    return floatformat(value, decimals)
+
+
+@register.filter
 def remove_first_word(value):
     parts = value.split(" ", 1)
     return parts[1] if len(parts) > 1 else ""
