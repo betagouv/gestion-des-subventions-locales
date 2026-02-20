@@ -1,9 +1,13 @@
+from csp.constants import SELF, UNSAFE_INLINE
+from csp.decorators import csp_update
 from django.contrib import admin, messages
-from django.db.models import Count
+from django.db.models import Count, JSONField
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
+from django_json_widget.widgets import JSONEditorWidget
 from import_export.admin import ImportExportMixin
 
 from gsl_core.admin import AllPermsForStaffUser
@@ -15,6 +19,7 @@ from .models import (
     CategorieDsil,
     Demarche,
     Dossier,
+    DossierData,
     FieldMapping,
     NaturePorteurProjet,
     PersonneMorale,
@@ -297,7 +302,10 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         ),
         (
             "Données brutes",
-            {"classes": ("collapse", "open"), "fields": ("link_to_json",)},
+            {
+                "classes": ("collapse", "open"),
+                "fields": ("link_to_json", "link_to_edit_dossier_data"),
+            },
         ),
     )
     actions = ("refresh_from_db", "refresh_from_ds")
@@ -312,6 +320,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "app_projet_link",
         "link_to_ds",
         "link_to_json",
+        "link_to_edit_dossier_data",
     ]
 
     @admin.action(description="🛢️ Rafraîchir depuis la base de données")
@@ -338,6 +347,19 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def link_to_json(self, obj):
         return mark_safe(f'<a href="{obj.json_url}">JSON brut</a>')
+
+    def link_to_edit_dossier_data(self, obj):
+        if obj.ds_data_id:
+            url = reverse(
+                "admin:gsl_demarches_simplifiees_dossierdata_change",
+                args=[obj.ds_data_id],
+            )
+            return mark_safe(
+                f'<a href="{url}">Modifier les données brutes (dossierData)</a>'
+            )
+        return None
+
+    link_to_edit_dossier_data.short_description = "Données brutes DN"
 
     def admin_projet_link(self, obj):
         return (
@@ -374,6 +396,48 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     departement.admin_order_field = "perimetre__departement__insee_code"
     departement.short_description = "Département"
+
+
+@admin.register(DossierData)
+class DossierDataAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    formfield_overrides = {
+        JSONField: {"widget": JSONEditorWidget},
+    }
+    list_display = (
+        "id",
+        "dossier__projet_intitule",
+        "link_to_dossier",
+    )
+    search_fields = ("dossier__ds_number",)
+    readonly_fields = ("link_to_dossier",)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("dossier")
+
+    fieldsets = ((None, {"fields": ("link_to_dossier", "raw_data")}),)
+
+    def link_to_dossier(self, obj):
+        dossier = getattr(obj, "dossier", None)
+        if dossier:
+            url = reverse(
+                "admin:gsl_demarches_simplifiees_dossier_change",
+                args=[dossier.id],
+            )
+            return mark_safe(
+                f'<a href="{url}">Voir le dossier #{dossier.ds_number}</a>'
+            )
+        return None
+
+    link_to_dossier.short_description = "Dossier"
+
+    # useful to use JsonEditorWidget
+    @method_decorator(
+        csp_update(
+            {"script-src": [SELF, UNSAFE_INLINE], "style-src": [SELF, UNSAFE_INLINE]},
+        )
+    )
+    def changeform_view(self, *args, **kwargs):
+        return super().changeform_view(*args, **kwargs)
 
 
 @admin.register(FieldMapping)
