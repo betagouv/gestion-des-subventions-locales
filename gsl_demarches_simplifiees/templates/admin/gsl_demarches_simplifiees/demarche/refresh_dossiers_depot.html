@@ -1,0 +1,36 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+    <form method="post">
+        {% csrf_token %}
+        <div>
+            {{ form.non_field_errors }}
+            {% for field in form %}
+                <fieldset class="module aligned">
+                    <div class="form-row">
+                        {{ field.errors }}
+                        <div>
+                            <label for="{{ field.id_for_label }}">
+                                {{ field.label }}
+                            </label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <p class="help">
+                                    {{ field.help_text }}
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </fieldset>
+            {% endfor %}
+        </div>
+        <div class="submit-row">
+            <a href="{% url 'admin:gsl_demarches_simplifiees_demarche_changelist' %}"
+               class="button cancel-link">{% translate "Annuler" %}</a>
+            <input type="submit"
+                   value="{% translate "Rafraîchir les dossiers" %}"
+                   class="default">
+        </div>
+    </form>
+{% endblock content %}

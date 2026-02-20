@@ -72,7 +72,7 @@ def client_with_user_logged(collegue):
 def simulation_projet(collegue, simulation):
     dotation_projet = DotationProjetFactory(
         status=PROJET_STATUS_PROCESSING,
-        projet__perimetre=collegue.perimetre,
+        projet__dossier_ds__perimetre=collegue.perimetre,
         dotation=DOTATION_DETR,
         assiette=10_000,
     )
@@ -130,7 +130,7 @@ data_test = (
     ),
     (
         SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
-        "Le projet est accepté provisoirement dans cette simulation.",
+        "La dotation DETR est acceptée provisoirement dans cette simulation.",
         "provisionally_accepted",
     ),
     (
@@ -226,7 +226,7 @@ def accepted_simulation_projet(collegue, simulation):
     dotation_projet = DotationProjetFactory(
         status=PROJET_STATUS_PROCESSING,
         assiette=10_000,
-        projet__perimetre=collegue.perimetre,
+        projet__dossier_ds__perimetre=collegue.perimetre,
         projet__is_budget_vert=False,
         dotation=DOTATION_DETR,
     )

@@ -18,6 +18,7 @@ admin.site.site_title = "Back-office Turgot - " + settings.ENV
 # handlers to pass the exception object so templates can duck type user_message
 handler404 = "gsl_pages.views.custom_404_view"
 handler403 = "gsl_pages.views.custom_403_view"
+handler500 = "gsl_pages.views.custom_500_view"
 
 urlpatterns = [
     path("admin/", admin.site.urls),

@@ -26,7 +26,7 @@ def client_with_user_logged(perimetre):
 @pytest.fixture
 def simulation_projet(perimetre):
     dotation_projet = DotationProjetFactory(
-        projet__perimetre=perimetre,
+        projet__dossier_ds__perimetre=perimetre,
         dotation=DOTATION_DETR,
     )
     simulation = SimulationFactory(enveloppe=DetrEnveloppeFactory(perimetre=perimetre))
@@ -42,8 +42,8 @@ def test_projet_note_form_save(client_with_user_logged, simulation_projet):
     assert projet.notes.count() == 0
 
     url = reverse(
-        "simulation:simulation-projet-tab",
-        kwargs={"pk": simulation_projet.pk, "tab": "annotations"},
+        "simulation:simulation-projet-notes",
+        kwargs={"pk": simulation_projet.pk},
     )
     response = client_with_user_logged.post(
         url,
@@ -68,8 +68,8 @@ def test_projet_note_form_save_with_error(client_with_user_logged, simulation_pr
     assert projet.notes.count() == 0
 
     url = reverse(
-        "simulation:simulation-projet-tab",
-        kwargs={"pk": simulation_projet.pk, "tab": "annotations"},
+        "simulation:simulation-projet-notes",
+        kwargs={"pk": simulation_projet.pk},
     )
     response = client_with_user_logged.post(
         url,
@@ -120,8 +120,8 @@ def test_projet_note_deletion(
     assert projet.notes.count() == 1
 
     url = reverse(
-        "simulation:simulation-projet-tab",
-        kwargs={"pk": simulation_projet.pk, "tab": "annotations"},
+        "simulation:simulation-projet-notes",
+        kwargs={"pk": simulation_projet.pk},
     )
     response = client_with_user_logged.post(
         url,

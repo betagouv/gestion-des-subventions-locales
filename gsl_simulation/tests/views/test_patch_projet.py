@@ -69,7 +69,7 @@ def accepted_simulation_projet(user, simulation):
     dotation_projet = DotationProjetFactory(
         status=PROJET_STATUS_PROCESSING,
         assiette=10_000,
-        projet__perimetre=user.perimetre,
+        projet__dossier_ds__perimetre=user.perimetre,
         projet__is_budget_vert=False,
         dotation=DOTATION_DETR,
     )
@@ -334,6 +334,61 @@ def test_patch_projet_with_user_without_ds_profile(
 
     assert resp.status_code == 200
     assert accepted_simulation_projet.projet.is_in_qpv is False
+
+
+def test_patch_projet_redirects_to_simulation_when_dotation_removal_cascades_simulation_projet(
+    client_with_user_logged,
+    accepted_simulation_projet,
+    simulation,
+    ds_field,
+):
+    """When a dotation is removed, the DotationProjet is CASCADE-deleted along
+    with its SimulationProjet. The redirect must go to the simulation detail page
+    instead of the now-deleted simulation-projet detail page."""
+
+    data = {"dotations": [DOTATION_DSIL]}
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "data": {
+            "dossierModifierAnnotations": {
+                "clientMutationId": "test",
+            }
+        }
+    }
+
+    simulation_projet_detail_url = reverse(
+        "simulation:simulation-projet-detail",
+        args=[accepted_simulation_projet.id],
+    )
+
+    with (
+        patch(
+            "gsl_demarches_simplifiees.services.FieldMapping.objects.get",
+            return_value=ds_field,
+        ),
+        patch("requests.post", return_value=mock_resp),
+    ):
+        url = reverse(
+            "simulation:patch-projet",
+            args=[accepted_simulation_projet.id],
+        )
+        response = client_with_user_logged.post(
+            url,
+            data,
+            HTTP_REFERER=f"http://testserver{simulation_projet_detail_url}",
+        )
+
+    assert response.status_code == 302
+    expected_redirect = reverse(
+        "simulation:simulation-detail",
+        kwargs={"slug": simulation.slug},
+    )
+    assert response.url == expected_redirect
+    assert not SimulationProjet.objects.filter(
+        pk=accepted_simulation_projet.pk
+    ).exists()
 
 
 def test_patch_projet_with_user_with_ds_connection_error(

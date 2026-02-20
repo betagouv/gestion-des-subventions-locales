@@ -7,8 +7,8 @@ from django.utils.translation import gettext_lazy as _
 
 
 class BaseModel(models.Model):
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField("Date de création", auto_now_add=True)
+    updated_at = models.DateTimeField("Date de modification", auto_now=True)
 
     class Meta:
         abstract = True
@@ -290,6 +290,22 @@ class Perimetre(BaseModel):
 
 
 class Collegue(AbstractUser):
+    is_staff = models.BooleanField(
+        _("staff status"),
+        default=False,
+        help_text=_(
+            "Donne accès au site d'administration avec toutes les permissions "
+            "(ajout, modification, suppression) sur les modèles métiers de Turgot."
+        ),
+    )
+    is_superuser = models.BooleanField(
+        _("superuser status"),
+        default=False,
+        help_text=_(
+            "Administration technique : donne toutes les permissions "
+            "y compris la gestion des utilisateurs et de leurs droits."
+        ),
+    )
     email = models.EmailField(_("email address"), blank=True, unique=True)
     proconnect_sub = models.UUIDField(
         "Identifiant unique proconnect", null=True, blank=True

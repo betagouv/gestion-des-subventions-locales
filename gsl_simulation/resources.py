@@ -43,7 +43,7 @@ class DsilSimulationProjetResource(ModelResource):
     )
     arrondissement = Field(
         attribute="projet__demandeur__address__commune__arrondissement__name",
-        column_name="Code INSEE commune du demandeur",
+        column_name="Arrondissement du demandeur",
     )
     has_double_dotations = Field(
         attribute="projet__has_double_dotations",

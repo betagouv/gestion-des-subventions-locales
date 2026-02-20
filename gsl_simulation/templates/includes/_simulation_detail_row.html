@@ -3,11 +3,6 @@
 <tr id="simulation-{{ simu.pk }}"
     hx-swap-oob="true"
     {% if dotation_projet.other_dotations|length > 0 %}class="row-with-double-dotations"{% endif %}>
-    <td>
-        <input type="checkbox"
-               name="simu[{{ simu.pk }}]"
-               aria-label="Sélectionner le projet {{ projet.dossier_ds.projet_intitule }}">
-    </td>
     <td class="fr-cell--center">
         {{ projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}
         {% if projet.dossier_ds.demande_numero_demande_precedente %}
@@ -19,10 +14,15 @@
 
     </td>
     <td>
-        {{ projet.dossier_ds.projet_intitule }}
+        <span class="max-3-lines" title="{{ projet.dossier_ds.projet_intitule }}">
+            {{ projet.dossier_ds.projet_intitule }}
+        </span>
     </td>
     <td>
-        {{ projet.demandeur.name | format_demandeur_nom }}
+        <span class="max-3-lines"
+              title="{{ projet.demandeur.name | format_demandeur_nom }}">
+            {{ projet.demandeur.name | format_demandeur_nom }}
+        </span>
     </td>
     <td>
         {% include "includes/table_forms/_dotation_form.html" with simu=simu %}
@@ -43,12 +43,18 @@
     </td>
     <td>
         {% if dotation_projet.dotation == "DSIL" %}
-            {{ projet.dossier_ds.demande_categorie_dsil.label }}
+            <span class="max-3-lines"
+                  title="{{ projet.dossier_ds.demande_categorie_dsil.label }}">
+                {{ projet.dossier_ds.demande_categorie_dsil.label }}
+            </span>
         {% elif dotation_projet.dotation == "DETR" %}
             {% if projet.dossier_ds.demande_has_categorie_detr == False %}
                 Hors catégorie
             {% else %}
-                {{ projet.dossier_ds.demande_categorie_detr.complete_label }}
+                <span class="max-3-lines"
+                      title="{{ projet.dossier_ds.demande_categorie_detr.complete_label }}">
+                    {{ projet.dossier_ds.demande_categorie_detr.complete_label }}
+                </span>
             {% endif %}
         {% endif %}
     </td>
@@ -77,7 +83,7 @@
 
 {% for other_dotation_projet in dotation_projet.other_dotations %}
     <tr id="other-simulation-{{ simu.pk }}" class="other-dotation-row">
-        <td colspan=7 class="information-other-dotation">
+        <td colspan=6 class="information-other-dotation">
             Informations pour la dotation {{ other_dotation_projet.dotation }}
         </td>
         <td class="gsl-money">
@@ -92,12 +98,18 @@
         </td>
         <td>
             {% if other_dotation_projet.dotation == "DSIL" %}
-                {{ other_dotation_projet.projet.dossier_ds.demande_categorie_dsil.label }}
+                <span class="max-3-lines"
+                      title="{{ other_dotation_projet.projet.dossier_ds.demande_categorie_dsil.label }}">
+                    {{ other_dotation_projet.projet.dossier_ds.demande_categorie_dsil.label }}
+                </span>
             {% elif other_dotation_projet.dotation == "DETR" %}
                 {% if other_dotation_projet.projet.dossier_ds.demande_has_categorie_detr == False %}
                     Hors catégorie
                 {% else %}
-                    {{ other_dotation_projet.projet.dossier_ds.demande_categorie_detr.complete_label }}
+                    <span class="max-3-lines"
+                          title="{{ other_dotation_projet.projet.dossier_ds.demande_categorie_detr.complete_label }}">
+                        {{ other_dotation_projet.projet.dossier_ds.demande_categorie_detr.complete_label }}
+                    </span>
                 {% endif %}
             {% endif %}
         </td>

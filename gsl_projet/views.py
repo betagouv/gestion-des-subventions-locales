@@ -60,16 +60,11 @@ def get_projet(request, projet_id):
     return render(request, "gsl_projet/projet.html", context)
 
 
-PROJET_TABS = {"annotations", "historique"}
-
-
 @projet_visible_by_user
 @require_GET
-def get_projet_tab(request, projet_id, tab):
-    if tab not in PROJET_TABS:
-        raise Http404
+def get_projet_notes(request, projet_id):
     context = _get_projet_context_info(projet_id)
-    return render(request, f"gsl_projet/projet/tab_{tab}.html", context)
+    return render(request, "gsl_projet/projet/tab_notes.html", context)
 
 
 class ProjetListViewFilters(BaseProjetFilters):
@@ -127,9 +122,9 @@ class ProjetListViewFilters(BaseProjetFilters):
         qs = qs.select_related(
             "address",
             "address__commune",
-            "perimetre",
             "demandeur",
             "dossier_ds",
+            "dossier_ds__perimetre",
             "dossier_ds__demande_categorie_detr",
             "dossier_ds__demande_categorie_dsil",
         ).prefetch_related(

@@ -38,7 +38,7 @@ def programmation_projet():
             raison_sociale="Commune de Bagnères-de-Luchon"
         ),
         dotation_projet__projet__dossier_ds__projet_intitule="Nouvelle plaque d'égoûts",
-        dotation_projet__projet__perimetre=perimetre,
+        dotation_projet__projet__dossier_ds__perimetre=perimetre,
         dotation_projet__projet__dossier_ds__date_debut=datetime.date(1998, 7, 12),
         dotation_projet__projet__dossier_ds__date_achevement=datetime.date(2024, 7, 31),
         montant=2_000.50,

@@ -7,16 +7,10 @@
                class="fr-tabs__tab fr-icon-article-line fr-tabs__tab--icon-left">Programmation</a>
         </li>
         <li>
-            {% url "programmation:programmation-projet-tab" projet_id=projet.id tab="annotations" as annotations_url %}
-            <a href="{{ annotations_url }}{% querystring %}"
-               {% if current_tab == "annotations" %}aria-selected="true"{% endif %}
-               class="fr-tabs__tab fr-icon-edit-line fr-tabs__tab--icon-left">Annotations</a>
-        </li>
-        <li role="presentation">
-            {% url "programmation:programmation-projet-tab" projet_id=projet.id tab="historique" as historique_url %}
-            <a href="{{ historique_url }}{% querystring %}"
-               {% if current_tab == "historique" %}aria-selected="true"{% endif %}
-               class="fr-tabs__tab fr-icon-archive-line fr-tabs__tab--icon-left">Historique du demandeur</a>
+            {% url "programmation:programmation-projet-notes" projet_id=projet.id as notes_url %}
+            <a href="{{ notes_url }}{% querystring %}"
+               {% if current_tab == "notes" %}aria-selected="true"{% endif %}
+               class="fr-tabs__tab fr-icon-edit-line fr-tabs__tab--icon-left">Notes</a>
         </li>
         {% if projet.can_display_notification_tab %}
             <li>

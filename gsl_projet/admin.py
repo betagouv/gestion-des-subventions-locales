@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from gsl_core.admin import AllPermsForStaffUser
+from gsl_core.models import Arrondissement
 from gsl_programmation.models import ProgrammationProjet
 from gsl_simulation.models import SimulationProjet
 
@@ -52,6 +53,32 @@ class ProjetStatusFilter(admin.SimpleListFilter):
         return queryset
 
 
+class ArrondissementFilter(admin.SimpleListFilter):
+    title = "Arrondissement"
+    parameter_name = "arrondissement"
+
+    def lookups(self, request, model_admin):
+        departement_id = request.GET.get(
+            "dossier_ds__perimetre__departement__insee_code__exact"
+        )
+
+        if not departement_id:
+            return []  # Aucun arrondissement tant que département non choisi
+
+        arrondissements = Arrondissement.objects.filter(
+            departement__pk=departement_id
+        ).order_by("insee_code")
+
+        return [(a.insee_code, (f"{a.pk} - {a.name}")) for a in arrondissements]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(
+                dossier_ds__perimetre__arrondissement__pk=self.value()
+            )
+        return queryset
+
+
 @admin.register(Projet)
 class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("address", "demandeur", "dossier_ds")
@@ -59,18 +86,21 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "__str__",
         "dossier_ds__projet_intitule",
         "get_status_display",
-        "perimetre__departement",
+        "dossier_departement",
         "dotations",
     )
     list_filter = (
         ProjetStatusFilter,
-        "perimetre__departement",
+        ArrondissementFilter,
+        "dossier_ds__perimetre__departement",
     )
     actions = ("refresh_from_dossier",)
     inlines = [
         DotationProjetInline,
     ]
     search_fields = ("dossier_ds__ds_number", "dossier_ds__projet_intitule")
+    readonly_fields = ("created_at", "updated_at")
+    raw_id_fields = ("dossier_ds",)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -78,12 +108,14 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             "dossier_ds",
             "dossier_ds__ds_data",
             "dossier_ds__ds_data__ds_demarche",
+            "dossier_ds__perimetre",
+            "dossier_ds__perimetre__departement",
         )
         qs = qs.defer(
             "dossier_ds__ds_data__raw_data",
             "dossier_ds__ds_data__ds_demarche__raw_ds_data",
         )
-        qs = qs.prefetch_related("dotationprojet_set", "perimetre__departement")
+        qs = qs.prefetch_related("dotationprojet_set")
         return qs
 
     @admin.action(description="Rafraîchir depuis le dossier DN")
@@ -95,6 +127,16 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
                 projet.dossier_ds.ds_number
             )
 
+    def get_deleted_objects(self, objs, request):
+        deleted_objects, model_count, perms_needed, protected = (
+            super().get_deleted_objects(objs, request)
+        )
+        try:
+            perms_needed.remove(DotationProjet._meta.verbose_name)
+        except KeyError:
+            pass
+        return deleted_objects, model_count, perms_needed, protected
+
     def dotations(self, obj):
         return ", ".join(obj.dotations)
 
@@ -102,6 +144,14 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         return dict(PROJET_STATUS_CHOICES)[obj.status]
 
     get_status_display.short_description = "Statut"
+
+    def dossier_departement(self, obj):
+        return obj.dossier_ds.perimetre.departement.insee_code
+
+    dossier_departement.short_description = "Département"
+    dossier_departement.admin_order_field = (
+        "dossier_ds__perimetre__departement__insee_code"
+    )
 
 
 class SimulationProjetInline(admin.TabularInline):
@@ -166,7 +216,7 @@ class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     )
     list_filter = ("dotation", "status")
     inlines = [SimulationProjetInline, ProgrammationProjetInline]
-    readonly_fields = ("dossier_link", "projet_link")
+    readonly_fields = ("created_at", "updated_at", "dossier_link", "projet_link")
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

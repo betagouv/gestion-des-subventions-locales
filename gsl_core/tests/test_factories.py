@@ -32,7 +32,6 @@ test_data = (
     (CommuneFactory, Commune),
     (AdresseFactory, Adresse),
     (PerimetreFactory, Perimetre),
-    (PerimetreFactory, Perimetre),
 )
 
 

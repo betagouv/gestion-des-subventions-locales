@@ -92,11 +92,12 @@ def test_create_or_update_dotation_projet_from_projet(
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=CURRENT_YEAR)
     DsilEnveloppeFactory(perimetre=region_bfc, annee=CURRENT_YEAR)
+
     projet = ProjetFactory(
         dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
         dossier_ds__annotations_assiette_detr=1_000,
         dossier_ds__annotations_assiette_dsil=1_000,
-        perimetre=arr_dijon,
+        dossier_ds__perimetre=arr_dijon,
     )
     setattr(projet.dossier_ds, field, dotation_value)
 
@@ -146,7 +147,7 @@ def test_create_or_update_dotation_projet_from_projet_also_refuse_dsil_dotation_
     DetrEnveloppeFactory(perimetre=dep_21, annee=CURRENT_YEAR)
     DsilEnveloppeFactory(perimetre=region_bfc, annee=CURRENT_YEAR)
     projet = ProjetFactory(
-        perimetre=arr_dijon,
+        dossier_ds__perimetre=arr_dijon,
         dossier_ds__ds_state=Dossier.STATE_REFUSE,
         dossier_ds__demande_dispositif_sollicite="DETR",
     )
@@ -260,7 +261,7 @@ def test_create_simulation_projets_from_dotation_projet_with_a_detr_and_arrondis
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
-        projet__perimetre=arr_dijon,
+        projet__dossier_ds__perimetre=arr_dijon,
     )
 
     dps.create_simulation_projets_from_dotation_projet(dotation_projet)
@@ -301,7 +302,7 @@ def test_create_simulation_projets_from_dotation_projet_with_a_dsil_and_departem
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DSIL,
         status=PROJET_STATUS_PROCESSING,
-        projet__perimetre=dep_21,
+        projet__dossier_ds__perimetre=dep_21,
     )
 
     dps.create_simulation_projets_from_dotation_projet(dotation_projet)
@@ -581,7 +582,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_filters_by_perimetre(
     # Create a projet with arrondissement perimetre
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
-        projet__perimetre=arr_dijon,
+        projet__dossier_ds__perimetre=arr_dijon,
     )
 
     # Create simulations with different perimetres
@@ -621,7 +622,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_filters_by_dotation(
 
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
-        projet__perimetre=arr_dijon,
+        projet__dossier_ds__perimetre=arr_dijon,
     )
 
     # Create simulations with different dotations
@@ -652,7 +653,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_filters_by_year(
 
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
-        projet__perimetre=arr_dijon,
+        projet__dossier_ds__perimetre=arr_dijon,
     )
 
     # Create simulations with different years
@@ -689,7 +690,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_excludes_existing_sim
 
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
-        projet__perimetre=arr_dijon,
+        projet__dossier_ds__perimetre=arr_dijon,
     )
 
     # Create simulations
@@ -726,7 +727,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_with_department_perim
 
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DSIL,
-        projet__perimetre=dep_21,
+        projet__dossier_ds__perimetre=dep_21,
     )
 
     # Create simulations
@@ -766,7 +767,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_with_region_perimetre
 
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DSIL,
-        projet__perimetre=region_bfc,
+        projet__dossier_ds__perimetre=region_bfc,
     )
 
     # Create simulations
@@ -813,7 +814,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_combines_all_filters(
 
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
-        projet__perimetre=arr_dijon,
+        projet__dossier_ds__perimetre=arr_dijon,
     )
 
     # Create a simulation that matches all criteria
@@ -875,7 +876,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_excludes_future_years
 
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
-        projet__perimetre=arr_dijon,
+        projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_state=dossier_state,
         projet__dossier_ds__ds_date_traitement=timezone.datetime(
             last_year, 6, 15, tzinfo=UTC
@@ -916,7 +917,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_does_not_exclude_when
 
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
-        projet__perimetre=arr_dijon,
+        projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
         projet__dossier_ds__ds_date_traitement=None,
     )
@@ -962,7 +963,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_does_not_exclude_when
 
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
-        projet__perimetre=arr_dijon,
+        projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
         projet__dossier_ds__ds_date_traitement=timezone.datetime(
             treatment_year, 6, 15, tzinfo=UTC
@@ -1011,7 +1012,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_excludes_correctly_wh
 
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
-        projet__perimetre=arr_dijon,
+        projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
         projet__dossier_ds__ds_date_traitement=timezone.datetime(
             treatment_year, 6, 15, tzinfo=UTC

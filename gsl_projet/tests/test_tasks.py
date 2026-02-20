@@ -4,7 +4,6 @@ from unittest import mock
 import pytest
 
 from gsl_core.tests.factories import (
-    CommuneFactory,
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
 )
@@ -36,13 +35,8 @@ from gsl_simulation.tests.factories import SimulationProjetFactory
 
 
 @pytest.fixture
-def commune():
-    return CommuneFactory()
-
-
-@pytest.fixture
-def perimetre_arrondissement(commune):
-    return PerimetreArrondissementFactory(arrondissement=commune.arrondissement)
+def perimetre_arrondissement():
+    return PerimetreArrondissementFactory()
 
 
 @pytest.fixture
@@ -62,7 +56,7 @@ def detr_enveloppe(perimetre_departement):
 
 @pytest.mark.django_db
 def test_task_create_or_update_projet_and_co_from_dossier_an_other_dotation_than_existing_one(
-    commune,
+    perimetre_arrondissement,
 ):
     """
     On teste le fait qu'un dossier DN avec une annotation_dotation donnée ne supprime pas les dotation_projets avec une autre dotation dans notre application.
@@ -73,7 +67,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_an_other_dotation_than
         annotations_dotation=DOTATION_DSIL,
         demande_montant=400,
         finance_cout_total=4_000,
-        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
+        perimetre=perimetre_arrondissement,
     )
     projet = ProjetFactory(dossier_ds=dossier)
     detr_dotation_projet = DotationProjetFactory(
@@ -95,14 +89,14 @@ def test_task_create_or_update_projet_and_co_from_dossier_an_other_dotation_than
 
 @pytest.mark.django_db
 def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
-    commune,
+    perimetre_arrondissement,
 ):
     dossier = DossierFactory(
         ds_state=Dossier.STATE_EN_CONSTRUCTION,
         annotations_dotation=DOTATION_DETR,
         demande_montant=400,
         finance_cout_total=4_000,
-        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
+        perimetre=perimetre_arrondissement,
     )
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
@@ -153,7 +147,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
 
 @pytest.mark.django_db
 def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_and_with_an_accepted_but_not_notified_projet(
-    commune,
+    perimetre_arrondissement,
 ):
     """
     On teste le fait qu'un dossier DN en instruction avec un dotation_projet accepté mais pas encore notifié
@@ -165,7 +159,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
         annotations_montant_accorde_detr=400,
         demande_montant=400,
         finance_cout_total=4_000,
-        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
+        perimetre=perimetre_arrondissement,
     )
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
@@ -210,7 +204,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
 
 @pytest.mark.django_db
 def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_and_with_an_accepted_and_notified_projet(
-    commune,
+    perimetre_arrondissement,
 ):
     """
     On teste le fait qu'un dossier DN en instruction avec un dotation_projet accepté mais pas encore notifié
@@ -221,7 +215,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
         annotations_dotation=DOTATION_DETR,
         demande_montant=400,
         finance_cout_total=4_000,
-        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
+        perimetre=perimetre_arrondissement,
     )
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
@@ -271,14 +265,14 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
 
 @pytest.mark.django_db
 def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
-    commune, detr_enveloppe
+    perimetre_arrondissement, detr_enveloppe
 ):
     """
     On teste le fait qu'un dossier DN accepté avec un dotation_projet refusé bascule le projet et tout le reste en accepté
     """
     dossier = DossierFactory(
         ds_state=Dossier.STATE_ACCEPTE,
-        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
+        perimetre=perimetre_arrondissement,
         ds_date_traitement=datetime(2024, 1, 15, tzinfo=UTC),
         annotations_dotation=DOTATION_DETR,
         annotations_montant_accorde_detr=5_000,
@@ -326,15 +320,15 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
 
 @pytest.mark.django_db
 def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
-    commune, detr_enveloppe
+    perimetre_arrondissement, detr_enveloppe
 ):
     dossier = DossierFactory(
         ds_state=Dossier.STATE_REFUSE,
         annotations_dotation=DOTATION_DETR,
-        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
+        perimetre=detr_enveloppe.perimetre,
         ds_date_traitement=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
     )
-    projet = ProjetFactory(dossier_ds=dossier, perimetre=detr_enveloppe.perimetre)
+    projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
@@ -378,12 +372,12 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
 
 @pytest.mark.django_db
 def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
-    commune, detr_enveloppe
+    detr_enveloppe,
 ):
     dossier = DossierFactory(
         ds_state=Dossier.STATE_SANS_SUITE,
         annotations_dotation=DOTATION_DETR,
-        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
+        perimetre=detr_enveloppe.perimetre,
         ds_date_traitement=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
     )
     projet = ProjetFactory(dossier_ds=dossier)
@@ -430,7 +424,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
 
 @pytest.mark.django_db
 def test_task_create_or_update_projet_and_co_from_dossier_update_from_annotations(
-    commune, detr_enveloppe
+    detr_enveloppe,
 ):
     dossier = DossierFactory(
         ds_state=Dossier.STATE_ACCEPTE,
@@ -440,8 +434,8 @@ def test_task_create_or_update_projet_and_co_from_dossier_update_from_annotation
         annotations_is_budget_vert=True,
         annotations_is_qpv=True,
         annotations_is_crte=True,
-        porteur_de_projet_arrondissement__core_arrondissement=commune.arrondissement,
         ds_date_traitement=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
+        perimetre=detr_enveloppe.perimetre,
     )
     projet = ProjetFactory(
         dossier_ds=dossier,

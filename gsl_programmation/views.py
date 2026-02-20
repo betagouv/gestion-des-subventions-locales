@@ -3,6 +3,7 @@ from functools import cached_property
 from django.contrib import messages
 from django.contrib.auth.views import RedirectURLMixin
 from django.db.models import ProtectedError
+from django.http import Http404 as DjangoHttp404
 from django.shortcuts import redirect
 from django.template.defaultfilters import pluralize
 from django.urls import reverse, reverse_lazy
@@ -33,15 +34,28 @@ from gsl_projet.utils.projet_page import PROJET_MENU
 class ProgrammationProjetDetailView(DetailView):
     model = Projet
     pk_url_kwarg = "projet_id"
+    tab_name = None
 
-    ALLOWED_TABS = {"annotations", "historique"}
+    def get(self, request, *args, **kwargs):
+        try:
+            return super().get(request, *args, **kwargs)
+        except DjangoHttp404:
+            # The Projet may exist but no longer have a ProgrammationProjet
+            # (e.g., after a DN refresh reverting the status to processing).
+            if (
+                Projet.objects.for_user(request.user)
+                .filter(pk=kwargs["projet_id"])
+                .exists()
+            ):
+                messages.warning(request, "Ce projet n'est plus en programmation.")
+                return redirect("gsl_programmation:programmation-projet-list")
+            raise
 
     def get_template_names(self):
-        if "tab" in self.kwargs:
-            tab = self.kwargs["tab"]
-            if tab not in self.ALLOWED_TABS:
-                raise Http404
-            return [f"gsl_programmation/tab_programmation_projet/tab_{tab}.html"]
+        if self.tab_name:
+            return [
+                f"gsl_programmation/tab_programmation_projet/tab_{self.tab_name}.html"
+            ]
         return ["gsl_programmation/programmation_projet_detail.html"]
 
     def get_queryset(self):
@@ -50,15 +64,15 @@ class ProgrammationProjetDetailView(DetailView):
             .with_at_least_one_programmed_dotation()
             .select_related(
                 "dossier_ds",
-                "perimetre",
-                "perimetre__departement",
+                "dossier_ds__perimetre",
+                "dossier_ds__perimetre__departement",
                 "demandeur",
             )
             .prefetch_related("dotationprojet_set__detr_categories")
         )
 
     def get_context_data(self, **kwargs):
-        tab = self.kwargs.get("tab", "projet")
+        tab = self.tab_name or "projet"
         title = self.object.dossier_ds.projet_intitule
         if "dotation" in self.request.GET:
             try:
@@ -95,7 +109,7 @@ class ProgrammationProjetDetailView(DetailView):
             "go_back_link": self.get_go_back_link(),
             "programmation_projet": programmation_projet,
         }
-        if tab == "annotations":
+        if tab == "notes":
             context["projet_notes"] = self.object.notes.all()
 
         return super().get_context_data(**context)

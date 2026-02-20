@@ -4,9 +4,9 @@ from gsl_simulation.views import simulation_views
 from gsl_simulation.views.decorators import (
     simulation_must_be_visible_by_user,
 )
-from gsl_simulation.views.simulation_projet_annotations_views import (
+from gsl_simulation.views.simulation_projet_notes_views import (
     ProjetNoteEditView,
-    SimulationProjetAnnotationsView,
+    SimulationProjetNotesView,
     get_note_card,
 )
 from gsl_simulation.views.simulation_projet_views import (
@@ -54,16 +54,9 @@ urlpatterns = [
         name="simulation-projet-detail",
     ),
     path(
-        "projet-detail/<int:pk>/annotations/",
-        SimulationProjetAnnotationsView.as_view(),
-        name="simulation-projet-annotations",
-    ),
-    path(
-        # careful when tab="annotations" it actually matches SimulationProjetAnnotationsView just above
-        # lost 20 minutes trying to solve a bug on SimulationProjetDetailView that didn't exist
-        "projet-detail/<int:pk>/<str:tab>/",
-        SimulationProjetDetailView.as_view(),
-        name="simulation-projet-tab",
+        "projet-detail/<int:pk>/notes/",
+        SimulationProjetNotesView.as_view(),
+        name="simulation-projet-notes",
     ),
     path(
         "modifier-le-taux-d-un-projet-de-simulation/<int:pk>/",
@@ -102,12 +95,12 @@ urlpatterns = [
     ),
     # Annotations
     path(
-        "simulation_projet/<int:pk>/annotations/<int:note_id>/edit",
+        "simulation_projet/<int:pk>/notes/<int:note_id>/edit",
         ProjetNoteEditView.as_view(),
         name="get-edit-projet-note",
     ),
     path(
-        "simulation_projet/<int:pk>/annotations/<int:note_id>",
+        "simulation_projet/<int:pk>/notes/<int:note_id>",
         get_note_card,
         name="get-note-card",
     ),

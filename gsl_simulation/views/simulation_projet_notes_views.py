@@ -17,8 +17,8 @@ from gsl_simulation.views.simulation_projet_views import (
 )
 
 
-class SimulationProjetAnnotationsView(SimulationProjetDetailView):
-    template_name = "gsl_simulation/tab_simulation_projet/tab_annotations.html"
+class SimulationProjetNotesView(SimulationProjetDetailView):
+    template_name = "gsl_simulation/tab_simulation_projet/tab_notes.html"
     model = SimulationProjet
 
     def get_queryset(self):
@@ -115,7 +115,7 @@ class ProjetNoteEditView(UpdateView):
             "La note a été mise à jour avec succès.",
         )
         return reverse(
-            "gsl_simulation:simulation-projet-annotations",
+            "gsl_simulation:simulation-projet-notes",
             kwargs={"pk": self.simulation_projet_id},
         )
 

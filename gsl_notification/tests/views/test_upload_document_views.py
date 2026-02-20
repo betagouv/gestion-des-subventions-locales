@@ -30,7 +30,9 @@ def perimetre():
 
 @pytest.fixture
 def programmation_projet(perimetre):
-    return ProgrammationProjetFactory(dotation_projet__projet__perimetre=perimetre)
+    return ProgrammationProjetFactory(
+        dotation_projet__projet__dossier_ds__perimetre=perimetre
+    )
 
 
 @pytest.fixture
@@ -55,7 +57,7 @@ def test_choose_uploaded_document_type_displays_correctly(perimetre):
     client = ClientWithLoggedUserFactory(user)
 
     # Create a projet with an accepted DETR dotation
-    projet = ProjetFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     DetrProjetFactory(projet=projet, status=PROJET_STATUS_ACCEPTED)
 
     # Make GET request to the URL
