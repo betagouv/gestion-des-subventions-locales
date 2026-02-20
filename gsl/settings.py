@@ -43,6 +43,12 @@ if ENV not in ("dev", "test", "staging", "prod", "demo"):
 ENV_SEPARATOR = ","
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(ENV_SEPARATOR)
 
+ADMIN_ALLOWED_IPS = [
+    ip.strip()
+    for ip in os.getenv("ADMIN_ALLOWED_IPS", "127.0.0.1").split(",")
+    if ip.strip()
+]
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -82,6 +88,7 @@ MIDDLEWARE = [
     "csp.middleware.CSPMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "gsl_core.middlewares.AdminIPWhitelistMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
