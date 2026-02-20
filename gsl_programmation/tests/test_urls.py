@@ -1,4 +1,3 @@
-import pytest
 from django.urls import reverse
 
 
@@ -23,14 +22,9 @@ def test_programmation_projet_detail_url():
     assert url == "/programmation/voir/123/"
 
 
-@pytest.mark.parametrize(
-    "tab",
-    ("notes", "historique"),
-)
-def test_programmation_projet_tab_url(tab):
-    """Test de l'URL des onglets"""
+def test_programmation_projet_notes_url():
     url = reverse(
-        "gsl_programmation:programmation-projet-tab",
-        kwargs={"projet_id": 123, "tab": tab},
+        "gsl_programmation:programmation-projet-notes",
+        kwargs={"projet_id": 123},
     )
-    assert url == f"/programmation/voir/123/{tab}/"
+    assert url == "/programmation/voir/123/notes/"

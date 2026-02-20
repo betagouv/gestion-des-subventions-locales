@@ -2,6 +2,7 @@ import json
 
 from django.contrib import messages
 from django.db import transaction
+from django.http import Http404 as DjangoHttp404
 from django.http import HttpRequest
 from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
@@ -134,6 +135,7 @@ def patch_dotation_projet(request, pk):
 
 class BaseSimulationProjetView(UpdateView):
     form_class = SimulationProjetForm
+    template_name = "gsl_simulation/simulation_projet_detail.html"
 
     def get_queryset(self) -> SimulationProjetQuerySet:
         return (
@@ -148,14 +150,6 @@ class BaseSimulationProjetView(UpdateView):
             )
             .prefetch_related("dotation_projet__projet__dotationprojet_set")
         )
-
-    def get_template_names(self):
-        if "tab" in self.kwargs:
-            tab = self.kwargs["tab"]
-            if tab not in self.ALLOWED_TABS:
-                raise Http404
-            return [f"gsl_simulation/tab_simulation_projet/tab_{tab}.html"]
-        return ["gsl_simulation/simulation_projet_detail.html"]
 
     def get_object(self, queryset=None) -> SimulationProjet:
         if not hasattr(self, "_simulation_projet"):
@@ -246,6 +240,32 @@ class ProjetFormView(BaseSimulationProjetView):
         kwargs.update({"instance": simulation_projet.projet})
         return kwargs
 
+    def form_valid(self, form: ProjetForm):
+        try:
+            form.save()
+            messages.success(
+                self.request,
+                "Les modifications ont été enregistrées avec succès.",
+            )
+        except DsServiceException as e:
+            error_msg = f"Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. {str(e)}"
+            form.add_error(None, error_msg)
+            return self.form_invalid(form, with_error_message_intro=False)
+
+        # When a dotation is removed, the DotationProjet is deleted,
+        # which CASCADE deletes the SimulationProjet. Redirect to the
+        # simulation project list instead of the now-deleted detail page.
+        if not SimulationProjet.objects.filter(pk=self.object.pk).exists():
+            return redirect(
+                "simulation:simulation-detail",
+                slug=self.object.simulation.slug,
+            )
+
+        return redirect_to_same_page_or_to_simulation_detail_by_default(
+            self.request,
+            self.object,
+        )
+
     def enrich_context_with_invalid_form(self, context, form):
         context["projet_form"] = form
 
@@ -254,10 +274,20 @@ class SimulationProjetDetailView(BaseSimulationProjetView):
     model = SimulationProjet
     form_class = SimulationProjetForm
 
-    ALLOWED_TABS = {"historique"}
-
     def get_queryset(self):
         return super().get_queryset().in_user_perimeter(self.request.user)
+
+    def get(self, request, *args, **kwargs):
+        try:
+            return super().get(request, *args, **kwargs)
+        except DjangoHttp404:
+            # The SimulationProjet may have been CASCADE-deleted after a
+            # DotationProjet deletion (e.g., DN refresh reverting status).
+            # Re-raise if the object still exists (e.g. perimeter mismatch).
+            if not SimulationProjet.objects.filter(pk=kwargs["pk"]).exists():
+                messages.warning(request, "Ce projet n'est plus dans cette simulation.")
+                return redirect("simulation:simulation-list")
+            raise
 
     def enrich_context_with_invalid_form(self, context, form):
         context["simulation_projet_form"] = form

@@ -59,13 +59,6 @@ urlpatterns = [
         name="simulation-projet-notes",
     ),
     path(
-        # careful when tab="notes" it actually matches SimulationProjetNotesView just above
-        # lost 20 minutes trying to solve a bug on SimulationProjetDetailView that didn't exist
-        "projet-detail/<int:pk>/<str:tab>/",
-        SimulationProjetDetailView.as_view(),
-        name="simulation-projet-tab",
-    ),
-    path(
         "modifier-le-taux-d-un-projet-de-simulation/<int:pk>/",
         patch_taux_simulation_projet,
         name="patch-simulation-projet-taux",

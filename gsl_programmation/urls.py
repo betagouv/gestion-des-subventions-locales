@@ -24,8 +24,8 @@ urlpatterns = [
         name="programmation-projet-detail",
     ),
     path(
-        "voir/<int:projet_id>/<str:tab>/",
-        ProgrammationProjetDetailView.as_view(),
-        name="programmation-projet-tab",
+        "voir/<int:projet_id>/notes/",
+        ProgrammationProjetDetailView.as_view(tab_name="notes"),
+        name="programmation-projet-notes",
     ),
 ]

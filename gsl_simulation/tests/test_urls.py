@@ -3,7 +3,6 @@ from unittest import mock
 
 import pytest
 from django.urls import reverse
-from pytest_django.asserts import assertTemplateUsed
 
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -519,12 +518,31 @@ def test_get_simulation_projet_detail_url(
 
 
 @pytest.mark.django_db
+def test_get_simulation_projet_detail_redirects_when_deleted(
+    client_with_cote_d_or_user_logged, cote_dorien_simulation_projet
+):
+    pk = cote_dorien_simulation_projet.pk
+    cote_dorien_simulation_projet.delete()
+
+    url = reverse(
+        "simulation:simulation-projet-detail",
+        kwargs={"pk": pk},
+    )
+    response = client_with_cote_d_or_user_logged.get(url)
+    assert response.status_code == 302
+    assert response.url == reverse("simulation:simulation-list")
+    messages_list = list(response.wsgi_request._messages)
+    assert len(messages_list) == 1
+    assert str(messages_list[0]) == "Ce projet n'est plus dans cette simulation."
+
+
+@pytest.mark.django_db
 def test_post_simulation_projet_detail_url(
     cote_d_or_perimetre, cote_dorien_simulation_projet
 ):
     notes_tab_url = reverse(
-        "simulation:simulation-projet-tab",
-        kwargs={"pk": cote_dorien_simulation_projet.pk, "tab": "notes"},
+        "simulation:simulation-projet-notes",
+        kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
     client = get_client_with_referer(cote_d_or_perimetre, notes_tab_url)
 
@@ -554,8 +572,8 @@ def test_post_simulation_for_a_user_not_in_perimetre(
     client_with_iconnais_user_logged, cote_dorien_simulation_projet
 ):
     notes_tab_url = reverse(
-        "simulation:simulation-projet-tab",
-        kwargs={"pk": cote_dorien_simulation_projet.pk, "tab": "notes"},
+        "simulation:simulation-projet-notes",
+        kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
 
     response = client_with_iconnais_user_logged.post(
@@ -566,42 +584,6 @@ def test_post_simulation_for_a_user_not_in_perimetre(
     assert response.status_code == 404
     notes = cote_dorien_simulation_projet.projet.notes
     assert notes.count() == 0
-
-
-@pytest.mark.parametrize(
-    "tab_name,expected_template",
-    (
-        ("historique", "gsl_simulation/tab_simulation_projet/tab_historique.html"),
-        ("notes", "gsl_simulation/tab_simulation_projet/tab_notes.html"),
-    ),
-)
-@pytest.mark.django_db
-def test_simulation_projet_detail_tabs_use_the_right_templates(
-    client_with_cote_d_or_user_logged,
-    cote_dorien_simulation_projet,
-    tab_name,
-    expected_template,
-):
-    url = reverse(
-        "simulation:simulation-projet-tab",
-        kwargs={"pk": cote_dorien_simulation_projet.pk, "tab": tab_name},
-    )
-    response = client_with_cote_d_or_user_logged.get(url)
-    assert response.status_code == 200
-    assertTemplateUsed("gsl_simulation/simulation_projet_detail.html")
-    assertTemplateUsed(expected_template)
-
-
-@pytest.mark.django_db
-def test_simulation_projet_detail_tabs_404_if_wrong_tab(
-    client_with_cote_d_or_user_logged, cote_dorien_simulation_projet
-):
-    url = reverse(
-        "simulation:simulation-projet-tab",
-        kwargs={"pk": cote_dorien_simulation_projet.pk, "tab": "toto"},
-    )
-    response = client_with_cote_d_or_user_logged.get(url)
-    assert response.status_code == 404
 
 
 @pytest.mark.django_db
