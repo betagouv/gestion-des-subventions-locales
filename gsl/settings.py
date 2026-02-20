@@ -415,3 +415,4 @@ AXES_ONLY_USER_FAILURES = True
 
 # OTP configuration
 OTP_TOTP_ISSUER = f"Turgot {ENV}"
+OTP_ENABLED = os.getenv("OTP_ENABLED", "true").lower() == "true"

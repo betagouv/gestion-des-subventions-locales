@@ -1,5 +1,6 @@
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import reverse
 
@@ -18,6 +19,9 @@ class OTPVerificationMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        if not settings.OTP_ENABLED:
+            return self.get_response(request)
+
         user = request.user
 
         if not user.is_authenticated or not user.is_staff:
