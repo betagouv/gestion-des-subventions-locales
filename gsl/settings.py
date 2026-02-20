@@ -282,6 +282,21 @@ LOGGING = {
             "level": DJANGO_LOGGING_LEVEL,
             "propagate": False,
         },
+        "celery.task": {
+            "handlers": ["console", "sentry"],
+            "level": DJANGO_LOGGING_LEVEL,
+            "propagate": False,
+        },
+        "celery.app.trace": {
+            "handlers": ["console", "sentry"],
+            "level": DJANGO_LOGGING_LEVEL,
+            "propagate": False,
+        },
+        "celery.worker.strategy": {
+            "handlers": ["console", "sentry"],
+            "level": DJANGO_LOGGING_LEVEL,
+            "propagate": False,
+        },
         "gunicorn": {
             "handlers": ["console"],
             "level": "INFO",
