@@ -1,6 +1,6 @@
 {% load gsl_filters %}
 {% if projet.notified_at %}
-    {{ simu.montant|euro:2 }}
+    {{ simu.montant|euro_value:2 }}
 {% else %}
     <form action="{% url 'simulation:patch-simulation-projet-montant' simu.id %}"
           method="POST"
@@ -16,7 +16,6 @@
                    hx-disabled-elt=".input-simulation-projet-{{ simu.pk }}"
                    value="{{ simu.montant|floatformat:"2g" }}"
                    {% if simu.status == 'cancelled' or simu.status == 'dismissed' %}disabled{% endif %}>
-            <span class="gsl-projet-table__input-symbol">€</span>
         </div>
         <input type="hidden" name="filter_params" value="{{ filter_params }}">
     </form>

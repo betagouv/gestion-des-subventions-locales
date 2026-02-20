@@ -1,8 +1,7 @@
 /* table */
 .gsl-projet-table__select {
   text-align: right;
-  padding: 4px;
-  padding-right: 20px;
+  padding: 0.25rem 1.25rem 0.25rem 0.25rem;
   background-position: calc(100% - 4px) 50%;
   box-shadow: none
 }
@@ -14,21 +13,7 @@
 
 .gsl-projet-table__input-wrap > input {
   text-align: right;
-  padding: 4px;
-  padding-right: 12px;
-}
-
-.gsl-projet-table__input-symbol {
-  position: absolute;
-  top: 50%;
-  right: 4px;
-  transform: translateY(-50%);
-  pointer-events: none; /* Ne pas interférer avec les clics */
-  color: #333;
-}
-
-.gsl-projet-table__input-wrap--rate > input {
-  padding-right: 16px;
+  padding: 0.25rem 0.5rem;
 }
 
 .simulation-menu {

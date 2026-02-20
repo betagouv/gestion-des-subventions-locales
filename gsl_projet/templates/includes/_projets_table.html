@@ -26,22 +26,22 @@
                                 Dotation
                             </th>
                             <th scope="col">
-                                Coût total du projet
+                                Coût total du projet (€)
                                 <br>
                                 <span class="gsl-money gsl-projet-table__total gsl-projet-table__total--cost">{{ total_cost | euro:0 }}</span>
                             </th>
                             <th scope="col">
-                                Montant et taux sollicités
+                                Montant et taux sollicités (€)
                                 <br>
                                 <span class="gsl-money gsl-projet-table__total gsl-projet-table__total--asked">{{ total_amount_asked | euro:0 }}</span>
                             </th>
                             <th scope="col">
-                                Montant retenu
+                                Montant retenu (€)
                                 <br>
                                 <span class="gsl-money gsl-projet-table__total gsl-projet-table__total--granted">{{ total_amount_granted | euro:0 }}</span>
                             </th>
                             <th scope="col">
-                                Taux de subvention
+                                Taux de subvention (%)
                             </th>
                             <th scope="col">
                                 Catégorie d'opération
@@ -95,20 +95,20 @@
                                             {% endfor %}
                                         </td>
                                         <td class="gsl-money">
-                                            {{ projet.dossier_ds.finance_cout_total|euro }}
+                                            {{ projet.dossier_ds.finance_cout_total|euro_value }}
                                         </td>
                                         <td class="gsl-money">
-                                            {{ projet.dossier_ds.demande_montant|euro }}
+                                            {{ projet.dossier_ds.demande_montant|euro_value }}
                                         </td>
                                     {% endif %}
                                     <td class="gsl-money {% if projet.montant_retenu is not None %} gsl-projet-table__montant-retenu {% endif %} gsl-projet-table__cell--dotation">
                                         {% for dp in dotation_projets %}
-                                            <span>{{ dp.montant_retenu|euro }}</span>
+                                            <span>{{ dp.montant_retenu|euro_value }}</span>
                                         {% endfor %}
                                     </td>
                                     <td class="gsl-money gsl-projet-table__cell--dotation">
                                         {% for dp in dotation_projets %}
-                                            <span>{{ dp.taux_retenu|percent }}</span>
+                                            <span>{{ dp.taux_retenu|percent_value }}</span>
                                         {% endfor %}
                                     </td>
                                     <td>
