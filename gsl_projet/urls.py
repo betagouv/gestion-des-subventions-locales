@@ -15,9 +15,9 @@ urlpatterns = [
         name="get-projet",
     ),
     path(
-        "voir/<int:projet_id>/<str:tab>/",
-        views.get_projet_tab,
-        name="get-projet-tab",
+        "voir/<int:projet_id>/notes/",
+        views.get_projet_notes,
+        name="get-projet-notes",
     ),
     path("liste", views.ProjetListView.as_view(), name="list"),
     path(
