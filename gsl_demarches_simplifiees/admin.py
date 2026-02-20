@@ -90,7 +90,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         qs = qs.defer("raw_ds_data")
-        return qs.annotate(dossiers_count=Count("dossierdata"))
+        return qs.annotate(dossiers_count=Count("dossier"))
 
     def dossiers_count(self, obj) -> int:
         return obj.dossiers_count
@@ -336,12 +336,12 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         qs = qs.select_related(
-            "ds_data__ds_demarche",
+            "ds_data",
             "projet",
             "perimetre__departement",
         ).defer(
             "ds_data__raw_data",  # Main Dossier
-            "ds_data__ds_demarche__raw_ds_data",  # Related Demarche
+            "ds_demarche__raw_ds_data",  # Related Demarche
         )
         return qs
 

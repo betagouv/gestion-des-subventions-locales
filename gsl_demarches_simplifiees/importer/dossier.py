@@ -276,8 +276,8 @@ def _create_or_update_dossier_from_ds_data(
         dossier = Dossier.objects.create(
             ds_id=ds_id,
             ds_number=ds_dossier_number,
-            ds_data=DossierData.objects.create(ds_demarche=demarche),
-            ds_demarche_number=demarche.ds_number,
+            ds_data=DossierData.objects.create(),
+            ds_demarche=demarche,
         )
 
     _save_dossier_data_and_refresh_dossier_and_projet_and_co(

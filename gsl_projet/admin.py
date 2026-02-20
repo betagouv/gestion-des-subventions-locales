@@ -107,13 +107,13 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         qs = qs.select_related(
             "dossier_ds",
             "dossier_ds__ds_data",
-            "dossier_ds__ds_data__ds_demarche",
+            "dossier_ds__ds_demarche",
             "dossier_ds__perimetre",
             "dossier_ds__perimetre__departement",
         )
         qs = qs.defer(
             "dossier_ds__ds_data__raw_data",
-            "dossier_ds__ds_data__ds_demarche__raw_ds_data",
+            "dossier_ds__ds_demarche__raw_ds_data",
         )
         qs = qs.prefetch_related("dotationprojet_set")
         return qs

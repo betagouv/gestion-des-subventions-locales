@@ -63,10 +63,10 @@ def test_save_demarche_dossiers_from_ds_calls_save_dossier_data_and_refresh_doss
                 assert Dossier.objects.filter(ds_id="DOSS-2").exists()
                 dossier_1 = Dossier.objects.get(ds_id="DOSS-1")
                 assert dossier_1.ds_number == 20240001
-                assert dossier_1.ds_data.ds_demarche.ds_number == demarche_number
+                assert dossier_1.ds_demarche.ds_number == demarche_number
                 dossier_2 = Dossier.objects.get(ds_id="DOSS-2")
                 assert dossier_2.ds_number == 20240002
-                assert dossier_2.ds_data.ds_demarche.ds_number == demarche_number
+                assert dossier_2.ds_demarche.ds_number == demarche_number
 
 
 @pytest.mark.django_db

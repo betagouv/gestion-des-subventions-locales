@@ -161,7 +161,6 @@ class DossierData(BaseModel):
     See https://www.demarches-simplifiees.fr/graphql/schema/types/Dossier
     """
 
-    ds_demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
     raw_data = models.JSONField("Données DS brutes", null=True, blank=True)
 
     class Meta:
@@ -219,10 +218,10 @@ class Dossier(BaseModel):
     perimetre = models.ForeignKey(
         Perimetre, on_delete=models.PROTECT, null=True, blank=True
     )
+    ds_demarche = models.ForeignKey(Demarche, on_delete=models.PROTECT)
     ds_data = models.OneToOneField(DossierData, on_delete=models.CASCADE)
     ds_id = models.CharField("Identifiant DS")
     ds_number = models.IntegerField("Numéro DS", unique=True)
-    ds_demarche_number = models.IntegerField("Numéro de la démarche")
     ds_state = models.CharField("État DS", choices=DS_STATE_VALUES)
     ds_date_depot = models.DateTimeField("Date de dépôt", null=True, blank=True)
     ds_date_passage_en_construction = models.DateTimeField(
@@ -587,6 +586,10 @@ class Dossier(BaseModel):
         return reverse(
             "ds:view-dossier-json", kwargs={"dossier_ds_number": self.ds_number}
         )
+
+    @property
+    def ds_demarche_number(self) -> int | None:
+        return self.ds_demarche.ds_number
 
     @property
     def taux_demande(self):
