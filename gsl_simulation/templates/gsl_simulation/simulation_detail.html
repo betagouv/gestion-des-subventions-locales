@@ -4,6 +4,7 @@
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/projet_list.css' %}">
     <link rel="stylesheet" href="{% static 'css/simulation_detail.css' %}">
+    <link rel="stylesheet" href="{% static 'css/enveloppe_summary.css' %}">
 {% endblock extra_css %}
 
 {% block content %}
@@ -35,74 +36,85 @@
     {% include "includes/_enveloppe_summary.html" %}
     {% include "includes/_projet_list_filters.html" %}
 
-    <p class="fr-mb-0">
+    <p class="fr-mb-0 fr-mt-1w">
         {{ simulation_paginator.paginator.count }} projet{{ simulation_paginator.paginator.count|custom_pluralize }}
     </p>
 
-    <div class="fr-table--lg gsl-projet-table">
-        <table>
-            <thead>
-                <tr>
-                    <th>
-                        Date de dépôt
-                    </th>
-                    <th class="max_180_width">
-                        Intitulé du projet
-                    </th>
-                    <th>
-                        Demandeur
-                    </th>
-                    <th>
-                        Dotation
-                    </th>
-                    <th class="max_80_width">
-                        Coût total du projet
-                        <br>
-                        <span class="gsl_projet_table__total gsl-money gsl-projet-table__total-cost">{{ total_cost | euro }}</span>
-                    </th>
-                    <th class="max_80_width">
-                        Montant sollicité
-                        <br>
-                        <span class="gsl_projet_table__total gsl-projet-table__total-asked">{{ total_amount_asked | euro }}</span>
-                    </th>
-                    <th class="max_80_width">
-                        Montant prévisionnel accordé
-                        <br>
-                        <span class="gsl_projet_table__total gsl-projet-table__total-granted"
-                              id="total-amount-granted">{{ total_amount_granted | euro }}</span>
-                    </th>
-                    <th class="max_80_width">
-                        Taux de subvention
-                    </th>
-                    <th class="max_160_width">
-                        Catégorie d’opération
-                    </th>
-                    <th class="max_180_width">
-                        Statut
-                    </th>
-                    <th>
-                        <span class="fr-sr-only">Actions</span>
-                    </th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for projet in simulation_projets_list %}
-                    {% with projet.dotation_projet.0 as dotation_projet %}
-                        {% with dotation_projet.simu.0 as simu %}
-                            {% include "includes/_simulation_detail_row.html" with simu=simu projet=projet dotation_projet=dotation_projet %}
-                        {% endwith %}
-                    {% endwith %}
-                {% empty %}
-                    <tr>
-                        <td colspan="12">
-                            Liste vide.
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="fr-table fr-table--multiline fr-table--sm fr-table--no-caption gsl-projet-table">
+        <div class="fr-table__wrapper">
+            <div class="fr-table__container">
+                <div class="fr-table__content">
+                    <table id="table-simulation">
+                        <caption>Détails de la simulation</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">
+                                    Date de dépôt
+                                </th>
+                                <th scope="col" class="max_180_width">
+                                    Intitulé du projet
+                                </th>
+                                <th scope="col">
+                                    Demandeur
+                                </th>
+                                <th scope="col">
+                                    Dotation
+                                </th>
+                                <th scope="col" class="max_80_width">
+                                    Coût total du projet
+                                    <br>
+                                    <span class="gsl_projet_table__total gsl-money gsl-projet-table__total-cost">{{ total_cost | euro }}</span>
+                                </th>
+                                <th scope="col" class="max_80_width">
+                                    Montant sollicité
+                                    <br>
+                                    <span class="gsl_projet_table__total gsl-projet-table__total-asked">{{ total_amount_asked | euro }}</span>
+                                </th>
+                                <th scope="col" class="max_80_width">
+                                    Montant prévisionnel accordé
+                                    <br>
+                                    <span class="gsl_projet_table__total gsl-projet-table__total-granted"
+                                          id="total-amount-granted">{{ total_amount_granted | euro }}</span>
+                                </th>
+                                <th scope="col" class="max_80_width">
+                                    Taux de subvention
+                                </th>
+                                <th scope="col" class="max_160_width">
+                                    Catégorie d'opération
+                                </th>
+                                <th scope="col" class="max_180_width">
+                                    Statut
+                                </th>
+                                <th scope="col">
+                                    <span class="fr-sr-only">Actions</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for projet in simulation_projets_list %}
+                                {% with projet.dotation_projet.0 as dotation_projet %}
+                                    {% with dotation_projet.simu.0 as simu %}
+                                        {% include "includes/_simulation_detail_row.html" with simu=simu projet=projet dotation_projet=dotation_projet %}
+                                    {% endwith %}
+                                {% endwith %}
+                            {% empty %}
+                                <tr>
+                                    <td colspan="12">
+                                        Liste vide.
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="fr-table__footer">
+            <div class="fr-table__footer--middle">
+                {% dsfr_pagination simulation_paginator %}
+            </div>
+        </div>
     </div>
-    {% dsfr_pagination simulation_paginator %}
 
 {% endblock content %}
 

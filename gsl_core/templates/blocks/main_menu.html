@@ -33,10 +33,29 @@
                     </li>
                     <li class="fr-nav__item">
                         {% url 'programmation:programmation-projet-list' as programmations_url %}
-                        <a class="fr-nav__link"
-                           href="{{ programmations_url }}"
-                           target="_self"
-                           {% if "/programmation/" in request.path or "/notification/" in request.path %}aria-current="true"{% endif %}>3 - Programmations</a>
+                        <button class="fr-nav__btn"
+                                aria-expanded="false"
+                                aria-controls="programmation-submenu"
+                                {% if "/programmation/" in request.path or "/notification/" in request.path %}aria-current="true"{% endif %}>
+                            3 - Programmations
+                        </button>
+                        <div class="fr-collapse fr-menu" id="programmation-submenu">
+                            <ul class="fr-menu__list">
+                                <li>
+                                    <a class="fr-nav__link"
+                                       href="{% url "programmation:programmation-projet-list-dotation" dotation="DETR" %}"
+                                       target="_self"
+                                       {% if current_tab == "DETR" %}aria-current="true"{% endif %}>DETR</a>
+                                </li>
+                                <li>
+                                    <a class="fr-nav__link"
+                                       href="{% url "programmation:programmation-projet-list-dotation" dotation="DSIL" %}"
+                                       target="_self"
+                                       {% if current_tab == "DSIL" %}aria-current="true"{% endif %}>
+                                    DSIL</a>
+                                </li>
+                            </ul>
+                        </div>
                     </li>
                 {% endif %}
                 {% if request.user.is_staff %}
