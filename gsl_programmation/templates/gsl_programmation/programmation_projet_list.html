@@ -96,16 +96,16 @@
                                         Demandeur
                                     </th>
                                     <th scope="col">
-                                        Coût total du projet
+                                        Coût total du projet (€)
                                     </th>
                                     <th scope="col">
-                                        Montant et taux demandés
+                                        Montant et taux demandés (€ / %)
                                     </th>
                                     <th scope="col">
-                                        Montant prévisionnel accordé
+                                        Montant prévisionnel accordé (€)
                                     </th>
                                     <th scope="col">
-                                        Taux de subvention
+                                        Taux de subvention (%)
                                     </th>
                                     <th scope="col">
                                         Catégorie d'opération
@@ -165,18 +165,18 @@
                                             </span>
                                         </td>
                                         <td class="gsl-money">
-                                            {{ programmation_projet.projet.dossier_ds.finance_cout_total|euro }}
+                                            {{ programmation_projet.projet.dossier_ds.finance_cout_total|euro_value }}
                                         </td>
                                         <td class="gsl-money">
-                                            {{ programmation_projet.projet.dossier_ds.demande_montant|euro }}
+                                            {{ programmation_projet.projet.dossier_ds.demande_montant|euro_value }}
                                             <br>
-                                            {{ programmation_projet.dotation_projet.taux_de_subvention_sollicite|percent }}
+                                            {{ programmation_projet.dotation_projet.taux_de_subvention_sollicite|percent_value }}
                                         </td>
                                         <td class="gsl-money">
-                                            {{ programmation_projet.montant|euro }}
+                                            {{ programmation_projet.montant|euro_value }}
                                         </td>
                                         <td class="gsl-money">
-                                            {{ programmation_projet.taux|percent }}
+                                            {{ programmation_projet.taux|percent_value }}
                                         </td>
                                         <td>
                                             {% if dotation == "DSIL" %}
@@ -241,12 +241,12 @@
                                             </td>
                                             <td class="gsl-money">
                                                 <div class="gsl-money">
-                                                    {{ other_dotation.last_updated_simulation_projet.montant|euro:2 }}
+                                                    {{ other_dotation.last_updated_simulation_projet.montant|euro_value:2 }}
                                                 </div>
                                             </td>
                                             <td class="gsl-money">
                                                 <div class="gsl-money">
-                                                    {{ other_dotation.last_updated_simulation_projet.taux|percent }}
+                                                    {{ other_dotation.last_updated_simulation_projet.taux|percent_value }}
                                                 </div>
                                             </td>
                                             <td>
