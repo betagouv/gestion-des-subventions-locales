@@ -18,7 +18,7 @@
                     {{ object }}
                 </p>
             {% endif %}
-            <form method="POST">
+            <form id="enveloppe-form" method="POST">
                 {% csrf_token %}
                 {{ form }}
                 <button type="submit" class="fr-btn">

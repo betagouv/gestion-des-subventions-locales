@@ -3,13 +3,13 @@
 
 {% block form_for_simulation_projet %}
     <form method="post"
-          id="projet_form"
+          id="projet-form"
           action="{% url 'gsl_simulation:patch-projet' simu.id %}"
           data-double-dotation-target="form">
         {% csrf_token %}
     </form>
     <form method="post"
-          id="dotation_projet_form"
+          id="dotation-projet-form"
           action="{% url 'gsl_simulation:patch-dotation-projet' simu.id %}">
         {% csrf_token %}
     </form>

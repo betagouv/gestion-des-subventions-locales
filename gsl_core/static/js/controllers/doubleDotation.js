@@ -14,7 +14,7 @@ export class DoubleDotation extends Controller {
 
   updateSelectedDotations () {
     const newSelectedDotations = []
-    this.inputTargets.forEach(elt => {
+    this.inputTargets.forEach((elt) => {
       const input = elt.children[0].children[0]
       if (input.checked) {
         newSelectedDotations.push(input.value)
@@ -28,10 +28,17 @@ export class DoubleDotation extends Controller {
     if (this.selectedDotationsValue.length === 0) {
       return false
     }
-    if (this.selectedDotationsValue.length === 1 && this.initialDotationsValue.length === 1 && this.selectedDotationsValue[0] === this.initialDotationsValue[0]) {
+    if (
+      this.selectedDotationsValue.length === 1 &&
+      this.initialDotationsValue.length === 1 &&
+      this.selectedDotationsValue[0] === this.initialDotationsValue[0]
+    ) {
       return false
     }
-    if (this.selectedDotationsValue.length === 2 && this.initialDotationsValue.length === 2) {
+    if (
+      this.selectedDotationsValue.length === 2 &&
+      this.initialDotationsValue.length === 2
+    ) {
       return false
     }
     return true
@@ -42,7 +49,7 @@ export class DoubleDotation extends Controller {
     if (this.mustOpenConfirmationModal()) {
       this._openConfirmatioModal()
     } else {
-      const form = document.querySelector('form#projet_form').closest('form')
+      const form = document.querySelector('form#projet-form').closest('form')
       form.submit()
     }
   }
@@ -74,16 +81,23 @@ export class DoubleDotation extends Controller {
   _getMessage () {
     if (this.initialDotationsValue.length === 2) {
       if (this.selectedDotationsValue.length === 1) {
-        const dotationToRemove = this.initialDotationsValue.filter(dotation => !this.selectedDotationsValue.includes(dotation)).pop()
+        const dotationToRemove = this.initialDotationsValue
+          .filter((dotation) => !this.selectedDotationsValue.includes(dotation))
+          .pop()
         return `<strong>Vous souhaitez modifier la dotation de financement choisie par le demandeur.</strong> Les enveloppes demandées étaient DETR et DSIL. Ce projet sera supprimé des simulations <strong>${dotationToRemove}</strong>.`
       }
     }
 
     if (this.selectedDotationsValue.length === 2) {
-      const newDotation = this.selectedDotationsValue.filter(dotation => !this.initialDotationsValue.includes(dotation)).pop()
+      const newDotation = this.selectedDotationsValue
+        .filter((dotation) => !this.initialDotationsValue.includes(dotation))
+        .pop()
       return `Ce projet sera aussi affiché dans les simulations ${newDotation}.`
     }
-    if (this.selectedDotationsValue.length === 1 && this.initialDotationsValue.length === 1) {
+    if (
+      this.selectedDotationsValue.length === 1 &&
+      this.initialDotationsValue.length === 1
+    ) {
       const dotationToRemove = this.initialDotationsValue[0]
       const newDotation = this.selectedDotationsValue[0]
       return `<strong>Vous souhaitez modifier la dotation de financement choisie par le demandeur.</strong> L'enveloppe demandée était ${dotationToRemove}, la nouvelle enveloppe attribuée est ${newDotation}. Ce projet sera ajouté dans vos simulations ${newDotation} et sera supprimé des simulations ${dotationToRemove}.`
