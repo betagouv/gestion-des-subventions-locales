@@ -224,11 +224,29 @@ class HtmxAwareClient(Client):
         return self._request("delete", *args, **extra)
 
 
+def _setup_otp_for_staff(client, user):
+    """Auto-verify OTP for staff users in tests to avoid OTP middleware redirects."""
+    if user.is_staff:
+        from django_otp import DEVICE_ID_SESSION_KEY
+        from django_otp.plugins.otp_totp.models import TOTPDevice
+
+        device, _ = TOTPDevice.objects.get_or_create(
+            user=user, defaults={"name": "test", "confirmed": True}
+        )
+        if not device.confirmed:
+            device.confirmed = True
+            device.save()
+        session = client.session
+        session[DEVICE_ID_SESSION_KEY] = device.persistent_id
+        session.save()
+
+
 class ClientWithLoggedUserFactory(HtmxAwareClient):
     def __init__(self, user, **kwargs):
         super().__init__(**kwargs)
         self.user = user
         self.force_login(user)
+        _setup_otp_for_staff(self, user)
 
 
 class ClientWithLoggedStaffUserFactory(HtmxAwareClient):
@@ -236,3 +254,4 @@ class ClientWithLoggedStaffUserFactory(HtmxAwareClient):
         super().__init__(**kwargs)
         user = CollegueFactory(is_staff=True)
         self.force_login(user)
+        _setup_otp_for_staff(self, user)

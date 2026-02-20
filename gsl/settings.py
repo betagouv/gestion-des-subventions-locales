@@ -65,6 +65,8 @@ INSTALLED_APPS = [
     "django_filters",
     "django_extensions",
     "axes",
+    "django_otp",
+    "django_otp.plugins.otp_totp",
     # gsl apps:
     "ui",
     "gsl_core",
@@ -87,10 +89,12 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_otp.middleware.OTPMiddleware",
     "gsl_oidc.middleware.LoginRequiredMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
+    "gsl_core.middlewares.OTPVerificationMiddleware",
     "gsl_core.middlewares.CheckPerimeterMiddleware",
     "axes.middleware.AxesMiddleware",  # should be the last middleware in the MIDDLEWARE list.
 ]
@@ -408,3 +412,7 @@ MAX_POST_FILE_SIZE_IN_MO = os.getenv("MAX_POST_FILE_SIZE_IN_MO", 20)
 
 AXES_FAILURE_LIMIT = os.getenv("AXES_FAILURE_LIMIT", 5)
 AXES_ONLY_USER_FAILURES = True
+
+# OTP configuration
+OTP_TOTP_ISSUER = f"Turgot {ENV}"
+OTP_ENABLED = os.getenv("OTP_ENABLED", "true").lower() == "true"
