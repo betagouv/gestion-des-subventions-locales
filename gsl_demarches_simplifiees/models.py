@@ -218,10 +218,7 @@ class Dossier(BaseModel):
     perimetre = models.ForeignKey(
         Perimetre, on_delete=models.PROTECT, null=True, blank=True
     )
-    # TODO remove null and blank after data migration
-    ds_demarche = models.ForeignKey(
-        Demarche, on_delete=models.PROTECT, null=True, blank=True
-    )
+    ds_demarche = models.ForeignKey(Demarche, on_delete=models.PROTECT)
     ds_data = models.OneToOneField(DossierData, on_delete=models.CASCADE)
     ds_id = models.CharField("Identifiant DS")
     ds_number = models.IntegerField("Numéro DS", unique=True)
