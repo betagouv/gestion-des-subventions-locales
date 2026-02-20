@@ -11,43 +11,43 @@
 }
 
 
-.checkbox-header {
+.gsl-projet-table__header--checkbox {
   height: 30px;
   display: flex;
   align-items: center;
 }
 
-.action-button {
+.gsl-projet-table__action-menu {
   position: absolute;
   left: 32px;
   top: 2px;
 }
 
-.action-button > summary {
+.gsl-projet-table__action-menu > summary {
   padding: 1rem 0.5rem;
 }
 
-.action-button > summary::marker {
+.gsl-projet-table__action-menu > summary::marker {
   content: "";
 }
 
-.action-button > ul {
+.gsl-projet-table__action-menu > ul {
   text-transform: none;
 }
 
-.fix-checkbox-position {
+.gsl-projet-table__checkbox-label {
   position: absolute;
   top: -14px;
 }
 
-.select-all-projet-notice {
+.gsl-projet-table__row--select-all {
   font-size: 1rem;
   text-align: center;
   font-style: italic;
   display: none;
 }
 
-.select-all-projet-notice > td {
+.gsl-projet-table__row--select-all > td {
   background-color: var(--background-alt-grey);
   color: var(--text-default-grey);
 }

@@ -64,7 +64,7 @@
                             <caption>Projets programmés</caption>
                             <thead>
                                 <tr>
-                                    <th scope="col" class="checkbox-header">
+                                    <th scope="col" class="gsl-projet-table__header--checkbox">
                                         <div class="fr-checkbox-group fr-checkbox-group--sm">
                                             <input id="checkbox-{{ programmation_projet.id }}"
                                                    type="checkbox"
@@ -74,7 +74,7 @@
                                                 <span class="fr-sr-only fr-hint-text">Cocher le projet N°{{ programmation_projet.projet.dossier_ds.ds_number }}</span>
                                             </label>
                                         </div>
-                                        <details class="action-button" name="document-actions">
+                                        <details class="gsl-projet-table__action-menu" name="document-actions">
                                             <summary class="fr-icon--sm fr-icon-arrow-down-s-line blue-color"
                                                      aria-label="Ouvrir les actions">
                                             </summary>
@@ -113,7 +113,7 @@
                                     <th scope="col">
                                         Statut
                                     </th>
-                                    <th scope="col" class="max_120_width">
+                                    <th scope="col" class="gsl-projet-table__col--w120">
                                         Documents ajoutés
                                     </th>
                                     <th scope="col">
@@ -126,7 +126,7 @@
                             </thead>
                             <tbody id="projet-list">
                                 <tr data-checkbox-selection-target="selectAllRow"
-                                    class="select-all-projet-notice">
+                                    class="gsl-projet-table__row--select-all">
                                     <td colspan="12">
                                         <span data-checkbox-selection-target="selectAllRowText"></span>
                                         <button class='fr-btn fr-btn--tertiary'
@@ -145,7 +145,7 @@
                                                            type="checkbox"
                                                            data-checkbox-selection-target="button"
                                                            data-action="click->checkbox-selection#toggleProjetCheckbox">
-                                                    <label class="fr-label fix-checkbox-position"
+                                                    <label class="fr-label gsl-projet-table__checkbox-label"
                                                            for="checkbox-{{ programmation_projet.id }}">
                                                         <span class="fr-sr-only fr-hint-text">Cocher le projet N°{{ programmation_projet.projet.dossier_ds.ds_number }}</span>
                                                     </label>
@@ -235,8 +235,8 @@
                                         {% endwith %}
                                     </tr>
                                     {% for other_dotation in programmation_projet.dotation_projet.other_dotations %}
-                                        <tr class="other-dotation-row">
-                                            <td colspan=5 class="information-other-dotation">
+                                        <tr class="gsl-projet-table__row--other-dotation">
+                                            <td colspan=5 class="gsl-projet-table__cell--other-dotation-info">
                                                 Informations pour la dotation {{ other_dotation.dotation }}
                                             </td>
                                             <td class="gsl-money">
@@ -266,7 +266,7 @@
                                                     {% endif %}
                                                 {% endif %}
                                             </td>
-                                            <td class="other-simulation-status">
+                                            <td class="gsl-projet-table__cell--other-status">
                                                 {{ other_dotation.last_updated_simulation_projet.get_status_display }}
                                             </td>
                                             <td>

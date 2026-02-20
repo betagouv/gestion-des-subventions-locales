@@ -9,7 +9,7 @@
           data-dotation-dropdown-target="form"
           data-dotation-dropdown-initial-dotations-value='{{ projet.dotations|json_filter }}'>
         {% csrf_token %}
-        <div class="dotation-dropdown">
+        <div class="gsl-projet-table__dotation-dropdown">
             <button type="button"
                     class="fr-select gsl-projet-table__select input-simulation-projet-{{ simu.pk }}"
                     data-dotation-dropdown-target="button"
@@ -17,7 +17,7 @@
                 {{ projet.dotations|join:" et " }}
             </button>
 
-            <fieldset class="dotation-select-content"
+            <fieldset class="gsl-projet-table__dotation-content"
                       data-dotation-dropdown-target="content"
                       style="display: none">
                 {% for dotation in dotations %}

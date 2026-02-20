@@ -2,7 +2,7 @@
 
 <tr id="simulation-{{ simu.pk }}"
     hx-swap-oob="true"
-    {% if dotation_projet.other_dotations|length > 0 %}class="row-with-double-dotations"{% endif %}>
+    {% if dotation_projet.other_dotations|length > 0 %}class="gsl-projet-table__row--double-dotation"{% endif %}>
     <td class="fr-cell--center">
         {{ projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}
         {% if projet.dossier_ds.demande_numero_demande_precedente %}
@@ -58,8 +58,8 @@
             {% endif %}
         {% endif %}
     </td>
-    <td class="simulation-status">
-        <div class="simulation-status-notified">
+    <td class="gsl-projet-table__cell--status">
+        <div class="gsl-projet-table__status-notified">
             {% if dotation_projet.programmation_projet.notified_at %}
                 {{ simu.get_status_display }}
             {% else %}
@@ -82,8 +82,9 @@
 </tr>
 
 {% for other_dotation_projet in dotation_projet.other_dotations %}
-    <tr id="other-simulation-{{ simu.pk }}" class="other-dotation-row">
-        <td colspan=6 class="information-other-dotation">
+    <tr id="other-simulation-{{ simu.pk }}"
+        class="gsl-projet-table__row--other-dotation">
+        <td colspan=6 class="gsl-projet-table__cell--other-dotation-info">
             Informations pour la dotation {{ other_dotation_projet.dotation }}
         </td>
         <td class="gsl-money">
@@ -113,8 +114,8 @@
                 {% endif %}
             {% endif %}
         </td>
-        <td colspan=2 class="other-simulation-status">
-            <div class="simulation-status-notified">
+        <td colspan=2 class="gsl-projet-table__cell--other-status">
+            <div class="gsl-projet-table__status-notified">
                 {{ other_dotation_projet.last_updated_simulation_projet.get_status_display }}
                 {% if projet.to_notify %}
                     <span class="projet-notification-status projet__to_notify">À notifier</span>
