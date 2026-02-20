@@ -5,8 +5,10 @@ import pytest
 from gsl_core.templatetags.gsl_filters import (
     create_alert_data,
     euro,
+    euro_value,
     format_demandeur_nom,
     percent,
+    percent_value,
     remove_first_word,
 )
 from gsl_projet.constants import (
@@ -33,6 +35,24 @@ def test_percent():
     assert percent(Decimal("12.34"), 2) == "12,34 %"
     assert percent(None) == "— %"
     assert percent("Pouet") == "Pouet"
+
+
+def test_euro_value():
+    assert euro_value(1000) == "1 000"
+    assert euro_value(1000.23) == "1 000"
+    assert euro_value(1000.23, 2) == "1 000,23"
+    assert euro_value(Decimal(10000)) == "10 000"
+    assert euro_value(None) == "—"
+    assert euro_value(True) == "—"
+    assert euro_value("Pouet") == "—"
+
+
+def test_percent_value():
+    assert percent_value(Decimal("12.34")) == "12"
+    assert percent_value(Decimal("12.34"), 2) == "12,34"
+    assert percent_value(None) == "—"
+    assert percent_value("") == "—"
+    assert percent_value("Pouet") == "Pouet"
 
 
 def test_remove_first_word():

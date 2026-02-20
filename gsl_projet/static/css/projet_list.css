@@ -1,28 +1,28 @@
 /* TODO: move all projet list class here */
 
-.gsl_projet_table__montant_retenu {
+.gsl-projet-table__montant-retenu {
   color: var(--text-default-success);
   font-weight: 500;
 }
 
-td.dotation_attribute span {
+td.gsl-projet-table__cell--dotation span {
   display: block;
   font-weight: bold;
 }
 
-td.dotation_attribute > div:not(:last-child),
-td.dotation_attribute > span:not(:last-child) {
+td.gsl-projet-table__cell--dotation > div:not(:last-child),
+td.gsl-projet-table__cell--dotation > span:not(:last-child) {
   margin-bottom: 1rem;
 }
 
 /* other dotation */
-.other-dotation-row {
+.gsl-projet-table .gsl-projet-table__row--other-dotation td {
   background-color: var(--background-default-grey-hover);
   min-height: 40px;
   height: 40px;
 }
 
-.information-other-dotation {
+.gsl-projet-table__cell--other-dotation-info {
   text-align: end;
   font-style: italic;
 }

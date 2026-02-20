@@ -123,18 +123,6 @@ ul.no-list-style li {
     align-items: center;
 }
 
-/* Liste de projets */
-.gsl-projet-table thead {
-    background-image: linear-gradient(0, #6a6af4, #6a6af4);
-    background-size: 100% 2px;
-    background-repeat: no-repeat;
-    background-position: bottom center;
-    background-color: #e3e2fd;
-    text-transform: uppercase;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-}
 
 .gsl-projet-table thead th {
     padding: 1em .75em;
@@ -147,7 +135,11 @@ ul.no-list-style li {
     font-size: 0.75rem;
 }
 
-.max_180_width {
+.gsl-projet-table .fr-table__content thead th {
+    background-color: var(--background-alt-blue-france-hover);
+}
+
+.gsl-projet-table__col--w180 {
     max-width: 180px;
     width: 180px;
     min-width: 140px;
@@ -155,7 +147,7 @@ ul.no-list-style li {
     text-overflow: ellipsis;
 }
 
-.max_160_width {
+.gsl-projet-table__col--w160 {
     max-width: 160px;
     width: 160px;
     min-width: 140px;
@@ -163,14 +155,14 @@ ul.no-list-style li {
     text-overflow: ellipsis;
 }
 
-.max_80_width {
+.gsl-projet-table__col--w80 {
     max-width: 100px;
     width: 80px;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.max_120_width {
+.gsl-projet-table__col--w120 {
     max-width: 140px;
     width: 120px;
     overflow: hidden;
@@ -183,9 +175,15 @@ ul.no-list-style li {
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
+}
 
-.gsl_projet_table__total {
+
+.gsl-projet-table {
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+}
+
+.gsl-projet-table .gsl-projet-table__total {
     width: 100%;
     justify-content: center;
     color: var(--text-title-blue-france);
@@ -194,36 +192,30 @@ ul.no-list-style li {
     display: inline-flex;
 }
 
-.gsl-projet-table__total-cost {
+.gsl-projet-table .gsl-projet-table__total--cost {
     background-color: var(--background-alt-blue-france);
 }
 
-.gsl-projet-table__total-asked {
+.gsl-projet-table .gsl-projet-table__total--asked {
     background-color: var(--artwork-background-green-tilleul-verveine);
 }
 
-.gsl-projet-table__total-granted {
+.gsl-projet-table .gsl-projet-table__total--granted {
     background-color: var(--background-contrast-success);
 }
 
 
-.gsl-projet-table thead th:first-child {
+.gsl-projet-table .gsl-projet-table thead th:first-child {
     padding-left: 1.5em;
 }
 
-.gsl-projet-table,
-.gsl-projet-table table tbody td .fr-select,
-.gsl-projet-table table tbody td .fr-input {
+.gsl-projet-table .fr-table__content td,
+.gsl-projet-table .fr-table__content td .fr-select,
+.gsl-projet-table .fr-table__content td .fr-input {
     font-size: .75rem; /* = 10px */
 }
 
-.gsl-projet-table table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.gsl-projet-table table tbody td {
-    border-bottom: 1px solid #929292;
+.gsl-projet-table .fr-table__content td {
     padding: .75em;
     line-height: 1.5;
 }
@@ -232,17 +224,9 @@ ul.no-list-style li {
     padding-left: 1.5em;
 }
 
-/* Nécessaire car on utilise pas la structure de
-div et de classes du DSFR, hors le sélecteur ne s'applique que dans .fr-table__content */
-.gsl-projet-table .fr-cell--center {
-  text-align: center;
-}
-
-
-.fr-table__footer {
+.gsl-projet-table .fr-table__footer {
     justify-content: center;
 }
-
 
 .gsl-tooltip {
     padding-top: 0;
@@ -422,19 +406,6 @@ div et de classes du DSFR, hors le sélecteur ne s'applique que dans .fr-table__
   display: flex;
   justify-content: flex-end;
   gap: 1em;
-}
-
-/* programmation */
-.tab-submenu ul {
-    display: flex;
-}
-
-.tab-submenu ul li + li {
-    margin-left: 2em;
-}
-
-.tab-submenu .active-link {
-    color: var(--text-title-blue-france);
 }
 
 /* ce serait peut-être mieux de garder le souligné sur ces liens: */

@@ -1,55 +1,53 @@
-.programmation-projet-fake-tab {
-  border: 1px solid var(--background-action-low-green-menthe-active);
+.tab-submenu ul {
+  display: flex;
 }
 
-.fr-tabs__tab[aria-selected="true"]:not(:disabled).programmation-projet-active-tab {
-  color: var(--background-action-high-success);
-  background-image: linear-gradient(0deg,var(--background-action-high-success),var(--background-action-high-success)),linear-gradient(0deg,var(--border-default-grey),var(--border-default-grey)),linear-gradient(0deg,var(--border-default-grey),var(--border-default-grey)),linear-gradient(0deg,var(--border-default-grey),var(--border-default-grey));
+.tab-submenu ul li + li {
+  margin-left: 2em;
 }
 
-.fr-tabs__tab.programmation-projet-inactive-tab {
-  background: var(--artwork-background-green-emeraude);
-  color: var(--background-action-high-success);
-  border-bottom: 1px solid var(--background-action-low-green-menthe-active);
+.tab-submenu .active-link {
+  color: var(--text-title-blue-france);
 }
 
-.checkbox-header {
+
+.gsl-projet-table__header--checkbox {
   height: 30px;
   display: flex;
   align-items: center;
 }
 
-.action-button {
+.gsl-projet-table__action-menu {
   position: absolute;
   left: 32px;
   top: 2px;
 }
 
-.action-button > summary {
+.gsl-projet-table__action-menu > summary {
   padding: 1rem 0.5rem;
 }
 
-.action-button > summary::marker {
+.gsl-projet-table__action-menu > summary::marker {
   content: "";
 }
 
-.action-button > ul {
+.gsl-projet-table__action-menu > ul {
   text-transform: none;
 }
 
-.fix-checkbox-position {
+.gsl-projet-table__checkbox-label {
   position: absolute;
   top: -14px;
 }
 
-.select-all-projet-notice {
+.gsl-projet-table__row--select-all {
   font-size: 1rem;
   text-align: center;
   font-style: italic;
   display: none;
 }
 
-.select-all-projet-notice > td {
+.gsl-projet-table__row--select-all > td {
   background-color: var(--background-alt-grey);
   color: var(--text-default-grey);
 }

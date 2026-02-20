@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% load static dsfr_tags gsl_filters custom_pluralize %}
 
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static "css/projet_list.css" %}">
+    <link rel="stylesheet" href="{% static "css/enveloppe_summary.css" %}">
+{% endblock extra_css %}
+
 {% block content %}
     <h1>
         Liste des projets
@@ -32,16 +37,10 @@
 
     {% include "includes/_projet_list_filters.html" %}
 
-    <p class="fr-mb-0">
+    <p class="fr-mb-0 fr-mt-1w">
         {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
     </p>
 
     {% include "includes/_projets_table.html" %}
-
-    <div class="fr-table__footer">
-        <div class="fr-table__footer--middle">
-            {% dsfr_pagination page_obj %}
-        </div>
-    </div>
 
 {% endblock content %}
