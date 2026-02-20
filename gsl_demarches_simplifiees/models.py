@@ -161,6 +161,12 @@ class DossierData(BaseModel):
     See https://www.demarches-simplifiees.fr/graphql/schema/types/Dossier
     """
 
+    dossier = models.OneToOneField(
+        "Dossier",
+        on_delete=models.CASCADE,
+        related_name="ds_data",
+        verbose_name="Dossier",
+    )
     raw_data = models.JSONField("Données DS brutes", null=True, blank=True)
 
     class Meta:
@@ -219,7 +225,6 @@ class Dossier(BaseModel):
         Perimetre, on_delete=models.PROTECT, null=True, blank=True
     )
     ds_demarche = models.ForeignKey(Demarche, on_delete=models.PROTECT)
-    ds_data = models.OneToOneField(DossierData, on_delete=models.CASCADE)
     ds_id = models.CharField("Identifiant DS")
     ds_number = models.IntegerField("Numéro DS", unique=True)
     ds_state = models.CharField("État DS", choices=DS_STATE_VALUES)

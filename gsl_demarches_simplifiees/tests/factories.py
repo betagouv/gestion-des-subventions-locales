@@ -80,7 +80,6 @@ class DossierFactory(factory.django.DjangoModelFactory):
         model = Dossier
 
     perimetre = factory.SubFactory(PerimetreArrondissementFactory)
-    ds_data = factory.SubFactory(DossierDataFactory)
     ds_demarche = factory.SubFactory(DemarcheFactory)
     ds_id = factory.Sequence(lambda n: f"dossier-{n}")
     ds_number = factory.Faker("random_int", min=1000000, max=9999999)
