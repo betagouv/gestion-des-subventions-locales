@@ -38,10 +38,20 @@ def task_save_demarche_from_ds(
 ## Refresh dossiers
 ### from DN
 #### of every published demarches
+#### only new or modified dossiers
 @shared_task
-def task_fetch_ds_dossiers_for_every_published_demarche():
+def task_fetch_new_or_modified_ds_dossiers_for_every_published_demarche():
     for d in Demarche.objects.filter(ds_state=Demarche.STATE_PUBLIEE):
-        task_save_demarche_dossiers_from_ds.delay(d.ds_number)
+        task_save_demarche_dossiers_from_ds.delay(d.ds_number, using_updated_since=True)
+
+
+#### all dossiers
+@shared_task
+def task_fetch_all_ds_dossiers_for_every_published_demarche():
+    for d in Demarche.objects.filter(ds_state=Demarche.STATE_PUBLIEE):
+        task_save_demarche_dossiers_from_ds.delay(
+            d.ds_number, using_updated_since=False
+        )
 
 
 #### of one demarche
