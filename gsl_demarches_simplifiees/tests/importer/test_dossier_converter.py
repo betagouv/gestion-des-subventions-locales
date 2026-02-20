@@ -398,7 +398,7 @@ def test_inject_scalar_value(dossier_converter, dossier):
 
 
 def test_inject_foreign_key_value(dossier_converter, dossier):
-    ArrondissementFactory(name="Haguenau-Wissembourg")
+    ArrondissementFactory(name="Haguenau-Wissembourg", departement__insee_code="67")
     dossier_converter.inject_into_field(
         dossier,
         Dossier._meta.get_field("porteur_de_projet_arrondissement"),

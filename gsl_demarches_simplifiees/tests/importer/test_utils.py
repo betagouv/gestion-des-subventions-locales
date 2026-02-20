@@ -148,6 +148,21 @@ def test_get_arrondissement_from_value_returns_arrondissement_with_hyphenated_na
     assert result.name == "Haguenau-Wissembourg"
 
 
+@pytest.mark.django_db
+def test_get_arrondissement_from_value_disambiguates_by_departement():
+    region = RegionFactory()
+    dep_10 = DepartementFactory(region=region, insee_code="10", name="Aube")
+    dep_52 = DepartementFactory(region=region, insee_code="52", name="Haute-Marne")
+    ArrondissementFactory(departement=dep_10, insee_code="101", name="Bar-sur-Aube")
+    arr_52 = ArrondissementFactory(
+        departement=dep_52, insee_code="521", name="Bar-sur-Aube"
+    )
+    result = get_arrondissement_from_value(
+        "52 - Haute-Marne - arrondissement de Bar-sur-Aube"
+    )
+    assert result == arr_52
+
+
 def test_get_arrondissement_from_value_raises_when_no_pattern():
     with pytest.raises(ValueError, match="Arrondissement not found in field value"):
         get_arrondissement_from_value("Some value without arrondissement pattern")
