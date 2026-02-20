@@ -11,7 +11,7 @@
             <input name="montant"
                    type="text"
                    inputmode="numeric"
-                   class="fr-input input-simulation-projet-{{ simu.pk }} input-status-color-{{ simu.status }}"
+                   class="fr-input input-simulation-projet-{{ simu.pk }} gsl-projet-table__input--{{ simu.status }}"
                    hx-post="{% url 'simulation:patch-simulation-projet-montant' simu.id %}"
                    hx-disabled-elt=".input-simulation-projet-{{ simu.pk }}"
                    value="{{ simu.montant|floatformat:"2g" }}"

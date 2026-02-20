@@ -27,7 +27,7 @@
   color: #333;
 }
 
-.gsl-projet-table__rate > input {
+.gsl-projet-table__input-wrap--rate > input {
   padding-right: 16px;
 }
 
@@ -35,11 +35,15 @@
   display: inline-block;
 }
 
-.dotation-dropdown > button {
+.gsl-projet-table__dotation-dropdown {
+  width: fit-content;
+}
+
+.gsl-projet-table__dotation-dropdown > button {
   line-height: inherit;
 }
 
-.dotation-select-content{
+.gsl-projet-table__dotation-content {
   text-align: left;
   gap: 0;
   display: none;
@@ -51,30 +55,30 @@
   z-index: 1000;
 }
 
-.dotation-select-content .fr-label {
+.gsl-projet-table__dotation-content .fr-label {
   font-size: small;
 }
 
 
-.gsl-projet-table table tbody tr.row-with-double-dotations td{ /* cette longue liste est utile pour être plus spécifique que .gsl-projet-table table tbody tr td */
+.gsl-projet-table table tbody tr.gsl-projet-table__row--double-dotation td { /* cette longue liste est utile pour être plus spécifique que .gsl-projet-table table tbody tr td */
   border-bottom: 1px solid var(--border-disabled-grey);
 }
 
-.gsl-projet-table table tbody td.other-simulation-status {
+.gsl-projet-table table tbody td.gsl-projet-table__cell--other-status {
   text-align: end;
   padding-right: 38px;
 }
 
-.gsl-projet-table table tbody td.other-simulation-status.to_notify {
+.gsl-projet-table table tbody td.gsl-projet-table__cell--other-status.to_notify {
   text-align: end;
   padding-right: 8px;
 }
 
-.other-simulation-status > b {
+.gsl-projet-table__cell--other-status > b {
   font-weight: 500;
 }
 
-.other-simulation-status > .projet__to_notify {
+.gsl-projet-table__cell--other-status > .projet__to_notify {
   margin-left: 10px;
   font-weight: 500;
 }
@@ -111,74 +115,74 @@
 
 /* status select */
 
-.gsl-projet-table td.simulation-status {
+.gsl-projet-table td.gsl-projet-table__cell--status {
   padding: 0;
   text-align: right;
 }
 
-.gsl-projet-table td.simulation-status .simulation-status-notified,
-.gsl-projet-table td.other-simulation-status .simulation-status-notified {
+.gsl-projet-table td.gsl-projet-table__cell--status .gsl-projet-table__status-notified,
+.gsl-projet-table td.gsl-projet-table__cell--other-status .gsl-projet-table__status-notified {
   padding: 4px;
   align-items: flex-end;
   display: flex;
   flex-direction: column;
 }
 
-.gsl-projet-table td.simulation-status .simulation-status-notified > .input-status-select {
+.gsl-projet-table td.gsl-projet-table__cell--status .gsl-projet-table__status-notified > .gsl-projet-table__status-select {
   width: 100%;
 }
 
-.gsl-projet-table .input-status-select .fr-btn--sm,
-.gsl-projet-table .input-status-select .fr-nav__link {
+.gsl-projet-table .gsl-projet-table__status-select .fr-btn--sm,
+.gsl-projet-table .gsl-projet-table__status-select .fr-nav__link {
   font-size: .6rem;
   padding: .25rem 2rem .25rem .5rem;
   text-align: right;
 }
 
-.gsl-projet-table .status-select {
+.gsl-projet-table .gsl-projet-table__status-button {
   font-weight: bold;
 }
 
-.gsl-projet-table .input-status-select .fr-btn--tertiary {
+.gsl-projet-table .gsl-projet-table__status-select .fr-btn--tertiary {
   color: var(--text-default-grey);
 }
 
-.gsl-projet-table .input-status-valid .fr-btn.fr-btn--tertiary {
+.gsl-projet-table .gsl-projet-table__status-select--valid .fr-btn.fr-btn--tertiary {
   color: var(--text-default-success);
 }
 
-.gsl-projet-table .input-status-cancelled .fr-btn.fr-btn--tertiary {
+.gsl-projet-table .gsl-projet-table__status-select--cancelled .fr-btn.fr-btn--tertiary {
   color: var(--text-default-error);
 }
 
-.gsl-projet-table .input-status-provisionally_accepted .fr-btn.fr-btn--tertiary {
+.gsl-projet-table .gsl-projet-table__status-select--provisionally_accepted .fr-btn.fr-btn--tertiary {
   color: var(--text-default-info);
 }
 
-.gsl-projet-table .input-status-provisionally_refused .fr-btn.fr-btn--tertiary {
+.gsl-projet-table .gsl-projet-table__status-select--provisionally_refused .fr-btn.fr-btn--tertiary {
   color: var(--text-action-high-orange-terre-battue);
 }
 
-.simulation_projet_status_option {
-  justify-content:flex-start;
-  gap:8px;
+.gsl-projet-table__status-option {
+  justify-content: flex-start;
+  gap: 8px;
 }
 
 /* text inputs */
 
-.input-status-color-valid{
+.gsl-projet-table__input--valid {
   background-color: var(--background-alt-green-emeraude);
-  box-shadow: inset 0 -2px 0 0 var(--background-action-high-success)
+  box-shadow: inset 0 -2px 0 0 var(--background-action-high-success);
 }
 
-.input-status-color-provisionally_accepted{
+.gsl-projet-table__input--provisionally_accepted {
   background-color: var(--text-inverted-blue-ecume);
-  box-shadow: inset 0 -2px 0 0 var(--border-action-high-info)
+  box-shadow: inset 0 -2px 0 0 var(--border-action-high-info);
 }
 
-.input-status-color-provisionally_refused{
+.gsl-projet-table__input--provisionally_refused {
   background-color: var(--background-contrast-brown-opera);
-  box-shadow: inset 0 -2px 0 0 var(--text-action-high-orange-terre-battue)
+  box-shadow: inset 0 -2px 0 0 var(--text-action-high-orange-terre-battue);
 }
 
 .form-disabled-before-value-change > .fr-callout {

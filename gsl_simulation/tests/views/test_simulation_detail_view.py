@@ -166,7 +166,7 @@ class TestDoubleDotationDisplayOnDetrSimulation:
         # Check for DETR project main row
         assert str(projet.dossier_ds.projet_intitule) in content
         # Check for other-dotation row indicating DSIL information
-        assert "other-dotation-row" in content
+        assert "gsl-projet-table__row--other-dotation" in content
         assert "Informations pour la dotation DSIL" in content
 
     def test_detr_simulation_shows_both_dotation_amounts(
@@ -225,7 +225,7 @@ class TestDoubleDotationDisplayOnDetrSimulation:
 
         assert response.status_code == 200
         content = response.content.decode()
-        assert "other-dotation-row" not in content
+        assert "gsl-projet-table__row--other-dotation" not in content
 
 
 class TestNotifiedProjectDisplayOnSimulationTable:

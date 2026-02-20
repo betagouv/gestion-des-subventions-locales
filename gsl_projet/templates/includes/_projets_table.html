@@ -28,17 +28,17 @@
                             <th scope="col">
                                 Coût total du projet
                                 <br>
-                                <span class="gsl-money gsl_projet_table__total gsl-projet-table__total-cost">{{ total_cost | euro:0 }}</span>
+                                <span class="gsl-money gsl-projet-table__total gsl-projet-table__total--cost">{{ total_cost | euro:0 }}</span>
                             </th>
                             <th scope="col">
                                 Montant et taux sollicités
                                 <br>
-                                <span class="gsl-money gsl_projet_table__total gsl-projet-table__total-asked">{{ total_amount_asked | euro:0 }}</span>
+                                <span class="gsl-money gsl-projet-table__total gsl-projet-table__total--asked">{{ total_amount_asked | euro:0 }}</span>
                             </th>
                             <th scope="col">
                                 Montant retenu
                                 <br>
-                                <span class="gsl-money gsl_projet_table__total gsl-projet-table__total-granted">{{ total_amount_granted | euro:0 }}</span>
+                                <span class="gsl-money gsl-projet-table__total gsl-projet-table__total--granted">{{ total_amount_granted | euro:0 }}</span>
                             </th>
                             <th scope="col">
                                 Taux de subvention
@@ -46,7 +46,7 @@
                             <th scope="col">
                                 Catégorie d'opération
                             </th>
-                            <th scope="col" class="max_120_width">
+                            <th scope="col" class="gsl-projet-table__col--w120">
                                 Statut
                             </th>
                             <th scope="col">
@@ -89,7 +89,7 @@
                                             informations</a>
                                         </td>
                                     {% else %}
-                                        <td class="dotation_attribute">
+                                        <td class="gsl-projet-table__cell--dotation">
                                             {% for dp in dotation_projets %}
                                                 <span>{{ dp.dotation }}</span>
                                             {% endfor %}
@@ -101,12 +101,12 @@
                                             {{ projet.dossier_ds.demande_montant|euro }}
                                         </td>
                                     {% endif %}
-                                    <td class="gsl-money {% if projet.montant_retenu is not None %} gsl_projet_table__montant_retenu {% endif %} dotation_attribute">
+                                    <td class="gsl-money {% if projet.montant_retenu is not None %} gsl-projet-table__montant-retenu {% endif %} gsl-projet-table__cell--dotation">
                                         {% for dp in dotation_projets %}
                                             <span>{{ dp.montant_retenu|euro }}</span>
                                         {% endfor %}
                                     </td>
-                                    <td class="gsl-money dotation_attribute">
+                                    <td class="gsl-money gsl-projet-table__cell--dotation">
                                         {% for dp in dotation_projets %}
                                             <span>{{ dp.taux_retenu|percent }}</span>
                                         {% endfor %}
@@ -132,7 +132,7 @@
                                             </div>
                                         {% endfor %}
                                     </td>
-                                    <td class="dotation_attribute">
+                                    <td class="gsl-projet-table__cell--dotation">
                                         {% for dp in dotation_projets %}
                                             <div>
                                                 <span class="projet_status__{{ dp.status }}">{{ dp.get_status_display }}</span>
