@@ -6,6 +6,18 @@ from gsl_demarches_simplifiees.models import CategorieDetr, Dossier
 
 logger = getLogger(__name__)
 
+# We don't handle these territories for now.
+NOT_HANDLED_TERRITORIES = [
+    "975",  # Saint-Pierre-et-Miquelon
+    "977",  # Saint-Barthélémy
+    "978",  # Saint-Martin
+    "984",  # Terres australes et antarctiques françaises
+    "986",  # Wallis et Futuna,
+    "987",  # Polynésie française,
+    "988",  # Nouvelle-Calédonie,
+    "989",  # île de Clipperton
+]
+
 
 def get_departement_from_field_label(label: str) -> Departement | None:
     """
@@ -16,6 +28,10 @@ def get_departement_from_field_label(label: str) -> Departement | None:
     if not match:
         raise ValueError(f"Departement not found in field label: {label}")
     insee_code = match.group(1).strip()
+
+    if insee_code in NOT_HANDLED_TERRITORIES:
+        return None
+
     try:
         return Departement.objects.get(insee_code=insee_code)
     except Departement.DoesNotExist:
