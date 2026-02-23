@@ -12,15 +12,20 @@
 
 
 .gsl-projet-table__header--checkbox {
-  height: 30px;
-  display: flex;
-  align-items: center;
+  position: relative;
+}
+
+.gsl-projet-table__header--checkbox .fr-checkbox-group {
+  position: absolute;
+  top: calc(50% - 12px);
+  left: 18px;
 }
 
 .gsl-projet-table__action-menu {
   position: absolute;
   left: 32px;
-  top: 2px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .gsl-projet-table__action-menu > summary {

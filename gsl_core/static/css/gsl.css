@@ -205,7 +205,7 @@ ul.no-list-style li {
 }
 
 
-.gsl-projet-table .gsl-projet-table thead th:first-child {
+.gsl-projet-table .fr-table__content thead th:first-child {
     padding-left: 1.5em;
 }
 
