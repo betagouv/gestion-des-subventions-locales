@@ -33,7 +33,7 @@
     <td class="gsl-money">
         {{ projet.dossier_ds.demande_montant|euro_value:2 }}
         <br>
-        {{ dotation_projet.taux_de_subvention_sollicite|percent_value }}
+        {{ dotation_projet.taux_de_subvention_sollicite|percent }}
     </td>
     <td class="gsl-money">
         {% include "includes/table_forms/_montant_form.html" %}
@@ -123,8 +123,6 @@
                     <span class="projet-notification-status projet__notified">Notifié</span>
                 {% endif %}
             </div>
-        </td>
-        <td class="fr-cell--right gsl-nowrap">
         </td>
     </tr>
 {% endfor %}
