@@ -15,7 +15,11 @@ from .services.projet_services import ProjetService
 def task_create_or_update_projets_and_co_from_all_dossiers(
     batch_size=500,
 ):
-    dossiers = Dossier.objects.exclude(ds_state="").values_list("ds_number", flat=True)
+    dossiers = (
+        Dossier.objects.exclude(ds_state="")
+        .order_by("ds_number")
+        .values_list("ds_number", flat=True)
+    )
 
     for batch in batched(dossiers, batch_size):
         task_create_or_update_projets_and_co_batch.delay(batch)
