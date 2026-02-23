@@ -40,7 +40,7 @@ class TestDossierSansPieceUpdateViewCategories:
         self, user_with_perimetre, dossier_sans_pieces
     ):
         dossier = dossier_sans_pieces
-        demarche = dossier.ds_data.ds_demarche
+        demarche = dossier.ds_demarche
         departement = dossier.projet.perimetre.departement
         cat_detr = CategorieDetrFactory(
             demarche=demarche, departement=departement, active=True

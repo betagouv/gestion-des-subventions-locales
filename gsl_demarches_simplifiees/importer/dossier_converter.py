@@ -165,7 +165,7 @@ class DossierConverter:
             if isinstance(constraint, models.UniqueConstraint):
                 fields = constraint.fields
                 if "demarche" in fields:
-                    arguments["demarche"] = self.dossier.ds_data.ds_demarche
+                    arguments["demarche"] = self.dossier.ds_demarche
                 if "demarche_revision" in fields:
                     arguments["demarche_revision"] = self.ds_demarche_revision
         return arguments

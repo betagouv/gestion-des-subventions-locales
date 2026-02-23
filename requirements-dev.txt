@@ -143,6 +143,8 @@ django-htmx==1.26.0
     # via gsl (pyproject.toml)
 django-import-export==4.3.14
     # via gsl (pyproject.toml)
+django-json-widget==2.1.1
+    # via gsl (pyproject.toml)
 django-otp==1.7.0
     # via gsl (pyproject.toml)
 django-referrer-policy==1.0

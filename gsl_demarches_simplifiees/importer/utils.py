@@ -31,17 +31,24 @@ def get_departement_from_field_label(label: str) -> Departement | None:
 
 def get_arrondissement_from_value(value: str) -> Arrondissement | None:
     """
-    Extract arrondissement name from a field value following the pattern:
+    Extract arrondissement name and department code from a field value following the pattern:
     "67 - Bas-Rhin - arrondissement de Haguenau-Wissembourg" => "Haguenau-Wissembourg"
     "10 - Aube - arrondissement de Bar-sur-Aube" => "Bar-sur-Aube"
-    Then return the Arrondissement object with the given name.
+    Then return the Arrondissement object with the given name and department.
     """
-    match = re.match(r".*arrondissement\s*de\s*(.+)$", value, re.IGNORECASE)
+    match = re.match(
+        r"^\s*(\d{1,3}[AB]?)\s*-\s*.+arrondissement\s*de\s*(.+)$",
+        value,
+        re.IGNORECASE,
+    )
     if not match:
         raise ValueError(f"Arrondissement not found in field value: {value}")
-    name = match.group(1).strip()
+    departement_insee_code = match.group(1).strip()
+    name = match.group(2).strip()
     try:
-        return Arrondissement.objects.get(name=name)
+        return Arrondissement.objects.get(
+            name=name, departement__insee_code=departement_insee_code
+        )
     except Arrondissement.DoesNotExist:
         logger.exception(
             "Arrondissement not found.",
