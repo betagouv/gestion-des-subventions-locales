@@ -179,10 +179,8 @@ def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
         must_refresh_dossier = True
 
     refresh_dossier_instructeurs(dossier_data, dossier)
-    if dossier.ds_data is None:
-        dossier.ds_data = DossierData.objects.create(
-            dossier=dossier, ds_data=dossier_data
-        )
+    if getattr(dossier, "ds_data", None) is None:
+        DossierData.objects.create(dossier=dossier, raw_data=dossier_data)
     else:
         dossier.ds_data.raw_data = dossier_data
         dossier.ds_data.save()
@@ -276,9 +274,9 @@ def _create_or_update_dossier_from_ds_data(
         dossier = Dossier.objects.create(
             ds_id=ds_id,
             ds_number=ds_dossier_number,
-            ds_data=DossierData.objects.create(),
             ds_demarche=demarche,
         )
+        DossierData.objects.create(dossier=dossier)
 
     _save_dossier_data_and_refresh_dossier_and_projet_and_co(
         dossier,

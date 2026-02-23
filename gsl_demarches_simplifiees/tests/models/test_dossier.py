@@ -1,6 +1,8 @@
 import pytest
 
+from gsl_demarches_simplifiees.models import DossierData
 from gsl_demarches_simplifiees.tests.factories import (
+    DossierDataFactory,
     DossierFactory,
 )
 
@@ -51,3 +53,15 @@ def test_has_annotations_champ_libre(
         annotations_champ_libre_3=annotations_champ_libre_3,
     )
     assert dossier.has_annotations_champ_libre == expected_has_annotations_champ_libre
+
+
+def test_deleting_dossier_cascade_deletes_dossier_data():
+    """When a Dossier is deleted, the linked DossierData is removed (CASCADE)."""
+    dossier = DossierFactory()
+    dossier_data = DossierDataFactory(dossier=dossier)
+    dossier_data_id = dossier_data.pk
+    assert DossierData.objects.filter(pk=dossier_data_id).exists()
+
+    dossier.delete()
+
+    assert not DossierData.objects.filter(pk=dossier_data_id).exists()

@@ -63,12 +63,13 @@ def dossier_ds_number():
 
 @pytest.fixture
 def dossier(dossier_ds_id, demarche, dossier_ds_number):
-    return Dossier.objects.create(
+    dossier = Dossier.objects.create(
         ds_id=dossier_ds_id,
         ds_demarche=demarche,
         ds_number=dossier_ds_number,
-        ds_data=DossierData.objects.create(),
     )
+    DossierData.objects.create(dossier=dossier)
+    return dossier
 
 
 @pytest.fixture
@@ -164,8 +165,8 @@ def test_fill_unmapped_fields_with_personne_morale_incomplete_does_not_create_na
         ds_id=dossier_ds_id,
         ds_demarche=demarche,
         ds_number=dossier_ds_number,
-        ds_data=DossierData.objects.create(),
     )
+    DossierData.objects.create(dossier=dossier)
     converter = DossierConverter(ds_dossier_data, dossier)
 
     assert Naf.objects.count() == 0

@@ -15,7 +15,11 @@ from gsl_demarches_simplifiees.importer.dossier import (
     save_one_dossier_from_ds,
 )
 from gsl_demarches_simplifiees.models import Dossier, Profile
-from gsl_demarches_simplifiees.tests.factories import DemarcheFactory, DossierFactory
+from gsl_demarches_simplifiees.tests.factories import (
+    DemarcheFactory,
+    DossierDataFactory,
+    DossierFactory,
+)
 
 
 @pytest.mark.django_db
@@ -73,13 +77,12 @@ def test_save_demarche_dossiers_from_ds_calls_save_dossier_data_and_refresh_doss
 def test_save_demarche_dossiers_from_ds_update_raw_ds_data_dossiers():
     demarche_number = 123
     DemarcheFactory(ds_number=demarche_number)
-
     dossier = DossierFactory(
         ds_id="DOSS-1",
         ds_number=20240001,
         ds_date_derniere_modification="2025-01-01T12:09:33+02:00",
-        ds_data__raw_data={"some_field": "some_value"},
     )
+    DossierDataFactory(dossier=dossier, raw_data={"some_field": "some_value"})
 
     ds_dossiers = [
         {

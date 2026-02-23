@@ -6,7 +6,11 @@ from gsl_core.tests.factories import (
     CollegueFactory,
 )
 from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.tests.factories import DemarcheFactory, DossierFactory
+from gsl_demarches_simplifiees.tests.factories import (
+    DemarcheFactory,
+    DossierDataFactory,
+    DossierFactory,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -44,12 +48,16 @@ def test_admin_can_view_demarche_json(
 
 @pytest.fixture
 def dossier_with_raw_data():
-    return DossierFactory(ds_data__raw_data={"titi": "tata"})
+    dossier = DossierFactory()
+    DossierDataFactory(dossier=dossier, raw_data={"titi": "tata"})
+    return dossier
 
 
 @pytest.fixture
 def dossier_without_raw_data():
-    return DossierFactory(ds_data__raw_data=None)
+    dossier = DossierFactory()
+    DossierDataFactory(dossier=dossier, raw_data=None)
+    return dossier
 
 
 def test_admin_can_view_dossier_json(
