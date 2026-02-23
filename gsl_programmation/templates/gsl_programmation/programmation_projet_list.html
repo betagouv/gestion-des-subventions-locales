@@ -91,6 +91,9 @@
                                         Intitulé du projet
                                     </th>
                                     <th scope="col">
+                                        N° D.N.
+                                    </th>
+                                    <th scope="col">
                                         Demandeur
                                     </th>
                                     <th scope="col">
@@ -125,7 +128,7 @@
                             <tbody id="projet-list">
                                 <tr data-checkbox-selection-target="selectAllRow"
                                     class="gsl-projet-table__row--select-all">
-                                    <td colspan="12">
+                                    <td colspan="13">
                                         <span data-checkbox-selection-target="selectAllRowText"></span>
                                         <button class='fr-btn fr-btn--tertiary'
                                                 data-action="click->checkbox-selection#toggleSelectAllProjets"
@@ -155,6 +158,16 @@
                                                   title="{{ programmation_projet.projet.dossier_ds.projet_intitule }}">
                                                 {{ programmation_projet.projet.dossier_ds.projet_intitule }}
                                             </span>
+                                        </td>
+                                        <td>
+                                            <a href="{{ programmation_projet.projet.dossier_ds.url_on_ds }}"
+                                               class="gsl-nowrap"
+                                               target="_blank"
+                                               rel="noreferrer noopener"
+                                               title="Voir le dossier sur Démarche Numérique - nouvelle fenêtre">
+                                                {{ programmation_projet.projet.dossier_ds.ds_number }}
+                                                <span class="fr-sr-only">(nouvelle fenêtre)</span>
+                                            </a>
                                         </td>
                                         <td>
                                             <span class="max-3-lines"
@@ -234,7 +247,7 @@
                                     </tr>
                                     {% for other_dotation in programmation_projet.dotation_projet.other_dotations %}
                                         <tr class="gsl-projet-table__row--other-dotation">
-                                            <td colspan=5 class="gsl-projet-table__cell--other-dotation-info">
+                                            <td colspan=6 class="gsl-projet-table__cell--other-dotation-info">
                                                 Informations pour la dotation {{ other_dotation.dotation }}
                                             </td>
                                             <td class="gsl-money">
@@ -280,7 +293,7 @@
                                     {% endfor %}
                                 {% empty %}
                                     <tr>
-                                        <td colspan="12">
+                                        <td colspan="13">
                                             Liste vide.
                                         </td>
                                     </tr>

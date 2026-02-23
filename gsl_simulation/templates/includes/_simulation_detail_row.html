@@ -19,6 +19,16 @@
         </span>
     </td>
     <td>
+        <a href="{{ projet.dossier_ds.url_on_ds }}"
+           class="gsl-nowrap"
+           target="_blank"
+           rel="noreferrer noopener"
+           title="Voir le dossier sur Démarche Numérique - nouvelle fenêtre">
+            {{ projet.dossier_ds.ds_number }}
+            <span class="fr-sr-only">(nouvelle fenêtre)</span>
+        </a>
+    </td>
+    <td>
         <span class="max-3-lines"
               title="{{ projet.demandeur.name | format_demandeur_nom }}">
             {{ projet.demandeur.name | format_demandeur_nom }}
@@ -84,7 +94,7 @@
 {% for other_dotation_projet in dotation_projet.other_dotations %}
     <tr id="other-simulation-{{ simu.pk }}"
         class="gsl-projet-table__row--other-dotation">
-        <td colspan=6 class="gsl-projet-table__cell--other-dotation-info">
+        <td colspan=7 class="gsl-projet-table__cell--other-dotation-info">
             Informations pour la dotation {{ other_dotation_projet.dotation }}
         </td>
         <td class="gsl-money">
