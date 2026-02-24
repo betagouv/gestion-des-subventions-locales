@@ -12,7 +12,6 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverter
 from gsl_demarches_simplifiees.models import (
-    CategorieDetr,
     Demarche,
     Dossier,
     DossierData,
@@ -488,19 +487,25 @@ def test_inject_into_field_categorie_detr_resolves_by_label_and_departement_from
     assert dossier.demande_categorie_detr.departement == dep_87
 
 
-def test_inject_into_field_categorie_detr_raises_when_category_not_found(
+def test_inject_into_field_categorie_detr_creates_when_category_not_found(
     dossier_converter,
     dossier,
 ):
     region = RegionFactory()
-    DepartementFactory(region=region, insee_code="87", name="Haute-Vienne")
+    dep_87 = DepartementFactory(region=region, insee_code="87", name="Haute-Vienne")
     field = Dossier._meta.get_field("demande_categorie_detr")
     ds_field_label = "Catégories prioritaires (87 - Haute-Vienne)"
 
-    with pytest.raises(CategorieDetr.DoesNotExist):
-        dossier_converter.inject_into_field(
-            dossier, field, "Inexistant label", ds_field_label
-        )
+    dossier_converter.inject_into_field(
+        dossier, field, "Inexistant label", ds_field_label
+    )
+    dossier.save()
+
+    assert dossier.demande_categorie_detr_id is not None, (
+        "CategorieDetr should be created"
+    )
+    assert dossier.demande_categorie_detr.label == "Inexistant label"
+    assert dossier.demande_categorie_detr.departement == dep_87
 
 
 def test_convert_all_fields_continues_when_categorie_detr_does_not_exist(
@@ -561,12 +566,14 @@ def test_convert_all_fields_continues_when_categorie_detr_does_not_exist(
     # and still imports the other mapped field.
     converter.convert_all_fields()
 
-    assert dossier.demande_categorie_detr_id is None
+    assert dossier.demande_categorie_detr_id is not None, (
+        "CategorieDetr should be created"
+    )
     assert dossier.projet_intitule == "Mon super projet"
 
     assert len(caplog.records) == 1
     record = caplog.records[0]
-    assert record.message == "CategorieDetr not found."
+    assert record.message == "CategorieDetr created."
     assert record.ds_demarche_number == dossier.ds_demarche_number
     assert record.value == "1. Première catégorie prioritaire"
     assert record.departement.name == "Haute-Vienne"

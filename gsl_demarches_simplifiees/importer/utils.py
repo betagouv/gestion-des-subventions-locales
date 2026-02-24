@@ -1,8 +1,10 @@
 import re
 from logging import getLogger
 
+from django.utils import timezone
+
 from gsl_core.models import Arrondissement, Departement, Perimetre
-from gsl_demarches_simplifiees.models import CategorieDetr, Dossier
+from gsl_demarches_simplifiees.models import CategorieDetr, Demarche, Dossier
 
 logger = getLogger(__name__)
 
@@ -128,19 +130,23 @@ def get_perimetre_from_dossier(dossier: Dossier) -> Perimetre | None:
 def get_categorie_detr_from_value(
     value: str, departement: Departement, ds_demarche_number: str
 ) -> CategorieDetr | None:
-    try:
-        return CategorieDetr.objects.get(
-            demarche__ds_number=ds_demarche_number,
-            label=value,
-            departement=departement,
-        )
-    except CategorieDetr.DoesNotExist:
-        logger.exception(
-            "CategorieDetr not found.",
+    demarche = Demarche.objects.get(ds_number=ds_demarche_number)
+    categorie, created = CategorieDetr.objects.get_or_create(
+        demarche=demarche,
+        label=value,
+        departement=departement,
+        defaults={
+            "active": False,
+            "deactivated_at": timezone.now(),
+        },
+    )
+    if created:
+        logger.info(
+            "CategorieDetr created.",
             extra={
                 "ds_demarche_number": ds_demarche_number,
                 "value": value,
                 "departement": departement,
             },
         )
-        raise
+    return categorie

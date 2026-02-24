@@ -533,6 +533,7 @@ class CategorieDetrAdmin(CategorieDsilAdmin):
         "deactivated_at",
         "demarche__ds_number",
     )
+    search_fields = ("label", "parent_label")
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
