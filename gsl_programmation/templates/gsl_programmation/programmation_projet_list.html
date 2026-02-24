@@ -62,7 +62,8 @@
                             <caption>Projets programmés</caption>
                             <thead>
                                 <tr>
-                                    <th scope="col" class="gsl-projet-table__header--checkbox">
+                                    <th scope="col"
+                                        class="gsl-projet-table__header--checkbox gsl-projet-table__sticky-left-1">
                                         <div class="fr-checkbox-group fr-checkbox-group--sm">
                                             <input id="checkbox-header"
                                                    type="checkbox"
@@ -87,10 +88,10 @@
                                             </ul>
                                         </details>
                                     </th>
-                                    <th scope="col">
+                                    <th scope="col" class="gsl-projet-table__sticky-left-2">
                                         Intitulé du projet
                                     </th>
-                                    <th scope="col">
+                                    <th scope="col" class="gsl-projet-table__sticky-left-3">
                                         N° D.N.
                                     </th>
                                     <th scope="col">
@@ -111,24 +112,21 @@
                                     <th scope="col">
                                         Catégorie d'opération
                                     </th>
-                                    <th scope="col">
-                                        Statut
-                                    </th>
                                     <th scope="col" class="gsl-projet-table__col--w120">
                                         Documents ajoutés
                                     </th>
-                                    <th scope="col">
-                                        Notification
+                                    <th scope="col" class="gsl-projet-table__sticky-right-1">
+                                        Statut
                                     </th>
-                                    <th scope="col">
-                                        <span class="fr-sr-only">Actions</span>
+                                    <th scope="col" class="gsl-projet-table__sticky-right-2">
+                                        Notification
                                     </th>
                                 </tr>
                             </thead>
                             <tbody id="projet-list">
                                 <tr data-checkbox-selection-target="selectAllRow"
                                     class="gsl-projet-table__row--select-all">
-                                    <td colspan="13">
+                                    <td colspan="12">
                                         <span data-checkbox-selection-target="selectAllRowText"></span>
                                         <button class='fr-btn fr-btn--tertiary'
                                                 data-action="click->checkbox-selection#toggleSelectAllProjets"
@@ -139,7 +137,7 @@
                                 </tr>
                                 {% for programmation_projet in programmation_projets %}
                                     <tr>
-                                        <td>
+                                        <td class="gsl-projet-table__sticky-left-1">
                                             {% if programmation_projet.projet.to_notify %}
                                                 <div class="fr-checkbox-group fr-checkbox-group--sm">
                                                     <input id="checkbox-{{ programmation_projet.id }}"
@@ -153,13 +151,14 @@
                                                 </div>
                                             {% endif %}
                                         </td>
-                                        <td>
-                                            <span class="max-3-lines"
-                                                  title="{{ programmation_projet.projet.dossier_ds.projet_intitule }}">
+                                        <td class="gsl-projet-table__sticky-left-2">
+                                            <a class="fr-link"
+                                               href="{{ programmation_projet.get_absolute_url }}{% querystring dotation=programmation_projet.dotation %}"
+                                               title="{{ programmation_projet.projet.dossier_ds.projet_intitule }}">
                                                 {{ programmation_projet.projet.dossier_ds.projet_intitule }}
-                                            </span>
+                                            </a>
                                         </td>
-                                        <td>
+                                        <td class="gsl-projet-table__sticky-left-3">
                                             <a href="{{ programmation_projet.projet.dossier_ds.url_on_ds }}"
                                                class="gsl-nowrap"
                                                target="_blank"
@@ -207,9 +206,6 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {{ programmation_projet.get_status_display }}
-                                        </td>
-                                        <td>
                                             {% if programmation_projet.documents_summary %}
                                                 <ul>
                                                     {% for document in programmation_projet.documents_summary %}
@@ -222,32 +218,34 @@
                                                 Pas de documents ajoutés
                                             {% endif %}
                                         </td>
-                                        {% with rowspan=programmation_projet.dotation_projet.other_dotations|length|add:1 %}
-                                            <td rowspan="{{ rowspan }}">
-                                                {% if programmation_projet.projet.to_notify %}
-                                                    <span class="projet-notification-status projet__to_notify">À notifier</span>
-                                                {% elif programmation_projet.projet.notified_at %}
-                                                    <span class="projet-notification-status projet__notified">
-                                                        <span class="fr-icon-checkbox-fill fr-icon--sm" aria-hidden="true"></span>
-                                                        Notifié
-                                                    </span>
-                                                {% else %}
-                                                    <b><em>En attente de la
-                                                    décision {{ programmation_projet.dotation_projet.other_dotations.0.dotation }}</em></b>
-                                                {% endif %}
-                                            </td>
-                                            <td rowspan="{{ rowspan }}">
-                                                <a class="fr-btn--tertiary-no-outline gsl-no-underline"
-                                                   href="{{ programmation_projet.get_absolute_url }}{% querystring dotation=programmation_projet.dotation %}">
-                                                    <span class="fr-sr-only">Voir le projet programmé {{ programmation_projet.projet.dossier_ds.ds_number }}</span>
-                                                    <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
-                                                </a>
-                                            </td>
-                                        {% endwith %}
+                                        <td class="gsl-projet-table__sticky-right-1">
+                                            {{ programmation_projet.get_status_display }}
+                                        </td>
+                                        <td class="gsl-projet-table__sticky-right-2"
+                                            {% if programmation_projet.dotation_projet.other_dotations %}rowspan="{{ programmation_projet.dotation_projet.other_dotations|length|add:1 }}"{% endif %}>
+                                            {% if programmation_projet.projet.to_notify %}
+                                                <a href="{% url 'gsl_notification:documents' programmation_projet.projet.id %}"
+                                                   class="fr-link fr-link--icon-right fr-icon-mail-line">À notifier</a>
+                                            {% elif programmation_projet.projet.notified_at %}
+                                                <p class="fr-badge fr-badge--sm fr-badge--success fr-badge--no-icon">
+                                                    Notifié
+                                                </p>
+                                            {% elif programmation_projet.dotation_projet.other_dotations %}
+                                                <p class="fr-badge fr-badge--sm fr-badge--info fr-badge--no-icon">
+                                                    En attente de la décision {{ programmation_projet.dotation_projet.other_dotations.0.dotation }}
+                                                </p>
+                                            {% endif %}
+                                        </td>
                                     </tr>
                                     {% for other_dotation in programmation_projet.dotation_projet.other_dotations %}
                                         <tr class="gsl-projet-table__row--other-dotation">
-                                            <td colspan=6 class="gsl-projet-table__cell--other-dotation-info">
+                                            <td class="gsl-projet-table__sticky-left-1">
+                                            </td>
+                                            <td class="gsl-projet-table__sticky-left-2">
+                                            </td>
+                                            <td class="gsl-projet-table__sticky-left-3">
+                                            </td>
+                                            <td colspan="3" class="gsl-projet-table__cell--other-dotation-info">
                                                 Informations pour la dotation {{ other_dotation.dotation }}
                                             </td>
                                             <td class="gsl-money">
@@ -277,9 +275,6 @@
                                                     {% endif %}
                                                 {% endif %}
                                             </td>
-                                            <td class="gsl-projet-table__cell--other-status">
-                                                {{ other_dotation.last_updated_simulation_projet.get_status_display }}
-                                            </td>
                                             <td>
                                                 <ul>
                                                     {% for document in other_dotation.programmation_projet.documents_summary %}
@@ -289,11 +284,16 @@
                                                     {% endfor %}
                                                 </ul>
                                             </td>
+                                            <td class="gsl-projet-table__cell--other-status gsl-projet-table__sticky-right-1">
+                                                <div class="gsl-projet-table__status-notified">
+                                                    {{ other_dotation.last_updated_simulation_projet.get_status_display }}
+                                                </div>
+                                            </td>
                                         </tr>
                                     {% endfor %}
                                 {% empty %}
                                     <tr>
-                                        <td colspan="13">
+                                        <td colspan="12">
                                             Liste vide.
                                         </td>
                                     </tr>

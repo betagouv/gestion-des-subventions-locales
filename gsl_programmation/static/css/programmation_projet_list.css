@@ -12,7 +12,8 @@
 
 
 .gsl-projet-table__header--checkbox {
-  position: relative;
+  /* position: sticky (from __sticky-left-1) already creates a containing block
+     for the absolutely-positioned checkbox and action menu inside */
 }
 
 .gsl-projet-table__header--checkbox .fr-checkbox-group {

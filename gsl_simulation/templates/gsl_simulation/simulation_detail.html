@@ -48,13 +48,14 @@
                         <caption>Détails de la simulation</caption>
                         <thead>
                             <tr>
-                                <th scope="col">
+                                <th scope="col" class="gsl-projet-table__sticky-left-1">
                                     Date de dépôt
                                 </th>
-                                <th scope="col" class="gsl-projet-table__col--w180">
+                                <th scope="col"
+                                    class="gsl-projet-table__col--w180 gsl-projet-table__sticky-left-2">
                                     Intitulé du projet
                                 </th>
-                                <th scope="col">
+                                <th scope="col" class="gsl-projet-table__sticky-left-3">
                                     N° D.N.
                                 </th>
                                 <th scope="col">
@@ -85,11 +86,11 @@
                                 <th scope="col">
                                     Catégorie d'opération
                                 </th>
-                                <th scope="col">
+                                <th scope="col" class="gsl-projet-table__sticky-right-1">
                                     Statut
                                 </th>
-                                <th scope="col">
-                                    <span class="fr-sr-only">Actions</span>
+                                <th scope="col" class="gsl-projet-table__sticky-right-2">
+                                    Notification
                                 </th>
                             </tr>
                         </thead>
@@ -102,7 +103,7 @@
                                 {% endwith %}
                             {% empty %}
                                 <tr>
-                                    <td colspan="13">
+                                    <td colspan="12">
                                         Liste vide.
                                     </td>
                                 </tr>
