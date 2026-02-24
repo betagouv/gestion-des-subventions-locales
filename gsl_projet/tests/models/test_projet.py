@@ -87,6 +87,13 @@ def test_dotation_dsil():
     assert projet.dotation_dsil == dotation
 
 
+def test_to_notify_false_without_dotation_projet():
+    """Project without any DotationProjet should return False."""
+    projet = ProjetFactory()
+    assert projet.to_notify is False
+    assert projet not in Projet.objects.to_notify()
+
+
 def test_to_notify_false_without_programmation():
     """Project without any programmation should return False."""
     projet = ProjetFactory()
