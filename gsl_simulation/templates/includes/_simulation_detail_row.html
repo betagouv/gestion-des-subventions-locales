@@ -3,7 +3,7 @@
 <tr id="simulation-{{ simu.pk }}"
     hx-swap-oob="true"
     {% if dotation_projet.other_dotations|length > 0 %}class="gsl-projet-table__row--double-dotation"{% endif %}>
-    <td class="fr-cell--center">
+    <td class="fr-cell--center gsl-projet-table__sticky-left-1">
         {{ projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}
         {% if projet.dossier_ds.demande_numero_demande_precedente %}
             <br />
@@ -11,14 +11,15 @@
                 Reporté
             </span>
         {% endif %}
-
     </td>
-    <td>
-        <span class="max-3-lines" title="{{ projet.dossier_ds.projet_intitule }}">
+    <td class="gsl-projet-table__sticky-left-2">
+        <a class="fr-link"
+           href="{{ simu.get_absolute_url }}{% querystring %}"
+           title="{{ projet.dossier_ds.projet_intitule }}">
             {{ projet.dossier_ds.projet_intitule }}
-        </span>
+        </a>
     </td>
-    <td>
+    <td class="gsl-projet-table__sticky-left-3">
         <a href="{{ projet.dossier_ds.url_on_ds }}"
            class="gsl-nowrap"
            target="_blank"
@@ -68,33 +69,38 @@
             {% endif %}
         {% endif %}
     </td>
-    <td class="gsl-projet-table__cell--status">
+    <td class="gsl-projet-table__cell--status gsl-projet-table__sticky-right-1">
         <div class="gsl-projet-table__status-notified">
             {% if dotation_projet.programmation_projet.notified_at %}
                 {{ simu.get_status_display }}
             {% else %}
                 {% include "includes/_status_dropdown_buttons.html" with table=True %}
             {% endif %}
-            {% if dotation_projet.programmation_projet.notified_at %}
-                <span class="projet-notification-status projet__notified">Notifié</span>
-            {% elif projet.to_notify %}
-                <span class="projet-notification-status projet__to_notify">À notifier</span>
-            {% endif %}
         </div>
     </td>
-    <td class="fr-cell--right gsl-nowrap">
-        <a class="fr-btn--tertiary-no-outline gsl-no-underline"
-           href="{{ simu.get_absolute_url }}{% querystring %}">
-            <span class="fr-sr-only">Voir le projet {{ projet.dossier_ds.ds_number }}</span>
-            <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
-        </a>
+    <td class="gsl-projet-table__sticky-right-2"
+        {% if dotation_projet.other_dotations|length > 0 %}rowspan="{{ dotation_projet.other_dotations|length|add:1 }}"{% endif %}>
+        {% if projet.to_notify %}
+            <a href="{% url 'gsl_notification:documents' projet.id %}"
+               class="fr-link fr-link--icon-right fr-icon-mail-line">À notifier</a>
+        {% elif dotation_projet.programmation_projet.notified_at %}
+            <p class="fr-badge fr-badge--sm fr-badge--success fr-badge--no-icon">
+                Notifié
+            </p>
+        {% endif %}
     </td>
 </tr>
 
 {% for other_dotation_projet in dotation_projet.other_dotations %}
     <tr id="other-simulation-{{ simu.pk }}"
         class="gsl-projet-table__row--other-dotation">
-        <td colspan=7 class="gsl-projet-table__cell--other-dotation-info">
+        <td class="gsl-projet-table__sticky-left-1">
+        </td>
+        <td class="gsl-projet-table__sticky-left-2">
+        </td>
+        <td class="gsl-projet-table__sticky-left-3">
+        </td>
+        <td colspan="4" class="gsl-projet-table__cell--other-dotation-info">
             Informations pour la dotation {{ other_dotation_projet.dotation }}
         </td>
         <td class="gsl-money">
@@ -124,14 +130,9 @@
                 {% endif %}
             {% endif %}
         </td>
-        <td colspan=2 class="gsl-projet-table__cell--other-status">
+        <td class="gsl-projet-table__cell--other-status gsl-projet-table__sticky-right-1">
             <div class="gsl-projet-table__status-notified">
                 {{ other_dotation_projet.last_updated_simulation_projet.get_status_display }}
-                {% if projet.to_notify %}
-                    <span class="projet-notification-status projet__to_notify">À notifier</span>
-                {% elif projet.notified_at %}
-                    <span class="projet-notification-status projet__notified">Notifié</span>
-                {% endif %}
             </div>
         </td>
     </tr>
