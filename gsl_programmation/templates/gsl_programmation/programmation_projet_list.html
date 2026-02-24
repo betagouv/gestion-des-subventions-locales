@@ -44,9 +44,7 @@
         </div>
 
         {% include "includes/_enveloppe_summary.html" %}
-        {% with component_included_in_parent=True %}
-            {% include "includes/_projet_list_filters.html" %}
-        {% endwith %}
+        {% include "includes/_projet_list_filters.html" %}
 
         <p class="fr-mb-0 fr-mt-1w">
             {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
