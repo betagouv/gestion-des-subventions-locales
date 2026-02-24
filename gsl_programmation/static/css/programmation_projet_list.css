@@ -41,6 +41,11 @@
   text-transform: none;
 }
 
+/* Raise the header cell above body cells when the dropdown is open */
+.gsl-projet-table__header--checkbox:has(.gsl-projet-table__action-menu[open]) {
+  z-index: 10;
+}
+
 .gsl-projet-table__checkbox-label {
   position: absolute;
   top: -14px;

@@ -228,6 +228,11 @@ ul.no-list-style li {
     justify-content: center;
 }
 
+/* Raise the DSFR frame border above all sticky cells and dropdowns */
+.gsl-projet-table[data-fr-js-table] .fr-table__wrapper::after {
+    z-index: 11;
+}
+
 /* Sticky columns */
 .gsl-projet-table__sticky-left-1,
 .gsl-projet-table__sticky-left-2,
@@ -274,7 +279,7 @@ ul.no-list-style li {
 }
 
 .gsl-projet-table__sticky-right:has([aria-expanded="true"]) {
-    z-index: 4;
+    z-index: 12;
 }
 
 /* Split sticky-right columns (used by programmation and simulation tables) */
@@ -294,7 +299,7 @@ ul.no-list-style li {
 }
 
 .gsl-projet-table__sticky-right-1:has([aria-expanded="true"]) {
-    z-index: 4;
+    z-index: 12;
 }
 
 .gsl-projet-table .fr-table__container:has([aria-expanded="true"]) {
