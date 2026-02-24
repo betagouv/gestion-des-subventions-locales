@@ -52,6 +52,7 @@
 .gsl-projet-table table tbody td.gsl-projet-table__cell--other-status {
   padding: 0;
   text-align: right;
+  white-space: nowrap;
 }
 
 .gsl-projet-table table tbody td.gsl-projet-table__cell--other-status.to_notify {
@@ -93,6 +94,7 @@
 .gsl-projet-table td.gsl-projet-table__cell--status {
   padding: 0;
   text-align: right;
+  white-space: nowrap;
 }
 
 .gsl-projet-table td.gsl-projet-table__cell--status .gsl-projet-table__status-notified,
