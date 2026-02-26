@@ -17,10 +17,10 @@
                                 Intitulé du projet
                             </th>
                             <th scope="col">
-                                Demandeur
+                                N° D.N.
                             </th>
                             <th scope="col">
-                                N° D.N.
+                                Demandeur
                             </th>
                             <th scope="col">
                                 Dotation
@@ -73,13 +73,20 @@
                                         </span>
                                     </td>
                                     <td>
+                                        <a href="{{ projet.dossier_ds.url_on_ds }}"
+                                           class="gsl-nowrap"
+                                           target="_blank"
+                                           rel="noreferrer noopener"
+                                           title="Voir le dossier sur Démarche Numérique - nouvelle fenêtre">
+                                            {{ projet.dossier_ds.ds_number }}
+                                            <span class="fr-sr-only">(nouvelle fenêtre)</span>
+                                        </a>
+                                    </td>
+                                    <td>
                                         <span class="max-3-lines"
                                               title="{{ projet.demandeur.name | format_demandeur_nom }}">
                                             {{ projet.demandeur.name | format_demandeur_nom }}
                                         </span>
-                                    </td>
-                                    <td>
-                                        {{ projet.dossier_ds.ds_number }}
                                     </td>
                                     {% if projet.dossier_ds.is_sans_pieces and not projet.dossier_ds.demande_dispositif_sollicite %}
                                         <td class="gsl-money" colspan="3">
