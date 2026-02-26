@@ -218,7 +218,6 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
                     "current": "Programmation en cours",
                 },
                 "current_tab": self.dotation,
-                "is_detr_disabled": self.perimetre.type == Perimetre.TYPE_REGION,
             }
         )
 
