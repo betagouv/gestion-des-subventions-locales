@@ -12,7 +12,8 @@
 
 
 .gsl-projet-table__header--checkbox {
-  position: relative;
+  /* position: sticky (from __sticky-left-1) already creates a containing block
+     for the absolutely-positioned checkbox and action menu inside */
 }
 
 .gsl-projet-table__header--checkbox .fr-checkbox-group {
@@ -38,6 +39,11 @@
 
 .gsl-projet-table__action-menu > ul {
   text-transform: none;
+}
+
+/* Raise the header cell above body cells when the dropdown is open */
+.gsl-projet-table__header--checkbox:has(.gsl-projet-table__action-menu[open]) {
+  z-index: 10;
 }
 
 .gsl-projet-table__checkbox-label {
