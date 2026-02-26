@@ -305,8 +305,7 @@ ul.no-list-style li {
 }
 
 .gsl-projet-table .fr-table__content td.gsl-projet-table__sticky-right-2 {
-    padding-right: 1.5em;
-    text-align: right;
+    text-align: center;
 }
 
 .gsl-projet-table__sticky-right-1:has([aria-expanded="true"]) {
