@@ -1,6 +1,7 @@
 from logging import getLogger
 
 import requests
+from django.contrib import messages
 from mozilla_django_oidc.auth import (
     OIDCAuthenticationBackend as MozillaOIDCAuthenticationBackend,
 )
@@ -8,12 +9,15 @@ from mozilla_django_oidc.auth import (
     default_username_algo,
 )
 
+from gsl_core.auth_backends import LastLoginDeactivationMixin
 from gsl_core.models import Collegue
 
 logger = getLogger(__name__)
 
 
-class OIDCAuthenticationBackend(MozillaOIDCAuthenticationBackend):
+class OIDCAuthenticationBackend(
+    LastLoginDeactivationMixin, MozillaOIDCAuthenticationBackend
+):
     def get_userinfo(self, access_token, id_token, payload):
         # Surcharge de la récupération des informations utilisateur:
         # le décodage JSON du contenu JWT pose problème avec ProConnect
@@ -67,3 +71,14 @@ class OIDCAuthenticationBackend(MozillaOIDCAuthenticationBackend):
 
     def get_username(self, claims):
         return default_username_algo(claims.get("sub"))
+
+    def get_or_create_user(self, access_token, id_token, payload):
+        user = super().get_or_create_user(access_token, id_token, payload)
+        if user is not None and not self.user_can_authenticate(user):
+            if getattr(self, "request", None):
+                messages.error(
+                    self.request,
+                    "Votre compte a été désactivé. Il est possible que ce soit dû à une inactivité prolongée. Contactez l'administrateur pour réactiver votre compte : <a class='fr-link' href='mailto:dgcl-turgot@dgcl.gouv.fr'>dgcl-turgot@dgcl.gouv.fr</a>",
+                )
+            return None
+        return user
