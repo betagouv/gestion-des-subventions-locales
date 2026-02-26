@@ -228,6 +228,15 @@ ul.no-list-style li {
     justify-content: center;
 }
 
+/*
+ * Z-index scale for sticky table columns:
+ *  2  – sticky body cells (default)
+ *  3  – sticky header cells (above body)
+ * 10  – checkbox header dropdown open
+ * 11  – DSFR frame border (above all sticky cells and dropdowns)
+ * 12  – status dropdown open (must be above frame border)
+ */
+
 /* Raise the DSFR frame border above all sticky cells and dropdowns */
 .gsl-projet-table[data-fr-js-table] .fr-table__wrapper::after {
     z-index: 11;
@@ -282,7 +291,9 @@ ul.no-list-style li {
     z-index: 12;
 }
 
-/* Split sticky-right columns (used by programmation and simulation tables) */
+/* Split sticky-right columns (used by programmation and simulation tables)
+ * sticky-right-1's `right` must match sticky-right-2's `min-width` so
+ * the two columns stay flush. Update both values together. */
 .gsl-projet-table__sticky-right-2 {
     right: 0;
     min-width: 120px;
