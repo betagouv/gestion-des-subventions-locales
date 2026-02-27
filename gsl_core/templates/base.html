@@ -57,7 +57,8 @@
                     "checkboxSelection": "/static/js/checkboxSelection.js",
                     "bindAmountFields": "/static/js/controllers/bindAmountTields.js",
                     "formUtils": "/static/js/controllers/formUtils.js",
-                    "dotationDropdown": "/static/js/controllers/dotationDropdown.js"
+                    "dotationDropdown": "/static/js/controllers/dotationDropdown.js",
+                    "commentArbitrage": "/static/js/controllers/commentArbitrage.js"
                 }
             }
             </script>
@@ -126,6 +127,7 @@
             import { BindAmountFields } from "bindAmountFields"
             import { FormUtils } from "formUtils"
             import { DotationDropdown } from "dotationDropdown"
+            import { CommentArbitrage } from "commentArbitrage"
 
             window.Stimulus = Application.start()
 
@@ -138,6 +140,7 @@
             Stimulus.register("bind-amount-fields", BindAmountFields)
             Stimulus.register("form-utils", FormUtils)
             Stimulus.register("dotation-dropdown", DotationDropdown)
+            Stimulus.register("comment-arbitrage", CommentArbitrage)
         </script>
 
         {% block extra_js %}

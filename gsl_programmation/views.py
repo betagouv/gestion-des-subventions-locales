@@ -29,6 +29,7 @@ from gsl_projet.constants import (
 from gsl_projet.models import CategorieDetr, Projet
 from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_page import PROJET_MENU
+from gsl_projet.utils.utils import get_comment_cards
 
 
 class ProgrammationProjetDetailView(DetailView):
@@ -111,6 +112,7 @@ class ProgrammationProjetDetailView(DetailView):
         }
         if tab == "notes":
             context["projet_notes"] = self.object.notes.all()
+            context["comment_cards"] = get_comment_cards(self.object)
 
         return super().get_context_data(**context)
 

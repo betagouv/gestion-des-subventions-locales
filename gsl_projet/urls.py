@@ -19,6 +19,11 @@ urlpatterns = [
         views.get_projet_notes,
         name="get-projet-notes",
     ),
+    path(
+        "voir/<int:projet_id>/notes/commentaire/",
+        views.ProjetCommentUpdateView.as_view(),
+        name="update-projet-comment",
+    ),
     path("liste", views.ProjetListView.as_view(), name="list"),
     path(
         "enveloppe/ajouter/",

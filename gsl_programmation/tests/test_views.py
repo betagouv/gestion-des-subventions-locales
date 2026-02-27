@@ -386,6 +386,8 @@ class TestProgrammationProjetNotesView:
         assert "dossier" in response.context
         assert "breadcrumb_dict" in response.context
         assert "menu_dict" in response.context
+        assert "comment_cards" in response.context
+        assert len(response.context["comment_cards"]) == 3
 
 
 class TestProgrammationProjetSecurity:

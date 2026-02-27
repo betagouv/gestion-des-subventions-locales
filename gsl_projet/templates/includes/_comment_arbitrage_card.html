@@ -1,0 +1,39 @@
+<div class="fr-my-4w fr-py-2w fr-px-4w comment-card"
+     data-controller="comment-arbitrage">
+    <div class="comment-card-header">
+        <h4 class="fr-mb-1w">
+            Commentaire {{ comment_num }}
+        </h4>
+        <button type="button"
+                class="fr-btn fr-btn--secondary fr-btn--sm"
+                data-action="click->comment-arbitrage#showEdit"
+                data-comment-arbitrage-target="button">
+            Modifier
+        </button>
+    </div>
+    <div data-comment-arbitrage-target="display">
+        {{ comment_value|default:"<i>A remplir</i>"|linebreaks }}
+    </div>
+    <div class="fr-hidden" data-comment-arbitrage-target="edit">
+        <form method="post"
+              action="{% url 'projet:update-projet-comment' projet_id=projet.id %}"
+              data-action="keydown->comment-arbitrage#submitOnCmdEnter">
+            {% csrf_token %}
+            <input type="hidden" name="comment_number" value="{{ comment_num }}">
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <div class="fr-mb-2w">
+                {{ comment_form }}
+            </div>
+            <div class="fr-btns-group fr-btns-group--inline-md">
+                <button type="button"
+                        class="fr-btn fr-btn--secondary"
+                        data-action="click->comment-arbitrage#showDisplay">
+                    Annuler
+                </button>
+                <button type="submit" class="fr-btn fr-btn--primary">
+                    Valider
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

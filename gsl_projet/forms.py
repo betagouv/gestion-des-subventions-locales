@@ -7,6 +7,7 @@ from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
 from gsl_core.models import Collegue
+from gsl_demarches_simplifiees.models import CategorieDetr
 from gsl_demarches_simplifiees.services import DsService
 from gsl_projet.constants import (
     DOTATION_CHOICES,
@@ -14,7 +15,7 @@ from gsl_projet.constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_PROCESSING,
 )
-from gsl_projet.models import CategorieDetr, DotationProjet, Projet, ProjetNote
+from gsl_projet.models import DotationProjet, Projet, ProjetNote
 
 logger = getLogger(__name__)
 
@@ -329,3 +330,52 @@ class ProjetNoteForm(ModelForm, DsfrBaseForm):
             "title",
             "content",
         ]
+
+
+COMMENT_FIELDS = {
+    "1": "comment_1",
+    "2": "comment_2",
+    "3": "comment_3",
+}
+
+
+class ProjetCommentForm(ModelForm, DsfrBaseForm):
+    comment_number = forms.ChoiceField(
+        choices=(
+            ("1", "Commentaire 1"),
+            ("2", "Commentaire 2"),
+            ("3", "Commentaire 3"),
+        ),
+        widget=forms.HiddenInput,
+    )
+    value = forms.CharField(
+        label="Commentaire",
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 4,
+                "placeholder": "Saisir le commentaire…",
+            }
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        number = self.initial.get("comment_number")
+        if number is not None:
+            self.fields["value"].label = "Commentaire " + number
+            self.fields["value"].initial = getattr(
+                self.instance, COMMENT_FIELDS[number]
+            )
+
+    class Meta:
+        model = Projet
+        fields = []
+
+    def save(self, commit=True):
+        instance: Projet = self.instance
+        field_name = COMMENT_FIELDS[self.cleaned_data["comment_number"]]
+        setattr(instance, field_name, self.cleaned_data["value"])
+        if commit:
+            instance.save(update_fields=[field_name])
+        return instance

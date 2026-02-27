@@ -2,8 +2,10 @@ from decimal import Decimal
 
 import pytest
 
+from gsl_projet.tests.factories import ProjetFactory
 from gsl_projet.utils.utils import (
     compute_taux,
+    get_comment_cards,
     order_couples_tuple_by_first_value,
 )
 
@@ -61,3 +63,21 @@ def test_order_couples_tuple_by_first_value_empty_choices():
 def test_compute_taux(numerator, denominator, expected_taux):
     taux = compute_taux(numerator, denominator)
     assert taux == round(Decimal(expected_taux), 3)
+
+
+@pytest.mark.django_db
+def test_get_comment_cards_returns_three_cards():
+    """get_comment_cards retourne 3 cartes avec num, value et form."""
+    projet = ProjetFactory(
+        comment_1="Com 1",
+        comment_2="",
+        comment_3="Com 3",
+    )
+    cards = get_comment_cards(projet)
+    assert len(cards) == 3
+    assert cards[0]["num"] == "1" and cards[0]["value"] == "Com 1"
+    assert cards[1]["num"] == "2" and cards[1]["value"] == ""
+    assert cards[2]["num"] == "3" and cards[2]["value"] == "Com 3"
+    for card in cards:
+        assert "form" in card
+        assert card["form"].initial.get("comment_number") == card["num"]
