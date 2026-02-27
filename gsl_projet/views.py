@@ -20,6 +20,7 @@ from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_projet.utils.utils import get_comment_cards
 
 from .models import CategorieDetr, Projet
+from .table_columns import PROJET_TABLE_COLUMNS, SANS_PIECES_SKIP_KEYS
 
 
 def projet_visible_by_user(func):
@@ -196,6 +197,13 @@ class ProjetListView(FilterView, ListView, FilterUtils):
             self.request.user.perimetre.enveloppe_set.for_current_year().all()
         )
         context["enveloppes_with_children"] = True
+        context["columns"] = PROJET_TABLE_COLUMNS
+        context["aggregates"] = {
+            "total_cost": context["total_cost"],
+            "total_amount_asked": context["total_amount_asked"],
+            "total_amount_granted": context["total_amount_granted"],
+        }
+        context["sans_pieces_skip_keys"] = SANS_PIECES_SKIP_KEYS
         self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
 
         return context

@@ -66,13 +66,6 @@ def remove_first_word(value):
 
 
 @register.filter
-def get(dictionary, key):
-    if not isinstance(dictionary, dict):
-        return dictionary
-    return dictionary.get(key)
-
-
-@register.filter
 def sort(objects_list, key):
     return sorted(objects_list, key=lambda x: getattr(x, key), reverse=True)
 
@@ -166,6 +159,37 @@ def format_demandeur_nom(nom):
 
 
 @register.filter
+def lookup(dictionary, key):
+    if not isinstance(dictionary, dict):
+        return None
+    return dictionary.get(key)
+
+
+@register.filter
 def json_filter(value):
     """Safely serialize a Python value to JSON string."""
     return mark_safe(json.dumps(value))
+
+
+@register.simple_tag(takes_context=True)
+def column_link_url(context, column):
+    url = column.link.url_getter(context)
+    if not url:
+        return ""
+
+    if column.link.keep_querystring:
+        request = context.get("request")
+        if request:
+            qd = request.GET.copy()
+            if column.link.querystring_extras_getter:
+                qd.update(column.link.querystring_extras_getter(context))
+            qs = qd.urlencode()
+            if qs:
+                url = f"{url}?{qs}"
+
+    return url
+
+
+@register.simple_tag(takes_context=True)
+def column_cell_value(context, column):
+    return column.getter(context)

@@ -34,6 +34,7 @@ from gsl_simulation.resources import (
     DetrSimulationProjetResource,
     DsilSimulationProjetResource,
 )
+from gsl_simulation.table_columns import SIMULATION_TABLE_COLUMNS
 
 
 class SimulationListView(ListView):
@@ -230,6 +231,12 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                 "filter_params": self.request.GET.urlencode(),
                 "enveloppe": simulation.enveloppe,
                 "dotations": DOTATIONS,
+                "columns": SIMULATION_TABLE_COLUMNS,
+                "aggregates": {
+                    "total_cost": ProjetService.get_total_cost(qs),
+                    "total_amount_asked": ProjetService.get_total_amount_asked(qs),
+                    "total_amount_granted": simulation.get_total_amount_granted(qs),
+                },
                 "export_types": FilteredProjetsExportView.EXPORT_TYPES,
                 "breadcrumb_dict": {
                     "links": [

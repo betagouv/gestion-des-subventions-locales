@@ -48,50 +48,15 @@
                         <caption>Détails de la simulation</caption>
                         <thead>
                             <tr>
-                                <th scope="col" class="gsl-projet-table__sticky-left-1">
-                                    Date de dépôt
-                                </th>
-                                <th scope="col"
-                                    class="gsl-projet-table__col--w180 gsl-projet-table__sticky-left-2">
-                                    Intitulé du projet
-                                </th>
-                                <th scope="col" class="gsl-projet-table__sticky-left-3">
-                                    N° D.N.
-                                </th>
-                                <th scope="col">
-                                    Demandeur
-                                </th>
-                                <th scope="col">
-                                    Dotation
-                                </th>
-                                <th scope="col" class="gsl-projet-table__col--w80">
-                                    Coût total du projet (€)
-                                    <br>
-                                    <span class="gsl-projet-table__total gsl-money gsl-projet-table__total--cost">{{ total_cost | euro }}</span>
-                                </th>
-                                <th scope="col" class="gsl-projet-table__col--w80">
-                                    Montant sollicité (€)
-                                    <br>
-                                    <span class="gsl-projet-table__total gsl-projet-table__total--asked">{{ total_amount_asked | euro }}</span>
-                                </th>
-                                <th scope="col" class="gsl-projet-table__col--w80">
-                                    Montant prévisionnel accordé (€)
-                                    <br>
-                                    <span class="gsl-projet-table__total gsl-projet-table__total--granted"
-                                          id="total-amount-granted">{{ total_amount_granted | euro }}</span>
-                                </th>
-                                <th scope="col" class="gsl-projet-table__col--w80">
-                                    Taux de subvention (%)
-                                </th>
-                                <th scope="col">
-                                    Catégorie d'opération
-                                </th>
-                                <th scope="col" class="gsl-projet-table__sticky-right-1">
-                                    Statut
-                                </th>
-                                <th scope="col" class="gsl-projet-table__sticky-right-2">
-                                    Notification
-                                </th>
+                                {% for column in columns %}
+                                    <th scope="col" class="{{ column.th_classes }}">
+                                        {% if column.header_template_name %}
+                                            {% include column.header_template_name %}
+                                        {% else %}
+                                            {% include "gsl_core/table_cells/_default_header.html" %}
+                                        {% endif %}
+                                    </th>
+                                {% endfor %}
                             </tr>
                         </thead>
                         <tbody>
@@ -103,7 +68,7 @@
                                 {% endwith %}
                             {% empty %}
                                 <tr>
-                                    <td colspan="12">
+                                    <td colspan="{{ columns|length }}">
                                         Liste vide.
                                     </td>
                                 </tr>

@@ -139,7 +139,9 @@ ul.no-list-style li {
     background-color: var(--background-alt-blue-france-hover);
 }
 
-.gsl-projet-table__col--w180 {
+/* Column widths scoped by table ID and column class */
+#table-projets .gsl-col--intitule,
+#table-programmation .gsl-col--intitule {
     max-width: 180px;
     width: 180px;
     min-width: 140px;
@@ -147,22 +149,26 @@ ul.no-list-style li {
     text-overflow: ellipsis;
 }
 
-.gsl-projet-table__col--w160 {
-    max-width: 160px;
-    width: 160px;
+#table-simulation .gsl-col--intitule {
+    max-width: 180px;
+    width: 180px;
     min-width: 140px;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.gsl-projet-table__col--w80 {
+#table-simulation .gsl-col--cout-total,
+#table-simulation .gsl-col--montant-sollicite,
+#table-simulation .gsl-col--montant-retenu,
+#table-simulation .gsl-col--taux {
     max-width: 100px;
     width: 80px;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.gsl-projet-table__col--w120 {
+#table-projets .gsl-col--statut,
+#table-programmation .gsl-col--documents {
     max-width: 140px;
     width: 120px;
     overflow: hidden;
@@ -191,15 +197,15 @@ ul.no-list-style li {
     display: inline-flex;
 }
 
-.gsl-projet-table .gsl-projet-table__total--cost {
+.gsl-projet-table .gsl-projet-table__total--total_cost {
     background-color: var(--background-alt-blue-france);
 }
 
-.gsl-projet-table .gsl-projet-table__total--asked {
+.gsl-projet-table .gsl-projet-table__total--total_amount_asked {
     background-color: var(--artwork-background-green-tilleul-verveine);
 }
 
-.gsl-projet-table .gsl-projet-table__total--granted {
+.gsl-projet-table .gsl-projet-table__total--total_amount_granted {
     background-color: var(--background-contrast-success);
 }
 

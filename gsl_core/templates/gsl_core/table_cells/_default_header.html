@@ -1,0 +1,7 @@
+{% load gsl_filters %}
+{{ column.label }}
+{% if column.aggregate_key and aggregates %}
+    <br>
+    <span class="gsl-money gsl-projet-table__total gsl-projet-table__total--{{ column.aggregate_key }}"
+          {% if column.aggregate_id %}id="{{ column.aggregate_id }}"{% endif %}>{{ aggregates|lookup:column.aggregate_key|euro:0 }}</span>
+{% endif %}

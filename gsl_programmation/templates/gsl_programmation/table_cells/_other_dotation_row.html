@@ -1,0 +1,56 @@
+{% load gsl_filters %}
+
+{% for other_dotation in programmation_projet.dotation_projet.other_dotations %}
+    <tr class="gsl-projet-table__row--other-dotation">
+        <td class="gsl-projet-table__sticky-left-1">
+        </td>
+        <td class="gsl-projet-table__sticky-left-2">
+        </td>
+        <td class="gsl-projet-table__sticky-left-3">
+        </td>
+        <td colspan="3" class="gsl-projet-table__cell--other-dotation-info">
+            Informations pour la dotation {{ other_dotation.dotation }}
+        </td>
+        <td class="gsl-money">
+            <div class="gsl-money">
+                {{ other_dotation.last_updated_simulation_projet.montant|euro_value:2 }}
+            </div>
+        </td>
+        <td class="gsl-money">
+            <div class="gsl-money">
+                {{ other_dotation.last_updated_simulation_projet.taux|percent_value }}
+            </div>
+        </td>
+        <td>
+            {% if other_dotation.dotation == "DSIL" %}
+                <span class="max-3-lines"
+                      title="{{ other_dotation.projet.dossier_ds.demande_categorie_dsil.label }}">
+                    {{ other_dotation.projet.dossier_ds.demande_categorie_dsil.label }}
+                </span>
+            {% elif other_dotation.dotation == "DETR" %}
+                {% if other_dotation.projet.dossier_ds.demande_has_categorie_detr == False %}
+                    Hors catégorie
+                {% else %}
+                    <span class="max-3-lines"
+                          title="{{ other_dotation.projet.dossier_ds.demande_categorie_detr.complete_label }}">
+                        {{ other_dotation.projet.dossier_ds.demande_categorie_detr.complete_label }}
+                    </span>
+                {% endif %}
+            {% endif %}
+        </td>
+        <td>
+            <ul>
+                {% for document in other_dotation.programmation_projet.documents_summary %}
+                    <li>
+                        {{ document }}
+                    </li>
+                {% endfor %}
+            </ul>
+        </td>
+        <td class="gsl-projet-table__cell--other-status gsl-projet-table__sticky-right-1">
+            <div class="gsl-projet-table__status-notified">
+                {{ other_dotation.last_updated_simulation_projet.get_status_display }}
+            </div>
+        </td>
+    </tr>
+{% endfor %}
