@@ -108,9 +108,7 @@ class Column:
 
     @property
     def th_classes(self) -> str:
-        return " ".join(
-            filter(None, [self.css_class, self.sticky_class, self.align_class])
-        )
+        return " ".join(filter(None, [self.css_class, self.sticky_class]))
 
     @property
     def td_classes(self) -> str:
