@@ -2,23 +2,42 @@
   margin-top: 16px;
   margin-bottom: 16px;
   border-spacing: 0 2px;
-  font-size: calc(1rem * 13 / 16);
+  font-size: calc(1rem * 13 / 16) !important;
+  width: 100%;
+  max-width: 100%;
 }
 
-.enveloppe-summary table {
-  border-spacing: 0;
-  table-layout: auto;
-  text-align: center;
-  border-collapse: collapse;
+.enveloppe-summary__caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  text-align: left;
+  padding: 0 0 0.75rem;
+  width: 100%;
+}
+
+.enveloppe-summary__caption-title {
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+/* Permet au dropdown d'apparaître au-dessus du contenu quand il est ouvert.
+   Seulement sur les écrans larges pour éviter de casser le scroll horizontal sur vue réduite. */
+@media (width >= 75em) {
+  .enveloppe-summary .fr-table__wrapper:has([aria-expanded="true"]),
+  .enveloppe-summary .fr-table__container:has([aria-expanded="true"]) {
+    overflow: visible;
+  }
 }
 
 .enveloppe-summary thead {
-  background-color: var(--background-alt-grey);
   color: var(--text-title-blue-france);
 }
 
 .enveloppe-summary tbody {
-  font-size: calc(1rem * 12 / 16);
+  font-size: calc(1rem * 12 / 16) !important;
 }
 
 .enveloppe-summary th {
@@ -26,10 +45,8 @@
 }
 
 .enveloppe-summary th:not(:last-child) {
-  min-width: 90px;
-  width: 130px;
   line-height: 1rem;
-  height: 42px;
+  vertical-align: middle;
 }
 
 .enveloppe-summary th > div {
@@ -37,15 +54,23 @@
   align-items: center;
   gap: 4px;
   justify-content: center;
+  flex-flow: column wrap;
+  white-space: normal;
+  text-align: center;
 }
 
 .enveloppe-summary th .text {
-  width: min-content;
+  min-width: 0; /* Permet le retour à la ligne dans le flex */
+  white-space: normal;
+  text-align: center;
 }
 
-.enveloppe-summary th .text.min-width-90 {
-  min-width: 90px; /* Hack pour éviter que le texte ne se mette sur 3 lignes */
+.enveloppe-summary .fr-table__content table tbody td,
+.enveloppe-summary .fr-table__content table thead th {
+  background-image: none;
 }
+
+
 
 .enveloppe-summary th .icon {
   flex-shrink: 0; /* Prevents icon from shrinking */
@@ -53,11 +78,11 @@
 
 
 .enveloppe-summary tr {
-  border-bottom: 1px solid var(--border-default-grey);
+  border-bottom: 2px solid var(--border-default-grey);
 }
 
 .enveloppe-summary tbody tr td {
-  height: 30px;
+  text-align: center;
 }
 
 .enveloppe-summary .color-icon-success::before,
@@ -80,6 +105,11 @@
 
 .enveloppe-summary .color-green-bourgeon {
   background-color: var(--artwork-background-green-bourgeon);
+}
+
+.enveloppe-summary tr:has([aria-expanded="true"]) {
+  position: relative;
+  z-index: 10;
 }
 
 .enveloppe-summary .fr-menu .fr-nav__link {
