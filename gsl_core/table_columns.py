@@ -2,9 +2,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Optional
 
-from django.template.defaultfilters import date as date_filter
-from django.utils.html import format_html
-
 
 class StickyPosition(Enum):
     LEFT_1 = "left-1"
@@ -195,24 +192,10 @@ COLUMN_CATEGORIE = Column(
     max_3_lines=True,
 )
 
-REPORTE_TAG = (
-    '<span class="fr-tag fr-tag--sm fr-tag--icon-left'
-    ' fr-icon-arrow-turn-back-line fr-mt-0-5v">Reporté</span>'
-)
-
-
-def _get_date_depot(context):
-    dossier = context["projet"].dossier_ds
-    formatted = date_filter(dossier.ds_date_depot, "d/m/Y")
-    if dossier.demande_numero_demande_precedente:
-        return format_html("{} " + REPORTE_TAG, formatted)
-    return formatted
-
-
 COLUMN_DATE_DEPOT = Column(
     key="date_depot",
     label="Date de dépôt",
-    getter=_get_date_depot,
+    template_name="gsl_core/table_cells/date_depot.html",
     sticky=StickyPosition.LEFT_1,
     text_align=TextAlign.CENTER,
 )
