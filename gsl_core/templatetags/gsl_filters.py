@@ -193,3 +193,8 @@ def column_link_url(context, column):
 @register.simple_tag(takes_context=True)
 def column_cell_value(context, column):
     return column.getter(context)
+
+
+@register.simple_tag(takes_context=True)
+def other_dotation_cell_value(context, column):
+    return column.other_dotation_getter(context)
