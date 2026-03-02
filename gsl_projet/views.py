@@ -1,7 +1,7 @@
 from functools import cached_property
 
 from django.contrib import messages
-from django.db.models import Sum
+from django.db.models import Prefetch, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -10,6 +10,7 @@ from django.views.generic import ListView, UpdateView
 from django_filters.views import FilterView
 
 from gsl_core.exceptions import Http404
+from gsl_demarches_simplifiees.models import Demarche
 from gsl_projet.constants import PROJET_STATUS_CHOICES
 from gsl_projet.forms import ProjetCommentForm
 from gsl_projet.services.projet_services import ProjetService
@@ -162,6 +163,10 @@ class ProjetListViewFilters(BaseProjetFilters):
         ).prefetch_related(
             # "dotationprojet_set__detr_categories", # TODO category : useless now. Remove it if we don't allow to set DETR category. The code is commented to enhance performance.
             "dotationprojet_set__programmation_projet",
+            Prefetch(
+                "dossier_ds__ds_demarche",
+                queryset=Demarche.objects.defer("raw_ds_data"),
+            ),
         )
         return qs
 
@@ -204,6 +209,11 @@ class ProjetListView(FilterView, ListView, FilterUtils):
             "total_amount_granted": context["total_amount_granted"],
         }
         context["sans_pieces_skip_keys"] = SANS_PIECES_SKIP_KEYS
+        context["missing_annotations_count"] = (
+            Projet.objects.for_user(self.request.user)
+            .with_missing_annotations()
+            .count()
+        )
         self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
 
         return context
@@ -230,3 +240,29 @@ class ProjetListView(FilterView, ListView, FilterUtils):
             return ()
 
         return CategorieDetr.objects.current_for_departement(perimetre.departement)
+
+
+class ProjetMissingAnnotationsListView(ListView):
+    """Liste des projets acceptés sur DN avec des annotations DETR/DSIL incomplètes."""
+
+    model = Projet
+    paginate_by = 25
+    template_name = "gsl_projet/projet_missing_annotations_list.html"
+    context_object_name = "object_list"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = "Projets avec annotations manquantes"
+        return context
+
+    def get_queryset(self):
+        return (
+            Projet.objects.for_user(self.request.user)
+            .with_missing_annotations()
+            .select_related(
+                "demandeur",
+                "dossier_ds",
+            )
+            .prefetch_related("dotationprojet_set")
+            .order_by("-dossier_ds__ds_date_depot")
+        )
