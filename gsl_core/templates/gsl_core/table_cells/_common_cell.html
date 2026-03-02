@@ -1,0 +1,24 @@
+{% load gsl_filters %}
+{% column_cell_value column as cell_value %}
+{% if column.link %}
+    {% column_link_url column as link_url %}
+    <a href="{{ link_url }}"
+       {% if column.link.css_classes %}class="{{ column.link.css_classes }}"{% endif %}
+       {% if column.link.new_tab %}target="_blank" rel="noreferrer noopener"{% endif %}
+       {% if column.link.resolved_title %}title="{{ column.link.resolved_title }}" {% elif column.link.title_from_value %}title="{{ cell_value }}"{% endif %}>
+        {% if column.max_3_lines %}
+            <span class="max-3-lines" title="{{ cell_value }}">{{ cell_value }}</span>
+        {% else %}
+            {{ cell_value }}
+        {% endif %}
+        {% if column.link.new_tab %}
+            <span class="fr-sr-only">(nouvelle fenêtre)</span>
+        {% endif %}
+    </a>
+{% elif column.max_3_lines %}
+    <span class="max-3-lines" title="{{ cell_value }}">
+        {{ cell_value }}
+    </span>
+{% else %}
+    <span>{{ cell_value }}</span>
+{% endif %}

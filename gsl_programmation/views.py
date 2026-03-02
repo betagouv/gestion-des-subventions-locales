@@ -18,6 +18,7 @@ from gsl_core.exceptions import Http404
 from gsl_core.models import Perimetre
 from gsl_programmation.forms import SubEnveloppeCreateForm, SubEnveloppeUpdateForm
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
+from gsl_programmation.table_columns import PROGRAMMATION_TABLE_COLUMNS
 from gsl_programmation.utils.programmation_projet_filters import (
     ProgrammationProjetFilters,
 )
@@ -220,6 +221,7 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
                     "current": "Programmation en cours",
                 },
                 "current_tab": self.dotation,
+                "columns": PROGRAMMATION_TABLE_COLUMNS,
             }
         )
 

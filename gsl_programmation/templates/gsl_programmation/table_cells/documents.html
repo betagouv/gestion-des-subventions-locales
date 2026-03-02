@@ -1,0 +1,11 @@
+{% if programmation_projet.documents_summary %}
+    <ul>
+        {% for document in programmation_projet.documents_summary %}
+            <li>
+                {{ document }}
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    Pas de documents ajoutés
+{% endif %}

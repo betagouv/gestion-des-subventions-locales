@@ -10,160 +10,23 @@
                     <caption>Liste des projets</caption>
                     <thead>
                         <tr>
-                            <th scope="col" class="gsl-projet-table__sticky-left-1">
-                                Date de dépôt
-                            </th>
-                            <th scope="col" class="gsl-projet-table__sticky-left-2">
-                                Intitulé du projet
-                            </th>
-                            <th scope="col" class="gsl-projet-table__sticky-left-3">
-                                N° D.N.
-                            </th>
-                            <th scope="col">
-                                Demandeur
-                            </th>
-                            <th scope="col">
-                                Dotation
-                            </th>
-                            <th scope="col">
-                                Coût total du projet (€)
-                                <br>
-                                <span class="gsl-money gsl-projet-table__total gsl-projet-table__total--cost">{{ total_cost | euro:0 }}</span>
-                            </th>
-                            <th scope="col">
-                                Montant sollicité (€)
-                                <br>
-                                <span class="gsl-money gsl-projet-table__total gsl-projet-table__total--asked">{{ total_amount_asked | euro:0 }}</span>
-                            </th>
-                            <th scope="col">
-                                Montant retenu (€)
-                                <br>
-                                <span class="gsl-money gsl-projet-table__total gsl-projet-table__total--granted">{{ total_amount_granted | euro:0 }}</span>
-                            </th>
-                            <th scope="col">
-                                Taux de subvention (%)
-                            </th>
-                            <th scope="col">
-                                Catégorie d'opération
-                            </th>
-                            <th scope="col"
-                                class="gsl-projet-table__col--w120 gsl-projet-table__sticky-right-1">
-                                Statut
-                            </th>
-                            <th scope="col" class="gsl-projet-table__sticky-right-2">
-                                Notification
-                            </th>
+                            {% for column in columns %}
+                                <th scope="col" class="{{ column.th_classes }}">
+                                    {% if column.header_template_name %}
+                                        {% include column.header_template_name %}
+                                    {% else %}
+                                        {% include "gsl_core/table_cells/_default_header.html" %}
+                                    {% endif %}
+                                </th>
+                            {% endfor %}
                         </tr>
                     </thead>
                     <tbody id="projet-list">
                         {% for projet in object_list %}
-                            {% with projet.dotationprojet_set.all|sort:"dotation" as dotation_projets %}
-                                <tr>
-                                    <td class="fr-cell--center gsl-projet-table__sticky-left-1">
-                                        {{ projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}
-                                        {% if projet.dossier_ds.demande_numero_demande_precedente %}
-                                            <br />
-                                            <span class="fr-tag fr-tag--sm fr-tag--icon-left fr-icon-arrow-turn-back-line fr-mt-0-5v">
-                                                Reporté
-                                            </span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="gsl-projet-table__sticky-left-2">
-                                        <a class="fr-link"
-                                           href="{{ projet.get_absolute_url }}{% querystring %}"
-                                           title="{{ projet.dossier_ds.projet_intitule }}">
-                                            {{ projet.dossier_ds.projet_intitule }}
-                                        </a>
-                                    </td>
-                                    <td class="gsl-projet-table__sticky-left-3">
-                                        <a href="{{ projet.dossier_ds.url_on_ds }}"
-                                           class="gsl-nowrap"
-                                           target="_blank"
-                                           rel="noreferrer noopener"
-                                           title="Voir le dossier sur Démarche Numérique - nouvelle fenêtre">
-                                            {{ projet.dossier_ds.ds_number }}
-                                            <span class="fr-sr-only">(nouvelle fenêtre)</span>
-                                        </a>
-                                    </td>
-                                    <td>
-                                        <span class="max-3-lines"
-                                              title="{{ projet.demandeur.name | format_demandeur_nom }}">
-                                            {{ projet.demandeur.name | format_demandeur_nom }}
-                                        </span>
-                                    </td>
-                                    {% if projet.dossier_ds.is_sans_pieces and not projet.dossier_ds.demande_dispositif_sollicite %}
-                                        <td class="gsl-money" colspan="3">
-                                            <a href="{% url 'gsl_demarches_simplifiees:dossier-sans-piece-update' projet.dossier_ds.pk %}"
-                                               class="fr-link fr-link--xs fr-link--icon-right fr-icon-edit-line">Renseigner
-                                                les
-                                            informations</a>
-                                        </td>
-                                    {% else %}
-                                        <td class="gsl-projet-table__cell--dotation">
-                                            {% for dp in dotation_projets %}
-                                                <span>{{ dp.dotation }}</span>
-                                            {% endfor %}
-                                        </td>
-                                        <td class="gsl-money">
-                                            {{ projet.dossier_ds.finance_cout_total|euro_value }}
-                                        </td>
-                                        <td class="gsl-money">
-                                            {{ projet.dossier_ds.demande_montant|euro_value }}
-                                        </td>
-                                    {% endif %}
-                                    <td class="gsl-money {% if projet.montant_retenu is not None %} gsl-projet-table__montant-retenu {% endif %} gsl-projet-table__cell--dotation">
-                                        {% for dp in dotation_projets %}
-                                            <span>{{ dp.montant_retenu|euro_value }}</span>
-                                        {% endfor %}
-                                    </td>
-                                    <td class="gsl-money gsl-projet-table__cell--dotation">
-                                        {% for dp in dotation_projets %}
-                                            <span>{{ dp.taux_retenu|percent_value }}</span>
-                                        {% endfor %}
-                                    </td>
-                                    <td>
-                                        {% for dp in dotation_projets %}
-                                            <div>
-                                                {% if dp.dotation == "DSIL" %}
-                                                    <span class="max-3-lines"
-                                                          title="{{ projet.dossier_ds.demande_categorie_dsil.label }}">
-                                                        {{ projet.dossier_ds.demande_categorie_dsil.label }}
-                                                    </span>
-                                                {% elif dp.dotation == "DETR" %}
-                                                    {% if projet.dossier_ds.demande_has_categorie_detr == False %}
-                                                        Hors catégorie
-                                                    {% else %}
-                                                        <span class="max-3-lines"
-                                                              title="{{ projet.dossier_ds.demande_categorie_detr.complete_label }}">
-                                                            {{ projet.dossier_ds.demande_categorie_detr.complete_label }}
-                                                        </span>
-                                                    {% endif %}
-                                                {% endif %}
-                                            </div>
-                                        {% endfor %}
-                                    </td>
-                                    <td class="gsl-projet-table__cell--dotation gsl-projet-table__sticky-right-1 gsl-nowrap">
-                                        {% for dp in dotation_projets %}
-                                            <div>
-                                                <span class="projet_status__{{ dp.status }}">{{ dp.get_status_display }}</span>
-                                            </div>
-                                        {% endfor %}
-                                    </td>
-                                    <td class="gsl-projet-table__sticky-right-2">
-                                        {% if projet.to_notify %}
-                                            <a href="{% url 'gsl_notification:documents' projet.id %}"
-                                               class="fr-link fr-link--icon-right fr-icon-mail-line">À notifier</a>
-                                        {% elif projet.notified_at %}
-                                            <p class="fr-badge fr-badge--sm fr-badge--success fr-badge--no-icon">
-                                                Notifié
-                                            </p>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endwith %}
+                            {% include "gsl_projet/table_cells/_projet_row.html" %}
                         {% empty %}
                             <tr>
-                                <td colspan="12">
+                                <td colspan="{{ columns|length }}">
                                     Liste vide.
                                 </td>
                             </tr>

@@ -88,45 +88,21 @@
                                             </ul>
                                         </details>
                                     </th>
-                                    <th scope="col" class="gsl-projet-table__sticky-left-2">
-                                        Intitulé du projet
-                                    </th>
-                                    <th scope="col" class="gsl-projet-table__sticky-left-3">
-                                        N° D.N.
-                                    </th>
-                                    <th scope="col">
-                                        Demandeur
-                                    </th>
-                                    <th scope="col">
-                                        Coût total du projet (€)
-                                    </th>
-                                    <th scope="col">
-                                        Montant et taux demandés (€ / %)
-                                    </th>
-                                    <th scope="col">
-                                        Montant prévisionnel accordé (€)
-                                    </th>
-                                    <th scope="col">
-                                        Taux de subvention (%)
-                                    </th>
-                                    <th scope="col">
-                                        Catégorie d'opération
-                                    </th>
-                                    <th scope="col" class="gsl-projet-table__col--w120">
-                                        Documents ajoutés
-                                    </th>
-                                    <th scope="col" class="gsl-projet-table__sticky-right-1">
-                                        Statut
-                                    </th>
-                                    <th scope="col" class="gsl-projet-table__sticky-right-2">
-                                        Notification
-                                    </th>
+                                    {% for column in columns %}
+                                        <th scope="col" class="{{ column.th_classes }}">
+                                            {% if column.header_template_name %}
+                                                {% include column.header_template_name %}
+                                            {% else %}
+                                                {% include "gsl_core/table_cells/_default_header.html" %}
+                                            {% endif %}
+                                        </th>
+                                    {% endfor %}
                                 </tr>
                             </thead>
                             <tbody id="projet-list">
                                 <tr data-checkbox-selection-target="selectAllRow"
                                     class="gsl-projet-table__row--select-all">
-                                    <td colspan="12">
+                                    <td colspan="{{ columns|length|add:1 }}">
                                         <span data-checkbox-selection-target="selectAllRowText"></span>
                                         <button class='fr-btn fr-btn--tertiary'
                                                 data-action="click->checkbox-selection#toggleSelectAllProjets"
@@ -136,164 +112,40 @@
                                     </td>
                                 </tr>
                                 {% for programmation_projet in programmation_projets %}
-                                    <tr>
-                                        <td class="gsl-projet-table__sticky-left-1">
-                                            {% if programmation_projet.projet.to_notify %}
-                                                <div class="fr-checkbox-group fr-checkbox-group--sm">
-                                                    <input id="checkbox-{{ programmation_projet.id }}"
-                                                           type="checkbox"
-                                                           data-checkbox-selection-target="button"
-                                                           data-action="click->checkbox-selection#toggleProjetCheckbox">
-                                                    <label class="fr-label gsl-projet-table__checkbox-label"
-                                                           for="checkbox-{{ programmation_projet.id }}">
-                                                        <span class="fr-sr-only fr-hint-text">Cocher le projet N°{{ programmation_projet.projet.dossier_ds.ds_number }}</span>
-                                                    </label>
-                                                </div>
-                                            {% endif %}
-                                        </td>
-                                        <td class="gsl-projet-table__sticky-left-2">
-                                            <a class="fr-link"
-                                               href="{{ programmation_projet.get_absolute_url }}{% querystring dotation=programmation_projet.dotation %}"
-                                               title="{{ programmation_projet.projet.dossier_ds.projet_intitule }}">
-                                                {{ programmation_projet.projet.dossier_ds.projet_intitule }}
-                                            </a>
-                                        </td>
-                                        <td class="gsl-projet-table__sticky-left-3">
-                                            <a href="{{ programmation_projet.projet.dossier_ds.url_on_ds }}"
-                                               class="gsl-nowrap"
-                                               target="_blank"
-                                               rel="noreferrer noopener"
-                                               title="Voir le dossier sur Démarche Numérique - nouvelle fenêtre">
-                                                {{ programmation_projet.projet.dossier_ds.ds_number }}
-                                                <span class="fr-sr-only">(nouvelle fenêtre)</span>
-                                            </a>
-                                        </td>
-                                        <td>
-                                            <span class="max-3-lines"
-                                                  title="{{ programmation_projet.projet.demandeur.name | format_demandeur_nom }}">
-                                                {{ programmation_projet.projet.demandeur.name | format_demandeur_nom }}
-                                            </span>
-                                        </td>
-                                        <td class="gsl-money">
-                                            {{ programmation_projet.projet.dossier_ds.finance_cout_total|euro_value }}
-                                        </td>
-                                        <td class="gsl-money">
-                                            {{ programmation_projet.projet.dossier_ds.demande_montant|euro_value }}
-                                            <br>
-                                            {{ programmation_projet.dotation_projet.taux_de_subvention_sollicite|percent }}
-                                        </td>
-                                        <td class="gsl-money">
-                                            {{ programmation_projet.montant|euro_value }}
-                                        </td>
-                                        <td class="gsl-money">
-                                            {{ programmation_projet.taux|percent_value }}
-                                        </td>
-                                        <td>
-                                            {% if dotation == "DSIL" %}
-                                                <span class="max-3-lines"
-                                                      title="{{ programmation_projet.projet.dossier_ds.demande_categorie_dsil.label }}">
-                                                    {{ programmation_projet.projet.dossier_ds.demande_categorie_dsil.label }}
-                                                </span>
-                                            {% elif dotation == "DETR" %}
-                                                {% if programmation_projet.projet.dossier_ds.demande_has_categorie_detr == False %}
-                                                    Hors catégorie
-                                                {% else %}
-                                                    <span class="max-3-lines"
-                                                          title="{{ programmation_projet.projet.dossier_ds.demande_categorie_detr.complete_label }}">
-                                                        {{ programmation_projet.projet.dossier_ds.demande_categorie_detr.complete_label }}
-                                                    </span>
-                                                {% endif %}
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if programmation_projet.documents_summary %}
-                                                <ul>
-                                                    {% for document in programmation_projet.documents_summary %}
-                                                        <li>
-                                                            {{ document }}
-                                                        </li>
-                                                    {% endfor %}
-                                                </ul>
-                                            {% else %}
-                                                Pas de documents ajoutés
-                                            {% endif %}
-                                        </td>
-                                        <td class="gsl-projet-table__sticky-right-1">
-                                            {{ programmation_projet.get_status_display }}
-                                        </td>
-                                        <td class="gsl-projet-table__sticky-right-2"
-                                            {% if programmation_projet.dotation_projet.other_dotations %}rowspan="{{ programmation_projet.dotation_projet.other_dotations|length|add:1 }}"{% endif %}>
-                                            {% if programmation_projet.projet.to_notify %}
-                                                <a href="{% url 'gsl_notification:documents' programmation_projet.projet.id %}"
-                                                   class="fr-link fr-link--icon-right fr-icon-mail-line">À notifier</a>
-                                            {% elif programmation_projet.projet.notified_at %}
-                                                <p class="fr-badge fr-badge--sm fr-badge--success fr-badge--no-icon">
-                                                    Notifié
-                                                </p>
-                                            {% elif programmation_projet.dotation_projet.other_dotations %}
-                                                <p class="fr-badge fr-badge--sm fr-badge--info fr-badge--no-icon">
-                                                    En attente de la décision {{ programmation_projet.dotation_projet.other_dotations.0.dotation }}
-                                                </p>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% for other_dotation in programmation_projet.dotation_projet.other_dotations %}
-                                        <tr class="gsl-projet-table__row--other-dotation">
+                                    {% with projet=programmation_projet.projet dotation_projet=programmation_projet.dotation_projet %}
+                                        <tr>
                                             <td class="gsl-projet-table__sticky-left-1">
-                                            </td>
-                                            <td class="gsl-projet-table__sticky-left-2">
-                                            </td>
-                                            <td class="gsl-projet-table__sticky-left-3">
-                                            </td>
-                                            <td colspan="3" class="gsl-projet-table__cell--other-dotation-info">
-                                                Informations pour la dotation {{ other_dotation.dotation }}
-                                            </td>
-                                            <td class="gsl-money">
-                                                <div class="gsl-money">
-                                                    {{ other_dotation.last_updated_simulation_projet.montant|euro_value:2 }}
-                                                </div>
-                                            </td>
-                                            <td class="gsl-money">
-                                                <div class="gsl-money">
-                                                    {{ other_dotation.last_updated_simulation_projet.taux|percent_value }}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                {% if other_dotation.dotation == "DSIL" %}
-                                                    <span class="max-3-lines"
-                                                          title="{{ other_dotation.projet.dossier_ds.demande_categorie_dsil.label }}">
-                                                        {{ other_dotation.projet.dossier_ds.demande_categorie_dsil.label }}
-                                                    </span>
-                                                {% elif other_dotation.dotation == "DETR" %}
-                                                    {% if other_dotation.projet.dossier_ds.demande_has_categorie_detr == False %}
-                                                        Hors catégorie
-                                                    {% else %}
-                                                        <span class="max-3-lines"
-                                                              title="{{ other_dotation.projet.dossier_ds.demande_categorie_detr.complete_label }}">
-                                                            {{ other_dotation.projet.dossier_ds.demande_categorie_detr.complete_label }}
-                                                        </span>
-                                                    {% endif %}
+                                                {% if programmation_projet.projet.to_notify %}
+                                                    <div class="fr-checkbox-group fr-checkbox-group--sm">
+                                                        <input id="checkbox-{{ programmation_projet.id }}"
+                                                               type="checkbox"
+                                                               data-checkbox-selection-target="button"
+                                                               data-action="click->checkbox-selection#toggleProjetCheckbox">
+                                                        <label class="fr-label gsl-projet-table__checkbox-label"
+                                                               for="checkbox-{{ programmation_projet.id }}">
+                                                            <span class="fr-sr-only fr-hint-text">Cocher le projet N°{{ programmation_projet.projet.dossier_ds.ds_number }}</span>
+                                                        </label>
+                                                    </div>
                                                 {% endif %}
                                             </td>
-                                            <td>
-                                                <ul>
-                                                    {% for document in other_dotation.programmation_projet.documents_summary %}
-                                                        <li>
-                                                            {{ document }}
-                                                        </li>
-                                                    {% endfor %}
-                                                </ul>
-                                            </td>
-                                            <td class="gsl-projet-table__cell--other-status gsl-projet-table__sticky-right-1">
-                                                <div class="gsl-projet-table__status-notified">
-                                                    {{ other_dotation.last_updated_simulation_projet.get_status_display }}
-                                                </div>
-                                            </td>
+                                            {% for column in columns %}
+                                                {% if column.key == "notification" %}
+                                                    <td class="{{ column.td_classes }}"
+                                                        {% if programmation_projet.dotation_projet.other_dotations %}rowspan="{{ programmation_projet.dotation_projet.other_dotations|length|add:1 }}"{% endif %}>
+                                                        {% include column.resolved_template_name %}
+                                                    </td>
+                                                {% else %}
+                                                    <td class="{{ column.td_classes }}">
+                                                        {% include column.resolved_template_name %}
+                                                    </td>
+                                                {% endif %}
+                                            {% endfor %}
                                         </tr>
-                                    {% endfor %}
+                                        {% include "gsl_programmation/table_cells/_other_dotation_row.html" %}
+                                    {% endwith %}
                                 {% empty %}
                                     <tr>
-                                        <td colspan="12">
+                                        <td colspan="{{ columns|length|add:1 }}">
                                             Liste vide.
                                         </td>
                                     </tr>

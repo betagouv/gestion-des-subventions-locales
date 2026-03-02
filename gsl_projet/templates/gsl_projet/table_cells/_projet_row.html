@@ -1,0 +1,36 @@
+{% load gsl_filters %}
+
+{% with projet.dotationprojet_set.all|sort:"dotation" as dotation_projets %}
+    {% with is_sans_pieces=projet.dossier_ds.is_sans_pieces %}
+        {% with has_dispositif=projet.dossier_ds.demande_dispositif_sollicite %}
+            {% with row_url=projet.get_absolute_url %}
+                <tr>
+                    {% for column in columns %}
+                        {% if column.key == "dotation" and is_sans_pieces and not has_dispositif %}
+                            <td class="gsl-money" colspan="3">
+                                <a href="{% url 'gsl_demarches_simplifiees:dossier-sans-piece-update' projet.dossier_ds.pk %}"
+                                   class="fr-link fr-link--xs fr-link--icon-right fr-icon-edit-line">Renseigner
+                                    les
+                                informations</a>
+                            </td>
+                        {% elif column.key in sans_pieces_skip_keys and is_sans_pieces and not has_dispositif %}
+                            {# skipped, covered by colspan on dotation #}
+                        {% elif column.per_dotation %}
+                            <td class="{{ column.td_classes }}{% if column.key != 'categorie' %} gsl-projet-table__cell--dotation{% endif %}{% if column.key == 'montant_retenu' and projet.montant_retenu is not None %} gsl-projet-table__montant-retenu{% endif %}{% if column.key == 'statut' %} gsl-nowrap{% endif %}">
+                                {% for dotation_projet in dotation_projets %}
+                                    <div>
+                                        {% include column.resolved_template_name %}
+                                    </div>
+                                {% endfor %}
+                            </td>
+                        {% else %}
+                            <td class="{{ column.td_classes }}">
+                                {% include column.resolved_template_name %}
+                            </td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+            {% endwith %}
+        {% endwith %}
+    {% endwith %}
+{% endwith %}
