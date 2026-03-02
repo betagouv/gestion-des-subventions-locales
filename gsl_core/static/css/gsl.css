@@ -298,15 +298,14 @@ ul.no-list-style li {
 }
 
 /* Split sticky-right columns (used by programmation and simulation tables)
- * sticky-right-1's `right` must match sticky-right-2's `min-width` so
- * the two columns stay flush. Update both values together. */
+ * Use custom properties so :has() rules can adjust offsets when columns hide. */
 .gsl-projet-table__sticky-right-2 {
     right: 0;
-    min-width: 120px;
+    min-width: var(--sticky-right-2-width);
 }
 
 .gsl-projet-table__sticky-right-1 {
-    right: 120px;
+    right: var(--sticky-right-2-width);
     box-shadow: -2px 0 4px rgb(0 0 0 / 8%);
 }
 
@@ -322,37 +321,78 @@ ul.no-list-style li {
     overflow: visible;
 }
 
+/* Custom properties for sticky offsets – adjusted by :has() rules when columns hide */
+#projet-table-wrapper,
+#simulation-table-wrapper {
+    --sticky-left-1-width: 100px;
+    --sticky-right-2-width: 120px;
+}
+
+#programmation-table-wrapper {
+    --sticky-left-1-width: 60px;
+    --sticky-right-2-width: 120px;
+}
+
 /* Left offsets for tables with Date as first column (projets, simulation) */
 #table-projets .gsl-projet-table__sticky-left-1,
 #table-simulation .gsl-projet-table__sticky-left-1 {
-    min-width: 100px;
+    min-width: var(--sticky-left-1-width);
 }
 
 #table-projets .gsl-projet-table__sticky-left-2,
 #table-simulation .gsl-projet-table__sticky-left-2 {
-    left: 100px;
+    left: var(--sticky-left-1-width);
     min-width: 180px;
 }
 
 #table-projets .gsl-projet-table__sticky-left-3,
 #table-simulation .gsl-projet-table__sticky-left-3 {
-    left: 280px;
+    left: calc(var(--sticky-left-1-width) + 180px);
     box-shadow: 2px 0 4px rgb(0 0 0 / 8%);
 }
 
 /* Left offsets for programmation table (checkbox as first column) */
 #table-programmation .gsl-projet-table__sticky-left-1 {
-    min-width: 60px;
+    min-width: var(--sticky-left-1-width);
 }
 
 #table-programmation .gsl-projet-table__sticky-left-2 {
-    left: 60px;
+    left: var(--sticky-left-1-width);
     min-width: 180px;
 }
 
 #table-programmation .gsl-projet-table__sticky-left-3 {
-    left: 240px;
+    left: calc(var(--sticky-left-1-width) + 180px);
     box-shadow: 2px 0 4px rgb(0 0 0 / 8%);
+}
+
+/* :has() rules to adjust sticky offsets when columns are hidden */
+
+/* When date_depot (LEFT_1) is hidden: collapse LEFT_1 width */
+#projet-table-wrapper:has(#toggle-col-date-depot:not(:checked)),
+#simulation-table-wrapper:has(#toggle-col-date-depot:not(:checked)) {
+    --sticky-left-1-width: 0px;
+}
+
+/* When notification (RIGHT_2) is hidden: collapse RIGHT_2 width */
+#projet-table-wrapper:has(#toggle-col-notification:not(:checked)),
+#programmation-table-wrapper:has(#toggle-col-notification:not(:checked)),
+#simulation-table-wrapper:has(#toggle-col-notification:not(:checked)) {
+    --sticky-right-2-width: 0px;
+}
+
+/* Shadow transfer: when numero_dn (LEFT_3) is hidden, LEFT_2 gets the left shadow */
+#projet-table-wrapper:has(#toggle-col-numero-dn:not(:checked)) .gsl-projet-table__sticky-left-2,
+#programmation-table-wrapper:has(#toggle-col-numero-dn:not(:checked)) .gsl-projet-table__sticky-left-2,
+#simulation-table-wrapper:has(#toggle-col-numero-dn:not(:checked)) .gsl-projet-table__sticky-left-2 {
+    box-shadow: 2px 0 4px rgb(0 0 0 / 8%);
+}
+
+/* Shadow transfer: when statut (RIGHT_1) is hidden, RIGHT_2 gets the right shadow */
+#projet-table-wrapper:has(#toggle-col-statut:not(:checked)) .gsl-projet-table__sticky-right-2,
+#programmation-table-wrapper:has(#toggle-col-statut:not(:checked)) .gsl-projet-table__sticky-right-2,
+#simulation-table-wrapper:has(#toggle-col-statut:not(:checked)) .gsl-projet-table__sticky-right-2 {
+    box-shadow: -2px 0 4px rgb(0 0 0 / 8%);
 }
 
 .gsl-tooltip {
@@ -563,5 +603,24 @@ ul.no-list-style li {
 .fr-icon-loader::before,
 .fr-icon-loader::after {
   mask-image: url("../img/refresh-line.svg") !important;
+}
+
+/* Table toolbar (row count + column visibility button) */
+
+.gsl-table-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Column visibility dropdown */
+
+.gsl-column-visibility-dropdown {
+    margin-bottom: 0;
+}
+
+.gsl-column-visibility-dropdown .gsl-column-visibility-list {
+    display: none;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
 }
 

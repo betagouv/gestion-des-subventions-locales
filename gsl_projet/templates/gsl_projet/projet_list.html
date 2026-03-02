@@ -37,13 +37,6 @@
 
     {% include "includes/_projet_list_filters.html" %}
 
-    <p class="fr-mb-0 fr-mt-1w">
-        {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
-        {% if missing_annotations_count %}
-            - <a href="{% url 'projet:missing-annotations-list' %}">{{ missing_annotations_count }} avec annotations manquantes</a>
-        {% endif %}
-    </p>
-
     {% include "includes/_projets_table.html" %}
 
 {% endblock content %}

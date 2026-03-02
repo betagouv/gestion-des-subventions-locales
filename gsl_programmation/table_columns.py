@@ -24,6 +24,7 @@ COLUMN_INTITULE = Column(
         },
         title_from_value=True,
     ),
+    hideable=False,
     sticky=StickyPosition.LEFT_2,
 )
 

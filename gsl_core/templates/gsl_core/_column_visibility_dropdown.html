@@ -1,0 +1,33 @@
+{% comment %}
+    Column visibility dropdown.
+    Requires `columns` (list of Column) and `table_wrapper_id` (str) in context.
+{% endcomment %}
+
+<div class="gsl-dropdown gsl-column-visibility-dropdown">
+    <button type="button"
+            class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-right fr-icon-arrow-down-s-line">
+        Colonnes affichées
+    </button>
+    <div class="gsl-dropdown-content gsl-column-visibility-list">
+        {% for column in columns %}
+            {% if column.hideable %}
+                <div class="fr-checkbox-group fr-checkbox-group--sm">
+                    <input type="checkbox" id="toggle-col-{{ column.css_key }}" checked>
+                    <label class="fr-label" for="toggle-col-{{ column.css_key }}">
+                        {{ column.label }}
+                    </label>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+<style nonce="{{ request.csp_nonce }}">
+    {% for column in columns %}
+        {% if column.hideable %}
+            #{{ table_wrapper_id }}:has(#toggle-col-{{ column.css_key }}:not(:checked)) .{{ column.css_class }} {
+            display: none;
+        }
+        {% endif %}
+    {% endfor %}
+</style>

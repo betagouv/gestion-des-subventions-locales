@@ -3,26 +3,32 @@
 {% for other_dotation_projet in dotation_projet.other_dotations %}
     <tr id="other-simulation-{{ simu.pk }}"
         class="gsl-projet-table__row--other-dotation">
-        <td class="gsl-projet-table__sticky-left-1">
+        <td class="gsl-col--date-depot gsl-projet-table__sticky-left-1">
         </td>
-        <td class="gsl-projet-table__sticky-left-2">
-        </td>
-        <td class="gsl-projet-table__sticky-left-3">
-        </td>
-        <td colspan="4" class="gsl-projet-table__cell--other-dotation-info">
+        <td class="gsl-col--intitule gsl-projet-table__sticky-left-2 gsl-projet-table__cell--other-dotation-info">
             Informations pour la dotation {{ other_dotation_projet.dotation }}
         </td>
-        <td class="gsl-money">
+        <td class="gsl-col--numero-dn gsl-projet-table__sticky-left-3">
+        </td>
+        <td class="gsl-col--demandeur">
+        </td>
+        <td class="gsl-col--dotation">
+        </td>
+        <td class="gsl-col--cout-total">
+        </td>
+        <td class="gsl-col--montant-sollicite">
+        </td>
+        <td class="gsl-col--montant-retenu gsl-money">
             <div class="gsl-money">
                 <b>{{ other_dotation_projet.last_updated_simulation_projet.montant|euro_value:2 }}</b>
             </div>
         </td>
-        <td class="gsl-money">
+        <td class="gsl-col--taux gsl-money">
             <div class="gsl-money">
                 <b>{{ other_dotation_projet.last_updated_simulation_projet.taux|percent_value }}</b>
             </div>
         </td>
-        <td>
+        <td class="gsl-col--categorie">
             {% if other_dotation_projet.dotation == "DSIL" %}
                 <span class="max-3-lines"
                       title="{{ other_dotation_projet.projet.dossier_ds.demande_categorie_dsil.label }}">
@@ -39,10 +45,12 @@
                 {% endif %}
             {% endif %}
         </td>
-        <td class="gsl-projet-table__cell--other-status gsl-projet-table__sticky-right-1">
+        <td class="gsl-col--statut gsl-projet-table__cell--other-status gsl-projet-table__sticky-right-1">
             <div class="gsl-projet-table__status-notified">
                 {{ other_dotation_projet.last_updated_simulation_projet.get_status_display }}
             </div>
+        </td>
+        <td class="gsl-col--notification gsl-projet-table__sticky-right-2">
         </td>
     </tr>
 {% endfor %}

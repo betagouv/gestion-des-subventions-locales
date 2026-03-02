@@ -1,44 +1,56 @@
 {% load gsl_filters dsfr_tags custom_pluralize %}
 
-<div class="fr-table fr-table--multiline fr-table--xs fr-table--no-caption gsl-projet-table"
-     id="projet-table">
-    <div class="fr-table__wrapper">
-        <div class="fr-table__container">
+<div id="projet-table-wrapper">
+    <div class="gsl-table-toolbar fr-my-1w">
+        <span>
+            {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
+            {% if missing_annotations_count %}
+                -&nbsp;
+                <a href="{% url 'projet:missing-annotations-list' %}">{{ missing_annotations_count }} avec annotations manquantes</a>
+            {% endif %}
+        </span>
+        {% include "gsl_core/_column_visibility_dropdown.html" with table_wrapper_id="projet-table-wrapper" %}
+    </div>
+    <div class="fr-table fr-table--multiline fr-table--xs fr-table--no-caption gsl-projet-table"
+         id="projet-table">
+        <div class="fr-table__wrapper">
+            <div class="fr-table__container">
 
-            <div class="fr-table__content">
-                <table id="table-projets">
-                    <caption>Liste des projets</caption>
-                    <thead>
-                        <tr>
-                            {% for column in columns %}
-                                <th scope="col" class="{{ column.th_classes }}">
-                                    {% if column.header_template_name %}
-                                        {% include column.header_template_name %}
-                                    {% else %}
-                                        {% include "gsl_core/table_cells/_default_header.html" %}
-                                    {% endif %}
-                                </th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody id="projet-list">
-                        {% for projet in object_list %}
-                            {% include "gsl_projet/table_cells/_projet_row.html" %}
-                        {% empty %}
+                <div class="fr-table__content">
+                    <table id="table-projets">
+                        <caption>Liste des projets</caption>
+                        <thead>
                             <tr>
-                                <td colspan="{{ columns|length }}">
-                                    Liste vide.
-                                </td>
+                                {% for column in columns %}
+                                    <th scope="col" class="{{ column.th_classes }}">
+                                        {% if column.header_template_name %}
+                                            {% include column.header_template_name %}
+                                        {% else %}
+                                            {% include "gsl_core/table_cells/_default_header.html" %}
+                                        {% endif %}
+                                    </th>
+                                {% endfor %}
                             </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody id="projet-list">
+                            {% for projet in object_list %}
+                                {% include "gsl_projet/table_cells/_projet_row.html" %}
+                            {% empty %}
+                                <tr>
+                                    <td colspan="{{ columns|length }}">
+                                        Liste vide.
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="fr-table__footer">
-        <div class="fr-table__footer--middle">
-            {% dsfr_pagination page_obj %}
+        <div class="fr-table__footer">
+            <div class="fr-table__footer--middle">
+                {% dsfr_pagination page_obj %}
+            </div>
         </div>
     </div>
 </div>

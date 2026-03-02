@@ -69,6 +69,9 @@ class Column:
     text_align: Optional[TextAlign] = None
     max_3_lines: bool = False
 
+    # Column visibility toggle
+    hideable: bool = True
+
     # Existing fields
     sticky: Optional[StickyPosition] = None
     aggregate_key: Optional[str] = None
@@ -86,8 +89,12 @@ class Column:
         return self.template_name or COMMON_CELL_TEMPLATE
 
     @property
+    def css_key(self) -> str:
+        return self.key.replace("_", "-")
+
+    @property
     def css_class(self) -> str:
-        return f"gsl-col--{self.key.replace('_', '-')}"
+        return f"gsl-col--{self.css_key}"
 
     @property
     def sticky_class(self) -> str:
@@ -134,6 +141,7 @@ COLUMN_INTITULE = Column(
         keep_querystring=True,
         title_from_value=True,
     ),
+    hideable=False,
     sticky=StickyPosition.LEFT_2,
 )
 

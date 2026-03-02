@@ -9,11 +9,6 @@
                 <td class="gsl-projet-table__cell--status {{ column.td_classes }}">
                     {% include column.resolved_template_name %}
                 </td>
-            {% elif column.key == "notification" %}
-                <td class="{{ column.td_classes }}"
-                    {% if dotation_projet.other_dotations|length > 0 %}rowspan="{{ dotation_projet.other_dotations|length|add:1 }}"{% endif %}>
-                    {% include column.resolved_template_name %}
-                </td>
             {% else %}
                 <td class="{{ column.td_classes }}">
                     {% include column.resolved_template_name %}

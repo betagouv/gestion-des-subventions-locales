@@ -46,122 +46,119 @@
         {% include "includes/_enveloppe_summary.html" %}
         {% include "includes/_projet_list_filters.html" %}
 
-        <p class="fr-mb-0 fr-mt-1w">
-            {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
-        </p>
-
-        <div class="fr-table fr-table--multiline fr-table--xs fr-table--no-caption gsl-projet-table"
-             id="programmation-projet-table">
-            <div class="fr-table__wrapper">
-                <div class="fr-table__container">
-                    <div class="fr-table__content">
-                        <table id="table-programmation"
-                               data-controller="checkbox-selection"
-                               data-checkbox-selection-to-notify-projets-count-value="{{ to_notify_projets_count }}"
-                               data-checkbox-selection-activate-all-projets-selection-value="{{ activate_all_projets_selection }}">
-                            <caption>Projets programmés</caption>
-                            <thead>
-                                <tr>
-                                    <th scope="col"
-                                        class="gsl-projet-table__header--checkbox gsl-projet-table__sticky-left-1">
-                                        <div class="fr-checkbox-group fr-checkbox-group--sm">
-                                            <input id="checkbox-header"
-                                                   type="checkbox"
-                                                   data-checkbox-selection-target="pageCheckbox"
-                                                   data-action="click->checkbox-selection#toggleSelectAllAPageProjets">
-                                            <label class="fr-label" for="checkbox-header">
-                                                <span class="fr-sr-only fr-hint-text">Sélectionner tous les projets</span>
-                                            </label>
-                                        </div>
-                                        <details class="gsl-projet-table__action-menu" name="document-actions">
-                                            <summary class="fr-icon--sm fr-icon-arrow-down-s-line blue-color"
-                                                     aria-label="Ouvrir les actions">
-                                            </summary>
-                                            <ul class="new-gsl-dropdown-content arrete-card__actions no-list-style fr-m-0">
-                                                <li>
-                                                    <a class="fr-btn fr-btn--secondary arrete-card__action"
-                                                       data-checkbox-selection-target="link"
-                                                       data-base-url="{% url "gsl_notification:choose-generated-document-type-multiple" dotation %}">
-                                                        Générer des documents
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </details>
-                                    </th>
-                                    {% for column in columns %}
-                                        <th scope="col" class="{{ column.th_classes }}">
-                                            {% if column.header_template_name %}
-                                                {% include column.header_template_name %}
-                                            {% else %}
-                                                {% include "gsl_core/table_cells/_default_header.html" %}
-                                            {% endif %}
+        <div id="programmation-table-wrapper">
+            <div class="gsl-table-toolbar fr-my-1w">
+                <span>
+                    {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
+                </span>
+                {% include "gsl_core/_column_visibility_dropdown.html" with table_wrapper_id="programmation-table-wrapper" %}
+            </div>
+            <div class="fr-table fr-table--multiline fr-table--xs fr-table--no-caption gsl-projet-table"
+                 id="programmation-projet-table">
+                <div class="fr-table__wrapper">
+                    <div class="fr-table__container">
+                        <div class="fr-table__content">
+                            <table id="table-programmation"
+                                   data-controller="checkbox-selection"
+                                   data-checkbox-selection-to-notify-projets-count-value="{{ to_notify_projets_count }}"
+                                   data-checkbox-selection-activate-all-projets-selection-value="{{ activate_all_projets_selection }}">
+                                <caption>Projets programmés</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col"
+                                            class="gsl-projet-table__header--checkbox gsl-projet-table__sticky-left-1">
+                                            <div class="fr-checkbox-group fr-checkbox-group--sm">
+                                                <input id="checkbox-header"
+                                                       type="checkbox"
+                                                       data-checkbox-selection-target="pageCheckbox"
+                                                       data-action="click->checkbox-selection#toggleSelectAllAPageProjets">
+                                                <label class="fr-label" for="checkbox-header">
+                                                    <span class="fr-sr-only fr-hint-text">Sélectionner tous les projets</span>
+                                                </label>
+                                            </div>
+                                            <details class="gsl-projet-table__action-menu" name="document-actions">
+                                                <summary class="fr-icon--sm fr-icon-arrow-down-s-line blue-color"
+                                                         aria-label="Ouvrir les actions">
+                                                </summary>
+                                                <ul class="new-gsl-dropdown-content arrete-card__actions no-list-style fr-m-0">
+                                                    <li>
+                                                        <a class="fr-btn fr-btn--secondary arrete-card__action"
+                                                           data-checkbox-selection-target="link"
+                                                           data-base-url="{% url "gsl_notification:choose-generated-document-type-multiple" dotation %}">
+                                                            Générer des documents
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </details>
                                         </th>
-                                    {% endfor %}
-                                </tr>
-                            </thead>
-                            <tbody id="projet-list">
-                                <tr data-checkbox-selection-target="selectAllRow"
-                                    class="gsl-projet-table__row--select-all">
-                                    <td colspan="{{ columns|length|add:1 }}">
-                                        <span data-checkbox-selection-target="selectAllRowText"></span>
-                                        <button class='fr-btn fr-btn--tertiary'
-                                                data-action="click->checkbox-selection#toggleSelectAllProjets"
-                                                data-checkbox-selection-target="selectAllButton">
-                                            Sélectionner l'ensemble des projets à notifier ({{ to_notify_projets_count }})
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% for programmation_projet in programmation_projets %}
-                                    {% with projet=programmation_projet.projet dotation_projet=programmation_projet.dotation_projet %}
-                                        <tr>
-                                            <td class="gsl-projet-table__sticky-left-1">
-                                                {% if programmation_projet.projet.to_notify %}
-                                                    <div class="fr-checkbox-group fr-checkbox-group--sm">
-                                                        <input id="checkbox-{{ programmation_projet.id }}"
-                                                               type="checkbox"
-                                                               data-checkbox-selection-target="button"
-                                                               data-action="click->checkbox-selection#toggleProjetCheckbox">
-                                                        <label class="fr-label gsl-projet-table__checkbox-label"
-                                                               for="checkbox-{{ programmation_projet.id }}">
-                                                            <span class="fr-sr-only fr-hint-text">Cocher le projet N°{{ programmation_projet.projet.dossier_ds.ds_number }}</span>
-                                                        </label>
-                                                    </div>
-                                                {% endif %}
-                                            </td>
-                                            {% for column in columns %}
-                                                {% if column.key == "notification" %}
-                                                    <td class="{{ column.td_classes }}"
-                                                        {% if programmation_projet.dotation_projet.other_dotations %}rowspan="{{ programmation_projet.dotation_projet.other_dotations|length|add:1 }}"{% endif %}>
-                                                        {% include column.resolved_template_name %}
-                                                    </td>
+                                        {% for column in columns %}
+                                            <th scope="col" class="{{ column.th_classes }}">
+                                                {% if column.header_template_name %}
+                                                    {% include column.header_template_name %}
                                                 {% else %}
+                                                    {% include "gsl_core/table_cells/_default_header.html" %}
+                                                {% endif %}
+                                            </th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody id="projet-list">
+                                    <tr data-checkbox-selection-target="selectAllRow"
+                                        class="gsl-projet-table__row--select-all">
+                                        <td colspan="{{ columns|length|add:1 }}">
+                                            <span data-checkbox-selection-target="selectAllRowText"></span>
+                                            <button class='fr-btn fr-btn--tertiary'
+                                                    data-action="click->checkbox-selection#toggleSelectAllProjets"
+                                                    data-checkbox-selection-target="selectAllButton">
+                                                Sélectionner l'ensemble des projets à notifier ({{ to_notify_projets_count }})
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% for programmation_projet in programmation_projets %}
+                                        {% with projet=programmation_projet.projet dotation_projet=programmation_projet.dotation_projet %}
+                                            <tr>
+                                                <td class="gsl-projet-table__sticky-left-1">
+                                                    {% if programmation_projet.projet.to_notify %}
+                                                        <div class="fr-checkbox-group fr-checkbox-group--sm">
+                                                            <input id="checkbox-{{ programmation_projet.id }}"
+                                                                   type="checkbox"
+                                                                   data-checkbox-selection-target="button"
+                                                                   data-action="click->checkbox-selection#toggleProjetCheckbox">
+                                                            <label class="fr-label gsl-projet-table__checkbox-label"
+                                                                   for="checkbox-{{ programmation_projet.id }}">
+                                                                <span class="fr-sr-only fr-hint-text">Cocher le projet N°{{ programmation_projet.projet.dossier_ds.ds_number }}</span>
+                                                            </label>
+                                                        </div>
+                                                    {% endif %}
+                                                </td>
+                                                {% for column in columns %}
                                                     <td class="{{ column.td_classes }}">
                                                         {% include column.resolved_template_name %}
                                                     </td>
-                                                {% endif %}
-                                            {% endfor %}
+                                                {% endfor %}
+                                            </tr>
+                                            {% include "gsl_programmation/table_cells/_other_dotation_row.html" %}
+                                        {% endwith %}
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="{{ columns|length|add:1 }}">
+                                                Liste vide.
+                                            </td>
                                         </tr>
-                                        {% include "gsl_programmation/table_cells/_other_dotation_row.html" %}
-                                    {% endwith %}
-                                {% empty %}
-                                    <tr>
-                                        <td colspan="{{ columns|length|add:1 }}">
-                                            Liste vide.
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
+                {% if is_paginated %}
+                    <div class="fr-table__footer">
+                        <div class="fr-table__footer--middle">
+                            {% dsfr_pagination page_obj %}
+                        </div>
+                    </div>
+                {% endif %}
             </div>
-            {% if is_paginated %}
-                <div class="fr-table__footer">
-                    <div class="fr-table__footer--middle">
-                        {% dsfr_pagination page_obj %}
-                    </div>
-                </div>
-            {% endif %}
         </div>
     {% endblock tab_content %}
 {% endblock content %}
