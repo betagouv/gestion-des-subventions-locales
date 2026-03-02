@@ -1,19 +1,23 @@
 from functools import cached_property
 
+from django.contrib import messages
 from django.db.models import Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET
-from django.views.generic import ListView
+from django.views.generic import ListView, UpdateView
 from django_filters.views import FilterView
 
 from gsl_core.exceptions import Http404
 from gsl_projet.constants import PROJET_STATUS_CHOICES
+from gsl_projet.forms import ProjetCommentForm
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomSelectWidget
 from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_filters import BaseProjetFilters, ProjetOrderingFilter
 from gsl_projet.utils.projet_page import PROJET_MENU
+from gsl_projet.utils.utils import get_comment_cards
 
 from .models import CategorieDetr, Projet
 
@@ -49,6 +53,7 @@ def _get_projet_context_info(projet_id):
         "menu_dict": PROJET_MENU,
         "projet_notes": projet.notes.all(),
         "dotation_projets": projet.dotationprojet_set.all(),
+        "comment_cards": get_comment_cards(projet),
     }
     return context
 
@@ -65,6 +70,32 @@ def get_projet(request, projet_id):
 def get_projet_notes(request, projet_id):
     context = _get_projet_context_info(projet_id)
     return render(request, "gsl_projet/projet/tab_notes.html", context)
+
+
+class ProjetCommentUpdateView(UpdateView):
+    model = Projet
+    form_class = ProjetCommentForm
+    pk_url_kwarg = "projet_id"
+    http_method_names = ["post"]
+
+    def get_queryset(self):
+        return Projet.objects.for_user(self.request.user)
+
+    def _get_redirect_url(self):
+        next_url = self.request.POST.get("next")
+        if next_url and url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts=self.request.get_host()
+        ):
+            return next_url
+        return reverse("projet:get-projet-notes", kwargs={"projet_id": self.object.pk})
+
+    def form_valid(self, form):
+        self.object = form.save()
+        messages.success(self.request, "Le commentaire a été enregistré avec succès.")
+        return redirect(self._get_redirect_url())
+
+    def form_invalid(self, form):
+        return redirect(self._get_redirect_url())
 
 
 class ProjetListViewFilters(BaseProjetFilters):

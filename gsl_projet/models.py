@@ -302,7 +302,9 @@ class Projet(BaseModel):
         default=False,
     )
     contrat_local = models.CharField("Nom du contrat local", blank=True)
-    free_comment = models.TextField("Commentaires libres", blank=True, default="")
+    comment_1 = models.TextField("Commentaire 1", blank=True, default="")
+    comment_2 = models.TextField("Commentaire 2", blank=True, default="")
+    comment_3 = models.TextField("Commentaire 3", blank=True, default="")
 
     objects = ProjetManager()
 

@@ -2,6 +2,16 @@
 {% load static %}
 
 {% block tab_projet %}
+    <h2 class="fr-mb-4w">
+        <span class="fr-icon-edit-box-fill fr-icon--lg blue-color"
+              aria-hidden="true"></span>
+        Commentaires d'arbitrage
+    </h2>
+
+    {% for card in comment_cards %}
+        {% include "includes/_comment_arbitrage_card.html" with comment_num=card.num comment_value=card.value comment_form=card.form projet=projet %}
+    {% endfor %}
+
     {% include "includes/_notes_detail.html" %}
     {% block block_projet_notes %}
         {% if projet_notes %}

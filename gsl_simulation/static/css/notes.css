@@ -1,8 +1,10 @@
-.note-card {
+.note-card,
+.comment-card {
   border: 1px solid var(--border-default-grey);
 }
 
-.note-card-header {
+.note-card-header,
+.comment-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
