@@ -111,7 +111,7 @@ if DEBUG:
 AUTHENTICATION_BACKENDS = [
     "axes.backends.AxesBackend",
     "gsl_oidc.backends.OIDCAuthenticationBackend",
-    "django.contrib.auth.backends.ModelBackend",
+    "gsl_core.auth_backends.LastLoginDeactivationBackend",
 ]
 
 AUTH_USER_MODEL = "gsl_core.Collegue"
