@@ -62,7 +62,7 @@ def test_order_couples_tuple_by_first_value_empty_choices():
 )
 def test_compute_taux(numerator, denominator, expected_taux):
     taux = compute_taux(numerator, denominator)
-    assert taux == round(Decimal(expected_taux), 3)
+    assert taux == round(Decimal(expected_taux), 4)
 
 
 @pytest.mark.django_db

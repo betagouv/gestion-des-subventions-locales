@@ -406,12 +406,12 @@ def test_patch_montant_simulation_projet(
         dotations_to_be_checked=[accepted_simulation_projet.dotation],
         assiette=accepted_simulation_projet.dotation_projet.assiette,
         montant=1267.32,
-        taux=12.673,
+        taux=12.6732,
     )
 
     assert response.status_code == 200
     assert updated_simulation_projet.montant == Decimal("1267.32")
-    assert updated_simulation_projet.taux == Decimal("12.673")
+    assert updated_simulation_projet.taux == Decimal("12.6732")
     assert (
         '<span hx-swap-oob="innerHTML" id="total-amount-granted">1\xa0267\xa0€</span>'
         in response.content.decode()

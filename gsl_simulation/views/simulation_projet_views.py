@@ -88,7 +88,7 @@ def patch_taux_simulation_projet(request, pk):
     simulation_projet = get_object_or_404(
         SimulationProjet.objects.in_user_perimeter(request.user), id=pk
     )
-    new_taux = replace_comma_by_dot(request.POST.get("taux"))
+    new_taux = replace_comma_by_dot(request.POST.get("taux"), decimals=3)
     try:
         with transaction.atomic():
             DotationProjetService.validate_taux(new_taux)

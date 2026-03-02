@@ -48,7 +48,7 @@ def _get_montant_taux_demandes(context):
     pp = context.get("programmation_projet")
     montant = pp.projet.dossier_ds.demande_montant if pp else None
     taux = pp.dotation_projet.taux_de_subvention_sollicite if pp else None
-    return format_html("{}<br>{}", euro_value(montant), percent(taux))
+    return format_html("{}<br>{}", euro_value(montant), percent(taux, 2))
 
 
 COLUMN_MONTANT_TAUX_DEMANDES = Column(
@@ -123,7 +123,7 @@ COLUMN_MONTANT_RETENU = Column(
 COLUMN_TAUX = Column(
     key="taux",
     label="Taux de subvention (%)",
-    getter=lambda ctx: percent_value(ctx["programmation_projet"].taux),
+    getter=lambda ctx: percent_value(ctx["programmation_projet"].taux, 2),
     other_dotation_getter=_get_other_dotation_taux,
     text_align=TextAlign.RIGHT,
 )

@@ -15,9 +15,11 @@ def transform_choices_to_map(choices: tuple[tuple[str, str], ...]) -> dict[str, 
     return {key: value for key, value in choices}
 
 
-def compute_taux(numerator: float | Decimal, denominator: float | Decimal) -> Decimal:
+def compute_taux(
+    numerator: float | Decimal, denominator: float | Decimal, decimals: int = 3
+) -> Decimal:
     try:
-        new_taux = round((Decimal(numerator) / Decimal(denominator)) * 100, 3)
+        new_taux = round((Decimal(numerator) / Decimal(denominator)) * 100, decimals)
         return max(new_taux, Decimal(0))
     except TypeError:
         return Decimal(0)

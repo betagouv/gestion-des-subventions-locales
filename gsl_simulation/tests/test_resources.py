@@ -146,7 +146,7 @@ def test_detr_simulation_projet(detr_simulation_projet):
     )
     assert (
         splited_data[1]
-        == "01/12/2024,12345678,Intitulé,Commune de Baume-les-Messieurs,Jean-Marc Jancovici,39210,Lons-le-Saunier,Non,120000.00,100000.00,30000.00,25.00,25000.00,25.000,🔄 En traitement,01/01/2025,01/05/2025,Oui,Non,Non,2,Ceci est une annotation,Ceci est une annotation 2,Ceci est une annotation 3,Non,Oui\r"
+        == "01/12/2024,12345678,Intitulé,Commune de Baume-les-Messieurs,Jean-Marc Jancovici,39210,Lons-le-Saunier,Non,120000.00,100000.00,30000.00,25.0000,25000.00,25.0000,🔄 En traitement,01/01/2025,01/05/2025,Oui,Non,Non,2,Ceci est une annotation,Ceci est une annotation 2,Ceci est une annotation 3,Non,Oui\r"
     )
 
 
@@ -183,5 +183,5 @@ def test_dsil_simulation_projet(dsil_simulation_projet):
     )
     assert (
         splited_data[1]
-        == "01/12/2024,12345678,Intitulé,Commune de Baume-les-Messieurs,Jean-Marc Jancovici,39210,Lons-le-Saunier,Non,120000.00,90000.00,30000.00,25.00,30000.00,33.333,✅ Accepté,01/01/2025,01/05/2025,Oui,Non,Non,2,Ceci est une annotation,Ceci est une annotation 2,Ceci est une annotation 3\r"
+        == "01/12/2024,12345678,Intitulé,Commune de Baume-les-Messieurs,Jean-Marc Jancovici,39210,Lons-le-Saunier,Non,120000.00,90000.00,30000.00,25.0000,30000.00,33.3333,✅ Accepté,01/01/2025,01/05/2025,Oui,Non,Non,2,Ceci est une annotation,Ceci est une annotation 2,Ceci est une annotation 3\r"
     )

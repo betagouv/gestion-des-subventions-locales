@@ -599,7 +599,7 @@ class Dossier(BaseModel):
     @property
     def taux_demande(self):
         if self.finance_cout_total and self.demande_montant:
-            return round(self.demande_montant / self.finance_cout_total * 100, 2)
+            return round(self.demande_montant / self.finance_cout_total * 100, 4)
         return None
 
     @property

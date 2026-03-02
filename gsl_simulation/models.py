@@ -188,7 +188,9 @@ class SimulationProjet(BaseModel):
 
     @property
     def taux(self):
-        return compute_taux(self.montant, self.dotation_projet.assiette_or_cout_total)
+        return compute_taux(
+            self.montant, self.dotation_projet.assiette_or_cout_total, decimals=4
+        )
 
     def clean(self):
         errors = {}

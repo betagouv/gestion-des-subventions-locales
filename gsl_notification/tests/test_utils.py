@@ -53,7 +53,7 @@ def programmation_projet():
         (2, "Intitulé du projet", "Nouvelle plaque d'égoûts"),
         (3, "Nom du département", "Haute-Garonne"),
         (4, "Montant prévisionnel de la subvention", "2 000,50 €"),
-        (5, "Taux de subvention", "10,002 %"),
+        (5, "Taux de subvention", "10,0025 %"),
         (6, "Date de commencement", "12/07/1998"),
         (7, "Date d'achèvement", "31/07/2024"),
     ),
