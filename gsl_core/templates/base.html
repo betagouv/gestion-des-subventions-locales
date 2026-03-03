@@ -67,7 +67,10 @@
         <meta name="htmx-config"
               content='{"includeIndicatorStyles":false,"allowScriptTags":false,"allowEval":false}'>
 
-        {% if ENV == "prod" %}
+        {% if MATOMO_SITE_ID %}
+            <script nonce="{{ request.csp_nonce }}">
+                window.MATOMO_SITE_ID = {{ MATOMO_SITE_ID }};
+            </script>
             <script src="{% static "js/matomo.js" %}" nonce="{{request.csp_nonce}}" defer></script>
         {% endif %}
 
