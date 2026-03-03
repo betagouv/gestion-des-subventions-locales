@@ -1,0 +1,10 @@
+{% load gsl_filters %}
+{% column_cell_value column as cell_value %}
+
+{% if cell_value %}
+    <span class="fr-badge fr-badge--sm fr-badge--success fr-badge--no-icon">Oui</span>
+{% elif cell_value is False %}
+    <span class="fr-badge fr-badge--sm fr-badge--error fr-badge--no-icon">Non</span>
+{% else %}
+    <span class="fr-badge fr-badge--sm">/</span>
+{% endif %}

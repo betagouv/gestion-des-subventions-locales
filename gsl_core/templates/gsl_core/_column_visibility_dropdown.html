@@ -13,7 +13,9 @@
         {% for column in columns %}
             {% if column.hideable %}
                 <div class="fr-checkbox-group fr-checkbox-group--sm">
-                    <input type="checkbox" id="toggle-col-{{ column.css_key }}" checked>
+                    <input type="checkbox"
+                           id="toggle-col-{{ column.css_key }}"
+                           {% if column.displayed_by_default %}checked{% endif %}>
                     <label class="fr-label" for="toggle-col-{{ column.css_key }}">
                         {{ column.label }}
                     </label>
