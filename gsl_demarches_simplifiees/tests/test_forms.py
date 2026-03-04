@@ -169,6 +169,30 @@ class TestDossierReporteSansPieceForm:
             form.save()
             mock_service.assert_called_once_with(projet)
 
+    def test_form_save_updates_dotations_has_been_updated_in_app_on_projet(self):
+        dossier = DossierFactory()
+        projet = ProjetFactory(
+            dossier_ds=dossier,
+            dotations_updated_in_app=False,
+        )
+        assert projet.dotations_updated_in_app is False
+
+        form_data = {
+            "demande_dispositif_sollicite": [DOTATION_DETR],
+            "finance_cout_total": "100000.00",
+            "demande_montant": "50000.00",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+        with patch(
+            "gsl_demarches_simplifiees.forms.DotationProjetService.create_or_update_dotation_projet_from_projet"
+        ):
+            form.save()
+
+        projet.refresh_from_db()
+        assert projet.dotations_updated_in_app is True
+
     def test_form_save_with_double_dotation_updates_dispositif(self):
         dossier = DossierFactory(demande_dispositif_sollicite="")
         ProjetFactory(dossier_ds=dossier)

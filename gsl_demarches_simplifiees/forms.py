@@ -91,6 +91,9 @@ class DossierReporteSansPieceForm(forms.ModelForm, DsfrBaseForm):
         if DOTATION_DSIL not in dotations:
             self.instance.demande_categorie_dsil = None
 
+        self.instance.projet.dotations_updated_in_app = True
+        self.instance.projet.save()
+
         instance = super().save(commit=commit)
         service = DotationProjetService()
         service.create_or_update_dotation_projet_from_projet(instance.projet)
