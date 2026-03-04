@@ -65,6 +65,11 @@ def _get_montant_retenu(context):
     return euro_value(montant)
 
 
+def _get_other_dotation_assiette(context):
+    dp = context["other_dotation"]
+    return euro_value(dp.assiette, 2)
+
+
 def _get_other_dotation_montant_retenu(context):
     dp = context["other_dotation"]
     simu = dp.last_updated_simulation_projet
@@ -98,6 +103,14 @@ def _get_other_dotation_statut(context):
         simu.get_status_display(),
     )
 
+
+COLUMN_ASSIETTE = Column(
+    key="assiette",
+    label="Assiette (€)",
+    getter=lambda ctx: euro_value(ctx["programmation_projet"].dotation_projet.assiette),
+    other_dotation_getter=_get_other_dotation_assiette,
+    text_align=TextAlign.RIGHT,
+)
 
 COLUMN_MONTANT_RETENU = Column(
     key="montant_retenu",
@@ -149,6 +162,7 @@ PROGRAMMATION_TABLE_COLUMNS = (
     COLUMN_BUDGET_VERT_INSTRUCTEUR,
     COLUMN_COUT_TOTAL,
     COLUMN_MONTANT_TAUX_DEMANDES,
+    COLUMN_ASSIETTE,
     COLUMN_MONTANT_RETENU,
     COLUMN_TAUX,
     COLUMN_CATEGORIE,
