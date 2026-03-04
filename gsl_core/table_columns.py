@@ -83,6 +83,7 @@ class Column:
     aggregate_key: Optional[str] = None
     aggregate_id: Optional[str] = None
     header_template_name: Optional[str] = None
+    header_help_text: Optional[str] = None
 
     def __post_init__(self):
         if not self.template_name and not self.getter:
@@ -229,11 +230,15 @@ COLUMN_DOTATIONS_SOLLICITEES = Column(
     displayed_by_default=False,
 )
 
+
+def _format_date_or_dash(date):
+    return date.strftime("%d/%m/%Y") if date else "—"
+
+
 COLUMN_DATE_DEBUT_PROJET = Column(
     key="date_debut_projet",
     label="Date de commencement de l'opération",
-    getter=lambda ctx: ctx["projet"].dossier_ds.date_debut,
-    template_name="gsl_core/table_cells/date.html",
+    getter=lambda ctx: _format_date_or_dash(ctx["projet"].dossier_ds.date_debut),
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
 )
@@ -241,8 +246,7 @@ COLUMN_DATE_DEBUT_PROJET = Column(
 COLUMN_DATE_FIN_PROJET = Column(
     key="date_achevement",
     label="Date prévisionnelle d'achèvement de l'opération",
-    getter=lambda ctx: ctx["projet"].dossier_ds.date_achevement,
-    template_name="gsl_core/table_cells/date.html",
+    getter=lambda ctx: _format_date_or_dash(ctx["projet"].dossier_ds.date_achevement),
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
 )
@@ -291,4 +295,5 @@ COLUMN_COMPLETED_DOSSIER = Column(
     template_name="gsl_core/table_cells/_yes_no_cell.html",
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
+    header_help_text="Non complet signifie que le dossier est en construction sur DN.",
 )
