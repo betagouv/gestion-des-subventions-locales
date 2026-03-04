@@ -226,7 +226,8 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             return
 
         new_dotations = set(dotations) - set(projet.dotations)
-        dotation_to_remove = set(projet.dotations) - set(dotations)
+        dotation_to_remove = set[POSSIBLE_DOTATIONS](projet.dotations) - set(dotations)
+        dotations_has_been_updated_in_app = new_dotations or dotation_to_remove
 
         for dotation in new_dotations:
             dotation_projet = DotationProjet.objects.create(
@@ -257,6 +258,10 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             )
 
         dotation_projet_to_remove.delete()
+
+        if dotations_has_been_updated_in_app:
+            projet.dotations_has_been_updated_in_app = True
+            projet.save()
 
 
 class DotationProjetForm(ModelForm):
