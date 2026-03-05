@@ -25,7 +25,10 @@ def test_taux_demande(demande_montant, finance_cout_total, expected_taux):
         demande_montant=demande_montant,
         finance_cout_total=finance_cout_total,
     )
-    assert dossier.taux_demande == expected_taux
+    if expected_taux is None:
+        assert dossier.taux_demande is None
+    else:
+        assert round(dossier.taux_demande, 4) == expected_taux
 
 
 @pytest.mark.parametrize(

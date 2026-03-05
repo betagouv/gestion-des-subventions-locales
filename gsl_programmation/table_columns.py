@@ -79,7 +79,7 @@ def _get_other_dotation_montant_retenu(context):
 def _get_other_dotation_taux(context):
     dp = context["other_dotation"]
     simu = dp.last_updated_simulation_projet
-    return percent_value(simu.taux) if simu else "—"
+    return percent_value(simu.taux, 2) if simu else "—"
 
 
 def _get_other_dotation_documents(context):

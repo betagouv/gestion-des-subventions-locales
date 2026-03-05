@@ -281,9 +281,7 @@ class ProgrammationProjet(models.Model):
 
     @property
     def taux(self):
-        return compute_taux(
-            self.montant, self.dotation_projet.assiette_or_cout_total, decimals=4
-        )
+        return compute_taux(self.montant, self.dotation_projet.assiette_or_cout_total)
 
     @property
     @deprecated("Use `Projet.to_notify` instead.")

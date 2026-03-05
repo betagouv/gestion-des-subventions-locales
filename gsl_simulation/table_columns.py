@@ -39,7 +39,7 @@ def _get_montant_sollicite(context):
     montant = projet.dossier_ds.demande_montant if projet else None
     dp = context.get("dotation_projet")
     taux = dp.taux_de_subvention_sollicite if dp else None
-    return format_html("{}<br>{}", euro_value(montant, 2), percent(taux))
+    return format_html("{}<br>{}", euro_value(montant, 2), percent(taux, 2))
 
 
 COLUMN_MONTANT_SOLLICITE = Column(
@@ -69,7 +69,7 @@ def _get_simu_other_dotation_taux(context):
     simu = dp.last_updated_simulation_projet
     if not simu:
         return "—"
-    return format_html("<b>{}</b>", percent_value(simu.taux))
+    return format_html("<b>{}</b>", percent_value(simu.taux, 2))
 
 
 def _get_simu_other_dotation_statut(context):
