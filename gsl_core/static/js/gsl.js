@@ -46,9 +46,18 @@ document.querySelectorAll('.gsl-column-visibility-dropdown[data-table-id]')
 
     // Restore saved state
     try {
-      const hidden = JSON.parse(window.localStorage.getItem(storageKey))
-      if (Array.isArray(hidden)) {
-        hidden.forEach(cssKey => {
+      const saved = JSON.parse(window.localStorage.getItem(storageKey))
+      if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+        // New format: object {cssKey: true/false} — only override known columns
+        checkboxes.forEach(checkbox => {
+          const cssKey = checkbox.id.replace('toggle-col-', '')
+          if (cssKey in saved) {
+            checkbox.checked = saved[cssKey]
+          }
+        })
+      } else if (Array.isArray(saved)) {
+        // Legacy format: array of hidden column keys — migrate
+        saved.forEach(cssKey => {
           const checkbox = dropdown.querySelector('#toggle-col-' + cssKey)
           if (checkbox) {
             checkbox.checked = false
@@ -59,20 +68,15 @@ document.querySelectorAll('.gsl-column-visibility-dropdown[data-table-id]')
       // Ignore malformed localStorage data
     }
 
-    // Save state on change
+    // Save state on change — store overrides vs HTML defaults
     checkboxes.forEach(checkbox => {
       checkbox.addEventListener('change', () => {
-        const unchecked = []
+        const overrides = {}
         checkboxes.forEach(cb => {
-          if (!cb.checked) {
-            unchecked.push(cb.id.replace('toggle-col-', ''))
-          }
+          const cssKey = cb.id.replace('toggle-col-', '')
+          overrides[cssKey] = cb.checked
         })
-        if (unchecked.length === 0) {
-          window.localStorage.removeItem(storageKey)
-        } else {
-          window.localStorage.setItem(storageKey, JSON.stringify(unchecked))
-        }
+        window.localStorage.setItem(storageKey, JSON.stringify(overrides))
       })
     })
   })
