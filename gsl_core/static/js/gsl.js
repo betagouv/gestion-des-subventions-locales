@@ -68,6 +68,14 @@ document.querySelectorAll('.gsl-column-visibility-dropdown[data-table-id]')
       // Ignore malformed localStorage data
     }
 
+    // Reset to defaults when form is reset
+    const form = dropdown.querySelector('form')
+    if (form) {
+      form.addEventListener('reset', () => {
+        window.localStorage.removeItem(storageKey)
+      })
+    }
+
     // Save state on change — store overrides vs HTML defaults
     checkboxes.forEach(checkbox => {
       checkbox.addEventListener('change', () => {
