@@ -647,6 +647,59 @@ class Dossier(BaseModel):
             or bool(self.annotations_champ_libre_3)
         )
 
+    @property
+    def has_missing_annotations(self):
+        if self.ds_state != self.STATE_ACCEPTE:
+            return False
+
+        if not self.annotations_dotation or self.annotations_dotation in ("[]", ""):
+            return True
+
+        if "DETR" in self.annotations_dotation:
+            if (
+                self.annotations_assiette_detr is None
+                or self.annotations_montant_accorde_detr is None
+            ):
+                return True
+
+        if "DSIL" in self.annotations_dotation:
+            if (
+                self.annotations_assiette_dsil is None
+                or self.annotations_montant_accorde_dsil is None
+            ):
+                return True
+
+        return False
+
+    @property
+    def missing_annotations_details(self) -> list[str]:
+        if not self.has_missing_annotations:
+            return []
+
+        if not self.annotations_dotation or self.annotations_dotation in ("[]", ""):
+            return ["Aucune dotation n'est cochée"]
+
+        details = []
+        if "DETR" in self.annotations_dotation:
+            if (
+                not self.annotations_assiette_detr
+                or not self.annotations_montant_accorde_detr
+            ):
+                details.append(
+                    "L'assiette et/ou le montant associés sont manquants pour la dotation DETR"
+                )
+
+        if "DSIL" in self.annotations_dotation:
+            if (
+                not self.annotations_assiette_dsil
+                or not self.annotations_montant_accorde_dsil
+            ):
+                details.append(
+                    "L'assiette et/ou le montant associés sont manquants pour la dotation DSIL"
+                )
+
+        return details
+
 
 class DsChoiceLibelle(BaseModel):
     label = models.CharField("Libellé", unique=True)

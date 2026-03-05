@@ -84,6 +84,21 @@
         {% endcomment %}
     </ul>
 
+    {% if dossier.has_missing_annotations %}
+        <div role="alert" class="fr-alert fr-alert--error fr-mb-4w">
+            <p class="fr-alert__title">
+                Annotations manquantes
+            </p>
+            {% with dossier.url_on_ds|add:"/annotations-privees" as annotations_url %}
+                <p>
+                    Le projet est accepté sur DN mais les annotations sont manquantes. Nous ne pouvons pas mettre correctement à jour le projet. Veuillez renseigner les annotations manquantes <a href="{{ annotations_url }}"
+    target="_blank"
+    rel="noreferrer noopener">directement sur DN</a>.
+                </p>
+            {% endwith %}
+        </div>
+    {% endif %}
+
     {% block tabs_list %}
         {% include "gsl_projet/projet/tabs.html" %}
     {% endblock tabs_list %}

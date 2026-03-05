@@ -55,6 +55,13 @@ def test_list_with_only_visible_projets_for_user(
 
 
 @pytest.mark.django_db
+def test_missing_annotations_list(client_with_55_user_logged):
+    url = reverse("projet:missing-annotations-list")
+    response = client_with_55_user_logged.get(url, follow=True)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
 def test_projet_detail_visible_by_user_with_correct_perimetre(
     client_with_55_user_logged, projets_from_55
 ):

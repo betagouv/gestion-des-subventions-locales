@@ -26,6 +26,11 @@ urlpatterns = [
     ),
     path("liste", views.ProjetListView.as_view(), name="list"),
     path(
+        "liste/annotations-manquantes",
+        views.ProjetMissingAnnotationsListView.as_view(),
+        name="missing-annotations-list",
+    ),
+    path(
         "enveloppe/ajouter/",
         EnveloppeCreateView.as_view(),
         name="enveloppe-create",

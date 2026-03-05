@@ -237,6 +237,30 @@ class ProjetQuerySet(models.QuerySet):
             )
         )
 
+    def with_missing_annotations(self):
+        """Projets dont le dossier DS est accepté mais a des annotations DETR/DSIL incomplètes."""
+        return self.filter(
+            dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
+        ).filter(
+            Q(dossier_ds__annotations_dotation="")
+            | Q(dossier_ds__annotations_dotation="[]")
+            | Q(dossier_ds__annotations_dotation__isnull=True)
+            | (
+                Q(dossier_ds__annotations_dotation__contains="DETR")
+                & (
+                    Q(dossier_ds__annotations_assiette_detr__isnull=True)
+                    | Q(dossier_ds__annotations_montant_accorde_detr__isnull=True)
+                )
+            )
+            | (
+                Q(dossier_ds__annotations_dotation__contains="DSIL")
+                & (
+                    Q(dossier_ds__annotations_assiette_dsil__isnull=True)
+                    | Q(dossier_ds__annotations_montant_accorde_dsil__isnull=True)
+                )
+            )
+        )
+
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
     def get_queryset(self):

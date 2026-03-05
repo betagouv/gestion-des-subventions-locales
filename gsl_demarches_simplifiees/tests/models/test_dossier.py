@@ -1,6 +1,6 @@
 import pytest
 
-from gsl_demarches_simplifiees.models import DossierData
+from gsl_demarches_simplifiees.models import Dossier, DossierData
 from gsl_demarches_simplifiees.tests.factories import (
     DossierDataFactory,
     DossierFactory,
@@ -53,6 +53,54 @@ def test_has_annotations_champ_libre(
         annotations_champ_libre_3=annotations_champ_libre_3,
     )
     assert dossier.has_annotations_champ_libre == expected_has_annotations_champ_libre
+
+
+@pytest.mark.parametrize(
+    "ds_state, annotations_dotation, annotations_assiette_detr, annotations_montant_accorde_detr, annotations_assiette_dsil, annotations_montant_accorde_dsil, expected",
+    [
+        # Non-accepted state → always False
+        (Dossier.STATE_EN_INSTRUCTION, "", None, None, None, None, False),
+        (Dossier.STATE_REFUSE, "DETR", 100, 50, None, None, False),
+        # Accepted but no annotations_dotation → True (missing)
+        (Dossier.STATE_ACCEPTE, "", None, None, None, None, True),
+        (Dossier.STATE_ACCEPTE, "[]", None, None, None, None, True),
+        (Dossier.STATE_ACCEPTE, None, None, None, None, None, True),
+        # DETR: missing assiette or montant → True
+        (Dossier.STATE_ACCEPTE, "DETR", None, 50, None, None, True),
+        (Dossier.STATE_ACCEPTE, "DETR", 100, None, None, None, True),
+        (Dossier.STATE_ACCEPTE, "DETR", None, None, None, None, True),
+        # DETR: both filled → False
+        (Dossier.STATE_ACCEPTE, "DETR", 100, 50, None, None, False),
+        # DSIL: missing assiette or montant → True
+        (Dossier.STATE_ACCEPTE, "DSIL", None, None, None, 50, True),
+        (Dossier.STATE_ACCEPTE, "DSIL", None, None, 100, None, True),
+        (Dossier.STATE_ACCEPTE, "DSIL", None, None, None, None, True),
+        # DSIL: both filled → False
+        (Dossier.STATE_ACCEPTE, "DSIL", None, None, 100, 50, False),
+        # DETR, DSIL combined: DETR checked first, so if DETR missing → True
+        (Dossier.STATE_ACCEPTE, "DETR, DSIL", None, 50, 100, 50, True),
+        # Both dotations complete → False
+        (Dossier.STATE_ACCEPTE, "DETR, DSIL", 100, 50, 100, 50, False),
+    ],
+)
+def test_has_missing_annotations(
+    ds_state,
+    annotations_dotation,
+    annotations_assiette_detr,
+    annotations_montant_accorde_detr,
+    annotations_assiette_dsil,
+    annotations_montant_accorde_dsil,
+    expected,
+):
+    dossier = DossierFactory(
+        ds_state=ds_state,
+        annotations_dotation=annotations_dotation or "",
+        annotations_assiette_detr=annotations_assiette_detr,
+        annotations_montant_accorde_detr=annotations_montant_accorde_detr,
+        annotations_assiette_dsil=annotations_assiette_dsil,
+        annotations_montant_accorde_dsil=annotations_montant_accorde_dsil,
+    )
+    assert dossier.has_missing_annotations == expected
 
 
 def test_deleting_dossier_cascade_deletes_dossier_data():
