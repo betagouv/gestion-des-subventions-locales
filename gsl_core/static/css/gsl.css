@@ -629,5 +629,28 @@ ul.no-list-style li {
 .gsl-column-visibility-dropdown .gsl-column-visibility-list {
     display: none;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    padding: 0;
+}
+
+.gsl-column-visibility-list .fr-checkbox-group {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.gsl-column-visibility-list .fr-checkbox-group:first-of-type {
+    padding-top: 10px;
+}
+
+.gsl-column-visibility-list form {
+    display: contents;
+}
+
+.gsl-column-visibility-dropdown .gsl-column-visibility-reset {
+    grid-column: 1 / -1;
+    width: 100%;
+    text-align: left;
+    border-top: 1px solid var(--border-default-grey);
+    padding: 0.75rem 10px 10px;
+    margin-top: 0.25rem;
 }
 
