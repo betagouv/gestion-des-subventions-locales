@@ -3,7 +3,8 @@
     Requires `columns` (list of Column) and `table_wrapper_id` (str) in context.
 {% endcomment %}
 
-<div class="gsl-dropdown gsl-column-visibility-dropdown">
+<div class="gsl-dropdown gsl-column-visibility-dropdown"
+     data-table-id="{{ table_wrapper_id }}">
     <button type="button"
             class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-right fr-icon-arrow-down-s-line">
         Colonnes affichées
