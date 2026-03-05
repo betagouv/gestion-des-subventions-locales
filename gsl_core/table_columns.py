@@ -73,6 +73,7 @@ class Column:
     # Styling
     text_align: Optional[TextAlign] = None
     max_3_lines: bool = False
+    linebreaks: bool = False
 
     # Column visibility toggle
     hideable: bool = True
@@ -296,4 +297,58 @@ COLUMN_COMPLETED_DOSSIER = Column(
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
     header_help_text="Non complet signifie que le dossier est en construction sur DN.",
+)
+
+COLUMN_COMMENT_1 = Column(
+    key="comment_1",
+    label="Commentaire 1",
+    getter=lambda ctx: ctx["projet"].comment_1,
+    displayed_by_default=False,
+    max_3_lines=True,
+    linebreaks=True,
+)
+
+COLUMN_COMMENT_2 = Column(
+    key="comment_2",
+    label="Commentaire 2",
+    getter=lambda ctx: ctx["projet"].comment_2,
+    displayed_by_default=False,
+    max_3_lines=True,
+    linebreaks=True,
+)
+
+COLUMN_COMMENT_3 = Column(
+    key="comment_3",
+    label="Commentaire 3",
+    getter=lambda ctx: ctx["projet"].comment_3,
+    displayed_by_default=False,
+    max_3_lines=True,
+    linebreaks=True,
+)
+
+COLUMN_ANNOTATIONS_CHAMP_LIBRE_1 = Column(
+    key="annotations_champ_libre_1",
+    label="Annotations DN 1",
+    getter=lambda ctx: ctx["projet"].dossier_ds.annotations_champ_libre_1,
+    displayed_by_default=False,
+    max_3_lines=True,
+    linebreaks=True,
+)
+
+COLUMN_ANNOTATIONS_CHAMP_LIBRE_2 = Column(
+    key="annotations_champ_libre_2",
+    label="Annotations DN 2",
+    getter=lambda ctx: ctx["projet"].dossier_ds.annotations_champ_libre_2,
+    displayed_by_default=False,
+    max_3_lines=True,
+    linebreaks=True,
+)
+
+COLUMN_ANNOTATIONS_CHAMP_LIBRE_3 = Column(
+    key="annotations_champ_libre_3",
+    label="Annotations DN 3",
+    getter=lambda ctx: ctx["projet"].dossier_ds.annotations_champ_libre_3,
+    displayed_by_default=False,
+    max_3_lines=True,
+    linebreaks=True,
 )
