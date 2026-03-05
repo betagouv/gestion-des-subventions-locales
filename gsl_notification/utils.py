@@ -83,7 +83,7 @@ def replace_mentions_in_html(
         if id == 4:
             value = euro(value, 2)
         elif id == 5:
-            value = percent(value, 3)
+            value = percent(value, 4)
         elif id in [6, 7]:
             value = value.strftime("%d/%m/%Y") if value else "N/A"
 

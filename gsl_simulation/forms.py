@@ -171,7 +171,9 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
             if assiette is None:
                 assiette = dotation_projet.dossier_ds.finance_cout_total
 
-            computed_taux = compute_taux(cleaned_data.get("montant"), assiette)
+            computed_taux = compute_taux(
+                cleaned_data.get("montant"), assiette, decimals=3
+            )
 
             if computed_taux != self.fields["taux"].initial:
                 self.changed_data.append("taux")

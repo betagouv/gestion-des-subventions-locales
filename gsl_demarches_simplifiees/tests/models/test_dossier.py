@@ -16,8 +16,8 @@ pytestmark = pytest.mark.django_db
         (None, 1_000, None),
         (1_000, None, None),
         (1_000, 10_000, 10),
-        (1_000, 3_000, 33.33),
-        (2_000, 3_000, 66.67),
+        (1_000, 3_000, 33.3333),
+        (2_000, 3_000, 66.6667),
     ),
 )
 def test_taux_demande(demande_montant, finance_cout_total, expected_taux):
@@ -25,7 +25,10 @@ def test_taux_demande(demande_montant, finance_cout_total, expected_taux):
         demande_montant=demande_montant,
         finance_cout_total=finance_cout_total,
     )
-    assert dossier.taux_demande == expected_taux
+    if expected_taux is None:
+        assert dossier.taux_demande is None
+    else:
+        assert round(dossier.taux_demande, 4) == expected_taux
 
 
 @pytest.mark.parametrize(

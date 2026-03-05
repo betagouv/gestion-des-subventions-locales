@@ -3,9 +3,19 @@ from import_export.widgets import (
     BooleanWidget,
     DateTimeWidget,
     DateWidget,
+    Widget,
 )
 
 from gsl_simulation.models import SimulationProjet
+
+
+class TauxWidget(Widget):
+    """Format taux (percentage) to 2 decimal places for CSV export."""
+
+    def render(self, value, obj=None, **kwargs):
+        if value is None:
+            return ""
+        return f"{float(value):.2f}"
 
 
 class OuiNonWidget(BooleanWidget):
@@ -77,6 +87,7 @@ class DsilSimulationProjetResource(ModelResource):
     taux = Field(
         attribute="taux",
         column_name="Taux prévsionnel accordé",
+        widget=TauxWidget(),
     )
     date_debut = Field(
         attribute="projet__dossier_ds__date_debut",
