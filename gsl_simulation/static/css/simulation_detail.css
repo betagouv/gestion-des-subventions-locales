@@ -49,15 +49,10 @@
   border-bottom: 1px solid var(--border-disabled-grey);
 }
 
-.gsl-projet-table table tbody td.gsl-projet-table__cell--other-status {
+.gsl-projet-table__row--other-dotation .gsl-col--statut {
   padding: 0;
   text-align: right;
   white-space: nowrap;
-}
-
-.gsl-projet-table table tbody td.gsl-projet-table__cell--other-status.to_notify {
-  padding: 0;
-  text-align: right;
 }
 
 /* buttons */
@@ -98,7 +93,7 @@
 }
 
 .gsl-projet-table td.gsl-projet-table__cell--status .gsl-projet-table__status-notified,
-.gsl-projet-table td.gsl-projet-table__cell--other-status .gsl-projet-table__status-notified {
+.gsl-projet-table__row--other-dotation .gsl-col--statut .gsl-projet-table__status-notified {
   padding: 4px;
   align-items: flex-end;
   display: flex;

@@ -22,7 +22,7 @@ td.gsl-projet-table__cell--dotation > span:not(:last-child) {
   height: 40px;
 }
 
-.gsl-projet-table td.gsl-projet-table__cell--other-dotation-info {
+.gsl-projet-table__row--other-dotation .gsl-col--intitule {
   text-align: end;
   font-style: italic;
 }

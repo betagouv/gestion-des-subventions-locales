@@ -1,0 +1,9 @@
+{% load gsl_filters %}
+{% if column.has_other_dotation_getter %}
+    {% other_dotation_cell_value column as cell_value %}
+    {% if column.max_3_lines %}
+        <span class="max-3-lines" title="{{ cell_value }}">{{ cell_value }}</span>
+    {% else %}
+        {{ cell_value }}
+    {% endif %}
+{% endif %}

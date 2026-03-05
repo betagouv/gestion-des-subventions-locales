@@ -7,14 +7,15 @@
                 <tr>
                     {% for column in columns %}
                         {% if column.key == "dotation" and is_sans_pieces and not has_dispositif %}
-                            <td class="gsl-money" colspan="3">
+                            <td class="{{ column.td_classes }}">
                                 <a href="{% url 'gsl_demarches_simplifiees:dossier-sans-piece-update' projet.dossier_ds.pk %}"
                                    class="fr-link fr-link--xs fr-link--icon-right fr-icon-edit-line">Renseigner
                                     les
                                 informations</a>
                             </td>
                         {% elif column.key in sans_pieces_skip_keys and is_sans_pieces and not has_dispositif %}
-                            {# skipped, covered by colspan on dotation #}
+                            <td class="{{ column.td_classes }}">
+                            </td>
                         {% elif column.per_dotation %}
                             <td class="{{ column.td_classes }}{% if column.key != 'categorie' %} gsl-projet-table__cell--dotation{% endif %}{% if column.key == 'montant_retenu' and projet.montant_retenu is not None %} gsl-projet-table__montant-retenu{% endif %}{% if column.key == 'statut' %} gsl-nowrap{% endif %}">
                                 {% for dotation_projet in dotation_projets %}

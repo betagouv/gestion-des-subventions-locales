@@ -36,3 +36,43 @@ document.querySelectorAll('.gsl-dropdown button').forEach(button => {
     }
   })
 })
+
+// Persist column visibility choices in localStorage
+document.querySelectorAll('.gsl-column-visibility-dropdown[data-table-id]')
+  .forEach(dropdown => {
+    const tableId = dropdown.dataset.tableId
+    const storageKey = 'gsl-columns-hidden-' + tableId
+    const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]')
+
+    // Restore saved state
+    try {
+      const hidden = JSON.parse(window.localStorage.getItem(storageKey))
+      if (Array.isArray(hidden)) {
+        hidden.forEach(cssKey => {
+          const checkbox = dropdown.querySelector('#toggle-col-' + cssKey)
+          if (checkbox) {
+            checkbox.checked = false
+          }
+        })
+      }
+    } catch (_) {
+      // Ignore malformed localStorage data
+    }
+
+    // Save state on change
+    checkboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', () => {
+        const unchecked = []
+        checkboxes.forEach(cb => {
+          if (!cb.checked) {
+            unchecked.push(cb.id.replace('toggle-col-', ''))
+          }
+        })
+        if (unchecked.length === 0) {
+          window.localStorage.removeItem(storageKey)
+        } else {
+          window.localStorage.setItem(storageKey, JSON.stringify(unchecked))
+        }
+      })
+    })
+  })

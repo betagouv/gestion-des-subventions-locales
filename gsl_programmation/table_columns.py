@@ -15,6 +15,7 @@ COLUMN_INTITULE = Column(
     key="intitule",
     label="Intitulé du projet",
     getter=lambda ctx: ctx["programmation_projet"].projet.dossier_ds.projet_intitule,
+    other_dotation_getter=lambda ctx: f"Informations pour la dotation {ctx['other_dotation'].dotation}",
     link=CellLink(
         url_getter=lambda ctx: ctx["programmation_projet"].get_absolute_url(),
         fr_link=True,
@@ -24,6 +25,7 @@ COLUMN_INTITULE = Column(
         },
         title_from_value=True,
     ),
+    hideable=False,
     sticky=StickyPosition.LEFT_2,
 )
 
@@ -56,10 +58,45 @@ def _get_montant_retenu(context):
     return euro_value(montant)
 
 
+def _get_other_dotation_montant_retenu(context):
+    dp = context["other_dotation"]
+    simu = dp.last_updated_simulation_projet
+    return euro_value(simu.montant, 2) if simu else "—"
+
+
+def _get_other_dotation_taux(context):
+    dp = context["other_dotation"]
+    simu = dp.last_updated_simulation_projet
+    return percent_value(simu.taux) if simu else "—"
+
+
+def _get_other_dotation_documents(context):
+    dp = context["other_dotation"]
+    if not hasattr(dp, "programmation_projet"):
+        return ""
+    documents = dp.programmation_projet.documents_summary
+    if not documents:
+        return ""
+    items = "".join(format_html("<li>{}</li>", doc) for doc in documents)
+    return format_html("<ul>{}</ul>", items)
+
+
+def _get_other_dotation_statut(context):
+    dp = context["other_dotation"]
+    simu = dp.last_updated_simulation_projet
+    if not simu:
+        return ""
+    return format_html(
+        '<div class="gsl-projet-table__status-notified">{}</div>',
+        simu.get_status_display(),
+    )
+
+
 COLUMN_MONTANT_RETENU = Column(
     key="montant_retenu",
     label="Montant prévisionnel accordé (€)",
     getter=_get_montant_retenu,
+    other_dotation_getter=_get_other_dotation_montant_retenu,
     text_align=TextAlign.RIGHT,
 )
 
@@ -67,6 +104,7 @@ COLUMN_TAUX = Column(
     key="taux",
     label="Taux de subvention (%)",
     getter=lambda ctx: percent_value(ctx["programmation_projet"].taux),
+    other_dotation_getter=_get_other_dotation_taux,
     text_align=TextAlign.RIGHT,
 )
 
@@ -74,12 +112,14 @@ COLUMN_DOCUMENTS = Column(
     key="documents",
     label="Documents ajoutés",
     template_name="gsl_programmation/table_cells/documents.html",
+    other_dotation_getter=_get_other_dotation_documents,
 )
 
 COLUMN_STATUT = Column(
     key="statut",
     label="Statut",
     getter=lambda ctx: ctx["programmation_projet"].get_status_display(),
+    other_dotation_getter=_get_other_dotation_statut,
     sticky=StickyPosition.RIGHT_1,
 )
 

@@ -59,6 +59,9 @@ class Column:
     # Getter-based rendering (alternative to template_name)
     getter: Optional[Callable] = None
 
+    # Other-dotation row rendering: receives context with "other_dotation"
+    other_dotation_getter: Optional[Callable] = None
+
     # Link rendering (alternative to custom template for linked values)
     link: Optional[CellLink] = None
 
@@ -68,6 +71,9 @@ class Column:
     # Styling
     text_align: Optional[TextAlign] = None
     max_3_lines: bool = False
+
+    # Column visibility toggle
+    hideable: bool = True
 
     # Existing fields
     sticky: Optional[StickyPosition] = None
@@ -86,8 +92,12 @@ class Column:
         return self.template_name or COMMON_CELL_TEMPLATE
 
     @property
+    def css_key(self) -> str:
+        return self.key.replace("_", "-")
+
+    @property
     def css_class(self) -> str:
-        return f"gsl-col--{self.key.replace('_', '-')}"
+        return f"gsl-col--{self.css_key}"
 
     @property
     def sticky_class(self) -> str:
@@ -113,6 +123,10 @@ class Column:
             filter(None, [self.css_class, self.sticky_class, self.align_class])
         )
 
+    @property
+    def has_other_dotation_getter(self) -> bool:
+        return self.other_dotation_getter is not None
+
 
 # Shared column instances used across multiple tables
 
@@ -128,12 +142,14 @@ COLUMN_INTITULE = Column(
     key="intitule",
     label="Intitulé du projet",
     getter=lambda ctx: ctx["projet"].dossier_ds.projet_intitule,
+    other_dotation_getter=lambda ctx: f"Informations pour la dotation {ctx['other_dotation'].dotation}",
     link=CellLink(
         url_getter=lambda ctx: ctx["row_url"],
         fr_link=True,
         keep_querystring=True,
         title_from_value=True,
     ),
+    hideable=False,
     sticky=StickyPosition.LEFT_2,
 )
 
@@ -165,15 +181,11 @@ COLUMN_NOTIFICATION = Column(
 )
 
 
-def get_categorie(context):
-    dotation_projet = context.get("dotation_projet")
+def _categorie_for_dotation_projet(dotation_projet):
     if not dotation_projet:
         return ""
     dotation = dotation_projet.dotation
-    projet = context.get("projet")
-    if not projet:
-        return ""
-    dossier_ds = projet.dossier_ds
+    dossier_ds = dotation_projet.projet.dossier_ds
     if dotation == "DSIL":
         categorie = getattr(dossier_ds, "demande_categorie_dsil", None)
         return categorie.label if categorie else ""
@@ -185,10 +197,17 @@ def get_categorie(context):
     return ""
 
 
+def get_categorie(context):
+    return _categorie_for_dotation_projet(context.get("dotation_projet"))
+
+
 COLUMN_CATEGORIE = Column(
     key="categorie",
     label="Catégorie d'opération",
     getter=get_categorie,
+    other_dotation_getter=lambda ctx: _categorie_for_dotation_projet(
+        ctx["other_dotation"]
+    ),
     max_3_lines=True,
 )
 
