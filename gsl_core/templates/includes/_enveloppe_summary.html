@@ -4,124 +4,141 @@
     <link rel="stylesheet" href="{% static 'css/enveloppe_summary.css' %}">
 {% endblock extra_css %}
 
-<div class="fr-table--lg enveloppe-summary">
-    <table>
-        <thead>
-            <tr>
-                <th>
-                    <div>
-                        <div class="icon">
-                            <span class="fr-icon-mail-fill fr-icon--sm icon"></span>
-                        </div>
-                        <div class="text">
-                            Dotation
-                        </div>
-                    </div>
-                </th>
-                <th>
-                    <div>
-                        <div class="icon">
-                            <span class="fr-icon-road-map-fill fr-icon--sm"></span>
-                        </div>
-                        <div class="text">
-                            Territoire
-                        </div>
-                    </div>
-                </th>
-                <th>
-                    <div>
-                        <div class="icon">
-                            <span class="fr-icon-map-pin-2-fill fr-icon--sm"></span>
-                        </div>
-                        <div class="text">
-                            Nom territoire
-                        </div>
-                    </div>
-                </th>
-                <th>
-                    <div>
-                        <div class="icon">
-                            <span class="fr-icon-coin-fill fr-icon--sm"></span>
-                        </div>
-                        <div class="text min-width-90">
-                            Enveloppe de dotation
-                        </div>
-                    </div>
-                </th>
-                <th>
-                    <div>
-                        <div class="icon">
-                            <span class="fr-icon-coin-fill fr-icon--sm"></span>
-                        </div>
-                        Montant total demandé
-                    </div>
-                </th>
-                <th>
-                    <div>
-                        <div class="icon">
-                            <span class="fr-icon-money-euro-circle-fill fr-icon--sm"></span>
-                        </div>
-                        <div class="text">
-                            Montant accepté
-                        </div>
-                    </div>
-                </th>
-                <th>
-                    <div>
-                        <div class="icon">
-                            <span class="fr-icon-success-fill fr-icon--sm color-icon-success"></span>
-                        </div>
-                        <div class="text">
-                            Projets acceptés
-                        </div>
-                    </div>
-                </th>
-                <th>
-                    <div>
-                        <div class="icon">
-                            <span class="fr-icon-close-circle-fill fr-icon--sm color-icon-error"></span>
-                        </div>
-                        <div class="text">
-                            Projets refusés
-                        </div>
-                    </div>
-                </th>
-                <th>
-                    <div>
-                        <div class="icon">
-                            <span class="fr-icon-folder-2-fill fr-icon--sm"></span>
-                        </div>
-                        <div class="text">
-                            Demandeurs
-                        </div>
-                    </div>
-                </th>
-                <th>
-                    <div>
-                        <div class="icon">
-                            <span class="fr-icon-folder-2-fill fr-icon--sm"></span>
-                        </div>
-                        <div class="text">
-                            Projets déposés
-                        </div>
-                    </div>
-                </th>
-                <th>
-                </th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for enveloppe in enveloppes %}
-                {% include "includes/_enveloppe_summary_line.html" with level=1 %}
-                {% if enveloppes_with_children %}
-                    {% for sous_enveloppe in enveloppe.enveloppe_set.all %}
-                        {% include "includes/_enveloppe_summary_line.html" with enveloppe=sous_enveloppe level=2 %}
+<div class="fr-table enveloppe-summary" data-fr-js-table="true">
+    <div class="fr-table__wrapper" data-fr-js-table-wrapper="true">
+        <div class="fr-table__container">
+            <div class="fr-table__content">
+                <table data-fr-js-table-element="true" class="">
+                    {% if show_caption %}
+                        <caption data-fr-js-table-caption="true" class="enveloppe-summary__caption">
+                            <span class="enveloppe-summary__caption-title">Enveloppes de dotations</span>
+                            <a href="{% url "gsl_projet:enveloppe-create" %}"
+                               class="fr-btn fr-btn--sm fr-btn--icon-left fr-icon-add-line">
+                                Ajouter une enveloppe de dotation
+                            </a>
+                        </caption>
+                    {% endif %}
+                    <thead>
+                        <tr>
+                            <th>
+                                <div>
+                                    <div class="icon">
+                                        <span class="fr-icon-mail-fill fr-icon--sm icon"></span>
+                                    </div>
+                                    <div class="text">
+                                        Dotation
+                                    </div>
+                                </div>
+                            </th>
+                            <th>
+                                <div>
+                                    <div class="icon">
+                                        <span class="fr-icon-road-map-fill fr-icon--sm"></span>
+                                    </div>
+                                    <div class="text">
+                                        Territoire
+                                    </div>
+                                </div>
+                            </th>
+                            <th>
+                                <div>
+                                    <div class="icon">
+                                        <span class="fr-icon-map-pin-2-fill fr-icon--sm"></span>
+                                    </div>
+                                    <div class="text">
+                                        Nom territoire
+                                    </div>
+                                </div>
+                            </th>
+                            <th>
+                                <div>
+                                    <div class="icon">
+                                        <span class="fr-icon-coin-fill fr-icon--sm"></span>
+                                    </div>
+                                    <div class="text">
+                                        Enveloppe de dotation
+                                    </div>
+                                </div>
+                            </th>
+                            <th>
+                                <div>
+                                    <div class="icon">
+                                        <span class="fr-icon-coin-fill fr-icon--sm"></span>
+                                    </div>
+                                    <div class="text">
+                                        Montant total demandé
+                                    </div>
+                                </div>
+                            </th>
+                            <th>
+                                <div>
+                                    <div class="icon">
+                                        <span class="fr-icon-money-euro-circle-fill fr-icon--sm"></span>
+                                    </div>
+                                    <div class="text">
+                                        Montant accepté
+                                    </div>
+                                </div>
+                            </th>
+                            <th>
+                                <div>
+                                    <div class="icon">
+                                        <span class="fr-icon-success-fill fr-icon--sm color-icon-success"></span>
+                                    </div>
+                                    <div class="text">
+                                        Projets acceptés
+                                    </div>
+                                </div>
+                            </th>
+                            <th>
+                                <div>
+                                    <div class="icon">
+                                        <span class="fr-icon-close-circle-fill fr-icon--sm color-icon-error"></span>
+                                    </div>
+                                    <div class="text">
+                                        Projets refusés
+                                    </div>
+                                </div>
+                            </th>
+                            <th>
+                                <div>
+                                    <div class="icon">
+                                        <span class="fr-icon-folder-2-fill fr-icon--sm"></span>
+                                    </div>
+                                    <div class="text">
+                                        Demandeurs
+                                    </div>
+                                </div>
+                            </th>
+                            <th>
+                                <div>
+                                    <div class="icon">
+                                        <span class="fr-icon-folder-2-fill fr-icon--sm"></span>
+                                    </div>
+                                    <div class="text">
+                                        Projets déposés
+                                    </div>
+                                </div>
+                            </th>
+                            <th>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for enveloppe in enveloppes %}
+                            {% include "includes/_enveloppe_summary_line.html" with level=1 %}
+                            {% if enveloppes_with_children %}
+                                {% for sous_enveloppe in enveloppe.enveloppe_set.all %}
+                                    {% include "includes/_enveloppe_summary_line.html" with enveloppe=sous_enveloppe level=2 %}
 
-                    {% endfor %}
-                {% endif %}
-            {% empty %}
-                {% include "includes/_enveloppe_summary_line.html" %}
-            {% endfor %}
-        </tbody>
-    </table>
+                                {% endfor %}
+                            {% endif %}
+                        {% empty %}
+                            {% include "includes/_enveloppe_summary_line.html" %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
