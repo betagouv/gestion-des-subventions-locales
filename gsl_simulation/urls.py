@@ -15,6 +15,7 @@ from gsl_simulation.views.simulation_projet_views import (
     SimulationProjetDetailView,
     SimulationProjetStatusUpdateView,
     patch_dotation_projet,
+    patch_dotation_projet_assiette,
     patch_montant_simulation_projet,
     patch_taux_simulation_projet,
 )
@@ -57,6 +58,11 @@ urlpatterns = [
         "projet-detail/<int:pk>/notes/",
         SimulationProjetNotesView.as_view(),
         name="simulation-projet-notes",
+    ),
+    path(
+        "modifier-l-assiette-d-un-dotation-projet/<int:simulation_projet_pk>/",
+        patch_dotation_projet_assiette,
+        name="patch-dotation-projet-assiette",
     ),
     path(
         "modifier-le-taux-d-un-projet-de-simulation/<int:pk>/",

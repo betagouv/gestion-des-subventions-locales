@@ -44,6 +44,14 @@ COLUMN_MONTANT_SOLLICITE = Column(
     aggregate_key="total_amount_asked",
 )
 
+COLUMN_ASSIETTE = Column(
+    key="assiette",
+    label="Assiette (€)",
+    getter=lambda ctx: euro_value(ctx["dotation_projet"].assiette),
+    per_dotation=True,
+    text_align=TextAlign.RIGHT,
+)
+
 COLUMN_MONTANT_RETENU = Column(
     key="montant_retenu",
     label="Montant retenu (€)",
@@ -59,6 +67,7 @@ COLUMN_TAUX = Column(
     getter=lambda ctx: percent_value(ctx["dotation_projet"].taux_retenu),
     per_dotation=True,
     text_align=TextAlign.RIGHT,
+    header_help_text="Le taux de subvention est calculé en fonction de l'assiette (ou du coût total du projet si l'assiette n'est pas renseignée) et du montant retenu.",
 )
 
 COLUMN_CATEGORIE = Column(
@@ -104,6 +113,7 @@ PROJET_TABLE_COLUMNS = (
     COLUMN_DOTATION,
     COLUMN_COUT_TOTAL,
     COLUMN_MONTANT_SOLLICITE,
+    COLUMN_ASSIETTE,
     COLUMN_MONTANT_RETENU,
     COLUMN_TAUX,
     COLUMN_CATEGORIE,

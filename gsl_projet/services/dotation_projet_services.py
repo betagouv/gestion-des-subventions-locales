@@ -3,6 +3,7 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any, Literal
 
+from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from gsl_core.models import Perimetre
@@ -78,6 +79,24 @@ class DotationProjetService:
             return 0
 
     @classmethod
+    def validate_assiette(
+        cls, assiette: float | Decimal, dotation_projet: DotationProjet
+    ) -> None:
+        if (
+            type(assiette) not in [float, Decimal, int]
+            or assiette < 0
+            or (
+                dotation_projet.dossier_ds.finance_cout_total is not None
+                and assiette > dotation_projet.dossier_ds.finance_cout_total
+            )
+        ):
+            raise ValidationError(
+                f"L'assiette {euro(assiette)} doit être supérieure ou égale à 0 € et inférieure ou égale au coût total du projet ({euro(dotation_projet.dossier_ds.finance_cout_total)})."
+                if dotation_projet.dossier_ds.finance_cout_total is not None
+                else "L'assiette doit être supérieure ou égale à 0 €."
+            )
+
+    @classmethod
     def validate_montant(
         cls, montant: float | Decimal, dotation_projet: DotationProjet
     ) -> None:
@@ -87,14 +106,16 @@ class DotationProjetService:
             or dotation_projet.assiette_or_cout_total is None
             or montant > dotation_projet.assiette_or_cout_total
         ):
-            raise ValueError(
+            raise ValidationError(
                 f"Le montant {euro(montant)} doit être supérieur ou égal à 0 € et inférieur ou égal à l'assiette ({euro(dotation_projet.assiette_or_cout_total)})."
             )
 
     @classmethod
     def validate_taux(cls, taux: float | Decimal) -> None:
         if type(taux) not in [float, Decimal, int] or taux < 0 or taux > 100:
-            raise ValueError(f"Le taux {percent(taux)} doit être entre 0% and 100%")
+            raise ValidationError(
+                f"Le taux {percent(taux)} doit être entre 0% and 100%"
+            )
 
     @classmethod
     def get_other_accepted_dotations(

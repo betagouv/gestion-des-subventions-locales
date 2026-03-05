@@ -51,6 +51,11 @@ COLUMN_MONTANT_SOLLICITE = Column(
 )
 
 
+def _get_other_dotation_assiette(context):
+    dp = context["other_dotation"]
+    return euro_value(dp.assiette, 2)
+
+
 def _get_simu_other_dotation_montant(context):
     dp = context["other_dotation"]
     simu = dp.last_updated_simulation_projet
@@ -78,6 +83,14 @@ def _get_simu_other_dotation_statut(context):
     )
 
 
+COLUMN_ASSIETTE = Column(
+    key="assiette",
+    label="Assiette",
+    template_name="gsl_simulation/table_cells/assiette.html",
+    other_dotation_getter=_get_other_dotation_assiette,
+    text_align=TextAlign.RIGHT,
+)
+
 COLUMN_MONTANT_RETENU = Column(
     key="montant_retenu",
     label="Montant prévisionnel accordé (€)",
@@ -90,10 +103,11 @@ COLUMN_MONTANT_RETENU = Column(
 
 COLUMN_TAUX = Column(
     key="taux",
-    label="Taux de subvention (%)",
+    label="Taux (%)",
     template_name="gsl_simulation/table_cells/taux.html",
     other_dotation_getter=_get_simu_other_dotation_taux,
     text_align=TextAlign.RIGHT,
+    header_help_text="Le taux de subvention est calculé en fonction de l'assiette si elle est renseignée, sinon il est calculé en fonction du coût total du projet.",
 )
 
 COLUMN_STATUT = Column(
@@ -111,6 +125,7 @@ COLUMN_NOTIFICATION = Column(
     sticky=StickyPosition.RIGHT_2,
 )
 
+
 SIMULATION_TABLE_COLUMNS = (
     COLUMN_DATE_DEPOT,
     COLUMN_INTITULE,
@@ -125,6 +140,7 @@ SIMULATION_TABLE_COLUMNS = (
     COLUMN_DOTATION,
     COLUMN_COUT_TOTAL,
     COLUMN_MONTANT_SOLLICITE,
+    COLUMN_ASSIETTE,
     COLUMN_MONTANT_RETENU,
     COLUMN_TAUX,
     COLUMN_CATEGORIE,

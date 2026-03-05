@@ -1,9 +1,9 @@
 import datetime
-import re
 from datetime import UTC
 from decimal import Decimal
 
 import pytest
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -381,16 +381,13 @@ def test_validate_montant(
         dotation_projet.assiette = assiette_or_cout_total
 
     if should_raise_exception:
-        with pytest.raises(
-            ValueError,
-            match=(
-                re.escape(
-                    f"Le montant {euro(montant)} doit être supérieur ou égal à 0 € et inférieur ou "
-                    f"égal à l'assiette ({euro(dotation_projet.assiette_or_cout_total)})."
-                )
-            ),
-        ):
+        with pytest.raises(ValidationError) as exc_info:
             dps.validate_montant(montant, dotation_projet)
+        expected = (
+            f"Le montant {euro(montant)} doit être supérieur ou égal à 0 € et inférieur ou "
+            f"égal à l'assiette ({euro(dotation_projet.assiette_or_cout_total)})."
+        )
+        assert str(exc_info.value.messages[0]) == expected
 
     else:
         dps.validate_montant(montant, dotation_projet)
@@ -457,6 +454,39 @@ def test_compute_montant_from_taux_with_various_cout_total(
     assert montant == round(Decimal(expected_montant), 2)
 
 
+# -- validate_assiette --
+
+
+@pytest.mark.parametrize(
+    "assiette, should_raise_exception",
+    [
+        (50, False),
+        (0, False),
+        (100.5, False),
+        (Decimal("100"), False),
+        (-1, True),
+        (-0.01, True),
+        (None, True),
+        ("invalid", True),
+        (100_001, True),
+    ],
+)
+@pytest.mark.django_db
+def test_validate_assiette(assiette, should_raise_exception):
+    dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__finance_cout_total=100_000,
+    )
+    if should_raise_exception:
+        with pytest.raises(
+            ValidationError,
+        ) as exc_info:
+            dps.validate_assiette(assiette, dotation_projet)
+        expected = f"L'assiette {euro(assiette)} doit être supérieure ou égale à 0 € et inférieure ou égale au coût total du projet (100\xa0000\xa0€)."
+        assert str(exc_info.value.messages[0]) == expected
+    else:
+        dps.validate_assiette(assiette, dotation_projet)
+
+
 # -- validate_taux --
 
 
@@ -475,9 +505,11 @@ def test_compute_montant_from_taux_with_various_cout_total(
 def test_validate_taux(taux, should_raise_exception):
     if should_raise_exception:
         with pytest.raises(
-            ValueError, match=f"Le taux {percent(taux)} doit être entre 0% and 100%"
-        ):
+            ValidationError,
+        ) as exc_info:
             dps.validate_taux(taux)
+        expected = f"Le taux {percent(taux)} doit être entre 0% and 100%"
+        assert str(exc_info.value.messages[0]) == expected
     else:
         dps.validate_taux(taux)
 
