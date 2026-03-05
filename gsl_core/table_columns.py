@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Optional
 
+from gsl_demarches_simplifiees.models import Dossier
+
 
 class StickyPosition(Enum):
     LEFT_1 = "left-1"
@@ -74,12 +76,14 @@ class Column:
 
     # Column visibility toggle
     hideable: bool = True
+    displayed_by_default: Optional[bool] = True
 
     # Existing fields
     sticky: Optional[StickyPosition] = None
     aggregate_key: Optional[str] = None
     aggregate_id: Optional[str] = None
     header_template_name: Optional[str] = None
+    header_help_text: Optional[str] = None
 
     def __post_init__(self):
         if not self.template_name and not self.getter:
@@ -217,4 +221,79 @@ COLUMN_DATE_DEPOT = Column(
     template_name="gsl_core/table_cells/date_depot.html",
     sticky=StickyPosition.LEFT_1,
     text_align=TextAlign.CENTER,
+)
+
+COLUMN_DOTATIONS_SOLLICITEES = Column(
+    key="dotations_sollicitees",
+    label="Dotations sollicitées",
+    getter=lambda ctx: " et ".join(ctx["projet"].dossier_ds.dotations_demande),
+    displayed_by_default=False,
+)
+
+
+def _format_date_or_dash(date):
+    return date.strftime("%d/%m/%Y") if date else "—"
+
+
+COLUMN_DATE_DEBUT_PROJET = Column(
+    key="date_debut_projet",
+    label="Date de commencement de l'opération",
+    getter=lambda ctx: _format_date_or_dash(ctx["projet"].dossier_ds.date_debut),
+    displayed_by_default=False,
+    text_align=TextAlign.CENTER,
+)
+
+COLUMN_DATE_FIN_PROJET = Column(
+    key="date_achevement",
+    label="Date prévisionnelle d'achèvement de l'opération",
+    getter=lambda ctx: _format_date_or_dash(ctx["projet"].dossier_ds.date_achevement),
+    displayed_by_default=False,
+    text_align=TextAlign.CENTER,
+)
+
+COLUMN_ARRONDISSEMENT = Column(
+    key="arrondissement",
+    label="Arrondissement",
+    getter=lambda ctx: ctx["projet"].dossier_ds.porteur_de_projet_arrondissement.name,
+    displayed_by_default=False,
+    text_align=TextAlign.CENTER,
+)
+
+COLUMN_NOM_DEMANDEUR = Column(
+    key="nom_demandeur",
+    label="Nom du demandeur",
+    getter=lambda ctx: ctx["projet"].dossier_ds.porteur_de_projet_prenom
+    + " "
+    + ctx["projet"].dossier_ds.porteur_de_projet_nom,
+    displayed_by_default=False,
+    text_align=TextAlign.CENTER,
+)
+
+COLUMN_BUDGET_VERT_DEMANDEUR = Column(
+    key="budget_vert_demandeur",
+    label="Budget vert (demandeur)",
+    getter=lambda ctx: ctx["projet"].dossier_ds.environnement_transition_eco,
+    template_name="gsl_core/table_cells/_yes_no_cell.html",
+    displayed_by_default=False,
+    text_align=TextAlign.CENTER,
+)
+
+COLUMN_BUDGET_VERT_INSTRUCTEUR = Column(
+    key="budget_vert_instructeur",
+    label="Budget vert (instructeur)",
+    getter=lambda ctx: ctx["projet"].is_budget_vert,
+    template_name="gsl_core/table_cells/_yes_no_cell.html",
+    displayed_by_default=False,
+    text_align=TextAlign.CENTER,
+)
+
+COLUMN_COMPLETED_DOSSIER = Column(
+    key="completed_dossier",
+    label="Dossier complet",
+    getter=lambda ctx: ctx["projet"].dossier_ds.ds_state
+    != Dossier.STATE_EN_CONSTRUCTION,
+    template_name="gsl_core/table_cells/_yes_no_cell.html",
+    displayed_by_default=False,
+    text_align=TextAlign.CENTER,
+    header_help_text="Non complet signifie que le dossier est en construction sur DN.",
 )
