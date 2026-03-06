@@ -169,6 +169,70 @@ def test_create_or_update_dotation_projet_from_projet_also_refuse_dsil_dotation_
     assert projet_dotation_dsil.status == PROJET_STATUS_REFUSED
 
 
+@pytest.mark.django_db
+def test_create_or_update_dotation_projet_syncs_from_dn_when_dossier_updated_in_construction_detr_to_dsil(
+    perimetres,
+):
+    """When _has_dotations_been_updated_on_dn returns True: projet has DETR, dossier has DSIL => one dotation-projet DSIL."""
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite="['DSIL']",
+        dossier_ds__perimetre=arr_dijon,
+    )
+    assert projet.dotations_updated_in_app is False
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+
+    dps.create_or_update_dotation_projet_from_projet(projet)
+
+    dotation_projets = projet.dotationprojet_set.all()
+    assert dotation_projets.count() == 1
+    assert dotation_projets.first().dotation == DOTATION_DSIL
+
+
+@pytest.mark.django_db
+def test_create_or_update_dotation_projet_syncs_from_dn_when_dossier_updated_in_construction_dsil_to_detr_and_dsil(
+    perimetres,
+):
+    """When _has_dotations_been_updated_on_dn returns True: projet has DSIL, dossier has DETR et DSIL => two dotation-projets DETR and DSIL."""
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
+        dossier_ds__perimetre=arr_dijon,
+    )
+    assert projet.dotations_updated_in_app is False
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+
+    dps.create_or_update_dotation_projet_from_projet(projet)
+
+    dotation_projets = projet.dotationprojet_set.all()
+    assert dotation_projets.count() == 2
+    assert set(projet.dotations) == {DOTATION_DETR, DOTATION_DSIL}
+
+
+@pytest.mark.django_db
+def test_create_or_update_dotation_projet_syncs_from_dn_when_dossier_updated_in_construction_detr_and_dsil_to_dsil(
+    perimetres,
+):
+    """When _has_dotations_been_updated_on_dn returns True: projet has DETR and DSIL, dossier has DSIL => one dotation-projet DSIL."""
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite="['DSIL']",
+        dossier_ds__perimetre=arr_dijon,
+    )
+    assert projet.dotations_updated_in_app is False
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+
+    dps.create_or_update_dotation_projet_from_projet(projet)
+
+    dotation_projets = projet.dotationprojet_set.all()
+    assert dotation_projets.count() == 1
+    assert dotation_projets.first().dotation == DOTATION_DSIL
+
+
 # -- create_simulation_projets_from_dotation_projet --
 
 # TODO category : useless now. Remove it if we don't allow to set DETR category.
@@ -485,6 +549,174 @@ def test_validate_assiette(assiette, should_raise_exception):
         assert str(exc_info.value.messages[0]) == expected
     else:
         dps.validate_assiette(assiette, dotation_projet)
+
+
+# -- _should_dotations_be_updated_from_dn_construction_dossier --
+
+
+@pytest.mark.django_db
+def test_has_dotations_been_updated_on_dn_returns_false_when_updated_in_app():
+    """Returns False when dotations have been updated in Turgot (we don't sync from DN)."""
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite="['DSIL']",
+        dotations_updated_in_app=True,
+    )
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+
+    assert (
+        dps._should_dotations_be_updated_from_dn_construction_dossier(projet) is False
+    )
+
+
+@pytest.mark.django_db
+def test_has_dotations_been_updated_on_dn_returns_false_when_not_en_construction():
+    """Returns False when dossier is not in EN_CONSTRUCTION state."""
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite="['DSIL']",
+    )
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+
+    assert (
+        dps._should_dotations_be_updated_from_dn_construction_dossier(projet) is False
+    )
+
+
+@pytest.mark.django_db
+def test_has_dotations_been_updated_on_dn_returns_true_when_projet_has_dotation_not_in_dossier():
+    """Returns True when projet has a dotation not in demande_dispositif_sollicite."""
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite="['DSIL']",
+    )
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+
+    assert dps._should_dotations_be_updated_from_dn_construction_dossier(projet) is True
+
+
+@pytest.mark.django_db
+def test_has_dotations_been_updated_on_dn_returns_true_when_dossier_has_dotation_not_in_projet():
+    """Returns True when dossier has a dotation not in projet (e.g. user added DSIL on DN)."""
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
+    )
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+
+    assert dps._should_dotations_be_updated_from_dn_construction_dossier(projet) is True
+
+
+@pytest.mark.django_db
+def test_has_dotations_been_updated_on_dn_returns_false_when_dotations_match():
+    """Returns False when projet and dossier have the same dotations."""
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite="['DETR']",
+    )
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+
+    assert (
+        dps._should_dotations_be_updated_from_dn_construction_dossier(projet) is False
+    )
+
+
+@pytest.mark.django_db
+def test_has_dotations_been_updated_on_dn_returns_false_when_both_have_detr_and_dsil():
+    """Returns False when both projet and dossier have DETR and DSIL."""
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
+    )
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+
+    assert (
+        dps._should_dotations_be_updated_from_dn_construction_dossier(projet) is False
+    )
+
+
+# -- _remove_or_add_dotations_from_dossier_ds --
+
+
+@pytest.mark.django_db
+def test_remove_or_add_dotations_removes_dotation_not_in_dossier():
+    """Removes dotation_projet when projet has dotation not in demande_dispositif_sollicite."""
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite="['DSIL']",
+    )
+    detr_dp = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    dsil_dp = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+
+    dps._remove_or_add_dotations_from_dossier_ds(projet)
+
+    assert not DotationProjet.objects.filter(pk=detr_dp.pk).exists()
+    assert DotationProjet.objects.filter(pk=dsil_dp.pk).exists()
+    assert projet.dotations == [DOTATION_DSIL]
+
+
+@pytest.mark.django_db
+def test_remove_or_add_dotations_adds_dotation_from_dossier():
+    """Adds dotation_projet when dossier has dotation not in projet."""
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
+    )
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+
+    dps._remove_or_add_dotations_from_dossier_ds(projet)
+
+    assert projet.dotationprojet_set.count() == 2
+    assert set(projet.dotations) == {DOTATION_DETR, DOTATION_DSIL}
+
+
+@pytest.mark.django_db
+def test_remove_or_add_dotations_removes_and_adds_when_differing():
+    """Removes and adds dotations when projet and dossier have different dotations."""
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite="['DSIL']",
+    )
+    detr_dp = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+
+    dps._remove_or_add_dotations_from_dossier_ds(projet)
+
+    assert not DotationProjet.objects.filter(pk=detr_dp.pk).exists()
+    assert projet.dotationprojet_set.count() == 1
+    assert projet.dotations == [DOTATION_DSIL]
+
+
+@pytest.mark.django_db
+def test_remove_or_add_dotations_does_nothing_when_matching():
+    """Does nothing when projet and dossier have the same dotations."""
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite="['DETR']",
+    )
+    detr_dp = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+
+    dps._remove_or_add_dotations_from_dossier_ds(projet)
+
+    assert DotationProjet.objects.filter(pk=detr_dp.pk).exists()
+    assert projet.dotations == [DOTATION_DETR]
+
+
+@pytest.mark.django_db
+def test_remove_or_add_dotations_creates_dotation_projet_with_assiette_from_dossier():
+    """New dotation_projet gets assiette from dossier annotations when available."""
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
+        dossier_ds__annotations_assiette_detr=10_000,
+        dossier_ds__annotations_assiette_dsil=20_000,
+    )
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+
+    dps._remove_or_add_dotations_from_dossier_ds(projet)
+
+    dsil_dp = projet.dotationprojet_set.get(dotation=DOTATION_DSIL)
+    assert dsil_dp.assiette == 20_000
 
 
 # -- validate_taux --

@@ -330,6 +330,12 @@ class Projet(BaseModel):
     comment_2 = models.TextField("Commentaire 2", blank=True, default="")
     comment_3 = models.TextField("Commentaire 3", blank=True, default="")
 
+    dotations_updated_in_app = models.BooleanField(
+        "Dotations modifiées dans Turgot",
+        null=False,
+        default=False,
+    )
+
     objects = ProjetManager()
 
     def __str__(self):

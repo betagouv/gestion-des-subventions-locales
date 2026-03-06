@@ -35,6 +35,8 @@ class DotationProjetService:
             dotation_projets = cls._initialize_dotation_projets_from_projet(projet)
 
         else:
+            if cls._should_dotations_be_updated_from_dn_construction_dossier(projet):
+                cls._remove_or_add_dotations_from_dossier_ds(projet)
             # check for updates
             dotation_projets = cls._update_dotation_projets_from_projet(projet)
 
@@ -649,3 +651,40 @@ class DotationProjetService:
                 + 1,
             )
         return qs
+
+    @classmethod
+    def _should_dotations_be_updated_from_dn_construction_dossier(
+        cls, projet: Projet
+    ) -> bool:
+        if projet.dotations_updated_in_app:
+            # Once dotations have been updated in Turgot, we don't update dotations from DN
+            return False
+
+        if projet.dossier_ds.ds_state != Dossier.STATE_EN_CONSTRUCTION:
+            # Dotations can only be updated for in construction dossiers
+            return False
+
+        # get the elements that are in one set but not in the other
+        symetrical_difference = set(projet.dotations) ^ set(
+            projet.dossier_ds.dotations_demande
+        )
+        return bool(symetrical_difference)
+
+    @classmethod
+    def _remove_or_add_dotations_from_dossier_ds(cls, projet: Projet):
+        dotation_to_delete = set(projet.dotations) - set(
+            projet.dossier_ds.dotations_demande
+        )
+        projet.dotationprojet_set.filter(dotation__in=dotation_to_delete).delete()
+
+        # Refresh projet to get the latest dotations
+        projet.refresh_from_db()
+
+        dotations_to_add = set(projet.dossier_ds.dotations_demande) - set(
+            projet.dotations
+        )
+        for dotation in dotations_to_add:
+            cls._create_dotation_projet(projet, dotation)
+
+        # Idem here
+        projet.refresh_from_db()

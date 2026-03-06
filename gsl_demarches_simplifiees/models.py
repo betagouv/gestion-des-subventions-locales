@@ -16,6 +16,7 @@ from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
+    POSSIBLE_DOTATIONS,
 )
 
 logger = getLogger(__name__)
@@ -617,7 +618,7 @@ class Dossier(BaseModel):
         return "SANS" in self.demande_renouvellement
 
     @property
-    def dotations_demande(self):
+    def dotations_demande(self) -> list[POSSIBLE_DOTATIONS]:
         dotations = []
 
         if not self.demande_dispositif_sollicite:
