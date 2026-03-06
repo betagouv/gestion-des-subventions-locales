@@ -530,9 +530,9 @@ ul.no-list-style li {
 .gsl-dropdown-content {
   display: none;
   position: absolute;
-  background-color: white;
+  background-color: var(--background-default-grey);
   min-width: 260px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 20%);
+  box-shadow: var(--shadow-default-grey);
   padding: 10px;
   z-index: 1000;
   gap: 1rem;
@@ -552,9 +552,9 @@ ul.no-list-style li {
 .new-gsl-dropdown-content {
   display: grid;
   position: absolute;
-  background-color: white;
+  background-color: var(--background-default-grey);
   min-width: 260px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 20%);
+  box-shadow: var(--shadow-default-grey);
   padding: 10px;
   z-index: 1000;
   gap: 1rem;
