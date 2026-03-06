@@ -319,3 +319,16 @@ class DismissProjetForm(SimulationProjetStatusForm):
     class Meta(SimulationProjetStatusForm.Meta):
         model = SimulationProjet
         fields = ("justification",)
+
+
+class SimulationColumnsVisibilityForm(forms.ModelForm):
+    class Meta:
+        model = Simulation
+        fields = ("columns_visibility",)
+
+    def clean_columns_visibility(self):
+        return {
+            key: value == "true"
+            for key, value in self.data.items()
+            if key != "csrfmiddlewaretoken"
+        }
