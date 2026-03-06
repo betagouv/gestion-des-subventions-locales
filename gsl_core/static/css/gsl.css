@@ -224,14 +224,20 @@ ul.no-list-style li {
 .gsl-projet-table .fr-table__content td,
 .gsl-projet-table .fr-table__content td .fr-select,
 .gsl-projet-table .fr-table__content td .fr-input,
-.gsl-projet-table .fr-table__content td .fr-link {
+.gsl-projet-table .fr-table__content td .fr-link,
+.gsl-projet-table .fr-table__content td p  {
     font-size: .75rem; /* = 10px */
+}
+
+.gsl-projet-table .fr-table__content td p {
+    line-height: 1.5;
 }
 
 .gsl-projet-table .fr-table__content td {
     padding: .75em;
     line-height: 1.5;
 }
+
 
 .gsl-projet-table table tbody td:first-child {
     padding-left: 1.5em;

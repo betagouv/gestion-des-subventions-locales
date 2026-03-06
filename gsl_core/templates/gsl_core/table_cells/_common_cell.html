@@ -17,7 +17,11 @@
     </a>
 {% elif column.max_3_lines %}
     <span class="max-3-lines" title="{{ cell_value }}">
-        {{ cell_value }}
+        {% if column.linebreaks %}
+            {{ cell_value|linebreaks }}
+        {% else %}
+            {{ cell_value }}
+        {% endif %}
     </span>
 {% else %}
     <span>{{ cell_value }}</span>
