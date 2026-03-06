@@ -39,7 +39,12 @@ def regular_client(regular_user):
     return client
 
 
+@pytest.mark.django_db
 class TestOTPMiddlewareEnforcement:
+    @pytest.fixture(autouse=True)
+    def _enable_otp(self, settings):
+        settings.OTP_ENABLED = True
+
     def test_staff_without_device_redirected_to_setup(self, staff_client):
         response = staff_client.get("/")
         assert response.status_code == 302
