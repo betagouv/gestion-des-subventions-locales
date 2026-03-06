@@ -74,6 +74,12 @@ class SimulationForm(DsfrBaseForm, ModelForm):
         fields = ["title", "enveloppe"]
 
 
+class SimulationRenameForm(DsfrBaseForm, ModelForm):
+    class Meta:
+        model = Simulation
+        fields = ["title"]
+
+
 class SimulationProjetForm(ModelForm, DsfrBaseForm):
     assiette = forms.DecimalField(
         label="Montant des dépenses éligibles retenues (€)",
