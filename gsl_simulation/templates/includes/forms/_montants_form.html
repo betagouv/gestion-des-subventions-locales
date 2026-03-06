@@ -2,7 +2,7 @@
 {% if projet.notified_at %}
     {% include "includes/projet_detail/dotation_montant_info.html" with assiette=dotation_projet.assiette montant=simu.montant taux=simu.taux %}
 {% else %}
-    <form id="simulation_projet_form"
+    <form id="simulation-projet-form"
           class="form-disabled-before-value-change fr-mb-2w"
           method="post"
           data-controller="bind-amount-fields"
@@ -66,7 +66,7 @@
                 {% endif %}
             </div>
         </div>
-        <button class="fr-btn" type="submit" form='simulation_projet_form' disabled>
+        <button class="fr-btn" type="submit" form='simulation-projet-form' disabled>
             Enregistrer
         </button>
     </form>
