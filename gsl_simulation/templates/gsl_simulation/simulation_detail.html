@@ -42,7 +42,7 @@
                 {{ simulation_paginator.paginator.count }}
                 projet{{ simulation_paginator.paginator.count|custom_pluralize }}
             </span>
-            {% include "gsl_core/_column_visibility_dropdown.html" with table_wrapper_id="simulation-table-wrapper" %}
+            {% include "gsl_core/_column_visibility_dropdown.html" with table_wrapper_id="simulation-table-wrapper" simulation=simulation %}
         </div>
         <div class="fr-table fr-table--multiline fr-table--sm fr-table--no-caption gsl-projet-table">
             <div class="fr-table__wrapper">

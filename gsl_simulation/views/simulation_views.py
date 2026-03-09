@@ -9,13 +9,14 @@ from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_POST
-from django.views.generic import CreateView, DeleteView
+from django.views.generic import CreateView, DeleteView, UpdateView
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 from django_filters import MultipleChoiceFilter, NumberFilter
 from django_filters.views import FilterView
 
 from gsl_core.models import Perimetre
+from gsl_core.view_mixins import NoFeedbackHtmxFormViewMixin
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, DOTATIONS
 from gsl_projet.models import CategorieDetr, DotationProjet
@@ -28,7 +29,7 @@ from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_filters import ProjetOrderingFilter
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 from gsl_projet.views import BaseProjetFilters
-from gsl_simulation.forms import SimulationForm
+from gsl_simulation.forms import SimulationColumnsVisibilityForm, SimulationForm
 from gsl_simulation.models import Simulation, SimulationProjet
 from gsl_simulation.resources import (
     DetrSimulationProjetResource,
@@ -353,6 +354,18 @@ class SimulationCreateView(CreateView):
         }
         context["title"] = "Création d'une simulation de programmation"
         return context
+
+
+class SimulationColumnsVisibilityView(NoFeedbackHtmxFormViewMixin, UpdateView):
+    model = Simulation
+    form_class = SimulationColumnsVisibilityForm
+
+    def get_queryset(self):
+        return Simulation.objects.filter(
+            enveloppe__in=EnveloppeService.get_enveloppes_visible_for_a_user(
+                self.request.user
+            )
+        )
 
 
 class FilteredProjetsExportView(SimulationDetailView):

@@ -38,7 +38,8 @@ document.querySelectorAll('.gsl-dropdown button').forEach(button => {
 })
 
 // Persist column visibility choices in localStorage
-document.querySelectorAll('.gsl-column-visibility-dropdown[data-table-id]')
+document.querySelectorAll(
+  '.gsl-column-visibility-dropdown[data-table-id]:not([data-server-managed])')
   .forEach(dropdown => {
     const tableId = dropdown.dataset.tableId
     const storageKey = 'gsl-columns-hidden-' + tableId
@@ -88,3 +89,29 @@ document.querySelectorAll('.gsl-column-visibility-dropdown[data-table-id]')
       })
     })
   })
+
+// Persist column visibility choices via server (simulation pages)
+document.querySelectorAll(
+  '.gsl-column-visibility-dropdown[data-server-managed]').forEach(dropdown => {
+  const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]')
+
+  // Restore saved state from data attribute
+  const saved = JSON.parse(document.getElementById(
+    'gsl-column-visibility-saved-state').textContent)
+  if (saved && typeof saved === 'object') {
+    checkboxes.forEach(checkbox => {
+      const cssKey = checkbox.id.replace('toggle-col-', '')
+      if (cssKey in saved) {
+        checkbox.checked = saved[cssKey]
+      }
+    })
+  }
+
+  // On reset: trigger HTMX POST to persist defaults to server
+  const form = dropdown.querySelector('form')
+  if (form) {
+    form.addEventListener('reset', () => {
+      setTimeout(() => htmx.trigger(form, 'change'), 0)
+    })
+  }
+})

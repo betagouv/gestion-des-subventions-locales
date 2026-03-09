@@ -20,6 +20,7 @@ from gsl_simulation.views.simulation_projet_views import (
     patch_taux_simulation_projet,
 )
 from gsl_simulation.views.simulation_views import (
+    SimulationColumnsVisibilityView,
     SimulationCreateView,
     SimulationDeleteView,
 )
@@ -41,6 +42,11 @@ urlpatterns = [
         "<int:pk>/supprimer/",
         SimulationDeleteView.as_view(),
         name="simulation-delete",
+    ),
+    path(
+        "voir/<slug:slug>/columns-visibility/",
+        SimulationColumnsVisibilityView.as_view(),
+        name="simulation-columns-visibility",
     ),
     path(
         "voir/<slug:slug>/<str:type>/",

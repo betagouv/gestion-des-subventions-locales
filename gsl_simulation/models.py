@@ -10,6 +10,19 @@ from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.utils.utils import compute_taux
 
 
+def validate_columns_visibility(value):
+    from gsl_simulation.table_columns import SIMULATION_TABLE_COLUMNS
+
+    if not isinstance(value, dict):
+        raise ValidationError("La valeur doit être un objet JSON.")
+    valid_keys = {col.css_key for col in SIMULATION_TABLE_COLUMNS if col.hideable}
+    for key, val in value.items():
+        if key not in valid_keys:
+            raise ValidationError(f"Clé de colonne inconnue : {key}")
+        if not isinstance(val, bool):
+            raise ValidationError(f"La valeur pour '{key}' doit être un booléen.")
+
+
 class SimulationQuerySet(models.QuerySet):
     def containing_perimetre(self, perimetre: Perimetre):
         ancestors_qs = perimetre.ancestors()
@@ -35,6 +48,13 @@ class Simulation(BaseModel):
         max_length=120,
         populate_from="title",
         blank=False,
+    )
+    columns_visibility = models.JSONField(
+        verbose_name="Colonnes affichées",
+        null=True,
+        blank=True,
+        default=None,
+        validators=[validate_columns_visibility],
     )
 
     objects = SimulationManager()
