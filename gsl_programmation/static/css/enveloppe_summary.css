@@ -109,7 +109,10 @@
 
 .enveloppe-summary tr:has([aria-expanded="true"]) {
   position: relative;
-  z-index: 10;
+
+  /* Pas de z-index ici : ajouter un z-index créerait un stacking context qui engloberait
+     les fonds opaques des <td>, masquant ainsi le border frame ::after.
+     position: relative seul suffit pour ancrer le .fr-menu (position: absolute) sur la ligne. */
 }
 
 .enveloppe-summary .fr-menu .fr-nav__link {
