@@ -334,10 +334,6 @@ class TestExportColumnsVisibility:
         assert "Demandeur" not in headers
         assert "Arrondissement du demandeur" not in headers
         assert "Commentaire 1" not in headers
-        # Export-only fields are always present regardless of column visibility
-        assert "Nom et prénom du demandeur" in headers
-        assert "Code INSEE commune du demandeur" in headers
-        assert "Taux demandé par rapport au coût total" in headers
 
     def test_export_with_null_visibility_hides_non_default_columns(self):
         simulation = SimulationFactory(
@@ -368,13 +364,12 @@ class TestExportColumnsVisibility:
         assert "Demandeur" in headers
         assert "Montant prévsionnel accordé" in headers
 
-    def test_export_always_includes_non_mapped_fields(self):
+    def test_export_with_nom_demandeur_visibility(self):
         simulation = SimulationFactory(
-            title="Always Fields",
+            title="Nom Demandeur",
             enveloppe__dotation=DOTATION_DSIL,
             columns_visibility={
-                "date-depot": False,
-                "demandeur": False,
+                "nom-demandeur": True,
             },
         )
         SimulationProjetFactory(
@@ -385,13 +380,25 @@ class TestExportColumnsVisibility:
         csv_lines = self._export_csv(simulation)
         headers = csv_lines[0]
 
-        # Export-only fields (not in CSS_KEY mapping) are always exported
-        assert "Projet situé dans un QPV" in headers
-        assert "Projet rattaché à un CRTE" in headers
-        assert "Priorité du projet" in headers
         assert "Nom et prénom du demandeur" in headers
-        assert "Code INSEE commune du demandeur" in headers
-        assert "Taux demandé par rapport au coût total" in headers
+
+    def test_export_hides_nom_demandeur_when_not_visible(self):
+        simulation = SimulationFactory(
+            title="Nom Demandeur Hidden",
+            enveloppe__dotation=DOTATION_DSIL,
+            columns_visibility={
+                "nom-demandeur": False,
+            },
+        )
+        SimulationProjetFactory(
+            dotation_projet__dotation=DOTATION_DSIL,
+            simulation=simulation,
+        )
+
+        csv_lines = self._export_csv(simulation)
+        headers = csv_lines[0]
+
+        assert "Nom et prénom du demandeur" not in headers
 
     def test_export_detr_includes_detr_specific_fields(self):
         simulation = SimulationFactory(

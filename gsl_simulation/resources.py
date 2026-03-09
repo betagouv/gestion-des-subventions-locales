@@ -36,16 +36,17 @@ CSS_KEY_TO_RESOURCE_FIELDS = {
     "annotations-champ-libre-2": "champ_libre_2",
     "annotations-champ-libre-3": "champ_libre_3",
     "statut": "status",
+    "nom-demandeur": "porteur_name",
 }
 
 
 class TauxWidget(Widget):
-    """Format taux (percentage) to 2 decimal places for CSV export."""
+    """Format taux (percentage) to 4 decimal places for CSV export."""
 
     def render(self, value, obj=None, **kwargs):
         if value is None:
             return ""
-        return f"{float(value):.2f}"
+        return f"{float(value):.4f}"
 
 
 class OuiNonWidget(BooleanWidget):
@@ -163,34 +164,9 @@ class BaseSimulationProjetResource(ModelResource):
         attribute="projet__dossier_ds__annotations_champ_libre_3",
         column_name="Champ libre 3",
     )
-
-    # --- Export-only fields (not in table, always present) ---
-
     porteur_name = Field(
         attribute="projet__dossier_ds__porteur_fullname",
         column_name="Nom et prénom du demandeur",
-    )
-    demandeur_code_insee = Field(
-        attribute="projet__demandeur__address__commune__insee_code",
-        column_name="Code INSEE commune du demandeur",
-    )
-    demande_taux = Field(
-        attribute="projet__dossier_ds__taux_demande",
-        column_name="Taux demandé par rapport au coût total",
-    )
-    is_in_qpv = Field(
-        attribute="projet__is_in_qpv",
-        column_name="Projet situé dans un QPV",
-        widget=OuiNonWidget(),
-    )
-    is_attached_to_a_crte = Field(
-        attribute="projet__is_attached_to_a_crte",
-        column_name="Projet rattaché à un CRTE",
-        widget=OuiNonWidget(),
-    )
-    priorite = Field(
-        attribute="projet__dossier_ds__demande_priorite_dsil_detr",
-        column_name="Priorité du projet",
     )
 
     class Meta:
@@ -222,11 +198,6 @@ class BaseSimulationProjetResource(ModelResource):
             "champ_libre_2",
             "champ_libre_3",
             "porteur_name",
-            "demandeur_code_insee",
-            "demande_taux",
-            "is_in_qpv",
-            "is_attached_to_a_crte",
-            "priorite",
         )
 
     def dehydrate_completed_dossier(self, simu_projet: SimulationProjet):
