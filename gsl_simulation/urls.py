@@ -23,6 +23,7 @@ from gsl_simulation.views.simulation_views import (
     SimulationColumnsVisibilityView,
     SimulationCreateView,
     SimulationDeleteView,
+    SimulationRenameView,
 )
 
 urlpatterns = [
@@ -47,6 +48,11 @@ urlpatterns = [
         "voir/<slug:slug>/columns-visibility/",
         SimulationColumnsVisibilityView.as_view(),
         name="simulation-columns-visibility",
+    ),
+    path(
+        "<int:pk>/renommer/",
+        SimulationRenameView.as_view(),
+        name="simulation-rename",
     ),
     path(
         "voir/<slug:slug>/<str:type>/",

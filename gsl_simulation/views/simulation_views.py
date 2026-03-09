@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, UpdateView
 from django.views.generic.detail import DetailView
@@ -29,7 +30,11 @@ from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_filters import ProjetOrderingFilter
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 from gsl_projet.views import BaseProjetFilters
-from gsl_simulation.forms import SimulationColumnsVisibilityForm, SimulationForm
+from gsl_simulation.forms import (
+    SimulationColumnsVisibilityForm,
+    SimulationForm,
+    SimulationRenameForm,
+)
 from gsl_simulation.models import Simulation, SimulationProjet
 from gsl_simulation.resources import (
     DetrSimulationProjetResource,
@@ -330,6 +335,48 @@ class SimulationDeleteView(DeleteView):
         return Simulation.objects.filter(
             enveloppe__in=visible_by_user_enveloppes
         ).order_by("-created_at")
+
+
+class SimulationRenameView(UpdateView):
+    form_class = SimulationRenameForm
+    template_name = "gsl_simulation/simulation_rename.html"
+
+    def get_queryset(self):
+        visible_by_user_enveloppes = EnveloppeService.get_enveloppes_visible_for_a_user(
+            self.request.user
+        )
+        return Simulation.objects.filter(enveloppe__in=visible_by_user_enveloppes)
+
+    def _get_next_url(self):
+        next_url = self.request.GET.get("next")
+        if next_url and url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts={self.request.get_host()}
+        ):
+            return next_url
+        return None
+
+    def get_success_url(self):
+        return self._get_next_url() or self.object.get_absolute_url()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        next_url = self._get_next_url()
+        context["title"] = f"Renommer la simulation « {self.object.title} »"
+        context["next_url"] = next_url
+        context["breadcrumb_dict"] = {
+            "links": [
+                {
+                    "url": reverse("gsl_simulation:simulation-list"),
+                    "title": "Mes simulations de programmation",
+                },
+                {
+                    "url": self.object.get_absolute_url(),
+                    "title": self.object.title,
+                },
+            ],
+            "current": "Renommer",
+        }
+        return context
 
 
 class SimulationCreateView(CreateView):

@@ -10,6 +10,12 @@
         <div class="fr-menu fr-collapse" id="simulation-menu-{{ simulation.id }}">
             <ul class="fr-menu__list">
                 <li>
+                    <a class="fr-nav__link fr-icon-edit-fill fr-icon--sm fr-btn--icon-left"
+                       href="{% url 'gsl_simulation:simulation-rename' simulation.id %}?next={{ request.path }}">
+                        Renommer
+                    </a>
+                </li>
+                <li>
                     <button class="fr-nav__link fr-icon-delete-bin-fill fr-icon--sm fr-btn--icon-left"
                             aria-controls="simulation-delete-modal-{{ simulation.id }}"
                             type="button"
