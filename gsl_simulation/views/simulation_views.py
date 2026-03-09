@@ -455,6 +455,12 @@ class FilteredProjetsExportView(SimulationDetailView):
         )
         dataset = resource.export(simu_projet_qs)
 
+        headers_to_remove = resource.get_headers_to_remove(
+            self.simulation.columns_visibility
+        )
+        for header in headers_to_remove:
+            del dataset[header]
+
         export_data = dataset.export(export_type)
         content_type = self.EXPORT_TYPE_TO_CONTENT_TYPE[export_type]
 

@@ -15,7 +15,7 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
-from gsl_projet.constants import DOTATION_DSIL
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import Projet
 from gsl_projet.tests.factories import (
     DetrProjetFactory,
@@ -292,3 +292,130 @@ class TestNotifiedProjectDisplayOnSimulationTable:
         assert "simulation-projet-dotation-form" in content
         # Should have the montant input form
         assert f'id="id-montant-{simu.id}"' in content
+
+
+class TestExportColumnsVisibility:
+    """Tests that the export respects the simulation's columns_visibility setting."""
+
+    def _export_csv(self, simulation):
+        req = RequestFactory()
+        view = FilteredProjetsExportView()
+        kwargs = {"slug": simulation.slug, "type": "csv"}
+        url = reverse("simulation:simulation-projets-export", kwargs=kwargs)
+        request = req.get(url)
+        request.resolver_match = resolve(url)
+        view.request = request
+        view.kwargs = kwargs
+        response = view.get(request)
+        assert response.status_code == 200
+        csv_content = response.content.decode("utf-8")
+        return list(csv.reader(io.StringIO(csv_content)))
+
+    def test_export_with_hidden_columns_excludes_them(self):
+        simulation = SimulationFactory(
+            title="Export Test",
+            enveloppe__dotation=DOTATION_DSIL,
+            columns_visibility={
+                "date-depot": True,
+                "demandeur": False,
+                "arrondissement": False,
+                "comment-1": False,
+            },
+        )
+        SimulationProjetFactory(
+            dotation_projet__dotation=DOTATION_DSIL,
+            simulation=simulation,
+        )
+
+        csv_lines = self._export_csv(simulation)
+        headers = csv_lines[0]
+
+        assert "Date de dépôt du dossier" in headers
+        assert "Demandeur" not in headers
+        assert "Arrondissement du demandeur" not in headers
+        assert "Commentaire 1" not in headers
+
+    def test_export_with_null_visibility_hides_non_default_columns(self):
+        simulation = SimulationFactory(
+            title="Default Export",
+            enveloppe__dotation=DOTATION_DSIL,
+            columns_visibility=None,
+        )
+        SimulationProjetFactory(
+            dotation_projet__dotation=DOTATION_DSIL,
+            simulation=simulation,
+        )
+
+        csv_lines = self._export_csv(simulation)
+        headers = csv_lines[0]
+
+        # displayed_by_default=False columns should be excluded
+        assert "Arrondissement du demandeur" not in headers
+        assert "Date de début des travaux" not in headers
+        assert "Date de fin des travaux" not in headers
+        assert "Champ libre 1" not in headers
+        assert "Budget vert (demandeur)" not in headers
+        assert "Dossier complet" not in headers
+        assert "Commentaire 1" not in headers
+        assert "Commentaire 2" not in headers
+        assert "Commentaire 3" not in headers
+        # displayed_by_default=True columns should be included
+        assert "Date de dépôt du dossier" in headers
+        assert "Demandeur" in headers
+        assert "Montant prévsionnel accordé" in headers
+
+    def test_export_with_nom_demandeur_visibility(self):
+        simulation = SimulationFactory(
+            title="Nom Demandeur",
+            enveloppe__dotation=DOTATION_DSIL,
+            columns_visibility={
+                "nom-demandeur": True,
+            },
+        )
+        SimulationProjetFactory(
+            dotation_projet__dotation=DOTATION_DSIL,
+            simulation=simulation,
+        )
+
+        csv_lines = self._export_csv(simulation)
+        headers = csv_lines[0]
+
+        assert "Nom et prénom du demandeur" in headers
+
+    def test_export_hides_nom_demandeur_when_not_visible(self):
+        simulation = SimulationFactory(
+            title="Nom Demandeur Hidden",
+            enveloppe__dotation=DOTATION_DSIL,
+            columns_visibility={
+                "nom-demandeur": False,
+            },
+        )
+        SimulationProjetFactory(
+            dotation_projet__dotation=DOTATION_DSIL,
+            simulation=simulation,
+        )
+
+        csv_lines = self._export_csv(simulation)
+        headers = csv_lines[0]
+
+        assert "Nom et prénom du demandeur" not in headers
+
+    def test_export_detr_includes_detr_specific_fields(self):
+        simulation = SimulationFactory(
+            title="DETR Export",
+            enveloppe__dotation=DOTATION_DETR,
+            columns_visibility={"date-depot": False},
+        )
+        SimulationProjetFactory(
+            dotation_projet__dotation=DOTATION_DETR,
+            simulation=simulation,
+        )
+
+        csv_lines = self._export_csv(simulation)
+        headers = csv_lines[0]
+
+        # DETR-specific fields always present
+        assert "Montant demandé supérieur à 100 000€ ?" in headers
+        assert "Avis de la commission" in headers
+        # Hidden column excluded
+        assert "Date de dépôt du dossier" not in headers
