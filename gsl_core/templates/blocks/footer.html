@@ -10,16 +10,15 @@
         <a class="fr-footer__bottom-link" href="{% url 'accessibilite' %}">Accessibilité : non conforme</a>
     </li>
     <li class="fr-footer__bottom-item">
-        <!-- @TODO -->
-        <a class="fr-footer__bottom-link" href="#">{% translate "Legal notice" %}</a>
+        <a class="fr-footer__bottom-link" href="{% url 'mentions-legales' %}">{% translate "Legal notice" %}</a>
     </li>
     <li class="fr-footer__bottom-item">
-        <!-- @TODO -->
-        <a class="fr-footer__bottom-link" href="#">{% translate "Personal data" %}</a>
+        <a class="fr-footer__bottom-link"
+           href="{% url 'donnees-personnelles' %}">{% translate "Personal data" %}</a>
     </li>
     <li class="fr-footer__bottom-item">
-        <!-- @TODO -->
-        <a class="fr-footer__bottom-link" href="#">{% translate "Cookie management" %}</a>
+        <a class="fr-footer__bottom-link"
+           href="{% url 'donnees-personnelles' %}#cookies">{% translate "Cookie management" %}</a>
     </li>
     <li class="fr-footer__bottom-item">
         <button id="footer__bottom-link__parametres-affichage"
