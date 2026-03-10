@@ -1,8 +1,6 @@
 import json
 
 from django.contrib import messages
-from django.core.exceptions import ValidationError
-from django.db import transaction
 from django.http import Http404 as DjangoHttp404
 from django.http import HttpRequest
 from django.http.request import QueryDict
@@ -11,7 +9,7 @@ from django.urls import resolve, reverse
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
-from django.views.generic import UpdateView
+from django.views.generic import DetailView, UpdateView
 from django_htmx.http import HttpResponseClientRefresh
 
 from gsl.settings import ALLOWED_HOSTS
@@ -24,6 +22,7 @@ from gsl_demarches_simplifiees.importer.dossier import save_one_dossier_from_ds
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
+    DOTATIONS,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
     PROJET_STATUS_PROCESSING,
@@ -31,117 +30,97 @@ from gsl_projet.constants import (
 )
 from gsl_projet.forms import DotationProjetForm, ProjetForm
 from gsl_projet.models import DotationProjet, projet_status_from_dotation_statuses
-from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.forms import (
+    AssietteSingleFieldForm,
     DismissProjetForm,
+    MontantSingleFieldForm,
     RefuseProjetForm,
     SimulationProjetForm,
     SimulationProjetStatusForm,
+    TauxSingleFieldForm,
 )
 from gsl_simulation.models import SimulationProjet, SimulationProjetQuerySet
-from gsl_simulation.services.simulation_projet_service import (
-    SimulationProjetService,
-)
-from gsl_simulation.utils import (
-    replace_comma_by_dot,
-)
+from gsl_simulation.table_columns import SIMULATION_TABLE_COLUMNS
 from gsl_simulation.views.decorators import (
     exception_handler_decorator,
 )
 from gsl_simulation.views.simulation_views import SimulationDetailView
 
 
-@exception_handler_decorator
-@require_POST
-def patch_dotation_projet_assiette(request, simulation_projet_pk):
-    simulation_projet = get_object_or_404(
-        SimulationProjet.objects.in_user_perimeter(request.user),
-        id=simulation_projet_pk,
-    )
-    dotation_projet = simulation_projet.dotation_projet
-    new_assiette = replace_comma_by_dot(request.POST.get("assiette"))
-    try:
-        with transaction.atomic():
-            DotationProjetService.validate_assiette(new_assiette, dotation_projet)
-            dotation_projet.assiette = new_assiette
-            dotation_projet.save()
-    except (ValidationError, DsServiceException) as e:
-        error_msg = (
-            " ".join(str(m) for m in e.messages)
-            if isinstance(e, ValidationError) and e.messages
-            else str(e)
-        )
-        messages.error(
-            request,
-            "Une erreur est survenue lors de la mise à jour de l'assiette. "
-            + error_msg,
-        )
-    return redirect_to_same_page_or_to_simulation_detail_by_default(
-        request, simulation_projet
-    )
+class SimulationTableCellEditMixin(UpdateView):
+    model = SimulationProjet
+    context_object_name = "simu"
+
+    def get_queryset(self):
+        return SimulationProjet.objects.in_user_perimeter(self.request.user)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        try:
+            form.save()
+        except DsServiceException as e:
+            form.add_error(None, str(e))
+            return self.form_invalid(form)
+        self.object.refresh_from_db()
+        return render_partial_simulation_projet(self.request, self.object)
 
 
-@exception_handler_decorator
-@require_POST
-def patch_taux_simulation_projet(request, pk):
-    simulation_projet = get_object_or_404(
-        SimulationProjet.objects.in_user_perimeter(request.user), id=pk
-    )
-    new_taux = replace_comma_by_dot(request.POST.get("taux"), decimals=3)
-    try:
-        with transaction.atomic():
-            DotationProjetService.validate_taux(new_taux)
-            SimulationProjetService.update_taux(
-                simulation_projet, new_taux, request.user
+class EditAssietteView(SimulationTableCellEditMixin):
+    form_class = AssietteSingleFieldForm
+    template_name = "gsl_simulation/table_cells/edit_forms/_assiette_edit_form.html"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["instance"] = self.object.dotation_projet
+        kwargs["simulation_projet"] = self.object
+        return kwargs
+
+
+class EditMontantView(SimulationTableCellEditMixin):
+    form_class = MontantSingleFieldForm
+    template_name = "gsl_simulation/table_cells/edit_forms/_montant_edit_form.html"
+
+
+class EditTauxView(SimulationTableCellEditMixin):
+    form_class = TauxSingleFieldForm
+    template_name = "gsl_simulation/table_cells/edit_forms/_taux_edit_form.html"
+
+
+class RefreshSimulationRowView(DetailView):
+    model = SimulationProjet
+    template_name = "includes/_simulation_detail_row.html"
+
+    def get_queryset(self):
+        return (
+            SimulationProjet.objects.in_user_perimeter(self.request.user)
+            .select_related(
+                "simulation",
+                "simulation__enveloppe",
+                "dotation_projet",
+                "dotation_projet__projet",
+                "dotation_projet__projet__dossier_ds",
             )
-    except (ValidationError, DsServiceException) as e:
-        error_msg = (
-            " ".join(str(m) for m in e.messages)
-            if isinstance(e, ValidationError) and e.messages
-            else str(e)
+            .prefetch_related("dotation_projet__projet__dotationprojet_set")
         )
-        messages.error(
-            request,
-            "Une erreur est survenue lors de la mise à jour du taux. " + error_msg,
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        simulation_projet = self.object
+        context.update(
+            {
+                "simu": simulation_projet,
+                "dotation_projet": simulation_projet.dotation_projet,
+                "projet": simulation_projet.projet,
+                "columns": SIMULATION_TABLE_COLUMNS,
+                "dotations": DOTATIONS,
+            }
         )
-        simulation_projet = SimulationProjet.objects.get(pk=simulation_projet.pk)
-
-    return redirect_to_same_page_or_to_simulation_detail_by_default(
-        request, simulation_projet
-    )
-
-
-@exception_handler_decorator
-@require_POST
-def patch_montant_simulation_projet(request, pk):
-    simulation_projet = get_object_or_404(
-        SimulationProjet.objects.in_user_perimeter(request.user), id=pk
-    )
-    new_montant = replace_comma_by_dot(request.POST.get("montant"))
-    try:
-        with transaction.atomic():
-            DotationProjetService.validate_montant(
-                new_montant, simulation_projet.dotation_projet
-            )
-            SimulationProjetService.update_montant(
-                simulation_projet, new_montant, user=request.user
-            )
-    except (ValidationError, DsServiceException) as e:
-        error_msg = (
-            " ".join(str(m) for m in e.messages)
-            if isinstance(e, ValidationError) and e.messages
-            else str(e)
-        )
-        messages.error(
-            request,
-            "Une erreur est survenue lors de la mise à jour du montant. " + error_msg,
-        )
-        simulation_projet = SimulationProjet.objects.get(pk=simulation_projet.pk)
-
-    return redirect_to_same_page_or_to_simulation_detail_by_default(
-        request, simulation_projet
-    )
+        return context
 
 
 @exception_handler_decorator
@@ -352,7 +331,7 @@ def redirect_to_same_page_or_to_simulation_detail_by_default(
 
 
 def render_partial_simulation_projet(request, simulation_projet):
-    filter_params = request.POST.get("filter_params")
+    filter_params = request.GET.urlencode()
     filtered_projets = _get_projets_queryset_with_filters(
         simulation_projet.simulation,
         filter_params,
@@ -371,7 +350,8 @@ def render_partial_simulation_projet(request, simulation_projet):
             "projet": simulation_projet.projet,
             "status_summary": simulation_projet.simulation.get_projet_status_summary(),
             "total_amount_granted": total_amount_granted,
-            "filter_params": filter_params,
+            "columns": SIMULATION_TABLE_COLUMNS,
+            "dotations": DOTATIONS,
         },
     )
 

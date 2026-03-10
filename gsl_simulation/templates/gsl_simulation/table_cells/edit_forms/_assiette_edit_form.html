@@ -1,0 +1,43 @@
+<form hx-post="{% url 'simulation:edit-assiette' simu.pk %}{% querystring %}"
+      hx-target="this"
+      hx-swap="outerHTML"
+      hx-disabled-elt="#simulation-{{ simu.pk }} input, #simulation-{{ simu.pk }} button"
+      id="edit-assiette-{{ simu.pk }}"
+      class="gsl-cell-edit-form"
+      role="region"
+      aria-label="Modifier l'assiette">
+    {% csrf_token %}
+    <div class="fr-input-group{% if form.assiette.errors %} fr-input-group--error{% endif %}">
+        <div class="fr-input-wrap fr-input-wrap--addon">
+            <input class="fr-input fr-input--sm"
+                   name="assiette"
+                   value="{{ form.assiette.value|default_if_none:'' }}"
+                   type="text"
+                   inputmode="numeric"
+                   autofocus>
+            <button type="submit"
+                    class="fr-btn fr-icon-check-line fr-btn--sm"
+                    aria-label="Enregistrer">
+                Enregistrer
+            </button>
+            <button type="button"
+                    class="fr-btn fr-btn--sm fr-icon-close-line fr-btn--tertiary"
+                    hx-get="{% url 'simulation:refresh-simulation-row' simu.pk %}{% querystring %}"
+                    hx-target="#simulation-{{ simu.pk }}"
+                    hx-swap="outerHTML"
+                    aria-label="Annuler">
+                Annuler
+            </button>
+        </div>
+        {% for error in form.assiette.errors %}
+            <p class="fr-error-text">
+                {{ error }}
+            </p>
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+            <p class="fr-error-text">
+                {{ error }}
+            </p>
+        {% endfor %}
+    </div>
+</form>

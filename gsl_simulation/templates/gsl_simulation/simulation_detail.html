@@ -25,7 +25,7 @@
         <div class="gsl-dropdown-content fr-p-0 export-btn-container" role="menu">
             {% for export_type in export_types %}
                 <a class="fr-btn fr-btn--secondary export-btn"
-                   href="{% url 'gsl_simulation:simulation-projets-export' slug=simulation.slug type=export_type %}?{{ filter_params }}"
+                   href="  {% url 'gsl_simulation:simulation-projets-export' slug=simulation.slug type=export_type %}{% querystring %}"
                    role="menuitem">
                     format .{{ export_type }} <span class="fr-icon-download-line fr-icon--sm fr-btn--icon-right"
        aria-hidden="true"></span>
@@ -95,8 +95,3 @@
 {% block modal %}
     {% include "includes/modals/_dotation_update_confirmation_modal.html" %}
 {% endblock modal %}
-
-{% block extra_js %}
-    <script type="module"
-            src="{% static 'js/handleInteractionsInSimulation.js' %}"></script>
-{% endblock extra_js %}
