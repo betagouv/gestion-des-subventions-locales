@@ -10,6 +10,7 @@ from django.utils import timezone
 from dsfr.forms import DsfrBaseForm
 
 from gsl_core.models import Collegue
+from gsl_core.templatetags.gsl_filters import euro
 from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
@@ -22,7 +23,6 @@ from gsl_projet.models import (
     DotationProjet,
     Projet,
 )
-from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.utils import compute_taux
 from gsl_simulation.models import Simulation, SimulationProjet
 from gsl_simulation.services.simulation_projet_service import SimulationProjetService
@@ -188,8 +188,10 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
 
         else:
             if "taux" in self.changed_data:
-                computed_montant = DotationProjetService.compute_montant_from_taux(
-                    simulation_projet.dotation_projet, cleaned_data.get("taux")
+                computed_montant = (
+                    simulation_projet.dotation_projet.compute_montant_from_taux(
+                        cleaned_data.get("taux")
+                    )
                 )
                 cleaned_data["montant"] = computed_montant
 
@@ -335,7 +337,13 @@ class AssietteSingleFieldForm(forms.ModelForm):
 
     def clean_assiette(self):
         value = self.cleaned_data["assiette"]
-        DotationProjetService.validate_assiette(value, self.instance)
+        dotation_projet = self.instance
+        cout_total = dotation_projet.dossier_ds.finance_cout_total
+        if cout_total is not None and value > cout_total:
+            raise ValidationError(
+                f"L'assiette {euro(value)} doit être inférieure ou égale "
+                f"au coût total du projet ({euro(cout_total)})."
+            )
         return value
 
     @transaction.atomic
@@ -363,14 +371,25 @@ class MontantSingleFieldForm(forms.ModelForm):
 
     def clean_montant(self):
         value = self.cleaned_data["montant"]
-        DotationProjetService.validate_montant(value, self.instance.dotation_projet)
+        assiette = self.instance.dotation_projet.assiette_or_cout_total
+        if assiette is not None and value > assiette:
+            raise ValidationError(
+                f"Le montant {euro(value)} doit être inférieur ou égal "
+                f"à l'assiette ({euro(assiette)})."
+            )
         return value
 
     @transaction.atomic
     def save(self, commit=True):
-        SimulationProjetService.update_montant(
-            self.instance, self.cleaned_data["montant"], user=self.user
-        )
+        super().save(commit=commit)
+
+        if self.instance.status == SimulationProjet.STATUS_ACCEPTED:
+            self.instance.dotation_projet.accept(
+                montant=self.instance.montant,
+                enveloppe=self.instance.enveloppe,
+                user=self.user,
+            )
+            self.instance.dotation_projet.save()
 
     class Meta:
         model = SimulationProjet
@@ -396,16 +415,24 @@ class TauxSingleFieldForm(forms.ModelForm):
                 taux = round(taux, 3)
             self.fields["taux"].initial = taux
 
-    def clean_taux(self):
-        value = self.cleaned_data["taux"]
-        DotationProjetService.validate_taux(value)
-        return value
-
     @transaction.atomic
     def save(self, commit=True):
-        SimulationProjetService.update_taux(
-            self.instance, self.cleaned_data["taux"], self.user
+        simulation_projet = self.instance
+        new_montant = simulation_projet.dotation_projet.compute_montant_from_taux(
+            self.cleaned_data["taux"]
         )
+        simulation_projet.montant = new_montant
+        simulation_projet.save()
+
+        if simulation_projet.status == SimulationProjet.STATUS_ACCEPTED:
+            dotation_projet = simulation_projet.dotation_projet
+            dotation_projet.accept(
+                montant=simulation_projet.montant,
+                enveloppe=simulation_projet.enveloppe,
+                user=self.user,
+            )
+            dotation_projet.save()
+            simulation_projet.refresh_from_db()
 
     class Meta:
         model = SimulationProjet

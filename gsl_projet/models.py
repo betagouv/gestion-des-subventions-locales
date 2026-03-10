@@ -633,6 +633,19 @@ class DotationProjet(BaseModel):
             return self.assiette
         return self.dossier_ds.finance_cout_total
 
+    def compute_montant_from_taux(self, new_taux):
+        from decimal import Decimal, InvalidOperation
+
+        try:
+            assiette = self.assiette_or_cout_total
+            new_montant = (assiette * Decimal(new_taux) / 100) if assiette else 0
+            new_montant = round(new_montant, 2)
+            return max(min(new_montant, self.assiette_or_cout_total), 0)
+        except TypeError:
+            return 0
+        except InvalidOperation:
+            return 0
+
     @property
     def taux_de_subvention_sollicite(self) -> float | None:
         if (

@@ -92,7 +92,7 @@ def _get_simu_other_dotation_statut(context):
 
 COLUMN_ASSIETTE = Column(
     key="assiette",
-    label="Assiette",
+    label="Assiette (€)",
     template_name="gsl_simulation/table_cells/assiette.html",
     other_dotation_getter=_get_other_dotation_assiette,
     text_align=TextAlign.RIGHT,

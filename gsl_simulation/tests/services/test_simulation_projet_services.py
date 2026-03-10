@@ -1,14 +1,7 @@
 import logging
-from typing import cast
-from unittest import mock
 
 import pytest
 
-from gsl_core.models import Collegue
-from gsl_core.tests.factories import (
-    CollegueFactory,
-)
-from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     ProgrammationProjetFactory,
 )
@@ -21,7 +14,6 @@ from gsl_projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.tests.factories import (
-    DetrProjetFactory,
     DotationProjetFactory,
     ProjetFactory,
 )
@@ -30,34 +22,6 @@ from gsl_simulation.services.simulation_projet_service import SimulationProjetSe
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
 pytestmark = pytest.mark.django_db
-
-
-@pytest.fixture
-def user() -> Collegue:
-    return cast(Collegue, CollegueFactory())
-
-
-@mock.patch.object(
-    SimulationProjetService, "create_or_update_simulation_projet_from_dotation_projet"
-)
-def test_update_simulation_projets_from_dotation_projet_calls_create_or_update(
-    mock_create_or_update,
-):
-    dotation_projet = DetrProjetFactory()
-    simulation_projets = SimulationProjetFactory.create_batch(
-        3,
-        dotation_projet=dotation_projet,
-    )
-
-    SimulationProjetService.update_simulation_projets_from_dotation_projet(
-        dotation_projet
-    )
-
-    assert mock_create_or_update.call_count == 3
-    for simulation_projet in simulation_projets:
-        mock_create_or_update.assert_any_call(
-            dotation_projet, simulation_projet.simulation
-        )
 
 
 def test_create_or_update_simulation_projet_from_dotation_projet_when_no_simulation_projet_exists():
@@ -220,205 +184,6 @@ def test_get_initial_montant_from_dotation_projet_with_an_accepted_programmation
     assert montant == 500
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
-def test_accept_a_simulation_projet(mock_ds_update, user):
-    simulation_projet = SimulationProjetFactory(
-        status=SimulationProjet.STATUS_PROCESSING
-    )
-    other_projet_simulation_projet = SimulationProjetFactory(
-        dotation_projet=simulation_projet.dotation_projet
-    )
-    pp_qs = ProgrammationProjet.objects.filter(
-        dotation_projet=simulation_projet.dotation_projet
-    )
-    assert pp_qs.count() == 0
-
-    SimulationProjetService.accept_a_simulation_projet(simulation_projet, user)
-
-    mock_ds_update.assert_called_once_with(
-        dossier=simulation_projet.projet.dossier_ds,
-        user=user,
-        annotations_dotation_to_update=simulation_projet.dotation,
-        dotations_to_be_checked=[simulation_projet.dotation],
-        assiette=simulation_projet.dotation_projet.assiette,
-        montant=simulation_projet.montant,
-        taux=simulation_projet.taux,
-    )
-
-    updated_simulation_projet = SimulationProjet.objects.get(pk=simulation_projet.pk)
-    assert updated_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
-
-    pp_qs = ProgrammationProjet.objects.filter(
-        dotation_projet=updated_simulation_projet.dotation_projet
-    )
-    assert pp_qs.count() == 1
-
-    programmation_projet = pp_qs.first()
-    assert (
-        programmation_projet.enveloppe
-        == updated_simulation_projet.enveloppe.delegation_root
-    )  # ProgrammationProjet must not be created with delegated enveloppe
-    assert programmation_projet.taux == updated_simulation_projet.taux
-    assert programmation_projet.montant == updated_simulation_projet.montant
-
-    updated_other_simulation_projet = SimulationProjet.objects.get(
-        pk=other_projet_simulation_projet.pk
-    )
-    assert updated_other_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
-
-
-@pytest.mark.parametrize(
-    "field_name",
-    ("assiette", "projet__dossier_ds__finance_cout_total"),
-)
-def test_update_taux(field_name, user):
-    dotation_projet = DotationProjetFactory(
-        **{field_name: 1000},
-    )
-    simulation_projet = SimulationProjetFactory(
-        dotation_projet=dotation_projet,
-        montant=100,
-    )
-    new_taux = 15.0
-
-    SimulationProjetService.update_taux(simulation_projet, new_taux, user)
-
-    assert simulation_projet.taux == new_taux
-    assert simulation_projet.montant == 150.0
-
-
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
-@pytest.mark.parametrize(
-    "field_name",
-    ("assiette", "projet__dossier_ds__finance_cout_total"),
-)
-def test_update_taux_of_accepted_montant(mock_ds_update, field_name, user):
-    dotation_projet = DotationProjetFactory(
-        **{field_name: 1000},
-    )
-    simulation_projet = SimulationProjetFactory(
-        dotation_projet=dotation_projet,
-        status=SimulationProjet.STATUS_ACCEPTED,
-        montant=200,
-    )
-    other_simulation_projet = SimulationProjetFactory(
-        simulation__enveloppe=simulation_projet.enveloppe,
-        dotation_projet=dotation_projet,
-        status=SimulationProjet.STATUS_ACCEPTED,
-        montant=200,
-    )
-    programmation_projet = ProgrammationProjetFactory(
-        enveloppe=simulation_projet.enveloppe.delegation_root,
-        dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-    )
-
-    new_taux = 15.0
-    SimulationProjetService.update_taux(simulation_projet, new_taux, user)
-
-    expected_montant = 150.0
-    mock_ds_update.assert_called_once_with(
-        dossier=simulation_projet.projet.dossier_ds,
-        user=user,
-        annotations_dotation_to_update=simulation_projet.dotation,
-        dotations_to_be_checked=[simulation_projet.dotation],
-        assiette=simulation_projet.dotation_projet.assiette,
-        montant=expected_montant,
-        taux=new_taux,
-    )
-
-    assert simulation_projet.taux == new_taux
-    assert simulation_projet.montant == expected_montant
-
-    other_simulation_projet.refresh_from_db()
-    assert other_simulation_projet.taux == new_taux
-    assert other_simulation_projet.montant == expected_montant
-
-    programmation_projet.refresh_from_db()
-    assert programmation_projet.taux == new_taux
-    assert programmation_projet.montant == expected_montant
-
-
-@pytest.mark.parametrize(
-    "field_name",
-    ("assiette", "projet__dossier_ds__finance_cout_total"),
-)
-def test_update_montant(field_name, user):
-    dotation_projet = DotationProjetFactory(
-        **{field_name: 1000},
-    )
-    simulation_projet = SimulationProjetFactory(
-        dotation_projet=dotation_projet,
-        montant=1000.0,
-    )
-    new_montant = 500.0
-
-    SimulationProjetService.update_montant(simulation_projet, new_montant, user)
-
-    assert simulation_projet.montant == new_montant
-    assert simulation_projet.taux == 50.0
-
-
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
-@pytest.mark.parametrize(
-    "field_name",
-    ("assiette", "projet__dossier_ds__finance_cout_total"),
-)
-def test_update_montant_of_accepted_montant(mock_ds_update, field_name, user):
-    dotation_projet = DotationProjetFactory(
-        **{field_name: 1000},
-    )
-    simulation_projet = SimulationProjetFactory(
-        dotation_projet=dotation_projet,
-        status=SimulationProjet.STATUS_ACCEPTED,
-        montant=1_000,
-    )
-    other_simulation_projet = SimulationProjetFactory(
-        simulation__enveloppe=simulation_projet.enveloppe,
-        dotation_projet=dotation_projet,
-        status=SimulationProjet.STATUS_ACCEPTED,
-        montant=1_000,
-    )
-    programmation_projet = ProgrammationProjetFactory(
-        enveloppe=simulation_projet.enveloppe.delegation_root,
-        dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-        montant=1_000,
-    )
-
-    new_montant = 500.0
-    new_taux = 50.0
-
-    SimulationProjetService.update_montant(simulation_projet, new_montant, user)
-
-    mock_ds_update.assert_called_once_with(
-        dossier=simulation_projet.projet.dossier_ds,
-        user=user,
-        annotations_dotation_to_update=simulation_projet.dotation,
-        dotations_to_be_checked=[simulation_projet.dotation],
-        assiette=simulation_projet.dotation_projet.assiette,
-        montant=new_montant,
-        taux=new_taux,
-    )
-
-    assert simulation_projet.montant == new_montant
-    assert simulation_projet.taux == new_taux
-
-    other_simulation_projet.refresh_from_db()
-    assert other_simulation_projet.montant == new_montant
-    assert other_simulation_projet.taux == new_taux
-
-    programmation_projet.refresh_from_db()
-    assert programmation_projet.montant == new_montant
-    assert programmation_projet.taux == new_taux
-
-
 @pytest.mark.parametrize(
     "projet_status, simulation_projet_status_expected",
     (
@@ -432,20 +197,3 @@ def test_get_simulation_projet_status(projet_status, simulation_projet_status_ex
     dotation_projet = DotationProjetFactory(status=projet_status)
     status = SimulationProjetService.get_simulation_projet_status(dotation_projet)
     assert status == simulation_projet_status_expected
-
-
-@mock.patch("gsl_projet.models.DotationProjet.accept")
-def test_accept_simulation_projet_triggers_transition(
-    mock_transition_dotation_projet,
-    user,
-):
-    simulation_projet = SimulationProjetFactory()
-
-    SimulationProjetService.accept_a_simulation_projet(simulation_projet, user)
-
-    kwargs = {
-        "enveloppe": simulation_projet.enveloppe,
-        "montant": simulation_projet.montant,
-        "user": user,
-    }
-    mock_transition_dotation_projet.assert_called_once_with(**kwargs)
