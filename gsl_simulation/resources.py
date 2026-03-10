@@ -46,7 +46,16 @@ class TauxWidget(Widget):
     def render(self, value, obj=None, **kwargs):
         if value is None:
             return ""
-        return f"{float(value):.4f}"
+        return f"{float(value):.4f}".replace(".", ",")
+
+
+class DecimalWidget(Widget):
+    """Format decimal to 2 decimal places for CSV export."""
+
+    def render(self, value, obj=None, **kwargs):
+        if value is None:
+            return ""
+        return f"{float(value):.2f}".replace(".", ",")
 
 
 class OuiNonWidget(BooleanWidget):
@@ -88,14 +97,17 @@ class BaseSimulationProjetResource(ModelResource):
     cout_total = Field(
         attribute="projet__dossier_ds__finance_cout_total",
         column_name="Coût total du projet",
+        widget=DecimalWidget(),
     )
     assiette = Field(
         attribute="dotation_projet__assiette",
         column_name="Assiette subventionnable",
+        widget=DecimalWidget(),
     )
     demande_montant = Field(
         attribute="projet__dossier_ds__demande_montant",
         column_name="Montant demandé",
+        widget=DecimalWidget(),
     )
     status = Field(
         attribute="get_status_display",
@@ -104,6 +116,7 @@ class BaseSimulationProjetResource(ModelResource):
     montant = Field(
         attribute="montant",
         column_name="Montant prévsionnel accordé",
+        widget=DecimalWidget(),
     )
     taux = Field(
         attribute="taux",
