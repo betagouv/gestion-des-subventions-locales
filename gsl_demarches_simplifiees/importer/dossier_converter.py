@@ -64,7 +64,17 @@ class DossierConverter:
         for field in self.UNMAPPED_FIELDS:
             django_field = f"ds_{field}"
             ds_key = camelcase(field)
-            self.dossier.__setattr__(django_field, self.ds_dossier_data[ds_key])
+            try:
+                self.dossier.__setattr__(django_field, self.ds_dossier_data[ds_key])
+            except Exception as e:
+                logger.exception(
+                    "Error while filling unmapped field.",
+                    extra={
+                        "error": str(e),
+                        "dossier_ds_number": self.dossier.ds_number,
+                        "field": field,
+                    },
+                )
         # deal with "demandeur" differently
         demandeur_data = self.ds_dossier_data.get("demandeur")
         if not demandeur_data:
@@ -101,8 +111,8 @@ class DossierConverter:
             ):
                 return
 
-        except NotImplementedError as e:
-            logger.warning(
+        except Exception as e:
+            logger.exception(
                 "Error while converting field.",
                 extra={
                     "error": str(e),

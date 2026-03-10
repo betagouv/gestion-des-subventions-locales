@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 from pathlib import Path
 
 import pytest
@@ -578,3 +579,108 @@ def test_convert_all_fields_continues_when_categorie_detr_does_not_exist(
     assert record.value == "1. Première catégorie prioritaire"
     assert record.departement.name == "Haute-Vienne"
     assert record.departement.insee_code == "87"
+
+
+def test_fill_unmapped_fields_logs_warning_and_continues_when_key_is_missing(
+    demarche,
+    dossier_ds_id,
+    dossier_ds_number,
+    caplog,
+):
+    """Quand une clé est absente des données DS, fill_unmapped_fields logue un warning
+    et continue de remplir les autres champs."""
+    ds_dossier_data = {
+        "champs": [],
+        "annotations": [],
+        "demarche": {"revision": {"id": "rev-1"}},
+        # "state" est intentionnellement absent pour provoquer une KeyError
+        "dateDepot": "2024-10-16T10:09:32+02:00",
+        "dateDerniereModification": "2024-10-16T10:09:33+02:00",
+        "datePassageEnConstruction": "2024-10-16T10:09:32+02:00",
+        "datePassageEnInstruction": None,
+        "dateDerniereModificationChamps": "2024-10-16T10:09:29+02:00",
+        "dateTraitement": None,
+        "demandeur": None,
+    }
+    dossier = Dossier.objects.create(
+        ds_id=dossier_ds_id,
+        ds_demarche=demarche,
+        ds_number=dossier_ds_number,
+    )
+    DossierData.objects.create(dossier=dossier)
+    converter = DossierConverter(ds_dossier_data, dossier)
+
+    with caplog.at_level(logging.ERROR):
+        converter.fill_unmapped_fields()
+
+    error_records = [r for r in caplog.records if r.levelno == logging.ERROR]
+    assert len(error_records) == 1
+    assert error_records[0].message == "Error while filling unmapped field."
+    assert error_records[0].field == "state"
+
+    # Les autres champs doivent quand même avoir été remplis
+    assert dossier.ds_date_depot == "2024-10-16T10:09:32+02:00"
+
+
+def test_convert_all_fields_logs_warning_and_continues_on_unexpected_error(
+    dossier,
+    caplog,
+):
+    """Quand un champ provoque une exception inattendue lors de la conversion,
+    convert_all_fields logue un warning et continue avec les autres champs.
+
+    Ici on simule le cas réel d'un DateChamp dont la clé 'date' est absente
+    (KeyError), ce qui était le comportement fautif sur date_debut.
+    """
+    ds_dossier_data = {
+        "champs": [
+            {
+                "id": "FIELD_DATE_BROKEN",
+                "champDescriptorId": "FIELD_DATE_BROKEN",
+                "__typename": "DateChamp",
+                "label": "Date de début",
+                "stringValue": "",
+                # Clé "date" intentionnellement absente → KeyError
+            },
+            {
+                "id": "FIELD_INTITULE",
+                "champDescriptorId": "FIELD_INTITULE",
+                "__typename": "TextChamp",
+                "label": "Intitulé du projet",
+                "stringValue": "Mon projet malgré l'erreur",
+            },
+        ],
+        "annotations": [],
+        "demarche": {"revision": {"id": "rev-1"}},
+    }
+    FieldMapping.objects.create(
+        demarche=dossier.ds_demarche,
+        ds_field_id="FIELD_DATE_BROKEN",
+        ds_field_label="Date de début",
+        ds_field_type="DateChamp",
+        django_field="date_debut",
+    )
+    FieldMapping.objects.create(
+        demarche=dossier.ds_demarche,
+        ds_field_id="FIELD_INTITULE",
+        ds_field_label="Intitulé du projet",
+        ds_field_type="TextChamp",
+        django_field="projet_intitule",
+    )
+
+    converter = DossierConverter(ds_dossier_data, dossier)
+
+    with caplog.at_level(logging.ERROR):
+        converter.convert_all_fields()
+
+    error_records = [
+        r
+        for r in caplog.records
+        if r.levelno == logging.ERROR and r.message == "Error while converting field."
+    ]
+    assert len(error_records) == 1
+    assert error_records[0].field_label == "Date de début"
+    assert "'date'" in error_records[0].error  # KeyError: 'date'
+
+    # L'autre champ doit quand même avoir été importé
+    assert dossier.projet_intitule == "Mon projet malgré l'erreur"
