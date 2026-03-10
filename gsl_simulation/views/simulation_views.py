@@ -234,7 +234,6 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                 "total_amount_asked": ProjetService.get_total_amount_asked(qs),
                 "total_amount_granted": simulation.get_total_amount_granted(qs),
                 "available_states": SimulationProjet.STATUS_CHOICES,
-                "filter_params": self.request.GET.urlencode(),
                 "enveloppe": simulation.enveloppe,
                 "dotations": DOTATIONS,
                 "columns": SIMULATION_TABLE_COLUMNS,

@@ -10,14 +10,15 @@ from gsl_simulation.views.simulation_projet_notes_views import (
     get_note_card,
 )
 from gsl_simulation.views.simulation_projet_views import (
+    EditAssietteView,
+    EditMontantView,
+    EditTauxView,
     ProgrammationStatusUpdateView,
     ProjetFormView,
+    RefreshSimulationRowView,
     SimulationProjetDetailView,
     SimulationProjetStatusUpdateView,
     patch_dotation_projet,
-    patch_dotation_projet_assiette,
-    patch_montant_simulation_projet,
-    patch_taux_simulation_projet,
 )
 from gsl_simulation.views.simulation_views import (
     SimulationColumnsVisibilityView,
@@ -72,19 +73,24 @@ urlpatterns = [
         name="simulation-projet-notes",
     ),
     path(
-        "modifier-l-assiette-d-un-dotation-projet/<int:simulation_projet_pk>/",
-        patch_dotation_projet_assiette,
-        name="patch-dotation-projet-assiette",
+        "edit-assiette/<int:pk>/",
+        EditAssietteView.as_view(),
+        name="edit-assiette",
     ),
     path(
-        "modifier-le-taux-d-un-projet-de-simulation/<int:pk>/",
-        patch_taux_simulation_projet,
-        name="patch-simulation-projet-taux",
+        "edit-montant/<int:pk>/",
+        EditMontantView.as_view(),
+        name="edit-montant",
     ),
     path(
-        "modifier-le-montant-un-projet-de-simulation/<int:pk>/",
-        patch_montant_simulation_projet,
-        name="patch-simulation-projet-montant",
+        "edit-taux/<int:pk>/",
+        EditTauxView.as_view(),
+        name="edit-taux",
+    ),
+    path(
+        "refresh-row/<int:pk>/",
+        RefreshSimulationRowView.as_view(),
+        name="refresh-simulation-row",
     ),
     path(
         "<int:pk>/simuler/<str:status>/",

@@ -327,6 +327,91 @@ class DismissProjetForm(SimulationProjetStatusForm):
         fields = ("justification",)
 
 
+class AssietteSingleFieldForm(forms.ModelForm):
+    def __init__(self, *args, simulation_projet, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.simulation_projet = simulation_projet
+        self.user = user
+
+    def clean_assiette(self):
+        value = self.cleaned_data["assiette"]
+        DotationProjetService.validate_assiette(value, self.instance)
+        return value
+
+    @transaction.atomic
+    def save(self, commit=True):
+        super().save(commit=commit)
+
+        if self.instance.status == PROJET_STATUS_ACCEPTED:
+            self.instance.accept(
+                montant=self.simulation_projet.montant,
+                enveloppe=self.simulation_projet.enveloppe,
+                user=self.user,
+            )
+            self.instance.save()
+
+    class Meta:
+        model = DotationProjet
+        fields = ["assiette"]
+        localized_fields = ["assiette"]
+
+
+class MontantSingleFieldForm(forms.ModelForm):
+    def __init__(self, *args, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+    def clean_montant(self):
+        value = self.cleaned_data["montant"]
+        DotationProjetService.validate_montant(value, self.instance.dotation_projet)
+        return value
+
+    @transaction.atomic
+    def save(self, commit=True):
+        SimulationProjetService.update_montant(
+            self.instance, self.cleaned_data["montant"], user=self.user
+        )
+
+    class Meta:
+        model = SimulationProjet
+        fields = ["montant"]
+        localized_fields = ["montant"]
+
+
+class TauxSingleFieldForm(forms.ModelForm):
+    taux = forms.DecimalField(
+        max_digits=6,
+        decimal_places=3,
+        min_value=0,
+        max_value=100,
+        localize=True,
+    )
+
+    def __init__(self, *args, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        if not self.is_bound:
+            taux = self.instance.taux
+            if taux is not None:
+                taux = round(taux, 3)
+            self.fields["taux"].initial = taux
+
+    def clean_taux(self):
+        value = self.cleaned_data["taux"]
+        DotationProjetService.validate_taux(value)
+        return value
+
+    @transaction.atomic
+    def save(self, commit=True):
+        SimulationProjetService.update_taux(
+            self.instance, self.cleaned_data["taux"], self.user
+        )
+
+    class Meta:
+        model = SimulationProjet
+        fields = []
+
+
 class SimulationColumnsVisibilityForm(forms.ModelForm):
     class Meta:
         model = Simulation

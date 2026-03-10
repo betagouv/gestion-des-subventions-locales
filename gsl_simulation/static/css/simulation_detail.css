@@ -162,6 +162,46 @@
   background-image: linear-gradient(0deg, var(--background-action-high-blue-france), var(--background-action-high-blue-france))
 }
 
+/* click-to-edit cells */
+.gsl-projet-table td:has(.gsl-cell-edit-btn):not(:has(.gsl-cell-edit-form)) {
+  white-space: nowrap;
+}
+
+.gsl-cell-edit-btn {
+  flex-shrink: 0;
+}
+
+.gsl-projet-table tr:has(.gsl-cell-edit-form) {
+  position: relative;
+}
+
+.gsl-projet-table td:has(.gsl-cell-edit-form) {
+  position: absolute;
+  min-height: 100%;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  box-shadow: 0 4px 12px var(--shadow-color);
+  border: 1px solid var(--border-default-grey);
+  padding: 0.75rem;
+  min-width: 220px;
+}
+
+.gsl-projet-table td:has(.gsl-cell-edit-form) > .gsl-cell-edit-btn {
+  display: none;
+}
+
+.gsl-projet-table td:has(.gsl-cell-edit-form) > span {
+  display: none;
+}
+
+.gsl-cell-edit-form .fr-input {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
 /* export buttons */
 .gsl-dropdown .export-btn-container {
   gap: 0;

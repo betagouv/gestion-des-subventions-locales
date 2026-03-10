@@ -3,7 +3,7 @@
     {{ projet.dotations|join:" et " }}
 {% else %}
     <form id="simulation-projet-dotation-form-{{ simu.id }}"
-          action="{% url 'simulation:patch-projet' simu.id %}"
+          action="{% url 'simulation:patch-projet' simu.id %}{% querystring %}"
           method="POST"
           data-controller="dotation-dropdown"
           data-dotation-dropdown-target="form"
@@ -18,8 +18,7 @@
             </button>
 
             <fieldset class="gsl-projet-table__dotation-content"
-                      data-dotation-dropdown-target="content"
-                      style="display: none">
+                      data-dotation-dropdown-target="content">
                 {% for dotation in dotations %}
                     <div class="fr-checkbox-group fr-checkbox-group--sm">
                         <input form="simulation-projet-dotation-form-{{ simu.id }}"
@@ -39,7 +38,6 @@
             </fieldset>
         </div>
 
-        <input type="hidden" name="filter_params" value="{{ filter_params }}">
         <input type="submit" hidden />
     </form>
 {% endif %}

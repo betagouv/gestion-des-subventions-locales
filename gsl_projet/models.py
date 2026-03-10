@@ -3,6 +3,7 @@ from datetime import timezone as tz
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models, transaction
 from django.db.models import (
     Case,
@@ -529,6 +530,7 @@ class DotationProjet(BaseModel):
         "Assiette subventionnable",
         max_digits=12,
         decimal_places=2,
+        validators=[MinValueValidator(0)],
         null=True,
     )
     detr_avis_commission = models.BooleanField(
