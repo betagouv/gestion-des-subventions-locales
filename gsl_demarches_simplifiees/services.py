@@ -135,7 +135,7 @@ class DsService:
                         "id": self._get_ds_field_id(
                             dossier, f"annotations_taux_{suffix}"
                         ),
-                        "value": {"decimalNumber": taux},
+                        "value": {"decimalNumber": round(taux, 3)},
                     }
                 )
 
