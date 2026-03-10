@@ -1,7 +1,6 @@
 import logging
 from decimal import Decimal
 
-from gsl_core.models import Collegue
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
     DOTATION_DETR,
@@ -12,26 +11,12 @@ from gsl_projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.models import DotationProjet
-from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_simulation.models import Simulation, SimulationProjet
 
 logger = logging.getLogger(__name__)
 
 
 class SimulationProjetService:
-    @classmethod
-    def update_simulation_projets_from_dotation_projet(
-        cls, dotation_projet: DotationProjet
-    ):
-        simulation_projets = SimulationProjet.objects.filter(
-            dotation_projet=dotation_projet
-        ).select_related("simulation")
-
-        for simulation_projet in simulation_projets:
-            cls.create_or_update_simulation_projet_from_dotation_projet(
-                dotation_projet, simulation_projet.simulation
-            )
-
     @classmethod
     def create_or_update_simulation_projet_from_dotation_projet(
         cls, dotation_projet: DotationProjet, simulation: Simulation
@@ -112,33 +97,6 @@ class SimulationProjetService:
             dotation_projet.assiette_or_cout_total,
         )
 
-    @classmethod
-    def update_taux(
-        cls, simulation_projet: SimulationProjet, new_taux: float, user: Collegue
-    ):
-        new_montant = DotationProjetService.compute_montant_from_taux(
-            simulation_projet.dotation_projet, new_taux
-        )
-        simulation_projet.montant = new_montant
-        simulation_projet.save()
-
-        if simulation_projet.status == SimulationProjet.STATUS_ACCEPTED:
-            return cls.accept_a_simulation_projet(simulation_projet, user)
-
-        return simulation_projet
-
-    @classmethod
-    def update_montant(
-        cls, simulation_projet: SimulationProjet, new_montant: float, user: Collegue
-    ):
-        simulation_projet.montant = new_montant
-        simulation_projet.save()
-
-        if simulation_projet.status == SimulationProjet.STATUS_ACCEPTED:
-            return cls.accept_a_simulation_projet(simulation_projet, user)
-
-        return simulation_projet
-
     PROJET_STATUS_TO_SIMULATION_PROJET_STATUS = {
         PROJET_STATUS_ACCEPTED: SimulationProjet.STATUS_ACCEPTED,
         PROJET_STATUS_DISMISSED: SimulationProjet.STATUS_DISMISSED,
@@ -149,22 +107,3 @@ class SimulationProjetService:
     @classmethod
     def get_simulation_projet_status(cls, dotation_projet: DotationProjet):
         return cls.PROJET_STATUS_TO_SIMULATION_PROJET_STATUS.get(dotation_projet.status)
-
-    # Private
-
-    @classmethod
-    def accept_a_simulation_projet(
-        cls, simulation_projet: SimulationProjet, user: Collegue
-    ):
-        dotation_projet: DotationProjet = simulation_projet.dotation_projet
-
-        dotation_projet.accept(
-            montant=simulation_projet.montant,
-            enveloppe=simulation_projet.enveloppe,
-            user=user,
-        )
-        dotation_projet.save()
-        updated_simulation_projet = SimulationProjet.objects.get(
-            pk=simulation_projet.pk
-        )
-        return updated_simulation_projet

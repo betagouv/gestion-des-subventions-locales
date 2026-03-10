@@ -1,13 +1,10 @@
 import datetime
 from datetime import UTC
-from decimal import Decimal
 
 import pytest
-from django.core.exceptions import ValidationError
 from django.utils import timezone
 from freezegun import freeze_time
 
-from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
@@ -421,136 +418,6 @@ def test_get_detr_avis_commission(dotation, dossier_state):
         assert avis_commissioin_detr is None
 
 
-@pytest.mark.parametrize("field", ("assiette", "finance_cout_total"))
-@pytest.mark.parametrize(
-    "montant, assiette_or_cout_total, should_raise_exception",
-    [
-        (50, 100, False),  # Valid montant
-        (0, 100, False),  # Valid montant at lower bound
-        (100, 100, False),  # Valid montant at upper bound
-        (-1, 100, True),  # Invalid montant below lower bound
-        (101, 100, True),  # Invalid montant above upper bound
-        (None, 100, True),  # Invalid montant as None
-        ("invalid", 100, True),  # Invalid montant as string
-    ],
-)
-@pytest.mark.django_db
-def test_validate_montant(
-    field, montant, assiette_or_cout_total, should_raise_exception
-):
-    dotation_projet = DotationProjetFactory()
-    if field == "finance_cout_total":
-        dotation_projet.projet.dossier_ds.finance_cout_total = assiette_or_cout_total
-    else:
-        dotation_projet.assiette = assiette_or_cout_total
-
-    if should_raise_exception:
-        with pytest.raises(ValidationError) as exc_info:
-            dps.validate_montant(montant, dotation_projet)
-        expected = (
-            f"Le montant {euro(montant)} doit être supérieur ou égal à 0 € et inférieur ou "
-            f"égal à l'assiette ({euro(dotation_projet.assiette_or_cout_total)})."
-        )
-        assert str(exc_info.value.messages[0]) == expected
-
-    else:
-        dps.validate_montant(montant, dotation_projet)
-
-
-# -- compute_montant_from_taux --
-
-
-@pytest.mark.django_db
-def test_compute_montant_from_taux():
-    dotation_projet = DotationProjetFactory(
-        projet__dossier_ds__finance_cout_total=100_000,
-    )
-    taux = dps.compute_montant_from_taux(dotation_projet, 25)
-    assert taux == 25_000
-
-    dotation_projet = DotationProjetFactory(
-        assiette=50_000,
-    )
-    taux = dps.compute_montant_from_taux(dotation_projet, 25)
-    assert taux == 12_500
-
-    dotation_projet = DotationProjetFactory()
-    taux = dps.compute_montant_from_taux(dotation_projet, 25)
-    assert taux == 0
-
-
-test_data = (
-    (30_000, 33.333, 9_999.90),
-    (10_000, 100, 10_000),
-    (10_000, 1000, 10_000),
-    (-3_000, 10, 0),
-    (0, 100, 0),
-    (0, 0, 0),
-    (Decimal(0), 0, 0),
-    (1_000, Decimal(10), 100),
-    (None, 0, 0),
-    (None, 10, 0),
-    (0, None, 0),
-    (10, None, 0),
-    (4_000, 0, 0),
-)
-
-
-@pytest.mark.parametrize("assiette, taux, expected_montant", test_data)
-@pytest.mark.django_db
-def test_compute_montant_from_taux_with_various_assiettes(
-    assiette, taux, expected_montant
-):
-    dotation_projet = DotationProjetFactory(assiette=assiette)
-    montant = dps.compute_montant_from_taux(dotation_projet, taux)
-    assert montant == round(Decimal(expected_montant), 2)
-
-
-@pytest.mark.parametrize("cout_total, taux, expected_montant", test_data)
-@pytest.mark.django_db
-def test_compute_montant_from_taux_with_various_cout_total(
-    taux, cout_total, expected_montant
-):
-    dotation_projet = DotationProjetFactory(
-        projet__dossier_ds__finance_cout_total=cout_total
-    )
-    montant = dps.compute_montant_from_taux(dotation_projet, taux)
-    assert montant == round(Decimal(expected_montant), 2)
-
-
-# -- validate_assiette --
-
-
-@pytest.mark.parametrize(
-    "assiette, should_raise_exception",
-    [
-        (50, False),
-        (0, False),
-        (100.5, False),
-        (Decimal("100"), False),
-        (-1, True),
-        (-0.01, True),
-        (None, True),
-        ("invalid", True),
-        (100_001, True),
-    ],
-)
-@pytest.mark.django_db
-def test_validate_assiette(assiette, should_raise_exception):
-    dotation_projet = DotationProjetFactory(
-        projet__dossier_ds__finance_cout_total=100_000,
-    )
-    if should_raise_exception:
-        with pytest.raises(
-            ValidationError,
-        ) as exc_info:
-            dps.validate_assiette(assiette, dotation_projet)
-        expected = f"L'assiette {euro(assiette)} doit être supérieure ou égale à 0 € et inférieure ou égale au coût total du projet (100\xa0000\xa0€)."
-        assert str(exc_info.value.messages[0]) == expected
-    else:
-        dps.validate_assiette(assiette, dotation_projet)
-
-
 # -- _should_dotations_be_updated_from_dn_construction_dossier --
 
 
@@ -717,33 +584,6 @@ def test_remove_or_add_dotations_creates_dotation_projet_with_assiette_from_doss
 
     dsil_dp = projet.dotationprojet_set.get(dotation=DOTATION_DSIL)
     assert dsil_dp.assiette == 20_000
-
-
-# -- validate_taux --
-
-
-@pytest.mark.parametrize(
-    "taux, should_raise_exception",
-    [
-        (50, False),
-        (0, False),
-        (100, False),
-        (-1, True),
-        (101, True),
-        (None, True),
-        ("invalid", True),
-    ],
-)
-def test_validate_taux(taux, should_raise_exception):
-    if should_raise_exception:
-        with pytest.raises(
-            ValidationError,
-        ) as exc_info:
-            dps.validate_taux(taux)
-        expected = f"Le taux {percent(taux)} doit être entre 0% and 100%"
-        assert str(exc_info.value.messages[0]) == expected
-    else:
-        dps.validate_taux(taux)
 
 
 # -- _update_assiette_from_dossier --

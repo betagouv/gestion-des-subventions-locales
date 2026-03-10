@@ -43,6 +43,24 @@ from gsl_simulation.tests.factories import SimulationProjetFactory
 pytestmark = pytest.mark.django_db
 
 
+# -- compute_montant_from_taux --
+
+
+def test_compute_montant_from_taux():
+    dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__finance_cout_total=100_000,
+    )
+    assert dotation_projet.compute_montant_from_taux(25) == 25_000
+
+    dotation_projet = DotationProjetFactory(
+        assiette=50_000,
+    )
+    assert dotation_projet.compute_montant_from_taux(25) == 12_500
+
+    dotation_projet = DotationProjetFactory()
+    assert dotation_projet.compute_montant_from_taux(25) == 0
+
+
 @pytest.mark.parametrize(("dotation"), DOTATIONS)
 def test_dotation_projet_unicity(dotation):
     projet = ProjetFactory()
