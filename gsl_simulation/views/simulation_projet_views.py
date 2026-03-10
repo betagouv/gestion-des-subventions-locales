@@ -2,10 +2,8 @@ import json
 
 from django.contrib import messages
 from django.http import Http404 as DjangoHttp404
-from django.http import HttpRequest
-from django.http.request import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import resolve, reverse
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
@@ -45,7 +43,7 @@ from gsl_simulation.table_columns import SIMULATION_TABLE_COLUMNS
 from gsl_simulation.views.decorators import (
     exception_handler_decorator,
 )
-from gsl_simulation.views.simulation_views import SimulationDetailView
+from gsl_simulation.views.simulation_views import SimulationProjetListViewFilters
 
 
 class SimulationTableCellEditMixin(UpdateView):
@@ -67,7 +65,37 @@ class SimulationTableCellEditMixin(UpdateView):
             form.add_error(None, str(e))
             return self.form_invalid(form)
         self.object.refresh_from_db()
-        return render_partial_simulation_projet(self.request, self.object)
+        return self.render_success_partial()
+
+    def _get_projets_queryset_with_filters(self):
+        simulation = self.object.simulation
+        filterset = SimulationProjetListViewFilters(
+            data=self.request.GET or None,
+            request=self.request,
+            slug=simulation.slug,
+        )
+        return filterset.qs.filter(
+            dotationprojet__simulationprojet__simulation=simulation
+        )
+
+    def render_success_partial(self):
+        total_amount_granted = self.object.simulation.get_total_amount_granted(
+            self._get_projets_queryset_with_filters()
+        )
+
+        return render(
+            self.request,
+            "htmx/projet_update.html",
+            {
+                "simu": self.object,
+                "dotation_projet": self.object.dotation_projet,
+                "projet": self.object.projet,
+                "status_summary": self.object.simulation.get_projet_status_summary(),
+                "total_amount_granted": total_amount_granted,
+                "columns": SIMULATION_TABLE_COLUMNS,
+                "dotations": DOTATIONS,
+            },
+        )
 
 
 class EditAssietteView(SimulationTableCellEditMixin):
@@ -316,9 +344,6 @@ class SimulationProjetDetailView(BaseSimulationProjetView):
 def redirect_to_same_page_or_to_simulation_detail_by_default(
     request, simulation_projet
 ):
-    if request.htmx:
-        return render_partial_simulation_projet(request, simulation_projet)
-
     referer = request.headers.get("Referer")
     if referer and url_has_allowed_host_and_scheme(
         referer, allowed_hosts=ALLOWED_HOSTS
@@ -328,50 +353,6 @@ def redirect_to_same_page_or_to_simulation_detail_by_default(
     return redirect(
         "simulation:simulation-detail", slug=simulation_projet.simulation.slug
     )
-
-
-def render_partial_simulation_projet(request, simulation_projet):
-    filter_params = request.GET.urlencode()
-    filtered_projets = _get_projets_queryset_with_filters(
-        simulation_projet.simulation,
-        filter_params,
-    )
-
-    total_amount_granted = simulation_projet.simulation.get_total_amount_granted(
-        filtered_projets
-    )
-
-    return render(
-        request,
-        "htmx/projet_update.html",
-        {
-            "simu": simulation_projet,
-            "dotation_projet": simulation_projet.dotation_projet,
-            "projet": simulation_projet.projet,
-            "status_summary": simulation_projet.simulation.get_projet_status_summary(),
-            "total_amount_granted": total_amount_granted,
-            "columns": SIMULATION_TABLE_COLUMNS,
-            "dotations": DOTATIONS,
-        },
-    )
-
-
-def _get_projets_queryset_with_filters(simulation, filter_params):
-    url = reverse(
-        "simulation:simulation-detail",
-        kwargs={"slug": simulation.slug},
-    )
-    new_request = HttpRequest()
-    new_request.GET = QueryDict(filter_params)
-    new_request.resolver_match = resolve(url)
-
-    view = SimulationDetailView()
-    view.object = simulation
-    view.request = new_request
-    view.kwargs = {"slug": simulation.slug}
-
-    projets = view.get_projet_queryset()
-    return projets
 
 
 def _enrich_simulation_projet_context_with_specific_info_for_main_tab(

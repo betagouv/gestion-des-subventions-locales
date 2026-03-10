@@ -74,9 +74,9 @@ class SimulationListView(ListView):
 
 
 class SimulationProjetListViewFilters(BaseProjetFilters):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, slug=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.slug = self.request.resolver_match.kwargs.get("slug")
+        self.slug = slug or self.request.resolver_match.kwargs.get("slug")
         simulation = Simulation.objects.select_related(
             "enveloppe",
             "enveloppe__perimetre",
