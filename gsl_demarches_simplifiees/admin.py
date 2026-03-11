@@ -46,7 +46,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = (
         "ds_number",
         "ds_title",
-        "date_de_derniere_mise_a_jour",
+        "sync_cursor",
         "ds_state",
         "dossiers_count",
         "fields_count",
@@ -69,6 +69,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
                     "active_revision_date",
                     "active_revision_id",
                     "updated_since",
+                    "sync_cursor",
                 )
             },
         ),
@@ -104,16 +105,6 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     fields_count.admin_order_field = "fields_count"
     fields_count.short_description = "# de champs"
 
-    def date_de_derniere_mise_a_jour(self, obj) -> str:
-        return (
-            timezone.localtime(obj.updated_since).strftime("%d/%m/%Y %H:%M")
-            if obj.updated_since
-            else ""
-        )
-
-    date_de_derniere_mise_a_jour.admin_order_field = "updated_since"
-    date_de_derniere_mise_a_jour.short_description = "Date de dernière mise à jour"
-
     @admin.action(
         description="🔍🛢️ Rafraîchir les correspondances de champs depuis les données sauvegardées"
     )
@@ -132,7 +123,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def refresh_dossiers_from_ds(self, request, queryset):
         for demarche in queryset:
             task_save_demarche_dossiers_from_ds.delay(
-                demarche.ds_number, using_updated_since=False
+                demarche.ds_number, use_cursor=False
             )
 
     @admin.action(
@@ -141,7 +132,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def refresh_new_or_modified_dossiers_from_ds(self, request, queryset):
         for demarche in queryset:
             task_save_demarche_dossiers_from_ds.delay(
-                demarche.ds_number, using_updated_since=True
+                demarche.ds_number, use_cursor=True
             )
 
     def link_to_json(self, obj):
@@ -166,7 +157,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
                 updated_after = form.cleaned_data["updated_after"]
                 task_save_demarche_dossiers_from_ds.delay(
                     demarche.ds_number,
-                    using_updated_since=False,
+                    use_cursor=False,
                     updated_after_iso=updated_after.isoformat(),
                 )
                 self.message_user(

@@ -63,8 +63,12 @@ class Demarche(BaseModel):
     active_revision_date = models.DateTimeField(
         "Date de publication de la révision active", blank=True, null=True
     )
+    # TODO remove this useless field
     updated_since = models.DateTimeField(
         "Date de dernière mise à jour des dossiers", blank=True, null=True
+    )
+    sync_cursor = models.CharField(
+        "Curseur de synchronisation DS", max_length=255, blank=True, default=""
     )
 
     class Meta:

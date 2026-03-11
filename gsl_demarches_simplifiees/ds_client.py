@@ -103,24 +103,42 @@ class DsClient(DsClientBase):
         :param demarche_number:
         :return: iterator on all available dossiers of demarche
         """
+        for nodes, _cursor in self.iter_demarche_dossiers_pages(
+            demarche_number, updated_since=updated_since
+        ):
+            yield from nodes
+
+    def iter_demarche_dossiers_pages(
+        self,
+        demarche_number,
+        updated_since: datetime | None = None,
+        after_cursor: str | None = None,
+    ) -> Iterator[tuple[list[dict], str | None]]:
+        """
+        Iterate over pages of dossiers from one given demarche, yielding (nodes, end_cursor)
+        per page. The caller can persist end_cursor after each page to enable resuming.
+
+        :param demarche_number:
+        :param updated_since: optional datetime filter (updatedSince in the GraphQL query)
+        :param after_cursor: optional cursor to resume from a previous run
+        :return: iterator of (nodes, end_cursor) tuples
+        """
         variables = {
             "demarcheNumber": demarche_number,
             "includeDossiers": True,
             "updatedSince": updated_since.isoformat() if updated_since else None,
+            "after": after_cursor,
         }
-        result = self.launch_graphql_query("getDemarche", variables=variables)
-        yield from result["data"]["demarche"]["dossiers"]["nodes"]
-        has_next_page = result["data"]["demarche"]["dossiers"]["pageInfo"][
-            "hasNextPage"
-        ]
-        while has_next_page:
-            end_cursor = result["data"]["demarche"]["dossiers"]["pageInfo"]["endCursor"]
-            has_next_page = result["data"]["demarche"]["dossiers"]["pageInfo"][
-                "hasNextPage"
-            ]
-            variables["after"] = end_cursor
+        while True:
             result = self.launch_graphql_query("getDemarche", variables=variables)
-            yield from result["data"]["demarche"]["dossiers"]["nodes"]
+            dossiers_data = result["data"]["demarche"]["dossiers"]
+            nodes = dossiers_data["nodes"]
+            page_info = dossiers_data["pageInfo"]
+            end_cursor = page_info["endCursor"]
+            yield nodes, end_cursor
+            if not page_info["hasNextPage"]:
+                break
+            variables["after"] = end_cursor
 
     def get_one_dossier(self, dossier_number) -> dict:
         variables = {

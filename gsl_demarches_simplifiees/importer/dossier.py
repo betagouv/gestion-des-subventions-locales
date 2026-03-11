@@ -17,63 +17,70 @@ logger = logging.getLogger(__name__)
 
 def save_demarche_dossiers_from_ds(
     demarche_number,
-    using_updated_since: bool = True,
     updated_since: datetime | None = None,
+    use_cursor: bool = True,
 ):
     """
     Récupère les dossiers de la démarche depuis Démarches Numériques et les enregistre.
 
     :param demarche_number: numéro de la démarche
-    :param using_updated_since: si True, ne récupère que les dossiers modifiés depuis
-        demarche.updated_since
-    :param updated_since: si renseigné, ne récupère que les dossiers déposés/modifiés après cette
-        date/heure (updatedSince côté API).
+    :param use_cursor: si True, reprend depuis demarche.sync_cursor et met à jour ce cursor
+        après chaque page. C'est le mode incrémental standard.
+        Si False, fait un fetch complet (ou filtré par updated_since) sans toucher sync_cursor.
+    :param updated_since: si renseigné (et use_cursor=False), ne récupère que les dossiers
+        modifiés après cette date/heure (updatedSince côté API).
     """
-    new_updated_since = timezone.now()
-
     demarche = Demarche.objects.get(ds_number=demarche_number)
     client = DsClient()
-    if not updated_since:
-        updated_since = demarche.updated_since if using_updated_since else None
+
+    if use_cursor:
+        after_cursor = demarche.sync_cursor
+        api_updated_since = None
     else:
-        updated_since = (
-            updated_since
-            if timezone.is_aware(updated_since)
-            else timezone.make_aware(updated_since)
-        )
-    demarche_dossiers = client.get_demarche_dossiers(
-        demarche_number, updated_since=updated_since
-    )
+        after_cursor = None
+        if updated_since is not None and timezone.is_naive(updated_since):
+            updated_since = timezone.make_aware(updated_since)
+        api_updated_since = updated_since
+
     active_departement_insee_codes = _get_active_departement_insee_codes()
     dossiers_count = 0
-    for dossier_data in demarche_dossiers:
-        dossiers_count += 1
 
-        if dossier_data is None:
-            logger.info(
-                "Dossier data is empty",
-                extra={
-                    "demarche_ds_number": demarche_number,
-                    "i": dossiers_count,
-                },
-            )
-            continue
+    for page_dossiers, end_cursor in client.iter_demarche_dossiers_pages(
+        demarche_number, updated_since=api_updated_since, after_cursor=after_cursor
+    ):
+        for dossier_data in page_dossiers:
+            dossiers_count += 1
 
-        try:
-            _create_or_update_dossier_from_ds_data(
-                dossier_data, active_departement_insee_codes, demarche
-            )
-        except Exception as e:
-            if not isinstance(e, DsServiceException):
-                extra = {
-                    "demarche_ds_number": demarche.ds_number,
-                    "dossier_ds_number": dossier_data["number"],
-                    "error": str(e),
-                    "i": dossiers_count,
-                }
-                logger.exception(
-                    "Error unhandled while saving dossier from DN", extra=extra
+            if dossier_data is None:
+                logger.info(
+                    "Dossier data is empty",
+                    extra={
+                        "demarche_ds_number": demarche_number,
+                        "i": dossiers_count,
+                    },
                 )
+                continue
+
+            try:
+                _create_or_update_dossier_from_ds_data(
+                    dossier_data, active_departement_insee_codes, demarche
+                )
+            except Exception as e:
+                if not isinstance(e, DsServiceException):
+                    extra = {
+                        "demarche_ds_number": demarche.ds_number,
+                        "dossier_ds_number": dossier_data["number"],
+                        "error": str(e),
+                        "i": dossiers_count,
+                    }
+                    logger.exception(
+                        "Error unhandled while saving dossier from DN", extra=extra
+                    )
+
+        if use_cursor:
+            if end_cursor is not None:
+                demarche.sync_cursor = end_cursor
+            demarche.save(update_fields=["sync_cursor"])
 
     logger.info(
         "Demarche dossiers has been updated from DN",
@@ -82,9 +89,6 @@ def save_demarche_dossiers_from_ds(
             "dossiers_count": dossiers_count,
         },
     )
-
-    demarche.updated_since = new_updated_since
-    demarche.save()
 
 
 def save_one_dossier_from_ds(

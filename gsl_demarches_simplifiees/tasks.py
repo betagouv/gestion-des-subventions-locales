@@ -38,32 +38,32 @@ def task_save_demarche_from_ds(
 ## Refresh dossiers
 ### from DN
 #### of every published demarches
-#### only new or modified dossiers
+#### only new or modified dossiers (cursor-based incremental sync)
 @shared_task
 def task_fetch_new_or_modified_ds_dossiers_for_every_published_demarche():
     for d in Demarche.objects.filter(ds_state=Demarche.STATE_PUBLIEE):
-        task_save_demarche_dossiers_from_ds.delay(d.ds_number, using_updated_since=True)
+        task_save_demarche_dossiers_from_ds.delay(d.ds_number, use_cursor=True)
 
 
 #### all dossiers
 @shared_task
 def task_fetch_all_ds_dossiers_for_every_published_demarche():
     for d in Demarche.objects.filter(ds_state=Demarche.STATE_PUBLIEE):
-        task_save_demarche_dossiers_from_ds.delay(
-            d.ds_number, using_updated_since=False
-        )
+        task_save_demarche_dossiers_from_ds.delay(d.ds_number, use_cursor=False)
 
 
 #### of one demarche
 @shared_task
 def task_save_demarche_dossiers_from_ds(
     demarche_number,
-    using_updated_since: bool = True,
+    use_cursor: bool = True,
     updated_after_iso: str | None = None,
 ):
     """
-    :param updated_after_iso: date/heure en ISO (optionnel) — ne rafraîchir que les
-        dossiers déposés après cette date/heure.
+    :param use_cursor: si True (défaut), reprend depuis le cursor stocké (sync incrémental).
+        Si False, fetch complet ou filtré par updated_after_iso.
+    :param updated_after_iso: date/heure en ISO (optionnel, use_cursor=False uniquement) —
+        ne récupérer que les dossiers modifiés après cette date/heure.
     """
     updated_after = None
     if updated_after_iso:
@@ -72,7 +72,7 @@ def task_save_demarche_dossiers_from_ds(
             updated_after = timezone.make_aware(updated_after)
     return save_demarche_dossiers_from_ds(
         demarche_number,
-        using_updated_since=using_updated_since,
+        use_cursor=use_cursor,
         updated_since=updated_after,
     )
 

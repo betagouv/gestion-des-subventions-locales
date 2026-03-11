@@ -163,9 +163,7 @@ def view_dossier_json(request, dossier_ds_number):
 @require_POST
 def fetch_demarche_dossiers(request):
     demarche_ds_number = int(request.POST.get("demarche_ds_number"))
-    task_save_demarche_dossiers_from_ds.delay(
-        demarche_ds_number, using_updated_since=False
-    )
+    task_save_demarche_dossiers_from_ds.delay(demarche_ds_number, use_cursor=False)
     return redirect("ds:liste-demarches")
 
 
