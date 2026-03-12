@@ -8,6 +8,7 @@ from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, UpdateView
+from django.views.generic.edit import BaseUpdateView
 from django_htmx.http import HttpResponseClientRefresh
 
 from gsl.settings import ALLOWED_HOSTS
@@ -71,11 +72,11 @@ class SimulationTableCellEditMixin(UpdateView):
             form.add_error(None, str(e))
             return self.form_invalid(form)
         self.object.refresh_from_db()
-        self._queue_matomo_event("succès")
+        self._queue_matomo_event("valide")
         return self.render_success_partial()
 
     def form_invalid(self, form):
-        self._queue_matomo_event("échec")
+        self._queue_matomo_event("invalide")
         return super().form_invalid(form)
 
     def _get_projets_queryset_with_filters(self):
@@ -243,6 +244,12 @@ class BaseSimulationProjetView(UpdateView):
             messages.success(
                 self.request,
                 "Les modifications ont été enregistrées avec succès.",
+            )
+            queue_matomo_event(
+                self.request,
+                "Programmation",
+                "modification_montants",
+                form.instance.dotation_projet.dotation,
             )
         except DsServiceException as e:
             error_msg = f"Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. {str(e)}"
@@ -545,6 +552,30 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         )
         return obj
 
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+
+        if self.new_project_status in [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED]:
+            queue_matomo_event(
+                request,
+                "Programmation",
+                "changement_statut_avec_notification_demande_confirmation",
+                f"{self.kwargs['status']}",
+            )
+
+        elif self.new_project_status in [
+            PROJET_STATUS_PROCESSING,
+            PROJET_STATUS_ACCEPTED,
+        ]:
+            queue_matomo_event(
+                request,
+                "Programmation",
+                "changement_statut_sans_notification_demande_confirmation",
+                f"{self.kwargs['status']}",
+            )
+        # On contourne BaseUpdateView.get() pour éviter un second appel à get_object()
+        return super(BaseUpdateView, self).get(request, *args, **kwargs)
+
     def get_modal_id(self):
         return f"{self.kwargs['status']}-modal-{self.object.pk}"
 
@@ -642,7 +673,7 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         queue_matomo_event(
             self.request,
             "Programmation",
-            "changement_statut",
+            "changement_statut_confirme",
             f"{self.kwargs['status']}",
         )
         return (

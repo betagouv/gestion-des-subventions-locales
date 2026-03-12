@@ -22,6 +22,11 @@ class MatomoHtmxMiddleware:
         if not getattr(request, "htmx", None) or request.htmx.boosted:
             return response
 
+        # If the response triggers a full-page reload (HX-Refresh), leave events in
+        # session so they fire on the reloaded page instead of being lost mid-navigation.
+        if response.get("HX-Refresh") == "true":
+            return response
+
         events = request.session.pop("matomo_pending_events", None)
         if not events:
             return response

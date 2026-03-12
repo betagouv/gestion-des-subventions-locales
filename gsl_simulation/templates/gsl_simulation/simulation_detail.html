@@ -102,7 +102,7 @@
             link.addEventListener("click", function() {
                 var format = link.textContent.trim().replace(/^format \./, "").split(" ")[0];
                 if (typeof _paq !== "undefined") {
-                    _paq.push(["trackEvent", "Simulation", "export", "{{ simulation.enveloppe.dotation }} - " + format]);
+                    _paq.push(["trackEvent", "Simulation", "export", format]);
                 }
             });
         });

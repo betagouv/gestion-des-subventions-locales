@@ -133,6 +133,7 @@ class NotificationMessageView(UpdateView):
             self.request,
             "Le dossier a bien été accepté sur Démarche Numérique.",
         )
+        queue_matomo_event(self.request, "Notification", "envoi_dn", "accepte")
         return redirect(self.get_success_url())
 
     def get_success_url(self):
