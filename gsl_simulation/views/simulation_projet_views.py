@@ -13,6 +13,7 @@ from django_htmx.http import HttpResponseClientRefresh
 from gsl.settings import ALLOWED_HOSTS
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
+from gsl_core.matomo import queue_matomo_event
 from gsl_core.templatetags.gsl_filters import euro
 from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.exceptions import DsServiceException
@@ -49,6 +50,7 @@ from gsl_simulation.views.simulation_views import SimulationProjetListViewFilter
 class SimulationTableCellEditMixin(UpdateView):
     model = SimulationProjet
     context_object_name = "simu"
+    matomo_action: str = ""
 
     def get_queryset(self):
         return SimulationProjet.objects.in_user_perimeter(self.request.user)
@@ -58,6 +60,10 @@ class SimulationTableCellEditMixin(UpdateView):
         kwargs["user"] = self.request.user
         return kwargs
 
+    def _queue_matomo_event(self, name: str):
+        if self.matomo_action:
+            queue_matomo_event(self.request, "Simulation", self.matomo_action, name)
+
     def form_valid(self, form):
         try:
             form.save()
@@ -65,7 +71,12 @@ class SimulationTableCellEditMixin(UpdateView):
             form.add_error(None, str(e))
             return self.form_invalid(form)
         self.object.refresh_from_db()
+        self._queue_matomo_event("succès")
         return self.render_success_partial()
+
+    def form_invalid(self, form):
+        self._queue_matomo_event("échec")
+        return super().form_invalid(form)
 
     def _get_projets_queryset_with_filters(self):
         simulation = self.object.simulation
@@ -101,6 +112,7 @@ class SimulationTableCellEditMixin(UpdateView):
 class EditAssietteView(SimulationTableCellEditMixin):
     form_class = AssietteSingleFieldForm
     template_name = "gsl_simulation/table_cells/edit_forms/_assiette_edit_form.html"
+    matomo_action = "modification_assiette"
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -112,11 +124,13 @@ class EditAssietteView(SimulationTableCellEditMixin):
 class EditMontantView(SimulationTableCellEditMixin):
     form_class = MontantSingleFieldForm
     template_name = "gsl_simulation/table_cells/edit_forms/_montant_edit_form.html"
+    matomo_action = "modification_montant"
 
 
 class EditTauxView(SimulationTableCellEditMixin):
     form_class = TauxSingleFieldForm
     template_name = "gsl_simulation/table_cells/edit_forms/_taux_edit_form.html"
+    matomo_action = "modification_taux"
 
 
 class RefreshSimulationRowView(DetailView):
@@ -485,6 +499,12 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
                 }[self.kwargs["status"]],
                 extra_tags=self.kwargs["status"],
             )
+            queue_matomo_event(
+                self.request,
+                "Simulation",
+                "changement_statut",
+                f"{self.kwargs['status']}",
+            )
         except DsServiceException as e:  # rollback the transaction + show error
             messages.error(
                 self.request,
@@ -618,6 +638,12 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
             self.request,
             message,
             extra_tags=self.object.projet.status,
+        )
+        queue_matomo_event(
+            self.request,
+            "Programmation",
+            "changement_statut",
+            f"{self.kwargs['status']}",
         )
         return (
             HttpResponseClientRefresh()
