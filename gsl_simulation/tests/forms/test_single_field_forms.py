@@ -25,7 +25,7 @@ def user() -> Collegue:
     return cast(Collegue, CollegueFactory())
 
 
-# -- AssietteSingleFieldForm.clean_assiette --
+# -- AssietteSingleFieldForm: assiette validation (via DotationProjet.clean_fields) --
 
 
 def test_clean_assiette_rejects_above_cout_total(user):
