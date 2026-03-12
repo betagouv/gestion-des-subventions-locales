@@ -2,7 +2,6 @@
 
 {% for other_dotation in dotation_projet.other_dotations %}
     <tr id="other-simulation-{{ simu.pk }}"
-        hx-swap-oob="true"
         class="gsl-projet-table__row--other-dotation">
         {% for column in columns %}
             <td class="{{ column.td_classes }}">
