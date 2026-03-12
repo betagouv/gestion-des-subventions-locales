@@ -10,7 +10,6 @@ from django.utils import timezone
 from dsfr.forms import DsfrBaseForm
 
 from gsl_core.models import Collegue
-from gsl_core.templatetags.gsl_filters import euro
 from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
@@ -196,7 +195,7 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
                 cleaned_data["montant"] = computed_montant
 
         dotation_projet.assiette = cleaned_data.get("assiette")
-        dotation_projet.clean()
+        dotation_projet.full_clean(exclude=["detr_avis_commission", "detr_categories"])
 
         return cleaned_data
 
@@ -335,17 +334,6 @@ class AssietteSingleFieldForm(forms.ModelForm):
         self.simulation_projet = simulation_projet
         self.user = user
 
-    def clean_assiette(self):
-        value = self.cleaned_data["assiette"]
-        dotation_projet = self.instance
-        cout_total = dotation_projet.dossier_ds.finance_cout_total
-        if cout_total is not None and value > cout_total:
-            raise ValidationError(
-                f"L'assiette {euro(value)} doit être inférieure ou égale "
-                f"au coût total du projet ({euro(cout_total)})."
-            )
-        return value
-
     @transaction.atomic
     def save(self, commit=True):
         super().save(commit=commit)
@@ -368,16 +356,6 @@ class MontantSingleFieldForm(forms.ModelForm):
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
-
-    def clean_montant(self):
-        value = self.cleaned_data["montant"]
-        assiette = self.instance.dotation_projet.assiette_or_cout_total
-        if assiette is not None and value > assiette:
-            raise ValidationError(
-                f"Le montant {euro(value)} doit être inférieur ou égal "
-                f"à l'assiette ({euro(assiette)})."
-            )
-        return value
 
     @transaction.atomic
     def save(self, commit=True):

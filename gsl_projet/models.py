@@ -531,6 +531,7 @@ class DotationProjet(BaseModel):
         max_digits=12,
         decimal_places=2,
         validators=[MinValueValidator(0)],
+        blank=True,
         null=True,
     )
     detr_avis_commission = models.BooleanField(
@@ -553,51 +554,68 @@ class DotationProjet(BaseModel):
     def __str__(self):
         return f"Projet {self.projet_id} - Dotation {self.dotation}"
 
-    def clean(self):
-        errors = {}
+    def clean_fields(self, exclude=None):
+        try:
+            super().clean_fields(exclude=exclude)
+        except ValidationError as e:
+            errors = e.update_error_dict({})
+        else:
+            errors = {}
 
-        if self.detr_avis_commission is not None:
-            if self.dotation == DOTATION_DSIL:
-                errors["detr_avis_commission"] = (
-                    "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR."
-                )
+        if "detr_avis_commission" not in exclude:
+            self._validate_detr_avis_commission(errors)
 
+        if "assiette" not in exclude:
             if (
-                self.dossier_ds.demande_montant is not None
-                and self.dossier_ds.demande_montant < MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
+                self.dossier_ds.finance_cout_total
+                and self.assiette
+                and self.dossier_ds.finance_cout_total < self.assiette
             ):
-                errors["detr_avis_commission"] = (
-                    f"L'avis de la commission DETR ne doit être renseigné que pour les projets DETR dont le montant demandé est supérieur ou égal à {MIN_DEMANDE_MONTANT_FOR_AVIS_DETR}."
+                errors["assiette"] = (
+                    "L'assiette doit être inférieure ou égale au coût total du projet."
                 )
 
-        if (
-            self.dossier_ds.finance_cout_total
-            and self.assiette
-            and self.dossier_ds.finance_cout_total < self.assiette
-        ):
-            errors["assiette"] = (
-                "L'assiette ne doit pas être supérieure au coût total du projet."
+        if "detr_categories" not in exclude:
+            self._validate_detr_categories(errors)
+
+        if errors:
+            raise ValidationError(errors)
+
+    def _validate_detr_avis_commission(self, errors):
+        if self.detr_avis_commission is None:
+            return
+
+        if self.dotation == DOTATION_DSIL:
+            errors["detr_avis_commission"] = (
+                "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR."
             )
 
+        if (
+            self.dossier_ds.demande_montant is not None
+            and self.dossier_ds.demande_montant < MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
+        ):
+            errors["detr_avis_commission"] = (
+                f"L'avis de la commission DETR ne doit être renseigné que pour les projets DETR dont le montant demandé est supérieur ou égal à {MIN_DEMANDE_MONTANT_FOR_AVIS_DETR}."
+            )
+
+    def _validate_detr_categories(self, errors):
         if self.dotation != DOTATION_DETR:
             if self.detr_categories.exists():
                 errors["detr_categories"] = (
                     "Les catégories DETR ne doivent être renseignées que pour les projets DETR."
                 )
-        else:
-            projet_departement = (
-                self.projet.perimetre.departement
-                if self.projet and self.projet.perimetre
-                else None
-            )
-            for categorie in self.detr_categories.all():
-                if categorie.departement != projet_departement:
-                    errors["detr_categories"] = (
-                        f"La catégorie DETR « {categorie.libelle} » n'appartient pas au même département que le projet."
-                    )
+            return
 
-        if errors:
-            raise ValidationError(errors)
+        projet_departement = (
+            self.projet.perimetre.departement
+            if self.projet and self.projet.perimetre
+            else None
+        )
+        for categorie in self.detr_categories.all():
+            if categorie.departement != projet_departement:
+                errors["detr_categories"] = (
+                    f"La catégorie DETR « {categorie.libelle} » n'appartient pas au même département que le projet."
+                )
 
     @property
     def dossier_ds(self):
