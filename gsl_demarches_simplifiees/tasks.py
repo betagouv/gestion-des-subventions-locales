@@ -37,44 +37,41 @@ def task_save_demarche_from_ds(
 
 ## Refresh dossiers
 ### from DN
-#### of every published demarches
-#### only new or modified dossiers (cursor-based incremental sync)
+#### of every published demarches — incremental sync using stored updated_since + cursor
 @shared_task
 def task_fetch_new_or_modified_ds_dossiers_for_every_published_demarche():
     for d in Demarche.objects.filter(ds_state=Demarche.STATE_PUBLIEE):
-        task_save_demarche_dossiers_from_ds.delay(d.ds_number, use_cursor=True)
+        task_save_demarche_dossiers_from_ds.delay(d.ds_number)
 
 
-#### all dossiers
+#### of one demarche — incremental sync
 @shared_task
-def task_fetch_all_ds_dossiers_for_every_published_demarche():
-    for d in Demarche.objects.filter(ds_state=Demarche.STATE_PUBLIEE):
-        task_save_demarche_dossiers_from_ds.delay(d.ds_number, use_cursor=False)
+def task_save_demarche_dossiers_from_ds(demarche_number):
+    return save_demarche_dossiers_from_ds(demarche_number)
 
 
-#### of one demarche
+#### init sync for one demarche from a given date
 @shared_task
-def task_save_demarche_dossiers_from_ds(
-    demarche_number,
-    use_cursor: bool = True,
-    updated_after_iso: str | None = None,
-):
+def task_init_demarche_sync(demarche_number, updated_since_iso: str):
     """
-    :param use_cursor: si True (défaut), reprend depuis le cursor stocké (sync incrémental).
-        Si False, fetch complet ou filtré par updated_after_iso.
-    :param updated_after_iso: date/heure en ISO (optionnel, use_cursor=False uniquement) —
-        ne récupérer que les dossiers modifiés après cette date/heure.
+    Initialise (ou réinitialise) la synchronisation d'une démarche à partir d'une date donnée.
+
+    Met à jour demarche.updated_since avec la date fournie, réinitialise demarche.sync_cursor,
+    puis lance un premier appel sans curseur pour commencer la synchronisation.
+
+    :param demarche_number: numéro de la démarche
+    :param updated_since_iso: date/heure en ISO à partir de laquelle récupérer les dossiers
     """
-    updated_after = None
-    if updated_after_iso:
-        updated_after = datetime.fromisoformat(updated_after_iso.replace("Z", "+00:00"))
-        if timezone.is_naive(updated_after):
-            updated_after = timezone.make_aware(updated_after)
-    return save_demarche_dossiers_from_ds(
-        demarche_number,
-        use_cursor=use_cursor,
-        updated_since=updated_after,
-    )
+    updated_since = datetime.fromisoformat(updated_since_iso.replace("Z", "+00:00"))
+    if timezone.is_naive(updated_since):
+        updated_since = timezone.make_aware(updated_since)
+
+    demarche = Demarche.objects.get(ds_number=demarche_number)
+    demarche.updated_since = updated_since
+    demarche.sync_cursor = ""
+    demarche.save(update_fields=["updated_since", "sync_cursor"])
+
+    return save_demarche_dossiers_from_ds(demarche_number)
 
 
 #### of one dossier

@@ -164,32 +164,17 @@ def test_save_demarche_dossiers_from_ds_with_one_empty_data(caplog):
 @pytest.mark.django_db
 def test_save_demarche_dossiers_from_ds_update_sync_cursor():
     demarche_number = 123
-    demarche = DemarcheFactory(ds_number=demarche_number, sync_cursor=None)
+    demarche = DemarcheFactory(ds_number=demarche_number, sync_cursor="")
     expected_cursor = "abc123cursor=="
 
     with patch(
         "gsl_demarches_simplifiees.ds_client.DsClient.iter_demarche_dossiers_pages",
         return_value=[([], expected_cursor)],
     ):
-        save_demarche_dossiers_from_ds(demarche_number, use_cursor=True)
+        save_demarche_dossiers_from_ds(demarche_number)
 
     demarche.refresh_from_db()
     assert demarche.sync_cursor == expected_cursor
-
-
-@pytest.mark.django_db
-def test_save_demarche_dossiers_from_ds_does_not_update_sync_cursor_when_use_cursor_false():
-    demarche_number = 123
-    demarche = DemarcheFactory(ds_number=demarche_number, sync_cursor="previous_cursor")
-
-    with patch(
-        "gsl_demarches_simplifiees.ds_client.DsClient.iter_demarche_dossiers_pages",
-        return_value=[([], "new_cursor_from_api")],
-    ):
-        save_demarche_dossiers_from_ds(demarche_number, use_cursor=False)
-
-    demarche.refresh_from_db()
-    assert demarche.sync_cursor == "previous_cursor"
 
 
 def test_save_one_dossier_from_ds_error_with_invalid_ds_response():

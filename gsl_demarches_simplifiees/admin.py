@@ -27,6 +27,7 @@ from .models import (
 )
 from .resources import FieldMappingResource
 from .tasks import (
+    task_init_demarche_sync,
     task_refresh_dossier_from_saved_data,
     task_refresh_field_mappings_from_demarche_data,
     task_save_demarche_dossiers_from_ds,
@@ -46,7 +47,8 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = (
         "ds_number",
         "ds_title",
-        "sync_cursor",
+        "date_de_derniere_mise_a_jour",
+        "sync_cursor_is_empty",
         "ds_state",
         "dossiers_count",
         "fields_count",
@@ -55,7 +57,6 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     actions = (
         "save_demarche_from_ds",
         "refresh_field_mappings",
-        "refresh_dossiers_from_ds",
         "refresh_new_or_modified_dossiers_from_ds",
     )
     fieldsets = (
@@ -105,6 +106,22 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     fields_count.admin_order_field = "fields_count"
     fields_count.short_description = "# de champs"
 
+    def date_de_derniere_mise_a_jour(self, obj) -> str:
+        return (
+            timezone.localtime(obj.updated_since).strftime("%d/%m/%Y %H:%M")
+            if obj.updated_since
+            else ""
+        )
+
+    date_de_derniere_mise_a_jour.admin_order_field = "updated_since"
+    date_de_derniere_mise_a_jour.short_description = "Updated since"
+
+    def sync_cursor_is_empty(self, obj) -> str:
+        return "Non vide" if bool(obj.sync_cursor) else "Vide"
+
+    sync_cursor_is_empty.admin_order_field = "sync_cursor"
+    sync_cursor_is_empty.short_description = "Sync cursor est vide"
+
     @admin.action(
         description="🔍🛢️ Rafraîchir les correspondances de champs depuis les données sauvegardées"
     )
@@ -118,22 +135,11 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             task_save_demarche_from_ds(demarche.ds_number)
 
     @admin.action(
-        description="🗂️☁️ Rafraîchir tous les dossiers de la démarche depuis DN"
-    )
-    def refresh_dossiers_from_ds(self, request, queryset):
-        for demarche in queryset:
-            task_save_demarche_dossiers_from_ds.delay(
-                demarche.ds_number, use_cursor=False
-            )
-
-    @admin.action(
-        description="🗂️☁️ Rafraîchir les nouveaux dossiers ou les dossiers modifiés d’une démarche depuis DN depuis la dernière mise à jour"
+        description="🗂️☁️ Récupérer les nouveautés de la démarche depuis DN (dossiers nouveaux ou modifiés)"
     )
     def refresh_new_or_modified_dossiers_from_ds(self, request, queryset):
         for demarche in queryset:
-            task_save_demarche_dossiers_from_ds.delay(
-                demarche.ds_number, use_cursor=True
-            )
+            task_save_demarche_dossiers_from_ds.delay(demarche.ds_number)
 
     def link_to_json(self, obj):
         return mark_safe(f'<a href="{obj.json_url}">JSON brut</a>')
@@ -155,10 +161,9 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             if form.is_valid():
                 demarche = form.cleaned_data["demarche"]
                 updated_after = form.cleaned_data["updated_after"]
-                task_save_demarche_dossiers_from_ds.delay(
+                task_init_demarche_sync.delay(
                     demarche.ds_number,
-                    use_cursor=False,
-                    updated_after_iso=updated_after.isoformat(),
+                    updated_after.isoformat(),
                 )
                 self.message_user(
                     request,

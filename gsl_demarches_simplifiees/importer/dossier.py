@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 from typing import Iterable
 
 from django.contrib import messages
@@ -15,32 +14,24 @@ from gsl_projet.services.projet_services import ProjetService
 logger = logging.getLogger(__name__)
 
 
-def save_demarche_dossiers_from_ds(
-    demarche_number,
-    updated_since: datetime | None = None,
-    use_cursor: bool = True,
-):
+def save_demarche_dossiers_from_ds(demarche_number):
     """
     Récupère les dossiers de la démarche depuis Démarches Numériques et les enregistre.
 
+    Reprend depuis demarche.sync_cursor (vide pour un premier appel) avec
+    demarche.updated_since comme filtre de date, et met à jour le cursor après chaque page.
+
     :param demarche_number: numéro de la démarche
-    :param use_cursor: si True, reprend depuis demarche.sync_cursor et met à jour ce cursor
-        après chaque page. C'est le mode incrémental standard.
-        Si False, fait un fetch complet (ou filtré par updated_since) sans toucher sync_cursor.
-    :param updated_since: si renseigné (et use_cursor=False), ne récupère que les dossiers
-        modifiés après cette date/heure (updatedSince côté API).
     """
     demarche = Demarche.objects.get(ds_number=demarche_number)
     client = DsClient()
 
-    if use_cursor:
-        after_cursor = demarche.sync_cursor
-        api_updated_since = None
-    else:
+    if demarche.updated_since is None:
+        api_updated_since = demarche.created_at
         after_cursor = None
-        if updated_since is not None and timezone.is_naive(updated_since):
-            updated_since = timezone.make_aware(updated_since)
-        api_updated_since = updated_since
+    else:
+        after_cursor = demarche.sync_cursor or None
+        api_updated_since = demarche.updated_since
 
     active_departement_insee_codes = _get_active_departement_insee_codes()
     dossiers_count = 0
@@ -77,10 +68,10 @@ def save_demarche_dossiers_from_ds(
                         "Error unhandled while saving dossier from DN", extra=extra
                     )
 
-        if use_cursor:
-            if end_cursor is not None:
-                demarche.sync_cursor = end_cursor
-            demarche.save(update_fields=["sync_cursor"])
+        if end_cursor is not None:
+            demarche.sync_cursor = end_cursor
+            demarche.updated_since = api_updated_since
+        demarche.save(update_fields=["sync_cursor", "updated_since"])
 
     logger.info(
         "Demarche dossiers has been updated from DN",
