@@ -576,7 +576,7 @@ class DotationProjet(BaseModel):
             and self.dossier_ds.finance_cout_total < self.assiette
         ):
             errors["assiette"] = (
-                "L'assiette ne doit pas être supérieure au coût total du projet."
+                "L'assiette doit être inférieure ou égale au montant total du projet."
             )
 
         if self.dotation != DOTATION_DETR:

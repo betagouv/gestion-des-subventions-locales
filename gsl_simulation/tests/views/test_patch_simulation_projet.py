@@ -632,7 +632,7 @@ def test_patch_simulation_projet_with_invalid_form(
 
     assert response.context["simulation_projet_form"].errors == {
         "montant": [
-            "Le montant de la simulation ne peut pas être supérieur à l'assiette du projet."
+            "Le montant doit être inférieur ou égal à l'assiette du projet pour cette dotation."
         ]
     }
     messages = get_messages(response.wsgi_request)

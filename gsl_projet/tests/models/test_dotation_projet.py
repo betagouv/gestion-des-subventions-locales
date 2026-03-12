@@ -185,7 +185,7 @@ def test_error_raised_if_assiette_is_greater_than_cout_total(
             dotation_projet.clean()
         assert (
             str(exc_info.value.messages[0])
-            == "L'assiette ne doit pas être supérieure au coût total du projet."
+            == "L'assiette doit être inférieure ou égale au montant total du projet."
         )
     else:
         dotation_projet.clean()

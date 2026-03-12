@@ -99,7 +99,7 @@ def test_simulation_projet_cant_have_a_montant_higher_than_projet_assiette():
         assert sp.montant == 101
         sp.save()
     assert (
-        "Le montant de la simulation ne peut pas être supérieur à l'assiette du projet"
+        "Le montant doit être inférieur ou égal à l'assiette du projet"
         in exc_info.value.message_dict.get("montant")[0]
     )
 
@@ -118,7 +118,7 @@ def test_simulation_projet_cant_have_a_montant_higher_than_projet_cout_total():
         )
         sp.save()
     assert (
-        "Le montant de la simulation ne peut pas être supérieur au coût total du projet"
+        "Le montant doit être inférieur ou égal au coût total du projet"
         in exc_info.value.message_dict.get("montant")[0]
     )
 
