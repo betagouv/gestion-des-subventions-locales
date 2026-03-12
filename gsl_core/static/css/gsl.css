@@ -629,30 +629,31 @@ ul.no-list-style li {
 /* Column visibility dropdown */
 
 .gsl-column-visibility-dropdown {
+    position: relative;
     margin-bottom: 0;
 }
 
 .gsl-column-visibility-dropdown .gsl-column-visibility-list {
     display: none;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    right: 0;
     padding: 0;
+    width: min(560px, 90vw);
+    border: 1px solid var(--border-default-grey);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+}
+
+.gsl-column-visibility-checkboxes {
+    columns: 2;
+    padding-top: 10px;
 }
 
 .gsl-column-visibility-list .fr-checkbox-group {
     padding-left: 10px;
     padding-right: 10px;
-}
-
-.gsl-column-visibility-list .fr-checkbox-group:first-of-type {
-    padding-top: 10px;
-}
-
-.gsl-column-visibility-list form {
-    display: contents;
+    break-inside: avoid;
 }
 
 .gsl-column-visibility-dropdown .gsl-column-visibility-reset {
-    grid-column: 1 / -1;
     width: 100%;
     text-align: left;
     border-top: 1px solid var(--border-default-grey);
