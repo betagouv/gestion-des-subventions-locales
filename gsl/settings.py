@@ -413,7 +413,9 @@ MAX_POST_FILE_SIZE_IN_MO = os.getenv("MAX_POST_FILE_SIZE_IN_MO", 20)
 # Axes configuration
 
 AXES_FAILURE_LIMIT = os.getenv("AXES_FAILURE_LIMIT", 5)
-AXES_ONLY_USER_FAILURES = True
+AXES_LOCKOUT_PARAMETERS = ["username"]
+
+SILENCED_SYSTEM_CHECKS = ["axes.W006"]
 
 # OTP configuration
 OTP_TOTP_ISSUER = f"Turgot {ENV}"
