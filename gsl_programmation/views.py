@@ -15,6 +15,7 @@ from django.views.generic.list import ListView
 from django_filters.views import FilterView
 
 from gsl_core.exceptions import Http404
+from gsl_core.matomo import queue_matomo_event
 from gsl_core.models import Perimetre
 from gsl_programmation.forms import SubEnveloppeCreateForm, SubEnveloppeUpdateForm
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
@@ -266,6 +267,16 @@ class EnveloppeCreateView(RedirectURLMixin, CreateView):
         kwargs = super().get_form_kwargs()
         kwargs["user_perimetre"] = self.request.user.perimetre
         return kwargs
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        queue_matomo_event(
+            self.request,
+            "SousEnveloppe",
+            "creation",
+            f"{self.object.dotation} - {self.object.perimetre.type}",
+        )
+        return response
 
 
 class EnveloppeUpdateView(UpdateView):

@@ -95,6 +95,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
+    "gsl_core.middlewares.MatomoHtmxMiddleware",
     "gsl_core.middlewares.OTPVerificationMiddleware",
     "gsl_core.middlewares.CheckPerimeterMiddleware",
     "axes.middleware.AxesMiddleware",  # should be the last middleware in the MIDDLEWARE list.
@@ -131,6 +132,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "dsfr.context_processors.site_config",
                 "gsl.utils.context_processors.export_vars",
+                "gsl.utils.context_processors.matomo_events",
             ],
         },
     },

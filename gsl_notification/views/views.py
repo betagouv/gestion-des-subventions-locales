@@ -13,6 +13,7 @@ from django_weasyprint import WeasyTemplateResponseMixin
 
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
+from gsl_core.matomo import queue_matomo_event
 from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsServiceException
@@ -132,6 +133,7 @@ class NotificationMessageView(UpdateView):
             self.request,
             "Le dossier a bien été accepté sur Démarche Numérique.",
         )
+        queue_matomo_event(self.request, "Notification", "envoi_dn", "accepte")
         return redirect(self.get_success_url())
 
     def get_success_url(self):
@@ -317,6 +319,16 @@ def change_document_view(request, projet_id, dotation, document_type):
             form.save()
 
             _add_success_message(request, is_creating, document_type, document.name)
+            if is_creating:
+                action = (
+                    "creation_arrete" if document_type == ARRETE else "creation_lettre"
+                )
+                queue_matomo_event(
+                    request,
+                    "Document",
+                    action,
+                    programmation_projet.dotation_projet.dotation,
+                )
             return redirect(
                 reverse(
                     "gsl_notification:documents",

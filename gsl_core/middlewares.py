@@ -1,8 +1,48 @@
+import json
 from urllib.parse import urlencode
 
 from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import reverse
+
+
+class MatomoHtmxMiddleware:
+    """
+    After an HTMX partial response, inject pending Matomo events into the
+    HX-Trigger response header so they can be fired client-side without
+    requiring a full-page render.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+
+        if not getattr(request, "htmx", None) or request.htmx.boosted:
+            return response
+
+        # If the response triggers a full-page reload (HX-Refresh), leave events in
+        # session so they fire on the reloaded page instead of being lost mid-navigation.
+        if response.get("HX-Refresh") == "true":
+            return response
+
+        events = request.session.pop("matomo_pending_events", None)
+        if not events:
+            return response
+
+        request.session.modified = True
+
+        existing = response.get("HX-Trigger", "")
+        try:
+            trigger_data = json.loads(existing) if existing else {}
+        except (json.JSONDecodeError, ValueError):
+            trigger_data = {existing: True} if existing else {}
+
+        trigger_data["matomoEvents"] = events
+        response["HX-Trigger"] = json.dumps(trigger_data)
+
+        return response
 
 
 class OTPVerificationMiddleware:
