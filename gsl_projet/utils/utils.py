@@ -15,10 +15,17 @@ def transform_choices_to_map(choices: tuple[tuple[str, str], ...]) -> dict[str, 
     return {key: value for key, value in choices}
 
 
-def compute_taux(numerator: float | Decimal, denominator: float | Decimal) -> Decimal:
+def compute_taux(
+    numerator: float | Decimal,
+    denominator: float | Decimal,
+    decimals: int | None = None,
+) -> Decimal:
     try:
-        new_taux = round((Decimal(numerator) / Decimal(denominator)) * 100, 3)
-        return max(new_taux, Decimal(0))
+        if decimals is None:
+            taux = Decimal(numerator) / Decimal(denominator) * 100
+        else:
+            taux = round((Decimal(numerator) / Decimal(denominator)) * 100, decimals)
+        return max(taux, Decimal(0))
     except TypeError:
         return Decimal(0)
     except ZeroDivisionError:
@@ -31,3 +38,27 @@ def floatize(value: float | Decimal | None) -> float | None:
     if value is None:
         return None
     return float(value)
+
+
+def get_comment_cards(projet):
+    """Retourne la liste des cartes commentaires d'arbitrage pour le template."""
+
+    from gsl_projet.forms import ProjetCommentForm
+
+    return [
+        {
+            "num": "1",
+            "value": projet.comment_1,
+            "form": ProjetCommentForm(initial={"comment_number": "1"}, instance=projet),
+        },
+        {
+            "num": "2",
+            "value": projet.comment_2,
+            "form": ProjetCommentForm(initial={"comment_number": "2"}, instance=projet),
+        },
+        {
+            "num": "3",
+            "value": projet.comment_3,
+            "form": ProjetCommentForm(initial={"comment_number": "3"}, instance=projet),
+        },
+    ]

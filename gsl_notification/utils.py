@@ -7,6 +7,7 @@ import boto3
 import img2pdf
 import requests
 from bs4 import BeautifulSoup
+from django.conf import settings
 from django.core.files import File
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models.fields.files import FieldFile
@@ -16,7 +17,6 @@ from django_weasyprint.utils import django_url_fetcher
 from pikepdf import Pdf
 from weasyprint import HTML
 
-from gsl import settings
 from gsl_core.exceptions import Http404
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
@@ -83,7 +83,7 @@ def replace_mentions_in_html(
         if id == 4:
             value = euro(value, 2)
         elif id == 5:
-            value = percent(value, 3)
+            value = percent(value, 4)
         elif id in [6, 7]:
             value = value.strftime("%d/%m/%Y") if value else "N/A"
 

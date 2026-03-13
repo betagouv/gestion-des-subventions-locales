@@ -1,0 +1,53 @@
+{% comment %}
+    Column visibility dropdown.
+    Requires `columns` (list of Column) and `table_wrapper_id` (str) in context.
+    Optional: `simulation` (Simulation) to save the column visibility in the database.
+{% endcomment %}
+{% load gsl_filters %}
+
+<div class="gsl-dropdown gsl-column-visibility-dropdown"
+     data-table-id="{{ table_wrapper_id }}"
+     {% if simulation %}data-server-managed{% endif %}>
+    {% if simulation %}
+        {{ simulation.columns_visibility|json_script:"gsl-column-visibility-saved-state" }}
+    {% endif %}
+    <button type="button"
+            class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-right fr-icon-arrow-down-s-line">
+        Colonnes affichées
+    </button>
+    <div class="gsl-dropdown-content gsl-column-visibility-list">
+        <form {% if simulation %} hx-post="{% url 'gsl_simulation:simulation-columns-visibility' simulation.slug %}" hx-trigger="change" hx-swap="none" {% endif %}>
+            {% csrf_token %}
+            {% for column in columns %}
+                {% if column.hideable %}
+                    <div class="fr-checkbox-group fr-checkbox-group--sm">
+                        {% if simulation %}
+                            <input type="hidden" name="{{ column.css_key }}" value="false">
+                        {% endif %}
+                        <input type="checkbox"
+                               id="toggle-col-{{ column.css_key }}"
+                               {% if simulation %}name="{{ column.css_key }}" value="true"{% endif %}
+                               {% if column.displayed_by_default %}checked{% endif %}>
+                        <label class="fr-label" for="toggle-col-{{ column.css_key }}">
+                            {{ column.label }}
+                        </label>
+                    </div>
+                {% endif %}
+            {% endfor %}
+            <button type="reset"
+                    class="fr-btn fr-btn--tertiary-no-outline fr-btn--icon-left fr-btn--sm fr-icon-arrow-go-back-line gsl-column-visibility-reset">
+                Réinitialiser le tableau par défaut
+            </button>
+        </form>
+    </div>
+</div>
+
+<style nonce="{{ request.csp_nonce }}">
+    {% for column in columns %}
+        {% if column.hideable %}
+            #{{ table_wrapper_id }}:has(#toggle-col-{{ column.css_key }}:not(:checked)) .{{ column.css_class }} {
+            display: none;
+        }
+        {% endif %}
+    {% endfor %}
+</style>

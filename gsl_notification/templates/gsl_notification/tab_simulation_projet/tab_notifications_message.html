@@ -11,7 +11,9 @@
             Envoi du message de notification sur Démarche Numérique
         </h3>
 
-        <form method="post" id="send-notification-message">
+        <form method="post"
+              id="send-notification-message"
+              data-form-utils-target='form'>
             {% csrf_token %}
             {{ form.non_field_errors }}
             <fieldset class="fr-fieldset{% if form.annexes.errors %} fr-fieldset--error{% endif %}"
@@ -72,7 +74,7 @@
             </p>
             <button class="fr-btn fr-icon-check-line fr-btn--icon-left"
                     type="submit"
-                    data-action="form-utils#disableButton">
+                    data-action="form-utils#submitFormAndDisableButton">
                 Confirmer l'envoi
             </button>
         </form>

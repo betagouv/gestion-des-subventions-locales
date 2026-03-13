@@ -68,6 +68,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_an_other_dotation_than
         demande_montant=400,
         finance_cout_total=4_000,
         perimetre=perimetre_arrondissement,
+        demande_dispositif_sollicite="['DETR']",
     )
     projet = ProjetFactory(dossier_ds=dossier)
     detr_dotation_projet = DotationProjetFactory(
@@ -93,6 +94,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
 ):
     dossier = DossierFactory(
         ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        demande_dispositif_sollicite="['DETR']",
         annotations_dotation=DOTATION_DETR,
         demande_montant=400,
         finance_cout_total=4_000,

@@ -665,6 +665,95 @@ def test_update_dotation_removes_accepted_dotation_with_processing_dotation(
     assert DotationProjet.objects.filter(pk=processing_dotation_to_keep.pk).count() == 1
 
 
+@pytest.mark.parametrize("dotation", [DOTATION_DETR, DOTATION_DSIL])
+@patch.object(DotationProjetService, "create_simulation_projets_from_dotation_projet")
+@pytest.mark.django_db
+def test_update_dotation_sets_dotations_has_been_updated_when_adding_dotation(
+    mock_create_simulation_projets, dotation, projet_0, user
+):
+    """Test that dotations_updated_in_app is set to True when adding a new dotation"""
+    DotationProjetFactory(projet=projet_0, dotation=dotation)
+    assert projet_0.dotations_updated_in_app is False
+
+    new_dotation = DOTATION_DSIL if dotation == DOTATION_DETR else DOTATION_DETR
+    form = ProjetForm(
+        instance=projet_0, data={"dotations": [dotation, new_dotation]}, user=user
+    )
+    form.update_dotation(projet_0, [dotation, new_dotation], user)
+
+    projet_0.refresh_from_db()
+    assert projet_0.dotations_updated_in_app is True
+
+
+@pytest.mark.parametrize("dotation", [DOTATION_DETR, DOTATION_DSIL])
+@patch.object(DsService, "update_ds_annotations_for_one_dotation")
+@pytest.mark.django_db
+def test_update_dotation_sets_dotations_has_been_updated_when_removing_dotation(
+    mock_update_ds_annotations, dotation, projet_0, user
+):
+    """Test that dotations_updated_in_app is set to True when removing a dotation"""
+    DotationProjetFactory(
+        projet=projet_0, dotation=dotation, status=PROJET_STATUS_PROCESSING
+    )
+    assert projet_0.dotations_updated_in_app is False
+
+    new_dotation = DOTATION_DSIL if dotation == DOTATION_DETR else DOTATION_DETR
+    form = ProjetForm(instance=projet_0, data={"dotations": [new_dotation]}, user=user)
+    form.update_dotation(projet_0, [new_dotation], user)
+
+    projet_0.refresh_from_db()
+    assert projet_0.dotations_updated_in_app is True
+
+
+@pytest.mark.django_db
+def test_update_dotation_does_not_set_dotations_has_been_updated_when_unchanged(
+    projet_0, user
+):
+    """Test that dotations_updated_in_app stays False when dotations are unchanged"""
+    DotationProjetFactory(projet=projet_0, dotation=DOTATION_DETR)
+    projet_0.dotations_updated_in_app = False
+    projet_0.save()
+    assert projet_0.dotations_updated_in_app is False
+
+    form = ProjetForm(instance=projet_0, data={"dotations": [DOTATION_DETR]}, user=user)
+    form.update_dotation(projet_0, [DOTATION_DETR], user)
+
+    projet_0.refresh_from_db()
+    assert projet_0.dotations_updated_in_app is False
+
+
+@patch.object(DsService, "update_checkboxes_annotations")
+@patch.object(DsService, "update_ds_annotations_for_one_dotation")
+@patch.object(DotationProjetService, "create_simulation_projets_from_dotation_projet")
+@pytest.mark.django_db
+def test_projet_form_save_sets_dotations_has_been_updated_when_dotations_change(
+    mock_create_simulation_projets,
+    _mock_update_ds_annotations,
+    _mock_update_checkboxes_annotations,
+    projet,
+    user,
+):
+    """Test that ProjetForm.save() sets dotations_updated_in_app when dotations change"""
+    # projet fixture has DETR, we change to DSIL
+    assert projet.dotations == [DOTATION_DETR]
+    assert projet.dotations_updated_in_app is False
+
+    data = {
+        "is_in_qpv": False,
+        "is_attached_to_a_crte": False,
+        "is_budget_vert": False,
+        "dotations": [DOTATION_DSIL],
+    }
+    form = ProjetForm(instance=projet, data=data, user=user)
+    assert form.is_valid()
+
+    form.save(commit=True)
+
+    projet.refresh_from_db()
+    assert projet.dotations == [DOTATION_DSIL]
+    assert projet.dotations_updated_in_app is True
+
+
 @pytest.mark.parametrize("dotation_to_remove", [DOTATION_DETR, DOTATION_DSIL])
 @patch.object(DsService, "update_ds_annotations_for_one_dotation")
 @pytest.mark.django_db

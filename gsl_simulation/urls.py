@@ -10,17 +10,21 @@ from gsl_simulation.views.simulation_projet_notes_views import (
     get_note_card,
 )
 from gsl_simulation.views.simulation_projet_views import (
+    EditAssietteView,
+    EditMontantView,
+    EditTauxView,
     ProgrammationStatusUpdateView,
     ProjetFormView,
+    RefreshSimulationRowView,
     SimulationProjetDetailView,
     SimulationProjetStatusUpdateView,
     patch_dotation_projet,
-    patch_montant_simulation_projet,
-    patch_taux_simulation_projet,
 )
 from gsl_simulation.views.simulation_views import (
+    SimulationColumnsVisibilityView,
     SimulationCreateView,
     SimulationDeleteView,
+    SimulationRenameView,
 )
 
 urlpatterns = [
@@ -42,6 +46,16 @@ urlpatterns = [
         name="simulation-delete",
     ),
     path(
+        "voir/<slug:slug>/columns-visibility/",
+        SimulationColumnsVisibilityView.as_view(),
+        name="simulation-columns-visibility",
+    ),
+    path(
+        "<int:pk>/renommer/",
+        SimulationRenameView.as_view(),
+        name="simulation-rename",
+    ),
+    path(
         "voir/<slug:slug>/<str:type>/",
         simulation_must_be_visible_by_user(
             simulation_views.FilteredProjetsExportView.as_view()
@@ -59,14 +73,24 @@ urlpatterns = [
         name="simulation-projet-notes",
     ),
     path(
-        "modifier-le-taux-d-un-projet-de-simulation/<int:pk>/",
-        patch_taux_simulation_projet,
-        name="patch-simulation-projet-taux",
+        "edit-assiette/<int:pk>/",
+        EditAssietteView.as_view(),
+        name="edit-assiette",
     ),
     path(
-        "modifier-le-montant-un-projet-de-simulation/<int:pk>/",
-        patch_montant_simulation_projet,
-        name="patch-simulation-projet-montant",
+        "edit-montant/<int:pk>/",
+        EditMontantView.as_view(),
+        name="edit-montant",
+    ),
+    path(
+        "edit-taux/<int:pk>/",
+        EditTauxView.as_view(),
+        name="edit-taux",
+    ),
+    path(
+        "refresh-row/<int:pk>/",
+        RefreshSimulationRowView.as_view(),
+        name="refresh-simulation-row",
     ),
     path(
         "<int:pk>/simuler/<str:status>/",

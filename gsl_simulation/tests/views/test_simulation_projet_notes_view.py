@@ -37,6 +37,21 @@ def simulation_projet(perimetre):
 
 
 @pytest.mark.django_db
+def test_simulation_notes_tab_has_comment_cards(
+    client_with_user_logged, simulation_projet
+):
+    """L'onglet notes simulation inclut comment_cards dans le contexte."""
+    url = reverse(
+        "simulation:simulation-projet-notes",
+        kwargs={"pk": simulation_projet.pk},
+    )
+    response = client_with_user_logged.get(url)
+    assert response.status_code == 200
+    assert "comment_cards" in response.context
+    assert len(response.context["comment_cards"]) == 3
+
+
+@pytest.mark.django_db
 def test_projet_note_form_save(client_with_user_logged, simulation_projet):
     projet = simulation_projet.projet
     assert projet.notes.count() == 0

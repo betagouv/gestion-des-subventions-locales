@@ -34,9 +34,9 @@ def target_user(db):
 @pytest.mark.django_db
 class TestCollegueAdminReadonlyFields:
     def test_superuser_can_edit_is_superuser_and_is_staff(
-        self, client, superuser, target_user
+        self, otp_verified_client, superuser, target_user
     ):
-        client.force_login(superuser)
+        client = otp_verified_client(superuser)
         url = reverse("admin:gsl_core_collegue_change", args=[target_user.pk])
         response = client.get(url)
 
@@ -46,9 +46,9 @@ class TestCollegueAdminReadonlyFields:
         assert 'name="is_staff"' in content
 
     def test_staff_user_sees_is_superuser_and_is_staff_as_readonly(
-        self, client, staff_user, target_user
+        self, otp_verified_client, staff_user, target_user
     ):
-        client.force_login(staff_user)
+        client = otp_verified_client(staff_user)
         url = reverse("admin:gsl_core_collegue_change", args=[target_user.pk])
         response = client.get(url)
 
@@ -58,9 +58,9 @@ class TestCollegueAdminReadonlyFields:
         assert 'name="is_staff"' not in content
 
     def test_staff_user_cannot_escalate_to_superuser_via_post(
-        self, client, staff_user, target_user
+        self, otp_verified_client, staff_user, target_user
     ):
-        client.force_login(staff_user)
+        client = otp_verified_client(staff_user)
         url = reverse("admin:gsl_core_collegue_change", args=[target_user.pk])
 
         # Attempt to set is_superuser=True via POST
@@ -81,10 +81,10 @@ class TestCollegueAdminReadonlyFields:
         assert not target_user.is_superuser
 
     def test_staff_user_cannot_remove_own_staff_status_via_post(
-        self, client, staff_user
+        self, otp_verified_client, staff_user
     ):
         """Staff user cannot modify is_staff even on their own account."""
-        client.force_login(staff_user)
+        client = otp_verified_client(staff_user)
         url = reverse("admin:gsl_core_collegue_change", args=[staff_user.pk])
 
         client.post(

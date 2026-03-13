@@ -3,6 +3,7 @@ from datetime import timezone as tz
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models, transaction
 from django.db.models import (
     Case,
@@ -203,7 +204,11 @@ class ProjetQuerySet(models.QuerySet):
             programmation_count=Count(
                 "dotationprojet__programmation_projet",
             ),
-        ).filter(dotations_count=F("programmation_count"), notified_at__isnull=True)
+        ).filter(
+            dotations_count__gt=0,
+            dotations_count=F("programmation_count"),
+            notified_at__isnull=True,
+        )
 
     def can_send_notification(self):
         return self.to_notify().exclude(
@@ -229,6 +234,30 @@ class ProjetQuerySet(models.QuerySet):
                 ProgrammationProjet.objects.filter(
                     dotation_projet__projet=OuterRef("pk"),
                     status=PROJET_STATUS_ACCEPTED,
+                )
+            )
+        )
+
+    def with_missing_annotations(self):
+        """Projets dont le dossier DS est accepté mais a des annotations DETR/DSIL incomplètes."""
+        return self.filter(
+            dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
+        ).filter(
+            Q(dossier_ds__annotations_dotation="")
+            | Q(dossier_ds__annotations_dotation="[]")
+            | Q(dossier_ds__annotations_dotation__isnull=True)
+            | (
+                Q(dossier_ds__annotations_dotation__contains="DETR")
+                & (
+                    Q(dossier_ds__annotations_assiette_detr__isnull=True)
+                    | Q(dossier_ds__annotations_montant_accorde_detr__isnull=True)
+                )
+            )
+            | (
+                Q(dossier_ds__annotations_dotation__contains="DSIL")
+                & (
+                    Q(dossier_ds__annotations_assiette_dsil__isnull=True)
+                    | Q(dossier_ds__annotations_montant_accorde_dsil__isnull=True)
                 )
             )
         )
@@ -298,7 +327,15 @@ class Projet(BaseModel):
         default=False,
     )
     contrat_local = models.CharField("Nom du contrat local", blank=True)
-    free_comment = models.TextField("Commentaires libres", blank=True, default="")
+    comment_1 = models.TextField("Commentaire 1", blank=True, default="")
+    comment_2 = models.TextField("Commentaire 2", blank=True, default="")
+    comment_3 = models.TextField("Commentaire 3", blank=True, default="")
+
+    dotations_updated_in_app = models.BooleanField(
+        "Dotations modifiées dans Turgot",
+        null=False,
+        default=False,
+    )
 
     objects = ProjetManager()
 
@@ -364,12 +401,15 @@ class Projet(BaseModel):
 
         Does not check if the programmation has been accepted or refused ! This is not necessary.
         """
+        dotations = self.dotationprojet_set.all()
+        if not dotations:
+            return False
         return all(
             (
                 hasattr(d, "programmation_projet")
                 and d.programmation_projet.notified_at is None
             )
-            for d in self.dotationprojet_set.all()
+            for d in dotations
         )
 
     @property
@@ -490,6 +530,8 @@ class DotationProjet(BaseModel):
         "Assiette subventionnable",
         max_digits=12,
         decimal_places=2,
+        validators=[MinValueValidator(0)],
+        blank=True,
         null=True,
     )
     detr_avis_commission = models.BooleanField(
@@ -512,51 +554,68 @@ class DotationProjet(BaseModel):
     def __str__(self):
         return f"Projet {self.projet_id} - Dotation {self.dotation}"
 
-    def clean(self):
-        errors = {}
+    def clean_fields(self, exclude=None):
+        try:
+            super().clean_fields(exclude=exclude)
+        except ValidationError as e:
+            errors = e.update_error_dict({})
+        else:
+            errors = {}
 
-        if self.detr_avis_commission is not None:
-            if self.dotation == DOTATION_DSIL:
-                errors["detr_avis_commission"] = (
-                    "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR."
-                )
+        if "detr_avis_commission" not in exclude:
+            self._validate_detr_avis_commission(errors)
 
+        if "assiette" not in exclude:
             if (
-                self.dossier_ds.demande_montant is not None
-                and self.dossier_ds.demande_montant < MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
+                self.dossier_ds.finance_cout_total
+                and self.assiette
+                and self.dossier_ds.finance_cout_total < self.assiette
             ):
-                errors["detr_avis_commission"] = (
-                    f"L'avis de la commission DETR ne doit être renseigné que pour les projets DETR dont le montant demandé est supérieur ou égal à {MIN_DEMANDE_MONTANT_FOR_AVIS_DETR}."
+                errors["assiette"] = (
+                    "L'assiette doit être inférieure ou égale au coût total du projet."
                 )
 
-        if (
-            self.dossier_ds.finance_cout_total
-            and self.assiette
-            and self.dossier_ds.finance_cout_total < self.assiette
-        ):
-            errors["assiette"] = (
-                "L'assiette ne doit pas être supérieure au coût total du projet."
+        if "detr_categories" not in exclude:
+            self._validate_detr_categories(errors)
+
+        if errors:
+            raise ValidationError(errors)
+
+    def _validate_detr_avis_commission(self, errors):
+        if self.detr_avis_commission is None:
+            return
+
+        if self.dotation == DOTATION_DSIL:
+            errors["detr_avis_commission"] = (
+                "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR."
             )
 
+        if (
+            self.dossier_ds.demande_montant is not None
+            and self.dossier_ds.demande_montant < MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
+        ):
+            errors["detr_avis_commission"] = (
+                f"L'avis de la commission DETR ne doit être renseigné que pour les projets DETR dont le montant demandé est supérieur ou égal à {MIN_DEMANDE_MONTANT_FOR_AVIS_DETR}."
+            )
+
+    def _validate_detr_categories(self, errors):
         if self.dotation != DOTATION_DETR:
             if self.detr_categories.exists():
                 errors["detr_categories"] = (
                     "Les catégories DETR ne doivent être renseignées que pour les projets DETR."
                 )
-        else:
-            projet_departement = (
-                self.projet.perimetre.departement
-                if self.projet and self.projet.perimetre
-                else None
-            )
-            for categorie in self.detr_categories.all():
-                if categorie.departement != projet_departement:
-                    errors["detr_categories"] = (
-                        f"La catégorie DETR « {categorie.libelle} » n'appartient pas au même département que le projet."
-                    )
+            return
 
-        if errors:
-            raise ValidationError(errors)
+        projet_departement = (
+            self.projet.perimetre.departement
+            if self.projet and self.projet.perimetre
+            else None
+        )
+        for categorie in self.detr_categories.all():
+            if categorie.departement != projet_departement:
+                errors["detr_categories"] = (
+                    f"La catégorie DETR « {categorie.libelle} » n'appartient pas au même département que le projet."
+                )
 
     @property
     def dossier_ds(self):
@@ -591,6 +650,19 @@ class DotationProjet(BaseModel):
         if self.assiette is not None:
             return self.assiette
         return self.dossier_ds.finance_cout_total
+
+    def compute_montant_from_taux(self, new_taux):
+        from decimal import Decimal, InvalidOperation
+
+        try:
+            assiette = self.assiette_or_cout_total
+            new_montant = (assiette * Decimal(new_taux) / 100) if assiette else 0
+            new_montant = round(new_montant, 2)
+            return max(min(new_montant, self.assiette_or_cout_total), 0)
+        except TypeError:
+            return 0
+        except InvalidOperation:
+            return 0
 
     @property
     def taux_de_subvention_sollicite(self) -> float | None:

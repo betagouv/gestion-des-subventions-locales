@@ -7,6 +7,7 @@ from django.views.generic.edit import UpdateView
 
 from gsl_projet.forms import ProjetNoteForm
 from gsl_projet.models import ProjetNote
+from gsl_projet.utils.utils import get_comment_cards
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.views.decorators import (
     exception_handler_decorator,
@@ -37,6 +38,7 @@ class SimulationProjetNotesView(SimulationProjetDetailView):
             .order_by("created_at")
             .all()
         )
+        context["comment_cards"] = get_comment_cards(self.object.projet)
         return context
 
     def post(self, request, *args, **kwargs):

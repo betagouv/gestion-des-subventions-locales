@@ -65,11 +65,10 @@
             class="fr-btn fr-btn--primary"
             form="{{ modal_id }}-form"
             id="{{ modal_id }}-submit-button">
-        {% spaceless %}
+        {% if object.projet.notified_at %}
+            Oui, repasser le dossier en traitement
+        {% else %}
             Oui
-            {% if object.projet.notified_at %}
-                , repasser le dossier en traitement
-            {% endif %}
-        {% endspaceless %}
+        {% endif %}
     </button>
 {% endblock confirmation_button %}

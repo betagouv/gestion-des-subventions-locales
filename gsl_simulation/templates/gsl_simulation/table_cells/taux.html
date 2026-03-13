@@ -1,0 +1,14 @@
+{% load gsl_filters %}
+{% if projet.notified_at or simu.status == 'cancelled' or simu.status == 'dismissed' %}
+    {{ simu.taux|percent_value:2 }}
+{% else %}
+    <span>{{ simu.taux|percent_value:2 }}</span>
+    <button class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-edit-line gsl-cell-edit-btn"
+            aria-expanded="false"
+            aria-controls="edit-taux-{{ simu.pk }}"
+            hx-get="{% url 'simulation:edit-taux' simu.pk %}{% querystring %}"
+            hx-target="closest td"
+            hx-swap="beforeend"
+            aria-label="Modifier le taux">
+    </button>
+{% endif %}

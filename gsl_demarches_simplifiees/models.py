@@ -16,6 +16,7 @@ from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
+    POSSIBLE_DOTATIONS,
 )
 
 logger = getLogger(__name__)
@@ -161,7 +162,12 @@ class DossierData(BaseModel):
     See https://www.demarches-simplifiees.fr/graphql/schema/types/Dossier
     """
 
-    ds_demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
+    dossier = models.OneToOneField(
+        "Dossier",
+        on_delete=models.CASCADE,
+        related_name="ds_data",
+        verbose_name="Dossier",
+    )
     raw_data = models.JSONField("Données DS brutes", null=True, blank=True)
 
     class Meta:
@@ -219,10 +225,9 @@ class Dossier(BaseModel):
     perimetre = models.ForeignKey(
         Perimetre, on_delete=models.PROTECT, null=True, blank=True
     )
-    ds_data = models.OneToOneField(DossierData, on_delete=models.CASCADE)
+    ds_demarche = models.ForeignKey(Demarche, on_delete=models.PROTECT)
     ds_id = models.CharField("Identifiant DS")
     ds_number = models.IntegerField("Numéro DS", unique=True)
-    ds_demarche_number = models.IntegerField("Numéro de la démarche")
     ds_state = models.CharField("État DS", choices=DS_STATE_VALUES)
     ds_date_depot = models.DateTimeField("Date de dépôt", null=True, blank=True)
     ds_date_passage_en_construction = models.DateTimeField(
@@ -589,9 +594,13 @@ class Dossier(BaseModel):
         )
 
     @property
+    def ds_demarche_number(self) -> int | None:
+        return self.ds_demarche.ds_number
+
+    @property
     def taux_demande(self):
         if self.finance_cout_total and self.demande_montant:
-            return round(self.demande_montant / self.finance_cout_total * 100, 2)
+            return self.demande_montant / self.finance_cout_total * 100
         return None
 
     @property
@@ -609,7 +618,7 @@ class Dossier(BaseModel):
         return "SANS" in self.demande_renouvellement
 
     @property
-    def dotations_demande(self):
+    def dotations_demande(self) -> list[POSSIBLE_DOTATIONS]:
         dotations = []
 
         if not self.demande_dispositif_sollicite:
@@ -638,6 +647,59 @@ class Dossier(BaseModel):
             or bool(self.annotations_champ_libre_2)
             or bool(self.annotations_champ_libre_3)
         )
+
+    @property
+    def has_missing_annotations(self):
+        if self.ds_state != self.STATE_ACCEPTE:
+            return False
+
+        if not self.annotations_dotation or self.annotations_dotation in ("[]", ""):
+            return True
+
+        if "DETR" in self.annotations_dotation:
+            if (
+                self.annotations_assiette_detr is None
+                or self.annotations_montant_accorde_detr is None
+            ):
+                return True
+
+        if "DSIL" in self.annotations_dotation:
+            if (
+                self.annotations_assiette_dsil is None
+                or self.annotations_montant_accorde_dsil is None
+            ):
+                return True
+
+        return False
+
+    @property
+    def missing_annotations_details(self) -> list[str]:
+        if not self.has_missing_annotations:
+            return []
+
+        if not self.annotations_dotation or self.annotations_dotation in ("[]", ""):
+            return ["Aucune dotation n'est cochée"]
+
+        details = []
+        if "DETR" in self.annotations_dotation:
+            if (
+                not self.annotations_assiette_detr
+                or not self.annotations_montant_accorde_detr
+            ):
+                details.append(
+                    "L'assiette et/ou le montant associés sont manquants pour la dotation DETR"
+                )
+
+        if "DSIL" in self.annotations_dotation:
+            if (
+                not self.annotations_assiette_dsil
+                or not self.annotations_montant_accorde_dsil
+            ):
+                details.append(
+                    "L'assiette et/ou le montant associés sont manquants pour la dotation DSIL"
+                )
+
+        return details
 
 
 class DsChoiceLibelle(BaseModel):

@@ -165,45 +165,33 @@ def get_client_with_referer(perimetre, referer):
 
 
 @pytest.mark.django_db
-def test_patch_taux_simulation_projet_url(
+def test_edit_taux_get_returns_edit_form(
     client_with_cote_d_or_user_logged, cote_dorien_simulation_projet
 ):
     url = reverse(
-        "simulation:patch-simulation-projet-taux",
+        "simulation:edit-taux",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_cote_d_or_user_logged.post(url, {"taux": "0.5"}, follow=True)
+    response = client_with_cote_d_or_user_logged.get(url)
     assert response.status_code == 200
-    assert response.templates[0].name == "gsl_simulation/simulation_detail.html"
-    assert response.context["simu"] == cote_dorien_simulation_projet
-    assert response.context["projet"] == cote_dorien_simulation_projet.projet
-    assert response.context["status_summary"] == expected_status_summary
-    assert response.context["total_amount_granted"] == Decimal("2500.00")
-    assert response.context["filter_params"] == ""
-
-    cote_dorien_simulation_projet.refresh_from_db()
-    assert cote_dorien_simulation_projet.taux == 0.5
+    content = response.content.decode()
+    assert f'id="edit-taux-{cote_dorien_simulation_projet.pk}"' in content
 
 
 @pytest.mark.django_db
-def test_patch_taux_simulation_projet_url_with_htmx(
+def test_edit_taux_post_saves_value(
     client_with_cote_d_or_user_logged, cote_dorien_simulation_projet
 ):
     url = reverse(
-        "simulation:patch-simulation-projet-taux",
+        "simulation:edit-taux",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
     response = client_with_cote_d_or_user_logged.post(
-        url, {"taux": "0.5"}, headers={"HX-Request": "true"}, follow=True
+        url, {"taux": "0.5"}, headers={"HX-Request": "true"}
     )
     assert response.status_code == 200
     assert response.templates[0].name == "htmx/projet_update.html"
     assert response.context["simu"] == cote_dorien_simulation_projet
-    assert (
-        response.context["dotation_projet"]
-        == cote_dorien_simulation_projet.dotation_projet
-    )
-    assert response.context["projet"] == cote_dorien_simulation_projet.projet
     assert response.context["status_summary"] == expected_status_summary
     assert response.context["total_amount_granted"] == Decimal("2500.00")
 
@@ -212,42 +200,33 @@ def test_patch_taux_simulation_projet_url_with_htmx(
 
 
 @pytest.mark.django_db
-def test_patch_montant_simulation_projet_url(
+def test_edit_montant_get_returns_edit_form(
     client_with_cote_d_or_user_logged, cote_dorien_simulation_projet
 ):
     url = reverse(
-        "simulation:patch-simulation-projet-montant",
+        "simulation:edit-montant",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client_with_cote_d_or_user_logged.post(
-        url, {"montant": "100"}, follow=True
-    )
+    response = client_with_cote_d_or_user_logged.get(url)
     assert response.status_code == 200
-    assert response.templates[0].name == "gsl_simulation/simulation_detail.html"
-    assert response.context["simu"] == cote_dorien_simulation_projet
-    assert response.context["projet"] == cote_dorien_simulation_projet.projet
-    assert response.context["status_summary"] == expected_status_summary
-    assert response.context["total_amount_granted"] == Decimal("100")
-
-    cote_dorien_simulation_projet.refresh_from_db()
-    assert cote_dorien_simulation_projet.montant == 100
+    content = response.content.decode()
+    assert f'id="edit-montant-{cote_dorien_simulation_projet.pk}"' in content
 
 
 @pytest.mark.django_db
-def test_patch_montant_simulation_projet_url_with_htmx(
+def test_edit_montant_post_saves_value(
     client_with_cote_d_or_user_logged, cote_dorien_simulation_projet
 ):
     url = reverse(
-        "simulation:patch-simulation-projet-montant",
+        "simulation:edit-montant",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
     response = client_with_cote_d_or_user_logged.post(
-        url, {"montant": "100"}, headers={"HX-Request": "true"}, follow=True
+        url, {"montant": "100"}, headers={"HX-Request": "true"}
     )
     assert response.status_code == 200
     assert response.templates[0].name == "htmx/projet_update.html"
     assert response.context["simu"] == cote_dorien_simulation_projet
-    assert response.context["projet"] == cote_dorien_simulation_projet.projet
     assert response.context["status_summary"] == expected_status_summary
     assert response.context["total_amount_granted"] == Decimal("100")
 
@@ -309,14 +288,14 @@ def test_patch_projet_only_if_projet_is_included_in_user_perimetre(
     client_with_cote_d_or_user_logged, cote_dorien_simulation_projet
 ):
     url = reverse(
-        "simulation:patch-simulation-projet-taux",
+        "simulation:edit-taux",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
     response = client_with_cote_d_or_user_logged.post(url, {"taux": "0.5"}, follow=True)
     assert response.status_code == 200
 
     url = reverse(
-        "simulation:patch-simulation-projet-montant",
+        "simulation:edit-montant",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
     response = client_with_cote_d_or_user_logged.post(
@@ -347,14 +326,14 @@ def test_cant_patch_projet_only_if_projet_is_not_included_in_user_perimetre(
     client_with_iconnais_user_logged, cote_dorien_simulation_projet
 ):
     url = reverse(
-        "simulation:patch-simulation-projet-taux",
+        "simulation:edit-taux",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
     response = client_with_iconnais_user_logged.post(url, {"taux": "0.5"})
     assert response.status_code == 404
 
     url = reverse(
-        "simulation:patch-simulation-projet-montant",
+        "simulation:edit-montant",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
     response = client_with_iconnais_user_logged.post(url, {"montant": "400"})
@@ -382,8 +361,8 @@ def client_with_bourguignon_user_logged(perimetre_bourgogne):
 
 
 PATCH_ROUTES_AND_DATA = (
-    ("simulation:patch-simulation-projet-taux", {}, {"taux": "0.5"}),
-    ("simulation:patch-simulation-projet-montant", {}, {"montant": "400"}),
+    ("simulation:edit-taux", {}, {"taux": "0.5"}),
+    ("simulation:edit-montant", {}, {"montant": "400"}),
     (
         "simulation:simulation-projet-update-programmed-status",
         {"status": "valid"},
@@ -599,9 +578,10 @@ def test_simulation_projet_detail_url_with_perimetre_not_in_user_one(
 
 
 @pytest.mark.django_db
-def test_redirection_with_referer_allowed(
+def test_edit_montant_post_returns_partial_regardless_of_referer(
     cote_d_or_perimetre, cote_dorien_simulation_projet
 ):
+    """New CBVs always return the partial template on POST, no redirect."""
     client = get_client_with_referer(
         cote_d_or_perimetre,
         reverse(
@@ -611,26 +591,12 @@ def test_redirection_with_referer_allowed(
     )
 
     url = reverse(
-        "gsl_simulation:patch-simulation-projet-montant",
+        "gsl_simulation:edit-montant",
         kwargs={"pk": cote_dorien_simulation_projet.pk},
     )
-    response = client.post(url, {"montant": "100"}, follow=True)
+    response = client.post(url, {"montant": "100"})
     assert response.status_code == 200
-    assert response.templates[0].name == "gsl_simulation/simulation_projet_detail.html"
-
-
-@pytest.mark.django_db
-def test_redirection_with_referer_not_allowed(
-    cote_d_or_perimetre, cote_dorien_simulation_projet
-):
-    client = get_client_with_referer(cote_d_or_perimetre, "http://localhost:8001/")
-    url = reverse(
-        "gsl_simulation:patch-simulation-projet-montant",
-        kwargs={"pk": cote_dorien_simulation_projet.pk},
-    )
-    response = client.post(url, {"montant": "100"}, follow=True)
-    assert response.status_code == 200
-    assert response.templates[0].name == "gsl_simulation/simulation_detail.html"
+    assert response.templates[0].name == "htmx/projet_update.html"
 
 
 def _get_client_and_url_of_edit_projet_note_url(

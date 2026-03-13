@@ -43,6 +43,24 @@ from gsl_simulation.tests.factories import SimulationProjetFactory
 pytestmark = pytest.mark.django_db
 
 
+# -- compute_montant_from_taux --
+
+
+def test_compute_montant_from_taux():
+    dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__finance_cout_total=100_000,
+    )
+    assert dotation_projet.compute_montant_from_taux(25) == 25_000
+
+    dotation_projet = DotationProjetFactory(
+        assiette=50_000,
+    )
+    assert dotation_projet.compute_montant_from_taux(25) == 12_500
+
+    dotation_projet = DotationProjetFactory()
+    assert dotation_projet.compute_montant_from_taux(25) == 0
+
+
 @pytest.mark.parametrize(("dotation"), DOTATIONS)
 def test_dotation_projet_unicity(dotation):
     projet = ProjetFactory()
@@ -120,10 +138,8 @@ def test_taux_retenu_with_refused_programmation_projet():
     (
         (DOTATION_DETR, True, False),
         (DOTATION_DETR, False, False),
-        (DOTATION_DETR, None, False),
         (DOTATION_DSIL, True, True),
         (DOTATION_DSIL, False, True),
-        (DOTATION_DSIL, None, False),
     ),
 )
 def test_error_raised_if_detr_avis_commission_is_set_on_dsil_projet(
@@ -131,16 +147,17 @@ def test_error_raised_if_detr_avis_commission_is_set_on_dsil_projet(
 ):
     dotation_projet = DotationProjetFactory(dotation=dotation)
     dotation_projet.detr_avis_commission = avis_commission
+    exclude = ["assiette", "detr_categories"]
 
     if must_raise_error:
         with pytest.raises(ValidationError) as exc_info:
-            dotation_projet.clean()
+            dotation_projet.clean_fields(exclude=exclude)
         assert (
             str(exc_info.value.messages[0])
             == "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR."
         )
     else:
-        dotation_projet.clean()
+        dotation_projet.clean_fields(exclude=exclude)
         assert dotation_projet.detr_avis_commission == avis_commission
 
 
@@ -150,7 +167,6 @@ def test_error_raised_if_detr_avis_commission_is_set_on_dsil_projet(
         (None, 1_000, False),
         (1_000, 1_000, False),
         (1_000, 1_001, True),
-        (1_000, None, False),
     ),
 )
 def test_error_raised_if_assiette_is_greater_than_cout_total(
@@ -161,16 +177,17 @@ def test_error_raised_if_assiette_is_greater_than_cout_total(
         assiette=assiette,
         projet__dossier_ds__finance_cout_total=cout_total,
     )
+    exclude = ["detr_avis_commission", "detr_categories"]
 
     if must_raise_error:
         with pytest.raises(ValidationError) as exc_info:
-            dotation_projet.clean()
+            dotation_projet.clean_fields(exclude=exclude)
         assert (
             str(exc_info.value.messages[0])
-            == "L'assiette ne doit pas être supérieure au coût total du projet."
+            == "L'assiette doit être inférieure ou égale au coût total du projet."
         )
     else:
-        dotation_projet.clean()
+        dotation_projet.clean_fields(exclude=exclude)
         assert dotation_projet.assiette == assiette
 
 
@@ -304,7 +321,7 @@ def test_accept_dotation_projet_update_programmation_projet():
     assert programmation_projets.count() == 1
     programmation_projet = programmation_projets.first()
     assert programmation_projet.montant == 5_000
-    assert programmation_projet.taux == Decimal("55.556")
+    assert round(programmation_projet.taux, 4) == Decimal("55.5556")
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
 
 
@@ -664,13 +681,14 @@ def test_categorie_detr_departement_constraint():
     )
 
     dotation_projet = DotationProjetFactory(projet=projet, dotation="DETR")
+    exclude = ["assiette", "detr_avis_commission"]
 
     dotation_projet.detr_categories.set([cat_ok])
-    dotation_projet.clean()
+    dotation_projet.clean_fields(exclude=exclude)
 
     dotation_projet.detr_categories.set([cat_bad])
     with pytest.raises(ValidationError) as excinfo:
-        dotation_projet.clean()
+        dotation_projet.clean_fields(exclude=exclude)
     assert "n'appartient pas au même département que le projet" in str(excinfo.value)
 
 
@@ -678,11 +696,12 @@ def test_categorie_detr_departement_constraint():
 def test_categorie_detr_dotation_constraint():
     category = CategorieDetrFactory()
     dsil_dotation_projet = DsilProjetFactory()
+    exclude = ["assiette", "detr_avis_commission"]
 
     dsil_dotation_projet.detr_categories.set([category])
 
     with pytest.raises(ValidationError) as excinfo:
-        dsil_dotation_projet.clean()
+        dsil_dotation_projet.clean_fields(exclude=exclude)
     assert (
         "Les catégories DETR ne doivent être renseignées que pour les projets DETR"
         in str(excinfo.value)

@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 from pathlib import Path
 
 import pytest
@@ -12,7 +13,6 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverter
 from gsl_demarches_simplifiees.models import (
-    CategorieDetr,
     Demarche,
     Dossier,
     DossierData,
@@ -63,14 +63,13 @@ def dossier_ds_number():
 
 @pytest.fixture
 def dossier(dossier_ds_id, demarche, dossier_ds_number):
-    return Dossier.objects.create(
+    dossier = Dossier.objects.create(
         ds_id=dossier_ds_id,
-        ds_demarche_number=demarche.ds_number,
+        ds_demarche=demarche,
         ds_number=dossier_ds_number,
-        ds_data=DossierData.objects.create(
-            ds_demarche=demarche,
-        ),
     )
+    DossierData.objects.create(dossier=dossier)
+    return dossier
 
 
 @pytest.fixture
@@ -90,12 +89,12 @@ def test_init_dossier_converter(ds_dossier_data, dossier):
     FieldMapping.objects.create(
         ds_field_id="TEST_ID_un_champ_hors_annotation",
         django_field=Dossier._MAPPED_CHAMPS_FIELDS[0].name,
-        demarche=dossier.ds_data.ds_demarche,
+        demarche=dossier.ds_demarche,
     )
     FieldMapping.objects.create(
         ds_field_id="TEST_ID_un_champ_annotation",
         django_field=Dossier._MAPPED_ANNOTATIONS_FIELDS[0].name,
-        demarche=dossier.ds_data.ds_demarche,
+        demarche=dossier.ds_demarche,
     )
     dossier_converter = DossierConverter(ds_dossier_data, dossier)
 
@@ -164,10 +163,10 @@ def test_fill_unmapped_fields_with_personne_morale_incomplete_does_not_create_na
     }
     dossier = Dossier.objects.create(
         ds_id=dossier_ds_id,
-        ds_demarche_number=demarche.ds_number,
+        ds_demarche=demarche,
         ds_number=dossier_ds_number,
-        ds_data=DossierData.objects.create(ds_demarche=demarche),
     )
+    DossierData.objects.create(dossier=dossier)
     converter = DossierConverter(ds_dossier_data, dossier)
 
     assert Naf.objects.count() == 0
@@ -474,7 +473,7 @@ def test_inject_into_field_categorie_detr_resolves_by_label_and_departement_from
     dep_87 = DepartementFactory(region=region, insee_code="87", name="Haute-Vienne")
     category_label = "1. Première catégorie prioritaire"
     categorie_detr = CategorieDetrFactory(
-        demarche=dossier.ds_data.ds_demarche,
+        demarche=dossier.ds_demarche,
         departement=dep_87,
         label=category_label,
     )
@@ -489,19 +488,25 @@ def test_inject_into_field_categorie_detr_resolves_by_label_and_departement_from
     assert dossier.demande_categorie_detr.departement == dep_87
 
 
-def test_inject_into_field_categorie_detr_raises_when_category_not_found(
+def test_inject_into_field_categorie_detr_creates_when_category_not_found(
     dossier_converter,
     dossier,
 ):
     region = RegionFactory()
-    DepartementFactory(region=region, insee_code="87", name="Haute-Vienne")
+    dep_87 = DepartementFactory(region=region, insee_code="87", name="Haute-Vienne")
     field = Dossier._meta.get_field("demande_categorie_detr")
     ds_field_label = "Catégories prioritaires (87 - Haute-Vienne)"
 
-    with pytest.raises(CategorieDetr.DoesNotExist):
-        dossier_converter.inject_into_field(
-            dossier, field, "Inexistant label", ds_field_label
-        )
+    dossier_converter.inject_into_field(
+        dossier, field, "Inexistant label", ds_field_label
+    )
+    dossier.save()
+
+    assert dossier.demande_categorie_detr_id is not None, (
+        "CategorieDetr should be created"
+    )
+    assert dossier.demande_categorie_detr.label == "Inexistant label"
+    assert dossier.demande_categorie_detr.departement == dep_87
 
 
 def test_convert_all_fields_continues_when_categorie_detr_does_not_exist(
@@ -538,14 +543,14 @@ def test_convert_all_fields_continues_when_categorie_detr_does_not_exist(
 
     # Map DS fields to Django fields on Dossier
     FieldMapping.objects.create(
-        demarche=dossier.ds_data.ds_demarche,
+        demarche=dossier.ds_demarche,
         ds_field_id="FIELD_CATEG_DETR",
         ds_field_label="Catégories prioritaires (87 - Haute-Vienne)",
         ds_field_type="TextChamp",
         django_field="demande_categorie_detr",
     )
     FieldMapping.objects.create(
-        demarche=dossier.ds_data.ds_demarche,
+        demarche=dossier.ds_demarche,
         ds_field_id="FIELD_INTITULE",
         ds_field_label="Intitulé du projet",
         ds_field_type="TextChamp",
@@ -562,13 +567,120 @@ def test_convert_all_fields_continues_when_categorie_detr_does_not_exist(
     # and still imports the other mapped field.
     converter.convert_all_fields()
 
-    assert dossier.demande_categorie_detr_id is None
+    assert dossier.demande_categorie_detr_id is not None, (
+        "CategorieDetr should be created"
+    )
     assert dossier.projet_intitule == "Mon super projet"
 
     assert len(caplog.records) == 1
     record = caplog.records[0]
-    assert record.message == "CategorieDetr not found."
+    assert record.message == "CategorieDetr created."
     assert record.ds_demarche_number == dossier.ds_demarche_number
     assert record.value == "1. Première catégorie prioritaire"
     assert record.departement.name == "Haute-Vienne"
     assert record.departement.insee_code == "87"
+
+
+def test_fill_unmapped_fields_logs_warning_and_continues_when_key_is_missing(
+    demarche,
+    dossier_ds_id,
+    dossier_ds_number,
+    caplog,
+):
+    """Quand une clé est absente des données DS, fill_unmapped_fields logue un warning
+    et continue de remplir les autres champs."""
+    ds_dossier_data = {
+        "champs": [],
+        "annotations": [],
+        "demarche": {"revision": {"id": "rev-1"}},
+        # "state" est intentionnellement absent pour provoquer une KeyError
+        "dateDepot": "2024-10-16T10:09:32+02:00",
+        "dateDerniereModification": "2024-10-16T10:09:33+02:00",
+        "datePassageEnConstruction": "2024-10-16T10:09:32+02:00",
+        "datePassageEnInstruction": None,
+        "dateDerniereModificationChamps": "2024-10-16T10:09:29+02:00",
+        "dateTraitement": None,
+        "demandeur": None,
+    }
+    dossier = Dossier.objects.create(
+        ds_id=dossier_ds_id,
+        ds_demarche=demarche,
+        ds_number=dossier_ds_number,
+    )
+    DossierData.objects.create(dossier=dossier)
+    converter = DossierConverter(ds_dossier_data, dossier)
+
+    with caplog.at_level(logging.ERROR):
+        converter.fill_unmapped_fields()
+
+    error_records = [r for r in caplog.records if r.levelno == logging.ERROR]
+    assert len(error_records) == 1
+    assert error_records[0].message == "Error while filling unmapped field."
+    assert error_records[0].field == "state"
+
+    # Les autres champs doivent quand même avoir été remplis
+    assert dossier.ds_date_depot == "2024-10-16T10:09:32+02:00"
+
+
+def test_convert_all_fields_logs_warning_and_continues_on_unexpected_error(
+    dossier,
+    caplog,
+):
+    """Quand un champ provoque une exception inattendue lors de la conversion,
+    convert_all_fields logue un warning et continue avec les autres champs.
+
+    Ici on simule le cas réel d'un DateChamp dont la clé 'date' est absente
+    (KeyError), ce qui était le comportement fautif sur date_debut.
+    """
+    ds_dossier_data = {
+        "champs": [
+            {
+                "id": "FIELD_DATE_BROKEN",
+                "champDescriptorId": "FIELD_DATE_BROKEN",
+                "__typename": "DateChamp",
+                "label": "Date de début",
+                "stringValue": "",
+                # Clé "date" intentionnellement absente → KeyError
+            },
+            {
+                "id": "FIELD_INTITULE",
+                "champDescriptorId": "FIELD_INTITULE",
+                "__typename": "TextChamp",
+                "label": "Intitulé du projet",
+                "stringValue": "Mon projet malgré l'erreur",
+            },
+        ],
+        "annotations": [],
+        "demarche": {"revision": {"id": "rev-1"}},
+    }
+    FieldMapping.objects.create(
+        demarche=dossier.ds_demarche,
+        ds_field_id="FIELD_DATE_BROKEN",
+        ds_field_label="Date de début",
+        ds_field_type="DateChamp",
+        django_field="date_debut",
+    )
+    FieldMapping.objects.create(
+        demarche=dossier.ds_demarche,
+        ds_field_id="FIELD_INTITULE",
+        ds_field_label="Intitulé du projet",
+        ds_field_type="TextChamp",
+        django_field="projet_intitule",
+    )
+
+    converter = DossierConverter(ds_dossier_data, dossier)
+
+    with caplog.at_level(logging.ERROR):
+        converter.convert_all_fields()
+
+    error_records = [
+        r
+        for r in caplog.records
+        if r.levelno == logging.ERROR and r.message == "Error while converting field."
+    ]
+    assert len(error_records) == 1
+    assert error_records[0].field_label == "Date de début"
+    assert "'date'" in error_records[0].error  # KeyError: 'date'
+
+    # L'autre champ doit quand même avoir été importé
+    assert dossier.projet_intitule == "Mon projet malgré l'erreur"

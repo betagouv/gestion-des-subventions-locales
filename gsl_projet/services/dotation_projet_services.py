@@ -1,12 +1,10 @@
 import logging
 from datetime import date
-from decimal import Decimal, InvalidOperation
 from typing import Any, Literal
 
 from django.db import transaction
 
 from gsl_core.models import Perimetre
-from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import Enveloppe
 from gsl_projet.constants import (
@@ -34,6 +32,8 @@ class DotationProjetService:
             dotation_projets = cls._initialize_dotation_projets_from_projet(projet)
 
         else:
+            if cls._should_dotations_be_updated_from_dn_construction_dossier(projet):
+                cls._remove_or_add_dotations_from_dossier_ds(projet)
             # check for updates
             dotation_projets = cls._update_dotation_projets_from_projet(projet)
 
@@ -62,49 +62,6 @@ class DotationProjetService:
             SimulationProjetService.create_or_update_simulation_projet_from_dotation_projet(
                 dotation_projet, simulation
             )
-
-    @classmethod
-    def compute_montant_from_taux(
-        cls, dotation_projet: DotationProjet, new_taux: float | Decimal
-    ) -> float | Decimal:
-        try:
-            assiette = dotation_projet.assiette_or_cout_total
-            new_montant = (assiette * Decimal(new_taux) / 100) if assiette else 0
-            new_montant = round(new_montant, 2)
-            return max(min(new_montant, dotation_projet.assiette_or_cout_total), 0)
-        except TypeError:
-            return 0
-        except InvalidOperation:
-            return 0
-
-    @classmethod
-    def validate_montant(
-        cls, montant: float | Decimal, dotation_projet: DotationProjet
-    ) -> None:
-        if (
-            type(montant) not in [float, Decimal, int]
-            or montant < 0
-            or dotation_projet.assiette_or_cout_total is None
-            or montant > dotation_projet.assiette_or_cout_total
-        ):
-            raise ValueError(
-                f"Le montant {euro(montant)} doit être supérieur ou égal à 0 € et inférieur ou égal à l'assiette ({euro(dotation_projet.assiette_or_cout_total)})."
-            )
-
-    @classmethod
-    def validate_taux(cls, taux: float | Decimal) -> None:
-        if type(taux) not in [float, Decimal, int] or taux < 0 or taux > 100:
-            raise ValueError(f"Le taux {percent(taux)} doit être entre 0% and 100%")
-
-    @classmethod
-    def get_other_accepted_dotations(
-        cls, dotation_projet: DotationProjet
-    ) -> list[POSSIBLE_DOTATIONS]:
-        return [
-            dp.dotation
-            for dp in dotation_projet.other_dotations
-            if dp.status == PROJET_STATUS_ACCEPTED
-        ]
 
     # private
 
@@ -628,3 +585,40 @@ class DotationProjetService:
                 + 1,
             )
         return qs
+
+    @classmethod
+    def _should_dotations_be_updated_from_dn_construction_dossier(
+        cls, projet: Projet
+    ) -> bool:
+        if projet.dotations_updated_in_app:
+            # Once dotations have been updated in Turgot, we don't update dotations from DN
+            return False
+
+        if projet.dossier_ds.ds_state != Dossier.STATE_EN_CONSTRUCTION:
+            # Dotations can only be updated for in construction dossiers
+            return False
+
+        # get the elements that are in one set but not in the other
+        symetrical_difference = set(projet.dotations) ^ set(
+            projet.dossier_ds.dotations_demande
+        )
+        return bool(symetrical_difference)
+
+    @classmethod
+    def _remove_or_add_dotations_from_dossier_ds(cls, projet: Projet):
+        dotation_to_delete = set(projet.dotations) - set(
+            projet.dossier_ds.dotations_demande
+        )
+        projet.dotationprojet_set.filter(dotation__in=dotation_to_delete).delete()
+
+        # Refresh projet to get the latest dotations
+        projet.refresh_from_db()
+
+        dotations_to_add = set(projet.dossier_ds.dotations_demande) - set(
+            projet.dotations
+        )
+        for dotation in dotations_to_add:
+            cls._create_dotation_projet(projet, dotation)
+
+        # Idem here
+        projet.refresh_from_db()

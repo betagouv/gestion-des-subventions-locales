@@ -5,10 +5,9 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 
 """
 
+from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
-
-from gsl import settings
 
 admin.site.site_header = "Back-office Turgot - " + settings.ENV
 admin.site.index_title = "Back-office Turgot - " + settings.ENV
@@ -22,6 +21,7 @@ handler500 = "gsl_pages.views.custom_500_view"
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("", include("gsl_core.urls")),
     path("", include("gsl_oidc.urls")),
     path("", include("gsl_pages.urls")),
     path(

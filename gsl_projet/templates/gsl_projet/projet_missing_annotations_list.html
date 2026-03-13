@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load static gsl_filters dsfr_tags custom_pluralize %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static "css/projet_list.css" %}">
+{% endblock extra_css %}
+
+{% block content %}
+    <div class="fr-mb-4w">
+        <a href="{% url "projet:list" %}"
+           class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+            Retour à la liste des projets
+        </a>
+    </div>
+
+    <h1>
+        Projets avec annotations manquantes
+    </h1>
+
+    <p class="fr-mb-0">
+        Ces projets sont acceptés sur Démarche Numérique mais les annotations sont manquantes. Veuillez les renseigner sur DN.
+        <br>
+        Annotations possiblement manquantes :
+    </p>
+    <ul class="fr-mb-4w">
+        <li>
+            Aucune dotation n'est cochée
+        </li>
+        <li>
+            Une dotation est cochée mais l'assiette et/ou le montant associés sont manquants
+        </li>
+    </ul>
+    <p class="fr-mb-0 fr-mt-1w">
+        {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
+    </p>
+
+    <div class="fr-table fr-table--multiline fr-table--xs fr-table--no-caption">
+        <div class="fr-table__wrapper">
+            <div class="fr-table__container">
+                <div class="fr-table__content">
+                    <table>
+                        <caption>Liste des projets avec annotations manquantes</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">
+                                    Date de dépôt
+                                </th>
+                                <th scope="col">
+                                    Intitulé du projet
+                                </th>
+                                <th scope="col">
+                                    N° D.N.
+                                </th>
+                                <th scope="col">
+                                    Demandeur
+                                </th>
+                                <th scope="col">
+                                    Détails
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for projet in object_list %}
+                                <tr>
+                                    <td>
+                                        {{ projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}
+                                    </td>
+                                    <td>
+                                        <a class="fr-link"
+                                           href="{{ projet.get_absolute_url }}"
+                                           title="{{ projet.dossier_ds.projet_intitule }}">
+                                            {{ projet.dossier_ds.projet_intitule }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <a href="{{ projet.dossier_ds.url_on_ds }}/annotations-privees"
+                                           target="_blank"
+                                           rel="noreferrer noopener"
+                                           class="fr-link fr-link--icon-right fr-icon-external-link-line"
+                                           title="Modifier les annotations sur Démarche Numérique - nouvelle fenêtre">
+                                            {{ projet.dossier_ds.ds_number }}
+                                            <span class="fr-sr-only">(nouvelle fenêtre)</span>
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {{ projet.demandeur.name|format_demandeur_nom }}
+                                    </td>
+                                    <td>
+                                        {% for detail in projet.dossier_ds.missing_annotations_details %}
+                                            <span>{{ detail }}</span>
+                                            <br>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="5">
+                                        Aucun projet avec annotations manquantes.
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="fr-table__footer">
+            <div class="fr-table__footer--middle">
+                {% dsfr_pagination page_obj %}
+            </div>
+        </div>
+    </div>
+{% endblock content %}

@@ -101,7 +101,7 @@ class TestDoubleDotationDisplayOnDetrProgrammation:
         assert str(projet.dossier_ds.projet_intitule) in content
 
         # Check for other-dotation row indicating DSIL information
-        assert "other-dotation-row" in content
+        assert "gsl-projet-table__row--other-dotation" in content
         assert "Informations pour la dotation DSIL" in content
 
     def test_detr_programming_page_shows_dsil_amount(
@@ -132,7 +132,7 @@ class TestDoubleDotationDisplayOnDetrProgrammation:
 
         # DSIL amount should be displayed in other-dotation row
         # The actual format depends on template rendering
-        assert "other-dotation-row" in content
+        assert "gsl-projet-table__row--other-dotation" in content
         assert "3\xa0000" in content
 
     def test_single_dotation_projects_dont_show_other_row(
@@ -162,5 +162,5 @@ class TestDoubleDotationDisplayOnDetrProgrammation:
         assert str(projet.dossier_ds.projet_intitule) in content
 
         # Count other-dotation rows - there should be none for single-dotation projects
-        other_rows_count = content.count("other-dotation-row")
+        other_rows_count = content.count("gsl-projet-table__row--other-dotation")
         assert other_rows_count == 0

@@ -123,18 +123,6 @@ ul.no-list-style li {
     align-items: center;
 }
 
-/* Liste de projets */
-.gsl-projet-table thead {
-    background-image: linear-gradient(0, #6a6af4, #6a6af4);
-    background-size: 100% 2px;
-    background-repeat: no-repeat;
-    background-position: bottom center;
-    background-color: #e3e2fd;
-    text-transform: uppercase;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-}
 
 .gsl-projet-table thead th {
     padding: 1em .75em;
@@ -147,7 +135,13 @@ ul.no-list-style li {
     font-size: 0.75rem;
 }
 
-.max_180_width {
+.gsl-projet-table .fr-table__content thead th {
+    background-color: var(--background-alt-blue-france-hover);
+}
+
+/* Column widths scoped by table ID and column class */
+#table-projets .gsl-col--intitule,
+#table-programmation .gsl-col--intitule {
     max-width: 180px;
     width: 180px;
     min-width: 140px;
@@ -155,22 +149,27 @@ ul.no-list-style li {
     text-overflow: ellipsis;
 }
 
-.max_160_width {
-    max-width: 160px;
-    width: 160px;
+#table-simulation .gsl-col--intitule {
+    max-width: 180px;
+    width: 180px;
     min-width: 140px;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.max_80_width {
-    max-width: 100px;
-    width: 80px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+#table-simulation .gsl-col--cout-total,
+#table-simulation .gsl-col--assiette,
+#table-simulation .gsl-col--montant-sollicite,
+#table-simulation .gsl-col--montant-retenu {
+    width: 110px;
 }
 
-.max_120_width {
+#table-simulation .gsl-col--taux {
+    width: 80px;
+}
+
+#table-projets .gsl-col--statut,
+#table-programmation .gsl-col--documents {
     max-width: 140px;
     width: 120px;
     overflow: hidden;
@@ -183,9 +182,14 @@ ul.no-list-style li {
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
+}
 
-.gsl_projet_table__total {
+.gsl-projet-table {
+    margin-left: calc(-50vw + 52%);
+    margin-right: calc(-50vw + 52%);
+}
+
+.gsl-projet-table .gsl-projet-table__total {
     width: 100%;
     justify-content: center;
     color: var(--text-title-blue-france);
@@ -194,55 +198,209 @@ ul.no-list-style li {
     display: inline-flex;
 }
 
-.gsl-projet-table__total-cost {
+.gsl-projet-table .gsl-projet-table__total--total_cost {
     background-color: var(--background-alt-blue-france);
 }
 
-.gsl-projet-table__total-asked {
+.gsl-projet-table .gsl-projet-table__total--total_amount_asked {
     background-color: var(--artwork-background-green-tilleul-verveine);
 }
 
-.gsl-projet-table__total-granted {
+.gsl-projet-table .gsl-projet-table__total--total_amount_granted {
     background-color: var(--background-contrast-success);
 }
 
 
-.gsl-projet-table thead th:first-child {
+.gsl-projet-table .fr-table__content thead th:first-child {
     padding-left: 1.5em;
 }
 
-.gsl-projet-table,
-.gsl-projet-table table tbody td .fr-select,
-.gsl-projet-table table tbody td .fr-input {
+.gsl-projet-table .fr-table__content td,
+.gsl-projet-table .fr-table__content td .fr-select,
+.gsl-projet-table .fr-table__content td .fr-input,
+.gsl-projet-table .fr-table__content td .fr-link,
+.gsl-projet-table .fr-table__content td p  {
     font-size: .75rem; /* = 10px */
 }
 
-.gsl-projet-table table {
-    width: 100%;
-    border-collapse: collapse;
+.gsl-projet-table .fr-table__content td p {
+    line-height: 1.5;
 }
 
-.gsl-projet-table table tbody td {
-    border-bottom: 1px solid #929292;
+.gsl-projet-table .fr-table__content td {
     padding: .75em;
     line-height: 1.5;
 }
+
 
 .gsl-projet-table table tbody td:first-child {
     padding-left: 1.5em;
 }
 
-/* Nécessaire car on utilise pas la structure de
-div et de classes du DSFR, hors le sélecteur ne s'applique que dans .fr-table__content */
-.gsl-projet-table .fr-cell--center {
-  text-align: center;
-}
-
-
-.fr-table__footer {
+.gsl-projet-table .fr-table__footer {
     justify-content: center;
 }
 
+/*
+ * Z-index scale for sticky table columns:
+ *  2  – sticky body cells (default)
+ *  3  – sticky header cells (above body)
+ * 10  – checkbox header dropdown open
+ * 11  – DSFR frame border (above all sticky cells and dropdowns)
+ * 12  – status dropdown open (must be above frame border)
+ */
+
+/* Raise the DSFR frame border above all sticky cells and dropdowns */
+.gsl-projet-table[data-fr-js-table] .fr-table__wrapper::after {
+    z-index: 11;
+}
+
+/* Sticky columns */
+.gsl-projet-table__sticky-left-1,
+.gsl-projet-table__sticky-left-2,
+.gsl-projet-table__sticky-left-3,
+.gsl-projet-table__sticky-right,
+.gsl-projet-table__sticky-right-1,
+.gsl-projet-table__sticky-right-2 {
+    position: sticky;
+    z-index: 2;
+    background-color: var(--background-default-grey);
+}
+
+.gsl-projet-table thead .gsl-projet-table__sticky-left-1,
+.gsl-projet-table thead .gsl-projet-table__sticky-left-2,
+.gsl-projet-table thead .gsl-projet-table__sticky-left-3,
+.gsl-projet-table thead .gsl-projet-table__sticky-right,
+.gsl-projet-table thead .gsl-projet-table__sticky-right-1,
+.gsl-projet-table thead .gsl-projet-table__sticky-right-2 {
+    z-index: 3;
+    background-color: var(--background-alt-blue-france-hover);
+}
+
+.gsl-projet-table__row--other-dotation .gsl-projet-table__sticky-left-1,
+.gsl-projet-table__row--other-dotation .gsl-projet-table__sticky-left-2,
+.gsl-projet-table__row--other-dotation .gsl-projet-table__sticky-left-3,
+.gsl-projet-table__row--other-dotation .gsl-projet-table__sticky-right,
+.gsl-projet-table__row--other-dotation .gsl-projet-table__sticky-right-1,
+.gsl-projet-table__row--other-dotation .gsl-projet-table__sticky-right-2 {
+    background-color: var(--background-default-grey-hover);
+}
+
+.gsl-projet-table__sticky-left-1 {
+    left: 0;
+}
+
+/* Single sticky-right column (used by projets table) */
+.gsl-projet-table__sticky-right {
+    right: 0;
+    box-shadow: -2px 0 4px rgb(0 0 0 / 8%);
+}
+
+.gsl-projet-table .fr-table__content td.gsl-projet-table__sticky-right {
+    padding-right: 1.5em;
+}
+
+.gsl-projet-table__sticky-right:has([aria-expanded="true"]) {
+    z-index: 12;
+}
+
+/* Split sticky-right columns (used by programmation and simulation tables)
+ * Use custom properties so :has() rules can adjust offsets when columns hide. */
+.gsl-projet-table__sticky-right-2 {
+    right: 0;
+    min-width: var(--sticky-right-2-width);
+}
+
+.gsl-projet-table__sticky-right-1 {
+    right: var(--sticky-right-2-width);
+    box-shadow: -2px 0 4px rgb(0 0 0 / 8%);
+}
+
+.gsl-projet-table .fr-table__content td.gsl-projet-table__sticky-right-2 {
+    text-align: center;
+}
+
+.gsl-projet-table__sticky-right-1:has([aria-expanded="true"]) {
+    z-index: 12;
+}
+
+.gsl-projet-table .fr-table__container:has([aria-expanded="true"]) {
+    overflow: visible;
+}
+
+/* Custom properties for sticky offsets – adjusted by :has() rules when columns hide */
+#projet-table-wrapper,
+#simulation-table-wrapper {
+    --sticky-left-1-width: 100px;
+    --sticky-right-2-width: 120px;
+}
+
+#programmation-table-wrapper {
+    --sticky-left-1-width: 60px;
+    --sticky-right-2-width: 120px;
+}
+
+/* Left offsets for tables with Date as first column (projets, simulation) */
+#table-projets .gsl-projet-table__sticky-left-1,
+#table-simulation .gsl-projet-table__sticky-left-1 {
+    min-width: var(--sticky-left-1-width);
+}
+
+#table-projets .gsl-projet-table__sticky-left-2,
+#table-simulation .gsl-projet-table__sticky-left-2 {
+    left: var(--sticky-left-1-width);
+    min-width: 180px;
+}
+
+#table-projets .gsl-projet-table__sticky-left-3,
+#table-simulation .gsl-projet-table__sticky-left-3 {
+    left: calc(var(--sticky-left-1-width) + 180px);
+    box-shadow: 2px 0 4px rgb(0 0 0 / 8%);
+}
+
+/* Left offsets for programmation table (checkbox as first column) */
+#table-programmation .gsl-projet-table__sticky-left-1 {
+    min-width: var(--sticky-left-1-width);
+}
+
+#table-programmation .gsl-projet-table__sticky-left-2 {
+    left: var(--sticky-left-1-width);
+    min-width: 180px;
+}
+
+#table-programmation .gsl-projet-table__sticky-left-3 {
+    left: calc(var(--sticky-left-1-width) + 180px);
+    box-shadow: 2px 0 4px rgb(0 0 0 / 8%);
+}
+
+/* :has() rules to adjust sticky offsets when columns are hidden */
+
+/* When date_depot (LEFT_1) is hidden: collapse LEFT_1 width */
+#projet-table-wrapper:has(#toggle-col-date-depot:not(:checked)),
+#simulation-table-wrapper:has(#toggle-col-date-depot:not(:checked)) {
+    --sticky-left-1-width: 0px;
+}
+
+/* When notification (RIGHT_2) is hidden: collapse RIGHT_2 width */
+#projet-table-wrapper:has(#toggle-col-notification:not(:checked)),
+#programmation-table-wrapper:has(#toggle-col-notification:not(:checked)),
+#simulation-table-wrapper:has(#toggle-col-notification:not(:checked)) {
+    --sticky-right-2-width: 0px;
+}
+
+/* Shadow transfer: when numero_dn (LEFT_3) is hidden, LEFT_2 gets the left shadow */
+#projet-table-wrapper:has(#toggle-col-numero-dn:not(:checked)) .gsl-projet-table__sticky-left-2,
+#programmation-table-wrapper:has(#toggle-col-numero-dn:not(:checked)) .gsl-projet-table__sticky-left-2,
+#simulation-table-wrapper:has(#toggle-col-numero-dn:not(:checked)) .gsl-projet-table__sticky-left-2 {
+    box-shadow: 2px 0 4px rgb(0 0 0 / 8%);
+}
+
+/* Shadow transfer: when statut (RIGHT_1) is hidden, RIGHT_2 gets the right shadow */
+#projet-table-wrapper:has(#toggle-col-statut:not(:checked)) .gsl-projet-table__sticky-right-2,
+#programmation-table-wrapper:has(#toggle-col-statut:not(:checked)) .gsl-projet-table__sticky-right-2,
+#simulation-table-wrapper:has(#toggle-col-statut:not(:checked)) .gsl-projet-table__sticky-right-2 {
+    box-shadow: -2px 0 4px rgb(0 0 0 / 8%);
+}
 
 .gsl-tooltip {
     padding-top: 0;
@@ -366,9 +524,9 @@ div et de classes du DSFR, hors le sélecteur ne s'applique que dans .fr-table__
 .gsl-dropdown-content {
   display: none;
   position: absolute;
-  background-color: white;
+  background-color: var(--background-default-grey);
   min-width: 260px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 20%);
+  box-shadow: var(--shadow-default-grey);
   padding: 10px;
   z-index: 1000;
   gap: 1rem;
@@ -388,32 +546,14 @@ div et de classes du DSFR, hors le sélecteur ne s'applique que dans .fr-table__
 .new-gsl-dropdown-content {
   display: grid;
   position: absolute;
-  background-color: white;
+  background-color: var(--background-default-grey);
   min-width: 260px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 20%);
+  box-shadow: var(--shadow-default-grey);
   padding: 10px;
   z-index: 1000;
   gap: 1rem;
   max-height: 80vh;
   overflow-y: auto;
-}
-
-.projet-notification-status {
-  margin-top: 4px;
-  display: flex;
-  gap: 6px;
-  text-transform: uppercase;
-  font-weight: 700;
-  font-style: italic;
-  align-items: center;
-}
-
-.projet__to_notify {
-  color: var(--text-default-error);
-}
-
-.projet__notified {
-  color: var(--blue-france-sun-113-625);
 }
 
 /* modal */
@@ -422,19 +562,6 @@ div et de classes du DSFR, hors le sélecteur ne s'applique que dans .fr-table__
   display: flex;
   justify-content: flex-end;
   gap: 1em;
-}
-
-/* programmation */
-.tab-submenu ul {
-    display: flex;
-}
-
-.tab-submenu ul li + li {
-    margin-left: 2em;
-}
-
-.tab-submenu .active-link {
-    color: var(--text-title-blue-france);
 }
 
 /* ce serait peut-être mieux de garder le souligné sur ces liens: */
@@ -483,5 +610,47 @@ div et de classes du DSFR, hors le sélecteur ne s'applique que dans .fr-table__
 .fr-icon-loader::before,
 .fr-icon-loader::after {
   mask-image: url("../img/refresh-line.svg") !important;
+}
+
+/* Table toolbar (row count + column visibility button) */
+
+.gsl-table-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Column visibility dropdown */
+
+.gsl-column-visibility-dropdown {
+    margin-bottom: 0;
+}
+
+.gsl-column-visibility-dropdown .gsl-column-visibility-list {
+    display: none;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    padding: 0;
+}
+
+.gsl-column-visibility-list .fr-checkbox-group {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.gsl-column-visibility-list .fr-checkbox-group:first-of-type {
+    padding-top: 10px;
+}
+
+.gsl-column-visibility-list form {
+    display: contents;
+}
+
+.gsl-column-visibility-dropdown .gsl-column-visibility-reset {
+    grid-column: 1 / -1;
+    width: 100%;
+    text-align: left;
+    border-top: 1px solid var(--border-default-grey);
+    padding: 0.75rem 10px 10px;
+    margin-top: 0.25rem;
 }
 

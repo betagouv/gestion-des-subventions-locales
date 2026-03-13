@@ -1,0 +1,8 @@
+{% if projet.to_notify %}
+    <a href="{% url 'gsl_notification:documents' projet.id %}"
+       class="fr-link fr-link--icon-right fr-icon-mail-line">À notifier</a>
+{% elif projet.notified_at %}
+    <p class="fr-badge fr-badge--sm fr-badge--success fr-badge--no-icon">
+        Notifié
+    </p>
+{% endif %}

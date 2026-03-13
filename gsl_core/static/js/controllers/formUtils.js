@@ -3,12 +3,13 @@ import { Controller } from 'stimulus'
 export class FormUtils extends Controller {
   static targets = ['form', 'container']
 
-  disableButton (evt) {
+  submitFormAndDisableButton (evt) {
     const btn = evt.target
     btn.classList.add('fr-icon-loader')
     btn.classList.add('fr-icon-spin')
     btn.setAttribute('disabled', '1')
     btn.setAttribute('data-action', 'form-utils#enableButton')
+    if (this.formTarget) this.formTarget.submit()
   }
 
   disableButtons () {
@@ -23,6 +24,6 @@ export class FormUtils extends Controller {
     const btn = evt.target
     btn.classList.remove('fr-icon-loader', 'fr-icon-spin')
     btn.removeAttribute('disabled')
-    btn.setAttribute('data-action', 'form-utils#disableButton')
+    btn.setAttribute('data-action', 'form-utils#submitFormAndDisableButton')
   }
 }
