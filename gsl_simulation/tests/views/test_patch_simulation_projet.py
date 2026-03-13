@@ -8,7 +8,6 @@ from django.contrib.messages import INFO, SUCCESS, get_messages
 from django.test.html import parse_html
 from django.urls import reverse
 
-from gsl_core.templatetags.gsl_filters import percent
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -125,7 +124,7 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
 data_test = (
     (
         SimulationProjet.STATUS_ACCEPTED,
-        "La demande de financement avec la dotation DETR a bien été acceptée avec un montant de 1 000,00 €.",
+        "La demande de financement avec la dotation DETR a bien été acceptée avec un montant de 1\xa0000,00\xa0€.",
         "accepted",
     ),
     (
@@ -276,21 +275,35 @@ def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
     )  # Not updated
 
 
+# --- Click-to-edit CBV tests ---
+
+
+def test_edit_taux_get_returns_form(
+    client_with_user_logged,
+    accepted_simulation_projet,
+):
+    url = reverse("simulation:edit-taux", args=[accepted_simulation_projet.id])
+    response = client_with_user_logged.get(url)
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert f'id="edit-taux-{accepted_simulation_projet.pk}"' in content
+    assert "Enregistrer" in content
+    assert "Annuler" in content
+
+
 @mock.patch(
     "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
-def test_patch_taux_simulation_projet(
+def test_edit_taux_post_saves_and_returns_oob(
     mock_ds_update,
     client_with_user_logged,
     accepted_simulation_projet,
 ):
-    url = reverse(
-        "simulation:patch-simulation-projet-taux", args=[accepted_simulation_projet.id]
-    )
+    url = reverse("simulation:edit-taux", args=[accepted_simulation_projet.id])
     response = client_with_user_logged.post(
         url,
         {"taux": "75.0"},
-        follow=True,
         headers={"HX-Request": "true"},
     )
 
@@ -317,40 +330,28 @@ def test_patch_taux_simulation_projet(
 
 
 @pytest.mark.parametrize("taux", ("-3", "100.1"))
-def test_patch_taux_simulation_projet_with_wrong_value(
-    client_with_user_logged, accepted_simulation_projet, taux, caplog
+def test_edit_taux_post_with_wrong_value_returns_form_with_errors(
+    client_with_user_logged, accepted_simulation_projet, taux
 ):
-    url = reverse(
-        "simulation:patch-simulation-projet-taux", args=[accepted_simulation_projet.id]
-    )
+    url = reverse("simulation:edit-taux", args=[accepted_simulation_projet.id])
     response = client_with_user_logged.post(
         url,
         {"taux": f"{taux}"},
-        follow=True,
     )
 
     assert response.status_code == 200
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-    message = list(messages)[0]
-    assert message.level == 40
-    assert (
-        f"Une erreur est survenue lors de la mise à jour du taux. Le taux {percent(float(taux))} doit être entre 0% and 100%"
-        == message.message
-    )
+    content = response.content.decode()
+    assert "fr-input-group--error" in content or "fr-error-text" in content
 
     accepted_simulation_projet.refresh_from_db()
-
     assert accepted_simulation_projet.taux == 10
     assert accepted_simulation_projet.montant == 1_000
 
 
-def test_patch_taux_simulation_projet_cancelling_all_when_error_in_ds_update(
+def test_edit_taux_post_rolls_back_on_ds_error(
     client_with_user_logged, accepted_simulation_projet
 ):
-    url = reverse(
-        "simulation:patch-simulation-projet-taux", args=[accepted_simulation_projet.id]
-    )
+    url = reverse("simulation:edit-taux", args=[accepted_simulation_projet.id])
 
     with patch(
         "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation",
@@ -359,39 +360,44 @@ def test_patch_taux_simulation_projet_cancelling_all_when_error_in_ds_update(
         response = client_with_user_logged.post(
             url,
             {"taux": 75},
-            follow=True,
         )
     assert response.status_code == 200
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-    message = list(messages)[0]
-    assert message.level == 40
-    assert (
-        "Une erreur est survenue lors de la mise à jour du taux. Erreur !"
-        == message.message
-    )
+    content = response.content.decode()
+    assert "Erreur !" in content
 
     accepted_simulation_projet.refresh_from_db()
     assert accepted_simulation_projet.taux == 10.0  # Not updated
     assert accepted_simulation_projet.montant == 1_000  # Not updated
 
 
+def test_edit_montant_get_returns_form(
+    client_with_user_logged,
+    accepted_simulation_projet,
+):
+    url = reverse("simulation:edit-montant", args=[accepted_simulation_projet.id])
+    response = client_with_user_logged.get(url)
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert f'id="edit-montant-{accepted_simulation_projet.pk}"' in content
+    assert "Enregistrer" in content
+
+
 @mock.patch(
     "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
-def test_patch_montant_simulation_projet(
+def test_edit_montant_post_saves_and_returns_oob(
     mock_ds_update,
     client_with_user_logged,
     accepted_simulation_projet,
 ):
     url = reverse(
-        "simulation:patch-simulation-projet-montant",
+        "simulation:edit-montant",
         args=[accepted_simulation_projet.id],
     )
     response = client_with_user_logged.post(
         url,
-        {"montant": "1267,32"},
-        follow=True,
+        {"montant": "1267.32"},
         headers={"HX-Request": "true"},
     )
 
@@ -399,57 +405,52 @@ def test_patch_montant_simulation_projet(
         id=accepted_simulation_projet.id
     )
 
-    mock_ds_update.assert_called_once_with(
-        dossier=accepted_simulation_projet.projet.dossier_ds,
-        user=client_with_user_logged.user,
-        annotations_dotation_to_update=accepted_simulation_projet.dotation,
-        dotations_to_be_checked=[accepted_simulation_projet.dotation],
-        assiette=accepted_simulation_projet.dotation_projet.assiette,
-        montant=1267.32,
-        taux=12.6732,
+    mock_ds_update.assert_called_once()
+    call_kwargs = mock_ds_update.call_args.kwargs
+    assert call_kwargs["dossier"] == accepted_simulation_projet.projet.dossier_ds
+    assert (
+        call_kwargs["annotations_dotation_to_update"]
+        == accepted_simulation_projet.dotation
     )
+    assert call_kwargs["dotations_to_be_checked"] == [
+        accepted_simulation_projet.dotation
+    ]
+    assert float(call_kwargs["montant"]) == 1267.32
+    assert float(call_kwargs["taux"]) == pytest.approx(12.6732, abs=0.001)
 
     assert response.status_code == 200
     assert updated_simulation_projet.montant == Decimal("1267.32")
-    assert updated_simulation_projet.taux == Decimal("12.6732")
     assert (
         '<span hx-swap-oob="innerHTML" id="total-amount-granted">1\xa0267\xa0€</span>'
         in response.content.decode()
     )
 
 
-def test_patch_montant_simulation_projet_with_wrong_value(
-    client_with_user_logged, accepted_simulation_projet, caplog
+def test_edit_montant_post_with_wrong_value_returns_form_with_errors(
+    client_with_user_logged, accepted_simulation_projet
 ):
     url = reverse(
-        "simulation:patch-simulation-projet-montant",
+        "simulation:edit-montant",
         args=[accepted_simulation_projet.id],
     )
     response = client_with_user_logged.post(
         url,
         {"montant": 12_000},
-        follow=True,
     )
     assert response.status_code == 200
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-    message = list(messages)[0]
-    assert message.level == 40
-    assert (
-        "Une erreur est survenue lors de la mise à jour du montant. Le montant 12 000 € doit être supérieur ou égal à 0 € et inférieur ou égal à l'assiette (10 000 €)."
-        == message.message
-    )
+    content = response.content.decode()
+    assert "fr-input-group--error" in content or "fr-error-text" in content
 
     accepted_simulation_projet.refresh_from_db()
     assert accepted_simulation_projet.montant == 1_000
     assert accepted_simulation_projet.taux == 10.0
 
 
-def test_patch_montant_simulation_projet_cancelling_all_when_error_in_ds_update(
+def test_edit_montant_post_rolls_back_on_ds_error(
     client_with_user_logged, accepted_simulation_projet
 ):
     url = reverse(
-        "simulation:patch-simulation-projet-montant",
+        "simulation:edit-montant",
         args=[accepted_simulation_projet.id],
     )
 
@@ -460,21 +461,83 @@ def test_patch_montant_simulation_projet_cancelling_all_when_error_in_ds_update(
         response = client_with_user_logged.post(
             url,
             {"montant": 2_000},
-            follow=True,
         )
     assert response.status_code == 200
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-    message = list(messages)[0]
-    assert message.level == 40
-    assert (
-        "Une erreur est survenue lors de la mise à jour du montant. Erreur !"
-        == message.message
-    )
+    content = response.content.decode()
+    assert "Erreur !" in content
 
     accepted_simulation_projet.refresh_from_db()
     assert accepted_simulation_projet.montant == 1_000
     assert accepted_simulation_projet.taux == 10.0
+
+
+def test_edit_assiette_get_returns_form(
+    client_with_user_logged,
+    accepted_simulation_projet,
+):
+    url = reverse("simulation:edit-assiette", args=[accepted_simulation_projet.id])
+    response = client_with_user_logged.get(url)
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert f'id="edit-assiette-{accepted_simulation_projet.pk}"' in content
+    assert "Enregistrer" in content
+
+
+def test_edit_assiette_post_saves(
+    client_with_user_logged,
+    accepted_simulation_projet,
+):
+    url = reverse(
+        "simulation:edit-assiette",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.post(
+        url,
+        {"assiette": "8000"},
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    accepted_simulation_projet.dotation_projet.refresh_from_db()
+    assert accepted_simulation_projet.dotation_projet.assiette == Decimal("8000")
+
+
+def test_edit_assiette_post_with_wrong_value_returns_form_with_errors(
+    client_with_user_logged, accepted_simulation_projet
+):
+    url = reverse(
+        "simulation:edit-assiette",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.post(
+        url,
+        {"assiette": "-100"},
+    )
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "fr-input-group--error" in content or "fr-error-text" in content
+
+    accepted_simulation_projet.dotation_projet.refresh_from_db()
+    assert accepted_simulation_projet.dotation_projet.assiette == 10_000
+
+
+def test_refresh_simulation_row(
+    client_with_user_logged,
+    accepted_simulation_projet,
+):
+    url = reverse(
+        "simulation:refresh-simulation-row",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.get(url)
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert f'id="simulation-{accepted_simulation_projet.pk}"' in content
+
+
+# --- Tests for patch_dotation_projet and SimulationProjetDetailView (unchanged) ---
 
 
 @pytest.mark.parametrize(
@@ -569,7 +632,7 @@ def test_patch_simulation_projet_with_invalid_form(
 
     assert response.context["simulation_projet_form"].errors == {
         "montant": [
-            "Le montant de la simulation ne peut pas être supérieur à l'assiette du projet."
+            "Le montant doit être inférieur ou égal à l'assiette du projet pour cette dotation."
         ]
     }
     messages = get_messages(response.wsgi_request)

@@ -22,7 +22,6 @@ from gsl_projet.models import (
     DotationProjet,
     Projet,
 )
-from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.utils.utils import compute_taux
 from gsl_simulation.models import Simulation, SimulationProjet
 from gsl_simulation.services.simulation_projet_service import SimulationProjetService
@@ -188,13 +187,15 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
 
         else:
             if "taux" in self.changed_data:
-                computed_montant = DotationProjetService.compute_montant_from_taux(
-                    simulation_projet.dotation_projet, cleaned_data.get("taux")
+                computed_montant = (
+                    simulation_projet.dotation_projet.compute_montant_from_taux(
+                        cleaned_data.get("taux")
+                    )
                 )
                 cleaned_data["montant"] = computed_montant
 
         dotation_projet.assiette = cleaned_data.get("assiette")
-        dotation_projet.clean()
+        dotation_projet.full_clean(exclude=["detr_avis_commission", "detr_categories"])
 
         return cleaned_data
 
@@ -325,6 +326,95 @@ class DismissProjetForm(SimulationProjetStatusForm):
     class Meta(SimulationProjetStatusForm.Meta):
         model = SimulationProjet
         fields = ("justification",)
+
+
+class AssietteSingleFieldForm(forms.ModelForm):
+    def __init__(self, *args, simulation_projet, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.simulation_projet = simulation_projet
+        self.user = user
+
+    @transaction.atomic
+    def save(self, commit=True):
+        super().save(commit=commit)
+
+        if self.instance.status == PROJET_STATUS_ACCEPTED:
+            self.instance.accept(
+                montant=self.simulation_projet.montant,
+                enveloppe=self.simulation_projet.enveloppe,
+                user=self.user,
+            )
+            self.instance.save()
+
+    class Meta:
+        model = DotationProjet
+        fields = ["assiette"]
+        localized_fields = ["assiette"]
+
+
+class MontantSingleFieldForm(forms.ModelForm):
+    def __init__(self, *args, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+    @transaction.atomic
+    def save(self, commit=True):
+        super().save(commit=commit)
+
+        if self.instance.status == SimulationProjet.STATUS_ACCEPTED:
+            self.instance.dotation_projet.accept(
+                montant=self.instance.montant,
+                enveloppe=self.instance.enveloppe,
+                user=self.user,
+            )
+            self.instance.dotation_projet.save()
+
+    class Meta:
+        model = SimulationProjet
+        fields = ["montant"]
+        localized_fields = ["montant"]
+
+
+class TauxSingleFieldForm(forms.ModelForm):
+    taux = forms.DecimalField(
+        max_digits=6,
+        decimal_places=3,
+        min_value=0,
+        max_value=100,
+        localize=True,
+    )
+
+    def __init__(self, *args, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        if not self.is_bound:
+            taux = self.instance.taux
+            if taux is not None:
+                taux = round(taux, 3)
+            self.fields["taux"].initial = taux
+
+    @transaction.atomic
+    def save(self, commit=True):
+        simulation_projet = self.instance
+        new_montant = simulation_projet.dotation_projet.compute_montant_from_taux(
+            self.cleaned_data["taux"]
+        )
+        simulation_projet.montant = new_montant
+        simulation_projet.save()
+
+        if simulation_projet.status == SimulationProjet.STATUS_ACCEPTED:
+            dotation_projet = simulation_projet.dotation_projet
+            dotation_projet.accept(
+                montant=simulation_projet.montant,
+                enveloppe=simulation_projet.enveloppe,
+                user=self.user,
+            )
+            dotation_projet.save()
+            simulation_projet.refresh_from_db()
+
+    class Meta:
+        model = SimulationProjet
+        fields = []
 
 
 class SimulationColumnsVisibilityForm(forms.ModelForm):

@@ -213,7 +213,7 @@ def test_assiette_cant_be_higher_than_cout_total(simulation_projet):
     assert not form.is_valid()
     assert list(form.errors.keys()) == ["assiette"]
     assert form.errors["assiette"] == [
-        "L'assiette ne doit pas être supérieure au coût total du projet."
+        "L'assiette doit être inférieure ou égale au coût total du projet."
     ]
 
 
@@ -223,7 +223,7 @@ def test_montant_cant_be_higher_than_assiette(simulation_projet):
     assert not form.is_valid()
     assert list(form.errors.keys()) == ["montant"]
     assert (
-        "Le montant de la simulation ne peut pas être supérieur à l'assiette du projet"
+        "Le montant doit être inférieur ou égal à l'assiette du projet"
         in form.errors["montant"][0]
     )
 

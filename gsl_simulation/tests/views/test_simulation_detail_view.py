@@ -258,8 +258,8 @@ class TestNotifiedProjectDisplayOnSimulationTable:
 
         assert response.status_code == 200
         content = response.content.decode()
-        # Should NOT have the montant input form for this simulation projet
-        assert f'id="id-montant-{simu.id}"' not in content
+        # Should NOT have the montant edit button for notified projects
+        assert f"edit-montant/{simu.id}/" not in content
         # Should show formatted amount
         assert "5\xa0000" in content
         # Should NOT have the dotation dropdown form for notified projects
@@ -290,8 +290,8 @@ class TestNotifiedProjectDisplayOnSimulationTable:
         content = response.content.decode()
         # Should have the dotation dropdown form
         assert "simulation-projet-dotation-form" in content
-        # Should have the montant input form
-        assert f'id="id-montant-{simu.id}"' in content
+        # Should have the montant edit button
+        assert f"edit-montant/{simu.id}/" in content
 
 
 class TestExportColumnsVisibility:

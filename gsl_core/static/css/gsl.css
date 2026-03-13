@@ -161,17 +161,11 @@ ul.no-list-style li {
 #table-simulation .gsl-col--assiette,
 #table-simulation .gsl-col--montant-sollicite,
 #table-simulation .gsl-col--montant-retenu {
-    max-width: 120px;
     width: 110px;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 #table-simulation .gsl-col--taux {
-    max-width: 90px;
     width: 80px;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 #table-projets .gsl-col--statut,

@@ -74,9 +74,9 @@ class SimulationListView(ListView):
 
 
 class SimulationProjetListViewFilters(BaseProjetFilters):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, slug=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.slug = self.request.resolver_match.kwargs.get("slug")
+        self.slug = slug or self.request.resolver_match.kwargs.get("slug")
         simulation = Simulation.objects.select_related(
             "enveloppe",
             "enveloppe__perimetre",
@@ -234,7 +234,6 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                 "total_amount_asked": ProjetService.get_total_amount_asked(qs),
                 "total_amount_granted": simulation.get_total_amount_granted(qs),
                 "available_states": SimulationProjet.STATUS_CHOICES,
-                "filter_params": self.request.GET.urlencode(),
                 "enveloppe": simulation.enveloppe,
                 "dotations": DOTATIONS,
                 "columns": SIMULATION_TABLE_COLUMNS,

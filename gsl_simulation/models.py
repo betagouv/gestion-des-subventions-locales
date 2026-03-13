@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Count, QuerySet, Sum
 from django.forms import ValidationError
@@ -159,7 +160,10 @@ class SimulationProjet(BaseModel):
     )
 
     montant = models.DecimalField(
-        decimal_places=2, max_digits=14, verbose_name="Montant"
+        decimal_places=2,
+        max_digits=14,
+        validators=[MinValueValidator(0)],
+        verbose_name="Montant",
     )
     status = models.CharField(
         verbose_name="État", choices=STATUS_CHOICES, default=STATUS_PROCESSING
@@ -221,7 +225,7 @@ class SimulationProjet(BaseModel):
         if self.dotation_projet.assiette is not None:
             if self.montant and self.montant > self.dotation_projet.assiette:
                 errors["montant"] = (
-                    "Le montant de la simulation ne peut pas être supérieur à l'assiette du projet."
+                    "Le montant doit être inférieur ou égal à l'assiette du projet pour cette dotation."
                 )
         else:
             if (
@@ -230,7 +234,7 @@ class SimulationProjet(BaseModel):
                 and self.montant > self.projet.dossier_ds.finance_cout_total
             ):
                 errors["montant"] = (
-                    "Le montant de la simulation ne peut pas être supérieur au coût total du projet."
+                    "Le montant doit être inférieur ou égal au coût total du projet."
                 )
 
     def _validate_dotation(self, errors):
