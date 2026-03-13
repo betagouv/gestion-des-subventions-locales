@@ -50,8 +50,8 @@ def test_save_demarche_dossiers_from_ds_calls_save_dossier_data_and_refresh_doss
     ]
 
     with patch(
-        "gsl_demarches_simplifiees.ds_client.DsClient.get_demarche_dossiers",
-        return_value=ds_dossiers,
+        "gsl_demarches_simplifiees.ds_client.DsClient.iter_demarche_dossiers_pages",
+        return_value=[(ds_dossiers, None)],
     ):
         with patch(
             "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
@@ -99,8 +99,8 @@ def test_save_demarche_dossiers_from_ds_update_raw_ds_data_dossiers():
     ]
 
     with patch(
-        "gsl_demarches_simplifiees.ds_client.DsClient.get_demarche_dossiers",
-        return_value=ds_dossiers,
+        "gsl_demarches_simplifiees.ds_client.DsClient.iter_demarche_dossiers_pages",
+        return_value=[(ds_dossiers, None)],
     ):
         with patch(
             "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
@@ -148,8 +148,8 @@ def test_save_demarche_dossiers_from_ds_with_one_empty_data(caplog):
     ]
 
     with patch(
-        "gsl_demarches_simplifiees.ds_client.DsClient.get_demarche_dossiers",
-        return_value=ds_dossiers,
+        "gsl_demarches_simplifiees.ds_client.DsClient.iter_demarche_dossiers_pages",
+        return_value=[(ds_dossiers, None)],
     ):
         with patch(
             "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
@@ -162,19 +162,19 @@ def test_save_demarche_dossiers_from_ds_with_one_empty_data(caplog):
 
 
 @pytest.mark.django_db
-def test_save_demarche_dossiers_from_ds_update_updated_since():
+def test_save_demarche_dossiers_from_ds_update_sync_cursor():
     demarche_number = 123
-    demarche = DemarcheFactory(ds_number=demarche_number, updated_since=None)
+    demarche = DemarcheFactory(ds_number=demarche_number, sync_cursor="")
+    expected_cursor = "abc123cursor=="
 
     with patch(
-        "gsl_demarches_simplifiees.ds_client.DsClient.get_demarche_dossiers",
-        return_value=[],
+        "gsl_demarches_simplifiees.ds_client.DsClient.iter_demarche_dossiers_pages",
+        return_value=[([], expected_cursor)],
     ):
         save_demarche_dossiers_from_ds(demarche_number)
 
     demarche.refresh_from_db()
-    assert demarche.updated_since is not None
-    assert demarche.updated_since > demarche.created_at
+    assert demarche.sync_cursor == expected_cursor
 
 
 def test_save_one_dossier_from_ds_error_with_invalid_ds_response():
