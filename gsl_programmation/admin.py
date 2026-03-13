@@ -117,7 +117,7 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "enveloppe__annee",
         "enveloppe__perimetre__region__name",
         "enveloppe__perimetre__departement__name",
-        "dotation_projet__projet__dossier_ds__ds_demarche_number",
+        "dotation_projet__projet__dossier_ds__ds_demarche__ds_number",
     )
 
     def notified_at_custom(self, obj):

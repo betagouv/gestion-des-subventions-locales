@@ -3,7 +3,7 @@
     <span aria-hidden="true">💰</span> Assiette subventionnable : {{ dotation_projet.assiette|euro }}
 </li>
 <li>
-    <span aria-hidden="true">🧾</span> Taux de subvention sollicité : {{ dotation_projet.taux_de_subvention_sollicite|percent|default:"—" }}
+    <span aria-hidden="true">🧾</span> Taux de subvention sollicité : {{ dotation_projet.taux_de_subvention_sollicite|percent:2|default:"—" }}
     <button class="fr-btn--tooltip fr-btn fr-m-0 fr-pv-0-5v gsl-tooltip"
             type="button"
             aria-describedby="tooltip-taux-{{ dotation_projet.dotation }}">

@@ -203,7 +203,11 @@ class ProjetQuerySet(models.QuerySet):
             programmation_count=Count(
                 "dotationprojet__programmation_projet",
             ),
-        ).filter(dotations_count=F("programmation_count"), notified_at__isnull=True)
+        ).filter(
+            dotations_count__gt=0,
+            dotations_count=F("programmation_count"),
+            notified_at__isnull=True,
+        )
 
     def can_send_notification(self):
         return self.to_notify().exclude(
@@ -229,6 +233,30 @@ class ProjetQuerySet(models.QuerySet):
                 ProgrammationProjet.objects.filter(
                     dotation_projet__projet=OuterRef("pk"),
                     status=PROJET_STATUS_ACCEPTED,
+                )
+            )
+        )
+
+    def with_missing_annotations(self):
+        """Projets dont le dossier DS est accepté mais a des annotations DETR/DSIL incomplètes."""
+        return self.filter(
+            dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
+        ).filter(
+            Q(dossier_ds__annotations_dotation="")
+            | Q(dossier_ds__annotations_dotation="[]")
+            | Q(dossier_ds__annotations_dotation__isnull=True)
+            | (
+                Q(dossier_ds__annotations_dotation__contains="DETR")
+                & (
+                    Q(dossier_ds__annotations_assiette_detr__isnull=True)
+                    | Q(dossier_ds__annotations_montant_accorde_detr__isnull=True)
+                )
+            )
+            | (
+                Q(dossier_ds__annotations_dotation__contains="DSIL")
+                & (
+                    Q(dossier_ds__annotations_assiette_dsil__isnull=True)
+                    | Q(dossier_ds__annotations_montant_accorde_dsil__isnull=True)
                 )
             )
         )
@@ -298,7 +326,15 @@ class Projet(BaseModel):
         default=False,
     )
     contrat_local = models.CharField("Nom du contrat local", blank=True)
-    free_comment = models.TextField("Commentaires libres", blank=True, default="")
+    comment_1 = models.TextField("Commentaire 1", blank=True, default="")
+    comment_2 = models.TextField("Commentaire 2", blank=True, default="")
+    comment_3 = models.TextField("Commentaire 3", blank=True, default="")
+
+    dotations_updated_in_app = models.BooleanField(
+        "Dotations modifiées dans Turgot",
+        null=False,
+        default=False,
+    )
 
     objects = ProjetManager()
 
@@ -364,12 +400,15 @@ class Projet(BaseModel):
 
         Does not check if the programmation has been accepted or refused ! This is not necessary.
         """
+        dotations = self.dotationprojet_set.all()
+        if not dotations:
+            return False
         return all(
             (
                 hasattr(d, "programmation_projet")
                 and d.programmation_projet.notified_at is None
             )
-            for d in self.dotationprojet_set.all()
+            for d in dotations
         )
 
     @property

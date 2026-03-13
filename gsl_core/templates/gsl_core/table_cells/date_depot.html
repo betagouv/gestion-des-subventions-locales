@@ -1,0 +1,4 @@
+{{ projet.dossier_ds.ds_date_depot|date:"d/m/Y" }}
+{% if projet.dossier_ds.demande_numero_demande_precedente %}
+    <span class="fr-tag fr-tag--sm fr-tag--icon-left fr-icon-arrow-turn-back-line fr-mt-0-5v">Reporté</span>
+{% endif %}

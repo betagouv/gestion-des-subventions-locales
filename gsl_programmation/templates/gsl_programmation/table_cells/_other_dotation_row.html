@@ -1,0 +1,13 @@
+{% load gsl_filters %}
+
+{% for other_dotation in programmation_projet.dotation_projet.other_dotations %}
+    <tr class="gsl-projet-table__row--other-dotation">
+        <td class="gsl-projet-table__sticky-left-1">
+        </td>
+        {% for column in columns %}
+            <td class="{{ column.td_classes }}">
+                {% include "gsl_core/table_cells/_other_dotation_cell.html" %}
+            </td>
+        {% endfor %}
+    </tr>
+{% endfor %}

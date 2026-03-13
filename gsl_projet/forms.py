@@ -7,6 +7,7 @@ from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
 from gsl_core.models import Collegue
+from gsl_demarches_simplifiees.models import CategorieDetr
 from gsl_demarches_simplifiees.services import DsService
 from gsl_projet.constants import (
     DOTATION_CHOICES,
@@ -14,7 +15,7 @@ from gsl_projet.constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_PROCESSING,
 )
-from gsl_projet.models import CategorieDetr, DotationProjet, Projet, ProjetNote
+from gsl_projet.models import DotationProjet, Projet, ProjetNote
 
 logger = getLogger(__name__)
 
@@ -23,43 +24,43 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     is_budget_vert = forms.BooleanField(
         label="Projet concourant à la transition écologique au sens budget vert",
         required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
     )
 
     is_in_qpv = forms.BooleanField(
         label="Projet situé en QPV",
         required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
     )
 
     is_attached_to_a_crte = forms.BooleanField(
         label="Projet rattaché à un CRTE",
         required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
     )
 
     is_frr = forms.BooleanField(
         label="Projet situé en FRR",
         required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
     )
 
     is_acv = forms.BooleanField(
         label="Projet rattaché à un programme Action coeurs de Ville (ACV)",
         required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
     )
 
     is_pvd = forms.BooleanField(
         label="Projet rattaché à un programme Petites villes de demain (PVD)",
         required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
     )
 
     is_va = forms.BooleanField(
         label="Projet rattaché à un programme Villages d'avenir",
         required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
     )
 
     is_autre_zonage_local = forms.BooleanField(
@@ -67,7 +68,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         required=False,
         widget=forms.CheckboxInput(
             attrs={
-                "form": "projet_form",
+                "form": "projet-form",
                 "data-toggle": "autre-zonage-local",
             }
         ),
@@ -75,7 +76,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     autre_zonage_local = forms.CharField(
         label="Nom du zonage local",
         required=False,
-        widget=forms.TextInput(attrs={"form": "projet_form"}),
+        widget=forms.TextInput(attrs={"form": "projet-form"}),
     )
 
     is_contrat_local = forms.BooleanField(
@@ -83,7 +84,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         required=False,
         widget=forms.CheckboxInput(
             attrs={
-                "form": "projet_form",
+                "form": "projet-form",
                 "data-toggle": "contrat-local",
             }
         ),
@@ -92,13 +93,13 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     contrat_local = forms.CharField(
         label="Nom du contrat local",
         required=False,
-        widget=forms.TextInput(attrs={"form": "projet_form"}),
+        widget=forms.TextInput(attrs={"form": "projet-form"}),
     )
 
     dotations = forms.MultipleChoiceField(
         choices=DOTATION_CHOICES,
         required=False,
-        widget=forms.CheckboxSelectMultiple(attrs={"form": "projet_form"}),
+        widget=forms.CheckboxSelectMultiple(attrs={"form": "projet-form"}),
     )
 
     class Meta:
@@ -225,7 +226,8 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             return
 
         new_dotations = set(dotations) - set(projet.dotations)
-        dotation_to_remove = set(projet.dotations) - set(dotations)
+        dotation_to_remove = set[POSSIBLE_DOTATIONS](projet.dotations) - set(dotations)
+        dotations_updated_in_app = new_dotations or dotation_to_remove
 
         for dotation in new_dotations:
             dotation_projet = DotationProjet.objects.create(
@@ -257,6 +259,10 @@ class ProjetForm(ModelForm, DsfrBaseForm):
 
         dotation_projet_to_remove.delete()
 
+        if dotations_updated_in_app:
+            projet.dotations_updated_in_app = True
+            projet.save()
+
 
 class DotationProjetForm(ModelForm):
     DETR_AVIS_CHOICES = [
@@ -270,7 +276,7 @@ class DotationProjetForm(ModelForm):
         choices=DETR_AVIS_CHOICES,
         required=False,
         widget=forms.Select(
-            attrs={"form": "dotation_projet_form", "class": "fr-select"}
+            attrs={"form": "dotation-projet-form", "class": "fr-select"}
         ),
     )
 
@@ -278,7 +284,7 @@ class DotationProjetForm(ModelForm):
     detr_categories = forms.ModelMultipleChoiceField(
         queryset=CategorieDetr.objects.none(),
         required=False,
-        widget=forms.CheckboxSelectMultiple(attrs={"form": "dotation_projet_form"}),
+        widget=forms.CheckboxSelectMultiple(attrs={"form": "dotation-projet-form"}),
         label="Catégories d'opération DETR",
     )
 
@@ -329,3 +335,52 @@ class ProjetNoteForm(ModelForm, DsfrBaseForm):
             "title",
             "content",
         ]
+
+
+COMMENT_FIELDS = {
+    "1": "comment_1",
+    "2": "comment_2",
+    "3": "comment_3",
+}
+
+
+class ProjetCommentForm(ModelForm, DsfrBaseForm):
+    comment_number = forms.ChoiceField(
+        choices=(
+            ("1", "Commentaire 1"),
+            ("2", "Commentaire 2"),
+            ("3", "Commentaire 3"),
+        ),
+        widget=forms.HiddenInput,
+    )
+    value = forms.CharField(
+        label="Commentaire",
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 4,
+                "placeholder": "Saisir le commentaire…",
+            }
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        number = self.initial.get("comment_number")
+        if number is not None:
+            self.fields["value"].label = "Commentaire " + number
+            self.fields["value"].initial = getattr(
+                self.instance, COMMENT_FIELDS[number]
+            )
+
+    class Meta:
+        model = Projet
+        fields = []
+
+    def save(self, commit=True):
+        instance: Projet = self.instance
+        field_name = COMMENT_FIELDS[self.cleaned_data["comment_number"]]
+        setattr(instance, field_name, self.cleaned_data["value"])
+        if commit:
+            instance.save(update_fields=[field_name])
+        return instance

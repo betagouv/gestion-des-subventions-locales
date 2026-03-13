@@ -169,6 +169,30 @@ class TestDossierReporteSansPieceForm:
             form.save()
             mock_service.assert_called_once_with(projet)
 
+    def test_form_save_updates_dotations_has_been_updated_in_app_on_projet(self):
+        dossier = DossierFactory()
+        projet = ProjetFactory(
+            dossier_ds=dossier,
+            dotations_updated_in_app=False,
+        )
+        assert projet.dotations_updated_in_app is False
+
+        form_data = {
+            "demande_dispositif_sollicite": [DOTATION_DETR],
+            "finance_cout_total": "100000.00",
+            "demande_montant": "50000.00",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+        with patch(
+            "gsl_demarches_simplifiees.forms.DotationProjetService.create_or_update_dotation_projet_from_projet"
+        ):
+            form.save()
+
+        projet.refresh_from_db()
+        assert projet.dotations_updated_in_app is True
+
     def test_form_save_with_double_dotation_updates_dispositif(self):
         dossier = DossierFactory(demande_dispositif_sollicite="")
         ProjetFactory(dossier_ds=dossier)
@@ -200,7 +224,7 @@ class TestDossierReporteSansPieceFormCategories:
 
     def test_form_valid_with_detr_category(self, dossier_with_projet):
         dossier = dossier_with_projet
-        demarche = dossier.ds_data.ds_demarche
+        demarche = dossier.ds_demarche
         departement = dossier.projet.perimetre.departement
         cat_detr = CategorieDetrFactory(
             demarche=demarche, departement=departement, active=True
@@ -217,7 +241,7 @@ class TestDossierReporteSansPieceFormCategories:
 
     def test_form_valid_with_dsil_category(self, dossier_with_projet):
         dossier = dossier_with_projet
-        demarche = dossier.ds_data.ds_demarche
+        demarche = dossier.ds_demarche
         cat_dsil = CategorieDsilFactory(demarche=demarche, active=True)
 
         form_data = {
@@ -231,7 +255,7 @@ class TestDossierReporteSansPieceFormCategories:
 
     def test_form_valid_with_both_categories(self, dossier_with_projet):
         dossier = dossier_with_projet
-        demarche = dossier.ds_data.ds_demarche
+        demarche = dossier.ds_demarche
         departement = dossier.projet.perimetre.departement
         cat_detr = CategorieDetrFactory(
             demarche=demarche, departement=departement, active=True
@@ -259,7 +283,7 @@ class TestDossierReporteSansPieceFormCategories:
 
     def test_save_persists_categories(self, dossier_with_projet):
         dossier = dossier_with_projet
-        demarche = dossier.ds_data.ds_demarche
+        demarche = dossier.ds_demarche
         departement = dossier.projet.perimetre.departement
         cat_detr = CategorieDetrFactory(
             demarche=demarche, departement=departement, active=True
@@ -287,7 +311,7 @@ class TestDossierReporteSansPieceFormCategories:
 
     def test_save_clears_detr_category_when_detr_unchecked(self, dossier_with_projet):
         dossier = dossier_with_projet
-        demarche = dossier.ds_data.ds_demarche
+        demarche = dossier.ds_demarche
         departement = dossier.projet.perimetre.departement
         cat_detr = CategorieDetrFactory(
             demarche=demarche, departement=departement, active=True
@@ -313,7 +337,7 @@ class TestDossierReporteSansPieceFormCategories:
 
     def test_save_clears_dsil_category_when_dsil_unchecked(self, dossier_with_projet):
         dossier = dossier_with_projet
-        demarche = dossier.ds_data.ds_demarche
+        demarche = dossier.ds_demarche
         cat_dsil = CategorieDsilFactory(demarche=demarche, active=True)
         dossier.demande_categorie_dsil = cat_dsil
         dossier.save()
@@ -338,7 +362,7 @@ class TestDossierReporteSansPieceFormCategories:
         self, dossier_with_projet
     ):
         dossier = dossier_with_projet
-        demarche = dossier.ds_data.ds_demarche
+        demarche = dossier.ds_demarche
         departement = dossier.projet.perimetre.departement
 
         matching_cat = CategorieDetrFactory(
@@ -357,7 +381,7 @@ class TestDossierReporteSansPieceFormCategories:
 
     def test_dsil_queryset_filtered_by_demarche(self, dossier_with_projet):
         dossier = dossier_with_projet
-        demarche = dossier.ds_data.ds_demarche
+        demarche = dossier.ds_demarche
 
         matching_cat = CategorieDsilFactory(demarche=demarche, active=True)
         # Different demarche

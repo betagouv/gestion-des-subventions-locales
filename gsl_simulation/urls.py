@@ -15,12 +15,15 @@ from gsl_simulation.views.simulation_projet_views import (
     SimulationProjetDetailView,
     SimulationProjetStatusUpdateView,
     patch_dotation_projet,
+    patch_dotation_projet_assiette,
     patch_montant_simulation_projet,
     patch_taux_simulation_projet,
 )
 from gsl_simulation.views.simulation_views import (
+    SimulationColumnsVisibilityView,
     SimulationCreateView,
     SimulationDeleteView,
+    SimulationRenameView,
 )
 
 urlpatterns = [
@@ -42,6 +45,16 @@ urlpatterns = [
         name="simulation-delete",
     ),
     path(
+        "voir/<slug:slug>/columns-visibility/",
+        SimulationColumnsVisibilityView.as_view(),
+        name="simulation-columns-visibility",
+    ),
+    path(
+        "<int:pk>/renommer/",
+        SimulationRenameView.as_view(),
+        name="simulation-rename",
+    ),
+    path(
         "voir/<slug:slug>/<str:type>/",
         simulation_must_be_visible_by_user(
             simulation_views.FilteredProjetsExportView.as_view()
@@ -57,6 +70,11 @@ urlpatterns = [
         "projet-detail/<int:pk>/notes/",
         SimulationProjetNotesView.as_view(),
         name="simulation-projet-notes",
+    ),
+    path(
+        "modifier-l-assiette-d-un-dotation-projet/<int:simulation_projet_pk>/",
+        patch_dotation_projet_assiette,
+        name="patch-dotation-projet-assiette",
     ),
     path(
         "modifier-le-taux-d-un-projet-de-simulation/<int:pk>/",

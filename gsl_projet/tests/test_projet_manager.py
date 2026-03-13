@@ -336,3 +336,47 @@ def test_for_year_2024_and_for_processed_states(submitted_year, processed_year, 
     qs = Projet.objects.included_in_enveloppe(enveloppe)
 
     assert qs.count() == count
+
+
+# Filter with_missing_annotations ======================================================
+
+
+@pytest.mark.django_db
+def test_with_missing_annotations():
+    """Projets with accepted dossier but incomplete DETR/DSIL annotations."""
+    # Should NOT be included (non-accepted state)
+    ProjetFactory(
+        dossier_ds=DossierFactory(ds_state=Dossier.STATE_EN_INSTRUCTION),
+    )
+    # Should be included (accepted, no annotations_dotation)
+    with_missing = ProjetFactory(
+        dossier_ds=DossierFactory(
+            ds_state=Dossier.STATE_ACCEPTE,
+            annotations_dotation="",
+        ),
+    )
+    # Should be included (accepted, DETR but missing assiette)
+    with_missing_detr = ProjetFactory(
+        dossier_ds=DossierFactory(
+            ds_state=Dossier.STATE_ACCEPTE,
+            annotations_dotation="DETR",
+            annotations_assiette_detr=None,
+            annotations_montant_accorde_detr=50,
+        ),
+    )
+    # Should NOT be included (accepted, DETR complete)
+    ProjetFactory(
+        dossier_ds=DossierFactory(
+            ds_state=Dossier.STATE_ACCEPTE,
+            annotations_dotation="DETR",
+            annotations_assiette_detr=100,
+            annotations_montant_accorde_detr=50,
+        ),
+    )
+
+    qs = Projet.objects.with_missing_annotations()
+    ids = set(qs.values_list("pk", flat=True))
+
+    assert len(ids) == 2
+    assert with_missing.pk in ids
+    assert with_missing_detr.pk in ids

@@ -8,14 +8,16 @@ from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
-from django.views.generic import CreateView, DeleteView
+from django.views.generic import CreateView, DeleteView, UpdateView
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 from django_filters import MultipleChoiceFilter, NumberFilter
 from django_filters.views import FilterView
 
 from gsl_core.models import Perimetre
+from gsl_core.view_mixins import NoFeedbackHtmxFormViewMixin
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, DOTATIONS
 from gsl_projet.models import CategorieDetr, DotationProjet
@@ -28,12 +30,17 @@ from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_filters import ProjetOrderingFilter
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 from gsl_projet.views import BaseProjetFilters
-from gsl_simulation.forms import SimulationForm
+from gsl_simulation.forms import (
+    SimulationColumnsVisibilityForm,
+    SimulationForm,
+    SimulationRenameForm,
+)
 from gsl_simulation.models import Simulation, SimulationProjet
 from gsl_simulation.resources import (
     DetrSimulationProjetResource,
     DsilSimulationProjetResource,
 )
+from gsl_simulation.table_columns import SIMULATION_TABLE_COLUMNS
 
 
 class SimulationListView(ListView):
@@ -230,6 +237,12 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                 "filter_params": self.request.GET.urlencode(),
                 "enveloppe": simulation.enveloppe,
                 "dotations": DOTATIONS,
+                "columns": SIMULATION_TABLE_COLUMNS,
+                "aggregates": {
+                    "total_cost": ProjetService.get_total_cost(qs),
+                    "total_amount_asked": ProjetService.get_total_amount_asked(qs),
+                    "total_amount_granted": simulation.get_total_amount_granted(qs),
+                },
                 "export_types": FilteredProjetsExportView.EXPORT_TYPES,
                 "breadcrumb_dict": {
                     "links": [
@@ -324,6 +337,48 @@ class SimulationDeleteView(DeleteView):
         ).order_by("-created_at")
 
 
+class SimulationRenameView(UpdateView):
+    form_class = SimulationRenameForm
+    template_name = "gsl_simulation/simulation_rename.html"
+
+    def get_queryset(self):
+        visible_by_user_enveloppes = EnveloppeService.get_enveloppes_visible_for_a_user(
+            self.request.user
+        )
+        return Simulation.objects.filter(enveloppe__in=visible_by_user_enveloppes)
+
+    def _get_next_url(self):
+        next_url = self.request.GET.get("next")
+        if next_url and url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts={self.request.get_host()}
+        ):
+            return next_url
+        return None
+
+    def get_success_url(self):
+        return self._get_next_url() or self.object.get_absolute_url()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        next_url = self._get_next_url()
+        context["title"] = f"Renommer la simulation « {self.object.title} »"
+        context["next_url"] = next_url
+        context["breadcrumb_dict"] = {
+            "links": [
+                {
+                    "url": reverse("gsl_simulation:simulation-list"),
+                    "title": "Mes simulations de programmation",
+                },
+                {
+                    "url": self.object.get_absolute_url(),
+                    "title": self.object.title,
+                },
+            ],
+            "current": "Renommer",
+        }
+        return context
+
+
 class SimulationCreateView(CreateView):
     model = Simulation
     form_class = SimulationForm
@@ -346,6 +401,18 @@ class SimulationCreateView(CreateView):
         }
         context["title"] = "Création d'une simulation de programmation"
         return context
+
+
+class SimulationColumnsVisibilityView(NoFeedbackHtmxFormViewMixin, UpdateView):
+    model = Simulation
+    form_class = SimulationColumnsVisibilityForm
+
+    def get_queryset(self):
+        return Simulation.objects.filter(
+            enveloppe__in=EnveloppeService.get_enveloppes_visible_for_a_user(
+                self.request.user
+            )
+        )
 
 
 class FilteredProjetsExportView(SimulationDetailView):
@@ -387,6 +454,12 @@ class FilteredProjetsExportView(SimulationDetailView):
             else DetrSimulationProjetResource()
         )
         dataset = resource.export(simu_projet_qs)
+
+        headers_to_remove = resource.get_headers_to_remove(
+            self.simulation.columns_visibility
+        )
+        for header in headers_to_remove:
+            del dataset[header]
 
         export_data = dataset.export(export_type)
         content_type = self.EXPORT_TYPE_TO_CONTENT_TYPE[export_type]

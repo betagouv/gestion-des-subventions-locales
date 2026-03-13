@@ -74,6 +74,12 @@ class SimulationForm(DsfrBaseForm, ModelForm):
         fields = ["title", "enveloppe"]
 
 
+class SimulationRenameForm(DsfrBaseForm, ModelForm):
+    class Meta:
+        model = Simulation
+        fields = ["title"]
+
+
 class SimulationProjetForm(ModelForm, DsfrBaseForm):
     assiette = forms.DecimalField(
         label="Montant des dépenses éligibles retenues (€)",
@@ -84,7 +90,7 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         localize=True,
         widget=forms.TextInput(
             attrs={
-                "form": "simulation_projet_form",
+                "form": "simulation-projet-form",
                 "min": 0,
                 "data-bind-amount-fields-target": "assiette",
                 "data-action": "blur->bind-amount-fields#formatAssiette input->bind-amount-fields#onAssietteInput",
@@ -101,7 +107,7 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         localize=True,
         widget=forms.TextInput(
             attrs={
-                "form": "simulation_projet_form",
+                "form": "simulation-projet-form",
                 "min": 0,
                 "data-bind-amount-fields-target": "montant",
                 "data-action": "blur->bind-amount-fields#formatMontant input->bind-amount-fields#onMontantInput",
@@ -119,7 +125,7 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         localize=True,
         widget=forms.TextInput(
             attrs={
-                "form": "simulation_projet_form",
+                "form": "simulation-projet-form",
                 "min": 0,
                 "max": 100,
                 "data-bind-amount-fields-target": "taux",
@@ -171,7 +177,9 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
             if assiette is None:
                 assiette = dotation_projet.dossier_ds.finance_cout_total
 
-            computed_taux = compute_taux(cleaned_data.get("montant"), assiette)
+            computed_taux = compute_taux(
+                cleaned_data.get("montant"), assiette, decimals=3
+            )
 
             if computed_taux != self.fields["taux"].initial:
                 self.changed_data.append("taux")
@@ -317,3 +325,16 @@ class DismissProjetForm(SimulationProjetStatusForm):
     class Meta(SimulationProjetStatusForm.Meta):
         model = SimulationProjet
         fields = ("justification",)
+
+
+class SimulationColumnsVisibilityForm(forms.ModelForm):
+    class Meta:
+        model = Simulation
+        fields = ("columns_visibility",)
+
+    def clean_columns_visibility(self):
+        return {
+            key: value == "true"
+            for key, value in self.data.items()
+            if key != "csrfmiddlewaretoken"
+        }

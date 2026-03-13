@@ -1,10 +1,24 @@
 import re
 from logging import getLogger
 
+from django.utils import timezone
+
 from gsl_core.models import Arrondissement, Departement, Perimetre
-from gsl_demarches_simplifiees.models import CategorieDetr, Dossier
+from gsl_demarches_simplifiees.models import CategorieDetr, Demarche, Dossier
 
 logger = getLogger(__name__)
+
+# We don't handle these territories for now.
+NOT_HANDLED_TERRITORIES = [
+    "975",  # Saint-Pierre-et-Miquelon
+    "977",  # Saint-Barthélémy
+    "978",  # Saint-Martin
+    "984",  # Terres australes et antarctiques françaises
+    "986",  # Wallis et Futuna,
+    "987",  # Polynésie française,
+    "988",  # Nouvelle-Calédonie,
+    "989",  # île de Clipperton
+]
 
 
 def get_departement_from_field_label(label: str) -> Departement | None:
@@ -16,6 +30,10 @@ def get_departement_from_field_label(label: str) -> Departement | None:
     if not match:
         raise ValueError(f"Departement not found in field label: {label}")
     insee_code = match.group(1).strip()
+
+    if insee_code in NOT_HANDLED_TERRITORIES:
+        return None
+
     try:
         return Departement.objects.get(insee_code=insee_code)
     except Departement.DoesNotExist:
@@ -128,19 +146,23 @@ def get_perimetre_from_dossier(dossier: Dossier) -> Perimetre | None:
 def get_categorie_detr_from_value(
     value: str, departement: Departement, ds_demarche_number: str
 ) -> CategorieDetr | None:
-    try:
-        return CategorieDetr.objects.get(
-            demarche__ds_number=ds_demarche_number,
-            label=value,
-            departement=departement,
-        )
-    except CategorieDetr.DoesNotExist:
-        logger.exception(
-            "CategorieDetr not found.",
+    demarche = Demarche.objects.get(ds_number=ds_demarche_number)
+    categorie, created = CategorieDetr.objects.get_or_create(
+        demarche=demarche,
+        label=value,
+        departement=departement,
+        defaults={
+            "active": False,
+            "deactivated_at": timezone.now(),
+        },
+    )
+    if created:
+        logger.info(
+            "CategorieDetr created.",
             extra={
                 "ds_demarche_number": ds_demarche_number,
                 "value": value,
                 "departement": departement,
             },
         )
-        raise
+    return categorie

@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% load static dsfr_tags gsl_filters custom_pluralize %}
 
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static "css/projet_list.css" %}">
+    <link rel="stylesheet" href="{% static "css/enveloppe_summary.css" %}">
+{% endblock extra_css %}
+
 {% block content %}
     <h1>
         Liste des projets
@@ -11,37 +16,10 @@
     <a href="{% url 'gsl_simulation:simulation-list' %}"
        class="fr-btn fr-btn--secondary fr-mb-4w">Voir les simulations</a>
 
-    <div class="fr-grid-row">
-        <div class="fr-col">
-            <h4>
-                Enveloppes de dotations
-            </h4>
-        </div>
-        <div class="fr-col">
-            <div class="fr-btns-group--right">
-                <a href="{% url "gsl_projet:enveloppe-create" %}"
-                   class="fr-btn fr-btn--sm fr-btn--icon-left fr-icon-add-line"
-                   type="button">
-                    Ajouter une enveloppe de dotation
-                </a>
-            </div>
-        </div>
-    </div>
-
-    {% include "includes/_enveloppe_summary.html" %}
+    {% include "includes/_enveloppe_summary.html" with show_caption=True %}
 
     {% include "includes/_projet_list_filters.html" %}
 
-    <p class="fr-mb-0">
-        {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
-    </p>
-
     {% include "includes/_projets_table.html" %}
-
-    <div class="fr-table__footer">
-        <div class="fr-table__footer--middle">
-            {% dsfr_pagination page_obj %}
-        </div>
-    </div>
 
 {% endblock content %}

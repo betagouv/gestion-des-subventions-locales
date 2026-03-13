@@ -42,16 +42,27 @@ def euro(value, decimals=0):
 
 
 @register.filter
-def remove_first_word(value):
-    parts = value.split(" ", 1)
-    return parts[1] if len(parts) > 1 else ""
+def euro_value(value, decimals=0):
+    """Format as number without € symbol (for table cells where unit is in header)."""
+    if not isinstance(value, (float, int, Decimal)) or isinstance(value, bool):
+        return "—"
+    return floatformat(value, f"{decimals}g")
 
 
 @register.filter
-def get(dictionary, key):
-    if not isinstance(dictionary, dict):
-        return dictionary
-    return dictionary.get(key)
+def percent_value(value, decimals=0):
+    """Format as number without % symbol (for table cells where unit is in header)."""
+    if value is None or value == "":
+        return "—"
+    if not isinstance(value, Decimal):
+        return value
+    return floatformat(value, decimals)
+
+
+@register.filter
+def remove_first_word(value):
+    parts = value.split(" ", 1)
+    return parts[1] if len(parts) > 1 else ""
 
 
 @register.filter
@@ -148,6 +159,42 @@ def format_demandeur_nom(nom):
 
 
 @register.filter
+def lookup(dictionary, key):
+    if not isinstance(dictionary, dict):
+        return None
+    return dictionary.get(key)
+
+
+@register.filter
 def json_filter(value):
     """Safely serialize a Python value to JSON string."""
     return mark_safe(json.dumps(value))
+
+
+@register.simple_tag(takes_context=True)
+def column_link_url(context, column):
+    url = column.link.url_getter(context)
+    if not url:
+        return ""
+
+    if column.link.keep_querystring:
+        request = context.get("request")
+        if request:
+            qd = request.GET.copy()
+            if column.link.querystring_extras_getter:
+                qd.update(column.link.querystring_extras_getter(context))
+            qs = qd.urlencode()
+            if qs:
+                url = f"{url}?{qs}"
+
+    return url
+
+
+@register.simple_tag(takes_context=True)
+def column_cell_value(context, column):
+    return column.getter(context)
+
+
+@register.simple_tag(takes_context=True)
+def other_dotation_cell_value(context, column):
+    return column.other_dotation_getter(context)

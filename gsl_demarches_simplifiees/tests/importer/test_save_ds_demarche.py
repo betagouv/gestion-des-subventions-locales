@@ -624,7 +624,6 @@ def test_save_categories_dsil_preserves_inactive_categories(demarche):
     [
         ("Catégories prioritaires (87 - Haute-Vienne)", "87"),
         ("Catégories prioritaires (91 - Essonne)", "91"),
-        ("Catégories prioritaires (988 - Nouvelle-Calédonie)", "988"),
         ("Catégories prioritaires (2A - Corse-du-Sud)", "2A"),
         ("Catégories prioritaires (07 - Ardèche)", "07"),
     ],
@@ -682,6 +681,32 @@ def test_get_departement_from_field_mapping_returns_none_for_empty_label(demarch
     mapping = FieldMappingFactory(
         demarche=demarche,
         ds_field_label="",
+    )
+
+    result = _get_departement_from_field_mapping(mapping)
+
+    assert result is None
+
+
+@pytest.mark.parametrize(
+    "label",
+    (
+        "975 - Saint-Pierre-et-Miquelon",
+        "977 - Saint-Barthélémy",
+        "978 - Saint-Martin",
+        "984 - Terres australes et antarctiques françaises",
+        "986 - Wallis et Futuna",
+        "987 - Polynésie française",
+        "988 - Nouvelle-Calédonie",
+        "989 - île de Clipperton",
+    ),
+)
+def test_get_departement_from_field_mapping_returns_none_for_not_handled_territories(
+    demarche, label
+):
+    mapping = FieldMappingFactory(
+        demarche=demarche,
+        ds_field_label=f"Catégories prioritaires ({label})",
     )
 
     result = _get_departement_from_field_mapping(mapping)

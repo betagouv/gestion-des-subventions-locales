@@ -61,10 +61,13 @@ INSTALLED_APPS = [
     "dsfr",
     "import_export",
     "formtools",
+    "django_json_widget",
     "django_htmx",
     "django_filters",
     "django_extensions",
     "axes",
+    "django_otp",
+    "django_otp.plugins.otp_totp",
     # gsl apps:
     "ui",
     "gsl_core",
@@ -87,10 +90,12 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_otp.middleware.OTPMiddleware",
     "gsl_oidc.middleware.LoginRequiredMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
+    "gsl_core.middlewares.OTPVerificationMiddleware",
     "gsl_core.middlewares.CheckPerimeterMiddleware",
     "axes.middleware.AxesMiddleware",  # should be the last middleware in the MIDDLEWARE list.
 ]
@@ -106,7 +111,7 @@ if DEBUG:
 AUTHENTICATION_BACKENDS = [
     "axes.backends.AxesBackend",
     "gsl_oidc.backends.OIDCAuthenticationBackend",
-    "django.contrib.auth.backends.ModelBackend",
+    "gsl_core.auth_backends.LastLoginDeactivationBackend",
 ]
 
 AUTH_USER_MODEL = "gsl_core.Collegue"
@@ -372,6 +377,7 @@ CELERY_TIMEZONE = "Europe/Paris"
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_RESULT_EXTENDED = True
 CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 100
 
 
 # CSP Configuration
@@ -407,4 +413,13 @@ MAX_POST_FILE_SIZE_IN_MO = os.getenv("MAX_POST_FILE_SIZE_IN_MO", 20)
 # Axes configuration
 
 AXES_FAILURE_LIMIT = os.getenv("AXES_FAILURE_LIMIT", 5)
-AXES_ONLY_USER_FAILURES = True
+AXES_LOCKOUT_PARAMETERS = ["username"]
+
+SILENCED_SYSTEM_CHECKS = ["axes.W006"]
+
+# OTP configuration
+OTP_TOTP_ISSUER = f"Turgot {ENV}"
+OTP_ENABLED = os.getenv("OTP_ENABLED", "true").lower() == "true"
+
+# Matomo configuration
+MATOMO_SITE_ID = os.getenv("MATOMO_SITE_ID", None)

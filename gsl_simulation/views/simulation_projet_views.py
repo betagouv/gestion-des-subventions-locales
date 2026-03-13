@@ -1,6 +1,7 @@
 import json
 
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import Http404 as DjangoHttp404
 from django.http import HttpRequest
@@ -53,21 +54,56 @@ from gsl_simulation.views.simulation_views import SimulationDetailView
 
 @exception_handler_decorator
 @require_POST
+def patch_dotation_projet_assiette(request, simulation_projet_pk):
+    simulation_projet = get_object_or_404(
+        SimulationProjet.objects.in_user_perimeter(request.user),
+        id=simulation_projet_pk,
+    )
+    dotation_projet = simulation_projet.dotation_projet
+    new_assiette = replace_comma_by_dot(request.POST.get("assiette"))
+    try:
+        with transaction.atomic():
+            DotationProjetService.validate_assiette(new_assiette, dotation_projet)
+            dotation_projet.assiette = new_assiette
+            dotation_projet.save()
+    except (ValidationError, DsServiceException) as e:
+        error_msg = (
+            " ".join(str(m) for m in e.messages)
+            if isinstance(e, ValidationError) and e.messages
+            else str(e)
+        )
+        messages.error(
+            request,
+            "Une erreur est survenue lors de la mise à jour de l'assiette. "
+            + error_msg,
+        )
+    return redirect_to_same_page_or_to_simulation_detail_by_default(
+        request, simulation_projet
+    )
+
+
+@exception_handler_decorator
+@require_POST
 def patch_taux_simulation_projet(request, pk):
     simulation_projet = get_object_or_404(
         SimulationProjet.objects.in_user_perimeter(request.user), id=pk
     )
-    new_taux = replace_comma_by_dot(request.POST.get("taux"))
+    new_taux = replace_comma_by_dot(request.POST.get("taux"), decimals=3)
     try:
         with transaction.atomic():
             DotationProjetService.validate_taux(new_taux)
             SimulationProjetService.update_taux(
                 simulation_projet, new_taux, request.user
             )
-    except (ValueError, DsServiceException) as e:
+    except (ValidationError, DsServiceException) as e:
+        error_msg = (
+            " ".join(str(m) for m in e.messages)
+            if isinstance(e, ValidationError) and e.messages
+            else str(e)
+        )
         messages.error(
             request,
-            "Une erreur est survenue lors de la mise à jour du taux. " + str(e),
+            "Une erreur est survenue lors de la mise à jour du taux. " + error_msg,
         )
         simulation_projet = SimulationProjet.objects.get(pk=simulation_projet.pk)
 
@@ -91,10 +127,15 @@ def patch_montant_simulation_projet(request, pk):
             SimulationProjetService.update_montant(
                 simulation_projet, new_montant, user=request.user
             )
-    except (ValueError, DsServiceException) as e:
+    except (ValidationError, DsServiceException) as e:
+        error_msg = (
+            " ".join(str(m) for m in e.messages)
+            if isinstance(e, ValidationError) and e.messages
+            else str(e)
+        )
         messages.error(
             request,
-            "Une erreur est survenue lors de la mise à jour du montant. " + str(e),
+            "Une erreur est survenue lors de la mise à jour du montant. " + error_msg,
         )
         simulation_projet = SimulationProjet.objects.get(pk=simulation_projet.pk)
 

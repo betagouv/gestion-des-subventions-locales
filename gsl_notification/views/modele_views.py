@@ -2,6 +2,7 @@ import os
 
 from csp.constants import SELF, UNSAFE_INLINE
 from csp.decorators import csp_update
+from django.conf import settings
 from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
 from django.db.models import ProtectedError
@@ -16,7 +17,6 @@ from django.views.decorators.http import require_GET, require_http_methods
 from django.views.generic import FormView, ListView
 from formtools.wizard.views import SessionWizardView
 
-from gsl import settings
 from gsl_core.exceptions import Http404
 from gsl_core.models import Perimetre
 from gsl_notification.forms import (
