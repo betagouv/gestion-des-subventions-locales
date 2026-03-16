@@ -1,29 +1,23 @@
 import { Controller } from 'stimulus'
 
 export class FormUtils extends Controller {
-  static targets = ['form', 'container']
+  static targets = ['container']
 
-  submitFormAndDisableButton (evt) {
-    const btn = evt.target
-    btn.classList.add('fr-icon-loader')
-    btn.classList.add('fr-icon-spin')
-    btn.setAttribute('disabled', '1')
-    btn.setAttribute('data-action', 'form-utils#enableButton')
-    if (this.formTarget) this.formTarget.submit()
-  }
-
-  disableButtons () {
-    if (!this.containerTarget) return
-    const buttons = this.containerTarget.querySelectorAll('button')
+  disableButtons (evt) {
+    const container = this.hasContainerTarget ? this.containerTarget : evt.target
+    const buttons = container.querySelectorAll('button')
     buttons.forEach(btn => {
-      btn.setAttribute('disabled', '1')
+      if (btn.type === 'submit') {
+        this._disableButtonAndAddALoader(btn)
+      } else {
+        btn.setAttribute('disabled', '1')
+      }
     })
   }
 
-  enableButton (evt) { // not used for now
-    const btn = evt.target
-    btn.classList.remove('fr-icon-loader', 'fr-icon-spin')
-    btn.removeAttribute('disabled')
-    btn.setAttribute('data-action', 'form-utils#submitFormAndDisableButton')
+  _disableButtonAndAddALoader (btn) {
+    btn.classList.add('fr-icon-loader')
+    btn.classList.add('fr-icon-spin')
+    btn.setAttribute('disabled', '1')
   }
 }
