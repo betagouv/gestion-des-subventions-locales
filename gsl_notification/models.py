@@ -186,6 +186,10 @@ class GeneratedDocument(models.Model):
         return True
 
     @property
+    def is_downloadable(self):
+        return True
+
+    @property
     def name(self):
         raise NotImplementedError
 
@@ -254,6 +258,12 @@ class UploadedDocument(models.Model):
 
     class Meta:
         abstract = True
+
+    @property
+    def is_downloadable(self):
+        if settings.BYPASS_ANTIVIRUS:
+            return True
+        return self.last_scan is not None and not self.is_infected
 
     def get_download_url(self):
         return reverse(

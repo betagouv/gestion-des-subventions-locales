@@ -243,3 +243,57 @@ def test_download_allowed_when_bypass_even_if_never_scanned(
 
         response = client_with_user.get(url)
         assert response.status_code == 200
+
+
+## IS_DOWNLOADABLE PROPERTY TESTS
+
+
+@pytest.mark.parametrize("factory", (ArreteEtLettreSignesFactory, AnnexeFactory))
+def test_is_downloadable_false_when_never_scanned(
+    settings, programmation_projet, factory
+):
+    settings.BYPASS_ANTIVIRUS = False
+    doc = factory(programmation_projet=programmation_projet)
+    assert doc.last_scan is None
+    assert doc.is_downloadable is False
+
+
+@pytest.mark.parametrize("factory", (ArreteEtLettreSignesFactory, AnnexeFactory))
+def test_is_downloadable_false_when_infected(settings, programmation_projet, factory):
+    settings.BYPASS_ANTIVIRUS = False
+    doc = factory(
+        programmation_projet=programmation_projet,
+        last_scan=timezone.now(),
+        is_infected=True,
+    )
+    assert doc.is_downloadable is False
+
+
+@pytest.mark.parametrize("factory", (ArreteEtLettreSignesFactory, AnnexeFactory))
+def test_is_downloadable_true_when_scanned_and_clean(
+    settings, programmation_projet, factory
+):
+    settings.BYPASS_ANTIVIRUS = False
+    doc = factory(
+        programmation_projet=programmation_projet,
+        last_scan=timezone.now(),
+        is_infected=False,
+    )
+    assert doc.is_downloadable is True
+
+
+@pytest.mark.parametrize("factory", (ArreteEtLettreSignesFactory, AnnexeFactory))
+def test_is_downloadable_true_when_bypass_enabled(
+    settings, programmation_projet, factory
+):
+    settings.BYPASS_ANTIVIRUS = True
+    doc = factory(programmation_projet=programmation_projet)
+    assert doc.last_scan is None
+    assert doc.is_downloadable is True
+
+
+def test_generated_document_is_always_downloadable(programmation_projet):
+    from gsl_notification.tests.factories import ArreteFactory
+
+    doc = ArreteFactory(programmation_projet=programmation_projet)
+    assert doc.is_downloadable is True
