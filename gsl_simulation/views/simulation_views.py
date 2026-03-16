@@ -16,6 +16,7 @@ from django.views.generic.list import ListView
 from django_filters import MultipleChoiceFilter, NumberFilter
 from django_filters.views import FilterView
 
+from gsl_core.matomo import queue_matomo_event
 from gsl_core.models import Perimetre
 from gsl_core.view_mixins import NoFeedbackHtmxFormViewMixin
 from gsl_programmation.services.enveloppe_service import EnveloppeService
@@ -382,10 +383,21 @@ class SimulationCreateView(CreateView):
     model = Simulation
     form_class = SimulationForm
     template_name = "gsl_simulation/simulation_form.html"
+
     success_url = reverse_lazy("simulation:simulation-list")
 
     def get_form_kwargs(self):
         return {"user": self.request.user, **super().get_form_kwargs()}
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        queue_matomo_event(
+            self.request,
+            "Simulation",
+            "creation",
+            self.object.enveloppe.dotation,
+        )
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

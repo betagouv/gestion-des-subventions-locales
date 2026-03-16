@@ -18,6 +18,7 @@ from django.views.generic import FormView, ListView
 from formtools.wizard.views import SessionWizardView
 
 from gsl_core.exceptions import Http404
+from gsl_core.matomo import queue_matomo_event
 from gsl_core.models import Perimetre
 from gsl_notification.forms import (
     ModeleDocumentStepOneForm,
@@ -197,6 +198,7 @@ class CreateModelDocumentWizard(SessionWizardView):
 
     def done(self, form_list, **kwargs):
         instance: ModeleLettreNotification | ModeleArrete = self.instance
+        is_creating = instance.pk is None
 
         for form in form_list:
             for key, value in form.cleaned_data.items():
@@ -207,6 +209,14 @@ class CreateModelDocumentWizard(SessionWizardView):
         instance.save()
 
         self._set_success_message(instance)
+
+        if is_creating:
+            queue_matomo_event(
+                self.request,
+                "Modele",
+                "creation",
+                f"{self.modele_type} - {self.dotation}",
+            )
 
         return HttpResponseRedirect(
             reverse(

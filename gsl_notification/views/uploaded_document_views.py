@@ -6,6 +6,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 from django.views.generic import UpdateView
 
 from gsl_core.exceptions import Http404
+from gsl_core.matomo import queue_matomo_event
 from gsl_notification.forms import ChooseDocumentTypeForUploadForm
 from gsl_notification.models import (
     Annexe,
@@ -77,6 +78,12 @@ def create_uploaded_document_view(request, projet_id, dotation, document_type):
             )
             form.save()
 
+            queue_matomo_event(
+                request,
+                "Document",
+                "import_document",
+                programmation_projet.enveloppe.dotation,
+            )
             return redirect(
                 reverse(
                     "gsl_notification:documents",

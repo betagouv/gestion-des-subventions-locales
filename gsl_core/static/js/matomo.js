@@ -13,3 +13,14 @@ _paq.push(["enableLinkTracking"]);
   g.src = u + "matomo.js";
   s.parentNode.insertBefore(g, s);
 })();
+
+// Fire Matomo events triggered via HX-Trigger header from HTMX partial responses.
+document.addEventListener("matomoEvents", function (event) {
+  var _paq = (window._paq = window._paq || []);
+  var events = event.detail.value;
+  if (Array.isArray(events)) {
+    events.forEach(function (e) {
+      _paq.push(["trackEvent", e.category, e.action, e.name || ""]);
+    });
+  }
+});
