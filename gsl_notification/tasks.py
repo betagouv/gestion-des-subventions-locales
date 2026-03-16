@@ -74,8 +74,8 @@ def scan_uploaded_document(model_label: str, pk: int):
 
     from django.apps import apps
 
-    Model = apps.get_model(model_label)
-    instance = Model.objects.get(pk=pk)
+    model_class = apps.get_model(model_label)
+    instance = model_class.objects.get(pk=pk)
 
     scan_result = _scan_file(instance.file)
     _update_scan_result(instance, scan_result)
