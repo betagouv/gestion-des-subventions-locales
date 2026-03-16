@@ -7,11 +7,17 @@ from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
 
-from gsl_notification.models import Annexe, ArreteEtLettreSignes
+from gsl_notification.models import (
+    Annexe,
+    ArreteEtLettreSignes,
+    ModeleArrete,
+    ModeleLettreNotification,
+)
 
 logger = logging.getLogger(__name__)
 
 UPLOADED_DOCUMENT_MODELS = (ArreteEtLettreSignes, Annexe)
+LOGO_SCANNED_MODELS = (ModeleArrete, ModeleLettreNotification)
 
 
 def _scan_file(file_field) -> dict:
@@ -67,7 +73,7 @@ def _update_scan_result(instance, scan_result):
 
 
 @shared_task
-def scan_uploaded_document(model_label: str, pk: int):
+def scan_uploaded_document(model_label: str, pk: int, file_field_name: str = "file"):
     """Scan a single uploaded document for viruses."""
     if settings.BYPASS_ANTIVIRUS:
         return
@@ -77,7 +83,8 @@ def scan_uploaded_document(model_label: str, pk: int):
     model_class = apps.get_model(model_label)
     instance = model_class.objects.get(pk=pk)
 
-    scan_result = _scan_file(instance.file)
+    file_field = getattr(instance, file_field_name)
+    scan_result = _scan_file(file_field)
     _update_scan_result(instance, scan_result)
 
 
@@ -90,10 +97,15 @@ def scan_all_uploaded_documents():
     scanned = 0
     infected = 0
 
-    for Model in UPLOADED_DOCUMENT_MODELS:
+    models_and_fields = [
+        (model_class, "file") for model_class in UPLOADED_DOCUMENT_MODELS
+    ] + [(Model, "logo") for Model in LOGO_SCANNED_MODELS]
+
+    for Model, field_name in models_and_fields:
         for instance in Model.objects.all().iterator():
             try:
-                scan_result = _scan_file(instance.file)
+                file_field = getattr(instance, field_name)
+                scan_result = _scan_file(file_field)
                 _update_scan_result(instance, scan_result)
                 scanned += 1
                 if scan_result["is_infected"]:

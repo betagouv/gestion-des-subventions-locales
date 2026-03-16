@@ -32,7 +32,8 @@ class LettreNotificationAdmin(ArreteAdmin):
 @admin.action(description="Relancer l'analyse antivirus")
 def relaunch_antivirus_scan(modeladmin, request, queryset):
     for instance in queryset:
-        scan_uploaded_document.delay(instance._meta.label, instance.pk)
+        file_field_name = "logo" if hasattr(instance, "logo") else "file"
+        scan_uploaded_document.delay(instance._meta.label, instance.pk, file_field_name)
     modeladmin.message_user(
         request,
         f"{queryset.count()} analyse(s) antivirus relancée(s).",
@@ -61,8 +62,10 @@ class AnnexeAdmin(ArreteEtLettreSignesAdmin):
 
 @admin.register(ModeleArrete)
 class ModeleArreteAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    list_display = ("pk", "name", "perimetre", "created_by")
+    list_display = ("pk", "name", "perimetre", "created_by", "last_scan", "is_infected")
     list_filter = ("perimetre__region__name", "perimetre__departement__name")
+    readonly_fields = ("last_scan", "is_infected")
+    actions = [relaunch_antivirus_scan]
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

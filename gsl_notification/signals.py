@@ -32,6 +32,19 @@ def trigger_antivirus_scan(sender, instance, created, **kwargs):
         scan_uploaded_document.delay(sender._meta.label, instance.pk)
 
 
+@receiver(post_save, sender=ModeleArrete)
+@receiver(post_save, sender=ModeleLettreNotification)
+def trigger_logo_antivirus_scan(sender, instance, created, update_fields, **kwargs):
+    if settings.BYPASS_ANTIVIRUS:
+        return
+
+    # We scan even if the logo field is saved, even if it hasn't changed (it's easier)
+    if created or update_fields is None or "logo" in update_fields:
+        from gsl_notification.tasks import scan_uploaded_document
+
+        scan_uploaded_document.delay(sender._meta.label, instance.pk, "logo")
+
+
 @receiver(post_delete, sender=ModeleLettreNotification)
 @receiver(post_delete, sender=ModeleArrete)
 def delete_logo_file_after_instance_deletion(

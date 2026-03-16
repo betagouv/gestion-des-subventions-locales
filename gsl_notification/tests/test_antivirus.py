@@ -11,6 +11,8 @@ from gsl_core.tests.factories import (
 from gsl_notification.tests.factories import (
     AnnexeFactory,
     ArreteEtLettreSignesFactory,
+    ModeleArreteFactory,
+    ModeleLettreNotificationFactory,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import ANNEXE, ARRETE_ET_LETTRE_SIGNES
@@ -297,3 +299,129 @@ def test_generated_document_is_always_downloadable(programmation_projet):
 
     doc = ArreteFactory(programmation_projet=programmation_projet)
     assert doc.is_downloadable is True
+
+
+## LOGO SCANNING SIGNAL TESTS
+
+
+@pytest.mark.parametrize(
+    "factory, model_label",
+    (
+        (ModeleArreteFactory, "gsl_notification.ModeleArrete"),
+        (ModeleLettreNotificationFactory, "gsl_notification.ModeleLettreNotification"),
+    ),
+)
+@patch("gsl_notification.tasks.scan_uploaded_document")
+def test_logo_create_triggers_scan(mock_scan_task, settings, factory, model_label):
+    settings.BYPASS_ANTIVIRUS = False
+    doc = factory()
+
+    mock_scan_task.delay.assert_called_once_with(model_label, doc.pk, "logo")
+
+
+@pytest.mark.parametrize(
+    "factory, model_label",
+    (
+        (ModeleArreteFactory, "gsl_notification.ModeleArrete"),
+        (ModeleLettreNotificationFactory, "gsl_notification.ModeleLettreNotification"),
+    ),
+)
+@patch("gsl_notification.tasks.scan_uploaded_document")
+def test_logo_update_triggers_scan(mock_scan_task, settings, factory, model_label):
+    settings.BYPASS_ANTIVIRUS = True
+    doc = factory()
+    mock_scan_task.delay.assert_not_called()
+
+    settings.BYPASS_ANTIVIRUS = False
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    doc.logo = SimpleUploadedFile("new_logo.png", b"fake-image-data")
+    doc.save()
+
+    mock_scan_task.delay.assert_called_once_with(model_label, doc.pk, "logo")
+
+
+@patch("gsl_notification.tasks.scan_uploaded_document")
+def test_logo_unrelated_save_does_not_trigger_scan(mock_scan_task, settings):
+    settings.BYPASS_ANTIVIRUS = True
+    doc = ModeleArreteFactory()
+    mock_scan_task.delay.assert_not_called()
+
+    settings.BYPASS_ANTIVIRUS = False
+    doc.name = "Nouveau nom"
+    doc.save(update_fields=["name"])
+
+    mock_scan_task.delay.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "factory",
+    (ModeleArreteFactory, ModeleLettreNotificationFactory),
+)
+@patch("gsl_notification.tasks.scan_uploaded_document")
+def test_logo_create_does_not_trigger_scan_when_bypassed(
+    mock_scan_task, settings, factory
+):
+    settings.BYPASS_ANTIVIRUS = True
+    factory()
+
+    mock_scan_task.delay.assert_not_called()
+
+
+## LOGO SCAN TASK TESTS
+
+
+@patch("gsl_notification.tasks.subprocess.run")
+def test_scan_task_with_logo_field_marks_clean(mock_run, settings):
+    settings.BYPASS_ANTIVIRUS = True
+    doc = ModeleArreteFactory()
+    assert doc.last_scan is None
+    assert doc.is_infected is None
+
+    settings.BYPASS_ANTIVIRUS = False
+    mock_run.return_value = MagicMock(returncode=0, stdout="OK")
+
+    from gsl_notification.tasks import scan_uploaded_document
+
+    scan_uploaded_document("gsl_notification.ModeleArrete", doc.pk, "logo")
+
+    doc.refresh_from_db()
+    assert doc.last_scan is not None
+    assert doc.is_infected is False
+
+
+@patch("gsl_notification.tasks.subprocess.run")
+def test_scan_task_with_logo_field_marks_infected(mock_run, settings):
+    settings.BYPASS_ANTIVIRUS = True
+    doc = ModeleArreteFactory()
+
+    settings.BYPASS_ANTIVIRUS = False
+    mock_run.return_value = MagicMock(returncode=1, stdout="FOUND Eicar-Test-Signature")
+
+    from gsl_notification.tasks import scan_uploaded_document
+
+    scan_uploaded_document("gsl_notification.ModeleArrete", doc.pk, "logo")
+
+    doc.refresh_from_db()
+    assert doc.last_scan is not None
+    assert doc.is_infected is True
+
+
+## PERIODIC SCAN INCLUDES LOGO MODELS
+
+
+@patch("gsl_notification.tasks._scan_file")
+def test_periodic_scan_includes_logo_models(mock_scan_file, settings):
+    settings.BYPASS_ANTIVIRUS = True
+    ModeleArreteFactory()
+    ModeleLettreNotificationFactory()
+
+    settings.BYPASS_ANTIVIRUS = False
+    mock_scan_file.return_value = {"is_infected": False, "output": "OK"}
+
+    from gsl_notification.tasks import scan_all_uploaded_documents
+
+    scan_all_uploaded_documents()
+
+    # At least 2 calls for the 2 logo models (plus any uploaded documents)
+    assert mock_scan_file.call_count >= 2

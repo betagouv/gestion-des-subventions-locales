@@ -73,6 +73,17 @@ class ModeleDocument(models.Model):
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Antivirus
+    last_scan = models.DateTimeField(
+        verbose_name="Dernière analyse antivirus",
+        null=True,
+        blank=True,
+    )
+    is_infected = models.BooleanField(
+        verbose_name="Fichier infecté",
+        null=True,
+    )
+
     class Meta:
         verbose_name = "Modèle de document"
         verbose_name_plural = "Modèles de document"
