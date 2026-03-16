@@ -10,6 +10,7 @@ from .models import (
     ModeleArrete,
     ModeleLettreNotification,
 )
+from .tasks import scan_uploaded_document
 
 
 @admin.register(Arrete)
@@ -28,6 +29,16 @@ class LettreNotificationAdmin(ArreteAdmin):
     pass
 
 
+@admin.action(description="Relancer l'analyse antivirus")
+def relaunch_antivirus_scan(modeladmin, request, queryset):
+    for instance in queryset:
+        scan_uploaded_document.delay(instance._meta.label, instance.pk)
+    modeladmin.message_user(
+        request,
+        f"{queryset.count()} analyse(s) antivirus relancée(s).",
+    )
+
+
 @admin.register(ArreteEtLettreSignes)
 class ArreteEtLettreSignesAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = (
@@ -40,6 +51,7 @@ class ArreteEtLettreSignesAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "is_infected",
     )
     readonly_fields = ("last_scan", "is_infected")
+    actions = [relaunch_antivirus_scan]
 
 
 @admin.register(Annexe)
