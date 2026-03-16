@@ -158,12 +158,11 @@
   align-items: flex-end;
 }
 
-/* Neutralise les largeurs fixes DSFR — chaque filtre prend sa largeur naturelle */
 .filters-flex-row > .filter-field,
 .filters-flex-row > .reinit-filters {
   flex: 0 1 auto;
-  width: auto !important;
-  max-width: 220px !important;
+  width: auto;
+  max-width: 220px;
   min-width: 150px;
 }
 
@@ -176,7 +175,7 @@
 }
 
 #filter-montant-previsionnel {
-  max-width: 270px !important;
+  max-width: 270px;
 }
 
 #filter-categorie_detr > div {
