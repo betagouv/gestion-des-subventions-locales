@@ -13,7 +13,7 @@
 
         <form method="post"
               id="send-notification-message"
-              data-form-utils-target='form'>
+              data-action="submit->form-utils#disableButtons">
             {% csrf_token %}
             {{ form.non_field_errors }}
             <fieldset class="fr-fieldset{% if form.annexes.errors %} fr-fieldset--error{% endif %}"
@@ -72,9 +72,7 @@
             <p class="fr-mt-2w fr-mb-1v">
                 <b>Souhaitez-vous envoyer le message de notification&nbsp;?</b>
             </p>
-            <button class="fr-btn fr-icon-check-line fr-btn--icon-left"
-                    type="submit"
-                    data-action="form-utils#submitFormAndDisableButton">
+            <button class="fr-btn fr-icon-check-line fr-btn--icon-left" type="submit">
                 Confirmer l'envoi
             </button>
         </form>

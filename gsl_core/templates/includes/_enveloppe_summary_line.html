@@ -64,7 +64,8 @@
             </div>
             <form method="post"
                   action="{% url 'gsl_projet:enveloppe-delete' enveloppe.id %}"
-                  data-controller="form-utils">
+                  data-controller="form-utils"
+                  data-action="submit->form-utils#disableButtons">
                 {% csrf_token %}
                 <dialog id="enveloppe-delete-modal-{{ enveloppe.id }}"
                         class="fr-modal confirmation-modal fr-text--regular enveloppe-delete-modal">
@@ -91,16 +92,14 @@
                                             pour {{ enveloppe.perimetre }}&nbsp;?
                                         </p>
                                     </div>
-                                    <div class="fr-modal__footer confirmation-modal-footer"
-                                         data-form-utils-target="container">
+                                    <div class="fr-modal__footer confirmation-modal-footer">
                                         <button class="fr-btn fr-btn--secondary close-modal"
                                                 aria-controls="enveloppe-delete-modal-{{ enveloppe.id }}"
                                                 type="button">
                                             Annuler
                                         </button>
 
-                                        <button class="fr-btn fr-btn--primary confirm"
-                                                data-action="click->form-utils#disableButtons">
+                                        <button class="fr-btn fr-btn--primary confirm">
                                             Confirmer
                                         </button>
                                     </div>

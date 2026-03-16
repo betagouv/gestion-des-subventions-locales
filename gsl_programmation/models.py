@@ -96,6 +96,12 @@ class Enveloppe(BaseModel):
         return self.deleguee_by is not None
 
     @property
+    def ordered_sous_enveloppes(self):
+        return self.enveloppe_set.order_by(
+            "perimetre__departement_id", "perimetre__arrondissement_id"
+        )
+
+    @property
     def delegation_root(self) -> "Enveloppe":
         if not self.is_deleguee:
             return self
