@@ -32,7 +32,8 @@ document.querySelectorAll('.gsl-dropdown button').forEach(button => {
     event.stopPropagation()
     const content = this.nextElementSibling
     if (content) {
-      content.style.display = content.style.display === 'grid' ? 'none' : 'grid'
+      const displayStyle = content.classList.contains('gsl-column-visibility-list') ? 'block' : 'grid'
+      content.style.display = content.style.display === displayStyle ? 'none' : displayStyle
     }
   })
 })

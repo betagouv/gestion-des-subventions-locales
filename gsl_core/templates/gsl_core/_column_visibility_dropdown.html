@@ -18,22 +18,24 @@
     <div class="gsl-dropdown-content gsl-column-visibility-list">
         <form {% if simulation %} hx-post="{% url 'gsl_simulation:simulation-columns-visibility' simulation.slug %}" hx-trigger="change" hx-swap="none" {% endif %}>
             {% csrf_token %}
-            {% for column in columns %}
-                {% if column.hideable %}
-                    <div class="fr-checkbox-group fr-checkbox-group--sm">
-                        {% if simulation %}
-                            <input type="hidden" name="{{ column.css_key }}" value="false">
-                        {% endif %}
-                        <input type="checkbox"
-                               id="toggle-col-{{ column.css_key }}"
-                               {% if simulation %}name="{{ column.css_key }}" value="true"{% endif %}
-                               {% if column.displayed_by_default %}checked{% endif %}>
-                        <label class="fr-label" for="toggle-col-{{ column.css_key }}">
-                            {{ column.label }}
-                        </label>
-                    </div>
-                {% endif %}
-            {% endfor %}
+            <div class="gsl-column-visibility-checkboxes">
+                {% for column in columns %}
+                    {% if column.hideable %}
+                        <div class="fr-checkbox-group fr-checkbox-group--sm">
+                            {% if simulation %}
+                                <input type="hidden" name="{{ column.css_key }}" value="false">
+                            {% endif %}
+                            <input type="checkbox"
+                                   id="toggle-col-{{ column.css_key }}"
+                                   {% if simulation %}name="{{ column.css_key }}" value="true"{% endif %}
+                                   {% if column.displayed_by_default %}checked{% endif %}>
+                            <label class="fr-label" for="toggle-col-{{ column.css_key }}">
+                                {{ column.label }}
+                            </label>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
             <button type="reset"
                     class="fr-btn fr-btn--tertiary-no-outline fr-btn--icon-left fr-btn--sm fr-icon-arrow-go-back-line gsl-column-visibility-reset">
                 Réinitialiser le tableau par défaut
