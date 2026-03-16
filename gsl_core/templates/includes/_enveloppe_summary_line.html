@@ -63,10 +63,11 @@
                 </div>
             </div>
             <form method="post"
-                  action="{% url 'gsl_projet:enveloppe-delete' enveloppe.id %}">
+                  action="{% url 'gsl_projet:enveloppe-delete' enveloppe.id %}"
+                  data-controller="form-utils">
                 {% csrf_token %}
                 <dialog id="enveloppe-delete-modal-{{ enveloppe.id }}"
-                        class="fr-modal confirmation-modal fr-text--regular">
+                        class="fr-modal confirmation-modal fr-text--regular enveloppe-delete-modal">
                     <div class="fr-container fr-container--fluid fr-container-md">
                         <div class="fr-grid-row fr-grid-row--center">
                             <div class="fr-col-12 fr-col-md-8 fr-col-lg-6 confirmation-modal-container">
@@ -90,13 +91,16 @@
                                             pour {{ enveloppe.perimetre }}&nbsp;?
                                         </p>
                                     </div>
-                                    <div class="fr-modal__footer confirmation-modal-footer">
+                                    <div class="fr-modal__footer confirmation-modal-footer"
+                                         data-form-utils-target="container">
                                         <button class="fr-btn fr-btn--secondary close-modal"
-                                                aria-controls="enveloppe-delete-modal-{{ enveloppe.id }}">
+                                                aria-controls="enveloppe-delete-modal-{{ enveloppe.id }}"
+                                                type="button">
                                             Annuler
                                         </button>
 
-                                        <button class="fr-btn fr-btn--primary confirm">
+                                        <button class="fr-btn fr-btn--primary confirm"
+                                                data-action="click->form-utils#disableButtons">
                                             Confirmer
                                         </button>
                                     </div>

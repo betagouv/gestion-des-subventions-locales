@@ -138,3 +138,8 @@
   height: 0.75rem;
   width: 0.75rem;
 }
+
+.enveloppe-delete-modal {
+  white-space: normal;
+  text-align: start;
+}
