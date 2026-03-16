@@ -11,6 +11,7 @@ from gsl_simulation.views.simulation_projet_notes_views import (
 )
 from gsl_simulation.views.simulation_projet_views import (
     EditAssietteView,
+    EditCommentView,
     EditMontantView,
     EditTauxView,
     ProgrammationStatusUpdateView,
@@ -86,6 +87,11 @@ urlpatterns = [
         "edit-taux/<int:pk>/",
         EditTauxView.as_view(),
         name="edit-taux",
+    ),
+    path(
+        "edit-comment/<int:pk>/<int:comment_number>/",
+        EditCommentView.as_view(),
+        name="edit-comment",
     ),
     path(
         "refresh-row/<int:pk>/",

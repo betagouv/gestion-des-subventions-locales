@@ -417,6 +417,28 @@ class TauxSingleFieldForm(forms.ModelForm):
         fields = []
 
 
+class CommentSingleFieldForm(forms.ModelForm):
+    value = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 3}))
+
+    def __init__(self, *args, comment_number, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.comment_number = comment_number
+        self.user = user
+        field_name = f"comment_{comment_number}"
+        self.fields["value"].initial = getattr(self.instance, field_name, "")
+
+    def save(self, commit=True):
+        field_name = f"comment_{self.comment_number}"
+        setattr(self.instance, field_name, self.cleaned_data["value"])
+        if commit:
+            self.instance.save(update_fields=[field_name])
+        return self.instance
+
+    class Meta:
+        model = Projet
+        fields = []
+
+
 class SimulationColumnsVisibilityForm(forms.ModelForm):
     class Meta:
         model = Simulation
