@@ -6,22 +6,22 @@
 #
 amqp==5.3.1
     # via kombu
-asgiref==3.11.0
+asgiref==3.11.1
     # via
     #   django
     #   django-axes
     #   django-htmx
 asttokens==3.0.1
     # via stack-data
-beautifulsoup4==4.14.2
+beautifulsoup4==4.14.3
     # via bs4
-billiard==4.2.3
+billiard==4.2.4
     # via celery
-boto3==1.41.3
+boto3==1.42.69
     # via
     #   django-storages
     #   gsl (pyproject.toml)
-botocore==1.41.3
+botocore==1.42.69
     # via
     #   boto3
     #   s3transfer
@@ -29,12 +29,12 @@ brotli==1.2.0
     # via fonttools
 bs4==0.0.2
     # via gsl (pyproject.toml)
-celery==5.5.3
+celery==5.6.2
     # via
     #   django-celery-beat
     #   django-celery-results
     #   gsl (pyproject.toml)
-certifi==2025.11.12
+certifi==2026.2.25
     # via
     #   requests
     #   sentry-sdk
@@ -42,7 +42,7 @@ cffi==2.0.0
     # via
     #   cryptography
     #   weasyprint
-charset-normalizer==3.4.4
+charset-normalizer==3.4.6
     # via requests
 click==8.3.1
     # via
@@ -56,13 +56,11 @@ click-plugins==1.1.1.2
     # via celery
 click-repl==0.3.0
     # via celery
-cron-descriptor==2.0.6
+cron-descriptor==1.4.5
     # via django-celery-beat
-cryptography==46.0.3
-    # via
-    #   josepy
-    #   mozilla-django-oidc
-cssselect2==0.8.0
+cryptography==46.0.5
+    # via mozilla-django-oidc
+cssselect2==0.9.0
     # via weasyprint
 decorator==5.2.1
     # via ipython
@@ -72,16 +70,15 @@ deprecated==1.3.1
     # via pikepdf
 diff-match-patch==20241021
     # via django-import-export
-dj-database-url==3.0.1
+dj-database-url==3.1.2
     # via gsl (pyproject.toml)
-django==5.2.8
+django==6.0.3
     # via
     #   dj-database-url
     #   django-axes
     #   django-celery-beat
     #   django-celery-results
     #   django-crispy-forms
-    #   django-csp
     #   django-dsfr
     #   django-extensions
     #   django-filter
@@ -92,21 +89,21 @@ django==5.2.8
     #   django-otp
     #   django-referrer-policy
     #   django-storages
+    #   django-stubs-ext
     #   django-timezone-field
     #   django-weasyprint
+    #   django-widget-tweaks
     #   gsl (pyproject.toml)
     #   mozilla-django-oidc
-django-axes==8.3.0
+django-axes==8.3.1
     # via gsl (pyproject.toml)
-django-celery-beat==2.8.1
+django-celery-beat==2.9.0
     # via gsl (pyproject.toml)
 django-celery-results==2.6.0
     # via gsl (pyproject.toml)
-django-crispy-forms==2.5
+django-crispy-forms==2.6
     # via django-dsfr
-django-csp==4.0
-    # via gsl (pyproject.toml)
-django-dsfr==3.2.0
+django-dsfr==3.3.1
     # via gsl (pyproject.toml)
 django-extensions==4.1
     # via gsl (pyproject.toml)
@@ -114,11 +111,11 @@ django-filter==25.2
     # via gsl (pyproject.toml)
 django-formtools==2.5.1
     # via gsl (pyproject.toml)
-django-fsm-2==4.1.0
+django-fsm-2==4.2.4
     # via gsl (pyproject.toml)
-django-htmx==1.26.0
+django-htmx==1.27.0
     # via gsl (pyproject.toml)
-django-import-export==4.3.14
+django-import-export==4.4.0
     # via gsl (pyproject.toml)
 django-json-widget==2.1.1
     # via gsl (pyproject.toml)
@@ -128,63 +125,62 @@ django-referrer-policy==1.0
     # via gsl (pyproject.toml)
 django-storages[s3]==1.14.6
     # via gsl (pyproject.toml)
-django-timezone-field==7.1
+django-stubs-ext==6.0.0
+    # via django-fsm-2
+django-timezone-field==7.2.1
     # via django-celery-beat
 django-weasyprint==2.4.0
     # via gsl (pyproject.toml)
-django-widget-tweaks==1.5.0
+django-widget-tweaks==1.5.1
     # via django-dsfr
 et-xmlfile==2.0.0
     # via openpyxl
 executing==2.2.1
     # via stack-data
-fonttools[woff]==4.60.1
+fonttools[woff]==4.62.1
     # via weasyprint
-gunicorn==23.0.0
+gunicorn==25.1.0
     # via gsl (pyproject.toml)
 idna==3.11
     # via requests
 img2pdf==0.6.3
     # via gsl (pyproject.toml)
-ipython==9.7.0
+ipython==9.11.0
     # via gsl (pyproject.toml)
 ipython-pygments-lexers==1.1.1
     # via ipython
 jedi==0.19.2
     # via ipython
-jmespath==1.0.1
+jmespath==1.1.0
     # via
     #   boto3
     #   botocore
-josepy==2.2.0
-    # via mozilla-django-oidc
-kombu==5.5.4
+kombu==5.6.2
     # via celery
 lxml==6.0.2
     # via pikepdf
 matplotlib-inline==0.2.1
     # via ipython
-mozilla-django-oidc==4.0.1
+mozilla-django-oidc==5.0.2
     # via gsl (pyproject.toml)
 odfpy==1.4.1
     # via tablib
 openpyxl==3.1.5
     # via tablib
-packaging==25.0
+packaging==26.0
     # via
-    #   django-csp
     #   gunicorn
     #   kombu
     #   pikepdf
-parso==0.8.5
+parso==0.8.6
     # via jedi
 pexpect==4.9.0
     # via ipython
-pikepdf==10.0.2
+pikepdf==10.5.0
     # via
     #   gsl (pyproject.toml)
     #   img2pdf
-pillow==12.0.0
+pillow==12.1.1
     # via
     #   img2pdf
     #   pikepdf
@@ -193,22 +189,24 @@ prompt-toolkit==3.0.52
     # via
     #   click-repl
     #   ipython
-psycopg[binary]==3.2.13
+psycopg[binary]==3.3.3
     # via gsl (pyproject.toml)
-psycopg-binary==3.2.13
+psycopg-binary==3.3.3
     # via psycopg
 ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.3
     # via stack-data
-pycparser==2.23
+pycparser==3.0
     # via cffi
-pydyf==0.11.0
+pydyf==0.12.1
     # via weasyprint
 pygments==2.19.2
     # via
     #   ipython
     #   ipython-pygments-lexers
+pyjwt==2.12.1
+    # via mozilla-django-oidc
 pyphen==0.17.2
     # via weasyprint
 python-crontab==3.3.0
@@ -217,26 +215,26 @@ python-dateutil==2.9.0.post0
     # via
     #   botocore
     #   celery
-python-dotenv==1.2.1
+python-dotenv==1.2.2
     # via gsl (pyproject.toml)
-redis==7.1.0
+redis==7.3.0
     # via gsl (pyproject.toml)
 requests==2.32.5
     # via
     #   django-dsfr
     #   gsl (pyproject.toml)
     #   mozilla-django-oidc
-s3transfer==0.15.0
+s3transfer==0.16.0
     # via boto3
 segno==1.6.6
     # via gsl (pyproject.toml)
-sentry-sdk==2.46.0
+sentry-sdk==2.54.0
     # via gsl (pyproject.toml)
 six==1.17.0
     # via python-dateutil
-soupsieve==2.8
+soupsieve==2.8.3
     # via beautifulsoup4
-sqlparse==0.5.3
+sqlparse==0.5.5
     # via django
 stack-data==0.6.3
     # via ipython
@@ -248,7 +246,7 @@ tinycss2==1.5.1
     # via
     #   cssselect2
     #   weasyprint
-tinyhtml5==2.0.0
+tinyhtml5==2.1.0
     # via weasyprint
 traitlets==5.14.3
     # via
@@ -257,12 +255,14 @@ traitlets==5.14.3
 typing-extensions==4.15.0
     # via
     #   beautifulsoup4
-    #   cron-descriptor
-tzdata==2025.2
+    #   django-stubs-ext
+tzdata==2025.3
     # via
     #   django-celery-beat
     #   kombu
-urllib3==2.5.0
+tzlocal==5.3.1
+    # via celery
+urllib3==2.6.3
     # via
     #   botocore
     #   requests
@@ -272,22 +272,22 @@ vine==5.1.0
     #   amqp
     #   celery
     #   kombu
-wcwidth==0.2.14
+wcwidth==0.6.0
     # via prompt-toolkit
-weasyprint==66.0
+weasyprint==68.1
     # via django-weasyprint
 webencodings==0.5.1
     # via
     #   cssselect2
     #   tinycss2
     #   tinyhtml5
-whitenoise==6.11.0
+whitenoise==6.12.0
     # via gsl (pyproject.toml)
-wrapt==2.0.1
+wrapt==2.1.2
     # via deprecated
 xlrd==2.0.2
     # via tablib
 xlwt==1.3.0
     # via tablib
-zopfli==0.4.0
+zopfli==0.4.1
     # via fonttools

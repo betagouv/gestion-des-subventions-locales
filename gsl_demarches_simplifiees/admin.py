@@ -1,15 +1,15 @@
-from csp.constants import SELF, UNSAFE_INLINE
-from csp.decorators import csp_update
 from django.contrib import admin, messages
 from django.db.models import Count, JSONField
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
 from django.utils import timezone
+from django.utils.csp import CSP
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django_json_widget.widgets import JSONEditorWidget
 from import_export.admin import ImportExportMixin
 
+from gsl.utils.csp import csp_update
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_core.models import Arrondissement
 
@@ -434,7 +434,10 @@ class DossierDataAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     # useful to use JsonEditorWidget
     @method_decorator(
         csp_update(
-            {"script-src": [SELF, UNSAFE_INLINE], "style-src": [SELF, UNSAFE_INLINE]},
+            {
+                "script-src": [CSP.SELF, CSP.UNSAFE_INLINE],
+                "style-src": [CSP.SELF, CSP.UNSAFE_INLINE],
+            },
         )
     )
     def changeform_view(self, *args, **kwargs):
