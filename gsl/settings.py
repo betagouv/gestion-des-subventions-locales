@@ -160,6 +160,11 @@ STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 
+# ManifestStaticFilesStorage modifie le contenu des CSS DSFR (URLs versionnées),
+# ce qui invalide les hashes SRI précalculés par django-dsfr.
+# Le cache-busting par empreinte dans le nom de fichier suffit.
+DSFR_USE_INTEGRITY_CHECKSUMS = False
+
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.getenv("MEDIA_ROOT", BASE_DIR / "media")
 
