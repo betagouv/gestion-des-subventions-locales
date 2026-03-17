@@ -425,3 +425,8 @@ OTP_ENABLED = os.getenv("OTP_ENABLED", "true").lower() == "true"
 
 # Matomo configuration
 MATOMO_SITE_ID = os.getenv("MATOMO_SITE_ID", None)
+
+# Antivirus (ClamAV)
+BYPASS_ANTIVIRUS = os.getenv("BYPASS_ANTIVIRUS", "false").lower() == "true"
+# Default is Scalingo default dir https://github.com/Scalingo/clamav-buildpack
+CLAMAV_CONFIG_FILE = os.getenv("CLAMAV_CONFIG_FILE", "/app/clamav/conf/clamd.conf")

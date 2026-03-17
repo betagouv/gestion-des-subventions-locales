@@ -73,6 +73,17 @@ class ModeleDocument(models.Model):
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Antivirus
+    last_scan = models.DateTimeField(
+        verbose_name="Dernière analyse antivirus",
+        null=True,
+        blank=True,
+    )
+    is_infected = models.BooleanField(
+        verbose_name="Fichier infecté",
+        null=True,
+    )
+
     class Meta:
         verbose_name = "Modèle de document"
         verbose_name_plural = "Modèles de document"
@@ -186,6 +197,10 @@ class GeneratedDocument(models.Model):
         return True
 
     @property
+    def is_downloadable(self):
+        return True
+
+    @property
     def name(self):
         raise NotImplementedError
 
@@ -242,8 +257,24 @@ class UploadedDocument(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
 
+    last_scan = models.DateTimeField(
+        verbose_name="Dernière analyse antivirus",
+        null=True,
+        blank=True,
+    )
+    is_infected = models.BooleanField(
+        verbose_name="Fichier infecté",
+        null=True,
+    )
+
     class Meta:
         abstract = True
+
+    @property
+    def is_downloadable(self):
+        if settings.BYPASS_ANTIVIRUS:
+            return True
+        return self.last_scan is not None and not self.is_infected
 
     def get_download_url(self):
         return reverse(
