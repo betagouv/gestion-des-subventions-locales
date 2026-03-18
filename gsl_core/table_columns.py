@@ -2,6 +2,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Optional
 
+from django.utils.html import mark_safe
+
+from gsl_core.templatetags.gsl_filters import euro_value
 from gsl_demarches_simplifiees.models import Dossier
 
 
@@ -295,6 +298,30 @@ COLUMN_BUDGET_VERT_INSTRUCTEUR = Column(
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
 )
+
+
+def _get_cofinancements(context):
+    dossier = context["projet"].dossier_ds
+    cofinancements = dossier.get_cofinancements_avec_montants()
+    if not cofinancements:
+        return "—"
+    lignes = []
+    for cofinancement in cofinancements:
+        if cofinancement["montant"]:
+            ligne = f"{cofinancement['nom']} : {euro_value(cofinancement['montant'])}€"
+        else:
+            ligne = cofinancement["nom"]
+        lignes.append(ligne)
+    return mark_safe("<ul><li>" + "</li><li>".join(lignes) + "</li></ul>")
+
+
+COLUMN_COFINANCEMENTS = Column(
+    key="cofinancements",
+    label="Co-financements sollicités",
+    getter=_get_cofinancements,
+    displayed_by_default=False,
+)
+
 
 COLUMN_COMPLETED_DOSSIER = Column(
     key="completed_dossier",

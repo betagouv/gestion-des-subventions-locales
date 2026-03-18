@@ -141,7 +141,8 @@ ul.no-list-style li {
 
 /* Column widths scoped by table ID and column class */
 #table-projets .gsl-col--intitule,
-#table-programmation .gsl-col--intitule {
+#table-programmation .gsl-col--intitule,
+#table-simulation .gsl-col--intitule {
     max-width: 180px;
     width: 180px;
     min-width: 140px;
@@ -149,10 +150,12 @@ ul.no-list-style li {
     text-overflow: ellipsis;
 }
 
-#table-simulation .gsl-col--intitule {
-    max-width: 180px;
-    width: 180px;
-    min-width: 140px;
+#table-projets .gsl-col--cofinancements,
+#table-programmation .gsl-col--cofinancements,
+#table-simulation .gsl-col--cofinancements  {
+    max-width: 200px;
+    width: 200px;
+    min-width: 180px;
     overflow: hidden;
     text-overflow: ellipsis;
 }

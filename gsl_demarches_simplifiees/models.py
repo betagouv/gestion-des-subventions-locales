@@ -400,7 +400,72 @@ class Dossier(BaseModel):
     )
     demande_autres_aides = models.ManyToManyField(
         "gsl_demarches_simplifiees.AutreAide",
-        verbose_name="En 2024, comptez-vous solliciter d'autres aides publiques pour financer cette opération  ?",
+        verbose_name="Comptez-vous solliciter d'autres aides publiques pour financer cette opération ?",
+        blank=True,
+    )
+    demande_cofinancements = models.ManyToManyField(
+        "gsl_demarches_simplifiees.Cofinancement",
+        verbose_name="Comptez-vous solliciter d'autres aides publiques pour financer cette opération  ?",
+        blank=True,
+    )
+    cofinancement_fonds_vert_montant = models.DecimalField(
+        "Fonds vert - Précisez le montant sollicité ou obtenu",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    cofinancement_dpv_montant = models.DecimalField(
+        "DPV - Précisez le montant sollicité ou obtenu",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    cofinancement_fnadt_montant = models.DecimalField(
+        "FNADT - Précisez le montant sollicité ou obtenu",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    cofinancement_conseil_regional_montant = models.DecimalField(
+        "Aide du Conseil régional - Précisez le montant sollicité ou obtenu",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    cofinancement_conseil_departemental_montant = models.DecimalField(
+        "Aide du Conseil départemental  - Précisez le montant sollicité ou obtenu",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    cofinancement_epci_montant = models.DecimalField(
+        "Aide d'un EPCI - Précisez le montant sollicité ou obtenu",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    cofinancement_ue_montant = models.DecimalField(
+        "Aide de l'Union européenne - Précisez le montant sollicité ou obtenu",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    cofinancement_autre = models.TextField(
+        "Autre dispositif de financement - Précisez le dispositif concerné",
+        blank=True,
+    )
+    cofinancement_autre_montant = models.DecimalField(
+        "Autre dispositif de financement - Précisez le montant sollicité ou obtenu",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
         blank=True,
     )
 
@@ -547,6 +612,16 @@ class Dossier(BaseModel):
         demande_categorie_dsil,
         demande_montant,
         demande_autres_aides,
+        demande_cofinancements,
+        cofinancement_fonds_vert_montant,
+        cofinancement_dpv_montant,
+        cofinancement_fnadt_montant,
+        cofinancement_conseil_regional_montant,
+        cofinancement_conseil_departemental_montant,
+        cofinancement_epci_montant,
+        cofinancement_ue_montant,
+        cofinancement_autre,
+        cofinancement_autre_montant,
         demande_autre_precision,
         demande_autre_numero_dossier,
         demande_autre_dsil_detr,
@@ -642,6 +717,29 @@ class Dossier(BaseModel):
             )
 
         return dotations
+
+    def get_cofinancements_avec_montants(self) -> list[dict]:
+        """
+        Retourne la liste des co-financements du dossier avec leur montant.
+        Chaque élément est un dict {"nom": str, "montant": Decimal | None}.
+        """
+        result = []
+        for cofinancement in self.demande_cofinancements.all():
+            if cofinancement.label == COFINANCEMENT_AUTRE_LABEL:
+                nom = (
+                    f"Autre ({self.cofinancement_autre})"
+                    if self.cofinancement_autre
+                    else "Autre"
+                )
+                montant = self.cofinancement_autre_montant
+            else:
+                nom = cofinancement.label
+                field_name = COFINANCEMENT_LABEL_TO_MONTANT_FIELD.get(
+                    cofinancement.label
+                )
+                montant = getattr(self, field_name, None) if field_name else None
+            result.append({"nom": nom, "montant": montant})
+        return result
 
     @property
     def has_annotations_champ_libre(self):
@@ -822,6 +920,23 @@ class CategorieDsil(Categorie):
 
 class AutreAide(DsChoiceLibelle):
     pass
+
+
+class Cofinancement(DsChoiceLibelle):
+    pass
+
+
+COFINANCEMENT_AUTRE_LABEL = "Autre dispositif de financement"
+
+COFINANCEMENT_LABEL_TO_MONTANT_FIELD = {
+    "Fonds vert": "cofinancement_fonds_vert_montant",
+    "Dotation politique de la ville (DPV)": "cofinancement_dpv_montant",
+    "Fonds National d'Aménagement et de Développement du Territoire (FNADT)": "cofinancement_fnadt_montant",
+    "Aide du Conseil régional": "cofinancement_conseil_regional_montant",
+    "Aide du Conseil départemental": "cofinancement_conseil_departemental_montant",
+    "Aide d'un EPCI": "cofinancement_epci_montant",
+    "Aide de l'Union Européenne": "cofinancement_ue_montant",
+}
 
 
 class Profile(BaseModel):

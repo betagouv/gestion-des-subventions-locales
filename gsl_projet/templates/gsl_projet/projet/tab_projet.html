@@ -337,6 +337,25 @@
                     {% endfor %}
                 {% endblock categories %}
 
+                {% with cofinancements=dossier.get_cofinancements_avec_montants %}
+                    {% if cofinancements %}
+                        <h3 id="cofinancements_sollicites">
+                            Co-financements sollicités
+                        </h3>
+                        <ul>
+                            {% for cofinancement in cofinancements %}
+                                <li>
+                                    {% if cofinancement.montant %}
+                                        {{ cofinancement.nom }} : {{ cofinancement.montant|euro:2 }}
+                                    {% else %}
+                                        {{ cofinancement.nom }}
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% endwith %}
+
                 <h3 id="couts_financement">
                     Coûts de financement
                 </h3>
