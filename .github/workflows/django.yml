@@ -16,20 +16,8 @@ jobs:
       matrix:
         python-version: [3.13]
 
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_DB: gsl
-          POSTGRES_USER: gsl_team
-          POSTGRES_PASSWORD: gsl_pass
-        ports:
-          - 5432:5432
-        # needed because the postgres container does not provide a healthcheck
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-
     env:
-      DATABASE_URL: "postgres://${{ vars.DATABASE_USER }}:${{ vars.DATABASE_PASSWORD }}@${{ vars.DATABASE_HOST }}:${{ vars.DATABASE_PORT }}/${{ vars.DATABASE_NAME }}"
+      DATABASE_URL: "sqlite://:memory:"
       SECRET_KEY: ${{ vars.SECRET_KEY }}
       ENV: test
 
