@@ -460,9 +460,9 @@ class FilteredProjetsExportView(SimulationDetailView):
         )
 
         resource = (
-            DsilSimulationProjetResource()
+            DsilSimulationProjetResource(export_format=export_type)
             if self.simulation.dotation == DOTATION_DSIL
-            else DetrSimulationProjetResource()
+            else DetrSimulationProjetResource(export_format=export_type)
         )
         dataset = resource.export(simu_projet_qs)
 
@@ -472,7 +472,10 @@ class FilteredProjetsExportView(SimulationDetailView):
         for header in headers_to_remove:
             del dataset[header]
 
-        export_data = dataset.export(export_type)
+        if export_type == self.CSV:
+            export_data = dataset.export("csv", delimiter=";")
+        else:
+            export_data = dataset.export(export_type)
         content_type = self.EXPORT_TYPE_TO_CONTENT_TYPE[export_type]
 
         response = HttpResponse(export_data, content_type=content_type)
