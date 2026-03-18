@@ -150,9 +150,7 @@ ul.no-list-style li {
     text-overflow: ellipsis;
 }
 
-#table-projets .gsl-col--cofinancements,
-#table-programmation .gsl-col--cofinancements,
-#table-simulation .gsl-col--cofinancements  {
+.gsl-col--180px-min {
     max-width: 200px;
     width: 200px;
     min-width: 180px;

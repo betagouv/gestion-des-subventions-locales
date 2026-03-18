@@ -82,6 +82,9 @@ class Column:
     hideable: bool = True
     displayed_by_default: Optional[bool] = True
 
+    # Extra CSS classes applied to <th> and <td>
+    extra_css_classes: Optional[str] = None
+
     # Existing fields
     sticky: Optional[StickyPosition] = None
     aggregate_key: Optional[str] = None
@@ -123,12 +126,22 @@ class Column:
 
     @property
     def th_classes(self) -> str:
-        return " ".join(filter(None, [self.css_class, self.sticky_class]))
+        return " ".join(
+            filter(None, [self.css_class, self.sticky_class, self.extra_css_classes])
+        )
 
     @property
     def td_classes(self) -> str:
         return " ".join(
-            filter(None, [self.css_class, self.sticky_class, self.align_class])
+            filter(
+                None,
+                [
+                    self.css_class,
+                    self.sticky_class,
+                    self.align_class,
+                    self.extra_css_classes,
+                ],
+            )
         )
 
     @property
@@ -320,6 +333,50 @@ COLUMN_COFINANCEMENTS = Column(
     label="Co-financements sollicités",
     getter=_get_cofinancements,
     displayed_by_default=False,
+    extra_css_classes="gsl-col--180px-min",
+)
+
+
+def _get_m2m_with_autre(items, autre, autre_item_name):
+    lignes = [item.label for item in items if item.label != autre_item_name]
+    if autre:
+        lignes.append(f"Autre : {autre}")
+    if not lignes:
+        return "—"
+    return mark_safe("<ul><li>" + "</li><li>".join(lignes) + "</li></ul>")
+
+
+def _get_zonage(context):
+    dossier = context["projet"].dossier_ds
+    return _get_m2m_with_autre(
+        dossier.projet_zonage.all(), dossier.projet_zonage_autre, "Autre zonage"
+    )
+
+
+COLUMN_ZONAGE = Column(
+    key="zonage",
+    label="Zonage",
+    getter=_get_zonage,
+    displayed_by_default=False,
+    extra_css_classes="gsl-col--180px-min",
+)
+
+
+def _get_contractualisation(context):
+    dossier = context["projet"].dossier_ds
+    return _get_m2m_with_autre(
+        dossier.projet_contractualisation.all(),
+        dossier.projet_contractualisation_autre,
+        "Autre contrat",
+    )
+
+
+COLUMN_CONTRACTUALISATION = Column(
+    key="contractualisation",
+    label="Contractualisation",
+    getter=_get_contractualisation,
+    displayed_by_default=False,
+    extra_css_classes="gsl-col--180px-min",
 )
 
 
