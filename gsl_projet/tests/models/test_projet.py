@@ -14,7 +14,7 @@ from gsl_projet.constants import (
 from gsl_projet.models import Projet
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
-pytestmark = pytest.mark.django_db(transaction=True)
+pytestmark = pytest.mark.django_db
 
 
 @pytest.mark.parametrize(
