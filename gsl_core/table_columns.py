@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Optional
 
-from django.utils.html import format_html
+from django.utils.html import format_html, mark_safe
 
 from gsl_demarches_simplifiees.models import Dossier
 
@@ -356,6 +356,49 @@ COLUMN_COFINANCEMENTS = Column(
     label="Co-financements sollicités",
     getter=_get_cofinancements,
     template_name="gsl_core/table_cells/cofinancements.html",
+    displayed_by_default=False,
+    width=ColumnWidth.MIN_180,
+)
+
+
+def _get_m2m_with_autre(items, autre, autre_item_name):
+    lignes = [item.label for item in items if item.label != autre_item_name]
+    if autre:
+        lignes.append(f"Autre : {autre}")
+    if not lignes:
+        return "—"
+    return mark_safe("<ul><li>" + "</li><li>".join(lignes) + "</li></ul>")
+
+
+def _get_zonage(context):
+    dossier = context["projet"].dossier_ds
+    return _get_m2m_with_autre(
+        dossier.projet_zonage.all(), dossier.projet_zonage_autre, "Autre zonage"
+    )
+
+
+COLUMN_ZONAGE = Column(
+    key="zonage",
+    label="Zonage",
+    getter=_get_zonage,
+    displayed_by_default=False,
+    width=ColumnWidth.MIN_180,
+)
+
+
+def _get_contractualisation(context):
+    dossier = context["projet"].dossier_ds
+    return _get_m2m_with_autre(
+        dossier.projet_contractualisation.all(),
+        dossier.projet_contractualisation_autre,
+        "Autre contrat",
+    )
+
+
+COLUMN_CONTRACTUALISATION = Column(
+    key="contractualisation",
+    label="Contractualisation",
+    getter=_get_contractualisation,
     displayed_by_default=False,
     width=ColumnWidth.MIN_180,
 )
