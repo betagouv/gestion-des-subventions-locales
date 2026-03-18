@@ -313,11 +313,15 @@ COLUMN_BUDGET_VERT_INSTRUCTEUR = Column(
 )
 
 
+def _format_as_list(lignes):
+    if not lignes:
+        return "—"
+    return mark_safe("<ul><li>" + "</li><li>".join(lignes) + "</li></ul>")
+
+
 def _get_cofinancements(context):
     dossier = context["projet"].dossier_ds
     cofinancements = dossier.get_cofinancements_avec_montants()
-    if not cofinancements:
-        return "—"
     lignes = []
     for cofinancement in cofinancements:
         if cofinancement["montant"]:
@@ -325,7 +329,7 @@ def _get_cofinancements(context):
         else:
             ligne = cofinancement["nom"]
         lignes.append(ligne)
-    return mark_safe("<ul><li>" + "</li><li>".join(lignes) + "</li></ul>")
+    return _format_as_list(lignes)
 
 
 COLUMN_COFINANCEMENTS = Column(
@@ -341,9 +345,7 @@ def _get_m2m_with_autre(items, autre, autre_item_name):
     lignes = [item.label for item in items if item.label != autre_item_name]
     if autre:
         lignes.append(f"Autre : {autre}")
-    if not lignes:
-        return "—"
-    return mark_safe("<ul><li>" + "</li><li>".join(lignes) + "</li></ul>")
+    return _format_as_list(lignes)
 
 
 def _get_zonage(context):
