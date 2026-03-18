@@ -163,6 +163,7 @@ class ProjetListViewFilters(BaseProjetFilters):
         ).prefetch_related(
             # "dotationprojet_set__detr_categories", # TODO category : useless now. Remove it if we don't allow to set DETR category. The code is commented to enhance performance.
             "dotationprojet_set__programmation_projet",
+            "dossier_ds__demande_cofinancements",
             Prefetch(
                 "dossier_ds__ds_demarche",
                 queryset=Demarche.objects.defer("raw_ds_data"),
