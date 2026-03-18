@@ -1,8 +1,6 @@
 {% load static %}
 
-{% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/projet_list_filters.css' %}">
-{% endblock extra_css %}
+<link rel="stylesheet" href="{% static 'css/projet_list_filters.css' %}">
 
 <form method="get"
       action="{{ request.path }}{% querystring %}"
@@ -31,7 +29,5 @@
         </div>
     </div>
 </form>
-{% block extra_js %}
-    <script src="{% static "js/projectFilters.js" %}" defer></script>
-    <script src="{% static 'js/territoireFilter.js' %}" defer></script>
-{% endblock extra_js %}
+<script src="{% static "js/projectFilters.js" %}" defer></script>
+<script src="{% static 'js/territoireFilter.js' %}" defer></script>
