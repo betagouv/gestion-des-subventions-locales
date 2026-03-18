@@ -92,7 +92,9 @@
                                             </details>
                                         </th>
                                         {% for column in columns %}
-                                            <th scope="col" class="{{ column.th_classes }}">
+                                            <th scope="col"
+                                                class="{{ column.th_classes }}"
+                                                {% if column.sort_param %}aria-sort="{{ column|aria_sort:current_order }}"{% endif %}>
                                                 {% if column.header_template_name %}
                                                     {% include column.header_template_name %}
                                                 {% else %}

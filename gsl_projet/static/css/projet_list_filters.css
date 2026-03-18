@@ -155,7 +155,7 @@
   flex-wrap: wrap;
   gap: 0.75rem;
   justify-content: flex-start;
-  align-items: flex-end;
+  align-items: stretch;
 }
 
 .filters-flex-row > .filter-field,
@@ -164,6 +164,13 @@
   width: auto;
   max-width: 220px;
   min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.filters-flex-row > .reinit-filters {
+  justify-content: flex-end;
 }
 
 @media (width <= 768px) {

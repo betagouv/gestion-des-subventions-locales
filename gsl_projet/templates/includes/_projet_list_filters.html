@@ -1,4 +1,4 @@
-{% load static %}
+{% load static gsl_filters %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/projet_list_filters.css' %}">
@@ -24,7 +24,26 @@
                     <span class="fr-icon-arrow-go-back-fill fr-icon--sm"></span> Réinitialiser les filtres
                 </button>
             </div>
-            {% include "includes/_filter_trier_par.html" %}
+            {% if current_order %}
+                {% active_sort_label columns current_order as sort_label %}
+                {% if sort_label %}
+                    <div class="filter-field">
+                        <label class="fr-label">
+                            Tri
+                        </label>
+                        <a href="{% querystring order='' %}"
+                           class="fr-tag fr-tag--dismiss filter-dropdown-button-active"
+                           aria-label="Retirer le tri">
+                            {% if current_order|first == "-" %}
+                                ↓
+                            {% else %}
+                                ↑
+                            {% endif %}
+                            {{ sort_label }}
+                        </a>
+                    </div>
+                {% endif %}
+            {% endif %}
             {% for filter_name in filter_templates %}
                 {% include filter_name %}
             {% endfor %}
