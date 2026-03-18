@@ -224,6 +224,17 @@ class DossierConverter:
                     )
                 )
 
+        if (
+            isinstance(injectable_value, str)
+            and not injectable_value
+            and isinstance(
+                django_field_object,
+                (models.DecimalField, models.IntegerField, models.FloatField),
+            )
+            and django_field_object.null
+        ):
+            injectable_value = None
+
         dossier.__setattr__(django_field_object.name, injectable_value)
 
     def _inject_into_manytomany_field(
