@@ -608,7 +608,7 @@ class Dossier(BaseModel):
 
     @property
     def porteur_fullname(self):
-        return f"{self.porteur_de_projet_nom} {self.porteur_de_projet_prenom}"
+        return f"{self.porteur_de_projet_prenom} {self.porteur_de_projet_nom}"
 
     @property
     def demande_montant_is_greater_than_min_montant_for_detr_commission(self):
