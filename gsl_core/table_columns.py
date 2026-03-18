@@ -365,9 +365,7 @@ def _get_m2m_with_autre(items, autre, autre_item_name):
     lignes = [item.label for item in items if item.label != autre_item_name]
     if autre:
         lignes.append(f"Autre : {autre}")
-    if not lignes:
-        return "—"
-    return mark_safe("<ul><li>" + "</li><li>".join(lignes) + "</li></ul>")
+    return lignes or None
 
 
 def _get_zonage(context):
@@ -381,6 +379,7 @@ COLUMN_ZONAGE = Column(
     key="zonage",
     label="Zonage",
     getter=_get_zonage,
+    template_name="gsl_core/table_cells/_list_cell.html",
     displayed_by_default=False,
     width=ColumnWidth.MIN_180,
 )
@@ -399,6 +398,7 @@ COLUMN_CONTRACTUALISATION = Column(
     key="contractualisation",
     label="Contractualisation",
     getter=_get_contractualisation,
+    template_name="gsl_core/table_cells/_list_cell.html",
     displayed_by_default=False,
     width=ColumnWidth.MIN_180,
 )
