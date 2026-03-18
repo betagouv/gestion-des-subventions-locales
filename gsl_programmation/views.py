@@ -153,12 +153,13 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
                 "dotation_projet__projet",
                 "dotation_projet__projet__dossier_ds",
                 "dotation_projet__projet__dossier_ds__demande_categorie_dsil",
+                "dotation_projet__projet__dossier_ds__demande_categorie_detr",
             )
             .prefetch_related(
                 "dotation_projet__projet__dotationprojet_set",
                 "dotation_projet__projet__dotationprojet_set__programmation_projet",
                 "dotation_projet__projet__dotationprojet_set__simulationprojet_set",
-                "dotation_projet__projet__dotationprojet_set__detr_categories",
+                "dotation_projet__projet__dossier_ds__demande_cofinancements",
                 "annexes",
             )
         )
