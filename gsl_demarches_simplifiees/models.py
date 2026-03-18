@@ -398,11 +398,6 @@ class Dossier(BaseModel):
         null=True,
         blank=True,
     )
-    demande_autres_aides = models.ManyToManyField(
-        "gsl_demarches_simplifiees.AutreAide",
-        verbose_name="Comptez-vous solliciter d'autres aides publiques pour financer cette opération ?",
-        blank=True,
-    )
     demande_cofinancements = models.ManyToManyField(
         "gsl_demarches_simplifiees.Cofinancement",
         verbose_name="Comptez-vous solliciter d'autres aides publiques pour financer cette opération  ?",
@@ -611,7 +606,6 @@ class Dossier(BaseModel):
         demande_categorie_detr,
         demande_categorie_dsil,
         demande_montant,
-        demande_autres_aides,
         demande_cofinancements,
         cofinancement_fonds_vert_montant,
         cofinancement_dpv_montant,
@@ -916,10 +910,6 @@ class CategorieDsil(Categorie):
 
     def __str__(self):
         return f"{self.label}"
-
-
-class AutreAide(DsChoiceLibelle):
-    pass
 
 
 class Cofinancement(DsChoiceLibelle):

@@ -138,15 +138,6 @@ class Migration(migrations.Migration):
                 verbose_name="Aide de l'Union européenne - Précisez le montant sollicité ou obtenu",
             ),
         ),
-        migrations.AlterField(
-            model_name="dossier",
-            name="demande_autres_aides",
-            field=models.ManyToManyField(
-                blank=True,
-                to="gsl_demarches_simplifiees.autreaide",
-                verbose_name="Comptez-vous solliciter d'autres aides publiques pour financer cette opération ?",
-            ),
-        ),
         migrations.AddField(
             model_name="dossier",
             name="demande_cofinancements",
