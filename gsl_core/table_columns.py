@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Optional
 
-from django.utils.html import format_html, mark_safe
+from django.utils.html import format_html
 
 from gsl_demarches_simplifiees.models import Dossier
 
@@ -346,6 +346,12 @@ COLUMN_BUDGET_VERT_INSTRUCTEUR = Column(
 )
 
 
+# Labels used in DS for the "other" choice in these multi-select fields.
+# These must stay in sync with the ProjetZonage / ProjetContractualisation labels in DB.
+_ZONAGE_AUTRE_LABEL = "Autre zonage"
+_CONTRACTUALISATION_AUTRE_LABEL = "Autre contrat"
+
+
 def _get_cofinancements(context):
     dossier = context["projet"].dossier_ds
     return dossier.get_cofinancements_avec_montants() or None
@@ -361,8 +367,8 @@ COLUMN_COFINANCEMENTS = Column(
 )
 
 
-def _get_m2m_with_autre(items, autre, autre_item_name):
-    lignes = [item.label for item in items if item.label != autre_item_name]
+def _get_m2m_with_autre(items, autre, autre_item_label):
+    lignes = [item.label for item in items if item.label != autre_item_label]
     if autre:
         lignes.append(f"Autre : {autre}")
     return lignes or None
@@ -371,7 +377,7 @@ def _get_m2m_with_autre(items, autre, autre_item_name):
 def _get_zonage(context):
     dossier = context["projet"].dossier_ds
     return _get_m2m_with_autre(
-        dossier.projet_zonage.all(), dossier.projet_zonage_autre, "Autre zonage"
+        dossier.projet_zonage.all(), dossier.projet_zonage_autre, _ZONAGE_AUTRE_LABEL
     )
 
 
@@ -390,7 +396,7 @@ def _get_contractualisation(context):
     return _get_m2m_with_autre(
         dossier.projet_contractualisation.all(),
         dossier.projet_contractualisation_autre,
-        "Autre contrat",
+        _CONTRACTUALISATION_AUTRE_LABEL,
     )
 
 
