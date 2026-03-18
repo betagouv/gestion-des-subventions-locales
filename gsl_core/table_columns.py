@@ -313,6 +313,14 @@ COLUMN_BUDGET_VERT_INSTRUCTEUR = Column(
 )
 
 
+_CSS_COL_180PX_MIN = "gsl-col--180px-min"
+
+# Labels used in DS for the "other" choice in these multi-select fields.
+# These must stay in sync with the ProjetZonage / ProjetContractualisation labels in DB.
+_ZONAGE_AUTRE_LABEL = "Autre zonage"
+_CONTRACTUALISATION_AUTRE_LABEL = "Autre contrat"
+
+
 def _format_as_list(lignes):
     if not lignes:
         return "—"
@@ -337,12 +345,12 @@ COLUMN_COFINANCEMENTS = Column(
     label="Co-financements sollicités",
     getter=_get_cofinancements,
     displayed_by_default=False,
-    extra_css_classes="gsl-col--180px-min",
+    extra_css_classes=_CSS_COL_180PX_MIN,
 )
 
 
-def _get_m2m_with_autre(items, autre, autre_item_name):
-    lignes = [item.label for item in items if item.label != autre_item_name]
+def _get_m2m_with_autre(items, autre, autre_item_label):
+    lignes = [item.label for item in items if item.label != autre_item_label]
     if autre:
         lignes.append(f"Autre : {autre}")
     return _format_as_list(lignes)
@@ -351,7 +359,7 @@ def _get_m2m_with_autre(items, autre, autre_item_name):
 def _get_zonage(context):
     dossier = context["projet"].dossier_ds
     return _get_m2m_with_autre(
-        dossier.projet_zonage.all(), dossier.projet_zonage_autre, "Autre zonage"
+        dossier.projet_zonage.all(), dossier.projet_zonage_autre, _ZONAGE_AUTRE_LABEL
     )
 
 
@@ -360,7 +368,7 @@ COLUMN_ZONAGE = Column(
     label="Zonage",
     getter=_get_zonage,
     displayed_by_default=False,
-    extra_css_classes="gsl-col--180px-min",
+    extra_css_classes=_CSS_COL_180PX_MIN,
 )
 
 
@@ -369,7 +377,7 @@ def _get_contractualisation(context):
     return _get_m2m_with_autre(
         dossier.projet_contractualisation.all(),
         dossier.projet_contractualisation_autre,
-        "Autre contrat",
+        _CONTRACTUALISATION_AUTRE_LABEL,
     )
 
 
@@ -378,7 +386,7 @@ COLUMN_CONTRACTUALISATION = Column(
     label="Contractualisation",
     getter=_get_contractualisation,
     displayed_by_default=False,
-    extra_css_classes="gsl-col--180px-min",
+    extra_css_classes=_CSS_COL_180PX_MIN,
 )
 
 
