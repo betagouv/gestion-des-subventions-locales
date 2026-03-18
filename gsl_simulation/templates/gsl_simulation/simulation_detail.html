@@ -92,6 +92,10 @@
 
 {% endblock content %}
 
+{% block extra_js %}
+    <script type="module" src="{% static 'js/closePreviousEditForm.js' %}"></script>
+{% endblock extra_js %}
+
 {% block modal %}
     {% include "includes/modals/_dotation_update_confirmation_modal.html" %}
 {% endblock modal %}

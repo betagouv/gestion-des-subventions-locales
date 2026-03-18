@@ -163,6 +163,10 @@
 }
 
 /* click-to-edit cells */
+.gsl-projet-table table tbody tr {
+  position: relative;
+}
+
 .gsl-projet-table td:has(.gsl-cell-edit-btn):not(:has(.gsl-cell-edit-form)) {
   white-space: nowrap;
 }

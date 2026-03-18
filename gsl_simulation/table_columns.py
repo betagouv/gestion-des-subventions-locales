@@ -136,8 +136,6 @@ COLUMN_COMMENT_1 = Column(
     getter=lambda ctx: ctx["projet"].comment_1,
     template_name="gsl_simulation/table_cells/comment.html",
     displayed_by_default=False,
-    max_3_lines=True,
-    linebreaks=True,
 )
 
 COLUMN_COMMENT_2 = Column(
@@ -146,8 +144,6 @@ COLUMN_COMMENT_2 = Column(
     getter=lambda ctx: ctx["projet"].comment_2,
     template_name="gsl_simulation/table_cells/comment.html",
     displayed_by_default=False,
-    max_3_lines=True,
-    linebreaks=True,
 )
 
 COLUMN_COMMENT_3 = Column(
@@ -156,8 +152,6 @@ COLUMN_COMMENT_3 = Column(
     getter=lambda ctx: ctx["projet"].comment_3,
     template_name="gsl_simulation/table_cells/comment.html",
     displayed_by_default=False,
-    max_3_lines=True,
-    linebreaks=True,
 )
 
 
