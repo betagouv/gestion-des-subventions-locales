@@ -82,6 +82,9 @@ class Column:
     hideable: bool = True
     displayed_by_default: Optional[bool] = True
 
+    # Extra CSS classes applied to <th> and <td>
+    extra_css_classes: Optional[str] = None
+
     # Existing fields
     sticky: Optional[StickyPosition] = None
     aggregate_key: Optional[str] = None
@@ -123,12 +126,22 @@ class Column:
 
     @property
     def th_classes(self) -> str:
-        return " ".join(filter(None, [self.css_class, self.sticky_class]))
+        return " ".join(
+            filter(None, [self.css_class, self.sticky_class, self.extra_css_classes])
+        )
 
     @property
     def td_classes(self) -> str:
         return " ".join(
-            filter(None, [self.css_class, self.sticky_class, self.align_class])
+            filter(
+                None,
+                [
+                    self.css_class,
+                    self.sticky_class,
+                    self.align_class,
+                    self.extra_css_classes,
+                ],
+            )
         )
 
     @property
@@ -300,11 +313,23 @@ COLUMN_BUDGET_VERT_INSTRUCTEUR = Column(
 )
 
 
+_CSS_COL_180PX_MIN = "gsl-col--180px-min"
+
+# Labels used in DS for the "other" choice in these multi-select fields.
+# These must stay in sync with the ProjetZonage / ProjetContractualisation labels in DB.
+_ZONAGE_AUTRE_LABEL = "Autre zonage"
+_CONTRACTUALISATION_AUTRE_LABEL = "Autre contrat"
+
+
+def _format_as_list(lignes):
+    if not lignes:
+        return "—"
+    return mark_safe("<ul><li>" + "</li><li>".join(lignes) + "</li></ul>")
+
+
 def _get_cofinancements(context):
     dossier = context["projet"].dossier_ds
     cofinancements = dossier.get_cofinancements_avec_montants()
-    if not cofinancements:
-        return "—"
     lignes = []
     for cofinancement in cofinancements:
         if cofinancement["montant"]:
@@ -312,7 +337,7 @@ def _get_cofinancements(context):
         else:
             ligne = cofinancement["nom"]
         lignes.append(ligne)
-    return mark_safe("<ul><li>" + "</li><li>".join(lignes) + "</li></ul>")
+    return _format_as_list(lignes)
 
 
 COLUMN_COFINANCEMENTS = Column(
@@ -320,6 +345,48 @@ COLUMN_COFINANCEMENTS = Column(
     label="Co-financements sollicités",
     getter=_get_cofinancements,
     displayed_by_default=False,
+    extra_css_classes=_CSS_COL_180PX_MIN,
+)
+
+
+def _get_m2m_with_autre(items, autre, autre_item_label):
+    lignes = [item.label for item in items if item.label != autre_item_label]
+    if autre:
+        lignes.append(f"Autre : {autre}")
+    return _format_as_list(lignes)
+
+
+def _get_zonage(context):
+    dossier = context["projet"].dossier_ds
+    return _get_m2m_with_autre(
+        dossier.projet_zonage.all(), dossier.projet_zonage_autre, _ZONAGE_AUTRE_LABEL
+    )
+
+
+COLUMN_ZONAGE = Column(
+    key="zonage",
+    label="Zonage",
+    getter=_get_zonage,
+    displayed_by_default=False,
+    extra_css_classes=_CSS_COL_180PX_MIN,
+)
+
+
+def _get_contractualisation(context):
+    dossier = context["projet"].dossier_ds
+    return _get_m2m_with_autre(
+        dossier.projet_contractualisation.all(),
+        dossier.projet_contractualisation_autre,
+        _CONTRACTUALISATION_AUTRE_LABEL,
+    )
+
+
+COLUMN_CONTRACTUALISATION = Column(
+    key="contractualisation",
+    label="Contractualisation",
+    getter=_get_contractualisation,
+    displayed_by_default=False,
+    extra_css_classes=_CSS_COL_180PX_MIN,
 )
 
 

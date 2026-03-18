@@ -272,6 +272,8 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
             "dossier_ds__demande_categorie_detr",
             "dossier_ds__demande_categorie_dsil",
             "dossier_ds__demande_cofinancements",
+            "dossier_ds__projet_zonage",
+            "dossier_ds__projet_contractualisation",
             Prefetch(
                 "dotationprojet_set",
                 queryset=DotationProjet.objects.filter(
