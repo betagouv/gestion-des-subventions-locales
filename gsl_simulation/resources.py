@@ -41,21 +41,27 @@ CSS_KEY_TO_RESOURCE_FIELDS = {
 
 
 class TauxWidget(Widget):
-    """Format taux (percentage) to 4 decimal places for CSV export."""
+    def __init__(self, fmt=None):
+        self.fmt = fmt
 
     def render(self, value, obj=None, **kwargs):
         if value is None:
             return ""
-        return f"{float(value):.4f}".replace(".", ",")
+        if self.fmt == "csv":
+            return f"{float(value):.4f}".replace(".", ",")
+        return round(float(value), 4)
 
 
 class DecimalWidget(Widget):
-    """Format decimal to 2 decimal places for CSV export."""
+    def __init__(self, fmt=None):
+        self.fmt = fmt
 
     def render(self, value, obj=None, **kwargs):
         if value is None:
             return ""
-        return f"{float(value):.2f}".replace(".", ",")
+        if self.fmt == "csv":
+            return f"{float(value):.2f}".replace(".", ",")
+        return round(float(value), 2)
 
 
 class OuiNonWidget(BooleanWidget):
@@ -66,6 +72,12 @@ class OuiNonWidget(BooleanWidget):
 
 
 class BaseSimulationProjetResource(ModelResource):
+    def __init__(self, export_format=None):
+        super().__init__()
+        for field in self.fields.values():
+            if isinstance(field.widget, (DecimalWidget, TauxWidget)):
+                field.widget.fmt = export_format
+
     # --- Fields mapped to table columns (subject to column visibility filtering) ---
 
     date_depot = Field(
@@ -115,12 +127,12 @@ class BaseSimulationProjetResource(ModelResource):
     )
     montant = Field(
         attribute="montant",
-        column_name="Montant prévsionnel accordé",
+        column_name="Montant prévisionnel accordé",
         widget=DecimalWidget(),
     )
     taux = Field(
         attribute="taux",
-        column_name="Taux prévsionnel accordé",
+        column_name="Taux prévisionnel accordé",
         widget=TauxWidget(),
     )
     date_debut = Field(
