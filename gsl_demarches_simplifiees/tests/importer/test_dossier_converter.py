@@ -684,3 +684,185 @@ def test_convert_all_fields_logs_warning_and_continues_on_unexpected_error(
 
     # L'autre champ doit quand même avoir été importé
     assert dossier.projet_intitule == "Mon projet malgré l'erreur"
+
+
+# --- inject_into_field : clear M2M avant re-add ---
+
+
+def test_inject_manytomany_replaces_existing_values(dossier_converter, dossier):
+    """inject_into_field doit remplacer les valeurs M2M existantes, pas les cumuler."""
+    field = Dossier._meta.get_field("projet_zonage")
+
+    dossier_converter.inject_into_field(
+        dossier, field, ["Territoires d'industrie (TI)"], "Zonage"
+    )
+    assert dossier.projet_zonage.count() == 1
+
+    # Deuxième injection avec des valeurs différentes
+    dossier_converter.inject_into_field(
+        dossier,
+        field,
+        [
+            "Territoires Engagées pour la Nature (TEN)",
+            "Site patrimonial remarquable (SPR)",
+        ],
+        "Zonage",
+    )
+    assert dossier.projet_zonage.count() == 2
+    labels = {z.label for z in dossier.projet_zonage.all()}
+    assert labels == {
+        "Territoires Engagées pour la Nature (TEN)",
+        "Site patrimonial remarquable (SPR)",
+    }
+
+
+def test_inject_empty_list_into_manytomany_clears_existing(dossier_converter, dossier):
+    """inject_into_field avec une liste vide doit vider le champ M2M."""
+    field = Dossier._meta.get_field("projet_zonage")
+
+    dossier_converter.inject_into_field(
+        dossier, field, ["Territoires d'industrie (TI)"], "Zonage"
+    )
+    assert dossier.projet_zonage.count() == 1
+
+    dossier_converter.inject_into_field(dossier, field, [], "Zonage")
+    assert dossier.projet_zonage.count() == 0
+
+
+# --- inject_into_field with nullable DecimalField ---
+
+
+def test_inject_empty_string_into_nullable_decimal_field_sets_none(
+    dossier_converter, dossier
+):
+    """Une chaîne vide doit être convertie en None pour un DecimalField nullable."""
+    field = Dossier._meta.get_field("cofinancement_fonds_vert_montant")
+    dossier_converter.inject_into_field(dossier, field, "", "Fonds vert montant")
+    assert dossier.cofinancement_fonds_vert_montant is None
+
+
+def test_inject_decimal_value_into_nullable_decimal_field(dossier_converter, dossier):
+    """Une valeur décimale valide doit être injectée normalement."""
+    from decimal import Decimal
+
+    field = Dossier._meta.get_field("cofinancement_fonds_vert_montant")
+    dossier_converter.inject_into_field(
+        dossier, field, Decimal("50000"), "Fonds vert montant"
+    )
+    assert dossier.cofinancement_fonds_vert_montant == Decimal("50000")
+
+
+# --- Dossier.get_cofinancements_avec_montants ---
+
+
+@pytest.fixture
+def dossier_with_cofinancements(demarche, dossier_ds_id, dossier_ds_number):
+    from gsl_demarches_simplifiees.models import Cofinancement
+
+    dossier = Dossier.objects.create(
+        ds_id=dossier_ds_id,
+        ds_demarche=demarche,
+        ds_number=dossier_ds_number,
+    )
+    DossierData.objects.create(dossier=dossier)
+
+    fonds_vert, _ = Cofinancement.objects.get_or_create(label="Fonds vert")
+    dossier.demande_cofinancements.add(fonds_vert)
+
+    return dossier
+
+
+def test_get_cofinancements_avec_montants_with_known_label_and_montant(
+    dossier_with_cofinancements,
+):
+    from decimal import Decimal
+
+    dossier = dossier_with_cofinancements
+    dossier.cofinancement_fonds_vert_montant = Decimal("50000")
+    dossier.save()
+
+    result = dossier.get_cofinancements_avec_montants()
+
+    assert len(result) == 1
+    assert result[0]["nom"] == "Fonds vert"
+    assert result[0]["montant"] == Decimal("50000")
+
+
+def test_get_cofinancements_avec_montants_with_known_label_no_montant(
+    dossier_with_cofinancements,
+):
+    dossier = dossier_with_cofinancements
+    dossier.cofinancement_fonds_vert_montant = None
+    dossier.save()
+
+    result = dossier.get_cofinancements_avec_montants()
+
+    assert len(result) == 1
+    assert result[0]["nom"] == "Fonds vert"
+    assert result[0]["montant"] is None
+
+
+def test_get_cofinancements_avec_montants_autre_with_precision_and_montant(
+    demarche, dossier_ds_id, dossier_ds_number
+):
+    from decimal import Decimal
+
+    from gsl_demarches_simplifiees.models import Cofinancement
+
+    dossier = Dossier.objects.create(
+        ds_id=dossier_ds_id,
+        ds_demarche=demarche,
+        ds_number=dossier_ds_number,
+        cofinancement_autre="Mécénat Entreprise",
+        cofinancement_autre_montant=Decimal("30000"),
+    )
+    DossierData.objects.create(dossier=dossier)
+    autre, _ = Cofinancement.objects.get_or_create(
+        label="Autre dispositif de financement"
+    )
+    dossier.demande_cofinancements.add(autre)
+
+    result = dossier.get_cofinancements_avec_montants()
+
+    assert len(result) == 1
+    assert result[0]["nom"] == "Autre (Mécénat Entreprise)"
+    assert result[0]["montant"] == Decimal("30000")
+
+
+def test_get_cofinancements_avec_montants_autre_without_precision(
+    demarche, dossier_ds_id, dossier_ds_number
+):
+    from gsl_demarches_simplifiees.models import (
+        COFINANCEMENT_AUTRE_LABEL,
+        Cofinancement,
+    )
+
+    dossier = Dossier.objects.create(
+        ds_id=dossier_ds_id,
+        ds_demarche=demarche,
+        ds_number=dossier_ds_number,
+    )
+    DossierData.objects.create(dossier=dossier)
+    autre, _ = Cofinancement.objects.get_or_create(label=COFINANCEMENT_AUTRE_LABEL)
+    dossier.demande_cofinancements.add(autre)
+
+    result = dossier.get_cofinancements_avec_montants()
+
+    assert len(result) == 1
+    assert result[0]["nom"] == "Autre"
+    assert result[0]["montant"] is None
+
+
+def test_get_cofinancements_avec_montants_empty_m2m(
+    demarche, dossier_ds_id, dossier_ds_number
+):
+    dossier = Dossier.objects.create(
+        ds_id=dossier_ds_id,
+        ds_demarche=demarche,
+        ds_number=dossier_ds_number,
+    )
+    DossierData.objects.create(dossier=dossier)
+
+    result = dossier.get_cofinancements_avec_montants()
+
+    assert result == []
