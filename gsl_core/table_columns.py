@@ -147,7 +147,9 @@ COLUMN_INTITULE = Column(
     key="intitule",
     label="Intitulé du projet",
     getter=lambda ctx: ctx["projet"].dossier_ds.projet_intitule,
-    other_dotation_getter=lambda ctx: f"Informations pour la dotation {ctx['other_dotation'].dotation}",
+    other_dotation_getter=lambda ctx: (
+        f"Informations pour la dotation {ctx['other_dotation'].dotation}"
+    ),
     link=CellLink(
         url_getter=lambda ctx: ctx["row_url"],
         fr_link=True,
@@ -263,9 +265,11 @@ COLUMN_ARRONDISSEMENT = Column(
 COLUMN_NOM_DEMANDEUR = Column(
     key="nom_demandeur",
     label="Nom du demandeur",
-    getter=lambda ctx: ctx["projet"].dossier_ds.porteur_de_projet_prenom
-    + " "
-    + ctx["projet"].dossier_ds.porteur_de_projet_nom,
+    getter=lambda ctx: (
+        ctx["projet"].dossier_ds.porteur_de_projet_prenom
+        + " "
+        + ctx["projet"].dossier_ds.porteur_de_projet_nom
+    ),
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
 )
@@ -291,8 +295,9 @@ COLUMN_BUDGET_VERT_INSTRUCTEUR = Column(
 COLUMN_COMPLETED_DOSSIER = Column(
     key="completed_dossier",
     label="Dossier complet",
-    getter=lambda ctx: ctx["projet"].dossier_ds.ds_state
-    != Dossier.STATE_EN_CONSTRUCTION,
+    getter=lambda ctx: (
+        ctx["projet"].dossier_ds.ds_state != Dossier.STATE_EN_CONSTRUCTION
+    ),
     template_name="gsl_core/table_cells/_yes_no_cell.html",
     displayed_by_default=False,
     text_align=TextAlign.CENTER,

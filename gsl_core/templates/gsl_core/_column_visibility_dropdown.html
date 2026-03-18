@@ -44,7 +44,7 @@
     </div>
 </div>
 
-<style nonce="{{ request.csp_nonce }}">
+<style nonce="{{ csp_nonce }}">
     {% for column in columns %}
         {% if column.hideable %}
             #{{ table_wrapper_id }}:has(#toggle-col-{{ column.css_key }}:not(:checked)) .{{ column.css_class }} {

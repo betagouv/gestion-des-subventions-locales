@@ -1,9 +1,8 @@
-from csp.constants import SELF, UNSAFE_INLINE
-from csp.decorators import csp_update
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.csp import CSP
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_http_methods, require_POST
@@ -11,6 +10,7 @@ from django.views.generic import DeleteView, DetailView, UpdateView
 from django_htmx.http import HttpResponseClientRedirect
 from django_weasyprint import WeasyTemplateResponseMixin
 
+from gsl.utils.csp import csp_update
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
 from gsl_core.matomo import queue_matomo_event
@@ -268,7 +268,7 @@ def select_modele(request, projet_id, dotation, document_type):
     )
 
 
-@csp_update({"style-src": [SELF, UNSAFE_INLINE]})
+@csp_update({"style-src": [CSP.SELF, CSP.UNSAFE_INLINE]})
 @require_http_methods(["GET", "POST"])
 def change_document_view(request, projet_id, dotation, document_type):
     programmation_projet = get_object_or_404(

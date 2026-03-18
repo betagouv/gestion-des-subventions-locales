@@ -29,7 +29,9 @@ COLUMN_INTITULE = Column(
     key="intitule",
     label="Intitulé du projet",
     getter=lambda ctx: ctx["programmation_projet"].projet.dossier_ds.projet_intitule,
-    other_dotation_getter=lambda ctx: f"Informations pour la dotation {ctx['other_dotation'].dotation}",
+    other_dotation_getter=lambda ctx: (
+        f"Informations pour la dotation {ctx['other_dotation'].dotation}"
+    ),
     link=CellLink(
         url_getter=lambda ctx: ctx["programmation_projet"].get_absolute_url(),
         fr_link=True,
