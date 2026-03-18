@@ -257,7 +257,11 @@ COLUMN_DATE_FIN_PROJET = Column(
 COLUMN_ARRONDISSEMENT = Column(
     key="arrondissement",
     label="Arrondissement",
-    getter=lambda ctx: ctx["projet"].dossier_ds.porteur_de_projet_arrondissement.name,
+    getter=lambda ctx: (
+        "-"
+        if ctx["projet"].dossier_ds.porteur_de_projet_arrondissement is None
+        else ctx["projet"].dossier_ds.porteur_de_projet_arrondissement.name
+    ),
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
 )
