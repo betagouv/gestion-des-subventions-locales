@@ -647,6 +647,11 @@ ul.no-list-style li {
     break-inside: avoid;
 }
 
+/* Double dotation: lighter border between main row and other-dotation row */
+.gsl-projet-table .fr-table__content table tbody tr.gsl-projet-table__row--double-dotation td {
+    background-image: linear-gradient(0deg, var(--border-disabled-grey), var(--border-disabled-grey));
+}
+
 .gsl-column-visibility-dropdown .gsl-column-visibility-reset {
     width: 100%;
     text-align: left;

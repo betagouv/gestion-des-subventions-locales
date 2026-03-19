@@ -45,10 +45,6 @@
 }
 
 
-.gsl-projet-table table tbody tr.gsl-projet-table__row--double-dotation td { /* cette longue liste est utile pour être plus spécifique que .gsl-projet-table table tbody tr td */
-  border-bottom: 1px solid var(--border-disabled-grey);
-}
-
 .gsl-projet-table__row--other-dotation .gsl-col--statut {
   padding: 0;
   text-align: right;
