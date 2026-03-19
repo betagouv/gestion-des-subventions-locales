@@ -33,6 +33,7 @@ from gsl_projet.models import DotationProjet, projet_status_from_dotation_status
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.forms import (
     AssietteSingleFieldForm,
+    CommentSingleFieldForm,
     DismissProjetForm,
     MontantSingleFieldForm,
     RefuseProjetForm,
@@ -132,6 +133,22 @@ class EditTauxView(SimulationTableCellEditMixin):
     form_class = TauxSingleFieldForm
     template_name = "gsl_simulation/table_cells/edit_forms/_taux_edit_form.html"
     matomo_action = "modification_taux"
+
+
+class EditCommentView(SimulationTableCellEditMixin):
+    form_class = CommentSingleFieldForm
+    template_name = "gsl_simulation/table_cells/edit_forms/_comment_edit_form.html"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["instance"] = self.object.projet
+        kwargs["comment_number"] = self.kwargs["comment_number"]
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["comment_number"] = self.kwargs["comment_number"]
+        return context
 
 
 class RefreshSimulationRowView(DetailView):

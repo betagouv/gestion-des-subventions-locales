@@ -1,0 +1,45 @@
+<form hx-post="{% url 'simulation:edit-comment' simu.pk comment_number %}{% querystring %}"
+      hx-target="this"
+      hx-swap="outerHTML"
+      hx-disabled-elt="#simulation-{{ simu.pk }} input, #simulation-{{ simu.pk }} button, #simulation-{{ simu.pk }} textarea"
+      id="edit-comment-{{ comment_number }}-{{ simu.pk }}"
+      class="gsl-cell-edit-form"
+      role="region"
+      aria-label="Modifier le commentaire {{ comment_number }}">
+    {% csrf_token %}
+    <div class="fr-input-group fr-mb-2w{% if form.value.errors %} fr-input-group--error{% endif %}">
+        <textarea class="fr-input fr-input--sm fr-mb-1w"
+                  name="value"
+                  rows="3"
+                  autofocus>{{ form.value.value|default_if_none:'' }}</textarea>
+    </div>
+    {% for error in form.value.errors %}
+        <p class="fr-error-text">
+            {{ error }}
+        </p>
+    {% endfor %}
+    {% for error in form.non_field_errors %}
+        <p class="fr-error-text">
+            {{ error }}
+        </p>
+    {% endfor %}
+    <ul class="fr-btns-group fr-btns-group--sm fr-btns-group--icon-left fr-btns-group--inline fr-btns-group--right fr-btns-group--inline-reverse">
+        <li>
+            <button type="submit"
+                    class="fr-btn fr-icon-check-line fr-mb-0"
+                    aria-label="Enregistrer">
+                Enregistrer
+            </button>
+        </li>
+        <li>
+            <button type="button"
+                    class="fr-btn fr-icon-close-line fr-btn--tertiary fr-mb-0"
+                    hx-get="{% url 'simulation:refresh-simulation-row' simu.pk %}{% querystring %}"
+                    hx-target="#simulation-{{ simu.pk }}"
+                    hx-swap="outerHTML"
+                    aria-label="Annuler">
+                Annuler
+            </button>
+        </li>
+    </ul>
+</form>

@@ -8,9 +8,6 @@ from gsl_core.table_columns import (
     COLUMN_BUDGET_VERT_DEMANDEUR,
     COLUMN_BUDGET_VERT_INSTRUCTEUR,
     COLUMN_CATEGORIE,
-    COLUMN_COMMENT_1,
-    COLUMN_COMMENT_2,
-    COLUMN_COMMENT_3,
     COLUMN_COMPLETED_DOSSIER,
     COLUMN_DATE_DEBUT_PROJET,
     COLUMN_DATE_DEPOT,
@@ -130,6 +127,31 @@ COLUMN_NOTIFICATION = Column(
     label="Notification",
     template_name="gsl_core/table_cells/notification.html",
     sticky=StickyPosition.RIGHT_2,
+)
+
+
+COLUMN_COMMENT_1 = Column(
+    key="comment_1",
+    label="Commentaire 1",
+    getter=lambda ctx: ctx["projet"].comment_1,
+    template_name="gsl_simulation/table_cells/comment.html",
+    displayed_by_default=False,
+)
+
+COLUMN_COMMENT_2 = Column(
+    key="comment_2",
+    label="Commentaire 2",
+    getter=lambda ctx: ctx["projet"].comment_2,
+    template_name="gsl_simulation/table_cells/comment.html",
+    displayed_by_default=False,
+)
+
+COLUMN_COMMENT_3 = Column(
+    key="comment_3",
+    label="Commentaire 3",
+    getter=lambda ctx: ctx["projet"].comment_3,
+    template_name="gsl_simulation/table_cells/comment.html",
+    displayed_by_default=False,
 )
 
 
