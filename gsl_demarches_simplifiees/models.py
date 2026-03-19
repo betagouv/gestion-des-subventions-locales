@@ -280,6 +280,9 @@ class Dossier(BaseModel):
         blank=True,
         null=True,
     )
+    porteur_de_projet_epci = models.CharField(
+        "EPCI à fiscalité propre dont est membre la commune", blank=True
+    )
     porteur_de_projet_fonction = models.CharField(
         "Fonction du porteur de projet", blank=True
     )
@@ -519,6 +522,7 @@ class Dossier(BaseModel):
         porteur_de_projet_nature,
         porteur_de_projet_departement,
         porteur_de_projet_arrondissement,
+        porteur_de_projet_epci,
         porteur_de_projet_fonction,
         porteur_de_projet_nom,
         porteur_de_projet_prenom,

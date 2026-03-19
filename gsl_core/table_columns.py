@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Optional
 
+from django.utils.html import format_html
+
 from gsl_demarches_simplifiees.models import Dossier
 
 
@@ -79,6 +81,9 @@ class Column:
     hideable: bool = True
     displayed_by_default: Optional[bool] = True
 
+    # Extra CSS classes applied to <th> and <td>
+    extra_css_classes: Optional[str] = None
+
     # Existing fields
     sticky: Optional[StickyPosition] = None
     aggregate_key: Optional[str] = None
@@ -120,12 +125,22 @@ class Column:
 
     @property
     def th_classes(self) -> str:
-        return " ".join(filter(None, [self.css_class, self.sticky_class]))
+        return " ".join(
+            filter(None, [self.css_class, self.sticky_class, self.extra_css_classes])
+        )
 
     @property
     def td_classes(self) -> str:
         return " ".join(
-            filter(None, [self.css_class, self.sticky_class, self.align_class])
+            filter(
+                None,
+                [
+                    self.css_class,
+                    self.sticky_class,
+                    self.align_class,
+                    self.extra_css_classes,
+                ],
+            )
         )
 
     @property
@@ -216,6 +231,7 @@ COLUMN_CATEGORIE = Column(
         ctx["other_dotation"]
     ),
     max_3_lines=True,
+    extra_css_classes="gsl-col--140px-min",
 )
 
 COLUMN_DATE_DEPOT = Column(
@@ -264,6 +280,29 @@ COLUMN_ARRONDISSEMENT = Column(
     ),
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
+)
+
+
+def _get_epci_cell(ctx):
+    epci_raw = ctx["projet"].dossier_ds.porteur_de_projet_epci
+    if not epci_raw:
+        return "-"
+    parts = epci_raw.split(" - ", 1)
+    if len(parts) == 2:
+        code, name = parts
+        url = f"https://annuaire-entreprises.data.gouv.fr/entreprise/{code}"
+        return format_html(
+            '<a href="{}" target="_blank" rel="noreferrer noopener">{}</a>', url, name
+        )
+    return epci_raw
+
+
+COLUMN_EPCI = Column(
+    key="epci",
+    label="EPCI",
+    getter=_get_epci_cell,
+    displayed_by_default=False,
+    extra_css_classes="gsl-col--140px-min",
 )
 
 COLUMN_NOM_DEMANDEUR = Column(

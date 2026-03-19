@@ -16,6 +16,7 @@ from gsl_core.table_columns import (
     COLUMN_DATE_FIN_PROJET,
     COLUMN_DEMANDEUR,
     COLUMN_DOTATIONS_SOLLICITEES,
+    COLUMN_EPCI,
     COLUMN_INTITULE,
     COLUMN_NOM_DEMANDEUR,
     COLUMN_NOTIFICATION,
@@ -82,6 +83,7 @@ COLUMN_CATEGORIE = Column(
     getter=get_categorie,
     max_3_lines=True,
     per_dotation=True,
+    extra_css_classes="gsl-col--180px-min",
 )
 
 
@@ -110,6 +112,7 @@ PROJET_TABLE_COLUMNS = (
     COLUMN_NUMERO_DN,
     COLUMN_DEMANDEUR,
     COLUMN_ARRONDISSEMENT,
+    COLUMN_EPCI,
     COLUMN_NOM_DEMANDEUR,
     COLUMN_DOTATIONS_SOLLICITEES,
     COLUMN_DATE_DEBUT_PROJET,
