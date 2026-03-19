@@ -136,6 +136,7 @@ COLUMN_TAUX = Column(
     getter=lambda ctx: percent_value(ctx["programmation_projet"].taux, 2),
     other_dotation_getter=_get_other_dotation_taux,
     text_align=TextAlign.RIGHT,
+    extra_css_classes="gsl-col--105px-min",
 )
 
 COLUMN_DOCUMENTS = Column(

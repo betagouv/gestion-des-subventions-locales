@@ -75,6 +75,7 @@ COLUMN_TAUX = Column(
     per_dotation=True,
     text_align=TextAlign.RIGHT,
     header_help_text="Le taux de subvention est calculé en fonction de l'assiette (ou du coût total du projet si l'assiette n'est pas renseignée) et du montant retenu.",
+    extra_css_classes="gsl-col--105px-min",
 )
 
 COLUMN_CATEGORIE = Column(
