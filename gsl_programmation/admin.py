@@ -34,9 +34,9 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
     search_fields = (
         "dotation",
         "annee",
-        "region_name",
-        "departement_name",
-        "arrondissement_name",
+        "perimetre__region__name",
+        "perimetre__departement__name",
+        "perimetre__arrondissement__name",
     )
     autocomplete_fields = (
         "deleguee_by",
