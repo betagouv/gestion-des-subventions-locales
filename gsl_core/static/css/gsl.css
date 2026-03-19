@@ -171,6 +171,13 @@ ul.no-list-style li {
     text-overflow: ellipsis;
 }
 
+.gsl-col--105px-min {
+    max-width: 120px;
+    width: 120px;
+    min-width: 105px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 
 .max-3-lines {
     display: -webkit-box;
@@ -178,6 +185,12 @@ ul.no-list-style li {
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+#table-projets .fr-btn--tooltip,
+#table-programmation .fr-btn--tooltip,
+#table-simulation .fr-btn--tooltip {
+    margin-bottom: -4px; /* to reduce the header height */
 }
 
 .gsl-projet-table {

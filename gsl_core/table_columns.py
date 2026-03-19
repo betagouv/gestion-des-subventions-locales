@@ -22,6 +22,7 @@ class TextAlign(Enum):
 
 
 class ColumnWidth(Enum):
+    MIN_105 = "gsl-col--105px-min"
     MIN_140 = "gsl-col--140px-min"
     MIN_180 = "gsl-col--180px-min"
 
