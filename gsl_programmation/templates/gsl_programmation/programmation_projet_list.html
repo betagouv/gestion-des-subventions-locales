@@ -116,7 +116,7 @@
                                     </tr>
                                     {% for programmation_projet in programmation_projets %}
                                         {% with projet=programmation_projet.projet dotation_projet=programmation_projet.dotation_projet %}
-                                            <tr>
+                                            <tr {% if dotation_projet.other_dotations|length > 0 %} class="gsl-projet-table__row--double-dotation"{% endif %}>
                                                 <td class="gsl-projet-table__sticky-left-1">
                                                     {% if programmation_projet.projet.to_notify %}
                                                         <div class="fr-checkbox-group fr-checkbox-group--sm">
