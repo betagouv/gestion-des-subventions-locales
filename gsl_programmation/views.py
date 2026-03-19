@@ -273,7 +273,7 @@ class EnveloppeCreateView(RedirectURLMixin, CreateView):
         queue_matomo_event(
             self.request,
             "SousEnveloppe",
-            "creation",
+            "creation_sous_enveloppe",
             f"{self.object.dotation} - {self.object.perimetre.type}",
         )
         return response

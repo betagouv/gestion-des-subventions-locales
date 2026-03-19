@@ -394,7 +394,7 @@ class SimulationCreateView(CreateView):
         queue_matomo_event(
             self.request,
             "Simulation",
-            "creation",
+            "creation_simulation",
             self.object.enveloppe.dotation,
         )
         return response

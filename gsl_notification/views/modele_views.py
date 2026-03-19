@@ -214,7 +214,7 @@ class CreateModelDocumentWizard(SessionWizardView):
             queue_matomo_event(
                 self.request,
                 "Modele",
-                "creation",
+                "creation_modele",
                 f"{self.modele_type} - {self.dotation}",
             )
 
