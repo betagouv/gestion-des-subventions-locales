@@ -237,6 +237,7 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                 "available_states": SimulationProjet.STATUS_CHOICES,
                 "enveloppe": simulation.enveloppe,
                 "dotations": DOTATIONS,
+                "current_order": self.request.GET.get("order", ""),
                 "columns": SIMULATION_TABLE_COLUMNS,
                 "aggregates": {
                     "total_cost": ProjetService.get_total_cost(qs),

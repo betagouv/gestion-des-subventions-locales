@@ -36,15 +36,16 @@ COLUMN_DOTATION = Column(
 
 COLUMN_COUT_TOTAL = Column(
     key="cout_total",
-    label="Coût total du projet (€)",
+    label="Coût total du projet (€)",
     getter=lambda ctx: euro_value(ctx["projet"].dossier_ds.finance_cout_total),
     text_align=TextAlign.RIGHT,
     aggregate_key="total_cost",
+    sort_param="cout",
 )
 
 COLUMN_MONTANT_SOLLICITE = Column(
     key="montant_sollicite",
-    label="Montant sollicité (€)",
+    label="Montant sollicité (€)",
     getter=lambda ctx: euro_value(ctx["projet"].dossier_ds.demande_montant),
     text_align=TextAlign.RIGHT,
     aggregate_key="total_amount_asked",
@@ -52,7 +53,7 @@ COLUMN_MONTANT_SOLLICITE = Column(
 
 COLUMN_ASSIETTE = Column(
     key="assiette",
-    label="Assiette (€)",
+    label="Assiette (€)",
     getter=lambda ctx: euro_value(ctx["dotation_projet"].assiette),
     per_dotation=True,
     text_align=TextAlign.RIGHT,
@@ -60,11 +61,12 @@ COLUMN_ASSIETTE = Column(
 
 COLUMN_MONTANT_RETENU = Column(
     key="montant_retenu",
-    label="Montant retenu (€)",
+    label="Montant retenu (€)",
     getter=lambda ctx: euro_value(ctx["dotation_projet"].montant_retenu),
     per_dotation=True,
     text_align=TextAlign.RIGHT,
     aggregate_key="total_amount_granted",
+    sort_param="montant_retenu",
 )
 
 COLUMN_TAUX = Column(

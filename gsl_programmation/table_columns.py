@@ -47,9 +47,10 @@ COLUMN_INTITULE = Column(
 
 COLUMN_COUT_TOTAL = Column(
     key="cout_total",
-    label="Coût total du projet (€)",
+    label="Coût total du projet (€)",
     getter=lambda ctx: euro_value(ctx["projet"].dossier_ds.finance_cout_total),
     text_align=TextAlign.RIGHT,
+    sort_param="cout",
 )
 
 
@@ -115,7 +116,7 @@ def _get_other_dotation_statut(context):
 
 COLUMN_ASSIETTE = Column(
     key="assiette",
-    label="Assiette (€)",
+    label="Assiette (€)",
     getter=lambda ctx: euro_value(ctx["programmation_projet"].dotation_projet.assiette),
     other_dotation_getter=_get_other_dotation_assiette,
     text_align=TextAlign.RIGHT,
@@ -123,10 +124,11 @@ COLUMN_ASSIETTE = Column(
 
 COLUMN_MONTANT_RETENU = Column(
     key="montant_retenu",
-    label="Montant prévisionnel accordé (€)",
+    label="Montant prévisionnel accordé (€)",
     getter=_get_montant_retenu,
     other_dotation_getter=_get_other_dotation_montant_retenu,
     text_align=TextAlign.RIGHT,
+    sort_param="montant",
 )
 
 COLUMN_TAUX = Column(

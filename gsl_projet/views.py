@@ -208,6 +208,7 @@ class ProjetListView(FilterView, ListView, FilterUtils):
             "total_amount_asked": context["total_amount_asked"],
             "total_amount_granted": context["total_amount_granted"],
         }
+        context["current_order"] = self.request.GET.get("order", "")
         context["sans_pieces_skip_keys"] = SANS_PIECES_SKIP_KEYS
         context["missing_annotations_count"] = (
             Projet.objects.for_user(self.request.user)

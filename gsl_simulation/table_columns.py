@@ -31,10 +31,11 @@ COLUMN_DOTATION = Column(
 
 COLUMN_COUT_TOTAL = Column(
     key="cout_total",
-    label="Coût total du projet (€)",
+    label="Coût total du projet (€)",
     getter=lambda ctx: euro_value(ctx["projet"].dossier_ds.finance_cout_total, 2),
     text_align=TextAlign.RIGHT,
     aggregate_key="total_cost",
+    sort_param="cout",
 )
 
 
@@ -48,7 +49,7 @@ def _get_montant_sollicite(context):
 
 COLUMN_MONTANT_SOLLICITE = Column(
     key="montant_sollicite",
-    label="Montant sollicité (€)",
+    label="Montant sollicité (€)",
     getter=_get_montant_sollicite,
     text_align=TextAlign.RIGHT,
     aggregate_key="total_amount_asked",
@@ -89,7 +90,7 @@ def _get_simu_other_dotation_statut(context):
 
 COLUMN_ASSIETTE = Column(
     key="assiette",
-    label="Assiette (€)",
+    label="Assiette (€)",
     template_name="gsl_simulation/table_cells/assiette.html",
     other_dotation_getter=_get_other_dotation_assiette,
     text_align=TextAlign.RIGHT,
@@ -97,12 +98,13 @@ COLUMN_ASSIETTE = Column(
 
 COLUMN_MONTANT_RETENU = Column(
     key="montant_retenu",
-    label="Montant prévisionnel accordé (€)",
+    label="Montant prévisionnel accordé (€)",
     template_name="gsl_simulation/table_cells/montant_retenu.html",
     other_dotation_getter=_get_simu_other_dotation_montant,
     text_align=TextAlign.RIGHT,
     aggregate_key="total_amount_granted",
     aggregate_id="total-amount-granted",
+    sort_param="montant_previsionnel",
 )
 
 COLUMN_TAUX = Column(

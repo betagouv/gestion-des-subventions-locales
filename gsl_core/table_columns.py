@@ -86,6 +86,9 @@ class Column:
     header_template_name: Optional[str] = None
     header_help_text: Optional[str] = None
 
+    # Sorting: maps to the `?order=` GET param name (e.g., "date", "cout")
+    sort_param: Optional[str] = None
+
     def __post_init__(self):
         if not self.template_name and not self.getter:
             raise ValueError(
@@ -178,6 +181,7 @@ COLUMN_DEMANDEUR = Column(
     label="Demandeur",
     getter=lambda ctx: _format_demandeur_nom(ctx["projet"].demandeur.name),
     max_3_lines=True,
+    sort_param="demandeur",
 )
 
 COLUMN_NOTIFICATION = Column(
@@ -224,6 +228,7 @@ COLUMN_DATE_DEPOT = Column(
     template_name="gsl_core/table_cells/date_depot.html",
     sticky=StickyPosition.LEFT_1,
     text_align=TextAlign.CENTER,
+    sort_param="date",
 )
 
 COLUMN_DOTATIONS_SOLLICITEES = Column(
