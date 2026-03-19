@@ -269,11 +269,7 @@ COLUMN_ARRONDISSEMENT = Column(
 COLUMN_NOM_DEMANDEUR = Column(
     key="nom_demandeur",
     label="Nom du demandeur",
-    getter=lambda ctx: (
-        ctx["projet"].dossier_ds.porteur_de_projet_prenom
-        + " "
-        + ctx["projet"].dossier_ds.porteur_de_projet_nom
-    ),
+    getter=lambda ctx: ctx["projet"].dossier_ds.porteur_fullname,
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
 )
