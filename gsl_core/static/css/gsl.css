@@ -189,6 +189,7 @@ ul.no-list-style li {
 .gsl-projet-table .gsl-projet-table__total {
     width: 100%;
     justify-content: center;
+    margin-top: 0.25rem;
     color: var(--text-title-blue-france);
     font-weight: 500;
     line-height: calc(14rem / 16);
@@ -196,7 +197,7 @@ ul.no-list-style li {
 }
 
 .gsl-projet-table .gsl-projet-table__total--total_cost {
-    background-color: var(--background-alt-blue-france);
+    background-color: var(--background-alt-blue-france-hover);
 }
 
 .gsl-projet-table .gsl-projet-table__total--total_amount_asked {

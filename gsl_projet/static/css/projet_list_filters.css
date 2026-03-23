@@ -116,6 +116,23 @@
   padding-top: 6px;
 }
 
+.filter-dropdown-button-active.fr-tag {
+  overflow: hidden;
+  display: inline-block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  padding-right: 2rem;
+  position: relative;
+}
+
+.filter-dropdown-button-active.fr-tag::after {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
 .filter-field > select {
   overflow: hidden;
   text-overflow: ellipsis;
