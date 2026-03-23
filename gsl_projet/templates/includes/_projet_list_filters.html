@@ -1,8 +1,6 @@
 {% load static %}
 
-{% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/projet_list_filters.css' %}">
-{% endblock extra_css %}
+<link rel="stylesheet" href="{% static 'css/projet_list_filters.css' %}">
 
 <form method="get"
       action="{{ request.path }}{% querystring %}"
@@ -15,7 +13,7 @@
     </button>
 
     <div class="projets-filters-layout {% if component_included_in_parent %} projet-filters-in-parent{% endif %} fr-container--fluid">
-        <div class="fr-grid-row fr-grid-row--gutters">
+        <div class="filters-flex-row">
             <div class="fr-col-12 fr-col-md-4 fr-col-lg-3 reinit-filters">
                 <button class="fr-btn fr-btn--tertiary"
                         type="submit"
@@ -31,7 +29,5 @@
         </div>
     </div>
 </form>
-{% block extra_js %}
-    <script src="{% static "js/projectFilters.js" %}" defer></script>
-    <script src="{% static 'js/territoireFilter.js' %}" defer></script>
-{% endblock extra_js %}
+<script src="{% static "js/projectFilters.js" %}" defer></script>
+<script src="{% static 'js/territoireFilter.js' %}" defer></script>

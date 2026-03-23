@@ -15,6 +15,7 @@ from ..models import (
 class RegionFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Region
+        django_get_or_create = ("insee_code",)
 
     insee_code = factory.Sequence(lambda n: f"{n}")
     name = factory.Faker("word", locale="fr_FR")
@@ -23,6 +24,7 @@ class RegionFactory(factory.django.DjangoModelFactory):
 class DepartementFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Departement
+        django_get_or_create = ("insee_code",)
 
     insee_code = factory.Sequence(lambda n: f"{n}")
     name = factory.Faker("word", locale="fr_FR")
@@ -32,6 +34,7 @@ class DepartementFactory(factory.django.DjangoModelFactory):
 class ArrondissementFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Arrondissement
+        django_get_or_create = ("insee_code",)
 
     insee_code = factory.Sequence(lambda n: f"{n}")
     name = factory.Faker("city", locale="fr_FR")
@@ -41,6 +44,7 @@ class ArrondissementFactory(factory.django.DjangoModelFactory):
 class CommuneFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Commune
+        django_get_or_create = ("insee_code",)
 
     insee_code = factory.Sequence(lambda n: f"{n}")
     name = factory.Faker("city", locale="fr_FR")

@@ -1,6 +1,7 @@
-from csp.decorators import csp_update
 from django.urls import path
 from django.views.generic import TemplateView
+
+from gsl.utils.csp import csp_update
 
 from . import views
 

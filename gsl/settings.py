@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 import dj_database_url
-from csp.constants import NONCE, SELF
+from django.utils.csp import CSP
 from dotenv import load_dotenv
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.types import SamplingContext
@@ -56,7 +56,6 @@ INSTALLED_APPS = [
     "django_celery_results",
     "django_celery_beat",
     # dependencies:
-    "csp",
     "widget_tweaks",
     "dsfr",
     "import_export",
@@ -82,7 +81,7 @@ INSTALLED_APPS = [
 
 
 MIDDLEWARE = [
-    "csp.middleware.CSPMiddleware",
+    "django.middleware.csp.ContentSecurityPolicyMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -95,6 +94,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
+    "gsl_core.middlewares.MatomoHtmxMiddleware",
     "gsl_core.middlewares.OTPVerificationMiddleware",
     "gsl_core.middlewares.CheckPerimeterMiddleware",
     "axes.middleware.AxesMiddleware",  # should be the last middleware in the MIDDLEWARE list.
@@ -127,10 +127,12 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
+                "django.template.context_processors.csp",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "dsfr.context_processors.site_config",
                 "gsl.utils.context_processors.export_vars",
+                "gsl.utils.context_processors.matomo_events",
             ],
         },
     },
@@ -142,7 +144,7 @@ STORAGES = {
         "OPTIONS": {},
     },
     "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
     },
 }
 
@@ -157,6 +159,11 @@ STATIC_ROOT = "staticfiles"
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
+
+# ManifestStaticFilesStorage modifie le contenu des CSS DSFR (URLs versionnées),
+# ce qui invalide les hashes SRI précalculés par django-dsfr.
+# Le cache-busting par empreinte dans le nom de fichier suffit.
+DSFR_USE_INTEGRITY_CHECKSUMS = False
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.getenv("MEDIA_ROOT", BASE_DIR / "media")
@@ -203,13 +210,6 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = "fr-fr"
 
 TIME_ZONE = "Europe/Paris"
-
-USE_I18N = True
-
-USE_TZ = True
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -382,17 +382,15 @@ CELERY_WORKER_MAX_TASKS_PER_CHILD = 100
 
 # CSP Configuration
 
-CONTENT_SECURITY_POLICY = {
-    "DIRECTIVES": {
-        "default-src": [SELF],
-        "img-src": [SELF, "data:", "stats.beta.gouv.fr"],
-        "style-src": [SELF, NONCE],
-        "script-src": [SELF, NONCE, "stats.beta.gouv.fr"],
-        "connect-src": [SELF, "https://stats.beta.gouv.fr"],
-    },
+SECURE_CSP = {
+    "default-src": [CSP.SELF],
+    "img-src": [CSP.SELF, "data:", "stats.beta.gouv.fr"],
+    "style-src": [CSP.SELF, CSP.NONCE],
+    "script-src": [CSP.SELF, CSP.NONCE, "stats.beta.gouv.fr"],
+    "connect-src": [CSP.SELF, "https://stats.beta.gouv.fr"],
 }
 
-CONTENT_SECURITY_POLICY_REPORT_ONLY = {}
+SECURE_CSP_REPORT_ONLY = {}
 
 # Cookie configuration
 
@@ -423,3 +421,8 @@ OTP_ENABLED = os.getenv("OTP_ENABLED", "true").lower() == "true"
 
 # Matomo configuration
 MATOMO_SITE_ID = os.getenv("MATOMO_SITE_ID", None)
+
+# Antivirus (ClamAV)
+BYPASS_ANTIVIRUS = os.getenv("BYPASS_ANTIVIRUS", "false").lower() == "true"
+# Default is Scalingo default dir https://github.com/Scalingo/clamav-buildpack
+CLAMAV_CONFIG_FILE = os.getenv("CLAMAV_CONFIG_FILE", "/app/clamav/conf/clamd.conf")

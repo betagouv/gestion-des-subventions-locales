@@ -1,7 +1,5 @@
 import os
 
-from csp.constants import SELF, UNSAFE_INLINE
-from csp.decorators import csp_update
 from django.conf import settings
 from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
@@ -11,13 +9,16 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
+from django.utils.csp import CSP
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_http_methods
 from django.views.generic import FormView, ListView
 from formtools.wizard.views import SessionWizardView
 
+from gsl.utils.csp import csp_update
 from gsl_core.exceptions import Http404
+from gsl_core.matomo import queue_matomo_event
 from gsl_core.models import Perimetre
 from gsl_notification.forms import (
     ModeleDocumentStepOneForm,
@@ -171,7 +172,7 @@ class CreateModelDocumentWizard(SessionWizardView):
         location=os.path.join(settings.MEDIA_ROOT, "logos_modeles_arretes")
     )
 
-    @method_decorator(csp_update({"style-src": [SELF, UNSAFE_INLINE]}))
+    @method_decorator(csp_update({"style-src": [CSP.SELF, CSP.UNSAFE_INLINE]}))
     def dispatch(
         self,
         request,
@@ -197,6 +198,7 @@ class CreateModelDocumentWizard(SessionWizardView):
 
     def done(self, form_list, **kwargs):
         instance: ModeleLettreNotification | ModeleArrete = self.instance
+        is_creating = instance.pk is None
 
         for form in form_list:
             for key, value in form.cleaned_data.items():
@@ -207,6 +209,14 @@ class CreateModelDocumentWizard(SessionWizardView):
         instance.save()
 
         self._set_success_message(instance)
+
+        if is_creating:
+            queue_matomo_event(
+                self.request,
+                "Modele",
+                "creation_modele",
+                f"{self.modele_type} - {self.dotation}",
+            )
 
         return HttpResponseRedirect(
             reverse(
@@ -317,7 +327,7 @@ class CreateModelDocumentWizard(SessionWizardView):
 
 
 class UpdateModele(CreateModelDocumentWizard):
-    @method_decorator(csp_update({"style-src": [SELF, UNSAFE_INLINE]}))
+    @method_decorator(csp_update({"style-src": [CSP.SELF, CSP.UNSAFE_INLINE]}))
     def dispatch(
         self,
         request,
@@ -361,7 +371,7 @@ class UpdateModele(CreateModelDocumentWizard):
 
 
 class DuplicateModele(UpdateModele):
-    @method_decorator(csp_update({"style-src": [SELF, UNSAFE_INLINE]}))
+    @method_decorator(csp_update({"style-src": [CSP.SELF, CSP.UNSAFE_INLINE]}))
     def dispatch(self, request, modele_type, modele_id, *args, **kwargs):
         response = super().dispatch(
             request,

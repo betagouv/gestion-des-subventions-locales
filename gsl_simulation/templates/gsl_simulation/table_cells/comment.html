@@ -1,0 +1,17 @@
+{% load gsl_filters %}
+{% column_cell_value column as cell_value %}
+{% with comment_number=column.key|last %}
+    {% if projet.notified_at or simu.status == 'cancelled' or simu.status == 'dismissed' %}
+        <span class="max-3-lines" title="{{ cell_value }}">{{ cell_value|linebreaksbr }}</span>
+    {% else %}
+        <span class="max-3-lines" title="{{ cell_value }}">{{ cell_value|linebreaksbr }}</span>
+        <button class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-edit-line gsl-cell-edit-btn"
+                aria-expanded="false"
+                aria-controls="edit-comment-{{ comment_number }}-{{ simu.pk }}"
+                hx-get="{% url 'simulation:edit-comment' simu.pk comment_number %}{% querystring %}"
+                hx-target="closest td"
+                hx-swap="beforeend"
+                aria-label="Modifier le commentaire {{ comment_number }}">
+        </button>
+    {% endif %}
+{% endwith %}

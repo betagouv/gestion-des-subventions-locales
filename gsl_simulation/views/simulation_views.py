@@ -16,6 +16,7 @@ from django.views.generic.list import ListView
 from django_filters import MultipleChoiceFilter, NumberFilter
 from django_filters.views import FilterView
 
+from gsl_core.matomo import queue_matomo_event
 from gsl_core.models import Perimetre
 from gsl_core.view_mixins import NoFeedbackHtmxFormViewMixin
 from gsl_programmation.services.enveloppe_service import EnveloppeService
@@ -382,10 +383,21 @@ class SimulationCreateView(CreateView):
     model = Simulation
     form_class = SimulationForm
     template_name = "gsl_simulation/simulation_form.html"
+
     success_url = reverse_lazy("simulation:simulation-list")
 
     def get_form_kwargs(self):
         return {"user": self.request.user, **super().get_form_kwargs()}
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        queue_matomo_event(
+            self.request,
+            "Simulation",
+            "creation_simulation",
+            self.object.enveloppe.dotation,
+        )
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -448,9 +460,9 @@ class FilteredProjetsExportView(SimulationDetailView):
         )
 
         resource = (
-            DsilSimulationProjetResource()
+            DsilSimulationProjetResource(export_format=export_type)
             if self.simulation.dotation == DOTATION_DSIL
-            else DetrSimulationProjetResource()
+            else DetrSimulationProjetResource(export_format=export_type)
         )
         dataset = resource.export(simu_projet_qs)
 
@@ -460,7 +472,10 @@ class FilteredProjetsExportView(SimulationDetailView):
         for header in headers_to_remove:
             del dataset[header]
 
-        export_data = dataset.export(export_type)
+        if export_type == self.CSV:
+            export_data = dataset.export("csv", delimiter=";")
+        else:
+            export_data = dataset.export(export_type)
         content_type = self.EXPORT_TYPE_TO_CONTENT_TYPE[export_type]
 
         response = HttpResponse(export_data, content_type=content_type)

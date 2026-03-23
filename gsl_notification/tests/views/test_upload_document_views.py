@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from django.urls import reverse
 
 from gsl_core.tests.factories import (
@@ -229,6 +230,7 @@ def test_uploaded_document_download_url_with_correct_perimetre_and_without_arret
     assert response.status_code == 404
 
 
+@override_settings(BYPASS_ANTIVIRUS=True)
 @pytest.mark.parametrize(
     "doc_type, factory",
     ((ARRETE_ET_LETTRE_SIGNES, ArreteEtLettreSignesFactory), (ANNEXE, AnnexeFactory)),

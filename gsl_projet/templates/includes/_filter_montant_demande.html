@@ -1,4 +1,4 @@
-<div class="filter-field fr-col-12 fr-col-md-6 fr-col-lg-3">
+<div class="filter-field">
     <div class="gsl-dropdown fr-mt-4w">
         <button type="button"
                 class="fr-input {% if is_montant_demande_active %}filter-dropdown-button-active{% endif %}"
@@ -55,8 +55,7 @@
         </div>
     </div>
 </div>
-{% block extra_js %}
-    <script nonce="{{request.csp_nonce}}">
+<script nonce="{{ csp_nonce }}">
     // If the montant_demande_sup_100k checkbox is checked or unchecked, update the montant_demande_min and montant_demande_max inputs
     document.getElementById('montant_demande_sup_100k').addEventListener('change', function() {
         if (this.checked) {
@@ -95,5 +94,4 @@
             document.getElementById('montant_demande_inf_100k').checked = false;
         }
     });
-    </script>
-{% endblock extra_js %}
+</script>

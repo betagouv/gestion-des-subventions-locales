@@ -309,7 +309,7 @@ class TestExportColumnsVisibility:
         response = view.get(request)
         assert response.status_code == 200
         csv_content = response.content.decode("utf-8")
-        return list(csv.reader(io.StringIO(csv_content)))
+        return list(csv.reader(io.StringIO(csv_content), delimiter=";"))
 
     def test_export_with_hidden_columns_excludes_them(self):
         simulation = SimulationFactory(
@@ -362,7 +362,7 @@ class TestExportColumnsVisibility:
         # displayed_by_default=True columns should be included
         assert "Date de dépôt du dossier" in headers
         assert "Demandeur" in headers
-        assert "Montant prévsionnel accordé" in headers
+        assert "Montant prévisionnel accordé" in headers
 
     def test_export_with_nom_demandeur_visibility(self):
         simulation = SimulationFactory(

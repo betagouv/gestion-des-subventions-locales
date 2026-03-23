@@ -44,21 +44,41 @@
         </details>
     </div>
     <div>
-        <div class="fr-enlarge-link">
-            <a href="{{ document.get_view_url }}"
-               class="arrete-card__image-container">
+        {% if document.is_downloadable %}
+            <div class="fr-enlarge-link">
+                <a href="{{ document.get_view_url }}"
+                   class="arrete-card__image-container">
+                    <img class="arrete-card__image"
+                         src="{% static 'img/arrete_vignette.png' %}"
+                         alt="Image d'un arrêté">
+                    <span class="show-on-hover fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-eye-line">Visualiser</span>
+                </a>
+            </div>
+            <a class="fr-link fr-link--download"
+               href="{{ document.get_download_url }}">
+                {{ document.name }} -
+                {{ document.file_type|upper }} -
+                {{ document.size|filesizeformat }}
+            </a>
+        {% else %}
+            <div class="arrete-card__image-container">
                 <img class="arrete-card__image"
                      src="{% static 'img/arrete_vignette.png' %}"
                      alt="Image d'un arrêté">
-                <span class="show-on-hover fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-eye-line">Visualiser</span>
-            </a>
-        </div>
-        <a class="fr-link fr-link--download"
-           href="{{ document.get_download_url }}">
-            {{ document.name }} -
-            {{ document.file_type|upper }} -
-            {{ document.size|filesizeformat }}
-        </a>
+            </div>
+            <p class="fr-text--sm fr-mb-0">
+                {{ document.name }}
+            </p>
+            {% if document.is_infected %}
+                <p class="fr-error-text fr-text--sm fr-mb-0">
+                    Téléchargement bloqué : fichier infecté détecté par l'antivirus
+                </p>
+            {% else %}
+                <p class="fr-info-text fr-text--sm fr-mb-0">
+                    Analyse antivirus en cours…
+                </p>
+            {% endif %}
+        {% endif %}
     </div>
     <div>
         Ajouté le {{ document.created_at|date:"d/m/Y" }} à {{ document.created_at|time:"H:i" }}

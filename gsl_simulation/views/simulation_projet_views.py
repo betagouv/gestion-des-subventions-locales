@@ -8,11 +8,13 @@ from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, UpdateView
+from django.views.generic.edit import BaseUpdateView
 from django_htmx.http import HttpResponseClientRefresh
 
 from gsl.settings import ALLOWED_HOSTS
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
+from gsl_core.matomo import queue_matomo_event
 from gsl_core.templatetags.gsl_filters import euro
 from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.exceptions import DsServiceException
@@ -31,6 +33,7 @@ from gsl_projet.models import DotationProjet, projet_status_from_dotation_status
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_simulation.forms import (
     AssietteSingleFieldForm,
+    CommentSingleFieldForm,
     DismissProjetForm,
     MontantSingleFieldForm,
     RefuseProjetForm,
@@ -49,6 +52,7 @@ from gsl_simulation.views.simulation_views import SimulationProjetListViewFilter
 class SimulationTableCellEditMixin(UpdateView):
     model = SimulationProjet
     context_object_name = "simu"
+    matomo_action: str = ""
 
     def get_queryset(self):
         return SimulationProjet.objects.in_user_perimeter(self.request.user)
@@ -58,6 +62,10 @@ class SimulationTableCellEditMixin(UpdateView):
         kwargs["user"] = self.request.user
         return kwargs
 
+    def _queue_matomo_event(self, name: str):
+        if self.matomo_action:
+            queue_matomo_event(self.request, "Simulation", self.matomo_action, name)
+
     def form_valid(self, form):
         try:
             form.save()
@@ -65,7 +73,12 @@ class SimulationTableCellEditMixin(UpdateView):
             form.add_error(None, str(e))
             return self.form_invalid(form)
         self.object.refresh_from_db()
+        self._queue_matomo_event("valide")
         return self.render_success_partial()
+
+    def form_invalid(self, form):
+        self._queue_matomo_event("invalide")
+        return super().form_invalid(form)
 
     def _get_projets_queryset_with_filters(self):
         simulation = self.object.simulation
@@ -101,6 +114,7 @@ class SimulationTableCellEditMixin(UpdateView):
 class EditAssietteView(SimulationTableCellEditMixin):
     form_class = AssietteSingleFieldForm
     template_name = "gsl_simulation/table_cells/edit_forms/_assiette_edit_form.html"
+    matomo_action = "modification_assiette"
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -112,11 +126,29 @@ class EditAssietteView(SimulationTableCellEditMixin):
 class EditMontantView(SimulationTableCellEditMixin):
     form_class = MontantSingleFieldForm
     template_name = "gsl_simulation/table_cells/edit_forms/_montant_edit_form.html"
+    matomo_action = "modification_montant"
 
 
 class EditTauxView(SimulationTableCellEditMixin):
     form_class = TauxSingleFieldForm
     template_name = "gsl_simulation/table_cells/edit_forms/_taux_edit_form.html"
+    matomo_action = "modification_taux"
+
+
+class EditCommentView(SimulationTableCellEditMixin):
+    form_class = CommentSingleFieldForm
+    template_name = "gsl_simulation/table_cells/edit_forms/_comment_edit_form.html"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["instance"] = self.object.projet
+        kwargs["comment_number"] = self.kwargs["comment_number"]
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["comment_number"] = self.kwargs["comment_number"]
+        return context
 
 
 class RefreshSimulationRowView(DetailView):
@@ -229,6 +261,12 @@ class BaseSimulationProjetView(UpdateView):
             messages.success(
                 self.request,
                 "Les modifications ont été enregistrées avec succès.",
+            )
+            queue_matomo_event(
+                self.request,
+                "Programmation",
+                "modification_montants",
+                form.instance.dotation_projet.dotation,
             )
         except DsServiceException as e:
             error_msg = f"Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. {str(e)}"
@@ -485,6 +523,12 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
                 }[self.kwargs["status"]],
                 extra_tags=self.kwargs["status"],
             )
+            queue_matomo_event(
+                self.request,
+                "Simulation",
+                "changement_statut",
+                f"{self.kwargs['status']}",
+            )
         except DsServiceException as e:  # rollback the transaction + show error
             messages.error(
                 self.request,
@@ -524,6 +568,30 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
             )
         )
         return obj
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+
+        if self.new_project_status in [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED]:
+            queue_matomo_event(
+                request,
+                "Programmation",
+                "changement_statut_avec_notification_demande_confirmation",
+                f"{self.kwargs['status']}",
+            )
+
+        elif self.new_project_status in [
+            PROJET_STATUS_PROCESSING,
+            PROJET_STATUS_ACCEPTED,
+        ]:
+            queue_matomo_event(
+                request,
+                "Programmation",
+                "changement_statut_sans_notification_demande_confirmation",
+                f"{self.kwargs['status']}",
+            )
+        # On contourne BaseUpdateView.get() pour éviter un second appel à get_object()
+        return super(BaseUpdateView, self).get(request, *args, **kwargs)
 
     def get_modal_id(self):
         return f"{self.kwargs['status']}-modal-{self.object.pk}"
@@ -618,6 +686,12 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
             self.request,
             message,
             extra_tags=self.object.projet.status,
+        )
+        queue_matomo_event(
+            self.request,
+            "Programmation",
+            "changement_statut_confirme",
+            f"{self.kwargs['status']}",
         )
         return (
             HttpResponseClientRefresh()

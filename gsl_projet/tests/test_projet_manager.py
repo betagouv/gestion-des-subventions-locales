@@ -24,7 +24,7 @@ from .factories import (
     SubmittedProjetFactory,
 )
 
-pytestmark = pytest.mark.django_db(transaction=True)
+pytestmark = pytest.mark.django_db
 
 
 # General tests ========================================================================

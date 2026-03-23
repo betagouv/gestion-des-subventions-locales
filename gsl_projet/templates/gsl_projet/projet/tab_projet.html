@@ -106,7 +106,13 @@
                         <b>Nature du porteur de projet</b> : {{ dossier.porteur_de_projet_nature }}
                     </li>
                     <li>
-                        <b>Département et arrondissement :</b> {{ dossier.porteur_de_projet_arrondissement }}
+                        <b>Nom du demandeur</b> : {{ dossier.porteur_fullname }}
+                    </li>
+                    <li>
+                        <b>Département et arrondissement :</b> {{ dossier.porteur_de_projet_departement.name|default:"-" }}
+                        {% if dossier.porteur_de_projet_arrondissement %}
+                            - {{ dossier.porteur_de_projet_arrondissement.name|default:"-" }}
+                        {% endif %}
                     </li>
                     <li>
                         <b>La maîtrise d’ouvrage de l’opération sera-t-elle déléguée?</b>

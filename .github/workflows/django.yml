@@ -14,7 +14,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.12]
+        python-version: [3.13]
 
     services:
       postgres:
@@ -42,9 +42,10 @@ jobs:
         echo "secret key : $SECRET_KEY"
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
+        cache: 'pip'
 
     - name: Install Dependencies
       run: |
