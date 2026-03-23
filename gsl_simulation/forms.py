@@ -393,6 +393,15 @@ class TauxSingleFieldForm(forms.ModelForm):
                 taux = round(taux, 3)
             self.fields["taux"].initial = taux
 
+    def clean(self):
+        cleaned_data = super().clean()
+        taux = cleaned_data.get("taux")
+        if taux is not None:
+            self.instance.montant = (
+                self.instance.dotation_projet.compute_montant_from_taux(taux)
+            )
+        return cleaned_data
+
     @transaction.atomic
     def save(self, commit=True):
         simulation_projet = self.instance
