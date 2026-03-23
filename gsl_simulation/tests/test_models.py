@@ -97,10 +97,10 @@ def test_simulation_projet_cant_have_a_montant_higher_than_projet_assiette():
     with pytest.raises(ValidationError) as exc_info:
         sp = SimulationProjetFactory(dotation_projet=dotation_projet, montant=101)
         assert sp.montant == 101
-        sp.save()
+        sp.clean()
     assert (
-        "Le montant doit être inférieur ou égal à l'assiette du projet"
-        in exc_info.value.message_dict.get("montant")[0]
+        "Le montant doit être inférieur ou égal à l'assiette du projet pour cette dotation."
+        in exc_info.value.messages
     )
 
 
@@ -116,10 +116,10 @@ def test_simulation_projet_cant_have_a_montant_higher_than_projet_cout_total():
             dotation_projet=dotation_projet,
             montant=101,
         )
-        sp.save()
+        sp.clean()
     assert (
-        "Le montant doit être inférieur ou égal au coût total du projet"
-        in exc_info.value.message_dict.get("montant")[0]
+        "Le montant doit être inférieur ou égal au coût total du projet."
+        in exc_info.value.messages
     )
 
 
@@ -133,10 +133,10 @@ def test_simulation_projet_must_have_a_dotation_consistency():
             simulation=simulation,
             dotation_projet=dotation_projet,
         )
-        sp.save()
+        sp.clean()
     assert (
         "La dotation du projet doit être la même que la dotation de la simulation."
-        in exc_info.value.message_dict.get("dotation_projet")[0]
+        in exc_info.value.messages
     )
 
 

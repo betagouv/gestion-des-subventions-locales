@@ -181,20 +181,16 @@ class Perimetre(BaseModel):
             name += f" - {self.arrondissement.name}"
         return name
 
-    def save(self, *args, **kwargs):
-        self.clean()
-        super().save(*args, **kwargs)
-
     def clean(self):
-        errors = {}
+        errors = []
 
         if self.departement and self.region and self.departement.region != self.region:
-            errors["departement"] = (
+            errors.append(
                 "Le département doit appartenir à la même région que le périmètre."
             )
 
         if self.arrondissement and not self.departement:
-            errors["arrondissement"] = (
+            errors.append(
                 "Un arrondissement ne peut être sélectionné sans département."
             )
         elif (
@@ -202,7 +198,7 @@ class Perimetre(BaseModel):
             and self.departement
             and self.arrondissement.departement != self.departement
         ):
-            errors["arrondissement"] = (
+            errors.append(
                 "L'arrondissement sélectionné doit appartenir à son département."
             )
 

@@ -111,7 +111,7 @@ def test_clean_montant_rejects_above_assiette(user):
         user=user,
     )
     assert not form.is_valid()
-    assert "montant" in form.errors
+    assert "__all__" in form.errors
 
 
 def test_clean_montant_accepts_within_assiette(user):

@@ -631,7 +631,7 @@ def test_patch_simulation_projet_with_invalid_form(
     )
 
     assert response.context["simulation_projet_form"].errors == {
-        "montant": [
+        "__all__": [
             "Le montant doit être inférieur ou égal à l'assiette du projet pour cette dotation."
         ]
     }
