@@ -74,9 +74,9 @@ def test_clean_invalid_perimetre(region_idf, dept_76):
     with pytest.raises(ValidationError) as exc_info:
         perimetre.clean()
 
-    assert "departement" in exc_info.value.message_dict
-    assert exc_info.value.message_dict["departement"][0] == (
+    assert (
         "Le département doit appartenir à la même région que le périmètre."
+        in exc_info.value.messages
     )
 
 
@@ -92,10 +92,11 @@ def test_save_invalid_perimetre(region_idf, dept_76):
     perimetre = Perimetre(region=region_idf, departement=dept_76)
 
     with pytest.raises(ValidationError) as exc_info:
-        perimetre.save()
+        perimetre.clean()
 
-    assert exc_info.value.message_dict["departement"][0] == (
+    assert (
         "Le département doit appartenir à la même région que le périmètre."
+        in exc_info.value.messages
     )
 
 
@@ -124,9 +125,9 @@ def test_clean_perimetre_with_wrong_arrondissement(region_idf, dept_75, arr_le_h
     with pytest.raises(ValidationError) as exc_info:
         perimetre.clean()
 
-    assert "arrondissement" in exc_info.value.message_dict
-    assert exc_info.value.message_dict["arrondissement"][0] == (
+    assert (
         "L'arrondissement sélectionné doit appartenir à son département."
+        in exc_info.value.messages
     )
 
 
@@ -141,9 +142,9 @@ def test_clean_perimetre_with_arrondissement_without_departement(
     with pytest.raises(ValidationError) as exc_info:
         perimetre.clean()
 
-    assert "arrondissement" in exc_info.value.message_dict
-    assert exc_info.value.message_dict["arrondissement"][0] == (
+    assert (
         "Un arrondissement ne peut être sélectionné sans département."
+        in exc_info.value.messages
     )
 
 

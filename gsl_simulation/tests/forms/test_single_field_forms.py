@@ -111,7 +111,7 @@ def test_clean_montant_rejects_above_assiette(user):
         user=user,
     )
     assert not form.is_valid()
-    assert "montant" in form.errors
+    assert "__all__" in form.errors
 
 
 def test_clean_montant_accepts_within_assiette(user):
@@ -181,6 +181,21 @@ def test_montant_form_save_accepted_triggers_accept(mock_ds_update, user):
 
 
 # -- TauxSingleFieldForm --
+
+
+def test_taux_form_accepts_when_old_montant_above_assiette(user):
+    """Remplir le taux doit être valide même si l'ancien montant dépasse l'assiette."""
+    dotation_projet = DotationProjetFactory(assiette=1000)
+    simulation_projet = SimulationProjetFactory(
+        dotation_projet=dotation_projet,
+        montant=2000,  # montant > assiette : état invalide à corriger
+    )
+    form = TauxSingleFieldForm(
+        data={"taux": 10},  # 10% de 1000 = 100, ce qui est valide
+        instance=simulation_projet,
+        user=user,
+    )
+    assert form.is_valid(), form.errors
 
 
 def test_taux_form_rejects_above_100(user):

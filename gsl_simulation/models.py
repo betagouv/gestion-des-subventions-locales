@@ -185,10 +185,6 @@ class SimulationProjet(BaseModel):
     def __str__(self):
         return f"Simulation projet {self.pk}"
 
-    def save(self, *args, **kwargs):
-        self.clean()
-        super().save(*args, **kwargs)
-
     def get_absolute_url(self):
         from django.urls import reverse
 
@@ -215,7 +211,7 @@ class SimulationProjet(BaseModel):
         return compute_taux(self.montant, self.dotation_projet.assiette_or_cout_total)
 
     def clean(self):
-        errors = {}
+        errors = []
         self._validate_montant(errors)
         self._validate_dotation(errors)
         if errors:
@@ -224,7 +220,7 @@ class SimulationProjet(BaseModel):
     def _validate_montant(self, errors):
         if self.dotation_projet.assiette is not None:
             if self.montant and self.montant > self.dotation_projet.assiette:
-                errors["montant"] = (
+                errors.append(
                     "Le montant doit être inférieur ou égal à l'assiette du projet pour cette dotation."
                 )
         else:
@@ -233,12 +229,12 @@ class SimulationProjet(BaseModel):
                 and self.projet.dossier_ds.finance_cout_total
                 and self.montant > self.projet.dossier_ds.finance_cout_total
             ):
-                errors["montant"] = (
+                errors.append(
                     "Le montant doit être inférieur ou égal au coût total du projet."
                 )
 
     def _validate_dotation(self, errors):
         if self.dotation_projet.dotation != self.simulation.enveloppe.dotation:
-            errors["dotation_projet"] = {
+            errors.append(
                 "La dotation du projet doit être la même que la dotation de la simulation."
-            }
+            )
