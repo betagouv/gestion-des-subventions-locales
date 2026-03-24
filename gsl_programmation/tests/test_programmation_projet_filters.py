@@ -24,7 +24,6 @@ from gsl_programmation.utils.programmation_projet_filters import (
 )
 from gsl_projet.constants import DOTATION_DETR
 from gsl_projet.tests.factories import (
-    CategorieDetrFactory,
     DemandeurFactory,
     DotationProjetFactory,
     ProjetFactory,
@@ -358,43 +357,6 @@ class TestProgrammationProjetFilters:
         result = list(filterset.qs)
         assert prog_arr1 in result
         assert prog_arr2 in result
-
-    def test_categorie_detr_filter(
-        self, mock_request, enveloppe, arrondissement, departement
-    ):
-        """Test le filtre par catégorie DETR"""
-        # Créer des catégories DETR
-        categorie1 = CategorieDetrFactory(departement=departement.departement)
-        categorie2 = CategorieDetrFactory(departement=departement.departement)
-
-        # Créer des projets avec différentes catégories
-        projet1 = ProjetFactory(dossier_ds__perimetre=arrondissement)
-        projet2 = ProjetFactory(dossier_ds__perimetre=arrondissement)
-
-        dotation_projet1 = DotationProjetFactory(projet=projet1, dotation=DOTATION_DETR)
-        dotation_projet2 = DotationProjetFactory(projet=projet2, dotation=DOTATION_DETR)
-
-        # Associer les catégories aux dotations
-        dotation_projet1.detr_categories.add(categorie1)
-        dotation_projet2.detr_categories.add(categorie2)
-
-        dotation_projet1.refresh_from_db()
-        assert dotation_projet1.detr_categories.count() == 1
-
-        prog1 = ProgrammationProjetFactory(
-            dotation_projet=dotation_projet1, enveloppe=enveloppe
-        )
-        prog2 = ProgrammationProjetFactory(
-            dotation_projet=dotation_projet2, enveloppe=enveloppe
-        )
-
-        # Test filtre par catégorie spécifique
-        filterset = ProgrammationProjetFilters(
-            data={"categorie_detr": [categorie1.id]}, request=mock_request
-        )
-        result = list(filterset.qs)
-        assert prog1 in result
-        assert prog2 not in result
 
     def test_to_notify_filter(self, mock_request, enveloppe, arrondissement):
         """Test le filtre pour les projets à notifier"""

@@ -8,12 +8,9 @@ from gsl_projet.utils.django_filters_custom_widget import (
     CustomSelectWidget,
 )
 from gsl_projet.utils.projet_filters import (
-    DOTATION_CHOICES,
     ORDERING_LABELS,
     ORDERING_MAP,
     ProjetOrderingFilter,
-    filter_categorie_detr,
-    filter_dotation,
     filter_territoire,
 )
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
@@ -22,8 +19,6 @@ from gsl_simulation.models import Simulation, SimulationProjet
 
 class SimulationProjetFilters(FilterSet):
     def __init__(self, *args, slug=None, **kwargs):
-        from gsl_projet.models import CategorieDetr
-
         super().__init__(*args, **kwargs)
         self.slug = slug or self.request.resolver_match.kwargs.get("slug")
         simulation = Simulation.objects.select_related(
@@ -40,12 +35,6 @@ class SimulationProjetFilters(FilterSet):
             self.filters["territoire"].extra["choices"] = tuple(
                 (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
             )
-            self.filters["categorie_detr"].extra["choices"] = tuple(
-                (c.id, c.libelle)
-                for c in CategorieDetr.objects.current_for_departement(
-                    perimetre.departement
-                )
-            )
 
     filterset = (
         "territoire",
@@ -54,7 +43,6 @@ class SimulationProjetFilters(FilterSet):
         "cout_total",
         "montant_demande",
         "montant_previsionnel",
-        "categorie_detr",
     )
 
     SIMULATION_ORDERING_MAP = {
@@ -72,12 +60,6 @@ class SimulationProjetFilters(FilterSet):
         field_labels=SIMULATION_ORDERING_LABELS,
         empty_label="Tri",
         widget=CustomSelectWidget,
-    )
-
-    dotation = MultipleChoiceFilter(
-        choices=DOTATION_CHOICES,
-        widget=CustomCheckboxSelectMultiple(),
-        method="filter_dotation",
     )
 
     porteur = MultipleChoiceFilter(
@@ -124,12 +106,6 @@ class SimulationProjetFilters(FilterSet):
         widget=CustomCheckboxSelectMultiple(),
     )
 
-    categorie_detr = MultipleChoiceFilter(
-        method="filter_categorie_detr",
-        choices=[],
-        widget=CustomCheckboxSelectMultiple(),
-    )
-
     ordered_status = (
         SimulationProjet.STATUS_PROCESSING,
         SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
@@ -165,16 +141,10 @@ class SimulationProjetFilters(FilterSet):
         method="filter_montant_previsionnel_max",
     )
 
-    filter_dotation = staticmethod(filter_dotation)
     filter_territoire = staticmethod(filter_territoire)
-    filter_categorie_detr = staticmethod(filter_categorie_detr)
 
     def filter_status(self, queryset, name, value):
         return queryset.filter(
-            # Cette ligne est utile pour qu'on ait un "ET", cad, on filtre les projets de la simulation en cours ET sur les statuts sélectionnés.
-            # Sans ça, on aurait dans l'ordre :
-            # - les projets dont IL EXISTE UN SIMULATION_PROJET (pas forcément celui de la simulation en question) qui a un des statuts sélectionnés
-            # - les simulation_projets de la simulation associés aux projets filtrés
             **self._simulation_slug_filter_kwarg(),
             dotationprojet__simulationprojet__status__in=value,
         )
