@@ -14,18 +14,28 @@ def ui_multiselect(*args, **kwargs) -> dict:
         "id": "The field id",
         "field": "Multiple Choice Filter field form",
         "label": "Field label",
-        "placeholder": "Placeholder in button",
-        "is_active": "(Optional) If true, we give a blue border to button. False by default",
+        "default_placeholder": "Placeholder when nothing is selected",
     }
     ```"""
     allowed_keys = [
         "id",
         "field",
         "label",
-        "placeholder",
-        "is_active",
+        "default_placeholder",
     ]
     tag_data = parse_tag_args(args, kwargs, allowed_keys)
+
+    field = tag_data["field"]
+    selected = field.data or []
+    tag_data["is_active"] = bool(selected)
+
+    if selected:
+        choices_dict = dict(field.field.choices)
+        tag_data["placeholder"] = ", ".join(
+            str(choices_dict[v]) for v in selected if v in choices_dict
+        )
+    else:
+        tag_data["placeholder"] = tag_data.get("default_placeholder", "")
 
     return {"self": tag_data}
 
