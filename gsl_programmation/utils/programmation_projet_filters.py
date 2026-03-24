@@ -12,7 +12,6 @@ from gsl_programmation.models import (
     Enveloppe,
     ProgrammationProjet,
 )
-from gsl_projet.models import CategorieDetr
 from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     CustomSelectWidget,
@@ -43,7 +42,6 @@ class ProgrammationProjetFilters(FilterSet):
     filterset = (
         "territoire",
         "porteur",
-        "categorie_detr",
         "notified",
         "cout_total",
         "montant_demande",
@@ -118,23 +116,10 @@ class ProgrammationProjetFilters(FilterSet):
     )
 
     def filter_territoire(self, queryset, _name, values: list[int]):
-        perimetres = set()
+        result = queryset.none()
         for perimetre in Perimetre.objects.filter(id__in=values):
-            perimetres.add(perimetre)
-            for child in perimetre.children():
-                perimetres.add(child)
-        return queryset.filter(
-            dotation_projet__projet__dossier_ds__perimetre__in=perimetres
-        )
-
-    categorie_detr = MultipleChoiceFilter(
-        method="filter_categorie_detr",
-        choices=[],
-        widget=CustomCheckboxSelectMultiple(),
-    )
-
-    def filter_categorie_detr(self, queryset, _name, values: list[int]):
-        return queryset.filter(dotation_projet__detr_categories__in=values)
+            result |= queryset.for_perimetre(perimetre)
+        return result
 
     notified = ChoiceFilter(
         method="filter_notified",
@@ -186,7 +171,6 @@ class ProgrammationProjetFilters(FilterSet):
             "montant_retenu_max",
             "status",
             "territoire",
-            "categorie_detr",
             "notified",
         )
 
@@ -203,13 +187,6 @@ class ProgrammationProjetFilters(FilterSet):
             self.filters["territoire"].extra["choices"] = tuple(
                 (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
             )
-            if perimetre.departement:
-                self.filters["categorie_detr"].extra["choices"] = tuple(
-                    (c.id, c.libelle)
-                    for c in CategorieDetr.objects.current_for_departement(
-                        perimetre.departement
-                    )
-                )
         self.select_related_objs = select_related_objs
         self.prefetch_related_objs = prefetch_related_objs
 

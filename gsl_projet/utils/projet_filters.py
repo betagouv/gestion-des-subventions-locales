@@ -127,16 +127,10 @@ def filter_dotation(queryset, _name, values):
 
 
 def filter_territoire(queryset, _name, values: list[int]):
-    perimetres = set()
+    result = queryset.none()
     for perimetre in Perimetre.objects.filter(id__in=values):
-        perimetres.add(perimetre)
-        for child in perimetre.children():
-            perimetres.add(child)
-    return queryset.filter(dossier_ds__perimetre__in=perimetres)
-
-
-def filter_categorie_detr(queryset, _name, values: list[int]):
-    return queryset.filter(dotationprojet__detr_categories__in=values)
+        result |= queryset.for_perimetre(perimetre)
+    return result
 
 
 class ProjetFilters(FilterSet):
@@ -211,12 +205,6 @@ class ProjetFilters(FilterSet):
         widget=CustomCheckboxSelectMultiple(),
     )
 
-    categorie_detr = MultipleChoiceFilter(
-        method="filter_categorie_detr",
-        choices=[],
-        widget=CustomCheckboxSelectMultiple(),
-    )
-
     ordered_status: tuple[str, ...] = (
         PROJET_STATUS_PROCESSING,
         PROJET_STATUS_REFUSED,
@@ -234,7 +222,6 @@ class ProjetFilters(FilterSet):
 
     filter_dotation = staticmethod(filter_dotation)
     filter_territoire = staticmethod(filter_territoire)
-    filter_categorie_detr = staticmethod(filter_categorie_detr)
 
     def filter_montant_retenu(self, queryset, _name, value):
         montant_min = self.data.get("montant_retenu_min")
