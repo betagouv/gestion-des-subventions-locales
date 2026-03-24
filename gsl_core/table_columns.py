@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Optional
 
+from django.utils.html import format_html
+
 from gsl_demarches_simplifiees.models import Dossier
 
 
@@ -17,6 +19,11 @@ class TextAlign(Enum):
     LEFT = "left"
     RIGHT = "right"
     CENTER = "center"
+
+
+class ColumnWidth(Enum):
+    MIN_140 = "gsl-col--140px-min"
+    MIN_180 = "gsl-col--180px-min"
 
 
 COMMON_CELL_TEMPLATE = "gsl_core/table_cells/_common_cell.html"
@@ -74,6 +81,7 @@ class Column:
     text_align: Optional[TextAlign] = None
     max_3_lines: bool = False
     linebreaks: bool = False
+    width: Optional[ColumnWidth] = None
 
     # Column visibility toggle
     hideable: bool = True
@@ -122,13 +130,29 @@ class Column:
         return ""
 
     @property
+    def width_class(self) -> str:
+        if self.width is None:
+            return ""
+        return self.width.value
+
+    @property
     def th_classes(self) -> str:
-        return " ".join(filter(None, [self.css_class, self.sticky_class]))
+        return " ".join(
+            filter(None, [self.css_class, self.sticky_class, self.width_class])
+        )
 
     @property
     def td_classes(self) -> str:
         return " ".join(
-            filter(None, [self.css_class, self.sticky_class, self.align_class])
+            filter(
+                None,
+                [
+                    self.css_class,
+                    self.sticky_class,
+                    self.align_class,
+                    self.width_class,
+                ],
+            )
         )
 
     @property
@@ -220,6 +244,7 @@ COLUMN_CATEGORIE = Column(
         ctx["other_dotation"]
     ),
     max_3_lines=True,
+    width=ColumnWidth.MIN_140,
 )
 
 COLUMN_DATE_DEPOT = Column(
@@ -269,6 +294,29 @@ COLUMN_ARRONDISSEMENT = Column(
     ),
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
+)
+
+
+def _get_epci_cell(ctx):
+    epci_raw = ctx["projet"].dossier_ds.porteur_de_projet_epci
+    if not epci_raw:
+        return "-"
+    parts = epci_raw.split(" - ", 1)
+    if len(parts) == 2:
+        code, name = parts
+        url = f"https://annuaire-entreprises.data.gouv.fr/entreprise/{code}"
+        return format_html(
+            '<a href="{}" target="_blank" rel="noreferrer noopener">{}</a>', url, name
+        )
+    return epci_raw
+
+
+COLUMN_EPCI = Column(
+    key="epci",
+    label="EPCI",
+    getter=_get_epci_cell,
+    displayed_by_default=False,
+    width=ColumnWidth.MIN_140,
 )
 
 COLUMN_NOM_DEMANDEUR = Column(
