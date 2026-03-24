@@ -1,0 +1,36 @@
+{% load filter_tags %}
+{% is_any_param_set field_min_name field_max_name as is_active %}
+<div {% if wrapper_id %}id="{{ wrapper_id }}"{% endif %}
+     class="filter-field">
+    <div class="gsl-dropdown fr-mt-4w">
+        <button type="button"
+                class="fr-input {% if is_active %}filter-dropdown-button-active{% endif %}"
+                {% if button_id %}id="{{ button_id }}"{% endif %}>
+            <span class="{{ icon_class }} fr-icon--sm blue-color fr-mr-1w"></span>
+            {{ button_label }}
+        </button>
+        <div class="gsl-dropdown-content">
+            <div class="amount-filter-group">
+                <label class="fr-label" for="id_{{ field_min_name }}">
+                    {{ label_min }}
+                </label>
+                <div class="euro-input-wrap">
+                    {{ field_min }}
+                    <span class="euro-input-symbol">€</span>
+                </div>
+            </div>
+            <div class="amount-filter-group">
+                <label class="fr-label" for="id_{{ field_max_name }}">
+                    {{ label_max }}
+                </label>
+                <div class="euro-input-wrap">
+                    {{ field_max }}
+                    <span class="euro-input-symbol">€</span>
+                </div>
+            </div>
+            <button type="submit" class="fr-btn fr-btn--sm">
+                Filtrer
+            </button>
+        </div>
+    </div>
+</div>
