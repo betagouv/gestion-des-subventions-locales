@@ -1,6 +1,20 @@
 {% load gsl_filters dsfr_tags %}
 
-{{ column.label }}
+{% if column.sort_param %}
+
+    {% with column|sort_url_param:current_order as next_order %}
+        {% with column|aria_sort:current_order as sort_state %}
+            <a href="{% querystring order=next_order %}"
+               aria-label="Trier par {{ column.label }}"
+               title="Trier par {{ column.label }}">
+                {{ column.label }}
+                <i class="fr-icon--sm {% if sort_state == 'ascending' %}fr-icon-arrow-up-s-fill{% elif sort_state == 'descending' %}fr-icon-arrow-down-s-fill{% else %}fr-icon-arrow-up-down-line{% endif %}"></i>
+            </a>
+        {% endwith %}
+    {% endwith %}
+{% else %}
+    {{ column.label }}
+{% endif %}
 
 {% if column.aggregate_key and aggregates %}
     <br>

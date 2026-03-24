@@ -171,6 +171,43 @@ def json_filter(value):
     return mark_safe(json.dumps(value))
 
 
+@register.filter
+def sort_url_param(column, current_order):
+    """Return the next `order` param value in the asc -> desc -> none cycle."""
+    if not column.sort_param:
+        return ""
+    param = column.sort_param
+    if current_order == param:
+        return f"-{param}"
+    if current_order == f"-{param}":
+        return ""
+    return param
+
+
+@register.filter
+def aria_sort(column, current_order):
+    """Return the aria-sort value for a sortable column header."""
+    if not column.sort_param:
+        return "none"
+    if current_order == column.sort_param:
+        return "ascending"
+    if current_order == f"-{column.sort_param}":
+        return "descending"
+    return "none"
+
+
+@register.simple_tag
+def active_sort_label(columns, current_order):
+    """Return the label of the currently sorted column, or empty string."""
+    if not current_order:
+        return ""
+    param = current_order.lstrip("-")
+    for column in columns:
+        if column.sort_param == param:
+            return column.label
+    return ""
+
+
 @register.simple_tag(takes_context=True)
 def column_link_url(context, column):
     url = column.link.url_getter(context)

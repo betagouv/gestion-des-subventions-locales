@@ -222,6 +222,7 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
                     "current": "Programmation en cours",
                 },
                 "current_tab": self.dotation,
+                "current_order": self.request.GET.get("order", ""),
                 "columns": PROGRAMMATION_TABLE_COLUMNS,
             }
         )

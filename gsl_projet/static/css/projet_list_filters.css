@@ -116,6 +116,23 @@
   padding-top: 6px;
 }
 
+.filter-dropdown-button-active.fr-tag {
+  overflow: hidden;
+  display: inline-block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  padding-right: 2rem;
+  position: relative;
+}
+
+.filter-dropdown-button-active.fr-tag::after {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
 .filter-field > select {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -155,7 +172,7 @@
   flex-wrap: wrap;
   gap: 0.75rem;
   justify-content: flex-start;
-  align-items: flex-end;
+  align-items: stretch;
 }
 
 .filters-flex-row > .filter-field,
@@ -164,6 +181,13 @@
   width: auto;
   max-width: 220px;
   min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.filters-flex-row > .reinit-filters {
+  justify-content: flex-end;
 }
 
 @media (width <= 768px) {

@@ -135,9 +135,6 @@ ul.no-list-style li {
     font-size: 0.75rem;
 }
 
-.gsl-projet-table .fr-table__content thead th {
-    background-color: var(--background-alt-blue-france-hover);
-}
 
 /* Column widths scoped by table ID and column class */
 #table-projets .gsl-col--intitule,
@@ -192,6 +189,7 @@ ul.no-list-style li {
 .gsl-projet-table .gsl-projet-table__total {
     width: 100%;
     justify-content: center;
+    margin-top: 0.25rem;
     color: var(--text-title-blue-france);
     font-weight: 500;
     line-height: calc(14rem / 16);
@@ -199,7 +197,7 @@ ul.no-list-style li {
 }
 
 .gsl-projet-table .gsl-projet-table__total--total_cost {
-    background-color: var(--background-alt-blue-france);
+    background-color: var(--background-alt-blue-france-hover);
 }
 
 .gsl-projet-table .gsl-projet-table__total--total_amount_asked {
@@ -274,7 +272,6 @@ ul.no-list-style li {
 .gsl-projet-table thead .gsl-projet-table__sticky-right-1,
 .gsl-projet-table thead .gsl-projet-table__sticky-right-2 {
     z-index: 3;
-    background-color: var(--background-alt-blue-france-hover);
 }
 
 .gsl-projet-table__row--other-dotation .gsl-projet-table__sticky-left-1,
@@ -659,4 +656,5 @@ ul.no-list-style li {
     padding: 0.75rem 10px 10px;
     margin-top: 0.25rem;
 }
+
 
