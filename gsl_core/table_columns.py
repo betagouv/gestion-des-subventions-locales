@@ -21,6 +21,11 @@ class TextAlign(Enum):
     CENTER = "center"
 
 
+class ColumnWidth(Enum):
+    MIN_140 = "gsl-col--140px-min"
+    MIN_180 = "gsl-col--180px-min"
+
+
 COMMON_CELL_TEMPLATE = "gsl_core/table_cells/_common_cell.html"
 
 
@@ -76,13 +81,11 @@ class Column:
     text_align: Optional[TextAlign] = None
     max_3_lines: bool = False
     linebreaks: bool = False
+    width: Optional[ColumnWidth] = None
 
     # Column visibility toggle
     hideable: bool = True
     displayed_by_default: Optional[bool] = True
-
-    # Extra CSS classes applied to <th> and <td>
-    extra_css_classes: Optional[str] = None
 
     # Existing fields
     sticky: Optional[StickyPosition] = None
@@ -124,9 +127,15 @@ class Column:
         return ""
 
     @property
+    def width_class(self) -> str:
+        if self.width is None:
+            return ""
+        return self.width.value
+
+    @property
     def th_classes(self) -> str:
         return " ".join(
-            filter(None, [self.css_class, self.sticky_class, self.extra_css_classes])
+            filter(None, [self.css_class, self.sticky_class, self.width_class])
         )
 
     @property
@@ -138,7 +147,7 @@ class Column:
                     self.css_class,
                     self.sticky_class,
                     self.align_class,
-                    self.extra_css_classes,
+                    self.width_class,
                 ],
             )
         )
@@ -231,7 +240,7 @@ COLUMN_CATEGORIE = Column(
         ctx["other_dotation"]
     ),
     max_3_lines=True,
-    extra_css_classes="gsl-col--140px-min",
+    width=ColumnWidth.MIN_140,
 )
 
 COLUMN_DATE_DEPOT = Column(
@@ -302,7 +311,7 @@ COLUMN_EPCI = Column(
     label="EPCI",
     getter=_get_epci_cell,
     displayed_by_default=False,
-    extra_css_classes="gsl-col--140px-min",
+    width=ColumnWidth.MIN_140,
 )
 
 COLUMN_NOM_DEMANDEUR = Column(

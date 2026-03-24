@@ -22,6 +22,7 @@ from gsl_core.table_columns import (
     COLUMN_NOTIFICATION,
     COLUMN_NUMERO_DN,
     Column,
+    ColumnWidth,
     StickyPosition,
     TextAlign,
     get_categorie,
@@ -83,7 +84,7 @@ COLUMN_CATEGORIE = Column(
     getter=get_categorie,
     max_3_lines=True,
     per_dotation=True,
-    extra_css_classes="gsl-col--180px-min",
+    width=ColumnWidth.MIN_180,
 )
 
 
