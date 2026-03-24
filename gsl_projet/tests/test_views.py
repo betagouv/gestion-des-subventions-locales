@@ -749,21 +749,6 @@ def test_filter_by_status(req, view, projets_with_status, status, expected_count
     assert qs.first().status == status
 
 
-def test_get_status_placeholder(req, view, projets_with_status):
-    request = req.get("/")
-    view.request = request
-    assert view._get_status_placeholder(ProjetListView.STATE_MAPPINGS) == "Tous"
-
-
-def test_get_status_placeholder_with_status(req, view, projets_with_status):
-    request = req.get("/", data={"status": ["accepted", "processing"]})
-    view.request = request
-    assert (
-        view._get_status_placeholder(ProjetListView.STATE_MAPPINGS)
-        == "✅ Accepté, 🔄 En traitement"
-    )
-
-
 ### Test du filtre par territoire
 @pytest.fixture
 def perimetre_29(dep_finistere):

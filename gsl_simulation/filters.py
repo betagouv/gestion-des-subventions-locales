@@ -1,11 +1,11 @@
-from django.forms import NumberInput
-from django_filters import FilterSet, MultipleChoiceFilter, NumberFilter
+from django_filters import FilterSet, MultipleChoiceFilter, RangeFilter
 
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_projet.models import Projet
 from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     CustomSelectWidget,
+    DsfrRangeWidget,
 )
 from gsl_projet.utils.projet_filters import (
     ORDERING_LABELS,
@@ -36,15 +36,6 @@ class SimulationProjetFilters(FilterSet):
                 (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
             )
 
-    filterset = (
-        "territoire",
-        "porteur",
-        "status",
-        "cout_total",
-        "montant_demande",
-        "montant_previsionnel",
-    )
-
     SIMULATION_ORDERING_MAP = {
         **ORDERING_MAP,
         "dotationprojet__simulationprojet__montant": "montant_previsionnel",
@@ -55,55 +46,11 @@ class SimulationProjetFilters(FilterSet):
         "dotationprojet__simulationprojet__montant": "Montant prévisionnel",
     }
 
-    order = ProjetOrderingFilter(
-        fields=SIMULATION_ORDERING_MAP,
-        field_labels=SIMULATION_ORDERING_LABELS,
-        empty_label="Tri",
-        widget=CustomSelectWidget,
-    )
-
     porteur = MultipleChoiceFilter(
+        label="Demandeur",
         field_name="dossier_ds__porteur_de_projet_nature__type",
         choices=NaturePorteurProjet.TYPE_CHOICES,
-        widget=CustomCheckboxSelectMultiple(),
-    )
-
-    cout_min = NumberFilter(
-        field_name="dossier_ds__finance_cout_total",
-        lookup_expr="gte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
-    cout_max = NumberFilter(
-        field_name="dossier_ds__finance_cout_total",
-        lookup_expr="lte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
-    montant_demande_max = NumberFilter(
-        field_name="dossier_ds__demande_montant",
-        lookup_expr="lte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
-    montant_demande_min = NumberFilter(
-        field_name="dossier_ds__demande_montant",
-        lookup_expr="gte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
-    territoire = MultipleChoiceFilter(
-        method="filter_territoire",
-        choices=[],
-        widget=CustomCheckboxSelectMultiple(),
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
     ordered_status = (
@@ -115,30 +62,50 @@ class SimulationProjetFilters(FilterSet):
     )
 
     status = MultipleChoiceFilter(
+        label="Statut",
         field_name="dotationprojet__simulationprojet__status",
         choices=order_couples_tuple_by_first_value(
             SimulationProjet.STATUS_CHOICES, ordered_status
         ),
-        widget=CustomCheckboxSelectMultiple(),
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
         method="filter_status",
     )
 
-    montant_previsionnel_min = NumberFilter(
-        field_name="dotationprojet__simulationprojet__montant",
-        lookup_expr="gte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-        method="filter_montant_previsionnel_min",
+    cout = RangeFilter(
+        label="Coût total",
+        field_name="dossier_ds__finance_cout_total",
+        widget=DsfrRangeWidget(icon="fr-icon-coin-fill"),
     )
 
-    montant_previsionnel_max = NumberFilter(
-        field_name="dotationprojet__simulationprojet__montant",
-        lookup_expr="lte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
+    montant_demande = RangeFilter(
+        label="Montant demandé",
+        field_name="dossier_ds__demande_montant",
+        widget=DsfrRangeWidget(
+            icon="fr-icon-money-euro-circle-fill",
+            display_template="includes/_filter_montant_demande.html",
         ),
-        method="filter_montant_previsionnel_max",
+    )
+
+    montant_previsionnel = RangeFilter(
+        label="Montant prévisionnel accordé",
+        field_name="dotationprojet__simulationprojet__montant",
+        widget=DsfrRangeWidget(icon="fr-icon-money-euro-box-fill"),
+        method="filter_montant_previsionnel",
+    )
+
+    territoire = MultipleChoiceFilter(
+        method="filter_territoire",
+        choices=[],
+        widget=CustomCheckboxSelectMultiple(
+            display_template="includes/_filter_territoire.html"
+        ),
+    )
+
+    order = ProjetOrderingFilter(
+        fields=SIMULATION_ORDERING_MAP,
+        field_labels=SIMULATION_ORDERING_LABELS,
+        empty_label="Tri",
+        widget=CustomSelectWidget,
     )
 
     filter_territoire = staticmethod(filter_territoire)
@@ -149,24 +116,31 @@ class SimulationProjetFilters(FilterSet):
             dotationprojet__simulationprojet__status__in=value,
         )
 
-    def filter_montant_previsionnel_min(self, queryset, name, value):
-        return queryset.filter(
-            **self._simulation_slug_filter_kwarg(),
-            dotationprojet__simulationprojet__montant__gte=value,
-        )
-
-    def filter_montant_previsionnel_max(self, queryset, name, value):
-        return queryset.filter(
-            **self._simulation_slug_filter_kwarg(),
-            dotationprojet__simulationprojet__montant__lte=value,
-        )
+    def filter_montant_previsionnel(self, queryset, _name, value):
+        kwargs = self._simulation_slug_filter_kwarg()
+        if value.start is not None:
+            queryset = queryset.filter(
+                **kwargs, dotationprojet__simulationprojet__montant__gte=value.start
+            )
+        if value.stop is not None:
+            queryset = queryset.filter(
+                **kwargs, dotationprojet__simulationprojet__montant__lte=value.stop
+            )
+        return queryset
 
     def _simulation_slug_filter_kwarg(self):
         return {"dotationprojet__simulationprojet__simulation__slug": self.slug}
 
     class Meta:
         model = Projet
-        fields = []
+        fields = (
+            "territoire",
+            "porteur",
+            "status",
+            "cout",
+            "montant_demande",
+            "montant_previsionnel",
+        )
 
     @property
     def qs(self):

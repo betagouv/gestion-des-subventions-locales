@@ -40,6 +40,30 @@ def ui_multiselect(*args, **kwargs) -> dict:
     return {"self": tag_data}
 
 
+@register.simple_tag
+def range_field_context(bound_field):
+    return bound_field.field.widget.get_decomposed_context(bound_field)
+
+
+@register.simple_tag
+def filter_placeholder(bound_field):
+    widget = bound_field.field.widget
+    if widget.placeholder:
+        return widget.placeholder
+    selected = bound_field.data or []
+    choices = bound_field.field.choices
+    if selected:
+        choices_dict = {str(k): v for k, v in choices}
+        placeholder = ", ".join(
+            str(choices_dict[str(v)]) for v in selected if str(v) in choices_dict
+        )
+        if placeholder:
+            return placeholder
+    if choices:
+        return str(choices[0][1])
+    return ""
+
+
 @register.inclusion_tag("ui/components/confirmation_modal.html")
 def ui_confirmation_modal(*args, **kwargs) -> dict:
     """

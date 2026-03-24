@@ -1,5 +1,3 @@
-from functools import cached_property
-
 from django.contrib import messages
 from django.db.models import Prefetch, Sum
 from django.shortcuts import get_object_or_404, redirect, render
@@ -11,11 +9,9 @@ from django_filters.views import FilterView
 
 from gsl_core.exceptions import Http404
 from gsl_demarches_simplifiees.models import Demarche
-from gsl_projet.constants import PROJET_STATUS_CHOICES
 from gsl_projet.forms import ProjetCommentForm
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomSelectWidget
-from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_projet.utils.projet_filters import (
     ORDERING_LABELS,
     ORDERING_MAP,
@@ -25,7 +21,7 @@ from gsl_projet.utils.projet_filters import (
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_projet.utils.utils import get_comment_cards
 
-from .models import CategorieDetr, Projet
+from .models import Projet
 from .table_columns import PROJET_TABLE_COLUMNS, SANS_PIECES_SKIP_KEYS
 
 
@@ -113,13 +109,6 @@ class ProjetListViewFilters(ProjetFilters):
             self.filters["territoire"].extra["choices"] = tuple(
                 (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
             )
-            if perimetre.departement:
-                self.filters["categorie_detr"].extra["choices"] = tuple(
-                    (c.id, c.libelle)
-                    for c in CategorieDetr.objects.current_for_departement(
-                        perimetre.departement
-                    )
-                )
 
     PROJET_LIST_ORDERING_MAP = {
         **ORDERING_MAP,
@@ -136,17 +125,6 @@ class ProjetListViewFilters(ProjetFilters):
         field_labels=PROJET_LIST_ORDERING_LABELS,
         empty_label="Tri",
         widget=CustomSelectWidget,
-    )
-
-    filterset = (
-        "territoire",
-        "porteur",
-        "dotation",
-        "status",
-        "cout_total",
-        "montant_demande",
-        "montant_retenu",
-        "categorie_detr",
     )
 
     @property
@@ -179,12 +157,11 @@ class ProjetListViewFilters(ProjetFilters):
         return qs
 
 
-class ProjetListView(FilterView, ListView, FilterUtils):
+class ProjetListView(FilterView, ListView):
     model = Projet
     paginate_by = 25
     filterset_class = ProjetListViewFilters
     template_name = "gsl_projet/projet_list.html"
-    STATE_MAPPINGS = {key: value for key, value in PROJET_STATUS_CHOICES}
 
     def get(self, request, *args, **kwargs):
         if "reset_filters" in request.GET:
@@ -223,32 +200,11 @@ class ProjetListView(FilterView, ListView, FilterUtils):
             .with_missing_annotations()
             .count()
         )
-        self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
+        perimetre = getattr(self.request.user, "perimetre", None)
+        if perimetre:
+            context["territoire_choices"] = (perimetre, *perimetre.children())
 
         return context
-
-    def _get_perimetre(self):
-        if hasattr(self.request, "user") and self.request.user.perimetre:
-            return self.request.user.perimetre
-
-    def _get_territoire_choices(self):
-        perimetre = self._get_perimetre()
-        if not perimetre:
-            return ()
-
-        return (perimetre, *perimetre.children())
-
-    # TODO category : useless now. Remove it unless we use it to filter DETR projects.
-    @cached_property
-    def categorie_detr_choices(self):
-        perimetre = self._get_perimetre()
-        if not perimetre:
-            return ()
-
-        if not perimetre.departement:
-            return ()
-
-        return CategorieDetr.objects.current_for_departement(perimetre.departement)
 
 
 class ProjetMissingAnnotationsListView(ListView):

@@ -1,5 +1,4 @@
 from datetime import date
-from functools import cached_property
 
 from django.core.paginator import Paginator
 from django.db.models import Prefetch
@@ -18,10 +17,9 @@ from gsl_core.matomo import queue_matomo_event
 from gsl_core.models import Perimetre
 from gsl_core.view_mixins import NoFeedbackHtmxFormViewMixin
 from gsl_programmation.services.enveloppe_service import EnveloppeService
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, DOTATIONS
-from gsl_projet.models import CategorieDetr, DotationProjet
+from gsl_projet.constants import DOTATION_DSIL, DOTATIONS
+from gsl_projet.models import DotationProjet
 from gsl_projet.services.projet_services import ProjetService
-from gsl_projet.utils.filter_utils import FilterUtils
 from gsl_simulation.filters import SimulationProjetFilters
 from gsl_simulation.forms import (
     SimulationColumnsVisibilityForm,
@@ -66,11 +64,10 @@ class SimulationListView(ListView):
         return qs
 
 
-class SimulationDetailView(FilterView, DetailView, FilterUtils):
+class SimulationDetailView(FilterView, DetailView):
     model = Simulation
     filterset_class = SimulationProjetFilters
     template_name = "gsl_simulation/simulation_detail.html"
-    STATE_MAPPINGS = {key: value for key, value in SimulationProjet.STATUS_CHOICES}
 
     def get(self, request, *args, **kwargs):
         if "reset_filters" in request.GET:
@@ -135,7 +132,11 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
                 },
             }
         )
-        self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
+        if self.perimetre:
+            context["territoire_choices"] = (
+                self.perimetre,
+                *self.perimetre.children(),
+            )
 
         return context
 
@@ -179,23 +180,6 @@ class SimulationDetailView(FilterView, DetailView, FilterUtils):
 
     def _get_perimetre(self) -> Perimetre:
         return self.perimetre
-
-    def _get_territoire_choices(self):
-        perimetre = self.perimetre
-        return (perimetre, *perimetre.children())
-
-    # TODO category : useless now. Remove it unless we use it to filter DETR projects.
-    @cached_property
-    def categorie_detr_choices(self):
-        simulation = self.get_object()
-        if simulation.dotation != DOTATION_DETR:
-            return []
-
-        return tuple(
-            CategorieDetr.objects.current_for_departement(
-                simulation.enveloppe.perimetre.departement
-            ).all()
-        )
 
     # This method is used to prevent caching of the page
     # This is useful for the row update with htmx

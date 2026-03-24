@@ -1,12 +1,11 @@
 from django.db.models import Count, Exists, F, OuterRef, Q
-from django.forms import NumberInput
 from django.forms.utils import pretty_name
 from django.utils.translation import gettext_lazy as _
 from django_filters import (
     FilterSet,
     MultipleChoiceFilter,
-    NumberFilter,
     OrderingFilter,
+    RangeFilter,
 )
 
 from gsl_core.models import Perimetre
@@ -24,6 +23,7 @@ from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     CustomSelectWidget,
+    DsfrRangeWidget,
 )
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 
@@ -142,67 +142,38 @@ class ProjetFilters(FilterSet):
     )
 
     dotation = MultipleChoiceFilter(
+        label="Dotation",
         choices=DOTATION_CHOICES,
-        widget=CustomCheckboxSelectMultiple(),
+        widget=CustomCheckboxSelectMultiple(placeholder="Toutes les dotations"),
         method="filter_dotation",
     )
 
     porteur = MultipleChoiceFilter(
+        label="Demandeur",
         field_name="dossier_ds__porteur_de_projet_nature__type",
         choices=NaturePorteurProjet.TYPE_CHOICES,
-        widget=CustomCheckboxSelectMultiple(),
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
-    cout_min = NumberFilter(
+    cout = RangeFilter(
+        label="Coût total",
         field_name="dossier_ds__finance_cout_total",
-        lookup_expr="gte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
+        widget=DsfrRangeWidget(icon="fr-icon-coin-fill"),
     )
 
-    cout_max = NumberFilter(
-        field_name="dossier_ds__finance_cout_total",
-        lookup_expr="lte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
-    montant_demande_max = NumberFilter(
+    montant_demande = RangeFilter(
+        label="Montant demandé",
         field_name="dossier_ds__demande_montant",
-        lookup_expr="lte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
+        widget=DsfrRangeWidget(
+            icon="fr-icon-money-euro-circle-fill",
+            display_template="includes/_filter_montant_demande.html",
         ),
     )
 
-    montant_demande_min = NumberFilter(
-        field_name="dossier_ds__demande_montant",
-        lookup_expr="gte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
-    montant_retenu_min = NumberFilter(
+    montant_retenu = RangeFilter(
+        label="Montant retenu",
         method="filter_montant_retenu",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
-    montant_retenu_max = NumberFilter(
-        method="filter_montant_retenu",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
-    territoire = MultipleChoiceFilter(
-        method="filter_territoire",
-        choices=[],
-        widget=CustomCheckboxSelectMultiple(),
+        widget=DsfrRangeWidget(icon="fr-icon-money-euro-box-fill"),
     )
 
     ordered_status: tuple[str, ...] = (
@@ -213,34 +184,35 @@ class ProjetFilters(FilterSet):
     )
 
     status = MultipleChoiceFilter(
+        label="Statut",
         method="filter_status",
         choices=order_couples_tuple_by_first_value(
             PROJET_STATUS_CHOICES, ordered_status
         ),
-        widget=CustomCheckboxSelectMultiple(),
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+    )
+
+    territoire = MultipleChoiceFilter(
+        method="filter_territoire",
+        choices=[],
+        widget=CustomCheckboxSelectMultiple(
+            display_template="includes/_filter_territoire.html"
+        ),
     )
 
     filter_dotation = staticmethod(filter_dotation)
     filter_territoire = staticmethod(filter_territoire)
 
     def filter_montant_retenu(self, queryset, _name, value):
-        montant_min = self.data.get("montant_retenu_min")
-        montant_max = self.data.get("montant_retenu_max")
-
-        if not montant_min and not montant_max:
-            return queryset
-
         dotation_qs = DotationProjet.objects.filter(projet=OuterRef("pk"))
-
-        if montant_min:
+        if value.start is not None:
             dotation_qs = dotation_qs.filter(
-                programmation_projet__montant__gte=montant_min
+                programmation_projet__montant__gte=value.start
             )
-        if montant_max:
+        if value.stop is not None:
             dotation_qs = dotation_qs.filter(
-                programmation_projet__montant__lte=montant_max
+                programmation_projet__montant__lte=value.stop
             )
-
         return queryset.annotate(match=Exists(dotation_qs)).filter(match=True)
 
     def filter_status(self, queryset, _name, values: list[str]):
@@ -248,7 +220,15 @@ class ProjetFilters(FilterSet):
 
     class Meta:
         model = Projet
-        fields = []
+        fields = (
+            "territoire",
+            "dotation",
+            "porteur",
+            "status",
+            "cout",
+            "montant_demande",
+            "montant_retenu",
+        )
 
     @property
     def qs(self):
