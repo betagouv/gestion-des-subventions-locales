@@ -150,11 +150,13 @@
         {% endblock extra_js %}
 
         {% if MATOMO_SITE_ID and matomo_pending_events %}
-            <script nonce="{{ request.csp_nonce }}">
-                var _paq = (window._paq = window._paq || []);
-                {% for event in matomo_pending_events %}
-                    _paq.push(["trackEvent", "{{ event.category|escapejs }}", "{{ event.action|escapejs }}", "{{ event.name|escapejs }}"]);
-                {% endfor %}
+            <script nonce="{{ csp_nonce }}">
+                window.addEventListener("DOMContentLoaded", function() {
+                    var _paq = (window._paq = window._paq || []);
+                    {% for event in matomo_pending_events %}
+                        _paq.push(["trackEvent", "{{ event.category|escapejs }}", "{{ event.action|escapejs }}", "{{ event.name|escapejs }}"]);
+                    {% endfor %}
+                });
             </script>
         {% endif %}
     </body>
