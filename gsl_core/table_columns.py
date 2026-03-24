@@ -345,65 +345,30 @@ COLUMN_BUDGET_VERT_INSTRUCTEUR = Column(
     text_align=TextAlign.CENTER,
 )
 
-
-# Labels used in DS for the "other" choice in these multi-select fields.
-# These must stay in sync with the ProjetZonage / ProjetContractualisation labels in DB.
-_ZONAGE_AUTRE_LABEL = "Autre zonage"
-_CONTRACTUALISATION_AUTRE_LABEL = "Autre contrat"
-
-
-def _get_cofinancements(context):
-    dossier = context["projet"].dossier_ds
-    return dossier.get_cofinancements_avec_montants() or None
-
-
 COLUMN_COFINANCEMENTS = Column(
     key="cofinancements",
     label="Co-financements sollicités",
-    getter=_get_cofinancements,
+    getter=lambda ctx: ctx["projet"].dossier_ds.cofinancements_avec_montants,
     template_name="gsl_core/table_cells/cofinancements.html",
     displayed_by_default=False,
     width=ColumnWidth.MIN_180,
 )
 
 
-def _get_m2m_with_autre(items, autre, autre_item_label):
-    lignes = [item.label for item in items if item.label != autre_item_label]
-    if autre:
-        lignes.append(f"Autre : {autre}")
-    return lignes or None
-
-
-def _get_zonage(context):
-    dossier = context["projet"].dossier_ds
-    return _get_m2m_with_autre(
-        dossier.projet_zonage.all(), dossier.projet_zonage_autre, _ZONAGE_AUTRE_LABEL
-    )
-
-
 COLUMN_ZONAGE = Column(
     key="zonage",
     label="Zonage",
-    getter=_get_zonage,
+    getter=lambda ctx: ctx["projet"].dossier_ds.zonages,
     template_name="gsl_core/table_cells/_list_cell.html",
     displayed_by_default=False,
     width=ColumnWidth.MIN_180,
 )
 
 
-def _get_contractualisation(context):
-    dossier = context["projet"].dossier_ds
-    return _get_m2m_with_autre(
-        dossier.projet_contractualisation.all(),
-        dossier.projet_contractualisation_autre,
-        _CONTRACTUALISATION_AUTRE_LABEL,
-    )
-
-
 COLUMN_CONTRACTUALISATION = Column(
     key="contractualisation",
     label="Contractualisation",
-    getter=_get_contractualisation,
+    getter=lambda ctx: ctx["projet"].dossier_ds.contractualisations,
     template_name="gsl_core/table_cells/_list_cell.html",
     displayed_by_default=False,
     width=ColumnWidth.MIN_180,
