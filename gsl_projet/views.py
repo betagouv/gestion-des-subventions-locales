@@ -16,7 +16,12 @@ from gsl_projet.forms import ProjetCommentForm
 from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomSelectWidget
 from gsl_projet.utils.filter_utils import FilterUtils
-from gsl_projet.utils.projet_filters import BaseProjetFilters, ProjetOrderingFilter
+from gsl_projet.utils.projet_filters import (
+    ORDERING_LABELS,
+    ORDERING_MAP,
+    ProjetFilters,
+    ProjetOrderingFilter,
+)
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_projet.utils.utils import get_comment_cards
 
@@ -100,7 +105,7 @@ class ProjetCommentUpdateView(UpdateView):
         return redirect(self._get_redirect_url())
 
 
-class ProjetListViewFilters(BaseProjetFilters):
+class ProjetListViewFilters(ProjetFilters):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if hasattr(self.request, "user") and self.request.user.perimetre:
@@ -116,19 +121,19 @@ class ProjetListViewFilters(BaseProjetFilters):
                     )
                 )
 
-    ORDERING_MAP = {
-        **BaseProjetFilters.ORDERING_MAP,
+    PROJET_LIST_ORDERING_MAP = {
+        **ORDERING_MAP,
         "montant_retenu_total": "montant_retenu",
     }
 
-    ORDERING_LABELS = {
-        **BaseProjetFilters.ORDERING_LABELS,
+    PROJET_LIST_ORDERING_LABELS = {
+        **ORDERING_LABELS,
         "montant_retenu_total": "Montant retenu",
     }
 
     order = ProjetOrderingFilter(
-        fields=ORDERING_MAP,
-        field_labels=ORDERING_LABELS,
+        fields=PROJET_LIST_ORDERING_MAP,
+        field_labels=PROJET_LIST_ORDERING_LABELS,
         empty_label="Tri",
         widget=CustomSelectWidget,
     )

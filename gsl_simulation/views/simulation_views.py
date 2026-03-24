@@ -3,7 +3,6 @@ from functools import cached_property
 
 from django.core.paginator import Paginator
 from django.db.models import Prefetch
-from django.forms import NumberInput
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
@@ -13,7 +12,6 @@ from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, UpdateView
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
-from django_filters import MultipleChoiceFilter, NumberFilter
 from django_filters.views import FilterView
 
 from gsl_core.matomo import queue_matomo_event
@@ -23,14 +21,8 @@ from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, DOTATIONS
 from gsl_projet.models import CategorieDetr, DotationProjet
 from gsl_projet.services.projet_services import ProjetService
-from gsl_projet.utils.django_filters_custom_widget import (
-    CustomCheckboxSelectMultiple,
-    CustomSelectWidget,
-)
 from gsl_projet.utils.filter_utils import FilterUtils
-from gsl_projet.utils.projet_filters import ProjetOrderingFilter
-from gsl_projet.utils.utils import order_couples_tuple_by_first_value
-from gsl_projet.views import BaseProjetFilters
+from gsl_simulation.filters import SimulationProjetFilters
 from gsl_simulation.forms import (
     SimulationColumnsVisibilityForm,
     SimulationForm,
@@ -74,122 +66,9 @@ class SimulationListView(ListView):
         return qs
 
 
-class SimulationProjetListViewFilters(BaseProjetFilters):
-    def __init__(self, *args, slug=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.slug = slug or self.request.resolver_match.kwargs.get("slug")
-        simulation = Simulation.objects.select_related(
-            "enveloppe",
-            "enveloppe__perimetre",
-            "enveloppe__perimetre__region",
-            "enveloppe__perimetre__departement",
-            "enveloppe__perimetre__arrondissement",
-        ).get(slug=self.slug)
-        enveloppe = simulation.enveloppe
-        perimetre = enveloppe.perimetre
-
-        if perimetre:
-            self.filters["territoire"].extra["choices"] = tuple(
-                (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
-            )
-            self.filters["categorie_detr"].extra["choices"] = tuple(
-                (c.id, c.libelle)
-                for c in CategorieDetr.objects.current_for_departement(
-                    perimetre.departement
-                )
-            )
-
-    filterset = (
-        "territoire",
-        "porteur",
-        "status",
-        "cout_total",
-        "montant_demande",
-        "montant_previsionnel",
-        "categorie_detr",
-    )
-
-    ORDERING_MAP = {
-        **BaseProjetFilters.ORDERING_MAP,
-        "dotationprojet__simulationprojet__montant": "montant_previsionnel",
-    }
-
-    ORDERING_LABELS = {
-        **BaseProjetFilters.ORDERING_LABELS,
-        "dotationprojet__simulationprojet__montant": "Montant prévisionnel",
-    }
-
-    order = ProjetOrderingFilter(
-        fields=ORDERING_MAP,
-        field_labels=ORDERING_LABELS,
-        empty_label="Tri",
-        widget=CustomSelectWidget,
-    )
-
-    ordered_status = (
-        SimulationProjet.STATUS_PROCESSING,
-        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
-        SimulationProjet.STATUS_REFUSED,
-        SimulationProjet.STATUS_ACCEPTED,
-        SimulationProjet.STATUS_DISMISSED,
-    )
-
-    status = MultipleChoiceFilter(
-        field_name="dotationprojet__simulationprojet__status",
-        choices=order_couples_tuple_by_first_value(
-            SimulationProjet.STATUS_CHOICES, ordered_status
-        ),
-        widget=CustomCheckboxSelectMultiple(),
-        method="filter_status",
-    )
-
-    def filter_status(self, queryset, name, value):
-        return queryset.filter(
-            # Cette ligne est utile pour qu'on ait un "ET", cad, on filtre les projets de la simulation en cours ET sur les statuts sélectionnés.
-            # Sans ça, on aurait dans l'ordre :
-            # - les projets dont IL EXISTE UN SIMULATION_PROJET (pas forcément celui de la simulation en question) qui a un des statuts sélectionnés
-            # - les simulation_projets de la simulation associés aux projets filtrés
-            **self._simulation_slug_filter_kwarg(),
-            dotationprojet__simulationprojet__status__in=value,
-        )
-
-    montant_previsionnel_min = NumberFilter(
-        field_name="dotationprojet__simulationprojet__montant",
-        lookup_expr="gte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-        method="filter_montant_previsionnel_min",
-    )
-
-    montant_previsionnel_max = NumberFilter(
-        field_name="dotationprojet__simulationprojet__montant",
-        lookup_expr="lte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-        method="filter_montant_previsionnel_max",
-    )
-
-    def filter_montant_previsionnel_min(self, queryset, name, value):
-        return queryset.filter(
-            **self._simulation_slug_filter_kwarg(),
-            dotationprojet__simulationprojet__montant__gte=value,
-        )
-
-    def filter_montant_previsionnel_max(self, queryset, name, value):
-        return queryset.filter(
-            **self._simulation_slug_filter_kwarg(),
-            dotationprojet__simulationprojet__montant__lte=value,
-        )
-
-    def _simulation_slug_filter_kwarg(self):
-        return {"dotationprojet__simulationprojet__simulation__slug": self.slug}
-
-
 class SimulationDetailView(FilterView, DetailView, FilterUtils):
     model = Simulation
-    filterset_class = SimulationProjetListViewFilters
+    filterset_class = SimulationProjetFilters
     template_name = "gsl_simulation/simulation_detail.html"
     STATE_MAPPINGS = {key: value for key, value in SimulationProjet.STATUS_CHOICES}
 

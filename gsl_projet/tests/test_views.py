@@ -28,9 +28,7 @@ from gsl_projet.tests.factories import (
     DsilProjetFactory,
     ProjetFactory,
 )
-from gsl_projet.views import (
-    BaseProjetFilters as ProjetFilters,
-)
+from gsl_projet.utils.projet_filters import ProjetFilters
 from gsl_projet.views import (
     ProjetListView,
     ProjetListViewFilters,
