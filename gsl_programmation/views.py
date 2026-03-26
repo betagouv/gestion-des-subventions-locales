@@ -149,15 +149,29 @@ class ProgrammationProjetListView(FilterView, ListView):
                 "dotation_projet__projet",
                 "dotation_projet__projet__dossier_ds",
                 "dotation_projet__projet__dossier_ds__demande_categorie_dsil",
-                "dotation_projet__projet__dossier_ds__demande_categorie_detr",
             )
             .prefetch_related(
-                "dotation_projet__projet__dotationprojet_set",
-                "dotation_projet__projet__dotationprojet_set__programmation_projet",
-                "dotation_projet__projet__dotationprojet_set__simulationprojet_set",
-                "dotation_projet__projet__dossier_ds__demande_cofinancements",
                 "annexes",
+                "enveloppe",
+                "enveloppe__perimetre",
+                "dotation_projet__projet__dotationprojet_set",
+                "dotation_projet__projet__dotationprojet_set__simulationprojet_set",
+                "dotation_projet__projet__dotationprojet_set__programmation_projet",
+                "dotation_projet__projet__dotationprojet_set__programmation_projet__arrete",
+                "dotation_projet__projet__dotationprojet_set__programmation_projet__lettre_notification",
+                "dotation_projet__projet__dotationprojet_set__programmation_projet__arrete_et_lettre_signes",
+                "dotation_projet__projet__dotationprojet_set__programmation_projet__enveloppe",
+                "dotation_projet__projet__dotationprojet_set__programmation_projet__annexes",
+                "dotation_projet__projet__dossier_ds__demande_categorie_dsil",
+                "dotation_projet__projet__dossier_ds__demande_categorie_detr",
+                "dotation_projet__projet__dossier_ds__ds_demarche",
+                "dotation_projet__projet__dossier_ds__perimetre",
+                "dotation_projet__projet__dossier_ds__porteur_de_projet_arrondissement",
+                "dotation_projet__projet__dossier_ds__demande_cofinancements",
+                "dotation_projet__projet__dossier_ds__projet_zonage",
+                "dotation_projet__projet__dossier_ds__projet_contractualisation",
             )
+            .defer("dotation_projet__projet__dossier_ds__ds_demarche__raw_ds_data")
         )
 
     def get(self, request, *args, **kwargs):

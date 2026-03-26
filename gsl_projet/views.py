@@ -140,11 +140,11 @@ class ProjetListViewFilters(ProjetFilters):
             "address__commune",
             "demandeur",
             "dossier_ds",
+        ).prefetch_related(
             "dossier_ds__perimetre",
             "dossier_ds__demande_categorie_detr",
             "dossier_ds__demande_categorie_dsil",
-        ).prefetch_related(
-            # "dotationprojet_set__detr_categories", # TODO category : useless now. Remove it if we don't allow to set DETR category. The code is commented to enhance performance.
+            "dossier_ds__porteur_de_projet_arrondissement",
             "dotationprojet_set__programmation_projet",
             "dossier_ds__demande_cofinancements",
             "dossier_ds__projet_zonage",
