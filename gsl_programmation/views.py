@@ -1,5 +1,3 @@
-from functools import cached_property
-
 from django.contrib import messages
 from django.contrib.auth.views import RedirectURLMixin
 from django.db.models import ProtectedError
@@ -28,8 +26,7 @@ from gsl_projet.constants import (
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
 )
-from gsl_projet.models import CategorieDetr, Projet
-from gsl_projet.utils.filter_utils import FilterUtils
+from gsl_projet.models import Projet
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_projet.utils.utils import get_comment_cards
 
@@ -135,14 +132,13 @@ class ProgrammationProjetDetailView(DetailView):
         return url
 
 
-class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
+class ProgrammationProjetListView(FilterView, ListView):
     model = ProgrammationProjet
     filterset_class = ProgrammationProjetFilters
     template_name = "gsl_programmation/programmation_projet_list.html"
     context_object_name = "programmation_projets"
     paginate_by = 25
     ordering = ["-created_at"]
-    STATE_MAPPINGS = {key: value for key, value in ProgrammationProjet.STATUS_CHOICES}
 
     def get_queryset(self):
         return (
@@ -228,36 +224,13 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
             }
         )
 
-        ignore_categories_detr = bool(self.dotation == DOTATION_DSIL)
-        self.enrich_context_with_filter_utils(
-            context, self.STATE_MAPPINGS, ignore_categories_detr=ignore_categories_detr
-        )
+        if self.perimetre:
+            context["territoire_choices"] = (
+                self.perimetre,
+                *self.perimetre.children(),
+            )
 
         return context
-
-    # Filter functions
-
-    def _get_perimetre(self):
-        return self.perimetre
-
-    def _get_territoire_choices(self):
-        perimetre = self._get_perimetre()
-        if not perimetre:
-            return ()
-
-        return (perimetre, *perimetre.children())
-
-    # TODO category : useless now. Remove it unless we use it to filter DETR projects.
-    @cached_property
-    def categorie_detr_choices(self):
-        perimetre = self._get_perimetre()
-        if not perimetre:
-            return ()
-
-        if not perimetre.departement:
-            return ()
-
-        return CategorieDetr.objects.current_for_departement(perimetre.departement)
 
 
 class EnveloppeCreateView(RedirectURLMixin, CreateView):

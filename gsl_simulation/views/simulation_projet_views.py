@@ -31,6 +31,7 @@ from gsl_projet.constants import (
 from gsl_projet.forms import DotationProjetForm, ProjetForm
 from gsl_projet.models import DotationProjet, projet_status_from_dotation_statuses
 from gsl_projet.utils.projet_page import PROJET_MENU
+from gsl_simulation.filters import SimulationProjetFilters
 from gsl_simulation.forms import (
     AssietteSingleFieldForm,
     CommentSingleFieldForm,
@@ -46,7 +47,6 @@ from gsl_simulation.table_columns import SIMULATION_TABLE_COLUMNS
 from gsl_simulation.views.decorators import (
     exception_handler_decorator,
 )
-from gsl_simulation.views.simulation_views import SimulationProjetListViewFilters
 
 
 class SimulationTableCellEditMixin(UpdateView):
@@ -82,7 +82,7 @@ class SimulationTableCellEditMixin(UpdateView):
 
     def _get_projets_queryset_with_filters(self):
         simulation = self.object.simulation
-        filterset = SimulationProjetListViewFilters(
+        filterset = SimulationProjetFilters(
             data=self.request.GET or None,
             request=self.request,
             slug=simulation.slug,

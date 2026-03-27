@@ -1,9 +1,8 @@
-from django.forms import NumberInput, Select
 from django_filters import (
     ChoiceFilter,
     FilterSet,
     MultipleChoiceFilter,
-    NumberFilter,
+    RangeFilter,
 )
 
 from gsl_core.models import Perimetre
@@ -12,10 +11,10 @@ from gsl_programmation.models import (
     Enveloppe,
     ProgrammationProjet,
 )
-from gsl_projet.models import CategorieDetr
 from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     CustomSelectWidget,
+    DsfrRangeWidget,
 )
 from gsl_projet.utils.projet_filters import ProjetOrderingFilter
 
@@ -43,107 +42,69 @@ class ProgrammationProjetFilters(FilterSet):
     filterset = (
         "territoire",
         "porteur",
-        "categorie_detr",
         "notified",
-        "cout_total",
+        "cout",
         "montant_demande",
         "montant_retenu",
         "status",
     )
 
     porteur = MultipleChoiceFilter(
+        label="Demandeur",
         field_name="dotation_projet__projet__dossier_ds__porteur_de_projet_nature__type",
         choices=NaturePorteurProjet.TYPE_CHOICES,
-        widget=CustomCheckboxSelectMultiple(),
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
-    cout_min = NumberFilter(
+    cout = RangeFilter(
+        label="Coût total",
         field_name="dotation_projet__projet__dossier_ds__finance_cout_total",
-        lookup_expr="gte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
+        widget=DsfrRangeWidget(icon="fr-icon-coin-fill"),
     )
 
-    cout_max = NumberFilter(
-        field_name="dotation_projet__projet__dossier_ds__finance_cout_total",
-        lookup_expr="lte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
-    montant_demande_max = NumberFilter(
+    montant_demande = RangeFilter(
+        label="Montant demandé",
         field_name="dotation_projet__projet__dossier_ds__demande_montant",
-        lookup_expr="lte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
+        widget=DsfrRangeWidget(
+            icon="fr-icon-money-euro-circle-fill",
+            display_template="includes/_filter_montant_demande.html",
         ),
     )
 
-    montant_demande_min = NumberFilter(
-        field_name="dotation_projet__projet__dossier_ds__demande_montant",
-        lookup_expr="gte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
-    montant_retenu_min = NumberFilter(
+    montant_retenu = RangeFilter(
+        label="Montant retenu",
         field_name="montant",
-        lookup_expr="gte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
-    )
-
-    montant_retenu_max = NumberFilter(
-        field_name="montant",
-        lookup_expr="lte",
-        widget=NumberInput(
-            attrs={"class": "fr-input", "min": "0"},
-        ),
+        widget=DsfrRangeWidget(icon="fr-icon-money-euro-box-fill"),
     )
 
     status = MultipleChoiceFilter(
+        label="Statut",
         field_name="status",
         choices=(ProgrammationProjet.STATUS_CHOICES),
-        widget=CustomCheckboxSelectMultiple(),
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
     territoire = MultipleChoiceFilter(
         method="filter_territoire",
         choices=[],
-        widget=CustomCheckboxSelectMultiple(),
+        widget=CustomCheckboxSelectMultiple(
+            display_template="includes/_filter_territoire.html"
+        ),
     )
-
-    def filter_territoire(self, queryset, _name, values: list[int]):
-        perimetres = set()
-        for perimetre in Perimetre.objects.filter(id__in=values):
-            perimetres.add(perimetre)
-            for child in perimetre.children():
-                perimetres.add(child)
-        return queryset.filter(
-            dotation_projet__projet__dossier_ds__perimetre__in=perimetres
-        )
-
-    categorie_detr = MultipleChoiceFilter(
-        method="filter_categorie_detr",
-        choices=[],
-        widget=CustomCheckboxSelectMultiple(),
-    )
-
-    def filter_categorie_detr(self, queryset, _name, values: list[int]):
-        return queryset.filter(dotation_projet__detr_categories__in=values)
 
     notified = ChoiceFilter(
+        label="Demandeur notifié",
         method="filter_notified",
         choices=(("yes", "Oui"), ("no", "Non")),
         empty_label="Tous",
-        widget=Select(
-            attrs={"class": "fr-select"},
-        ),
+        widget=CustomSelectWidget,
     )
+
+    def filter_territoire(self, queryset, _name, values: list[int]):
+        result = queryset.none()
+        for perimetre in Perimetre.objects.filter(id__in=values):
+            result |= queryset.for_perimetre(perimetre)
+        return result
 
     def filter_notified(self, queryset, _name, value: str):
         if value == "yes":
@@ -177,17 +138,13 @@ class ProgrammationProjetFilters(FilterSet):
     class Meta:
         model = ProgrammationProjet
         fields = (
-            "porteur",
-            "cout_min",
-            "cout_max",
-            "montant_demande_min",
-            "montant_demande_max",
-            "montant_retenu_min",
-            "montant_retenu_max",
-            "status",
             "territoire",
-            "categorie_detr",
+            "porteur",
             "notified",
+            "cout",
+            "montant_demande",
+            "montant_retenu",
+            "status",
         )
 
     def __init__(self, *args, **kwargs):
@@ -203,13 +160,6 @@ class ProgrammationProjetFilters(FilterSet):
             self.filters["territoire"].extra["choices"] = tuple(
                 (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
             )
-            if perimetre.departement:
-                self.filters["categorie_detr"].extra["choices"] = tuple(
-                    (c.id, c.libelle)
-                    for c in CategorieDetr.objects.current_for_departement(
-                        perimetre.departement
-                    )
-                )
         self.select_related_objs = select_related_objs
         self.prefetch_related_objs = prefetch_related_objs
 

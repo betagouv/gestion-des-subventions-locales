@@ -42,8 +42,10 @@
                     </div>
                 {% endif %}
             {% endif %}
-            {% for filter_name in filter_templates %}
-                {% include filter_name %}
+            {% for field in filter.form %}
+                {% if field.name != "order" %}
+                    {% include field.field.widget.display_template with field=field %}
+                {% endif %}
             {% endfor %}
         </div>
     </div>

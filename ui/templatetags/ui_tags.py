@@ -14,20 +14,54 @@ def ui_multiselect(*args, **kwargs) -> dict:
         "id": "The field id",
         "field": "Multiple Choice Filter field form",
         "label": "Field label",
-        "placeholder": "Placeholder in button",
-        "is_active": "(Optional) If true, we give a blue border to button. False by default",
+        "default_placeholder": "Placeholder when nothing is selected",
     }
     ```"""
     allowed_keys = [
         "id",
         "field",
         "label",
-        "placeholder",
-        "is_active",
+        "default_placeholder",
     ]
     tag_data = parse_tag_args(args, kwargs, allowed_keys)
 
+    field = tag_data["field"]
+    selected = field.data or []
+    tag_data["is_active"] = bool(selected)
+
+    if selected:
+        choices_dict = dict(field.field.choices)
+        tag_data["placeholder"] = ", ".join(
+            str(choices_dict[v]) for v in selected if v in choices_dict
+        )
+    else:
+        tag_data["placeholder"] = tag_data.get("default_placeholder", "")
+
     return {"self": tag_data}
+
+
+@register.simple_tag
+def range_field_context(bound_field):
+    return bound_field.field.widget.get_decomposed_context(bound_field)
+
+
+@register.simple_tag
+def filter_placeholder(bound_field):
+    widget = bound_field.field.widget
+    if widget.placeholder:
+        return widget.placeholder
+    selected = bound_field.data or []
+    choices = bound_field.field.choices
+    if selected:
+        choices_dict = {str(k): v for k, v in choices}
+        placeholder = ", ".join(
+            str(choices_dict[str(v)]) for v in selected if str(v) in choices_dict
+        )
+        if placeholder:
+            return placeholder
+    if choices:
+        return str(choices[0][1])
+    return ""
 
 
 @register.inclusion_tag("ui/components/confirmation_modal.html")
