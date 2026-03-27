@@ -24,6 +24,7 @@ from gsl_core.table_columns import (
     COLUMN_ZONAGE,
     CellLink,
     Column,
+    ColumnWidth,
     StickyPosition,
     TextAlign,
 )
@@ -141,6 +142,7 @@ COLUMN_TAUX = Column(
     getter=lambda ctx: percent_value(ctx["programmation_projet"].taux, 2),
     other_dotation_getter=_get_other_dotation_taux,
     text_align=TextAlign.RIGHT,
+    width=ColumnWidth.MIN_105,
 )
 
 COLUMN_DOCUMENTS = Column(
