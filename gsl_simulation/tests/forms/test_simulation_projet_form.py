@@ -22,7 +22,11 @@ def simulation_projet() -> SimulationProjet:
     dotation_projet = DetrProjetFactory(assiette=1_000)
     return cast(
         SimulationProjet,
-        SimulationProjetFactory(dotation_projet=dotation_projet, montant=200),
+        SimulationProjetFactory(
+            dotation_projet=dotation_projet,
+            montant=200,
+            status=SimulationProjet.STATUS_ACCEPTED,
+        ),
     )
 
 
