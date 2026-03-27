@@ -199,31 +199,17 @@ class ProgrammationProjetListView(FilterView, ListView):
             else:
                 return redirect("/")
 
-        enveloppe_qs = (
-            Enveloppe.objects.select_related(
-                "perimetre",
-                "perimetre__region",
-                "perimetre__departement",
-                "perimetre__arrondissement",
-            )
-            .filter(dotation=self.dotation)
-            .for_current_year()
-        )
-
-        try:
-            self.enveloppe = enveloppe_qs.get(perimetre=self.perimetre)
-        except Enveloppe.DoesNotExist:
-            self.enveloppe = None
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        enveloppe = self.filterset.enveloppe
         title = "Programmation en cours"
-        if self.enveloppe:
-            title = f"Programmation {self.enveloppe.dotation} {self.enveloppe.annee}"
+        if enveloppe:
+            title = f"Programmation {enveloppe.dotation} {enveloppe.annee}"
         context.update(
             {
-                "enveloppe": self.enveloppe,
+                "enveloppe": enveloppe,
                 "dotation": self.dotation,
                 "title": title,
                 "to_notify_projets_count": self.object_list.to_notify().count(),
@@ -232,7 +218,6 @@ class ProgrammationProjetListView(FilterView, ListView):
                 "breadcrumb_dict": {
                     "current": "Programmation en cours",
                 },
-                "current_tab": self.dotation,
                 "current_order": self.request.GET.get("order", ""),
                 "columns": PROGRAMMATION_TABLE_COLUMNS,
             }

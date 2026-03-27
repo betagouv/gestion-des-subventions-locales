@@ -14,24 +14,16 @@ from gsl_projet.utils.projet_filters import (
     filter_territoire,
 )
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
-from gsl_simulation.models import Simulation, SimulationProjet
+from gsl_simulation.models import SimulationProjet
 
 
 class SimulationProjetFilters(FilterSet):
     def __init__(self, *args, slug=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.slug = slug or self.request.resolver_match.kwargs.get("slug")
-        simulation = Simulation.objects.select_related(
-            "enveloppe",
-            "enveloppe__perimetre",
-            "enveloppe__perimetre__region",
-            "enveloppe__perimetre__departement",
-            "enveloppe__perimetre__arrondissement",
-        ).get(slug=self.slug)
-        enveloppe = simulation.enveloppe
-        perimetre = enveloppe.perimetre
 
-        if perimetre:
+        if hasattr(self.request, "user") and self.request.user.perimetre:
+            perimetre = self.request.user.perimetre
             self.filters["territoire"].extra["choices"] = tuple(
                 (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
             )
@@ -144,5 +136,4 @@ class SimulationProjetFilters(FilterSet):
 
     @property
     def qs(self):
-        self.queryset = Projet.objects.all()
         return super().qs
