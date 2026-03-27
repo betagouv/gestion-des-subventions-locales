@@ -95,7 +95,11 @@ def test_simulation_projet_cant_have_a_montant_higher_than_projet_assiette():
         assiette=100, projet__dossier_ds__finance_cout_total=200
     )
     with pytest.raises(ValidationError) as exc_info:
-        sp = SimulationProjetFactory(dotation_projet=dotation_projet, montant=101)
+        sp = SimulationProjetFactory(
+            dotation_projet=dotation_projet,
+            montant=101,
+            status=SimulationProjet.STATUS_ACCEPTED,
+        )
         assert sp.montant == 101
         sp.clean()
     assert (
@@ -115,6 +119,7 @@ def test_simulation_projet_cant_have_a_montant_higher_than_projet_cout_total():
         sp = SimulationProjetFactory(
             dotation_projet=dotation_projet,
             montant=101,
+            status=SimulationProjet.STATUS_ACCEPTED,
         )
         sp.clean()
     assert (
