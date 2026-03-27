@@ -12,6 +12,7 @@ from django.db.models import (
     F,
     OuterRef,
     Q,
+    Sum,
     UniqueConstraint,
     Value,
     When,
@@ -261,6 +262,23 @@ class ProjetQuerySet(models.QuerySet):
                 )
             )
         )
+
+    def totals(self):
+        from gsl_programmation.models import ProgrammationProjet
+
+        if getattr(self, "_totals", None) is None:
+            self._totals = self.aggregate(
+                total_cost=Sum("dossier_ds__finance_cout_total"),
+                total_amount_asked=Sum("dossier_ds__demande_montant"),
+                total_amount_granted=Sum(
+                    "dotationprojet__programmation_projet__montant",
+                    filter=Q(
+                        dotationprojet__programmation_projet__status=ProgrammationProjet.STATUS_ACCEPTED
+                    ),
+                ),
+            )
+
+        return self._totals
 
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):

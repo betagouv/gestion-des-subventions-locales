@@ -10,7 +10,6 @@ from django_filters.views import FilterView
 from gsl_core.exceptions import Http404
 from gsl_demarches_simplifiees.models import Demarche
 from gsl_projet.forms import ProjetCommentForm
-from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomSelectWidget
 from gsl_projet.utils.projet_filters import (
     ORDERING_LABELS,
@@ -178,21 +177,12 @@ class ProjetListView(FilterView, ListView):
         )  # utile pour ne pas avoir la pagination de context["object_list"]
         context["title"] = "Projets"
         context["breadcrumb_dict"] = {}
-        context["total_cost"] = ProjetService.get_total_cost(qs_global)
-        context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs_global)
-        context["total_amount_granted"] = ProjetService.get_total_amount_granted(
-            qs_global
-        )
+        context["aggregates"] = qs_global.totals()
         context["enveloppes"] = (
             self.request.user.perimetre.enveloppe_set.for_current_year().all()
         )
         context["enveloppes_with_children"] = True
         context["columns"] = PROJET_TABLE_COLUMNS
-        context["aggregates"] = {
-            "total_cost": context["total_cost"],
-            "total_amount_asked": context["total_amount_asked"],
-            "total_amount_granted": context["total_amount_granted"],
-        }
         context["current_order"] = self.request.GET.get("order", "")
         context["sans_pieces_skip_keys"] = SANS_PIECES_SKIP_KEYS
         context["missing_annotations_count"] = (

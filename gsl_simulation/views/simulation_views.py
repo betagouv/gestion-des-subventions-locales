@@ -19,7 +19,6 @@ from gsl_core.view_mixins import NoFeedbackHtmxFormViewMixin
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.constants import DOTATION_DSIL, DOTATIONS
 from gsl_projet.models import DotationProjet
-from gsl_projet.services.projet_services import ProjetService
 from gsl_simulation.filters import SimulationProjetFilters
 from gsl_simulation.forms import (
     SimulationColumnsVisibilityForm,
@@ -100,6 +99,8 @@ class SimulationDetailView(FilterView, DetailView):
         paginator = Paginator(qs, 25)
         page = self.kwargs.get("page") or self.request.GET.get("page") or 1
         current_page = paginator.page(page)
+        aggregates = qs.totals()
+        aggregates["total_amount_granted"] = simulation.get_total_amount_granted(qs)
         context.update(
             {
                 "simulation": simulation,
@@ -107,19 +108,12 @@ class SimulationDetailView(FilterView, DetailView):
                 "simulation_projets_list": current_page.object_list,
                 "title": f"{simulation.enveloppe.dotation} {simulation.enveloppe.annee} – {simulation.title}",
                 "status_summary": simulation.get_projet_status_summary(),
-                "total_cost": ProjetService.get_total_cost(qs),
-                "total_amount_asked": ProjetService.get_total_amount_asked(qs),
-                "total_amount_granted": simulation.get_total_amount_granted(qs),
                 "available_states": SimulationProjet.STATUS_CHOICES,
                 "enveloppe": simulation.enveloppe,
                 "dotations": DOTATIONS,
                 "current_order": self.request.GET.get("order", ""),
                 "columns": SIMULATION_TABLE_COLUMNS,
-                "aggregates": {
-                    "total_cost": ProjetService.get_total_cost(qs),
-                    "total_amount_asked": ProjetService.get_total_amount_asked(qs),
-                    "total_amount_granted": simulation.get_total_amount_granted(qs),
-                },
+                "aggregates": aggregates,
                 "export_types": FilteredProjetsExportView.EXPORT_TYPES,
                 "breadcrumb_dict": {
                     "links": [
