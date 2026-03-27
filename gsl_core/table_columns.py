@@ -345,6 +345,22 @@ COLUMN_BUDGET_VERT_INSTRUCTEUR = Column(
     text_align=TextAlign.CENTER,
 )
 
+
+def _get_cofinancements(context):
+    dossier = context["projet"].dossier_ds
+    return dossier.get_cofinancements_avec_montants() or None
+
+
+COLUMN_COFINANCEMENTS = Column(
+    key="cofinancements",
+    label="Co-financements sollicités",
+    getter=_get_cofinancements,
+    template_name="gsl_core/table_cells/cofinancements.html",
+    displayed_by_default=False,
+    width=ColumnWidth.MIN_180,
+)
+
+
 COLUMN_COMPLETED_DOSSIER = Column(
     key="completed_dossier",
     label="Dossier complet",
