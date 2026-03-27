@@ -100,7 +100,7 @@
 
 {% block extra_js %}
     <script type="module" src="{% static 'js/tableEditForms.js' %}"></script>
-    <script nonce="{{ request.csp_nonce }}">
+    <script nonce="{{ csp_nonce }}">
         document.querySelectorAll(".export-btn").forEach(function(link) {
             link.addEventListener("click", function() {
                 var format = link.textContent.trim().replace(/^format \./, "").split(" ")[0];
