@@ -115,6 +115,16 @@
                         {% endif %}
                     </li>
                     <li>
+                        <b>EPCI :</b>
+                        {% if dossier.porteur_de_projet_epci_url %}
+                            <a href="{{ dossier.porteur_de_projet_epci_url }}"
+                               target="_blank"
+                               rel="noopener noreferrer">{{ dossier.porteur_de_projet_epci }}</a>
+                        {% else %}
+                            {{ dossier.porteur_de_projet_epci|default:"-" }}
+                        {% endif %}
+                    </li>
+                    <li>
                         <b>La maîtrise d’ouvrage de l’opération sera-t-elle déléguée?</b>
                         {{ dossier.maitrise_douvrage_deleguee|yesno:"Oui,Non,Non renseigné" }}
                     </li>

@@ -5,6 +5,7 @@ from typing import Callable, Optional
 from django.utils.html import format_html
 
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_projet.constants import ANNUAIRE_ENTREPRISE_URL
 
 
 class StickyPosition(Enum):
@@ -305,7 +306,7 @@ def _get_epci_cell(ctx):
     parts = epci_raw.split(" - ", 1)
     if len(parts) == 2:
         code, name = parts
-        url = f"https://annuaire-entreprises.data.gouv.fr/entreprise/{code}"
+        url = f"{ANNUAIRE_ENTREPRISE_URL}{code}"
         return format_html(
             '<a href="{}" target="_blank" rel="noreferrer noopener">{}</a>', url, name
         )
