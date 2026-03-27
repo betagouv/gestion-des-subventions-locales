@@ -15,6 +15,18 @@ from gsl.settings import ALLOWED_HOSTS
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
 from gsl_core.matomo import queue_matomo_event
+from gsl_core.matomo_constants import (
+    MATOMO_ACTION_CHANGEMENT_STATUT,
+    MATOMO_ACTION_CHANGEMENT_STATUT_AVEC_NOTIFICATION_DEMANDE_CONFIRMATION,
+    MATOMO_ACTION_CHANGEMENT_STATUT_CONFIRME,
+    MATOMO_ACTION_CHANGEMENT_STATUT_SANS_NOTIFICATION_DEMANDE_CONFIRMATION,
+    MATOMO_ACTION_MODIFICATION_ASSIETTE,
+    MATOMO_ACTION_MODIFICATION_MONTANT,
+    MATOMO_ACTION_MODIFICATION_MONTANTS,
+    MATOMO_ACTION_MODIFICATION_TAUX,
+    MATOMO_CATEGORY_PROGRAMMATION,
+    MATOMO_CATEGORY_SIMULATION,
+)
 from gsl_core.templatetags.gsl_filters import euro
 from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.exceptions import DsServiceException
@@ -64,7 +76,9 @@ class SimulationTableCellEditMixin(UpdateView):
 
     def _queue_matomo_event(self, name: str):
         if self.matomo_action:
-            queue_matomo_event(self.request, "Simulation", self.matomo_action, name)
+            queue_matomo_event(
+                self.request, MATOMO_CATEGORY_SIMULATION, self.matomo_action, name
+            )
 
     def form_valid(self, form):
         try:
@@ -114,7 +128,7 @@ class SimulationTableCellEditMixin(UpdateView):
 class EditAssietteView(SimulationTableCellEditMixin):
     form_class = AssietteSingleFieldForm
     template_name = "gsl_simulation/table_cells/edit_forms/_assiette_edit_form.html"
-    matomo_action = "modification_assiette"
+    matomo_action = MATOMO_ACTION_MODIFICATION_ASSIETTE
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -126,13 +140,13 @@ class EditAssietteView(SimulationTableCellEditMixin):
 class EditMontantView(SimulationTableCellEditMixin):
     form_class = MontantSingleFieldForm
     template_name = "gsl_simulation/table_cells/edit_forms/_montant_edit_form.html"
-    matomo_action = "modification_montant"
+    matomo_action = MATOMO_ACTION_MODIFICATION_MONTANT
 
 
 class EditTauxView(SimulationTableCellEditMixin):
     form_class = TauxSingleFieldForm
     template_name = "gsl_simulation/table_cells/edit_forms/_taux_edit_form.html"
-    matomo_action = "modification_taux"
+    matomo_action = MATOMO_ACTION_MODIFICATION_TAUX
 
 
 class EditCommentView(SimulationTableCellEditMixin):
@@ -264,8 +278,8 @@ class BaseSimulationProjetView(UpdateView):
             )
             queue_matomo_event(
                 self.request,
-                "Programmation",
-                "modification_montants",
+                MATOMO_CATEGORY_PROGRAMMATION,
+                MATOMO_ACTION_MODIFICATION_MONTANTS,
                 form.instance.dotation_projet.dotation,
             )
         except DsServiceException as e:
@@ -525,8 +539,8 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
             )
             queue_matomo_event(
                 self.request,
-                "Simulation",
-                "changement_statut",
+                MATOMO_CATEGORY_SIMULATION,
+                MATOMO_ACTION_CHANGEMENT_STATUT,
                 f"{self.kwargs['status']}",
             )
         except DsServiceException as e:  # rollback the transaction + show error
@@ -575,8 +589,8 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         if self.new_project_status in [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED]:
             queue_matomo_event(
                 request,
-                "Programmation",
-                "changement_statut_avec_notification_demande_confirmation",
+                MATOMO_CATEGORY_PROGRAMMATION,
+                MATOMO_ACTION_CHANGEMENT_STATUT_AVEC_NOTIFICATION_DEMANDE_CONFIRMATION,
                 f"{self.kwargs['status']}",
             )
 
@@ -586,8 +600,8 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         ]:
             queue_matomo_event(
                 request,
-                "Programmation",
-                "changement_statut_sans_notification_demande_confirmation",
+                MATOMO_CATEGORY_PROGRAMMATION,
+                MATOMO_ACTION_CHANGEMENT_STATUT_SANS_NOTIFICATION_DEMANDE_CONFIRMATION,
                 f"{self.kwargs['status']}",
             )
         # On contourne BaseUpdateView.get() pour éviter un second appel à get_object()
@@ -689,8 +703,8 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         )
         queue_matomo_event(
             self.request,
-            "Programmation",
-            "changement_statut_confirme",
+            MATOMO_CATEGORY_PROGRAMMATION,
+            MATOMO_ACTION_CHANGEMENT_STATUT_CONFIRME,
             f"{self.kwargs['status']}",
         )
         return (
