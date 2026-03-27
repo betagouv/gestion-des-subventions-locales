@@ -106,6 +106,22 @@ def test_has_missing_annotations(
     assert dossier.has_missing_annotations == expected
 
 
+@pytest.mark.parametrize(
+    "epci, expected_url",
+    (
+        ("", None),
+        (
+            "200000172 - CA PAYS D'AURILLAC",
+            "https://annuaire-entreprises.data.gouv.fr/entreprise/200000172",
+        ),
+        ("Nom sans code", None),
+    ),
+)
+def test_porteur_de_projet_epci_url(epci, expected_url):
+    dossier = DossierFactory(porteur_de_projet_epci=epci)
+    assert dossier.porteur_de_projet_epci_url == expected_url
+
+
 def test_deleting_dossier_cascade_deletes_dossier_data():
     """When a Dossier is deleted, the linked DossierData is removed (CASCADE)."""
     dossier = DossierFactory()

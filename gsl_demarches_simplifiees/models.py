@@ -13,6 +13,7 @@ from gsl_core.models import (
     Perimetre,
 )
 from gsl_projet.constants import (
+    ANNUAIRE_ENTREPRISE_URL,
     DOTATION_DETR,
     DOTATION_DSIL,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
@@ -682,6 +683,16 @@ class Dossier(BaseModel):
     @property
     def porteur_fullname(self):
         return f"{self.porteur_de_projet_prenom} {self.porteur_de_projet_nom}"
+
+    @property
+    def porteur_de_projet_epci_url(self) -> str | None:
+        if not self.porteur_de_projet_epci:
+            return None
+        parts = self.porteur_de_projet_epci.split(" - ", 1)
+        if len(parts) == 2:
+            code = parts[0]
+            return f"{ANNUAIRE_ENTREPRISE_URL}{code}"
+        return None
 
     @property
     def demande_montant_is_greater_than_min_montant_for_detr_commission(self):
