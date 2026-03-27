@@ -8,7 +8,7 @@ from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, UpdateView
-from django.views.generic.detail import DetailView
+from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.list import ListView
 from django_filters.views import FilterView
 
@@ -62,7 +62,7 @@ class SimulationListView(ListView):
         return qs
 
 
-class SimulationDetailView(FilterView, DetailView):
+class SimulationDetailView(SingleObjectMixin, FilterView):
     queryset = Simulation.objects.select_related(
         "enveloppe",
         "enveloppe__perimetre",
@@ -82,7 +82,6 @@ class SimulationDetailView(FilterView, DetailView):
                 return redirect("/")
 
         self.object = self.get_object()
-        self.perimetre = self.object.enveloppe.perimetre
         return super().get(request, *args, **kwargs)
 
     def get_filterset_kwargs(self, filterset_class):
@@ -118,10 +117,10 @@ class SimulationDetailView(FilterView, DetailView):
                 },
             }
         )
-        if self.perimetre:
+        if self.object.enveloppe.perimetre:
             context["territoire_choices"] = (
-                self.perimetre,
-                *self.perimetre.children(),
+                self.object.enveloppe.perimetre,
+                *self.object.enveloppe.perimetre.children(),
             )
 
         return context
