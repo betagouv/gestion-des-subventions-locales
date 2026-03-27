@@ -212,7 +212,9 @@ class SimulationProjet(BaseModel):
 
     def clean(self):
         errors = []
-        self._validate_montant(errors)
+
+        if self.status not in self.SIMULATION_PENDING_STATUSES:
+            self._validate_montant(errors)
         self._validate_dotation(errors)
         if errors:
             raise ValidationError(errors)

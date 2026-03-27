@@ -104,7 +104,10 @@ def test_assiette_form_save_accepted_triggers_accept(mock_ds_update, user):
 
 def test_clean_montant_rejects_above_assiette(user):
     dotation_projet = DotationProjetFactory(assiette=100)
-    simulation_projet = SimulationProjetFactory(dotation_projet=dotation_projet)
+    simulation_projet = SimulationProjetFactory(
+        dotation_projet=dotation_projet,
+        status=SimulationProjet.STATUS_ACCEPTED,
+    )
     form = MontantSingleFieldForm(
         data={"montant": 101},
         instance=simulation_projet,
