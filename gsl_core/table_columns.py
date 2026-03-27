@@ -345,17 +345,31 @@ COLUMN_BUDGET_VERT_INSTRUCTEUR = Column(
     text_align=TextAlign.CENTER,
 )
 
-
-def _get_cofinancements(context):
-    dossier = context["projet"].dossier_ds
-    return dossier.get_cofinancements_avec_montants() or None
-
-
 COLUMN_COFINANCEMENTS = Column(
     key="cofinancements",
     label="Co-financements sollicités",
-    getter=_get_cofinancements,
+    getter=lambda ctx: ctx["projet"].dossier_ds.cofinancements_avec_montants,
     template_name="gsl_core/table_cells/cofinancements.html",
+    displayed_by_default=False,
+    width=ColumnWidth.MIN_180,
+)
+
+
+COLUMN_ZONAGE = Column(
+    key="zonage",
+    label="Zonage",
+    getter=lambda ctx: ctx["projet"].dossier_ds.zonages,
+    template_name="gsl_core/table_cells/_list_cell.html",
+    displayed_by_default=False,
+    width=ColumnWidth.MIN_180,
+)
+
+
+COLUMN_CONTRACTUALISATION = Column(
+    key="contractualisation",
+    label="Contractualisation",
+    getter=lambda ctx: ctx["projet"].dossier_ds.contractualisations,
+    template_name="gsl_core/table_cells/_list_cell.html",
     displayed_by_default=False,
     width=ColumnWidth.MIN_180,
 )

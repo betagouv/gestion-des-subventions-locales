@@ -34,7 +34,12 @@ class ProgrammationProjetFilters(FilterSet):
         "arrete_et_lettre_signes",
     ]
 
-    DEFAULT_PREFETCH_RELATED_OBJS = ["dotation_projet__detr_categories", "annexes"]
+    DEFAULT_PREFETCH_RELATED_OBJS = [
+        "dotation_projet__detr_categories",
+        "annexes",
+        "dotation_projet__projet__dossier_ds__projet_zonage",
+        "dotation_projet__projet__dossier_ds__projet_contractualisation",
+    ]
     filterset = (
         "territoire",
         "porteur",

@@ -752,7 +752,7 @@ def test_inject_decimal_value_into_nullable_decimal_field(dossier_converter, dos
     assert dossier.cofinancement_fonds_vert_montant == Decimal("50000")
 
 
-# --- Dossier.get_cofinancements_avec_montants ---
+# --- Dossier.cofinancements_avec_montants ---
 
 
 @pytest.fixture
@@ -772,7 +772,7 @@ def dossier_with_cofinancements(demarche, dossier_ds_id, dossier_ds_number):
     return dossier
 
 
-def test_get_cofinancements_avec_montants_with_known_label_and_montant(
+def test_cofinancements_avec_montants_with_known_label_and_montant(
     dossier_with_cofinancements,
 ):
     from decimal import Decimal
@@ -781,28 +781,28 @@ def test_get_cofinancements_avec_montants_with_known_label_and_montant(
     dossier.cofinancement_fonds_vert_montant = Decimal("50000")
     dossier.save()
 
-    result = dossier.get_cofinancements_avec_montants()
+    result = dossier.cofinancements_avec_montants
 
     assert len(result) == 1
     assert result[0]["nom"] == "Fonds vert"
     assert result[0]["montant"] == Decimal("50000")
 
 
-def test_get_cofinancements_avec_montants_with_known_label_no_montant(
+def test_cofinancements_avec_montants_with_known_label_no_montant(
     dossier_with_cofinancements,
 ):
     dossier = dossier_with_cofinancements
     dossier.cofinancement_fonds_vert_montant = None
     dossier.save()
 
-    result = dossier.get_cofinancements_avec_montants()
+    result = dossier.cofinancements_avec_montants
 
     assert len(result) == 1
     assert result[0]["nom"] == "Fonds vert"
     assert result[0]["montant"] is None
 
 
-def test_get_cofinancements_avec_montants_autre_with_precision_and_montant(
+def test_cofinancements_avec_montants_autre_with_precision_and_montant(
     demarche, dossier_ds_id, dossier_ds_number
 ):
     from decimal import Decimal
@@ -822,14 +822,14 @@ def test_get_cofinancements_avec_montants_autre_with_precision_and_montant(
     )
     dossier.demande_cofinancements.add(autre)
 
-    result = dossier.get_cofinancements_avec_montants()
+    result = dossier.cofinancements_avec_montants
 
     assert len(result) == 1
     assert result[0]["nom"] == "Autre (Mécénat Entreprise)"
     assert result[0]["montant"] == Decimal("30000")
 
 
-def test_get_cofinancements_avec_montants_autre_without_precision(
+def test_cofinancements_avec_montants_autre_without_precision(
     demarche, dossier_ds_id, dossier_ds_number
 ):
     from gsl_demarches_simplifiees.models import (
@@ -846,14 +846,14 @@ def test_get_cofinancements_avec_montants_autre_without_precision(
     autre, _ = Cofinancement.objects.get_or_create(label=COFINANCEMENT_AUTRE_LABEL)
     dossier.demande_cofinancements.add(autre)
 
-    result = dossier.get_cofinancements_avec_montants()
+    result = dossier.cofinancements_avec_montants
 
     assert len(result) == 1
     assert result[0]["nom"] == "Autre"
     assert result[0]["montant"] is None
 
 
-def test_get_cofinancements_avec_montants_empty_m2m(
+def test_cofinancements_avec_montants_empty_m2m(
     demarche, dossier_ds_id, dossier_ds_number
 ):
     dossier = Dossier.objects.create(
@@ -863,6 +863,6 @@ def test_get_cofinancements_avec_montants_empty_m2m(
     )
     DossierData.objects.create(dossier=dossier)
 
-    result = dossier.get_cofinancements_avec_montants()
+    result = dossier.cofinancements_avec_montants
 
     assert result == []

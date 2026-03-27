@@ -716,7 +716,8 @@ class Dossier(BaseModel):
 
         return dotations
 
-    def get_cofinancements_avec_montants(self) -> list[dict]:
+    @property
+    def cofinancements_avec_montants(self) -> list[dict]:
         """
         Retourne la liste des co-financements du dossier avec leur montant.
         Chaque élément est un dict {"nom": str, "montant": Decimal | None}.
@@ -738,6 +739,28 @@ class Dossier(BaseModel):
                 montant = getattr(self, field_name, None) if field_name else None
             result.append({"nom": nom, "montant": montant})
         return result
+
+    @property
+    def zonages(self) -> list[str] | None:
+        lignes = [
+            item.label
+            for item in self.projet_zonage.all()
+            if item.label != ZONAGE_AUTRE_LABEL
+        ]
+        if self.projet_zonage_autre:
+            lignes.append(f"Autre : {self.projet_zonage_autre}")
+        return lignes or None
+
+    @property
+    def contractualisations(self) -> list[str] | None:
+        lignes = [
+            item.label
+            for item in self.projet_contractualisation.all()
+            if item.label != CONTRACTUALISATION_AUTRE_LABEL
+        ]
+        if self.projet_contractualisation_autre:
+            lignes.append(f"Autre : {self.projet_contractualisation_autre}")
+        return lignes or None
 
     @property
     def has_annotations_champ_libre(self):
@@ -827,11 +850,31 @@ class NaturePorteurProjet(DsChoiceLibelle):
         verbose_name_plural = "Natures de porteur de projet"
 
 
+ZONAGE_AUTRE_LABEL = "Autre zonage"
+CONTRACTUALISATION_AUTRE_LABEL = "Autre contrat"
+COFINANCEMENT_AUTRE_LABEL = "Autre dispositif de financement"
+
+
 class ProjetZonage(DsChoiceLibelle):
     pass
 
 
 class ProjetContractualisation(DsChoiceLibelle):
+    pass
+
+
+COFINANCEMENT_LABEL_TO_MONTANT_FIELD = {
+    "Fonds vert": "cofinancement_fonds_vert_montant",
+    "Dotation politique de la ville (DPV)": "cofinancement_dpv_montant",
+    "Fonds National d'Aménagement et de Développement du Territoire (FNADT)": "cofinancement_fnadt_montant",
+    "Aide du Conseil régional": "cofinancement_conseil_regional_montant",
+    "Aide du Conseil départemental": "cofinancement_conseil_departemental_montant",
+    "Aide d'un EPCI": "cofinancement_epci_montant",
+    "Aide de l'Union Européenne": "cofinancement_ue_montant",
+}
+
+
+class Cofinancement(DsChoiceLibelle):
     pass
 
 
@@ -914,23 +957,6 @@ class CategorieDsil(Categorie):
 
     def __str__(self):
         return f"{self.label}"
-
-
-class Cofinancement(DsChoiceLibelle):
-    pass
-
-
-COFINANCEMENT_AUTRE_LABEL = "Autre dispositif de financement"
-
-COFINANCEMENT_LABEL_TO_MONTANT_FIELD = {
-    "Fonds vert": "cofinancement_fonds_vert_montant",
-    "Dotation politique de la ville (DPV)": "cofinancement_dpv_montant",
-    "Fonds National d'Aménagement et de Développement du Territoire (FNADT)": "cofinancement_fnadt_montant",
-    "Aide du Conseil régional": "cofinancement_conseil_regional_montant",
-    "Aide du Conseil départemental": "cofinancement_conseil_departemental_montant",
-    "Aide d'un EPCI": "cofinancement_epci_montant",
-    "Aide de l'Union Européenne": "cofinancement_ue_montant",
-}
 
 
 class Profile(BaseModel):
