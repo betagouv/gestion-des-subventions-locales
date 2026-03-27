@@ -14,6 +14,11 @@ from django.views.generic.list import ListView
 from django_filters.views import FilterView
 
 from gsl_core.matomo import queue_matomo_event
+from gsl_core.matomo_constants import (
+    MATOMO_ACTION_CREATION_SIMULATION,
+    MATOMO_ACTION_EXPORT,
+    MATOMO_CATEGORY_SIMULATION,
+)
 from gsl_core.models import Perimetre
 from gsl_core.view_mixins import NoFeedbackHtmxFormViewMixin
 from gsl_programmation.services.enveloppe_service import EnveloppeService
@@ -121,6 +126,8 @@ class SimulationDetailView(FilterView, DetailView):
                     "total_amount_granted": simulation.get_total_amount_granted(qs),
                 },
                 "export_types": FilteredProjetsExportView.EXPORT_TYPES,
+                "matomo_category_simulation": MATOMO_CATEGORY_SIMULATION,
+                "matomo_action_export": MATOMO_ACTION_EXPORT,
                 "breadcrumb_dict": {
                     "links": [
                         {
@@ -260,8 +267,8 @@ class SimulationCreateView(CreateView):
         response = super().form_valid(form)
         queue_matomo_event(
             self.request,
-            "Simulation",
-            "creation_simulation",
+            MATOMO_CATEGORY_SIMULATION,
+            MATOMO_ACTION_CREATION_SIMULATION,
             self.object.enveloppe.dotation,
         )
         return response

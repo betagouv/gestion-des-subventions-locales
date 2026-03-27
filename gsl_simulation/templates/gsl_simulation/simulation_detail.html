@@ -105,7 +105,7 @@
             link.addEventListener("click", function() {
                 var format = link.textContent.trim().replace(/^format \./, "").split(" ")[0];
                 if (typeof _paq !== "undefined") {
-                    _paq.push(["trackEvent", "Simulation", "export", format]);
+                    _paq.push(["trackEvent", "{{ matomo_category_simulation }}", "{{ matomo_action_export }}", format]);
                 }
             });
         });

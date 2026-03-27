@@ -19,6 +19,10 @@ from formtools.wizard.views import SessionWizardView
 from gsl.utils.csp import csp_update
 from gsl_core.exceptions import Http404
 from gsl_core.matomo import queue_matomo_event
+from gsl_core.matomo_constants import (
+    MATOMO_ACTION_CREATION_MODELE,
+    MATOMO_CATEGORY_MODELE,
+)
 from gsl_core.models import Perimetre
 from gsl_notification.forms import (
     ModeleDocumentStepOneForm,
@@ -213,8 +217,8 @@ class CreateModelDocumentWizard(SessionWizardView):
         if is_creating:
             queue_matomo_event(
                 self.request,
-                "Modele",
-                "creation_modele",
+                MATOMO_CATEGORY_MODELE,
+                MATOMO_ACTION_CREATION_MODELE,
                 f"{self.modele_type} - {self.dotation}",
             )
 
