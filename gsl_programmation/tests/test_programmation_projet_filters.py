@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 
 import pytest
@@ -702,6 +702,131 @@ class TestProgrammationProjetFilters:
         # Vérifier que le périmètre de l'utilisateur est dans les choix
         perimetre_ids = [choice[0] for choice in territoire_choices]
         assert departement.id in perimetre_ids
+
+    def test_date_depot_filter(self, mock_request, enveloppe, arrondissement):
+        """Test les filtres par date de dépôt"""
+        dossier_ancien = DossierFactory(
+            ds_date_depot=datetime(2024, 1, 15, tzinfo=timezone.utc),
+            perimetre=arrondissement,
+        )
+        dossier_recent = DossierFactory(
+            ds_date_depot=datetime(2024, 6, 15, tzinfo=timezone.utc),
+            perimetre=arrondissement,
+        )
+
+        projet_ancien = ProjetFactory(dossier_ds=dossier_ancien)
+        projet_recent = ProjetFactory(dossier_ds=dossier_recent)
+
+        dotation_ancien = DotationProjetFactory(
+            projet=projet_ancien, dotation=DOTATION_DETR
+        )
+        dotation_recent = DotationProjetFactory(
+            projet=projet_recent, dotation=DOTATION_DETR
+        )
+
+        prog_ancien = ProgrammationProjetFactory(
+            dotation_projet=dotation_ancien, enveloppe=enveloppe
+        )
+        prog_recent = ProgrammationProjetFactory(
+            dotation_projet=dotation_recent, enveloppe=enveloppe
+        )
+
+        # Test filtre date_depot_after
+        filterset = ProgrammationProjetFilters(
+            data={"date_depot_after": "2024-03-01"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert prog_ancien not in result
+        assert prog_recent in result
+
+        # Test filtre date_depot_before
+        filterset = ProgrammationProjetFilters(
+            data={"date_depot_before": "2024-03-01"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert prog_ancien in result
+        assert prog_recent not in result
+
+        # Test boundary: dossier deposited on the cutoff date is included
+        filterset = ProgrammationProjetFilters(
+            data={"date_depot_before": "2024-01-15"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert prog_ancien in result
+        assert prog_recent not in result
+
+        # Test combinaison after + before
+        filterset = ProgrammationProjetFilters(
+            data={"date_depot_after": "2024-01-01", "date_depot_before": "2024-12-31"},
+            request=mock_request,
+        )
+        result = list(filterset.qs)
+        assert prog_ancien in result
+        assert prog_recent in result
+
+    def test_date_debut_filter(self, mock_request, enveloppe, arrondissement):
+        """Test les filtres par date de commencement de l'opération"""
+        dossier_tot = DossierFactory(
+            date_debut=date(2024, 3, 1), perimetre=arrondissement
+        )
+        dossier_tard = DossierFactory(
+            date_debut=date(2024, 9, 1), perimetre=arrondissement
+        )
+
+        projet_tot = ProjetFactory(dossier_ds=dossier_tot)
+        projet_tard = ProjetFactory(dossier_ds=dossier_tard)
+
+        dotation_tot = DotationProjetFactory(projet=projet_tot, dotation=DOTATION_DETR)
+        dotation_tard = DotationProjetFactory(
+            projet=projet_tard, dotation=DOTATION_DETR
+        )
+
+        prog_tot = ProgrammationProjetFactory(
+            dotation_projet=dotation_tot, enveloppe=enveloppe
+        )
+        prog_tard = ProgrammationProjetFactory(
+            dotation_projet=dotation_tard, enveloppe=enveloppe
+        )
+
+        # Test filtre date_debut_after
+        filterset = ProgrammationProjetFilters(
+            data={"date_debut_after": "2024-06-01"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert prog_tot not in result
+        assert prog_tard in result
+
+    def test_date_achevement_filter(self, mock_request, enveloppe, arrondissement):
+        """Test les filtres par date prévisionnelle d'achèvement"""
+        dossier_tot = DossierFactory(
+            date_achevement=date(2025, 1, 1), perimetre=arrondissement
+        )
+        dossier_tard = DossierFactory(
+            date_achevement=date(2025, 12, 1), perimetre=arrondissement
+        )
+
+        projet_tot = ProjetFactory(dossier_ds=dossier_tot)
+        projet_tard = ProjetFactory(dossier_ds=dossier_tard)
+
+        dotation_tot = DotationProjetFactory(projet=projet_tot, dotation=DOTATION_DETR)
+        dotation_tard = DotationProjetFactory(
+            projet=projet_tard, dotation=DOTATION_DETR
+        )
+
+        prog_tot = ProgrammationProjetFactory(
+            dotation_projet=dotation_tot, enveloppe=enveloppe
+        )
+        prog_tard = ProgrammationProjetFactory(
+            dotation_projet=dotation_tard, enveloppe=enveloppe
+        )
+
+        # Test filtre date_achevement_before
+        filterset = ProgrammationProjetFilters(
+            data={"date_achevement_before": "2025-06-01"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert prog_tot in result
+        assert prog_tard not in result
 
     def test_empty_filters(self, mock_request, enveloppe, arrondissement):
         """Test que sans filtres, tous les projets de l'enveloppe sont retournés"""

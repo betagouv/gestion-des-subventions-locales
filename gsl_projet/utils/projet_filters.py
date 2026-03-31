@@ -2,6 +2,7 @@ from django.db.models import Count, Exists, F, OuterRef, Q
 from django.forms.utils import pretty_name
 from django.utils.translation import gettext_lazy as _
 from django_filters import (
+    DateFromToRangeFilter,
     FilterSet,
     MultipleChoiceFilter,
     OrderingFilter,
@@ -23,6 +24,7 @@ from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     CustomSelectWidget,
+    DsfrDateRangeWidget,
     DsfrRangeWidget,
 )
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
@@ -176,6 +178,24 @@ class ProjetFilters(FilterSet):
         widget=DsfrRangeWidget(icon="fr-icon-money-euro-box-fill"),
     )
 
+    date_depot = DateFromToRangeFilter(
+        label="Date de dépôt",
+        field_name="dossier_ds__ds_date_depot__date",
+        widget=DsfrDateRangeWidget(icon="fr-icon-calendar-line"),
+    )
+
+    date_debut = DateFromToRangeFilter(
+        label="Date de commencement",
+        field_name="dossier_ds__date_debut",
+        widget=DsfrDateRangeWidget(icon="fr-icon-calendar-line"),
+    )
+
+    date_achevement = DateFromToRangeFilter(
+        label="Date d'achèvement",
+        field_name="dossier_ds__date_achevement",
+        widget=DsfrDateRangeWidget(icon="fr-icon-calendar-line"),
+    )
+
     ordered_status: tuple[str, ...] = (
         PROJET_STATUS_PROCESSING,
         PROJET_STATUS_REFUSED,
@@ -228,6 +248,9 @@ class ProjetFilters(FilterSet):
             "cout",
             "montant_demande",
             "montant_retenu",
+            "date_depot",
+            "date_debut",
+            "date_achevement",
         )
 
     @property

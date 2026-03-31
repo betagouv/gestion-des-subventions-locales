@@ -1,12 +1,18 @@
 from django.db import models
 from django.db.models import Case, DecimalField, F, Subquery, When
-from django_filters import FilterSet, MultipleChoiceFilter, RangeFilter
+from django_filters import (
+    DateFromToRangeFilter,
+    FilterSet,
+    MultipleChoiceFilter,
+    RangeFilter,
+)
 
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_projet.models import Projet
 from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     CustomSelectWidget,
+    DsfrDateRangeWidget,
     DsfrRangeWidget,
 )
 from gsl_projet.utils.projet_filters import (
@@ -83,6 +89,24 @@ class SimulationProjetFilters(FilterSet):
         method="filter_montant_previsionnel",
     )
 
+    date_depot = DateFromToRangeFilter(
+        label="Date de dépôt",
+        field_name="dossier_ds__ds_date_depot__date",
+        widget=DsfrDateRangeWidget(icon="fr-icon-calendar-line"),
+    )
+
+    date_debut = DateFromToRangeFilter(
+        label="Date de commencement",
+        field_name="dossier_ds__date_debut",
+        widget=DsfrDateRangeWidget(icon="fr-icon-calendar-line"),
+    )
+
+    date_achevement = DateFromToRangeFilter(
+        label="Date d'achèvement",
+        field_name="dossier_ds__date_achevement",
+        widget=DsfrDateRangeWidget(icon="fr-icon-calendar-line"),
+    )
+
     territoire = MultipleChoiceFilter(
         method="filter_territoire",
         choices=[],
@@ -129,6 +153,9 @@ class SimulationProjetFilters(FilterSet):
             "cout",
             "montant_demande",
             "montant_previsionnel",
+            "date_depot",
+            "date_debut",
+            "date_achevement",
         )
 
     @property
