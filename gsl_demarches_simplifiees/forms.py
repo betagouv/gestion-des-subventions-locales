@@ -42,10 +42,10 @@ class DossierReporteSansPieceForm(forms.ModelForm, DsfrBaseForm):
         required=True, label="Dispositif de financement sollicité"
     )
     finance_cout_total = forms.DecimalField(
-        required=True, label="Coût total de l'opération (en euros HT)"
+        required=True, label="Coût total de l'opération (en euros HT)", min_value=0
     )
     demande_montant = forms.DecimalField(
-        required=True, label="Montant de l'aide demandée"
+        required=True, label="Montant de l'aide demandée", min_value=0
     )
 
     def __init__(self, *args, **kwargs):
