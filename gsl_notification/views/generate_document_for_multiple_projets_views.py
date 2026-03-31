@@ -76,8 +76,6 @@ class ChooseDocumentTypeForMultipleGenerationView(FormView):
             filterset = ProgrammationProjetFilters(
                 data=self.request.GET,
                 request=self.request,
-                select_related_objs=[],
-                prefetch_related_objs=[],
             )
             self.programmation_projets = filterset.qs.to_notify()
 
@@ -147,8 +145,6 @@ def select_modele_multiple(request, dotation, document_type):
         filterset = ProgrammationProjetFilters(
             data=request.GET,
             request=request,
-            select_related_objs=[],
-            prefetch_related_objs=[],
         )
         programmation_projets = filterset.qs.to_notify()
         pp_count = programmation_projets.count()
@@ -238,17 +234,12 @@ def save_documents(
         _check_if_projets_are_accessible_for_user(request, programmation_projets)
 
     except ValueError:
-        filterset = ProgrammationProjetFilters(
-            data=request.POST,
-            request=request,
-            select_related_objs=[
-                "dotation_projet__projet__dossier_ds",
-                "dotation_projet__projet__dossier_ds__ds_demandeur",
-                "dotation_projet__projet__dossier_ds__perimetre__departement",
-            ],
-            prefetch_related_objs=[],
-        )
-        programmation_projets = filterset.qs.to_notify()
+        filterset = ProgrammationProjetFilters(data=request.POST, request=request)
+        programmation_projets = filterset.qs.select_related(
+            "dotation_projet__projet__dossier_ds",
+            "dotation_projet__projet__dossier_ds__ds_demandeur",
+            "dotation_projet__projet__dossier_ds__perimetre__departement",
+        ).to_notify()
 
     try:
         document_class = get_generated_document_class(document_type)
@@ -341,8 +332,6 @@ def download_documents(request, dotation, document_type):
         filterset = ProgrammationProjetFilters(
             data=request.GET,
             request=request,
-            select_related_objs=[],
-            prefetch_related_objs=[],
         )
         programmation_projets = filterset.qs.to_notify().select_related(
             *attr_select_related

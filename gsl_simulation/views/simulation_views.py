@@ -156,9 +156,10 @@ class SimulationDetailView(FilterView, DetailView):
             "dotationprojet_set",
             "dotationprojet_set__programmation_projet",
             "dotationprojet_set__simulationprojet_set",
-            # "dotationprojet_set__detr_categories", # TODO category : useless now. Remove it if we don't allow to set DETR category. The code is commented to enhance performance.
             "dossier_ds__demande_categorie_detr",
             "dossier_ds__demande_categorie_dsil",
+            "dossier_ds__porteur_de_projet_arrondissement",
+            "dossier_ds__ds_demarche",
             "dossier_ds__demande_cofinancements",
             "dossier_ds__projet_zonage",
             "dossier_ds__projet_contractualisation",
@@ -175,12 +176,7 @@ class SimulationDetailView(FilterView, DetailView):
                 to_attr="simu",
             ),
             "dotation_projet__programmation_projet",
-        )
-        # TODO category : useless now. Remove it if we don't allow to set DETR category.
-        # if simulation.dotation == DOTATION_DETR:
-        #     qs = qs.prefetch_related(
-        #         "dotation_projet__detr_categories",
-        #     )
+        ).defer("dossier_ds__ds_demarche__raw_ds_data")
 
         qs.distinct()
         return qs

@@ -391,7 +391,7 @@ class ProgrammationProjet(models.Model):
             if hasattr(self, "lettre_notification"):
                 summary.append("1 lettre générée")
 
-        annexes_count = self.annexes.count()
+        annexes_count = len(self.annexes.all())
         if annexes_count != 0:
             plural = "s" if annexes_count > 1 else ""
             summary.append(f"{annexes_count} annexe{plural}")
