@@ -1,9 +1,11 @@
+from datetime import date
 from decimal import Decimal
 
 import pytest
 from django.test import RequestFactory
 
 from gsl_core.tests.factories import (
+    ArrondissementFactory,
     CollegueFactory,
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
@@ -468,6 +470,171 @@ class TestProgrammationProjetFilters:
         )
         result = list(filterset.qs)
         assert result.index(prog_z) < result.index(prog_a)
+
+    def test_order_by_numero_dn(self, mock_request, enveloppe, arrondissement):
+        dossier_a = DossierFactory(ds_number=1000, perimetre=arrondissement)
+        dossier_z = DossierFactory(ds_number=9000, perimetre=arrondissement)
+        prog_a = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_a), dotation=DOTATION_DETR
+            ),
+            enveloppe=enveloppe,
+        )
+        prog_z = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_z), dotation=DOTATION_DETR
+            ),
+            enveloppe=enveloppe,
+        )
+
+        filterset = ProgrammationProjetFilters(
+            data={"order": "numero_dn"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert result.index(prog_a) < result.index(prog_z)
+
+        filterset = ProgrammationProjetFilters(
+            data={"order": "-numero_dn"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert result.index(prog_z) < result.index(prog_a)
+
+    def test_order_by_arrondissement(self, mock_request, enveloppe, arrondissement):
+        arr_a = ArrondissementFactory(name="Alpha-Arrondissement")
+        arr_z = ArrondissementFactory(name="Zulu-Arrondissement")
+        dossier_a = DossierFactory(
+            perimetre=arrondissement, porteur_de_projet_arrondissement=arr_a
+        )
+        dossier_z = DossierFactory(
+            perimetre=arrondissement, porteur_de_projet_arrondissement=arr_z
+        )
+        prog_a = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_a), dotation=DOTATION_DETR
+            ),
+            enveloppe=enveloppe,
+        )
+        prog_z = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_z), dotation=DOTATION_DETR
+            ),
+            enveloppe=enveloppe,
+        )
+
+        filterset = ProgrammationProjetFilters(
+            data={"order": "arrondissement"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert result.index(prog_a) < result.index(prog_z)
+
+    def test_order_by_montant_sollicite(self, mock_request, enveloppe, arrondissement):
+        dossier_a = DossierFactory(
+            demande_montant=Decimal("10000"), perimetre=arrondissement
+        )
+        dossier_z = DossierFactory(
+            demande_montant=Decimal("90000"), perimetre=arrondissement
+        )
+        prog_a = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_a), dotation=DOTATION_DETR
+            ),
+            enveloppe=enveloppe,
+        )
+        prog_z = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_z), dotation=DOTATION_DETR
+            ),
+            enveloppe=enveloppe,
+        )
+
+        filterset = ProgrammationProjetFilters(
+            data={"order": "montant_sollicite"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert result.index(prog_a) < result.index(prog_z)
+
+    def test_order_by_assiette(self, mock_request, enveloppe, arrondissement):
+        dossier_a = DossierFactory(perimetre=arrondissement)
+        dossier_z = DossierFactory(perimetre=arrondissement)
+        prog_a = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_a),
+                dotation=DOTATION_DETR,
+                assiette=Decimal("50000"),
+            ),
+            enveloppe=enveloppe,
+        )
+        prog_z = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_z),
+                dotation=DOTATION_DETR,
+                assiette=Decimal("200000"),
+            ),
+            enveloppe=enveloppe,
+        )
+
+        filterset = ProgrammationProjetFilters(
+            data={"order": "assiette"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert result.index(prog_a) < result.index(prog_z)
+
+    def test_order_by_taux(self, mock_request, enveloppe, arrondissement):
+        dossier_a = DossierFactory(perimetre=arrondissement)
+        dossier_z = DossierFactory(perimetre=arrondissement)
+        # prog_a: montant=10000 / assiette=100000 = 10%
+        prog_a = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_a),
+                dotation=DOTATION_DETR,
+                assiette=Decimal("100000"),
+            ),
+            enveloppe=enveloppe,
+            montant=Decimal("10000"),
+        )
+        # prog_z: montant=80000 / assiette=100000 = 80%
+        prog_z = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_z),
+                dotation=DOTATION_DETR,
+                assiette=Decimal("100000"),
+            ),
+            enveloppe=enveloppe,
+            montant=Decimal("80000"),
+        )
+
+        filterset = ProgrammationProjetFilters(
+            data={"order": "taux"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert result.index(prog_a) < result.index(prog_z)
+
+    def test_order_by_date_debut(self, mock_request, enveloppe, arrondissement):
+        dossier_a = DossierFactory(
+            perimetre=arrondissement, date_debut=date(2025, 1, 1)
+        )
+        dossier_z = DossierFactory(
+            perimetre=arrondissement, date_debut=date(2026, 6, 1)
+        )
+        prog_a = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_a), dotation=DOTATION_DETR
+            ),
+            enveloppe=enveloppe,
+        )
+        prog_z = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_z), dotation=DOTATION_DETR
+            ),
+            enveloppe=enveloppe,
+        )
+
+        # date_debut is a date field, ascending means earliest first
+        filterset = ProgrammationProjetFilters(
+            data={"order": "date_debut"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert result.index(prog_a) < result.index(prog_z)
 
     def test_multiple_filters_combination(
         self, mock_request, enveloppe, arrondissement

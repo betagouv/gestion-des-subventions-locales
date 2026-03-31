@@ -57,6 +57,7 @@ COLUMN_MONTANT_SOLLICITE = Column(
     getter=_get_montant_sollicite,
     text_align=TextAlign.RIGHT,
     aggregate_key="total_amount_asked",
+    sort_param="montant_sollicite",
 )
 
 
@@ -98,6 +99,7 @@ COLUMN_ASSIETTE = Column(
     template_name="gsl_simulation/table_cells/assiette.html",
     other_dotation_getter=_get_other_dotation_assiette,
     text_align=TextAlign.RIGHT,
+    sort_param="assiette",
 )
 
 COLUMN_MONTANT_RETENU = Column(
@@ -118,6 +120,7 @@ COLUMN_TAUX = Column(
     other_dotation_getter=_get_simu_other_dotation_taux,
     text_align=TextAlign.RIGHT,
     header_help_text="Le taux de subvention est calculé en fonction de l'assiette si elle est renseignée, sinon il est calculé en fonction du coût total du projet.",
+    sort_param="taux",
 )
 
 COLUMN_STATUT = Column(

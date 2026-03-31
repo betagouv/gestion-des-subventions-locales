@@ -38,7 +38,7 @@ class ProjetOrderingFilter(OrderingFilter):
                         (f"-{param}", "La plus récente"),
                         (param, "La plus ancienne"),
                     )
-                    if param == "date"
+                    if param in {"date", "date_debut", "date_fin"}
                     else (
                         (param, "Croissant"),
                         (f"-{param}", "Décroissant"),
@@ -73,12 +73,13 @@ ORDERING_MAP = {
     "dossier_ds__ds_date_depot": "date",
     "dossier_ds__finance_cout_total": "cout",
     "demandeur__name": "demandeur",
-}
-
-ORDERING_LABELS = {
-    "dossier_ds__ds_date_depot": "Date",
-    "dossier_ds__finance_cout_total": "Coût total",
-    "demandeur__name": "Demandeur",
+    "dossier_ds__ds_number": "numero_dn",
+    "dossier_ds__porteur_de_projet_arrondissement__name": "arrondissement",
+    "dossier_ds__porteur_de_projet_nom": "nom_demandeur",
+    "dossier_ds__demande_montant": "montant_sollicite",
+    "dossier_ds__date_debut": "date_debut",
+    "dossier_ds__date_achevement": "date_fin",
+    "dossier_ds__porteur_de_projet_epci": "epci",
 }
 
 
@@ -136,7 +137,6 @@ def filter_territoire(queryset, _name, values: list[int]):
 class ProjetFilters(FilterSet):
     order = ProjetOrderingFilter(
         fields=ORDERING_MAP,
-        field_labels=ORDERING_LABELS,
         empty_label="Tri",
         widget=CustomSelectWidget,
     )

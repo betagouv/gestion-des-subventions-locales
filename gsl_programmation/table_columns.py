@@ -71,6 +71,7 @@ COLUMN_MONTANT_TAUX_DEMANDES = Column(
     label="Montant et taux demandés (€ / %)",
     getter=_get_montant_taux_demandes,
     text_align=TextAlign.RIGHT,
+    sort_param="montant_sollicite",
 )
 
 
@@ -125,6 +126,7 @@ COLUMN_ASSIETTE = Column(
     getter=lambda ctx: euro_value(ctx["programmation_projet"].dotation_projet.assiette),
     other_dotation_getter=_get_other_dotation_assiette,
     text_align=TextAlign.RIGHT,
+    sort_param="assiette",
 )
 
 COLUMN_MONTANT_RETENU = Column(
@@ -143,6 +145,7 @@ COLUMN_TAUX = Column(
     other_dotation_getter=_get_other_dotation_taux,
     text_align=TextAlign.RIGHT,
     width=ColumnWidth.MIN_105,
+    sort_param="taux",
 )
 
 COLUMN_DOCUMENTS = Column(

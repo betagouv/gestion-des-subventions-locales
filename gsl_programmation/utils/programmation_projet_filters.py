@@ -1,3 +1,4 @@
+from django.db.models import Case, DecimalField, F, When
 from django_filters import (
     ChoiceFilter,
     FilterSet,
@@ -17,6 +18,21 @@ from gsl_projet.utils.django_filters_custom_widget import (
     DsfrRangeWidget,
 )
 from gsl_projet.utils.projet_filters import ProjetOrderingFilter
+
+PROGRAMMATION_ORDERING_MAP = {
+    "dotation_projet__projet__dossier_ds__finance_cout_total": "cout",
+    "dotation_projet__projet__demandeur__name": "demandeur",
+    "montant": "montant",
+    "dotation_projet__projet__dossier_ds__ds_number": "numero_dn",
+    "dotation_projet__projet__dossier_ds__porteur_de_projet_arrondissement__name": "arrondissement",
+    "dotation_projet__projet__dossier_ds__porteur_de_projet_nom": "nom_demandeur",
+    "dotation_projet__projet__dossier_ds__demande_montant": "montant_sollicite",
+    "dotation_projet__projet__dossier_ds__date_debut": "date_debut",
+    "dotation_projet__projet__dossier_ds__date_achevement": "date_fin",
+    "dotation_projet__projet__dossier_ds__porteur_de_projet_epci": "epci",
+    "dotation_projet__assiette": "assiette",
+    "prog_taux": "taux",
+}
 
 
 class ProgrammationProjetFilters(FilterSet):
@@ -85,23 +101,8 @@ class ProgrammationProjetFilters(FilterSet):
         else:
             return queryset
 
-    ORDERING_MAP = {
-        "dotation_projet__projet__dossier_ds__finance_cout_total": "cout",
-        "dotation_projet__projet__demandeur__name": "demandeur",
-        "montant": "montant",
-        "dotation_projet__programmation_projet__montant": "Montant retenu",
-    }
-
-    ORDERING_LABELS = {
-        "dotation_projet__projet__dossier_ds__finance_cout_total": "Coût total",
-        "dotation_projet__projet__demandeur__name": "Demandeur",
-        "montant": "Montant accordé",
-        "dotation_projet__programmation_projet__montant": "Montant retenu",
-    }
-
     order = ProjetOrderingFilter(
-        fields=ORDERING_MAP,
-        field_labels=ORDERING_LABELS,
+        fields=PROGRAMMATION_ORDERING_MAP,
         empty_label="Tri",
         widget=CustomSelectWidget,
     )
@@ -153,6 +154,22 @@ class ProgrammationProjetFilters(FilterSet):
                 enveloppe__in=enveloppe_qs,
             )
             .for_perimetre(self.request.user.perimetre)
+        )
+        qs = qs.annotate(
+            prog_taux=Case(
+                When(
+                    dotation_projet__assiette__gt=0,
+                    then=F("montant") * 100.0 / F("dotation_projet__assiette"),
+                ),
+                When(
+                    dotation_projet__projet__dossier_ds__finance_cout_total__gt=0,
+                    then=F("montant")
+                    * 100.0
+                    / F("dotation_projet__projet__dossier_ds__finance_cout_total"),
+                ),
+                default=None,
+                output_field=DecimalField(),
+            ),
         )
         if not qs.query.order_by:
             qs = qs.order_by("-created_at")
