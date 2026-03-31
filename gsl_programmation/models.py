@@ -1,6 +1,7 @@
 from functools import cached_property
 
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models, transaction
 from django.db.models import Sum
 from typing_extensions import deprecated
@@ -59,6 +60,7 @@ class Enveloppe(BaseModel):
         "Montant",
         max_digits=14,
         decimal_places=2,
+        validators=[MinValueValidator(0)],
     )
     annee = models.IntegerField(verbose_name="Année")
     perimetre = models.ForeignKey(
