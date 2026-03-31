@@ -1,5 +1,8 @@
-from django.urls import include, path
+from django.urls import URLPattern, include, path
 
-urlpatterns = [
-    path("comptes/", include("django.contrib.auth.urls")),
+from gsl_oidc.views import LoginPageView
+
+urlpatterns: list[URLPattern] = [
+    path("comptes/login/", LoginPageView.as_view(), name="login"),
+    path("oidc/", include("mozilla_django_oidc.urls")),
 ]

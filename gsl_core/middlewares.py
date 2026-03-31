@@ -72,9 +72,6 @@ class OTPVerificationMiddleware:
             if request.path.startswith(prefix):
                 return self.get_response(request)
 
-        if request.path in (reverse("login"), reverse("logout")):
-            return self.get_response(request)
-
         if user.is_verified():
             return self.get_response(request)
 
@@ -104,8 +101,6 @@ class CheckPerimeterMiddleware:
     def __call__(self, request):
         user = request.user
         excluded_paths = [
-            reverse("login"),
-            reverse("logout"),
             reverse("no-perimeter"),
         ]
         excluded_beginning_paths = ["/admin/", "/oidc/", "/__debug__/", "/otp/"]

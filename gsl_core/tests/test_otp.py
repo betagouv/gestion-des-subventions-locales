@@ -93,10 +93,6 @@ class TestOTPMiddlewareEnforcement:
         response = staff_client.get(reverse("otp-verify"))
         assert response.status_code == 200
 
-    def test_login_logout_urls_are_exempt(self, staff_client):
-        response = staff_client.get(reverse("login"))
-        assert response.status_code == 200
-
     def test_oidc_urls_are_exempt(self, staff_client):
         response = staff_client.get("/oidc/authenticate/")
         # OIDC redirects to the provider, so 302 is expected (not an OTP redirect)
