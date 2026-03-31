@@ -147,12 +147,15 @@ class ProgrammationProjetListView(FilterView, ListView):
             .select_related(
                 "dotation_projet",
                 "dotation_projet__projet",
+                "dotation_projet__projet__demandeur",
                 "dotation_projet__projet__dossier_ds",
-                "dotation_projet__projet__dossier_ds__demande_categorie_dsil",
             )
             .prefetch_related(
-                "annexes",
+                "arrete",
+                "lettre_notification",
+                "arrete_et_lettre_signes",
                 "enveloppe",
+                "annexes",
                 "enveloppe__perimetre",
                 "dotation_projet__projet__dotationprojet_set",
                 "dotation_projet__projet__dotationprojet_set__simulationprojet_set",
