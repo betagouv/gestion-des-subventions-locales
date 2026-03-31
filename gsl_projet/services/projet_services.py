@@ -1,8 +1,5 @@
 import logging
 
-from django.db.models import Sum
-from django.db.models.query import QuerySet
-
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.models import Demandeur, Projet
 
@@ -58,26 +55,6 @@ class ProjetService:
 
         projet.save()
         return projet
-
-    @classmethod
-    def get_total_cost(cls, projet_qs: QuerySet):
-        return projet_qs.aggregate(total=Sum("dossier_ds__finance_cout_total"))["total"]
-
-    @classmethod
-    def get_total_amount_asked(cls, projet_qs: QuerySet):
-        return projet_qs.aggregate(Sum("dossier_ds__demande_montant"))[
-            "dossier_ds__demande_montant__sum"
-        ]
-
-    @classmethod
-    def get_total_amount_granted(cls, projet_qs: QuerySet):
-        from gsl_programmation.models import ProgrammationProjet
-
-        projet_ids = projet_qs.values_list("pk", flat=True)
-        return ProgrammationProjet.objects.filter(
-            dotation_projet__projet__in=projet_ids,
-            status=ProgrammationProjet.STATUS_ACCEPTED,
-        ).aggregate(total=Sum("montant"))["total"]
 
     # Private
 
