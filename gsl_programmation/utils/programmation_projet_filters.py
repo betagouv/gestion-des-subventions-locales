@@ -142,6 +142,11 @@ class ProgrammationProjetFilters(FilterSet):
             .for_current_year()
         )
 
+        try:
+            self.enveloppe = enveloppe_qs.get(perimetre=self.perimetre)
+        except Enveloppe.DoesNotExist:
+            self.enveloppe = None
+
         qs = (
             super()
             .qs.filter(

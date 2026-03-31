@@ -87,8 +87,12 @@ def double_dotation_projet(user_with_departement_perimetre):
 )
 def test_get_filter_projets_export_view(export_type, content_type):
     ### Arrange
+    perimetre = PerimetreDepartementalFactory()
+    user = CollegueFactory(perimetre=perimetre)
     simulation = SimulationFactory(
-        title="Ma Simulation", enveloppe__dotation=DOTATION_DSIL
+        title="Ma Simulation",
+        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__perimetre=perimetre,
     )
     SimulationProjetFactory.create_batch(
         2,
@@ -107,7 +111,7 @@ def test_get_filter_projets_export_view(export_type, content_type):
     today = timezone.now().strftime("%Y-%m-%d")
 
     ### Act
-    req = RequestFactory()
+    req = RequestFactory(user=user)
     view = FilteredProjetsExportView()
     kwargs = {"slug": simulation.slug, "type": export_type}
     url = reverse("simulation:simulation-projets-export", kwargs=kwargs)
@@ -297,8 +301,8 @@ class TestNotifiedProjectDisplayOnSimulationTable:
 class TestExportColumnsVisibility:
     """Tests that the export respects the simulation's columns_visibility setting."""
 
-    def _export_csv(self, simulation):
-        req = RequestFactory()
+    def _export_csv(self, simulation, user):
+        req = RequestFactory(user=user)
         view = FilteredProjetsExportView()
         kwargs = {"slug": simulation.slug, "type": "csv"}
         url = reverse("simulation:simulation-projets-export", kwargs=kwargs)
@@ -312,9 +316,12 @@ class TestExportColumnsVisibility:
         return list(csv.reader(io.StringIO(csv_content), delimiter=";"))
 
     def test_export_with_hidden_columns_excludes_them(self):
+        perimetre = PerimetreDepartementalFactory()
+        user = CollegueFactory(perimetre=perimetre)
         simulation = SimulationFactory(
             title="Export Test",
             enveloppe__dotation=DOTATION_DSIL,
+            enveloppe__perimetre=perimetre,
             columns_visibility={
                 "date-depot": True,
                 "demandeur": False,
@@ -327,7 +334,7 @@ class TestExportColumnsVisibility:
             simulation=simulation,
         )
 
-        csv_lines = self._export_csv(simulation)
+        csv_lines = self._export_csv(simulation, user)
         headers = csv_lines[0]
 
         assert "Date de dépôt du dossier" in headers
@@ -336,9 +343,12 @@ class TestExportColumnsVisibility:
         assert "Commentaire 1" not in headers
 
     def test_export_with_null_visibility_hides_non_default_columns(self):
+        perimetre = PerimetreDepartementalFactory()
+        user = CollegueFactory(perimetre=perimetre)
         simulation = SimulationFactory(
             title="Default Export",
             enveloppe__dotation=DOTATION_DSIL,
+            enveloppe__perimetre=perimetre,
             columns_visibility=None,
         )
         SimulationProjetFactory(
@@ -346,7 +356,7 @@ class TestExportColumnsVisibility:
             simulation=simulation,
         )
 
-        csv_lines = self._export_csv(simulation)
+        csv_lines = self._export_csv(simulation, user)
         headers = csv_lines[0]
 
         # displayed_by_default=False columns should be excluded
@@ -365,9 +375,12 @@ class TestExportColumnsVisibility:
         assert "Montant prévisionnel accordé" in headers
 
     def test_export_with_nom_demandeur_visibility(self):
+        perimetre = PerimetreDepartementalFactory()
+        user = CollegueFactory(perimetre=perimetre)
         simulation = SimulationFactory(
             title="Nom Demandeur",
             enveloppe__dotation=DOTATION_DSIL,
+            enveloppe__perimetre=perimetre,
             columns_visibility={
                 "nom-demandeur": True,
             },
@@ -377,15 +390,18 @@ class TestExportColumnsVisibility:
             simulation=simulation,
         )
 
-        csv_lines = self._export_csv(simulation)
+        csv_lines = self._export_csv(simulation, user)
         headers = csv_lines[0]
 
         assert "Nom et prénom du demandeur" in headers
 
     def test_export_hides_nom_demandeur_when_not_visible(self):
+        perimetre = PerimetreDepartementalFactory()
+        user = CollegueFactory(perimetre=perimetre)
         simulation = SimulationFactory(
             title="Nom Demandeur Hidden",
             enveloppe__dotation=DOTATION_DSIL,
+            enveloppe__perimetre=perimetre,
             columns_visibility={
                 "nom-demandeur": False,
             },
@@ -395,15 +411,18 @@ class TestExportColumnsVisibility:
             simulation=simulation,
         )
 
-        csv_lines = self._export_csv(simulation)
+        csv_lines = self._export_csv(simulation, user)
         headers = csv_lines[0]
 
         assert "Nom et prénom du demandeur" not in headers
 
     def test_export_detr_includes_detr_specific_fields(self):
+        perimetre = PerimetreDepartementalFactory()
+        user = CollegueFactory(perimetre=perimetre)
         simulation = SimulationFactory(
             title="DETR Export",
             enveloppe__dotation=DOTATION_DETR,
+            enveloppe__perimetre=perimetre,
             columns_visibility={"date-depot": False},
         )
         SimulationProjetFactory(
@@ -411,7 +430,7 @@ class TestExportColumnsVisibility:
             simulation=simulation,
         )
 
-        csv_lines = self._export_csv(simulation)
+        csv_lines = self._export_csv(simulation, user)
         headers = csv_lines[0]
 
         # DETR-specific fields always present

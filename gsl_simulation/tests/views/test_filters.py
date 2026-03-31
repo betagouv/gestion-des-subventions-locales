@@ -209,9 +209,13 @@ def _get_view_with_filter(req, simulation, filter_params):
     return view
 
 
+def _get_filtered_projets(req, simulation, filter_params):
+    view = _get_view_with_filter(req, simulation, filter_params)
+    return view.get_filterset(view.filterset_class).qs
+
+
 def test_view_without_filter(req, simulation, create_simulation_projets):
-    view = _get_view_with_filter(req, simulation, {})
-    projets = view.get_projet_queryset()
+    projets = _get_filtered_projets(req, simulation, {})
     assert projets.count() == 7
     assert (
         projets.filter(
@@ -243,9 +247,7 @@ def test_view_with_one_status_filter(req, simulation, create_simulation_projets)
     filter_params = {
         "status": SimulationProjet.STATUS_PROCESSING,
     }
-    view = _get_view_with_filter(req, simulation, filter_params)
-
-    projets = view.get_projet_queryset()
+    projets = _get_filtered_projets(req, simulation, filter_params)
 
     assert projets.count() == 4
     assert (
@@ -265,8 +267,7 @@ def test_view_with_filters(req, simulation, create_simulation_projets):
         "montant_previsionnel_min": 120_000,
         "montant_previsionnel_max": 400_000,
     }
-    view = _get_view_with_filter(req, simulation, filter_params)
-    projets = view.get_projet_queryset()
+    projets = _get_filtered_projets(req, simulation, filter_params)
 
     assert projets.count() == 3
 
@@ -294,8 +295,7 @@ def test_view_with_order(req, simulation, create_simulation_projets):
     filter_params = {
         "order": "-montant_previsionnel",
     }
-    view = _get_view_with_filter(req, simulation, filter_params)
-    projets = view.get_projet_queryset()
+    projets = _get_filtered_projets(req, simulation, filter_params)
 
     assert projets.count() == 7
     assert (
@@ -332,25 +332,16 @@ def test_view_with_multiple_simulations(req, perimetre_departemental):
     _add_enveloppe_projets_to_simulation(simulation_1)
     _add_enveloppe_projets_to_simulation(simulation_2)
 
-    view = _get_view_with_filter(
-        req,
-        simulation_1,
-        {
-            "status": SimulationProjet.STATUS_PROCESSING,
-        },
+    projets = _get_filtered_projets(
+        req, simulation_1, {"status": SimulationProjet.STATUS_PROCESSING}
     )
-    projets = view.get_projet_queryset()
     assert projets.count() == 1
 
-    view = _get_view_with_filter(
+    projets = _get_filtered_projets(
         req,
         simulation_1,
-        {
-            "montant_previsionnel_min": 130_000,
-            "montant_previsionnel_max": 180_000,
-        },
+        {"montant_previsionnel_min": 130_000, "montant_previsionnel_max": 180_000},
     )
-    projets = view.get_projet_queryset()
     assert projets.count() == 1
 
     # When we modify one SimulationProjet, Filter works and is not influenced by the other Simulation
@@ -358,27 +349,18 @@ def test_view_with_multiple_simulations(req, perimetre_departemental):
     simulation_1.simulationprojet_set.all().update(
         status=SimulationProjet.STATUS_ACCEPTED
     )
-    view = _get_view_with_filter(
-        req,
-        simulation_1,
-        {
-            "status": SimulationProjet.STATUS_PROCESSING,
-        },
+    projets = _get_filtered_projets(
+        req, simulation_1, {"status": SimulationProjet.STATUS_PROCESSING}
     )
-    projets = view.get_projet_queryset()
     assert projets.count() == 0
 
     ## Montant
     simulation_1.simulationprojet_set.all().update(montant=100_000)
-    view = _get_view_with_filter(
+    projets = _get_filtered_projets(
         req,
         simulation_1,
-        {
-            "montant_previsionnel_min": 180_000,
-            "montant_previsionnel_max": 220_000,
-        },
+        {"montant_previsionnel_min": 180_000, "montant_previsionnel_max": 220_000},
     )
-    projets = view.get_projet_queryset()
     assert projets.count() == 0
 
 
@@ -387,9 +369,7 @@ def test_view_with_cout_total_filter(req, simulation, create_simulation_projets)
         "cout_min": 2_000_000,
         "cout_max": 3_000_000,
     }
-    view = _get_view_with_filter(req, simulation, filter_params)
-
-    projets = view.get_projet_queryset()
+    projets = _get_filtered_projets(req, simulation, filter_params)
 
     assert projets.count() == 5
 
@@ -414,9 +394,7 @@ def test_view_with_montant_demande_filter(req, simulation, create_simulation_pro
         "montant_demande_min": 300_000,
         "montant_demande_max": 400_000,
     }
-    view = _get_view_with_filter(req, simulation, filter_params)
-
-    projets = view.get_projet_queryset()
+    projets = _get_filtered_projets(req, simulation, filter_params)
 
     assert projets.count() == 5
 
@@ -439,9 +417,7 @@ def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
     filter_params = {
         "porteur": "epci",
     }
-    view = _get_view_with_filter(req, simulation, filter_params)
-
-    projets = view.get_projet_queryset()
+    projets = _get_filtered_projets(req, simulation, filter_params)
 
     assert projets.count() == 2
 
@@ -462,9 +438,7 @@ def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
     filter_params = {
         "porteur": "communes",
     }
-    view = _get_view_with_filter(req, simulation, filter_params)
-
-    projets = view.get_projet_queryset()
+    projets = _get_filtered_projets(req, simulation, filter_params)
 
     assert projets.count() == 5
 
@@ -560,9 +534,7 @@ def test_view_with_territory_filter():
     filter_params = {
         "territoire": [perimetre_arrondissement_A.id],
     }
-    view = _get_view_with_filter(req, simulation, filter_params)
-
-    projets = view.get_projet_queryset()
+    projets = _get_filtered_projets(req, simulation, filter_params)
 
     assert projets.count() == 2
     assert all(projet.perimetre == perimetre_arrondissement_A for projet in projets)
@@ -571,8 +543,7 @@ def test_view_with_territory_filter():
 def test_get_projet_queryset_calls_prefetch(req, simulation, create_simulation_projets):
     filter_params = {}
     with patch("gsl_simulation.views.simulation_views.Prefetch") as mock_prefetch:
-        view = _get_view_with_filter(req, simulation, filter_params)
-        queryset = view.get_projet_queryset()
+        queryset = _get_filtered_projets(req, simulation, filter_params)
 
         assert queryset.exists()
         assert mock_prefetch.call_count == 2

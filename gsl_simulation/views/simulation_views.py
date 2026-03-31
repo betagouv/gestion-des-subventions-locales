@@ -1,6 +1,5 @@
 from datetime import date
 
-from django.core.paginator import Paginator
 from django.db.models import Prefetch
 from django.http import HttpResponse
 from django.shortcuts import redirect
@@ -9,7 +8,7 @@ from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, UpdateView
-from django.views.generic.detail import DetailView
+from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.list import ListView
 from django_filters.views import FilterView
 
@@ -23,7 +22,7 @@ from gsl_core.models import Perimetre
 from gsl_core.view_mixins import NoFeedbackHtmxFormViewMixin
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.constants import DOTATION_DSIL, DOTATIONS
-from gsl_projet.models import DotationProjet
+from gsl_projet.models import DotationProjet, Projet
 from gsl_simulation.filters import SimulationProjetFilters
 from gsl_simulation.forms import (
     SimulationColumnsVisibilityForm,
@@ -68,10 +67,17 @@ class SimulationListView(ListView):
         return qs
 
 
-class SimulationDetailView(FilterView, DetailView):
-    model = Simulation
+class SimulationDetailView(SingleObjectMixin, FilterView):
+    queryset = Simulation.objects.select_related(
+        "enveloppe",
+        "enveloppe__perimetre",
+        "enveloppe__perimetre__region",
+        "enveloppe__perimetre__departement",
+        "enveloppe__perimetre__arrondissement",
+    )
     filterset_class = SimulationProjetFilters
     template_name = "gsl_simulation/simulation_detail.html"
+    paginate_by = 25
 
     def get(self, request, *args, **kwargs):
         if "reset_filters" in request.GET:
@@ -81,40 +87,25 @@ class SimulationDetailView(FilterView, DetailView):
                 return redirect("/")
 
         self.object = self.get_object()
-        self.simulation = Simulation.objects.select_related(
-            "enveloppe",
-            "enveloppe__perimetre",
-            "enveloppe__perimetre__region",
-            "enveloppe__perimetre__departement",
-            "enveloppe__perimetre__arrondissement",
-        ).get(slug=self.object.slug)
-        self.perimetre = self.simulation.enveloppe.perimetre
         return super().get(request, *args, **kwargs)
 
-    def get_object(self, queryset=None):
-        # surcharge pour éviter les requêtes multiples
-        if hasattr(self, "object") and self.object:
-            return self.object
-        return super().get_object(queryset)
+    def get_filterset_kwargs(self, filterset_class):
+        kwargs = super().get_filterset_kwargs(filterset_class)
+        kwargs["queryset"] = self._get_projet_base_queryset()
+        return kwargs
 
     def get_context_data(self, **kwargs):
-        simulation = self.simulation
-        qs = self.get_projet_queryset()
+        simulation = self.object
         context = super().get_context_data(**kwargs)
-        paginator = Paginator(qs, 25)
-        page = self.kwargs.get("page") or self.request.GET.get("page") or 1
-        current_page = paginator.page(page)
-        aggregates = qs.totals()
-        aggregates["total_amount_granted"] = simulation.get_total_amount_granted(qs)
+        aggregates = self.filterset.qs.totals()
+        aggregates["total_amount_granted"] = simulation.get_total_amount_granted(
+            self.filterset.qs
+        )
         context.update(
             {
                 "simulation": simulation,
-                "simulation_paginator": current_page,
-                "simulation_projets_list": current_page.object_list,
                 "title": f"{simulation.enveloppe.dotation} {simulation.enveloppe.annee} – {simulation.title}",
                 "status_summary": simulation.get_projet_status_summary(),
-                "available_states": SimulationProjet.STATUS_CHOICES,
-                "enveloppe": simulation.enveloppe,
                 "dotations": DOTATIONS,
                 "current_order": self.request.GET.get("order", ""),
                 "columns": SIMULATION_TABLE_COLUMNS,
@@ -133,47 +124,48 @@ class SimulationDetailView(FilterView, DetailView):
                 },
             }
         )
-        if self.perimetre:
+        if self.object.enveloppe.perimetre:
             context["territoire_choices"] = (
-                self.perimetre,
-                *self.perimetre.children(),
+                self.object.enveloppe.perimetre,
+                *self.object.enveloppe.perimetre.children(),
             )
 
         return context
 
-    def get_projet_queryset(self):
-        simulation = self.get_object()
-        qs = self.get_filterset(self.filterset_class).qs
-        qs = qs.filter(dotationprojet__simulationprojet__simulation=simulation)
-        qs = qs.select_related("demandeur", "address", "address__commune")
-        qs = qs.prefetch_related(
-            "dotationprojet_set",
-            "dotationprojet_set__programmation_projet",
-            "dotationprojet_set__simulationprojet_set",
-            "dossier_ds__demande_categorie_detr",
-            "dossier_ds__demande_categorie_dsil",
-            "dossier_ds__porteur_de_projet_arrondissement",
-            "dossier_ds__ds_demarche",
-            "dossier_ds__demande_cofinancements",
-            "dossier_ds__projet_zonage",
-            "dossier_ds__projet_contractualisation",
-            Prefetch(
+    def _get_projet_base_queryset(self):
+        return (
+            Projet.objects.filter(
+                dotationprojet__simulationprojet__simulation=self.object
+            )
+            .select_related("demandeur", "address", "address__commune")
+            .prefetch_related(
                 "dotationprojet_set",
-                queryset=DotationProjet.objects.filter(
-                    dotation=simulation.enveloppe.dotation
+                "dotationprojet_set__programmation_projet",
+                "dotationprojet_set__simulationprojet_set",
+                "dossier_ds__demande_categorie_detr",
+                "dossier_ds__demande_categorie_dsil",
+                "dossier_ds__porteur_de_projet_arrondissement",
+                "dossier_ds__ds_demarche",
+                "dossier_ds__demande_cofinancements",
+                "dossier_ds__projet_zonage",
+                "dossier_ds__projet_contractualisation",
+                Prefetch(
+                    "dotationprojet_set",
+                    queryset=DotationProjet.objects.filter(
+                        dotation=self.object.enveloppe.dotation
+                    ),
+                    to_attr="dotation_projet",
                 ),
-                to_attr="dotation_projet",
-            ),
-            Prefetch(
-                "dotation_projet__simulationprojet_set",
-                queryset=SimulationProjet.objects.filter(simulation=simulation),
-                to_attr="simu",
-            ),
-            "dotation_projet__programmation_projet",
-        ).defer("dossier_ds__ds_demarche__raw_ds_data")
-
-        qs.distinct()
-        return qs
+                Prefetch(
+                    "dotation_projet__simulationprojet_set",
+                    queryset=SimulationProjet.objects.filter(simulation=self.object),
+                    to_attr="simu",
+                ),
+                "dotation_projet__programmation_projet",
+            )
+            .defer("dossier_ds__ds_demarche__raw_ds_data")
+            .distinct()
+        )
 
     def _get_perimetre(self) -> Perimetre:
         return self.perimetre
@@ -303,16 +295,18 @@ class FilteredProjetsExportView(SimulationDetailView):
         ODS: "application/vnd.oasis.opendocument.spreadsheet",
     }
 
+    def get_projet_queryset(self):
+        return self.get_filterset(self.filterset_class).qs
+
     def get(self, request, *args, **kwargs):
         export_type = self.kwargs.get("type")
         if export_type not in self.EXPORT_TYPES:
             return HttpResponse("Invalid export type", status=400)
 
         self.object = self.get_object()
-        self.simulation = Simulation.objects.get(slug=self.object.slug)
         queryset = self.get_projet_queryset()
         simu_projet_qs = SimulationProjet.objects.filter(
-            simulation=self.simulation, dotation_projet__projet__in=queryset
+            simulation=self.object, dotation_projet__projet__in=queryset
         ).select_related(
             "dotation_projet",
             "dotation_projet__projet",
@@ -325,13 +319,13 @@ class FilteredProjetsExportView(SimulationDetailView):
 
         resource = (
             DsilSimulationProjetResource(export_format=export_type)
-            if self.simulation.dotation == DOTATION_DSIL
+            if self.object.dotation == DOTATION_DSIL
             else DetrSimulationProjetResource(export_format=export_type)
         )
         dataset = resource.export(simu_projet_qs)
 
         headers_to_remove = resource.get_headers_to_remove(
-            self.simulation.columns_visibility
+            self.object.columns_visibility
         )
         for header in headers_to_remove:
             del dataset[header]
@@ -344,6 +338,6 @@ class FilteredProjetsExportView(SimulationDetailView):
 
         response = HttpResponse(export_data, content_type=content_type)
         response["Content-Disposition"] = (
-            f'attachment; filename="{date.today().strftime("%Y-%m-%d")} simulation {self.simulation.title}.{export_type}"'
+            f'attachment; filename="{date.today().strftime("%Y-%m-%d")} simulation {self.object.title}.{export_type}"'
         )
         return response

@@ -39,8 +39,8 @@
     <div id="simulation-table-wrapper">
         <div class="gsl-table-toolbar fr-my-1w">
             <span>
-                {{ simulation_paginator.paginator.count }}
-                projet{{ simulation_paginator.paginator.count|custom_pluralize }}
+                {{ page_obj.paginator.count }}
+                projet{{ page_obj.paginator.count|custom_pluralize }}
             </span>
             {% include "gsl_core/_column_visibility_dropdown.html" with table_wrapper_id="simulation-table-wrapper" simulation=simulation %}
         </div>
@@ -66,7 +66,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for projet in simulation_projets_list %}
+                                {% for projet in page_obj.object_list %}
                                     {% with projet.dotation_projet.0 as dotation_projet %}
                                         {% with dotation_projet.simu.0 as simu %}
                                             {% include "includes/_simulation_detail_row.html" with simu=simu projet=projet dotation_projet=dotation_projet %}
@@ -86,7 +86,7 @@
             </div>
             <div class="fr-table__footer">
                 <div class="fr-table__footer--middle">
-                    {% dsfr_pagination simulation_paginator %}
+                    {% dsfr_pagination page_obj %}
                 </div>
             </div>
         </div>

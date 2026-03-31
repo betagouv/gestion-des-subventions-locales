@@ -232,7 +232,6 @@ class ProjetFilters(FilterSet):
 
     @property
     def qs(self):
-        self.queryset = Projet.objects.all()
         qs = super().qs
         if not qs.query.order_by:
             qs = qs.order_by(F("dossier_ds__ds_date_depot").desc(nulls_last=True))
