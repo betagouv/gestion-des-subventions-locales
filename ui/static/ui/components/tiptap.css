@@ -144,7 +144,7 @@
 }
 
 .mention-dynamic-list {
-  overflow: hidden;
+  overflow: auto;
 }
 
 .mention-item {
