@@ -627,6 +627,8 @@ ul.no-list-style li {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin-left: calc(-50vw + 52%);
+    margin-right: calc(-50vw + 52%);
 }
 
 /* Column visibility dropdown */
