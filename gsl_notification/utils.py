@@ -1,6 +1,8 @@
 import base64
 import io
 import os
+from dataclasses import dataclass
+from enum import Enum
 from functools import lru_cache
 
 import boto3
@@ -53,43 +55,62 @@ def get_nested_attribute(obj, attribute_path):
     return current_obj
 
 
-MENTION_TO_ATTRIBUTES = {
-    "nom-beneficiaire": {
-        "label": "Nom du bénéficiaire",
-        "attribute": "dossier.ds_demandeur",
-        "type": "text",
-    },
-    "projet-intitule": {
-        "label": "Intitulé du projet",
-        "attribute": "dossier.projet_intitule",
-        "type": "text",
-    },
-    "nom-departement": {
-        "label": "Nom du département",
-        "attribute": "projet.perimetre.departement.name",
-        "type": "text",
-    },
-    "montant-subvention": {
-        "label": "Montant prévisionnel de la subvention",
-        "attribute": "montant",
-        "type": "euro",
-    },
-    "taux-subvention": {
-        "label": "Taux de subvention",
-        "attribute": "taux",
-        "type": "percent",
-    },
-    "date-commencement": {
-        "label": "Date de commencement",
-        "attribute": "dossier.date_debut",
-        "type": "date",
-    },
-    "date-achevement": {
-        "label": "Date d'achèvement",
-        "attribute": "dossier.date_achevement",
-        "type": "date",
-    },
-}
+class MentionType(Enum):
+    STRING = "string"
+    EURO = "euro"
+    PERCENT = "percent"
+    DATE = "date"
+
+
+@dataclass(frozen=True)
+class Mention:
+    key: str
+    label: str
+    attribute: str
+    type: MentionType = MentionType.STRING
+
+    def get_value(self, programmation_projet: ProgrammationProjet) -> str:
+        value = get_nested_attribute(programmation_projet, self.attribute)
+        match self.type:
+            case MentionType.EURO:
+                return euro(value, 2)
+            case MentionType.PERCENT:
+                return percent(value, 4)
+            case MentionType.DATE:
+                return value.strftime("%d/%m/%Y") if value else "N/A"
+            case _:
+                return str(value)
+
+
+MENTIONS = [
+    Mention("nom-beneficiaire", "Nom du bénéficiaire", "dossier.ds_demandeur"),
+    Mention("projet-intitule", "Intitulé du projet", "dossier.projet_intitule"),
+    Mention(
+        "nom-departement", "Nom du département", "projet.perimetre.departement.name"
+    ),
+    Mention(
+        "montant-subvention",
+        "Montant prévisionnel de la subvention",
+        "montant",
+        MentionType.EURO,
+    ),
+    Mention("taux-subvention", "Taux de subvention", "taux", MentionType.PERCENT),
+    Mention(
+        "date-commencement",
+        "Date de commencement",
+        "dossier.date_debut",
+        MentionType.DATE,
+    ),
+    Mention(
+        "date-achevement",
+        "Date d'achèvement",
+        "dossier.date_achevement",
+        MentionType.DATE,
+    ),
+]
+
+
+MENTION_KEY_TO_MENTION: dict[str, Mention] = {m.key: m for m in MENTIONS}
 
 
 def replace_mentions_in_html(
@@ -99,23 +120,11 @@ def replace_mentions_in_html(
 
     for span in soup.find_all("span", class_="mention"):
         key = span.get("data-id")
-        if key not in MENTION_TO_ATTRIBUTES:
+        if key not in MENTION_KEY_TO_MENTION:
             raise ValueError(f"Mention {key!r} inconnue.")
+        span.replace_with(MENTION_KEY_TO_MENTION[key].get_value(programmation_projet))
 
-        mention = MENTION_TO_ATTRIBUTES[key]
-        value = get_nested_attribute(programmation_projet, mention["attribute"])
-
-        if mention["type"] == "euro":
-            value = euro(value, 2)
-        elif mention["type"] == "percent":
-            value = percent(value, 4)
-        elif mention["type"] == "date":
-            value = value.strftime("%d/%m/%Y") if value else "N/A"
-
-        span.replace_with(f"{value}")
-
-    new_text = str(soup)
-    return new_text
+    return str(soup)
 
 
 def update_file_name_to_put_it_in_a_programmation_projet_folder(
