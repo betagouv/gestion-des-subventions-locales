@@ -54,16 +54,41 @@ def get_nested_attribute(obj, attribute_path):
 
 
 MENTION_TO_ATTRIBUTES = {
-    1: {"label": "Nom du bénéficiaire", "attribute": "dossier.ds_demandeur"},
-    2: {"label": "Intitulé du projet", "attribute": "dossier.projet_intitule"},
-    3: {
+    "nom-beneficiaire": {
+        "label": "Nom du bénéficiaire",
+        "attribute": "dossier.ds_demandeur",
+        "type": "text",
+    },
+    "projet-intitule": {
+        "label": "Intitulé du projet",
+        "attribute": "dossier.projet_intitule",
+        "type": "text",
+    },
+    "nom-departement": {
         "label": "Nom du département",
         "attribute": "projet.perimetre.departement.name",
+        "type": "text",
     },
-    4: {"label": "Montant prévisionnel de la subvention", "attribute": "montant"},
-    5: {"label": "Taux de subvention", "attribute": "taux"},
-    6: {"label": "Date de commencement", "attribute": "dossier.date_debut"},
-    7: {"label": "Date d'achèvement", "attribute": "dossier.date_achevement"},
+    "montant-subvention": {
+        "label": "Montant prévisionnel de la subvention",
+        "attribute": "montant",
+        "type": "euro",
+    },
+    "taux-subvention": {
+        "label": "Taux de subvention",
+        "attribute": "taux",
+        "type": "percent",
+    },
+    "date-commencement": {
+        "label": "Date de commencement",
+        "attribute": "dossier.date_debut",
+        "type": "date",
+    },
+    "date-achevement": {
+        "label": "Date d'achèvement",
+        "attribute": "dossier.date_achevement",
+        "type": "date",
+    },
 }
 
 
@@ -73,18 +98,18 @@ def replace_mentions_in_html(
     soup = BeautifulSoup(htmlContent, "html.parser")
 
     for span in soup.find_all("span", class_="mention"):
-        id = int(span.get("data-id"))
-        if id not in MENTION_TO_ATTRIBUTES:
-            raise ValueError(f"Mention {id} inconnue.")
-        value = get_nested_attribute(
-            programmation_projet,
-            MENTION_TO_ATTRIBUTES.get(id)["attribute"],
-        )
-        if id == 4:
+        key = span.get("data-id")
+        if key not in MENTION_TO_ATTRIBUTES:
+            raise ValueError(f"Mention {key!r} inconnue.")
+
+        mention = MENTION_TO_ATTRIBUTES[key]
+        value = get_nested_attribute(programmation_projet, mention["attribute"])
+
+        if mention["type"] == "euro":
             value = euro(value, 2)
-        elif id == 5:
+        elif mention["type"] == "percent":
             value = percent(value, 4)
-        elif id in [6, 7]:
+        elif mention["type"] == "date":
             value = value.strftime("%d/%m/%Y") if value else "N/A"
 
         span.replace_with(f"{value}")
