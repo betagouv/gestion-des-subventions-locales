@@ -138,6 +138,11 @@ MENTIONS = [
         "dossier.porteur_de_projet_fonction",
     ),
     Mention(
+        "porteur-civilite",
+        "Civilité du porteur de projet",
+        "dossier.porteur_de_projet_civilite",
+    ),
+    Mention(
         "porteur-prenom",
         "Prénom du porteur de projet",
         "dossier.porteur_de_projet_prenom",
