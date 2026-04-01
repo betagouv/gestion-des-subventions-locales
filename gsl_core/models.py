@@ -73,6 +73,8 @@ class Adresse(BaseModel):
     street_address = models.CharField("Adresse", blank=True)
 
     def __str__(self):
+        if self.commune:
+            return f"{self.street_address} {self.postal_code} {self.commune.name}"
         return self.label
 
     def update_from_raw_ds_data(self, raw_ds_data):

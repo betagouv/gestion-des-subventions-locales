@@ -4,6 +4,7 @@ from django.db import IntegrityError
 
 from gsl_core.models import Arrondissement, Departement, Perimetre, Region
 from gsl_core.tests.factories import (
+    AdresseFactory,
     ArrondissementFactory,
     DepartementFactory,
     RegionFactory,
@@ -406,3 +407,20 @@ def test_ancestors_for_arrondissement(region_idf, dept_75, arr_paris_centre):
     assert ancestors.count() == 2
     assert perimetre_region in ancestors
     assert perimetre_departement in ancestors
+
+
+def test_adresse_str_with_commune():
+    adresse = AdresseFactory(
+        street_address="12 rue de la Paix",
+        postal_code="75001",
+        commune__name="Paris",
+    )
+    assert str(adresse) == "12 rue de la Paix 75001 Paris"
+
+
+def test_adresse_str_without_commune():
+    adresse = AdresseFactory.build(
+        label="12 rue de la Paix 75001 Paris",
+        commune=None,
+    )
+    assert str(adresse) == "12 rue de la Paix 75001 Paris"

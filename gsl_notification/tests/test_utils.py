@@ -34,7 +34,9 @@ def programmation_projet():
     perimetre = PerimetreDepartementalFactory(
         departement__name="Haute-Garonne",
     )
-    adresse = AdresseFactory(label="1 rue de la Paix, 75001 Paris")
+    adresse = AdresseFactory(
+        street_address="1 rue de la Paix", postal_code="75001", commune__name="Paris"
+    )
     return ProgrammationProjetFactory(
         dotation_projet__projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
             raison_sociale="Commune de Bagnères-de-Luchon",
@@ -52,7 +54,7 @@ def programmation_projet():
         dotation_projet__projet__dossier_ds__porteur_de_projet_fonction="Maire",
         dotation_projet__projet__dossier_ds__porteur_de_projet_prenom="Jean",
         dotation_projet__projet__dossier_ds__porteur_de_projet_nom="Dupont",
-        dotation_projet__projet__dossier_ds__annotations_champ_libre_1="<p>Commentaire <strong>important</strong></p>",
+        dotation_projet__projet__comment_1="<p>Commentaire <strong>important</strong></p>",
         montant=2_000.50,
         dotation_projet__assiette=20_000,
     )
@@ -65,7 +67,7 @@ def programmation_projet():
         ("projet-intitule", "Intitulé du projet", "Nouvelle plaque d'égoûts"),
         ("nom-departement", "Nom du département", "Haute-Garonne"),
         ("montant-subvention", "Montant prévisionnel de la subvention", "2 000,50 €"),
-        ("taux-subvention", "Taux de subvention", "10,0025 %"),
+        ("taux-subvention", "Taux de subvention", "10,00 %"),
         ("date-commencement", "Date de commencement", "12/07/1998"),
         ("date-achevement", "Date d'achèvement", "31/07/2024"),
         ("date-depot", "Date de dépôt du dossier", "15/03/2023"),
@@ -75,7 +77,7 @@ def programmation_projet():
         ("porteur-fonction", "Fonction du porteur de projet", "Maire"),
         ("porteur-prenom", "Prénom du porteur de projet", "Jean"),
         ("porteur-nom", "Nom du porteur de projet", "Dupont"),
-        ("adresse-demandeur", "Adresse du demandeur", "1 rue de la Paix, 75001 Paris"),
+        ("adresse-demandeur", "Adresse du demandeur", "1 rue de la Paix 75001 Paris"),
         ("commentaire-1", "Commentaire 1", "Commentaire important"),
     ),
 )

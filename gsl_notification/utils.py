@@ -143,11 +143,11 @@ MENTIONS = [
         "dossier.porteur_de_projet_prenom",
     ),
     Mention("porteur-nom", "Nom du porteur de projet", "dossier.porteur_de_projet_nom"),
-    # Mention(
-    #     "adresse-demandeur",
-    #     "Adresse du demandeur",
-    #     "dossier.ds_demandeur.address.label",
-    # ),
+    Mention(
+        "adresse-demandeur",
+        "Adresse du demandeur",
+        "dossier.ds_demandeur.address",
+    ),
     Mention(
         "date-arrete",
         "Date d'édition de l'arrêté",
