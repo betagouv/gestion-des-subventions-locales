@@ -47,20 +47,20 @@ def programmation_projet():
 
 
 @pytest.mark.parametrize(
-    "id, label, expected_value",
+    "key, label, expected_value",
     (
-        (1, "Nom du bénéficiaire", "Commune de Bagnères-de-Luchon"),
-        (2, "Intitulé du projet", "Nouvelle plaque d'égoûts"),
-        (3, "Nom du département", "Haute-Garonne"),
-        (4, "Montant prévisionnel de la subvention", "2 000,50 €"),
-        (5, "Taux de subvention", "10,0025 %"),
-        (6, "Date de commencement", "12/07/1998"),
-        (7, "Date d'achèvement", "31/07/2024"),
+        ("nom-beneficiaire", "Nom du bénéficiaire", "Commune de Bagnères-de-Luchon"),
+        ("projet-intitule", "Intitulé du projet", "Nouvelle plaque d'égoûts"),
+        ("nom-departement", "Nom du département", "Haute-Garonne"),
+        ("montant-subvention", "Montant prévisionnel de la subvention", "2 000,50 €"),
+        ("taux-subvention", "Taux de subvention", "10,0025 %"),
+        ("date-commencement", "Date de commencement", "12/07/1998"),
+        ("date-achevement", "Date d'achèvement", "31/07/2024"),
     ),
 )
 @pytest.mark.django_db
-def test_replace_mentions_in_html(id, label, expected_value, programmation_projet):
-    html_content = f'<p>Voici le mot: <span class="mention" data-type="mention" data-id="{id}" data-label="{label}" data-mention-suggestion-char="@">@{label}</span> vous octroie une subvention</p><p>Bravo et merci !</p>'
+def test_replace_mentions_in_html(key, label, expected_value, programmation_projet):
+    html_content = f'<p>Voici le mot: <span class="mention" data-type="mention" data-id="{key}" data-label="{label}" data-mention-suggestion-char="@">@{label}</span> vous octroie une subvention</p><p>Bravo et merci !</p>'
     expected_text = f"<p>Voici le mot: {expected_value} vous octroie une subvention</p><p>Bravo et merci !</p>"
 
     assert expected_text == replace_mentions_in_html(html_content, programmation_projet)
