@@ -200,6 +200,7 @@ COLUMN_NUMERO_DN = Column(
         title="Voir le dossier sur Démarche Numérique",
     ),
     sticky=StickyPosition.LEFT_3,
+    sort_param="numero_dn",
 )
 
 COLUMN_DEMANDEUR = Column(
@@ -276,6 +277,7 @@ COLUMN_DATE_DEBUT_PROJET = Column(
     getter=lambda ctx: _format_date_or_dash(ctx["projet"].dossier_ds.date_debut),
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
+    sort_param="date_debut",
 )
 
 COLUMN_DATE_FIN_PROJET = Column(
@@ -284,6 +286,7 @@ COLUMN_DATE_FIN_PROJET = Column(
     getter=lambda ctx: _format_date_or_dash(ctx["projet"].dossier_ds.date_achevement),
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
+    sort_param="date_fin",
 )
 
 COLUMN_ARRONDISSEMENT = Column(
@@ -296,6 +299,7 @@ COLUMN_ARRONDISSEMENT = Column(
     ),
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
+    sort_param="arrondissement",
 )
 
 
@@ -319,6 +323,7 @@ COLUMN_EPCI = Column(
     getter=_get_epci_cell,
     displayed_by_default=False,
     width=ColumnWidth.MIN_140,
+    sort_param="epci",
 )
 
 COLUMN_NOM_DEMANDEUR = Column(
@@ -327,6 +332,7 @@ COLUMN_NOM_DEMANDEUR = Column(
     getter=lambda ctx: ctx["projet"].dossier_ds.porteur_fullname,
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
+    sort_param="nom_demandeur",
 )
 
 COLUMN_BUDGET_VERT_DEMANDEUR = Column(

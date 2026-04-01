@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.db.models import Prefetch, Sum
+from django.db.models import Case, DecimalField, F, Max, Prefetch, Sum, When
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -12,7 +12,6 @@ from gsl_demarches_simplifiees.models import Demarche
 from gsl_projet.forms import ProjetCommentForm
 from gsl_projet.utils.django_filters_custom_widget import CustomSelectWidget
 from gsl_projet.utils.projet_filters import (
-    ORDERING_LABELS,
     ORDERING_MAP,
     ProjetFilters,
     ProjetOrderingFilter,
@@ -112,16 +111,12 @@ class ProjetListViewFilters(ProjetFilters):
     PROJET_LIST_ORDERING_MAP = {
         **ORDERING_MAP,
         "montant_retenu_total": "montant_retenu",
-    }
-
-    PROJET_LIST_ORDERING_LABELS = {
-        **ORDERING_LABELS,
-        "montant_retenu_total": "Montant retenu",
+        "assiette_max": "assiette",
+        "taux_max": "taux",
     }
 
     order = ProjetOrderingFilter(
         fields=PROJET_LIST_ORDERING_MAP,
-        field_labels=PROJET_LIST_ORDERING_LABELS,
         empty_label="Tri",
         widget=CustomSelectWidget,
     )
@@ -130,7 +125,21 @@ class ProjetListViewFilters(ProjetFilters):
     def qs(self):
         qs = super().qs
         qs = qs.annotate(
-            montant_retenu_total=Sum("dotationprojet__programmation_projet__montant")
+            montant_retenu_total=Sum("dotationprojet__programmation_projet__montant"),
+            assiette_max=Max("dotationprojet__assiette"),
+            taux_max=Max(
+                Case(
+                    When(
+                        dotationprojet__assiette__gt=0,
+                        dotationprojet__programmation_projet__montant__isnull=False,
+                        then=F("dotationprojet__programmation_projet__montant")
+                        * 100.0
+                        / F("dotationprojet__assiette"),
+                    ),
+                    default=None,
+                    output_field=DecimalField(),
+                )
+            ),
         )
         qs = qs.for_user(self.request.user)
         qs = qs.for_current_year()

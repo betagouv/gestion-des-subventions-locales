@@ -54,6 +54,7 @@ COLUMN_MONTANT_SOLLICITE = Column(
     getter=lambda ctx: euro_value(ctx["projet"].dossier_ds.demande_montant),
     text_align=TextAlign.RIGHT,
     aggregate_key="total_amount_asked",
+    sort_param="montant_sollicite",
 )
 
 COLUMN_ASSIETTE = Column(
@@ -62,6 +63,7 @@ COLUMN_ASSIETTE = Column(
     getter=lambda ctx: euro_value(ctx["dotation_projet"].assiette),
     per_dotation=True,
     text_align=TextAlign.RIGHT,
+    sort_param="assiette",
 )
 
 COLUMN_MONTANT_RETENU = Column(
@@ -82,6 +84,7 @@ COLUMN_TAUX = Column(
     text_align=TextAlign.RIGHT,
     header_help_text="Le taux de subvention est calculé en fonction de l'assiette (ou du coût total du projet si l'assiette n'est pas renseignée) et du montant retenu.",
     width=ColumnWidth.MIN_105,
+    sort_param="taux",
 )
 
 COLUMN_CATEGORIE = Column(

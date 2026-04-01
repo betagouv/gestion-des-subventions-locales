@@ -1,3 +1,5 @@
+from django.db import models
+from django.db.models import Case, DecimalField, F, Subquery, When
 from django_filters import FilterSet, MultipleChoiceFilter, RangeFilter
 
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
@@ -8,7 +10,6 @@ from gsl_projet.utils.django_filters_custom_widget import (
     DsfrRangeWidget,
 )
 from gsl_projet.utils.projet_filters import (
-    ORDERING_LABELS,
     ORDERING_MAP,
     ProjetOrderingFilter,
     filter_territoire,
@@ -30,12 +31,9 @@ class SimulationProjetFilters(FilterSet):
 
     SIMULATION_ORDERING_MAP = {
         **ORDERING_MAP,
-        "dotationprojet__simulationprojet__montant": "montant_previsionnel",
-    }
-
-    SIMULATION_ORDERING_LABELS = {
-        **ORDERING_LABELS,
-        "dotationprojet__simulationprojet__montant": "Montant prévisionnel",
+        "simu_montant": "montant_previsionnel",
+        "simu_assiette": "assiette",
+        "simu_taux": "taux",
     }
 
     porteur = MultipleChoiceFilter(
@@ -95,7 +93,6 @@ class SimulationProjetFilters(FilterSet):
 
     order = ProjetOrderingFilter(
         fields=SIMULATION_ORDERING_MAP,
-        field_labels=SIMULATION_ORDERING_LABELS,
         empty_label="Tri",
         widget=CustomSelectWidget,
     )
@@ -136,4 +133,30 @@ class SimulationProjetFilters(FilterSet):
 
     @property
     def qs(self):
-        return super().qs
+        from gsl_projet.models import DotationProjet
+
+        slug_filter = {"simulationprojet__simulation__slug": self.slug}
+        simu_dp_qs = DotationProjet.objects.filter(
+            projet=models.OuterRef("pk"), **slug_filter
+        )
+
+        qs = super().qs.annotate(
+            simu_montant=Subquery(simu_dp_qs.values("simulationprojet__montant")[:1]),
+            simu_assiette=Subquery(simu_dp_qs.values("assiette")[:1]),
+        )
+        return qs.annotate(
+            simu_taux=Case(
+                When(
+                    simu_assiette__gt=0,
+                    then=F("simu_montant") * 100.0 / F("simu_assiette"),
+                ),
+                When(
+                    dossier_ds__finance_cout_total__gt=0,
+                    then=F("simu_montant")
+                    * 100.0
+                    / F("dossier_ds__finance_cout_total"),
+                ),
+                default=None,
+                output_field=DecimalField(),
+            ),
+        )
