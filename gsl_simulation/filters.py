@@ -2,7 +2,8 @@ from django.db import models
 from django.db.models import Case, DecimalField, F, Subquery, When
 from django_filters import FilterSet, MultipleChoiceFilter, RangeFilter
 
-from gsl_demarches_simplifiees.models import NaturePorteurProjet
+from gsl_demarches_simplifiees.models import CategorieDsil, NaturePorteurProjet
+from gsl_projet.constants import DOTATION_DSIL
 from gsl_projet.models import Projet
 from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
@@ -19,7 +20,7 @@ from gsl_simulation.models import SimulationProjet
 
 
 class SimulationProjetFilters(FilterSet):
-    def __init__(self, *args, slug=None, **kwargs):
+    def __init__(self, *args, slug=None, dotation=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.slug = slug or self.request.resolver_match.kwargs.get("slug")
 
@@ -29,12 +30,29 @@ class SimulationProjetFilters(FilterSet):
                 (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
             )
 
+        if dotation == DOTATION_DSIL:
+            self.filters["categorie_dsil"].extra["choices"] = tuple(
+                (str(c.id), c.label)
+                for c in CategorieDsil.objects.active()
+                .filter(dossier__projet__in=self.queryset)
+                .distinct()
+                .order_by("rank", "label")
+            )
+        else:
+            del self.filters["categorie_dsil"]
+
     SIMULATION_ORDERING_MAP = {
         **ORDERING_MAP,
         "simu_montant": "montant_previsionnel",
         "simu_assiette": "assiette",
         "simu_taux": "taux",
     }
+
+    categorie_dsil = MultipleChoiceFilter(
+        label="Catégorie DSIL",
+        field_name="dossier_ds__demande_categorie_dsil",
+        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
+    )
 
     porteur = MultipleChoiceFilter(
         label="Demandeur",
@@ -124,6 +142,7 @@ class SimulationProjetFilters(FilterSet):
         model = Projet
         fields = (
             "territoire",
+            "categorie_dsil",
             "porteur",
             "status",
             "cout",

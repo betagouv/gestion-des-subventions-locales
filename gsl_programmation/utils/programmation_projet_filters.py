@@ -7,11 +7,16 @@ from django_filters import (
 )
 
 from gsl_core.models import Perimetre
-from gsl_demarches_simplifiees.models import NaturePorteurProjet
+from gsl_demarches_simplifiees.models import (
+    CategorieDsil,
+    Dossier,
+    NaturePorteurProjet,
+)
 from gsl_programmation.models import (
     Enveloppe,
     ProgrammationProjet,
 )
+from gsl_projet.constants import DOTATION_DSIL
 from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     CustomSelectWidget,
@@ -36,6 +41,12 @@ PROGRAMMATION_ORDERING_MAP = {
 
 
 class ProgrammationProjetFilters(FilterSet):
+    categorie_dsil = MultipleChoiceFilter(
+        label="Catégorie DSIL",
+        field_name="dotation_projet__projet__dossier_ds__demande_categorie_dsil",
+        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
+    )
+
     porteur = MultipleChoiceFilter(
         label="Demandeur",
         field_name="dotation_projet__projet__dossier_ds__porteur_de_projet_nature__type",
@@ -111,6 +122,7 @@ class ProgrammationProjetFilters(FilterSet):
         model = ProgrammationProjet
         fields = (
             "territoire",
+            "categorie_dsil",
             "porteur",
             "notified",
             "cout",
@@ -126,6 +138,19 @@ class ProgrammationProjetFilters(FilterSet):
             self.filters["territoire"].extra["choices"] = tuple(
                 (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
             )
+
+        dotation = self.request.resolver_match.kwargs.get("dotation")
+        if dotation == DOTATION_DSIL:
+            visible_dossiers = Dossier.objects.for_user(self.request.user)
+            self.filters["categorie_dsil"].extra["choices"] = tuple(
+                (str(c.id), c.label)
+                for c in CategorieDsil.objects.active()
+                .filter(dossier__in=visible_dossiers)
+                .distinct()
+                .order_by("rank", "label")
+            )
+        else:
+            del self.filters["categorie_dsil"]
 
     @property
     def qs(self):

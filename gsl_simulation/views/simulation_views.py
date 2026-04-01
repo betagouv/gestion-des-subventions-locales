@@ -92,6 +92,7 @@ class SimulationDetailView(SingleObjectMixin, FilterView):
     def get_filterset_kwargs(self, filterset_class):
         kwargs = super().get_filterset_kwargs(filterset_class)
         kwargs["queryset"] = self._get_projet_base_queryset()
+        kwargs["dotation"] = self.object.enveloppe.dotation
         return kwargs
 
     def get_context_data(self, **kwargs):
