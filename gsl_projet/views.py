@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.db.models import Case, DecimalField, F, Prefetch, Sum, When
+from django.db.models import Case, DecimalField, F, Max, Prefetch, Sum, When
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -111,8 +111,8 @@ class ProjetListViewFilters(ProjetFilters):
     PROJET_LIST_ORDERING_MAP = {
         **ORDERING_MAP,
         "montant_retenu_total": "montant_retenu",
-        "assiette_total": "assiette",
-        "taux_computed": "taux",
+        "assiette_max": "assiette",
+        "taux_max": "taux",
     }
 
     order = ProjetOrderingFilter(
@@ -126,16 +126,19 @@ class ProjetListViewFilters(ProjetFilters):
         qs = super().qs
         qs = qs.annotate(
             montant_retenu_total=Sum("dotationprojet__programmation_projet__montant"),
-            assiette_total=Sum("dotationprojet__assiette"),
-        )
-        qs = qs.annotate(
-            taux_computed=Case(
-                When(
-                    assiette_total__gt=0,
-                    then=F("montant_retenu_total") * 100.0 / F("assiette_total"),
-                ),
-                default=None,
-                output_field=DecimalField(),
+            assiette_max=Max("dotationprojet__assiette"),
+            taux_max=Max(
+                Case(
+                    When(
+                        dotationprojet__assiette__gt=0,
+                        dotationprojet__programmation_projet__montant__isnull=False,
+                        then=F("dotationprojet__programmation_projet__montant")
+                        * 100.0
+                        / F("dotationprojet__assiette"),
+                    ),
+                    default=None,
+                    output_field=DecimalField(),
+                )
             ),
         )
         qs = qs.for_user(self.request.user)
