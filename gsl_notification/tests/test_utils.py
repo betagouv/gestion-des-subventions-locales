@@ -8,6 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from pikepdf import Pdf
 
 from gsl_core.tests.factories import (
+    AdresseFactory,
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
@@ -33,14 +34,25 @@ def programmation_projet():
     perimetre = PerimetreDepartementalFactory(
         departement__name="Haute-Garonne",
     )
+    adresse = AdresseFactory(label="1 rue de la Paix, 75001 Paris")
     return ProgrammationProjetFactory(
         dotation_projet__projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
-            raison_sociale="Commune de Bagnères-de-Luchon"
+            raison_sociale="Commune de Bagnères-de-Luchon",
+            address=adresse,
         ),
         dotation_projet__projet__dossier_ds__projet_intitule="Nouvelle plaque d'égoûts",
         dotation_projet__projet__dossier_ds__perimetre=perimetre,
         dotation_projet__projet__dossier_ds__date_debut=datetime.date(1998, 7, 12),
         dotation_projet__projet__dossier_ds__date_achevement=datetime.date(2024, 7, 31),
+        dotation_projet__projet__dossier_ds__ds_date_depot=datetime.datetime(
+            2023, 3, 15, tzinfo=datetime.timezone.utc
+        ),
+        dotation_projet__projet__dossier_ds__ds_number=1234567,
+        dotation_projet__projet__dossier_ds__finance_cout_total=50_000,
+        dotation_projet__projet__dossier_ds__porteur_de_projet_fonction="Maire",
+        dotation_projet__projet__dossier_ds__porteur_de_projet_prenom="Jean",
+        dotation_projet__projet__dossier_ds__porteur_de_projet_nom="Dupont",
+        dotation_projet__projet__dossier_ds__annotations_champ_libre_1="<p>Commentaire <strong>important</strong></p>",
         montant=2_000.50,
         dotation_projet__assiette=20_000,
     )
@@ -56,6 +68,15 @@ def programmation_projet():
         ("taux-subvention", "Taux de subvention", "10,0025 %"),
         ("date-commencement", "Date de commencement", "12/07/1998"),
         ("date-achevement", "Date d'achèvement", "31/07/2024"),
+        ("date-depot", "Date de dépôt du dossier", "15/03/2023"),
+        ("numero-dossier", "Numéro DN du dossier", "1234567"),
+        ("cout-total", "Coût total de l'opération", "50 000,00 €"),
+        ("assiette", "Assiette", "20 000,00 €"),
+        ("porteur-fonction", "Fonction du porteur de projet", "Maire"),
+        ("porteur-prenom", "Prénom du porteur de projet", "Jean"),
+        ("porteur-nom", "Nom du porteur de projet", "Dupont"),
+        ("adresse-demandeur", "Adresse du demandeur", "1 rue de la Paix, 75001 Paris"),
+        ("commentaire-1", "Commentaire 1", "Commentaire important"),
     ),
 )
 @pytest.mark.django_db
