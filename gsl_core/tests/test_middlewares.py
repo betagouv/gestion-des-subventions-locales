@@ -70,8 +70,6 @@ def test_staff_ds_allowed(req):
 @pytest.mark.parametrize(
     "path",
     [
-        reverse("login"),
-        reverse("logout"),
         reverse("no-perimeter"),
     ],
 )

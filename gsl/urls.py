@@ -28,7 +28,6 @@ urlpatterns = [
         "ds/",
         include(("gsl_demarches_simplifiees.urls", "gsl_demarches_simplifiees"), "ds"),
     ),
-    path("oidc/", include("mozilla_django_oidc.urls")),
     path("projets/", include(("gsl_projet.urls", "gsl_projet"), "projet")),
     path(
         "simulation/",

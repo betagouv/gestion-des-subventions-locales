@@ -2,6 +2,7 @@
 from .settings import *  # noqa
 
 DEBUG = False
+LOGIN_URL = "/comptes/login/"
 
 GENERATE_DOCUMENT_SIZE = False
 

@@ -196,7 +196,7 @@ class TestDossierSansPieceUpdateView:
         response = client.get(url)
 
         assert response.status_code == 302
-        assert "login" in response.url
+        assert "/comptes/login" in response.url
 
     def test_view_accessible_for_staff_user_without_perimetre(
         self, dossier_sans_pieces
