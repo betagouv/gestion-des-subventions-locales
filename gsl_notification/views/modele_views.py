@@ -35,7 +35,7 @@ from gsl_notification.models import (
     ModeleLettreNotification,
 )
 from gsl_notification.utils import (
-    MENTION_TO_ATTRIBUTES,
+    MENTIONS,
     duplicate_field_file,
     get_modele_class,
     get_modele_perimetres,
@@ -309,8 +309,7 @@ class CreateModelDocumentWizard(SessionWizardView):
                 "step_title": step_titles.get(self.steps.current, ""),
                 "next_step_title": step_titles.get(self.steps.next, ""),
                 "mention_items": [
-                    {"id": id, "label": MENTION_TO_ATTRIBUTES[id]["label"]}
-                    for id in MENTION_TO_ATTRIBUTES.keys()
+                    {"id": mention.key, "label": mention.label} for mention in MENTIONS
                 ],
             }
         )
