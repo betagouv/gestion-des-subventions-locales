@@ -31,6 +31,7 @@ IMPORTED_DS_FIELDS = (
     "TextareaChampDescriptor",
     "TextChampDescriptor",
     "YesNoChampDescriptor",
+    "CiviliteChampDescriptor",
 )
 
 
