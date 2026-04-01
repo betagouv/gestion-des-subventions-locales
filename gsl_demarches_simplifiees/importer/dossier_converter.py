@@ -121,7 +121,7 @@ class DossierConverter:
                 },
             )
 
-    def extract_ds_data(self, ds_field_data):
+    def extract_ds_data(self, ds_field_data):  # noqa C901
         ds_typename = ds_field_data["__typename"]
 
         if ds_typename == "CheckboxChamp":
@@ -154,6 +154,9 @@ class DossierConverter:
 
         if ds_typename == "DateChamp":
             return self._extract_date_from_value(ds_field_data)
+
+        if ds_typename == "CiviliteChamp":
+            return ds_field_data["stringValue"]
 
         raise NotImplementedError(
             f"DN Fields of type '{ds_typename}' are not supported"
