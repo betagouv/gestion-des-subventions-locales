@@ -106,6 +106,7 @@ class SimulationDetailView(SingleObjectMixin, FilterView):
                 "simulation": simulation,
                 "title": f"{simulation.enveloppe.dotation} {simulation.enveloppe.annee} – {simulation.title}",
                 "status_summary": simulation.get_projet_status_summary(),
+                "enveloppe": simulation.enveloppe,
                 "dotations": DOTATIONS,
                 "current_order": self.request.GET.get("order", ""),
                 "columns": SIMULATION_TABLE_COLUMNS,
