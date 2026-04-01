@@ -14,6 +14,7 @@ from django.core.files import File
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models.fields.files import FieldFile
 from django.template.loader import render_to_string
+from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django_weasyprint.utils import django_url_fetcher
 from pikepdf import Pdf
@@ -63,6 +64,7 @@ class MentionType(Enum):
     EURO = "euro"
     PERCENT = "percent"
     DATE = "date"
+    DATE_ARRETE = "date_arrete"
     TEXT_ONLY = "text_only"
 
 
@@ -74,12 +76,15 @@ class Mention:
     type: MentionType = MentionType.STRING
 
     def get_value(self, programmation_projet: ProgrammationProjet) -> str:
+        if self.type == MentionType.DATE_ARRETE:
+            return timezone.now().strftime("%d/%m/%Y")
+
         value = get_nested_attribute(programmation_projet, self.attribute)
         match self.type:
             case MentionType.EURO:
                 return euro(value, 2) if value is not None else "N/A"
             case MentionType.PERCENT:
-                return percent(value, 4) if value is not None else "N/A"
+                return percent(value, 2) if value is not None else "N/A"
             case MentionType.DATE:
                 return value.strftime("%d/%m/%Y") if value else "N/A"
             case MentionType.TEXT_ONLY:
@@ -89,14 +94,28 @@ class Mention:
 
 
 MENTIONS = [
+    Mention("numero-dossier", "Numéro DN du dossier", "dossier.ds_number"),
+    Mention(
+        "date-depot",
+        "Date de dépôt du dossier",
+        "dossier.ds_date_depot",
+        MentionType.DATE,
+    ),
     Mention("nom-beneficiaire", "Nom du bénéficiaire", "dossier.ds_demandeur"),
     Mention("projet-intitule", "Intitulé du projet", "dossier.projet_intitule"),
     Mention(
         "nom-departement", "Nom du département", "projet.perimetre.departement.name"
     ),
     Mention(
+        "cout-total",
+        "Coût total de l'opération",
+        "dossier.finance_cout_total",
+        MentionType.EURO,
+    ),
+    Mention("assiette", "Assiette", "dotation_projet.assiette", MentionType.EURO),
+    Mention(
         "montant-subvention",
-        "Montant prévisionnel de la subvention",
+        "Montant accordé",
         "montant",
         MentionType.EURO,
     ),
@@ -114,20 +133,6 @@ MENTIONS = [
         MentionType.DATE,
     ),
     Mention(
-        "date-depot",
-        "Date de dépôt du dossier",
-        "dossier.ds_date_depot",
-        MentionType.DATE,
-    ),
-    Mention("numero-dossier", "Numéro DN du dossier", "dossier.ds_number"),
-    Mention(
-        "cout-total",
-        "Coût total de l'opération",
-        "dossier.finance_cout_total",
-        MentionType.EURO,
-    ),
-    Mention("assiette", "Assiette", "dotation_projet.assiette", MentionType.EURO),
-    Mention(
         "porteur-fonction",
         "Fonction du porteur de projet",
         "dossier.porteur_de_projet_fonction",
@@ -138,33 +143,33 @@ MENTIONS = [
         "dossier.porteur_de_projet_prenom",
     ),
     Mention("porteur-nom", "Nom du porteur de projet", "dossier.porteur_de_projet_nom"),
-    Mention(
-        "adresse-demandeur",
-        "Adresse du demandeur",
-        "dossier.ds_demandeur.address.label",
-    ),
+    # Mention(
+    #     "adresse-demandeur",
+    #     "Adresse du demandeur",
+    #     "dossier.ds_demandeur.address.label",
+    # ),
     Mention(
         "date-arrete",
         "Date d'édition de l'arrêté",
         "arrete.created_at",
-        MentionType.DATE,
+        MentionType.DATE_ARRETE,
     ),
     Mention(
         "commentaire-1",
         "Commentaire 1",
-        "dossier.annotations_champ_libre_1",
+        "projet.comment_1",
         MentionType.TEXT_ONLY,
     ),
     Mention(
         "commentaire-2",
         "Commentaire 2",
-        "dossier.annotations_champ_libre_2",
+        "projet.comment_2",
         MentionType.TEXT_ONLY,
     ),
     Mention(
         "commentaire-3",
         "Commentaire 3",
-        "dossier.annotations_champ_libre_3",
+        "projet.comment_3",
         MentionType.TEXT_ONLY,
     ),
 ]
