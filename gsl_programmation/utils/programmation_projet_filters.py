@@ -8,6 +8,7 @@ from django_filters import (
 
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import (
+    CategorieDetr,
     CategorieDsil,
     Dossier,
     NaturePorteurProjet,
@@ -16,7 +17,7 @@ from gsl_programmation.models import (
     Enveloppe,
     ProgrammationProjet,
 )
-from gsl_projet.constants import DOTATION_DSIL
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     CustomSelectWidget,
@@ -41,6 +42,12 @@ PROGRAMMATION_ORDERING_MAP = {
 
 
 class ProgrammationProjetFilters(FilterSet):
+    categorie_detr = MultipleChoiceFilter(
+        label="Catégorie DETR",
+        field_name="dotation_projet__projet__dossier_ds__demande_categorie_detr",
+        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
+    )
+
     categorie_dsil = MultipleChoiceFilter(
         label="Catégorie DSIL",
         field_name="dotation_projet__projet__dossier_ds__demande_categorie_dsil",
@@ -122,6 +129,7 @@ class ProgrammationProjetFilters(FilterSet):
         model = ProgrammationProjet
         fields = (
             "territoire",
+            "categorie_detr",
             "categorie_dsil",
             "porteur",
             "notified",
@@ -140,8 +148,20 @@ class ProgrammationProjetFilters(FilterSet):
             )
 
         dotation = self.request.resolver_match.kwargs.get("dotation")
+        visible_dossiers = Dossier.objects.for_user(self.request.user)
+
+        if dotation == DOTATION_DETR:
+            self.filters["categorie_detr"].extra["choices"] = tuple(
+                (str(c.id), c.complete_label)
+                for c in CategorieDetr.objects.active()
+                .filter(dossier__in=visible_dossiers)
+                .distinct()
+                .order_by("rank")
+            )
+        else:
+            del self.filters["categorie_detr"]
+
         if dotation == DOTATION_DSIL:
-            visible_dossiers = Dossier.objects.for_user(self.request.user)
             self.filters["categorie_dsil"].extra["choices"] = tuple(
                 (str(c.id), c.label)
                 for c in CategorieDsil.objects.active()

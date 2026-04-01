@@ -2,8 +2,12 @@ from django.db import models
 from django.db.models import Case, DecimalField, F, Subquery, When
 from django_filters import FilterSet, MultipleChoiceFilter, RangeFilter
 
-from gsl_demarches_simplifiees.models import CategorieDsil, NaturePorteurProjet
-from gsl_projet.constants import DOTATION_DSIL
+from gsl_demarches_simplifiees.models import (
+    CategorieDetr,
+    CategorieDsil,
+    NaturePorteurProjet,
+)
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import Projet
 from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
@@ -30,6 +34,17 @@ class SimulationProjetFilters(FilterSet):
                 (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
             )
 
+        if dotation == DOTATION_DETR:
+            self.filters["categorie_detr"].extra["choices"] = tuple(
+                (str(c.id), c.complete_label)
+                for c in CategorieDetr.objects.active()
+                .filter(dossier__projet__in=self.queryset)
+                .distinct()
+                .order_by("rank")
+            )
+        else:
+            del self.filters["categorie_detr"]
+
         if dotation == DOTATION_DSIL:
             self.filters["categorie_dsil"].extra["choices"] = tuple(
                 (str(c.id), c.label)
@@ -47,6 +62,12 @@ class SimulationProjetFilters(FilterSet):
         "simu_assiette": "assiette",
         "simu_taux": "taux",
     }
+
+    categorie_detr = MultipleChoiceFilter(
+        label="Catégorie DETR",
+        field_name="dossier_ds__demande_categorie_detr",
+        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
+    )
 
     categorie_dsil = MultipleChoiceFilter(
         label="Catégorie DSIL",
@@ -142,6 +163,7 @@ class SimulationProjetFilters(FilterSet):
         model = Projet
         fields = (
             "territoire",
+            "categorie_detr",
             "categorie_dsil",
             "porteur",
             "status",

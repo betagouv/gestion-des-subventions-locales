@@ -192,6 +192,12 @@ class ProjetFilters(FilterSet):
         widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
+    categorie_detr = MultipleChoiceFilter(
+        label="Catégorie DETR",
+        field_name="dossier_ds__demande_categorie_detr",
+        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
+    )
+
     categorie_dsil = MultipleChoiceFilter(
         label="Catégorie DSIL",
         field_name="dossier_ds__demande_categorie_dsil",
@@ -230,6 +236,7 @@ class ProjetFilters(FilterSet):
             "territoire",
             "dotation",
             "porteur",
+            "categorie_detr",
             "categorie_dsil",
             "status",
             "cout",
