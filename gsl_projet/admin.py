@@ -100,7 +100,6 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     ]
     search_fields = ("dossier_ds__ds_number", "dossier_ds__projet_intitule")
     readonly_fields = ("created_at", "updated_at")
-    raw_id_fields = ("dossier_ds",)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
