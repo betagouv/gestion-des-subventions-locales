@@ -60,7 +60,7 @@ def test_404_page_template_structure():
 
     assert response.status_code == 404
     content = response.content.decode()
-    assert "Gestion des Subventions Locales" in content
+    assert "Turgot" in content
     assert "Page d'accueil" in content
     assert "Contactez-nous" in content
     assert "fr-artwork" in content
