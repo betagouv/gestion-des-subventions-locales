@@ -121,6 +121,11 @@ class BaseSimulationProjetResource(ModelResource):
         column_name="Montant demandé",
         widget=DecimalWidget(),
     )
+    demande_taux = Field(
+        attribute="dotation_projet__taux_de_subvention_sollicite",
+        column_name="Taux demandé",
+        widget=DecimalWidget(),
+    )
     status = Field(
         attribute="get_status_display",
         column_name="Statut de la simulation",
@@ -206,6 +211,7 @@ class BaseSimulationProjetResource(ModelResource):
             "cout_total",
             "assiette",
             "demande_montant",
+            "demande_taux",
             "montant",
             "taux",
             "status",
@@ -251,6 +257,10 @@ class BaseSimulationProjetResource(ModelResource):
             ):
                 hidden_resource_fields.add(CSS_KEY_TO_RESOURCE_FIELDS[col.css_key])
 
+        # We do this because, for now, we have this two info in the same projets tables column
+        if "demande_montant" in hidden_resource_fields:
+            hidden_resource_fields.add("demande_taux")
+
         return {
             self.fields[f].column_name
             for f in hidden_resource_fields
@@ -268,6 +278,11 @@ class BaseSimulationProjetResource(ModelResource):
                 and col.css_key in CSS_KEY_TO_RESOURCE_FIELDS
             ):
                 hidden_resource_fields.add(CSS_KEY_TO_RESOURCE_FIELDS[col.css_key])
+
+        # We do this because, for now, we have this two info in the same projets tables column
+        if "demande_montant" in hidden_resource_fields:
+            hidden_resource_fields.add("demande_taux")
+
         return {
             self.fields[f].column_name
             for f in hidden_resource_fields
