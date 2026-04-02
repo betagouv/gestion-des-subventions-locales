@@ -40,6 +40,7 @@ def programmation_projet():
     return ProgrammationProjetFactory(
         dotation_projet__projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
             raison_sociale="Commune de Bagnères-de-Luchon",
+            siret="12345678901234",
             address=adresse,
         ),
         dotation_projet__projet__dossier_ds__projet_intitule="Nouvelle plaque d'égoûts",
@@ -64,6 +65,7 @@ def programmation_projet():
     "key, label, expected_value",
     (
         ("nom-beneficiaire", "Nom du bénéficiaire", "Commune de Bagnères-de-Luchon"),
+        ("siret-beneficiaire", "SIRET du bénéficiaire", "12345678901234"),
         ("projet-intitule", "Intitulé du projet", "Nouvelle plaque d'égoûts"),
         ("nom-departement", "Nom du département", "Haute-Garonne"),
         ("montant-subvention", "Montant prévisionnel de la subvention", "2 000,50 €"),
@@ -79,6 +81,11 @@ def programmation_projet():
         ("porteur-nom", "Nom du porteur de projet", "Dupont"),
         ("adresse-demandeur", "Adresse du demandeur", "1 rue de la Paix 75001 Paris"),
         ("commentaire-1", "Commentaire 1", "Commentaire important"),
+        (
+            "montant-subvention-lettres",
+            "Montant accordé (toutes lettres)",
+            "deux mille euros et cinquante centimes",
+        ),
     ),
 )
 @pytest.mark.django_db

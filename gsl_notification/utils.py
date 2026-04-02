@@ -17,6 +17,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django_weasyprint.utils import django_url_fetcher
+from num2words import num2words
 from pikepdf import Pdf
 from weasyprint import HTML
 
@@ -62,6 +63,7 @@ def get_nested_attribute(obj, attribute_path):
 class MentionType(Enum):
     STRING = "string"
     EURO = "euro"
+    EURO_LETTRES = "euro_lettres"
     PERCENT = "percent"
     DATE = "date"
     DATE_ARRETE = "date_arrete"
@@ -83,6 +85,12 @@ class Mention:
         match self.type:
             case MentionType.EURO:
                 return euro(value, 2) if value is not None else "N/A"
+            case MentionType.EURO_LETTRES:
+                return (
+                    num2words(value, lang="fr", to="currency", currency="EUR")
+                    if value is not None
+                    else "N/A"
+                )
             case MentionType.PERCENT:
                 return percent(value, 2) if value is not None else "N/A"
             case MentionType.DATE:
@@ -102,6 +110,9 @@ MENTIONS = [
         MentionType.DATE,
     ),
     Mention("nom-beneficiaire", "Nom du bénéficiaire", "dossier.ds_demandeur"),
+    Mention(
+        "siret-beneficiaire", "SIRET du bénéficiaire", "dossier.ds_demandeur.siret"
+    ),
     Mention("projet-intitule", "Intitulé du projet", "dossier.projet_intitule"),
     Mention(
         "nom-departement", "Nom du département", "projet.perimetre.departement.name"
@@ -118,6 +129,12 @@ MENTIONS = [
         "Montant accordé",
         "montant",
         MentionType.EURO,
+    ),
+    Mention(
+        "montant-subvention-lettres",
+        "Montant accordé (toutes lettres)",
+        "montant",
+        MentionType.EURO_LETTRES,
     ),
     Mention("taux-subvention", "Taux de subvention", "taux", MentionType.PERCENT),
     Mention(
