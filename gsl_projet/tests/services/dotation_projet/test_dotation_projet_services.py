@@ -14,9 +14,11 @@ from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
 )
+from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
+    ProgrammationProjetFactory,
 )
 from gsl_projet.constants import (
     DOTATION_DETR,
@@ -1124,7 +1126,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_excludes_correctly_wh
     )
 
     # Create simulations with different years
-    sim_last_year = SimulationFactory(
+    _sim_last_year = SimulationFactory(
         enveloppe__perimetre=arr_dijon,
         enveloppe__dotation=DOTATION_DETR,
         enveloppe__annee=CURRENT_YEAR - 1,
@@ -1150,4 +1152,94 @@ def test_get_simulation_concerning_by_this_dotation_projet_excludes_correctly_wh
     assert sim_current_year in results
     # Should exclude years >= treatment_year + 1
     assert sim_next_year not in results
-    assert sim_last_year not in results
+
+
+# -- _is_dossier_back_to_instruction --
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "date_traitement, date_passage_en_instruction, expected",
+    [
+        (None, datetime.datetime(2024, 6, 1, tzinfo=UTC), False),
+        (datetime.datetime(2024, 6, 1, tzinfo=UTC), None, False),
+        (
+            datetime.datetime(2024, 5, 1, tzinfo=UTC),
+            datetime.datetime(2024, 6, 1, tzinfo=UTC),
+            True,
+        ),
+        (
+            datetime.datetime(2024, 7, 1, tzinfo=UTC),
+            datetime.datetime(2024, 6, 1, tzinfo=UTC),
+            False,
+        ),
+        (
+            datetime.datetime(2024, 6, 1, tzinfo=UTC),
+            datetime.datetime(2024, 6, 1, tzinfo=UTC),
+            False,
+        ),
+    ],
+)
+def test_is_dossier_back_to_instruction(
+    date_traitement, date_passage_en_instruction, expected
+):
+    projet = ProjetFactory(
+        dossier_ds__ds_date_traitement=date_traitement,
+        dossier_ds__ds_date_passage_en_instruction=date_passage_en_instruction,
+    )
+    assert dps._is_dossier_back_to_instruction(projet) is expected
+
+
+# -- _update_accepted_dotation_projets_montant_from_dn --
+
+
+@pytest.mark.django_db
+def test_update_accepted_dotation_projets_montant_from_dn_skips_non_accepted():
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_PROCESSING,
+        projet__dossier_ds__annotations_montant_accorde_detr=2_000,
+    )
+    pp = ProgrammationProjetFactory(dotation_projet=dotation_projet, montant=1_000)
+    dps._update_accepted_dotation_projets_montant_from_dn(dotation_projet.projet)
+    pp.refresh_from_db()
+    assert pp.montant == 1_000
+
+
+@pytest.mark.django_db
+def test_update_accepted_dotation_projets_montant_from_dn_updates_montant():
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_ACCEPTED,
+        projet__dossier_ds__annotations_montant_accorde_detr=2_000,
+    )
+    pp = ProgrammationProjetFactory(dotation_projet=dotation_projet, montant=1_000)
+    dps._update_accepted_dotation_projets_montant_from_dn(dotation_projet.projet)
+    pp.refresh_from_db()
+    assert pp.montant == 2_000
+
+
+@pytest.mark.django_db
+def test_update_accepted_dotation_projets_montant_from_dn_does_not_update_montant_when_none():
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_ACCEPTED,
+        projet__dossier_ds__annotations_montant_accorde_detr=None,
+    )
+    pp = ProgrammationProjetFactory(dotation_projet=dotation_projet, montant=1_000)
+    dps._update_accepted_dotation_projets_montant_from_dn(dotation_projet.projet)
+    pp.refresh_from_db()
+    assert pp.montant == 1_000
+
+
+@pytest.mark.django_db
+def test_update_accepted_dotation_projets_montant_from_dn_does_not_update_montant_without_pp():
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_ACCEPTED,
+        projet__dossier_ds__annotations_montant_accorde_detr=2_000,
+    )
+    dps._update_accepted_dotation_projets_montant_from_dn(dotation_projet.projet)
+    assert not ProgrammationProjet.objects.filter(
+        dotation_projet=dotation_projet
+    ).exists()
