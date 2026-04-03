@@ -10,11 +10,11 @@ import img2pdf
 import requests
 from bs4 import BeautifulSoup
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models.fields.files import FieldFile
 from django.template.loader import render_to_string
-from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django_weasyprint.utils import django_url_fetcher
 from num2words import num2words
@@ -56,7 +56,10 @@ def get_nested_attribute(obj, attribute_path):
     for attr in attributes:
         if current_obj is None:
             return None
-        current_obj = getattr(current_obj, attr)
+        try:
+            current_obj = getattr(current_obj, attr)
+        except ObjectDoesNotExist:
+            return None
     return current_obj
 
 
@@ -66,7 +69,6 @@ class MentionType(Enum):
     EURO_LETTRES = "euro_lettres"
     PERCENT = "percent"
     DATE = "date"
-    DATE_ARRETE = "date_arrete"
     TEXT_ONLY = "text_only"
 
 
@@ -78,9 +80,6 @@ class Mention:
     type: MentionType = MentionType.STRING
 
     def get_value(self, programmation_projet: ProgrammationProjet) -> str:
-        if self.type == MentionType.DATE_ARRETE:
-            return timezone.now().strftime("%d/%m/%Y")
-
         value = get_nested_attribute(programmation_projet, self.attribute)
         match self.type:
             case MentionType.EURO:
@@ -174,7 +173,7 @@ MENTIONS = [
         "date-arrete",
         "Date d'édition de l'arrêté",
         "arrete.created_at",
-        MentionType.DATE_ARRETE,
+        MentionType.DATE,
     ),
     Mention(
         "commentaire-1",

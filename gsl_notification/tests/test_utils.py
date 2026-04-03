@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from pikepdf import Pdf
 
 from gsl_core.tests.factories import (
@@ -18,7 +19,7 @@ from gsl_notification.models import (
     Annexe,
     ArreteEtLettreSignes,
 )
-from gsl_notification.tests.factories import AnnexeFactory
+from gsl_notification.tests.factories import AnnexeFactory, ArreteFactory
 from gsl_notification.utils import (
     _get_uploaded_document_pdf,
     get_modele_perimetres,
@@ -94,6 +95,21 @@ def test_replace_mentions_in_html(key, label, expected_value, programmation_proj
     expected_text = f"<p>Voici le mot: {expected_value} vous octroie une subvention</p><p>Bravo et merci !</p>"
 
     assert expected_text == replace_mentions_in_html(html_content, programmation_projet)
+
+
+@pytest.mark.django_db
+@override_settings(BYPASS_ANTIVIRUS=True)
+def test_replace_mention_date_arrete(programmation_projet):
+    arrete = ArreteFactory(programmation_projet=programmation_projet)
+    expected_date = arrete.created_at.strftime("%d/%m/%Y")
+    html_content = '<span class="mention" data-type="mention" data-id="date-arrete" data-label="Date d\'édition de l\'arrêté" data-mention-suggestion-char="@">@Date d\'édition de l\'arrêté</span>'
+    assert expected_date == replace_mentions_in_html(html_content, programmation_projet)
+
+
+@pytest.mark.django_db
+def test_replace_mention_date_arrete_without_arrete(programmation_projet):
+    html_content = '<span class="mention" data-type="mention" data-id="date-arrete" data-label="Date d\'édition de l\'arrêté" data-mention-suggestion-char="@">@Date d\'édition de l\'arrêté</span>'
+    assert "N/A" == replace_mentions_in_html(html_content, programmation_projet)
 
 
 def test_update_file_name_to_put_it_in_a_programmation_projet_folder():
