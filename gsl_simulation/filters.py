@@ -21,8 +21,13 @@ from gsl_projet.utils.django_filters_custom_widget import (
     DsfrRangeWidget,
 )
 from gsl_projet.utils.projet_filters import (
+    DOTATION_SOLLICITEE_CHOICES,
     ORDERING_MAP,
+    OUI_NON_CHOICES,
     ProjetOrderingFilter,
+    filter_boolean,
+    filter_dossier_complet,
+    filter_dotation_sollicitee,
     filter_territoire,
 )
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
@@ -154,6 +159,38 @@ class SimulationProjetFilters(FilterSet):
         ),
     )
 
+    budget_vert_demandeur = MultipleChoiceFilter(
+        label="Budget vert (demandeur)",
+        field_name="dossier_ds__environnement_transition_eco",
+        choices=OUI_NON_CHOICES,
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+        method="filter_boolean",
+    )
+
+    budget_vert_instructeur = MultipleChoiceFilter(
+        label="Budget vert (instructeur)",
+        field_name="is_budget_vert",
+        choices=OUI_NON_CHOICES,
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+        method="filter_boolean",
+    )
+
+    dotation_sollicitee = MultipleChoiceFilter(
+        label="Dotation sollicitée",
+        field_name="dossier_ds__demande_dispositif_sollicite",
+        choices=DOTATION_SOLLICITEE_CHOICES,
+        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
+        method="filter_dotation_sollicitee",
+    )
+
+    dossier_complet = MultipleChoiceFilter(
+        label="Dossier complet",
+        field_name="dossier_ds__ds_state",
+        choices=OUI_NON_CHOICES,
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+        method="filter_dossier_complet",
+    )
+
     order = ProjetOrderingFilter(
         fields=SIMULATION_ORDERING_MAP,
         empty_label="Tri",
@@ -161,6 +198,9 @@ class SimulationProjetFilters(FilterSet):
     )
 
     filter_territoire = staticmethod(filter_territoire)
+    filter_boolean = staticmethod(filter_boolean)
+    filter_dotation_sollicitee = staticmethod(filter_dotation_sollicitee)
+    filter_dossier_complet = staticmethod(filter_dossier_complet)
 
     def filter_status(self, queryset, name, value):
         return queryset.filter(
@@ -190,10 +230,14 @@ class SimulationProjetFilters(FilterSet):
             "categorie_detr",
             "categorie_dsil",
             "porteur",
+            "dossier_complet",
             "status",
             "cout",
             "montant_demande",
             "montant_previsionnel",
+            "budget_vert_demandeur",
+            "budget_vert_instructeur",
+            "dotation_sollicitee",
             "date_depot",
             "date_debut",
             "date_achevement",

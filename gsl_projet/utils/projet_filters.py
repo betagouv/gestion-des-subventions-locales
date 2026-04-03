@@ -10,7 +10,7 @@ from django_filters import (
 )
 
 from gsl_core.models import Perimetre
-from gsl_demarches_simplifiees.models import NaturePorteurProjet
+from gsl_demarches_simplifiees.models import Dossier, NaturePorteurProjet
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -136,6 +136,58 @@ def filter_territoire(queryset, _name, values: list[int]):
     return result
 
 
+OUI_NON_CHOICES = (
+    ("oui", "Oui"),
+    ("non", "Non"),
+)
+
+DOTATION_SOLLICITEE_CHOICES = (
+    ("detr_uniquement", "DETR uniquement"),
+    ("dsil_uniquement", "DSIL uniquement"),
+    ("detr_et_dsil", "DETR et DSIL"),
+)
+
+
+def filter_boolean(queryset, name, values):
+    q = Q()
+    if "oui" in values:
+        q |= Q(**{name: True})
+    if "non" in values:
+        q |= Q(**{name: False})
+    return queryset.filter(q)
+
+
+def filter_dotation_sollicitee(queryset, name, values):
+    if not values:
+        return queryset
+
+    q = Q()
+    contains_detr = Q(**{f"{name}__icontains": "DETR"})
+    contains_dsil = Q(**{f"{name}__icontains": "DSIL"})
+
+    if "detr_uniquement" in values:
+        q |= contains_detr & ~contains_dsil
+    if "dsil_uniquement" in values:
+        q |= ~contains_detr & contains_dsil
+    if "detr_et_dsil" in values:
+        q |= contains_detr & contains_dsil
+
+    return queryset.filter(q)
+
+
+def filter_dossier_complet(queryset, name, values):
+    if not values:
+        return queryset
+
+    q = Q()
+    if "oui" in values:
+        q |= ~Q(**{name: Dossier.STATE_EN_CONSTRUCTION})
+    if "non" in values:
+        q |= Q(**{name: Dossier.STATE_EN_CONSTRUCTION})
+
+    return queryset.filter(q)
+
+
 class ProjetFilters(FilterSet):
     order = ProjetOrderingFilter(
         fields=ORDERING_MAP,
@@ -232,8 +284,43 @@ class ProjetFilters(FilterSet):
         ),
     )
 
+    budget_vert_demandeur = MultipleChoiceFilter(
+        label="Budget vert (demandeur)",
+        field_name="dossier_ds__environnement_transition_eco",
+        choices=OUI_NON_CHOICES,
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+        method="filter_boolean",
+    )
+
+    budget_vert_instructeur = MultipleChoiceFilter(
+        label="Budget vert (instructeur)",
+        field_name="is_budget_vert",
+        choices=OUI_NON_CHOICES,
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+        method="filter_boolean",
+    )
+
+    dotation_sollicitee = MultipleChoiceFilter(
+        label="Dotation sollicitée",
+        field_name="dossier_ds__demande_dispositif_sollicite",
+        choices=DOTATION_SOLLICITEE_CHOICES,
+        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
+        method="filter_dotation_sollicitee",
+    )
+
+    dossier_complet = MultipleChoiceFilter(
+        label="Dossier complet",
+        field_name="dossier_ds__ds_state",
+        choices=OUI_NON_CHOICES,
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+        method="filter_dossier_complet",
+    )
+
     filter_dotation = staticmethod(filter_dotation)
     filter_territoire = staticmethod(filter_territoire)
+    filter_boolean = staticmethod(filter_boolean)
+    filter_dotation_sollicitee = staticmethod(filter_dotation_sollicitee)
+    filter_dossier_complet = staticmethod(filter_dossier_complet)
 
     def filter_montant_retenu(self, queryset, _name, value):
         dotation_qs = DotationProjet.objects.filter(projet=OuterRef("pk"))
@@ -259,6 +346,10 @@ class ProjetFilters(FilterSet):
             "categorie_detr",
             "categorie_dsil",
             "status",
+            "budget_vert_demandeur",
+            "budget_vert_instructeur",
+            "dotation_sollicitee",
+            "dossier_complet",
             "cout",
             "montant_demande",
             "montant_retenu",

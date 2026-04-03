@@ -25,7 +25,14 @@ from gsl_projet.utils.django_filters_custom_widget import (
     DsfrDateRangeWidget,
     DsfrRangeWidget,
 )
-from gsl_projet.utils.projet_filters import ProjetOrderingFilter
+from gsl_projet.utils.projet_filters import (
+    DOTATION_SOLLICITEE_CHOICES,
+    OUI_NON_CHOICES,
+    ProjetOrderingFilter,
+    filter_boolean,
+    filter_dossier_complet,
+    filter_dotation_sollicitee,
+)
 
 PROGRAMMATION_ORDERING_MAP = {
     "dotation_projet__projet__dossier_ds__finance_cout_total": "cout",
@@ -99,6 +106,42 @@ class ProgrammationProjetFilters(FilterSet):
         ),
     )
 
+    budget_vert_demandeur = MultipleChoiceFilter(
+        label="Budget vert (demandeur)",
+        field_name="dotation_projet__projet__dossier_ds__environnement_transition_eco",
+        choices=OUI_NON_CHOICES,
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+        method="filter_boolean",
+    )
+
+    budget_vert_instructeur = MultipleChoiceFilter(
+        label="Budget vert (instructeur)",
+        field_name="dotation_projet__projet__is_budget_vert",
+        choices=OUI_NON_CHOICES,
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+        method="filter_boolean",
+    )
+
+    dotation_sollicitee = MultipleChoiceFilter(
+        label="Dotation sollicitée",
+        field_name="dotation_projet__projet__dossier_ds__demande_dispositif_sollicite",
+        choices=DOTATION_SOLLICITEE_CHOICES,
+        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
+        method="filter_dotation_sollicitee",
+    )
+
+    dossier_complet = MultipleChoiceFilter(
+        label="Dossier complet",
+        field_name="dotation_projet__projet__dossier_ds__ds_state",
+        choices=OUI_NON_CHOICES,
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+        method="filter_dossier_complet",
+    )
+
+    filter_boolean = staticmethod(filter_boolean)
+    filter_dotation_sollicitee = staticmethod(filter_dotation_sollicitee)
+    filter_dossier_complet = staticmethod(filter_dossier_complet)
+
     date_depot = DateFromToRangeFilter(
         label="Date de dépôt",
         field_name="dotation_projet__projet__dossier_ds__ds_date_depot__date",
@@ -152,10 +195,14 @@ class ProgrammationProjetFilters(FilterSet):
             "categorie_detr",
             "categorie_dsil",
             "porteur",
+            "dossier_complet",
             "notified",
             "cout",
             "montant_demande",
             "montant_retenu",
+            "dotation_sollicitee",
+            "budget_vert_demandeur",
+            "budget_vert_instructeur",
             "status",
             "date_depot",
             "date_debut",
