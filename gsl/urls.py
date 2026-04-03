@@ -41,6 +41,10 @@ urlpatterns = [
         "notification/",
         include(("gsl_notification.urls", "gsl_notification"), "notification"),
     ),
+    path(
+        "ds-proxy/",
+        include(("gsl_ds_proxy.urls", "gsl_ds_proxy"), "ds-proxy"),
+    ),
 ]
 
 if settings.DEBUG:
