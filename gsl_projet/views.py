@@ -8,7 +8,7 @@ from django.views.generic import ListView, UpdateView
 from django_filters.views import FilterView
 
 from gsl_core.exceptions import Http404
-from gsl_demarches_simplifiees.models import Demarche
+from gsl_demarches_simplifiees.models import CategorieDetr, CategorieDsil, Demarche
 from gsl_projet.forms import ProjetCommentForm
 from gsl_projet.utils.django_filters_custom_widget import CustomSelectWidget
 from gsl_projet.utils.projet_filters import (
@@ -107,6 +107,37 @@ class ProjetListViewFilters(ProjetFilters):
             self.filters["territoire"].extra["choices"] = tuple(
                 (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
             )
+
+        selected_dotations = self.data.getlist("dotation")
+        visible_projets = Projet.objects.for_user(self.request.user).for_current_year()
+
+        detr_selected = (
+            "DETR" in selected_dotations or "DETR_et_DSIL" in selected_dotations
+        )
+        if detr_selected:
+            self.filters["categorie_detr"].extra["choices"] = tuple(
+                (str(c.id), c.complete_label)
+                for c in CategorieDetr.objects.active()
+                .filter(dossier__projet__in=visible_projets)
+                .distinct()
+                .order_by("rank")
+            )
+        else:
+            del self.filters["categorie_detr"]
+
+        dsil_selected = (
+            "DSIL" in selected_dotations or "DETR_et_DSIL" in selected_dotations
+        )
+        if dsil_selected:
+            self.filters["categorie_dsil"].extra["choices"] = tuple(
+                (str(c.id), c.label)
+                for c in CategorieDsil.objects.active()
+                .filter(dossier__projet__in=visible_projets)
+                .distinct()
+                .order_by("rank", "label")
+            )
+        else:
+            del self.filters["categorie_dsil"]
 
     PROJET_LIST_ORDERING_MAP = {
         **ORDERING_MAP,
