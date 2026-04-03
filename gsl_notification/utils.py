@@ -10,12 +10,14 @@ import img2pdf
 import requests
 from bs4 import BeautifulSoup
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models.fields.files import FieldFile
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 from django_weasyprint.utils import django_url_fetcher
+from num2words import num2words
 from pikepdf import Pdf
 from weasyprint import HTML
 
@@ -47,19 +49,27 @@ def get_nested_attribute(obj, attribute_path):
     """
     Récupère un attribut imbriqué en utilisant la notation en points.
     Par exemple: get_nested_attribute(programmation_projet, "dossier.date_achevement")
+    Retourne None si un intermédiaire est None ou si une relation inverse n'existe pas.
     """
     attributes = attribute_path.split(".")
     current_obj = obj
     for attr in attributes:
-        current_obj = getattr(current_obj, attr)
+        if current_obj is None:
+            return None
+        try:
+            current_obj = getattr(current_obj, attr)
+        except ObjectDoesNotExist:
+            return None
     return current_obj
 
 
 class MentionType(Enum):
     STRING = "string"
     EURO = "euro"
+    EURO_LETTRES = "euro_lettres"
     PERCENT = "percent"
     DATE = "date"
+    TEXT_ONLY = "text_only"
 
 
 @dataclass(frozen=True)
@@ -73,26 +83,57 @@ class Mention:
         value = get_nested_attribute(programmation_projet, self.attribute)
         match self.type:
             case MentionType.EURO:
-                return euro(value, 2)
+                return euro(value, 2) if value is not None else "N/A"
+            case MentionType.EURO_LETTRES:
+                return (
+                    num2words(value, lang="fr", to="currency", currency="EUR")
+                    if value is not None
+                    else "N/A"
+                )
             case MentionType.PERCENT:
-                return percent(value, 4)
+                return percent(value, 2) if value is not None else "N/A"
             case MentionType.DATE:
                 return value.strftime("%d/%m/%Y") if value else "N/A"
+            case MentionType.TEXT_ONLY:
+                return BeautifulSoup(value, "html.parser").get_text() if value else ""
             case _:
-                return str(value)
+                return str(value) if value is not None else ""
 
 
 MENTIONS = [
+    Mention("numero-dossier", "Numéro DN du dossier", "dossier.ds_number"),
+    Mention(
+        "date-depot",
+        "Date de dépôt du dossier",
+        "dossier.ds_date_depot",
+        MentionType.DATE,
+    ),
     Mention("nom-beneficiaire", "Nom du bénéficiaire", "dossier.ds_demandeur"),
+    Mention(
+        "siret-beneficiaire", "SIRET du bénéficiaire", "dossier.ds_demandeur.siret"
+    ),
     Mention("projet-intitule", "Intitulé du projet", "dossier.projet_intitule"),
     Mention(
         "nom-departement", "Nom du département", "projet.perimetre.departement.name"
     ),
     Mention(
+        "cout-total",
+        "Coût total de l'opération",
+        "dossier.finance_cout_total",
+        MentionType.EURO,
+    ),
+    Mention("assiette", "Assiette", "dotation_projet.assiette", MentionType.EURO),
+    Mention(
         "montant-subvention",
-        "Montant prévisionnel de la subvention",
+        "Montant accordé",
         "montant",
         MentionType.EURO,
+    ),
+    Mention(
+        "montant-subvention-lettres",
+        "Montant accordé (toutes lettres)",
+        "montant",
+        MentionType.EURO_LETTRES,
     ),
     Mention("taux-subvention", "Taux de subvention", "taux", MentionType.PERCENT),
     Mention(
@@ -106,6 +147,51 @@ MENTIONS = [
         "Date d'achèvement",
         "dossier.date_achevement",
         MentionType.DATE,
+    ),
+    Mention(
+        "porteur-fonction",
+        "Fonction du porteur de projet",
+        "dossier.porteur_de_projet_fonction",
+    ),
+    Mention(
+        "porteur-civilite",
+        "Civilité du porteur de projet",
+        "dossier.porteur_de_projet_civilite",
+    ),
+    Mention(
+        "porteur-prenom",
+        "Prénom du porteur de projet",
+        "dossier.porteur_de_projet_prenom",
+    ),
+    Mention("porteur-nom", "Nom du porteur de projet", "dossier.porteur_de_projet_nom"),
+    Mention(
+        "adresse-demandeur",
+        "Adresse du demandeur",
+        "dossier.ds_demandeur.address",
+    ),
+    Mention(
+        "date-arrete",
+        "Date d'édition de l'arrêté",
+        "arrete.created_at",
+        MentionType.DATE,
+    ),
+    Mention(
+        "commentaire-1",
+        "Commentaire 1",
+        "projet.comment_1",
+        MentionType.TEXT_ONLY,
+    ),
+    Mention(
+        "commentaire-2",
+        "Commentaire 2",
+        "projet.comment_2",
+        MentionType.TEXT_ONLY,
+    ),
+    Mention(
+        "commentaire-3",
+        "Commentaire 3",
+        "projet.comment_3",
+        MentionType.TEXT_ONLY,
     ),
 ]
 

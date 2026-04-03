@@ -158,6 +158,8 @@ django-widget-tweaks==1.5.1
     # via django-dsfr
 djlint==1.36.4
     # via gsl (pyproject.toml)
+docopt==0.6.2
+    # via num2words
 editorconfig==0.17.1
     # via
     #   cssbeautifier
@@ -220,6 +222,8 @@ mozilla-django-oidc==5.0.2
     # via gsl (pyproject.toml)
 nodeenv==1.10.0
     # via pre-commit
+num2words==0.5.14
+    # via gsl (pyproject.toml)
 odfpy==1.4.1
     # via tablib
 openpyxl==3.1.5

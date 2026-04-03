@@ -26,6 +26,7 @@ dependencies = [
     "django-formtools",
     "gunicorn",
     "img2pdf",
+    "num2words",
     "ipython",
     "mozilla-django-oidc",
     "pikepdf",

@@ -49,7 +49,7 @@ class ArrondissementResource(resources.ModelResource):
 
 class CommuneResource(resources.ModelResource):
     insee_code = Field(attribute="insee_code", column_name="COM")
-    name = Field(attribute="name", column_name="NCCENR")
+    name = Field(attribute="name", column_name="LIBELLE")
     departement = Field(
         attribute="departement",
         column_name="DEP",

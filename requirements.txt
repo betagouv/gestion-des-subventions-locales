@@ -133,6 +133,8 @@ django-weasyprint==2.4.0
     # via gsl (pyproject.toml)
 django-widget-tweaks==1.5.1
     # via django-dsfr
+docopt==0.6.2
+    # via num2words
 et-xmlfile==2.0.0
     # via openpyxl
 executing==2.2.1
@@ -162,6 +164,8 @@ lxml==6.0.2
 matplotlib-inline==0.2.1
     # via ipython
 mozilla-django-oidc==5.0.2
+    # via gsl (pyproject.toml)
+num2words==0.5.14
     # via gsl (pyproject.toml)
 odfpy==1.4.1
     # via tablib
