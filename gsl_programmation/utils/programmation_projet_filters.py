@@ -1,6 +1,7 @@
 from django.db.models import Case, DecimalField, F, When
 from django_filters import (
     ChoiceFilter,
+    DateFromToRangeFilter,
     FilterSet,
     MultipleChoiceFilter,
     RangeFilter,
@@ -15,6 +16,7 @@ from gsl_programmation.models import (
 from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     CustomSelectWidget,
+    DsfrDateRangeWidget,
     DsfrRangeWidget,
 )
 from gsl_projet.utils.projet_filters import ProjetOrderingFilter
@@ -79,6 +81,24 @@ class ProgrammationProjetFilters(FilterSet):
         ),
     )
 
+    date_depot = DateFromToRangeFilter(
+        label="Date de dépôt",
+        field_name="dotation_projet__projet__dossier_ds__ds_date_depot__date",
+        widget=DsfrDateRangeWidget(icon="fr-icon-calendar-line"),
+    )
+
+    date_debut = DateFromToRangeFilter(
+        label="Date de commencement",
+        field_name="dotation_projet__projet__dossier_ds__date_debut",
+        widget=DsfrDateRangeWidget(icon="fr-icon-calendar-line"),
+    )
+
+    date_achevement = DateFromToRangeFilter(
+        label="Date d'achèvement",
+        field_name="dotation_projet__projet__dossier_ds__date_achevement",
+        widget=DsfrDateRangeWidget(icon="fr-icon-calendar-line"),
+    )
+
     notified = ChoiceFilter(
         label="Demandeur notifié",
         method="filter_notified",
@@ -117,6 +137,9 @@ class ProgrammationProjetFilters(FilterSet):
             "montant_demande",
             "montant_retenu",
             "status",
+            "date_depot",
+            "date_debut",
+            "date_achevement",
         )
 
     def __init__(self, *args, **kwargs):

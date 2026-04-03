@@ -55,6 +55,7 @@
 .amount-filter-group > label {
   font-size: calc(1rem * 14 / 16);
   flex: 1;
+  white-space: nowrap;
 }
 
 .euro-input-wrap {
