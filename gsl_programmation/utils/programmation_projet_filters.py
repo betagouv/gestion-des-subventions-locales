@@ -11,8 +11,11 @@ from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     CategorieDsil,
+    Cofinancement,
     Dossier,
     NaturePorteurProjet,
+    ProjetContractualisation,
+    ProjetZonage,
 )
 from gsl_programmation.models import (
     Enveloppe,
@@ -138,6 +141,27 @@ class ProgrammationProjetFilters(FilterSet):
         method="filter_dossier_complet",
     )
 
+    cofinancement = MultipleChoiceFilter(
+        label="Cofinancement",
+        field_name="dotation_projet__projet__dossier_ds__demande_cofinancements",
+        choices=[],
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+    )
+
+    zonage = MultipleChoiceFilter(
+        label="Zonage",
+        field_name="dotation_projet__projet__dossier_ds__projet_zonage",
+        choices=[],
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+    )
+
+    contractualisation = MultipleChoiceFilter(
+        label="Contractualisation",
+        field_name="dotation_projet__projet__dossier_ds__projet_contractualisation",
+        choices=[],
+        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
+    )
+
     filter_boolean = staticmethod(filter_boolean)
     filter_dotation_sollicitee = staticmethod(filter_dotation_sollicitee)
     filter_dossier_complet = staticmethod(filter_dossier_complet)
@@ -203,6 +227,9 @@ class ProgrammationProjetFilters(FilterSet):
             "dotation_sollicitee",
             "budget_vert_demandeur",
             "budget_vert_instructeur",
+            "cofinancement",
+            "zonage",
+            "contractualisation",
             "status",
             "date_depot",
             "date_debut",
@@ -241,6 +268,29 @@ class ProgrammationProjetFilters(FilterSet):
             )
         else:
             del self.filters["categorie_dsil"]
+
+        self.filters["cofinancement"].extra["choices"] = tuple(
+            (str(c.id), c.label)
+            for c in Cofinancement.objects.filter(dossier__in=visible_dossiers)
+            .distinct()
+            .order_by("id")
+        )
+
+        self.filters["zonage"].extra["choices"] = tuple(
+            (str(z.id), z.label)
+            for z in ProjetZonage.objects.filter(dossier__in=visible_dossiers)
+            .distinct()
+            .order_by("id")
+        )
+
+        self.filters["contractualisation"].extra["choices"] = tuple(
+            (str(c.id), c.label)
+            for c in ProjetContractualisation.objects.filter(
+                dossier__in=visible_dossiers
+            )
+            .distinct()
+            .order_by("id")
+        )
 
     @property
     def qs(self):

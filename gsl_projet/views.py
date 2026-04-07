@@ -8,7 +8,13 @@ from django.views.generic import ListView, UpdateView
 from django_filters.views import FilterView
 
 from gsl_core.exceptions import Http404
-from gsl_demarches_simplifiees.models import CategorieDetr, CategorieDsil, Demarche
+from gsl_demarches_simplifiees.models import (
+    CategorieDetr,
+    CategorieDsil,
+    Cofinancement,
+    ProjetContractualisation,
+    ProjetZonage,
+)
 from gsl_projet.forms import ProjetCommentForm
 from gsl_projet.utils.django_filters_custom_widget import CustomSelectWidget
 from gsl_projet.utils.projet_filters import (
@@ -139,6 +145,31 @@ class ProjetListViewFilters(ProjetFilters):
         else:
             del self.filters["categorie_dsil"]
 
+        visible_dossiers = visible_projets.values("dossier_ds")
+
+        self.filters["cofinancement"].extra["choices"] = tuple(
+            (str(c.id), c.label)
+            for c in Cofinancement.objects.filter(dossier__in=visible_dossiers)
+            .distinct()
+            .order_by("id")
+        )
+
+        self.filters["zonage"].extra["choices"] = tuple(
+            (str(z.id), z.label)
+            for z in ProjetZonage.objects.filter(dossier__in=visible_dossiers)
+            .distinct()
+            .order_by("id")
+        )
+
+        self.filters["contractualisation"].extra["choices"] = tuple(
+            (str(c.id), c.label)
+            for c in ProjetContractualisation.objects.filter(
+                dossier__in=visible_dossiers
+            )
+            .distinct()
+            .order_by("id")
+        )
+
     PROJET_LIST_ORDERING_MAP = {
         **ORDERING_MAP,
         "montant_retenu_total": "montant_retenu",
@@ -190,7 +221,6 @@ class ProjetListViewFilters(ProjetFilters):
             "dossier_ds__projet_contractualisation",
             Prefetch(
                 "dossier_ds__ds_demarche",
-                queryset=Demarche.objects.defer("raw_ds_data"),
             ),
         )
         return qs
