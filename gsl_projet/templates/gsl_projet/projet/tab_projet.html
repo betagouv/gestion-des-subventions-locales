@@ -350,7 +350,7 @@
                     {% endfor %}
                 {% endblock categories %}
 
-                {% with cofinancements=dossier.get_cofinancements_avec_montants %}
+                {% with cofinancements=dossier.cofinancements_avec_montants %}
                     {% if cofinancements %}
                         <h3 id="cofinancements_sollicites">
                             Co-financements sollicités
