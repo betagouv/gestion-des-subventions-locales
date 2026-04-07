@@ -10,7 +10,10 @@ from django_filters import (
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     CategorieDsil,
+    Cofinancement,
     NaturePorteurProjet,
+    ProjetContractualisation,
+    ProjetZonage,
 )
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import Projet
@@ -66,6 +69,31 @@ class SimulationProjetFilters(FilterSet):
             )
         else:
             del self.filters["categorie_dsil"]
+
+        visible_dossiers = self.queryset.values("dossier_ds")
+
+        self.filters["cofinancement"].extra["choices"] = tuple(
+            (str(c.id), c.label)
+            for c in Cofinancement.objects.filter(dossier__in=visible_dossiers)
+            .distinct()
+            .order_by("id")
+        )
+
+        self.filters["zonage"].extra["choices"] = tuple(
+            (str(z.id), z.label)
+            for z in ProjetZonage.objects.filter(dossier__in=visible_dossiers)
+            .distinct()
+            .order_by("id")
+        )
+
+        self.filters["contractualisation"].extra["choices"] = tuple(
+            (str(c.id), c.label)
+            for c in ProjetContractualisation.objects.filter(
+                dossier__in=visible_dossiers
+            )
+            .distinct()
+            .order_by("id")
+        )
 
     SIMULATION_ORDERING_MAP = {
         **ORDERING_MAP,
@@ -191,6 +219,27 @@ class SimulationProjetFilters(FilterSet):
         method="filter_dossier_complet",
     )
 
+    cofinancement = MultipleChoiceFilter(
+        label="Cofinancement",
+        field_name="dossier_ds__demande_cofinancements",
+        choices=[],
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+    )
+
+    zonage = MultipleChoiceFilter(
+        label="Zonage",
+        field_name="dossier_ds__projet_zonage",
+        choices=[],
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+    )
+
+    contractualisation = MultipleChoiceFilter(
+        label="Contractualisation",
+        field_name="dossier_ds__projet_contractualisation",
+        choices=[],
+        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
+    )
+
     order = ProjetOrderingFilter(
         fields=SIMULATION_ORDERING_MAP,
         empty_label="Tri",
@@ -238,6 +287,9 @@ class SimulationProjetFilters(FilterSet):
             "budget_vert_demandeur",
             "budget_vert_instructeur",
             "dotation_sollicitee",
+            "cofinancement",
+            "zonage",
+            "contractualisation",
             "date_depot",
             "date_debut",
             "date_achevement",

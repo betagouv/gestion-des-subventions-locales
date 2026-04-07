@@ -316,6 +316,27 @@ class ProjetFilters(FilterSet):
         method="filter_dossier_complet",
     )
 
+    cofinancement = MultipleChoiceFilter(
+        label="Cofinancement",
+        field_name="dossier_ds__demande_cofinancements",
+        choices=[],
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+    )
+
+    zonage = MultipleChoiceFilter(
+        label="Zonage",
+        field_name="dossier_ds__projet_zonage",
+        choices=[],
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+    )
+
+    contractualisation = MultipleChoiceFilter(
+        label="Contractualisation",
+        field_name="dossier_ds__projet_contractualisation",
+        choices=[],
+        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
+    )
+
     filter_dotation = staticmethod(filter_dotation)
     filter_territoire = staticmethod(filter_territoire)
     filter_boolean = staticmethod(filter_boolean)
@@ -350,6 +371,9 @@ class ProjetFilters(FilterSet):
             "budget_vert_instructeur",
             "dotation_sollicitee",
             "dossier_complet",
+            "cofinancement",
+            "zonage",
+            "contractualisation",
             "cout",
             "montant_demande",
             "montant_retenu",
