@@ -127,7 +127,12 @@ class DossierConverter:
         if ds_typename == "CheckboxChamp":
             return ds_field_data["checked"]
 
-        if ds_typename in ("TextChamp", "SiretChamp", "DossierLinkChamp"):
+        if ds_typename in (
+            "TextChamp",
+            "SiretChamp",
+            "DossierLinkChamp",
+            "CiviliteChamp",
+        ):
             return ds_field_data["stringValue"]
 
         if ds_typename == "DecimalNumberChamp":
@@ -194,21 +199,9 @@ class DossierConverter:
         label: str,
     ):
         if isinstance(django_field_object, models.ManyToManyField):
-            if isinstance(injectable_value, str) or not isinstance(
-                injectable_value, Iterable
-            ):
-                injectable_value = [injectable_value]
-            if not issubclass(django_field_object.related_model, DsChoiceLibelle):
-                raise NotImplementedError("Can only inject DsChoiceLibelle objects")
-
-            for value in injectable_value:
-                related, _ = django_field_object.related_model.objects.get_or_create(
-                    **self._get_related_model_get_or_create_arguments(
-                        django_field_object.related_model, value
-                    )
-                )
-                dossier.__getattribute__(django_field_object.name).add(related)
-
+            self._inject_into_manytomany_field(
+                dossier, django_field_object, injectable_value
+            )
             return
 
         if isinstance(django_field_object, models.ForeignKey):
@@ -236,7 +229,44 @@ class DossierConverter:
                     )
                 )
 
+        if (
+            isinstance(injectable_value, str)
+            and not injectable_value
+            and isinstance(
+                django_field_object,
+                (models.DecimalField, models.IntegerField, models.FloatField),
+            )
+            and django_field_object.null
+        ):
+            injectable_value = None
+
         dossier.__setattr__(django_field_object.name, injectable_value)
+
+    def _inject_into_manytomany_field(
+        self, dossier, django_field_object, injectable_value
+    ):
+        if isinstance(injectable_value, str) or not isinstance(
+            injectable_value, Iterable
+        ):
+            injectable_value = [injectable_value]
+        if not issubclass(django_field_object.related_model, DsChoiceLibelle):
+            raise NotImplementedError("Can only inject DsChoiceLibelle objects")
+
+        manager = dossier.__getattribute__(django_field_object.name)
+        new_related = set()
+        for value in injectable_value:
+            related, _ = django_field_object.related_model.objects.get_or_create(
+                **self._get_related_model_get_or_create_arguments(
+                    django_field_object.related_model, value
+                )
+            )
+            new_related.add(related)
+
+        existing = set(manager.all())
+        for obj in existing - new_related:
+            manager.remove(obj)
+        for obj in new_related - existing:
+            manager.add(obj)
 
     def _extract_date_from_value(self, ds_field_data: dict) -> datetime.date | None:
         value = ds_field_data["date"]

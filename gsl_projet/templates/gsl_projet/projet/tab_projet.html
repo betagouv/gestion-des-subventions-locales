@@ -115,6 +115,16 @@
                         {% endif %}
                     </li>
                     <li>
+                        <b>EPCI :</b>
+                        {% if dossier.porteur_de_projet_epci_url %}
+                            <a href="{{ dossier.porteur_de_projet_epci_url }}"
+                               target="_blank"
+                               rel="noopener noreferrer">{{ dossier.porteur_de_projet_epci }}</a>
+                        {% else %}
+                            {{ dossier.porteur_de_projet_epci|default:"-" }}
+                        {% endif %}
+                    </li>
+                    <li>
                         <b>La maîtrise d’ouvrage de l’opération sera-t-elle déléguée?</b>
                         {{ dossier.maitrise_douvrage_deleguee|yesno:"Oui,Non,Non renseigné" }}
                     </li>
@@ -339,6 +349,25 @@
                         {% endif %}
                     {% endfor %}
                 {% endblock categories %}
+
+                {% with cofinancements=dossier.cofinancements_avec_montants %}
+                    {% if cofinancements %}
+                        <h3 id="cofinancements_sollicites">
+                            Co-financements sollicités
+                        </h3>
+                        <ul>
+                            {% for cofinancement in cofinancements %}
+                                <li>
+                                    {% if cofinancement.montant %}
+                                        {{ cofinancement.nom }} : {{ cofinancement.montant|euro:2 }}
+                                    {% else %}
+                                        {{ cofinancement.nom }}
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% endwith %}
 
                 <h3 id="couts_financement">
                     Coûts de financement

@@ -28,3 +28,5 @@ ANNEXE = "annexe"
 POSSIBLES_DOCUMENTS_TELEVERSABLES = Literal["arrete_et_lettre_signes", "annexe"]
 
 MIN_DEMANDE_MONTANT_FOR_AVIS_DETR = 100_000
+
+ANNUAIRE_ENTREPRISE_URL = "https://annuaire-entreprises.data.gouv.fr/entreprise/"

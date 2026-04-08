@@ -8,18 +8,23 @@ from gsl_core.table_columns import (
     COLUMN_BUDGET_VERT_DEMANDEUR,
     COLUMN_BUDGET_VERT_INSTRUCTEUR,
     COLUMN_CATEGORIE,
+    COLUMN_COFINANCEMENTS,
     COLUMN_COMMENT_1,
     COLUMN_COMMENT_2,
     COLUMN_COMMENT_3,
     COLUMN_COMPLETED_DOSSIER,
+    COLUMN_CONTRACTUALISATION,
     COLUMN_DATE_DEBUT_PROJET,
     COLUMN_DATE_FIN_PROJET,
     COLUMN_DEMANDEUR,
     COLUMN_DOTATIONS_SOLLICITEES,
+    COLUMN_EPCI,
     COLUMN_NOM_DEMANDEUR,
     COLUMN_NUMERO_DN,
+    COLUMN_ZONAGE,
     CellLink,
     Column,
+    ColumnWidth,
     StickyPosition,
     TextAlign,
 )
@@ -47,9 +52,10 @@ COLUMN_INTITULE = Column(
 
 COLUMN_COUT_TOTAL = Column(
     key="cout_total",
-    label="Coût total du projet (€)",
+    label="Coût total du projet (€)",
     getter=lambda ctx: euro_value(ctx["projet"].dossier_ds.finance_cout_total),
     text_align=TextAlign.RIGHT,
+    sort_param="cout",
 )
 
 
@@ -65,6 +71,7 @@ COLUMN_MONTANT_TAUX_DEMANDES = Column(
     label="Montant et taux demandés (€ / %)",
     getter=_get_montant_taux_demandes,
     text_align=TextAlign.RIGHT,
+    sort_param="montant_sollicite",
 )
 
 
@@ -115,18 +122,20 @@ def _get_other_dotation_statut(context):
 
 COLUMN_ASSIETTE = Column(
     key="assiette",
-    label="Assiette (€)",
+    label="Assiette (€)",
     getter=lambda ctx: euro_value(ctx["programmation_projet"].dotation_projet.assiette),
     other_dotation_getter=_get_other_dotation_assiette,
     text_align=TextAlign.RIGHT,
+    sort_param="assiette",
 )
 
 COLUMN_MONTANT_RETENU = Column(
     key="montant_retenu",
-    label="Montant prévisionnel accordé (€)",
+    label="Montant prévisionnel accordé (€)",
     getter=_get_montant_retenu,
     other_dotation_getter=_get_other_dotation_montant_retenu,
     text_align=TextAlign.RIGHT,
+    sort_param="montant",
 )
 
 COLUMN_TAUX = Column(
@@ -135,6 +144,8 @@ COLUMN_TAUX = Column(
     getter=lambda ctx: percent_value(ctx["programmation_projet"].taux, 2),
     other_dotation_getter=_get_other_dotation_taux,
     text_align=TextAlign.RIGHT,
+    width=ColumnWidth.MIN_105,
+    sort_param="taux",
 )
 
 COLUMN_DOCUMENTS = Column(
@@ -164,12 +175,16 @@ PROGRAMMATION_TABLE_COLUMNS = (
     COLUMN_NUMERO_DN,
     COLUMN_DEMANDEUR,
     COLUMN_ARRONDISSEMENT,
+    COLUMN_EPCI,
     COLUMN_NOM_DEMANDEUR,
     COLUMN_DOTATIONS_SOLLICITEES,
     COLUMN_DATE_DEBUT_PROJET,
     COLUMN_DATE_FIN_PROJET,
     COLUMN_BUDGET_VERT_DEMANDEUR,
     COLUMN_BUDGET_VERT_INSTRUCTEUR,
+    COLUMN_COFINANCEMENTS,
+    COLUMN_ZONAGE,
+    COLUMN_CONTRACTUALISATION,
     COLUMN_COUT_TOTAL,
     COLUMN_MONTANT_TAUX_DEMANDES,
     COLUMN_ASSIETTE,

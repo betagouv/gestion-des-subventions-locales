@@ -1,9 +1,11 @@
+from datetime import date, datetime, timezone
 from decimal import Decimal
 
 import pytest
 from django.test import RequestFactory
 
 from gsl_core.tests.factories import (
+    ArrondissementFactory,
     CollegueFactory,
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
@@ -24,7 +26,6 @@ from gsl_programmation.utils.programmation_projet_filters import (
 )
 from gsl_projet.constants import DOTATION_DETR
 from gsl_projet.tests.factories import (
-    CategorieDetrFactory,
     DemandeurFactory,
     DotationProjetFactory,
     ProjetFactory,
@@ -359,43 +360,6 @@ class TestProgrammationProjetFilters:
         assert prog_arr1 in result
         assert prog_arr2 in result
 
-    def test_categorie_detr_filter(
-        self, mock_request, enveloppe, arrondissement, departement
-    ):
-        """Test le filtre par catégorie DETR"""
-        # Créer des catégories DETR
-        categorie1 = CategorieDetrFactory(departement=departement.departement)
-        categorie2 = CategorieDetrFactory(departement=departement.departement)
-
-        # Créer des projets avec différentes catégories
-        projet1 = ProjetFactory(dossier_ds__perimetre=arrondissement)
-        projet2 = ProjetFactory(dossier_ds__perimetre=arrondissement)
-
-        dotation_projet1 = DotationProjetFactory(projet=projet1, dotation=DOTATION_DETR)
-        dotation_projet2 = DotationProjetFactory(projet=projet2, dotation=DOTATION_DETR)
-
-        # Associer les catégories aux dotations
-        dotation_projet1.detr_categories.add(categorie1)
-        dotation_projet2.detr_categories.add(categorie2)
-
-        dotation_projet1.refresh_from_db()
-        assert dotation_projet1.detr_categories.count() == 1
-
-        prog1 = ProgrammationProjetFactory(
-            dotation_projet=dotation_projet1, enveloppe=enveloppe
-        )
-        prog2 = ProgrammationProjetFactory(
-            dotation_projet=dotation_projet2, enveloppe=enveloppe
-        )
-
-        # Test filtre par catégorie spécifique
-        filterset = ProgrammationProjetFilters(
-            data={"categorie_detr": [categorie1.id]}, request=mock_request
-        )
-        result = list(filterset.qs)
-        assert prog1 in result
-        assert prog2 not in result
-
     def test_to_notify_filter(self, mock_request, enveloppe, arrondissement):
         """Test le filtre pour les projets à notifier"""
         from django.utils import timezone
@@ -507,6 +471,171 @@ class TestProgrammationProjetFilters:
         result = list(filterset.qs)
         assert result.index(prog_z) < result.index(prog_a)
 
+    def test_order_by_numero_dn(self, mock_request, enveloppe, arrondissement):
+        dossier_a = DossierFactory(ds_number=1000, perimetre=arrondissement)
+        dossier_z = DossierFactory(ds_number=9000, perimetre=arrondissement)
+        prog_a = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_a), dotation=DOTATION_DETR
+            ),
+            enveloppe=enveloppe,
+        )
+        prog_z = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_z), dotation=DOTATION_DETR
+            ),
+            enveloppe=enveloppe,
+        )
+
+        filterset = ProgrammationProjetFilters(
+            data={"order": "numero_dn"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert result.index(prog_a) < result.index(prog_z)
+
+        filterset = ProgrammationProjetFilters(
+            data={"order": "-numero_dn"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert result.index(prog_z) < result.index(prog_a)
+
+    def test_order_by_arrondissement(self, mock_request, enveloppe, arrondissement):
+        arr_a = ArrondissementFactory(name="Alpha-Arrondissement")
+        arr_z = ArrondissementFactory(name="Zulu-Arrondissement")
+        dossier_a = DossierFactory(
+            perimetre=arrondissement, porteur_de_projet_arrondissement=arr_a
+        )
+        dossier_z = DossierFactory(
+            perimetre=arrondissement, porteur_de_projet_arrondissement=arr_z
+        )
+        prog_a = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_a), dotation=DOTATION_DETR
+            ),
+            enveloppe=enveloppe,
+        )
+        prog_z = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_z), dotation=DOTATION_DETR
+            ),
+            enveloppe=enveloppe,
+        )
+
+        filterset = ProgrammationProjetFilters(
+            data={"order": "arrondissement"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert result.index(prog_a) < result.index(prog_z)
+
+    def test_order_by_montant_sollicite(self, mock_request, enveloppe, arrondissement):
+        dossier_a = DossierFactory(
+            demande_montant=Decimal("10000"), perimetre=arrondissement
+        )
+        dossier_z = DossierFactory(
+            demande_montant=Decimal("90000"), perimetre=arrondissement
+        )
+        prog_a = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_a), dotation=DOTATION_DETR
+            ),
+            enveloppe=enveloppe,
+        )
+        prog_z = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_z), dotation=DOTATION_DETR
+            ),
+            enveloppe=enveloppe,
+        )
+
+        filterset = ProgrammationProjetFilters(
+            data={"order": "montant_sollicite"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert result.index(prog_a) < result.index(prog_z)
+
+    def test_order_by_assiette(self, mock_request, enveloppe, arrondissement):
+        dossier_a = DossierFactory(perimetre=arrondissement)
+        dossier_z = DossierFactory(perimetre=arrondissement)
+        prog_a = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_a),
+                dotation=DOTATION_DETR,
+                assiette=Decimal("50000"),
+            ),
+            enveloppe=enveloppe,
+        )
+        prog_z = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_z),
+                dotation=DOTATION_DETR,
+                assiette=Decimal("200000"),
+            ),
+            enveloppe=enveloppe,
+        )
+
+        filterset = ProgrammationProjetFilters(
+            data={"order": "assiette"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert result.index(prog_a) < result.index(prog_z)
+
+    def test_order_by_taux(self, mock_request, enveloppe, arrondissement):
+        dossier_a = DossierFactory(perimetre=arrondissement)
+        dossier_z = DossierFactory(perimetre=arrondissement)
+        # prog_a: montant=10000 / assiette=100000 = 10%
+        prog_a = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_a),
+                dotation=DOTATION_DETR,
+                assiette=Decimal("100000"),
+            ),
+            enveloppe=enveloppe,
+            montant=Decimal("10000"),
+        )
+        # prog_z: montant=80000 / assiette=100000 = 80%
+        prog_z = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_z),
+                dotation=DOTATION_DETR,
+                assiette=Decimal("100000"),
+            ),
+            enveloppe=enveloppe,
+            montant=Decimal("80000"),
+        )
+
+        filterset = ProgrammationProjetFilters(
+            data={"order": "taux"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert result.index(prog_a) < result.index(prog_z)
+
+    def test_order_by_date_debut(self, mock_request, enveloppe, arrondissement):
+        dossier_a = DossierFactory(
+            perimetre=arrondissement, date_debut=date(2025, 1, 1)
+        )
+        dossier_z = DossierFactory(
+            perimetre=arrondissement, date_debut=date(2026, 6, 1)
+        )
+        prog_a = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_a), dotation=DOTATION_DETR
+            ),
+            enveloppe=enveloppe,
+        )
+        prog_z = ProgrammationProjetFactory(
+            dotation_projet=DotationProjetFactory(
+                projet=ProjetFactory(dossier_ds=dossier_z), dotation=DOTATION_DETR
+            ),
+            enveloppe=enveloppe,
+        )
+
+        # date_debut is a date field, ascending means earliest first
+        filterset = ProgrammationProjetFilters(
+            data={"order": "date_debut"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert result.index(prog_a) < result.index(prog_z)
+
     def test_multiple_filters_combination(
         self, mock_request, enveloppe, arrondissement
     ):
@@ -573,6 +702,131 @@ class TestProgrammationProjetFilters:
         # Vérifier que le périmètre de l'utilisateur est dans les choix
         perimetre_ids = [choice[0] for choice in territoire_choices]
         assert departement.id in perimetre_ids
+
+    def test_date_depot_filter(self, mock_request, enveloppe, arrondissement):
+        """Test les filtres par date de dépôt"""
+        dossier_ancien = DossierFactory(
+            ds_date_depot=datetime(2024, 1, 15, tzinfo=timezone.utc),
+            perimetre=arrondissement,
+        )
+        dossier_recent = DossierFactory(
+            ds_date_depot=datetime(2024, 6, 15, tzinfo=timezone.utc),
+            perimetre=arrondissement,
+        )
+
+        projet_ancien = ProjetFactory(dossier_ds=dossier_ancien)
+        projet_recent = ProjetFactory(dossier_ds=dossier_recent)
+
+        dotation_ancien = DotationProjetFactory(
+            projet=projet_ancien, dotation=DOTATION_DETR
+        )
+        dotation_recent = DotationProjetFactory(
+            projet=projet_recent, dotation=DOTATION_DETR
+        )
+
+        prog_ancien = ProgrammationProjetFactory(
+            dotation_projet=dotation_ancien, enveloppe=enveloppe
+        )
+        prog_recent = ProgrammationProjetFactory(
+            dotation_projet=dotation_recent, enveloppe=enveloppe
+        )
+
+        # Test filtre date_depot_after
+        filterset = ProgrammationProjetFilters(
+            data={"date_depot_after": "2024-03-01"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert prog_ancien not in result
+        assert prog_recent in result
+
+        # Test filtre date_depot_before
+        filterset = ProgrammationProjetFilters(
+            data={"date_depot_before": "2024-03-01"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert prog_ancien in result
+        assert prog_recent not in result
+
+        # Test boundary: dossier deposited on the cutoff date is included
+        filterset = ProgrammationProjetFilters(
+            data={"date_depot_before": "2024-01-15"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert prog_ancien in result
+        assert prog_recent not in result
+
+        # Test combinaison after + before
+        filterset = ProgrammationProjetFilters(
+            data={"date_depot_after": "2024-01-01", "date_depot_before": "2024-12-31"},
+            request=mock_request,
+        )
+        result = list(filterset.qs)
+        assert prog_ancien in result
+        assert prog_recent in result
+
+    def test_date_debut_filter(self, mock_request, enveloppe, arrondissement):
+        """Test les filtres par date de commencement de l'opération"""
+        dossier_tot = DossierFactory(
+            date_debut=date(2024, 3, 1), perimetre=arrondissement
+        )
+        dossier_tard = DossierFactory(
+            date_debut=date(2024, 9, 1), perimetre=arrondissement
+        )
+
+        projet_tot = ProjetFactory(dossier_ds=dossier_tot)
+        projet_tard = ProjetFactory(dossier_ds=dossier_tard)
+
+        dotation_tot = DotationProjetFactory(projet=projet_tot, dotation=DOTATION_DETR)
+        dotation_tard = DotationProjetFactory(
+            projet=projet_tard, dotation=DOTATION_DETR
+        )
+
+        prog_tot = ProgrammationProjetFactory(
+            dotation_projet=dotation_tot, enveloppe=enveloppe
+        )
+        prog_tard = ProgrammationProjetFactory(
+            dotation_projet=dotation_tard, enveloppe=enveloppe
+        )
+
+        # Test filtre date_debut_after
+        filterset = ProgrammationProjetFilters(
+            data={"date_debut_after": "2024-06-01"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert prog_tot not in result
+        assert prog_tard in result
+
+    def test_date_achevement_filter(self, mock_request, enveloppe, arrondissement):
+        """Test les filtres par date prévisionnelle d'achèvement"""
+        dossier_tot = DossierFactory(
+            date_achevement=date(2025, 1, 1), perimetre=arrondissement
+        )
+        dossier_tard = DossierFactory(
+            date_achevement=date(2025, 12, 1), perimetre=arrondissement
+        )
+
+        projet_tot = ProjetFactory(dossier_ds=dossier_tot)
+        projet_tard = ProjetFactory(dossier_ds=dossier_tard)
+
+        dotation_tot = DotationProjetFactory(projet=projet_tot, dotation=DOTATION_DETR)
+        dotation_tard = DotationProjetFactory(
+            projet=projet_tard, dotation=DOTATION_DETR
+        )
+
+        prog_tot = ProgrammationProjetFactory(
+            dotation_projet=dotation_tot, enveloppe=enveloppe
+        )
+        prog_tard = ProgrammationProjetFactory(
+            dotation_projet=dotation_tard, enveloppe=enveloppe
+        )
+
+        # Test filtre date_achevement_before
+        filterset = ProgrammationProjetFilters(
+            data={"date_achevement_before": "2025-06-01"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert prog_tot in result
+        assert prog_tard not in result
 
     def test_empty_filters(self, mock_request, enveloppe, arrondissement):
         """Test que sans filtres, tous les projets de l'enveloppe sont retournés"""

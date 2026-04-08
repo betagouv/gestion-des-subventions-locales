@@ -1,0 +1,28 @@
+{% load ui_tags %}
+{% range_field_context field as rc %}
+<div id="filter-{{ field.name }}" class="filter-field">
+    <div class="gsl-dropdown fr-mt-4w">
+        <button type="button"
+                class="fr-input {% if rc.has_data %}filter-dropdown-button-active{% endif %}">
+            <span class="{{ rc.icon }} fr-icon--sm blue-color fr-mr-1w"></span>
+            {{ rc.label }}
+        </button>
+        <div class="gsl-dropdown-content">
+            <div class="amount-filter-group">
+                <label class="fr-label" for="id_{{ rc.min_name }}">
+                    À partir du
+                </label>
+                {{ rc.min_widget }}
+            </div>
+            <div class="amount-filter-group">
+                <label class="fr-label" for="id_{{ rc.max_name }}">
+                    Jusqu'au
+                </label>
+                {{ rc.max_widget }}
+            </div>
+            <button type="submit" class="fr-btn fr-btn--sm">
+                Filtrer
+            </button>
+        </div>
+    </div>
+</div>

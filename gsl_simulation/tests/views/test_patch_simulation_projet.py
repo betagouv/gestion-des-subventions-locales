@@ -14,21 +14,15 @@ from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
 )
 from gsl_demarches_simplifiees.exceptions import DsServiceException
-from gsl_demarches_simplifiees.tests.factories import (
-    FieldMappingFactory,
-)
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-)
+from gsl_demarches_simplifiees.tests.factories import FieldMappingFactory
+from gsl_programmation.tests.factories import DetrEnveloppeFactory
 from gsl_projet.constants import (
     DOTATION_DETR,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_PROCESSING,
 )
 from gsl_projet.models import DotationProjet
-from gsl_projet.tests.factories import (
-    DotationProjetFactory,
-)
+from gsl_projet.tests.factories import DotationProjetFactory
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
@@ -115,7 +109,7 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
     assert response.status_code == 200
     assert updated_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
     assert dotation_projet.status == PROJET_STATUS_ACCEPTED
-    assert "1 projet validé" in parse_html(response.content.decode())
+    assert "1 projet accepté" in parse_html(response.content.decode())
     assert "0 projet refusé" in parse_html(response.content.decode())
     assert "0 projet notifié" in parse_html(response.content.decode())
     assert 'id="total-amount-granted">1\xa0000\xa0€</span>' in response.content.decode()

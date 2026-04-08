@@ -166,7 +166,6 @@ export class TipTapEditor extends Controller {
           const fields = this.mentionsValue
           return fields
             .filter(field => field.label.toLowerCase().startsWith(query.toLowerCase()))
-            .slice(0, 10)
         },
         render: () => {
           let popup
@@ -199,7 +198,7 @@ export class TipTapEditor extends Controller {
 
               // Créer le conteneur
               popup = document.createElement('div')
-              popup.className = 'mention-list'
+              popup.className = 'mention-list mention-dynamic-list'
               popup.setAttribute('tabindex', '-1') // Rendre focusable
 
               // Ajouter les éléments
@@ -281,7 +280,7 @@ export class TipTapEditor extends Controller {
                   )
 
                   const divItem = divItems[selectedIndex]
-                  const item = originalItems.find(i => i.id === Number(divItem.dataset.id))
+                  const item = originalItems.find(i => i.id === divItem.dataset.id)
                   selectItem(item)
                 }
                 return true

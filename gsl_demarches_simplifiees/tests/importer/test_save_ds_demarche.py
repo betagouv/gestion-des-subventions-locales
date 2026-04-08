@@ -239,8 +239,8 @@ def test_computer_mappings_are_created(demarche, demarche_data_without_dossier):
         FieldMapping.objects.filter(ds_field_type="DossierLinkChampDescriptor").count()
         == 4
     )
-    assert FieldMapping.objects.count() == 294
-    assert FieldMapping.objects.exclude(django_field="").count() == 243
+    assert FieldMapping.objects.count() == 295
+    assert FieldMapping.objects.exclude(django_field="").count() == 255
 
     demande_categorie_detr_mappings = FieldMapping.objects.filter(
         django_field="demande_categorie_detr"

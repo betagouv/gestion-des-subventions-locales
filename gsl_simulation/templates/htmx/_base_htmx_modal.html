@@ -25,7 +25,10 @@ If POST, the modal is already opened and the form is being sent:
     {% endif %}
     <dialog class="fr-modal"
             id="{{ modal_id }}"
-            aria-labelledby="{{ modal_id }}-title">
+            aria-labelledby="{{ modal_id }}-title"
+            hx-get="{% url 'simulation:refresh-simulation-row' pk=object.pk %}"
+            hx-trigger="dsfr.conceal"
+            hx-swap="delete">
         <div class="fr-container fr-container--fluid fr-container-md">
             <div class="fr-grid-row fr-grid-row--center">
                 <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">

@@ -1,4 +1,6 @@
-{% if territoire_choices|length != 0 and territoire_choices|length != 1 %}
+{% load ui_tags %}
+{% if territoire_choices|length > 1 %}
+    {% filter_placeholder field as placeholder %}
     <div class="filter-field">
         <div class="gsl-dropdown">
             <label class="fr-label" id="filter_territoire_label">
@@ -6,8 +8,8 @@
                 Territoire
             </label>
             <button type="button"
-                    class="fr-select {% if is_territoire_active %}filter-dropdown-button-active{% endif %}">
-                {{ territoire_placeholder }}
+                    class="fr-select {% if field.data %}filter-dropdown-button-active{% endif %}">
+                {{ placeholder }}
             </button>
             <div id="filter-territoire"
                  class="gsl-dropdown-content"
@@ -19,7 +21,7 @@
                                name="territoire"
                                value="{{ perimetre.id }}"
                                id="id_territoire_{{ forloop.counter }}"
-                               {% if perimetre.id in territoire_selected %}checked{% endif %}
+                               {% if perimetre.id|stringformat:"d" in field.data %}checked{% endif %}
                                data-fr-js-checkbox-input="true"
                                {% if perimetre.type.0 == 'R' %}data-region="{{ perimetre.region.pk }}"{% endif %}
                                {% if perimetre.type.0 == 'D' %} data-parent="{{ perimetre.region.pk }}" data-departement="{{ perimetre.departement.pk }}" {% endif %}

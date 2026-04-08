@@ -1,4 +1,5 @@
 from datetime import UTC
+from decimal import Decimal
 
 import pytest
 from django.db.models import Count, F, Q
@@ -28,9 +29,7 @@ from gsl_projet.tests.factories import (
     DsilProjetFactory,
     ProjetFactory,
 )
-from gsl_projet.views import (
-    BaseProjetFilters as ProjetFilters,
-)
+from gsl_projet.utils.projet_filters import ProjetFilters
 from gsl_projet.views import (
     ProjetListView,
     ProjetListViewFilters,
@@ -647,6 +646,60 @@ def test_order_by_montant_retenu(req, view, projets_with_montant_retenu):
     assert qs[0].dotation_detr.montant_retenu == 150_000
 
 
+def test_order_by_assiette(req, view, demandeur, perimetre):
+    projet_low = ProjetFactory(demandeur=demandeur, dossier_ds__perimetre=perimetre)
+    DetrProjetFactory(projet=projet_low, assiette=Decimal("50000"))
+
+    projet_high = ProjetFactory(demandeur=demandeur, dossier_ds__perimetre=perimetre)
+    DetrProjetFactory(projet=projet_high, assiette=Decimal("200000"))
+
+    request = req.get("/", data={"order": "assiette"})
+    view.request = request
+    qs = view.get_filterset(ProjetListViewFilters).qs
+
+    result = list(qs)
+    assert result.index(projet_low) < result.index(projet_high)
+
+
+def test_order_by_taux(req, view, demandeur, perimetre):
+    # projet_low: montant=10000, assiette=100000 -> taux=10%
+    projet_low = ProjetFactory(demandeur=demandeur, dossier_ds__perimetre=perimetre)
+    dp_low = DetrProjetFactory(projet=projet_low, assiette=Decimal("100000"))
+    ProgrammationProjetFactory(dotation_projet=dp_low, montant=Decimal("10000"))
+
+    # projet_high: montant=80000, assiette=100000 -> taux=80%
+    projet_high = ProjetFactory(demandeur=demandeur, dossier_ds__perimetre=perimetre)
+    dp_high = DetrProjetFactory(projet=projet_high, assiette=Decimal("100000"))
+    ProgrammationProjetFactory(dotation_projet=dp_high, montant=Decimal("80000"))
+
+    request = req.get("/", data={"order": "taux"})
+    view.request = request
+    qs = view.get_filterset(ProjetListViewFilters).qs
+
+    result = list(qs)
+    assert result.index(projet_low) < result.index(projet_high)
+
+
+def test_order_by_numero_dn(req, view, demandeur, perimetre):
+    projet_low = ProjetFactory(
+        demandeur=demandeur,
+        dossier_ds__ds_number=1000,
+        dossier_ds__perimetre=perimetre,
+    )
+    projet_high = ProjetFactory(
+        demandeur=demandeur,
+        dossier_ds__ds_number=9000,
+        dossier_ds__perimetre=perimetre,
+    )
+
+    request = req.get("/", data={"order": "numero_dn"})
+    view.request = request
+    qs = view.get_filterset(ProjetListViewFilters).qs
+
+    result = list(qs)
+    assert result.index(projet_low) < result.index(projet_high)
+
+
 ### Test du filtre par montant demandé
 
 
@@ -749,21 +802,6 @@ def test_filter_by_status(req, view, projets_with_status, status, expected_count
 
     assert qs.count() == expected_count
     assert qs.first().status == status
-
-
-def test_get_status_placeholder(req, view, projets_with_status):
-    request = req.get("/")
-    view.request = request
-    assert view._get_status_placeholder(ProjetListView.STATE_MAPPINGS) == "Tous"
-
-
-def test_get_status_placeholder_with_status(req, view, projets_with_status):
-    request = req.get("/", data={"status": ["accepted", "processing"]})
-    view.request = request
-    assert (
-        view._get_status_placeholder(ProjetListView.STATE_MAPPINGS)
-        == "✅ Accepté, 🔄 En traitement"
-    )
 
 
 ### Test du filtre par territoire

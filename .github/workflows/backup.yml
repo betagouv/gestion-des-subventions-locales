@@ -1,0 +1,55 @@
+name: Backup chiffré du code source
+
+on:
+  schedule:
+    - cron: "0 2 * * 1" # chaque lundi à 2h
+  workflow_dispatch:
+
+jobs:
+  backup:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Installer age
+        run: sudo apt-get install -y age
+
+      - name: Créer un bundle git
+        run: git bundle create repo.bundle --all
+
+      - name: Chiffrer avec age
+        run: |
+          echo "${{ secrets.BACKUP_AGE_PUBLIC_KEY }}" > recipient.pub
+          age -R recipient.pub -o repo.bundle.age repo.bundle
+
+      - name: Uploader sur Scaleway S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCALEWAY_S3_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCALEWAY_S3_SECRET }}
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          aws s3 cp repo.bundle.age \
+            s3://${{ secrets.SCALEWAY_BUCKET }}/backups/code/$DATE-gsl.bundle.age \
+            --endpoint-url https://s3.fr-par.scw.cloud
+
+      - name: Supprimer les sauvegardes de plus de 7 jours
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCALEWAY_S3_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCALEWAY_S3_SECRET }}
+        run: |
+          CUTOFF=$(date -d '3 months ago' +%Y-%m-%d)
+          aws s3 ls s3://${{ secrets.SCALEWAY_BUCKET }}/backups/code/ \
+            --endpoint-url https://s3.fr-par.scw.cloud \
+          | awk '{print $4}' \
+          | while read filename; do
+              filedate=$(echo "$filename" | grep -oP '^\d{4}-\d{2}-\d{2}')
+              if [[ "$filedate" < "$CUTOFF" ]]; then
+                aws s3 rm \
+                  s3://${{ secrets.SCALEWAY_BUCKET }}/backups/code/$filename \
+                  --endpoint-url https://s3.fr-par.scw.cloud
+              fi
+            done

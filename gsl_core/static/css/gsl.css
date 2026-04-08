@@ -135,27 +135,6 @@ ul.no-list-style li {
     font-size: 0.75rem;
 }
 
-.gsl-projet-table .fr-table__content thead th {
-    background-color: var(--background-alt-blue-france-hover);
-}
-
-/* Column widths scoped by table ID and column class */
-#table-projets .gsl-col--intitule,
-#table-programmation .gsl-col--intitule {
-    max-width: 180px;
-    width: 180px;
-    min-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-#table-simulation .gsl-col--intitule {
-    max-width: 180px;
-    width: 180px;
-    min-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
 
 #table-simulation .gsl-col--cout-total,
 #table-simulation .gsl-col--assiette,
@@ -176,12 +155,42 @@ ul.no-list-style li {
     text-overflow: ellipsis;
 }
 
+.gsl-col--180px-min {
+    max-width: 200px;
+    width: 200px;
+    min-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gsl-col--140px-min {
+    max-width: 150px;
+    width: 150px;
+    min-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gsl-col--105px-min {
+    max-width: 120px;
+    width: 120px;
+    min-width: 105px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .max-3-lines {
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+#table-projets .fr-btn--tooltip,
+#table-programmation .fr-btn--tooltip,
+#table-simulation .fr-btn--tooltip {
+    margin-bottom: -4px; /* to reduce the header height */
 }
 
 .gsl-projet-table {
@@ -192,6 +201,7 @@ ul.no-list-style li {
 .gsl-projet-table .gsl-projet-table__total {
     width: 100%;
     justify-content: center;
+    margin-top: 0.25rem;
     color: var(--text-title-blue-france);
     font-weight: 500;
     line-height: calc(14rem / 16);
@@ -199,7 +209,7 @@ ul.no-list-style li {
 }
 
 .gsl-projet-table .gsl-projet-table__total--total_cost {
-    background-color: var(--background-alt-blue-france);
+    background-color: var(--background-alt-blue-france-hover);
 }
 
 .gsl-projet-table .gsl-projet-table__total--total_amount_asked {
@@ -274,7 +284,6 @@ ul.no-list-style li {
 .gsl-projet-table thead .gsl-projet-table__sticky-right-1,
 .gsl-projet-table thead .gsl-projet-table__sticky-right-2 {
     z-index: 3;
-    background-color: var(--background-alt-blue-france-hover);
 }
 
 .gsl-projet-table__row--other-dotation .gsl-projet-table__sticky-left-1,
@@ -618,6 +627,8 @@ ul.no-list-style li {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin-left: calc(-50vw + 52%);
+    margin-right: calc(-50vw + 52%);
 }
 
 /* Column visibility dropdown */
@@ -659,4 +670,5 @@ ul.no-list-style li {
     padding: 0.75rem 10px 10px;
     margin-top: 0.25rem;
 }
+
 

@@ -1,0 +1,18 @@
+{% load gsl_filters %}
+{% column_cell_value column as cofinancements %}
+
+{% if cofinancements %}
+    <ul>
+        {% for cofinancement in cofinancements %}
+            <li>
+                {% if cofinancement.montant %}
+                    {{ cofinancement.nom }} : {{ cofinancement.montant|euro_value }}€
+                {% else %}
+                    {{ cofinancement.nom }}
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    —
+{% endif %}

@@ -1,6 +1,8 @@
 import base64
 import io
 import os
+from dataclasses import dataclass
+from enum import Enum
 from functools import lru_cache
 
 import boto3
@@ -8,12 +10,15 @@ import img2pdf
 import requests
 from bs4 import BeautifulSoup
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models.fields.files import FieldFile
 from django.template.loader import render_to_string
+from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django_weasyprint.utils import django_url_fetcher
+from num2words import num2words
 from pikepdf import Pdf
 from weasyprint import HTML
 
@@ -45,26 +50,157 @@ def get_nested_attribute(obj, attribute_path):
     """
     Récupère un attribut imbriqué en utilisant la notation en points.
     Par exemple: get_nested_attribute(programmation_projet, "dossier.date_achevement")
+    Retourne None si un intermédiaire est None ou si une relation inverse n'existe pas.
     """
     attributes = attribute_path.split(".")
     current_obj = obj
     for attr in attributes:
-        current_obj = getattr(current_obj, attr)
+        if current_obj is None:
+            return None
+        try:
+            current_obj = getattr(current_obj, attr)
+        except ObjectDoesNotExist:
+            return None
     return current_obj
 
 
-MENTION_TO_ATTRIBUTES = {
-    1: {"label": "Nom du bénéficiaire", "attribute": "dossier.ds_demandeur"},
-    2: {"label": "Intitulé du projet", "attribute": "dossier.projet_intitule"},
-    3: {
-        "label": "Nom du département",
-        "attribute": "projet.perimetre.departement.name",
-    },
-    4: {"label": "Montant prévisionnel de la subvention", "attribute": "montant"},
-    5: {"label": "Taux de subvention", "attribute": "taux"},
-    6: {"label": "Date de commencement", "attribute": "dossier.date_debut"},
-    7: {"label": "Date d'achèvement", "attribute": "dossier.date_achevement"},
-}
+class MentionType(Enum):
+    STRING = "string"
+    EURO = "euro"
+    EURO_LETTRES = "euro_lettres"
+    PERCENT = "percent"
+    DATE = "date"
+    DATE_NOW = "date_now"
+    TEXT_ONLY = "text_only"
+
+
+@dataclass(frozen=True)
+class Mention:
+    key: str
+    label: str
+    attribute: str
+    type: MentionType = MentionType.STRING
+
+    def get_value(self, programmation_projet: ProgrammationProjet) -> str:
+        if self.type == MentionType.DATE_NOW:
+            return timezone.now().strftime("%d/%m/%Y")
+        value = get_nested_attribute(programmation_projet, self.attribute)
+        match self.type:
+            case MentionType.EURO:
+                return euro(value, 2) if value is not None else "N/A"
+            case MentionType.EURO_LETTRES:
+                return (
+                    num2words(value, lang="fr", to="currency", currency="EUR")
+                    if value is not None
+                    else "N/A"
+                )
+            case MentionType.PERCENT:
+                return percent(value, 2) if value is not None else "N/A"
+            case MentionType.DATE:
+                return value.strftime("%d/%m/%Y") if value else "N/A"
+            case MentionType.TEXT_ONLY:
+                return BeautifulSoup(value, "html.parser").get_text() if value else ""
+            case _:
+                return str(value) if value is not None else ""
+
+
+MENTIONS = [
+    Mention("numero-dossier", "Numéro DN du dossier", "dossier.ds_number"),
+    Mention(
+        "date-depot",
+        "Date de dépôt du dossier",
+        "dossier.ds_date_depot",
+        MentionType.DATE,
+    ),
+    Mention("nom-beneficiaire", "Nom du bénéficiaire", "dossier.ds_demandeur"),
+    Mention(
+        "siret-beneficiaire", "SIRET du bénéficiaire", "dossier.ds_demandeur.siret"
+    ),
+    Mention("projet-intitule", "Intitulé du projet", "dossier.projet_intitule"),
+    Mention(
+        "nom-departement", "Nom du département", "projet.perimetre.departement.name"
+    ),
+    Mention(
+        "cout-total",
+        "Coût total de l'opération",
+        "dossier.finance_cout_total",
+        MentionType.EURO,
+    ),
+    Mention("assiette", "Assiette", "dotation_projet.assiette", MentionType.EURO),
+    Mention(
+        "montant-subvention",
+        "Montant accordé",
+        "montant",
+        MentionType.EURO,
+    ),
+    Mention(
+        "montant-subvention-lettres",
+        "Montant accordé (toutes lettres)",
+        "montant",
+        MentionType.EURO_LETTRES,
+    ),
+    Mention("taux-subvention", "Taux de subvention", "taux", MentionType.PERCENT),
+    Mention(
+        "date-commencement",
+        "Date de commencement",
+        "dossier.date_debut",
+        MentionType.DATE,
+    ),
+    Mention(
+        "date-achevement",
+        "Date d'achèvement",
+        "dossier.date_achevement",
+        MentionType.DATE,
+    ),
+    Mention(
+        "porteur-fonction",
+        "Fonction du porteur de projet",
+        "dossier.porteur_de_projet_fonction",
+    ),
+    Mention(
+        "porteur-civilite",
+        "Civilité du porteur de projet",
+        "dossier.porteur_de_projet_civilite",
+    ),
+    Mention(
+        "porteur-prenom",
+        "Prénom du porteur de projet",
+        "dossier.porteur_de_projet_prenom",
+    ),
+    Mention("porteur-nom", "Nom du porteur de projet", "dossier.porteur_de_projet_nom"),
+    Mention(
+        "adresse-demandeur",
+        "Adresse du demandeur",
+        "dossier.ds_demandeur.address",
+    ),
+    Mention(
+        "date-arrete",
+        "Date d'édition de l'arrêté",
+        "",
+        MentionType.DATE_NOW,
+    ),
+    Mention(
+        "commentaire-1",
+        "Commentaire 1",
+        "projet.comment_1",
+        MentionType.TEXT_ONLY,
+    ),
+    Mention(
+        "commentaire-2",
+        "Commentaire 2",
+        "projet.comment_2",
+        MentionType.TEXT_ONLY,
+    ),
+    Mention(
+        "commentaire-3",
+        "Commentaire 3",
+        "projet.comment_3",
+        MentionType.TEXT_ONLY,
+    ),
+]
+
+
+MENTION_KEY_TO_MENTION: dict[str, Mention] = {m.key: m for m in MENTIONS}
 
 
 def replace_mentions_in_html(
@@ -73,24 +209,12 @@ def replace_mentions_in_html(
     soup = BeautifulSoup(htmlContent, "html.parser")
 
     for span in soup.find_all("span", class_="mention"):
-        id = int(span.get("data-id"))
-        if id not in MENTION_TO_ATTRIBUTES:
-            raise ValueError(f"Mention {id} inconnue.")
-        value = get_nested_attribute(
-            programmation_projet,
-            MENTION_TO_ATTRIBUTES.get(id)["attribute"],
-        )
-        if id == 4:
-            value = euro(value, 2)
-        elif id == 5:
-            value = percent(value, 4)
-        elif id in [6, 7]:
-            value = value.strftime("%d/%m/%Y") if value else "N/A"
+        key = span.get("data-id")
+        if key not in MENTION_KEY_TO_MENTION:
+            raise ValueError(f"Mention {key!r} inconnue.")
+        span.replace_with(MENTION_KEY_TO_MENTION[key].get_value(programmation_projet))
 
-        span.replace_with(f"{value}")
-
-    new_text = str(soup)
-    return new_text
+    return str(soup)
 
 
 def update_file_name_to_put_it_in_a_programmation_projet_folder(

@@ -1,7 +1,5 @@
-from functools import cached_property
-
 from django.contrib import messages
-from django.db.models import Prefetch, Sum
+from django.db.models import Case, DecimalField, F, Max, Prefetch, Sum, When
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -10,17 +8,24 @@ from django.views.generic import ListView, UpdateView
 from django_filters.views import FilterView
 
 from gsl_core.exceptions import Http404
-from gsl_demarches_simplifiees.models import Demarche
-from gsl_projet.constants import PROJET_STATUS_CHOICES
+from gsl_demarches_simplifiees.models import (
+    CategorieDetr,
+    CategorieDsil,
+    Cofinancement,
+    ProjetContractualisation,
+    ProjetZonage,
+)
 from gsl_projet.forms import ProjetCommentForm
-from gsl_projet.services.projet_services import ProjetService
 from gsl_projet.utils.django_filters_custom_widget import CustomSelectWidget
-from gsl_projet.utils.filter_utils import FilterUtils
-from gsl_projet.utils.projet_filters import BaseProjetFilters, ProjetOrderingFilter
+from gsl_projet.utils.projet_filters import (
+    ORDERING_MAP,
+    ProjetFilters,
+    ProjetOrderingFilter,
+)
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_projet.utils.utils import get_comment_cards
 
-from .models import CategorieDetr, Projet
+from .models import Projet
 from .table_columns import PROJET_TABLE_COLUMNS, SANS_PIECES_SKIP_KEYS
 
 
@@ -100,7 +105,7 @@ class ProjetCommentUpdateView(UpdateView):
         return redirect(self._get_redirect_url())
 
 
-class ProjetListViewFilters(BaseProjetFilters):
+class ProjetListViewFilters(ProjetFilters):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if hasattr(self.request, "user") and self.request.user.perimetre:
@@ -108,47 +113,95 @@ class ProjetListViewFilters(BaseProjetFilters):
             self.filters["territoire"].extra["choices"] = tuple(
                 (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
             )
-            if perimetre.departement:
-                self.filters["categorie_detr"].extra["choices"] = tuple(
-                    (c.id, c.libelle)
-                    for c in CategorieDetr.objects.current_for_departement(
-                        perimetre.departement
-                    )
-                )
 
-    ORDERING_MAP = {
-        **BaseProjetFilters.ORDERING_MAP,
+        selected_dotations = self.data.getlist("dotation")
+        visible_projets = Projet.objects.for_user(self.request.user).for_current_year()
+
+        detr_selected = (
+            "DETR" in selected_dotations or "DETR_et_DSIL" in selected_dotations
+        )
+        if detr_selected:
+            self.filters["categorie_detr"].extra["choices"] = tuple(
+                (str(c.id), c.complete_label)
+                for c in CategorieDetr.objects.active()
+                .filter(dossier__projet__in=visible_projets)
+                .distinct()
+                .order_by("rank")
+            )
+        else:
+            del self.filters["categorie_detr"]
+
+        dsil_selected = (
+            "DSIL" in selected_dotations or "DETR_et_DSIL" in selected_dotations
+        )
+        if dsil_selected:
+            self.filters["categorie_dsil"].extra["choices"] = tuple(
+                (str(c.id), c.label)
+                for c in CategorieDsil.objects.active()
+                .filter(dossier__projet__in=visible_projets)
+                .distinct()
+                .order_by("rank", "label")
+            )
+        else:
+            del self.filters["categorie_dsil"]
+
+        visible_dossiers = visible_projets.values("dossier_ds")
+
+        self.filters["cofinancement"].extra["choices"] = tuple(
+            (str(c.id), c.label)
+            for c in Cofinancement.objects.filter(dossier__in=visible_dossiers)
+            .distinct()
+            .order_by("id")
+        )
+
+        self.filters["zonage"].extra["choices"] = tuple(
+            (str(z.id), z.label)
+            for z in ProjetZonage.objects.filter(dossier__in=visible_dossiers)
+            .distinct()
+            .order_by("id")
+        )
+
+        self.filters["contractualisation"].extra["choices"] = tuple(
+            (str(c.id), c.label)
+            for c in ProjetContractualisation.objects.filter(
+                dossier__in=visible_dossiers
+            )
+            .distinct()
+            .order_by("id")
+        )
+
+    PROJET_LIST_ORDERING_MAP = {
+        **ORDERING_MAP,
         "montant_retenu_total": "montant_retenu",
-    }
-
-    ORDERING_LABELS = {
-        **BaseProjetFilters.ORDERING_LABELS,
-        "montant_retenu_total": "Montant retenu",
+        "assiette_max": "assiette",
+        "taux_max": "taux",
     }
 
     order = ProjetOrderingFilter(
-        fields=ORDERING_MAP,
-        field_labels=ORDERING_LABELS,
+        fields=PROJET_LIST_ORDERING_MAP,
         empty_label="Tri",
         widget=CustomSelectWidget,
-    )
-
-    filterset = (
-        "territoire",
-        "porteur",
-        "dotation",
-        "status",
-        "cout_total",
-        "montant_demande",
-        "montant_retenu",
-        "categorie_detr",
     )
 
     @property
     def qs(self):
         qs = super().qs
         qs = qs.annotate(
-            montant_retenu_total=Sum("dotationprojet__programmation_projet__montant")
+            montant_retenu_total=Sum("dotationprojet__programmation_projet__montant"),
+            assiette_max=Max("dotationprojet__assiette"),
+            taux_max=Max(
+                Case(
+                    When(
+                        dotationprojet__assiette__gt=0,
+                        dotationprojet__programmation_projet__montant__isnull=False,
+                        then=F("dotationprojet__programmation_projet__montant")
+                        * 100.0
+                        / F("dotationprojet__assiette"),
+                    ),
+                    default=None,
+                    output_field=DecimalField(),
+                )
+            ),
         )
         qs = qs.for_user(self.request.user)
         qs = qs.for_current_year()
@@ -157,26 +210,27 @@ class ProjetListViewFilters(BaseProjetFilters):
             "address__commune",
             "demandeur",
             "dossier_ds",
+        ).prefetch_related(
             "dossier_ds__perimetre",
             "dossier_ds__demande_categorie_detr",
             "dossier_ds__demande_categorie_dsil",
-        ).prefetch_related(
-            # "dotationprojet_set__detr_categories", # TODO category : useless now. Remove it if we don't allow to set DETR category. The code is commented to enhance performance.
+            "dossier_ds__porteur_de_projet_arrondissement",
             "dotationprojet_set__programmation_projet",
+            "dossier_ds__demande_cofinancements",
+            "dossier_ds__projet_zonage",
+            "dossier_ds__projet_contractualisation",
             Prefetch(
                 "dossier_ds__ds_demarche",
-                queryset=Demarche.objects.defer("raw_ds_data"),
             ),
         )
         return qs
 
 
-class ProjetListView(FilterView, ListView, FilterUtils):
+class ProjetListView(FilterView, ListView):
     model = Projet
     paginate_by = 25
     filterset_class = ProjetListViewFilters
     template_name = "gsl_projet/projet_list.html"
-    STATE_MAPPINGS = {key: value for key, value in PROJET_STATUS_CHOICES}
 
     def get(self, request, *args, **kwargs):
         if "reset_filters" in request.GET:
@@ -193,53 +247,24 @@ class ProjetListView(FilterView, ListView, FilterUtils):
         )  # utile pour ne pas avoir la pagination de context["object_list"]
         context["title"] = "Projets"
         context["breadcrumb_dict"] = {}
-        context["total_cost"] = ProjetService.get_total_cost(qs_global)
-        context["total_amount_asked"] = ProjetService.get_total_amount_asked(qs_global)
-        context["total_amount_granted"] = ProjetService.get_total_amount_granted(
-            qs_global
-        )
+        context["aggregates"] = qs_global.totals()
         context["enveloppes"] = (
             self.request.user.perimetre.enveloppe_set.for_current_year().all()
         )
         context["enveloppes_with_children"] = True
         context["columns"] = PROJET_TABLE_COLUMNS
-        context["aggregates"] = {
-            "total_cost": context["total_cost"],
-            "total_amount_asked": context["total_amount_asked"],
-            "total_amount_granted": context["total_amount_granted"],
-        }
+        context["current_order"] = self.request.GET.get("order", "")
         context["sans_pieces_skip_keys"] = SANS_PIECES_SKIP_KEYS
         context["missing_annotations_count"] = (
             Projet.objects.for_user(self.request.user)
             .with_missing_annotations()
             .count()
         )
-        self.enrich_context_with_filter_utils(context, self.STATE_MAPPINGS)
+        perimetre = getattr(self.request.user, "perimetre", None)
+        if perimetre:
+            context["territoire_choices"] = (perimetre, *perimetre.children())
 
         return context
-
-    def _get_perimetre(self):
-        if hasattr(self.request, "user") and self.request.user.perimetre:
-            return self.request.user.perimetre
-
-    def _get_territoire_choices(self):
-        perimetre = self._get_perimetre()
-        if not perimetre:
-            return ()
-
-        return (perimetre, *perimetre.children())
-
-    # TODO category : useless now. Remove it unless we use it to filter DETR projects.
-    @cached_property
-    def categorie_detr_choices(self):
-        perimetre = self._get_perimetre()
-        if not perimetre:
-            return ()
-
-        if not perimetre.departement:
-            return ()
-
-        return CategorieDetr.objects.current_for_departement(perimetre.departement)
 
 
 class ProjetMissingAnnotationsListView(ListView):

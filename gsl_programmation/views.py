@@ -1,5 +1,3 @@
-from functools import cached_property
-
 from django.contrib import messages
 from django.contrib.auth.views import RedirectURLMixin
 from django.db.models import ProtectedError
@@ -16,6 +14,10 @@ from django_filters.views import FilterView
 
 from gsl_core.exceptions import Http404
 from gsl_core.matomo import queue_matomo_event
+from gsl_core.matomo_constants import (
+    MATOMO_ACTION_CREATION_SOUS_ENVELOPPE,
+    MATOMO_CATEGORY_SOUS_ENVELOPPE,
+)
 from gsl_core.models import Perimetre
 from gsl_programmation.forms import SubEnveloppeCreateForm, SubEnveloppeUpdateForm
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
@@ -28,8 +30,7 @@ from gsl_projet.constants import (
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
 )
-from gsl_projet.models import CategorieDetr, Projet
-from gsl_projet.utils.filter_utils import FilterUtils
+from gsl_projet.models import Projet
 from gsl_projet.utils.projet_page import PROJET_MENU
 from gsl_projet.utils.utils import get_comment_cards
 
@@ -135,14 +136,13 @@ class ProgrammationProjetDetailView(DetailView):
         return url
 
 
-class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
+class ProgrammationProjetListView(FilterView, ListView):
     model = ProgrammationProjet
     filterset_class = ProgrammationProjetFilters
     template_name = "gsl_programmation/programmation_projet_list.html"
     context_object_name = "programmation_projets"
     paginate_by = 25
     ordering = ["-created_at"]
-    STATE_MAPPINGS = {key: value for key, value in ProgrammationProjet.STATUS_CHOICES}
 
     def get_queryset(self):
         return (
@@ -151,16 +151,34 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
             .select_related(
                 "dotation_projet",
                 "dotation_projet__projet",
+                "dotation_projet__projet__demandeur",
                 "dotation_projet__projet__dossier_ds",
-                "dotation_projet__projet__dossier_ds__demande_categorie_dsil",
             )
             .prefetch_related(
-                "dotation_projet__projet__dotationprojet_set",
-                "dotation_projet__projet__dotationprojet_set__programmation_projet",
-                "dotation_projet__projet__dotationprojet_set__simulationprojet_set",
-                "dotation_projet__projet__dotationprojet_set__detr_categories",
+                "arrete",
+                "lettre_notification",
+                "arrete_et_lettre_signes",
+                "enveloppe",
                 "annexes",
+                "enveloppe__perimetre",
+                "dotation_projet__projet__dotationprojet_set",
+                "dotation_projet__projet__dotationprojet_set__simulationprojet_set",
+                "dotation_projet__projet__dotationprojet_set__programmation_projet",
+                "dotation_projet__projet__dotationprojet_set__programmation_projet__arrete",
+                "dotation_projet__projet__dotationprojet_set__programmation_projet__lettre_notification",
+                "dotation_projet__projet__dotationprojet_set__programmation_projet__arrete_et_lettre_signes",
+                "dotation_projet__projet__dotationprojet_set__programmation_projet__enveloppe",
+                "dotation_projet__projet__dotationprojet_set__programmation_projet__annexes",
+                "dotation_projet__projet__dossier_ds__demande_categorie_dsil",
+                "dotation_projet__projet__dossier_ds__demande_categorie_detr",
+                "dotation_projet__projet__dossier_ds__ds_demarche",
+                "dotation_projet__projet__dossier_ds__perimetre",
+                "dotation_projet__projet__dossier_ds__porteur_de_projet_arrondissement",
+                "dotation_projet__projet__dossier_ds__demande_cofinancements",
+                "dotation_projet__projet__dossier_ds__projet_zonage",
+                "dotation_projet__projet__dossier_ds__projet_contractualisation",
             )
+            .defer("dotation_projet__projet__dossier_ds__ds_demarche__raw_ds_data")
         )
 
     def get(self, request, *args, **kwargs):
@@ -188,31 +206,17 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
             else:
                 return redirect("/")
 
-        enveloppe_qs = (
-            Enveloppe.objects.select_related(
-                "perimetre",
-                "perimetre__region",
-                "perimetre__departement",
-                "perimetre__arrondissement",
-            )
-            .filter(dotation=self.dotation)
-            .for_current_year()
-        )
-
-        try:
-            self.enveloppe = enveloppe_qs.get(perimetre=self.perimetre)
-        except Enveloppe.DoesNotExist:
-            self.enveloppe = None
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        enveloppe = self.filterset.enveloppe
         title = "Programmation en cours"
-        if self.enveloppe:
-            title = f"Programmation {self.enveloppe.dotation} {self.enveloppe.annee}"
+        if enveloppe:
+            title = f"Programmation {enveloppe.dotation} {enveloppe.annee}"
         context.update(
             {
-                "enveloppe": self.enveloppe,
+                "enveloppe": enveloppe,
                 "dotation": self.dotation,
                 "title": title,
                 "to_notify_projets_count": self.object_list.to_notify().count(),
@@ -221,41 +225,18 @@ class ProgrammationProjetListView(FilterView, ListView, FilterUtils):
                 "breadcrumb_dict": {
                     "current": "Programmation en cours",
                 },
-                "current_tab": self.dotation,
+                "current_order": self.request.GET.get("order", ""),
                 "columns": PROGRAMMATION_TABLE_COLUMNS,
             }
         )
 
-        ignore_categories_detr = bool(self.dotation == DOTATION_DSIL)
-        self.enrich_context_with_filter_utils(
-            context, self.STATE_MAPPINGS, ignore_categories_detr=ignore_categories_detr
-        )
+        if self.perimetre:
+            context["territoire_choices"] = (
+                self.perimetre,
+                *self.perimetre.children(),
+            )
 
         return context
-
-    # Filter functions
-
-    def _get_perimetre(self):
-        return self.perimetre
-
-    def _get_territoire_choices(self):
-        perimetre = self._get_perimetre()
-        if not perimetre:
-            return ()
-
-        return (perimetre, *perimetre.children())
-
-    # TODO category : useless now. Remove it unless we use it to filter DETR projects.
-    @cached_property
-    def categorie_detr_choices(self):
-        perimetre = self._get_perimetre()
-        if not perimetre:
-            return ()
-
-        if not perimetre.departement:
-            return ()
-
-        return CategorieDetr.objects.current_for_departement(perimetre.departement)
 
 
 class EnveloppeCreateView(RedirectURLMixin, CreateView):
@@ -272,8 +253,8 @@ class EnveloppeCreateView(RedirectURLMixin, CreateView):
         response = super().form_valid(form)
         queue_matomo_event(
             self.request,
-            "SousEnveloppe",
-            "creation_sous_enveloppe",
+            MATOMO_CATEGORY_SOUS_ENVELOPPE,
+            MATOMO_ACTION_CREATION_SOUS_ENVELOPPE,
             f"{self.object.dotation} - {self.object.perimetre.type}",
         )
         return response

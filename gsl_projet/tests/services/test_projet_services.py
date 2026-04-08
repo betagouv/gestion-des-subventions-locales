@@ -67,23 +67,22 @@ def other_projets():
 
 
 @pytest.mark.django_db
-def test_get_total_cost(projets_with_finance_cout_total):
-    qs = Projet.objects.all()
-    assert ps.get_total_cost(qs) == 40_000
+def test_totals_cost(projets_with_finance_cout_total):
+    assert Projet.objects.all().totals()["total_cost"] == 40_000
 
 
 @pytest.mark.django_db
-def test_get_same_total_cost_even_if_there_is_other_projets(
+def test_totals_cost_with_filtered_qs(
     projets_with_finance_cout_total,
     other_projets,
 ):
     projet_ids = [projet.id for projet in projets_with_finance_cout_total]
-    qs = Projet.objects.filter(id__in=projet_ids).all()
-    assert ps.get_total_cost(qs) == 40_000
+    qs = Projet.objects.filter(id__in=projet_ids)
+    assert qs.totals()["total_cost"] == 40_000
 
 
 @pytest.mark.django_db
-def test_get_total_amount_granted():
+def test_totals_amount_granted():
     dotation_projet_1 = DotationProjetFactory()
     dotation_projet_2 = DotationProjetFactory()
     dotation_projet_3 = DotationProjetFactory()
@@ -105,8 +104,7 @@ def test_get_total_amount_granted():
         montant=0,
     )
 
-    qs = Projet.objects.all()
-    assert ps.get_total_amount_granted(qs) == 30_000
+    assert Projet.objects.all().totals()["total_amount_granted"] == 30_000
 
 
 @pytest.fixture
@@ -130,13 +128,13 @@ def other_projets_with_demande_montant() -> None:
 
 
 @pytest.mark.django_db
-def test_get_total_amount_asked(
+def test_totals_amount_asked(
     projets_with_demande_montant,
     other_projets_with_demande_montant,
 ):
     projet_ids = [projet.id for projet in projets_with_demande_montant]
-    qs = Projet.objects.filter(id__in=projet_ids).all()
-    assert ps.get_total_amount_asked(qs) == 15_000 + 25_000
+    qs = Projet.objects.filter(id__in=projet_ids)
+    assert qs.totals()["total_amount_asked"] == 15_000 + 25_000
 
 
 @pytest.fixture

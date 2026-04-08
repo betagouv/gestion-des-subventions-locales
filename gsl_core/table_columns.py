@@ -2,7 +2,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Optional
 
+from django.utils.html import format_html
+
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_projet.constants import ANNUAIRE_ENTREPRISE_URL
 
 
 class StickyPosition(Enum):
@@ -17,6 +20,12 @@ class TextAlign(Enum):
     LEFT = "left"
     RIGHT = "right"
     CENTER = "center"
+
+
+class ColumnWidth(Enum):
+    MIN_105 = "gsl-col--105px-min"
+    MIN_140 = "gsl-col--140px-min"
+    MIN_180 = "gsl-col--180px-min"
 
 
 COMMON_CELL_TEMPLATE = "gsl_core/table_cells/_common_cell.html"
@@ -74,6 +83,7 @@ class Column:
     text_align: Optional[TextAlign] = None
     max_3_lines: bool = False
     linebreaks: bool = False
+    width: Optional[ColumnWidth] = None
 
     # Column visibility toggle
     hideable: bool = True
@@ -85,6 +95,9 @@ class Column:
     aggregate_id: Optional[str] = None
     header_template_name: Optional[str] = None
     header_help_text: Optional[str] = None
+
+    # Sorting: maps to the `?order=` GET param name (e.g., "date", "cout")
+    sort_param: Optional[str] = None
 
     def __post_init__(self):
         if not self.template_name and not self.getter:
@@ -119,13 +132,29 @@ class Column:
         return ""
 
     @property
+    def width_class(self) -> str:
+        if self.width is None:
+            return ""
+        return self.width.value
+
+    @property
     def th_classes(self) -> str:
-        return " ".join(filter(None, [self.css_class, self.sticky_class]))
+        return " ".join(
+            filter(None, [self.css_class, self.sticky_class, self.width_class])
+        )
 
     @property
     def td_classes(self) -> str:
         return " ".join(
-            filter(None, [self.css_class, self.sticky_class, self.align_class])
+            filter(
+                None,
+                [
+                    self.css_class,
+                    self.sticky_class,
+                    self.align_class,
+                    self.width_class,
+                ],
+            )
         )
 
     @property
@@ -171,6 +200,7 @@ COLUMN_NUMERO_DN = Column(
         title="Voir le dossier sur Démarche Numérique",
     ),
     sticky=StickyPosition.LEFT_3,
+    sort_param="numero_dn",
 )
 
 COLUMN_DEMANDEUR = Column(
@@ -178,6 +208,7 @@ COLUMN_DEMANDEUR = Column(
     label="Demandeur",
     getter=lambda ctx: _format_demandeur_nom(ctx["projet"].demandeur.name),
     max_3_lines=True,
+    sort_param="demandeur",
 )
 
 COLUMN_NOTIFICATION = Column(
@@ -216,6 +247,7 @@ COLUMN_CATEGORIE = Column(
         ctx["other_dotation"]
     ),
     max_3_lines=True,
+    width=ColumnWidth.MIN_140,
 )
 
 COLUMN_DATE_DEPOT = Column(
@@ -224,6 +256,7 @@ COLUMN_DATE_DEPOT = Column(
     template_name="gsl_core/table_cells/date_depot.html",
     sticky=StickyPosition.LEFT_1,
     text_align=TextAlign.CENTER,
+    sort_param="date",
 )
 
 COLUMN_DOTATIONS_SOLLICITEES = Column(
@@ -244,6 +277,7 @@ COLUMN_DATE_DEBUT_PROJET = Column(
     getter=lambda ctx: _format_date_or_dash(ctx["projet"].dossier_ds.date_debut),
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
+    sort_param="date_debut",
 )
 
 COLUMN_DATE_FIN_PROJET = Column(
@@ -252,6 +286,7 @@ COLUMN_DATE_FIN_PROJET = Column(
     getter=lambda ctx: _format_date_or_dash(ctx["projet"].dossier_ds.date_achevement),
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
+    sort_param="date_fin",
 )
 
 COLUMN_ARRONDISSEMENT = Column(
@@ -264,6 +299,31 @@ COLUMN_ARRONDISSEMENT = Column(
     ),
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
+    sort_param="arrondissement",
+)
+
+
+def _get_epci_cell(ctx):
+    epci_raw = ctx["projet"].dossier_ds.porteur_de_projet_epci
+    if not epci_raw:
+        return "-"
+    parts = epci_raw.split(" - ", 1)
+    if len(parts) == 2:
+        code, name = parts
+        url = f"{ANNUAIRE_ENTREPRISE_URL}{code}"
+        return format_html(
+            '<a href="{}" target="_blank" rel="noreferrer noopener">{}</a>', url, name
+        )
+    return epci_raw
+
+
+COLUMN_EPCI = Column(
+    key="epci",
+    label="EPCI",
+    getter=_get_epci_cell,
+    displayed_by_default=False,
+    width=ColumnWidth.MIN_140,
+    sort_param="epci",
 )
 
 COLUMN_NOM_DEMANDEUR = Column(
@@ -272,6 +332,7 @@ COLUMN_NOM_DEMANDEUR = Column(
     getter=lambda ctx: ctx["projet"].dossier_ds.porteur_fullname,
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
+    sort_param="nom_demandeur",
 )
 
 COLUMN_BUDGET_VERT_DEMANDEUR = Column(
@@ -291,6 +352,36 @@ COLUMN_BUDGET_VERT_INSTRUCTEUR = Column(
     displayed_by_default=False,
     text_align=TextAlign.CENTER,
 )
+
+COLUMN_COFINANCEMENTS = Column(
+    key="cofinancements",
+    label="Co-financements sollicités",
+    getter=lambda ctx: ctx["projet"].dossier_ds.cofinancements_avec_montants,
+    template_name="gsl_core/table_cells/cofinancements.html",
+    displayed_by_default=False,
+    width=ColumnWidth.MIN_180,
+)
+
+
+COLUMN_ZONAGE = Column(
+    key="zonage",
+    label="Zonage",
+    getter=lambda ctx: ctx["projet"].dossier_ds.zonages,
+    template_name="gsl_core/table_cells/_list_cell.html",
+    displayed_by_default=False,
+    width=ColumnWidth.MIN_180,
+)
+
+
+COLUMN_CONTRACTUALISATION = Column(
+    key="contractualisation",
+    label="Contractualisation",
+    getter=lambda ctx: ctx["projet"].dossier_ds.contractualisations,
+    template_name="gsl_core/table_cells/_list_cell.html",
+    displayed_by_default=False,
+    width=ColumnWidth.MIN_180,
+)
+
 
 COLUMN_COMPLETED_DOSSIER = Column(
     key="completed_dossier",

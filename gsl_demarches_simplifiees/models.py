@@ -13,6 +13,7 @@ from gsl_core.models import (
     Perimetre,
 )
 from gsl_projet.constants import (
+    ANNUAIRE_ENTREPRISE_URL,
     DOTATION_DETR,
     DOTATION_DSIL,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
@@ -280,6 +281,12 @@ class Dossier(BaseModel):
         blank=True,
         null=True,
     )
+    porteur_de_projet_epci = models.CharField(
+        "EPCI à fiscalité propre dont est membre la commune", blank=True
+    )
+    porteur_de_projet_civilite = models.CharField(
+        "Civilité du porteur de projet", blank=True
+    )
     porteur_de_projet_fonction = models.CharField(
         "Fonction du porteur de projet", blank=True
     )
@@ -398,9 +405,69 @@ class Dossier(BaseModel):
         null=True,
         blank=True,
     )
-    demande_autres_aides = models.ManyToManyField(
-        "gsl_demarches_simplifiees.AutreAide",
-        verbose_name="En 2024, comptez-vous solliciter d'autres aides publiques pour financer cette opération  ?",
+    demande_cofinancements = models.ManyToManyField(
+        "gsl_demarches_simplifiees.Cofinancement",
+        verbose_name="Comptez-vous solliciter d'autres aides publiques pour financer cette opération  ?",
+        blank=True,
+    )
+    cofinancement_fonds_vert_montant = models.DecimalField(
+        "Fonds vert - Précisez le montant sollicité ou obtenu",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    cofinancement_dpv_montant = models.DecimalField(
+        "DPV - Précisez le montant sollicité ou obtenu",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    cofinancement_fnadt_montant = models.DecimalField(
+        "FNADT - Précisez le montant sollicité ou obtenu",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    cofinancement_conseil_regional_montant = models.DecimalField(
+        "Aide du Conseil régional - Précisez le montant sollicité ou obtenu",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    cofinancement_conseil_departemental_montant = models.DecimalField(
+        "Aide du Conseil départemental  - Précisez le montant sollicité ou obtenu",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    cofinancement_epci_montant = models.DecimalField(
+        "Aide d'un EPCI - Précisez le montant sollicité ou obtenu",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    cofinancement_ue_montant = models.DecimalField(
+        "Aide de l'Union européenne - Précisez le montant sollicité ou obtenu",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    cofinancement_autre = models.TextField(
+        "Autre dispositif de financement - Précisez le dispositif concerné",
+        blank=True,
+    )
+    cofinancement_autre_montant = models.DecimalField(
+        "Autre dispositif de financement - Précisez le montant sollicité ou obtenu",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
         blank=True,
     )
 
@@ -519,6 +586,8 @@ class Dossier(BaseModel):
         porteur_de_projet_nature,
         porteur_de_projet_departement,
         porteur_de_projet_arrondissement,
+        porteur_de_projet_epci,
+        porteur_de_projet_civilite,
         porteur_de_projet_fonction,
         porteur_de_projet_nom,
         porteur_de_projet_prenom,
@@ -546,7 +615,16 @@ class Dossier(BaseModel):
         demande_categorie_detr,
         demande_categorie_dsil,
         demande_montant,
-        demande_autres_aides,
+        demande_cofinancements,
+        cofinancement_fonds_vert_montant,
+        cofinancement_dpv_montant,
+        cofinancement_fnadt_montant,
+        cofinancement_conseil_regional_montant,
+        cofinancement_conseil_departemental_montant,
+        cofinancement_epci_montant,
+        cofinancement_ue_montant,
+        cofinancement_autre,
+        cofinancement_autre_montant,
         demande_autre_precision,
         demande_autre_numero_dossier,
         demande_autre_dsil_detr,
@@ -611,6 +689,16 @@ class Dossier(BaseModel):
         return f"{self.porteur_de_projet_prenom} {self.porteur_de_projet_nom}"
 
     @property
+    def porteur_de_projet_epci_url(self) -> str | None:
+        if not self.porteur_de_projet_epci:
+            return None
+        parts = self.porteur_de_projet_epci.split(" - ", 1)
+        if len(parts) == 2:
+            code = parts[0]
+            return f"{ANNUAIRE_ENTREPRISE_URL}{code}"
+        return None
+
+    @property
     def demande_montant_is_greater_than_min_montant_for_detr_commission(self):
         if self.demande_montant is None:
             return False
@@ -642,6 +730,52 @@ class Dossier(BaseModel):
             )
 
         return dotations
+
+    @property
+    def cofinancements_avec_montants(self) -> list[dict]:
+        """
+        Retourne la liste des co-financements du dossier avec leur montant.
+        Chaque élément est un dict {"nom": str, "montant": Decimal | None}.
+        """
+        result = []
+        for cofinancement in self.demande_cofinancements.all():
+            if cofinancement.label == COFINANCEMENT_AUTRE_LABEL:
+                nom = (
+                    f"Autre ({self.cofinancement_autre})"
+                    if self.cofinancement_autre
+                    else "Autre"
+                )
+                montant = self.cofinancement_autre_montant
+            else:
+                nom = cofinancement.label
+                field_name = COFINANCEMENT_LABEL_TO_MONTANT_FIELD.get(
+                    cofinancement.label
+                )
+                montant = getattr(self, field_name, None) if field_name else None
+            result.append({"nom": nom, "montant": montant})
+        return result
+
+    @property
+    def zonages(self) -> list[str] | None:
+        lignes = [
+            item.label
+            for item in self.projet_zonage.all()
+            if item.label != ZONAGE_AUTRE_LABEL
+        ]
+        if self.projet_zonage_autre:
+            lignes.append(f"Autre : {self.projet_zonage_autre}")
+        return lignes or None
+
+    @property
+    def contractualisations(self) -> list[str] | None:
+        lignes = [
+            item.label
+            for item in self.projet_contractualisation.all()
+            if item.label != CONTRACTUALISATION_AUTRE_LABEL
+        ]
+        if self.projet_contractualisation_autre:
+            lignes.append(f"Autre : {self.projet_contractualisation_autre}")
+        return lignes or None
 
     @property
     def has_annotations_champ_libre(self):
@@ -731,11 +865,31 @@ class NaturePorteurProjet(DsChoiceLibelle):
         verbose_name_plural = "Natures de porteur de projet"
 
 
+ZONAGE_AUTRE_LABEL = "Autre zonage"
+CONTRACTUALISATION_AUTRE_LABEL = "Autre contrat"
+COFINANCEMENT_AUTRE_LABEL = "Autre dispositif de financement"
+
+
 class ProjetZonage(DsChoiceLibelle):
     pass
 
 
 class ProjetContractualisation(DsChoiceLibelle):
+    pass
+
+
+COFINANCEMENT_LABEL_TO_MONTANT_FIELD = {
+    "Fonds vert": "cofinancement_fonds_vert_montant",
+    "Dotation politique de la ville (DPV)": "cofinancement_dpv_montant",
+    "Fonds National d'Aménagement et de Développement du Territoire (FNADT)": "cofinancement_fnadt_montant",
+    "Aide du Conseil régional": "cofinancement_conseil_regional_montant",
+    "Aide du Conseil départemental": "cofinancement_conseil_departemental_montant",
+    "Aide d'un EPCI": "cofinancement_epci_montant",
+    "Aide de l'Union Européenne": "cofinancement_ue_montant",
+}
+
+
+class Cofinancement(DsChoiceLibelle):
     pass
 
 
@@ -818,10 +972,6 @@ class CategorieDsil(Categorie):
 
     def __str__(self):
         return f"{self.label}"
-
-
-class AutreAide(DsChoiceLibelle):
-    pass
 
 
 class Profile(BaseModel):

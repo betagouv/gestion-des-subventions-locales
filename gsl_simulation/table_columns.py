@@ -8,15 +8,19 @@ from gsl_core.table_columns import (
     COLUMN_BUDGET_VERT_DEMANDEUR,
     COLUMN_BUDGET_VERT_INSTRUCTEUR,
     COLUMN_CATEGORIE,
+    COLUMN_COFINANCEMENTS,
     COLUMN_COMPLETED_DOSSIER,
+    COLUMN_CONTRACTUALISATION,
     COLUMN_DATE_DEBUT_PROJET,
     COLUMN_DATE_DEPOT,
     COLUMN_DATE_FIN_PROJET,
     COLUMN_DEMANDEUR,
     COLUMN_DOTATIONS_SOLLICITEES,
+    COLUMN_EPCI,
     COLUMN_INTITULE,
     COLUMN_NOM_DEMANDEUR,
     COLUMN_NUMERO_DN,
+    COLUMN_ZONAGE,
     Column,
     StickyPosition,
     TextAlign,
@@ -31,10 +35,11 @@ COLUMN_DOTATION = Column(
 
 COLUMN_COUT_TOTAL = Column(
     key="cout_total",
-    label="Coût total du projet (€)",
+    label="Coût total du projet (€)",
     getter=lambda ctx: euro_value(ctx["projet"].dossier_ds.finance_cout_total, 2),
     text_align=TextAlign.RIGHT,
     aggregate_key="total_cost",
+    sort_param="cout",
 )
 
 
@@ -48,10 +53,11 @@ def _get_montant_sollicite(context):
 
 COLUMN_MONTANT_SOLLICITE = Column(
     key="montant_sollicite",
-    label="Montant sollicité (€)",
+    label="Montant sollicité (€)",
     getter=_get_montant_sollicite,
     text_align=TextAlign.RIGHT,
     aggregate_key="total_amount_asked",
+    sort_param="montant_sollicite",
 )
 
 
@@ -89,20 +95,22 @@ def _get_simu_other_dotation_statut(context):
 
 COLUMN_ASSIETTE = Column(
     key="assiette",
-    label="Assiette (€)",
+    label="Assiette (€)",
     template_name="gsl_simulation/table_cells/assiette.html",
     other_dotation_getter=_get_other_dotation_assiette,
     text_align=TextAlign.RIGHT,
+    sort_param="assiette",
 )
 
 COLUMN_MONTANT_RETENU = Column(
     key="montant_retenu",
-    label="Montant prévisionnel accordé (€)",
+    label="Montant prévisionnel accordé (€)",
     template_name="gsl_simulation/table_cells/montant_retenu.html",
     other_dotation_getter=_get_simu_other_dotation_montant,
     text_align=TextAlign.RIGHT,
     aggregate_key="total_amount_granted",
     aggregate_id="total-amount-granted",
+    sort_param="montant_previsionnel",
 )
 
 COLUMN_TAUX = Column(
@@ -112,6 +120,7 @@ COLUMN_TAUX = Column(
     other_dotation_getter=_get_simu_other_dotation_taux,
     text_align=TextAlign.RIGHT,
     header_help_text="Le taux de subvention est calculé en fonction de l'assiette si elle est renseignée, sinon il est calculé en fonction du coût total du projet.",
+    sort_param="taux",
 )
 
 COLUMN_STATUT = Column(
@@ -161,12 +170,16 @@ SIMULATION_TABLE_COLUMNS = (
     COLUMN_NUMERO_DN,
     COLUMN_DEMANDEUR,
     COLUMN_ARRONDISSEMENT,
+    COLUMN_EPCI,
     COLUMN_NOM_DEMANDEUR,
     COLUMN_DOTATIONS_SOLLICITEES,
     COLUMN_DATE_DEBUT_PROJET,
     COLUMN_DATE_FIN_PROJET,
     COLUMN_BUDGET_VERT_DEMANDEUR,
     COLUMN_BUDGET_VERT_INSTRUCTEUR,
+    COLUMN_COFINANCEMENTS,
+    COLUMN_ZONAGE,
+    COLUMN_CONTRACTUALISATION,
     COLUMN_DOTATION,
     COLUMN_COUT_TOTAL,
     COLUMN_MONTANT_SOLLICITE,

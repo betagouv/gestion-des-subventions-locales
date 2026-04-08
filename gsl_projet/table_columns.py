@@ -7,20 +7,25 @@ from gsl_core.table_columns import (
     COLUMN_ARRONDISSEMENT,
     COLUMN_BUDGET_VERT_DEMANDEUR,
     COLUMN_BUDGET_VERT_INSTRUCTEUR,
+    COLUMN_COFINANCEMENTS,
     COLUMN_COMMENT_1,
     COLUMN_COMMENT_2,
     COLUMN_COMMENT_3,
     COLUMN_COMPLETED_DOSSIER,
+    COLUMN_CONTRACTUALISATION,
     COLUMN_DATE_DEBUT_PROJET,
     COLUMN_DATE_DEPOT,
     COLUMN_DATE_FIN_PROJET,
     COLUMN_DEMANDEUR,
     COLUMN_DOTATIONS_SOLLICITEES,
+    COLUMN_EPCI,
     COLUMN_INTITULE,
     COLUMN_NOM_DEMANDEUR,
     COLUMN_NOTIFICATION,
     COLUMN_NUMERO_DN,
+    COLUMN_ZONAGE,
     Column,
+    ColumnWidth,
     StickyPosition,
     TextAlign,
     get_categorie,
@@ -36,35 +41,39 @@ COLUMN_DOTATION = Column(
 
 COLUMN_COUT_TOTAL = Column(
     key="cout_total",
-    label="Coût total du projet (€)",
+    label="Coût total du projet (€)",
     getter=lambda ctx: euro_value(ctx["projet"].dossier_ds.finance_cout_total),
     text_align=TextAlign.RIGHT,
     aggregate_key="total_cost",
+    sort_param="cout",
 )
 
 COLUMN_MONTANT_SOLLICITE = Column(
     key="montant_sollicite",
-    label="Montant sollicité (€)",
+    label="Montant sollicité (€)",
     getter=lambda ctx: euro_value(ctx["projet"].dossier_ds.demande_montant),
     text_align=TextAlign.RIGHT,
     aggregate_key="total_amount_asked",
+    sort_param="montant_sollicite",
 )
 
 COLUMN_ASSIETTE = Column(
     key="assiette",
-    label="Assiette (€)",
+    label="Assiette (€)",
     getter=lambda ctx: euro_value(ctx["dotation_projet"].assiette),
     per_dotation=True,
     text_align=TextAlign.RIGHT,
+    sort_param="assiette",
 )
 
 COLUMN_MONTANT_RETENU = Column(
     key="montant_retenu",
-    label="Montant retenu (€)",
+    label="Montant retenu (€)",
     getter=lambda ctx: euro_value(ctx["dotation_projet"].montant_retenu),
     per_dotation=True,
     text_align=TextAlign.RIGHT,
     aggregate_key="total_amount_granted",
+    sort_param="montant_retenu",
 )
 
 COLUMN_TAUX = Column(
@@ -74,6 +83,8 @@ COLUMN_TAUX = Column(
     per_dotation=True,
     text_align=TextAlign.RIGHT,
     header_help_text="Le taux de subvention est calculé en fonction de l'assiette (ou du coût total du projet si l'assiette n'est pas renseignée) et du montant retenu.",
+    width=ColumnWidth.MIN_105,
+    sort_param="taux",
 )
 
 COLUMN_CATEGORIE = Column(
@@ -82,6 +93,7 @@ COLUMN_CATEGORIE = Column(
     getter=get_categorie,
     max_3_lines=True,
     per_dotation=True,
+    width=ColumnWidth.MIN_180,
 )
 
 
@@ -110,12 +122,16 @@ PROJET_TABLE_COLUMNS = (
     COLUMN_NUMERO_DN,
     COLUMN_DEMANDEUR,
     COLUMN_ARRONDISSEMENT,
+    COLUMN_EPCI,
     COLUMN_NOM_DEMANDEUR,
     COLUMN_DOTATIONS_SOLLICITEES,
     COLUMN_DATE_DEBUT_PROJET,
     COLUMN_DATE_FIN_PROJET,
     COLUMN_BUDGET_VERT_DEMANDEUR,
     COLUMN_BUDGET_VERT_INSTRUCTEUR,
+    COLUMN_COFINANCEMENTS,
+    COLUMN_ZONAGE,
+    COLUMN_CONTRACTUALISATION,
     COLUMN_DOTATION,
     COLUMN_COUT_TOTAL,
     COLUMN_MONTANT_SOLLICITE,

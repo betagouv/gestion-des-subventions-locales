@@ -121,6 +121,11 @@ class BaseSimulationProjetResource(ModelResource):
         column_name="Montant demandé",
         widget=DecimalWidget(),
     )
+    demande_taux = Field(
+        attribute="dotation_projet__taux_de_subvention_sollicite",
+        column_name="Taux demandé",
+        widget=TauxWidget(),
+    )
     status = Field(
         attribute="get_status_display",
         column_name="Statut de la simulation",
@@ -206,6 +211,7 @@ class BaseSimulationProjetResource(ModelResource):
             "cout_total",
             "assiette",
             "demande_montant",
+            "demande_taux",
             "montant",
             "taux",
             "status",
@@ -251,11 +257,7 @@ class BaseSimulationProjetResource(ModelResource):
             ):
                 hidden_resource_fields.add(CSS_KEY_TO_RESOURCE_FIELDS[col.css_key])
 
-        return {
-            self.fields[f].column_name
-            for f in hidden_resource_fields
-            if f in self.fields
-        }
+        return self._to_hidden_headers(hidden_resource_fields)
 
     def _get_default_hidden_headers(self):
         from gsl_simulation.table_columns import SIMULATION_TABLE_COLUMNS
@@ -268,6 +270,14 @@ class BaseSimulationProjetResource(ModelResource):
                 and col.css_key in CSS_KEY_TO_RESOURCE_FIELDS
             ):
                 hidden_resource_fields.add(CSS_KEY_TO_RESOURCE_FIELDS[col.css_key])
+
+        return self._to_hidden_headers(hidden_resource_fields)
+
+    def _to_hidden_headers(self, hidden_resource_fields):
+        # demande_taux shares the same table column as demande_montant
+        if "demande_montant" in hidden_resource_fields:
+            hidden_resource_fields.add("demande_taux")
+
         return {
             self.fields[f].column_name
             for f in hidden_resource_fields

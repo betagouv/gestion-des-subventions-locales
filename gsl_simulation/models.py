@@ -96,7 +96,12 @@ class Simulation(BaseModel):
 
         summary = {item["status"]: item["count"] for item in status_count}
 
-        return {**default_status_summary, **summary}
+        notified_count = SimulationProjet.objects.filter(
+            simulation=self,
+            dotation_projet__projet__notified_at__isnull=False,
+        ).count()
+
+        return {**default_status_summary, **summary, "notified": notified_count}
 
     def get_total_amount_granted(self, qs: QuerySet[Projet]):
         statuses_to_include = (

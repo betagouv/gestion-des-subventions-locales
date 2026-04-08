@@ -14,6 +14,13 @@ from gsl.utils.csp import csp_update
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
 from gsl_core.matomo import queue_matomo_event
+from gsl_core.matomo_constants import (
+    MATOMO_ACTION_CREATION_ARRETE,
+    MATOMO_ACTION_CREATION_LETTRE,
+    MATOMO_ACTION_ENVOI_DN,
+    MATOMO_CATEGORY_DOCUMENT,
+    MATOMO_CATEGORY_NOTIFICATION,
+)
 from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsServiceException
@@ -133,7 +140,12 @@ class NotificationMessageView(UpdateView):
             self.request,
             "Le dossier a bien été accepté sur Démarche Numérique.",
         )
-        queue_matomo_event(self.request, "Notification", "envoi_dn", "accepte")
+        queue_matomo_event(
+            self.request,
+            MATOMO_CATEGORY_NOTIFICATION,
+            MATOMO_ACTION_ENVOI_DN,
+            "accepte",
+        )
         return redirect(self.get_success_url())
 
     def get_success_url(self):
@@ -321,11 +333,13 @@ def change_document_view(request, projet_id, dotation, document_type):
             _add_success_message(request, is_creating, document_type, document.name)
             if is_creating:
                 action = (
-                    "creation_arrete" if document_type == ARRETE else "creation_lettre"
+                    MATOMO_ACTION_CREATION_ARRETE
+                    if document_type == ARRETE
+                    else MATOMO_ACTION_CREATION_LETTRE
                 )
                 queue_matomo_event(
                     request,
-                    "Document",
+                    MATOMO_CATEGORY_DOCUMENT,
                     action,
                     programmation_projet.dotation_projet.dotation,
                 )

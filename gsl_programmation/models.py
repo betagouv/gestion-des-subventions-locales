@@ -1,6 +1,7 @@
 from functools import cached_property
 
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models, transaction
 from django.db.models import Sum
 from typing_extensions import deprecated
@@ -59,6 +60,7 @@ class Enveloppe(BaseModel):
         "Montant",
         max_digits=14,
         decimal_places=2,
+        validators=[MinValueValidator(0)],
     )
     annee = models.IntegerField(verbose_name="Année")
     perimetre = models.ForeignKey(
@@ -391,7 +393,7 @@ class ProgrammationProjet(models.Model):
             if hasattr(self, "lettre_notification"):
                 summary.append("1 lettre générée")
 
-        annexes_count = self.annexes.count()
+        annexes_count = len(self.annexes.all())
         if annexes_count != 0:
             plural = "s" if annexes_count > 1 else ""
             summary.append(f"{annexes_count} annexe{plural}")

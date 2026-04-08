@@ -90,6 +90,29 @@ def test_get_projet_status_summary(simulation, simulation_projects):
 
 
 @pytest.mark.django_db
+def test_get_projet_status_summary_notified_count(simulation):
+    from django.utils import timezone
+
+    SimulationProjetFactory.create_batch(
+        2,
+        simulation=simulation,
+        dotation_projet__dotation=simulation.enveloppe.dotation,
+        dotation_projet__projet__notified_at=timezone.now(),
+        status=SimulationProjet.STATUS_ACCEPTED,
+    )
+    SimulationProjetFactory(
+        simulation=simulation,
+        dotation_projet__dotation=simulation.enveloppe.dotation,
+        dotation_projet__projet__notified_at=None,
+        status=SimulationProjet.STATUS_ACCEPTED,
+    )
+
+    summary = simulation.get_projet_status_summary()
+
+    assert summary["notified"] == 2
+
+
+@pytest.mark.django_db
 def test_simulation_projet_cant_have_a_montant_higher_than_projet_assiette():
     dotation_projet = DotationProjetFactory(
         assiette=100, projet__dossier_ds__finance_cout_total=200

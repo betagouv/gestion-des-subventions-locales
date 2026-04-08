@@ -224,18 +224,12 @@ class DotationProjetService:
             Dossier.STATE_EN_CONSTRUCTION,
             Dossier.STATE_EN_INSTRUCTION,
         ]:
-            date_traitement = projet.dossier_ds.ds_date_traitement
-            date_passage_en_instruction = (
-                projet.dossier_ds.ds_date_passage_en_instruction
-            )
-            if date_traitement is not None and date_passage_en_instruction is not None:
-                is_dossier_back_to_instruction = (
-                    date_traitement < date_passage_en_instruction
+            cls._update_accepted_dotation_projets_montant_from_dn(projet)
+            is_dossier_back_to_instruction = cls._is_dossier_back_to_instruction(projet)
+            if is_dossier_back_to_instruction:
+                return cls._update_dotation_projets_from_projet_back_to_instruction(
+                    projet
                 )
-                if is_dossier_back_to_instruction:
-                    return cls._update_dotation_projets_from_projet_back_to_instruction(
-                        projet
-                    )
         else:
             raise ValueError(f"Invalid dossier status: {dossier_status}")
         return projet.dotationprojet_set.all()
@@ -372,6 +366,29 @@ class DotationProjetService:
         return dotation_projets
 
     ## -------------------------- Utils --------------------------
+
+    @classmethod
+    def _update_accepted_dotation_projets_montant_from_dn(cls, projet: Projet) -> None:
+        for dotation_projet in projet.dotationprojet_set.filter(
+            status=PROJET_STATUS_ACCEPTED
+        ):
+            # Assiette is already updated (cf cls._update_assiette_from_dossier(projet) called in cls._update_dotation_projets_from_projet)
+            # regardless of the projet/dossier statuses
+
+            if dotation_projet.dotation == DOTATION_DETR:
+                new_montant = projet.dossier_ds.annotations_montant_accorde_detr
+            else:
+                new_montant = projet.dossier_ds.annotations_montant_accorde_dsil
+
+            if (
+                new_montant is not None
+                and hasattr(dotation_projet, "programmation_projet")
+                and new_montant != dotation_projet.programmation_projet.montant
+            ):
+                dotation_projet.accept_without_ds_update(
+                    montant=new_montant,
+                    enveloppe=dotation_projet.programmation_projet.enveloppe,
+                )
 
     @classmethod
     def _get_detr_avis_commission(cls, dotation: str, ds_dossier: Dossier):
@@ -622,3 +639,12 @@ class DotationProjetService:
 
         # Idem here
         projet.refresh_from_db()
+
+    @classmethod
+    def _is_dossier_back_to_instruction(cls, projet: Projet) -> bool:
+        date_traitement = projet.dossier_ds.ds_date_traitement
+        date_passage_en_instruction = projet.dossier_ds.ds_date_passage_en_instruction
+        if date_traitement is None or date_passage_en_instruction is None:
+            return False
+
+        return date_traitement < date_passage_en_instruction

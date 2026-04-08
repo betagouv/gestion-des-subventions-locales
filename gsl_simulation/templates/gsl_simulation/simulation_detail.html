@@ -39,8 +39,8 @@
     <div id="simulation-table-wrapper">
         <div class="gsl-table-toolbar fr-my-1w">
             <span>
-                {{ simulation_paginator.paginator.count }}
-                projet{{ simulation_paginator.paginator.count|custom_pluralize }}
+                {{ page_obj.paginator.count }}
+                projet{{ page_obj.paginator.count|custom_pluralize }}
             </span>
             {% include "gsl_core/_column_visibility_dropdown.html" with table_wrapper_id="simulation-table-wrapper" simulation=simulation %}
         </div>
@@ -53,7 +53,9 @@
                             <thead>
                                 <tr>
                                     {% for column in columns %}
-                                        <th scope="col" class="{{ column.th_classes }}">
+                                        <th scope="col"
+                                            class="{{ column.th_classes }}"
+                                            {% if column.sort_param %}aria-sort="{{ column|aria_sort:current_order }}"{% endif %}>
                                             {% if column.header_template_name %}
                                                 {% include column.header_template_name %}
                                             {% else %}
@@ -64,7 +66,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for projet in simulation_projets_list %}
+                                {% for projet in page_obj.object_list %}
                                     {% with projet.dotation_projet.0 as dotation_projet %}
                                         {% with dotation_projet.simu.0 as simu %}
                                             {% include "includes/_simulation_detail_row.html" with simu=simu projet=projet dotation_projet=dotation_projet %}
@@ -84,7 +86,7 @@
             </div>
             <div class="fr-table__footer">
                 <div class="fr-table__footer--middle">
-                    {% dsfr_pagination simulation_paginator %}
+                    {% dsfr_pagination page_obj %}
                 </div>
             </div>
         </div>
@@ -103,7 +105,7 @@
             link.addEventListener("click", function() {
                 var format = link.textContent.trim().replace(/^format \./, "").split(" ")[0];
                 if (typeof _paq !== "undefined") {
-                    _paq.push(["trackEvent", "Simulation", "export", format]);
+                    _paq.push(["trackEvent", "{{ matomo_category_simulation }}", "{{ matomo_action_export }}", format]);
                 }
             });
         });
