@@ -21,9 +21,24 @@ jobs:
         python-version: [3.13]
 
     env:
-      DATABASE_URL: "sqlite://:memory:"
+      DATABASE_URL: ${{ github.event_name != 'pull_request' && format('postgres://{0}:{1}@{2}:{3}/{4}', vars.DATABASE_USER, vars.DATABASE_PASSWORD, vars.DATABASE_HOST, vars.DATABASE_PORT, vars.DATABASE_NAME) || 'sqlite://:memory:' }}
       SECRET_KEY: ${{ vars.SECRET_KEY }}
       ENV: test
+
+    services:
+      postgres:
+        image: ${{ github.event_name != 'pull_request' && 'postgres:16' || '' }}
+        env:
+          POSTGRES_DB: ${{ vars.DATABASE_NAME }}
+          POSTGRES_USER: ${{ vars.DATABASE_USER }}
+          POSTGRES_PASSWORD: ${{ vars.DATABASE_PASSWORD }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
     - uses: actions/checkout@v4
