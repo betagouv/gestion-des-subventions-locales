@@ -15,6 +15,7 @@ from django.core.files import File
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models.fields.files import FieldFile
 from django.template.loader import render_to_string
+from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django_weasyprint.utils import django_url_fetcher
 from num2words import num2words
@@ -69,6 +70,7 @@ class MentionType(Enum):
     EURO_LETTRES = "euro_lettres"
     PERCENT = "percent"
     DATE = "date"
+    DATE_NOW = "date_now"
     TEXT_ONLY = "text_only"
 
 
@@ -80,6 +82,8 @@ class Mention:
     type: MentionType = MentionType.STRING
 
     def get_value(self, programmation_projet: ProgrammationProjet) -> str:
+        if self.type == MentionType.DATE_NOW:
+            return timezone.now().strftime("%d/%m/%Y")
         value = get_nested_attribute(programmation_projet, self.attribute)
         match self.type:
             case MentionType.EURO:
@@ -172,8 +176,8 @@ MENTIONS = [
     Mention(
         "date-arrete",
         "Date d'édition de l'arrêté",
-        "arrete.created_at",
-        MentionType.DATE,
+        "",
+        MentionType.DATE_NOW,
     ),
     Mention(
         "commentaire-1",
