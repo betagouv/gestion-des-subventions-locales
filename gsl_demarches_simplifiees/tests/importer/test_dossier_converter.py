@@ -24,11 +24,7 @@ from gsl_demarches_simplifiees.tests.factories import (
     CategorieDetrFactory,
 )
 
-pytestmark = [
-    pytest.mark.django_db,
-    pytest.mark.usefixtures("celery_session_app"),
-    pytest.mark.usefixtures("celery_session_worker"),
-]
+pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
