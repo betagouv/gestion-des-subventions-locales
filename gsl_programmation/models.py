@@ -152,7 +152,9 @@ class Enveloppe(BaseModel):
 
     @property
     def demandeurs_count(self):
-        return self.enveloppe_projets_included.distinct("demandeur").count()
+        return self.enveloppe_projets_included.aggregate(
+            count=models.Count("demandeur", distinct=True)
+        )["count"]
 
     @property
     def projets_count(self):

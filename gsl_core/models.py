@@ -275,13 +275,13 @@ class Perimetre(BaseModel):
         if self.departement_id:
             region_perimetre_qs = Perimetre.objects.filter(
                 region_id=self.region_id, departement_id=None, arrondissement_id=None
-            )
+            ).order_by()  # clear default ordering for union compatibility
             if self.arrondissement_id:
                 departement_perimetre_qs = Perimetre.objects.filter(
                     region_id=self.region_id,
                     departement_id=self.departement_id,
                     arrondissement_id=None,
-                )
+                ).order_by()  # clear default ordering for union compatibility
                 return region_perimetre_qs.union(departement_perimetre_qs)
             return region_perimetre_qs
         return Perimetre.objects.none()

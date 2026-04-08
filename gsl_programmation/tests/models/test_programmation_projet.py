@@ -1,4 +1,3 @@
-import re
 from datetime import UTC, datetime
 from decimal import Decimal
 
@@ -54,16 +53,8 @@ def test_two_programmation_projets_cant_have_the_same_dotation_projet():
     dotation_projet = DotationProjetFactory()
     ProgrammationProjetFactory(dotation_projet=dotation_projet)
 
-    with pytest.raises(IntegrityError) as exc_info:
+    with pytest.raises(IntegrityError):
         ProgrammationProjetFactory(dotation_projet=dotation_projet)
-    assert (
-        'duplicate key value violates unique constraint "gsl_programmation_progra_dotation_projet_id_ab0086eb_uniq"'
-        in str(exc_info.value)
-    )
-    assert re.search(
-        "DETAIL:  Key \(dotation_projet_id\)=\(\d+\) already exists.",
-        str(exc_info.value),
-    )
 
 
 @pytest.mark.django_db
