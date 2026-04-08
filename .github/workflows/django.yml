@@ -11,6 +11,9 @@ on:
 permissions:
   contents: read
 
+permissions:
+  contents: read
+
 jobs:
   lint-python:
     runs-on: ubuntu-latest
