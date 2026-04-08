@@ -35,6 +35,22 @@ test-watching folder_or_file:
     git ls-files | entr -c pytest -vv {{folder_or_file}}
 
 
+# Create a release tag (vYY.MM.DD) and push it to trigger production deployment
+release:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    git fetch --tags
+    BASE_TAG="v$(date +%y.%m.%d)"
+    if ! git tag --list | grep -qx "$BASE_TAG"; then
+        TAG="$BASE_TAG"
+    else
+        LAST=$(git tag --list "${BASE_TAG}.*" | sed "s/${BASE_TAG}\.//" | sort -n | tail -1)
+        TAG="${BASE_TAG}.$((${LAST:-0} + 1))"
+    fi
+    echo "Creating and pushing tag: $TAG"
+    git tag "$TAG"
+    git push origin "$TAG"
+
 # Scalingo: SSH
 scalingo-django-ssh environment:
     scalingo run --app gsl-{{environment}} bash
