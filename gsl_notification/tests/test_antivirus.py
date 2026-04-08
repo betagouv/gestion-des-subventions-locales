@@ -251,8 +251,9 @@ def test_download_allowed_when_bypass_even_if_never_scanned(
 
 
 @pytest.mark.parametrize("factory", (ArreteEtLettreSignesFactory, AnnexeFactory))
+@patch("gsl_notification.tasks.scan_uploaded_document")
 def test_is_downloadable_false_when_never_scanned(
-    settings, programmation_projet, factory
+    _mock_scan, settings, programmation_projet, factory
 ):
     settings.BYPASS_ANTIVIRUS = False
     doc = factory(programmation_projet=programmation_projet)
@@ -261,7 +262,10 @@ def test_is_downloadable_false_when_never_scanned(
 
 
 @pytest.mark.parametrize("factory", (ArreteEtLettreSignesFactory, AnnexeFactory))
-def test_is_downloadable_false_when_infected(settings, programmation_projet, factory):
+@patch("gsl_notification.tasks.scan_uploaded_document")
+def test_is_downloadable_false_when_infected(
+    _mock_scan, settings, programmation_projet, factory
+):
     settings.BYPASS_ANTIVIRUS = False
     doc = factory(
         programmation_projet=programmation_projet,
@@ -272,8 +276,9 @@ def test_is_downloadable_false_when_infected(settings, programmation_projet, fac
 
 
 @pytest.mark.parametrize("factory", (ArreteEtLettreSignesFactory, AnnexeFactory))
+@patch("gsl_notification.tasks.scan_uploaded_document")
 def test_is_downloadable_true_when_scanned_and_clean(
-    settings, programmation_projet, factory
+    _mock_scan, settings, programmation_projet, factory
 ):
     settings.BYPASS_ANTIVIRUS = False
     doc = factory(
