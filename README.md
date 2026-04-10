@@ -99,3 +99,30 @@ Les raccourcis suivants existent :
 - `just shell`
 - `just makemigrations`
 - `just migrate`
+
+## Déploiement en production
+
+Le déploiement en production est automatisé via GitHub Actions.
+
+### Procédure
+
+1. Se placer sur le commit à déployer (pas nécessairement le dernier commit de `main` — on peut remonter de quelques commits pour exclure des changements pas encore testés)
+2. Lancer la commande :
+
+```bash
+just release
+```
+
+Cette commande crée automatiquement un tag au format `vYY.MM.DD` (avec un suffixe incrémental si un tag existe déjà pour la date) et le pousse sur le dépôt distant.
+
+3. Le workflow GitHub Actions se déclenche automatiquement et :
+   - exécute les tests
+   - crée une **Release GitHub** avec les notes auto-générées (liste des PRs depuis le dernier tag)
+   - déploie sur Scalingo via l'API Sources
+
+4. **Confirmer le déploiement côté GitHub** : le job `deploy` utilise l'environnement `production`, qui nécessite une approbation manuelle dans GitHub. Un reviewer autorisé doit approuver le déploiement depuis l'interface GitHub Actions avant que celui-ci ne s'exécute.
+
+### Prérequis
+
+- Le secret `SCALINGO_API_TOKEN` doit être configuré dans l'environnement GitHub `production`
+- L'environnement `production` doit avoir les règles de protection (reviewers requis) configurées dans **Settings > Environments** du dépôt GitHub
