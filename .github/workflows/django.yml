@@ -2,7 +2,7 @@ name: Django CI
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "main" ]
   pull_request:
     types: [ "opened", "synchronize", "reopened" ]
   merge_group:
@@ -12,43 +12,15 @@ permissions:
   contents: read
 
 jobs:
-  tests:
-    environment: test
+  lint-python:
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: [3.13]
-
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_DB: gsl
-          POSTGRES_USER: gsl_team
-          POSTGRES_PASSWORD: gsl_pass
-        ports:
-          - 5432:5432
-        # needed because the postgres container does not provide a healthcheck
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-
-    env:
-      DATABASE_URL: "postgres://${{ vars.DATABASE_USER }}:${{ vars.DATABASE_PASSWORD }}@${{ vars.DATABASE_HOST }}:${{ vars.DATABASE_PORT }}/${{ vars.DATABASE_NAME }}"
-      SECRET_KEY: ${{ vars.SECRET_KEY }}
-      ENV: test
-
     steps:
     - uses: actions/checkout@v4
 
-    - name: Check variables
-      run: |
-        echo "db URL : $DATABASE_URL"
-        echo "secret key : $SECRET_KEY"
-
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.13
       uses: actions/setup-python@v6
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: "3.13"
         cache: 'pip'
 
     - name: Install Dependencies
@@ -62,19 +34,58 @@ jobs:
         ruff format --check
 
     - name: Check templates format
-      run: |
-        djlint . --check
+      run: djlint . --check
+
+  lint-frontend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
 
     - uses: bahmutov/npm-install@v1
 
     - name: Check css format
-      run : npm run lint:css
+      run: npm run lint:css
 
     - name: Check js format
-      run : npm run format:js
+      run: npm run format:js
 
-    - name: Check templates format
-      run: djlint . --check
+  tests:
+    environment: test
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: ${{ github.event_name != 'pull_request' && format('postgres://{0}:{1}@{2}:{3}/{4}', vars.DATABASE_USER, vars.DATABASE_PASSWORD, vars.DATABASE_HOST, vars.DATABASE_PORT, vars.DATABASE_NAME) || 'sqlite://:memory:' }}
+      SECRET_KEY: ${{ vars.SECRET_KEY }}
+      ENV: test
+
+    services:
+      postgres:
+        image: ${{ github.event_name != 'pull_request' && 'postgres:16' || '' }}
+        env:
+          POSTGRES_DB: ${{ vars.DATABASE_NAME }}
+          POSTGRES_USER: ${{ vars.DATABASE_USER }}
+          POSTGRES_PASSWORD: ${{ vars.DATABASE_PASSWORD }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.13"
+        cache: 'pip'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
 
     - name: Check migrations
       run: python manage.py makemigrations --check --dry-run
