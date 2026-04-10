@@ -1,7 +1,7 @@
 from datetime import date
 
 from django.db.models import Prefetch
-from django.http import HttpResponse
+from django.http import HttpResponse, QueryDict
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
@@ -79,14 +79,37 @@ class SimulationDetailView(SingleObjectMixin, FilterView):
     template_name = "gsl_simulation/simulation_detail.html"
     paginate_by = 25
 
-    def get(self, request, *args, **kwargs):
-        if "reset_filters" in request.GET:
-            if request.path.startswith("/simulation/voir/"):
-                return redirect(request.path)
-            else:
-                return redirect("/")
+    PARAMS_NOT_FILTERS = {"page", "reset_filters", "order"}
 
+    def _get_filter_params(self):
+        return {
+            k: v
+            for k, v in self.request.GET.lists()
+            if k not in self.PARAMS_NOT_FILTERS and any(val != "" for val in v)
+        }
+
+    def get(self, request, *args, **kwargs):
         self.object = self.get_object()
+        detail_url = self.object.get_absolute_url()
+
+        if "reset_filters" in request.GET:
+            if self.object.filters is not None:
+                self.object.filters = None
+                self.object.save(update_fields=["filters"])
+            return redirect(detail_url)
+
+        filter_params = self._get_filter_params()
+        if filter_params:
+            if filter_params != self.object.filters:
+                self.object.filters = filter_params
+                self.object.save(update_fields=["filters"])
+        elif self.object.filters:
+            params = QueryDict(mutable=True)
+            for key, values in self.object.filters.items():
+                for value in values:
+                    params.appendlist(key, value)
+            return redirect(f"{detail_url}?{params.urlencode()}")
+
         return super().get(request, *args, **kwargs)
 
     def get_filterset_kwargs(self, filterset_class):

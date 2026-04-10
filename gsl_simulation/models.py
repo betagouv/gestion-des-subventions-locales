@@ -57,6 +57,12 @@ class Simulation(BaseModel):
         default=None,
         validators=[validate_columns_visibility],
     )
+    filters = models.JSONField(
+        verbose_name="Filtres appliqués",
+        null=True,
+        blank=True,
+        default=None,
+    )
 
     objects = SimulationManager()
 
