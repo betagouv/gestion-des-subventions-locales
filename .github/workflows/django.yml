@@ -2,14 +2,11 @@ name: Django CI
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "main" ]
   pull_request:
     types: [ "opened", "synchronize", "reopened" ]
   merge_group:
   workflow_call:
-
-permissions:
-  contents: read
 
 permissions:
   contents: read
