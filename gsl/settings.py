@@ -228,7 +228,9 @@ LOGOUT_REDIRECT_URL = "/"
 
 # Logs
 APP_LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")
-DJANGO_LOGGING_LEVEL = os.getenv("DJANGO_LOGGING_LEVEL", "ERROR")
+LIBRARIES_LOGGING_LEVEL = os.getenv(
+    "LIBRARIES_LOGGING_LEVEL", os.getenv("DJANGO_LOGGING_LEVEL", "ERROR")
+)
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -269,7 +271,7 @@ LOGGING = {
         },
         "django": {
             "handlers": ["console", "sentry"],
-            "level": DJANGO_LOGGING_LEVEL,
+            "level": LIBRARIES_LOGGING_LEVEL,
             "propagate": False,
         },
         "django.server": {
@@ -284,7 +286,7 @@ LOGGING = {
         },
         "celery.worker": {
             "handlers": ["console", "sentry"],
-            "level": DJANGO_LOGGING_LEVEL,
+            "level": LIBRARIES_LOGGING_LEVEL,
             "propagate": False,
         },
         "gunicorn": {
@@ -300,6 +302,11 @@ LOGGING = {
         "pikepdf": {
             "handlers": ["console"],
             "level": "INFO",
+            "propagate": False,
+        },
+        "weasyprint": {
+            "handlers": ["console"],
+            "level": LIBRARIES_LOGGING_LEVEL,
             "propagate": False,
         },
     },
