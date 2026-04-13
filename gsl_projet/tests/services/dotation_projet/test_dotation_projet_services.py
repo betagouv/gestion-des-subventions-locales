@@ -1243,3 +1243,39 @@ def test_update_accepted_dotation_projets_montant_from_dn_does_not_update_montan
     assert not ProgrammationProjet.objects.filter(
         dotation_projet=dotation_projet
     ).exists()
+
+
+# -- _accept_dotation_projet --
+
+
+@pytest.mark.django_db
+def test_accept_dotation_projet_conserve_enveloppe_existante(perimetres):
+    """
+    Lors de la mise à jour d'un dossier accepté, si le dotation_projet est déjà programmé
+    sur une enveloppe 2025, il ne doit pas être re-basculé sur l'enveloppe 2026.
+    """
+    arr_dijon, dep_21, *_ = perimetres
+    enveloppe_2025 = DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2026)
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_ACCEPTED,
+        projet__dossier_ds__perimetre=arr_dijon,
+        projet__dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
+        projet__dossier_ds__ds_date_traitement=datetime.datetime(
+            2026, 3, 1, tzinfo=UTC
+        ),
+        projet__dossier_ds__annotations_dotation=DOTATION_DETR,
+        projet__dossier_ds__annotations_montant_accorde_detr=5_000,
+    )
+    ProgrammationProjetFactory(
+        dotation_projet=dotation_projet,
+        enveloppe=enveloppe_2025,
+        montant=4_000,
+    )
+
+    dps._accept_dotation_projet(dotation_projet.projet, DOTATION_DETR)
+
+    dotation_projet.refresh_from_db()
+    assert dotation_projet.programmation_projet.enveloppe == enveloppe_2025
