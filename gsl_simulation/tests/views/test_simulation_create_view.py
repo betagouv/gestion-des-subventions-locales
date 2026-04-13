@@ -4,9 +4,16 @@ from django.urls import reverse
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
+    PerimetreArrondissementFactory,
+    PerimetreDepartementalFactory,
 )
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
-from gsl_simulation.models import Simulation
+from gsl_programmation.tests.factories import (
+    DetrEnveloppeFactory,
+    ProgrammationProjetFactory,
+)
+from gsl_projet.constants import DOTATION_DETR
+from gsl_projet.tests.factories import DotationProjetFactory
+from gsl_simulation.models import Simulation, SimulationProjet
 from gsl_simulation.tests.factories import SimulationFactory
 
 pytestmark = pytest.mark.django_db
@@ -213,3 +220,62 @@ class TestSimulationCreateView:
         assert response.status_code == 200
         simulation = Simulation.objects.get(title=title_with_special_chars)
         assert simulation.created_by == user
+
+
+class TestSimulationCreateExcludesPreviouslyProgrammedProjets:
+    def _setup_perimetres(self):
+        arr_perimetre = PerimetreArrondissementFactory()
+        dep_perimetre = PerimetreDepartementalFactory(
+            departement=arr_perimetre.departement,
+            region=arr_perimetre.region,
+        )
+        return arr_perimetre, dep_perimetre
+
+    def test_excludes_projet_programmed_in_previous_year(self):
+        from datetime import date
+
+        arr_perimetre, dep_perimetre = self._setup_perimetres()
+
+        dotation_projet = DotationProjetFactory(
+            dotation=DOTATION_DETR,
+            projet__dossier_ds__perimetre=arr_perimetre,
+        )
+        previous_year_enveloppe = DetrEnveloppeFactory(
+            annee=date.today().year - 1,
+            perimetre=dep_perimetre,
+        )
+        ProgrammationProjetFactory(
+            dotation_projet=dotation_projet,
+            enveloppe=previous_year_enveloppe,
+        )
+
+        current_year_enveloppe = DetrEnveloppeFactory(
+            annee=date.today().year,
+            perimetre=dep_perimetre,
+        )
+        user = CollegueFactory(perimetre=dep_perimetre)
+        client = ClientWithLoggedUserFactory(user)
+
+        url = reverse("gsl_simulation:simulation-form")
+        client.post(url, {"title": "Test", "enveloppe": current_year_enveloppe.id})
+
+        simulation = Simulation.objects.get(title="Test")
+        assert SimulationProjet.objects.filter(simulation=simulation).count() == 0
+
+    def test_includes_projet_not_programmed_in_previous_year(self):
+        arr_perimetre, dep_perimetre = self._setup_perimetres()
+
+        DotationProjetFactory(
+            dotation=DOTATION_DETR,
+            projet__dossier_ds__perimetre=arr_perimetre,
+        )
+
+        enveloppe = DetrEnveloppeFactory(perimetre=dep_perimetre)
+        user = CollegueFactory(perimetre=dep_perimetre)
+        client = ClientWithLoggedUserFactory(user)
+
+        url = reverse("gsl_simulation:simulation-form")
+        client.post(url, {"title": "Test", "enveloppe": enveloppe.id})
+
+        simulation = Simulation.objects.get(title="Test")
+        assert SimulationProjet.objects.filter(simulation=simulation).count() == 1

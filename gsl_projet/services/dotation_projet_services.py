@@ -606,6 +606,12 @@ class DotationProjetService:
                 enveloppe__annee__gte=dotation_projet.projet.dossier_ds.ds_date_traitement.year
                 + 1,
             )
+
+        if hasattr(dotation_projet, "programmation_projet"):
+            qs = qs.exclude(
+                enveloppe__annee__gt=dotation_projet.programmation_projet.enveloppe.annee
+            )
+
         return qs
 
     @classmethod

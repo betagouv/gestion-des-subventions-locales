@@ -1279,3 +1279,74 @@ def test_accept_dotation_projet_conserve_enveloppe_existante(perimetres):
 
     dotation_projet.refresh_from_db()
     assert dotation_projet.programmation_projet.enveloppe == enveloppe_2025
+
+
+# -- _get_simulation_concerning_by_this_dotation_projet (programmation_projet) --
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_get_simulation_concerning_by_this_dotation_projet_excludes_simulations_after_programmation_year(
+    perimetres,
+):
+    """Test que les simulations dont l'année > année enveloppe de la programmation sont exclues."""
+    arr_dijon, dep_21, *_ = perimetres
+
+    enveloppe_current_year = DetrEnveloppeFactory(
+        perimetre=dep_21,
+        annee=CURRENT_YEAR,
+    )
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__dossier_ds__perimetre=arr_dijon,
+    )
+    ProgrammationProjetFactory(
+        dotation_projet=dotation_projet,
+        enveloppe=enveloppe_current_year,
+    )
+
+    sim_current_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_next_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR + 1,
+    )
+
+    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+
+    assert sim_current_year in results
+    assert sim_next_year not in results
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_get_simulation_concerning_by_this_dotation_projet_includes_all_years_when_no_programmation(
+    perimetres,
+):
+    """Test que toutes les années >= année courante sont incluses sans programmation_projet."""
+    arr_dijon, *_ = perimetres
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__dossier_ds__perimetre=arr_dijon,
+    )
+
+    sim_current_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_next_year = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR + 1,
+    )
+
+    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+
+    assert sim_current_year in results
+    assert sim_next_year in results
