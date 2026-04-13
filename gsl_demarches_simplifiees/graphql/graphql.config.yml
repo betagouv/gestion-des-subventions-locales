@@ -1,0 +1,10 @@
+schema:
+  - https://www.demarches-simplifiees.fr/api/v2/graphql:
+      headers:
+        Authorization: Bearer ${DS_TOKEN}
+extensions:
+  endpoints:
+    default:
+      url: http://localhost:8000/ds-proxy/graphql/
+      headers:
+        Authorization: Bearer ${DS_PROXY_TOKEN}
