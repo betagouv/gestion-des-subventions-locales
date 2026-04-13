@@ -35,11 +35,15 @@ def _add_enveloppe_projets_to_simulation(simulation: Simulation):
     simulation_dotation = simulation.enveloppe.dotation
     selected_projets = Projet.objects.for_perimetre(simulation_perimetre)
     selected_projets = selected_projets.for_current_year()
-    selected_dotation_projet = DotationProjet.objects.filter(
-        projet__in=selected_projets, dotation=simulation_dotation
-    ).select_related(
-        "projet",
-        "projet__dossier_ds",
+    selected_dotation_projet = (
+        DotationProjet.objects.filter(
+            projet__in=selected_projets, dotation=simulation_dotation
+        )
+        .exclude(programmation_projet__enveloppe__annee__lt=simulation.enveloppe.annee)
+        .select_related(
+            "projet",
+            "projet__dossier_ds",
+        )
     )
 
     for dotation_projet in selected_dotation_projet:
