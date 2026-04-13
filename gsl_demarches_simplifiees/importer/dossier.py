@@ -39,6 +39,7 @@ def save_demarche_dossiers_from_ds(demarche_number):
     for page_dossiers, end_cursor in client.iter_demarche_dossiers_pages(
         demarche_number, updated_since=api_updated_since, after_cursor=after_cursor
     ):
+        has_error = False
         for dossier_data in page_dossiers:
             dossiers_count += 1
 
@@ -57,18 +58,18 @@ def save_demarche_dossiers_from_ds(demarche_number):
                     dossier_data, active_departement_insee_codes, demarche
                 )
             except Exception as e:
-                if not isinstance(e, DsServiceException):
-                    extra = {
-                        "demarche_ds_number": demarche.ds_number,
-                        "dossier_ds_number": dossier_data["number"],
-                        "error": str(e),
-                        "i": dossiers_count,
-                    }
-                    logger.exception(
-                        "Error unhandled while saving dossier from DN", extra=extra
-                    )
+                has_error = True
+                extra = {
+                    "demarche_ds_number": demarche.ds_number,
+                    "dossier_ds_number": dossier_data["number"],
+                    "error": str(e),
+                    "i": dossiers_count,
+                }
+                logger.exception(
+                    "Error unhandled while saving dossier from DN", extra=extra
+                )
 
-        if end_cursor is not None:
+        if end_cursor is not None and not has_error:
             demarche.sync_cursor = end_cursor
             demarche.updated_since = api_updated_since
         demarche.save(update_fields=["sync_cursor", "updated_since"])
