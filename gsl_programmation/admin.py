@@ -1,4 +1,5 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.db import transaction
 from django.db.models import Count
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -119,6 +120,56 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "enveloppe__perimetre__departement__name",
         "dotation_projet__projet__dossier_ds__ds_demarche__ds_number",
     )
+
+    actions = ("associer_enveloppe_2025",)
+
+    @admin.action(description="Associer ce projet à l'enveloppe 2025")
+    @transaction.atomic
+    def associer_enveloppe_2025(self, request, queryset):
+        invalid = queryset.exclude(
+            status=ProgrammationProjet.STATUS_ACCEPTED, enveloppe__annee=2026
+        )
+        if invalid.exists():
+            self.message_user(
+                request,
+                f"{invalid.count()} projet(s) ignoré(s) : cette action n'est autorisée que pour les projets acceptés sur une enveloppe 2026.",
+                messages.WARNING,
+            )
+
+        valid_qs = queryset.filter(
+            status=ProgrammationProjet.STATUS_ACCEPTED, enveloppe__annee=2026
+        )
+        success_count = 0
+        for pp in valid_qs.select_related("enveloppe__perimetre", "dotation_projet"):
+            try:
+                enveloppe_2025 = Enveloppe.objects.get(
+                    dotation=pp.enveloppe.dotation,
+                    perimetre=pp.enveloppe.perimetre,
+                    annee=2025,
+                    deleguee_by=None,
+                )
+            except Enveloppe.DoesNotExist:
+                self.message_user(
+                    request,
+                    f"Aucune enveloppe 2025 trouvée pour le projet {pp.id} "
+                    f"(dotation={pp.enveloppe.dotation}, périmètre={pp.enveloppe.perimetre}).",
+                    messages.ERROR,
+                )
+                continue
+
+            dotation_projet = pp.dotation_projet
+            dotation_projet.accept_without_ds_update(
+                montant=pp.montant, enveloppe=enveloppe_2025
+            )
+            dotation_projet.save()
+            success_count += 1
+
+        if success_count:
+            self.message_user(
+                request,
+                f"{success_count} projet(s) associé(s) avec succès à l'enveloppe 2025.",
+                messages.SUCCESS,
+            )
 
     def notified_at_custom(self, obj):
         return obj.projet.notified_at
