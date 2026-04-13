@@ -277,7 +277,12 @@ class DotationProjetService:
         if detr_avis_commission is not None:  # we only update if we have an info
             dotation_projet.detr_avis_commission = detr_avis_commission
 
-        enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
+        if hasattr(
+            dotation_projet, "programmation_projet"
+        ):  # We keep previous enveloppe to avoid squashing manuel rectification (ex: enveloppe 2025)
+            enveloppe = dotation_projet.programmation_projet.enveloppe
+        else:
+            enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
         montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
         dotation_projet.accept_without_ds_update(montant=montant, enveloppe=enveloppe)
         dotation_projet.save()
