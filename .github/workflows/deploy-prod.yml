@@ -74,3 +74,53 @@ jobs:
             -H "Content-Type: application/json" \
             -d "{\"deployment\": {\"git_ref\": \"$GITHUB_REF_NAME\", \"source_url\": \"$DOWNLOAD_URL\"}}" \
             "$SCALINGO_API_URL/v1/apps/gsl-prod/deployments"
+
+  deploy-demo:
+    needs: tests
+    runs-on: ubuntu-latest
+    environment: demo
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create source archive
+        run: git archive --format=tar.gz --prefix=source/ -o archive.tar.gz HEAD
+
+      - name: Deploy to Scalingo
+        env:
+          SCALINGO_API_TOKEN: ${{ secrets.SCALINGO_API_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          SCALINGO_API_URL="https://api.osc-fr1.scalingo.com"
+
+          # 0. Exchange API token for a bearer JWT
+          BEARER_TOKEN=$(curl -sf -X POST \
+            -u ":$SCALINGO_API_TOKEN" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            "https://auth.scalingo.com/v1/tokens/exchange" \
+            | jq -r '.token')
+
+          # 1. Get upload/download URLs from Scalingo Sources API
+          SOURCES_RESPONSE=$(curl -sf -X POST \
+            -H "Authorization: Bearer $BEARER_TOKEN" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            "$SCALINGO_API_URL/v1/sources")
+
+          UPLOAD_URL=$(echo "$SOURCES_RESPONSE" | jq -r '.source.upload_url')
+          DOWNLOAD_URL=$(echo "$SOURCES_RESPONSE" | jq -r '.source.download_url')
+
+          # 2. Upload the archive
+          curl -sf -X PUT \
+            -H "Content-Type: application/x-gzip" \
+            --upload-file archive.tar.gz \
+            "$UPLOAD_URL"
+
+          # 3. Trigger deployment
+          curl -sf -X POST \
+            -H "Authorization: Bearer $BEARER_TOKEN" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            -d "{\"deployment\": {\"git_ref\": \"$GITHUB_REF_NAME\", \"source_url\": \"$DOWNLOAD_URL\"}}" \
+            "$SCALINGO_API_URL/v1/apps/gsl-demo/deployments"
