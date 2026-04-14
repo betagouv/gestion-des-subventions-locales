@@ -10,6 +10,7 @@ from django.utils import timezone
 from dsfr.forms import DsfrBaseForm
 
 from gsl_core.models import Collegue
+from gsl_core.templatetags.gsl_filters import euro
 from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
@@ -225,26 +226,48 @@ class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):
     processing dotation).
     """
 
+    def __init__(self, *args, status=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.status = status
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if self.status == SimulationProjet.STATUS_ACCEPTED:
+            errors = []
+            dotation_projet = self.instance.dotation_projet
+            assiette = dotation_projet.assiette
+            montant = self.instance.montant
+            if assiette is None:
+                errors.append("L'assiette subventionnable est manquante.")
+            elif montant is not None and assiette < montant:
+                errors.append(
+                    f"L'assiette subventionnable ({euro(assiette)}) est "
+                    f"inférieure au montant accordé ({euro(montant)})."
+                )
+            if errors:
+                raise ValidationError(errors)
+        return cleaned_data
+
     @transaction.atomic
-    def save(self, status, user: Collegue, commit=True):
-        if status == SimulationProjet.STATUS_ACCEPTED:
+    def save(self, user: Collegue, commit=True):
+        if self.status == SimulationProjet.STATUS_ACCEPTED:
             self.instance.dotation_projet.accept(
                 montant=self.instance.montant,
                 enveloppe=self.instance.enveloppe,
                 user=user,
             )
-        elif status == SimulationProjet.STATUS_REFUSED:
+        elif self.status == SimulationProjet.STATUS_REFUSED:
             self.instance.dotation_projet.refuse(enveloppe=self.instance.enveloppe)
-        elif status == SimulationProjet.STATUS_DISMISSED:
+        elif self.status == SimulationProjet.STATUS_DISMISSED:
             self.instance.dotation_projet.dismiss(enveloppe=self.instance.enveloppe)
         elif (
-            status in SimulationProjet.SIMULATION_PENDING_STATUSES
+            self.status in SimulationProjet.SIMULATION_PENDING_STATUSES
             and self.instance.status not in SimulationProjet.SIMULATION_PENDING_STATUSES
         ):
             self.instance.dotation_projet.set_back_status_to_processing(user)
 
         self.instance.dotation_projet.save()
-        self.instance.status = status
+        self.instance.status = self.status
         self.instance.save()
 
         return self.instance
@@ -268,8 +291,8 @@ class RefuseProjetForm(SimulationProjetStatusForm):
     )
 
     @transaction.atomic
-    def save(self, status, user: Collegue):
-        super().save(status, user)
+    def save(self, user: Collegue):
+        super().save(user)
 
         # Dossier was recently refreshed DN thanks to RefuseProjetModalView.
         # Race conditions remain possible, but should be rare enough and just fail without any side effect.
@@ -304,8 +327,8 @@ class DismissProjetForm(SimulationProjetStatusForm):
     )
 
     @transaction.atomic
-    def save(self, status, user: Collegue):
-        super().save(status, user)
+    def save(self, user: Collegue):
+        super().save(user)
         # Dossier was recently refreshed DN thanks to DismissProjetModalView.
         # Race conditions remain possible, but should be rare enough and just fail without any side effect.
         if self.instance.dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:

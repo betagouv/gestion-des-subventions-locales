@@ -517,6 +517,11 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
     def get_queryset(self):
         return SimulationProjet.objects.in_user_perimeter(self.request.user)
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["status"] = self.kwargs["status"]
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["new_simulation_status"] = self.kwargs["status"]
@@ -527,7 +532,7 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
 
     def form_valid(self, form):
         try:
-            form.save(status=self.kwargs["status"], user=self.request.user)
+            form.save(user=self.request.user)
             messages.info(
                 self.request,
                 {
@@ -555,6 +560,7 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
 class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
     context_object_name = "simulation_projet"
     new_project_status: str = ""
+    acceptance_errors: list = []
 
     def dispatch(self, request, *args, **kwargs):
         if (
@@ -604,6 +610,17 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
                 MATOMO_ACTION_CHANGEMENT_STATUT_SANS_NOTIFICATION_DEMANDE_CONFIRMATION,
                 f"{self.kwargs['status']}",
             )
+
+        self.acceptance_errors = []
+        if self.kwargs["status"] == SimulationProjet.STATUS_ACCEPTED:
+            validation_form = self.get_form_class()(
+                data={},
+                instance=self.object,
+                status=self.kwargs["status"],
+            )
+            if not validation_form.is_valid():
+                self.acceptance_errors = list(validation_form.non_field_errors())
+
         # On contourne BaseUpdateView.get() pour éviter un second appel à get_object()
         return super(BaseUpdateView, self).get(request, *args, **kwargs)
 
@@ -614,7 +631,13 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context["new_projet_status"] = self.new_project_status
         context["new_simulation_status"] = self.kwargs["status"]
+        context["acceptance_errors"] = self.acceptance_errors
         return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["status"] = self.kwargs["status"]
+        return kwargs
 
     def get_form_class(self):
         if self.new_project_status == PROJET_STATUS_REFUSED:
@@ -630,6 +653,8 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
             i.ds_id for i in self.object.dossier.ds_instructeurs.all()
         ]:
             return ["htmx/not_instructeur_error.html"]
+        if self.acceptance_errors:
+            return ["htmx/acceptance_errors_modal.html"]
         if self.new_project_status in [
             PROJET_STATUS_PROCESSING,
             PROJET_STATUS_ACCEPTED,
@@ -681,7 +706,7 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
 
     def form_valid(self, form):
         try:
-            form.save(status=self.kwargs["status"], user=self.request.user)
+            form.save(user=self.request.user)
         except DsServiceException as e:
             if self.get_form_class() == SimulationProjetStatusForm:
                 # If the form is SimulationProjetStatusForm, we have no modal to display the error in, so we raise
