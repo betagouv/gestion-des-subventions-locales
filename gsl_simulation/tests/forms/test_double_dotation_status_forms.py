@@ -91,8 +91,10 @@ class TestRefuseOneDoubleDotation:
         )
 
         # Use SimulationProjetStatusForm (not RefuseProjetForm) since DSIL is still processing
-        form = SimulationProjetStatusForm(instance=detr_simulation_projet)
-        form.save(SimulationProjet.STATUS_REFUSED, user)
+        form = SimulationProjetStatusForm(
+            instance=detr_simulation_projet, status=SimulationProjet.STATUS_REFUSED
+        )
+        form.save(user)
 
         # Verify statuses
         detr_dotation.refresh_from_db()
@@ -138,9 +140,10 @@ class TestRefuseOneDoubleDotation:
             form = RefuseProjetForm(
                 data={"justification": "Budget insuffisant"},
                 instance=detr_simulation_projet,
+                status=SimulationProjet.STATUS_REFUSED,
             )
             assert form.is_valid()
-            form.save(SimulationProjet.STATUS_REFUSED, user)
+            form.save(user)
 
             # Verify DN was called (because all dotations are now refused)
             mock_ds_refuser.assert_called_once()
@@ -181,8 +184,10 @@ class TestRefuseOneDoubleDotation:
         )
 
         # Use SimulationProjetStatusForm since DSIL is accepted
-        form = SimulationProjetStatusForm(instance=detr_simulation_projet)
-        form.save(SimulationProjet.STATUS_REFUSED, user)
+        form = SimulationProjetStatusForm(
+            instance=detr_simulation_projet, status=SimulationProjet.STATUS_REFUSED
+        )
+        form.save(user)
 
         # Verify statuses
         detr_dotation.refresh_from_db()
@@ -220,8 +225,10 @@ class TestDismissOneDoubleDotation:
         )
 
         # Use SimulationProjetStatusForm (not DismissProjetForm) since DETR is still processing
-        form = SimulationProjetStatusForm(instance=dsil_simulation_projet)
-        form.save(SimulationProjet.STATUS_DISMISSED, user)
+        form = SimulationProjetStatusForm(
+            instance=dsil_simulation_projet, status=SimulationProjet.STATUS_DISMISSED
+        )
+        form.save(user)
 
         # Verify statuses
         detr_dotation.refresh_from_db()
@@ -268,9 +275,10 @@ class TestDismissOneDoubleDotation:
             form = DismissProjetForm(
                 data={"justification": "Projet abandonné"},
                 instance=dsil_simulation_projet,
+                status=SimulationProjet.STATUS_DISMISSED,
             )
             assert form.is_valid()
-            form.save(SimulationProjet.STATUS_DISMISSED, user)
+            form.save(user)
 
             # Verify DN was called (because all dotations are now dismissed)
             mock_ds_dismiss.assert_called_once()
@@ -320,9 +328,10 @@ class TestDismissOneDoubleDotation:
             form = DismissProjetForm(
                 data={"justification": "Projet abandonné"},
                 instance=dsil_simulation_projet,
+                status=SimulationProjet.STATUS_DISMISSED,
             )
             assert form.is_valid()
-            form.save(SimulationProjet.STATUS_DISMISSED, user)
+            form.save(user)
 
             # Verify DN was called (dismissed takes precedence over refused)
             mock_ds_dismiss.assert_called_once()
@@ -361,8 +370,10 @@ class TestAcceptOneDoubleDotation:
             montant=5_000,
         )
 
-        form = SimulationProjetStatusForm(instance=detr_simulation_projet)
-        form.save(SimulationProjet.STATUS_ACCEPTED, user)
+        form = SimulationProjetStatusForm(
+            instance=detr_simulation_projet, status=SimulationProjet.STATUS_ACCEPTED
+        )
+        form.save(user)
 
         # Verify DN update was called for DETR
         mock_ds_update.assert_called_once_with(
@@ -423,15 +434,19 @@ class TestAcceptOneDoubleDotation:
         )
 
         # Accept DETR first
-        form_detr = SimulationProjetStatusForm(instance=detr_simulation_projet)
-        form_detr.save(SimulationProjet.STATUS_ACCEPTED, user)
+        form_detr = SimulationProjetStatusForm(
+            instance=detr_simulation_projet, status=SimulationProjet.STATUS_ACCEPTED
+        )
+        form_detr.save(user)
 
         projet.refresh_from_db()
         assert projet.status == PROJET_STATUS_PROCESSING
 
         # Accept DSIL second
-        form_dsil = SimulationProjetStatusForm(instance=dsil_simulation_projet)
-        form_dsil.save(SimulationProjet.STATUS_ACCEPTED, user)
+        form_dsil = SimulationProjetStatusForm(
+            instance=dsil_simulation_projet, status=SimulationProjet.STATUS_ACCEPTED
+        )
+        form_dsil.save(user)
 
         # Verify both DN updates were called
         assert mock_ds_update.call_count == 2
@@ -478,8 +493,10 @@ class TestAcceptOneDoubleDotation:
             montant=5_000,
         )
 
-        form = SimulationProjetStatusForm(instance=detr_simulation_projet)
-        form.save(SimulationProjet.STATUS_ACCEPTED, user)
+        form = SimulationProjetStatusForm(
+            instance=detr_simulation_projet, status=SimulationProjet.STATUS_ACCEPTED
+        )
+        form.save(user)
 
         # Verify statuses - projet is ACCEPTED (optimistic)
         detr_dotation.refresh_from_db()
@@ -512,8 +529,10 @@ class TestNotificationBehaviorWithDoubleDotation:
         )
 
         # Use SimulationProjetStatusForm (doesn't notify)
-        form = SimulationProjetStatusForm(instance=detr_simulation_projet)
-        form.save(SimulationProjet.STATUS_REFUSED, user)
+        form = SimulationProjetStatusForm(
+            instance=detr_simulation_projet, status=SimulationProjet.STATUS_REFUSED
+        )
+        form.save(user)
 
         projet.refresh_from_db()
         assert projet.notified_at is None
@@ -542,9 +561,10 @@ class TestNotificationBehaviorWithDoubleDotation:
             form = RefuseProjetForm(
                 data={"justification": "Budget insuffisant"},
                 instance=detr_simulation_projet,
+                status=SimulationProjet.STATUS_REFUSED,
             )
             form.is_valid()
-            form.save(SimulationProjet.STATUS_REFUSED, user)
+            form.save(user)
 
         projet.refresh_from_db()
         assert projet.notified_at is not None
@@ -579,9 +599,10 @@ class TestNotificationBehaviorWithDoubleDotation:
             form = DismissProjetForm(
                 data={"justification": "Projet abandonné"},
                 instance=dsil_simulation_projet,
+                status=SimulationProjet.STATUS_DISMISSED,
             )
             form.is_valid()
-            form.save(SimulationProjet.STATUS_DISMISSED, user)
+            form.save(user)
 
         # Verify only DSIL programmation_projet is notified (not DETR)
         detr_prog.refresh_from_db()
@@ -608,8 +629,10 @@ class TestNotificationBehaviorWithDoubleDotation:
             status=SimulationProjet.STATUS_PROCESSING,
             montant=5_000,
         )
-        form_detr = SimulationProjetStatusForm(instance=detr_simulation_projet)
-        form_detr.save(SimulationProjet.STATUS_REFUSED, user)
+        form_detr = SimulationProjetStatusForm(
+            instance=detr_simulation_projet, status=SimulationProjet.STATUS_REFUSED
+        )
+        form_detr.save(user)
 
         dsil_enveloppe = DsilEnveloppeFactory(perimetre=projet.perimetre)
         dsil_simulation = SimulationFactory(enveloppe=dsil_enveloppe)
@@ -624,9 +647,10 @@ class TestNotificationBehaviorWithDoubleDotation:
             form_dsil = RefuseProjetForm(
                 data={"justification": "Budget insuffisant"},
                 instance=dsil_simulation_projet,
+                status=SimulationProjet.STATUS_REFUSED,
             )
             form_dsil.is_valid()
-            form_dsil.save(SimulationProjet.STATUS_REFUSED, user)
+            form_dsil.save(user)
 
         # Refresh to see refused statuses
         detr_dotation.refresh_from_db()
@@ -657,8 +681,11 @@ class TestNotificationBehaviorWithDoubleDotation:
             with mock.patch(
                 "gsl_demarches_simplifiees.services.DsService.repasser_en_instruction"
             ):
-                form_back = SimulationProjetStatusForm(instance=detr_simulation_projet)
-                form_back.save(SimulationProjet.STATUS_PROCESSING, user)
+                form_back = SimulationProjetStatusForm(
+                    instance=detr_simulation_projet,
+                    status=SimulationProjet.STATUS_PROCESSING,
+                )
+                form_back.save(user)
 
         # DETR programmation should be removed, DSIL should remain
         assert not ProgrammationProjet.objects.filter(

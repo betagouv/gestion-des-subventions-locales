@@ -75,11 +75,13 @@ def test_simulation_projet_transition_are_called(
                 args["montant"] = simulation_projet.montant
 
             form = form_class(
-                data={"justification": "justification"}, instance=simulation_projet
+                data={"justification": "justification"},
+                instance=simulation_projet,
+                status=simulation_projet_status,
             )
             form.is_valid()
             user = CollegueFactory()
-            form.save(simulation_projet_status, user)
+            form.save(user)
             mock_transition_dotation_projet.assert_called_once_with(**args, **kwargs)
 
             args = {}
@@ -108,8 +110,8 @@ def test_update_status_with_accepted(mock_ds_update, user):
     )
     new_status = SimulationProjet.STATUS_ACCEPTED
 
-    form = SimulationProjetStatusForm(instance=simulation_projet)
-    form.save(new_status, user)
+    form = SimulationProjetStatusForm(instance=simulation_projet, status=new_status)
+    form.save(user)
 
     mock_ds_update.assert_called_once_with(
         dossier=simulation_projet.projet.dossier_ds,
@@ -139,8 +141,8 @@ def test_update_status_with_processing_from_accepted_or_refused_or_dismissed(
     with mock.patch(
         "gsl_projet.models.DotationProjet.set_back_status_to_processing"
     ) as mock_set_back_a_simulation_projet_to_processing:
-        form = SimulationProjetStatusForm(instance=simulation_projet)
-        form.save(new_status, user)
+        form = SimulationProjetStatusForm(instance=simulation_projet, status=new_status)
+        form.save(user)
 
         mock_set_back_a_simulation_projet_to_processing.assert_called_once()
 
@@ -151,8 +153,8 @@ def test_update_status_with_processing(user):
     )
     new_status = SimulationProjet.STATUS_PROCESSING
 
-    form = SimulationProjetStatusForm(instance=simulation_projet)
-    form.save(new_status, user)
+    form = SimulationProjetStatusForm(instance=simulation_projet, status=new_status)
+    form.save(user)
 
     simulation_projet.refresh_from_db()
     assert simulation_projet.status == new_status
@@ -205,8 +207,8 @@ def test_update_status_with_provisionally_accepted_from_refused_or_accepted_or_d
     with mock.patch(
         "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
     ) as mock_ds_update:
-        form = SimulationProjetStatusForm(instance=simulation_projet)
-        form.save(new_status, user)
+        form = SimulationProjetStatusForm(instance=simulation_projet, status=new_status)
+        form.save(user)
 
         mock_ds_update.assert_called_once_with(
             dossier=simulation_projet.projet.dossier_ds,
@@ -246,8 +248,11 @@ def test_update_status_with_provisionally_accepted_remove_programmation_projet_f
     with mock.patch(
         "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
     ) as mock_ds_update:
-        form = SimulationProjetStatusForm(instance=simulation_projet)
-        form.save(SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED, user)
+        form = SimulationProjetStatusForm(
+            instance=simulation_projet,
+            status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
+        )
+        form.save(user)
         mock_ds_update.assert_called_once_with(
             dossier=simulation_projet.projet.dossier_ds,
             user=user,
@@ -281,8 +286,8 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
     )
     new_status = SimulationProjet.STATUS_ACCEPTED
 
-    form = SimulationProjetStatusForm(instance=simulation_projet)
-    form.save(new_status, user)
+    form = SimulationProjetStatusForm(instance=simulation_projet, status=new_status)
+    form.save(user)
 
     mock_ds_update.assert_called_once_with(
         dossier=simulation_projet.projet.dossier_ds,
@@ -344,8 +349,10 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
     )
     assert programmation_projets_qs.count() == 1
 
-    form = SimulationProjetStatusForm(instance=simulation_projet)
-    form.save(new_projet_status, user)
+    form = SimulationProjetStatusForm(
+        instance=simulation_projet, status=new_projet_status
+    )
+    form.save(user)
 
     if new_projet_status == SimulationProjet.STATUS_ACCEPTED:
         mock_ds_update.assert_called_once_with(

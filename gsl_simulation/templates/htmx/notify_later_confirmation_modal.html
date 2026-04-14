@@ -12,46 +12,33 @@
               aria-hidden="true"></span>
         {{ new_simulation_status|status_to_action_word|capfirst }} la demande {{ object.enveloppe.dotation }}
     </h1>
-    {% if object.dotation_projet.assiette or new_simulation_status != "valid" %}
-        <p>
-            Ces changements vont être pris en compte dans toutes les simulations dans lesquelles le projet a été ajouté.
-            Il apparaîtra dans la programmation officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
-        </p>
-        <p>
-            {% if simulation_projet.dotation_projet.other_dotations|length > 0 and new_simulation_status != "valid" %}
-                Le demandeur ne va pas être notifié tout de suite car le projet est en double dotation.
-            {% else %}
-                Le demandeur ne va pas être notifié tout de suite.
-            {% endif %}
-        </p>
-        <p>
-            Voulez-vous {{ new_simulation_status|status_to_action_word }} cette demande de dotation&nbsp;?
-        </p>
-        <form id="{{ modal_id }}-form"
-              hx-post="{{ request.path }}"
-              hx-encoding="multipart/form-data"
-              hx-target="#{{ modal_id }}"
-              hx-swap="outerHTML"
-              hx-disabled-elt="#{{ modal_id }}-submit-button, #{{ modal_id }}-cancel-button">
-            {{ form }}
-        </form>
-    {% else %}
-        <div class="fr-alert fr-alert--error fr-alert--sm fr-mt-6w">
-            <p class="fr-alert__title">
-                Impossible d'accepter le projet
-            </p>
-            <p>
-                Le projet ne peut pas être accepté car il manque l'assiette subventionnable.
-                Veuillez ajouter le montant des dépenses éligibles retenues avant d'accepter un projet.
-            </p>
-        </div>
-    {% endif %}
+    <p>
+        Ces changements vont être pris en compte dans toutes les simulations dans lesquelles le projet a été ajouté.
+        Il apparaîtra dans la programmation officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
+    </p>
+    <p>
+        {% if simulation_projet.dotation_projet.other_dotations|length > 0 and new_simulation_status != "valid" %}
+            Le demandeur ne va pas être notifié tout de suite car le projet est en double dotation.
+        {% else %}
+            Le demandeur ne va pas être notifié tout de suite.
+        {% endif %}
+    </p>
+    <p>
+        Voulez-vous {{ new_simulation_status|status_to_action_word }} cette demande de dotation&nbsp;?
+    </p>
+    <form id="{{ modal_id }}-form"
+          hx-post="{{ request.path }}"
+          hx-encoding="multipart/form-data"
+          hx-target="#{{ modal_id }}"
+          hx-swap="outerHTML"
+          hx-disabled-elt="#{{ modal_id }}-submit-button, #{{ modal_id }}-cancel-button">
+        {{ form }}
+    </form>
 {% endblock content %}
 
 {% block confirmation_button %}
     <button type="submit"
             class="fr-btn fr-btn--primary"
-            {% if not object.dotation_projet.assiette and new_simulation_status == "valid" %}disabled="disabled"{% endif %}
             form="{{ modal_id }}-form"
             id="{{ modal_id }}-submit-button">
         {{ new_simulation_status|status_to_action_word|capfirst }}

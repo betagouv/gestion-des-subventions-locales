@@ -1,0 +1,43 @@
+{% extends "htmx/_base_htmx_modal.html" %}
+
+{% block button_label %}
+    Impossible d'accepter
+{% endblock button_label %}
+
+{% block content %}
+    <h1 class="fr-modal__title fr-text-default--error"
+        id="{{ modal_id }}-title">
+        <span class="fr-icon-error-fill fr-icon--lg" aria-hidden="true"></span>
+        Impossible d'accepter cette demande
+    </h1>
+    <p>
+        Vous ne pouvez pas accepter cette dotation pour ce projet.
+    </p>
+    <div class="fr-alert fr-alert--error fr-alert--sm fr-mt-4w">
+        {% if acceptance_errors|length == 1 %}
+            <p>
+                {{ acceptance_errors.0 }}
+            </p>
+        {% else %}
+            <ul>
+                {% for error in acceptance_errors %}
+                    <li>
+                        {{ error }}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+{% endblock content %}
+
+{% block footer %}
+    <ul class="fr-btns-group fr-btns-group--right fr-btns-group--inline-reverse fr-btns-group--inline-lg">
+        <li>
+            <button class="fr-btn fr-btn--primary"
+                    aria-controls="{{ modal_id }}"
+                    id="{{ modal_id }}-cancel-button">
+                OK
+            </button>
+        </li>
+    </ul>
+{% endblock footer %}
