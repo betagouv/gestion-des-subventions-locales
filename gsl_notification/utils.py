@@ -417,7 +417,7 @@ def _get_uploaded_document_pdf(document: Annexe | ArreteEtLettreSignes) -> io.By
     return output
 
 
-def _fix_empty_paragraphs_for_weasyprint(html: str) -> str:
+def fix_empty_paragraphs_for_weasyprint(html: str) -> str:
     """
     WeasyPrint (comme les navigateurs) collapse les <p> qui ne contiennent que du
     whitespace ou des <br> (ils finissent avec une hauteur nulle).
@@ -441,7 +441,7 @@ def generate_pdf_for_generated_document(document: Arrete | LettreNotification) -
     This function generates the PDF content for a document and returns it as bytes.
     It can be used to calculate the document size without actually serving it.
     """
-    content = _fix_empty_paragraphs_for_weasyprint(document.content)
+    content = fix_empty_paragraphs_for_weasyprint(document.content)
     context = {
         "doc_title": get_doc_title(document.document_type),
         "logo": get_logo_base64(document.modele.logo.url),
