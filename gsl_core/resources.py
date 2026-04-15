@@ -1,5 +1,6 @@
 from import_export import resources
 from import_export.fields import Field
+from import_export.instance_loaders import CachedInstanceLoader
 from import_export.widgets import ForeignKeyWidget
 
 from .models import Arrondissement, Collegue, Commune, Departement, Perimetre, Region
@@ -74,6 +75,7 @@ class CommuneResource(resources.ModelResource):
         import_id_fields = ("insee_code",)
         use_bulk = True
         skip_unchanged = True
+        instance_loader_class = CachedInstanceLoader
 
 
 class CollegueResource(resources.ModelResource):
