@@ -67,51 +67,15 @@ class FilterResponseDemarcheTest(TestCase):
         filter_response(response, {"inst-a"})
         self.assertEqual(len(response["data"]["demarche"]["dossiers"]["nodes"]), 2)
 
-    def test_no_instructeur_data_passes_through(self):
+    def test_dossier_without_instructeur_data_is_filtered_out(self):
         response = self._make_demarche_response(
             [
                 {"number": 1, "groupeInstructeur": {}},
+                {"number": 2},
             ]
         )
         result = filter_response(response, {"inst-a"})
-        self.assertEqual(len(result["data"]["demarche"]["dossiers"]["nodes"]), 1)
-
-
-class FilterResponseGroupeInstructeurTest(TestCase):
-    def test_filters_groupe_instructeur_dossiers(self):
-        response = {
-            "data": {
-                "groupeInstructeur": {
-                    "dossiers": {
-                        "pageInfo": {"hasNextPage": False, "endCursor": None},
-                        "nodes": [
-                            {
-                                "number": 1,
-                                "groupeInstructeur": {
-                                    "instructeurs": [
-                                        {"id": "inst-a", "email": "a@t.fr"}
-                                    ]
-                                },
-                                "instructeurs": [],
-                            },
-                            {
-                                "number": 2,
-                                "groupeInstructeur": {
-                                    "instructeurs": [
-                                        {"id": "inst-b", "email": "b@t.fr"}
-                                    ]
-                                },
-                                "instructeurs": [],
-                            },
-                        ],
-                    }
-                }
-            }
-        }
-        result = filter_response(response, {"inst-b"})
-        nodes = result["data"]["groupeInstructeur"]["dossiers"]["nodes"]
-        self.assertEqual(len(nodes), 1)
-        self.assertEqual(nodes[0]["number"], 2)
+        self.assertEqual(result["data"]["demarche"]["dossiers"]["nodes"], [])
 
 
 class FilterResponseSingleDossierTest(TestCase):

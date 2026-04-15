@@ -48,6 +48,15 @@ class Migration(migrations.Migration):
                 ("label", models.CharField(max_length=255, verbose_name="Libellé")),
                 ("is_active", models.BooleanField(default=True, verbose_name="Actif")),
                 (
+                    "demarche",
+                    models.ForeignKey(
+                        on_delete=models.deletion.PROTECT,
+                        related_name="proxy_tokens",
+                        to="gsl_demarches_simplifiees.demarche",
+                        verbose_name="Démarche autorisée",
+                    ),
+                ),
+                (
                     "instructeurs",
                     models.ManyToManyField(
                         blank=True,

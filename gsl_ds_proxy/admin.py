@@ -5,8 +5,8 @@ from gsl_ds_proxy.models import ProxyToken
 
 @admin.register(ProxyToken)
 class ProxyTokenAdmin(admin.ModelAdmin):
-    list_display = ("label", "is_active", "created_at", "instructeur_count")
-    list_filter = ("is_active",)
+    list_display = ("label", "demarche", "is_active", "created_at", "instructeur_count")
+    list_filter = ("is_active", "demarche")
     readonly_fields = ("key_hash", "created_at", "updated_at")
     filter_horizontal = ("instructeurs",)
 

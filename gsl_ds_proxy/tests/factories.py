@@ -2,6 +2,7 @@ import secrets
 
 import factory
 
+from gsl_demarches_simplifiees.tests.factories import DemarcheFactory
 from gsl_ds_proxy.models import ProxyToken
 
 
@@ -10,6 +11,7 @@ class ProxyTokenFactory(factory.django.DjangoModelFactory):
         model = ProxyToken
 
     label = factory.Sequence(lambda n: f"Token {n}")
+    demarche = factory.SubFactory(DemarcheFactory)
     is_active = True
 
     @classmethod

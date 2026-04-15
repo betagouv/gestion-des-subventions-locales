@@ -8,8 +8,7 @@ def _dossier_is_visible(dossier, allowed_ids):
     instructeurs += dossier.get("instructeurs") or []
 
     if not instructeurs:
-        # No instructeur data in response — cannot filter
-        return True
+        return False
 
     return any(inst.get("id") in allowed_ids for inst in instructeurs)
 
@@ -38,13 +37,6 @@ def filter_response(response_data, allowed_instructeur_ids):
     demarche = data.get("demarche")
     if demarche and isinstance(demarche, dict):
         dossiers = demarche.get("dossiers")
-        if dossiers and isinstance(dossiers, dict):
-            _filter_dossier_nodes(dossiers, allowed_instructeur_ids)
-
-    # getGroupeInstructeur → data.groupeInstructeur.dossiers.nodes[]
-    groupe = data.get("groupeInstructeur")
-    if groupe and isinstance(groupe, dict):
-        dossiers = groupe.get("dossiers")
         if dossiers and isinstance(dossiers, dict):
             _filter_dossier_nodes(dossiers, allowed_instructeur_ids)
 

@@ -15,6 +15,12 @@ class ProxyToken(BaseModel):
         editable=False,
     )
     label = models.CharField("Libellé", max_length=255)
+    demarche = models.ForeignKey(
+        "gsl_demarches_simplifiees.Demarche",
+        verbose_name="Démarche autorisée",
+        on_delete=models.PROTECT,
+        related_name="proxy_tokens",
+    )
     instructeurs = models.ManyToManyField(
         "gsl_demarches_simplifiees.Profile",
         verbose_name="Instructeurs autorisés",

@@ -182,6 +182,8 @@ fonttools[woff]==4.62.1
     # via weasyprint
 freezegun==1.5.5
     # via gsl (pyproject.toml)
+graphql-core==3.2.8
+    # via gsl (pyproject.toml)
 gunicorn==25.1.0
     # via gsl (pyproject.toml)
 identify==2.6.18
