@@ -36,13 +36,13 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "key",
+                    "key_hash",
                     models.CharField(
                         db_index=True,
                         editable=False,
                         max_length=64,
                         unique=True,
-                        verbose_name="Clé API",
+                        verbose_name="Empreinte de clé API",
                     ),
                 ),
                 ("label", models.CharField(max_length=255, verbose_name="Libellé")),

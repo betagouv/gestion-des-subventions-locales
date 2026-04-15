@@ -14,7 +14,7 @@ class GraphqlProxyViewTest(TestCase):
         self.token = ProxyTokenFactory()
         self.token.instructeurs.add(self.profile)
         self.url = "/ds-proxy/graphql/"
-        self.headers = {"HTTP_AUTHORIZATION": f"Bearer {self.token.key}"}
+        self.headers = {"HTTP_AUTHORIZATION": f"Bearer {self.token.plaintext_key}"}
 
     def _post(self, data, **extra_headers):
         headers = {**self.headers, **extra_headers}
