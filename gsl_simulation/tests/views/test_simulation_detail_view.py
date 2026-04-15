@@ -438,3 +438,187 @@ class TestExportColumnsVisibility:
         assert "Avis de la commission" in headers
         # Hidden column excluded
         assert "Date de dépôt du dossier" not in headers
+
+
+class TestFilterPersistence:
+    """Tests that simulation filters are saved to and restored from the Simulation model."""
+
+    def test_filters_saved_on_simulation(self, client_logged_in, detr_envelope):
+        simulation = SimulationFactory(enveloppe=detr_envelope)
+        SimulationProjetFactory(
+            simulation=simulation,
+            dotation_projet__dotation=DOTATION_DETR,
+        )
+        url = reverse(
+            "gsl_simulation:simulation-detail",
+            kwargs={"slug": simulation.slug},
+        )
+
+        client_logged_in.get(url, {"status": "draft", "porteur": "epci"})
+
+        simulation.refresh_from_db()
+        assert simulation.filters == {
+            "status": ["draft"],
+            "porteur": ["epci"],
+        }
+
+    def test_filters_restored_from_simulation(self, client_logged_in, detr_envelope):
+        simulation = SimulationFactory(
+            enveloppe=detr_envelope, filters={"status": ["draft"]}
+        )
+        SimulationProjetFactory(
+            simulation=simulation,
+            dotation_projet__dotation=DOTATION_DETR,
+        )
+        url = reverse(
+            "gsl_simulation:simulation-detail",
+            kwargs={"slug": simulation.slug},
+        )
+
+        response = client_logged_in.get(url)
+        assert response.status_code == 302
+        assert "status=draft" in response.url
+
+    def test_no_redirect_when_no_saved_filters(self, client_logged_in, detr_envelope):
+        simulation = SimulationFactory(enveloppe=detr_envelope)
+        SimulationProjetFactory(
+            simulation=simulation,
+            dotation_projet__dotation=DOTATION_DETR,
+        )
+        url = reverse(
+            "gsl_simulation:simulation-detail",
+            kwargs={"slug": simulation.slug},
+        )
+
+        response = client_logged_in.get(url)
+        assert response.status_code == 200
+
+    def test_reset_clears_filters(self, client_logged_in, detr_envelope):
+        simulation = SimulationFactory(
+            enveloppe=detr_envelope, filters={"status": ["draft"]}
+        )
+        SimulationProjetFactory(
+            simulation=simulation,
+            dotation_projet__dotation=DOTATION_DETR,
+        )
+        url = reverse(
+            "gsl_simulation:simulation-detail",
+            kwargs={"slug": simulation.slug},
+        )
+
+        client_logged_in.get(url, {"reset_filters": "1"})
+
+        simulation.refresh_from_db()
+        assert simulation.filters is None
+
+    def test_page_param_not_saved_as_filter(self, client_logged_in, detr_envelope):
+        simulation = SimulationFactory(enveloppe=detr_envelope)
+        SimulationProjetFactory(
+            simulation=simulation,
+            dotation_projet__dotation=DOTATION_DETR,
+        )
+        url = reverse(
+            "gsl_simulation:simulation-detail",
+            kwargs={"slug": simulation.slug},
+        )
+
+        client_logged_in.get(url, {"status": "draft", "page": "1"})
+
+        simulation.refresh_from_db()
+        assert "page" not in simulation.filters
+
+    def test_page_only_does_not_save_and_does_not_redirect(
+        self, client_logged_in, detr_envelope
+    ):
+        simulation = SimulationFactory(enveloppe=detr_envelope)
+        SimulationProjetFactory(
+            simulation=simulation,
+            dotation_projet__dotation=DOTATION_DETR,
+        )
+        url = reverse(
+            "gsl_simulation:simulation-detail",
+            kwargs={"slug": simulation.slug},
+        )
+
+        response = client_logged_in.get(url, {"page": "1"})
+        assert response.status_code == 200
+        simulation.refresh_from_db()
+        assert simulation.filters is None
+
+    def test_order_param_not_saved_as_filter(self, client_logged_in, detr_envelope):
+        simulation = SimulationFactory(enveloppe=detr_envelope)
+        SimulationProjetFactory(
+            simulation=simulation,
+            dotation_projet__dotation=DOTATION_DETR,
+        )
+        url = reverse(
+            "gsl_simulation:simulation-detail",
+            kwargs={"slug": simulation.slug},
+        )
+
+        response = client_logged_in.get(url, {"order": "-montant_previsionnel"})
+        assert response.status_code == 200
+        simulation.refresh_from_db()
+        assert simulation.filters is None
+
+    def test_empty_string_values_not_saved(self, client_logged_in, detr_envelope):
+        simulation = SimulationFactory(enveloppe=detr_envelope)
+        SimulationProjetFactory(
+            simulation=simulation,
+            dotation_projet__dotation=DOTATION_DETR,
+        )
+        url = reverse(
+            "gsl_simulation:simulation-detail",
+            kwargs={"slug": simulation.slug},
+        )
+
+        response = client_logged_in.get(url, {"cout_min": "", "cout_max": ""})
+        assert response.status_code == 200
+        simulation.refresh_from_db()
+        assert simulation.filters is None
+
+    def test_filters_scoped_per_simulation(self, client_logged_in, detr_envelope):
+        sim1 = SimulationFactory(enveloppe=detr_envelope)
+        sim2 = SimulationFactory(enveloppe=detr_envelope)
+        SimulationProjetFactory(
+            simulation=sim1, dotation_projet__dotation=DOTATION_DETR
+        )
+        SimulationProjetFactory(
+            simulation=sim2, dotation_projet__dotation=DOTATION_DETR
+        )
+
+        url1 = reverse("gsl_simulation:simulation-detail", kwargs={"slug": sim1.slug})
+        url2 = reverse("gsl_simulation:simulation-detail", kwargs={"slug": sim2.slug})
+
+        client_logged_in.get(url1, {"status": "draft"})
+        client_logged_in.get(url2, {"porteur": "epci"})
+
+        sim1.refresh_from_db()
+        sim2.refresh_from_db()
+        assert sim1.filters == {"status": ["draft"]}
+        assert sim2.filters == {"porteur": ["epci"]}
+
+    def test_filters_persist_across_users(
+        self, client_logged_in, user_with_departement_perimetre, detr_envelope
+    ):
+        simulation = SimulationFactory(enveloppe=detr_envelope)
+        SimulationProjetFactory(
+            simulation=simulation,
+            dotation_projet__dotation=DOTATION_DETR,
+        )
+        url = reverse(
+            "gsl_simulation:simulation-detail",
+            kwargs={"slug": simulation.slug},
+        )
+
+        client_logged_in.get(url, {"status": "draft"})
+
+        other_user = CollegueFactory(
+            perimetre=user_with_departement_perimetre.perimetre
+        )
+        other_client = Client()
+        other_client.force_login(other_user)
+
+        response = other_client.get(url)
+        assert response.status_code == 302
+        assert "status=draft" in response.url
