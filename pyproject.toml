@@ -41,6 +41,7 @@ dependencies = [
     "tablib[xlsx]",
     "whitenoise",
     "django-weasyprint",
+    "graphql-core",
 ]
 
 [tool.setuptools]
