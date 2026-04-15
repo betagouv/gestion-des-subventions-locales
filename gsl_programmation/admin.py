@@ -1,12 +1,13 @@
 from django.contrib import admin, messages
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, F
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from import_export.admin import ImportExportMixin
 
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_core.templatetags.gsl_filters import euro, percent
+from gsl_simulation.models import SimulationProjet
 
 from .models import Enveloppe, ProgrammationProjet
 from .resources import EnveloppeDETRResource, EnveloppeDSILResource
@@ -139,6 +140,9 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         valid_qs = queryset.filter(
             status=ProgrammationProjet.STATUS_ACCEPTED, enveloppe__annee=2026
         )
+        dotation_projet_ids = list(
+            valid_qs.values_list("dotation_projet_id", flat=True)
+        )
         success_count = 0
         for pp in valid_qs.select_related("enveloppe__perimetre", "dotation_projet"):
             try:
@@ -168,6 +172,19 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             self.message_user(
                 request,
                 f"{success_count} projet(s) associé(s) avec succès à l'enveloppe 2025.",
+                messages.SUCCESS,
+            )
+
+        deleted_count, _ = SimulationProjet.objects.filter(
+            dotation_projet__in=dotation_projet_ids,
+            dotation_projet__programmation_projet__enveloppe__annee__lt=F(
+                "simulation__enveloppe__annee"
+            ),
+        ).delete()
+        if deleted_count:
+            self.message_user(
+                request,
+                f"{deleted_count} simulation(s) projet supprimée(s) suite au réassociement.",
                 messages.SUCCESS,
             )
 
