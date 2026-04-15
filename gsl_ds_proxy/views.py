@@ -28,7 +28,7 @@ def graphql_proxy(request):
     token_key = auth_header[7:]
     try:
         proxy_token = ProxyToken.objects.prefetch_related("instructeurs").get(
-            key=token_key, is_active=True
+            key_hash=ProxyToken.hash_key(token_key), is_active=True
         )
     except ProxyToken.DoesNotExist:
         return _error_response("Token invalide ou désactivé.", 401)

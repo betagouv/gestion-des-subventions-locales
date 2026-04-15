@@ -1,3 +1,4 @@
+import hashlib
 import secrets
 
 from django.db import models
@@ -6,8 +7,8 @@ from gsl_core.models import BaseModel
 
 
 class ProxyToken(BaseModel):
-    key = models.CharField(
-        "Clé API",
+    key_hash = models.CharField(
+        "Empreinte de clé API",
         max_length=64,
         unique=True,
         db_index=True,
@@ -28,7 +29,13 @@ class ProxyToken(BaseModel):
     def __str__(self):
         return self.label
 
+    @staticmethod
+    def hash_key(plaintext: str) -> str:
+        return hashlib.sha256(plaintext.encode("utf-8")).hexdigest()
+
     def save(self, *args, **kwargs):
-        if not self.key:
-            self.key = secrets.token_hex(32)
+        if not self.key_hash:
+            plaintext = secrets.token_hex(32)
+            self.key_hash = self.hash_key(plaintext)
+            self._plaintext_key = plaintext
         super().save(*args, **kwargs)
