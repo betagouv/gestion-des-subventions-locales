@@ -3,7 +3,10 @@ from unittest.mock import patch
 
 from django.test import TestCase, override_settings
 
-from gsl_demarches_simplifiees.tests.factories import ProfileFactory
+from gsl_demarches_simplifiees.tests.factories import (
+    DemarcheFactory,
+    ProfileFactory,
+)
 from gsl_ds_proxy.tests.factories import ProxyTokenFactory
 
 
@@ -11,10 +14,18 @@ from gsl_ds_proxy.tests.factories import ProxyTokenFactory
 class GraphqlProxyViewTest(TestCase):
     def setUp(self):
         self.profile = ProfileFactory(ds_id="inst-a")
-        self.token = ProxyTokenFactory()
+        self.demarche = DemarcheFactory(ds_number=123)
+        self.token = ProxyTokenFactory(demarche=self.demarche)
         self.token.instructeurs.add(self.profile)
         self.url = "/ds-proxy/graphql/"
         self.headers = {"HTTP_AUTHORIZATION": f"Bearer {self.token.plaintext_key}"}
+
+    def _get_demarche_payload(self, demarche_number=None):
+        return {
+            "query": "query getDemarche { demarche { title } }",
+            "operationName": "getDemarche",
+            "variables": {"demarcheNumber": demarche_number or self.demarche.ds_number},
+        }
 
     def _post(self, data, **extra_headers):
         headers = {**self.headers, **extra_headers}
@@ -28,7 +39,7 @@ class GraphqlProxyViewTest(TestCase):
     def test_missing_auth_header(self):
         response = self.client.post(
             self.url,
-            data=json.dumps({"query": "{ demarche { title } }"}),
+            data=json.dumps(self._get_demarche_payload()),
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 401)
@@ -36,7 +47,7 @@ class GraphqlProxyViewTest(TestCase):
     def test_invalid_token(self):
         response = self.client.post(
             self.url,
-            data=json.dumps({"query": "{ demarche { title } }"}),
+            data=json.dumps(self._get_demarche_payload()),
             content_type="application/json",
             HTTP_AUTHORIZATION="Bearer invalid-token",
         )
@@ -45,7 +56,7 @@ class GraphqlProxyViewTest(TestCase):
     def test_inactive_token(self):
         self.token.is_active = False
         self.token.save()
-        response = self._post({"query": "{ demarche { title } }"})
+        response = self._post(self._get_demarche_payload())
         self.assertEqual(response.status_code, 401)
 
     def test_invalid_json(self):
@@ -70,6 +81,7 @@ class GraphqlProxyViewTest(TestCase):
         ds_response_data = {
             "data": {
                 "demarche": {
+                    "number": self.demarche.ds_number,
                     "dossiers": {
                         "pageInfo": {"hasNextPage": False, "endCursor": None},
                         "nodes": [
@@ -92,7 +104,7 @@ class GraphqlProxyViewTest(TestCase):
                                 "instructeurs": [],
                             },
                         ],
-                    }
+                    },
                 }
             }
         }
@@ -103,7 +115,8 @@ class GraphqlProxyViewTest(TestCase):
         response = self._post(
             {
                 "query": "query getDemarche { demarche { dossiers { nodes { number } } } }",
-                "variables": {"demarcheNumber": 123},
+                "operationName": "getDemarche",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
             }
         )
 
@@ -126,7 +139,7 @@ class GraphqlProxyViewTest(TestCase):
 
         mock_post.side_effect = req.exceptions.ConnectionError()
 
-        response = self._post({"query": "{ demarche { title } }"})
+        response = self._post(self._get_demarche_payload())
         self.assertEqual(response.status_code, 502)
 
     @patch("gsl_ds_proxy.views.requests.post")
@@ -136,5 +149,268 @@ class GraphqlProxyViewTest(TestCase):
         mock_post.return_value.status_code = 500
         mock_post.return_value.raise_for_status.side_effect = req.exceptions.HTTPError()
 
-        response = self._post({"query": "{ demarche { title } }"})
+        response = self._post(self._get_demarche_payload())
         self.assertEqual(response.status_code, 502)
+
+    def test_getDemarche_wrong_demarche_number_rejected(self):
+        response = self._post(self._get_demarche_payload(demarche_number=999))
+        self.assertEqual(response.status_code, 403)
+
+    def test_getDemarche_missing_variables_rejected(self):
+        response = self._post(
+            {
+                "query": "query getDemarche { demarche { title } }",
+                "operationName": "getDemarche",
+            }
+        )
+        self.assertEqual(response.status_code, 403)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_getDossier_of_token_demarche_allowed(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {
+                "dossier": {
+                    "number": 42,
+                    "demarche": {"number": self.demarche.ds_number},
+                }
+            }
+        }
+
+        response = self._post(
+            {
+                "query": "query getDossier { dossier { number } }",
+                "operationName": "getDossier",
+                "variables": {"dossierNumber": 42},
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_getDossier_of_other_demarche_rejected(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {
+                "dossier": {
+                    "number": 42,
+                    "demarche": {"number": 999},
+                }
+            }
+        }
+
+        response = self._post(
+            {
+                "query": "query getDossier { dossier { number } }",
+                "operationName": "getDossier",
+                "variables": {"dossierNumber": 42},
+            }
+        )
+        self.assertEqual(response.status_code, 403)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_getDossier_without_demarche_in_response_rejected(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {"data": {"dossier": {"number": 42}}}
+
+        response = self._post(
+            {
+                "query": "query getDossier { dossier { number } }",
+                "operationName": "getDossier",
+                "variables": {"dossierNumber": 42},
+            }
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_getGroupeInstructeur_rejected(self):
+        response = self._post(
+            {
+                "query": "query getGroupeInstructeur { groupeInstructeur { id } }",
+                "operationName": "getGroupeInstructeur",
+                "variables": {"groupeInstructeurNumber": 1},
+            }
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_unknown_operation_rejected(self):
+        response = self._post(
+            {
+                "query": "query foo { foo }",
+                "operationName": "foo",
+            }
+        )
+        self.assertEqual(response.status_code, 403)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_getDemarche_response_with_wrong_demarche_number_rejected(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {
+                "demarche": {
+                    "number": 999,
+                    "dossiers": {"nodes": []},
+                }
+            }
+        }
+        response = self._post(
+            {
+                "query": "query getDemarche { demarche { number } }",
+                "operationName": "getDemarche",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        self.assertEqual(response.status_code, 403)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_getDemarche_response_without_number_field_rejected(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {"demarche": {"dossiers": {"nodes": []}}}
+        }
+        response = self._post(
+            {
+                "query": "query getDemarche { demarche { dossiers { nodes { number } } } }",
+                "operationName": "getDemarche",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_mutation_with_leading_whitespace_rejected(self):
+        response = self._post({"query": "\n\n  mutation { dossierAccepter { id } }"})
+        self.assertEqual(response.status_code, 403)
+
+    def test_mutation_with_crlf_rejected(self):
+        response = self._post({"query": "\r\nmutation { dossierAccepter { id } }"})
+        self.assertEqual(response.status_code, 403)
+
+    def test_mutation_with_leading_comment_rejected(self):
+        response = self._post(
+            {"query": "# a comment\nmutation { dossierAccepter { id } }"}
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_subscription_rejected(self):
+        response = self._post({"query": "subscription { dossierUpdated { id } }"})
+        self.assertEqual(response.status_code, 403)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_query_with_leading_comment_parsed(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {
+                "demarche": {
+                    "number": self.demarche.ds_number,
+                    "dossiers": {"nodes": []},
+                }
+            }
+        }
+        response = self._post(
+            {
+                "query": "# leading comment\nquery getDemarche { demarche { number } }",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_ds_timeout_returns_504(self, mock_post):
+        import requests as req
+
+        mock_post.side_effect = req.exceptions.Timeout()
+
+        response = self._post(self._get_demarche_payload())
+        self.assertEqual(response.status_code, 504)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_query_forwarded_verbatim(self, mock_post):
+        """The proxy should not rewrite the query — it's forwarded as sent."""
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {
+                "demarche": {
+                    "number": self.demarche.ds_number,
+                    "dossiers": {"nodes": []},
+                }
+            }
+        }
+
+        query = (
+            "query getDemarche { demarche { number dossiers { nodes "
+            "{ number groupeInstructeur { instructeurs { id } } } } } }"
+        )
+        self._post(
+            {
+                "query": query,
+                "operationName": "getDemarche",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        self.assertEqual(mock_post.call_args.kwargs["json"]["query"], query)
+
+    def test_document_with_multiple_operations_requires_operationName(self):
+        response = self._post(
+            {
+                "query": (
+                    "query getDemarche { demarche { title } } "
+                    "query getDossier { dossier { number } }"
+                ),
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_document_with_only_fragments_rejected(self):
+        response = self._post({"query": "fragment DossierFields on Dossier { number }"})
+        self.assertEqual(response.status_code, 400)
+
+    def test_shorthand_query_rejected_as_unknown_operation(self):
+        response = self._post({"query": "{ demarche { title } }"})
+        self.assertEqual(response.status_code, 403)
+
+    def test_operationName_not_in_document_rejected(self):
+        response = self._post(
+            {
+                "query": "query getDemarche { demarche { title } }",
+                "operationName": "getSomethingElse",
+            }
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_malformed_graphql_returns_400(self):
+        response = self._post(
+            {
+                "query": "query getDemarche { demarche { { } }",
+                "operationName": "getDemarche",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        self.assertEqual(response.status_code, 400)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_ds_post_called_with_timeout(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {
+                "demarche": {
+                    "number": self.demarche.ds_number,
+                    "dossiers": {"nodes": []},
+                }
+            }
+        }
+        self._post(
+            {
+                "query": "query getDemarche { demarche { number } }",
+                "operationName": "getDemarche",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        self.assertIn("timeout", mock_post.call_args.kwargs)
+        self.assertIsNotNone(mock_post.call_args.kwargs["timeout"])

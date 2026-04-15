@@ -141,6 +141,8 @@ executing==2.2.1
     # via stack-data
 fonttools[woff]==4.62.1
     # via weasyprint
+graphql-core==3.2.8
+    # via gsl (pyproject.toml)
 gunicorn==25.1.0
     # via gsl (pyproject.toml)
 idna==3.11
