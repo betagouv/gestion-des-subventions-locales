@@ -1,7 +1,7 @@
 {% load gsl_filters dsfr_tags custom_pluralize %}
 
 <div id="projet-table-wrapper">
-    <div class="gsl-table-toolbar fr-my-1w">
+    <div class="gsl-table-toolbar fr-mt-11v fr-mb-6v">
         <span>
             {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
             {% if missing_annotations_count %}

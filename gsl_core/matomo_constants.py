@@ -13,6 +13,7 @@ MATOMO_ACTION_MODIFICATION_ASSIETTE = "modification_assiette"
 MATOMO_ACTION_MODIFICATION_MONTANT = "modification_montant"
 MATOMO_ACTION_MODIFICATION_TAUX = "modification_taux"
 MATOMO_ACTION_CHANGEMENT_STATUT = "changement_statut"
+MATOMO_ACTION_CHANGEMENT_STATUT_BULK = "changement_statut_bulk"
 
 # Matomo event actions — Programmation
 MATOMO_ACTION_MODIFICATION_MONTANTS = "modification_montants"
