@@ -4,6 +4,20 @@
     <tr id="simulation-{{ simu.pk }}"
         hx-swap-oob="true"
         {% if dotation_projet.other_dotations|length > 0 %}class="gsl-projet-table__row--double-dotation"{% endif %}>
+        <td class="gsl-projet-table__cell--checkbox">
+            {% if simu.id in selectable_ids_list %}
+                <div class="fr-checkbox-group fr-checkbox-group--sm">
+                    <input id="bulk-status-checkbox-{{ simu.pk }}"
+                           type="checkbox"
+                           value="{{ simu.pk }}"
+                           data-bulk-status-change-target="rowCheckbox"
+                           data-action="change->bulk-status-change#toggleRow">
+                    <label class="fr-label" for="bulk-status-checkbox-{{ simu.pk }}">
+                        <span class="fr-sr-only">Sélectionner le projet N°{{ projet.dossier_ds.ds_number }}</span>
+                    </label>
+                </div>
+            {% endif %}
+        </td>
         {% for column in columns %}
             {% if column.key == "statut" %}
                 <td class="gsl-projet-table__cell--status {{ column.td_classes }}">

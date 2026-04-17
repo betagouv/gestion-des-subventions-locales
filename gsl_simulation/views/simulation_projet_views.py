@@ -1,11 +1,13 @@
 import json
 
 from django.contrib import messages
+from django.db import transaction
 from django.http import Http404 as DjangoHttp404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views import View
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, UpdateView
 from django.views.generic.edit import BaseUpdateView
@@ -18,6 +20,7 @@ from gsl_core.matomo import queue_matomo_event
 from gsl_core.matomo_constants import (
     MATOMO_ACTION_CHANGEMENT_STATUT,
     MATOMO_ACTION_CHANGEMENT_STATUT_AVEC_NOTIFICATION_DEMANDE_CONFIRMATION,
+    MATOMO_ACTION_CHANGEMENT_STATUT_BULK,
     MATOMO_ACTION_CHANGEMENT_STATUT_CONFIRME,
     MATOMO_ACTION_CHANGEMENT_STATUT_SANS_NOTIFICATION_DEMANDE_CONFIRMATION,
     MATOMO_ACTION_MODIFICATION_ASSIETTE,
@@ -553,6 +556,89 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
                 self.request,
                 f"{str(e)}",
             )
+        return HttpResponseClientRefresh()
+
+
+@method_decorator(htmx_only, name="dispatch")
+@method_decorator(require_POST, name="dispatch")
+class BulkSimulationProjetStatusUpdateView(View):
+    """
+    Bulk status change for several SimulationProjet rows at once,
+    restricted to the three simulation-pending statuses (no notification,
+    no DS mutation, no confirmation modal). Reuses
+    `SimulationProjetStatusForm.save()` per row so the single-row
+    behavior stays authoritative.
+    """
+
+    def post(self, request, *args, **kwargs):
+        target_status = kwargs["status"]
+        if target_status not in SimulationProjet.SIMULATION_PENDING_STATUSES:
+            raise Http404(user_message="Statut de simulation invalide")
+
+        raw_ids = request.POST.get("simulation_projet_ids", "")
+        try:
+            ids = [int(i) for i in raw_ids.split(",") if i.strip()]
+        except ValueError:
+            raise Http404(user_message="Identifiants de projets invalides")
+
+        if not ids:
+            messages.error(
+                request, "Aucun projet sélectionné pour le changement de statut."
+            )
+            return HttpResponseClientRefresh()
+
+        qs = (
+            SimulationProjet.objects.in_user_perimeter(request.user)
+            .filter(id__in=ids)
+            .select_related(
+                "dotation_projet",
+                "dotation_projet__projet",
+                "simulation",
+                "simulation__enveloppe",
+            )
+        )
+        found_ids = {sp.id for sp in qs}
+        if found_ids != set(ids):
+            raise Http404(
+                user_message=(
+                    "Un ou plusieurs des projets sélectionnés n'est pas accessible "
+                    "(identifiant inconnu ou hors de votre périmètre)."
+                )
+            )
+
+        simulation_projets = [
+            sp
+            for sp in qs
+            if sp.dotation_projet.projet.notified_at is None
+            and sp.status in SimulationProjet.SIMULATION_PENDING_STATUSES
+        ]
+        skipped = len(ids) - len(simulation_projets)
+
+        with transaction.atomic():
+            for sp in simulation_projets:
+                SimulationProjetStatusForm(instance=sp, status=target_status).save(
+                    user=request.user
+                )
+
+        updated = len(simulation_projets)
+        if skipped:
+            messages.warning(
+                request,
+                (
+                    f"{skipped} projet{'s' if skipped > 1 else ''} non "
+                    f"modifiable{'s' if skipped > 1 else ''} "
+                    f"{'ont' if skipped > 1 else 'a'} été ignoré"
+                    f"{'s' if skipped > 1 else ''}."
+                ),
+            )
+
+        queue_matomo_event(
+            request,
+            MATOMO_CATEGORY_SIMULATION,
+            MATOMO_ACTION_CHANGEMENT_STATUT_BULK,
+            f"{target_status}:{updated}",
+        )
+
         return HttpResponseClientRefresh()
 
 
