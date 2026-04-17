@@ -32,6 +32,7 @@ from gsl_notification.models import (
     GeneratedDocument,
 )
 from gsl_notification.utils import (
+    fix_empty_paragraphs_for_weasyprint,
     get_doc_title,
     get_form_class,
     get_generated_document_class,
@@ -478,13 +479,14 @@ class PrintDocumentView(WeasyTemplateResponseMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         document = self.get_object()
+        content = fix_empty_paragraphs_for_weasyprint(document.content)
         context.update(
             {
                 "doc_title": get_doc_title(self.document_type),
                 "logo": document.modele.logo.url,
                 "alt_logo": document.modele.logo_alt_text,
                 "top_right_text": document.modele.top_right_text.strip(),
-                "content": mark_safe(document.content),
+                "content": mark_safe(content),
             }
         )
         return context

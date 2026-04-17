@@ -417,6 +417,23 @@ def _get_uploaded_document_pdf(document: Annexe | ArreteEtLettreSignes) -> io.By
     return output
 
 
+def fix_empty_paragraphs_for_weasyprint(html: str) -> str:
+    """
+    WeasyPrint (comme les navigateurs) collapse les <p> qui ne contiennent que du
+    whitespace ou des <br> (ils finissent avec une hauteur nulle).
+    On remplace leur contenu par un espace insécable pour préserver les sauts de
+    ligne issus d'un éditeur riche.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    for p in soup.find_all("p"):
+        # get_text(strip=True) retire les espaces, tabs, \n — si vide, le <p> est
+        # visuellement vide (contient uniquement du whitespace et/ou des <br>)
+        if not p.get_text(strip=True):
+            p.clear()
+            p.append("\u00a0")
+    return str(soup)
+
+
 def generate_pdf_for_generated_document(document: Arrete | LettreNotification) -> bytes:
     """
     Generate PDF bytes for a GeneratedDocument (Arrete or LettreNotification).
@@ -424,12 +441,13 @@ def generate_pdf_for_generated_document(document: Arrete | LettreNotification) -
     This function generates the PDF content for a document and returns it as bytes.
     It can be used to calculate the document size without actually serving it.
     """
+    content = fix_empty_paragraphs_for_weasyprint(document.content)
     context = {
         "doc_title": get_doc_title(document.document_type),
         "logo": get_logo_base64(document.modele.logo.url),
         "alt_logo": document.modele.logo_alt_text,
         "top_right_text": document.modele.top_right_text.strip(),
-        "content": mark_safe(document.content),
+        "content": mark_safe(content),
     }
 
     html_string = render_to_string("gsl_notification/pdf/document.html", context)
