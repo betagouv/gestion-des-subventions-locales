@@ -448,7 +448,7 @@ class Projet(BaseModel):
         return next(
             (
                 dp.dotation
-                for dp in self.dotationprojet_set.all()
+                for dp in self.dotationprojet_set.order_by("dotation")
                 if dp.status == PROJET_STATUS_PROCESSING
             ),
             None,
