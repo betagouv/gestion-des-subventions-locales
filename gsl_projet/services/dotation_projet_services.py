@@ -17,7 +17,7 @@ from gsl_projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.models import DotationProjet, Projet
-from gsl_simulation.models import Simulation
+from gsl_simulation.models import Simulation, SimulationProjet
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +38,7 @@ class DotationProjetService:
             dotation_projets = cls._update_dotation_projets_from_projet(projet)
 
         cls._add_dotation_projets_to_all_concerned_simulations(dotation_projets)
+        cls._remove_dotation_projets_from_unconcerned_simulations(dotation_projets)
         return dotation_projets
 
     @classmethod
@@ -585,16 +586,14 @@ class DotationProjetService:
                 )
 
     @classmethod
-    def _get_simulation_concerning_by_this_dotation_projet(
+    def _get_all_concerned_simulations_for_dotation_projet(
         cls, dotation_projet: DotationProjet
     ):
-        qs = (
-            Simulation.objects.containing_perimetre(dotation_projet.projet.perimetre)
-            .filter(
-                enveloppe__dotation=dotation_projet.dotation,
-                enveloppe__annee__gte=date.today().year,
-            )
-            .exclude(simulationprojet__dotation_projet=dotation_projet)
+        qs = Simulation.objects.containing_perimetre(
+            dotation_projet.projet.perimetre
+        ).filter(
+            enveloppe__dotation=dotation_projet.dotation,
+            enveloppe__annee__gte=date.today().year,
         )
 
         if (
@@ -613,6 +612,26 @@ class DotationProjetService:
             )
 
         return qs
+
+    @classmethod
+    def _get_simulation_concerning_by_this_dotation_projet(
+        cls, dotation_projet: DotationProjet
+    ):
+        return cls._get_all_concerned_simulations_for_dotation_projet(
+            dotation_projet
+        ).exclude(simulationprojet__dotation_projet=dotation_projet)
+
+    @classmethod
+    def _remove_dotation_projets_from_unconcerned_simulations(
+        cls, dotation_projets: list[DotationProjet]
+    ):
+        for dotation_projet in dotation_projets:
+            concerned_simulations = (
+                cls._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
+            )
+            SimulationProjet.objects.filter(dotation_projet=dotation_projet).exclude(
+                simulation__in=concerned_simulations
+            ).delete()
 
     @classmethod
     def _should_dotations_be_updated_from_dn_construction_dossier(

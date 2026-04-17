@@ -1154,6 +1154,140 @@ def test_get_simulation_concerning_by_this_dotation_projet_excludes_correctly_wh
     assert sim_next_year not in results
 
 
+# -- _remove_dotation_projets_from_unconcerned_simulations --
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_remove_dotation_projets_from_unconcerned_simulations_removes_when_perimetre_changed(
+    perimetres,
+):
+    """Supprime les SimulationProjet liés à des simulations hors-périmètre du dotation_projet."""
+    arr_dijon, dep_21, region_bfc, arr_nanterre, dep_92, region_idf = perimetres
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__dossier_ds__perimetre=arr_dijon,
+    )
+
+    # Simulation dans la bonne hiérarchie (arr_dijon → dep_21)
+    sim_concerned = SimulationFactory(
+        enveloppe__perimetre=dep_21,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    # Simulation hors-périmètre (dep_92, autre département)
+    sim_unconcerned = SimulationFactory(
+        enveloppe__perimetre=dep_92,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+
+    sp_concerned = SimulationProjetFactory(
+        simulation=sim_concerned, dotation_projet=dotation_projet
+    )
+    sp_unconcerned = SimulationProjetFactory(
+        simulation=sim_unconcerned, dotation_projet=dotation_projet
+    )
+
+    dps._remove_dotation_projets_from_unconcerned_simulations([dotation_projet])
+
+    assert SimulationProjet.objects.filter(pk=sp_concerned.pk).exists()
+    assert not SimulationProjet.objects.filter(pk=sp_unconcerned.pk).exists()
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_remove_dotation_projets_from_unconcerned_simulations_keeps_all_when_all_concerned(
+    perimetres,
+):
+    """Ne supprime rien quand toutes les simulations sont dans la bonne hiérarchie."""
+    arr_dijon, dep_21, *_ = perimetres
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__dossier_ds__perimetre=arr_dijon,
+    )
+
+    sim_arr = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_dep = SimulationFactory(
+        enveloppe__perimetre=dep_21,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+
+    sp_arr = SimulationProjetFactory(
+        simulation=sim_arr, dotation_projet=dotation_projet
+    )
+    sp_dep = SimulationProjetFactory(
+        simulation=sim_dep, dotation_projet=dotation_projet
+    )
+
+    dps._remove_dotation_projets_from_unconcerned_simulations([dotation_projet])
+
+    assert SimulationProjet.objects.filter(pk=sp_arr.pk).exists()
+    assert SimulationProjet.objects.filter(pk=sp_dep.pk).exists()
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_remove_dotation_projets_from_unconcerned_simulations_removes_old_year(
+    perimetres,
+):
+    """Supprime les SimulationProjet liés à des simulations d'années antérieures."""
+    arr_dijon, dep_21, *_ = perimetres
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__dossier_ds__perimetre=arr_dijon,
+    )
+
+    sim_current = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR,
+    )
+    sim_old = SimulationFactory(
+        enveloppe__perimetre=arr_dijon,
+        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__annee=CURRENT_YEAR - 1,
+    )
+
+    sp_current = SimulationProjetFactory(
+        simulation=sim_current, dotation_projet=dotation_projet
+    )
+    sp_old = SimulationProjetFactory(
+        simulation=sim_old, dotation_projet=dotation_projet
+    )
+
+    dps._remove_dotation_projets_from_unconcerned_simulations([dotation_projet])
+
+    assert SimulationProjet.objects.filter(pk=sp_current.pk).exists()
+    assert not SimulationProjet.objects.filter(pk=sp_old.pk).exists()
+
+
+@freeze_time(f"{CURRENT_YEAR}-05-06")
+@pytest.mark.django_db
+def test_remove_dotation_projets_from_unconcerned_simulations_does_nothing_when_no_simulation_projets(
+    perimetres,
+):
+    """Ne fait rien quand le dotation_projet n'a aucun SimulationProjet."""
+    arr_dijon, *_ = perimetres
+
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        projet__dossier_ds__perimetre=arr_dijon,
+    )
+
+    dps._remove_dotation_projets_from_unconcerned_simulations([dotation_projet])
+
+    assert SimulationProjet.objects.filter(dotation_projet=dotation_projet).count() == 0
+
+
 # -- _is_dossier_back_to_instruction --
 
 
