@@ -58,7 +58,8 @@
                     "bindAmountFields": "/static/js/controllers/bindAmountTields.js",
                     "formUtils": "/static/js/controllers/formUtils.js",
                     "dotationDropdown": "/static/js/controllers/dotationDropdown.js",
-                    "commentArbitrage": "/static/js/controllers/commentArbitrage.js"
+                    "commentArbitrage": "/static/js/controllers/commentArbitrage.js",
+                    "bulkStatusChange": "/static/js/controllers/bulkStatusChange.js"
                 }
             }
             </script>
@@ -131,6 +132,7 @@
             import { FormUtils } from "formUtils"
             import { DotationDropdown } from "dotationDropdown"
             import { CommentArbitrage } from "commentArbitrage"
+            import { BulkStatusChange } from "bulkStatusChange"
 
             window.Stimulus = Application.start()
 
@@ -144,6 +146,7 @@
             Stimulus.register("form-utils", FormUtils)
             Stimulus.register("dotation-dropdown", DotationDropdown)
             Stimulus.register("comment-arbitrage", CommentArbitrage)
+            Stimulus.register("bulk-status-change", BulkStatusChange)
         </script>
 
         {% block extra_js %}

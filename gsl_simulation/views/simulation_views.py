@@ -126,9 +126,20 @@ class SimulationDetailView(SingleObjectMixin, FilterView):
         aggregates["total_amount_granted"] = simulation.get_total_amount_granted(
             self.filterset.qs
         )
+        selectable_ids_list = list(
+            SimulationProjet.objects.filter(
+                simulation=simulation,
+                status__in=SimulationProjet.SIMULATION_PENDING_STATUSES,
+                dotation_projet__projet__in=self.filterset.qs,
+                dotation_projet__projet__notified_at__isnull=True,
+            ).values_list("id", flat=True)
+        )
         context.update(
             {
                 "simulation": simulation,
+                "selectable_ids_list": selectable_ids_list,
+                "selectable_count": len(selectable_ids_list),
+                "bulk_status_choices": SimulationProjet.SIMULATION_PENDING_STATUSES,
                 "title": f"{simulation.enveloppe.dotation} {simulation.enveloppe.annee} – {simulation.title}",
                 "status_summary": simulation.get_projet_status_summary(),
                 "enveloppe": simulation.enveloppe,

@@ -10,6 +10,7 @@ from gsl_simulation.views.simulation_projet_notes_views import (
     get_note_card,
 )
 from gsl_simulation.views.simulation_projet_views import (
+    BulkSimulationProjetStatusUpdateView,
     EditAssietteView,
     EditCommentView,
     EditMontantView,
@@ -102,6 +103,11 @@ urlpatterns = [
         "<int:pk>/simuler/<str:status>/",
         SimulationProjetStatusUpdateView.as_view(),
         name="simulation-projet-update-simulation-status",
+    ),
+    path(
+        "bulk-simuler/<str:status>/",
+        BulkSimulationProjetStatusUpdateView.as_view(),
+        name="simulation-projet-bulk-update-simulation-status",
     ),
     path(
         "<int:pk>/programmer/<str:status>/",
