@@ -577,9 +577,9 @@ class DotationProjetService:
         )
 
         for dotation_projet in dotation_projets:
-            simulations = cls._get_simulation_concerning_by_this_dotation_projet(
+            simulations = cls._get_all_concerned_simulations_for_dotation_projet(
                 dotation_projet
-            )
+            ).exclude(simulationprojet__dotation_projet=dotation_projet)
             for simulation in simulations:
                 SimulationProjetService.create_or_update_simulation_projet_from_dotation_projet(
                     dotation_projet, simulation
@@ -612,14 +612,6 @@ class DotationProjetService:
             )
 
         return qs
-
-    @classmethod
-    def _get_simulation_concerning_by_this_dotation_projet(
-        cls, dotation_projet: DotationProjet
-    ):
-        return cls._get_all_concerned_simulations_for_dotation_projet(
-            dotation_projet
-        ).exclude(simulationprojet__dotation_projet=dotation_projet)
 
     @classmethod
     def _remove_dotation_projets_from_unconcerned_simulations(

@@ -674,12 +674,12 @@ def test_update_assiette_from_dossier_no_dotation_projets():
     assert projet.dotationprojet_set.count() == 0
 
 
-# -- _get_simulation_concerning_by_this_dotation_projet --
+# -- _get_all_concerned_simulations_for_dotation_projet --
 
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_simulation_concerning_by_this_dotation_projet_filters_by_perimetre(
+def test_get_all_concerned_simulations_for_dotation_projet_filters_by_perimetre(
     perimetres,
 ):
     """Test that the function returns simulations containing the projet's perimetre."""
@@ -709,7 +709,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_filters_by_perimetre(
         enveloppe__annee=CURRENT_YEAR,
     )
 
-    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
 
     # Should include simulations with arr_dijon and dep_21 (ancestor)
     assert sim_arr_dijon in results
@@ -720,7 +720,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_filters_by_perimetre(
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_simulation_concerning_by_this_dotation_projet_filters_by_dotation(
+def test_get_all_concerned_simulations_for_dotation_projet_filters_by_dotation(
     perimetres,
 ):
     """Test that the function only returns simulations with matching dotation."""
@@ -743,7 +743,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_filters_by_dotation(
         enveloppe__annee=CURRENT_YEAR,
     )
 
-    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
 
     assert sim_detr in results
     assert sim_dsil not in results
@@ -751,7 +751,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_filters_by_dotation(
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_simulation_concerning_by_this_dotation_projet_filters_by_year(
+def test_get_all_concerned_simulations_for_dotation_projet_filters_by_year(
     perimetres,
 ):
     """Test that the function only returns simulations with year >= current year."""
@@ -779,7 +779,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_filters_by_year(
         enveloppe__annee=CURRENT_YEAR - 1,
     )
 
-    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
 
     assert sim_current_year in results
     assert sim_next_year in results
@@ -788,44 +788,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_filters_by_year(
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_simulation_concerning_by_this_dotation_projet_excludes_existing_simulation_projet(
-    perimetres,
-):
-    """Test that the function excludes simulations that already have a SimulationProjet for this dotation_projet."""
-    arr_dijon, *_ = perimetres
-
-    dotation_projet = DotationProjetFactory(
-        dotation=DOTATION_DETR,
-        projet__dossier_ds__perimetre=arr_dijon,
-    )
-
-    # Create simulations
-    sim_with_existing = SimulationFactory(
-        enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DETR,
-        enveloppe__annee=CURRENT_YEAR,
-    )
-    sim_without_existing = SimulationFactory(
-        enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DETR,
-        enveloppe__annee=CURRENT_YEAR,
-    )
-
-    # Create a SimulationProjet for one simulation
-    SimulationProjetFactory(
-        simulation=sim_with_existing,
-        dotation_projet=dotation_projet,
-    )
-
-    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
-
-    assert sim_with_existing not in results
-    assert sim_without_existing in results
-
-
-@freeze_time(f"{CURRENT_YEAR}-05-06")
-@pytest.mark.django_db
-def test_get_simulation_concerning_by_this_dotation_projet_with_department_perimetre(
+def test_get_all_concerned_simulations_for_dotation_projet_with_department_perimetre(
     perimetres,
 ):
     """Test that the function works correctly with department-level perimetres."""
@@ -853,7 +816,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_with_department_perim
         enveloppe__annee=CURRENT_YEAR,
     )
 
-    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
 
     # Should include both department and region (ancestor)
     assert sim_dep_21 in results
@@ -865,7 +828,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_with_department_perim
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_simulation_concerning_by_this_dotation_projet_with_region_perimetre(
+def test_get_all_concerned_simulations_for_dotation_projet_with_region_perimetre(
     perimetres,
 ):
     """Test that the function works correctly with region-level perimetres."""
@@ -900,7 +863,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_with_region_perimetre
         enveloppe__annee=CURRENT_YEAR,
     )
 
-    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
 
     # Only region should be included
     assert sim_region_bfc in results
@@ -912,7 +875,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_with_region_perimetre
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_simulation_concerning_by_this_dotation_projet_combines_all_filters(
+def test_get_all_concerned_simulations_for_dotation_projet_combines_all_filters(
     perimetres,
 ):
     """Test that the function correctly combines all filters."""
@@ -946,17 +909,8 @@ def test_get_simulation_concerning_by_this_dotation_projet_combines_all_filters(
         enveloppe__dotation=DOTATION_DETR,
         enveloppe__annee=CURRENT_YEAR,
     )
-    sim_existing = SimulationFactory(
-        enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DETR,
-        enveloppe__annee=CURRENT_YEAR,
-    )
-    SimulationProjetFactory(
-        simulation=sim_existing,
-        dotation_projet=dotation_projet,
-    )
 
-    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
 
     assert sim_valid in results
     assert sim_wrong_dotation not in results
@@ -964,7 +918,6 @@ def test_get_simulation_concerning_by_this_dotation_projet_combines_all_filters(
     # sim_dep_perimetre should be included since dep_21 is an ancestor of arr_dijon
     # and containing_perimetre includes ancestors
     assert sim_dep_perimetre in results
-    assert sim_existing not in results
 
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
@@ -973,7 +926,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_combines_all_filters(
     "dossier_state",
     [Dossier.STATE_ACCEPTE, Dossier.STATE_SANS_SUITE, Dossier.STATE_REFUSE],
 )
-def test_get_simulation_concerning_by_this_dotation_projet_excludes_future_years_for_terminal_state_with_treatment_date(
+def test_get_all_concerned_simulations_for_dotation_projet_excludes_future_years_for_terminal_state_with_treatment_date(
     perimetres, dossier_state
 ):
     """Test that the function excludes simulations for years >= (treatment_year + 1) when dossier is in terminal state with treatment date."""
@@ -1006,7 +959,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_excludes_future_years
         enveloppe__annee=CURRENT_YEAR + 1,
     )
 
-    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
 
     assert results.count() == 0, (
         "Should not include any simulations, because the dossier has been treated in the last year"
@@ -1015,7 +968,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_excludes_future_years
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_simulation_concerning_by_this_dotation_projet_does_not_exclude_when_terminal_state_without_treatment_date(
+def test_get_all_concerned_simulations_for_dotation_projet_does_not_exclude_when_terminal_state_without_treatment_date(
     perimetres,
 ):
     """Test that the function does not exclude future years when dossier is in terminal state but has no treatment date."""
@@ -1045,7 +998,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_does_not_exclude_when
         enveloppe__annee=CURRENT_YEAR + 1,
     )
 
-    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
     assert results.count() == 2, (
         "Should include all future years since there's no treatment date"
     )
@@ -1060,7 +1013,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_does_not_exclude_when
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_simulation_concerning_by_this_dotation_projet_does_not_exclude_when_not_terminal_state(
+def test_get_all_concerned_simulations_for_dotation_projet_does_not_exclude_when_not_terminal_state(
     perimetres,
 ):
     """Test that the function does not exclude future years when dossier is not in terminal state."""
@@ -1093,7 +1046,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_does_not_exclude_when
         enveloppe__annee=CURRENT_YEAR + 1,
     )
 
-    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
 
     assert results.count() == 2, (
         "Should include all future years since dossier is not in terminal state"
@@ -1109,7 +1062,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_does_not_exclude_when
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_simulation_concerning_by_this_dotation_projet_excludes_correctly_when_treatment_year_is_current_year(
+def test_get_all_concerned_simulations_for_dotation_projet_excludes_correctly_when_treatment_year_is_current_year(
     perimetres,
 ):
     """Test that the function correctly excludes when treatment year is current year."""
@@ -1142,7 +1095,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_excludes_correctly_wh
         enveloppe__annee=CURRENT_YEAR + 1,
     )
 
-    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
 
     assert results.count() == 1, (
         "Should include only current year since treatment year is current year"
@@ -1415,12 +1368,12 @@ def test_accept_dotation_projet_conserve_enveloppe_existante(perimetres):
     assert dotation_projet.programmation_projet.enveloppe == enveloppe_2025
 
 
-# -- _get_simulation_concerning_by_this_dotation_projet (programmation_projet) --
+# -- _get_all_concerned_simulations_for_dotation_projet (programmation_projet) --
 
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_simulation_concerning_by_this_dotation_projet_excludes_simulations_after_programmation_year(
+def test_get_all_concerned_simulations_for_dotation_projet_excludes_simulations_after_programmation_year(
     perimetres,
 ):
     """Test que les simulations dont l'année > année enveloppe de la programmation sont exclues."""
@@ -1450,7 +1403,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_excludes_simulations_
         enveloppe__annee=CURRENT_YEAR + 1,
     )
 
-    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
 
     assert sim_current_year in results
     assert sim_next_year not in results
@@ -1458,7 +1411,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_excludes_simulations_
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_simulation_concerning_by_this_dotation_projet_includes_all_years_when_no_programmation(
+def test_get_all_concerned_simulations_for_dotation_projet_includes_all_years_when_no_programmation(
     perimetres,
 ):
     """Test que toutes les années >= année courante sont incluses sans programmation_projet."""
@@ -1480,7 +1433,7 @@ def test_get_simulation_concerning_by_this_dotation_projet_includes_all_years_wh
         enveloppe__annee=CURRENT_YEAR + 1,
     )
 
-    results = dps._get_simulation_concerning_by_this_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
 
     assert sim_current_year in results
     assert sim_next_year in results
