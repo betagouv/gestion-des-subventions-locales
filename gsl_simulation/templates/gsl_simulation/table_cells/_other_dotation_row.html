@@ -3,6 +3,8 @@
 {% for other_dotation in dotation_projet.other_dotations %}
     <tr id="other-simulation-{{ simu.pk }}"
         class="gsl-projet-table__row--other-dotation">
+        <td class="gsl-projet-table__cell--checkbox">
+        </td>
         {% for column in columns %}
             <td class="{{ column.td_classes }}">
                 {% include "gsl_core/table_cells/_other_dotation_cell.html" %}

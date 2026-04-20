@@ -36,14 +36,8 @@
     {% include "includes/_enveloppe_summary.html" %}
     {% include "includes/_projet_list_filters.html" %}
 
-    <div id="simulation-table-wrapper">
-        <div class="gsl-table-toolbar fr-my-1w">
-            <span>
-                {{ page_obj.paginator.count }}
-                projet{{ page_obj.paginator.count|custom_pluralize }}
-            </span>
-            {% include "gsl_core/_column_visibility_dropdown.html" with table_wrapper_id="simulation-table-wrapper" simulation=simulation %}
-        </div>
+    <div id="simulation-table-wrapper" data-controller="bulk-status-change">
+        {% include "includes/_simulation_bulk_actions_toolbar.html" %}
         <div class="fr-table fr-table--multiline fr-table--sm fr-table--no-caption gsl-projet-table">
             <div class="fr-table__wrapper">
                 <div class="fr-table__container">
@@ -52,6 +46,17 @@
                             <caption>Détails de la simulation</caption>
                             <thead>
                                 <tr>
+                                    <th scope="col" class="gsl-projet-table__header--checkbox">
+                                        <div class="fr-checkbox-group fr-checkbox-group--sm">
+                                            <input id="bulk-status-page-checkbox"
+                                                   type="checkbox"
+                                                   data-bulk-status-change-target="pageCheckbox"
+                                                   data-action="change->bulk-status-change#togglePageSelection">
+                                            <label class="fr-label" for="bulk-status-page-checkbox">
+                                                <span class="fr-sr-only">Sélectionner tous les projets de la page</span>
+                                            </label>
+                                        </div>
+                                    </th>
                                     {% for column in columns %}
                                         <th scope="col"
                                             class="{{ column.th_classes }}"
@@ -74,7 +79,7 @@
                                     {% endwith %}
                                 {% empty %}
                                     <tr>
-                                        <td colspan="{{ columns|length }}">
+                                        <td colspan="{{ columns|length|add:1 }}">
                                             Liste vide.
                                         </td>
                                     </tr>
