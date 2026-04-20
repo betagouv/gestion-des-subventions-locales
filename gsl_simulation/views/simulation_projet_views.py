@@ -87,6 +87,7 @@ class SimulationTableCellEditMixin(UpdateView):
             form.add_error(None, str(e))
             return self.form_invalid(form)
         self.object.refresh_from_db()
+        self.object.simulation.save(update_fields=["updated_at"])
         self._queue_matomo_event("valide")
         return self.render_success_partial()
 
@@ -288,6 +289,7 @@ class BaseSimulationProjetView(UpdateView):
             return self.form_invalid(form, with_error_message_intro=False)
 
         simulation_projet = self.get_object()
+        simulation_projet.simulation.save(update_fields=["updated_at"])
 
         return redirect_to_same_page_or_to_simulation_detail_by_default(
             self.request,
@@ -533,6 +535,7 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
     def form_valid(self, form):
         try:
             form.save(user=self.request.user)
+            self.object.simulation.save(update_fields=["updated_at"])
             messages.info(
                 self.request,
                 {
@@ -719,6 +722,7 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
             )
             return super().form_invalid(form)
 
+        self.object.simulation.save(update_fields=["updated_at"])
         message = self.get_success_message()
 
         messages.success(

@@ -4,6 +4,7 @@ from django.db.models import Prefetch
 from django.http import HttpResponse, QueryDict
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
@@ -95,14 +96,14 @@ class SimulationDetailView(SingleObjectMixin, FilterView):
         if "reset_filters" in request.GET:
             if self.object.filters is not None:
                 self.object.filters = None
-                self.object.save(update_fields=["filters"])
+                self.object.save(update_fields=["filters", "updated_at"])
             return redirect(detail_url)
 
         filter_params = self._get_filter_params()
         if filter_params:
             if filter_params != self.object.filters:
                 self.object.filters = filter_params
-                self.object.save(update_fields=["filters"])
+                self.object.save(update_fields=["filters", "updated_at"])
         elif self.object.filters:
             params = QueryDict(mutable=True)
             for key, values in self.object.filters.items():
@@ -365,4 +366,6 @@ class FilteredProjetsExportView(SimulationDetailView):
         response["Content-Disposition"] = (
             f'attachment; filename="{date.today().strftime("%Y-%m-%d")} simulation {self.object.title}.{export_type}"'
         )
+        self.object.downloaded_at = timezone.now()
+        self.object.save(update_fields=["downloaded_at"])
         return response
