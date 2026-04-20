@@ -26,3 +26,26 @@ td.gsl-projet-table__cell--dotation > span:not(:last-child) {
   text-align: end;
   font-style: italic;
 }
+
+/* Checkbox column: sticky at left: 0 with fixed width.
+   Sticky creates a containing block for the absolutely-positioned checkbox inside. */
+.gsl-projet-table__header--checkbox,
+.gsl-projet-table__cell--checkbox {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background-color: var(--background-default-grey);
+  min-width: 2.75rem;
+}
+
+.gsl-projet-table__header--checkbox .fr-checkbox-group,
+.gsl-projet-table__cell--checkbox .fr-checkbox-group {
+  position: absolute;
+  top: calc(50% - 12px);
+  left: 18px;
+}
+
+.gsl-projet-table__checkbox-label {
+  position: absolute;
+  top: -14px;
+}
