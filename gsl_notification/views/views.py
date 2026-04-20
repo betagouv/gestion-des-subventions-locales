@@ -68,6 +68,7 @@ class NotificationDocumentsView(DetailView):
         return super().get_context_data(
             **{
                 "dossier": self.object.dossier_ds,
+                "dotation_projets": self.object.dotationprojet_set.all(),
                 "title": title,
                 "breadcrumb_dict": {
                     "links": [
