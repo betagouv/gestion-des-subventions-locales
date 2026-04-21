@@ -648,13 +648,13 @@ ul.no-list-style li {
 .gsl-column-visibility-dropdown {
     position: relative;
     margin-bottom: 0;
-    min-width: min(560px, 90vw);
 }
 
 .gsl-column-visibility-dropdown .gsl-column-visibility-list {
     display: none;
     right: 0;
     padding: 0;
+    min-width: min(560px, 90vw);
     border: 1px solid var(--border-default-grey);
     box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
 }
