@@ -1,0 +1,72 @@
+{% load custom_pluralize simulation_filters %}
+{% comment %}
+    Toolbar above the simulation projet table: counters, bulk selection and
+    bulk status change.
+
+    Required context:
+      - page_obj
+      - simulation
+      - columns
+      - selectable_ids_list (list of SimulationProjet IDs that can be bulk-changed)
+      - bulk_status_choices (iterable of status keys)
+{% endcomment %}
+
+<div class="gsl-table-toolbar fr-mt-11v fr-mb-6v">
+    {{ selectable_ids_list|json_script:"bulk-status-change-selectable-ids" }}
+    <span class="gsl-bulk-actions__count">
+        {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
+        <span class="fr-text-mention--grey fr-ml-2w"
+              data-bulk-status-change-target="counterWrapper">
+            <span data-bulk-status-change-target="counter">0</span> projets sélectionnés
+        </span>
+    </span>
+    <ul class="fr-btns-group fr-btns-group--inline fr-btns-group--right fr-btns-group--icon-right">
+        <li>
+            <button type="button" class="fr-btn fr-btn--tertiary" data-bulk-status-change-target="selectAllButton" data-action="click->bulk-status-change#toggleSelectAll"
+                {% if not selectable_count %}
+                    disabled
+                {% endif %}
+                >
+                Sélectionner tous les {{ selectable_count }} projet{{ selectable_count|custom_pluralize }}
+            </button>
+        </li>
+        <li>
+            <div class="fr-nav fr-translate">
+                <div class="fr-nav__item">
+                    <button type="button"
+                            class="fr-btn fr-btn--secondary fr-btn--icon-right fr-icon-arrow-down-s-line"
+                            aria-controls="bulk-status-change-menu"
+                            aria-expanded="false"
+                            data-bulk-status-change-target="applyButton"
+                            disabled>
+                        Modifier les statuts à
+                    </button>
+                    <div class="fr-menu fr-collapse" id="bulk-status-change-menu">
+                        <ul class="fr-menu__list">
+                            {% for status_key in bulk_status_choices %}
+                                <li>
+                                    <form method="post"
+                                          hx-post="{% url 'simulation:simulation-projet-bulk-update-simulation-status' status=status_key %}"
+                                          hx-swap="none"
+                                          data-action="submit->bulk-status-change#beforeSubmit">
+                                        {% csrf_token %}
+                                        <input type="hidden"
+                                               name="simulation_projet_ids"
+                                               value=""
+                                               data-bulk-status-change-target="idsInput">
+                                        <button type="submit" class="fr-nav__link">
+                                            {{ status_key|status_to_label|split_symbol_and_status|safe }}
+                                        </button>
+                                    </form>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </li>
+        <li>
+            {% include "gsl_core/_column_visibility_dropdown.html" with table_wrapper_id="simulation-table-wrapper" simulation=simulation %}
+        </li>
+    </ul>
+</div>
