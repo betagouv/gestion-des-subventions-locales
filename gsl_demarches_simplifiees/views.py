@@ -138,7 +138,9 @@ def get_demarche_mapping(request, demarche_ds_number):
     context = {
         "demarche": demarche,
         "django_fields": Dossier.MAPPED_FIELDS,
-        "existing_mappings": FieldMapping.objects.filter(demarche=demarche),
+        "existing_mappings": FieldMapping.objects.filter(
+            demarche=demarche, is_active=True
+        ),
     }
     return render(request, "gsl_demarches_simplifiees/demarche_mapping.html", context)
 

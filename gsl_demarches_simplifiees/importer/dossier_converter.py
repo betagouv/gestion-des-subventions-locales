@@ -48,7 +48,8 @@ class DossierConverter:
             )
         }
         computed_mappings = FieldMapping.objects.filter(
-            ds_field_id__in=self.ds_field_id_to_field_data.keys()
+            ds_field_id__in=self.ds_field_id_to_field_data.keys(),
+            is_active=True,
         ).exclude(django_field="")
 
         self.ds_dossier_data = ds_dossier_data

@@ -994,6 +994,8 @@ class FieldMapping(BaseModel):
     django_field = models.CharField(
         "Champ Django", choices=mapping_field_choices, blank=True
     )
+    is_active = models.BooleanField("Actif", default=True)
+    deactivated_at = models.DateTimeField("Désactivé le", null=True, blank=True)
 
     class Meta:
         verbose_name = "Correspondance de champ"
