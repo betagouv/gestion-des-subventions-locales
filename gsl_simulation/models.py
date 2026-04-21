@@ -63,6 +63,12 @@ class Simulation(BaseModel):
         blank=True,
         default=None,
     )
+    downloaded_at = models.DateTimeField(
+        verbose_name="Date de téléchargement",
+        null=True,
+        blank=True,
+        default=None,
+    )
 
     objects = SimulationManager()
 
