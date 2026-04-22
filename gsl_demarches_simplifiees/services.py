@@ -212,8 +212,8 @@ class DsService:
 
     def _get_ds_field_id(self, dossier: Dossier, field: str) -> str:
         try:
-            ds_field = FieldMapping.objects.get(
-                demarche=dossier.ds_demarche_id, django_field=field, is_active=True
+            ds_field = FieldMapping.actives.get(
+                demarche=dossier.ds_demarche_id, django_field=field
             )
             return ds_field.ds_field_id
 

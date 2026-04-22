@@ -121,7 +121,7 @@ def test_patch_projet(
 
     with (
         patch(
-            "gsl_demarches_simplifiees.services.FieldMapping.objects.get",
+            "gsl_demarches_simplifiees.services.FieldMapping.actives.get",
             return_value=ds_field,
         ),
         patch("requests.post", return_value=mock_resp),
@@ -262,7 +262,7 @@ def test_patch_projet_with_ds_service_exception_send_correct_error_msg_to_user_a
 
     with (
         patch(
-            "gsl_demarches_simplifiees.services.FieldMapping.objects.get",
+            "gsl_demarches_simplifiees.services.FieldMapping.actives.get",
             return_value=ds_field,
         ),
         patch("requests.post", return_value=mock_resp),
@@ -307,7 +307,7 @@ def test_patch_projet_with_user_without_ds_profile(
     )
     with (
         patch(
-            "gsl_demarches_simplifiees.services.FieldMapping.objects.get",
+            "gsl_demarches_simplifiees.services.FieldMapping.actives.get",
             return_value=ds_field,
         ),
         patch(
@@ -365,7 +365,7 @@ def test_patch_projet_redirects_to_simulation_when_dotation_removal_cascades_sim
 
     with (
         patch(
-            "gsl_demarches_simplifiees.services.FieldMapping.objects.get",
+            "gsl_demarches_simplifiees.services.FieldMapping.actives.get",
             return_value=ds_field,
         ),
         patch("requests.post", return_value=mock_resp),
@@ -406,7 +406,7 @@ def test_patch_projet_with_user_with_ds_connection_error(
 
     with (
         patch(
-            "gsl_demarches_simplifiees.services.FieldMapping.objects.get",
+            "gsl_demarches_simplifiees.services.FieldMapping.actives.get",
             return_value=ds_field,
         ),
         patch("requests.post", return_value=mock_resp),

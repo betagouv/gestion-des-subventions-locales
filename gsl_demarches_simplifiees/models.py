@@ -983,6 +983,11 @@ def mapping_field_choices():
     )
 
 
+class ActiveFieldMappingManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_active=True)
+
+
 class FieldMapping(BaseModel):
     demarche = models.ForeignKey(Demarche, on_delete=models.CASCADE)
     ds_field_id = models.CharField("ID du champ DS")
@@ -996,6 +1001,9 @@ class FieldMapping(BaseModel):
     )
     is_active = models.BooleanField("Actif", default=True)
     deactivated_at = models.DateTimeField("Désactivé le", null=True, blank=True)
+
+    actives = ActiveFieldMappingManager()
+    objects = models.Manager()
 
     class Meta:
         verbose_name = "Correspondance de champ"

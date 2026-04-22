@@ -578,7 +578,7 @@ def test_patch_simulation_projet(
 
     with (
         patch(
-            "gsl_demarches_simplifiees.services.FieldMapping.objects.get",
+            "gsl_demarches_simplifiees.services.FieldMapping.actives.get",
             return_value=ds_field,
         ),
         patch("requests.post", return_value=mock_resp),
@@ -765,7 +765,7 @@ def test_patch_simulation_projet_with_ds_token_error(
 
     with (
         patch(
-            "gsl_demarches_simplifiees.services.FieldMapping.objects.get",
+            "gsl_demarches_simplifiees.services.FieldMapping.actives.get",
             return_value=ds_field,
         ),
         patch("requests.post", return_value=mock_resp),

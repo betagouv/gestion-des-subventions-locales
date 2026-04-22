@@ -176,14 +176,14 @@ def save_field_mappings(demarche_data, demarche):
 
         _auto_map_django_field(computer_mapping, ds_label, reversed_mapping)
 
-    FieldMapping.objects.filter(demarche=demarche, is_active=True).exclude(
+    FieldMapping.actives.filter(demarche=demarche).exclude(
         ds_field_id__in=active_ds_field_ids
     ).update(is_active=False, deactivated_at=timezone.now())
 
 
 def save_categories_dsil(demarche_data, demarche):
-    mapping = FieldMapping.objects.get(
-        demarche=demarche, django_field="demande_categorie_dsil", is_active=True
+    mapping = FieldMapping.actives.get(
+        demarche=demarche, django_field="demande_categorie_dsil"
     )
     demande_categorie_dsil_field_id = mapping.ds_field_id
     options = []
@@ -206,8 +206,8 @@ def save_categories_dsil(demarche_data, demarche):
 
 
 def save_categories_detr(demarche_data: dict, demarche: Demarche) -> None:
-    field_mappings = FieldMapping.objects.filter(
-        demarche=demarche, django_field="demande_categorie_detr", is_active=True
+    field_mappings = FieldMapping.actives.filter(
+        demarche=demarche, django_field="demande_categorie_detr"
     )
     for field in demarche_data["activeRevision"]["champDescriptors"]:
         if "Catégories prioritaires " not in field["label"]:
