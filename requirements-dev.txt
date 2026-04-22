@@ -144,6 +144,8 @@ django-json-widget==2.1.1
     # via gsl (pyproject.toml)
 django-otp==1.7.0
     # via gsl (pyproject.toml)
+django-query-counter==0.5.0
+    # via gsl (pyproject.toml)
 django-referrer-policy==1.0
     # via gsl (pyproject.toml)
 django-storages[s3]==1.14.6
@@ -373,6 +375,8 @@ tablib[ods,xls,xlsx]==3.9.0
     # via
     #   django-import-export
     #   gsl (pyproject.toml)
+tabulate==0.10.0
+    # via django-query-counter
 tinycss2==1.5.1
     # via
     #   cssselect2
