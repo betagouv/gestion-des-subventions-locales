@@ -237,7 +237,6 @@ class TestProgrammationProjetDetailView:
         projet_context = response.context["projet"]
         assert hasattr(projet_context, "dossier_ds")
         assert hasattr(projet_context, "perimetre")
-        assert hasattr(projet_context, "demandeur")
         assert hasattr(projet_context, "dotationprojet_set")
 
     def test_get_go_back_link_with_dotation_in_query_string(

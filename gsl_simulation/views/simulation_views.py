@@ -174,7 +174,7 @@ class SimulationDetailView(SingleObjectMixin, FilterView):
             Projet.objects.filter(
                 dotationprojet__simulationprojet__simulation=self.object
             )
-            .select_related("demandeur", "address", "address__commune")
+            .select_related("address", "address__commune")
             .prefetch_related(
                 "dotationprojet_set",
                 "dotationprojet_set__programmation_projet",
@@ -182,6 +182,7 @@ class SimulationDetailView(SingleObjectMixin, FilterView):
                 "dossier_ds__demande_categorie_detr",
                 "dossier_ds__demande_categorie_dsil",
                 "dossier_ds__porteur_de_projet_arrondissement",
+                "dossier_ds__ds_demandeur",
                 "dossier_ds__ds_demarche",
                 "dossier_ds__demande_cofinancements",
                 "dossier_ds__projet_zonage",
@@ -342,16 +343,22 @@ class FilteredProjetsExportView(SimulationDetailView):
 
         self.object = self.get_object()
         queryset = self.get_projet_queryset()
-        simu_projet_qs = SimulationProjet.objects.filter(
-            simulation=self.object, dotation_projet__projet__in=queryset
-        ).select_related(
-            "dotation_projet",
-            "dotation_projet__projet",
-            "dotation_projet__projet__dossier_ds",
-            "dotation_projet__projet__demandeur",
-            "dotation_projet__projet__demandeur__address",
-            "dotation_projet__projet__demandeur__address__commune",
-            "dotation_projet__projet__demandeur__address__commune__arrondissement",
+        simu_projet_qs = (
+            SimulationProjet.objects.filter(
+                simulation=self.object, dotation_projet__projet__in=queryset
+            )
+            .select_related(
+                "dotation_projet",
+                "dotation_projet__projet",
+                "dotation_projet__projet__dossier_ds",
+                "dotation_projet__projet__dossier_ds__ds_demandeur",
+            )
+            .prefetch_related(
+                "dotation_projet__projet__dotationprojet_set",
+                "dotation_projet__projet__dossier_ds__demande_categorie_detr",
+                "dotation_projet__projet__dossier_ds__demande_categorie_dsil",
+                "dotation_projet__projet__dossier_ds__porteur_de_projet_arrondissement",
+            )
         )
 
         resource = (

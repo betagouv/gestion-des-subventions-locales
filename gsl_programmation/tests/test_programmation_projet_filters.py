@@ -15,6 +15,7 @@ from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     NaturePorteurProjetFactory,
+    PersonneMoraleFactory,
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
@@ -26,7 +27,6 @@ from gsl_programmation.utils.programmation_projet_filters import (
 )
 from gsl_projet.constants import DOTATION_DETR
 from gsl_projet.tests.factories import (
-    DemandeurFactory,
     DotationProjetFactory,
     ProjetFactory,
 )
@@ -406,18 +406,19 @@ class TestProgrammationProjetFilters:
     def test_order_filter(self, mock_request, enveloppe, arrondissement):
         """Test le filtre de tri"""
         # Créer des programmations avec différents montants
-        demandeur_a = DemandeurFactory(name="Alpha")
-        demandeur_z = DemandeurFactory(name="Zulu")
-
         dossier_a = DossierFactory(
-            finance_cout_total=Decimal("100000.00"), perimetre=arrondissement
+            finance_cout_total=Decimal("100000.00"),
+            perimetre=arrondissement,
+            ds_demandeur=PersonneMoraleFactory(raison_sociale="Alpha"),
         )
         dossier_z = DossierFactory(
-            finance_cout_total=Decimal("200000.00"), perimetre=arrondissement
+            finance_cout_total=Decimal("200000.00"),
+            perimetre=arrondissement,
+            ds_demandeur=PersonneMoraleFactory(raison_sociale="Zulu"),
         )
 
-        projet_a = ProjetFactory(dossier_ds=dossier_a, demandeur=demandeur_a)
-        projet_z = ProjetFactory(dossier_ds=dossier_z, demandeur=demandeur_z)
+        projet_a = ProjetFactory(dossier_ds=dossier_a)
+        projet_z = ProjetFactory(dossier_ds=dossier_z)
 
         dotation_a = DotationProjetFactory(projet=projet_a, dotation=DOTATION_DETR)
         dotation_z = DotationProjetFactory(projet=projet_z, dotation=DOTATION_DETR)

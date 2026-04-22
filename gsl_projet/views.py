@@ -218,8 +218,8 @@ class ProjetListViewFilters(ProjetFilters):
         qs = qs.select_related(
             "address",
             "address__commune",
-            "demandeur",
             "dossier_ds",
+            "dossier_ds__ds_demandeur",
         ).prefetch_related(
             "dossier_ds__perimetre",
             "dossier_ds__demande_categorie_detr",
@@ -295,9 +295,9 @@ class ProjetMissingAnnotationsListView(ListView):
             Projet.objects.for_user(self.request.user)
             .with_missing_annotations()
             .select_related(
-                "demandeur",
                 "dossier_ds",
+                "dossier_ds__ds_demandeur",
             )
-            .prefetch_related("dotationprojet_set")
+            .prefetch_related("dotationprojet_set", "dossier_ds__ds_demarche")
             .order_by("-dossier_ds__ds_date_depot")
         )

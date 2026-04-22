@@ -206,7 +206,9 @@ COLUMN_NUMERO_DN = Column(
 COLUMN_DEMANDEUR = Column(
     key="demandeur",
     label="Demandeur",
-    getter=lambda ctx: _format_demandeur_nom(ctx["projet"].demandeur.name),
+    getter=lambda ctx: _format_demandeur_nom(
+        ctx["projet"].dossier_ds.ds_demandeur.raison_sociale
+    ),
     max_3_lines=True,
     sort_param="demandeur",
 )

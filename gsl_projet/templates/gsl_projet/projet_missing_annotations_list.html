@@ -83,7 +83,7 @@
                                         </a>
                                     </td>
                                     <td>
-                                        {{ projet.demandeur.name|format_demandeur_nom }}
+                                        {{ projet.dossier_ds.ds_demandeur.raison_sociale|format_demandeur_nom }}
                                     </td>
                                     <td>
                                         {% for detail in projet.dossier_ds.missing_annotations_details %}
