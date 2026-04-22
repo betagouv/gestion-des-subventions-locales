@@ -36,7 +36,10 @@ def programmation_projet():
         departement__name="Haute-Garonne",
     )
     adresse = AdresseFactory(
-        street_address="1 rue de la Paix", postal_code="75001", commune__name="Paris"
+        label="1 rue de la Paix 75001 Paris",
+        street_address="1 rue de la Paix",
+        postal_code="75001",
+        commune__name="Paris",
     )
     return ProgrammationProjetFactory(
         dotation_projet__projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
@@ -95,6 +98,26 @@ def test_replace_mentions_in_html(key, label, expected_value, programmation_proj
     expected_text = f"<p>Voici le mot: {expected_value} vous octroie une subvention</p><p>Bravo et merci !</p>"
 
     assert expected_text == replace_mentions_in_html(html_content, programmation_projet)
+
+
+@pytest.mark.django_db
+def test_replace_mentions_in_html_multiline_address():
+    perimetre = PerimetreDepartementalFactory()
+    adresse = AdresseFactory(
+        label="DIRECTION GENERALE DES COLLECTIVITES LOCALES\r\n\r\n2 PLACE DES SAUSSAIES\r\n75008 PARIS\r\nFRANCE",
+    )
+    pp = ProgrammationProjetFactory(
+        dotation_projet__projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
+            address=adresse,
+        ),
+        dotation_projet__projet__dossier_ds__perimetre=perimetre,
+    )
+    html_content = '<p><span class="mention" data-type="mention" data-id="adresse-demandeur" data-label="Adresse du demandeur" data-mention-suggestion-char="@">@Adresse du demandeur</span></p>'
+    result = replace_mentions_in_html(html_content, pp)
+    assert (
+        result
+        == "<p>DIRECTION GENERALE DES COLLECTIVITES LOCALES<br/><br/>2 PLACE DES SAUSSAIES<br/>75008 PARIS<br/>FRANCE</p>"
+    )
 
 
 @pytest.mark.django_db
