@@ -171,7 +171,7 @@ MENTIONS = [
     Mention(
         "adresse-demandeur",
         "Adresse du demandeur",
-        "dossier.ds_demandeur.address",
+        "dossier.ds_demandeur.address.label",
     ),
     Mention(
         "date-arrete",
