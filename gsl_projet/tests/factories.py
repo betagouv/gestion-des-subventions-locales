@@ -14,17 +14,7 @@ from gsl_projet.constants import (
     PROJET_STATUS_CHOICES,
 )
 
-from ..models import CategorieDetr, Demandeur, DotationProjet, Projet, ProjetNote
-
-
-class DemandeurFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = Demandeur
-
-    siret = factory.Sequence(lambda n: f"siret-{n}")
-    name = factory.Faker("city", locale="fr_FR")
-
-    address = factory.SubFactory(AdresseFactory)
+from ..models import CategorieDetr, DotationProjet, Projet, ProjetNote
 
 
 class ProjetFactory(factory.django.DjangoModelFactory):
@@ -34,7 +24,6 @@ class ProjetFactory(factory.django.DjangoModelFactory):
     dossier_ds = factory.SubFactory(DossierFactory)
     address = factory.SubFactory(AdresseFactory)
     departement = factory.SubFactory(DepartementFactory)
-    demandeur = factory.SubFactory(DemandeurFactory)
 
 
 class SubmittedProjetFactory(ProjetFactory):

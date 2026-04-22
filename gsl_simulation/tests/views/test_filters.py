@@ -26,7 +26,6 @@ from gsl_programmation.tests.factories import (
 from gsl_projet.models import Projet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.tests.factories import (
-    DemandeurFactory,
     DotationProjetFactory,
     ProjetFactory,
 )
@@ -98,7 +97,6 @@ def projets(simulation, perimetre_departemental):
             DsilEnveloppeFactory(perimetre=perimetre, annee=year)
 
     for perimetre in (perimetre_departemental, other_perimeter):
-        demandeur = DemandeurFactory()
         for dotation in ("DETR", "DSIL"):
             for state in (
                 Dossier.STATE_ACCEPTE,
@@ -119,7 +117,6 @@ def projets(simulation, perimetre_departemental):
                 )
                 projet_last_year = ProjetFactory(
                     dossier_ds=dossier_last_year,
-                    demandeur=demandeur,
                 )
                 projets.append(projet_last_year)
 
@@ -136,10 +133,8 @@ def projets(simulation, perimetre_departemental):
                 )
                 projet_current_year = ProjetFactory(
                     dossier_ds=dossier_current_year,
-                    demandeur=demandeur,
                 )
                 projets.append(projet_current_year)
-            demandeur = DemandeurFactory()
             for state in (Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION):
                 dossier_last_year = DossierFactory(
                     ds_state=state,
@@ -153,7 +148,6 @@ def projets(simulation, perimetre_departemental):
                 )
                 projet_last_year = ProjetFactory(
                     dossier_ds=dossier_last_year,
-                    demandeur=demandeur,
                 )
                 projets.append(projet_last_year)
 
@@ -169,7 +163,6 @@ def projets(simulation, perimetre_departemental):
                 )
                 projet_current_year = ProjetFactory(
                     dossier_ds=dossier_current_year,
-                    demandeur=demandeur,
                 )
                 projets.append(projet_current_year)
     for projet in projets:

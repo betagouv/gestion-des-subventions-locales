@@ -70,7 +70,6 @@ class ProgrammationProjetDetailView(DetailView):
                 "dossier_ds",
                 "dossier_ds__perimetre",
                 "dossier_ds__perimetre__departement",
-                "demandeur",
             )
             .prefetch_related("dotationprojet_set__detr_categories")
         )
@@ -151,7 +150,6 @@ class ProgrammationProjetListView(FilterView, ListView):
             .select_related(
                 "dotation_projet",
                 "dotation_projet__projet",
-                "dotation_projet__projet__demandeur",
                 "dotation_projet__projet__dossier_ds",
             )
             .prefetch_related(
@@ -177,6 +175,7 @@ class ProgrammationProjetListView(FilterView, ListView):
                 "dotation_projet__projet__dossier_ds__demande_cofinancements",
                 "dotation_projet__projet__dossier_ds__projet_zonage",
                 "dotation_projet__projet__dossier_ds__projet_contractualisation",
+                "dotation_projet__projet__dossier_ds__ds_demandeur",
             )
             .defer("dotation_projet__projet__dossier_ds__ds_demarche__raw_ds_data")
         )
