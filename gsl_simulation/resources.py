@@ -98,7 +98,7 @@ class BaseSimulationProjetResource(ModelResource):
         column_name="Demandeur",
     )
     arrondissement = Field(
-        attribute="projet__demandeur__address__commune__arrondissement__name",
+        attribute="projet__dossier_ds__porteur_de_projet_arrondissement__name",
         column_name="Arrondissement du demandeur",
     )
     has_double_dotations = Field(
