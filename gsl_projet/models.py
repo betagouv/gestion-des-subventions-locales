@@ -83,16 +83,6 @@ class CategorieDetr(models.Model):
         return f"{self.rang} - {self.libelle}"
 
 
-class Demandeur(models.Model):
-    siret = models.CharField("Siret", unique=True)
-    name = models.CharField("Nom")
-
-    address = models.ForeignKey(Adresse, on_delete=models.PROTECT)
-
-    def __str__(self):
-        return f"Demandeur {self.name}"
-
-
 class ProjetQuerySet(models.QuerySet):
     def for_user(self, user: Collegue):
         if user.perimetre is None:
@@ -293,7 +283,6 @@ class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
 
 class Projet(BaseModel):
     dossier_ds = models.OneToOneField(Dossier, on_delete=models.PROTECT)
-    demandeur = models.ForeignKey(Demandeur, on_delete=models.PROTECT, null=True)
 
     address = models.ForeignKey(Adresse, on_delete=models.PROTECT, null=True)
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT, null=True)

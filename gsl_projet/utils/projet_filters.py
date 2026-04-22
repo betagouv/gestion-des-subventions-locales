@@ -74,7 +74,7 @@ DOTATION_CHOICES = (
 ORDERING_MAP = {
     "dossier_ds__ds_date_depot": "date",
     "dossier_ds__finance_cout_total": "cout",
-    "demandeur__name": "demandeur",
+    "dossier_ds__ds_demandeur__raison_sociale": "demandeur",
     "dossier_ds__ds_number": "numero_dn",
     "dossier_ds__porteur_de_projet_arrondissement__name": "arrondissement",
     "dossier_ds__porteur_de_projet_nom": "nom_demandeur",
