@@ -48,6 +48,7 @@ PROGRAMMATION_ORDERING_MAP = {
     "dotation_projet__projet__dossier_ds__date_debut": "date_debut",
     "dotation_projet__projet__dossier_ds__date_achevement": "date_fin",
     "dotation_projet__projet__dossier_ds__porteur_de_projet_epci": "epci",
+    "dotation_projet__projet__dossier_ds__demande_priorite_dsil_detr": "priorite",
     "dotation_projet__assiette": "assiette",
     "prog_taux": "taux",
 }

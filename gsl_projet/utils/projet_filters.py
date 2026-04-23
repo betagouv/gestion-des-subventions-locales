@@ -82,6 +82,7 @@ ORDERING_MAP = {
     "dossier_ds__date_debut": "date_debut",
     "dossier_ds__date_achevement": "date_fin",
     "dossier_ds__porteur_de_projet_epci": "epci",
+    "dossier_ds__demande_priorite_dsil_detr": "priorite",
 }
 
 

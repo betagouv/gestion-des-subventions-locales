@@ -471,20 +471,12 @@ class Dossier(BaseModel):
         blank=True,
     )
 
-    demande_autre_precision = models.TextField(
-        "Autre - précisez le dispositif de financement concerné",
-        blank=True,
-    )
-    demande_autre_numero_dossier = models.CharField(
-        "Si votre dossier a déjà été déposé, précisez le numéro de dossier",
-        blank=True,
-    )
     demande_autre_dsil_detr = models.BooleanField(
-        "Présentez-vous une autre opération au titre de la DETR/DSIL 2024 ?",
+        "Présentez-vous une autre opération au titre de la DETR/DSIL cette année ?",
         null=True,
     )
     demande_priorite_dsil_detr = models.IntegerField(
-        "Si oui, précisez le niveau de priorité de ce dossier.",
+        "Si demandé par votre préfecture, précisez le niveau de priorité de ce dossier.",
         null=True,
         blank=True,
     )
@@ -625,8 +617,6 @@ class Dossier(BaseModel):
         cofinancement_ue_montant,
         cofinancement_autre,
         cofinancement_autre_montant,
-        demande_autre_precision,
-        demande_autre_numero_dossier,
         demande_autre_dsil_detr,
         demande_priorite_dsil_detr,
     )
