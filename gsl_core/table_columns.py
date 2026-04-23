@@ -395,6 +395,22 @@ COLUMN_COMPLETED_DOSSIER = Column(
     header_help_text="Non complet signifie que le dossier est en construction sur DN.",
 )
 
+COLUMN_PRIORITY = Column(
+    key="priority",
+    label="Priorité",
+    getter=lambda ctx: (
+        (
+            ctx["projet"].dossier_ds.demande_priorite_dsil_detr
+            if ctx["projet"].dossier_ds
+            else None
+        )
+        or "-"
+    ),
+    displayed_by_default=False,
+    text_align=TextAlign.CENTER,
+    sort_param="priorite",
+)
+
 COLUMN_COMMENT_1 = Column(
     key="comment_1",
     label="Commentaire 1",
