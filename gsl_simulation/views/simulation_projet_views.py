@@ -114,22 +114,23 @@ class SimulationTableCellEditMixin(UpdateView):
         total_amount_granted = self.object.simulation.get_total_amount_granted(
             self._get_projets_queryset_with_filters()
         )
-        enveloppe = Enveloppe.objects.get(pk=self.object.simulation.enveloppe_id)
+        context = {
+            "simu": self.object,
+            "dotation_projet": self.object.dotation_projet,
+            "projet": self.object.projet,
+            "status_summary": self.object.simulation.get_projet_status_summary(),
+            "total_amount_granted": total_amount_granted,
+            "columns": SIMULATION_TABLE_COLUMNS,
+            "dotations": DOTATIONS,
+        }
+        # We only update the enveloppe summary line when the project is accepted,
+        # as it's the only case when the enveloppe amount can be changed
+        if self.object.status == SimulationProjet.STATUS_ACCEPTED:
+            context["enveloppe"] = Enveloppe.objects.get(
+                pk=self.object.simulation.enveloppe_id
+            )
 
-        return render(
-            self.request,
-            "htmx/projet_update.html",
-            {
-                "simu": self.object,
-                "dotation_projet": self.object.dotation_projet,
-                "projet": self.object.projet,
-                "status_summary": self.object.simulation.get_projet_status_summary(),
-                "total_amount_granted": total_amount_granted,
-                "columns": SIMULATION_TABLE_COLUMNS,
-                "dotations": DOTATIONS,
-                "enveloppe": enveloppe,
-            },
-        )
+        return render(self.request, "htmx/projet_update.html", context=context)
 
 
 class EditAssietteView(SimulationTableCellEditMixin):
