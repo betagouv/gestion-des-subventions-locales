@@ -8,7 +8,7 @@ from functools import lru_cache
 import boto3
 import img2pdf
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
@@ -171,7 +171,7 @@ MENTIONS = [
     Mention(
         "adresse-demandeur",
         "Adresse du demandeur",
-        "dossier.ds_demandeur.address",
+        "dossier.ds_demandeur.address.label",
     ),
     Mention(
         "date-arrete",
@@ -212,7 +212,18 @@ def replace_mentions_in_html(
         key = span.get("data-id")
         if key not in MENTION_KEY_TO_MENTION:
             raise ValueError(f"Mention {key!r} inconnue.")
-        span.replace_with(MENTION_KEY_TO_MENTION[key].get_value(programmation_projet))
+        value = MENTION_KEY_TO_MENTION[key].get_value(programmation_projet)
+        normalized = value.replace("\r\n", "\n").replace("\r", "\n")
+        if "\n" in normalized:
+            lines = normalized.split("\n")
+            fragment = BeautifulSoup("", "html.parser")
+            for i, line in enumerate(lines):
+                fragment.append(NavigableString(line))
+                if i < len(lines) - 1:
+                    fragment.append(soup.new_tag("br"))
+            span.replace_with(fragment)
+        else:
+            span.replace_with(value)
 
     return str(soup)
 
