@@ -33,7 +33,263 @@
                         nonce="{{ csp_nonce }}">
                 Votre navigateur ne supporte pas la balise vidéo.
             </video>
+
+            <h2 class="fr-mt-5w">
+                Foire aux questions
+            </h2>
+            <div class="fr-accordions-group">
+                <section class="fr-accordion">
+                    <h3 class="fr-accordion__title">
+                        <button class="fr-accordion__btn" aria-expanded="false" aria-controls="faq-1">
+                            Que se passe-t-il si l'on accepte une dotation pour un projet ?
+                        </button>
+
+                    </h3>
+                    <div class="fr-collapse" id="faq-1">
+                        <p>
+                            Si l'on accepte un projet sur Turgot, le statut DN va rester "En instruction".
+                        </p>
+                        <p>
+                            L'acceptation va venir cocher la dotation acceptée puis mettre à jour les annotations liées à cette dotation (montant, taux, assiette).
+                        </p>
+                        <p>
+                            Pour passer le projet en statut "Accepté" sur DN, il faut cliquer sur notifier le projet dans la section "Notifications" de la page projet sur Turgot.
+                        </p>
+                    </div>
+                </section>
+                <section class="fr-accordion">
+                    <h3 class="fr-accordion__title">
+                        <button class="fr-accordion__btn" aria-expanded="false" aria-controls="faq-2">
+                            Comment notifier un projet accepté au demandeur ?
+                        </button>
+                    </h3>
+                    <div class="fr-collapse" id="faq-2">
+                        <p>
+                            Depuis l'onglet "Notifications" de la page projet, suivez ces étapes :
+                        </p>
+                        <ol>
+                            <li>
+                                Générez un arrêté à partir d'un modèle d'arrêté.
+                            </li>
+                            <li>
+                                Générez une lettre de notification à partir d'un modèle de lettre.
+                            </li>
+                            <li>
+                                Faites signer ces deux documents, puis réimportez-les dans un seul fichier (arrêté et lettre réunis).
+                            </li>
+                            <li>
+                                Cliquez sur "Rédiger le message de notification" pour composer le message envoyé au demandeur.
+                                Vous pouvez y ajouter une motivation (facultatif) et des annexes. Le fichier signé sera automatiquement joint.
+                            </li>
+                            <li>
+                                Cliquez sur "Confirmer l'envoi" : le projet passera au statut "Accepté" sur Turgot et sur DN.
+                            </li>
+                        </ol>
+                    </div>
+                </section>
+                <section class="fr-accordion">
+                    <h3 class="fr-accordion__title">
+                        <button class="fr-accordion__btn" aria-expanded="false" aria-controls="faq-3">
+                            Y a-t-il une synchronisation entre Turgot et les annotations sur DN ?
+                        </button>
+                    </h3>
+                    <div class="fr-collapse" id="faq-3">
+                        <p>
+                            Oui, il existe une synchronisation entre les données de Turgot et les <b>annotations</b> sur DN.
+                        </p>
+                        <p>
+                            Les champs "cases à cocher" suivants sont toujours synchronisés, quel que soit le statut du projet sur Turgot&nbsp;:
+                        </p>
+                        <ul>
+                            <li>
+                                QPV, FRR
+                            </li>
+                            <li>
+                                Contractualisation
+                            </li>
+                            <li>
+                                Zonage
+                            </li>
+                            <li>
+                                Bugdet vert
+                            </li>
+                            <li>
+                                ...
+                            </li>
+                        </ul>
+                        <p>
+                            Les montants (montant, assiette et taux) sont synchronisés <strong>uniquement si le projet est accepté sur Turgot</strong>.
+                        </p>
+                        <p>
+                            A noter que l'assiette est toujours récupérée depuis DN, indépendamment du statut du projet sur Turgot.
+                        </p>
+                    </div>
+                </section>
+                <section class="fr-accordion">
+                    <h3 class="fr-accordion__title">
+                        <button class="fr-accordion__btn" aria-expanded="false" aria-controls="faq-4">
+                            Que se passe-t-il si j'accepte un dossier sur DN ? Le projet sera-t-il mis à jour dans Turgot ?
+                        </button>
+                    </h3>
+                    <div class="fr-collapse" id="faq-4">
+                        <p>
+                            Cela dépend des annotations renseignées sur le dossier DN au moment de l'acceptation.
+                        </p>
+                        <p>
+                            <strong>Cas 1 — Aucune dotation cochée</strong>
+                        </p>
+                        <p>
+                            Turgot n'est pas mis à jour. Le projet reste dans son état actuel sur Turgot, qu'il soit "En traitement" ou dans un autre statut.
+                        </p>
+                        <p>
+                            <strong>Cas 2 — Des dotations sont cochées, mais aucun montant n'est renseigné</strong>
+                        </p>
+                        <p>
+                            Turgot passe le projet à "Accepté à 0 €". Seules les dotations cochées sont conservées.
+                            Si aucune assiette n'est renseignée sur DN, l'assiette est mise à 0 €.
+                        </p>
+                        <p>
+                            <strong>Cas 3 — Des dotations sont cochées et un montant est renseigné</strong>
+                        </p>
+                        <p>
+                            Turgot passe le projet à "Accepté". Seules les dotations cochées sont conservées,
+                            et le montant renseigné sur DN leur est appliqué.
+                        </p>
+                    </div>
+                </section>
+                <section class="fr-accordion">
+                    <h3 class="fr-accordion__title">
+                        <button class="fr-accordion__btn" aria-expanded="false" aria-controls="faq-4">
+                            Comment fonctionne la synchronisation de l'assiette entre DN et Turgot ?
+                        </button>
+                    </h3>
+                    <div class="fr-collapse" id="faq-4">
+                        <p>
+                            L'assiette est mise à jour dans les deux sens selon ces règles :
+                        </p>
+                        <p>
+                            <strong>DN → Turgot</strong>
+                        </p>
+                        <p>
+                            Si vous cochez une dotation sur DN et renseignez son assiette, Turgot la récupérera automatiquement
+                            à la prochaine mise à jour.
+                        </p>
+                        <p>
+                            <strong>Turgot → DN</strong>
+                        </p>
+                        <p>
+                            Si vous acceptez une dotation pour un projet sur Turgot, Turgot va cocher la dotation sur DN
+                            et mettre à jour l'assiette, le montant et le taux dans les annotations DN.
+                            <br>
+                            La synchronisation de l'assiette entre Turgot et DN sera alors activée.
+                        </p>
+                    </div>
+                </section>
+                <section class="fr-accordion">
+                    <h3 class="fr-accordion__title">
+                        <button class="fr-accordion__btn" aria-expanded="false" aria-controls="faq-5">
+                            Que se passe-t-il si je classe sans suite ou refuse un projet sur Turgot ?
+                        </button>
+                    </h3>
+                    <div class="fr-collapse" id="faq-5">
+                        <p>
+                            Turgot vous demandera une motivation et, facultativement, une pièce jointe. Le statut du projet
+                            sera ensuite mis à jour sur Turgot <strong>et</strong> sur DN.
+                        </p>
+                        <p>
+                            <strong>Cas particulier des projets avec double dotation</strong>
+                        </p>
+                        <p>
+                            Si le projet est rattaché à une autre dotation dont le statut n'est pas encore définitif,
+                            la notification sur DN ne sera pas envoyée immédiatement.
+                        </p>
+                        <ul>
+                            <li>
+                                Si l'autre dotation est <strong>acceptée</strong>, le processus de notification se poursuit normalement
+                                (génération d'arrêté, notification…), car le dossier sera finalement accepté sur DN.
+                            </li>
+                            <li>
+                                Si l'autre dotation est également <strong>classée sans suite</strong>, alors le dossier DN sera
+                                lui aussi classé sans suite. En effet, un projet avec une dotation classée sans suite et une dotation refusée va être classé sans suite sur DN.
+                            </li>
+                        </ul>
+                    </div>
+                </section>
+                <section class="fr-accordion">
+                    <h3 class="fr-accordion__title">
+                        <button class="fr-accordion__btn" aria-expanded="false" aria-controls="faq-6">
+                            Que se passe-t-il sur Turgot si je classe sans suite ou refuse un dossier sur DN ?
+                        </button>
+                    </h3>
+                    <div class="fr-collapse" id="faq-6">
+                        <p>
+                            À la prochaine mise à jour, Turgot va automatiquement classer sans suite ou refuser le projet,
+                            pour toutes ses dotations s'il en a plusieurs.
+                        </p>
+                        <p>
+                            Le projet apparaîtra ensuite dans la programmation.
+                        </p>
+                    </div>
+                </section>
+                <section class="fr-accordion">
+                    <h3 class="fr-accordion__title">
+                        <button class="fr-accordion__btn" aria-expanded="false" aria-controls="faq-7">
+                            Que se passe-t-il si je veux repasser un projet en instruction sur Turgot ?
+                        </button>
+                    </h3>
+                    <div class="fr-collapse" id="faq-7">
+                        <p>
+                            Le retour en instruction n'est possible que pour les projets qui n'ont pas encore été notifiés au demandeur
+                            (typiquement un projet accepté mais non notifié). Dans ce cas, vous pouvez le repasser en instruction
+                            depuis la page du projet ou depuis la liste de projets d'une simulation.
+                        </p>
+                        <p>
+                            Lorsqu'une dotation acceptée repasse en instruction sur Turgot, Turgot décoche automatiquement
+                            cette dotation dans les annotations du dossier sur DN.
+                        </p>
+                        <p>
+                            Pour un projet déjà notifié, le retour en instruction doit être initié directement sur DN.
+                            DN se chargera ensuite de mettre à jour Turgot avec le nouveau statut (par exemple "En traitement").
+                        </p>
+                    </div>
+                </section>
+                <section class="fr-accordion">
+                    <h3 class="fr-accordion__title">
+                        <button class="fr-accordion__btn" aria-expanded="false" aria-controls="faq-8">
+                            Comment exporter les projets d'une simulation ?
+                        </button>
+                    </h3>
+                    <div class="fr-collapse" id="faq-8">
+                        <p>
+                            L'export est disponible uniquement sur les simulations. Depuis la page d'une simulation,
+                            cliquez sur "Exporter le tableau" pour télécharger la liste des projets dans le format de votre choix
+                            (.xls, .xlsx, .csv ou .ods).
+                        </p>
+                        <p>
+                            Seules les colonnes actuellement affichées dans le tableau sont incluses dans l'export.
+                            Vous pouvez personnaliser les colonnes visibles via le bouton "Colonnes affichées" en haut à droite du tableau.
+                        </p>
+                    </div>
+                </section>
+                <section class="fr-accordion">
+                    <h3 class="fr-accordion__title">
+                        <button class="fr-accordion__btn" aria-expanded="false" aria-controls="faq-9">
+                            Quand les dossiers DN sont-ils mis à jour du Turgot ?
+                        </button>
+                    </h3>
+                    <div class="fr-collapse" id="faq-9">
+                        Il y a deux manières de mettre à jour un dossier sur Turgot :
+                        <ul>
+                            <li>
+                                les dossiers DN sont mis à jour automatiquement toutes les heures piles de 7h à 19h inclus du lundi au vendredi
+                            </li>
+                            <li>
+                                les dossiers DN peuvent être mis à jour manuellement en allant sur la page projet et en cliquant sur "Actualiser depuis DN"
+                            </li>
+                        </ul>
+                    </div>
+                </section>
+            </div>
         </div>
     </div>
-
 {% endblock content %}
