@@ -162,6 +162,13 @@ class ProgrammationProjetFilters(FilterSet):
         widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
     )
 
+    epci = MultipleChoiceFilter(
+        label="EPCI",
+        field_name="dotation_projet__projet__dossier_ds__porteur_de_projet_epci",
+        choices=[],
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+    )
+
     filter_boolean = staticmethod(filter_boolean)
     filter_dotation_sollicitee = staticmethod(filter_dotation_sollicitee)
     filter_dossier_complet = staticmethod(filter_dossier_complet)
@@ -216,6 +223,7 @@ class ProgrammationProjetFilters(FilterSet):
         model = ProgrammationProjet
         fields = (
             "territoire",
+            "epci",
             "categorie_detr",
             "categorie_dsil",
             "porteur",
@@ -290,6 +298,16 @@ class ProgrammationProjetFilters(FilterSet):
             )
             .distinct()
             .order_by("id")
+        )
+
+        self.filters["epci"].extra["choices"] = tuple(
+            (epci, epci.split(" - ", 1)[1] if " - " in epci else epci)
+            for epci in visible_dossiers.values_list(
+                "porteur_de_projet_epci", flat=True
+            )
+            .distinct()
+            .order_by("porteur_de_projet_epci")
+            if epci
         )
 
     @property

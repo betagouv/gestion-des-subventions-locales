@@ -95,6 +95,16 @@ class SimulationProjetFilters(FilterSet):
             .order_by("id")
         )
 
+        self.filters["epci"].extra["choices"] = tuple(
+            (epci, epci.split(" - ", 1)[1] if " - " in epci else epci)
+            for epci in self.queryset.values_list(
+                "dossier_ds__porteur_de_projet_epci", flat=True
+            )
+            .distinct()
+            .order_by("dossier_ds__porteur_de_projet_epci")
+            if epci
+        )
+
     SIMULATION_ORDERING_MAP = {
         **ORDERING_MAP,
         "simu_montant": "montant_previsionnel",
@@ -240,6 +250,13 @@ class SimulationProjetFilters(FilterSet):
         widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
     )
 
+    epci = MultipleChoiceFilter(
+        label="EPCI",
+        field_name="dossier_ds__porteur_de_projet_epci",
+        choices=[],
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+    )
+
     order = ProjetOrderingFilter(
         fields=SIMULATION_ORDERING_MAP,
         empty_label="Tri",
@@ -276,6 +293,7 @@ class SimulationProjetFilters(FilterSet):
         model = Projet
         fields = (
             "territoire",
+            "epci",
             "categorie_detr",
             "categorie_dsil",
             "porteur",
