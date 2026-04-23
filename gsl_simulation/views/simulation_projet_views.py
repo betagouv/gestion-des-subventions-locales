@@ -34,6 +34,7 @@ from gsl_core.templatetags.gsl_filters import euro
 from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.importer.dossier import save_one_dossier_from_ds
+from gsl_programmation.models import Enveloppe
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -113,6 +114,7 @@ class SimulationTableCellEditMixin(UpdateView):
         total_amount_granted = self.object.simulation.get_total_amount_granted(
             self._get_projets_queryset_with_filters()
         )
+        enveloppe = Enveloppe.objects.get(pk=self.object.simulation.enveloppe_id)
 
         return render(
             self.request,
@@ -125,6 +127,7 @@ class SimulationTableCellEditMixin(UpdateView):
                 "total_amount_granted": total_amount_granted,
                 "columns": SIMULATION_TABLE_COLUMNS,
                 "dotations": DOTATIONS,
+                "enveloppe": enveloppe,
             },
         )
 
