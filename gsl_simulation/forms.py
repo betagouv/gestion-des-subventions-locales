@@ -24,7 +24,7 @@ from gsl_projet.models import (
     Projet,
 )
 from gsl_projet.utils.utils import compute_taux
-from gsl_simulation.models import Simulation, SimulationProjet
+from gsl_simulation.models import BulkStatusJob, Simulation, SimulationProjet
 from gsl_simulation.services.simulation_projet_service import SimulationProjetService
 
 logger = getLogger(__name__)
@@ -242,11 +242,19 @@ class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):
             assiette = dotation_projet.assiette
             montant = self.instance.montant
             if assiette is None:
-                errors.append("L'assiette subventionnable est manquante.")
+                errors.append(
+                    ValidationError(
+                        "L'assiette subventionnable est manquante.",
+                        code="missing_assiette",
+                    )
+                )
             elif montant is not None and assiette < montant:
                 errors.append(
-                    f"L'assiette subventionnable ({euro(assiette)}) est "
-                    f"inférieure au montant accordé ({euro(montant)})."
+                    ValidationError(
+                        f"L'assiette subventionnable ({euro(assiette)}) est "
+                        f"inférieure au montant accordé ({euro(montant)}).",
+                        code="montant_exceeds_assiette",
+                    )
                 )
             if errors:
                 raise ValidationError(errors)
@@ -486,3 +494,61 @@ class SimulationColumnsVisibilityForm(forms.ModelForm):
             for key, value in self.data.items()
             if key != "csrfmiddlewaretoken"
         }
+
+
+class BulkStatusJobForm(ModelForm):
+    simulation_projet_ids = forms.CharField()
+
+    class Meta:
+        model = BulkStatusJob
+        fields = ("simulation", "target_status", "simulation_projet_ids")
+
+    def __init__(self, *args, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        self.fields["simulation"].queryset = Simulation.objects.visible_for_user(user)
+
+    def clean_simulation_projet_ids(self):
+        raw = self.cleaned_data["simulation_projet_ids"]
+        try:
+            ids = [int(i) for i in raw.split(",") if i.strip()]
+        except ValueError as exc:
+            raise ValidationError("Identifiants de projets invalides") from exc
+        if not ids:
+            raise ValidationError("Aucun projet sélectionné")
+        return ids
+
+    def clean(self):
+        cleaned = super().clean()
+        simulation = cleaned.get("simulation")
+        ids = cleaned.get("simulation_projet_ids")
+        if simulation and ids:
+            visible_ids = set(
+                SimulationProjet.objects.in_user_perimeter(self.user)
+                .filter(simulation=simulation, id__in=ids)
+                .values_list("id", flat=True)
+            )
+            if visible_ids != set(ids):
+                raise ValidationError(
+                    "Un ou plusieurs des projets sélectionnés n'est pas accessible "
+                    "(identifiant inconnu ou hors périmètre)."
+                )
+        if (
+            simulation
+            and BulkStatusJob.objects.filter(
+                simulation=simulation,
+                status__in=(BulkStatusJob.STATUS_PENDING, BulkStatusJob.STATUS_RUNNING),
+            ).exists()
+        ):
+            raise ValidationError(
+                "Un traitement est déjà en cours sur cette simulation.",
+                code="already_running",
+            )
+        return cleaned
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.created_by = self.user
+        if commit:
+            instance.save()
+        return instance

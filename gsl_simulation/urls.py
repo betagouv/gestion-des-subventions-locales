@@ -1,6 +1,10 @@
 from django.urls import path
 
 from gsl_simulation.views import simulation_views
+from gsl_simulation.views.bulk_status_job_views import (
+    BulkStatusJobProgressView,
+    BulkStatusJobStartView,
+)
 from gsl_simulation.views.decorators import (
     simulation_must_be_visible_by_user,
 )
@@ -103,6 +107,16 @@ urlpatterns = [
         "<int:pk>/simuler/<str:status>/",
         SimulationProjetStatusUpdateView.as_view(),
         name="simulation-projet-update-simulation-status",
+    ),
+    path(
+        "bulk-simuler/start-job/",
+        BulkStatusJobStartView.as_view(),
+        name="bulk-status-job-start",
+    ),
+    path(
+        "bulk-simuler/job/<uuid:pk>/progress/",
+        BulkStatusJobProgressView.as_view(),
+        name="bulk-status-job-progress",
     ),
     path(
         "bulk-simuler/<str:status>/",
