@@ -10,6 +10,14 @@ from gsl_demarches_simplifiees.tests.factories import (
 from gsl_ds_proxy.tests.factories import ProxyTokenFactory
 
 
+def _read_stream(response):
+    return b"".join(response.streaming_content)
+
+
+def _parse_stream(response):
+    return json.loads(_read_stream(response).lstrip())
+
+
 @override_settings(DS_API_TOKEN="test-ds-token", DS_API_URL="https://ds.test/graphql")
 class GraphqlProxyViewTest(TestCase):
     def setUp(self):
@@ -121,7 +129,7 @@ class GraphqlProxyViewTest(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        data = response.json()
+        data = _parse_stream(response)
         nodes = data["data"]["demarche"]["dossiers"]["nodes"]
         self.assertEqual(len(nodes), 1)
         self.assertEqual(nodes[0]["number"], 1)
@@ -140,7 +148,12 @@ class GraphqlProxyViewTest(TestCase):
         mock_post.side_effect = req.exceptions.ConnectionError()
 
         response = self._post(self._get_demarche_payload())
-        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.status_code, 200)
+        data = _parse_stream(response)
+        self.assertEqual(
+            data,
+            {"errors": [{"message": "Erreur de connexion à Démarches Simplifiées."}]},
+        )
 
     @patch("gsl_ds_proxy.views.requests.post")
     def test_ds_http_error(self, mock_post):
@@ -150,7 +163,12 @@ class GraphqlProxyViewTest(TestCase):
         mock_post.return_value.raise_for_status.side_effect = req.exceptions.HTTPError()
 
         response = self._post(self._get_demarche_payload())
-        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.status_code, 200)
+        data = _parse_stream(response)
+        self.assertEqual(
+            data,
+            {"errors": [{"message": "Erreur de Démarches Simplifiées."}]},
+        )
 
     def test_getDemarche_wrong_demarche_number_rejected(self):
         response = self._post(self._get_demarche_payload(demarche_number=999))
@@ -186,6 +204,8 @@ class GraphqlProxyViewTest(TestCase):
             }
         )
         self.assertEqual(response.status_code, 200)
+        data = _parse_stream(response)
+        self.assertIn("data", data)
 
     @patch("gsl_ds_proxy.views.requests.post")
     def test_getDossier_of_other_demarche_rejected(self, mock_post):
@@ -207,7 +227,9 @@ class GraphqlProxyViewTest(TestCase):
                 "variables": {"dossierNumber": 42},
             }
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
+        data = _parse_stream(response)
+        self.assertIn("errors", data)
 
     @patch("gsl_ds_proxy.views.requests.post")
     def test_getDossier_without_demarche_in_response_rejected(self, mock_post):
@@ -222,7 +244,9 @@ class GraphqlProxyViewTest(TestCase):
                 "variables": {"dossierNumber": 42},
             }
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
+        data = _parse_stream(response)
+        self.assertIn("errors", data)
 
     def test_getGroupeInstructeur_rejected(self):
         response = self._post(
@@ -262,7 +286,9 @@ class GraphqlProxyViewTest(TestCase):
                 "variables": {"demarcheNumber": self.demarche.ds_number},
             }
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
+        data = _parse_stream(response)
+        self.assertIn("errors", data)
 
     @patch("gsl_ds_proxy.views.requests.post")
     def test_getDemarche_response_without_number_field_rejected(self, mock_post):
@@ -278,7 +304,9 @@ class GraphqlProxyViewTest(TestCase):
                 "variables": {"demarcheNumber": self.demarche.ds_number},
             }
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
+        data = _parse_stream(response)
+        self.assertIn("errors", data)
 
     def test_mutation_with_leading_whitespace_rejected(self):
         response = self._post({"query": "\n\n  mutation { dossierAccepter { id } }"})
@@ -317,15 +345,26 @@ class GraphqlProxyViewTest(TestCase):
             }
         )
         self.assertEqual(response.status_code, 200)
+        data = _parse_stream(response)
+        self.assertEqual(data["data"]["demarche"]["number"], self.demarche.ds_number)
 
     @patch("gsl_ds_proxy.views.requests.post")
-    def test_ds_timeout_returns_504(self, mock_post):
+    def test_ds_timeout_returns_in_band_error(self, mock_post):
         import requests as req
 
         mock_post.side_effect = req.exceptions.Timeout()
 
         response = self._post(self._get_demarche_payload())
-        self.assertEqual(response.status_code, 504)
+        self.assertEqual(response.status_code, 200)
+        data = _parse_stream(response)
+        self.assertEqual(
+            data,
+            {
+                "errors": [
+                    {"message": "Délai d'attente dépassé pour Démarches Simplifiées."}
+                ]
+            },
+        )
 
     @patch("gsl_ds_proxy.views.requests.post")
     def test_query_forwarded_verbatim(self, mock_post):
@@ -345,13 +384,15 @@ class GraphqlProxyViewTest(TestCase):
             "query getDemarche { demarche { number dossiers { nodes "
             "{ number groupeInstructeur { instructeurs { id } } } } } }"
         )
-        self._post(
+        response = self._post(
             {
                 "query": query,
                 "operationName": "getDemarche",
                 "variables": {"demarcheNumber": self.demarche.ds_number},
             }
         )
+        # Drain the stream so the view has actually called DS.
+        _read_stream(response)
         self.assertEqual(mock_post.call_args.kwargs["json"]["query"], query)
 
     def test_document_with_multiple_operations_requires_operationName(self):
@@ -405,12 +446,104 @@ class GraphqlProxyViewTest(TestCase):
                 }
             }
         }
-        self._post(
+        response = self._post(
             {
                 "query": "query getDemarche { demarche { number } }",
                 "operationName": "getDemarche",
                 "variables": {"demarcheNumber": self.demarche.ds_number},
             }
         )
-        self.assertIn("timeout", mock_post.call_args.kwargs)
-        self.assertIsNotNone(mock_post.call_args.kwargs["timeout"])
+        _read_stream(response)
+        self.assertEqual(mock_post.call_args.kwargs["timeout"], (5, 55))
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_first_byte_is_heartbeat_space(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {
+                "demarche": {
+                    "number": self.demarche.ds_number,
+                    "dossiers": {"nodes": []},
+                }
+            }
+        }
+        response = self._post(
+            {
+                "query": "query getDemarche { demarche { number } }",
+                "operationName": "getDemarche",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        first_chunk = next(iter(response.streaming_content))
+        self.assertEqual(first_chunk, b" ")
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_final_payload_is_valid_json_with_leading_heartbeat(self, mock_post):
+        ds_data = {
+            "data": {
+                "demarche": {
+                    "number": self.demarche.ds_number,
+                    "dossiers": {"nodes": []},
+                }
+            }
+        }
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = ds_data
+
+        response = self._post(
+            {
+                "query": "query getDemarche { demarche { number } }",
+                "operationName": "getDemarche",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        stream_bytes = _read_stream(response)
+        self.assertTrue(stream_bytes.startswith(b" "))
+        self.assertEqual(json.loads(stream_bytes.lstrip()), ds_data)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_connection_error_during_streaming_yields_graphql_error_with_200(
+        self, mock_post
+    ):
+        import requests as req
+
+        mock_post.side_effect = req.exceptions.ConnectionError()
+
+        response = self._post(self._get_demarche_payload())
+        self.assertEqual(response.status_code, 200)
+        data = _parse_stream(response)
+        self.assertEqual(
+            data["errors"][0]["message"],
+            "Erreur de connexion à Démarches Simplifiées.",
+        )
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_scope_check_failure_during_streaming_yields_graphql_error_with_200(
+        self, mock_post
+    ):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {
+                "demarche": {
+                    "number": 999,
+                    "dossiers": {"nodes": []},
+                }
+            }
+        }
+        response = self._post(
+            {
+                "query": "query getDemarche { demarche { number } }",
+                "operationName": "getDemarche",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        data = _parse_stream(response)
+        self.assertEqual(
+            data["errors"][0]["message"],
+            "Opération non autorisée pour cette démarche. "
+            "La requête doit inclure `demarche { number }`.",
+        )
