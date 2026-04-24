@@ -7,9 +7,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.views import View
 from django.views.decorators.http import require_POST
-from django.views.generic import DetailView, UpdateView
+from django.views.generic import DetailView, TemplateView, UpdateView
 from django.views.generic.edit import BaseUpdateView
 from django_htmx.http import HttpResponseClientRefresh
 
@@ -57,8 +56,13 @@ from gsl_simulation.forms import (
     SimulationProjetStatusForm,
     TauxSingleFieldForm,
 )
-from gsl_simulation.models import SimulationProjet, SimulationProjetQuerySet
+from gsl_simulation.models import (
+    BulkStatusJob,
+    SimulationProjet,
+    SimulationProjetQuerySet,
+)
 from gsl_simulation.table_columns import SIMULATION_TABLE_COLUMNS
+from gsl_simulation.views.bulk_status_job_views import BULK_STATUS_MODAL_ID
 from gsl_simulation.views.decorators import (
     exception_handler_decorator,
 )
@@ -564,18 +568,24 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
 
 @method_decorator(htmx_only, name="dispatch")
 @method_decorator(require_POST, name="dispatch")
-class BulkSimulationProjetStatusUpdateView(View):
+class BulkSimulationProjetStatusUpdateView(OpenHtmxModalMixin, TemplateView):
     """
-    Bulk status change for several SimulationProjet rows at once,
-    restricted to the three simulation-pending statuses (no notification,
-    no DS mutation, no confirmation modal). Reuses
-    `SimulationProjetStatusForm.save()` per row so the single-row
+    Bulk status change entry point. For transitions that do NOT touch DN
+    (pending → pending), commits all rows in a single transaction and triggers
+    a page refresh. For transitions that DO touch DN (target = accepted, or at
+    least one selected row currently accepted), returns an HTMX confirmation
+    modal that chains to the async job flow in `BulkStatusJobStartView`.
+
+    Reuses `SimulationProjetStatusForm.save()` per row so the single-row
     behavior stays authoritative.
     """
 
+    modal_id = BULK_STATUS_MODAL_ID
+    http_method_names = ["post"]
+
     def post(self, request, *args, **kwargs):
         target_status = kwargs["status"]
-        if target_status not in SimulationProjet.SIMULATION_PENDING_STATUSES:
+        if target_status not in BulkStatusJob.ALLOWED_TARGET_STATUSES:
             raise Http404(user_message="Statut de simulation invalide")
 
         raw_ids = request.POST.get("simulation_projet_ids", "")
@@ -590,18 +600,18 @@ class BulkSimulationProjetStatusUpdateView(View):
             )
             return HttpResponseClientRefresh()
 
-        qs = (
+        all_projets = list(
             SimulationProjet.objects.in_user_perimeter(request.user)
             .filter(id__in=ids)
             .select_related(
                 "dotation_projet",
                 "dotation_projet__projet",
+                "dotation_projet__projet__dossier_ds",
                 "simulation",
                 "simulation__enveloppe",
             )
         )
-        found_ids = {sp.id for sp in qs}
-        if found_ids != set(ids):
+        if {sp.id for sp in all_projets} != set(ids):
             raise Http404(
                 user_message=(
                     "Un ou plusieurs des projets sélectionnés n'est pas accessible "
@@ -609,40 +619,127 @@ class BulkSimulationProjetStatusUpdateView(View):
                 )
             )
 
-        simulation_projets = [
-            sp
-            for sp in qs
-            if sp.dotation_projet.projet.notified_at is None
-            and sp.status in SimulationProjet.SIMULATION_PENDING_STATUSES
-        ]
-        skipped = len(ids) - len(simulation_projets)
-
-        with transaction.atomic():
-            for sp in simulation_projets:
-                SimulationProjetStatusForm(instance=sp, status=target_status).save(
-                    user=request.user
+        if any(sp.dotation_projet.projet.notified_at is not None for sp in all_projets):
+            raise Http404(
+                user_message=(
+                    "Un ou plusieurs des projets sélectionnés a déjà été notifié "
+                    "et ne peut plus être modifié."
                 )
-
-        updated = len(simulation_projets)
-        if skipped:
-            messages.warning(
-                request,
-                (
-                    f"{skipped} projet{'s' if skipped > 1 else ''} non "
-                    f"modifiable{'s' if skipped > 1 else ''} "
-                    f"{'ont' if skipped > 1 else 'a'} été ignoré"
-                    f"{'s' if skipped > 1 else ''}."
-                ),
             )
+
+        needs_dn = self._needs_ds_confirmation(target_status, all_projets)
+
+        if needs_dn and not request.user.ds_id:
+            return self._render_simple_modal(
+                "htmx/bulk_status_missing_ds_profile_modal.html"
+            )
+
+        valid_projets, blockers = self._preflight(all_projets, target_status)
+
+        if not valid_projets:
+            return self._render_simple_modal(
+                "htmx/bulk_status_nothing_modifiable_modal.html"
+            )
+
+        if blockers:
+            return self._render_preflight_modal(
+                target_status=target_status,
+                valid_projets=[sp for sp, _form in valid_projets],
+                blockers=blockers,
+            )
+
+        if needs_dn:
+            return self._render_confirmation_modal(
+                target_status, [sp for sp, _form in valid_projets]
+            )
+
+        return self._commit_non_dn(request, target_status, valid_projets)
+
+    @staticmethod
+    def _preflight(candidate_projets, target_status):
+        """
+        Split candidates into rows that can transition to `target_status` and
+        rows that can't. Reuses `SimulationProjetStatusForm.clean()` (the same
+        validation used by the single-row flow) per row.
+
+        Returns `(valid_projets, blockers)` where each entry in `valid_projets`
+        is a `(simulation_projet, bound_form)` tuple — the caller that commits
+        the transition reuses the already-validated form. Each blocker carries
+        only a `reason_code` — the template groups by reason and picks a
+        bulk-specific sentence per code.
+        """
+        valid_projets = []
+        blockers = []
+        for sp in candidate_projets:
+            form = SimulationProjetStatusForm(
+                data={}, instance=sp, status=target_status
+            )
+            if form.is_valid():
+                valid_projets.append((sp, form))
+                continue
+
+            first = next(
+                (err for errs in form.errors.as_data().values() for err in errs),
+                None,
+            )
+            blockers.append(
+                {"reason_code": first.code if first and first.code else "invalid"}
+            )
+        return valid_projets, blockers
+
+    def _commit_non_dn(self, request, target_status, valid_projets):
+        with transaction.atomic():
+            for _sp, form in valid_projets:
+                form.save(user=request.user)
 
         queue_matomo_event(
             request,
             MATOMO_CATEGORY_SIMULATION,
             MATOMO_ACTION_CHANGEMENT_STATUT_BULK,
-            f"{target_status}:{updated}",
+            f"{target_status}:{len(valid_projets)}",
         )
 
         return HttpResponseClientRefresh()
+
+    @staticmethod
+    def _needs_ds_confirmation(target_status, simulation_projets):
+        if target_status == SimulationProjet.STATUS_ACCEPTED:
+            return True
+        return any(
+            sp.dotation_projet.status == PROJET_STATUS_ACCEPTED
+            for sp in simulation_projets
+        )
+
+    def _render_confirmation_modal(self, target_status, simulation_projets):
+        if not simulation_projets:
+            messages.error(
+                self.request, "Aucun projet sélectionné pour le changement de statut."
+            )
+            return HttpResponseClientRefresh()
+
+        self.template_name = "htmx/bulk_status_confirm_modal.html"
+        return self.render_to_response(
+            self.get_context_data(
+                target_status=target_status,
+                simulation_projets=simulation_projets,
+                simulation_projet_ids=",".join(str(sp.id) for sp in simulation_projets),
+            )
+        )
+
+    def _render_preflight_modal(self, target_status, valid_projets, blockers):
+        self.template_name = "htmx/bulk_status_preflight_modal.html"
+        return self.render_to_response(
+            self.get_context_data(
+                target_status=target_status,
+                valid_projets=valid_projets,
+                blockers=blockers,
+                simulation_projet_ids=",".join(str(sp.id) for sp in valid_projets),
+            )
+        )
+
+    def _render_simple_modal(self, template_name):
+        self.template_name = template_name
+        return self.render_to_response(self.get_context_data())
 
 
 @method_decorator(htmx_only, name="dispatch")
