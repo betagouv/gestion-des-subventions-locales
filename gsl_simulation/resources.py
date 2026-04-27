@@ -94,7 +94,7 @@ class BaseSimulationProjetResource(ModelResource):
         column_name="Intitulé du projet",
     )
     demandeur_name = Field(
-        attribute="projet__demandeur__name",
+        attribute="projet__dossier_ds__ds_demandeur__raison_sociale",
         column_name="Demandeur",
     )
     arrondissement = Field(

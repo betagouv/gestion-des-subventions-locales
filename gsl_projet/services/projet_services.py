@@ -1,7 +1,7 @@
 import logging
 
 from gsl_demarches_simplifiees.models import Dossier
-from gsl_projet.models import Demandeur, Projet
+from gsl_projet.models import Projet
 
 logger = logging.getLogger(__name__)
 
@@ -43,15 +43,6 @@ class ProjetService:
             ds_dossier, "annotations_is_contrat_local"
         )
         projet.contrat_local = ds_dossier.annotations_contrat_local
-
-        if ds_dossier.ds_demandeur:
-            projet.demandeur, _ = Demandeur.objects.get_or_create(
-                siret=ds_dossier.ds_demandeur.siret,
-                defaults={
-                    "name": ds_dossier.ds_demandeur.raison_sociale,
-                    "address": ds_dossier.ds_demandeur.address,
-                },
-            )
 
         projet.save()
         return projet
