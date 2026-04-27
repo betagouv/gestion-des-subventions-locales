@@ -453,8 +453,15 @@ class FieldMappingAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmi
         "ds_field_type",
         "django_field",
         "demarche__ds_number",
+        "is_active",
+        "deactivated_at",
     )
-    list_filter = ("demarche__ds_number", "ds_field_type")
+    list_filter = (
+        "is_active",
+        "demarche__ds_number",
+        "ds_field_type",
+        "deactivated_at",
+    )
     resource_classes = (FieldMappingResource,)
     search_fields = ("ds_field_label", "django_field", "ds_field_id")
     search_help_text = "Chercher par ID ou intitulé DN, ou par champ Django"

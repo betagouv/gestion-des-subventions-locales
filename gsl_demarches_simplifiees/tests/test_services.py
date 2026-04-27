@@ -80,7 +80,7 @@ def test_get_ds_field_id(dossier: Dossier, field, field_name, caplog):
     ds_service = DsService()
 
     with patch(
-        "gsl_demarches_simplifiees.services.FieldMapping.objects.get",
+        "gsl_demarches_simplifiees.services.FieldMapping.actives.get",
         side_effect=FieldMapping.DoesNotExist,
     ):
         with pytest.raises(FieldError) as exc_info:

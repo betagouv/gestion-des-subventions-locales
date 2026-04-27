@@ -110,6 +110,7 @@ class FieldMappingFactory(factory.django.DjangoModelFactory):
 
     demarche = factory.SubFactory(DemarcheFactory)
     django_field = factory.fuzzy.FuzzyChoice(CHOICES)
+    is_active = True
 
 
 class CategorieDetrFactory(factory.django.DjangoModelFactory):

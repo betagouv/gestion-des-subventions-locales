@@ -112,10 +112,43 @@ DN_DEPARTEMENT_FIELD_TO_DJANGO_FIELD_MAP = {
 }
 
 
+def _sync_existing_field_mapping(computer_mapping, ds_label, ds_type):
+    update_fields = []
+    if computer_mapping.ds_field_label != ds_label:
+        computer_mapping.ds_field_label = ds_label
+        update_fields.append("ds_field_label")
+    if computer_mapping.ds_field_type != ds_type:
+        computer_mapping.ds_field_type = ds_type
+        update_fields.append("ds_field_type")
+    if not computer_mapping.is_active:
+        computer_mapping.is_active = True
+        computer_mapping.deactivated_at = None
+        update_fields.extend(["is_active", "deactivated_at"])
+    if update_fields:
+        computer_mapping.save(update_fields=update_fields)
+
+
+def _auto_map_django_field(computer_mapping, ds_label, reversed_mapping):
+    if ds_label in reversed_mapping:
+        django_field = reversed_mapping.get(ds_label)
+        if django_field != computer_mapping.django_field:
+            computer_mapping.django_field = django_field
+            computer_mapping.save()
+        return
+
+    for dn_field, django_field in DN_DEPARTEMENT_FIELD_TO_DJANGO_FIELD_MAP.items():
+        if ds_label.startswith(dn_field):
+            computer_mapping.django_field = django_field
+            computer_mapping.save()
+            break
+
+
 def save_field_mappings(demarche_data, demarche):
     reversed_mapping = {
         field.verbose_name: field.name for field in Dossier.MAPPED_FIELDS
     }
+
+    active_ds_field_ids = set()
 
     for champ_descriptor in (
         demarche_data["activeRevision"]["champDescriptors"]
@@ -127,6 +160,8 @@ def save_field_mappings(demarche_data, demarche):
 
         ds_label = champ_descriptor["label"]
         ds_id = champ_descriptor["id"]
+        active_ds_field_ids.add(ds_id)
+
         computer_mapping, created = FieldMapping.objects.get_or_create(
             ds_field_id=ds_id,
             demarche=demarche,
@@ -137,30 +172,17 @@ def save_field_mappings(demarche_data, demarche):
         )
 
         if not created:
-            if (
-                computer_mapping.ds_field_label != ds_label
-                or computer_mapping.ds_field_type != ds_type
-            ):
-                computer_mapping.ds_field_label = ds_label
-                computer_mapping.ds_field_type = ds_type
-                computer_mapping.save()
+            _sync_existing_field_mapping(computer_mapping, ds_label, ds_type)
 
-        if ds_label in reversed_mapping:
-            django_field = reversed_mapping.get(ds_label)
-            if django_field != computer_mapping.django_field:
-                computer_mapping.django_field = django_field
-                computer_mapping.save()
-                continue
+        _auto_map_django_field(computer_mapping, ds_label, reversed_mapping)
 
-        for dn_field, django_field in DN_DEPARTEMENT_FIELD_TO_DJANGO_FIELD_MAP.items():
-            if ds_label.startswith(dn_field):
-                computer_mapping.django_field = django_field
-                computer_mapping.save()
-                break
+    FieldMapping.actives.filter(demarche=demarche).exclude(
+        ds_field_id__in=active_ds_field_ids
+    ).update(is_active=False, deactivated_at=timezone.now())
 
 
 def save_categories_dsil(demarche_data, demarche):
-    mapping = FieldMapping.objects.get(
+    mapping = FieldMapping.actives.get(
         demarche=demarche, django_field="demande_categorie_dsil"
     )
     demande_categorie_dsil_field_id = mapping.ds_field_id
@@ -184,7 +206,7 @@ def save_categories_dsil(demarche_data, demarche):
 
 
 def save_categories_detr(demarche_data: dict, demarche: Demarche) -> None:
-    field_mappings = FieldMapping.objects.filter(
+    field_mappings = FieldMapping.actives.filter(
         demarche=demarche, django_field="demande_categorie_detr"
     )
     for field in demarche_data["activeRevision"]["champDescriptors"]:
