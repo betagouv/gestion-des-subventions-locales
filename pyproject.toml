@@ -72,7 +72,43 @@ dev = [
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "gsl.settings_test"
-addopts = "--reuse-db"
+addopts = "--reuse-db --cov --cov-report=xml --cov-report=html --cov-report=term-missing:skip-covered"
+
+[tool.coverage.run]
+branch = true
+source = [
+    "gsl",
+    "gsl_core",
+    "gsl_demarches_simplifiees",
+    "gsl_ds_proxy",
+    "gsl_notification",
+    "gsl_oidc",
+    "gsl_pages",
+    "gsl_programmation",
+    "gsl_projet",
+    "gsl_simulation",
+    "ui",
+]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/test_*.py",
+    "manage.py",
+    "conftest.py",
+    "gsl/settings*.py",
+    "gsl/asgi.py",
+    "gsl/wsgi.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
 
 [tool.ruff.lint]
 exclude = ["**/migrations/*.py"]
