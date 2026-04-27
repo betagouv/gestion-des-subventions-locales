@@ -70,6 +70,20 @@ def _check_operation_allowed(proxy_token, operation_name, variables):
     return None
 
 
+def _scoped_field_present(operation_name, response_data):
+    data = (response_data or {}).get("data") or {}
+    if operation_name == "getDemarche":
+        return isinstance(data.get("demarche"), dict) and "number" in data["demarche"]
+    if operation_name == "getDossier":
+        dossier = data.get("dossier")
+        return (
+            isinstance(dossier, dict)
+            and isinstance(dossier.get("demarche"), dict)
+            and "number" in dossier["demarche"]
+        )
+    return True
+
+
 def _check_response_allowed(proxy_token, operation_name, response_data):
     """Post-fetch validation: authoritative check against the DS payload.
 
@@ -197,6 +211,16 @@ def _stream_ds_response(proxy_token, operation_name, query, variables, allowed_i
     response_data, error_message = _forward_to_ds(query, variables, operation_name)
     if error_message is not None:
         yield _graphql_error_bytes(error_message)
+        return
+
+    # If DS itself reported errors and returned no scopable data, forward the
+    # upstream response verbatim so the caller can see the real error. There is
+    # nothing to scope-check (data is null/absent), so no risk of leaking
+    # out-of-scope data.
+    if response_data.get("errors") and not _scoped_field_present(
+        operation_name, response_data
+    ):
+        yield json.dumps(response_data).encode()
         return
 
     scope_error = _check_response_allowed(proxy_token, operation_name, response_data)

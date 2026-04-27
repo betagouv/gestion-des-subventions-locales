@@ -170,6 +170,63 @@ class GraphqlProxyViewTest(TestCase):
             {"errors": [{"message": "Erreur de Démarches Simplifiées."}]},
         )
 
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_upstream_errors_forwarded_when_data_null(self, mock_post):
+        upstream = {
+            "data": None,
+            "errors": [{"message": "Field 'demaarche' doesn't exist on type 'Query'"}],
+        }
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = upstream
+
+        response = self._post(self._get_demarche_payload())
+
+        self.assertEqual(response.status_code, 200)
+        raw = _read_stream(response).decode()
+        self.assertEqual(json.loads(raw)["errors"], upstream["errors"])
+        self.assertNotIn("La requête doit inclure", raw)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_upstream_errors_forwarded_when_data_empty(self, mock_post):
+        upstream = {
+            "data": {},
+            "errors": [{"message": "Field 'demaarche' doesn't exist on type 'Query'"}],
+        }
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = upstream
+
+        response = self._post(self._get_demarche_payload())
+
+        self.assertEqual(response.status_code, 200)
+        raw = _read_stream(response).decode()
+        self.assertEqual(json.loads(raw)["errors"], upstream["errors"])
+        self.assertNotIn("La requête doit inclure", raw)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_upstream_errors_forwarded_for_getDossier(self, mock_post):
+        upstream = {
+            "data": {"dossier": None},
+            "errors": [{"message": "Dossier introuvable"}],
+        }
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = upstream
+
+        response = self._post(
+            {
+                "query": "query getDossier { dossier { number } }",
+                "operationName": "getDossier",
+                "variables": {"dossierNumber": 42},
+            }
+        )
+
+        self.assertEqual(response.status_code, 200)
+        raw = _read_stream(response).decode()
+        self.assertEqual(json.loads(raw)["errors"], upstream["errors"])
+        self.assertNotIn("La requête doit inclure", raw)
+
     def test_getDemarche_wrong_demarche_number_rejected(self):
         response = self._post(self._get_demarche_payload(demarche_number=999))
         self.assertEqual(response.status_code, 403)
