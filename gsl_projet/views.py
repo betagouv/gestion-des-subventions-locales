@@ -147,6 +147,16 @@ class ProjetListViewFilters(ProjetFilters):
 
         visible_dossiers = visible_projets.values("dossier_ds")
 
+        self.filters["epci"].extra["choices"] = tuple(
+            (epci, epci.split(" - ", 1)[1] if " - " in epci else epci)
+            for epci in visible_projets.values_list(
+                "dossier_ds__porteur_de_projet_epci", flat=True
+            )
+            .distinct()
+            .order_by("dossier_ds__porteur_de_projet_epci")
+            if epci
+        )
+
         self.filters["cofinancement"].extra["choices"] = tuple(
             (str(c.id), c.label)
             for c in Cofinancement.objects.filter(dossier__in=visible_dossiers)

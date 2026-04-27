@@ -284,6 +284,12 @@ class ProjetFilters(FilterSet):
         ),
     )
 
+    epci = MultipleChoiceFilter(
+        label="EPCI",
+        field_name="dossier_ds__porteur_de_projet_epci",
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+    )
+
     budget_vert_demandeur = MultipleChoiceFilter(
         label="Budget vert (demandeur)",
         field_name="dossier_ds__environnement_transition_eco",
@@ -362,6 +368,7 @@ class ProjetFilters(FilterSet):
         model = Projet
         fields = (
             "territoire",
+            "epci",
             "dotation",
             "porteur",
             "categorie_detr",
