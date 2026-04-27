@@ -315,6 +315,11 @@ LOGGING = {
             "level": LIBRARIES_LOGGING_LEVEL,
             "propagate": False,
         },
+        "fontTools": {
+            "handlers": ["console"],
+            "level": LIBRARIES_LOGGING_LEVEL,
+            "propagate": False,
+        },
     },
 }
 
