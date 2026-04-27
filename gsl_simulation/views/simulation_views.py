@@ -30,7 +30,11 @@ from gsl_simulation.forms import (
     SimulationForm,
     SimulationRenameForm,
 )
-from gsl_simulation.models import Simulation, SimulationProjet
+from gsl_simulation.models import (
+    BulkStatusJob,
+    Simulation,
+    SimulationProjet,
+)
 from gsl_simulation.resources import (
     DetrSimulationProjetResource,
     DsilSimulationProjetResource,
@@ -129,7 +133,7 @@ class SimulationDetailView(SingleObjectMixin, FilterView):
         selectable_ids_list = list(
             SimulationProjet.objects.filter(
                 simulation=simulation,
-                status__in=SimulationProjet.SIMULATION_PENDING_STATUSES,
+                status__in=BulkStatusJob.ALLOWED_TARGET_STATUSES,
                 dotation_projet__projet__in=self.filterset.qs,
                 dotation_projet__projet__notified_at__isnull=True,
             ).values_list("id", flat=True)
@@ -139,7 +143,7 @@ class SimulationDetailView(SingleObjectMixin, FilterView):
                 "simulation": simulation,
                 "selectable_ids_list": selectable_ids_list,
                 "selectable_count": len(selectable_ids_list),
-                "bulk_status_choices": SimulationProjet.SIMULATION_PENDING_STATUSES,
+                "bulk_status_choices": BulkStatusJob.ALLOWED_TARGET_STATUSES,
                 "title": f"{simulation.enveloppe.dotation} {simulation.enveloppe.annee} – {simulation.title}",
                 "status_summary": simulation.get_projet_status_summary(),
                 "enveloppe": simulation.enveloppe,
