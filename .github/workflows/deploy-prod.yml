@@ -23,7 +23,7 @@ jobs:
       - name: Create GitHub release with notes
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --generate-notes --target main
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes
 
   deploy:
     needs: tests
