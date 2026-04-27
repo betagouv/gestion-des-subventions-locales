@@ -1002,8 +1002,8 @@ class FieldMapping(BaseModel):
     is_active = models.BooleanField("Actif", default=True)
     deactivated_at = models.DateTimeField("Désactivé le", null=True, blank=True)
 
-    actives = ActiveFieldMappingManager()
     objects = models.Manager()
+    actives = ActiveFieldMappingManager()
 
     class Meta:
         verbose_name = "Correspondance de champ"
