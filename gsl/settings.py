@@ -109,6 +109,11 @@ if DEBUG:
         "127.0.0.1",
     ]
 
+ENABLE_QUERY_COUNTER = os.getenv("ENABLE_QUERY_COUNTER", "false").lower() == "true"
+if ENABLE_QUERY_COUNTER:
+    INSTALLED_APPS.append("query_counter")
+    MIDDLEWARE.append("query_counter.middleware.DjangoQueryCounterMiddleware")
+
 AUTHENTICATION_BACKENDS = [
     "axes.backends.AxesBackend",
     "gsl_oidc.backends.OIDCAuthenticationBackend",
