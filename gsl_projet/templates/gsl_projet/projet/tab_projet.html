@@ -125,8 +125,12 @@
                         {% endif %}
                     </li>
                     <li>
-                        <b>La maîtrise d’ouvrage de l’opération sera-t-elle déléguée?</b>
+                        <b>La maîtrise d’ouvrage de l’opération sera-t-elle déléguée ?</b>
                         {{ dossier.maitrise_douvrage_deleguee|yesno:"Oui,Non,Non renseigné" }}
+                    </li>
+                    <li>
+                        <b>Niveau de priorité du projet : </b>
+                        {{ dossier.demande_priorite_dsil_detr|default:"-" }}
                     </li>
                 </ul>
             </section>
@@ -143,7 +147,7 @@
                         <b>Intitulé :</b> {{ dossier.projet_intitule }}
                     </li>
                     <li>
-                        <b>Adresse principale :</b> {{ dossier.projet_adresse }}
+                        <b>Adresse principale :</b> {{ dossier.projet_adresse|default:"—" }}
                     </li>
                     <li>
                         <b>Code INSEE :</b> {{ dossier.projet_adresse.commune.insee_code|default:"—" }}
@@ -159,10 +163,10 @@
                 </h3>
                 <ul>
                     <li>
-                        Début des travaux : {{ dossier.date_debut }}
+                        Début des travaux : {{ dossier.date_debut|default:"—" }}
                     </li>
                     <li>
-                        Achèvement : {{ dossier.date_achevement }}
+                        Achèvement : {{ dossier.date_achevement|default:"—" }}
                     </li>
                 </ul>
                 <h3 id="presentation_details_proj">
