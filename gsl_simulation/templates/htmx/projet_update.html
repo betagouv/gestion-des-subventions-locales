@@ -5,4 +5,7 @@
 <span hx-swap-oob="innerHTML" id="total-amount-granted">{{ total_amount_granted | euro }}</span>
 <template>
     {% include "includes/_simulation_detail_row.html" %}
+    {% if enveloppe %}
+        {% include "includes/_enveloppe_summary_line.html" with enveloppe=enveloppe oob_swap=True %}
+    {% endif %}
 </template>
