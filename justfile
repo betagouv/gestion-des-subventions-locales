@@ -51,6 +51,38 @@ release:
     git tag "$TAG"
     git push origin "$TAG"
 
+# Preview the tag and release notes that `just release` would produce, without creating or pushing anything.
+release-dry-run:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    git fetch --tags --quiet
+    BASE_TAG="v$(date +%y.%m.%d)"
+    if ! git tag --list | grep -qx "$BASE_TAG"; then
+        TAG="$BASE_TAG"
+    else
+        LAST=$(git tag --list "${BASE_TAG}.*" | sed "s/${BASE_TAG}\.//" | sort -n | tail -1)
+        TAG="${BASE_TAG}.$((${LAST:-0} + 1))"
+    fi
+    PREV=$(git tag --list 'v[0-9][0-9].[0-9][0-9].[0-9][0-9]*' --sort=-v:refname | head -1)
+    SHA=$(git rev-parse HEAD)
+    echo "Tag:           $TAG"
+    echo "Previous tag:  ${PREV:-<none>}"
+    echo "Target commit: $SHA ($(git log -1 --pretty=%s))"
+    echo
+    echo "----- Release notes (as GitHub would generate them) -----"
+    if [ -n "$PREV" ]; then
+        gh api -X POST "repos/{owner}/{repo}/releases/generate-notes" \
+            -f tag_name="$TAG" \
+            -f previous_tag_name="$PREV" \
+            -f target_commitish="$SHA" \
+            --jq .body
+    else
+        gh api -X POST "repos/{owner}/{repo}/releases/generate-notes" \
+            -f tag_name="$TAG" \
+            -f target_commitish="$SHA" \
+            --jq .body
+    fi
+
 # Scalingo: SSH
 scalingo-django-ssh environment:
     scalingo run --app gsl-{{environment}} bash
