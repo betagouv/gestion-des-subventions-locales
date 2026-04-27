@@ -3,6 +3,8 @@ import copy
 
 def _dossier_is_visible(dossier, allowed_ids):
     """Check if a dossier has at least one instructeur in allowed_ids."""
+    if not dossier:
+        return False
     groupe = dossier.get("groupeInstructeur") or {}
     instructeurs = groupe.get("instructeurs") or []
     instructeurs += dossier.get("instructeurs") or []
@@ -39,6 +41,11 @@ def filter_response(response_data, allowed_instructeur_ids):
         dossiers = demarche.get("dossiers")
         if dossiers and isinstance(dossiers, dict):
             _filter_dossier_nodes(dossiers, allowed_instructeur_ids)
+            # DS reports partial fetch failures (e.g. null nodes) via top-level
+            # errors[]. When at least one dossier comes through, drop them so
+            # callers don't see noise alongside a structurally valid list.
+            if dossiers.get("nodes"):
+                result.pop("errors", None)
 
     # getDossier → data.dossier (single dossier)
     dossier = data.get("dossier")

@@ -77,6 +77,39 @@ class FilterResponseDemarcheTest(TestCase):
         result = filter_response(response, {"inst-a"})
         self.assertEqual(result["data"]["demarche"]["dossiers"]["nodes"], [])
 
+    def test_null_node_is_filtered_out(self):
+        response = self._make_demarche_response(
+            [
+                self._make_dossier(1, ["inst-a"]),
+                None,
+                self._make_dossier(2, ["inst-a"]),
+            ]
+        )
+        result = filter_response(response, {"inst-a"})
+        nodes = result["data"]["demarche"]["dossiers"]["nodes"]
+        self.assertEqual([d["number"] for d in nodes], [1, 2])
+
+    def test_top_level_errors_dropped_when_dossiers_present(self):
+        response = self._make_demarche_response(
+            [
+                self._make_dossier(1, ["inst-a"]),
+                None,
+            ]
+        )
+        response["errors"] = [{"message": "Could not fetch dossier 42"}]
+        result = filter_response(response, {"inst-a"})
+        self.assertNotIn("errors", result)
+
+    def test_top_level_errors_kept_when_filtered_list_is_empty(self):
+        response = self._make_demarche_response(
+            [
+                self._make_dossier(1, ["inst-c"]),
+            ]
+        )
+        response["errors"] = [{"message": "Could not fetch dossier 42"}]
+        result = filter_response(response, {"inst-a"})
+        self.assertEqual(result["errors"], [{"message": "Could not fetch dossier 42"}])
+
 
 class FilterResponseSingleDossierTest(TestCase):
     def test_authorized_dossier_passes_through(self):
