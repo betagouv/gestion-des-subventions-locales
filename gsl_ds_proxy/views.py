@@ -3,7 +3,7 @@ import logging
 
 import requests
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import JsonResponse, StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from graphql import GraphQLError, OperationType, parse
@@ -20,11 +20,16 @@ _ALLOWED_OPERATIONS = {
     "getDossier",
 }
 
-_DS_TIMEOUT = (5, 30)
+# Read timeout stays below Scalingo's 59s post-first-byte inactivity ceiling.
+_DS_TIMEOUT = (5, 55)
 
 
 def _error_response(message, status):
     return JsonResponse({"errors": [{"message": message}]}, status=status)
+
+
+def _graphql_error_bytes(message):
+    return json.dumps({"errors": [{"message": message}]}).encode()
 
 
 def _pick_operation(doc, operation_name):
@@ -71,16 +76,17 @@ def _check_response_allowed(proxy_token, operation_name, response_data):
     This is the security boundary. The pre-forward check trusts request
     variables, which the caller controls; the only trustworthy scoping
     signal is the data DS actually returned.
+
+    Returns an error message string if the response is out of scope, else None.
     """
     data = (response_data or {}).get("data") or {}
 
     if operation_name == "getDemarche":
         demarche = data.get("demarche") or {}
         if demarche.get("number") != proxy_token.demarche.ds_number:
-            return _error_response(
+            return (
                 "Opération non autorisée pour cette démarche. "
-                "La requête doit inclure `demarche { number }`.",
-                403,
+                "La requête doit inclure `demarche { number }`."
             )
         return None
 
@@ -88,10 +94,9 @@ def _check_response_allowed(proxy_token, operation_name, response_data):
         dossier = data.get("dossier") or {}
         demarche_number = (dossier.get("demarche") or {}).get("number")
         if demarche_number != proxy_token.demarche.ds_number:
-            return _error_response(
+            return (
                 "Opération non autorisée pour cette démarche. "
-                "La requête doit inclure `dossier { demarche { number } }`.",
-                403,
+                "La requête doit inclure `dossier { demarche { number } }`."
             )
         return None
 
@@ -99,6 +104,7 @@ def _check_response_allowed(proxy_token, operation_name, response_data):
 
 
 def _forward_to_ds(query, variables, operation_name):
+    """Call DS and return (response_data, None) or (None, error_message)."""
     headers = {
         "Authorization": f"Bearer {settings.DS_API_TOKEN}",
         "Content-Type": "application/json",
@@ -118,20 +124,16 @@ def _forward_to_ds(query, variables, operation_name):
         )
     except requests.exceptions.ConnectionError:
         logger.exception("DS proxy: connection error to DS API")
-        return None, _error_response(
-            "Erreur de connexion à Démarches Simplifiées.", 502
-        )
+        return None, "Erreur de connexion à Démarches Simplifiées."
     except requests.exceptions.Timeout:
         logger.exception("DS proxy: timeout from DS API")
-        return None, _error_response(
-            "Délai d'attente dépassé pour Démarches Simplifiées.", 504
-        )
+        return None, "Délai d'attente dépassé pour Démarches Simplifiées."
 
     try:
         ds_response.raise_for_status()
     except requests.exceptions.HTTPError:
         logger.exception("DS proxy: HTTP %s from DS API", ds_response.status_code)
-        return None, _error_response("Erreur de Démarches Simplifiées.", 502)
+        return None, "Erreur de Démarches Simplifiées."
 
     return ds_response.json(), None
 
@@ -180,20 +182,30 @@ def graphql_proxy(request):
     if error is not None:
         return error
 
-    response_data, error = _forward_to_ds(query, variables, operation_name)
-    if error is not None:
-        return error
-
-    # Scope check: the authoritative check, against what DS actually returned.
-    error = _check_response_allowed(proxy_token, operation_name, response_data)
-    if error is not None:
-        return error
-
-    # Filter
     allowed_ids = set(proxy_token.instructeurs.values_list("ds_id", flat=True))
-    filtered = filter_response(response_data, allowed_ids)
+    stream = _stream_ds_response(
+        proxy_token, operation_name, query, variables, allowed_ids
+    )
+    return StreamingHttpResponse(stream, content_type="application/json", status=200)
 
-    return JsonResponse(filtered)
+
+def _stream_ds_response(proxy_token, operation_name, query, variables, allowed_ids):
+    # Send a single whitespace byte immediately to close Scalingo's
+    # 30s-to-first-byte window. Leading whitespace is valid JSON.
+    yield b" "
+
+    response_data, error_message = _forward_to_ds(query, variables, operation_name)
+    if error_message is not None:
+        yield _graphql_error_bytes(error_message)
+        return
+
+    scope_error = _check_response_allowed(proxy_token, operation_name, response_data)
+    if scope_error is not None:
+        yield _graphql_error_bytes(scope_error)
+        return
+
+    filtered = filter_response(response_data, allowed_ids)
+    yield json.dumps(filtered).encode()
 
 
 graphql_proxy.login_required = False
