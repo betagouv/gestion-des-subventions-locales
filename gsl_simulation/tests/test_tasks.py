@@ -312,7 +312,7 @@ def test_run_bulk_status_job_records_transition_not_allowed_per_row(
     assert job.processed == 2
     assert len(job.errors) == 1
     assert job.errors[0]["simulation_projet_id"] == sp_fails.pk
-    assert "transition" in job.errors[0]["message"].lower()
+    assert "le changement de statut n'est plus possible" in job.errors[0]["message"]
 
 
 def test_run_bulk_status_job_records_validation_error_per_row(

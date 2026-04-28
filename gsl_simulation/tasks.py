@@ -101,7 +101,7 @@ def _process_one(
             simulation_projet,
             label,
             "Le statut du projet a changé depuis la sélection, "
-            "la transition n'est plus possible.",
+            "le changement de statut n'est plus possible.",
         )
     except ValidationError as exc:
         return _error(simulation_projet, label, "; ".join(exc.messages))
