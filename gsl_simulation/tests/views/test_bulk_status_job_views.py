@@ -170,6 +170,12 @@ def test_start_view_refuses_duplicate_job_for_same_simulation(
     assert "Traitement déjà en cours".encode() in response.content
     assert BulkStatusJob.objects.count() == 1
     task_delay.assert_not_called()
+    # The OOB swap removes the previous (still-open) confirm dialog from the
+    # DOM, so the response must trigger a click on the new modal's hidden
+    # button — otherwise the user just sees the modal vanish silently.
+    assert "bulk-status-confirm-modal-button" in response.headers.get(
+        "HX-Trigger-After-Settle", ""
+    )
 
 
 def test_db_constraint_rejects_two_active_jobs_for_same_simulation(
@@ -219,6 +225,9 @@ def test_start_view_handles_race_with_integrity_error(
     assert response.status_code == 200
     assert "Traitement déjà en cours".encode() in response.content
     task_delay.assert_not_called()
+    assert "bulk-status-confirm-modal-button" in response.headers.get(
+        "HX-Trigger-After-Settle", ""
+    )
 
 
 def test_start_view_allows_new_job_once_previous_is_done(

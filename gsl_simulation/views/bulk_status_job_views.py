@@ -3,6 +3,7 @@ from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import CreateView
+from django_htmx.http import trigger_client_event
 
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
@@ -39,13 +40,23 @@ class BulkStatusJobStartView(CreateView):
         return kwargs
 
     def _render_already_running(self):
-        return render(
+        # The OOB swap inside the template replaces #bulk-status-modal-host,
+        # which removes the still-open confirm dialog from the DOM. Without an
+        # explicit click trigger on the new hidden button, DSFR never opens
+        # the new dialog and the user just sees the previous modal vanish.
+        response = render(
             self.request,
             "htmx/bulk_status_already_running_modal.html",
             {
                 "modal_id": BULK_STATUS_MODAL_ID,
                 "modal_button_id": f"{BULK_STATUS_MODAL_ID}-button",
             },
+        )
+        return trigger_client_event(
+            response,
+            "click",
+            {"target": f"#{BULK_STATUS_MODAL_ID}-button"},
+            after="settle",
         )
 
     def form_invalid(self, form):
