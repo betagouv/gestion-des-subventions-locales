@@ -472,6 +472,80 @@ class GraphqlProxyViewTest(TestCase):
         response = self._post({"query": "{ demarche { title } }"})
         self.assertEqual(response.status_code, 403)
 
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_getDemarche_groupeInstructeurs_field_rejected(self, mock_post):
+        response = self._post(
+            {
+                "query": (
+                    "query getDemarche { demarche "
+                    "{ groupeInstructeurs { instructeurs { id } } } }"
+                ),
+                "operationName": "getDemarche",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(mock_post.called)
+        body = json.loads(response.content)
+        self.assertEqual(
+            body["errors"][0]["message"],
+            "Champ démarche non autorisé : `groupeInstructeurs`.",
+        )
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_getDossier_demarche_groupeInstructeurs_field_rejected(self, mock_post):
+        response = self._post(
+            {
+                "query": (
+                    "query getDossier { dossier { number demarche "
+                    "{ groupeInstructeurs { id } } } }"
+                ),
+                "operationName": "getDossier",
+                "variables": {"dossierNumber": 42},
+            }
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(mock_post.called)
+        body = json.loads(response.content)
+        self.assertEqual(
+            body["errors"][0]["message"],
+            "Champ démarche non autorisé : `groupeInstructeurs`.",
+        )
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_getDemarche_allowed_fields_pass(self, mock_post):
+        ds_response_data = {
+            "data": {
+                "demarche": {
+                    "number": self.demarche.ds_number,
+                    "title": "Une démarche",
+                    "state": "publiee",
+                    "dateCreation": "2025-01-01T00:00:00Z",
+                    "dateFermeture": None,
+                    "dossiers": {"nodes": []},
+                }
+            }
+        }
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = ds_response_data
+
+        response = self._post(
+            {
+                "query": (
+                    "query getDemarche { demarche "
+                    "{ number title state dateCreation dateFermeture "
+                    "dossiers { nodes { number } } } }"
+                ),
+                "operationName": "getDemarche",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        data = _parse_stream(response)
+        self.assertTrue(mock_post.called)
+        self.assertEqual(data["data"]["demarche"]["title"], "Une démarche")
+
     def test_operationName_not_in_document_rejected(self):
         response = self._post(
             {

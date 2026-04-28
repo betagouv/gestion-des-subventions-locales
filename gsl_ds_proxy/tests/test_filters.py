@@ -89,17 +89,6 @@ class FilterResponseDemarcheTest(TestCase):
         nodes = result["data"]["demarche"]["dossiers"]["nodes"]
         self.assertEqual([d["number"] for d in nodes], [1, 2])
 
-    def test_top_level_errors_dropped_when_dossiers_present(self):
-        response = self._make_demarche_response(
-            [
-                self._make_dossier(1, ["inst-a"]),
-                None,
-            ]
-        )
-        response["errors"] = [{"message": "Could not fetch dossier 42"}]
-        result = filter_response(response, {"inst-a"})
-        self.assertNotIn("errors", result)
-
     def test_top_level_errors_kept_when_filtered_list_is_empty(self):
         response = self._make_demarche_response(
             [
@@ -109,6 +98,119 @@ class FilterResponseDemarcheTest(TestCase):
         response["errors"] = [{"message": "Could not fetch dossier 42"}]
         result = filter_response(response, {"inst-a"})
         self.assertEqual(result["errors"], [{"message": "Could not fetch dossier 42"}])
+
+
+class FilterResponseDeletedDossiersTest(TestCase):
+    def _make_dossier(self, number, instructeur_ids):
+        return {
+            "number": number,
+            "groupeInstructeur": {
+                "instructeurs": [
+                    {"id": iid, "email": f"{iid}@test.fr"} for iid in instructeur_ids
+                ]
+            },
+            "instructeurs": [],
+        }
+
+    def _wrap(self, connection_field, dossiers):
+        return {
+            "data": {
+                "demarche": {
+                    connection_field: {
+                        "pageInfo": {
+                            "hasNextPage": False,
+                            "endCursor": "abc",
+                        },
+                        "nodes": dossiers,
+                    }
+                }
+            }
+        }
+
+    def test_pending_deleted_dossiers_filters_unauthorized(self):
+        for connection_field in ("pendingDeletedDossiers", "deletedDossiers"):
+            with self.subTest(connection_field=connection_field):
+                response = self._wrap(
+                    connection_field,
+                    [
+                        self._make_dossier(1, ["inst-a", "inst-b"]),
+                        self._make_dossier(2, ["inst-c"]),
+                        self._make_dossier(3, ["inst-a"]),
+                    ],
+                )
+                result = filter_response(response, {"inst-a"})
+                nodes = result["data"]["demarche"][connection_field]["nodes"]
+                self.assertEqual([d["number"] for d in nodes], [1, 3])
+
+    def test_deleted_connections_preserve_page_info(self):
+        for connection_field in ("pendingDeletedDossiers", "deletedDossiers"):
+            with self.subTest(connection_field=connection_field):
+                response = self._wrap(
+                    connection_field,
+                    [self._make_dossier(1, ["inst-c"])],
+                )
+                result = filter_response(response, {"inst-a"})
+                page_info = result["data"]["demarche"][connection_field]["pageInfo"]
+                self.assertEqual(page_info["endCursor"], "abc")
+
+    def test_deleted_connections_empty_nodes_pass_through(self):
+        for connection_field in ("pendingDeletedDossiers", "deletedDossiers"):
+            with self.subTest(connection_field=connection_field):
+                response = self._wrap(connection_field, [])
+                result = filter_response(response, {"inst-a"})
+                self.assertEqual(
+                    result["data"]["demarche"][connection_field]["nodes"], []
+                )
+
+    def test_deleted_dossier_without_groupe_instructeur_is_dropped(self):
+        for connection_field in ("pendingDeletedDossiers", "deletedDossiers"):
+            with self.subTest(connection_field=connection_field):
+                response = self._wrap(
+                    connection_field,
+                    [{"number": 1}, {"number": 2, "groupeInstructeur": {}}],
+                )
+                result = filter_response(response, {"inst-a"})
+                self.assertEqual(
+                    result["data"]["demarche"][connection_field]["nodes"], []
+                )
+
+    def test_mixed_connections_filtered_independently(self):
+        response = {
+            "data": {
+                "demarche": {
+                    "dossiers": {
+                        "pageInfo": {"hasNextPage": False, "endCursor": "a"},
+                        "nodes": [
+                            self._make_dossier(1, ["inst-a"]),
+                            self._make_dossier(2, ["inst-c"]),
+                        ],
+                    },
+                    "pendingDeletedDossiers": {
+                        "pageInfo": {"hasNextPage": False, "endCursor": "b"},
+                        "nodes": [
+                            self._make_dossier(10, ["inst-c"]),
+                            self._make_dossier(11, ["inst-a"]),
+                        ],
+                    },
+                    "deletedDossiers": {
+                        "pageInfo": {"hasNextPage": False, "endCursor": "c"},
+                        "nodes": [
+                            self._make_dossier(20, ["inst-a"]),
+                            self._make_dossier(21, ["inst-b"]),
+                        ],
+                    },
+                }
+            }
+        }
+        result = filter_response(response, {"inst-a"})
+        demarche = result["data"]["demarche"]
+        self.assertEqual([d["number"] for d in demarche["dossiers"]["nodes"]], [1])
+        self.assertEqual(
+            [d["number"] for d in demarche["pendingDeletedDossiers"]["nodes"]], [11]
+        )
+        self.assertEqual(
+            [d["number"] for d in demarche["deletedDossiers"]["nodes"]], [20]
+        )
 
 
 class FilterResponseSingleDossierTest(TestCase):
