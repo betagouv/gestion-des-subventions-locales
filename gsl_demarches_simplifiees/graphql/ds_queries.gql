@@ -28,11 +28,9 @@ query getDemarche(
   $includeService: Boolean = false
   $includeChamps: Boolean = true
   $includeAnotations: Boolean = true
-  $includeTraitements: Boolean = true
   $includeInstructeurs: Boolean = true
+  $includeTraitements: Boolean = false
   $includeAvis: Boolean = false
-  $includeMessages: Boolean = false
-  $includeCorrections: Boolean = false
   $includeGeometry: Boolean = false
 ) {
   demarche(number: $demarcheNumber) {
@@ -136,11 +134,9 @@ query getGroupeInstructeur(
   $includeDeletedDossiers: Boolean = false
   $includeChamps: Boolean = true
   $includeAnotations: Boolean = true
-  $includeTraitements: Boolean = true
   $includeInstructeurs: Boolean = true
+  $includeTraitements: Boolean = false
   $includeAvis: Boolean = false
-  $includeMessages: Boolean = false
-  $includeCorrections: Boolean = false
   $includeGeometry: Boolean = false
 ) {
   groupeInstructeur(number: $groupeInstructeurNumber) {
@@ -209,11 +205,8 @@ query getDossier(
   $includeService: Boolean = false
   $includeChamps: Boolean = true
   $includeAnotations: Boolean = true
-  $includeTraitements: Boolean = true
-  $includeInstructeurs: Boolean = true
+  $includeTraitements: Boolean = false
   $includeAvis: Boolean = false
-  $includeMessages: Boolean = false
-  $includeCorrections: Boolean = false
   $includeGeometry: Boolean = false
 ) {
   dossier(number: $dossierNumber) {
@@ -252,41 +245,17 @@ fragment GroupeInstructeurFragment on GroupeInstructeur {
 }
 
 fragment DossierFragment on Dossier {
-  __typename
   id
   number
-  archived
-  prefilled
   state
   dateDerniereModification
   dateDepot
   datePassageEnConstruction
   datePassageEnInstruction
   dateTraitement
-  dateExpiration
-  dateSuppressionParUsager
-  dateDerniereCorrectionEnAttente @include(if: $includeCorrections)
   dateDerniereModificationChamps
-  dateDerniereModificationAnnotations
-  motivation
-  motivationAttachment {
-    ...FileFragment
-  }
-  attestation {
-    ...FileFragment
-  }
-  pdf {
-    ...FileFragment
-  }
-  usager {
-    email
-  }
-  prenomMandataire
-  nomMandataire
-  deposeParUnTiers
-  connectionUsager
   groupeInstructeur {
-    ...GroupeInstructeurFragment
+    id
   }
   demandeur {
     __typename
@@ -299,16 +268,6 @@ fragment DossierFragment on Dossier {
       id
     }
   }
-  instructeurs @include(if: $includeInstructeurs) {
-    id
-    email
-  }
-  traitements @include(if: $includeTraitements) {
-    state
-    emailAgentTraitant
-    dateTraitement
-    motivation
-  }
   champs @include(if: $includeChamps) {
     ...ChampFragment
     ...RootChampFragment
@@ -317,11 +276,31 @@ fragment DossierFragment on Dossier {
     ...ChampFragment
     ...RootChampFragment
   }
+  traitements @include(if: $includeTraitements) {
+    state
+    emailAgentTraitant
+    dateTraitement
+    motivation
+  }
   avis @include(if: $includeAvis) {
     ...AvisFragment
   }
-  messages @include(if: $includeMessages) {
-    ...MessageFragment
+}
+
+fragment AvisFragment on Avis {
+  id
+  question
+  reponse
+  dateQuestion
+  dateReponse
+  claimant {
+    email
+  }
+  expert {
+    email
+  }
+  attachments {
+    ...FileFragment
   }
 }
 
@@ -406,37 +385,6 @@ fragment ChampDescriptorFragment on ChampDescriptor {
   ... on ExplicationChampDescriptor {
     collapsibleExplanationEnabled
     collapsibleExplanationText
-  }
-}
-
-fragment AvisFragment on Avis {
-  id
-  question
-  reponse
-  dateQuestion
-  dateReponse
-  claimant {
-    email
-  }
-  expert {
-    email
-  }
-  attachments {
-    ...FileFragment
-  }
-}
-
-fragment MessageFragment on Message {
-  id
-  email
-  body
-  createdAt
-  attachments {
-    ...FileFragment
-  }
-  correction @include(if: $includeCorrections) {
-    reason
-    dateResolution
   }
 }
 

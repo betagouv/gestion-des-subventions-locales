@@ -36,6 +36,14 @@ def save_demarche_dossiers_from_ds(demarche_number):
     active_departement_insee_codes = _get_active_departement_insee_codes()
     dossiers_count = 0
 
+    groupe_index = _build_groupe_index_from_demarche(demarche)
+    if not groupe_index:
+        from gsl_demarches_simplifiees.importer.demarche import save_demarche_from_ds
+
+        save_demarche_from_ds(demarche_number)
+        demarche.refresh_from_db()
+        groupe_index = _build_groupe_index_from_demarche(demarche)
+
     for page_dossiers, end_cursor in client.iter_demarche_dossiers_pages(
         demarche_number, updated_since=api_updated_since, after_cursor=after_cursor
     ):
@@ -55,7 +63,10 @@ def save_demarche_dossiers_from_ds(demarche_number):
 
             try:
                 _create_or_update_dossier_from_ds_data(
-                    dossier_data, active_departement_insee_codes, demarche
+                    dossier_data,
+                    active_departement_insee_codes,
+                    demarche,
+                    groupe_index=groupe_index,
                 )
             except Exception as e:
                 has_error = True
@@ -133,9 +144,20 @@ def refresh_dossier_from_saved_data(dossier: Dossier):
     ProjetService.create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
 
-def refresh_dossier_instructeurs(dossier_data, dossier: Dossier):
+def refresh_dossier_instructeurs(
+    dossier_data, dossier: Dossier, groupe_index: dict | None = None
+):
     """
     Refreshes the instructeurs associated with a dossier based on data from Démarche Numérique.
+
+    The DN payload only ships ``groupeInstructeur.id`` for the dossier; the list of
+    instructeurs is reconstructed locally from ``Demarche.raw_ds_data`` via
+    ``groupe_index``: ``{groupe_ds_id: [{"id": ..., "email": ...}, ...]}``.
+
+    If ``groupe_index`` is None, it is built from ``dossier.ds_demarche``. If the
+    dossier's groupe id is missing from the mapping (groupe added on DN since the
+    last ``save_demarche_from_ds``), refresh the demarche once and retry; if still
+    unknown, log a warning and leave instructeurs untouched.
 
     Assume ds_instructeur has been prefetch_related on dossier
     Noop if no changes, check only IDs does not check emails.
@@ -143,7 +165,33 @@ def refresh_dossier_instructeurs(dossier_data, dossier: Dossier):
     if "groupeInstructeur" not in dossier_data:
         # Should not happen except in tests
         return
-    instructeurs_data = dossier_data["groupeInstructeur"]["instructeurs"]
+    groupe_id = dossier_data["groupeInstructeur"].get("id")
+    if not groupe_id:
+        return
+
+    if groupe_index is None:
+        groupe_index = _build_groupe_index_from_demarche(dossier.ds_demarche)
+
+    instructeurs_data = groupe_index.get(groupe_id)
+    if instructeurs_data is None:
+        from gsl_demarches_simplifiees.importer.demarche import save_demarche_from_ds
+
+        save_demarche_from_ds(dossier.ds_demarche.ds_number)
+        dossier.ds_demarche.refresh_from_db()
+        refreshed = _build_groupe_index_from_demarche(dossier.ds_demarche)
+        groupe_index.clear()
+        groupe_index.update(refreshed)
+        instructeurs_data = groupe_index.get(groupe_id)
+
+    if instructeurs_data is None:
+        logger.warning(
+            "Unknown groupeInstructeur id when refreshing dossier instructeurs",
+            extra={
+                "dossier_ds_number": dossier.ds_number,
+                "groupe_ds_id": groupe_id,
+            },
+        )
+        return
 
     # Remove instructeurs that are not in the new data
     for profile in dossier.ds_instructeurs.all():
@@ -160,6 +208,24 @@ def refresh_dossier_instructeurs(dossier_data, dossier: Dossier):
             dossier.ds_instructeurs.add(instructeur)
 
 
+def _build_groupe_index_from_demarche(demarche: Demarche) -> dict[str, list[dict]]:
+    """
+    Build ``{groupe_ds_id: [{"id": profile_ds_id, "email": profile_email}, ...]}``
+    from ``demarche.raw_ds_data["groupeInstructeurs"]``. Returns an empty dict if
+    the raw data is missing.
+    """
+    raw = demarche.raw_ds_data or {}
+    groupes = raw.get("groupeInstructeurs") or []
+    return {
+        groupe["id"]: [
+            {"id": instr["id"], "email": instr["email"]}
+            for instr in groupe.get("instructeurs", [])
+        ]
+        for groupe in groupes
+        if "id" in groupe
+    }
+
+
 ### Private methods
 
 
@@ -168,13 +234,14 @@ def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
     dossier_data: dict,
     async_refresh: bool = False,
     refresh_only_if_dossier_has_been_updated: bool = True,
+    groupe_index: dict | None = None,
 ):
     if refresh_only_if_dossier_has_been_updated:
         must_refresh_dossier = _has_dossier_been_updated_on_ds(dossier, dossier_data)
     else:
         must_refresh_dossier = True
 
-    refresh_dossier_instructeurs(dossier_data, dossier)
+    refresh_dossier_instructeurs(dossier_data, dossier, groupe_index=groupe_index)
     if getattr(dossier, "ds_data", None) is None:
         DossierData.objects.create(dossier=dossier, raw_data=dossier_data)
     else:
@@ -244,6 +311,7 @@ def _create_or_update_dossier_from_ds_data(
     dossier_data: dict | None,
     active_departement_insee_codes: Iterable[str],
     demarche: Demarche | None = None,
+    groupe_index: dict | None = None,
 ):
     ds_id = dossier_data["id"]
     ds_dossier_number = dossier_data["number"]
@@ -279,4 +347,5 @@ def _create_or_update_dossier_from_ds_data(
         dossier_data,
         async_refresh=True,
         refresh_only_if_dossier_has_been_updated=False,
+        groupe_index=groupe_index,
     )
