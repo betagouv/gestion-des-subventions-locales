@@ -118,6 +118,14 @@ class SimulationTableCellEditMixin(UpdateView):
         total_amount_granted = self.object.simulation.get_total_amount_granted(
             self._get_projets_queryset_with_filters()
         )
+        selectable_ids_list = list(
+            SimulationProjet.objects.filter(
+                simulation=self.object.simulation,
+                status__in=BulkStatusJob.ALLOWED_TARGET_STATUSES,
+                dotation_projet__projet__notified_at__isnull=True,
+            ).values_list("id", flat=True)
+        )
+
         context = {
             "simu": self.object,
             "dotation_projet": self.object.dotation_projet,
@@ -126,6 +134,7 @@ class SimulationTableCellEditMixin(UpdateView):
             "total_amount_granted": total_amount_granted,
             "columns": SIMULATION_TABLE_COLUMNS,
             "dotations": DOTATIONS,
+            "selectable_ids_list": selectable_ids_list,
         }
         # We only update the enveloppe summary line when the project is accepted,
         # as it's the only case when the enveloppe amount can be changed
