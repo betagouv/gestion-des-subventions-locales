@@ -545,7 +545,7 @@ class TestFilterPersistence:
         simulation.refresh_from_db()
         assert simulation.filters is None
 
-    def test_order_param_not_saved_as_filter(self, client_logged_in, detr_envelope):
+    def test_order_saved_as_filter(self, client_logged_in, detr_envelope):
         simulation = SimulationFactory(enveloppe=detr_envelope)
         SimulationProjetFactory(
             simulation=simulation,
@@ -556,8 +556,62 @@ class TestFilterPersistence:
             kwargs={"slug": simulation.slug},
         )
 
-        response = client_logged_in.get(url, {"order": "-montant_previsionnel"})
-        assert response.status_code == 200
+        client_logged_in.get(url, {"order": "-montant_previsionnel"})
+
+        simulation.refresh_from_db()
+        assert simulation.filters == {"order": ["-montant_previsionnel"]}
+
+    def test_order_restored_from_simulation(self, client_logged_in, detr_envelope):
+        simulation = SimulationFactory(
+            enveloppe=detr_envelope, filters={"order": ["-cout"]}
+        )
+        SimulationProjetFactory(
+            simulation=simulation,
+            dotation_projet__dotation=DOTATION_DETR,
+        )
+        url = reverse(
+            "gsl_simulation:simulation-detail",
+            kwargs={"slug": simulation.slug},
+        )
+
+        response = client_logged_in.get(url)
+        assert response.status_code == 302
+        assert "order=-cout" in response.url
+
+    def test_filters_and_order_saved_together(self, client_logged_in, detr_envelope):
+        simulation = SimulationFactory(enveloppe=detr_envelope)
+        SimulationProjetFactory(
+            simulation=simulation,
+            dotation_projet__dotation=DOTATION_DETR,
+        )
+        url = reverse(
+            "gsl_simulation:simulation-detail",
+            kwargs={"slug": simulation.slug},
+        )
+
+        client_logged_in.get(url, {"status": "draft", "order": "cout"})
+
+        simulation.refresh_from_db()
+        assert simulation.filters == {
+            "status": ["draft"],
+            "order": ["cout"],
+        }
+
+    def test_reset_clears_order_too(self, client_logged_in, detr_envelope):
+        simulation = SimulationFactory(
+            enveloppe=detr_envelope, filters={"order": ["-cout"]}
+        )
+        SimulationProjetFactory(
+            simulation=simulation,
+            dotation_projet__dotation=DOTATION_DETR,
+        )
+        url = reverse(
+            "gsl_simulation:simulation-detail",
+            kwargs={"slug": simulation.slug},
+        )
+
+        client_logged_in.get(url, {"reset_filters": "1"})
+
         simulation.refresh_from_db()
         assert simulation.filters is None
 

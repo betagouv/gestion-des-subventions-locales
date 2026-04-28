@@ -80,7 +80,7 @@ class SimulationDetailView(SingleObjectMixin, FilterView):
     template_name = "gsl_simulation/simulation_detail.html"
     paginate_by = 25
 
-    PARAMS_NOT_FILTERS = {"page", "reset_filters", "order"}
+    PARAMS_NOT_FILTERS = {"page", "reset_filters"}
 
     def _get_filter_params(self):
         return {
