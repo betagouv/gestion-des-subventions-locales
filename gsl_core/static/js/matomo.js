@@ -12,11 +12,11 @@ _paq.push(["enableLinkTracking"]);
   g.async = true;
   g.src = u + "matomo.js";
   s.parentNode.insertBefore(g, s);
-  // Add HeatmapSessionRecording/tracker.min.js cause stats.beta.gouv.fr doesn't
+  // Add plugins/HeatmapSessionRecording/tracker.min.js cause stats.beta.gouv.fr doesn't
   // https://developer.matomo.org/guides/heatmap-session-recording/setup#when-the-matomojs-in-your-piwik-directory-file-is-not-writable
   var heatmapScript = d.createElement("script");
   heatmapScript.async = true;
-  heatmapScript.src = u + "plugin/HeatmapSessionRecording/tracker.min.js";
+  heatmapScript.src = u + "plugins/HeatmapSessionRecording/tracker.min.js";
   s.parentNode.insertBefore(heatmapScript, s);
 })();
 
