@@ -6,7 +6,7 @@ from django.utils.safestring import mark_safe
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_core.models import Perimetre
 
-from .models import Simulation, SimulationProjet
+from .models import BulkStatusJob, Simulation, SimulationProjet
 
 
 class SimulationRegionFilter(admin.SimpleListFilter):
@@ -176,3 +176,71 @@ class SimulationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     projet_link.short_description = "Projet"
     projet_link.admin_order_field = "dotation_projet__projet__id"
+
+
+@admin.register(BulkStatusJob)
+class BulkStatusJobAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "simulation",
+        "target_status",
+        "status",
+        "processed_display",
+        "error_count",
+        "created_by",
+        "created_at",
+    )
+    list_filter = (
+        "status",
+        "target_status",
+        "simulation__enveloppe__annee",
+        "simulation__enveloppe__dotation",
+    )
+    search_fields = (
+        "simulation__title",
+        "simulation__slug",
+        "created_by__email",
+    )
+    raw_id_fields = ("simulation", "created_by")
+    readonly_fields = (
+        "id",
+        "created_at",
+        "updated_at",
+        "processed",
+        "errors",
+        "total_display",
+        "error_count",
+    )
+    fields = (
+        "id",
+        "simulation",
+        "created_by",
+        "target_status",
+        "simulation_projet_ids",
+        "status",
+        "processed",
+        "total_display",
+        "error_count",
+        "errors",
+        "created_at",
+        "updated_at",
+    )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related("simulation", "simulation__enveloppe", "created_by")
+
+    def processed_display(self, obj):
+        return f"{obj.processed} / {obj.total}"
+
+    processed_display.short_description = "Avancement"
+
+    def total_display(self, obj):
+        return obj.total
+
+    total_display.short_description = "Total"
+
+    def error_count(self, obj):
+        return len(obj.errors or [])
+
+    error_count.short_description = "Nb d’erreurs"

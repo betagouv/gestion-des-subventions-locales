@@ -497,6 +497,31 @@ def test_edit_assiette_post_saves(
     assert accepted_simulation_projet.dotation_projet.assiette == Decimal("8000")
 
 
+def test_edit_assiette_post_keeps_bulk_status_checkbox_in_row(
+    client_with_user_logged,
+    accepted_simulation_projet,
+):
+    """The HTMX row partial returned after a successful edit must still
+    contain the bulk-status selection checkbox so the row stays selectable
+    without a full page reload. Other edit views (montant, taux, comment)
+    share `render_success_partial`, so this single assertion covers all four.
+    """
+    url = reverse(
+        "simulation:edit-assiette",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.post(
+        url,
+        {"assiette": "8000"},
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert f'id="bulk-status-checkbox-{accepted_simulation_projet.pk}"' in content
+    assert 'data-bulk-status-change-target="rowCheckbox"' in content
+
+
 def test_edit_assiette_post_with_wrong_value_returns_form_with_errors(
     client_with_user_logged, accepted_simulation_projet
 ):

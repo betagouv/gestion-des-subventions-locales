@@ -633,6 +633,18 @@ ul.no-list-style li {
   mask-image: url("../img/refresh-line.svg") !important;
 }
 
+.gsl-bulk-status-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.gsl-bulk-status-spinner__icon::before,
+.gsl-bulk-status-spinner__icon::after {
+    width: 2.75rem !important;
+    height: 2.75rem !important;
+}
+
 /* Table toolbar (row count + column visibility button) */
 
 .gsl-table-toolbar {

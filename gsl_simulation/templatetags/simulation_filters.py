@@ -70,6 +70,19 @@ def status_to_label(status):
     return dict(SimulationProjet.STATUS_CHOICES)[status]
 
 
+@register.filter(name="status_to_past_participle_plural")
+def status_to_past_participle_plural(status):
+    return {
+        SimulationProjet.STATUS_ACCEPTED: "acceptés",
+        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: "acceptés provisoirement",
+        SimulationProjet.STATUS_PROVISIONALLY_REFUSED: "refusés provisoirement",
+        SimulationProjet.STATUS_PROCESSING: "remis en traitement",
+        PROJET_STATUS_REFUSED: "refusés",
+        SimulationProjet.STATUS_REFUSED: "refusés",
+        SimulationProjet.STATUS_DISMISSED: "classés sans suite",
+    }[status]
+
+
 @register.filter(name="status_to_fr_color")
 def status_to_fr_color(status):
     return {
