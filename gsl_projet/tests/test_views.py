@@ -22,9 +22,8 @@ from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.models import Demandeur, Projet
+from gsl_projet.models import Projet
 from gsl_projet.tests.factories import (
-    DemandeurFactory,
     DetrProjetFactory,
     DsilProjetFactory,
     ProjetFactory,
@@ -57,11 +56,6 @@ def finisterien(perimetre) -> Collegue:
 
 
 @pytest.fixture
-def demandeur() -> Demandeur:
-    return DemandeurFactory()
-
-
-@pytest.fixture
 def req(finisterien) -> RequestFactory:
     return RequestFactory(user=finisterien)
 
@@ -81,8 +75,14 @@ def view() -> ProjetListView:
         ("date", (F("dossier_ds__ds_date_depot").asc(nulls_last=True),)),
         ("-cout", (F("dossier_ds__finance_cout_total").desc(nulls_last=True),)),
         ("cout", (F("dossier_ds__finance_cout_total").asc(nulls_last=True),)),
-        ("-demandeur", (F("demandeur__name").desc(nulls_last=True),)),
-        ("demandeur", (F("demandeur__name").asc(nulls_last=True),)),
+        (
+            "-demandeur",
+            (F("dossier_ds__ds_demandeur__raison_sociale").desc(nulls_last=True),),
+        ),
+        (
+            "demandeur",
+            (F("dossier_ds__ds_demandeur__raison_sociale").asc(nulls_last=True),),
+        ),
         (
             None,
             (F("dossier_ds__ds_date_depot").desc(nulls_last=True),),
@@ -106,16 +106,16 @@ def test_get_ordering(req, view, tri_param, expected_ordering):
 
 
 @pytest.fixture
-def projets(demandeur) -> list[Projet]:
+def projets() -> list[Projet]:
     projet0 = ProjetFactory(
         dossier_ds__ds_date_depot=timezone.datetime(2024, 9, 1, tzinfo=UTC),
         dossier_ds__finance_cout_total=1000,
-        demandeur__name="Commune A",
+        dossier_ds__ds_demandeur__raison_sociale="Commune A",
     )
     projet1 = ProjetFactory(
         dossier_ds__ds_date_depot=timezone.datetime(2024, 9, 2, tzinfo=UTC),
         dossier_ds__finance_cout_total=2000,
-        demandeur__name="Commune B",
+        dossier_ds__ds_demandeur__raison_sociale="Commune B",
     )
     return [projet0, projet1]
 
@@ -145,39 +145,31 @@ def test_projets_ordering(req, view, projets, tri_param, expected_ordering):
 
 
 @pytest.fixture
-def projets_detr(demandeur) -> list[Projet]:
-    dotation_projets = DetrProjetFactory.create_batch(
-        3,
-        projet__demandeur=demandeur,
-    )
+def projets_detr() -> list[Projet]:
+    dotation_projets = DetrProjetFactory.create_batch(3)
     return [dp.projet for dp in dotation_projets]
 
 
 @pytest.fixture
-def projets_dsil(demandeur) -> list[Projet]:
-    dotation_projets = DsilProjetFactory.create_batch(
-        2,
-        projet__demandeur=demandeur,
-    )
+def projets_dsil() -> list[Projet]:
+    dotation_projets = DsilProjetFactory.create_batch(2)
     return [dp.projet for dp in dotation_projets]
 
 
 @pytest.fixture
-def projets_with_double_dotations_values(demandeur) -> list[Projet]:
+def projets_with_double_dotations_values() -> list[Projet]:
     projets = []
     for _ in range(4):
-        detr_projet = DetrProjetFactory(projet__demandeur=demandeur)
+        detr_projet = DetrProjetFactory()
         DsilProjetFactory(projet=detr_projet.projet)
         projets.append(detr_projet.projet)
     return projets
 
 
 @pytest.fixture
-def projets_with_other_dotations_values(demandeur) -> list[Projet]:
+def projets_with_other_dotations_values() -> list[Projet]:
     return [
-        ProjetFactory(
-            dossier_ds__demande_dispositif_sollicite=dotation, demandeur=demandeur
-        )
+        ProjetFactory(dossier_ds__demande_dispositif_sollicite=dotation)
         for dotation in (
             "",
             "Fond vert",
@@ -356,7 +348,7 @@ def test_no_dispositif_filter(
 
 
 @pytest.fixture
-def projets_epci(demandeur) -> list[Projet]:
+def projets_epci() -> list[Projet]:
     projets = []
     for epci_label in (
         "EPCI",
@@ -368,7 +360,6 @@ def projets_epci(demandeur) -> list[Projet]:
         )
         projets.append(
             ProjetFactory(
-                demandeur=demandeur,
                 dossier_ds__porteur_de_projet_nature=nature_porteur_projet,
             )
         )
@@ -376,20 +367,19 @@ def projets_epci(demandeur) -> list[Projet]:
 
 
 @pytest.fixture
-def projets_communes(demandeur) -> list[Projet]:
+def projets_communes() -> list[Projet]:
     for commune_label in ("Commune",):
         nature_porteur_projet = NaturePorteurProjetFactory(
             label=commune_label, type=NaturePorteurProjet.COMMUNES
         )
         projet = ProjetFactory(
-            demandeur=demandeur,
             dossier_ds__porteur_de_projet_nature=nature_porteur_projet,
         )
     return [projet]
 
 
 @pytest.fixture
-def projets_other(demandeur) -> list[Projet]:
+def projets_other() -> list[Projet]:
     projets = []
     for commune_label in ("test_gsl", "Departement"):
         nature_porteur_projet = NaturePorteurProjetFactory(
@@ -397,7 +387,6 @@ def projets_other(demandeur) -> list[Projet]:
         )
         projets.append(
             ProjetFactory(
-                demandeur=demandeur,
                 dossier_ds__porteur_de_projet_nature=nature_porteur_projet,
             )
         )
@@ -405,13 +394,12 @@ def projets_other(demandeur) -> list[Projet]:
 
 
 @pytest.fixture
-def projets_unknown_projet(demandeur) -> list[Projet]:
+def projets_unknown_projet() -> list[Projet]:
     projets = []
     for porteur_label in ("Inconnu", "Fake", "Wrong"):
         nature_porteur_projet = NaturePorteurProjetFactory(label=porteur_label)
         projets.append(
             ProjetFactory(
-                demandeur=demandeur,
                 dossier_ds__porteur_de_projet_nature=nature_porteur_projet,
             )
         )
@@ -449,14 +437,9 @@ def test_filter_by_epci_porteur(
 
 
 @pytest.fixture
-def projets_with_finance_cout_total_from_dossier_ds(
-    demandeur,
-) -> list[Projet]:
+def projets_with_finance_cout_total_from_dossier_ds() -> list[Projet]:
     return [
-        ProjetFactory(
-            dossier_ds__finance_cout_total=amount,
-            demandeur=demandeur,
-        )
+        ProjetFactory(dossier_ds__finance_cout_total=amount)
         for amount in (120_000, 170_000, 220_000, 270_000, 320_000)
     ]
 
@@ -516,7 +499,7 @@ def test_filter_with_wrong_values(
 
 
 @pytest.fixture
-def projets_with_montant_retenu(demandeur, perimetre) -> list[Projet]:
+def projets_with_montant_retenu(perimetre) -> list[Projet]:
     projets = []
     for detr_montant, dsil_montant in (
         (None, 50_000),
@@ -527,7 +510,6 @@ def projets_with_montant_retenu(demandeur, perimetre) -> list[Projet]:
         (150_000, 150_000),
     ):
         projet = ProjetFactory(
-            demandeur=demandeur,
             dossier_ds__perimetre=perimetre,
         )
         detr_projet = DetrProjetFactory(projet=projet)
@@ -646,11 +628,11 @@ def test_order_by_montant_retenu(req, view, projets_with_montant_retenu):
     assert qs[0].dotation_detr.montant_retenu == 150_000
 
 
-def test_order_by_assiette(req, view, demandeur, perimetre):
-    projet_low = ProjetFactory(demandeur=demandeur, dossier_ds__perimetre=perimetre)
+def test_order_by_assiette(req, view, perimetre):
+    projet_low = ProjetFactory(dossier_ds__perimetre=perimetre)
     DetrProjetFactory(projet=projet_low, assiette=Decimal("50000"))
 
-    projet_high = ProjetFactory(demandeur=demandeur, dossier_ds__perimetre=perimetre)
+    projet_high = ProjetFactory(dossier_ds__perimetre=perimetre)
     DetrProjetFactory(projet=projet_high, assiette=Decimal("200000"))
 
     request = req.get("/", data={"order": "assiette"})
@@ -661,14 +643,14 @@ def test_order_by_assiette(req, view, demandeur, perimetre):
     assert result.index(projet_low) < result.index(projet_high)
 
 
-def test_order_by_taux(req, view, demandeur, perimetre):
+def test_order_by_taux(req, view, perimetre):
     # projet_low: montant=10000, assiette=100000 -> taux=10%
-    projet_low = ProjetFactory(demandeur=demandeur, dossier_ds__perimetre=perimetre)
+    projet_low = ProjetFactory(dossier_ds__perimetre=perimetre)
     dp_low = DetrProjetFactory(projet=projet_low, assiette=Decimal("100000"))
     ProgrammationProjetFactory(dotation_projet=dp_low, montant=Decimal("10000"))
 
     # projet_high: montant=80000, assiette=100000 -> taux=80%
-    projet_high = ProjetFactory(demandeur=demandeur, dossier_ds__perimetre=perimetre)
+    projet_high = ProjetFactory(dossier_ds__perimetre=perimetre)
     dp_high = DetrProjetFactory(projet=projet_high, assiette=Decimal("100000"))
     ProgrammationProjetFactory(dotation_projet=dp_high, montant=Decimal("80000"))
 
@@ -680,14 +662,12 @@ def test_order_by_taux(req, view, demandeur, perimetre):
     assert result.index(projet_low) < result.index(projet_high)
 
 
-def test_order_by_numero_dn(req, view, demandeur, perimetre):
+def test_order_by_numero_dn(req, view, perimetre):
     projet_low = ProjetFactory(
-        demandeur=demandeur,
         dossier_ds__ds_number=1000,
         dossier_ds__perimetre=perimetre,
     )
     projet_high = ProjetFactory(
-        demandeur=demandeur,
         dossier_ds__ds_number=9000,
         dossier_ds__perimetre=perimetre,
     )
@@ -704,12 +684,9 @@ def test_order_by_numero_dn(req, view, demandeur, perimetre):
 
 
 @pytest.fixture
-def projets_with_montant_demande(demandeur) -> list[Projet]:
+def projets_with_montant_demande() -> list[Projet]:
     return [
-        ProjetFactory(
-            dossier_ds__demande_montant=amount,
-            demandeur=demandeur,
-        )
+        ProjetFactory(dossier_ds__demande_montant=amount)
         for amount in (None, 30_000, 60_000, 90_000, 120_000, 150_000)
     ]
 
@@ -771,7 +748,7 @@ def test_filter_with_wrong_montant_demande_values(
 
 
 @pytest.fixture
-def projets_with_status(demandeur) -> list[Projet]:
+def projets_with_status() -> list[Projet]:
     projets = []
     for status, count in (
         ("accepted", 1),
@@ -780,7 +757,7 @@ def projets_with_status(demandeur) -> list[Projet]:
         ("dismissed", 5),
     ):
         for _ in range(count):
-            projet = ProjetFactory(demandeur=demandeur)
+            projet = ProjetFactory()
             DetrProjetFactory(projet=projet, status=status)
             projets.append(projet)
     return projets

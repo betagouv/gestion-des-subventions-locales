@@ -39,7 +39,7 @@ from gsl_projet.utils.projet_filters import (
 
 PROGRAMMATION_ORDERING_MAP = {
     "dotation_projet__projet__dossier_ds__finance_cout_total": "cout",
-    "dotation_projet__projet__demandeur__name": "demandeur",
+    "dotation_projet__projet__dossier_ds__ds_demandeur__raison_sociale": "demandeur",
     "montant": "montant",
     "dotation_projet__projet__dossier_ds__ds_number": "numero_dn",
     "dotation_projet__projet__dossier_ds__porteur_de_projet_arrondissement__name": "arrondissement",

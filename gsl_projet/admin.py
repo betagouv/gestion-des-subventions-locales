@@ -11,21 +11,7 @@ from gsl_programmation.models import ProgrammationProjet
 from gsl_simulation.models import SimulationProjet
 
 from .constants import PROJET_STATUS_CHOICES
-from .models import CategorieDetr, Demandeur, DotationProjet, Projet, ProjetQuerySet
-
-
-@admin.register(Demandeur)
-class DemandeurAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    raw_id_fields = ("address",)
-    list_display = ("name", "address__commune__departement")
-    search_fields = ("name", "siret", "address__commune__name")
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        qs = qs.select_related(
-            "address", "address__commune", "address__commune__departement"
-        )
-        return qs
+from .models import CategorieDetr, DotationProjet, Projet, ProjetQuerySet
 
 
 class DotationProjetInline(admin.TabularInline):
@@ -81,7 +67,7 @@ class ArrondissementFilter(admin.SimpleListFilter):
 
 @admin.register(Projet)
 class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    raw_id_fields = ("address", "demandeur", "dossier_ds")
+    raw_id_fields = ("address", "dossier_ds")
     list_display = (
         "__str__",
         "dossier_ds__projet_intitule",
