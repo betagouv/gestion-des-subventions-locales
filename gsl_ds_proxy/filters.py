@@ -41,11 +41,11 @@ def filter_response(response_data, allowed_instructeur_ids):
         dossiers = demarche.get("dossiers")
         if dossiers and isinstance(dossiers, dict):
             _filter_dossier_nodes(dossiers, allowed_instructeur_ids)
-            # DS reports partial fetch failures (e.g. null nodes) via top-level
-            # errors[]. When at least one dossier comes through, drop them so
-            # callers don't see noise alongside a structurally valid list.
-            if dossiers.get("nodes"):
-                result.pop("errors", None)
+
+        for connection_field in ("pendingDeletedDossiers", "deletedDossiers"):
+            connection = demarche.get(connection_field)
+            if connection and isinstance(connection, dict):
+                _filter_dossier_nodes(connection, allowed_instructeur_ids)
 
     # getDossier → data.dossier (single dossier)
     dossier = data.get("dossier")
