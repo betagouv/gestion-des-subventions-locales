@@ -73,6 +73,7 @@ def test_get_demarche_dossiers_with_updated_since_calls_graphql_with_iso_format(
         # Verify it's a string in ISO format
         assert isinstance(variables["updatedSince"], str)
         assert "T" in variables["updatedSince"]  # ISO format contains 'T'
+        assert variables["first"] == 50  # default page size
 
 
 def test_get_demarche_dossiers_without_updated_since_passes_none():
@@ -138,11 +139,38 @@ def test_iter_demarche_dossiers_pages_with_after_cursor():
         variables = mock_query.call_args[1]["variables"]
         assert variables["after"] == after_cursor
         assert variables["updatedSince"] is None
+        assert variables["first"] == 50  # default page size
 
         assert len(pages) == 1
         nodes, end_cursor = pages[0]
         assert nodes == [{"id": "DOSS-1", "number": 20240001}]
         assert end_cursor == "xyz789"
+
+
+def test_iter_demarche_dossiers_pages_uses_explicit_page_size():
+    """Caller can override the GraphQL `first` argument via page_size."""
+    client = DsClient()
+    demarche_number = 123
+
+    mock_response = {
+        "data": {
+            "demarche": {
+                "dossiers": {
+                    "nodes": [],
+                    "pageInfo": {"hasNextPage": False, "endCursor": None},
+                }
+            }
+        }
+    }
+
+    with patch.object(
+        client, "launch_graphql_query", return_value=mock_response
+    ) as mock_query:
+        list(client.iter_demarche_dossiers_pages(demarche_number, page_size=20))
+
+        assert mock_query.call_count == 1
+        variables = mock_query.call_args[1]["variables"]
+        assert variables["first"] == 20
 
 
 def test_iter_demarche_dossiers_pages_paginates_until_no_next_page():
@@ -179,9 +207,12 @@ def test_iter_demarche_dossiers_pages_paginates_until_no_next_page():
         pages = list(client.iter_demarche_dossiers_pages(demarche_number))
 
         assert mock_query.call_count == 2
+        first_call_variables = mock_query.call_args_list[0][1]["variables"]
+        assert first_call_variables["first"] == 50
         # Second call should use endCursor from first page
         second_call_variables = mock_query.call_args_list[1][1]["variables"]
         assert second_call_variables["after"] == "cursor_page1"
+        assert second_call_variables["first"] == 50
 
         assert len(pages) == 2
         assert pages[0] == ([{"id": "DOSS-1", "number": 1}], "cursor_page1")

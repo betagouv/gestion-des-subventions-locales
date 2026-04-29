@@ -96,7 +96,10 @@ class DsClient(DsClientBase):
         return self.launch_graphql_query("getDemarche", variables=variables)
 
     def get_demarche_dossiers(
-        self, demarche_number, updated_since: datetime | None = None
+        self,
+        demarche_number,
+        updated_since: datetime | None = None,
+        page_size: int = 50,
     ) -> Iterator[dict]:
         """
         Get all dossiers from one given demarche
@@ -104,7 +107,7 @@ class DsClient(DsClientBase):
         :return: iterator on all available dossiers of demarche
         """
         for nodes, _cursor in self.iter_demarche_dossiers_pages(
-            demarche_number, updated_since=updated_since
+            demarche_number, updated_since=updated_since, page_size=page_size
         ):
             yield from nodes
 
@@ -113,6 +116,7 @@ class DsClient(DsClientBase):
         demarche_number,
         updated_since: datetime | None = None,
         after_cursor: str | None = None,
+        page_size: int = 50,
     ) -> Iterator[tuple[list[dict], str | None]]:
         """
         Iterate over pages of dossiers from one given demarche, yielding (nodes, end_cursor)
@@ -121,6 +125,7 @@ class DsClient(DsClientBase):
         :param demarche_number:
         :param updated_since: optional datetime filter (updatedSince in the GraphQL query)
         :param after_cursor: optional cursor to resume from a previous run
+        :param page_size: number of dossiers requested per page (GraphQL `first`)
         :return: iterator of (nodes, end_cursor) tuples
         """
         variables = {
@@ -128,6 +133,7 @@ class DsClient(DsClientBase):
             "includeDossiers": True,
             "updatedSince": updated_since.isoformat() if updated_since else None,
             "after": after_cursor,
+            "first": page_size,
         }
         while True:
             result = self.launch_graphql_query("getDemarche", variables=variables)
