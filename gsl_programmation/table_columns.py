@@ -1,4 +1,4 @@
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 
 from gsl_core.table_columns import (
     COLUMN_ANNOTATIONS_CHAMP_LIBRE_1,
@@ -106,7 +106,7 @@ def _get_other_dotation_documents(context):
     documents = dp.programmation_projet.documents_summary
     if not documents:
         return ""
-    items = "".join(format_html("<li>{}</li>", doc) for doc in documents)
+    items = format_html_join("", "<li>{}</li>", ((doc,) for doc in documents))
     return format_html("<ul>{}</ul>", items)
 
 
