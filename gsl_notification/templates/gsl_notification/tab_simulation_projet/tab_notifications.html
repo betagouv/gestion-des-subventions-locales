@@ -69,7 +69,7 @@
         </h3>
         {% if projet.notified_at %}
             <p class="fr-text-default--success">
-                Message de notification envoyé le {{ programmation_projet.notified_at|date }} sur Démarche Numérique.
+                Message de notification envoyé le {{ projet.notified_at|date }} sur Démarche Numérique.
             </p>
         {% elif not is_instructor %}
             <button class="fr-btn fr-mt-6w fr-icon-edit-line fr-btn--icon-right"
