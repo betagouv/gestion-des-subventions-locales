@@ -9,7 +9,7 @@ from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.models import (
     Annexe,
     Arrete,
-    ArreteEtLettreSignes,
+    LettreEtArreteSignes,
     LettreNotification,
     ModeleDocument,
 )
@@ -97,17 +97,17 @@ class ChooseDocumentTypeForUploadForm(BaseChooseDocumentTypeForm):
                 prog_projet = ProgrammationProjet.objects.get(
                     dotation_projet=dp, dotation_projet__projet=self.instance
                 )
-                # ArreteEtLettreSignes (disable if already exists)
-                existing_arrete = hasattr(prog_projet, "arrete_et_lettre_signes")
+                # LettreEtArreteSignes (disable if already exists)
+                existing_arrete = hasattr(prog_projet, "lettre_et_arrete_signes")
 
                 choices.append(
                     (
                         (
                             ""
                             if existing_arrete
-                            else f"arrete_et_lettre_signes-{dp.dotation}"
+                            else f"lettre_et_arrete_signes-{dp.dotation}"
                         ),
-                        f"Arrêté et lettre signés {dp.dotation.upper()}",
+                        f"Lettre et arrêté signés {dp.dotation.upper()}",
                     )
                 )
 
@@ -151,7 +151,7 @@ class LettreNotificationForm(ArreteForm):
 
 class ArreteEtLettreSigneForm(forms.ModelForm, DsfrBaseForm):
     class Meta:
-        model = ArreteEtLettreSignes
+        model = LettreEtArreteSignes
         fields = ("file", "created_by", "programmation_projet")
 
 
@@ -216,7 +216,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
     def save(self, user):
         justificatif_file = merge_documents_into_pdf(
             [
-                *ArreteEtLettreSignes.objects.filter(
+                *LettreEtArreteSignes.objects.filter(
                     programmation_projet__dotation_projet__projet=self.instance
                 ),
                 *self.cleaned_data["annexes"],

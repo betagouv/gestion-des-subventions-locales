@@ -156,7 +156,7 @@ class ProgrammationProjetListView(FilterView, ListView):
             .prefetch_related(
                 "arrete",
                 "lettre_notification",
-                "arrete_et_lettre_signes",
+                "lettre_et_arrete_signes",
                 "enveloppe",
                 "annexes",
                 "enveloppe__perimetre",
@@ -165,7 +165,7 @@ class ProgrammationProjetListView(FilterView, ListView):
                 "dotation_projet__projet__dotationprojet_set__programmation_projet",
                 "dotation_projet__projet__dotationprojet_set__programmation_projet__arrete",
                 "dotation_projet__projet__dotationprojet_set__programmation_projet__lettre_notification",
-                "dotation_projet__projet__dotationprojet_set__programmation_projet__arrete_et_lettre_signes",
+                "dotation_projet__projet__dotationprojet_set__programmation_projet__lettre_et_arrete_signes",
                 "dotation_projet__projet__dotationprojet_set__programmation_projet__enveloppe",
                 "dotation_projet__projet__dotationprojet_set__programmation_projet__annexes",
                 "dotation_projet__projet__dossier_ds__demande_categorie_dsil",

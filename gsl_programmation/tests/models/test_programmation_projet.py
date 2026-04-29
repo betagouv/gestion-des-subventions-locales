@@ -12,8 +12,8 @@ from gsl_core.tests.factories import (
 )
 from gsl_notification.tests.factories import (
     AnnexeFactory,
-    ArreteEtLettreSignesFactory,
     ArreteFactory,
+    LettreEtArreteSignesFactory,
     LettreNotificationFactory,
 )
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
@@ -285,14 +285,14 @@ def test_documents_summary_annexes(annexes_count, expected_summary):
 
 
 @pytest.mark.django_db
-def test_documents_summary_arrete_et_lettre_signes_hides_arrete_and_lettre_generes():
+def test_documents_summary_lettre_et_arrete_signes_hides_arrete_and_lettre_generes():
     programmation_projet = ProgrammationProjetFactory()
-    ArreteEtLettreSignesFactory(programmation_projet=programmation_projet)
+    LettreEtArreteSignesFactory(programmation_projet=programmation_projet)
     ArreteFactory(programmation_projet=programmation_projet)
     LettreNotificationFactory(programmation_projet=programmation_projet)
 
     summary = programmation_projet.documents_summary
-    assert summary == ["1 arrêté et lettre signés"]
+    assert summary == ["1 lettre et arrêté signés"]
 
 
 @pytest.mark.django_db

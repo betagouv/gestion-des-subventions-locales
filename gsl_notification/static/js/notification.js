@@ -2,11 +2,11 @@ let selectedForm = undefined // eslint-disable-line
 
 document.addEventListener('DOMContentLoaded', function () {
   const fileInput = document.getElementById('id_file')
-  const submitArreteEtLettreSignesBtn = document.getElementById('submit-arrete-et-lettre-signes-form')
+  const submitLettreEtArreteSignesBtn = document.getElementById('submit-lettre-et-arrete-signes-form')
 
-  if (fileInput && submitArreteEtLettreSignesBtn) {
+  if (fileInput && submitLettreEtArreteSignesBtn) {
     fileInput.addEventListener('change', function () {
-      submitArreteEtLettreSignesBtn.disabled = !fileInput.files.length
+      submitLettreEtArreteSignesBtn.disabled = !fileInput.files.length
     })
   }
 })

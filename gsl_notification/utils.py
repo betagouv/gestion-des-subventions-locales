@@ -28,7 +28,7 @@ from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_notification.models import (
     Annexe,
     Arrete,
-    ArreteEtLettreSignes,
+    LettreEtArreteSignes,
     LettreNotification,
     ModeleArrete,
     ModeleLettreNotification,
@@ -37,9 +37,9 @@ from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
     ANNEXE,
     ARRETE,
-    ARRETE_ET_LETTRE_SIGNES,
     DOTATION_DETR,
     LETTRE,
+    LETTRE_ET_ARRETE_SIGNES,
     POSSIBLE_DOTATIONS,
     POSSIBLES_DOCUMENTS,
     POSSIBLES_DOCUMENTS_TELEVERSABLES,
@@ -386,17 +386,17 @@ def get_programmation_projet_attribute(document_type: POSSIBLES_DOCUMENTS):
 
 
 def get_uploaded_document_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES):
-    if document_type not in [ARRETE_ET_LETTRE_SIGNES, ANNEXE]:
+    if document_type not in [LETTRE_ET_ARRETE_SIGNES, ANNEXE]:
         raise ValueError(f"Document type {document_type} inconnu")
     if document_type == ANNEXE:
         return Annexe
-    return ArreteEtLettreSignes
+    return LettreEtArreteSignes
 
 
 def get_uploaded_form_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES):
     from gsl_notification.forms import AnnexeForm, ArreteEtLettreSigneForm
 
-    if document_type not in [ARRETE_ET_LETTRE_SIGNES, ANNEXE]:
+    if document_type not in [LETTRE_ET_ARRETE_SIGNES, ANNEXE]:
         raise ValueError(f"Document type {document_type} inconnu")
     if document_type == ANNEXE:
         return AnnexeForm
@@ -410,7 +410,7 @@ def get_logo_base64(url):
     return "data:image/png;base64," + base64.b64encode(response.content).decode("utf-8")
 
 
-def _get_uploaded_document_pdf(document: Annexe | ArreteEtLettreSignes) -> io.BytesIO:
+def _get_uploaded_document_pdf(document: Annexe | LettreEtArreteSignes) -> io.BytesIO:
     s3_object = get_s3_object(document.file.name)
     content = s3_object["Body"].read()
 
@@ -473,7 +473,7 @@ def generate_pdf_for_generated_document(document: Arrete | LettreNotification) -
 
 
 def merge_documents_into_pdf(
-    documents: list[ArreteEtLettreSignes | Annexe],
+    documents: list[LettreEtArreteSignes | Annexe],
 ) -> SimpleUploadedFile:
     documents_file_bytes = [_get_uploaded_document_pdf(doc) for doc in documents]
 

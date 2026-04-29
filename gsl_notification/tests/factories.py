@@ -7,7 +7,7 @@ from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from ..models import (
     Annexe,
     Arrete,
-    ArreteEtLettreSignes,
+    LettreEtArreteSignes,
     LettreNotification,
     ModeleArrete,
     ModeleLettreNotification,
@@ -66,9 +66,9 @@ class LettreNotificationFactory(ArreteFactory):
     )
 
 
-class ArreteEtLettreSignesFactory(factory.django.DjangoModelFactory):
+class LettreEtArreteSignesFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = ArreteEtLettreSignes
+        model = LettreEtArreteSignes
 
     file = factory.django.FileField(
         filename="test_file.pdf",
@@ -82,6 +82,6 @@ class ArreteEtLettreSignesFactory(factory.django.DjangoModelFactory):
     created_at = datetime.datetime.now(datetime.UTC)
 
 
-class AnnexeFactory(ArreteEtLettreSignesFactory):
+class AnnexeFactory(LettreEtArreteSignesFactory):
     class Meta:
         model = Annexe

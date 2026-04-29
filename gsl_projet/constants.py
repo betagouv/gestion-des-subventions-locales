@@ -23,9 +23,9 @@ ARRETE = "arrete"
 LETTRE = "lettre"
 POSSIBLES_DOCUMENTS = Literal["arrete", "lettre"]
 
-ARRETE_ET_LETTRE_SIGNES = "arrete_et_lettre_signes"
+LETTRE_ET_ARRETE_SIGNES = "lettre_et_arrete_signes"
 ANNEXE = "annexe"
-POSSIBLES_DOCUMENTS_TELEVERSABLES = Literal["arrete_et_lettre_signes", "annexe"]
+POSSIBLES_DOCUMENTS_TELEVERSABLES = Literal["lettre_et_arrete_signes", "annexe"]
 
 MIN_DEMANDE_MONTANT_FOR_AVIS_DETR = 100_000
 

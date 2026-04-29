@@ -90,7 +90,7 @@
                 <ul>
                     {% for dotation_projet in projet.dotationprojet_set.without_signed_document %}
                         <li>
-                            Arrêté et lettre de notification signés {{ dotation_projet.dotation }}
+                            Lettre de notification et arrêté signés {{ dotation_projet.dotation }}
                         </li>
                     {% endfor %}
                 </ul>

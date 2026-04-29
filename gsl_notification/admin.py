@@ -7,7 +7,7 @@ from gsl_core.admin import AllPermsForStaffUser
 from .models import (
     Annexe,
     Arrete,
-    ArreteEtLettreSignes,
+    LettreEtArreteSignes,
     LettreNotification,
     ModeleArrete,
     ModeleLettreNotification,
@@ -65,8 +65,8 @@ def relaunch_antivirus_scan(modeladmin, request, queryset):
     )
 
 
-@admin.register(ArreteEtLettreSignes)
-class ArreteEtLettreSignesAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+@admin.register(LettreEtArreteSignes)
+class LettreEtArreteSignesAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = (
         "__str__",
         "dossier_link",
@@ -107,7 +107,7 @@ class ArreteEtLettreSignesAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
 
 @admin.register(Annexe)
-class AnnexeAdmin(ArreteEtLettreSignesAdmin):
+class AnnexeAdmin(LettreEtArreteSignesAdmin):
     pass
 
 

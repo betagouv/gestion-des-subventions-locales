@@ -43,7 +43,7 @@ def reverse_copy_notified_at(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [
         ("gsl_projet", "0024_categoriedetr_is_current"),
-        ("gsl_programmation", "0001_initial"),
+        ("gsl_programmation", "0007_programmationprojet"),
     ]
 
     operations = [

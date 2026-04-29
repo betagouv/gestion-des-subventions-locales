@@ -9,8 +9,8 @@ from gsl_core.tests.factories import CollegueFactory, PerimetreDepartementalFact
 from gsl_notification.models import ModeleArrete
 from gsl_notification.tests.factories import (
     AnnexeFactory,
-    ArreteEtLettreSignesFactory,
     ArreteFactory,
+    LettreEtArreteSignesFactory,
     LettreNotificationFactory,
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
@@ -230,9 +230,9 @@ def test_generate_document_validation_error_when_pp_and_model_have_different_dot
     )
 
 
-@pytest.mark.parametrize("factory", (ArreteEtLettreSignesFactory, AnnexeFactory))
+@pytest.mark.parametrize("factory", (LettreEtArreteSignesFactory, AnnexeFactory))
 @pytest.mark.django_db
-def test_arrete_et_lettre_signes_properties(factory):
+def test_lettre_et_arrete_signes_properties(factory):
     collegue = CollegueFactory()
     programmation_projet = ProgrammationProjetFactory(
         status=ProgrammationProjet.STATUS_ACCEPTED
@@ -247,8 +247,8 @@ def test_arrete_et_lettre_signes_properties(factory):
         file=file, created_by=collegue, programmation_projet=programmation_projet
     )
 
-    if factory == ArreteEtLettreSignesFactory:
-        assert str(doc) == f"Arrêté et lettre signés #{doc.id}"
+    if factory == LettreEtArreteSignesFactory:
+        assert str(doc) == f"Lettre et arrêté signés #{doc.id}"
     else:
         assert str(doc) == f"Annexe #{doc.id}"
 

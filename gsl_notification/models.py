@@ -12,9 +12,9 @@ from gsl_notification.validators import document_file_validator, logo_file_valid
 from gsl_projet.constants import (
     ANNEXE,
     ARRETE,
-    ARRETE_ET_LETTRE_SIGNES,
     DOTATION_CHOICES,
     LETTRE,
+    LETTRE_ET_ARRETE_SIGNES,
 )
 
 
@@ -305,7 +305,7 @@ class UploadedDocument(models.Model):
         raise NotImplementedError
 
 
-class ArreteEtLettreSignes(UploadedDocument):
+class LettreEtArreteSignes(UploadedDocument):
     file = models.FileField(
         upload_to="arrete_et_lettre_signes/", validators=[document_file_validator]
     )
@@ -313,19 +313,19 @@ class ArreteEtLettreSignes(UploadedDocument):
     programmation_projet = models.OneToOneField(
         "gsl_programmation.ProgrammationProjet",
         on_delete=models.CASCADE,
-        related_name="arrete_et_lettre_signes",
+        related_name="lettre_et_arrete_signes",
     )
 
     class Meta:
-        verbose_name = "Arrêté et lettre signés"
-        verbose_name_plural = "Arrêtés et lettres signés"
+        verbose_name = "Lettre et arrêté signés"
+        verbose_name_plural = "Lettres et arrêtés signés"
 
     def __str__(self):
-        return f"Arrêté et lettre signés #{self.id}"
+        return f"Lettre et arrêté signés #{self.id}"
 
     @property
     def document_type(self):
-        return ARRETE_ET_LETTRE_SIGNES
+        return LETTRE_ET_ARRETE_SIGNES
 
 
 class Annexe(UploadedDocument):
