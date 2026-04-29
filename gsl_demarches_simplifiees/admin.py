@@ -13,7 +13,8 @@ from gsl.utils.csp import csp_update
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_core.models import Arrondissement
 
-from .forms import RefreshDossiersDepotForm
+from .forms import ImportDossierFromDsForm, RefreshDossiersDepotForm
+from .importer.dossier import import_one_dossier_from_ds
 from .models import (
     CategorieDetr,
     CategorieDsil,
@@ -241,6 +242,7 @@ class ArrondissementFilter(admin.SimpleListFilter):
 
 @admin.register(Dossier)
 class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    change_list_template = "admin/gsl_demarches_simplifiees/dossier/change_list.html"
     list_filter = ("ds_state",)
     list_display = (
         "ds_number",
@@ -318,6 +320,46 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "link_to_json",
         "link_to_edit_dossier_data",
     ]
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path(
+                "import-dossier/",
+                self.admin_site.admin_view(self.import_dossier_view),
+                name="gsl_demarches_simplifiees_dossier_import_dossier",
+            ),
+        ]
+        return custom + urls
+
+    def import_dossier_view(self, request):
+        if request.method == "POST":
+            form = ImportDossierFromDsForm(request.POST)
+            if form.is_valid():
+                dossier_number = form.cleaned_data["dossier_number"]
+                level, message = import_one_dossier_from_ds(dossier_number)
+                self.message_user(request, message, level)
+                return redirect("admin:gsl_demarches_simplifiees_dossier_changelist")
+        else:
+            form = ImportDossierFromDsForm()
+        context = {
+            **self.admin_site.each_context(request),
+            "form": form,
+            "opts": self.model._meta,
+            "title": "Importer un dossier depuis DN",
+        }
+        return render(
+            request,
+            "admin/gsl_demarches_simplifiees/dossier/import_dossier.html",
+            context,
+        )
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context["import_dossier_url"] = reverse(
+            "admin:gsl_demarches_simplifiees_dossier_import_dossier"
+        )
+        return super().changelist_view(request, extra_context)
 
     @admin.action(description="🛢️ Rafraîchir depuis la base de données")
     def refresh_from_db(self, request, queryset):
