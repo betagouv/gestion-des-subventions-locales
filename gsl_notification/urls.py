@@ -1,10 +1,11 @@
 from django.urls import path
 
 from gsl_notification.views.generate_document_for_multiple_projets_views import (
-    ChooseDocumentTypeForMultipleGenerationView,
+    GenerateDocumentsModalCreateView,
+    GenerateDocumentsModalLoadingView,
+    GenerateDocumentsModalStep2View,
+    GenerateDocumentsModalView,
     download_documents,
-    save_documents,
-    select_modele_multiple,
 )
 from gsl_notification.views.modele_views import (
     ChooseModeleDocumentType,
@@ -80,21 +81,26 @@ urlpatterns = [
         DeleteDocumentView.as_view(),
         name="delete-document",
     ),
-    # Generated files for multiple projets
+    # Modal HTMX - génération en masse
     path(
-        "<str:dotation>/choix-du-type/",
-        ChooseDocumentTypeForMultipleGenerationView.as_view(),
-        name="choose-generated-document-type-multiple",
+        "<str:dotation>/generer/",
+        GenerateDocumentsModalView.as_view(),
+        name="generate-documents-modal",
     ),
     path(
-        "<str:dotation>/selection-d-un-modele/<str:document_type>",
-        select_modele_multiple,
-        name="select-modele-multiple",
+        "<str:dotation>/generer/etape-2/",
+        GenerateDocumentsModalStep2View.as_view(),
+        name="generate-documents-modal-step2",
     ),
     path(
-        "<str:dotation>/sauvegarde/<str:document_type>/<int:modele_id>",
-        save_documents,
-        name="save-documents",
+        "<str:dotation>/generer/chargement/",
+        GenerateDocumentsModalLoadingView.as_view(),
+        name="generate-documents-modal-loading",
+    ),
+    path(
+        "<str:dotation>/generer/creer/",
+        GenerateDocumentsModalCreateView.as_view(),
+        name="generate-documents-modal-create",
     ),
     path(
         "<str:dotation>/telechargement/<str:document_type>",

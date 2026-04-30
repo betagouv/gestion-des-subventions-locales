@@ -8,11 +8,11 @@ export class CheckboxSelection extends Controller {
     activateAllProjetsSelection: { type: Boolean, default: false }
   }
 
-  static targets = ['pageCheckbox', 'button', 'link', 'selectAllRow', 'selectAllRowText', 'selectAllButton']
+  static targets = ['pageCheckbox', 'button', 'generateButton', 'idsInput', 'selectAllRow', 'selectAllRowText', 'selectAllButton']
 
   connect () {
     this._checkIfAllCheckboxesAreSelected()
-    this._updateHref()
+    this._updateGenerateButton()
   }
 
   toggleSelectAllAPageProjets () {
@@ -23,7 +23,7 @@ export class CheckboxSelection extends Controller {
     } else {
       this._updateAllCheckboxes(false)
     }
-    this._updateHref()
+    this._updateGenerateButton()
   }
 
   toggleSelectAllProjets () {
@@ -31,7 +31,7 @@ export class CheckboxSelection extends Controller {
     if (this.allProjetsSelectedValue === false) {
       this._updateAllCheckboxes(false)
     }
-    this._updateHref()
+    this._updateGenerateButton()
   }
 
   toggleProjetCheckbox (evt) {
@@ -41,7 +41,7 @@ export class CheckboxSelection extends Controller {
     } else {
       this._checkIfAllCheckboxesAreSelected()
     }
-    this._updateHref()
+    this._updateGenerateButton()
   }
 
   // Hook sur les valeurs
@@ -53,7 +53,7 @@ export class CheckboxSelection extends Controller {
     } else {
       this._hideSelectAllRow()
       this.allProjetsSelectedValue = false
-      this._updateHref()
+      this._updateGenerateButton()
     }
   }
 
@@ -70,22 +70,22 @@ export class CheckboxSelection extends Controller {
 
   // Private
 
-  _updateHref () {
-    const baseUrl = this.linkTarget.dataset.baseUrl
+  _updateGenerateButton () {
+    if (!this.hasGenerateButtonTarget) return
 
     if (this.allProjetsSelectedValue) {
-      this.linkTarget.href = `${baseUrl}${window.location.search}`
+      // IDs vide → la vue utilise les filtres de l'URL en fallback
+      this.idsInputTarget.value = ''
+      this.generateButtonTarget.disabled = false
       return
     }
+
     const selectedIds = this.buttonTargets
       .filter((b) => b.checked)
       .map((b) => b.id.split('-')[1])
 
-    if (selectedIds.length > 0) {
-      this.linkTarget.href = `${baseUrl}?ids=${selectedIds.join(',')}`
-    } else {
-      this.linkTarget.removeAttribute('href')
-    }
+    this.idsInputTarget.value = selectedIds.join(',')
+    this.generateButtonTarget.disabled = selectedIds.length === 0
   }
 
   _updateAllCheckboxes (value) {

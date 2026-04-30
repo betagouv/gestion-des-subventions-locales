@@ -46,11 +46,28 @@
         {% include "includes/_enveloppe_summary.html" %}
         {% include "includes/_projet_list_filters.html" %}
 
-        <div id="programmation-table-wrapper">
+        <div id="programmation-table-wrapper" data-controller="checkbox-selection">
+            <div id="generate-documents-modal-host">
+            </div>
             <div class="gsl-table-toolbar fr-mt-11v fr-mb-6v">
                 <span>
                     {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
                 </span>
+                <form hx-post="{% url "gsl_notification:generate-documents-modal" dotation %}"
+                      hx-target="#generate-documents-modal-host"
+                      hx-swap="innerHTML">
+                    {% csrf_token %}
+                    <input type="hidden"
+                           name="ids"
+                           value=""
+                           data-checkbox-selection-target="idsInput">
+                    <button type="submit"
+                            class="fr-btn fr-btn--secondary"
+                            disabled
+                            data-checkbox-selection-target="generateButton">
+                        Générer les documents
+                    </button>
+                </form>
                 {% include "gsl_core/_column_visibility_dropdown.html" with table_wrapper_id="programmation-table-wrapper" %}
             </div>
             <div class="fr-table fr-table--multiline fr-table--xs fr-table--no-caption gsl-projet-table"
@@ -59,7 +76,6 @@
                     <div class="fr-table__container">
                         <div class="fr-table__content">
                             <table id="table-programmation"
-                                   data-controller="checkbox-selection"
                                    data-checkbox-selection-to-notify-projets-count-value="{{ to_notify_projets_count }}"
                                    data-checkbox-selection-activate-all-projets-selection-value="{{ activate_all_projets_selection }}">
                                 <caption>Projets programmés</caption>
@@ -76,20 +92,6 @@
                                                     <span class="fr-sr-only fr-hint-text">Sélectionner tous les projets</span>
                                                 </label>
                                             </div>
-                                            <details class="gsl-projet-table__action-menu" name="document-actions">
-                                                <summary class="fr-icon--sm fr-icon-arrow-down-s-line blue-color"
-                                                         aria-label="Ouvrir les actions">
-                                                </summary>
-                                                <ul class="new-gsl-dropdown-content arrete-card__actions no-list-style fr-m-0">
-                                                    <li>
-                                                        <a class="fr-btn fr-btn--secondary arrete-card__action"
-                                                           data-checkbox-selection-target="link"
-                                                           data-base-url="{% url "gsl_notification:choose-generated-document-type-multiple" dotation %}">
-                                                            Générer des documents
-                                                        </a>
-                                                    </li>
-                                                </ul>
-                                            </details>
                                         </th>
                                         {% for column in columns %}
                                             <th scope="col"
@@ -120,7 +122,7 @@
                                         {% with projet=programmation_projet.projet dotation_projet=programmation_projet.dotation_projet %}
                                             <tr {% if dotation_projet.other_dotations|length > 0 %} class="gsl-projet-table__row--double-dotation"{% endif %}>
                                                 <td class="gsl-projet-table__sticky-left-1">
-                                                    {% if programmation_projet.projet.to_notify %}
+                                                    {% if programmation_projet.can_generate_documents %}
                                                         <div class="fr-checkbox-group fr-checkbox-group--sm">
                                                             <input id="checkbox-{{ programmation_projet.id }}"
                                                                    type="checkbox"

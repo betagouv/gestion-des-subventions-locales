@@ -299,6 +299,10 @@ class ProgrammationProjet(models.Model):
         return self.projet.to_notify
 
     @property
+    def can_generate_documents(self):
+        return self.status == self.STATUS_ACCEPTED and self.projet.notified_at is None
+
+    @property
     def dotation(self):
         return self.dotation_projet.dotation
 

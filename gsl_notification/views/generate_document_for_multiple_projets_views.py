@@ -2,15 +2,16 @@ import io
 import logging
 import zipfile
 
-from django.contrib import messages
 from django.http import HttpResponse
-from django.shortcuts import get_list_or_404, get_object_or_404, redirect, render
+from django.shortcuts import get_list_or_404, get_object_or_404
 from django.urls import reverse
-from django.views.decorators.http import require_GET, require_POST
-from django.views.generic import FormView
+from django.utils.decorators import method_decorator
+from django.views.decorators.http import require_GET
+from django.views.generic import TemplateView
+from django_htmx.http import trigger_client_event
 
+from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404, PermissionDenied
-from gsl_notification.forms import ChooseDocumentTypeForMultipleGenerationForm
 from gsl_notification.utils import (
     generate_pdf_for_generated_document,
     get_generated_document_class,
@@ -27,8 +28,6 @@ from gsl_projet.constants import (
     ARRETE,
     DOTATIONS,
     LETTRE,
-    POSSIBLE_DOTATIONS,
-    POSSIBLES_DOCUMENTS,
 )
 from gsl_projet.models import Projet
 
@@ -36,257 +35,6 @@ logger = logging.getLogger(__name__)
 
 
 DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR = "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
-
-
-class ChooseDocumentTypeForMultipleGenerationView(FormView):
-    template_name = "gsl_notification/generated_document/multiple/choose_generated_document_type.html"
-    form_class = ChooseDocumentTypeForMultipleGenerationForm
-
-    def dispatch(self, request, *args, **kwargs):
-        dotation = kwargs["dotation"]
-        if dotation not in DOTATIONS:
-            raise Http404(user_message="Dotation inconnue")
-
-        try:
-            ids = _get_pp_ids(self.request)
-            self.programmation_projets = get_list_or_404(
-                ProgrammationProjet,
-                id__in=ids,
-                status=ProgrammationProjet.STATUS_ACCEPTED,
-                dotation_projet__projet__notified_at=None,
-                dotation_projet__dotation=self.kwargs["dotation"],
-            )
-            if len(self.programmation_projets) < len(ids):
-                raise Http404(
-                    user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
-                )
-
-            if len(self.programmation_projets) == 1:
-                return redirect(
-                    reverse(
-                        "gsl_notification:choose-generated-document-type",
-                        args=[self.programmation_projets[0].projet.id],
-                    )
-                )
-            _check_if_projets_are_accessible_for_user(
-                self.request, self.programmation_projets
-            )
-
-        except ValueError:
-            filterset = ProgrammationProjetFilters(
-                data=self.request.GET,
-                request=self.request,
-            )
-            self.programmation_projets = filterset.qs.to_notify()
-
-        return super().dispatch(request, *args, **kwargs)
-
-    def form_valid(self, form):
-        return redirect(
-            reverse(
-                "gsl_notification:select-modele-multiple",
-                kwargs={
-                    "dotation": self.kwargs["dotation"],
-                    "document_type": form.cleaned_data["document"],
-                },
-                query=self.request.GET,
-            )
-        )
-
-    def get_context_data(self, **kwargs):
-        title = f"{len(self.programmation_projets)} projets {self.kwargs['dotation']} sélectionnés"
-        go_back_link = _get_go_back_link(self.kwargs["dotation"])
-        context = super().get_context_data(**kwargs)
-        context = {
-            **context,
-            "page_title": title,
-            "cancel_link": go_back_link,
-        }
-        return context
-
-
-@require_GET
-def select_modele_multiple(request, dotation, document_type):
-    if dotation not in DOTATIONS:
-        raise Http404(user_message="Dotation inconnue")
-    if document_type not in [ARRETE, LETTRE]:
-        raise Http404(user_message="Type de document inconnu")
-
-    try:
-        ids = _get_pp_ids(request)
-        programmation_projets = get_list_or_404(
-            ProgrammationProjet,
-            id__in=ids,
-            status=ProgrammationProjet.STATUS_ACCEPTED,
-            dotation_projet__projet__notified_at=None,
-            dotation_projet__dotation=dotation,
-        )
-        pp_count = len(programmation_projets)
-        if pp_count < len(ids):
-            raise Http404(
-                user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
-            )
-
-        if pp_count == 1:
-            return redirect(
-                reverse(
-                    "gsl_notification:select-modele",
-                    kwargs={
-                        "dotation": dotation,
-                        "projet_id": programmation_projets[0].projet.id,
-                        "document_type": document_type,
-                    },
-                )
-            )
-
-        _check_if_projets_are_accessible_for_user(request, programmation_projets)
-
-    except ValueError:
-        filterset = ProgrammationProjetFilters(
-            data=request.GET,
-            request=request,
-        )
-        programmation_projets = filterset.qs.to_notify()
-        pp_count = programmation_projets.count()
-
-    page_title, page_step_title = _get_attribute_page_title_and_page_step_title(
-        document_type, pp_count, step=1
-    )
-
-    perimetres = get_modele_perimetres(dotation, request.user.perimetre)
-    modele_class = get_modele_class(document_type)
-    modeles = modele_class.objects.filter(dotation=dotation, perimetre__in=perimetres)
-    go_back_link = _get_go_back_link(dotation)
-
-    context = {
-        "page_super_title": f"{pp_count} projets {dotation} sélectionnés",
-        "page_title": page_title,
-        "page_step_title": page_step_title,
-        "cancel_link": go_back_link,
-        "dotation": dotation,
-        "document_type": document_type,
-        "modeles_list": [
-            {
-                "name": obj.name,
-                "description": obj.description,
-                "actions": [
-                    {
-                        "label": "Sélectionner",
-                        "type": "submit",
-                        "href": reverse(
-                            "notification:save-documents",
-                            kwargs={
-                                "dotation": dotation,
-                                "document_type": document_type,
-                                "modele_id": obj.id,
-                            },
-                            query=request.GET,
-                        ),
-                    },
-                ],
-            }
-            for obj in modeles
-        ],
-    }
-    return render(
-        request,
-        "gsl_notification/generated_document/multiple/select_modele.html",
-        context=context,
-    )
-
-
-@require_POST
-def save_documents(
-    request,
-    dotation: POSSIBLE_DOTATIONS,
-    document_type: POSSIBLES_DOCUMENTS,
-    modele_id: int,
-):
-    if dotation not in DOTATIONS:
-        raise Http404(user_message="Dotation inconnue")
-    if document_type not in [ARRETE, LETTRE]:
-        raise Http404(user_message="Type de document inconnu")
-
-    try:
-        ids = _get_pp_ids(request)
-        programmation_projets = get_list_or_404(
-            ProgrammationProjet,
-            id__in=ids,
-            status=ProgrammationProjet.STATUS_ACCEPTED,
-            dotation_projet__projet__notified_at=None,
-            dotation_projet__dotation=dotation,
-        )
-        if len(programmation_projets) == 1:
-            return redirect(
-                reverse(
-                    "gsl_notification:modifier-document",
-                    kwargs={
-                        "projet_id": programmation_projets[0].projet.id,
-                        "dotation": programmation_projets[0].dotation_projet.dotation,
-                        "document_type": document_type,
-                    },
-                )
-            )
-        if len(programmation_projets) < len(ids):
-            raise Http404(
-                user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
-            )
-        _check_if_projets_are_accessible_for_user(request, programmation_projets)
-
-    except ValueError:
-        filterset = ProgrammationProjetFilters(data=request.POST, request=request)
-        programmation_projets = filterset.qs.select_related(
-            "dotation_projet__projet__dossier_ds",
-            "dotation_projet__projet__dossier_ds__ds_demandeur",
-            "dotation_projet__projet__dossier_ds__perimetre__departement",
-        ).to_notify()
-
-    try:
-        document_class = get_generated_document_class(document_type)
-    except ValueError:
-        raise Http404(user_message="Type de document inconnu")
-
-    modele_class = get_modele_class(document_type)
-    perimetres = get_modele_perimetres(dotation, request.user.perimetre)
-    modele = get_object_or_404(
-        modele_class,
-        id=modele_id,
-        dotation=dotation,
-        perimetre__in=perimetres,
-    )
-
-    documents_list = []
-
-    for pp in programmation_projets:
-        try:
-            document_class.objects.get(programmation_projet_id=pp.id).delete()
-        except document_class.DoesNotExist:
-            pass
-
-        document = document_class()
-        document.programmation_projet = pp
-        document.modele = modele
-        document.created_by = request.user
-        document.content = replace_mentions_in_html(modele.content, pp)
-        document.save()
-        documents_list.append(document)
-
-    doc_name = "arrêtés" if document_type == ARRETE else "lettres de notification"
-    accord = "s" if document_type == ARRETE else "es"
-
-    download_url = reverse(
-        "gsl_notification:download-documents",
-        kwargs={
-            "dotation": dotation,
-            "document_type": document_type,
-        },
-        query=request.GET,
-    )
-    messages.success(
-        request,
-        f"Les {len(documents_list)} {doc_name} ont bien été créé{accord}. <a href={download_url} title='Déclenche le téléchargement du fichier zip'>Télécharger le fichier zip</a>",
-    )
-    return redirect(_get_go_back_link(dotation))
 
 
 @require_GET
@@ -319,14 +67,6 @@ def download_documents(request, dotation, document_type):
                 user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
             )
 
-        if len(programmation_projets) == 1:
-            return redirect(
-                reverse(
-                    "gsl_notification:choose-generated-document-type",
-                    kwargs={"projet_id": programmation_projets[0].projet.id},
-                )
-            )
-
         _check_if_projets_are_accessible_for_user(request, programmation_projets)
     except ValueError:
         filterset = ProgrammationProjetFilters(
@@ -345,6 +85,14 @@ def download_documents(request, dotation, document_type):
     ):
         raise Http404(user_message="Un des projets n'a pas le document demandé.")
 
+    if len(documents) == 1:
+        document = next(iter(documents))
+        pdf_content = generate_pdf_for_generated_document(document)
+        logger.info(f"#1 {document} généré")
+        response = HttpResponse(pdf_content, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{document.name}"'
+        return response
+
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for i, document in enumerate(documents, start=1):
@@ -362,7 +110,7 @@ def download_documents(request, dotation, document_type):
 
 
 def _get_pp_ids(request):
-    ids_str = request.GET.get("ids")
+    ids_str = request.GET.get("ids") or request.POST.get("ids")
     if not ids_str:
         raise ValueError("Aucun id de programmation projet")
 
@@ -382,30 +130,225 @@ def _check_if_projets_are_accessible_for_user(request, programmation_projets):
         )
 
 
-def _get_attribute_page_title_and_page_step_title(
-    document_type,
-    pp_count: int,
-    step=1,
-):
-    page_title = f"Création de {pp_count} arrêtés attributifs"
-    if document_type == LETTRE:
-        page_title = f"Création de {pp_count} lettres de notification"
+# Modal HTMX views
 
-    if step == 1:
-        page_step_title = "1 - Choix du modèle de "
-    else:
-        page_step_title = "2 - Publipostage de "
-
-    if document_type == ARRETE:
-        page_step_title += "l'arrêté"
-    else:
-        page_step_title += "la lettre de notification"
-
-    return page_title, page_step_title
+GENERATE_DOCUMENTS_MODAL_ID = "generate-multiple-modal"
+GENERATE_DOCUMENTS_MODAL_BUTTON_ID = "generate-multiple-modal-btn"
 
 
-def _get_go_back_link(dotation: str):
-    return reverse(
-        "gsl_programmation:programmation-projet-list-dotation",
-        kwargs={"dotation": dotation},
+class GenerateDocumentsModalMixin:
+    http_method_names = ["post"]
+    modal_id = GENERATE_DOCUMENTS_MODAL_ID
+
+    def dispatch(self, request, *args, **kwargs):
+        if self.kwargs["dotation"] not in DOTATIONS:
+            raise Http404(user_message="Dotation inconnue")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["dotation"] = self.kwargs["dotation"]
+        context["modal_id"] = self.modal_id
+        return context
+
+    def _get_modeles(self, document_type):
+        dotation = self.kwargs["dotation"]
+        perimetres = get_modele_perimetres(dotation, self.request.user.perimetre)
+        return get_modele_class(document_type).objects.filter(
+            dotation=dotation, perimetre__in=perimetres
+        )
+
+    @staticmethod
+    def _get_document_type_label(document_type):
+        return "arrêtés" if document_type == ARRETE else "lettres de notification"
+
+    @staticmethod
+    def _get_doc_name(document_type, count):
+        if document_type == ARRETE:
+            return "arrêté" if count == 1 else "arrêtés"
+        return "lettre de notification" if count == 1 else "lettres de notification"
+
+
+@method_decorator(htmx_only, name="dispatch")
+class GenerateDocumentsModalView(GenerateDocumentsModalMixin, TemplateView):
+    template_name = "gsl_notification/generated_document/multiple/modal_step1.html"
+
+    def post(self, request, *args, **kwargs):
+        dotation = self.kwargs["dotation"]
+        try:
+            ids = _get_pp_ids(request)
+            programmation_projets = get_list_or_404(
+                ProgrammationProjet,
+                id__in=ids,
+                status=ProgrammationProjet.STATUS_ACCEPTED,
+                dotation_projet__projet__notified_at=None,
+                dotation_projet__dotation=dotation,
+            )
+            if len(programmation_projets) < len(ids):
+                raise Http404(
+                    user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+                )
+            _check_if_projets_are_accessible_for_user(request, programmation_projets)
+            ids = [pp.id for pp in programmation_projets]
+        except ValueError:
+            filterset = ProgrammationProjetFilters(data=request.GET, request=request)
+            ids = [pp.id for pp in filterset.qs.to_notify()]
+
+        if not ids:
+            raise Http404(user_message="Aucun projet à notifier.")
+
+        context = self.get_context_data(
+            pp_count=len(ids),
+            ids=",".join(str(i) for i in ids),
+            modal_button_id=GENERATE_DOCUMENTS_MODAL_BUTTON_ID,
+        )
+        response = self.render_to_response(context)
+        return trigger_client_event(
+            response,
+            "click",
+            {"target": f"#{GENERATE_DOCUMENTS_MODAL_BUTTON_ID}"},
+            after="settle",
+        )
+
+
+@method_decorator(htmx_only, name="dispatch")
+class GenerateDocumentsModalStep2View(GenerateDocumentsModalMixin, TemplateView):
+    template_name = "gsl_notification/generated_document/multiple/modal_step2_body.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.POST.get("document_type") not in [ARRETE, LETTRE]:
+            raise Http404(user_message="Type de document inconnu")
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        document_type = request.POST.get("document_type")
+        context = self.get_context_data(
+            document_type=document_type,
+            document_type_label=self._get_document_type_label(document_type),
+            modeles=self._get_modeles(document_type),
+            ids=request.POST.get("ids", ""),
+        )
+        return self.render_to_response(context)
+
+
+@method_decorator(htmx_only, name="dispatch")
+class GenerateDocumentsModalLoadingView(GenerateDocumentsModalMixin, TemplateView):
+    template_name = (
+        "gsl_notification/generated_document/multiple/modal_loading_body.html"
     )
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.POST.get("document_type") not in [ARRETE, LETTRE]:
+            raise Http404(user_message="Type de document inconnu")
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        document_type = request.POST.get("document_type")
+        modele_id = request.POST.get("modele_id", "").strip()
+        ids_str = request.POST.get("ids", "")
+
+        if not modele_id:
+            context = self.get_context_data(
+                document_type=document_type,
+                document_type_label=self._get_document_type_label(document_type),
+                modeles=self._get_modeles(document_type),
+                ids=ids_str,
+                error="Veuillez sélectionner un modèle.",
+            )
+            return self.response_class(
+                request=self.request,
+                template=[
+                    "gsl_notification/generated_document/multiple/modal_step2_body.html"
+                ],
+                context=context,
+                using=self.template_engine,
+            )
+
+        ids = [int(i) for i in ids_str.split(",") if i.strip().isdigit()]
+        context = self.get_context_data(
+            document_type=document_type,
+            modele_id=modele_id,
+            ids=ids_str,
+            pp_count=len(ids),
+        )
+        return self.render_to_response(context)
+
+
+@method_decorator(htmx_only, name="dispatch")
+class GenerateDocumentsModalCreateView(GenerateDocumentsModalMixin, TemplateView):
+    template_name = (
+        "gsl_notification/generated_document/multiple/modal_success_body.html"
+    )
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.POST.get("document_type") not in [ARRETE, LETTRE]:
+            raise Http404(user_message="Type de document inconnu")
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        dotation = self.kwargs["dotation"]
+        document_type = request.POST.get("document_type")
+        ids_str = request.POST.get("ids", "")
+        modele_id = request.POST.get("modele_id", "").strip()
+
+        ids = [int(i) for i in ids_str.split(",") if i.strip().isdigit()]
+        if not ids:
+            raise Http404(user_message="Aucun projet sélectionné.")
+
+        programmation_projets = get_list_or_404(
+            ProgrammationProjet,
+            id__in=ids,
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            dotation_projet__projet__notified_at=None,
+            dotation_projet__dotation=dotation,
+        )
+        if len(programmation_projets) < len(ids):
+            raise Http404(
+                user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+            )
+        _check_if_projets_are_accessible_for_user(request, programmation_projets)
+
+        try:
+            document_class = get_generated_document_class(document_type)
+        except ValueError:
+            raise Http404(user_message="Type de document inconnu")
+
+        modele = get_object_or_404(
+            get_modele_class(document_type),
+            id=modele_id,
+            dotation=dotation,
+            perimetre__in=get_modele_perimetres(dotation, request.user.perimetre),
+        )
+
+        documents_list = self._create_documents(
+            programmation_projets, document_class, modele
+        )
+
+        download_url = reverse(
+            "gsl_notification:download-documents",
+            kwargs={"dotation": dotation, "document_type": document_type},
+            query={"ids": ids_str},
+        )
+        context = self.get_context_data(
+            doc_count=len(documents_list),
+            doc_name=self._get_doc_name(document_type, len(documents_list)),
+            download_url=download_url,
+        )
+        return self.render_to_response(context)
+
+    def _create_documents(self, programmation_projets, document_class, modele):
+        documents_list = []
+        for pp in programmation_projets:
+            try:
+                document_class.objects.get(programmation_projet_id=pp.id).delete()
+            except document_class.DoesNotExist:
+                pass
+            document = document_class(
+                programmation_projet=pp,
+                modele=modele,
+                created_by=self.request.user,
+                content=replace_mentions_in_html(modele.content, pp),
+            )
+            document.save()
+            documents_list.append(document)
+        return documents_list
