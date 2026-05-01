@@ -46,14 +46,30 @@
         {% include "includes/_enveloppe_summary.html" %}
         {% include "includes/_projet_list_filters.html" %}
 
-        <div id="programmation-table-wrapper" data-controller="checkbox-selection">
+        <div id="programmation-table-wrapper"
+             data-controller="checkbox-selection"
+             data-checkbox-selection-empty-means-all-value="true">
+            {{ selectable_ids_list|json_script:"checkbox-selection-selectable-ids" }}
             <div id="generate-documents-modal-host">
             </div>
             <div class="gsl-table-toolbar fr-mt-11v fr-mb-6v">
-                <span>
+                <span class="gsl-bulk-actions__count">
                     {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
+                    <span class="fr-text-mention--grey fr-ml-2w"
+                          data-checkbox-selection-target="counterWrapper">
+                        <span data-checkbox-selection-target="counter">0</span> projets sélectionnés
+                    </span>
                 </span>
                 <ul class="fr-btns-group fr-btns-group--inline fr-btns-group--right fr-btns-group--icon-right">
+                    <li>
+                        <button type="button" class="fr-btn fr-btn--tertiary" data-action="click->checkbox-selection#toggleSelectAll" data-checkbox-selection-target="selectAllButton"
+                            {% if not to_notify_projets_count %}
+                                disabled
+                            {% endif %}
+                            >
+                            Sélectionner tous les {{ to_notify_projets_count }} projets
+                        </button>
+                    </li>
                     <li>
                         <form hx-post="{% url "gsl_notification:generate-documents-modal" dotation %}"
                               hx-target="#generate-documents-modal-host"
@@ -66,7 +82,7 @@
                             <button type="submit"
                                     class="fr-btn fr-btn--secondary"
                                     disabled
-                                    data-checkbox-selection-target="generateButton">
+                                    data-checkbox-selection-target="actionButton">
                                 Générer les documents
                             </button>
                         </form>
@@ -81,9 +97,7 @@
                 <div class="fr-table__wrapper">
                     <div class="fr-table__container">
                         <div class="fr-table__content">
-                            <table id="table-programmation"
-                                   data-checkbox-selection-to-notify-projets-count-value="{{ to_notify_projets_count }}"
-                                   data-checkbox-selection-activate-all-projets-selection-value="{{ activate_all_projets_selection }}">
+                            <table id="table-programmation">
                                 <caption>Projets programmés</caption>
                                 <thead>
                                     <tr>
@@ -93,7 +107,7 @@
                                                 <input id="checkbox-header"
                                                        type="checkbox"
                                                        data-checkbox-selection-target="pageCheckbox"
-                                                       data-action="click->checkbox-selection#toggleSelectAllAPageProjets">
+                                                       data-action="change->checkbox-selection#togglePageSelection">
                                                 <label class="fr-label" for="checkbox-header">
                                                     <span class="fr-sr-only fr-hint-text">Sélectionner tous les projets</span>
                                                 </label>
@@ -113,17 +127,6 @@
                                     </tr>
                                 </thead>
                                 <tbody id="projet-list">
-                                    <tr data-checkbox-selection-target="selectAllRow"
-                                        class="gsl-projet-table__row--select-all">
-                                        <td colspan="{{ columns|length|add:1 }}">
-                                            <span data-checkbox-selection-target="selectAllRowText"></span>
-                                            <button class='fr-btn fr-btn--tertiary'
-                                                    data-action="click->checkbox-selection#toggleSelectAllProjets"
-                                                    data-checkbox-selection-target="selectAllButton">
-                                                Sélectionner l'ensemble des projets à notifier ({{ to_notify_projets_count }})
-                                            </button>
-                                        </td>
-                                    </tr>
                                     {% for programmation_projet in programmation_projets %}
                                         {% with projet=programmation_projet.projet dotation_projet=programmation_projet.dotation_projet %}
                                             <tr {% if dotation_projet.other_dotations|length > 0 %} class="gsl-projet-table__row--double-dotation"{% endif %}>
@@ -132,8 +135,9 @@
                                                         <div class="fr-checkbox-group fr-checkbox-group--sm">
                                                             <input id="checkbox-{{ programmation_projet.id }}"
                                                                    type="checkbox"
-                                                                   data-checkbox-selection-target="button"
-                                                                   data-action="click->checkbox-selection#toggleProjetCheckbox">
+                                                                   value="{{ programmation_projet.id }}"
+                                                                   data-checkbox-selection-target="rowCheckbox"
+                                                                   data-action="change->checkbox-selection#toggleRow">
                                                             <label class="fr-label gsl-projet-table__checkbox-label"
                                                                    for="checkbox-{{ programmation_projet.id }}">
                                                                 <span class="fr-sr-only fr-hint-text">Cocher le projet N°{{ programmation_projet.projet.dossier_ds.ds_number }}</span>

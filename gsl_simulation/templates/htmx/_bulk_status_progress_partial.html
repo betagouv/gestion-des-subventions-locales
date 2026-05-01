@@ -62,6 +62,11 @@
     {% endif %}
 </div>
 {% if not job.is_running and simulation_projets_to_refresh %}
+    <input id="bulk-status-page-checkbox"
+           type="checkbox"
+           data-checkbox-selection-target="pageCheckbox"
+           data-action="change->checkbox-selection#togglePageSelection"
+           hx-swap-oob="true">
     <template>
         {% for simu in simulation_projets_to_refresh %}
             {% include "includes/_simulation_detail_row.html" with simu=simu projet=simu.projet dotation_projet=simu.dotation_projet %}

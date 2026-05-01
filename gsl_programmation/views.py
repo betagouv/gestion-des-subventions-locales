@@ -219,8 +219,9 @@ class ProgrammationProjetListView(FilterView, ListView):
                 "dotation": self.dotation,
                 "title": title,
                 "to_notify_projets_count": self.object_list.to_notify().count(),
-                "activate_all_projets_selection": self.object_list.count()
-                > ProgrammationProjetListView.paginate_by,
+                "selectable_ids_list": list(
+                    self.object_list.to_notify().values_list("id", flat=True)
+                ),
                 "breadcrumb_dict": {
                     "current": "Programmation en cours",
                 },

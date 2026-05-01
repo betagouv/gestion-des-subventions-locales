@@ -2,114 +2,110 @@ import { Controller } from 'stimulus'
 
 export class CheckboxSelection extends Controller {
   static values = {
-    allPageProjetsSelected: { type: Boolean, default: false },
-    allProjetsSelected: { type: Boolean, default: false },
-    toNotifyProjetsCount: Number,
-    activateAllProjetsSelection: { type: Boolean, default: false }
+    // When true, submits empty IDs when all are selected (view uses URL filters as fallback)
+    emptyMeansAll: { type: Boolean, default: false }
   }
 
-  static targets = ['pageCheckbox', 'button', 'generateButton', 'idsInput', 'selectAllRow', 'selectAllRowText', 'selectAllButton']
+  static targets = [
+    'pageCheckbox',
+    'rowCheckbox',
+    'counter',
+    'counterWrapper',
+    'idsInput',
+    'selectAllButton',
+    'actionButton'
+  ]
 
   connect () {
-    this._checkIfAllCheckboxesAreSelected()
-    this._updateGenerateButton()
+    this.selectedIds = new Set()
+    const jsonEl = document.getElementById('checkbox-selection-selectable-ids')
+    this.selectableIds = jsonEl ? JSON.parse(jsonEl.textContent) : []
+    this._refresh()
   }
 
-  toggleSelectAllAPageProjets () {
-    const newValue = !this.allPageProjetsSelectedValue
-    this.allPageProjetsSelectedValue = newValue
-    if (newValue) {
-      this._updateAllCheckboxes(true)
+  toggleRow (event) {
+    const id = parseInt(event.target.value, 10)
+    if (event.target.checked) {
+      this.selectedIds.add(id)
     } else {
-      this._updateAllCheckboxes(false)
+      this.selectedIds.delete(id)
     }
-    this._updateGenerateButton()
+    this._refresh()
   }
 
-  toggleSelectAllProjets () {
-    this.allProjetsSelectedValue = !this.allProjetsSelectedValue
-    if (this.allProjetsSelectedValue === false) {
-      this._updateAllCheckboxes(false)
-    }
-    this._updateGenerateButton()
+  togglePageSelection (event) {
+    const checked = event.target.checked
+    this.rowCheckboxTargets.forEach((checkbox) => {
+      this._setCheckbox(checkbox, checked)
+      const id = parseInt(checkbox.value, 10)
+      if (checked) {
+        this.selectedIds.add(id)
+      } else {
+        this.selectedIds.delete(id)
+      }
+    })
+    this._refresh()
   }
 
-  toggleProjetCheckbox (evt) {
-    const eltValue = evt.target.checked
-    if (eltValue === false) {
-      this.allPageProjetsSelectedValue = false
+  toggleSelectAll () {
+    if (this.selectedIds.size >= this.selectableIds.length) {
+      this.selectedIds.clear()
+      this.rowCheckboxTargets.forEach((c) => this._setCheckbox(c, false))
     } else {
-      this._checkIfAllCheckboxesAreSelected()
+      this.selectableIds.forEach((id) => this.selectedIds.add(id))
+      this.rowCheckboxTargets.forEach((c) => this._setCheckbox(c, true))
     }
-    this._updateGenerateButton()
+    this._refresh()
   }
 
-  // Hook sur les valeurs
-
-  allPageProjetsSelectedValueChanged () {
-    this._updateACheckbox(this.pageCheckboxTarget, this.allPageProjetsSelectedValue)
-    if (this.allPageProjetsSelectedValue === true) {
-      this._displaySelectAllRow()
-    } else {
-      this._hideSelectAllRow()
-      this.allProjetsSelectedValue = false
-      this._updateGenerateButton()
-    }
-  }
-
-  allProjetsSelectedValueChanged () {
-    if (this.allProjetsSelectedValue) {
-      this.selectAllRowTextTarget.innerText = `Les ${this.toNotifyProjetsCountValue} projets "à notifier" ont été sélectionnés.`
-      this.selectAllButtonTarget.innerText = 'Effacer la sélection'
-    } else {
-      this.allPageProjetsSelectedValue = false
-      this.selectAllRowTextTarget.innerText = `Les ${this.buttonTargets.length} projets "à notifier" de la page ont été sélectionnés.`
-      this.selectAllButtonTarget.innerText = `Sélectionner l'ensemble des projets "à notifier" (${this.toNotifyProjetsCountValue})`
-    }
-  }
-
-  // Private
-
-  _updateGenerateButton () {
-    if (!this.hasGenerateButtonTarget) return
-
-    if (this.allProjetsSelectedValue) {
-      // IDs vide → la vue utilise les filtres de l'URL en fallback
-      this.idsInputTarget.value = ''
-      this.generateButtonTarget.disabled = false
+  beforeSubmit (event) {
+    if (this.selectedIds.size === 0) {
+      event.preventDefault()
       return
     }
-
-    const selectedIds = this.buttonTargets
-      .filter((b) => b.checked)
-      .map((b) => b.id.split('-')[1])
-
-    this.idsInputTarget.value = selectedIds.join(',')
-    this.generateButtonTarget.disabled = selectedIds.length === 0
+    this._syncIdsInputs()
   }
 
-  _updateAllCheckboxes (value) {
-    this.buttonTargets.forEach(element => this._updateACheckbox(element, value))
+  pageCheckboxTargetConnected () {
+    if (!this.selectedIds || this.selectedIds.size === 0) return
+    this.selectedIds.clear()
+    this._refresh()
   }
 
-  _updateACheckbox (elt, value) {
-    elt.checked = value
-    elt.setAttribute('data-fr-js-checkbox-input', value)
-  }
+  _refresh () {
+    const count = this.selectedIds.size
+    const allSelected = count > 0 && count >= this.selectableIds.length
 
-  _checkIfAllCheckboxesAreSelected () {
-    if (this.buttonTargets.every(b => b.checked)) {
-      this.allPageProjetsSelectedValue = true
+    if (this.hasCounterTarget) {
+      this.counterTarget.textContent = count
     }
-  }
-
-  _displaySelectAllRow () {
-    if (this.activateAllProjetsSelectionValue) {
-      this.selectAllRowTarget.style.display = 'contents'
+    if (this.hasCounterWrapperTarget) {
+      this.counterWrapperTarget.classList.toggle('fr-text-mention--grey', count === 0)
     }
+    this.actionButtonTargets.forEach((btn) => { btn.disabled = count === 0 })
+    if (this.hasSelectAllButtonTarget) {
+      this.selectAllButtonTarget.textContent = allSelected
+        ? 'Désélectionner tous les projets'
+        : `Sélectionner tous les ${this.selectableIds.length} projets`
+    }
+    if (this.hasPageCheckboxTarget) {
+      const visible = this.rowCheckboxTargets
+      const allChecked = visible.length > 0 && visible.every((c) => c.checked)
+      this._setCheckbox(this.pageCheckboxTarget, allChecked)
+    }
+    this._syncIdsInputs()
   }
 
-  _hideSelectAllRow () {
-    this.selectAllRowTarget.style.display = 'none'
+  _setCheckbox (element, value) {
+    element.checked = value
+    element.setAttribute('data-fr-js-checkbox-input', value)
+  }
+
+  _syncIdsInputs () {
+    const allSelected = this.selectedIds.size >= this.selectableIds.length && this.selectableIds.length > 0
+    const value = (this.emptyMeansAllValue && allSelected)
+      ? ''
+      : Array.from(this.selectedIds).join(',')
+    this.idsInputTargets.forEach((input) => { input.value = value })
   }
 }

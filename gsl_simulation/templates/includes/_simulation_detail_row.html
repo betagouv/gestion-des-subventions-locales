@@ -10,8 +10,8 @@
                     <input id="bulk-status-checkbox-{{ simu.pk }}"
                            type="checkbox"
                            value="{{ simu.pk }}"
-                           data-bulk-status-change-target="rowCheckbox"
-                           data-action="change->bulk-status-change#toggleRow">
+                           data-checkbox-selection-target="rowCheckbox"
+                           data-action="change->checkbox-selection#toggleRow">
                     <label class="fr-label" for="bulk-status-checkbox-{{ simu.pk }}">
                         <span class="fr-sr-only">Sélectionner le projet N°{{ projet.dossier_ds.ds_number }}</span>
                     </label>

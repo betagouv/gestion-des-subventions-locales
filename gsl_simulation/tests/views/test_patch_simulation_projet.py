@@ -519,7 +519,7 @@ def test_edit_assiette_post_keeps_bulk_status_checkbox_in_row(
     assert response.status_code == 200
     content = response.content.decode()
     assert f'id="bulk-status-checkbox-{accepted_simulation_projet.pk}"' in content
-    assert 'data-bulk-status-change-target="rowCheckbox"' in content
+    assert 'data-checkbox-selection-target="rowCheckbox"' in content
 
 
 def test_edit_assiette_post_with_wrong_value_returns_form_with_errors(

@@ -655,6 +655,10 @@ ul.no-list-style li {
     margin-right: calc(-50vw + 52%);
 }
 
+.gsl-table-toolbar .fr-btns-group .fr-btn {
+  margin-bottom: 0;
+}
+
 /* Column visibility dropdown */
 
 .gsl-column-visibility-dropdown {
