@@ -53,22 +53,28 @@
                 <span>
                     {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
                 </span>
-                <form hx-post="{% url "gsl_notification:generate-documents-modal" dotation %}"
-                      hx-target="#generate-documents-modal-host"
-                      hx-swap="innerHTML">
-                    {% csrf_token %}
-                    <input type="hidden"
-                           name="ids"
-                           value=""
-                           data-checkbox-selection-target="idsInput">
-                    <button type="submit"
-                            class="fr-btn fr-btn--secondary"
-                            disabled
-                            data-checkbox-selection-target="generateButton">
-                        Générer les documents
-                    </button>
-                </form>
-                {% include "gsl_core/_column_visibility_dropdown.html" with table_wrapper_id="programmation-table-wrapper" %}
+                <ul class="fr-btns-group fr-btns-group--inline fr-btns-group--right fr-btns-group--icon-right">
+                    <li>
+                        <form hx-post="{% url "gsl_notification:generate-documents-modal" dotation %}"
+                              hx-target="#generate-documents-modal-host"
+                              hx-swap="innerHTML">
+                            {% csrf_token %}
+                            <input type="hidden"
+                                   name="ids"
+                                   value=""
+                                   data-checkbox-selection-target="idsInput">
+                            <button type="submit"
+                                    class="fr-btn fr-btn--secondary"
+                                    disabled
+                                    data-checkbox-selection-target="generateButton">
+                                Générer les documents
+                            </button>
+                        </form>
+                    </li>
+                    <li>
+                        {% include "gsl_core/_column_visibility_dropdown.html" with table_wrapper_id="programmation-table-wrapper" %}
+                    </li>
+                </ul>
             </div>
             <div class="fr-table fr-table--multiline fr-table--xs fr-table--no-caption gsl-projet-table"
                  id="programmation-projet-table">

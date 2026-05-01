@@ -56,15 +56,26 @@
                                                 Les lettres de notification
                                             </label>
                                         </div>
+                                        <div class="fr-radio-group">
+                                            <input type="radio"
+                                                   name="document_type"
+                                                   id="{{ modal_id }}-type-les-deux"
+                                                   value="arrete_et_lettre">
+                                            <label class="fr-label" for="{{ modal_id }}-type-les-deux">
+                                                Les deux
+                                            </label>
+                                        </div>
                                     </div>
                                 </fieldset>
                             </form>
                         </div>
                         <div class="fr-modal__footer">
-                            <ul class="fr-btns-group fr-btns-group--right fr-btns-group--inline-reverse fr-btns-group--inline-lg">
+                            <ul class="fr-btns-group fr-btns-group--right fr-btns-group--inline-reverse fr-btns-group--inline-lg fr-btns-group--icon-right">
                                 <li>
-                                    <button type="submit" form="{{ modal_id }}-step1-form" class="fr-btn">
-                                        Continuer <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
+                                    <button type="submit"
+                                            form="{{ modal_id }}-step1-form"
+                                            class="fr-btn fr-icon-arrow-right-s-line">
+                                        Continuer
                                     </button>
                                 </li>
                                 <li>

@@ -19,45 +19,107 @@
             {% csrf_token %}
             <input type="hidden" name="ids" value="{{ ids }}">
             <input type="hidden" name="document_type" value="{{ document_type }}">
-            <div class="fr-select-group fr-mt-2w">
-                <label class="fr-label" for="{{ modal_id }}-modele-select">
-                    Modèle pour les {{ document_type_label }}
-                </label>
-                {% if modeles %}
-                    <select id="{{ modal_id }}-modele-select"
-                            name="modele_id"
-                            class="fr-select"
-                            required>
-                        <option value="" disabled selected>
-                            Sélectionner un modèle
-                        </option>
-                        {% for modele in modeles %}
-                            <option value="{{ modele.id }}">
-                                {{ modele.name }}
+            {% if document_type == "arrete_et_lettre" %}
+                <div class="fr-select-group fr-mt-2w">
+                    <label class="fr-label" for="{{ modal_id }}-modele-arrete-select">
+                        Modèle pour les arrêtés
+                    </label>
+                    {% if modeles_arrete %}
+                        <select id="{{ modal_id }}-modele-arrete-select"
+                                name="modele_arrete_id"
+                                class="fr-select"
+                                required>
+                            <option value="" disabled selected>
+                                Sélectionner un modèle
                             </option>
-                        {% endfor %}
-                    </select>
-                {% else %}
-                    <div class="fr-callout fr-mt-2w">
-                        <p class="fr-callout__text">
-                            Vous n'avez créé aucun modèle pour le moment.
-                            <a href="{% url 'gsl_notification:modele-creer' document_type dotation %}">
-                            Créer un modèle</a>
-                            et revenez ici.
-                        </p>
-                    </div>
-                {% endif %}
-            </div>
+                            {% for modele in modeles_arrete %}
+                                <option value="{{ modele.id }}">
+                                    {{ modele.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    {% else %}
+                        <div class="fr-callout fr-mt-2w">
+                            <p class="fr-callout__text">
+                                Vous n'avez créé aucun modèle d'arrêté pour le moment.
+                                <a href="{% url 'gsl_notification:modele-creer' "arrete" dotation %}">Créer un modèle</a>
+                                et revenez ici.
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="fr-select-group fr-mt-2w">
+                    <label class="fr-label" for="{{ modal_id }}-modele-lettre-select">
+                        Modèle pour les lettres de notification
+                    </label>
+                    {% if modeles_lettre %}
+                        <select id="{{ modal_id }}-modele-lettre-select"
+                                name="modele_lettre_id"
+                                class="fr-select"
+                                required>
+                            <option value="" disabled selected>
+                                Sélectionner un modèle
+                            </option>
+                            {% for modele in modeles_lettre %}
+                                <option value="{{ modele.id }}">
+                                    {{ modele.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    {% else %}
+                        <div class="fr-callout fr-mt-2w">
+                            <p class="fr-callout__text">
+                                Vous n'avez créé aucun modèle de lettre pour le moment.
+                                <a href="{% url 'gsl_notification:modele-creer' "lettre" dotation %}">Créer un modèle</a>
+                                et revenez ici.
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="fr-select-group fr-mt-2w">
+                    <label class="fr-label" for="{{ modal_id }}-modele-select">
+                        Modèle pour les {{ document_type_label }}
+                    </label>
+                    {% if modeles %}
+                        <select id="{{ modal_id }}-modele-select"
+                                name="modele_id"
+                                class="fr-select"
+                                required>
+                            <option value="" disabled selected>
+                                Sélectionner un modèle
+                            </option>
+                            {% for modele in modeles %}
+                                <option value="{{ modele.id }}">
+                                    {{ modele.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    {% else %}
+                        <div class="fr-callout fr-mt-2w">
+                            <p class="fr-callout__text">
+                                Vous n'avez créé aucun modèle pour le moment.
+                                <a href="{% url 'gsl_notification:modele-creer' document_type dotation %}">
+                                Créer un modèle</a>
+                                et revenez ici.
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
         </form>
     </div>
     <div class="fr-modal__footer">
-        <ul class="fr-btns-group fr-btns-group--right fr-btns-group--inline-reverse fr-btns-group--inline-lg">
+        <ul class="fr-btns-group fr-btns-group--right fr-btns-group--inline-reverse fr-btns-group--inline-lg fr-btns-group--icon-right">
             <li>
                 <button type="submit"
                         form="{{ modal_id }}-step2-form"
-                        class="fr-btn"
-                        {% if not modeles %}disabled{% endif %}>
-                    Continuer <span class="fr-icon-arrow-right-s-line" aria-hidden="true"></span>
+                        class="fr-btn fr-icon-arrow-right-s-line"
+                        {% if document_type == "arrete_et_lettre" %} {% if not modeles_arrete or not modeles_lettre %}disabled{% endif %}
+                        {% else %}
+                        {% if not modeles %}disabled{% endif %}
+                        {% endif %}>
+                    Continuer
                 </button>
             </li>
             <li>

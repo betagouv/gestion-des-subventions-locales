@@ -15,6 +15,7 @@ from gsl_core.tests.factories import (
 )
 from gsl_notification.tests.factories import (
     LettreNotificationFactory,
+    ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
 from gsl_notification.utils import generate_pdf_for_generated_document
@@ -54,6 +55,11 @@ def programmation_projets(perimetre):
 @pytest.fixture
 def detr_lettre_modele(perimetre):
     return ModeleLettreNotificationFactory(dotation=DOTATION_DETR, perimetre=perimetre)
+
+
+@pytest.fixture
+def detr_arrete_modele(perimetre):
+    return ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=perimetre)
 
 
 @pytest.fixture
@@ -560,6 +566,112 @@ def test_generate_documents_modal_create_replaces_existing_doc(
     )
     pp.refresh_from_db()
     assert pp.lettre_notification.id != old_lettre.id
+
+
+## Option "arrete_et_lettre"
+
+ARRETE_ET_LETTRE = "arrete_et_lettre"
+
+
+def test_generate_documents_modal_step2_both_types_returns_two_selectors(
+    client, programmation_projets, detr_arrete_modele, detr_lettre_modele
+):
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    url = reverse(
+        "gsl_notification:generate-documents-modal-step2", args=[DOTATION_DETR]
+    )
+    response = client.post(
+        url, {"document_type": ARRETE_ET_LETTRE, "ids": ids}, **HTMX_HEADERS
+    )
+    assert response.status_code == 200
+    assert response.templates[0].name == (
+        "gsl_notification/generated_document/multiple/modal_step2_body.html"
+    )
+    assert detr_arrete_modele in response.context["modeles_arrete"]
+    assert detr_lettre_modele in response.context["modeles_lettre"]
+    assert response.context["document_type"] == ARRETE_ET_LETTRE
+
+
+def test_generate_documents_modal_loading_both_missing_modele_returns_step2_with_error(
+    client, programmation_projets
+):
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    url = reverse(
+        "gsl_notification:generate-documents-modal-loading", args=[DOTATION_DETR]
+    )
+    response = client.post(
+        url,
+        {
+            "document_type": ARRETE_ET_LETTRE,
+            "ids": ids,
+            "modele_arrete_id": "",
+            "modele_lettre_id": "",
+        },
+        **HTMX_HEADERS,
+    )
+    assert response.status_code == 200
+    assert response.templates[0].name == (
+        "gsl_notification/generated_document/multiple/modal_step2_body.html"
+    )
+    assert response.context["error"]
+
+
+def test_generate_documents_modal_loading_both_valid(
+    client, programmation_projets, detr_arrete_modele, detr_lettre_modele
+):
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    url = reverse(
+        "gsl_notification:generate-documents-modal-loading", args=[DOTATION_DETR]
+    )
+    response = client.post(
+        url,
+        {
+            "document_type": ARRETE_ET_LETTRE,
+            "ids": ids,
+            "modele_arrete_id": str(detr_arrete_modele.id),
+            "modele_lettre_id": str(detr_lettre_modele.id),
+        },
+        **HTMX_HEADERS,
+    )
+    assert response.status_code == 200
+    assert response.templates[0].name == (
+        "gsl_notification/generated_document/multiple/modal_loading_body.html"
+    )
+    assert response.context["document_type"] == ARRETE_ET_LETTRE
+    assert response.context["modele_arrete_id"] == str(detr_arrete_modele.id)
+    assert response.context["modele_lettre_id"] == str(detr_lettre_modele.id)
+
+
+def test_generate_documents_modal_create_both_creates_arrete_and_lettre(
+    client, programmation_projets, detr_arrete_modele, detr_lettre_modele
+):
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    url = reverse(
+        "gsl_notification:generate-documents-modal-create", args=[DOTATION_DETR]
+    )
+    response = client.post(
+        url,
+        {
+            "document_type": ARRETE_ET_LETTRE,
+            "ids": ids,
+            "modele_arrete_id": str(detr_arrete_modele.id),
+            "modele_lettre_id": str(detr_lettre_modele.id),
+        },
+        **HTMX_HEADERS,
+    )
+    assert response.status_code == 200
+    assert response.templates[0].name == (
+        "gsl_notification/generated_document/multiple/modal_success_body.html"
+    )
+    assert response.context["document_type"] == ARRETE_ET_LETTRE
+    assert response.context["doc_count"] == 6
+    assert "download_url" in response.context
+    for pp in programmation_projets:
+        pp.refresh_from_db()
+        assert hasattr(pp, "arrete")
+        assert pp.arrete.modele == detr_arrete_modele
+        assert hasattr(pp, "lettre_notification")
+        assert pp.lettre_notification.modele == detr_lettre_modele
 
 
 def test_generate_pdf_for_document_unit(detr_lettre_modele, programmation_projet):
