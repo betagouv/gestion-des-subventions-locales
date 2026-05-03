@@ -1,4 +1,3 @@
-import datetime
 import io
 import logging
 import zipfile
@@ -8,6 +7,7 @@ from django.http import Http404 as DjangoHttp404
 from django.http import HttpResponse
 from django.shortcuts import get_list_or_404, get_object_or_404
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_GET
 from django.views.generic import TemplateView
@@ -140,7 +140,7 @@ def _download_one_pdf_per_doc(programmation_projets, attrs):
             zip_file.writestr(f"{document.name}", pdf_content)
             logger.info(f"#{i} {document} généré")
     zip_buffer.seek(0)
-    date_str = datetime.date.today().strftime("%d-%m-%Y")
+    date_str = timezone.now().strftime("%d-%m-%Y")
     zip_filename = f"export turgot {date_str}.zip"
     response = HttpResponse(zip_buffer, content_type="application/zip")
     response["Content-Disposition"] = f'attachment; filename="{zip_filename}"'
@@ -155,7 +155,7 @@ def _download_single_merged_pdf(programmation_projets, attrs, document_type, use
                 generate_pdf_for_generated_document(getattr(pp, attr))
             )
     merged = _merge_pdfs_bytes(pdf_bytes_list)
-    date_str = datetime.date.today().strftime("%d-%m-%Y")
+    date_str = timezone.now().strftime("%d-%m-%Y")
     doc_type_fr = "arrêté" if document_type == ARRETE else "lettre"
     filename = f"export {doc_type_fr} turgot {date_str}.pdf"
     response = HttpResponse(merged, content_type="application/pdf")
@@ -164,7 +164,23 @@ def _download_single_merged_pdf(programmation_projets, attrs, document_type, use
 
 
 def _download_one_pdf_per_project(programmation_projets, attrs, user):
-    date_str = datetime.date.today().strftime("%d-%m-%Y")
+    if len(programmation_projets) == 1:
+        pp = programmation_projets[0]
+        pdf_bytes_list = []
+        for attr in attrs:
+            pdf_bytes_list.append(
+                generate_pdf_for_generated_document(getattr(pp, attr))
+            )
+        merged = _merge_pdfs_bytes(pdf_bytes_list)
+        date_str = timezone.now().strftime("%d-%m-%Y")
+        ds_number = pp.dossier.ds_number
+        raison_sociale = pp.dossier.ds_demandeur.raison_sociale
+        filename = f"lettre et arrêté - {ds_number} - {raison_sociale} - {date_str}.pdf"
+        response = HttpResponse(merged, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
+    date_str = timezone.now().strftime("%d-%m-%Y")
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for pp in programmation_projets:
@@ -191,7 +207,7 @@ def _download_grouped_merged_pdf(programmation_projets, attrs, user):
                 generate_pdf_for_generated_document(getattr(pp, attr))
             )
     merged = _merge_pdfs_bytes(pdf_bytes_list)
-    date_str = datetime.date.today().strftime("%d-%m-%Y")
+    date_str = timezone.now().strftime("%d-%m-%Y")
     filename = f"export turgot {date_str}.pdf"
     response = HttpResponse(merged, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
@@ -556,6 +572,7 @@ class GenerateDocumentsModalCreateView(GenerateDocumentsModalMixin, TemplateView
             doc_name=self._get_doc_name(document_type, len(documents_list)),
             download_url=download_url,
             programmation_projets=updated_pps,
+            export_format=export_format,
         )
         return self.render_to_response(context)
 
@@ -595,6 +612,7 @@ class GenerateDocumentsModalCreateView(GenerateDocumentsModalMixin, TemplateView
             doc_count=len(arretes) + len(lettres),
             download_url=download_url,
             programmation_projets=updated_pps,
+            export_format=export_format,
         )
         return self.render_to_response(context)
 

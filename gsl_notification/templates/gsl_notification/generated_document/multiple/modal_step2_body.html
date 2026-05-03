@@ -39,8 +39,8 @@
                             {% endfor %}
                         </select>
                     {% else %}
-                        <div class="fr-callout fr-mt-2w">
-                            <p class="fr-callout__text">
+                        <div class="fr-alert fr-alert--warning fr-mt-2w fr-alert--sm">
+                            <p>
                                 Vous n'avez créé aucun modèle d'arrêté pour le moment.
                                 <a href="{% url 'gsl_notification:modele-creer' "arrete" dotation %}">Créer un modèle</a>
                                 et revenez ici.
@@ -67,8 +67,8 @@
                             {% endfor %}
                         </select>
                     {% else %}
-                        <div class="fr-callout fr-mt-2w">
-                            <p class="fr-callout__text">
+                        <div class="fr-alert fr-alert--warning fr-mt-2w fr-alert--sm">
+                            <p>
                                 Vous n'avez créé aucun modèle de lettre pour le moment.
                                 <a href="{% url 'gsl_notification:modele-creer' "lettre" dotation %}">Créer un modèle</a>
                                 et revenez ici.
@@ -96,8 +96,8 @@
                             {% endfor %}
                         </select>
                     {% else %}
-                        <div class="fr-callout fr-mt-2w">
-                            <p class="fr-callout__text">
+                        <div class="fr-alert fr-alert--warning fr-mt-2w fr-alert--sm">
+                            <p>
                                 Vous n'avez créé aucun modèle pour le moment.
                                 <a href="{% url 'gsl_notification:modele-creer' document_type dotation %}">
                                 Créer un modèle</a>

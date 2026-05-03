@@ -14,7 +14,13 @@
         <div class="fr-alert fr-alert--success fr-mt-3w" role="status">
             <p>
                 {{ doc_count }} document{{ doc_count|pluralize }} généré{{ doc_count|pluralize:"s" }}
-                {% if doc_count != 1 %}
+                {% if export_format == "un_seul_pdf_ensemble" %}
+                    dans un seul fichier PDF
+                {% elif export_format == "un_seul_pdf_groupe_par_projet" %}
+                    dans un seul fichier PDF groupé par projet
+                {% elif export_format == "un_pdf_par_projet" %}
+                    regroupés par projet dans un fichier ZIP
+                {% elif doc_count != 1 %}
                     dans un fichier ZIP
                 {% endif %}
             </p>
