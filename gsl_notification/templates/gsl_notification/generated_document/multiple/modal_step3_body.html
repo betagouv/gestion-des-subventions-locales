@@ -19,6 +19,9 @@
             {% csrf_token %}
             <input type="hidden" name="ids" value="{{ ids }}">
             <input type="hidden" name="document_type" value="{{ document_type }}">
+            <input type="hidden"
+                   name="overwrite_strategy"
+                   value="{{ overwrite_strategy }}">
             {% if document_type == "arrete_et_lettre" %}
                 <input type="hidden" name="modele_arrete_id" value="{{ modele_arrete_id }}">
                 <input type="hidden" name="modele_lettre_id" value="{{ modele_lettre_id }}">

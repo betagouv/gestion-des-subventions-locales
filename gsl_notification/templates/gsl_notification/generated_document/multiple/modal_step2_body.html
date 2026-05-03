@@ -19,6 +19,111 @@
             {% csrf_token %}
             <input type="hidden" name="ids" value="{{ ids }}">
             <input type="hidden" name="document_type" value="{{ document_type }}">
+            {% if existing_arrete_count or existing_lettre_count %}
+                <div class="fr-alert fr-alert--warning fr-mt-2w fr-alert--sm" role="alert">
+                    <p>
+                        {% if document_type == "arrete_et_lettre" %}
+                            {% if existing_arrete_count and existing_lettre_count %}
+                                {{ existing_lettre_count }} projet{{ existing_lettre_count|pluralize }}
+                                {% if existing_lettre_count == 1 %}
+                                    a
+                                {% else %}
+                                    ont
+                                {% endif %}
+                                déjà une lettre, {{ existing_arrete_count }} projet{{ existing_arrete_count|pluralize }}
+                                {% if existing_arrete_count == 1 %}
+                                    a
+                                {% else %}
+                                    ont
+                                {% endif %}
+                                déjà un arrêté
+                            {% elif existing_arrete_count %}
+                                {{ existing_arrete_count }} projet{{ existing_arrete_count|pluralize }}
+                                {% if existing_arrete_count == 1 %}
+                                    a
+                                {% else %}
+                                    ont
+                                {% endif %}
+                                déjà un arrêté
+                            {% else %}
+                                {{ existing_lettre_count }} projet{{ existing_lettre_count|pluralize }}
+                                {% if existing_lettre_count == 1 %}
+                                    a
+                                {% else %}
+                                    ont
+                                {% endif %}
+                                déjà une lettre
+                            {% endif %}
+                        {% elif document_type == "lettre" %}
+                            {{ existing_lettre_count }} projet{{ existing_lettre_count|pluralize }}
+                            {% if existing_lettre_count == 1 %}
+                                a
+                            {% else %}
+                                ont
+                            {% endif %}
+                            déjà une lettre
+                        {% else %}
+                            {{ existing_arrete_count }} projet{{ existing_arrete_count|pluralize }}
+                            {% if existing_arrete_count == 1 %}
+                                a
+                            {% else %}
+                                ont
+                            {% endif %}
+                            déjà un arrêté
+                        {% endif %}
+                    </p>
+                </div>
+                <fieldset class="fr-fieldset fr-mt-2w"
+                          id="{{ modal_id }}-overwrite-strategy-fieldset">
+                    <legend class="fr-fieldset__legend--regular fr-fieldset__legend">
+                        Que voulez-vous faire avec les projets ayant déjà
+                        {% if document_type == "arrete_et_lettre" %}
+                            des lettres ou des arrêtés
+                        {% elif document_type == "lettre" %}
+                            une lettre
+                        {% else %}
+                            un arrêté
+                        {% endif %}
+                        ?
+                    </legend>
+                    <div class="fr-fieldset__content">
+                        <div class="fr-radio-group">
+                            <input type="radio"
+                                   name="overwrite_strategy"
+                                   id="{{ modal_id }}-strategy-conserver"
+                                   value="conserver"
+                                   checked>
+                            <label class="fr-label" for="{{ modal_id }}-strategy-conserver">
+                                Conserver
+                                {% if document_type == "arrete_et_lettre" %}
+                                    les lettres et les arrêtés existants
+                                {% elif document_type == "lettre" %}
+                                    les lettres existantes
+                                {% else %}
+                                    les arrêtés existants
+                                {% endif %}
+                            </label>
+                        </div>
+                        <div class="fr-radio-group">
+                            <input type="radio"
+                                   name="overwrite_strategy"
+                                   id="{{ modal_id }}-strategy-remplacer"
+                                   value="remplacer">
+                            <label class="fr-label" for="{{ modal_id }}-strategy-remplacer">
+                                Remplacer
+                                {% if document_type == "arrete_et_lettre" %}
+                                    toutes les lettres et les arrêtés
+                                {% elif document_type == "lettre" %}
+                                    toutes les lettres
+                                {% else %}
+                                    tous les arrêtés
+                                {% endif %}
+                                par ceux sélectionnés ci-dessous
+                            </label>
+                        </div>
+                    </div>
+                </fieldset>
+            {% endif %}
             {% if document_type == "arrete_et_lettre" %}
                 <div class="fr-select-group fr-mt-2w">
                     <label class="fr-label" for="{{ modal_id }}-modele-arrete-select">

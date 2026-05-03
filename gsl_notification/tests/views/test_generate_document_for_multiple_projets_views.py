@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 from django.test import override_settings
 from django.urls import reverse
+from freezegun import freeze_time
 
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -103,6 +104,7 @@ def test_download_documents_with_wrong_document_type(client):
     assert "Type de document inconnu" in unescape(response.content.decode("utf-8"))
 
 
+@freeze_time("2026-05-03")
 def test_download_documents_no_id(client):
     pps = []
     # Must be selected (good perimetre, status and notified_at)
@@ -142,12 +144,16 @@ def test_download_documents_no_id(client):
         response = client.get(url)
 
     assert response.status_code == 200
-    assert response["Content-Disposition"] == 'attachment; filename="documents.zip"'
+    assert (
+        response["Content-Disposition"]
+        == 'attachment; filename="export turgot 03-05-2026.zip"'
+    )
 
     with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
         assert len(zf.namelist()) == 3
 
 
+@freeze_time("2026-05-03")
 def test_download_documents_no_id_with_filters(client):
     data = {"montant_demande_min": "100000"}
 
@@ -177,7 +183,10 @@ def test_download_documents_no_id_with_filters(client):
         response = client.get(url, data)
 
     assert response.status_code == 200
-    assert response["Content-Disposition"] == 'attachment; filename="documents.zip"'
+    assert (
+        response["Content-Disposition"]
+        == 'attachment; filename="export turgot 03-05-2026.zip"'
+    )
 
     with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
         assert len(zf.namelist()) == 2
@@ -325,6 +334,7 @@ def test_download_documents_with_duplicate_id(client, programmation_projets):
     )
 
 
+@freeze_time("2026-05-03")
 def test_download_documents_correctly(client, programmation_projets):
     for pp in programmation_projets:
         LettreNotificationFactory(programmation_projet=pp)
@@ -344,7 +354,10 @@ def test_download_documents_correctly(client, programmation_projets):
         response = client.get(url)
 
     assert response.status_code == 200
-    assert response["Content-Disposition"] == 'attachment; filename="documents.zip"'
+    assert (
+        response["Content-Disposition"]
+        == 'attachment; filename="export turgot 03-05-2026.zip"'
+    )
 
     with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
         assert len(zf.namelist()) == 3
@@ -522,9 +535,9 @@ def test_generate_documents_modal_loading_missing_modele_returns_step2_with_erro
     )
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple/modal_step2_body.html"
+        "gsl_notification/generated_document/multiple/modal_step3_body.html"
     )
-    assert response.context["error"] == "Veuillez sélectionner un modèle."
+    assert response.context["error"] == "Veuillez sélectionner un format d'export."
 
 
 def test_generate_documents_modal_loading_valid(
@@ -536,7 +549,12 @@ def test_generate_documents_modal_loading_valid(
     )
     response = client.post(
         url,
-        {"document_type": LETTRE, "ids": ids, "modele_id": str(detr_lettre_modele.id)},
+        {
+            "document_type": LETTRE,
+            "ids": ids,
+            "modele_id": str(detr_lettre_modele.id),
+            "export_format": "un_pdf_par_document",
+        },
         **HTMX_HEADERS,
     )
     assert response.status_code == 200
@@ -702,7 +720,7 @@ def test_generate_documents_modal_loading_both_missing_modele_returns_step2_with
     )
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple/modal_step2_body.html"
+        "gsl_notification/generated_document/multiple/modal_step3_body.html"
     )
     assert response.context["error"]
 
@@ -721,6 +739,7 @@ def test_generate_documents_modal_loading_both_valid(
             "ids": ids,
             "modele_arrete_id": str(detr_arrete_modele.id),
             "modele_lettre_id": str(detr_lettre_modele.id),
+            "export_format": "un_pdf_par_document",
         },
         **HTMX_HEADERS,
     )

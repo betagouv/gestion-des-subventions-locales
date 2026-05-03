@@ -59,6 +59,9 @@ VALID_EXPORT_FORMATS_BOTH = [
     EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
 ]
 
+STRATEGY_CONSERVER = "conserver"
+STRATEGY_REMPLACER = "remplacer"
+
 
 @require_GET
 def download_documents(request, dotation, document_type):
@@ -363,12 +366,32 @@ class GenerateDocumentsModalStep2View(GenerateDocumentsModalMixin, TemplateView)
     def post(self, request, *args, **kwargs):
         document_type = request.POST.get("document_type")
         ids_str = request.POST.get("ids", "")
+        ids = [int(i) for i in ids_str.split(",") if i.strip().isdigit()]
+
+        existing_arrete_count = 0
+        existing_lettre_count = 0
+        if ids:
+            if document_type in [ARRETE, ARRETE_ET_LETTRE]:
+                existing_arrete_count = (
+                    get_generated_document_class(ARRETE)
+                    .objects.filter(programmation_projet_id__in=ids)
+                    .count()
+                )
+            if document_type in [LETTRE, ARRETE_ET_LETTRE]:
+                existing_lettre_count = (
+                    get_generated_document_class(LETTRE)
+                    .objects.filter(programmation_projet_id__in=ids)
+                    .count()
+                )
+
         if document_type == ARRETE_ET_LETTRE:
             context = self.get_context_data(
                 document_type=document_type,
                 modeles_arrete=self._get_modeles(ARRETE),
                 modeles_lettre=self._get_modeles(LETTRE),
                 ids=ids_str,
+                existing_arrete_count=existing_arrete_count,
+                existing_lettre_count=existing_lettre_count,
             )
         else:
             context = self.get_context_data(
@@ -376,6 +399,8 @@ class GenerateDocumentsModalStep2View(GenerateDocumentsModalMixin, TemplateView)
                 document_type_label=self._get_document_type_label(document_type),
                 modeles=self._get_modeles(document_type),
                 ids=ids_str,
+                existing_arrete_count=existing_arrete_count,
+                existing_lettre_count=existing_lettre_count,
             )
         return self.render_to_response(context)
 
@@ -431,12 +456,14 @@ class GenerateDocumentsModalStep3View(GenerateDocumentsModalMixin, TemplateView)
                     using=self.template_engine,
                 )
 
+        overwrite_strategy = request.POST.get("overwrite_strategy", STRATEGY_CONSERVER)
         context = self.get_context_data(
             document_type=document_type,
             ids=ids_str,
             modele_id=modele_id,
             modele_arrete_id=modele_arrete_id,
             modele_lettre_id=modele_lettre_id,
+            overwrite_strategy=overwrite_strategy,
         )
         return self.render_to_response(context)
 
@@ -480,6 +507,7 @@ class GenerateDocumentsModalLoadingView(GenerateDocumentsModalMixin, TemplateVie
                 using=self.template_engine,
             )
 
+        overwrite_strategy = request.POST.get("overwrite_strategy", STRATEGY_CONSERVER)
         ids = [int(i) for i in ids_str.split(",") if i.strip().isdigit()]
         doc_count = len(ids) * (2 if document_type == ARRETE_ET_LETTRE else 1)
         context = self.get_context_data(
@@ -487,6 +515,7 @@ class GenerateDocumentsModalLoadingView(GenerateDocumentsModalMixin, TemplateVie
             ids=ids_str,
             doc_count=doc_count,
             export_format=export_format,
+            overwrite_strategy=overwrite_strategy,
             modele_id=request.POST.get("modele_id", ""),
             modele_arrete_id=request.POST.get("modele_arrete_id", ""),
             modele_lettre_id=request.POST.get("modele_lettre_id", ""),
@@ -520,6 +549,7 @@ class GenerateDocumentsModalCreateView(GenerateDocumentsModalMixin, TemplateView
         document_type = request.POST.get("document_type")
         ids_str = request.POST.get("ids", "")
         export_format = request.POST.get("export_format", EXPORT_FORMAT_ONE_PDF_PER_DOC)
+        overwrite_strategy = request.POST.get("overwrite_strategy", STRATEGY_REMPLACER)
 
         ids = [int(i) for i in ids_str.split(",") if i.strip().isdigit()]
         if not ids:
@@ -540,7 +570,11 @@ class GenerateDocumentsModalCreateView(GenerateDocumentsModalMixin, TemplateView
 
         if document_type == ARRETE_ET_LETTRE:
             return self._post_both_create(
-                dotation, ids_str, programmation_projets, export_format
+                dotation,
+                ids_str,
+                programmation_projets,
+                export_format,
+                overwrite_strategy,
             )
 
         try:
@@ -556,7 +590,7 @@ class GenerateDocumentsModalCreateView(GenerateDocumentsModalMixin, TemplateView
             perimetre__in=get_modele_perimetres(dotation, request.user.perimetre),
         )
         documents_list = self._create_documents(
-            programmation_projets, document_class, modele
+            programmation_projets, document_class, modele, overwrite_strategy
         )
         download_url = reverse(
             "gsl_notification:download-documents",
@@ -577,7 +611,12 @@ class GenerateDocumentsModalCreateView(GenerateDocumentsModalMixin, TemplateView
         return self.render_to_response(context)
 
     def _post_both_create(
-        self, dotation, ids_str, programmation_projets, export_format
+        self,
+        dotation,
+        ids_str,
+        programmation_projets,
+        export_format,
+        overwrite_strategy,
     ):
         perimetres = get_modele_perimetres(dotation, self.request.user.perimetre)
         modele_arrete = get_object_or_404(
@@ -593,10 +632,16 @@ class GenerateDocumentsModalCreateView(GenerateDocumentsModalMixin, TemplateView
             perimetre__in=perimetres,
         )
         arretes = self._create_documents(
-            programmation_projets, get_generated_document_class(ARRETE), modele_arrete
+            programmation_projets,
+            get_generated_document_class(ARRETE),
+            modele_arrete,
+            overwrite_strategy,
         )
         lettres = self._create_documents(
-            programmation_projets, get_generated_document_class(LETTRE), modele_lettre
+            programmation_projets,
+            get_generated_document_class(LETTRE),
+            modele_lettre,
+            overwrite_strategy,
         )
         download_url = reverse(
             "gsl_notification:download-documents",
@@ -616,11 +661,21 @@ class GenerateDocumentsModalCreateView(GenerateDocumentsModalMixin, TemplateView
         )
         return self.render_to_response(context)
 
-    def _create_documents(self, programmation_projets, document_class, modele):
+    def _create_documents(
+        self,
+        programmation_projets,
+        document_class,
+        modele,
+        overwrite_strategy=STRATEGY_REMPLACER,
+    ):
         documents_list = []
         for pp in programmation_projets:
             try:
-                document_class.objects.get(programmation_projet_id=pp.id).delete()
+                existing = document_class.objects.get(programmation_projet_id=pp.id)
+                if overwrite_strategy == STRATEGY_CONSERVER:
+                    documents_list.append(existing)
+                    continue
+                existing.delete()
             except document_class.DoesNotExist:
                 pass
             document = document_class(
