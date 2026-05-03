@@ -154,6 +154,7 @@ COLUMN_DOCUMENTS = Column(
     label="Documents ajoutés",
     template_name="gsl_programmation/table_cells/documents.html",
     other_dotation_getter=_get_other_dotation_documents,
+    width=ColumnWidth.MIN_105,
 )
 
 COLUMN_STATUT = Column(

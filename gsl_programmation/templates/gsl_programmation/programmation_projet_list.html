@@ -146,7 +146,8 @@
                                                     {% endif %}
                                                 </td>
                                                 {% for column in columns %}
-                                                    <td class="{{ column.td_classes }}">
+                                                    <td class="{{ column.td_classes }}"
+                                                        {% if column.key == "documents" %} id="pp-documents-cell-{{ programmation_projet.id }}"{% endif %}>
                                                         {% include column.resolved_template_name %}
                                                     </td>
                                                 {% endfor %}

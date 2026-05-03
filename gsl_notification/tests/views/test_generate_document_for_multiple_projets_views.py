@@ -430,7 +430,6 @@ def test_generate_documents_modal_step2_requires_htmx(client, programmation_proj
     assert response.status_code == 400
 
 
-@override_settings(DEBUG=False)
 def test_generate_documents_modal_step2_wrong_document_type(
     client, programmation_projets
 ):
@@ -439,8 +438,11 @@ def test_generate_documents_modal_step2_wrong_document_type(
         "gsl_notification:generate-documents-modal-step2", args=[DOTATION_DETR]
     )
     response = client.post(url, {"document_type": "raté", "ids": ids}, **HTMX_HEADERS)
-    assert response.status_code == 404
-    assert "Type de document inconnu" in unescape(response.content.decode("utf-8"))
+    assert response.status_code == 200
+    assert response.templates[0].name == (
+        "gsl_notification/generated_document/multiple/modal_error_body.html"
+    )
+    assert "Type de document inconnu" in response.context["error"]
 
 
 def test_generate_documents_modal_step2_returns_modeles(
@@ -460,7 +462,52 @@ def test_generate_documents_modal_step2_returns_modeles(
     assert response.context["ids"] == ids
 
 
+def test_generate_documents_modal_step1_no_projects_returns_error_in_modal(client):
+    url = reverse("gsl_notification:generate-documents-modal", args=[DOTATION_DETR])
+    response = client.post(url, {"ids": "99999"}, **HTMX_HEADERS)
+    assert response.status_code == 200
+    assert response.templates[0].name == (
+        "gsl_notification/generated_document/multiple/modal_step1.html"
+    )
+    assert response.context["error"]
+
+
+def test_generate_documents_modal_step1_wrong_perimetre_returns_error_in_modal(
+    client,
+):
+    wrong_pp = ProgrammationProjetFactory(
+        dotation_projet__dotation=DOTATION_DETR,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        notified_at=None,
+    )
+    url = reverse("gsl_notification:generate-documents-modal", args=[DOTATION_DETR])
+    response = client.post(url, {"ids": str(wrong_pp.id)}, **HTMX_HEADERS)
+    assert response.status_code == 200
+    assert response.templates[0].name == (
+        "gsl_notification/generated_document/multiple/modal_step1.html"
+    )
+    assert (
+        "Un ou plusieurs projets sont hors de votre périmètre."
+        in response.context["error"]
+    )
+
+
 ## GenerateDocumentsModalLoadingView
+
+
+def test_generate_documents_modal_loading_wrong_document_type(
+    client, programmation_projets
+):
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    url = reverse(
+        "gsl_notification:generate-documents-modal-loading", args=[DOTATION_DETR]
+    )
+    response = client.post(url, {"document_type": "raté", "ids": ids}, **HTMX_HEADERS)
+    assert response.status_code == 200
+    assert response.templates[0].name == (
+        "gsl_notification/generated_document/multiple/modal_error_body.html"
+    )
+    assert "Type de document inconnu" in response.context["error"]
 
 
 def test_generate_documents_modal_loading_missing_modele_returns_step2_with_error(
@@ -496,7 +543,7 @@ def test_generate_documents_modal_loading_valid(
     assert response.templates[0].name == (
         "gsl_notification/generated_document/multiple/modal_loading_body.html"
     )
-    assert response.context["pp_count"] == 3
+    assert response.context["doc_count"] == 3
     assert response.context["modele_id"] == str(detr_lettre_modele.id)
 
 
@@ -520,7 +567,7 @@ def test_generate_documents_modal_create_requires_htmx(
 @override_settings(DEBUG=False)
 def test_generate_documents_modal_create_wrong_dotation(client):
     url = reverse("gsl_notification:generate-documents-modal-create", args=["raté"])
-    response = client.post(url, {}, **HTMX_HEADERS)
+    response = client.post(url, {"document_type": LETTRE}, **HTMX_HEADERS)
     assert response.status_code == 404
 
 
@@ -542,11 +589,55 @@ def test_generate_documents_modal_create_creates_documents_and_returns_success(
     )
     assert response.context["doc_count"] == 3
     assert response.context["doc_name"] == "lettres de notification"
+    assert len(list(response.context["programmation_projets"])) == 3
     for pp in programmation_projets:
         pp.refresh_from_db()
         assert hasattr(pp, "lettre_notification")
         assert pp.lettre_notification.modele == detr_lettre_modele
         assert pp.lettre_notification.created_by == client.user
+
+
+def test_generate_documents_modal_create_invalid_modele_returns_error_in_modal(
+    client, programmation_projets
+):
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    url = reverse(
+        "gsl_notification:generate-documents-modal-create", args=[DOTATION_DETR]
+    )
+    response = client.post(
+        url,
+        {"document_type": LETTRE, "ids": ids, "modele_id": "99999"},
+        **HTMX_HEADERS,
+    )
+    assert response.status_code == 200
+    assert response.templates[0].name == (
+        "gsl_notification/generated_document/multiple/modal_error_body.html"
+    )
+    assert response.context["error"]
+
+
+def test_generate_documents_modal_create_wrong_perimetre_returns_error_in_modal(
+    client, programmation_projets, detr_lettre_modele
+):
+    wrong_pp = ProgrammationProjetFactory(dotation_projet__dotation=DOTATION_DETR)
+    programmation_projets.append(wrong_pp)
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    url = reverse(
+        "gsl_notification:generate-documents-modal-create", args=[DOTATION_DETR]
+    )
+    response = client.post(
+        url,
+        {"document_type": LETTRE, "ids": ids, "modele_id": str(detr_lettre_modele.id)},
+        **HTMX_HEADERS,
+    )
+    assert response.status_code == 200
+    assert response.templates[0].name == (
+        "gsl_notification/generated_document/multiple/modal_error_body.html"
+    )
+    assert (
+        "Un ou plusieurs projets sont hors de votre périmètre."
+        in response.context["error"]
+    )
 
 
 def test_generate_documents_modal_create_replaces_existing_doc(
@@ -666,6 +757,7 @@ def test_generate_documents_modal_create_both_creates_arrete_and_lettre(
     assert response.context["document_type"] == ARRETE_ET_LETTRE
     assert response.context["doc_count"] == 6
     assert "download_url" in response.context
+    assert len(list(response.context["programmation_projets"])) == 3
     for pp in programmation_projets:
         pp.refresh_from_db()
         assert hasattr(pp, "arrete")

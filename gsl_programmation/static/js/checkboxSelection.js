@@ -20,6 +20,11 @@ export class CheckboxSelection extends Controller {
     this.selectedIds = new Set()
     const jsonEl = document.getElementById('checkbox-selection-selectable-ids')
     this.selectableIds = jsonEl ? JSON.parse(jsonEl.textContent) : []
+    this.rowCheckboxTargets.forEach((checkbox) => {
+      if (checkbox.checked) {
+        this.selectedIds.add(parseInt(checkbox.value, 10))
+      }
+    })
     this._refresh()
   }
 

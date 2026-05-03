@@ -2,6 +2,8 @@ import io
 import logging
 import zipfile
 
+from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
+from django.http import Http404 as DjangoHttp404
 from django.http import HttpResponse
 from django.shortcuts import get_list_or_404, get_object_or_404
 from django.urls import reverse
@@ -70,7 +72,7 @@ def download_documents(request, dotation, document_type):
         _check_if_projets_are_accessible_for_user(request, programmation_projets)
     except ValueError:
         filterset = ProgrammationProjetFilters(data=request.GET, request=request)
-        programmation_projets = filterset.qs.to_notify().select_related(
+        programmation_projets = filterset.qs.can_generate_documents().select_related(
             *attr_select_related
         )
 
@@ -141,6 +143,9 @@ VALID_DOCUMENT_TYPES = [ARRETE, LETTRE, ARRETE_ET_LETTRE]
 class GenerateDocumentsModalMixin:
     http_method_names = ["post"]
     modal_id = GENERATE_DOCUMENTS_MODAL_ID
+    error_template_name = (
+        "gsl_notification/generated_document/multiple/modal_error_body.html"
+    )
 
     def dispatch(self, request, *args, **kwargs):
         if self.kwargs["dotation"] not in DOTATIONS:
@@ -152,6 +157,19 @@ class GenerateDocumentsModalMixin:
         context["dotation"] = self.kwargs["dotation"]
         context["modal_id"] = self.modal_id
         return context
+
+    @staticmethod
+    def _error_message(exc, default):
+        return getattr(exc, "user_message", None) or default
+
+    def _render_error(self, error_message):
+        context = self.get_context_data(error=error_message)
+        return self.response_class(
+            request=self.request,
+            template=[self.error_template_name],
+            context=context,
+            using=self.template_engine,
+        )
 
     def _get_modeles(self, document_type):
         dotation = self.kwargs["dotation"]
@@ -178,32 +196,43 @@ class GenerateDocumentsModalView(GenerateDocumentsModalMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         dotation = self.kwargs["dotation"]
         try:
-            ids = _get_pp_ids(request)
-            programmation_projets = get_list_or_404(
-                ProgrammationProjet,
-                id__in=ids,
-                status=ProgrammationProjet.STATUS_ACCEPTED,
-                dotation_projet__projet__notified_at=None,
-                dotation_projet__dotation=dotation,
-            )
-            if len(programmation_projets) < len(ids):
-                raise Http404(
-                    user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+            try:
+                ids = _get_pp_ids(request)
+                programmation_projets = get_list_or_404(
+                    ProgrammationProjet,
+                    id__in=ids,
+                    status=ProgrammationProjet.STATUS_ACCEPTED,
+                    dotation_projet__projet__notified_at=None,
+                    dotation_projet__dotation=dotation,
                 )
-            _check_if_projets_are_accessible_for_user(request, programmation_projets)
-            ids = [pp.id for pp in programmation_projets]
-        except ValueError:
-            filterset = ProgrammationProjetFilters(data=request.GET, request=request)
-            ids = [pp.id for pp in filterset.qs.to_notify()]
+                if len(programmation_projets) < len(ids):
+                    raise Http404(
+                        user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+                    )
+                _check_if_projets_are_accessible_for_user(
+                    request, programmation_projets
+                )
+                ids = [pp.id for pp in programmation_projets]
+            except ValueError:
+                filterset = ProgrammationProjetFilters(
+                    data=request.GET, request=request
+                )
+                ids = [pp.id for pp in filterset.qs.can_generate_documents()]
 
-        if not ids:
-            raise Http404(user_message="Aucun projet à notifier.")
+            if not ids:
+                raise Http404(user_message="Aucun projet à notifier.")
 
-        context = self.get_context_data(
-            pp_count=len(ids),
-            ids=",".join(str(i) for i in ids),
-            modal_button_id=GENERATE_DOCUMENTS_MODAL_BUTTON_ID,
-        )
+            context = self.get_context_data(
+                pp_count=len(ids),
+                ids=",".join(str(i) for i in ids),
+                modal_button_id=GENERATE_DOCUMENTS_MODAL_BUTTON_ID,
+            )
+        except (DjangoHttp404, DjangoPermissionDenied) as e:
+            context = self.get_context_data(
+                modal_button_id=GENERATE_DOCUMENTS_MODAL_BUTTON_ID,
+                error=self._error_message(e, "Une erreur est survenue."),
+            )
+
         response = self.render_to_response(context)
         return trigger_client_event(
             response,
@@ -219,7 +248,7 @@ class GenerateDocumentsModalStep2View(GenerateDocumentsModalMixin, TemplateView)
 
     def dispatch(self, request, *args, **kwargs):
         if request.POST.get("document_type") not in VALID_DOCUMENT_TYPES:
-            raise Http404(user_message="Type de document inconnu")
+            return self._render_error("Type de document inconnu")
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
@@ -250,7 +279,7 @@ class GenerateDocumentsModalLoadingView(GenerateDocumentsModalMixin, TemplateVie
 
     def dispatch(self, request, *args, **kwargs):
         if request.POST.get("document_type") not in VALID_DOCUMENT_TYPES:
-            raise Http404(user_message="Type de document inconnu")
+            return self._render_error("Type de document inconnu")
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
@@ -325,10 +354,20 @@ class GenerateDocumentsModalCreateView(GenerateDocumentsModalMixin, TemplateView
 
     def dispatch(self, request, *args, **kwargs):
         if request.POST.get("document_type") not in VALID_DOCUMENT_TYPES:
-            raise Http404(user_message="Type de document inconnu")
+            return self._render_error("Type de document inconnu")
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
+        try:
+            return self._post(request, *args, **kwargs)
+        except (DjangoHttp404, DjangoPermissionDenied) as e:
+            return self._render_error(
+                self._error_message(
+                    e, "Une erreur est survenue lors de la génération des documents."
+                )
+            )
+
+    def _post(self, request, *args, **kwargs):
         dotation = self.kwargs["dotation"]
         document_type = request.POST.get("document_type")
         ids_str = request.POST.get("ids", "")
@@ -373,11 +412,15 @@ class GenerateDocumentsModalCreateView(GenerateDocumentsModalMixin, TemplateView
             kwargs={"dotation": dotation, "document_type": document_type},
             query={"ids": ids_str},
         )
+        updated_pps = ProgrammationProjet.objects.select_related(
+            "arrete", "lettre_notification"
+        ).filter(id__in=ids)
         context = self.get_context_data(
             document_type=document_type,
             doc_count=len(documents_list),
             doc_name=self._get_doc_name(document_type, len(documents_list)),
             download_url=download_url,
+            programmation_projets=updated_pps,
         )
         return self.render_to_response(context)
 
@@ -406,10 +449,15 @@ class GenerateDocumentsModalCreateView(GenerateDocumentsModalMixin, TemplateView
             kwargs={"dotation": dotation, "document_type": ARRETE_ET_LETTRE},
             query={"ids": ids_str},
         )
+        pp_ids = [pp.id for pp in programmation_projets]
+        updated_pps = ProgrammationProjet.objects.select_related(
+            "arrete", "lettre_notification"
+        ).filter(id__in=pp_ids)
         context = self.get_context_data(
             document_type=ARRETE_ET_LETTRE,
             doc_count=len(arretes) + len(lettres),
             download_url=download_url,
+            programmation_projets=updated_pps,
         )
         return self.render_to_response(context)
 

@@ -205,6 +205,12 @@ class ProgrammationProjetQuerySet(models.QuerySet):
     def to_notify(self):
         return self.filter(dotation_projet__projet__in=Projet.objects.to_notify())
 
+    def can_generate_documents(self):
+        return self.filter(
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            dotation_projet__projet__notified_at__isnull=True,
+        )
+
     def for_perimetre(self, perimetre):
         return self.filter(
             dotation_projet__projet__in=Projet.objects.for_perimetre(perimetre)
@@ -395,9 +401,9 @@ class ProgrammationProjet(models.Model):
             summary.append("1 lettre et arrêté signés")
         else:
             if hasattr(self, "arrete"):
-                summary.append("1 arrêté généré")
+                summary.append("1 arrêté")
             if hasattr(self, "lettre_notification"):
-                summary.append("1 lettre générée")
+                summary.append("1 lettre")
 
         annexes_count = len(self.annexes.all())
         if annexes_count != 0:

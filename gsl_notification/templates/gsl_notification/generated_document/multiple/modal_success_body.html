@@ -1,4 +1,10 @@
 {% load dsfr_tags %}
+{% for programmation_projet in programmation_projets %}
+    <td id="pp-documents-cell-{{ programmation_projet.id }}"
+        hx-swap-oob="outerHTML">
+        {% include "gsl_programmation/table_cells/documents.html" %}
+    </td>
+{% endfor %}
 <div id="{{ modal_id }}-step">
     <div class="fr-modal__content">
         <h1 class="fr-modal__title" id="{{ modal_id }}-title">
