@@ -4,7 +4,7 @@
         <h1 class="fr-modal__title" id="{{ modal_id }}-title">
             Générer les documents
         </h1>
-        {% dsfr_stepper current_step_id=2 total_steps=3 current_step_title="Choix des modèles" next_step_title="Téléchargement" %}
+        {% dsfr_stepper current_step_id=2 total_steps=4 current_step_title="Choix des modèles" next_step_title="Format d'export" %}
         {% if error %}
             <div class="fr-alert fr-alert--error fr-mb-2w" role="alert">
                 <p>
@@ -13,7 +13,7 @@
             </div>
         {% endif %}
         <form id="{{ modal_id }}-step2-form"
-              hx-post="{% url 'gsl_notification:generate-documents-modal-loading' dotation %}"
+              hx-post="{% url 'gsl_notification:generate-documents-modal-step3' dotation %}"
               hx-target="#{{ modal_id }}-step"
               hx-swap="outerHTML">
             {% csrf_token %}

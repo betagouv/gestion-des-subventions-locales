@@ -8,6 +8,7 @@
         {% csrf_token %}
         <input type="hidden" name="ids" value="{{ ids }}">
         <input type="hidden" name="document_type" value="{{ document_type }}">
+        <input type="hidden" name="export_format" value="{{ export_format }}">
         {% if document_type == "arrete_et_lettre" %}
             <input type="hidden" name="modele_arrete_id" value="{{ modele_arrete_id }}">
             <input type="hidden" name="modele_lettre_id" value="{{ modele_lettre_id }}">
@@ -19,7 +20,7 @@
         <h1 class="fr-modal__title" id="{{ modal_id }}-title">
             Générer les documents
         </h1>
-        {% dsfr_stepper current_step_id=3 total_steps=3 current_step_title="Téléchargement" %}
+        {% dsfr_stepper current_step_id=4 total_steps=4 current_step_title="Téléchargement" %}
         <div class="fr-alert fr-alert--info fr-mt-3w"
              role="status"
              aria-live="polite">

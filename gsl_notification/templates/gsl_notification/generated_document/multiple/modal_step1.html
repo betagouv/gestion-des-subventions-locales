@@ -32,7 +32,7 @@
                                     </p>
                                 </div>
                             {% else %}
-                                {% dsfr_stepper current_step_id=1 total_steps=3 current_step_title="Types de document" next_step_title="Choix des modèles" %}
+                                {% dsfr_stepper current_step_id=1 total_steps=4 current_step_title="Types de document" next_step_title="Choix des modèles" %}
                                 <form id="{{ modal_id }}-step1-form"
                                       hx-post="{% url 'gsl_notification:generate-documents-modal-step2' dotation %}"
                                       hx-target="#{{ modal_id }}-step"

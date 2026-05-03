@@ -4,6 +4,7 @@ from gsl_notification.views.generate_document_for_multiple_projets_views import 
     GenerateDocumentsModalCreateView,
     GenerateDocumentsModalLoadingView,
     GenerateDocumentsModalStep2View,
+    GenerateDocumentsModalStep3View,
     GenerateDocumentsModalView,
     download_documents,
 )
@@ -91,6 +92,11 @@ urlpatterns = [
         "<str:dotation>/generer/etape-2/",
         GenerateDocumentsModalStep2View.as_view(),
         name="generate-documents-modal-step2",
+    ),
+    path(
+        "<str:dotation>/generer/etape-3/",
+        GenerateDocumentsModalStep3View.as_view(),
+        name="generate-documents-modal-step3",
     ),
     path(
         "<str:dotation>/generer/chargement/",
