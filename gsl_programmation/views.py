@@ -213,11 +213,6 @@ class ProgrammationProjetListView(FilterView, ListView):
         title = "Programmation en cours"
         if enveloppe:
             title = f"Programmation {enveloppe.dotation} {enveloppe.annee}"
-
-        selectable_ids_list = list(
-            self.object_list.can_generate_documents().values_list("id", flat=True)
-        )
-        print("selectable_ids_list", selectable_ids_list)
         context.update(
             {
                 "enveloppe": enveloppe,
