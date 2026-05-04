@@ -11,6 +11,7 @@ from graphql.language.ast import FieldNode, OperationDefinitionNode
 
 from gsl_ds_proxy.filters import filter_response
 from gsl_ds_proxy.models import ProxyToken
+from gsl_ds_proxy.query_guard import validate_demarche_selections
 
 logger = logging.getLogger(__name__)
 
@@ -255,6 +256,12 @@ def graphql_proxy(request):
     error = _check_root_field_allowed(proxy_token, root_field, variables)
     if error is not None:
         return error
+
+    forbidden_field = validate_demarche_selections(doc, operation)
+    if forbidden_field is not None:
+        return _error_response(
+            f"Champ démarche non autorisé : `{forbidden_field}`.", 403
+        )
 
     allowed_ids = set(proxy_token.instructeurs.values_list("ds_id", flat=True))
     stream = _stream_ds_response(
