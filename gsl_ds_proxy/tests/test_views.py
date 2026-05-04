@@ -315,11 +315,89 @@ class GraphqlProxyViewTest(TestCase):
         )
         self.assertEqual(response.status_code, 403)
 
-    def test_unknown_operation_rejected(self):
+    def test_disallowed_root_field_rejected(self):
         response = self._post(
             {
                 "query": "query foo { foo }",
                 "operationName": "foo",
+            }
+        )
+        self.assertEqual(response.status_code, 403)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_arbitrary_operation_name_allowed_when_root_field_is_demarche(
+        self, mock_post
+    ):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {
+                "demarche": {
+                    "number": self.demarche.ds_number,
+                    "title": "Une démarche",
+                }
+            }
+        }
+        response = self._post(
+            {
+                "query": (
+                    "query getInformationsForAProcess { demarche { number title } }"
+                ),
+                "operationName": "getInformationsForAProcess",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        data = _parse_stream(response)
+        self.assertEqual(data["data"]["demarche"]["number"], self.demarche.ds_number)
+
+    def test_root_field_alias_rejected(self):
+        response = self._post(
+            {
+                "query": "query getDemarche { x: demarche { number } }",
+                "operationName": "getDemarche",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_multiple_root_fields_rejected(self):
+        response = self._post(
+            {
+                "query": ("query Combo { demarche { number } dossier { number } }"),
+                "operationName": "Combo",
+                "variables": {
+                    "demarcheNumber": self.demarche.ds_number,
+                    "dossierNumber": 42,
+                },
+            }
+        )
+        self.assertEqual(response.status_code, 403)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_introspection_query_allowed_with_arbitrary_name(self, mock_post):
+        introspection_payload = {"data": {"__schema": {"types": [{"name": "Query"}]}}}
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = introspection_payload
+        response = self._post(
+            {
+                "query": "query Whatever { __schema { types { name } } }",
+                "operationName": "Whatever",
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        data = _parse_stream(response)
+        self.assertEqual(data, introspection_payload)
+
+    def test_root_fragment_spread_rejected(self):
+        response = self._post(
+            {
+                "query": (
+                    "query Q { ...F } fragment F on Query { demarche { number } }"
+                ),
+                "operationName": "Q",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
             }
         )
         self.assertEqual(response.status_code, 403)
@@ -468,9 +546,27 @@ class GraphqlProxyViewTest(TestCase):
         response = self._post({"query": "fragment DossierFields on Dossier { number }"})
         self.assertEqual(response.status_code, 400)
 
-    def test_shorthand_query_rejected_as_unknown_operation(self):
-        response = self._post({"query": "{ demarche { title } }"})
-        self.assertEqual(response.status_code, 403)
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_shorthand_query_accepted(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {
+                "demarche": {
+                    "number": self.demarche.ds_number,
+                    "title": "Une démarche",
+                }
+            }
+        }
+        response = self._post(
+            {
+                "query": "{ demarche { number title } }",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        data = _parse_stream(response)
+        self.assertEqual(data["data"]["demarche"]["number"], self.demarche.ds_number)
 
     def test_operationName_not_in_document_rejected(self):
         response = self._post(
