@@ -5,7 +5,7 @@ const TYPE_TO_TITLE = {
   modele_lettre: 'du modèle de lettre de notification',
   arrete: "de l'arrêté",
   lettre: 'de la lettre de notification',
-  arrete_et_lettre_signes: "de l'arrêté et de la lettre signés",
+  lettre_et_arrete_signes: "de la lettre et de l'arrêté signés",
   annexe: "de l'annexe"
 }
 
@@ -14,7 +14,7 @@ const TYPE_TO_BODY = {
   modele_lettre: 'Êtes-vous sûr de vouloir supprimer ce modèle de lettre de notification ?<br><b>⚠️ Les autres utilisateurs ayant accès à ce modèle ne pourront plus l’utiliser ni le voir.</b>',
   arrete: 'Êtes-vous sûr de vouloir supprimer cet arrêté ?<br>Cette action est irréversible.',
   lettre: 'Êtes-vous sûr de vouloir supprimer cette lettre de notification ?<br>Cette action est irréversible.',
-  arrete_et_lettre_signes: 'Êtes-vous sûr de vouloir supprimer cette lettre et cet arrêté signés ?<br>Cette action est irréversible.',
+  lettre_et_arrete_signes: 'Êtes-vous sûr de vouloir supprimer cette lettre et cet arrêté signés ?<br>Cette action est irréversible.',
   annexe: 'Êtes-vous sûr de vouloir supprimer cette annexe ?<br>Cette action est irréversible.'
 }
 
