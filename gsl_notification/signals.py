@@ -4,16 +4,16 @@ from django.dispatch import receiver
 
 from gsl_notification.models import (
     Annexe,
-    ArreteEtLettreSignes,
+    LettreEtArreteSignes,
     ModeleArrete,
     ModeleLettreNotification,
 )
 
 
 @receiver(post_delete, sender=Annexe)
-@receiver(post_delete, sender=ArreteEtLettreSignes)
+@receiver(post_delete, sender=LettreEtArreteSignes)
 def delete_file_after_instance_deletion(
-    sender, instance: ArreteEtLettreSignes | Annexe, *args, **kwargs
+    sender, instance: LettreEtArreteSignes | Annexe, *args, **kwargs
 ):
     if not instance.file:
         return
@@ -23,7 +23,7 @@ def delete_file_after_instance_deletion(
         pass
 
 
-@receiver(post_save, sender=ArreteEtLettreSignes)
+@receiver(post_save, sender=LettreEtArreteSignes)
 @receiver(post_save, sender=Annexe)
 def trigger_antivirus_scan(sender, instance, created, **kwargs):
     if created and not settings.BYPASS_ANTIVIRUS:

@@ -9,14 +9,14 @@ from django.utils import timezone
 
 from gsl_notification.models import (
     Annexe,
-    ArreteEtLettreSignes,
+    LettreEtArreteSignes,
     ModeleArrete,
     ModeleLettreNotification,
 )
 
 logger = logging.getLogger(__name__)
 
-UPLOADED_DOCUMENT_MODELS = (ArreteEtLettreSignes, Annexe)
+UPLOADED_DOCUMENT_MODELS = (LettreEtArreteSignes, Annexe)
 LOGO_SCANNED_MODELS = (ModeleArrete, ModeleLettreNotification)
 
 

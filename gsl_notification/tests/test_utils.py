@@ -17,7 +17,7 @@ from gsl_core.tests.factories import (
 from gsl_demarches_simplifiees.tests.factories import PersonneMoraleFactory
 from gsl_notification.models import (
     Annexe,
-    ArreteEtLettreSignes,
+    LettreEtArreteSignes,
 )
 from gsl_notification.tests.factories import AnnexeFactory
 from gsl_notification.utils import (
@@ -262,9 +262,9 @@ class TestMergeDocumentsIntoPdf:
 
     @pytest.fixture
     def mock_arrete_signe(self):
-        """Create a mock ArreteEtLettreSignes (UploadedDocument)."""
-        arrete_signe = Mock(spec=ArreteEtLettreSignes)
-        arrete_signe.__class__ = ArreteEtLettreSignes
+        """Create a mock LettreEtArreteSignes (UploadedDocument)."""
+        arrete_signe = Mock(spec=LettreEtArreteSignes)
+        arrete_signe.__class__ = LettreEtArreteSignes
         arrete_signe.file.name = "test_arrete_signe.pdf"
         return arrete_signe
 

@@ -316,7 +316,7 @@ class ProgrammationProjet(models.Model):
     def documents(self):
         from gsl_notification.models import (
             Arrete,
-            ArreteEtLettreSignes,
+            LettreEtArreteSignes,
             LettreNotification,
         )
 
@@ -328,7 +328,7 @@ class ProgrammationProjet(models.Model):
                     LettreNotification.objects.filter(
                         programmation_projet=self
                     ).first(),
-                    ArreteEtLettreSignes.objects.filter(
+                    LettreEtArreteSignes.objects.filter(
                         programmation_projet=self
                     ).first(),
                     *list(self.annexes.prefetch_related("created_by").all()),
@@ -387,8 +387,8 @@ class ProgrammationProjet(models.Model):
     @cached_property
     def documents_summary(self):
         summary = list()
-        if hasattr(self, "arrete_et_lettre_signes"):
-            summary.append("1 arrêté et lettre signés")
+        if hasattr(self, "lettre_et_arrete_signes"):
+            summary.append("1 lettre et arrêté signés")
         else:
             if hasattr(self, "arrete"):
                 summary.append("1 arrêté généré")

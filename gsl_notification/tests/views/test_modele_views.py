@@ -15,8 +15,8 @@ from gsl_notification.models import (
     ModeleLettreNotification,
 )
 from gsl_notification.tests.factories import (
-    ArreteEtLettreSignesFactory,
     ArreteFactory,
+    LettreEtArreteSignesFactory,
     LettreNotificationFactory,
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
@@ -38,8 +38,8 @@ def programmation_projet(perimetre):
 
 
 @pytest.fixture
-def arrete_et_lettre_signes(programmation_projet):
-    return ArreteEtLettreSignesFactory(programmation_projet=programmation_projet)
+def lettre_et_arrete_signes(programmation_projet):
+    return LettreEtArreteSignesFactory(programmation_projet=programmation_projet)
 
 
 @pytest.fixture

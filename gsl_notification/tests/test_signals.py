@@ -2,13 +2,13 @@ import pytest
 
 from gsl_notification.models import (
     Annexe,
-    ArreteEtLettreSignes,
+    LettreEtArreteSignes,
     ModeleArrete,
     ModeleLettreNotification,
 )
 from gsl_notification.tests.factories import (
     AnnexeFactory,
-    ArreteEtLettreSignesFactory,
+    LettreEtArreteSignesFactory,
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
@@ -16,7 +16,7 @@ from gsl_notification.tests.factories import (
 
 @pytest.mark.parametrize(
     "klass, factory",
-    ((ArreteEtLettreSignes, ArreteEtLettreSignesFactory), (Annexe, AnnexeFactory)),
+    ((LettreEtArreteSignes, LettreEtArreteSignesFactory), (Annexe, AnnexeFactory)),
 )
 @pytest.mark.django_db
 def test_delete_file_on_post_delete(settings, tmp_path, klass, factory):

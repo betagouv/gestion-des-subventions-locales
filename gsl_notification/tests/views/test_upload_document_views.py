@@ -12,10 +12,10 @@ from gsl_core.tests.factories import (
 )
 from gsl_notification.tests.factories import (
     AnnexeFactory,
-    ArreteEtLettreSignesFactory,
+    LettreEtArreteSignesFactory,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import ANNEXE, ARRETE_ET_LETTRE_SIGNES, PROJET_STATUS_ACCEPTED
+from gsl_projet.constants import ANNEXE, LETTRE_ET_ARRETE_SIGNES, PROJET_STATUS_ACCEPTED
 from gsl_projet.tests.factories import DetrProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -79,7 +79,7 @@ def test_choose_uploaded_document_type_displays_correctly(perimetre):
 
 
 ##### GET
-@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNES, ANNEXE))
+@pytest.mark.parametrize("doc_type", (LETTRE_ET_ARRETE_SIGNES, ANNEXE))
 def test_create_uploaded_document_view_with_not_correct_perimetre_and_without_arrete(
     programmation_projet, different_perimetre_client_with_user_logged, doc_type
 ):
@@ -100,7 +100,7 @@ def test_create_uploaded_document_view_with_not_correct_perimetre_and_without_ar
     assert response.status_code == 404
 
 
-@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNES, ANNEXE))
+@pytest.mark.parametrize("doc_type", (LETTRE_ET_ARRETE_SIGNES, ANNEXE))
 def test_create_uploaded_document_view_with_correct_perimetre_and_without_arrete(
     programmation_projet, correct_perimetre_client_with_user_logged, doc_type
 ):
@@ -129,7 +129,7 @@ def test_create_uploaded_document_view_with_correct_perimetre_and_without_arrete
 ##### POST
 
 
-@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNES, ANNEXE))
+@pytest.mark.parametrize("doc_type", (LETTRE_ET_ARRETE_SIGNES, ANNEXE))
 def test_create_uploaded_document_view_valid_but_with_invalid_user_perimetre(
     programmation_projet, different_perimetre_client_with_user_logged, doc_type
 ):
@@ -153,7 +153,7 @@ def test_create_uploaded_document_view_valid_but_with_invalid_user_perimetre(
     assert response.status_code == 404
 
 
-@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNES, ANNEXE))
+@pytest.mark.parametrize("doc_type", (LETTRE_ET_ARRETE_SIGNES, ANNEXE))
 def test_create_uploaded_document_view_valid(
     programmation_projet, correct_perimetre_client_with_user_logged, doc_type
 ):
@@ -176,9 +176,9 @@ def test_create_uploaded_document_view_valid(
     response = correct_perimetre_client_with_user_logged.post(url, data)
     assert response.status_code == 302
     assert response["Location"] == f"/notification/{projet.id}/documents/"
-    if doc_type == ARRETE_ET_LETTRE_SIGNES:
-        assert programmation_projet.arrete_et_lettre_signes is not None
-        doc = programmation_projet.arrete_et_lettre_signes
+    if doc_type == LETTRE_ET_ARRETE_SIGNES:
+        assert programmation_projet.lettre_et_arrete_signes is not None
+        doc = programmation_projet.lettre_et_arrete_signes
     else:
         assert programmation_projet.annexes.count() == 1
         doc = programmation_projet.annexes.first()
@@ -187,7 +187,7 @@ def test_create_uploaded_document_view_valid(
     assert doc.created_by == correct_perimetre_client_with_user_logged.user
 
 
-@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNES, ANNEXE))
+@pytest.mark.parametrize("doc_type", (LETTRE_ET_ARRETE_SIGNES, ANNEXE))
 def test_create_uploaded_document_view_invalid(
     programmation_projet, correct_perimetre_client_with_user_logged, doc_type
 ):
@@ -217,7 +217,7 @@ def test_create_uploaded_document_view_invalid(
 ### uploaded-document-download
 
 
-@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNES, ANNEXE))
+@pytest.mark.parametrize("doc_type", (LETTRE_ET_ARRETE_SIGNES, ANNEXE))
 def test_uploaded_document_download_url_with_correct_perimetre_and_without_arrete(
     correct_perimetre_client_with_user_logged, doc_type
 ):
@@ -233,7 +233,7 @@ def test_uploaded_document_download_url_with_correct_perimetre_and_without_arret
 @override_settings(BYPASS_ANTIVIRUS=True)
 @pytest.mark.parametrize(
     "doc_type, factory",
-    ((ARRETE_ET_LETTRE_SIGNES, ArreteEtLettreSignesFactory), (ANNEXE, AnnexeFactory)),
+    ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
 )
 def test_uploaded_document_download_url_with_correct_perimetre_and_with_arrete(
     correct_perimetre_client_with_user_logged, programmation_projet, doc_type, factory
@@ -259,7 +259,7 @@ def test_uploaded_document_download_url_with_correct_perimetre_and_with_arrete(
 
 @pytest.mark.parametrize(
     "doc_type, factory",
-    ((ARRETE_ET_LETTRE_SIGNES, ArreteEtLettreSignesFactory), (ANNEXE, AnnexeFactory)),
+    ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
 )
 def test_uploaded_document_download_url_without_correct_perimetre_and_without_arrete(
     different_perimetre_client_with_user_logged, doc_type, factory
@@ -274,7 +274,7 @@ def test_uploaded_document_download_url_without_correct_perimetre_and_without_ar
 ### uploaded-document-view
 
 
-@pytest.mark.parametrize("doc_type", (ARRETE_ET_LETTRE_SIGNES, ANNEXE))
+@pytest.mark.parametrize("doc_type", (LETTRE_ET_ARRETE_SIGNES, ANNEXE))
 def test_uploaded_document_view_url_with_correct_perimetre_and_without_arrete(
     correct_perimetre_client_with_user_logged, doc_type
 ):
@@ -289,7 +289,7 @@ def test_uploaded_document_view_url_with_correct_perimetre_and_without_arrete(
 
 @pytest.mark.parametrize(
     "doc_type, factory",
-    ((ARRETE_ET_LETTRE_SIGNES, ArreteEtLettreSignesFactory), (ANNEXE, AnnexeFactory)),
+    ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
 )
 def test_uploaded_document_view_url_without_correct_perimetre_and_without_arrete(
     different_perimetre_client_with_user_logged, doc_type, factory

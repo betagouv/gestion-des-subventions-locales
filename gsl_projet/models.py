@@ -469,7 +469,7 @@ class Projet(BaseModel):
         from gsl_notification.models import (
             Annexe,
             Arrete,
-            ArreteEtLettreSignes,
+            LettreEtArreteSignes,
             LettreNotification,
         )
 
@@ -483,7 +483,7 @@ class Projet(BaseModel):
                     *LettreNotification.objects.filter(
                         programmation_projet__dotation_projet__projet=self
                     ),
-                    *ArreteEtLettreSignes.objects.filter(
+                    *LettreEtArreteSignes.objects.filter(
                         programmation_projet__dotation_projet__projet=self
                     ),
                     *Annexe.objects.filter(
@@ -520,7 +520,7 @@ class DotationProjetQuerySet(models.QuerySet):
         return self.filter(
             programmation_projet__isnull=False,
             status=PROJET_STATUS_ACCEPTED,
-            programmation_projet__arrete_et_lettre_signes__isnull=True,
+            programmation_projet__lettre_et_arrete_signes__isnull=True,
         )
 
 

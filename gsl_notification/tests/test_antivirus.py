@@ -10,12 +10,12 @@ from gsl_core.tests.factories import (
 )
 from gsl_notification.tests.factories import (
     AnnexeFactory,
-    ArreteEtLettreSignesFactory,
+    LettreEtArreteSignesFactory,
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import ANNEXE, ARRETE_ET_LETTRE_SIGNES
+from gsl_projet.constants import ANNEXE, LETTRE_ET_ARRETE_SIGNES
 
 pytestmark = pytest.mark.django_db
 
@@ -52,10 +52,10 @@ def test_upload_triggers_scan_task_when_antivirus_enabled(
     pp = ProgrammationProjetFactory(
         dotation_projet__projet__dossier_ds__perimetre=perimetre
     )
-    doc = ArreteEtLettreSignesFactory(programmation_projet=pp)
+    doc = LettreEtArreteSignesFactory(programmation_projet=pp)
 
     mock_scan_task.delay.assert_called_once_with(
-        "gsl_notification.ArreteEtLettreSignes", doc.pk
+        "gsl_notification.LettreEtArreteSignes", doc.pk
     )
 
 
@@ -67,7 +67,7 @@ def test_upload_does_not_trigger_scan_when_antivirus_bypassed(
     pp = ProgrammationProjetFactory(
         dotation_projet__projet__dossier_ds__perimetre=perimetre
     )
-    ArreteEtLettreSignesFactory(programmation_projet=pp)
+    LettreEtArreteSignesFactory(programmation_projet=pp)
 
     mock_scan_task.delay.assert_not_called()
 
@@ -89,7 +89,7 @@ def test_annexe_upload_triggers_scan_task(mock_scan_task, settings, perimetre):
 @patch("gsl_notification.tasks.subprocess.run")
 def test_scan_task_marks_clean_file(mock_run, settings, programmation_projet):
     # Create document with bypass to avoid signal-triggered scan
-    doc = ArreteEtLettreSignesFactory(programmation_projet=programmation_projet)
+    doc = LettreEtArreteSignesFactory(programmation_projet=programmation_projet)
     assert doc.last_scan is None
     assert doc.is_infected is None
 
@@ -98,7 +98,7 @@ def test_scan_task_marks_clean_file(mock_run, settings, programmation_projet):
 
     from gsl_notification.tasks import scan_uploaded_document
 
-    scan_uploaded_document("gsl_notification.ArreteEtLettreSignes", doc.pk)
+    scan_uploaded_document("gsl_notification.LettreEtArreteSignes", doc.pk)
 
     doc.refresh_from_db()
     assert doc.last_scan is not None
@@ -107,14 +107,14 @@ def test_scan_task_marks_clean_file(mock_run, settings, programmation_projet):
 
 @patch("gsl_notification.tasks.subprocess.run")
 def test_scan_task_marks_infected_file(mock_run, settings, programmation_projet):
-    doc = ArreteEtLettreSignesFactory(programmation_projet=programmation_projet)
+    doc = LettreEtArreteSignesFactory(programmation_projet=programmation_projet)
 
     settings.BYPASS_ANTIVIRUS = False
     mock_run.return_value = MagicMock(returncode=1, stdout="FOUND Eicar-Test-Signature")
 
     from gsl_notification.tasks import scan_uploaded_document
 
-    scan_uploaded_document("gsl_notification.ArreteEtLettreSignes", doc.pk)
+    scan_uploaded_document("gsl_notification.LettreEtArreteSignes", doc.pk)
 
     doc.refresh_from_db()
     assert doc.last_scan is not None
@@ -123,7 +123,7 @@ def test_scan_task_marks_infected_file(mock_run, settings, programmation_projet)
 
 @patch("gsl_notification.tasks.subprocess.run")
 def test_scan_task_raises_on_clamdscan_error(mock_run, settings, programmation_projet):
-    doc = ArreteEtLettreSignesFactory(programmation_projet=programmation_projet)
+    doc = LettreEtArreteSignesFactory(programmation_projet=programmation_projet)
 
     settings.BYPASS_ANTIVIRUS = False
     mock_run.return_value = MagicMock(returncode=2, stdout="ERROR: some clamav error")
@@ -131,17 +131,17 @@ def test_scan_task_raises_on_clamdscan_error(mock_run, settings, programmation_p
     from gsl_notification.tasks import scan_uploaded_document
 
     with pytest.raises(RuntimeError, match="clamdscan exited with code 2"):
-        scan_uploaded_document("gsl_notification.ArreteEtLettreSignes", doc.pk)
+        scan_uploaded_document("gsl_notification.LettreEtArreteSignes", doc.pk)
 
 
 def test_scan_task_skips_when_bypassed(settings, programmation_projet):
     settings.BYPASS_ANTIVIRUS = True
 
-    doc = ArreteEtLettreSignesFactory(programmation_projet=programmation_projet)
+    doc = LettreEtArreteSignesFactory(programmation_projet=programmation_projet)
 
     from gsl_notification.tasks import scan_uploaded_document
 
-    scan_uploaded_document("gsl_notification.ArreteEtLettreSignes", doc.pk)
+    scan_uploaded_document("gsl_notification.LettreEtArreteSignes", doc.pk)
 
     doc.refresh_from_db()
     assert doc.last_scan is None
@@ -155,7 +155,7 @@ def test_scan_task_skips_when_bypassed(settings, programmation_projet):
 
 @pytest.mark.parametrize(
     "doc_type, factory",
-    ((ARRETE_ET_LETTRE_SIGNES, ArreteEtLettreSignesFactory), (ANNEXE, AnnexeFactory)),
+    ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
 )
 def test_download_blocked_when_never_scanned(
     settings, client_with_user, programmation_projet, doc_type, factory
@@ -172,7 +172,7 @@ def test_download_blocked_when_never_scanned(
 
 @pytest.mark.parametrize(
     "doc_type, factory",
-    ((ARRETE_ET_LETTRE_SIGNES, ArreteEtLettreSignesFactory), (ANNEXE, AnnexeFactory)),
+    ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
 )
 def test_download_blocked_when_infected(
     settings, client_with_user, programmation_projet, doc_type, factory
@@ -192,7 +192,7 @@ def test_download_blocked_when_infected(
 
 @pytest.mark.parametrize(
     "doc_type, factory",
-    ((ARRETE_ET_LETTRE_SIGNES, ArreteEtLettreSignesFactory), (ANNEXE, AnnexeFactory)),
+    ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
 )
 def test_download_allowed_when_clean(
     settings, client_with_user, programmation_projet, doc_type, factory
@@ -223,7 +223,7 @@ def test_download_allowed_when_clean(
 
 @pytest.mark.parametrize(
     "doc_type, factory",
-    ((ARRETE_ET_LETTRE_SIGNES, ArreteEtLettreSignesFactory), (ANNEXE, AnnexeFactory)),
+    ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
 )
 def test_download_allowed_when_bypass_even_if_never_scanned(
     settings, client_with_user, programmation_projet, doc_type, factory
@@ -250,7 +250,7 @@ def test_download_allowed_when_bypass_even_if_never_scanned(
 ## IS_DOWNLOADABLE PROPERTY TESTS
 
 
-@pytest.mark.parametrize("factory", (ArreteEtLettreSignesFactory, AnnexeFactory))
+@pytest.mark.parametrize("factory", (LettreEtArreteSignesFactory, AnnexeFactory))
 @patch("gsl_notification.tasks.scan_uploaded_document")
 def test_is_downloadable_false_when_never_scanned(
     _mock_scan, settings, programmation_projet, factory
@@ -261,7 +261,7 @@ def test_is_downloadable_false_when_never_scanned(
     assert doc.is_downloadable is False
 
 
-@pytest.mark.parametrize("factory", (ArreteEtLettreSignesFactory, AnnexeFactory))
+@pytest.mark.parametrize("factory", (LettreEtArreteSignesFactory, AnnexeFactory))
 @patch("gsl_notification.tasks.scan_uploaded_document")
 def test_is_downloadable_false_when_infected(
     _mock_scan, settings, programmation_projet, factory
@@ -275,7 +275,7 @@ def test_is_downloadable_false_when_infected(
     assert doc.is_downloadable is False
 
 
-@pytest.mark.parametrize("factory", (ArreteEtLettreSignesFactory, AnnexeFactory))
+@pytest.mark.parametrize("factory", (LettreEtArreteSignesFactory, AnnexeFactory))
 @patch("gsl_notification.tasks.scan_uploaded_document")
 def test_is_downloadable_true_when_scanned_and_clean(
     _mock_scan, settings, programmation_projet, factory
@@ -289,7 +289,7 @@ def test_is_downloadable_true_when_scanned_and_clean(
     assert doc.is_downloadable is True
 
 
-@pytest.mark.parametrize("factory", (ArreteEtLettreSignesFactory, AnnexeFactory))
+@pytest.mark.parametrize("factory", (LettreEtArreteSignesFactory, AnnexeFactory))
 def test_is_downloadable_true_when_bypass_enabled(
     settings, programmation_projet, factory
 ):
