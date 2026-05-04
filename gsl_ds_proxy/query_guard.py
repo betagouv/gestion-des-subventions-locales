@@ -20,6 +20,8 @@ ALLOWED_DEMARCHE_FIELDS = frozenset(
         "title",
         "state",
         "dateCreation",
+        "datePublication",
+        "dateDerniereModification",
         "dateFermeture",
         "activeRevision",
         "revision",
