@@ -7,18 +7,17 @@ from django.http import JsonResponse, StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from graphql import GraphQLError, OperationType, parse
-from graphql.language.ast import OperationDefinitionNode
+from graphql.language.ast import FieldNode, OperationDefinitionNode
 
 from gsl_ds_proxy.filters import filter_response
 from gsl_ds_proxy.models import ProxyToken
 
 logger = logging.getLogger(__name__)
 
-_ALLOWED_OPERATIONS = {
-    "IntrospectionQuery",
-    "getDemarche",
-    "getDossier",
-}
+_INTROSPECTION_FIELDS = {"__schema", "__type", "__typename"}
+_BUSINESS_FIELDS = {"demarche", "dossier"}
+_ALLOWED_ROOT_FIELDS = _BUSINESS_FIELDS | _INTROSPECTION_FIELDS
+_INTROSPECTION_SENTINEL = "__introspection__"
 
 # Read timeout stays below Scalingo's 59s post-first-byte inactivity ceiling.
 _DS_TIMEOUT = (5, 55)
@@ -57,24 +56,78 @@ def _pick_operation(doc, operation_name):
     return operations[0], None
 
 
-def _check_operation_allowed(proxy_token, operation_name, variables):
+def _root_field(operation):
+    """Return (root_field, None) or (None, error_response).
+
+    Inspects the operation's top-level selection set and identifies which
+    schema field the caller is querying. Operation names are caller-defined
+    labels with no semantic meaning, so the root field is the trustworthy
+    signal for scoping decisions.
+
+    Rules:
+    - All root selections must be plain FieldNodes (no fragment spreads or
+      inline fragments at the root — they'd hide the actual field name from
+      this check).
+    - Aliases are forbidden on root fields, since downstream scope checks
+      and the response filter look up `data["demarche"]` / `data["dossier"]`
+      by the schema name.
+    - At most one business field (demarche/dossier) per operation; mixing
+      business and introspection fields is rejected.
+    - Pure introspection returns the _INTROSPECTION_SENTINEL.
+    """
+    selections = operation.selection_set.selections
+    field_names = []
+    for sel in selections:
+        if not isinstance(sel, FieldNode):
+            return None, _error_response(
+                "Les fragments à la racine de l'opération ne sont pas autorisés.",
+                403,
+            )
+        if sel.alias is not None:
+            return None, _error_response(
+                "Les alias sur les champs racine ne sont pas autorisés.", 403
+            )
+        if sel.name.value not in _ALLOWED_ROOT_FIELDS:
+            return None, _error_response(
+                "Opération non autorisée pour cette démarche.", 403
+            )
+        field_names.append(sel.name.value)
+
+    business = [n for n in field_names if n in _BUSINESS_FIELDS]
+    if len(business) > 1:
+        return None, _error_response(
+            "Une seule opération métier est autorisée à la racine.", 403
+        )
+    if business:
+        introspection = [n for n in field_names if n in _INTROSPECTION_FIELDS]
+        if introspection:
+            return None, _error_response(
+                "Mélanger introspection et opération métier n'est pas autorisé.",
+                403,
+            )
+        return business[0], None
+
+    return _INTROSPECTION_SENTINEL, None
+
+
+def _check_root_field_allowed(proxy_token, root_field, variables):
     """Pre-forward validation, based on what we can check without hitting DS."""
     variables = variables or {}
-    if operation_name not in _ALLOWED_OPERATIONS:
-        return _error_response("Opération non autorisée pour cette démarche.", 403)
     if (
-        operation_name == "getDemarche"
+        root_field == "demarche"
         and variables.get("demarcheNumber") != proxy_token.demarche.ds_number
     ):
         return _error_response("Opération non autorisée pour cette démarche.", 403)
     return None
 
 
-def _scoped_field_present(operation_name, response_data):
+def _scoped_field_present(root_field, response_data):
+    if root_field == _INTROSPECTION_SENTINEL:
+        return True
     data = (response_data or {}).get("data") or {}
-    if operation_name == "getDemarche":
+    if root_field == "demarche":
         return isinstance(data.get("demarche"), dict) and "number" in data["demarche"]
-    if operation_name == "getDossier":
+    if root_field == "dossier":
         dossier = data.get("dossier")
         return (
             isinstance(dossier, dict)
@@ -84,7 +137,7 @@ def _scoped_field_present(operation_name, response_data):
     return True
 
 
-def _check_response_allowed(proxy_token, operation_name, response_data):
+def _check_response_allowed(proxy_token, root_field, response_data):
     """Post-fetch validation: authoritative check against the DS payload.
 
     This is the security boundary. The pre-forward check trusts request
@@ -93,9 +146,12 @@ def _check_response_allowed(proxy_token, operation_name, response_data):
 
     Returns an error message string if the response is out of scope, else None.
     """
+    if root_field == _INTROSPECTION_SENTINEL:
+        return None
+
     data = (response_data or {}).get("data") or {}
 
-    if operation_name == "getDemarche":
+    if root_field == "demarche":
         demarche = data.get("demarche") or {}
         if demarche.get("number") != proxy_token.demarche.ds_number:
             return (
@@ -104,7 +160,7 @@ def _check_response_allowed(proxy_token, operation_name, response_data):
             )
         return None
 
-    if operation_name == "getDossier":
+    if root_field == "dossier":
         dossier = data.get("dossier") or {}
         demarche_number = (dossier.get("demarche") or {}).get("number")
         if demarche_number != proxy_token.demarche.ds_number:
@@ -189,21 +245,27 @@ def graphql_proxy(request):
     if operation.operation is not OperationType.QUERY:
         return _error_response("Les mutations ne sont pas autorisées.", 403)
 
+    root_field, error = _root_field(operation)
+    if error is not None:
+        return error
+
     operation_name = operation.name.value if operation.name else None
 
     # Scope check: the token is tied to a single démarche
-    error = _check_operation_allowed(proxy_token, operation_name, variables)
+    error = _check_root_field_allowed(proxy_token, root_field, variables)
     if error is not None:
         return error
 
     allowed_ids = set(proxy_token.instructeurs.values_list("ds_id", flat=True))
     stream = _stream_ds_response(
-        proxy_token, operation_name, query, variables, allowed_ids
+        proxy_token, root_field, operation_name, query, variables, allowed_ids
     )
     return StreamingHttpResponse(stream, content_type="application/json", status=200)
 
 
-def _stream_ds_response(proxy_token, operation_name, query, variables, allowed_ids):
+def _stream_ds_response(
+    proxy_token, root_field, operation_name, query, variables, allowed_ids
+):
     # Send a single whitespace byte immediately to close Scalingo's
     # 30s-to-first-byte window. Leading whitespace is valid JSON.
     yield b" "
@@ -218,12 +280,12 @@ def _stream_ds_response(proxy_token, operation_name, query, variables, allowed_i
     # nothing to scope-check (data is null/absent), so no risk of leaking
     # out-of-scope data.
     if response_data.get("errors") and not _scoped_field_present(
-        operation_name, response_data
+        root_field, response_data
     ):
         yield json.dumps(response_data).encode()
         return
 
-    scope_error = _check_response_allowed(proxy_token, operation_name, response_data)
+    scope_error = _check_response_allowed(proxy_token, root_field, response_data)
     if scope_error is not None:
         yield _graphql_error_bytes(scope_error)
         return
