@@ -1,11 +1,7 @@
 from django.urls import path
 
 from gsl_notification.views.generate_document_for_multiple_projets_views import (
-    GenerateDocumentsModalCreateView,
-    GenerateDocumentsModalLoadingView,
-    GenerateDocumentsModalStep2View,
-    GenerateDocumentsModalStep3View,
-    GenerateDocumentsModalView,
+    GenerateDocumentsWizard,
     download_documents,
 )
 from gsl_notification.views.modele_views import (
@@ -85,28 +81,8 @@ urlpatterns = [
     # Modal HTMX - génération en masse
     path(
         "<str:dotation>/generer/",
-        GenerateDocumentsModalView.as_view(),
+        GenerateDocumentsWizard.as_view(),
         name="generate-documents-modal",
-    ),
-    path(
-        "<str:dotation>/generer/etape-2/",
-        GenerateDocumentsModalStep2View.as_view(),
-        name="generate-documents-modal-step2",
-    ),
-    path(
-        "<str:dotation>/generer/etape-3/",
-        GenerateDocumentsModalStep3View.as_view(),
-        name="generate-documents-modal-step3",
-    ),
-    path(
-        "<str:dotation>/generer/chargement/",
-        GenerateDocumentsModalLoadingView.as_view(),
-        name="generate-documents-modal-loading",
-    ),
-    path(
-        "<str:dotation>/generer/creer/",
-        GenerateDocumentsModalCreateView.as_view(),
-        name="generate-documents-modal-create",
     ),
     path(
         "<str:dotation>/telechargement/<str:document_type>",

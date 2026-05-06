@@ -19,15 +19,21 @@ from gsl_notification.models import (
     Annexe,
     LettreEtArreteSignes,
 )
-from gsl_notification.tests.factories import AnnexeFactory
+from gsl_notification.tests.factories import (
+    AnnexeFactory,
+    LettreNotificationFactory,
+    ModeleLettreNotificationFactory,
+)
 from gsl_notification.utils import (
     _get_uploaded_document_pdf,
+    generate_pdf_for_generated_document,
     get_modele_perimetres,
     merge_documents_into_pdf,
     replace_mentions_in_html,
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
+from gsl_projet.constants import DOTATION_DETR
 
 
 @pytest.fixture
@@ -386,3 +392,24 @@ class TestMergeDocumentsIntoPdf:
 
         # Verify S3 was called with correct file name
         mock_get_s3.assert_called_once_with("test_annexe.pdf")
+
+
+@pytest.mark.django_db
+def test_generate_pdf_for_generated_document(programmation_projet):
+    modele = ModeleLettreNotificationFactory(
+        dotation=DOTATION_DETR,
+        perimetre=programmation_projet.dotation_projet.projet.dossier_ds.perimetre,
+    )
+    document = LettreNotificationFactory(
+        programmation_projet=programmation_projet,
+        modele=modele,
+        content="<p>Test PDF</p>",
+    )
+    with patch(
+        "gsl_notification.utils.get_logo_base64",
+        return_value="mocked_base64",
+    ):
+        pdf_bytes = generate_pdf_for_generated_document(document)
+    assert isinstance(pdf_bytes, bytes)
+    assert pdf_bytes[:4] == b"%PDF"
+    assert len(pdf_bytes) > 100

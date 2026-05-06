@@ -1,0 +1,18 @@
+{% extends "gsl_notification/generated_document/multiple/modal_step_base.html" %}
+{% load dsfr_tags %}
+{% block stepper %}
+    {% dsfr_stepper current_step_id=current_step_id total_steps=4 current_step_title=current_step_title next_step_title=next_step_title %}
+{% endblock stepper %}
+{% block form_open %}
+    <form hx-post="{% url 'gsl_notification:generate-documents-modal' dotation %}"
+          hx-target="#{{ modal_id }}-step"
+          hx-swap="outerHTML">
+        {% csrf_token %}
+        {{ wizard.management_form }}
+    {% endblock form_open %}
+    {% block content %}
+        {{ form }}
+    {% endblock content %}
+    {% block form_close %}
+    </form>
+{% endblock form_close %}

@@ -5,7 +5,7 @@ from html import unescape
 from unittest.mock import patch
 
 import pytest
-from django.test import override_settings
+from django.test import Client, override_settings
 from django.urls import reverse
 from freezegun import freeze_time
 
@@ -14,12 +14,17 @@ from gsl_core.tests.factories import (
     CollegueFactory,
     PerimetreFactory,
 )
+from gsl_notification.forms import (
+    ARRETE_ET_LETTRE,
+    EXPORT_FORMAT_ONE_PDF_ALL,
+    GenerateDocumentsStep2Form,
+)
 from gsl_notification.tests.factories import (
+    ArreteFactory,
     LettreNotificationFactory,
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl_notification.utils import generate_pdf_for_generated_document
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, LETTRE
@@ -33,13 +38,6 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def perimetre():
     return PerimetreFactory()
-
-
-@pytest.fixture
-def programmation_projet(perimetre):
-    return ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=perimetre
-    )
 
 
 @pytest.fixture
@@ -192,65 +190,48 @@ def test_download_documents_no_id_with_filters(client):
         assert len(zf.namelist()) == 2
 
 
-def test_download_documents_with_one_wrong_perimetre_pp(client, programmation_projets):
-    wrong_perimetre_pp = ProgrammationProjetFactory(
-        dotation_projet__dotation=DOTATION_DETR
-    )
-    programmation_projets.append(wrong_perimetre_pp)
+def _bad_wrong_perimetre():
+    return ProgrammationProjetFactory(dotation_projet__dotation=DOTATION_DETR)
 
+
+def _bad_wrong_dotation():
+    return ProgrammationProjetFactory(dotation_projet__dotation=DOTATION_DSIL)
+
+
+def _bad_already_notified():
+    return ProgrammationProjetFactory(notified_at=datetime.now(UTC))
+
+
+def _bad_refused():
+    return ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_REFUSED)
+
+
+@pytest.mark.parametrize(
+    "make_bad_pp, duplicate_id",
+    [
+        pytest.param(_bad_wrong_perimetre, False, id="wrong_perimetre"),
+        pytest.param(_bad_wrong_dotation, False, id="wrong_dotation"),
+        pytest.param(_bad_already_notified, False, id="already_notified"),
+        pytest.param(_bad_refused, False, id="refused"),
+        # missing_doc: append a PP that won't pass the dotation filter and
+        # also has no LettreNotification — exercises both rejection paths
+        # in a single parameter.
+        pytest.param(_bad_wrong_dotation, False, id="missing_doc"),
+        pytest.param(None, True, id="duplicate_id"),
+    ],
+)
+def test_download_documents_rejects_invalid_pp(
+    client, programmation_projets, make_bad_pp, duplicate_id
+):
     for pp in programmation_projets:
         LettreNotificationFactory(programmation_projet=pp)
 
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = (
-        reverse(
-            "notification:download-documents",
-            args=[DOTATION_DETR, LETTRE],
-        )
-        + f"?ids={ids}"
-    )
-    response = client.get(url)
-    assert response.status_code == 403
-    # Check that the custom user message appears in the response
-    assert (
-        "Un ou plusieurs projets sont hors de votre périmètre."
-        in response.content.decode("utf-8")
-    )
-
-
-def test_download_documents_with_one_wrong_dotation_pp(client, programmation_projets):
-    wrong_dotation_pp = ProgrammationProjetFactory(
-        dotation_projet__dotation=DOTATION_DSIL
-    )
-    programmation_projets.append(wrong_dotation_pp)
-
-    for pp in programmation_projets:
-        LettreNotificationFactory(programmation_projet=pp)
+    if make_bad_pp is not None:
+        programmation_projets.append(make_bad_pp())
 
     ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = (
-        reverse(
-            "notification:download-documents",
-            args=[DOTATION_DETR, LETTRE],
-        )
-        + f"?ids={ids}"
-    )
-    response = client.get(url)
-    assert response.status_code == 404
-    assert (
-        "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
-        in unescape(response.content.decode("utf-8"))
-    )
-
-
-def test_download_documents_with_one_already_notified(client, programmation_projets):
-    already_notified_pp = ProgrammationProjetFactory(notified_at=datetime.now(UTC))
-    programmation_projets.append(already_notified_pp)
-
-    for pp in programmation_projets:
-        LettreNotificationFactory(programmation_projet=pp)
-
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    if duplicate_id:
+        ids += f",{str(programmation_projets[0].id)}"
     url = (
         reverse(
             "notification:download-documents",
@@ -261,75 +242,7 @@ def test_download_documents_with_one_already_notified(client, programmation_proj
     response = client.get(url)
     assert response.status_code == 404
     assert (
-        "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
-        in unescape(response.content.decode("utf-8"))
-    )
-
-
-def test_download_documents_with_one_refused(client, programmation_projets):
-    refuse_pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_REFUSED)
-    programmation_projets.append(refuse_pp)
-
-    for pp in programmation_projets:
-        LettreNotificationFactory(programmation_projet=pp)
-
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = (
-        reverse(
-            "notification:download-documents",
-            args=[DOTATION_DETR, LETTRE],
-        )
-        + f"?ids={ids}"
-    )
-    response = client.get(url)
-    assert response.status_code == 404
-    assert (
-        "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
-        in unescape(response.content.decode("utf-8"))
-    )
-
-
-def test_download_documents_with_missing_doc(client, programmation_projets):
-    for pp in programmation_projets:
-        LettreNotificationFactory(programmation_projet=pp)
-    pp_without_lettre = ProgrammationProjetFactory(
-        dotation_projet__dotation=DOTATION_DSIL
-    )
-    programmation_projets.append(pp_without_lettre)
-
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = (
-        reverse(
-            "notification:download-documents",
-            args=[DOTATION_DETR, LETTRE],
-        )
-        + f"?ids={ids}"
-    )
-    response = client.get(url)
-    assert response.status_code == 404
-    assert (
-        "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
-        in unescape(response.content.decode("utf-8"))
-    )
-
-
-def test_download_documents_with_duplicate_id(client, programmation_projets):
-    for pp in programmation_projets:
-        LettreNotificationFactory(programmation_projet=pp)
-
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    ids += f",{str(programmation_projets[0].id)}"
-    url = (
-        reverse(
-            "notification:download-documents",
-            args=[DOTATION_DETR, LETTRE],
-        )
-        + f"?ids={ids}"
-    )
-    response = client.get(url)
-    assert response.status_code == 404
-    assert (
-        "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
+        "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation, ou hors de votre périmètre)."
         in unescape(response.content.decode("utf-8"))
     )
 
@@ -363,6 +276,34 @@ def test_download_documents_correctly(client, programmation_projets):
         assert len(zf.namelist()) == 3
 
 
+@freeze_time("2026-05-03")
+def test_download_documents_arrete_et_lettre_one_pdf_all_filename(
+    client, programmation_projets
+):
+    for pp in programmation_projets:
+        LettreNotificationFactory(programmation_projet=pp)
+        ArreteFactory(programmation_projet=pp)
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    url = (
+        reverse(
+            "notification:download-documents",
+            args=[DOTATION_DETR, ARRETE_ET_LETTRE],
+        )
+        + f"?ids={ids}&export_format={EXPORT_FORMAT_ONE_PDF_ALL}"
+    )
+    with patch(
+        "gsl_notification.utils.get_logo_base64",
+        return_value="mocked_base64",
+    ):
+        response = client.get(url)
+
+    assert response.status_code == 200
+    assert response["Content-Type"] == "application/pdf"
+    assert response["Content-Disposition"].startswith(
+        'attachment; filename="export lettres et arrêtés turgot'
+    )
+
+
 def test_download_documents_single_doc_returns_pdf(client):
     pp = ProgrammationProjetFactory(
         dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
@@ -387,227 +328,337 @@ def test_download_documents_single_doc_returns_pdf(client):
 
 HTMX_HEADERS = {"HTTP_HX_REQUEST": "true"}
 
+WIZARD_PREFIX_DETR = f"generate_documents_wizard_{DOTATION_DETR}"
 
-## GenerateDocumentsModalView
+
+def _wizard_url(dotation=DOTATION_DETR):
+    return reverse("gsl_notification:generate-documents-modal", args=[dotation])
 
 
-def test_generate_documents_modal_requires_htmx(client, programmation_projets):
+def _wizard_step_data(current_step, fields, prefix=WIZARD_PREFIX_DETR):
+    """Build POST data for a wizard step submission, with management form."""
+    data = {f"{prefix}-current_step": current_step}
+    for key, value in fields.items():
+        data[f"{current_step}-{key}"] = value
+    return data
+
+
+def _post_launch(client, ids=None, dotation=DOTATION_DETR):
+    """POST the launch step of the wizard (the entry triggered by the button)."""
+    fields = {}
+    if ids is not None:
+        fields["ids"] = ids
+    return client.post(
+        _wizard_url(dotation),
+        _wizard_step_data(
+            "launch", fields, prefix=f"generate_documents_wizard_{dotation}"
+        ),
+        **HTMX_HEADERS,
+    )
+
+
+## Launch step (PRG entry) and wizard GET (dialog rendering)
+
+
+def test_launch_requires_htmx(client, programmation_projets):
     ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = reverse("gsl_notification:generate-documents-modal", args=[DOTATION_DETR])
-    response = client.post(url, {"ids": ids})
+    response = client.post(
+        _wizard_url(),
+        _wizard_step_data("launch", {"ids": ids}),
+    )
     assert response.status_code == 400
 
 
 @override_settings(DEBUG=False)
-def test_generate_documents_modal_wrong_dotation(client):
-    url = reverse("gsl_notification:generate-documents-modal", args=["raté"])
-    response = client.post(url, {}, **HTMX_HEADERS)
+def test_wizard_wrong_dotation(client):
+    response = client.get(_wizard_url("raté"), **HTMX_HEADERS)
     assert response.status_code == 404
     assert "Dotation inconnue" in unescape(response.content.decode("utf-8"))
 
 
-def test_generate_documents_modal_with_ids(client, programmation_projets):
+def test_launch_with_valid_ids_renders_step1_dialog(client, programmation_projets):
     ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = reverse("gsl_notification:generate-documents-modal", args=[DOTATION_DETR])
-    response = client.post(url, {"ids": ids}, **HTMX_HEADERS)
+    response = _post_launch(client, ids=ids)
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple/modal_step1.html"
+        "gsl_notification/generated_document/multiple/modal_form_step_body.html"
     )
-    assert response.context["pp_count"] == 3
+    assert "HX-Trigger-After-Settle" in response.headers
+    assert "HX-Location" not in response.headers
 
 
-def test_generate_documents_modal_without_ids_uses_filter(client):
-    ProgrammationProjetFactory.create_batch(
-        2,
-        dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
-        dotation_projet__dotation=DOTATION_DETR,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-        notified_at=None,
-    )
-    url = reverse("gsl_notification:generate-documents-modal", args=[DOTATION_DETR])
-    response = client.post(url, {}, **HTMX_HEADERS)
-    assert response.status_code == 200
-    assert response.context["pp_count"] == 2
-
-
-## GenerateDocumentsModalStep2View
-
-
-def test_generate_documents_modal_step2_requires_htmx(client, programmation_projets):
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = reverse(
-        "gsl_notification:generate-documents-modal-step2", args=[DOTATION_DETR]
-    )
-    response = client.post(url, {"document_type": LETTRE, "ids": ids})
-    assert response.status_code == 400
-
-
-def test_generate_documents_modal_step2_wrong_document_type(
-    client, programmation_projets
-):
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = reverse(
-        "gsl_notification:generate-documents-modal-step2", args=[DOTATION_DETR]
-    )
-    response = client.post(url, {"document_type": "raté", "ids": ids}, **HTMX_HEADERS)
+def test_launch_no_projects_renders_error_body(client):
+    response = _post_launch(client, ids="")
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple/modal_error_body.html"
+        "gsl_notification/generated_document/multiple/modal_launch_error_body.html"
     )
-    assert "Type de document inconnu" in response.context["error"]
+    form = response.context["form"]
+    assert "Aucun projet à notifier." in " ".join(form.errors.get("ids", []))
+    assert "HX-Trigger-After-Settle" in response.headers
+    assert "HX-Location" not in response.headers
 
 
-def test_generate_documents_modal_step2_returns_modeles(
-    client, programmation_projets, detr_lettre_modele
-):
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = reverse(
-        "gsl_notification:generate-documents-modal-step2", args=[DOTATION_DETR]
-    )
-    response = client.post(url, {"document_type": LETTRE, "ids": ids}, **HTMX_HEADERS)
-    assert response.status_code == 200
-    assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple/modal_step2_body.html"
-    )
-    assert detr_lettre_modele in response.context["modeles"]
-    assert response.context["document_type"] == LETTRE
-    assert response.context["ids"] == ids
-
-
-def test_generate_documents_modal_step1_no_projects_returns_error_in_modal(client):
-    url = reverse("gsl_notification:generate-documents-modal", args=[DOTATION_DETR])
-    response = client.post(url, {"ids": "99999"}, **HTMX_HEADERS)
-    assert response.status_code == 200
-    assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple/modal_step1.html"
-    )
-    assert response.context["error"]
-
-
-def test_generate_documents_modal_step1_wrong_perimetre_returns_error_in_modal(
-    client,
-):
+def test_launch_wrong_perimetre_renders_error_body(client):
     wrong_pp = ProgrammationProjetFactory(
         dotation_projet__dotation=DOTATION_DETR,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         notified_at=None,
     )
-    url = reverse("gsl_notification:generate-documents-modal", args=[DOTATION_DETR])
-    response = client.post(url, {"ids": str(wrong_pp.id)}, **HTMX_HEADERS)
+    response = _post_launch(client, ids=str(wrong_pp.id))
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple/modal_step1.html"
+        "gsl_notification/generated_document/multiple/modal_launch_error_body.html"
     )
-    assert (
-        "Un ou plusieurs projets sont hors de votre périmètre."
-        in response.context["error"]
-    )
+    form = response.context["form"]
+    assert "choix valide" in " ".join(form.errors.get("ids", []))
+    assert "HX-Trigger-After-Settle" in response.headers
 
 
-## GenerateDocumentsModalLoadingView
+## Wizard step submissions
 
 
-def test_generate_documents_modal_loading_wrong_document_type(
+def _open_wizard_at_step1(client, programmation_projets):
+    """POST the launch step so step 1 (doc_type) is initialized."""
+    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    _post_launch(client, ids=ids)
+    return ids
+
+
+def test_wizard_step1_invalid_document_type_re_renders_step1(
     client, programmation_projets
 ):
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = reverse(
-        "gsl_notification:generate-documents-modal-loading", args=[DOTATION_DETR]
-    )
-    response = client.post(url, {"document_type": "raté", "ids": ids}, **HTMX_HEADERS)
-    assert response.status_code == 200
-    assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple/modal_error_body.html"
-    )
-    assert "Type de document inconnu" in response.context["error"]
-
-
-def test_generate_documents_modal_loading_missing_modele_returns_step2_with_error(
-    client, programmation_projets
-):
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = reverse(
-        "gsl_notification:generate-documents-modal-loading", args=[DOTATION_DETR]
-    )
+    _open_wizard_at_step1(client, programmation_projets)
     response = client.post(
-        url, {"document_type": LETTRE, "ids": ids, "modele_id": ""}, **HTMX_HEADERS
+        _wizard_url(),
+        _wizard_step_data("step1", {"document_type": "raté"}),
+        **HTMX_HEADERS,
     )
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple/modal_step3_body.html"
+        "gsl_notification/generated_document/multiple/modal_form_step_body.html"
     )
-    assert response.context["error"] == "Veuillez sélectionner un format d'export."
+    form = response.context["form"]
+    assert "Type de document inconnu" in " ".join(form["document_type"].errors)
 
 
-def test_generate_documents_modal_loading_valid(
+def test_wizard_step1_to_step2_renders_step2_modeles(
     client, programmation_projets, detr_lettre_modele
 ):
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = reverse(
-        "gsl_notification:generate-documents-modal-loading", args=[DOTATION_DETR]
+    _open_wizard_at_step1(client, programmation_projets)
+    response = client.post(
+        _wizard_url(),
+        _wizard_step_data("step1", {"document_type": LETTRE}),
+        **HTMX_HEADERS,
+    )
+    assert response.status_code == 200
+    assert response.templates[0].name == (
+        "gsl_notification/generated_document/multiple/modal_step2_body.html"
+    )
+    form = response.context["form"]
+    assert detr_lettre_modele in form.fields["modele_lettre_id"].queryset
+    assert form.document_type == LETTRE
+
+
+def test_wizard_step1_to_step2_both_types_renders_two_selectors(
+    client, programmation_projets, detr_arrete_modele, detr_lettre_modele
+):
+    _open_wizard_at_step1(client, programmation_projets)
+    response = client.post(
+        _wizard_url(),
+        _wizard_step_data("step1", {"document_type": ARRETE_ET_LETTRE}),
+        **HTMX_HEADERS,
+    )
+    assert response.status_code == 200
+    assert response.templates[0].name == (
+        "gsl_notification/generated_document/multiple/modal_step2_body.html"
+    )
+    form = response.context["form"]
+    assert detr_arrete_modele in form.fields["modele_arrete_id"].queryset
+    assert detr_lettre_modele in form.fields["modele_lettre_id"].queryset
+    assert form.document_type == ARRETE_ET_LETTRE
+
+
+def test_wizard_step2_missing_modele_re_renders_step2(client, programmation_projets):
+    """Regression: previously the step3 view rendered step2 on missing_modele."""
+    _open_wizard_at_step1(client, programmation_projets)
+    client.post(
+        _wizard_url(),
+        _wizard_step_data("step1", {"document_type": LETTRE}),
+        **HTMX_HEADERS,
     )
     response = client.post(
-        url,
-        {
-            "document_type": LETTRE,
-            "ids": ids,
-            "modele_id": str(detr_lettre_modele.id),
-            "export_format": "un_pdf_par_document",
-        },
+        _wizard_url(),
+        _wizard_step_data("step2", {"modele_lettre_id": ""}),
         **HTMX_HEADERS,
+    )
+    assert response.status_code == 200
+    assert response.templates[0].name == (
+        "gsl_notification/generated_document/multiple/modal_step2_body.html"
+    )
+    form = response.context["form"]
+    assert form.errors["modele_lettre_id"] == ["Veuillez sélectionner un modèle."]
+
+
+def test_wizard_step2_missing_both_modeles_re_renders_step2(
+    client, programmation_projets
+):
+    _open_wizard_at_step1(client, programmation_projets)
+    client.post(
+        _wizard_url(),
+        _wizard_step_data("step1", {"document_type": ARRETE_ET_LETTRE}),
+        **HTMX_HEADERS,
+    )
+    response = client.post(
+        _wizard_url(),
+        _wizard_step_data("step2", {"modele_arrete_id": "", "modele_lettre_id": ""}),
+        **HTMX_HEADERS,
+    )
+    assert response.status_code == 200
+    assert response.templates[0].name == (
+        "gsl_notification/generated_document/multiple/modal_step2_body.html"
+    )
+    form = response.context["form"]
+    assert form.errors["modele_arrete_id"] == ["Veuillez sélectionner un modèle."]
+    assert form.errors["modele_lettre_id"] == ["Veuillez sélectionner un modèle."]
+
+
+def test_wizard_step2_to_step3(client, programmation_projets, detr_lettre_modele):
+    _open_wizard_at_step1(client, programmation_projets)
+    client.post(
+        _wizard_url(),
+        _wizard_step_data("step1", {"document_type": LETTRE}),
+        **HTMX_HEADERS,
+    )
+    response = client.post(
+        _wizard_url(),
+        _wizard_step_data("step2", {"modele_lettre_id": str(detr_lettre_modele.id)}),
+        **HTMX_HEADERS,
+    )
+    assert response.status_code == 200
+    assert response.templates[0].name == (
+        "gsl_notification/generated_document/multiple/modal_form_step_body.html"
+    )
+    assert response.context["doc_count"] == 3
+
+
+def test_wizard_step3_invalid_export_format_re_renders_step3(
+    client, programmation_projets, detr_lettre_modele
+):
+    """Regression: previously the loading view rendered step3 on invalid export_format."""
+    _open_wizard_at_step1(client, programmation_projets)
+    client.post(
+        _wizard_url(),
+        _wizard_step_data("step1", {"document_type": LETTRE}),
+        **HTMX_HEADERS,
+    )
+    client.post(
+        _wizard_url(),
+        _wizard_step_data("step2", {"modele_lettre_id": str(detr_lettre_modele.id)}),
+        **HTMX_HEADERS,
+    )
+    response = client.post(
+        _wizard_url(),
+        _wizard_step_data("step3", {"export_format": ""}),
+        **HTMX_HEADERS,
+    )
+    assert response.status_code == 200
+    assert response.templates[0].name == (
+        "gsl_notification/generated_document/multiple/modal_form_step_body.html"
+    )
+    form = response.context["form"]
+    assert "Veuillez sélectionner un format d'export." in " ".join(
+        form["export_format"].errors
+    )
+
+
+## Step 4 — final wizard step (loading body + auto-submit → done)
+
+
+def _drive_through_step3(
+    client,
+    programmation_projets,
+    *,
+    document_type=LETTRE,
+    step2_fields,
+    dotation=DOTATION_DETR,
+):
+    """Walk the wizard from launch through a step3 submit.
+
+    Returns the response of the step3 POST (= initial step4 render).
+    """
+    _open_wizard_at_step1(client, programmation_projets)
+    client.post(
+        _wizard_url(dotation),
+        _wizard_step_data(
+            "step1",
+            {"document_type": document_type},
+            prefix=f"generate_documents_wizard_{dotation}",
+        ),
+        **HTMX_HEADERS,
+    )
+    client.post(
+        _wizard_url(dotation),
+        _wizard_step_data(
+            "step2",
+            step2_fields,
+            prefix=f"generate_documents_wizard_{dotation}",
+        ),
+        **HTMX_HEADERS,
+    )
+    return client.post(
+        _wizard_url(dotation),
+        _wizard_step_data(
+            "step3",
+            {"export_format": "un_pdf_par_document"},
+            prefix=f"generate_documents_wizard_{dotation}",
+        ),
+        **HTMX_HEADERS,
+    )
+
+
+def _post_step4(client, dotation=DOTATION_DETR):
+    return client.post(
+        _wizard_url(dotation),
+        _wizard_step_data("step4", {}, prefix=f"generate_documents_wizard_{dotation}"),
+        **HTMX_HEADERS,
+    )
+
+
+def test_wizard_step3_renders_loading_body(
+    client, programmation_projets, detr_lettre_modele
+):
+    response = _drive_through_step3(
+        client,
+        programmation_projets,
+        step2_fields={"modele_lettre_id": str(detr_lettre_modele.id)},
     )
     assert response.status_code == 200
     assert response.templates[0].name == (
         "gsl_notification/generated_document/multiple/modal_loading_body.html"
     )
     assert response.context["doc_count"] == 3
-    assert response.context["modele_id"] == str(detr_lettre_modele.id)
+    # Loading body must include the wizard management form so the auto-POST
+    # is dispatched to the wizard's step4.
+    assert b"generate_documents_wizard_DETR-current_step" in response.content
+    assert b'value="step4"' in response.content
 
 
-## GenerateDocumentsModalCreateView
-
-
-def test_generate_documents_modal_create_requires_htmx(
+def test_wizard_step4_creates_documents_and_returns_success(
     client, programmation_projets, detr_lettre_modele
 ):
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = reverse(
-        "gsl_notification:generate-documents-modal-create", args=[DOTATION_DETR]
+    _drive_through_step3(
+        client,
+        programmation_projets,
+        step2_fields={"modele_lettre_id": str(detr_lettre_modele.id)},
     )
-    response = client.post(
-        url,
-        {"document_type": LETTRE, "ids": ids, "modele_id": str(detr_lettre_modele.id)},
-    )
-    assert response.status_code == 400
-
-
-@override_settings(DEBUG=False)
-def test_generate_documents_modal_create_wrong_dotation(client):
-    url = reverse("gsl_notification:generate-documents-modal-create", args=["raté"])
-    response = client.post(url, {"document_type": LETTRE}, **HTMX_HEADERS)
-    assert response.status_code == 404
-
-
-def test_generate_documents_modal_create_creates_documents_and_returns_success(
-    client, programmation_projets, detr_lettre_modele
-):
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = reverse(
-        "gsl_notification:generate-documents-modal-create", args=[DOTATION_DETR]
-    )
-    response = client.post(
-        url,
-        {"document_type": LETTRE, "ids": ids, "modele_id": str(detr_lettre_modele.id)},
-        **HTMX_HEADERS,
-    )
+    response = _post_step4(client)
     assert response.status_code == 200
     assert response.templates[0].name == (
         "gsl_notification/generated_document/multiple/modal_success_body.html"
     )
     assert response.context["doc_count"] == 3
-    assert response.context["doc_name"] == "lettres de notification"
-    assert len(list(response.context["programmation_projets"])) == 3
+    assert len(list(response.context["refreshed_programmation_projets"])) == 3
     for pp in programmation_projets:
         pp.refresh_from_db()
         assert hasattr(pp, "lettre_notification")
@@ -615,168 +666,47 @@ def test_generate_documents_modal_create_creates_documents_and_returns_success(
         assert pp.lettre_notification.created_by == client.user
 
 
-def test_generate_documents_modal_create_invalid_modele_returns_error_in_modal(
-    client, programmation_projets
-):
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = reverse(
-        "gsl_notification:generate-documents-modal-create", args=[DOTATION_DETR]
-    )
-    response = client.post(
-        url,
-        {"document_type": LETTRE, "ids": ids, "modele_id": "99999"},
-        **HTMX_HEADERS,
-    )
-    assert response.status_code == 200
-    assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple/modal_error_body.html"
-    )
-    assert response.context["error"]
-
-
-def test_generate_documents_modal_create_wrong_perimetre_returns_error_in_modal(
-    client, programmation_projets, detr_lettre_modele
-):
-    wrong_pp = ProgrammationProjetFactory(dotation_projet__dotation=DOTATION_DETR)
-    programmation_projets.append(wrong_pp)
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = reverse(
-        "gsl_notification:generate-documents-modal-create", args=[DOTATION_DETR]
-    )
-    response = client.post(
-        url,
-        {"document_type": LETTRE, "ids": ids, "modele_id": str(detr_lettre_modele.id)},
-        **HTMX_HEADERS,
-    )
-    assert response.status_code == 200
-    assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple/modal_error_body.html"
-    )
-    assert (
-        "Un ou plusieurs projets sont hors de votre périmètre."
-        in response.context["error"]
-    )
-
-
-def test_generate_documents_modal_create_replaces_existing_doc(
+def test_wizard_step4_replaces_existing_doc(
     client, programmation_projets, detr_lettre_modele
 ):
     pp = programmation_projets[0]
     old_lettre = LettreNotificationFactory(programmation_projet=pp)
 
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = reverse(
-        "gsl_notification:generate-documents-modal-create", args=[DOTATION_DETR]
+    _drive_through_step3(
+        client,
+        programmation_projets,
+        step2_fields={
+            "modele_lettre_id": str(detr_lettre_modele.id),
+            "overwrite_strategy": GenerateDocumentsStep2Form.STRATEGY_REMPLACER,
+        },
     )
-    client.post(
-        url,
-        {"document_type": LETTRE, "ids": ids, "modele_id": str(detr_lettre_modele.id)},
-        **HTMX_HEADERS,
-    )
+    _post_step4(client)
     pp.refresh_from_db()
     assert pp.lettre_notification.id != old_lettre.id
 
 
-## Option "arrete_et_lettre"
-
-ARRETE_ET_LETTRE = "arrete_et_lettre"
-
-
-def test_generate_documents_modal_step2_both_types_returns_two_selectors(
+def test_wizard_step4_both_creates_arrete_and_lettre(
     client, programmation_projets, detr_arrete_modele, detr_lettre_modele
 ):
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = reverse(
-        "gsl_notification:generate-documents-modal-step2", args=[DOTATION_DETR]
-    )
-    response = client.post(
-        url, {"document_type": ARRETE_ET_LETTRE, "ids": ids}, **HTMX_HEADERS
-    )
-    assert response.status_code == 200
-    assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple/modal_step2_body.html"
-    )
-    assert detr_arrete_modele in response.context["modeles_arrete"]
-    assert detr_lettre_modele in response.context["modeles_lettre"]
-    assert response.context["document_type"] == ARRETE_ET_LETTRE
-
-
-def test_generate_documents_modal_loading_both_missing_modele_returns_step2_with_error(
-    client, programmation_projets
-):
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = reverse(
-        "gsl_notification:generate-documents-modal-loading", args=[DOTATION_DETR]
-    )
-    response = client.post(
-        url,
-        {
-            "document_type": ARRETE_ET_LETTRE,
-            "ids": ids,
-            "modele_arrete_id": "",
-            "modele_lettre_id": "",
-        },
-        **HTMX_HEADERS,
-    )
-    assert response.status_code == 200
-    assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple/modal_step3_body.html"
-    )
-    assert response.context["error"]
-
-
-def test_generate_documents_modal_loading_both_valid(
-    client, programmation_projets, detr_arrete_modele, detr_lettre_modele
-):
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = reverse(
-        "gsl_notification:generate-documents-modal-loading", args=[DOTATION_DETR]
-    )
-    response = client.post(
-        url,
-        {
-            "document_type": ARRETE_ET_LETTRE,
-            "ids": ids,
-            "modele_arrete_id": str(detr_arrete_modele.id),
-            "modele_lettre_id": str(detr_lettre_modele.id),
-            "export_format": "un_pdf_par_document",
-        },
-        **HTMX_HEADERS,
-    )
-    assert response.status_code == 200
-    assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple/modal_loading_body.html"
-    )
-    assert response.context["document_type"] == ARRETE_ET_LETTRE
-    assert response.context["modele_arrete_id"] == str(detr_arrete_modele.id)
-    assert response.context["modele_lettre_id"] == str(detr_lettre_modele.id)
-
-
-def test_generate_documents_modal_create_both_creates_arrete_and_lettre(
-    client, programmation_projets, detr_arrete_modele, detr_lettre_modele
-):
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = reverse(
-        "gsl_notification:generate-documents-modal-create", args=[DOTATION_DETR]
-    )
-    response = client.post(
-        url,
-        {
-            "document_type": ARRETE_ET_LETTRE,
-            "ids": ids,
+    _drive_through_step3(
+        client,
+        programmation_projets,
+        document_type=ARRETE_ET_LETTRE,
+        step2_fields={
             "modele_arrete_id": str(detr_arrete_modele.id),
             "modele_lettre_id": str(detr_lettre_modele.id),
         },
-        **HTMX_HEADERS,
     )
+    response = _post_step4(client)
     assert response.status_code == 200
     assert response.templates[0].name == (
         "gsl_notification/generated_document/multiple/modal_success_body.html"
     )
-    assert response.context["document_type"] == ARRETE_ET_LETTRE
+    form = response.context["form"]
+    assert form.document_type == ARRETE_ET_LETTRE
     assert response.context["doc_count"] == 6
     assert "download_url" in response.context
-    assert len(list(response.context["programmation_projets"])) == 3
+    assert len(list(response.context["refreshed_programmation_projets"])) == 3
     for pp in programmation_projets:
         pp.refresh_from_db()
         assert hasattr(pp, "arrete")
@@ -785,17 +715,15 @@ def test_generate_documents_modal_create_both_creates_arrete_and_lettre(
         assert pp.lettre_notification.modele == detr_lettre_modele
 
 
-def test_generate_pdf_for_document_unit(detr_lettre_modele, programmation_projet):
-    document = LettreNotificationFactory(
-        programmation_projet=programmation_projet,
-        modele=detr_lettre_modele,
-        content="<p>Test PDF</p>",
+## Authentication
+
+
+def test_download_documents_requires_authentication():
+    anonymous_client = Client()
+    url = reverse(
+        "notification:download-documents",
+        args=[DOTATION_DETR, LETTRE],
     )
-    with patch(
-        "gsl_notification.utils.get_logo_base64",
-        return_value="mocked_base64",
-    ):
-        pdf_bytes = generate_pdf_for_generated_document(document)
-    assert isinstance(pdf_bytes, bytes)
-    assert pdf_bytes[:4] == b"%PDF"
-    assert len(pdf_bytes) > 100
+    response = anonymous_client.get(url)
+    assert response.status_code == 302
+    assert "/login" in response["Location"]

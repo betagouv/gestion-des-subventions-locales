@@ -50,8 +50,34 @@
              data-controller="checkbox-selection"
              data-checkbox-selection-empty-means-all-value="true">
             {{ selectable_ids_list|json_script:"checkbox-selection-selectable-ids" }}
-            <div id="generate-documents-modal-host">
-            </div>
+            <button id="generate-multiple-modal-button"
+                    aria-controls="generate-multiple-modal"
+                    type="button"
+                    hidden
+                    data-fr-opened="false">
+            </button>
+            <dialog class="fr-modal"
+                    id="generate-multiple-modal"
+                    aria-labelledby="generate-multiple-modal-title">
+                <div class="fr-container fr-container--fluid fr-container-md">
+                    <div class="fr-grid-row fr-grid-row--center">
+                        <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
+                            <div class="fr-modal__body">
+                                <div class="fr-modal__header">
+                                    <button aria-controls="generate-multiple-modal"
+                                            title="Fermer"
+                                            type="button"
+                                            class="fr-btn--close fr-btn">
+                                        Fermer
+                                    </button>
+                                </div>
+                                <div id="generate-multiple-modal-step">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </dialog>
             <div class="gsl-table-toolbar fr-mt-11v fr-mb-6v">
                 <span class="gsl-bulk-actions__count">
                     {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
@@ -72,11 +98,14 @@
                     </li>
                     <li>
                         <form hx-post="{% url "gsl_notification:generate-documents-modal" dotation %}"
-                              hx-target="#generate-documents-modal-host"
-                              hx-swap="innerHTML">
+                              hx-target="#generate-multiple-modal-step"
+                              hx-swap="outerHTML">
                             {% csrf_token %}
                             <input type="hidden"
-                                   name="ids"
+                                   name="generate_documents_wizard_{{ dotation }}-current_step"
+                                   value="launch">
+                            <input type="hidden"
+                                   name="launch-ids"
                                    value=""
                                    data-checkbox-selection-target="idsInput">
                             <button type="submit"

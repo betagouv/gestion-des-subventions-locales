@@ -2,27 +2,35 @@ import io
 import logging
 import zipfile
 
-from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
-from django.http import Http404 as DjangoHttp404
 from django.http import HttpResponse
-from django.shortcuts import get_list_or_404, get_object_or_404
+from django.shortcuts import get_list_or_404, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.utils.text import slugify
 from django.views.decorators.http import require_GET
-from django.views.generic import TemplateView
 from django_htmx.http import trigger_client_event
+from formtools.wizard.views import SessionWizardView
 from pikepdf import Pdf
 
 from gsl_core.decorators import htmx_only
-from gsl_core.exceptions import Http404, PermissionDenied
+from gsl_core.exceptions import Http404
+from gsl_notification.forms import (
+    ARRETE_ET_LETTRE,
+    EXPORT_FORMAT_ONE_PDF_ALL,
+    EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
+    EXPORT_FORMAT_ONE_PDF_PER_DOC,
+    EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
+    SELECTED_TYPES_BY_CHOICE,
+    GenerateDocumentsCreateForm,
+    GenerateDocumentsLaunchForm,
+    GenerateDocumentsStep1Form,
+    GenerateDocumentsStep2Form,
+    GenerateDocumentsStep3Form,
+)
 from gsl_notification.utils import (
     generate_pdf_for_generated_document,
-    get_generated_document_class,
-    get_modele_class,
-    get_modele_perimetres,
     get_programmation_projet_attribute,
-    replace_mentions_in_html,
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.utils.programmation_projet_filters import (
@@ -33,44 +41,19 @@ from gsl_projet.constants import (
     DOTATIONS,
     LETTRE,
 )
-from gsl_projet.models import Projet
 
 logger = logging.getLogger(__name__)
-
-
-DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR = "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation)."
-
-# Modal HTMX views
-
-GENERATE_DOCUMENTS_MODAL_ID = "generate-multiple-modal"
-GENERATE_DOCUMENTS_MODAL_BUTTON_ID = "generate-multiple-modal-btn"
-ARRETE_ET_LETTRE = "arrete_et_lettre"
-VALID_DOCUMENT_TYPES = [ARRETE, LETTRE, ARRETE_ET_LETTRE]
-
-EXPORT_FORMAT_ONE_PDF_PER_DOC = "un_pdf_par_document"
-EXPORT_FORMAT_ONE_PDF_ALL = "un_seul_pdf_ensemble"
-EXPORT_FORMAT_ONE_PDF_PER_PROJECT = "un_pdf_par_projet"
-EXPORT_FORMAT_ONE_PDF_ALL_GROUPED = "un_seul_pdf_groupe_par_projet"
-
-VALID_EXPORT_FORMATS_SINGLE = [EXPORT_FORMAT_ONE_PDF_PER_DOC, EXPORT_FORMAT_ONE_PDF_ALL]
-VALID_EXPORT_FORMATS_BOTH = [
-    EXPORT_FORMAT_ONE_PDF_PER_DOC,
-    EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
-    EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
-]
-
-STRATEGY_CONSERVER = "conserver"
-STRATEGY_REMPLACER = "remplacer"
 
 
 @require_GET
 def download_documents(request, dotation, document_type):
     if dotation not in DOTATIONS:
         raise Http404(user_message="Dotation inconnue")
-    if document_type not in [ARRETE, LETTRE, ARRETE_ET_LETTRE]:
+    selected_types = SELECTED_TYPES_BY_CHOICE.get(document_type)
+    if selected_types is None:
         raise Http404(user_message="Type de document inconnu")
 
-    types = [LETTRE, ARRETE] if document_type == ARRETE_ET_LETTRE else [document_type]
+    types = [t for t in (LETTRE, ARRETE) if t in selected_types]
     attrs = [get_programmation_projet_attribute(t) for t in types]
     attr_select_related = [
         "dotation_projet",
@@ -81,10 +64,13 @@ def download_documents(request, dotation, document_type):
         *(f"{a}__modele" for a in attrs),
     ]
 
-    try:
-        ids = _get_pp_ids(request)
+    ids_str = request.GET.get("ids", "")
+    ids = [int(i) for i in ids_str.split(",") if i.strip().isdigit()]
+    if ids:
         programmation_projets = get_list_or_404(
-            ProgrammationProjet.objects.select_related(*attr_select_related),
+            ProgrammationProjet.objects.visible_to_user(request.user).select_related(
+                *attr_select_related
+            ),
             id__in=ids,
             dotation_projet__dotation=dotation,
             status=ProgrammationProjet.STATUS_ACCEPTED,
@@ -92,10 +78,9 @@ def download_documents(request, dotation, document_type):
         )
         if len(programmation_projets) < len(ids):
             raise Http404(
-                user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
+                user_message="Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation, ou hors de votre périmètre)."
             )
-        _check_if_projets_are_accessible_for_user(request, programmation_projets)
-    except ValueError:
+    else:
         filterset = ProgrammationProjetFilters(data=request.GET, request=request)
         programmation_projets = filterset.qs.can_generate_documents().select_related(
             *attr_select_related
@@ -104,13 +89,11 @@ def download_documents(request, dotation, document_type):
     export_format = request.GET.get("export_format", EXPORT_FORMAT_ONE_PDF_PER_DOC)
 
     if export_format == EXPORT_FORMAT_ONE_PDF_ALL:
-        return _download_single_merged_pdf(
-            programmation_projets, attrs, document_type, request.user
-        )
+        return _download_single_merged_pdf(programmation_projets, attrs, document_type)
     if export_format == EXPORT_FORMAT_ONE_PDF_PER_PROJECT:
-        return _download_one_pdf_per_project(programmation_projets, attrs, request.user)
+        return _download_one_pdf_per_project(programmation_projets, attrs)
     if export_format == EXPORT_FORMAT_ONE_PDF_ALL_GROUPED:
-        return _download_grouped_merged_pdf(programmation_projets, attrs, request.user)
+        return _download_grouped_merged_pdf(programmation_projets, attrs)
 
     return _download_one_pdf_per_doc(programmation_projets, attrs)
 
@@ -150,7 +133,7 @@ def _download_one_pdf_per_doc(programmation_projets, attrs):
     return response
 
 
-def _download_single_merged_pdf(programmation_projets, attrs, document_type, user):
+def _download_single_merged_pdf(programmation_projets, attrs, document_type):
     pdf_bytes_list = []
     for pp in programmation_projets:
         for attr in attrs:
@@ -159,14 +142,19 @@ def _download_single_merged_pdf(programmation_projets, attrs, document_type, use
             )
     merged = _merge_pdfs_bytes(pdf_bytes_list)
     date_str = timezone.now().strftime("%d-%m-%Y")
-    doc_type_fr = "arrêté" if document_type == ARRETE else "lettre"
+    if document_type == ARRETE:
+        doc_type_fr = "arrêté"
+    elif document_type == ARRETE_ET_LETTRE:
+        doc_type_fr = "lettres et arrêtés"
+    else:
+        doc_type_fr = "lettre"
     filename = f"export {doc_type_fr} turgot {date_str}.pdf"
     response = HttpResponse(merged, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
 
 
-def _download_one_pdf_per_project(programmation_projets, attrs, user):
+def _download_one_pdf_per_project(programmation_projets, attrs):
     if len(programmation_projets) == 1:
         pp = programmation_projets[0]
         pdf_bytes_list = []
@@ -177,7 +165,7 @@ def _download_one_pdf_per_project(programmation_projets, attrs, user):
         merged = _merge_pdfs_bytes(pdf_bytes_list)
         date_str = timezone.now().strftime("%d-%m-%Y")
         ds_number = pp.dossier.ds_number
-        raison_sociale = pp.dossier.ds_demandeur.raison_sociale
+        raison_sociale = slugify(pp.dossier.ds_demandeur.raison_sociale)
         filename = f"lettre et arrêté - {ds_number} - {raison_sociale} - {date_str}.pdf"
         response = HttpResponse(merged, content_type="application/pdf")
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
@@ -192,7 +180,7 @@ def _download_one_pdf_per_project(programmation_projets, attrs, user):
             ]
             merged = _merge_pdfs_bytes(project_pdfs)
             ds_number = pp.dossier.ds_number
-            raison_sociale = pp.dossier.ds_demandeur.raison_sociale
+            raison_sociale = slugify(pp.dossier.ds_demandeur.raison_sociale)
             filename = f"lettre et arrêté - {ds_number} - {raison_sociale}.pdf"
             zip_file.writestr(filename, merged)
     zip_buffer.seek(0)
@@ -202,7 +190,7 @@ def _download_one_pdf_per_project(programmation_projets, attrs, user):
     return response
 
 
-def _download_grouped_merged_pdf(programmation_projets, attrs, user):
+def _download_grouped_merged_pdf(programmation_projets, attrs):
     pdf_bytes_list = []
     for pp in programmation_projets:
         for attr in attrs:
@@ -228,462 +216,171 @@ def _merge_pdfs_bytes(pdf_bytes_list: list[bytes]) -> bytes:
     return output.read()
 
 
-# Utils
+@method_decorator(htmx_only, name="dispatch")
+class GenerateDocumentsWizard(SessionWizardView):
+    LAUNCH_STEP = "launch"
+    STEP1 = "step1"  # type de document
+    STEP2 = "step2"  # choix des modèles + stratégie
+    STEP3 = "step3"  # format d'export
+    STEP4 = "step4"  # création (no-op form, déclenché par render_done)
 
+    TEMPLATE_BASE = "gsl_notification/generated_document/multiple/"
+    SUCCESS_TEMPLATE = TEMPLATE_BASE + "modal_success_body.html"
 
-def _get_pp_ids(request):
-    ids_str = request.GET.get("ids") or request.POST.get("ids")
-    if not ids_str:
-        raise ValueError("Aucun id de programmation projet")
-
-    ids = [int(i) for i in ids_str.split(",") if i.strip().isdigit()]
-    return ids
-
-
-def _check_if_projets_are_accessible_for_user(request, programmation_projets):
-    projet_ids = set(pp.projet.id for pp in programmation_projets)
-    projet_ids_visible_by_user = Projet.objects.for_user(request.user).filter(
-        id__in=projet_ids
-    )
-
-    if len(projet_ids) != len(projet_ids_visible_by_user):
-        raise PermissionDenied(
-            user_message="Un ou plusieurs projets sont hors de votre périmètre."
-        )
-
-
-class GenerateDocumentsModalMixin:
-    http_method_names = ["post"]
-    modal_id = GENERATE_DOCUMENTS_MODAL_ID
-    error_template_name = (
-        "gsl_notification/generated_document/multiple/modal_error_body.html"
-    )
+    form_list = [
+        (LAUNCH_STEP, GenerateDocumentsLaunchForm),
+        (STEP1, GenerateDocumentsStep1Form),
+        (STEP2, GenerateDocumentsStep2Form),
+        (STEP3, GenerateDocumentsStep3Form),
+        (STEP4, GenerateDocumentsCreateForm),
+    ]
+    FORM_STEP_TEMPLATE = TEMPLATE_BASE + "modal_form_step_body.html"
+    TEMPLATES = {
+        LAUNCH_STEP: TEMPLATE_BASE + "modal_launch_error_body.html",
+        STEP1: FORM_STEP_TEMPLATE,
+        STEP2: TEMPLATE_BASE + "modal_step2_body.html",
+        STEP3: FORM_STEP_TEMPLATE,
+        STEP4: TEMPLATE_BASE + "modal_loading_body.html",
+    }
+    STEPPER_META = {
+        STEP1: (1, "Types de document", "Choix des modèles"),
+        STEP3: (3, "Format d'export", "Téléchargement"),
+    }
+    modal_id = "generate-multiple-modal"
 
     def dispatch(self, request, *args, **kwargs):
-        if self.kwargs["dotation"] not in DOTATIONS:
+        if kwargs.get("dotation") not in DOTATIONS:
             raise Http404(user_message="Dotation inconnue")
         return super().dispatch(request, *args, **kwargs)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def get_prefix(self, request, *args, **kwargs):
+        # Namespace storage by dotation so DETR and DSIL don't collide.
+        return f"{super().get_prefix(request, *args, **kwargs)}_{kwargs['dotation']}"
+
+    def post(self, request, *args, **kwargs):
+        # Read the submitted step from the management form, not from storage:
+        # storage may still hold a non-launch step from a previously abandoned
+        # wizard run, which would mask "this is a launch submission" and prevent
+        # _is_initial_modal_render() from triggering the modal-open event.
+        self._submitted_step = request.POST.get(f"{self.prefix}-current_step")
+        return super().post(request, *args, **kwargs)
+
+    def get_form_kwargs(self, step=None):
+        kwargs = super().get_form_kwargs(step)
+        kwargs.update(
+            {
+                "user": self.request.user,
+                "dotation": self.kwargs["dotation"],
+                "request": self.request,
+            }
+        )
+        if step in (self.STEP2, self.STEP3, self.STEP4):
+            step1_data = self.get_cleaned_data_for_step(self.STEP1) or {}
+            kwargs["document_type"] = step1_data.get("document_type")
+        if step in (self.STEP2, self.STEP4):
+            launch_data = self.get_cleaned_data_for_step(self.LAUNCH_STEP) or {}
+            kwargs["programmation_projets"] = launch_data.get("ids") or []
+        return kwargs
+
+    def get_context_data(self, form, **kwargs):
+        context = super().get_context_data(form=form, **kwargs)
         context["dotation"] = self.kwargs["dotation"]
         context["modal_id"] = self.modal_id
+        context["modal_button_id"] = f"{self.modal_id}-button"
+        if stepper := self.STEPPER_META.get(self.steps.current):
+            (
+                context["current_step_id"],
+                context["current_step_title"],
+                context["next_step_title"],
+            ) = stepper
+        if self.steps.current in (self.STEP3, self.STEP4):
+            launch_data = self.get_cleaned_data_for_step(self.LAUNCH_STEP) or {}
+            step1_data = self.get_cleaned_data_for_step(self.STEP1) or {}
+            ids = launch_data.get("ids") or []
+            document_type = step1_data.get("document_type")
+            if document_type:
+                context["doc_count"] = len(ids) * len(
+                    SELECTED_TYPES_BY_CHOICE[document_type]
+                )
         return context
 
-    @staticmethod
-    def _error_message(exc, default):
-        return getattr(exc, "user_message", None) or default
+    def _is_initial_modal_render(self):
+        # Response to a launch POST (validation failure stays on launch; success
+        # advances to step1). Either way the modal isn't open yet, so we render
+        # the full <dialog> wrapper plus the hidden trigger button.
+        return getattr(self, "_submitted_step", None) == self.LAUNCH_STEP
 
-    def _render_error(self, error_message):
-        context = self.get_context_data(error=error_message)
-        return self.response_class(
-            request=self.request,
-            template=[self.error_template_name],
-            context=context,
-            using=self.template_engine,
-        )
+    def get_template_names(self):
+        return [self.TEMPLATES[self.steps.current]]
 
-    def _get_modeles(self, document_type):
-        dotation = self.kwargs["dotation"]
-        perimetres = get_modele_perimetres(dotation, self.request.user.perimetre)
-        return get_modele_class(document_type).objects.filter(
-            dotation=dotation, perimetre__in=perimetres
-        )
-
-    @staticmethod
-    def _get_document_type_label(document_type):
-        return "arrêtés" if document_type == ARRETE else "lettres de notification"
-
-    @staticmethod
-    def _get_doc_name(document_type, count):
-        if document_type == ARRETE:
-            return "arrêté" if count == 1 else "arrêtés"
-        return "lettre de notification" if count == 1 else "lettres de notification"
-
-
-@method_decorator(htmx_only, name="dispatch")
-class GenerateDocumentsModalView(GenerateDocumentsModalMixin, TemplateView):
-    template_name = "gsl_notification/generated_document/multiple/modal_step1.html"
-
-    def post(self, request, *args, **kwargs):
-        dotation = self.kwargs["dotation"]
-        try:
-            try:
-                ids = _get_pp_ids(request)
-                programmation_projets = get_list_or_404(
-                    ProgrammationProjet,
-                    id__in=ids,
-                    status=ProgrammationProjet.STATUS_ACCEPTED,
-                    dotation_projet__projet__notified_at=None,
-                    dotation_projet__dotation=dotation,
-                )
-                if len(programmation_projets) < len(ids):
-                    raise Http404(
-                        user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
-                    )
-                _check_if_projets_are_accessible_for_user(
-                    request, programmation_projets
-                )
-                ids = [pp.id for pp in programmation_projets]
-            except ValueError:
-                filterset = ProgrammationProjetFilters(
-                    data=request.GET, request=request
-                )
-                ids = [pp.id for pp in filterset.qs.can_generate_documents()]
-
-            if not ids:
-                raise Http404(user_message="Aucun projet à notifier.")
-
-            context = self.get_context_data(
-                pp_count=len(ids),
-                ids=",".join(str(i) for i in ids),
-                modal_button_id=GENERATE_DOCUMENTS_MODAL_BUTTON_ID,
+    def render_to_response(self, context, **response_kwargs):
+        response = super().render_to_response(context, **response_kwargs)
+        if self._is_initial_modal_render():
+            return trigger_client_event(
+                response,
+                "click",
+                {"target": f"#{self.modal_id}-button"},
+                after="settle",
             )
-        except (DjangoHttp404, DjangoPermissionDenied) as e:
-            context = self.get_context_data(
-                modal_button_id=GENERATE_DOCUMENTS_MODAL_BUTTON_ID,
-                error=self._error_message(e, "Une erreur est survenue."),
+        return response
+
+    def render_next_step(self, form, **kwargs):
+        if self.steps.current == self.LAUNCH_STEP:
+            # Wipe leftover progress from a previous wizard run while preserving
+            # the just-validated launch data.
+            launch_data = self.storage.get_step_data(self.LAUNCH_STEP)
+            self.storage.reset()
+            self.storage.set_step_data(self.LAUNCH_STEP, launch_data)
+            self.storage.current_step = self.LAUNCH_STEP
+        return super().render_next_step(form, **kwargs)
+
+    def render_done(self, form, **kwargs):
+        form_dict = {
+            step: self.get_form(
+                step=step,
+                data=self.storage.get_step_data(step),
+                files=self.storage.get_step_files(step),
             )
+            for step in self.get_form_list()
+        }
+        response = self.done(form_dict.values(), form_dict=form_dict, **kwargs)
+        self.storage.reset()
+        return response
 
-        response = self.render_to_response(context)
-        return trigger_client_event(
-            response,
-            "click",
-            {"target": f"#{GENERATE_DOCUMENTS_MODAL_BUTTON_ID}"},
-            after="settle",
-        )
-
-
-@method_decorator(htmx_only, name="dispatch")
-class GenerateDocumentsModalStep2View(GenerateDocumentsModalMixin, TemplateView):
-    template_name = "gsl_notification/generated_document/multiple/modal_step2_body.html"
-
-    def dispatch(self, request, *args, **kwargs):
-        if request.POST.get("document_type") not in VALID_DOCUMENT_TYPES:
-            return self._render_error("Type de document inconnu")
-        return super().dispatch(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        document_type = request.POST.get("document_type")
-        ids_str = request.POST.get("ids", "")
-        ids = [int(i) for i in ids_str.split(",") if i.strip().isdigit()]
-
-        existing_arrete_count = 0
-        existing_lettre_count = 0
-        if ids:
-            if document_type in [ARRETE, ARRETE_ET_LETTRE]:
-                existing_arrete_count = (
-                    get_generated_document_class(ARRETE)
-                    .objects.filter(programmation_projet_id__in=ids)
-                    .count()
-                )
-            if document_type in [LETTRE, ARRETE_ET_LETTRE]:
-                existing_lettre_count = (
-                    get_generated_document_class(LETTRE)
-                    .objects.filter(programmation_projet_id__in=ids)
-                    .count()
-                )
-
-        if document_type == ARRETE_ET_LETTRE:
-            context = self.get_context_data(
-                document_type=document_type,
-                modeles_arrete=self._get_modeles(ARRETE),
-                modeles_lettre=self._get_modeles(LETTRE),
-                ids=ids_str,
-                existing_arrete_count=existing_arrete_count,
-                existing_lettre_count=existing_lettre_count,
-            )
-        else:
-            context = self.get_context_data(
-                document_type=document_type,
-                document_type_label=self._get_document_type_label(document_type),
-                modeles=self._get_modeles(document_type),
-                ids=ids_str,
-                existing_arrete_count=existing_arrete_count,
-                existing_lettre_count=existing_lettre_count,
-            )
-        return self.render_to_response(context)
-
-
-@method_decorator(htmx_only, name="dispatch")
-class GenerateDocumentsModalStep3View(GenerateDocumentsModalMixin, TemplateView):
-    template_name = "gsl_notification/generated_document/multiple/modal_step3_body.html"
-
-    def dispatch(self, request, *args, **kwargs):
-        if request.POST.get("document_type") not in VALID_DOCUMENT_TYPES:
-            return self._render_error("Type de document inconnu")
-        return super().dispatch(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        document_type = request.POST.get("document_type")
-        ids_str = request.POST.get("ids", "")
-        modele_id = request.POST.get("modele_id", "").strip()
-        modele_arrete_id = request.POST.get("modele_arrete_id", "").strip()
-        modele_lettre_id = request.POST.get("modele_lettre_id", "").strip()
-
-        if document_type == ARRETE_ET_LETTRE:
-            if not modele_arrete_id or not modele_lettre_id:
-                context = self.get_context_data(
-                    document_type=ARRETE_ET_LETTRE,
-                    modeles_arrete=self._get_modeles(ARRETE),
-                    modeles_lettre=self._get_modeles(LETTRE),
-                    ids=ids_str,
-                    error="Veuillez sélectionner un modèle pour chaque type de document.",
-                )
-                return self.response_class(
-                    request=self.request,
-                    template=[
-                        "gsl_notification/generated_document/multiple/modal_step2_body.html"
-                    ],
-                    context=context,
-                    using=self.template_engine,
-                )
-        else:
-            if not modele_id:
-                context = self.get_context_data(
-                    document_type=document_type,
-                    document_type_label=self._get_document_type_label(document_type),
-                    modeles=self._get_modeles(document_type),
-                    ids=ids_str,
-                    error="Veuillez sélectionner un modèle.",
-                )
-                return self.response_class(
-                    request=self.request,
-                    template=[
-                        "gsl_notification/generated_document/multiple/modal_step2_body.html"
-                    ],
-                    context=context,
-                    using=self.template_engine,
-                )
-
-        overwrite_strategy = request.POST.get("overwrite_strategy", STRATEGY_CONSERVER)
-        context = self.get_context_data(
-            document_type=document_type,
-            ids=ids_str,
-            modele_id=modele_id,
-            modele_arrete_id=modele_arrete_id,
-            modele_lettre_id=modele_lettre_id,
-            overwrite_strategy=overwrite_strategy,
-        )
-        return self.render_to_response(context)
-
-
-@method_decorator(htmx_only, name="dispatch")
-class GenerateDocumentsModalLoadingView(GenerateDocumentsModalMixin, TemplateView):
-    template_name = (
-        "gsl_notification/generated_document/multiple/modal_loading_body.html"
-    )
-
-    def dispatch(self, request, *args, **kwargs):
-        if request.POST.get("document_type") not in VALID_DOCUMENT_TYPES:
-            return self._render_error("Type de document inconnu")
-        return super().dispatch(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        document_type = request.POST.get("document_type")
-        ids_str = request.POST.get("ids", "")
-        export_format = request.POST.get("export_format", "").strip()
-
-        valid_formats = (
-            VALID_EXPORT_FORMATS_BOTH
-            if document_type == ARRETE_ET_LETTRE
-            else VALID_EXPORT_FORMATS_SINGLE
-        )
-        if export_format not in valid_formats:
-            context = self.get_context_data(
-                document_type=document_type,
-                ids=ids_str,
-                modele_id=request.POST.get("modele_id", ""),
-                modele_arrete_id=request.POST.get("modele_arrete_id", ""),
-                modele_lettre_id=request.POST.get("modele_lettre_id", ""),
-                error="Veuillez sélectionner un format d'export.",
-            )
-            return self.response_class(
-                request=self.request,
-                template=[
-                    "gsl_notification/generated_document/multiple/modal_step3_body.html"
-                ],
-                context=context,
-                using=self.template_engine,
-            )
-
-        overwrite_strategy = request.POST.get("overwrite_strategy", STRATEGY_CONSERVER)
-        ids = [int(i) for i in ids_str.split(",") if i.strip().isdigit()]
-        doc_count = len(ids) * (2 if document_type == ARRETE_ET_LETTRE else 1)
-        context = self.get_context_data(
-            document_type=document_type,
-            ids=ids_str,
-            doc_count=doc_count,
-            export_format=export_format,
-            overwrite_strategy=overwrite_strategy,
-            modele_id=request.POST.get("modele_id", ""),
-            modele_arrete_id=request.POST.get("modele_arrete_id", ""),
-            modele_lettre_id=request.POST.get("modele_lettre_id", ""),
-        )
-        return self.render_to_response(context)
-
-
-@method_decorator(htmx_only, name="dispatch")
-class GenerateDocumentsModalCreateView(GenerateDocumentsModalMixin, TemplateView):
-    template_name = (
-        "gsl_notification/generated_document/multiple/modal_success_body.html"
-    )
-
-    def dispatch(self, request, *args, **kwargs):
-        if request.POST.get("document_type") not in VALID_DOCUMENT_TYPES:
-            return self._render_error("Type de document inconnu")
-        return super().dispatch(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        try:
-            return self._post(request, *args, **kwargs)
-        except (DjangoHttp404, DjangoPermissionDenied) as e:
-            return self._render_error(
-                self._error_message(
-                    e, "Une erreur est survenue lors de la génération des documents."
-                )
-            )
-
-    def _post(self, request, *args, **kwargs):
-        dotation = self.kwargs["dotation"]
-        document_type = request.POST.get("document_type")
-        ids_str = request.POST.get("ids", "")
-        export_format = request.POST.get("export_format", EXPORT_FORMAT_ONE_PDF_PER_DOC)
-        overwrite_strategy = request.POST.get("overwrite_strategy", STRATEGY_REMPLACER)
-
-        ids = [int(i) for i in ids_str.split(",") if i.strip().isdigit()]
-        if not ids:
-            raise Http404(user_message="Aucun projet sélectionné.")
-
-        programmation_projets = get_list_or_404(
-            ProgrammationProjet,
-            id__in=ids,
-            status=ProgrammationProjet.STATUS_ACCEPTED,
-            dotation_projet__projet__notified_at=None,
-            dotation_projet__dotation=dotation,
-        )
-        if len(programmation_projets) < len(ids):
-            raise Http404(
-                user_message=DIFFRENCE_BETWEEN_IDS_COUNT_AND_PP_COUNT_MSG_ERROR
-            )
-        _check_if_projets_are_accessible_for_user(request, programmation_projets)
-
-        if document_type == ARRETE_ET_LETTRE:
-            return self._post_both_create(
-                dotation,
-                ids_str,
-                programmation_projets,
-                export_format,
-                overwrite_strategy,
-            )
-
-        try:
-            document_class = get_generated_document_class(document_type)
-        except ValueError:
-            raise Http404(user_message="Type de document inconnu")
-
-        modele_id = request.POST.get("modele_id", "").strip()
-        modele = get_object_or_404(
-            get_modele_class(document_type),
-            id=modele_id,
-            dotation=dotation,
-            perimetre__in=get_modele_perimetres(dotation, request.user.perimetre),
-        )
-        documents_list = self._create_documents(
-            programmation_projets, document_class, modele, overwrite_strategy
+    def done(self, form_list, form_dict, **kwargs):
+        form = form_dict[self.STEP4]
+        step2_data = self.get_cleaned_data_for_step(self.STEP2) or {}
+        step3_data = self.get_cleaned_data_for_step(self.STEP3) or {}
+        export_format = step3_data.get("export_format")
+        refreshed = form.save(
+            modele_arrete=step2_data.get("modele_arrete_id"),
+            modele_lettre=step2_data.get("modele_lettre_id"),
+            overwrite_strategy=step2_data.get("overwrite_strategy"),
         )
         download_url = reverse(
             "gsl_notification:download-documents",
-            kwargs={"dotation": dotation, "document_type": document_type},
-            query={"ids": ids_str, "export_format": export_format},
+            kwargs={
+                "dotation": self.kwargs["dotation"],
+                "document_type": form.document_type,
+            },
+            query={
+                "ids": ",".join(str(pp.id) for pp in form.programmation_projets),
+                "export_format": export_format,
+            },
         )
-        updated_pps = ProgrammationProjet.objects.select_related(
-            "arrete", "lettre_notification"
-        ).filter(id__in=ids)
-        context = self.get_context_data(
-            document_type=document_type,
-            doc_count=len(documents_list),
-            doc_name=self._get_doc_name(document_type, len(documents_list)),
-            download_url=download_url,
-            programmation_projets=updated_pps,
-            export_format=export_format,
-        )
-        return self.render_to_response(context)
-
-    def _post_both_create(
-        self,
-        dotation,
-        ids_str,
-        programmation_projets,
-        export_format,
-        overwrite_strategy,
-    ):
-        perimetres = get_modele_perimetres(dotation, self.request.user.perimetre)
-        modele_arrete = get_object_or_404(
-            get_modele_class(ARRETE),
-            id=self.request.POST.get("modele_arrete_id", "").strip(),
-            dotation=dotation,
-            perimetre__in=perimetres,
-        )
-        modele_lettre = get_object_or_404(
-            get_modele_class(LETTRE),
-            id=self.request.POST.get("modele_lettre_id", "").strip(),
-            dotation=dotation,
-            perimetre__in=perimetres,
-        )
-        arretes = self._create_documents(
-            programmation_projets,
-            get_generated_document_class(ARRETE),
-            modele_arrete,
-            overwrite_strategy,
-        )
-        lettres = self._create_documents(
-            programmation_projets,
-            get_generated_document_class(LETTRE),
-            modele_lettre,
-            overwrite_strategy,
-        )
-        download_url = reverse(
-            "gsl_notification:download-documents",
-            kwargs={"dotation": dotation, "document_type": ARRETE_ET_LETTRE},
-            query={"ids": ids_str, "export_format": export_format},
-        )
-        pp_ids = [pp.id for pp in programmation_projets]
-        updated_pps = ProgrammationProjet.objects.select_related(
-            "arrete", "lettre_notification"
-        ).filter(id__in=pp_ids)
-        context = self.get_context_data(
-            document_type=ARRETE_ET_LETTRE,
-            doc_count=len(arretes) + len(lettres),
-            download_url=download_url,
-            programmation_projets=updated_pps,
-            export_format=export_format,
-        )
-        return self.render_to_response(context)
-
-    def _create_documents(
-        self,
-        programmation_projets,
-        document_class,
-        modele,
-        overwrite_strategy=STRATEGY_REMPLACER,
-    ):
-        documents_list = []
-        for pp in programmation_projets:
-            try:
-                existing = document_class.objects.get(programmation_projet_id=pp.id)
-                if overwrite_strategy == STRATEGY_CONSERVER:
-                    documents_list.append(existing)
-                    continue
-                existing.delete()
-            except document_class.DoesNotExist:
-                pass
-            document = document_class(
-                programmation_projet=pp,
-                modele=modele,
-                created_by=self.request.user,
-                content=replace_mentions_in_html(modele.content, pp),
-            )
-            document.save()
-            documents_list.append(document)
-        return documents_list
+        context = {
+            "modal_id": self.modal_id,
+            "dotation": self.kwargs["dotation"],
+            "form": form,
+            "download_url": download_url,
+            "doc_count": len(form.programmation_projets) * len(form.selected_types),
+            "is_export_one_pdf_all": export_format == EXPORT_FORMAT_ONE_PDF_ALL,
+            "is_export_one_pdf_all_grouped": (
+                export_format == EXPORT_FORMAT_ONE_PDF_ALL_GROUPED
+            ),
+            "is_export_one_pdf_per_project": (
+                export_format == EXPORT_FORMAT_ONE_PDF_PER_PROJECT
+            ),
+            "refreshed_programmation_projets": refreshed,
+        }
+        return render(self.request, self.SUCCESS_TEMPLATE, context)
