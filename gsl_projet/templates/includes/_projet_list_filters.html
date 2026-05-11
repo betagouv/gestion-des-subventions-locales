@@ -14,6 +14,9 @@
 
     <div class="projets-filters-layout {% if component_included_in_parent %} projet-filters-in-parent{% endif %} fr-container--fluid">
         <div class="filters-flex-row">
+            {% if filter.form.search %}
+                {% include "includes/_filter_search.html" with field=filter.form.search %}
+            {% endif %}
             <div class="fr-col-12 fr-col-md-4 fr-col-lg-3 reinit-filters">
                 <button class="fr-btn fr-btn--tertiary"
                         type="submit"
@@ -43,7 +46,7 @@
                 {% endif %}
             {% endif %}
             {% for field in filter.form %}
-                {% if field.name != "order" %}
+                {% if field.name != "order" and field.name != "search" %}
                     {% include field.field.widget.display_template with field=field %}
                 {% endif %}
             {% endfor %}

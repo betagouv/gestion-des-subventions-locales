@@ -2,6 +2,7 @@ from datetime import UTC
 from decimal import Decimal
 
 import pytest
+from django.db import connection
 from django.db.models import Count, F, Q
 from django.urls import reverse
 from django.utils import timezone
@@ -35,6 +36,11 @@ from gsl_projet.views import (
 )
 
 pytestmark = pytest.mark.django_db
+
+requires_postgres = pytest.mark.skipif(
+    connection.vendor != "postgresql",
+    reason="diacritic-insensitive search requires PostgreSQL (unaccent + pg_trgm)",
+)
 
 
 @pytest.fixture
@@ -841,6 +847,98 @@ def test_filter_territoire_with_two_arrondissements_gives_only_these_arrondissem
 
     assert qs.count() == 2
     assert qs.first().perimetre in [perimetre_quimper, perimetre_brest]
+
+
+### Tests du filtre de recherche
+
+
+@pytest.fixture
+def searchable_projets() -> dict[str, Projet]:
+    return {
+        "ecole": ProjetFactory(
+            dossier_ds__projet_intitule="Rénovation de l'école Jules Ferry",
+            dossier_ds__ds_demandeur__raison_sociale="Commune de Brest",
+            dossier_ds__ds_number=1234567,
+        ),
+        "mairie": ProjetFactory(
+            dossier_ds__projet_intitule="Construction d'une nouvelle mairie",
+            dossier_ds__ds_demandeur__raison_sociale="Commune de Quimper",
+            dossier_ds__ds_number=2345678,
+        ),
+        "voirie": ProjetFactory(
+            dossier_ds__projet_intitule="Réfection de la voirie communale",
+            dossier_ds__ds_demandeur__raison_sociale="EPCI Pays de Morlaix",
+            dossier_ds__ds_number=3456789,
+        ),
+        "numerisation": ProjetFactory(
+            dossier_ds__projet_intitule="Numérisation des écoles",
+            dossier_ds__ds_demandeur__raison_sociale="Commune de Rennes",
+            dossier_ds__ds_number=4567890,
+        ),
+    }
+
+
+def test_filter_search_matches_projet_intitule(req, view, searchable_projets):
+    request = req.get("/", data={"search": "Jules Ferry"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    assert list(qs) == [searchable_projets["ecole"]]
+
+
+def test_filter_search_matches_raison_sociale(req, view, searchable_projets):
+    request = req.get("/", data={"search": "Quimper"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    assert list(qs) == [searchable_projets["mairie"]]
+
+
+def test_filter_search_matches_ds_number_exactly(req, view, searchable_projets):
+    request = req.get("/", data={"search": "3456789"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    assert list(qs) == [searchable_projets["voirie"]]
+
+
+def test_filter_search_empty_returns_all(req, view, searchable_projets):
+    request = req.get("/", data={"search": ""})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    assert qs.count() == len(searchable_projets)
+
+
+def test_filter_search_no_match_returns_empty(req, view, searchable_projets):
+    request = req.get("/", data={"search": "zzzzzNonExistent"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    assert qs.count() == 0
+
+
+@requires_postgres
+def test_filter_search_matches_ignoring_diacritics_in_query(
+    req, view, searchable_projets
+):
+    request = req.get("/", data={"search": "Numerisation"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    assert list(qs) == [searchable_projets["numerisation"]]
+
+
+@requires_postgres
+def test_filter_search_matches_with_diacritics_in_query(req, view, searchable_projets):
+    request = req.get("/", data={"search": "Numérisation"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    assert list(qs) == [searchable_projets["numerisation"]]
+
+
+@requires_postgres
+def test_filter_search_matches_ignoring_diacritics_in_stored_value(
+    req, view, searchable_projets
+):
+    request = req.get("/", data={"search": "ecoles"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    assert searchable_projets["numerisation"] in qs
 
 
 def test_view_has_correct_territoire_choices():

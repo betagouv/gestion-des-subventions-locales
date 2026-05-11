@@ -1,7 +1,9 @@
-from django.db.models import Count, Exists, F, OuterRef, Q
+from django.db import connection
+from django.db.models import Count, Exists, F, Func, OuterRef, Q, Value
 from django.forms.utils import pretty_name
 from django.utils.translation import gettext_lazy as _
 from django_filters import (
+    CharFilter,
     DateFromToRangeFilter,
     FilterSet,
     MultipleChoiceFilter,
@@ -176,6 +178,44 @@ def filter_dotation_sollicitee(queryset, name, values):
     return queryset.filter(q)
 
 
+def make_filter_search(intitule_field, raison_sociale_field, ds_number_field):
+    """Build a CharFilter `method` that searches across project title, applicant
+    name and dossier number. Uses trigram similarity on PostgreSQL, icontains
+    on other backends (test sandbox uses SQLite)."""
+
+    def filter_search(queryset, _name, value):
+        value = (value or "").strip()
+        if not value:
+            return queryset
+
+        if connection.vendor == "postgresql":
+            from django.contrib.postgres.search import TrigramWordSimilarity
+
+            def _unaccent(expr):
+                return Func(expr, function="f_unaccent")
+
+            queryset = queryset.annotate(
+                _search_sim_intitule=TrigramWordSimilarity(
+                    _unaccent(Value(value)), _unaccent(F(intitule_field))
+                ),
+                _search_sim_demandeur=TrigramWordSimilarity(
+                    _unaccent(Value(value)), _unaccent(F(raison_sociale_field))
+                ),
+            )
+            q = Q(_search_sim_intitule__gte=0.6) | Q(_search_sim_demandeur__gte=0.6)
+        else:
+            q = Q(**{f"{intitule_field}__icontains": value}) | Q(
+                **{f"{raison_sociale_field}__icontains": value}
+            )
+
+        if value.isdigit():
+            q |= Q(**{ds_number_field: int(value)})
+
+        return queryset.filter(q).distinct()
+
+    return filter_search
+
+
 def filter_dossier_complet(queryset, name, values):
     if not values:
         return queryset
@@ -194,6 +234,11 @@ class ProjetFilters(FilterSet):
         fields=ORDERING_MAP,
         empty_label="Tri",
         widget=CustomSelectWidget,
+    )
+
+    search = CharFilter(
+        label="Recherche",
+        method="filter_search",
     )
 
     dotation = MultipleChoiceFilter(
@@ -349,6 +394,13 @@ class ProjetFilters(FilterSet):
     filter_boolean = staticmethod(filter_boolean)
     filter_dotation_sollicitee = staticmethod(filter_dotation_sollicitee)
     filter_dossier_complet = staticmethod(filter_dossier_complet)
+    filter_search = staticmethod(
+        make_filter_search(
+            intitule_field="dossier_ds__projet_intitule",
+            raison_sociale_field="dossier_ds__ds_demandeur__raison_sociale",
+            ds_number_field="dossier_ds__ds_number",
+        )
+    )
 
     def filter_montant_retenu(self, queryset, _name, value):
         dotation_qs = DotationProjet.objects.filter(projet=OuterRef("pk"))
@@ -368,6 +420,7 @@ class ProjetFilters(FilterSet):
     class Meta:
         model = Projet
         fields = (
+            "search",
             "territoire",
             "epci",
             "dotation",

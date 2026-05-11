@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "django.contrib.auth",
     "mozilla_django_oidc",
     "django.contrib.contenttypes",
+    "django.contrib.postgres",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",

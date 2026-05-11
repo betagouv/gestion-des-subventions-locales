@@ -1,5 +1,6 @@
 from django.db.models import Case, DecimalField, F, When
 from django_filters import (
+    CharFilter,
     ChoiceFilter,
     DateFromToRangeFilter,
     FilterSet,
@@ -35,6 +36,7 @@ from gsl_projet.utils.projet_filters import (
     filter_boolean,
     filter_dossier_complet,
     filter_dotation_sollicitee,
+    make_filter_search,
 )
 
 PROGRAMMATION_ORDERING_MAP = {
@@ -55,6 +57,11 @@ PROGRAMMATION_ORDERING_MAP = {
 
 
 class ProgrammationProjetFilters(FilterSet):
+    search = CharFilter(
+        label="Recherche",
+        method="filter_search",
+    )
+
     categorie_detr = MultipleChoiceFilter(
         label="Catégorie DETR",
         field_name="dotation_projet__projet__dossier_ds__demande_categorie_detr",
@@ -173,6 +180,13 @@ class ProgrammationProjetFilters(FilterSet):
     filter_boolean = staticmethod(filter_boolean)
     filter_dotation_sollicitee = staticmethod(filter_dotation_sollicitee)
     filter_dossier_complet = staticmethod(filter_dossier_complet)
+    filter_search = staticmethod(
+        make_filter_search(
+            intitule_field="dotation_projet__projet__dossier_ds__projet_intitule",
+            raison_sociale_field="dotation_projet__projet__dossier_ds__ds_demandeur__raison_sociale",
+            ds_number_field="dotation_projet__projet__dossier_ds__ds_number",
+        )
+    )
 
     date_depot = DateFromToRangeFilter(
         label="Date de dépôt",
@@ -223,6 +237,7 @@ class ProgrammationProjetFilters(FilterSet):
     class Meta:
         model = ProgrammationProjet
         fields = (
+            "search",
             "territoire",
             "epci",
             "categorie_detr",

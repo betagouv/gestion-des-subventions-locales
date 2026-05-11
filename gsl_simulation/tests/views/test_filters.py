@@ -357,6 +357,32 @@ def test_view_with_multiple_simulations(req, perimetre_departemental):
     assert projets.count() == 0
 
 
+def test_view_with_search_filter(req, simulation, create_simulation_projets):
+    """Le filtre de recherche cible l'intitulé, la raison sociale et le n° dossier."""
+    # On modifie un projet existant pour qu'il porte une chaîne unique
+    target = simulation.simulationprojet_set.first()
+    target_dossier = target.projet.dossier_ds
+    target_dossier.projet_intitule = "Mon Projet Unique XYZW"
+    target_dossier.ds_demandeur.raison_sociale = "Demandeur Unique XYZW"
+    target_dossier.ds_demandeur.save()
+    target_dossier.ds_number = 8888888
+    target_dossier.save()
+
+    projets = _get_filtered_projets(req, simulation, {"search": "XYZW"})
+    assert list(projets) == [target.projet]
+
+    projets = _get_filtered_projets(req, simulation, {"search": "8888888"})
+    assert list(projets) == [target.projet]
+
+    projets = _get_filtered_projets(req, simulation, {"search": ""})
+    assert projets.count() == 7
+
+    projets = _get_filtered_projets(
+        req, simulation, {"search": "ZZZ_ChaineQuiNeMatcheRien"}
+    )
+    assert projets.count() == 0
+
+
 def test_view_with_cout_total_filter(req, simulation, create_simulation_projets):
     filter_params = {
         "cout_min": 2_000_000,
