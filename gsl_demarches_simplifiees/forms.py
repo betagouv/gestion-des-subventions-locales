@@ -114,6 +114,19 @@ class DossierReporteSansPieceForm(forms.ModelForm, DsfrBaseForm):
         }
 
 
+class ImportDossierFromDsForm(forms.Form):
+    """Formulaire admin : importer un dossier depuis DN par son numéro."""
+
+    dossier_number = forms.IntegerField(
+        label="Numéro du dossier",
+        help_text=(
+            "Le dossier sera importé uniquement si sa démarche est présente sur Turgot "
+            "et s'il n'existe pas encore."
+        ),
+        min_value=1,
+    )
+
+
 class RefreshDossiersDepotForm(forms.Form):
     """Formulaire admin : rafraîchir les dossiers d'une démarche déposés après une date."""
 

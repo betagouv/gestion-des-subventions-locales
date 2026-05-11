@@ -6,10 +6,11 @@ from django.contrib import messages
 from django.utils.timezone import datetime
 
 from gsl_demarches_simplifiees.ds_client import DsClient
-from gsl_demarches_simplifiees.exceptions import DsServiceException
+from gsl_demarches_simplifiees.exceptions import DsConnectionError, DsServiceException
 from gsl_demarches_simplifiees.importer.dossier import (
     _is_dossier_in_active_departement,
     _save_dossier_data_and_refresh_dossier_and_projet_and_co,
+    import_one_dossier_from_ds,
     refresh_dossier_instructeurs,
     save_demarche_dossiers_from_ds,
     save_one_dossier_from_ds,
@@ -410,7 +411,9 @@ def test_is_dossier_in_active_departement_department_found_and_in_active_list():
         ]
     }
     departements_actifs = ["75", "13", "69"]
-    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is True
+    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    assert is_active is True
+    assert label == "75 - Paris"
 
 
 def test_is_dossier_in_active_departement_department_found_but_not_in_active_list():
@@ -424,7 +427,9 @@ def test_is_dossier_in_active_departement_department_found_but_not_in_active_lis
         ]
     }
     departements_actifs = ["13", "69", "92"]
-    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is False
+    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    assert is_active is False
+    assert label == "75 - Paris"
 
 
 def test_is_dossier_in_active_departement_empty_value():
@@ -438,7 +443,9 @@ def test_is_dossier_in_active_departement_empty_value():
         ]
     }
     departements_actifs = ["75", "13", "69"]
-    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is False
+    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    assert is_active is False
+    assert label == ""
 
 
 def test_is_dossier_in_active_departement_whitespace_only_value():
@@ -452,7 +459,9 @@ def test_is_dossier_in_active_departement_whitespace_only_value():
         ]
     }
     departements_actifs = ["75", "13", "69"]
-    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is False
+    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    assert is_active is False
+    assert label == ""
 
 
 def test_is_dossier_in_active_departement_field_not_found():
@@ -463,21 +472,27 @@ def test_is_dossier_in_active_departement_field_not_found():
         ]
     }
     departements_actifs = ["75", "13", "69"]
-    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is False
+    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    assert is_active is False
+    assert label == "inconnu"
 
 
 def test_is_dossier_in_active_departement_no_champs_key():
     """Test when champs key is missing from raw_data."""
     raw_data = {}
     departements_actifs = ["75", "13", "69"]
-    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is False
+    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    assert is_active is False
+    assert label == "inconnu"
 
 
 def test_is_dossier_in_active_departement_empty_champs():
     """Test when champs is an empty list."""
     raw_data = {"champs": []}
     departements_actifs = ["75", "13", "69"]
-    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is False
+    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    assert is_active is False
+    assert label == "inconnu"
 
 
 def test_is_dossier_in_active_departement_with_whitespace_in_code():
@@ -491,7 +506,9 @@ def test_is_dossier_in_active_departement_with_whitespace_in_code():
         ]
     }
     departements_actifs = ["75", "13", "69"]
-    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is True
+    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    assert is_active is True
+    assert label == "75  - Paris"
 
 
 def test_is_dossier_in_active_departement_with_different_format():
@@ -505,7 +522,9 @@ def test_is_dossier_in_active_departement_with_different_format():
         ]
     }
     departements_actifs = ["13", "69"]
-    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is True
+    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    assert is_active is True
+    assert label == "13- Bouches-du-Rhône"
 
 
 def test_is_dossier_in_active_departement_with_list_of_strings():
@@ -519,7 +538,9 @@ def test_is_dossier_in_active_departement_with_list_of_strings():
         ]
     }
     departements_actifs = ["69", "75"]
-    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is True
+    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    assert is_active is True
+    assert label == "69 - Rhône"
 
 
 def test_is_dossier_in_active_departement_with_set():
@@ -533,7 +554,9 @@ def test_is_dossier_in_active_departement_with_set():
         ]
     }
     departements_actifs = {"92", "75", "13"}
-    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is True
+    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    assert is_active is True
+    assert label == "92 - Hauts-de-Seine"
 
 
 def test_is_dossier_in_active_departement_no_stringValue_key():
@@ -546,4 +569,128 @@ def test_is_dossier_in_active_departement_no_stringValue_key():
         ]
     }
     departements_actifs = ["75", "13", "69"]
-    assert _is_dossier_in_active_departement(raw_data, departements_actifs) is False
+    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    assert is_active is False
+    assert label == ""
+
+
+# tests import_one_dossier_from_ds
+
+
+def _make_dossier_data(dossier_number, demarche_number, departement_code="75"):
+    return {
+        "id": f"DOSS-{dossier_number}",
+        "number": dossier_number,
+        "demarche": {"number": demarche_number},
+        "champs": [
+            {
+                "label": "Département ou collectivité du demandeur",
+                "stringValue": f"{departement_code} - Département",
+            }
+        ],
+    }
+
+
+@pytest.mark.parametrize("exception_class", [DsServiceException, DsConnectionError])
+def test_import_one_dossier_from_ds_erreur_dn(exception_class):
+    with patch(
+        "gsl_demarches_simplifiees.ds_client.DsClient.get_one_dossier",
+        side_effect=exception_class,
+    ):
+        level, message = import_one_dossier_from_ds(20240001)
+
+    assert level == messages.WARNING
+    assert "20240001" in message
+    if exception_class == DsConnectionError:
+        assert (
+            "Erreur : Nous n'arrivons pas à nous connecter à Démarche Numérique."
+            in message
+        )
+
+
+@pytest.mark.django_db
+def test_import_one_dossier_from_ds_demarche_absente(caplog):
+    caplog.set_level(logging.INFO)
+    dossier_number = 20240001
+    dossier_data = _make_dossier_data(dossier_number, demarche_number=9999)
+
+    with patch(
+        "gsl_demarches_simplifiees.ds_client.DsClient.get_one_dossier",
+        return_value=dossier_data,
+    ):
+        level, message = import_one_dossier_from_ds(dossier_number)
+
+    assert Dossier.objects.count() == 0
+    assert level == messages.WARNING
+    assert "9999" in message
+    assert "Démarche absente de Turgot" in caplog.text
+
+
+@pytest.mark.django_db
+def test_import_one_dossier_from_ds_dossier_deja_existant(caplog):
+    caplog.set_level(logging.INFO)
+    demarche = DemarcheFactory()
+    existing_dossier = DossierFactory(ds_number=20240001, ds_demarche=demarche)
+    dossier_data = _make_dossier_data(20240001, demarche.ds_number)
+
+    with patch(
+        "gsl_demarches_simplifiees.ds_client.DsClient.get_one_dossier",
+        return_value=dossier_data,
+    ):
+        level, message = import_one_dossier_from_ds(20240001)
+
+    assert Dossier.objects.count() == 1
+    assert Dossier.objects.filter(pk=existing_dossier.pk).exists()
+    assert level == messages.WARNING
+    assert "20240001" in message
+    assert "Dossier déjà présent dans Turgot" in caplog.text
+
+
+@pytest.mark.django_db
+def test_import_one_dossier_from_ds_departement_inactif(caplog):
+    caplog.set_level(logging.INFO)
+    demarche = DemarcheFactory()
+    dossier_number = 20240001
+    dossier_data = _make_dossier_data(
+        dossier_number, demarche.ds_number, departement_code="99"
+    )
+
+    with patch(
+        "gsl_demarches_simplifiees.ds_client.DsClient.get_one_dossier",
+        return_value=dossier_data,
+    ):
+        with patch(
+            "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
+            return_value=["75"],
+        ):
+            level, message = import_one_dossier_from_ds(dossier_number)
+
+    assert Dossier.objects.count() == 0
+    assert level == messages.WARNING
+    assert "99" in message
+    assert "Dossier dans un département inactif" in caplog.text
+
+
+@pytest.mark.django_db
+def test_import_one_dossier_from_ds_cree_le_dossier():
+    demarche = DemarcheFactory()
+    dossier_number = 20240001
+    dossier_data = _make_dossier_data(dossier_number, demarche.ds_number)
+
+    with patch(
+        "gsl_demarches_simplifiees.ds_client.DsClient.get_one_dossier",
+        return_value=dossier_data,
+    ):
+        with patch(
+            "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
+            return_value=["75"],
+        ):
+            with patch(
+                "gsl_demarches_simplifiees.importer.dossier._save_dossier_data_and_refresh_dossier_and_projet_and_co"
+            ) as mock_refresh:
+                level, message = import_one_dossier_from_ds(dossier_number)
+
+    assert Dossier.objects.filter(ds_number=dossier_number).exists()
+    assert level == messages.SUCCESS
+    assert "20240001" in message
+    mock_refresh.assert_called_once()

@@ -130,6 +130,76 @@ def create_or_update_dossier_from_ds_number(ds_number: str):
     )
 
 
+def import_one_dossier_from_ds(dossier_number: int):
+    """
+    Récupère un dossier sur DN et le crée dans Turgot si :
+    - sa démarche est présente dans Turgot
+    - il n'existe pas encore dans Turgot
+
+    Retourne un tuple (level, message) à la manière de save_one_dossier_from_ds.
+    """
+    client = DsClient()
+    try:
+        dossier_data = client.get_one_dossier(dossier_number)
+    except DsServiceException as e:
+        logger.warning(
+            f"Impossible de récupérer le dossier #{dossier_number} depuis Démarches Numériques.",
+            extra={
+                "dossier_ds_number": dossier_number,
+                "error": str(e),
+            },
+        )
+        message = f"Impossible de récupérer le dossier #{dossier_number} depuis Démarches Numériques."
+        if str(e):
+            message += f" Erreur : {str(e)}"
+        return (messages.WARNING, message)
+
+    demarche_number = dossier_data["demarche"]["number"]
+
+    if not Demarche.objects.filter(ds_number=demarche_number).exists():
+        logger.info(
+            "Démarche absente de Turgot, import ignoré",
+            extra={
+                "dossier_ds_number": dossier_number,
+                "demarche_ds_number": demarche_number,
+            },
+        )
+        return (
+            messages.WARNING,
+            f"La démarche n°{demarche_number} n'est pas présente sur Turgot.",
+        )
+
+    if Dossier.objects.filter(ds_number=dossier_number).exists():
+        logger.info(
+            "Dossier déjà présent dans Turgot, import ignoré",
+            extra={"dossier_ds_number": dossier_number},
+        )
+        return (
+            messages.WARNING,
+            f"Le dossier #{dossier_number} existe déjà sur Turgot.",
+        )
+
+    active_departement_insee_codes = _get_active_departement_insee_codes()
+    is_active, departement = _is_dossier_in_active_departement(
+        dossier_data, active_departement_insee_codes
+    )
+    if not is_active:
+        logger.info(
+            "Dossier dans un département inactif, import ignoré",
+            extra={"dossier_ds_number": dossier_number, "departement": departement},
+        )
+        return (
+            messages.WARNING,
+            f"Le dossier #{dossier_number} appartient au département « {departement} » qui n'est pas actif sur Turgot.",
+        )
+
+    _create_or_update_dossier_from_ds_data(dossier_data, active_departement_insee_codes)
+    return (
+        messages.SUCCESS,
+        f"Le dossier #{dossier_number} a été importé avec succès.",
+    )
+
+
 def refresh_dossier_from_saved_data(dossier: Dossier):
     dossier_converter = DossierConverter(dossier.ds_data.raw_data, dossier)
     dossier_converter.fill_unmapped_fields()
@@ -286,27 +356,6 @@ def _get_active_departement_insee_codes():
     return Departement.objects.filter(active=True).values_list("insee_code", flat=True)
 
 
-def _is_dossier_in_active_departement(
-    raw_data: dict, departements_actifs: Iterable[str]
-) -> bool:
-    champs = raw_data.get("champs", [])
-
-    for champ in champs:
-        if champ.get("label") == "Département ou collectivité du demandeur":
-            valeur = champ.get("stringValue", "").strip()
-
-            if not valeur:
-                return False
-
-            # Exemple valeur : "75 - Paris"
-            code_insee = valeur.split("-")[0].strip()
-
-            return code_insee in set(departements_actifs)
-
-    # Champ non trouvé
-    return False
-
-
 def _create_or_update_dossier_from_ds_data(
     dossier_data: dict | None,
     active_departement_insee_codes: Iterable[str],
@@ -319,7 +368,7 @@ def _create_or_update_dossier_from_ds_data(
         demarche_number = dossier_data["demarche"]["number"]
         demarche = Demarche.objects.get(ds_number=demarche_number)
 
-    must_create_or_update_dossier = _is_dossier_in_active_departement(
+    must_create_or_update_dossier, _ = _is_dossier_in_active_departement(
         dossier_data, active_departement_insee_codes
     )
     if not must_create_or_update_dossier:
@@ -349,3 +398,24 @@ def _create_or_update_dossier_from_ds_data(
         refresh_only_if_dossier_has_been_updated=False,
         groupe_index=groupe_index,
     )
+
+
+def _is_dossier_in_active_departement(
+    raw_data: dict, departements_actifs: Iterable[str]
+) -> tuple[bool, str]:
+    champs = raw_data.get("champs", [])
+
+    for champ in champs:
+        if champ.get("label") == "Département ou collectivité du demandeur":
+            valeur = champ.get("stringValue", "").strip()
+
+            if not valeur:
+                return False, valeur
+
+            # Exemple valeur : "75 - Paris"
+            code_insee = valeur.split("-")[0].strip()
+
+            return code_insee in set(departements_actifs), valeur
+
+    # Champ non trouvé
+    return False, "inconnu"
