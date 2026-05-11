@@ -4,14 +4,16 @@ from django.utils import timezone
 
 from gsl_core.models import Departement
 from gsl_demarches_simplifiees.ds_client import DsClient
-from gsl_demarches_simplifiees.importer.utils import get_departement_from_field_label
+from gsl_demarches_simplifiees.importer.utils import (
+    get_departement_from_field_label,
+    get_or_create_profile,
+)
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     CategorieDsil,
     Demarche,
     Dossier,
     FieldMapping,
-    Profile,
 )
 
 logger = getLogger(__name__)
@@ -100,10 +102,8 @@ def update_or_create_demarche(demarche_data):
 def save_groupe_instructeurs(demarche_data, demarche):
     for groupe in demarche_data["groupeInstructeurs"]:
         for instructeur in groupe["instructeurs"]:
-            instructeur, _ = Profile.objects.get_or_create(
-                ds_id=instructeur["id"], ds_email=instructeur["email"]
-            )
-            demarche.ds_instructeurs.add(instructeur)
+            profile = get_or_create_profile(instructeur["id"], instructeur["email"])
+            demarche.ds_instructeurs.add(profile)
 
 
 DN_DEPARTEMENT_FIELD_TO_DJANGO_FIELD_MAP = {

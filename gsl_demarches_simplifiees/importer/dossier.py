@@ -8,7 +8,8 @@ from gsl_core.models import Departement
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverter
-from gsl_demarches_simplifiees.models import Demarche, Dossier, DossierData, Profile
+from gsl_demarches_simplifiees.importer.utils import get_or_create_profile
+from gsl_demarches_simplifiees.models import Demarche, Dossier, DossierData
 from gsl_projet.services.projet_services import ProjetService
 
 logger = logging.getLogger(__name__)
@@ -202,8 +203,8 @@ def refresh_dossier_instructeurs(
     dossier_instructeurs_ids = [p.ds_id for p in dossier.ds_instructeurs.all()]
     for instructeur_data in instructeurs_data:
         if instructeur_data["id"] not in dossier_instructeurs_ids:
-            instructeur, _ = Profile.objects.get_or_create(
-                ds_id=instructeur_data["id"], ds_email=instructeur_data["email"]
+            instructeur = get_or_create_profile(
+                instructeur_data["id"], instructeur_data["email"]
             )
             dossier.ds_instructeurs.add(instructeur)
 

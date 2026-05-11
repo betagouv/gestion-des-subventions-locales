@@ -201,6 +201,18 @@ def test_save_groupe_instructeurs_if_already_exists(
     assert Profile.objects.count() == 2
 
 
+def test_save_groupe_instructeurs_updates_email_if_changed(
+    demarche, demarche_data_without_dossier
+):
+    Profile.objects.create(
+        ds_id="TEST_ID_ldXItMTIzNTcx", ds_email="old.email@example.com"
+    )
+    save_groupe_instructeurs(demarche_data_without_dossier, demarche)
+    profile = Profile.objects.get(ds_id="TEST_ID_ldXItMTIzNTcx")
+    assert profile.ds_email == "hubert.lingot@example.com"
+    assert Profile.objects.count() == 2
+
+
 def test_computer_mappings_are_created(demarche, demarche_data_without_dossier):
     assert FieldMapping.objects.count() == 0
 

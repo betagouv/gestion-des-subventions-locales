@@ -4,7 +4,7 @@ from logging import getLogger
 from django.utils import timezone
 
 from gsl_core.models import Arrondissement, Departement, Perimetre
-from gsl_demarches_simplifiees.models import CategorieDetr, Demarche, Dossier
+from gsl_demarches_simplifiees.models import CategorieDetr, Demarche, Dossier, Profile
 
 logger = getLogger(__name__)
 
@@ -19,6 +19,16 @@ NOT_HANDLED_TERRITORIES = [
     "988",  # Nouvelle-Calédonie,
     "989",  # île de Clipperton
 ]
+
+
+def get_or_create_profile(ds_id: str, ds_email: str) -> Profile:
+    profile, created = Profile.objects.get_or_create(
+        ds_id=ds_id, defaults={"ds_email": ds_email}
+    )
+    if not created and profile.ds_email != ds_email:
+        profile.ds_email = ds_email
+        profile.save(update_fields=["ds_email"])
+    return profile
 
 
 def get_departement_from_field_label(label: str) -> Departement | None:
