@@ -337,7 +337,7 @@ class GenerateDocumentsLaunchForm(BaseGenerateDocumentsForm):
             filterset = ProgrammationProjetFilters(
                 data=self.request.GET, request=self.request
             )
-            ids = list(filterset.qs.can_generate_documents())
+            ids = filterset.qs.can_generate_documents()
         if not ids:
             raise forms.ValidationError("Aucun projet à notifier.", code="no_projects")
         return ids
@@ -406,7 +406,7 @@ class GenerateDocumentsStep2Form(BaseGenerateDocumentsForm):
                 required=True,
                 initial=self.STRATEGY_CONSERVER,
                 label=f"Que voulez-vous faire avec les projets ayant déjà {
-                    'ou'.join(
+                    ' ou '.join(
                         [
                             *(['une lettre'] if LETTRE in self.selected_types else []),
                             *(['un arrêté'] if ARRETE in self.selected_types else []),
