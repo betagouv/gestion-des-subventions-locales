@@ -829,6 +829,59 @@ class TestProgrammationProjetFilters:
         assert prog_tot in result
         assert prog_tard not in result
 
+    def test_search_filter(self, mock_request, enveloppe, arrondissement):
+        """Test le filtre de recherche par intitulé, demandeur et n° dossier."""
+        demandeur_quimper = PersonneMoraleFactory(raison_sociale="Commune de Quimper")
+        demandeur_brest = PersonneMoraleFactory(raison_sociale="Commune de Brest")
+
+        dossier_ecole = DossierFactory(
+            projet_intitule="Rénovation école",
+            ds_demandeur=demandeur_quimper,
+            ds_number=9000001,
+            perimetre=arrondissement,
+        )
+        dossier_mairie = DossierFactory(
+            projet_intitule="Construction mairie",
+            ds_demandeur=demandeur_brest,
+            ds_number=9000002,
+            perimetre=arrondissement,
+        )
+
+        dotation_ecole = DotationProjetFactory(
+            projet=ProjetFactory(dossier_ds=dossier_ecole), dotation=DOTATION_DETR
+        )
+        dotation_mairie = DotationProjetFactory(
+            projet=ProjetFactory(dossier_ds=dossier_mairie), dotation=DOTATION_DETR
+        )
+
+        prog_ecole = ProgrammationProjetFactory(
+            dotation_projet=dotation_ecole, enveloppe=enveloppe
+        )
+        prog_mairie = ProgrammationProjetFactory(
+            dotation_projet=dotation_mairie, enveloppe=enveloppe
+        )
+
+        filterset = ProgrammationProjetFilters(
+            data={"search": "école"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert prog_ecole in result
+        assert prog_mairie not in result
+
+        filterset = ProgrammationProjetFilters(
+            data={"search": "Brest"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert prog_ecole not in result
+        assert prog_mairie in result
+
+        filterset = ProgrammationProjetFilters(
+            data={"search": "9000002"}, request=mock_request
+        )
+        result = list(filterset.qs)
+        assert prog_ecole not in result
+        assert prog_mairie in result
+
     def test_empty_filters(self, mock_request, enveloppe, arrondissement):
         """Test que sans filtres, tous les projets de l'enveloppe sont retournés"""
         projet1 = ProjetFactory(dossier_ds__perimetre=arrondissement)

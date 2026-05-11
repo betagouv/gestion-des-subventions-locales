@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import Case, DecimalField, F, Subquery, When
 from django_filters import (
+    CharFilter,
     DateFromToRangeFilter,
     FilterSet,
     MultipleChoiceFilter,
@@ -32,6 +33,7 @@ from gsl_projet.utils.projet_filters import (
     filter_dossier_complet,
     filter_dotation_sollicitee,
     filter_territoire,
+    make_filter_search,
 )
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 from gsl_simulation.models import SimulationProjet
@@ -111,6 +113,11 @@ class SimulationProjetFilters(FilterSet):
         "simu_assiette": "assiette",
         "simu_taux": "taux",
     }
+
+    search = CharFilter(
+        label="Recherche",
+        method="filter_search",
+    )
 
     categorie_detr = MultipleChoiceFilter(
         label="Catégorie DETR",
@@ -267,6 +274,13 @@ class SimulationProjetFilters(FilterSet):
     filter_boolean = staticmethod(filter_boolean)
     filter_dotation_sollicitee = staticmethod(filter_dotation_sollicitee)
     filter_dossier_complet = staticmethod(filter_dossier_complet)
+    filter_search = staticmethod(
+        make_filter_search(
+            intitule_field="dossier_ds__projet_intitule",
+            raison_sociale_field="dossier_ds__ds_demandeur__raison_sociale",
+            ds_number_field="dossier_ds__ds_number",
+        )
+    )
 
     def filter_status(self, queryset, name, value):
         return queryset.filter(
@@ -292,6 +306,7 @@ class SimulationProjetFilters(FilterSet):
     class Meta:
         model = Projet
         fields = (
+            "search",
             "territoire",
             "epci",
             "categorie_detr",

@@ -203,6 +203,16 @@
   max-width: 270px;
 }
 
+.filters-flex-row > .filter-field--search {
+  flex: 1 1 280px;
+  min-width: 280px;
+  max-width: 360px;
+}
+
+.filter-field--search .fr-search-bar {
+  width: 100%;
+}
+
 #filter-categorie_detr > div {
   max-height: 400px;
   scroll-behavior: auto;
