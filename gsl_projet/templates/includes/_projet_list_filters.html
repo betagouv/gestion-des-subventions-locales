@@ -14,9 +14,6 @@
 
     <div class="projets-filters-layout {% if component_included_in_parent %} projet-filters-in-parent{% endif %} fr-container--fluid">
         <div class="filters-flex-row">
-            {% if filter.form.search %}
-                {% include "includes/_filter_search.html" with field=filter.form.search %}
-            {% endif %}
             <div class="fr-col-12 fr-col-md-4 fr-col-lg-3 reinit-filters">
                 <button class="fr-btn fr-btn--tertiary"
                         type="submit"
@@ -25,6 +22,9 @@
                     <span class="fr-icon-arrow-go-back-fill fr-icon--sm"></span> Réinitialiser les filtres
                 </button>
             </div>
+            {% if filter.form.search %}
+                {% include "includes/_filter_search.html" with field=filter.form.search %}
+            {% endif %}
             {% if current_order %}
                 {% active_sort_label columns current_order as sort_label %}
                 {% if sort_label %}
