@@ -699,4 +699,20 @@ ul.no-list-style li {
     margin-top: 0.25rem;
 }
 
+/* Sticky table headers: the <thead> of `.gsl-projet-table` is translated by
+   JS to track the viewport top. It must paint above body rows that scroll
+   underneath it. Existing sticky-header cells live at z-index 3; lifting the
+   thead block itself to 4 ensures its background covers the rows below. */
+.gsl-projet-table .fr-table__content > table > thead {
+    position: relative;
+    z-index: 4;
+    background: var(--background-default-grey);
+    will-change: transform;
+}
+
+@media print {
+    .gsl-projet-table .fr-table__content > table > thead {
+        transform: none !important;
+    }
+}
 
