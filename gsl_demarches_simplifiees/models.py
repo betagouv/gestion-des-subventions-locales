@@ -939,7 +939,7 @@ class CategorieDetr(Categorie):
         )
 
     def __str__(self):
-        return f"{self.label}"
+        return self.complete_label
 
     @property
     def complete_label(self):

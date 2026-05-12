@@ -1,9 +1,12 @@
-from django.db.models import Case, DecimalField, F, When
+from functools import cached_property
+
+from django.db.models import Case, DecimalField, F, Q, When
 from django_filters import (
     CharFilter,
     ChoiceFilter,
     DateFromToRangeFilter,
     FilterSet,
+    ModelMultipleChoiceFilter,
     MultipleChoiceFilter,
     RangeFilter,
 )
@@ -32,6 +35,7 @@ from gsl_projet.utils.django_filters_custom_widget import (
 from gsl_projet.utils.projet_filters import (
     DOTATION_SOLLICITEE_CHOICES,
     OUI_NON_CHOICES,
+    LabelFromInstanceFilter,
     ProjetOrderingFilter,
     filter_boolean,
     filter_dossier_complet,
@@ -62,15 +66,18 @@ class ProgrammationProjetFilters(FilterSet):
         method="filter_search",
     )
 
-    categorie_detr = MultipleChoiceFilter(
+    categorie_detr = LabelFromInstanceFilter(
         label="Catégorie DETR",
         field_name="dotation_projet__projet__dossier_ds__demande_categorie_detr",
+        queryset=CategorieDetr.objects.none(),
         widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
+        label_attr="complete_label",
     )
 
-    categorie_dsil = MultipleChoiceFilter(
+    categorie_dsil = ModelMultipleChoiceFilter(
         label="Catégorie DSIL",
         field_name="dotation_projet__projet__dossier_ds__demande_categorie_dsil",
+        queryset=CategorieDsil.objects.none(),
         widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
     )
 
@@ -109,12 +116,13 @@ class ProgrammationProjetFilters(FilterSet):
         widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
-    territoire = MultipleChoiceFilter(
+    territoire = LabelFromInstanceFilter(
         method="filter_territoire",
-        choices=[],
+        queryset=Perimetre.objects.none(),
         widget=CustomCheckboxSelectMultiple(
             display_template="includes/_filter_territoire.html"
         ),
+        label_attr="entity_name",
     )
 
     budget_vert_demandeur = MultipleChoiceFilter(
@@ -149,24 +157,24 @@ class ProgrammationProjetFilters(FilterSet):
         method="filter_dossier_complet",
     )
 
-    cofinancement = MultipleChoiceFilter(
+    cofinancement = ModelMultipleChoiceFilter(
         label="Cofinancement",
         field_name="dotation_projet__projet__dossier_ds__demande_cofinancements",
-        choices=[],
+        queryset=Cofinancement.objects.none(),
         widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
-    zonage = MultipleChoiceFilter(
+    zonage = ModelMultipleChoiceFilter(
         label="Zonage",
         field_name="dotation_projet__projet__dossier_ds__projet_zonage",
-        choices=[],
+        queryset=ProjetZonage.objects.none(),
         widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
-    contractualisation = MultipleChoiceFilter(
+    contractualisation = ModelMultipleChoiceFilter(
         label="Contractualisation",
         field_name="dotation_projet__projet__dossier_ds__projet_contractualisation",
-        choices=[],
+        queryset=ProjetContractualisation.objects.none(),
         widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
     )
 
@@ -214,9 +222,11 @@ class ProgrammationProjetFilters(FilterSet):
         widget=CustomSelectWidget,
     )
 
-    def filter_territoire(self, queryset, _name, values: list[int]):
+    def filter_territoire(self, queryset, _name, values):
+        if not values:
+            return queryset
         result = queryset.none()
-        for perimetre in Perimetre.objects.filter(id__in=values):
+        for perimetre in values:
             result |= queryset.for_perimetre(perimetre)
         return result
 
@@ -264,17 +274,16 @@ class ProgrammationProjetFilters(FilterSet):
         super().__init__(*args, **kwargs)
         if hasattr(self.request, "user") and self.request.user.perimetre:
             perimetre = self.request.user.perimetre
-            self.filters["territoire"].extra["choices"] = tuple(
-                (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
+            self.filters["territoire"].queryset = Perimetre.objects.filter(
+                Q(id=perimetre.id) | Q(id__in=perimetre.children().values("id"))
             )
 
         dotation = self.request.resolver_match.kwargs.get("dotation")
         visible_dossiers = Dossier.objects.for_user(self.request.user)
 
         if dotation == DOTATION_DETR:
-            self.filters["categorie_detr"].extra["choices"] = tuple(
-                (str(c.id), c.complete_label)
-                for c in CategorieDetr.objects.active()
+            self.filters["categorie_detr"].queryset = (
+                CategorieDetr.objects.active()
                 .filter(dossier__in=visible_dossiers)
                 .distinct()
                 .order_by("rank")
@@ -283,9 +292,8 @@ class ProgrammationProjetFilters(FilterSet):
             del self.filters["categorie_detr"]
 
         if dotation == DOTATION_DSIL:
-            self.filters["categorie_dsil"].extra["choices"] = tuple(
-                (str(c.id), c.label)
-                for c in CategorieDsil.objects.active()
+            self.filters["categorie_dsil"].queryset = (
+                CategorieDsil.objects.active()
                 .filter(dossier__in=visible_dossiers)
                 .distinct()
                 .order_by("rank", "label")
@@ -293,30 +301,25 @@ class ProgrammationProjetFilters(FilterSet):
         else:
             del self.filters["categorie_dsil"]
 
-        self.filters["cofinancement"].extra["choices"] = tuple(
-            (str(c.id), c.label)
-            for c in Cofinancement.objects.filter(dossier__in=visible_dossiers)
+        self.filters["cofinancement"].queryset = (
+            Cofinancement.objects.filter(dossier__in=visible_dossiers)
             .distinct()
             .order_by("id")
         )
 
-        self.filters["zonage"].extra["choices"] = tuple(
-            (str(z.id), z.label)
-            for z in ProjetZonage.objects.filter(dossier__in=visible_dossiers)
+        self.filters["zonage"].queryset = (
+            ProjetZonage.objects.filter(dossier__in=visible_dossiers)
             .distinct()
             .order_by("id")
         )
 
-        self.filters["contractualisation"].extra["choices"] = tuple(
-            (str(c.id), c.label)
-            for c in ProjetContractualisation.objects.filter(
-                dossier__in=visible_dossiers
-            )
+        self.filters["contractualisation"].queryset = (
+            ProjetContractualisation.objects.filter(dossier__in=visible_dossiers)
             .distinct()
             .order_by("id")
         )
 
-        self.filters["epci"].extra["choices"] = tuple(
+        self.filters["epci"].extra["choices"] = lambda: tuple(
             (epci, epci.split(" - ", 1)[1] if " - " in epci else epci)
             for epci in visible_dossiers.values_list(
                 "porteur_de_projet_epci", flat=True
@@ -326,12 +329,17 @@ class ProgrammationProjetFilters(FilterSet):
             if epci
         )
 
-    @property
-    def qs(self):
-        self.perimetre: Perimetre = self.request.user.perimetre
-        self.dotation = self.request.resolver_match.kwargs.get("dotation")
+    @cached_property
+    def perimetre(self) -> Perimetre:
+        return self.request.user.perimetre
 
-        enveloppe_qs = (
+    @cached_property
+    def dotation(self):
+        return self.request.resolver_match.kwargs.get("dotation")
+
+    @cached_property
+    def _enveloppe_qs(self):
+        return (
             Enveloppe.objects.select_related(
                 "perimetre",
                 "perimetre__region",
@@ -342,17 +350,19 @@ class ProgrammationProjetFilters(FilterSet):
             .for_current_year()
         )
 
+    @cached_property
+    def enveloppe(self):
         try:
-            self.enveloppe = enveloppe_qs.get(perimetre=self.perimetre)
+            return self._enveloppe_qs.get(perimetre=self.perimetre)
         except Enveloppe.DoesNotExist:
-            self.enveloppe = None
+            return None
 
+    @property
+    def qs(self):
         qs = (
             super()
-            .qs.filter(
-                enveloppe__in=enveloppe_qs,
-            )
-            .for_perimetre(self.request.user.perimetre)
+            .qs.filter(enveloppe__in=self._enveloppe_qs)
+            .for_perimetre(self.perimetre)
         )
         qs = qs.annotate(
             prog_taux=Case(

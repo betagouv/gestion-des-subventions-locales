@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.db.models import Case, DecimalField, F, Max, Prefetch, Sum, When
+from django.db.models import Case, DecimalField, F, Max, Prefetch, Q, Sum, When
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -8,6 +8,7 @@ from django.views.generic import ListView, UpdateView
 from django_filters.views import FilterView
 
 from gsl_core.exceptions import Http404
+from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     CategorieDsil,
@@ -110,8 +111,8 @@ class ProjetListViewFilters(ProjetFilters):
         super().__init__(*args, **kwargs)
         if hasattr(self.request, "user") and self.request.user.perimetre:
             perimetre = self.request.user.perimetre
-            self.filters["territoire"].extra["choices"] = tuple(
-                (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
+            self.filters["territoire"].queryset = Perimetre.objects.filter(
+                Q(id=perimetre.id) | Q(id__in=perimetre.children().values("id"))
             )
 
         selected_dotations = self.data.getlist("dotation")
@@ -121,9 +122,8 @@ class ProjetListViewFilters(ProjetFilters):
             "DETR" in selected_dotations or "DETR_et_DSIL" in selected_dotations
         )
         if detr_selected:
-            self.filters["categorie_detr"].extra["choices"] = tuple(
-                (str(c.id), c.complete_label)
-                for c in CategorieDetr.objects.active()
+            self.filters["categorie_detr"].queryset = (
+                CategorieDetr.objects.active()
                 .filter(dossier__projet__in=visible_projets)
                 .distinct()
                 .order_by("rank")
@@ -135,9 +135,8 @@ class ProjetListViewFilters(ProjetFilters):
             "DSIL" in selected_dotations or "DETR_et_DSIL" in selected_dotations
         )
         if dsil_selected:
-            self.filters["categorie_dsil"].extra["choices"] = tuple(
-                (str(c.id), c.label)
-                for c in CategorieDsil.objects.active()
+            self.filters["categorie_dsil"].queryset = (
+                CategorieDsil.objects.active()
                 .filter(dossier__projet__in=visible_projets)
                 .distinct()
                 .order_by("rank", "label")
@@ -147,7 +146,7 @@ class ProjetListViewFilters(ProjetFilters):
 
         visible_dossiers = visible_projets.values("dossier_ds")
 
-        self.filters["epci"].extra["choices"] = tuple(
+        self.filters["epci"].extra["choices"] = lambda: tuple(
             (epci, epci.split(" - ", 1)[1] if " - " in epci else epci)
             for epci in visible_projets.values_list(
                 "dossier_ds__porteur_de_projet_epci", flat=True
@@ -157,25 +156,20 @@ class ProjetListViewFilters(ProjetFilters):
             if epci
         )
 
-        self.filters["cofinancement"].extra["choices"] = tuple(
-            (str(c.id), c.label)
-            for c in Cofinancement.objects.filter(dossier__in=visible_dossiers)
+        self.filters["cofinancement"].queryset = (
+            Cofinancement.objects.filter(dossier__in=visible_dossiers)
             .distinct()
             .order_by("id")
         )
 
-        self.filters["zonage"].extra["choices"] = tuple(
-            (str(z.id), z.label)
-            for z in ProjetZonage.objects.filter(dossier__in=visible_dossiers)
+        self.filters["zonage"].queryset = (
+            ProjetZonage.objects.filter(dossier__in=visible_dossiers)
             .distinct()
             .order_by("id")
         )
 
-        self.filters["contractualisation"].extra["choices"] = tuple(
-            (str(c.id), c.label)
-            for c in ProjetContractualisation.objects.filter(
-                dossier__in=visible_dossiers
-            )
+        self.filters["contractualisation"].queryset = (
+            ProjetContractualisation.objects.filter(dossier__in=visible_dossiers)
             .distinct()
             .order_by("id")
         )
