@@ -30,7 +30,8 @@
 {% block footer_buttons %}
     <li>
         <a class="fr-btn fr-icon-download-line fr-icon--sm"
-           href="{{ download_url }}">
+           href="{{ download_url }}"
+           data-action="click->form-utils#download">
             Télécharger
         </a>
     </li>
