@@ -265,6 +265,16 @@ class GenerateDocumentsWizard(SessionWizardView):
         self._submitted_step = request.POST.get(f"{self.prefix}-current_step")
         return super().post(request, *args, **kwargs)
 
+    def get_cleaned_data_for_step(self, step):
+        # formtools re-instantiates and re-validates the step's form on every
+        # call. Within one request, the underlying storage data for a non-current
+        # step doesn't change, so we cache the result per instance.
+        if not hasattr(self, "_cleaned_data_cache"):
+            self._cleaned_data_cache = {}
+        if step not in self._cleaned_data_cache:
+            self._cleaned_data_cache[step] = super().get_cleaned_data_for_step(step)
+        return self._cleaned_data_cache[step]
+
     def get_form_kwargs(self, step=None):
         kwargs = super().get_form_kwargs(step)
         kwargs.update(
@@ -343,14 +353,20 @@ class GenerateDocumentsWizard(SessionWizardView):
             )
             for step in self.get_form_list()
         }
+        # Only validate the steps whose cleaned_data is read from form_dict in
+        # done(). LAUNCH and STEP1 feed into other steps via get_form_kwargs,
+        # where they were already validated (and cached). STEP4 is the
+        # save-action form, not a data-bearing step.
+        for step in (self.STEP2, self.STEP3):
+            form_dict[step].is_valid()
         response = self.done(form_dict.values(), form_dict=form_dict, **kwargs)
         self.storage.reset()
         return response
 
     def done(self, form_list, form_dict, **kwargs):
         form = form_dict[self.STEP4]
-        step2_data = self.get_cleaned_data_for_step(self.STEP2) or {}
-        step3_data = self.get_cleaned_data_for_step(self.STEP3) or {}
+        step2_data = form_dict[self.STEP2].cleaned_data
+        step3_data = form_dict[self.STEP3].cleaned_data
         export_format = step3_data.get("export_format")
         refreshed = form.save(
             modele_arrete=step2_data.get("modele_arrete_id"),

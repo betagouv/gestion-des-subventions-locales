@@ -45,9 +45,7 @@ class EnveloppeQueryset(models.QuerySet):
         return new_obj
 
     def for_current_year(self):
-        return self.filter(
-            annee=self.order_by("-annee").values_list("annee", flat=True).first()
-        )
+        return self.filter(annee=self.values("annee").order_by("-annee")[:1])
 
 
 class EnveloppeManager(models.Manager.from_queryset(EnveloppeQueryset)):

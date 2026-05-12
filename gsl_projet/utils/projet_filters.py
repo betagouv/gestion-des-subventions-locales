@@ -1,3 +1,4 @@
+from django import forms
 from django.db import connection
 from django.db.models import Count, Exists, F, Func, OuterRef, Q, Value
 from django.forms.utils import pretty_name
@@ -6,13 +7,22 @@ from django_filters import (
     CharFilter,
     DateFromToRangeFilter,
     FilterSet,
+    ModelMultipleChoiceFilter,
     MultipleChoiceFilter,
     OrderingFilter,
     RangeFilter,
 )
 
 from gsl_core.models import Perimetre
-from gsl_demarches_simplifiees.models import Dossier, NaturePorteurProjet
+from gsl_demarches_simplifiees.models import (
+    CategorieDetr,
+    CategorieDsil,
+    Cofinancement,
+    Dossier,
+    NaturePorteurProjet,
+    ProjetContractualisation,
+    ProjetZonage,
+)
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -30,6 +40,22 @@ from gsl_projet.utils.django_filters_custom_widget import (
     DsfrRangeWidget,
 )
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
+
+
+class LabelFromInstanceField(forms.ModelMultipleChoiceField):
+    """ModelMultipleChoiceField that calls a configurable attribute/property
+    for the option label, so we can use complete_label, entity_name, etc."""
+
+    def __init__(self, *args, label_attr="label", **kwargs):
+        self.label_attr = label_attr
+        super().__init__(*args, **kwargs)
+
+    def label_from_instance(self, obj):
+        return getattr(obj, self.label_attr)
+
+
+class LabelFromInstanceFilter(ModelMultipleChoiceFilter):
+    field_class = LabelFromInstanceField
 
 
 class ProjetOrderingFilter(OrderingFilter):
@@ -132,9 +158,11 @@ def filter_dotation(queryset, _name, values):
     return queryset.filter(query)
 
 
-def filter_territoire(queryset, _name, values: list[int]):
+def filter_territoire(queryset, _name, values):
+    if not values:
+        return queryset
     result = queryset.none()
-    for perimetre in Perimetre.objects.filter(id__in=values):
+    for perimetre in values:
         result |= queryset.for_perimetre(perimetre)
     return result
 
@@ -310,24 +338,28 @@ class ProjetFilters(FilterSet):
         widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
-    categorie_detr = MultipleChoiceFilter(
+    categorie_detr = LabelFromInstanceFilter(
         label="Catégorie DETR",
         field_name="dossier_ds__demande_categorie_detr",
+        queryset=CategorieDetr.objects.none(),
         widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
+        label_attr="complete_label",
     )
 
-    categorie_dsil = MultipleChoiceFilter(
+    categorie_dsil = ModelMultipleChoiceFilter(
         label="Catégorie DSIL",
         field_name="dossier_ds__demande_categorie_dsil",
+        queryset=CategorieDsil.objects.none(),
         widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
     )
 
-    territoire = MultipleChoiceFilter(
+    territoire = LabelFromInstanceFilter(
         method="filter_territoire",
-        choices=[],
+        queryset=Perimetre.objects.none(),
         widget=CustomCheckboxSelectMultiple(
             display_template="includes/_filter_territoire.html"
         ),
+        label_attr="entity_name",
     )
 
     epci = MultipleChoiceFilter(
@@ -368,24 +400,24 @@ class ProjetFilters(FilterSet):
         method="filter_dossier_complet",
     )
 
-    cofinancement = MultipleChoiceFilter(
+    cofinancement = ModelMultipleChoiceFilter(
         label="Cofinancement",
         field_name="dossier_ds__demande_cofinancements",
-        choices=[],
+        queryset=Cofinancement.objects.none(),
         widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
-    zonage = MultipleChoiceFilter(
+    zonage = ModelMultipleChoiceFilter(
         label="Zonage",
         field_name="dossier_ds__projet_zonage",
-        choices=[],
+        queryset=ProjetZonage.objects.none(),
         widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
-    contractualisation = MultipleChoiceFilter(
+    contractualisation = ModelMultipleChoiceFilter(
         label="Contractualisation",
         field_name="dossier_ds__projet_contractualisation",
-        choices=[],
+        queryset=ProjetContractualisation.objects.none(),
         widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
     )
 

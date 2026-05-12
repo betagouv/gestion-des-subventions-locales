@@ -1,13 +1,15 @@
 from django.db import models
-from django.db.models import Case, DecimalField, F, Subquery, When
+from django.db.models import Case, DecimalField, F, Q, Subquery, When
 from django_filters import (
     CharFilter,
     DateFromToRangeFilter,
     FilterSet,
+    ModelMultipleChoiceFilter,
     MultipleChoiceFilter,
     RangeFilter,
 )
 
+from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     CategorieDsil,
@@ -28,6 +30,7 @@ from gsl_projet.utils.projet_filters import (
     DOTATION_SOLLICITEE_CHOICES,
     ORDERING_MAP,
     OUI_NON_CHOICES,
+    LabelFromInstanceFilter,
     ProjetOrderingFilter,
     filter_boolean,
     filter_dossier_complet,
@@ -46,14 +49,13 @@ class SimulationProjetFilters(FilterSet):
 
         if hasattr(self.request, "user") and self.request.user.perimetre:
             perimetre = self.request.user.perimetre
-            self.filters["territoire"].extra["choices"] = tuple(
-                (p.id, p.entity_name) for p in (perimetre, *perimetre.children())
+            self.filters["territoire"].queryset = Perimetre.objects.filter(
+                Q(id=perimetre.id) | Q(id__in=perimetre.children().values("id"))
             )
 
         if dotation == DOTATION_DETR:
-            self.filters["categorie_detr"].extra["choices"] = tuple(
-                (str(c.id), c.complete_label)
-                for c in CategorieDetr.objects.active()
+            self.filters["categorie_detr"].queryset = (
+                CategorieDetr.objects.active()
                 .filter(dossier__projet__in=self.queryset)
                 .distinct()
                 .order_by("rank")
@@ -62,9 +64,8 @@ class SimulationProjetFilters(FilterSet):
             del self.filters["categorie_detr"]
 
         if dotation == DOTATION_DSIL:
-            self.filters["categorie_dsil"].extra["choices"] = tuple(
-                (str(c.id), c.label)
-                for c in CategorieDsil.objects.active()
+            self.filters["categorie_dsil"].queryset = (
+                CategorieDsil.objects.active()
                 .filter(dossier__projet__in=self.queryset)
                 .distinct()
                 .order_by("rank", "label")
@@ -74,32 +75,29 @@ class SimulationProjetFilters(FilterSet):
 
         visible_dossiers = self.queryset.values("dossier_ds")
 
-        self.filters["cofinancement"].extra["choices"] = tuple(
-            (str(c.id), c.label)
-            for c in Cofinancement.objects.filter(dossier__in=visible_dossiers)
+        self.filters["cofinancement"].queryset = (
+            Cofinancement.objects.filter(dossier__in=visible_dossiers)
             .distinct()
             .order_by("id")
         )
 
-        self.filters["zonage"].extra["choices"] = tuple(
-            (str(z.id), z.label)
-            for z in ProjetZonage.objects.filter(dossier__in=visible_dossiers)
+        self.filters["zonage"].queryset = (
+            ProjetZonage.objects.filter(dossier__in=visible_dossiers)
             .distinct()
             .order_by("id")
         )
 
-        self.filters["contractualisation"].extra["choices"] = tuple(
-            (str(c.id), c.label)
-            for c in ProjetContractualisation.objects.filter(
-                dossier__in=visible_dossiers
-            )
+        self.filters["contractualisation"].queryset = (
+            ProjetContractualisation.objects.filter(dossier__in=visible_dossiers)
             .distinct()
             .order_by("id")
         )
 
-        self.filters["epci"].extra["choices"] = tuple(
+        projets_queryset = self.queryset
+
+        self.filters["epci"].extra["choices"] = lambda: tuple(
             (epci, epci.split(" - ", 1)[1] if " - " in epci else epci)
-            for epci in self.queryset.values_list(
+            for epci in projets_queryset.values_list(
                 "dossier_ds__porteur_de_projet_epci", flat=True
             )
             .distinct()
@@ -119,15 +117,18 @@ class SimulationProjetFilters(FilterSet):
         method="filter_search",
     )
 
-    categorie_detr = MultipleChoiceFilter(
+    categorie_detr = LabelFromInstanceFilter(
         label="Catégorie DETR",
         field_name="dossier_ds__demande_categorie_detr",
+        queryset=CategorieDetr.objects.none(),
         widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
+        label_attr="complete_label",
     )
 
-    categorie_dsil = MultipleChoiceFilter(
+    categorie_dsil = ModelMultipleChoiceFilter(
         label="Catégorie DSIL",
         field_name="dossier_ds__demande_categorie_dsil",
+        queryset=CategorieDsil.objects.none(),
         widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
     )
 
@@ -196,12 +197,13 @@ class SimulationProjetFilters(FilterSet):
         widget=DsfrDateRangeWidget(icon="fr-icon-calendar-line"),
     )
 
-    territoire = MultipleChoiceFilter(
+    territoire = LabelFromInstanceFilter(
         method="filter_territoire",
-        choices=[],
+        queryset=Perimetre.objects.none(),
         widget=CustomCheckboxSelectMultiple(
             display_template="includes/_filter_territoire.html"
         ),
+        label_attr="entity_name",
     )
 
     budget_vert_demandeur = MultipleChoiceFilter(
@@ -236,24 +238,24 @@ class SimulationProjetFilters(FilterSet):
         method="filter_dossier_complet",
     )
 
-    cofinancement = MultipleChoiceFilter(
+    cofinancement = ModelMultipleChoiceFilter(
         label="Cofinancement",
         field_name="dossier_ds__demande_cofinancements",
-        choices=[],
+        queryset=Cofinancement.objects.none(),
         widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
-    zonage = MultipleChoiceFilter(
+    zonage = ModelMultipleChoiceFilter(
         label="Zonage",
         field_name="dossier_ds__projet_zonage",
-        choices=[],
+        queryset=ProjetZonage.objects.none(),
         widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
-    contractualisation = MultipleChoiceFilter(
+    contractualisation = ModelMultipleChoiceFilter(
         label="Contractualisation",
         field_name="dossier_ds__projet_contractualisation",
-        choices=[],
+        queryset=ProjetContractualisation.objects.none(),
         widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
     )
 

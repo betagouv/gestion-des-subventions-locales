@@ -690,19 +690,38 @@ class TestProgrammationProjetFilters:
         assert prog_match in result
         assert prog_no_match not in result
 
-    def test_filterset_initialization_with_user_perimetre(
+    def test_filterset_territoire_queryset_with_user_perimetre(
         self, mock_request, departement
     ):
-        """Test l'initialisation du filterset avec les choix basés sur le périmètre utilisateur"""
+        """Le filtre territoire expose un queryset incluant le périmètre de l'utilisateur."""
         filterset = ProgrammationProjetFilters(request=mock_request)
 
-        # Vérifier que les choix de territoire sont configurés
-        territoire_choices = filterset.filters["territoire"].extra["choices"]
-        assert len(territoire_choices) > 0
+        territoire_queryset = filterset.form.fields["territoire"].queryset
 
-        # Vérifier que le périmètre de l'utilisateur est dans les choix
-        perimetre_ids = [choice[0] for choice in territoire_choices]
-        assert departement.id in perimetre_ids
+        assert territoire_queryset.filter(id=departement.id).exists()
+
+    def test_filterset_instantiation_does_not_query_choice_tables(self, mock_request):
+        """Instantiating the filterset must not query the choice tables;
+        the dropdowns evaluate their querysets lazily when the form is rendered."""
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        with CaptureQueriesContext(connection) as ctx:
+            ProgrammationProjetFilters(request=mock_request)
+
+        executed = " ".join(q["sql"] for q in ctx.captured_queries).lower()
+        for table in (
+            "cofinancement",
+            "projetzonage",
+            "projetcontractualisation",
+            "categoriedetr",
+            "categoriedsil",
+            "perimetre",
+        ):
+            assert table.lower() not in executed, (
+                f"Filterset __init__ should not query {table}, got:\n"
+                + "\n".join(q["sql"] for q in ctx.captured_queries)
+            )
 
     def test_date_depot_filter(self, mock_request, enveloppe, arrondissement):
         """Test les filtres par date de dépôt"""
