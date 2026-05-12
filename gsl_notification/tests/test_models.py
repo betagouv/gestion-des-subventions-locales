@@ -272,13 +272,7 @@ def test_modele_properties(factory):
     perimetre = collegue.perimetre
     modele = factory(created_by=collegue, content=file_content, perimetre=perimetre)
 
-    if factory == ModeleArreteFactory:
-        assert str(modele) == f"Modèle d’arrêté {modele.id} - {modele.name}"
-    else:
-        assert (
-            str(modele)
-            == f"Modèle de lettre de notification {modele.id} - {modele.name}"
-        )
+    assert str(modele) == modele.name
 
     assert modele.content == file_content
     assert modele.created_by == collegue

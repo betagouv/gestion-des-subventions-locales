@@ -91,7 +91,7 @@ class ModeleDocument(models.Model):
         abstract = True
 
     def __str__(self):
-        return f"Modèle d’arrêté {self.id} - {self.name}"
+        return self.name
 
     @property
     def annee(self):
@@ -114,9 +114,6 @@ class ModeleArrete(ModeleDocument):
         verbose_name = "Modèle d’arrêté"
         verbose_name_plural = "Modèles d’arrêté"
 
-    def __str__(self):
-        return f"Modèle d’arrêté {self.id} - {self.name}"
-
     @property
     def type(self):
         return ARRETE
@@ -133,9 +130,6 @@ class ModeleLettreNotification(ModeleDocument):
     class Meta:
         verbose_name = "Modèle de lettre de notification"
         verbose_name_plural = "Modèles de lettre de notification"
-
-    def __str__(self):
-        return f"Modèle de lettre de notification {self.id} - {self.name}"
 
     @property
     def type(self):
