@@ -104,6 +104,19 @@ export class TipTapEditor extends Controller {
             }
             return true
           }
+          if (event.key === 'Escape') {
+            event.preventDefault()
+            const selector = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable="true"]'
+            const focusables = Array.from(document.querySelectorAll(selector))
+              .filter(el => el.offsetParent !== null)
+            const idx = focusables.indexOf(document.activeElement)
+            if (event.shiftKey) {
+              if (idx > 0) focusables[idx - 1].focus()
+            } else {
+              if (idx < focusables.length - 1) focusables[idx + 1].focus()
+            }
+            return true
+          }
           return false
         }
       },
