@@ -93,6 +93,20 @@ export class TipTapEditor extends Controller {
     this.editor = new Editor({
       element: this.editorTarget,
       extensions: this._getExtensions(),
+      editorProps: {
+        handleKeyDown: (view, event) => {
+          if (event.key === 'Tab') {
+            event.preventDefault()
+            if (event.shiftKey) {
+              this.editor.commands.liftListItem('listItem')
+            } else if (!this.editor.commands.sinkListItem('listItem')) {
+              this.editor.commands.insertContent('    ')
+            }
+            return true
+          }
+          return false
+        }
+      },
       onCreate ({ editor }) {
         editor.commands.setContent(contentInput.value)
         contentInput.value = editor.getHTML()
