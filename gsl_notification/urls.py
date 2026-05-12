@@ -1,10 +1,8 @@
 from django.urls import path
 
 from gsl_notification.views.generate_document_for_multiple_projets_views import (
-    ChooseDocumentTypeForMultipleGenerationView,
+    GenerateDocumentsWizard,
     download_documents,
-    save_documents,
-    select_modele_multiple,
 )
 from gsl_notification.views.modele_views import (
     ChooseModeleDocumentType,
@@ -80,21 +78,11 @@ urlpatterns = [
         DeleteDocumentView.as_view(),
         name="delete-document",
     ),
-    # Generated files for multiple projets
+    # Modal HTMX - génération en masse
     path(
-        "<str:dotation>/choix-du-type/",
-        ChooseDocumentTypeForMultipleGenerationView.as_view(),
-        name="choose-generated-document-type-multiple",
-    ),
-    path(
-        "<str:dotation>/selection-d-un-modele/<str:document_type>",
-        select_modele_multiple,
-        name="select-modele-multiple",
-    ),
-    path(
-        "<str:dotation>/sauvegarde/<str:document_type>/<int:modele_id>",
-        save_documents,
-        name="save-documents",
+        "<str:dotation>/generer/",
+        GenerateDocumentsWizard.as_view(),
+        name="generate-documents-modal",
     ),
     path(
         "<str:dotation>/telechargement/<str:document_type>",

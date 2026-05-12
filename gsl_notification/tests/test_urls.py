@@ -90,38 +90,6 @@ def test_document_delete_url(document_type):
     assert url == f"/notification/document/{document_type}/789/delete/"
 
 
-# Multiple document URLs
-
-
-@pytest.mark.parametrize("dotation", (DOTATION_DETR, DOTATION_DSIL))
-def test_choose_type_for_multiple_document_generation(dotation):
-    url = reverse(
-        "gsl_notification:choose-generated-document-type-multiple",
-        kwargs={"dotation": dotation},
-    )
-    assert url == f"/notification/{dotation}/choix-du-type/"
-
-
-@pytest.mark.parametrize("dotation", (DOTATION_DETR, DOTATION_DSIL))
-@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
-def test_select_modele_multiple(dotation, document_type):
-    url = reverse(
-        "gsl_notification:select-modele-multiple",
-        kwargs={"dotation": dotation, "document_type": document_type},
-    )
-    assert url == f"/notification/{dotation}/selection-d-un-modele/{document_type}"
-
-
-@pytest.mark.parametrize("dotation", (DOTATION_DETR, DOTATION_DSIL))
-@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
-def test_save_documents(dotation, document_type):
-    url = reverse(
-        "gsl_notification:save-documents",
-        kwargs={"dotation": dotation, "document_type": document_type, "modele_id": 12},
-    )
-    assert url == f"/notification/{dotation}/sauvegarde/{document_type}/12"
-
-
 # Uploaded documents URLs
 
 

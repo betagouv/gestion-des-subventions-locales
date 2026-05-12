@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.text import slugify
 
 from gsl_core.models import Collegue, Perimetre
 from gsl_notification.validators import document_file_validator, logo_file_validator
@@ -228,7 +229,7 @@ class Arrete(GeneratedDocument):
 
     @property
     def name(self):
-        return f"arrêté-attributif-{self.programmation_projet.enveloppe.dotation}-{self.created_at.strftime('%Y-%m-%d')} - N°{self.programmation_projet.dossier.ds_number}.pdf"
+        return f"arrêté-attributif-{self.programmation_projet.enveloppe.dotation}-{self.created_at.strftime('%Y-%m-%d')} - {self.programmation_projet.dossier.ds_number} - {slugify(self.programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf"
 
 
 class LettreNotification(GeneratedDocument):
@@ -250,7 +251,7 @@ class LettreNotification(GeneratedDocument):
 
     @property
     def name(self):
-        return f"lettre-notification-{self.programmation_projet.enveloppe.dotation}-{self.created_at.strftime('%Y-%m-%d')} - N°{self.programmation_projet.dossier.ds_number}.pdf"
+        return f"lettre-notification-{self.programmation_projet.enveloppe.dotation}-{self.created_at.strftime('%Y-%m-%d')} - {self.programmation_projet.dossier.ds_number} - {slugify(self.programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf"
 
 
 class UploadedDocument(models.Model):

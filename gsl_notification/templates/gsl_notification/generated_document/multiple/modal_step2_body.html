@@ -1,0 +1,61 @@
+{% extends "gsl_notification/generated_document/multiple/modal_step_base.html" %}
+{% load dsfr_tags %}
+{% block stepper %}
+    {% dsfr_stepper current_step_id=2 total_steps=4 current_step_title="Choix des modèles" next_step_title="Format d'export" %}
+{% endblock stepper %}
+{% block form_open %}
+    <form hx-post="{% url 'gsl_notification:generate-documents-modal' dotation %}"
+          hx-target="#{{ modal_id }}-step"
+          hx-swap="outerHTML">
+        {% csrf_token %}
+        {{ wizard.management_form }}
+    {% endblock form_open %}
+    {% block content %}
+        {% if form.existing_lettre_count or form.existing_arrete_count %}
+            <div class="fr-alert fr-alert--warning fr-mt-2w fr-alert--sm" role="alert">
+                {% if form.existing_lettre_count %}
+                    <p>
+                        {{ form.existing_lettre_count }} projet{{ form.existing_lettre_count|pluralize }}
+                        {{ form.existing_lettre_count|pluralize:"a,ont" }}
+                        déjà une lettre.
+                    </p>
+                {% endif %}
+                {% if form.existing_arrete_count %}
+                    <p>
+                        {{ form.existing_arrete_count }} projet{{ form.existing_arrete_count|pluralize }}
+                        {{ form.existing_arrete_count|pluralize:"a,ont" }}
+                        déjà un arrêté.
+                    </p>
+                {% endif %}
+            </div>
+        {% endif %}
+        {% if form.has_arrete and not form.modeles_arrete %}
+            <div class="fr-alert fr-alert--warning fr-mt-2w fr-alert--sm">
+                <p>
+                    Vous n'avez créé aucun modèle d'arrêté pour le moment.
+                    <a href="{% url 'gsl_notification:modele-creer' "arrete" dotation %}">Créer un modèle</a>
+                    et revenez ici.
+                </p>
+            </div>
+        {% endif %}
+        {% if form.has_lettre and not form.modeles_lettre %}
+            <div class="fr-alert fr-alert--warning fr-mt-2w fr-alert--sm">
+                <p>
+                    Vous n'avez créé aucun modèle de lettre pour le moment.
+                    <a href="{% url 'gsl_notification:modele-creer' "lettre" dotation %}">Créer un modèle</a>
+                    et revenez ici.
+                </p>
+            </div>
+        {% endif %}
+        {{ form }}
+    {% endblock content %}
+    {% block form_close %}
+    </form>
+{% endblock form_close %}
+{% block continue_button_extra_attrs %}
+    {% if form.has_arrete and not form.modeles_arrete %}
+        disabled
+    {% elif form.has_lettre and not form.modeles_lettre %}
+        disabled
+    {% endif %}
+{% endblock continue_button_extra_attrs %}

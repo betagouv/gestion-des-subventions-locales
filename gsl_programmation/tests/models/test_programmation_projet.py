@@ -269,7 +269,7 @@ def test_documents_summary_arrete_genere():
     LettreNotificationFactory(programmation_projet=programmation_projet)
 
     summary = programmation_projet.documents_summary
-    assert summary == ["1 arrêté généré", "1 lettre générée"]
+    assert summary == ["1 arrêté", "1 lettre"]
 
 
 @pytest.mark.parametrize(

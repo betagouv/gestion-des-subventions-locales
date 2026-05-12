@@ -1,0 +1,44 @@
+{% extends "gsl_notification/generated_document/multiple/modal_step_base.html" %}
+{% load dsfr_tags %}
+{% block oob_swaps %}
+    {% for programmation_projet in refreshed_programmation_projets %}
+        <td id="pp-documents-cell-{{ programmation_projet.id }}"
+            hx-swap-oob="outerHTML">
+            {% include "gsl_programmation/table_cells/documents.html" %}
+        </td>
+    {% endfor %}
+{% endblock oob_swaps %}
+{% block stepper %}
+    {% dsfr_stepper current_step_id=4 total_steps=4 current_step_title="Téléchargement" %}
+{% endblock stepper %}
+{% block content %}
+    <div class="fr-alert fr-alert--success fr-mt-3w" role="status">
+        <p>
+            {{ doc_count }} document{{ doc_count|pluralize }} généré{{ doc_count|pluralize:"s" }}
+            {% if is_export_one_pdf_all %}
+                dans un seul fichier PDF
+            {% elif is_export_one_pdf_all_grouped %}
+                dans un seul fichier PDF groupé par projet
+            {% elif is_export_one_pdf_per_project %}
+                regroupés par projet dans un fichier ZIP
+            {% elif doc_count != 1 %}
+                dans un fichier ZIP
+            {% endif %}
+        </p>
+    </div>
+{% endblock content %}
+{% block footer_buttons %}
+    <li>
+        <a class="fr-btn fr-icon-download-line fr-icon--sm"
+           href="{{ download_url }}">
+            Télécharger
+        </a>
+    </li>
+    <li>
+        <button class="fr-btn fr-btn--tertiary"
+                aria-controls="{{ modal_id }}"
+                type="button">
+            Fermer
+        </button>
+    </li>
+{% endblock footer_buttons %}

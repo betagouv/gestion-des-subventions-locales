@@ -1,0 +1,16 @@
+{% extends "gsl_notification/generated_document/multiple/modal_step_base.html" %}
+{% block stepper_or_error %}
+    <div class="fr-alert fr-alert--error fr-mt-3w" role="alert">
+        {{ form.non_field_errors }}
+        {{ form.ids.errors }}
+    </div>
+{% endblock stepper_or_error %}
+{% block footer_buttons %}
+    <li>
+        <button class="fr-btn fr-btn--secondary"
+                aria-controls="{{ modal_id }}"
+                type="button">
+            Fermer
+        </button>
+    </li>
+{% endblock footer_buttons %}

@@ -1,0 +1,43 @@
+{% extends "gsl_notification/generated_document/multiple/modal_step_base.html" %}
+{% load dsfr_tags %}
+{% block before_content %}
+    <form style="display:none"
+          hx-post="{% url 'gsl_notification:generate-documents-modal' dotation %}"
+          hx-trigger="load"
+          hx-target="#{{ modal_id }}-step"
+          hx-swap="outerHTML">
+        {% csrf_token %}
+        {{ wizard.management_form }}
+    </form>
+{% endblock before_content %}
+{% block stepper %}
+    {% dsfr_stepper current_step_id=4 total_steps=4 current_step_title="Téléchargement" %}
+{% endblock stepper %}
+{% block content %}
+    <div class="fr-alert fr-alert--info fr-mt-3w"
+         role="status"
+         aria-live="polite">
+        <p>
+            {{ doc_count }} document{{ doc_count|pluralize }} en cours de génération…
+        </p>
+    </div>
+    <div class="fr-mt-3w fr-grid-row fr-grid-row-gutters fr-grid-row--center">
+        <span class="fr-icon-refresh-line generate-docs-spinner" aria-hidden="true"></span>
+    </div>
+{% endblock content %}
+{% block footer_buttons %}
+    <li>
+        <button class="fr-btn fr-btn--secondary fr-icon-download-line fr-icon--sm"
+                type="button"
+                disabled>
+            Télécharger
+        </button>
+    </li>
+    <li>
+        <button class="fr-btn fr-btn--tertiary"
+                aria-controls="{{ modal_id }}"
+                type="button">
+            Fermer
+        </button>
+    </li>
+{% endblock footer_buttons %}

@@ -150,3 +150,15 @@
   top: 16px;
   left: 16px;
 }
+
+/* Spinner animation pour la modale de génération en masse */
+@keyframes generate-docs-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.generate-docs-spinner {
+  display: inline-block;
+  font-size: 2rem;
+  animation: generate-docs-spin 1s linear infinite;
+}

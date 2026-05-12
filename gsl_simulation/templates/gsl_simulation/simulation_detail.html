@@ -36,7 +36,7 @@
     {% include "includes/_enveloppe_summary.html" %}
     {% include "includes/_projet_list_filters.html" %}
 
-    <div id="simulation-table-wrapper" data-controller="bulk-status-change">
+    <div id="simulation-table-wrapper" data-controller="checkbox-selection">
         {% include "includes/_simulation_bulk_actions_toolbar.html" %}
         <div class="fr-table fr-table--multiline fr-table--sm fr-table--no-caption gsl-projet-table">
             <div class="fr-table__wrapper">
@@ -50,8 +50,8 @@
                                         <div class="fr-checkbox-group fr-checkbox-group--sm">
                                             <input id="bulk-status-page-checkbox"
                                                    type="checkbox"
-                                                   data-bulk-status-change-target="pageCheckbox"
-                                                   data-action="change->bulk-status-change#togglePageSelection">
+                                                   data-checkbox-selection-target="pageCheckbox"
+                                                   data-action="change->checkbox-selection#togglePageSelection">
                                             <label class="fr-label" for="bulk-status-page-checkbox">
                                                 <span class="fr-sr-only">Sélectionner tous les projets de la page</span>
                                             </label>
