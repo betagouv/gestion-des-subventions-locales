@@ -137,6 +137,13 @@
   gap: 0.5rem;
 }
 
+/* Status menu is position: fixed (set by JS in gsl.js) while expanded, so the
+   DSFR collapse slide-in/out looks out of place in viewport space. Skip it. */
+.gsl-projet-table__status-select .fr-collapse,
+.gsl-projet-table__status-select .fr-collapse::before {
+  transition: none;
+}
+
 /* text inputs */
 
 .gsl-projet-table__input--valid {

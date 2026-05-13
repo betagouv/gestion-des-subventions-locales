@@ -1,7 +1,6 @@
 {% load simulation_filters %}
-<div class="fr-nav fr-translate gsl-projet-table__status-select gsl-projet-table__status-select--{{ simu.status }}"
-     id="status-dropdown-{{ simu.pk }}">
-    <div class="fr-nav__item{% if table %}fr-nav__item--align-right{% endif %}">
+<div class="fr-nav fr-translate gsl-projet-table__status-select gsl-projet-table__status-select--{{ simu.status }}">
+    <div class="fr-nav__item{% if table %} fr-nav__item--align-right{% endif %}">
         <button class="fr-select fr-btn--{% if table %}sm{% else %}lg{% endif %} fr-dropdown__button"
                 aria-expanded="false"
                 aria-controls="status-dropdown-{{ simu.pk }}"
