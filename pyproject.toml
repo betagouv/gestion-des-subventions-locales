@@ -31,11 +31,13 @@ dependencies = [
     "mozilla-django-oidc",
     "pikepdf",
     "psycopg[binary]",
+    "pypdfium2",
     "python-dotenv",
     "redis",
     "requests",
     "segno",
     "sentry-sdk",
+    "zxing-cpp",
     "tablib[ods]",
     "tablib[xls]",
     "tablib[xlsx]",
@@ -69,6 +71,7 @@ dev = [
     "pytest",
     "responses",
     "ruff",
+    "tqdm",
 ]
 
 [tool.pytest.ini_options]
