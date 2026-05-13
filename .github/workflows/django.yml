@@ -53,6 +53,10 @@ jobs:
     environment: test
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      pull-requests: write
+
     env:
       DATABASE_URL: ${{ github.event_name != 'pull_request' && format('postgres://{0}:{1}@{2}:{3}/{4}', vars.DATABASE_USER, vars.DATABASE_PASSWORD, vars.DATABASE_HOST, vars.DATABASE_PORT, vars.DATABASE_NAME) || 'sqlite://:memory:' }}
       SECRET_KEY: ${{ vars.SECRET_KEY }}
@@ -93,3 +97,31 @@ jobs:
     - name: Run Tests
       run: |
         python -m pytest --create-db
+
+    - name: Diff coverage report
+      if: github.event_name == 'pull_request'
+      run: |
+        git fetch origin ${{ github.base_ref }} --depth=50
+        diff-cover coverage.xml \
+          --compare-branch=origin/${{ github.base_ref }} \
+          --markdown-report=diff-cover.md \
+          --html-report=diff-cover.html
+      continue-on-error: true  # warn-only
+
+    - name: Post diff coverage as PR comment
+      if: github.event_name == 'pull_request'
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        header: diff-coverage
+        path: diff-cover.md
+
+    - name: Upload coverage artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: |
+          coverage.xml
+          htmlcov/
+          diff-cover.html
+        retention-days: 14

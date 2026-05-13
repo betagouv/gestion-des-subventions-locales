@@ -34,6 +34,11 @@ test:
 test-watching folder_or_file:
     git ls-files | entr -c pytest -vv {{folder_or_file}}
 
+# Run tests with coverage and produce a diff-coverage HTML report
+coverage:
+    pytest
+    diff-cover coverage.xml --compare-branch=origin/main --html-report=htmlcov/diff.html || true
+
 
 # Create a release tag (vYY.MM.DD) and push it to trigger production deployment
 release:
