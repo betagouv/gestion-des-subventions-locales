@@ -93,6 +93,33 @@ export class TipTapEditor extends Controller {
     this.editor = new Editor({
       element: this.editorTarget,
       extensions: this._getExtensions(),
+      editorProps: {
+        handleKeyDown: (view, event) => {
+          if (event.key === 'Tab') {
+            event.preventDefault()
+            if (event.shiftKey) {
+              this.editor.commands.liftListItem('listItem')
+            } else if (!this.editor.commands.sinkListItem('listItem')) {
+              this.editor.commands.insertContent('    ')
+            }
+            return true
+          }
+          if (event.key === 'Escape') {
+            event.preventDefault()
+            const selector = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable="true"]'
+            const focusables = Array.from(document.querySelectorAll(selector))
+              .filter(el => el.offsetParent !== null)
+            const idx = focusables.indexOf(document.activeElement)
+            if (event.shiftKey) {
+              if (idx > 0) focusables[idx - 1].focus()
+            } else {
+              if (idx < focusables.length - 1) focusables[idx + 1].focus()
+            }
+            return true
+          }
+          return false
+        }
+      },
       onCreate ({ editor }) {
         editor.commands.setContent(contentInput.value)
         contentInput.value = editor.getHTML()
