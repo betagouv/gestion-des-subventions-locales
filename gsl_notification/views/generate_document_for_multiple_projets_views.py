@@ -1,25 +1,16 @@
-import io
 import logging
-import zipfile
 
-from django.http import HttpResponse
-from django.shortcuts import get_list_or_404, render
-from django.urls import reverse
-from django.utils import timezone
+from django.shortcuts import render
 from django.utils.decorators import method_decorator
-from django.utils.text import slugify
-from django.views.decorators.http import require_GET
 from django_htmx.http import trigger_client_event
 from formtools.wizard.views import SessionWizardView
-from pikepdf import Pdf
 
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
+from gsl_notification.exports import build_export, upload_export_and_get_url
 from gsl_notification.forms import (
-    ARRETE_ET_LETTRE,
     EXPORT_FORMAT_ONE_PDF_ALL,
     EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
-    EXPORT_FORMAT_ONE_PDF_PER_DOC,
     EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
     SELECTED_TYPES_BY_CHOICE,
     GenerateDocumentsCreateForm,
@@ -28,192 +19,10 @@ from gsl_notification.forms import (
     GenerateDocumentsStep2Form,
     GenerateDocumentsStep3Form,
 )
-from gsl_notification.utils import (
-    generate_pdf_for_generated_document,
-    get_programmation_projet_attribute,
-)
-from gsl_programmation.models import ProgrammationProjet
-from gsl_programmation.utils.programmation_projet_filters import (
-    ProgrammationProjetFilters,
-)
-from gsl_projet.constants import (
-    ARRETE,
-    DOTATIONS,
-    LETTRE,
-)
+from gsl_notification.utils import get_programmation_projet_attribute
+from gsl_projet.constants import DOTATIONS
 
 logger = logging.getLogger(__name__)
-
-
-@require_GET
-def download_documents(request, dotation, document_type):
-    if dotation not in DOTATIONS:
-        raise Http404(user_message="Dotation inconnue")
-    selected_types = SELECTED_TYPES_BY_CHOICE.get(document_type)
-    if selected_types is None:
-        raise Http404(user_message="Type de document inconnu")
-
-    types = [t for t in (LETTRE, ARRETE) if t in selected_types]
-    attrs = [get_programmation_projet_attribute(t) for t in types]
-    attr_select_related = [
-        "dotation_projet",
-        "dotation_projet__projet",
-        "dotation_projet__projet__dossier_ds",
-        "dotation_projet__projet__dossier_ds__ds_demandeur",
-        *attrs,
-        *(f"{a}__modele" for a in attrs),
-    ]
-
-    ids_str = request.GET.get("ids", "")
-    ids = [int(i) for i in ids_str.split(",") if i.strip().isdigit()]
-    if ids:
-        programmation_projets = get_list_or_404(
-            ProgrammationProjet.objects.visible_to_user(request.user).select_related(
-                *attr_select_related
-            ),
-            id__in=ids,
-            dotation_projet__dotation=dotation,
-            status=ProgrammationProjet.STATUS_ACCEPTED,
-            dotation_projet__projet__notified_at=None,
-        )
-        if len(programmation_projets) < len(ids):
-            raise Http404(
-                user_message="Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation, ou hors de votre périmètre)."
-            )
-    else:
-        filterset = ProgrammationProjetFilters(data=request.GET, request=request)
-        programmation_projets = filterset.qs.can_generate_documents().select_related(
-            *attr_select_related
-        )
-
-    export_format = request.GET.get("export_format", EXPORT_FORMAT_ONE_PDF_PER_DOC)
-
-    if export_format == EXPORT_FORMAT_ONE_PDF_ALL:
-        return _download_single_merged_pdf(programmation_projets, attrs, document_type)
-    if export_format == EXPORT_FORMAT_ONE_PDF_PER_PROJECT:
-        return _download_one_pdf_per_project(programmation_projets, attrs)
-    if export_format == EXPORT_FORMAT_ONE_PDF_ALL_GROUPED:
-        return _download_grouped_merged_pdf(programmation_projets, attrs)
-
-    return _download_one_pdf_per_doc(programmation_projets, attrs)
-
-
-def _download_one_pdf_per_doc(programmation_projets, attrs):
-    try:
-        documents = [
-            doc
-            for attr in attrs
-            for doc in (getattr(pp, attr) for pp in programmation_projets)
-        ]
-    except (
-        ProgrammationProjet.lettre_notification.RelatedObjectDoesNotExist,
-        ProgrammationProjet.arrete.RelatedObjectDoesNotExist,
-    ):
-        raise Http404(user_message="Un des projets n'a pas le document demandé.")
-
-    if len(documents) == 1:
-        document = documents[0]
-        pdf_content = generate_pdf_for_generated_document(document)
-        logger.info(f"#1 {document} généré")
-        response = HttpResponse(pdf_content, content_type="application/pdf")
-        response["Content-Disposition"] = f'attachment; filename="{document.name}"'
-        return response
-
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-        for i, document in enumerate(documents, start=1):
-            pdf_content = generate_pdf_for_generated_document(document)
-            zip_file.writestr(f"{document.name}", pdf_content)
-            logger.info(f"#{i} {document} généré")
-    zip_buffer.seek(0)
-    date_str = timezone.now().strftime("%d-%m-%Y")
-    zip_filename = f"export turgot {date_str}.zip"
-    response = HttpResponse(zip_buffer, content_type="application/zip")
-    response["Content-Disposition"] = f'attachment; filename="{zip_filename}"'
-    return response
-
-
-def _download_single_merged_pdf(programmation_projets, attrs, document_type):
-    pdf_bytes_list = []
-    for pp in programmation_projets:
-        for attr in attrs:
-            pdf_bytes_list.append(
-                generate_pdf_for_generated_document(getattr(pp, attr))
-            )
-    merged = _merge_pdfs_bytes(pdf_bytes_list)
-    date_str = timezone.now().strftime("%d-%m-%Y")
-    if document_type == ARRETE:
-        doc_type_fr = "arrêté"
-    elif document_type == ARRETE_ET_LETTRE:
-        doc_type_fr = "lettres et arrêtés"
-    else:
-        doc_type_fr = "lettre"
-    filename = f"export {doc_type_fr} turgot {date_str}.pdf"
-    response = HttpResponse(merged, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-    return response
-
-
-def _download_one_pdf_per_project(programmation_projets, attrs):
-    if len(programmation_projets) == 1:
-        pp = programmation_projets[0]
-        pdf_bytes_list = []
-        for attr in attrs:
-            pdf_bytes_list.append(
-                generate_pdf_for_generated_document(getattr(pp, attr))
-            )
-        merged = _merge_pdfs_bytes(pdf_bytes_list)
-        date_str = timezone.now().strftime("%d-%m-%Y")
-        ds_number = pp.dossier.ds_number
-        raison_sociale = slugify(pp.dossier.ds_demandeur.raison_sociale)
-        filename = f"lettre et arrêté - {ds_number} - {raison_sociale} - {date_str}.pdf"
-        response = HttpResponse(merged, content_type="application/pdf")
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
-        return response
-
-    date_str = timezone.now().strftime("%d-%m-%Y")
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-        for pp in programmation_projets:
-            project_pdfs = [
-                generate_pdf_for_generated_document(getattr(pp, attr)) for attr in attrs
-            ]
-            merged = _merge_pdfs_bytes(project_pdfs)
-            ds_number = pp.dossier.ds_number
-            raison_sociale = slugify(pp.dossier.ds_demandeur.raison_sociale)
-            filename = f"lettre et arrêté - {ds_number} - {raison_sociale}.pdf"
-            zip_file.writestr(filename, merged)
-    zip_buffer.seek(0)
-    zip_filename = f"export turgot {date_str}.zip"
-    response = HttpResponse(zip_buffer, content_type="application/zip")
-    response["Content-Disposition"] = f'attachment; filename="{zip_filename}"'
-    return response
-
-
-def _download_grouped_merged_pdf(programmation_projets, attrs):
-    pdf_bytes_list = []
-    for pp in programmation_projets:
-        for attr in attrs:
-            pdf_bytes_list.append(
-                generate_pdf_for_generated_document(getattr(pp, attr))
-            )
-    merged = _merge_pdfs_bytes(pdf_bytes_list)
-    date_str = timezone.now().strftime("%d-%m-%Y")
-    filename = f"export turgot {date_str}.pdf"
-    response = HttpResponse(merged, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-    return response
-
-
-def _merge_pdfs_bytes(pdf_bytes_list: list[bytes]) -> bytes:
-    pdf = Pdf.new()
-    for pdf_bytes in pdf_bytes_list:
-        src = Pdf.open(io.BytesIO(pdf_bytes))
-        pdf.pages.extend(src.pages)
-    output = io.BytesIO()
-    pdf.save(output)
-    output.seek(0)
-    return output.read()
 
 
 @method_decorator(htmx_only, name="dispatch")
@@ -368,22 +177,19 @@ class GenerateDocumentsWizard(SessionWizardView):
         step2_data = form_dict[self.STEP2].cleaned_data
         step3_data = form_dict[self.STEP3].cleaned_data
         export_format = step3_data.get("export_format")
+
         refreshed = form.save(
             modele_arrete=step2_data.get("modele_arrete_id"),
             modele_lettre=step2_data.get("modele_lettre_id"),
             overwrite_strategy=step2_data.get("overwrite_strategy"),
         )
-        download_url = reverse(
-            "gsl_notification:download-documents",
-            kwargs={
-                "dotation": self.kwargs["dotation"],
-                "document_type": form.document_type,
-            },
-            query={
-                "ids": ",".join(str(pp.id) for pp in form.programmation_projets),
-                "export_format": export_format,
-            },
+
+        attrs = [get_programmation_projet_attribute(t) for t in form.selected_types]
+        filename, content_type, body = build_export(
+            refreshed, attrs, export_format, form.document_type
         )
+        download_url = upload_export_and_get_url(filename, content_type, body)
+
         context = {
             "modal_id": self.modal_id,
             "dotation": self.kwargs["dotation"],
