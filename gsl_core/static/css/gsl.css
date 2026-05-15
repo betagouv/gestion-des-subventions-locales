@@ -333,10 +333,6 @@ ul.no-list-style li {
     z-index: 12;
 }
 
-.gsl-projet-table .fr-table__container:has([aria-expanded="true"]) {
-    overflow: visible;
-}
-
 /* Custom properties for sticky offsets – adjusted by :has() rules when columns hide.
    --sticky-checkbox-width reserves room for the sticky checkbox column when present. */
 #projet-table-wrapper {

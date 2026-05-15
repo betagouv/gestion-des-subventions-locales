@@ -1,3 +1,44 @@
+// Close any open status menu when the page (or any scrollable ancestor)
+// scrolls — the menu is position:fixed and would otherwise stay in place
+// while its trigger scrolls away.
+document.addEventListener(
+  'scroll',
+  () => {
+    document
+      .querySelectorAll(
+        '.gsl-projet-table__status-select .fr-collapse--expanded'
+      )
+      .forEach((menu) => dsfr(menu).collapse.conceal())
+  },
+  { capture: true, passive: true }
+)
+
+// Pin status menus to their trigger with `position: fixed` so they escape
+// the table container's overflow:auto.
+new window.MutationObserver((mutations) => {
+  for (const mutation of mutations) {
+    const menu = mutation.target
+    if (!menu.classList.contains('fr-collapse')) continue
+    if (!menu.closest('.gsl-projet-table__status-select')) continue
+    if (menu.classList.contains('fr-collapse--expanded')) {
+      const trigger = document.querySelector(`[aria-controls="${menu.id}"]`)
+      if (!trigger) continue
+      const rect = trigger.getBoundingClientRect()
+      menu.style.position = 'fixed'
+      menu.style.top = `${rect.bottom}px`
+      menu.style.left = `${rect.left}px`
+    } else {
+      menu.style.position = ''
+      menu.style.top = ''
+      menu.style.left = ''
+    }
+  }
+}).observe(document.body, {
+  attributes: true,
+  attributeFilter: ['class'],
+  subtree: true
+})
+
 // Make notice closable again
 document.querySelectorAll('.fr-notice button.fr-btn--close').forEach((elt) => {
   elt.addEventListener('click', (evt) => {
