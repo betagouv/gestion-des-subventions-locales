@@ -211,6 +211,8 @@ pygments==2.20.0
     # via
     #   ipython
     #   ipython-pygments-lexers
+pypdfium2==4.30.0
+    # via gsl (pyproject.toml)
 pyjwt==2.12.1
     # via mozilla-django-oidc
 pyphen==0.17.2
@@ -297,3 +299,5 @@ xlwt==1.3.0
     # via tablib
 zopfli==0.4.1
     # via fonttools
+zxing-cpp==2.3.0
+    # via gsl (pyproject.toml)

@@ -66,6 +66,18 @@ html {
     font-family: "Marianne";
 }
 
+/* Tiny QR in the bottom-left corner of every page (per-page payload injected
+   via `@page :nth(K)` rules built by `generate_pdf_for_generated_document`). */
+@page {
+    margin-bottom: 2cm;
+
+    @bottom-left {
+        width: 0.7cm;
+        height: 0.7cm;
+        margin-top: 0.4cm;
+    }
+}
+
 p {
     margin: 1em 0;
     font-size: 12px;

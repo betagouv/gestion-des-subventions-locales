@@ -33,6 +33,7 @@ from gsl_notification.models import (
     ModeleArrete,
     ModeleLettreNotification,
 )
+from gsl_notification.qr import build_payload, generate_qr_png_data_uri
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
     ANNEXE,
@@ -449,11 +450,14 @@ def generate_pdf_for_generated_document(document: Arrete | LettreNotification) -
     """
     Generate PDF bytes for a GeneratedDocument (Arrete or LettreNotification).
 
-    This function generates the PDF content for a document and returns it as bytes.
-    It can be used to calculate the document size without actually serving it.
+    A per-page QR code is rendered at the bottom-left of every page so a
+    scanned, signed copy can be reattached to the right ProgrammationProjet.
+    Because each page needs a *different* QR (the payload includes the page
+    number), this is a two-pass render: first pass counts pages, second pass
+    emits one ``@page :nth(K)`` rule per page with the matching QR image.
     """
     content = fix_empty_paragraphs_for_weasyprint(document.content)
-    context = {
+    base_context = {
         "doc_title": get_doc_title(document.document_type),
         "logo": get_logo_base64(document.modele.logo.url),
         "alt_logo": document.modele.logo_alt_text,
@@ -461,15 +465,50 @@ def generate_pdf_for_generated_document(document: Arrete | LettreNotification) -
         "content": mark_safe(content),
     }
 
-    html_string = render_to_string("gsl_notification/pdf/document.html", context)
-
-    pdf_content = HTML(
-        string=html_string,
+    # Pass 1: render without QR to learn how many pages the document has.
+    first_pass_html = render_to_string(
+        "gsl_notification/pdf/document.html",
+        {**base_context, "qr_css_rules": ""},
+    )
+    first_pass_pdf = HTML(
+        string=first_pass_html,
         url_fetcher=django_url_fetcher,
         base_url=settings.STATIC_ROOT,
     ).write_pdf()
 
-    return pdf_content
+    qr_css_rules = _build_qr_css_rules(document, _count_pdf_pages(first_pass_pdf))
+
+    # Pass 2: render again with one @page :nth(K) rule per page.
+    final_html = render_to_string(
+        "gsl_notification/pdf/document.html",
+        {**base_context, "qr_css_rules": mark_safe(qr_css_rules)},
+    )
+    return HTML(
+        string=final_html,
+        url_fetcher=django_url_fetcher,
+        base_url=settings.STATIC_ROOT,
+    ).write_pdf()
+
+
+def _count_pdf_pages(pdf_bytes: bytes) -> int:
+    with Pdf.open(io.BytesIO(pdf_bytes)) as pdf:
+        return len(pdf.pages)
+
+
+def _build_qr_css_rules(document: Arrete | LettreNotification, page_count: int) -> str:
+    """Return CSS with one ``@page :nth(K)`` rule per page, each carrying its QR."""
+    ds_number = document.programmation_projet.dossier.ds_number
+    dotation = document.programmation_projet.dotation
+    document_type = document.document_type
+
+    rules = []
+    for page in range(1, page_count + 1):
+        payload = build_payload(ds_number, dotation, document_type, page)
+        data_uri = generate_qr_png_data_uri(payload)
+        rules.append(
+            f"@page :nth({page}) {{ @bottom-left {{ content: url('{data_uri}'); }} }}"
+        )
+    return "\n".join(rules)
 
 
 def merge_documents_into_pdf(
