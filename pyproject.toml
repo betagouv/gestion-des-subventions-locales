@@ -1,7 +1,11 @@
 [project]
 name = "gsl"
 dynamic = ["version"]
-authors = [{ name = "Agnès Haasser", email = "agnes.haasser@beta.gouv.fr" }]
+authors = [
+    { name = "Agnès Haasser", email = "agnes.haasser@beta.gouv.fr" },
+    { name = "Maud Royer", email = "maud.royer@beta.gouv.fr" },
+    { name = "Maxime Allain", email = "maxime.allain@beta.gouv.fr" }
+]
 readme = "README.md"
 license = { file = "LICENSE" }
 dependencies = [

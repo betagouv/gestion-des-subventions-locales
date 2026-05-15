@@ -297,7 +297,7 @@ pygments==2.20.0
     #   pytest
 pyjwt==2.12.1
     # via mozilla-django-oidc
-pypdfium2==5.8.0
+pypdfium2==4.30.0
     # via gsl (pyproject.toml)
 pyphen==0.17.2
     # via weasyprint
@@ -444,7 +444,7 @@ xlwt==1.3.0
     # via tablib
 zopfli==0.4.1
     # via fonttools
-zxing-cpp==3.0.0
+zxing-cpp==2.3.0
     # via gsl (pyproject.toml)
 
 # The following packages are considered to be unsafe in a requirements file:
