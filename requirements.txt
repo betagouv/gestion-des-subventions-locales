@@ -211,10 +211,10 @@ pygments==2.20.0
     # via
     #   ipython
     #   ipython-pygments-lexers
-pypdfium2==4.30.0
-    # via gsl (pyproject.toml)
 pyjwt==2.12.1
     # via mozilla-django-oidc
+pypdfium2==4.30.0
+    # via gsl (pyproject.toml)
 pyphen==0.17.2
     # via weasyprint
 python-crontab==3.3.0
