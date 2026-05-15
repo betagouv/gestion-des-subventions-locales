@@ -58,7 +58,7 @@ click-repl==0.3.0
     # via celery
 cron-descriptor==1.4.5
     # via django-celery-beat
-cryptography==46.0.5
+cryptography==46.0.7
     # via mozilla-django-oidc
 cssselect2==0.9.0
     # via weasyprint
@@ -72,7 +72,7 @@ diff-match-patch==20241021
     # via django-import-export
 dj-database-url==3.1.2
     # via gsl (pyproject.toml)
-django==6.0.3
+django==6.0.5
     # via
     #   dj-database-url
     #   django-axes
@@ -161,7 +161,7 @@ jmespath==1.1.0
     #   botocore
 kombu==5.6.2
     # via celery
-lxml==6.0.2
+lxml==6.1.0
     # via pikepdf
 matplotlib-inline==0.2.1
     # via ipython
@@ -186,7 +186,7 @@ pikepdf==10.5.0
     # via
     #   gsl (pyproject.toml)
     #   img2pdf
-pillow==12.1.1
+pillow==12.2.0
     # via
     #   img2pdf
     #   pikepdf
@@ -207,7 +207,7 @@ pycparser==3.0
     # via cffi
 pydyf==0.12.1
     # via weasyprint
-pygments==2.19.2
+pygments==2.20.0
     # via
     #   ipython
     #   ipython-pygments-lexers
@@ -225,7 +225,7 @@ python-dotenv==1.2.2
     # via gsl (pyproject.toml)
 redis==7.3.0
     # via gsl (pyproject.toml)
-requests==2.32.5
+requests==2.34.0
     # via
     #   django-dsfr
     #   gsl (pyproject.toml)
@@ -268,7 +268,7 @@ tzdata==2025.3
     #   kombu
 tzlocal==5.3.1
     # via celery
-urllib3==2.6.3
+urllib3==2.7.0
     # via
     #   botocore
     #   requests
