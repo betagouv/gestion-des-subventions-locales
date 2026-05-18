@@ -70,6 +70,16 @@ class Demarche(BaseModel):
     sync_cursor = models.TextField(
         "Curseur de synchronisation DS", blank=True, default=""
     )
+    pending_deleted_cursor = models.TextField(
+        "Curseur de synchronisation des dossiers en attente de suppression",
+        blank=True,
+        default="",
+    )
+    deleted_cursor = models.TextField(
+        "Curseur de synchronisation des dossiers supprimés",
+        blank=True,
+        default="",
+    )
 
     class Meta:
         verbose_name = "Démarche"

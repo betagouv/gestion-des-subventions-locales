@@ -247,6 +247,7 @@ fragment GroupeInstructeurFragment on GroupeInstructeur {
 fragment DossierFragment on Dossier {
   id
   number
+  archived
   state
   dateDerniereModification
   dateDepot
