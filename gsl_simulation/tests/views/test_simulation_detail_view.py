@@ -676,3 +676,32 @@ class TestFilterPersistence:
         response = other_client.get(url)
         assert response.status_code == 302
         assert "status=draft" in response.url
+
+
+def test_simulation_detail_view_excludes_projets_with_inactive_dossier(
+    user_with_departement_perimetre, client_logged_in
+):
+    simulation = SimulationFactory(
+        enveloppe=DetrEnveloppeFactory(
+            perimetre=user_with_departement_perimetre.perimetre
+        )
+    )
+    active_simu_projet = SimulationProjetFactory(
+        simulation=simulation,
+        dotation_projet__projet__dossier_ds__perimetre=user_with_departement_perimetre.perimetre,
+        dotation_projet__dotation=DOTATION_DETR,
+    )
+    SimulationProjetFactory(
+        simulation=simulation,
+        dotation_projet__projet__dossier_ds__perimetre=user_with_departement_perimetre.perimetre,
+        dotation_projet__projet__dossier_ds__is_active=False,
+        dotation_projet__dotation=DOTATION_DETR,
+    )
+
+    url = reverse("gsl_simulation:simulation-detail", kwargs={"slug": simulation.slug})
+    response = client_logged_in.get(url)
+
+    assert response.status_code == 200
+    object_list = response.context["object_list"]
+    assert object_list.count() == 1
+    assert active_simu_projet.projet in object_list

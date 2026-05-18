@@ -68,7 +68,7 @@ def download_documents(request, dotation, document_type):
     ids = [int(i) for i in ids_str.split(",") if i.strip().isdigit()]
     if ids:
         programmation_projets = get_list_or_404(
-            ProgrammationProjet.objects.visible_to_user(request.user).select_related(
+            ProgrammationProjet.active.visible_to_user(request.user).select_related(
                 *attr_select_related
             ),
             id__in=ids,

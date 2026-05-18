@@ -335,7 +335,7 @@ class SimulationProjetFilters(FilterSet):
         from gsl_projet.models import DotationProjet
 
         slug_filter = {"simulationprojet__simulation__slug": self.slug}
-        simu_dp_qs = DotationProjet.objects.filter(
+        simu_dp_qs = DotationProjet.active.filter(
             projet=models.OuterRef("pk"), **slug_filter
         )
 

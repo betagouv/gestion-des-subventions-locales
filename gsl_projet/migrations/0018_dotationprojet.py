@@ -7,7 +7,8 @@ from ..tasks import task_create_or_update_dotation_projets_from_all_projets
 
 
 def create_dotation_projet(apps, schema_editor):
-    task_create_or_update_dotation_projets_from_all_projets()
+    # task_create_or_update_dotation_projets_from_all_projets()
+    pass
 
 
 def nothing(apps, schema_editor):

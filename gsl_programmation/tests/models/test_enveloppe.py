@@ -302,3 +302,100 @@ class TestDelegatedEnveloppeWithTreeLevels:
         assert self.dsil_enveloppe.montant_asked == 900_000
         assert self.dsil_enveloppe_dep.montant_asked == 900_000
         assert self.dsil_enveloppe_arr.montant_asked == 900_000
+
+
+@pytest.mark.django_db
+class TestEnveloppePropertiesExcludeInactiveProjets:
+    """All Enveloppe computed properties must ignore inactive (archived/deleted) projects."""
+
+    DEMANDE_MONTANT = 20_000
+
+    def setup_method(self):
+        self.enveloppe = DetrEnveloppeFactory(annee=2021, montant=1_000_000)
+        perimetre = self.enveloppe.perimetre
+        depot = datetime(2021, 6, 1, tzinfo=UTC)
+
+        # 2 active accepted projets
+        for montant in (100_000, 150_000):
+            dp = DotationProjetFactory(
+                dotation=DOTATION_DETR,
+                projet__dossier_ds__perimetre=perimetre,
+                projet__dossier_ds__demande_montant=self.DEMANDE_MONTANT,
+                projet__dossier_ds__ds_date_depot=depot,
+            )
+            ProgrammationProjetFactory(
+                enveloppe=self.enveloppe,
+                status=ProgrammationProjet.STATUS_ACCEPTED,
+                montant=montant,
+                dotation_projet=dp,
+            )
+
+        # 1 active refused projet
+        dp = DotationProjetFactory(
+            dotation=DOTATION_DETR,
+            projet__dossier_ds__perimetre=perimetre,
+            projet__dossier_ds__demande_montant=self.DEMANDE_MONTANT,
+            projet__dossier_ds__ds_date_depot=depot,
+        )
+        ProgrammationProjetFactory(
+            enveloppe=self.enveloppe,
+            status=ProgrammationProjet.STATUS_REFUSED,
+            montant=0,
+            dotation_projet=dp,
+        )
+
+        # 1 active projet without programmation (eligible, not yet programmed)
+        DotationProjetFactory(
+            dotation=DOTATION_DETR,
+            projet__dossier_ds__perimetre=perimetre,
+            projet__dossier_ds__demande_montant=self.DEMANDE_MONTANT,
+            projet__dossier_ds__ds_date_depot=depot,
+        )
+
+        # 1 INACTIVE accepted projet — must be excluded everywhere
+        dp_inactive = DotationProjetFactory(
+            dotation=DOTATION_DETR,
+            projet__dossier_ds__is_active=False,
+            projet__dossier_ds__perimetre=perimetre,
+            projet__dossier_ds__demande_montant=999_000,
+            projet__dossier_ds__ds_date_depot=depot,
+        )
+        ProgrammationProjetFactory(
+            enveloppe=self.enveloppe,
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            montant=999_000,
+            dotation_projet=dp_inactive,
+        )
+
+        # 1 INACTIVE projet without programmation — must be excluded from included
+        DotationProjetFactory(
+            dotation=DOTATION_DETR,
+            projet__dossier_ds__is_active=False,
+            projet__dossier_ds__perimetre=perimetre,
+            projet__dossier_ds__demande_montant=888_000,
+            projet__dossier_ds__ds_date_depot=depot,
+        )
+
+    def test_enveloppe_projets_included(self):
+        assert self.enveloppe.enveloppe_projets_included.count() == 4
+
+    def test_montant_asked(self):
+        assert self.enveloppe.montant_asked == self.DEMANDE_MONTANT * 4
+
+    def test_enveloppe_projets_processed(self):
+        assert self.enveloppe.enveloppe_projets_processed.count() == 3
+
+    def test_accepted_montant(self):
+        assert self.enveloppe.accepted_montant == 100_000 + 150_000
+
+    def test_validated_projets_count(self):
+        assert self.enveloppe.validated_projets_count == 2
+
+    def test_refused_projets_count(self):
+        assert self.enveloppe.refused_projets_count == 1
+
+    def test_projets_count(self):
+        assert self.enveloppe.projets_count == 4
+
+    def test_demandeurs_count(self):
+        assert self.enveloppe.demandeurs_count == 4

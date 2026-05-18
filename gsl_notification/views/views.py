@@ -59,7 +59,7 @@ class NotificationDocumentsView(DetailView):
     context_object_name = "projet"
 
     def get_queryset(self):
-        return Projet.objects.for_user(
+        return Projet.active.for_user(
             self.request.user
         ).with_at_least_one_accepted_dotation()
 
@@ -99,7 +99,7 @@ class NotificationMessageView(UpdateView):
     form_class = NotificationMessageForm
 
     def get_queryset(self):
-        return Projet.objects.for_user(self.request.user).can_send_notification()
+        return Projet.active.for_user(self.request.user).can_send_notification()
 
     def get_context_data(self, **kwargs):
         title = self.object.dossier_ds.projet_intitule
@@ -169,7 +169,7 @@ class CheckDsDossierUpToDateView(OpenHtmxModalMixin, DetailView):
     modal_id = "dossier-not-up-to-date-modal"
 
     def get_queryset(self):
-        return Projet.objects.for_user(self.request.user)
+        return Projet.active.for_user(self.request.user)
 
     def render_to_response(self, context, *args, **kwargs):
         dossier = self.object.dossier_ds
@@ -205,7 +205,7 @@ class ChooseDocumentTypeForGenerationView(UpdateView):
         return context
 
     def get_queryset(self):
-        return Projet.objects.for_user(
+        return Projet.active.for_user(
             self.request.user
         ).with_at_least_one_accepted_dotation()
 
@@ -225,7 +225,7 @@ class ChooseDocumentTypeForGenerationView(UpdateView):
 @require_http_methods(["GET"])
 def select_modele(request, projet_id, dotation, document_type):
     programmation_projet = get_object_or_404(
-        ProgrammationProjet.objects.visible_to_user(request.user).filter(
+        ProgrammationProjet.active.visible_to_user(request.user).filter(
             status=ProgrammationProjet.STATUS_ACCEPTED
         ),
         dotation_projet__projet_id=projet_id,
@@ -286,7 +286,7 @@ def select_modele(request, projet_id, dotation, document_type):
 @require_http_methods(["GET", "POST"])
 def change_document_view(request, projet_id, dotation, document_type):
     programmation_projet = get_object_or_404(
-        ProgrammationProjet.objects.visible_to_user(request.user).filter(
+        ProgrammationProjet.active.visible_to_user(request.user).filter(
             status=ProgrammationProjet.STATUS_ACCEPTED
         ),
         dotation_projet__projet_id=projet_id,
@@ -434,7 +434,7 @@ class DeleteDocumentView(DeleteView):
                     user_message="Le type de document sélectionné n'existe pas."
                 )
         return document_class.objects.filter(
-            programmation_projet__dotation_projet__projet__in=Projet.objects.for_user(
+            programmation_projet__dotation_projet__projet__in=Projet.active.for_user(
                 self.request.user
             )
         )
@@ -469,7 +469,7 @@ class PrintDocumentView(WeasyTemplateResponseMixin, DetailView):
             raise Http404(user_message="Le type de document sélectionné n'existe pas.")
 
         return document_class.objects.filter(
-            programmation_projet__dotation_projet__projet__in=Projet.objects.for_user(
+            programmation_projet__dotation_projet__projet__in=Projet.active.for_user(
                 self.request.user
             )
         )
