@@ -1,5 +1,5 @@
 import logging
-from typing import Iterable
+from typing import Iterable, NamedTuple
 
 from django.contrib import messages
 from django.utils import timezone
@@ -15,12 +15,20 @@ from gsl_projet.services.projet_services import ProjetService
 logger = logging.getLogger(__name__)
 
 
+class _PageState(NamedTuple):
+    cursor: str | None
+    has_more: bool
+    has_error: bool
+
+
 def save_demarche_dossiers_from_ds(demarche_number):
     """
-    Récupère les dossiers de la démarche depuis Démarches Numériques et les enregistre.
+    Récupère les dossiers, pendingDeletedDossiers et deletedDossiers de la démarche
+    depuis Démarches Numériques et les enregistre / désactive.
 
-    Reprend depuis demarche.sync_cursor (vide pour un premier appel) avec
-    demarche.updated_since comme filtre de date, et met à jour le cursor après chaque page.
+    Les trois ensembles sont paginés indépendamment. Si tous ont une page suivante,
+    un seul appel API les récupère simultanément ; sinon seuls les ensembles non
+    épuisés sont inclus dans l'appel suivant.
 
     :param demarche_number: numéro de la démarche
     """
@@ -29,62 +37,83 @@ def save_demarche_dossiers_from_ds(demarche_number):
 
     if demarche.updated_since is None:
         api_updated_since = demarche.created_at
-        after_cursor = None
+        dossiers_cursor = pending_deleted_cursor = deleted_cursor = None
     else:
-        after_cursor = demarche.sync_cursor or None
+        dossiers_cursor = demarche.sync_cursor or None
+        pending_deleted_cursor = demarche.pending_deleted_cursor or None
+        deleted_cursor = demarche.deleted_cursor or None
         api_updated_since = demarche.updated_since
 
     active_departement_insee_codes = _get_active_departement_insee_codes()
+    groupe_index = _get_or_refresh_groupe_index(demarche, demarche_number)
+
     dossiers_count = 0
+    has_more_dossiers = has_more_pending = has_more_deleted = True
 
-    groupe_index = _build_groupe_index_from_demarche(demarche)
-    if not groupe_index:
-        from gsl_demarches_simplifiees.importer.demarche import save_demarche_from_ds
+    while has_more_dossiers or has_more_pending or has_more_deleted:
+        demarche_data = client.fetch_demarche_page(
+            demarche_number,
+            updated_since=api_updated_since,
+            dossiers_after=dossiers_cursor,
+            pending_deleted_after=pending_deleted_cursor,
+            deleted_after=deleted_cursor,
+            include_dossiers=has_more_dossiers,
+            include_pending_deleted=has_more_pending,
+            include_deleted=has_more_deleted,
+        )
 
-        save_demarche_from_ds(demarche_number)
-        demarche.refresh_from_db()
-        groupe_index = _build_groupe_index_from_demarche(demarche)
+        dossiers_result = pending_result = deleted_result = None
 
-    for page_dossiers, end_cursor in client.iter_demarche_dossiers_pages(
-        demarche_number, updated_since=api_updated_since, after_cursor=after_cursor
-    ):
-        has_error = False
-        for dossier_data in page_dossiers:
-            dossiers_count += 1
+        if has_more_dossiers:
+            dossiers_result, count = _process_dossiers_page(
+                demarche_data["dossiers"],
+                demarche,
+                active_departement_insee_codes,
+                groupe_index,
+            )
+            dossiers_count += count
 
-            if dossier_data is None:
-                logger.info(
-                    "Dossier data is empty",
-                    extra={
-                        "demarche_ds_number": demarche_number,
-                        "i": dossiers_count,
-                    },
-                )
-                continue
+        if has_more_pending:
+            pending_result = _process_deactivation_page(
+                demarche_data["pendingDeletedDossiers"],
+                Dossier.RAISON_DESACTIVATION_CORBEILLE,
+                demarche.ds_number,
+                "Error unhandled while deactivating pending deleted dossier",
+            )
 
-            try:
-                _create_or_update_dossier_from_ds_data(
-                    dossier_data,
-                    active_departement_insee_codes,
-                    demarche,
-                    groupe_index=groupe_index,
-                )
-            except Exception as e:
-                has_error = True
-                extra = {
-                    "demarche_ds_number": demarche.ds_number,
-                    "dossier_ds_number": dossier_data["number"],
-                    "error": str(e),
-                    "i": dossiers_count,
-                }
-                logger.exception(
-                    "Error unhandled while saving dossier from DN", extra=extra
-                )
+        if has_more_deleted:
+            deleted_result = _process_deactivation_page(
+                demarche_data["deletedDossiers"],
+                Dossier.RAISON_DESACTIVATION_SUPPRIME,
+                demarche.ds_number,
+                "Error unhandled while deactivating deleted dossier",
+            )
 
-        if end_cursor is not None and not has_error:
-            demarche.sync_cursor = end_cursor
+        if dossiers_result and not dossiers_result.has_error and dossiers_result.cursor:
+            demarche.sync_cursor = dossiers_result.cursor
             demarche.updated_since = api_updated_since
-        demarche.save(update_fields=["sync_cursor", "updated_since"])
+        if pending_result and not pending_result.has_error and pending_result.cursor:
+            demarche.pending_deleted_cursor = pending_result.cursor
+        if deleted_result and not deleted_result.has_error and deleted_result.cursor:
+            demarche.deleted_cursor = deleted_result.cursor
+        demarche.save(
+            update_fields=[
+                "sync_cursor",
+                "updated_since",
+                "pending_deleted_cursor",
+                "deleted_cursor",
+            ]
+        )
+
+        has_more_dossiers, dossiers_cursor = _advance_stream(
+            dossiers_result, dossiers_cursor
+        )
+        has_more_pending, pending_deleted_cursor = _advance_stream(
+            pending_result, pending_deleted_cursor
+        )
+        has_more_deleted, deleted_cursor = _advance_stream(
+            deleted_result, deleted_cursor
+        )
 
     logger.info(
         "Demarche dossiers has been updated from DN",
@@ -93,6 +122,93 @@ def save_demarche_dossiers_from_ds(demarche_number):
             "dossiers_count": dossiers_count,
         },
     )
+
+
+def _get_or_refresh_groupe_index(demarche: Demarche, demarche_number: int) -> dict:
+    groupe_index = _build_groupe_index_from_demarche(demarche)
+    if not groupe_index:
+        from gsl_demarches_simplifiees.importer.demarche import save_demarche_from_ds
+
+        save_demarche_from_ds(demarche_number)
+        demarche.refresh_from_db()
+        groupe_index = _build_groupe_index_from_demarche(demarche)
+    return groupe_index
+
+
+def _process_dossiers_page(
+    page: dict,
+    demarche: Demarche,
+    active_departement_insee_codes: Iterable[str],
+    groupe_index: dict,
+) -> tuple["_PageState", int]:
+    has_error = False
+    count = 0
+    for dossier_data in page["nodes"]:
+        count += 1
+        if dossier_data is None:
+            logger.info(
+                "Dossier data is empty",
+                extra={"demarche_ds_number": demarche.ds_number, "i": count},
+            )
+            continue
+        try:
+            _create_or_update_dossier_from_ds_data(
+                dossier_data,
+                active_departement_insee_codes,
+                demarche,
+                groupe_index=groupe_index,
+            )
+        except Exception as e:
+            has_error = True
+            logger.exception(
+                "Error unhandled while saving dossier from DN",
+                extra={
+                    "demarche_ds_number": demarche.ds_number,
+                    "dossier_ds_number": dossier_data["number"],
+                    "error": str(e),
+                    "i": count,
+                },
+            )
+    return (
+        _PageState(
+            cursor=page["pageInfo"]["endCursor"],
+            has_more=page["pageInfo"]["hasNextPage"],
+            has_error=has_error,
+        ),
+        count,
+    )
+
+
+def _process_deactivation_page(
+    page: dict, raison: str, demarche_ds_number: int, log_message: str
+) -> "_PageState":
+    has_error = False
+    for deleted_data in page["nodes"]:
+        try:
+            _deactivate_deleted_dossier(deleted_data, raison)
+        except Exception as e:
+            has_error = True
+            logger.exception(
+                log_message,
+                extra={
+                    "demarche_ds_number": demarche_ds_number,
+                    "dossier_ds_number": deleted_data.get("number"),
+                    "error": str(e),
+                },
+            )
+    return _PageState(
+        cursor=page["pageInfo"]["endCursor"],
+        has_more=page["pageInfo"]["hasNextPage"],
+        has_error=has_error,
+    )
+
+
+def _advance_stream(
+    result: "_PageState | None", current_cursor: str | None
+) -> tuple[bool, str | None]:
+    if result is None or result.has_error:
+        return False, current_cursor
+    return result.has_more, result.cursor
 
 
 def save_one_dossier_from_ds(
@@ -300,6 +416,40 @@ def _build_groupe_index_from_demarche(demarche: Demarche) -> dict[str, list[dict
 ### Private methods
 
 
+def _deactivate_deleted_dossier(deleted_dossier_data: dict, raison: str):
+    ds_number = deleted_dossier_data["number"]
+    try:
+        dossier = Dossier.objects.get(ds_number=ds_number)
+    except Dossier.DoesNotExist:
+        logger.info(
+            "Deleted dossier not found in Turgot, skipping",
+            extra={"dossier_ds_number": ds_number},
+        )
+        return
+
+    if dossier.is_active or dossier.raison_desactivation != raison:
+        dossier.is_active = False
+        dossier.raison_desactivation = raison
+        dossier.save(update_fields=["is_active", "raison_desactivation"])
+
+
+def _deactivate_archived_dossier(ds_number: int):
+    try:
+        dossier = Dossier.objects.get(ds_number=ds_number)
+    except Dossier.DoesNotExist:
+        logger.info(
+            "Archived dossier not found in Turgot, skipping",
+            extra={"dossier_ds_number": ds_number},
+        )
+        return
+
+    raison = Dossier.RAISON_DESACTIVATION_ARCHIVE
+    if dossier.is_active or dossier.raison_desactivation != raison:
+        dossier.is_active = False
+        dossier.raison_desactivation = raison
+        dossier.save(update_fields=["is_active", "raison_desactivation"])
+
+
 def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
     dossier: Dossier,
     dossier_data: dict,
@@ -380,6 +530,10 @@ def _create_or_update_dossier_from_ds_data(
                 "dossier_ds_number": ds_dossier_number,
             },
         )
+        return
+
+    if dossier_data.get("archived"):
+        _deactivate_archived_dossier(ds_dossier_number)
         return
 
     try:

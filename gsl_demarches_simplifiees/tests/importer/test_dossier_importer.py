@@ -23,6 +23,24 @@ from gsl_demarches_simplifiees.tests.factories import (
 )
 
 
+def _make_demarche_page(
+    dossiers=None, pending_deleted=None, deleted=None, end_cursor=None
+):
+    """Helper to build a fetch_demarche_page return value for tests."""
+
+    def _page(nodes, cursor=None):
+        return {
+            "pageInfo": {"hasNextPage": False, "endCursor": cursor},
+            "nodes": nodes or [],
+        }
+
+    return {
+        "dossiers": _page(dossiers, end_cursor),
+        "pendingDeletedDossiers": _page(pending_deleted),
+        "deletedDossiers": _page(deleted),
+    }
+
+
 @pytest.mark.django_db
 def test_save_demarche_dossiers_from_ds_calls_save_dossier_data_and_refresh_dossier_and_projet_and_co():
     demarche_number = 123
@@ -54,8 +72,8 @@ def test_save_demarche_dossiers_from_ds_calls_save_dossier_data_and_refresh_doss
     ]
 
     with patch(
-        "gsl_demarches_simplifiees.ds_client.DsClient.iter_demarche_dossiers_pages",
-        return_value=[(ds_dossiers, None)],
+        "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
+        return_value=_make_demarche_page(dossiers=ds_dossiers),
     ):
         with patch(
             "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
@@ -106,8 +124,8 @@ def test_save_demarche_dossiers_from_ds_update_raw_ds_data_dossiers():
     ]
 
     with patch(
-        "gsl_demarches_simplifiees.ds_client.DsClient.iter_demarche_dossiers_pages",
-        return_value=[(ds_dossiers, None)],
+        "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
+        return_value=_make_demarche_page(dossiers=ds_dossiers),
     ):
         with patch(
             "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
@@ -158,8 +176,8 @@ def test_save_demarche_dossiers_from_ds_with_one_empty_data(caplog):
     ]
 
     with patch(
-        "gsl_demarches_simplifiees.ds_client.DsClient.iter_demarche_dossiers_pages",
-        return_value=[(ds_dossiers, None)],
+        "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
+        return_value=_make_demarche_page(dossiers=ds_dossiers),
     ):
         with patch(
             "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
@@ -174,16 +192,16 @@ def test_save_demarche_dossiers_from_ds_with_one_empty_data(caplog):
 @pytest.mark.django_db
 def test_save_demarche_dossiers_from_ds_update_sync_cursor():
     demarche_number = 123
+    expected_cursor = "abc123cursor=="
     demarche = DemarcheFactory(
         ds_number=demarche_number,
         sync_cursor="",
         raw_ds_data={"groupeInstructeurs": [{"id": "GROUPE-1", "instructeurs": []}]},
     )
-    expected_cursor = "abc123cursor=="
 
     with patch(
-        "gsl_demarches_simplifiees.ds_client.DsClient.iter_demarche_dossiers_pages",
-        return_value=[([], expected_cursor)],
+        "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
+        return_value=_make_demarche_page(end_cursor=expected_cursor),
     ):
         save_demarche_dossiers_from_ds(demarche_number)
 
@@ -572,6 +590,79 @@ def test_is_dossier_in_active_departement_no_stringValue_key():
     is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
     assert is_active is False
     assert label == ""
+
+
+@pytest.mark.django_db
+def test_archived_dossier_in_ds_stream_deactivates_existing_dossier():
+    demarche_number = 123
+    DemarcheFactory(
+        ds_number=demarche_number,
+        raw_ds_data={"groupeInstructeurs": [{"id": "GROUPE-1", "instructeurs": []}]},
+    )
+    dossier = DossierFactory(ds_id="DOSS-1", ds_number=20240001, is_active=True)
+    ds_dossiers = [
+        {
+            "id": "DOSS-1",
+            "number": 20240001,
+            "archived": True,
+            "champs": [
+                {
+                    "label": "Département ou collectivité du demandeur",
+                    "stringValue": "75 - Paris",
+                }
+            ],
+        }
+    ]
+
+    with patch(
+        "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
+        return_value=_make_demarche_page(dossiers=ds_dossiers),
+    ):
+        with patch(
+            "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
+            return_value=["75"],
+        ):
+            save_demarche_dossiers_from_ds(demarche_number)
+
+    dossier.refresh_from_db()
+    assert dossier.is_active is False
+    assert dossier.raison_desactivation == Dossier.RAISON_DESACTIVATION_ARCHIVE
+
+
+@pytest.mark.django_db
+def test_archived_dossier_in_ds_stream_skips_unknown_dossier(caplog):
+    caplog.set_level(logging.INFO)
+    demarche_number = 123
+    DemarcheFactory(
+        ds_number=demarche_number,
+        raw_ds_data={"groupeInstructeurs": [{"id": "GROUPE-1", "instructeurs": []}]},
+    )
+    ds_dossiers = [
+        {
+            "id": "DOSS-UNKNOWN",
+            "number": 99999999,
+            "archived": True,
+            "champs": [
+                {
+                    "label": "Département ou collectivité du demandeur",
+                    "stringValue": "75 - Paris",
+                }
+            ],
+        }
+    ]
+
+    with patch(
+        "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
+        return_value=_make_demarche_page(dossiers=ds_dossiers),
+    ):
+        with patch(
+            "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
+            return_value=["75"],
+        ):
+            save_demarche_dossiers_from_ds(demarche_number)
+
+    assert Dossier.objects.count() == 0
+    assert "Archived dossier not found in Turgot, skipping" in caplog.text
 
 
 # tests import_one_dossier_from_ds

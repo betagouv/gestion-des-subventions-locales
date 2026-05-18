@@ -72,6 +72,8 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
                     "active_revision_id",
                     "updated_since",
                     "sync_cursor",
+                    "pending_deleted_cursor",
+                    "deleted_cursor",
                 )
             },
         ),
@@ -247,6 +249,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = (
         "ds_number",
         "ds_state",
+        "is_active",
         "projet_intitule",
         "departement",
         "admin_projet_link",
@@ -261,6 +264,8 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
                     "ds_id",
                     "ds_number",
                     "ds_state",
+                    "is_active",
+                    "raison_desactivation",
                     "ds_demandeur",
                     "admin_projet_link",
                     "app_projet_link",
@@ -312,7 +317,12 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "ds_demandeur",
     )
     search_fields = ("ds_number", "projet_intitule")
-    list_filter = ("ds_state", ArrondissementFilter, "perimetre__departement")
+    list_filter = (
+        "ds_state",
+        "is_active",
+        ArrondissementFilter,
+        "perimetre__departement",
+    )
     readonly_fields = [field.name for field in Dossier._meta.fields] + [
         "admin_projet_link",
         "app_projet_link",

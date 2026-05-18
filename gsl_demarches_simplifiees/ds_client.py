@@ -146,6 +146,43 @@ class DsClient(DsClientBase):
                 break
             variables["after"] = end_cursor
 
+    def fetch_demarche_page(
+        self,
+        demarche_number: int,
+        updated_since: datetime | None = None,
+        dossiers_after: str | None = None,
+        pending_deleted_after: str | None = None,
+        deleted_after: str | None = None,
+        include_dossiers: bool = True,
+        include_pending_deleted: bool = True,
+        include_deleted: bool = True,
+        page_size: int = 50,
+    ) -> dict:
+        """
+        Fetch one page of dossiers, pendingDeletedDossiers, and/or deletedDossiers.
+        Only the sets for which the corresponding include_* flag is True are fetched.
+
+        :return: the 'demarche' dict from the GraphQL response
+        """
+        updated_since_iso = updated_since.isoformat() if updated_since else None
+        variables = {
+            "demarcheNumber": demarche_number,
+            "includeDossiers": include_dossiers,
+            "includePendingDeletedDossiers": include_pending_deleted,
+            "includeDeletedDossiers": include_deleted,
+            "updatedSince": updated_since_iso,
+            "after": dossiers_after,
+            "first": page_size,
+            "pendingDeletedAfter": pending_deleted_after,
+            "pendingDeletedFirst": page_size,
+            "pendingDeletedSince": updated_since_iso,
+            "deletedAfter": deleted_after,
+            "deletedFirst": page_size,
+            "deletedSince": updated_since_iso,
+        }
+        result = self.launch_graphql_query("getDemarche", variables=variables)
+        return result["data"]["demarche"]
+
     def get_one_dossier(self, dossier_number) -> dict:
         variables = {
             "dossierNumber": dossier_number,
