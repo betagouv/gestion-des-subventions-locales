@@ -61,6 +61,8 @@ class DossierConverter:
         self.dossier = dossier
 
     def fill_unmapped_fields(self):
+        self._handle_archived_status()
+
         for field in self.UNMAPPED_FIELDS:
             django_field = f"ds_{field}"
             ds_key = camelcase(field)
@@ -283,3 +285,12 @@ class DossierConverter:
 
     def associate_perimetre(self):
         self.dossier.perimetre = get_perimetre_from_dossier(self.dossier)
+
+    def _handle_archived_status(self):
+        is_archived = self.ds_dossier_data["archived"]
+        if is_archived:
+            self.dossier.is_active = False
+            self.dossier.raison_desactivation = Dossier.RAISON_DESACTIVATION_ARCHIVE
+        else:
+            self.dossier.is_active = True
+            self.dossier.raison_desactivation = ""

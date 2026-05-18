@@ -12,9 +12,14 @@ from import_export.admin import ImportExportMixin
 from gsl.utils.csp import csp_update
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_core.models import Arrondissement
+from gsl_demarches_simplifiees.exceptions import DsServiceException
 
 from .forms import ImportDossierFromDsForm, RefreshDossiersDepotForm
-from .importer.dossier import import_one_dossier_from_ds
+from .importer.dossier import (
+    import_one_dossier_from_ds,
+    refresh_dossier_from_saved_data,
+    save_one_dossier_from_ds,
+)
 from .models import (
     CategorieDetr,
     CategorieDsil,
@@ -320,6 +325,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_filter = (
         "ds_state",
         "is_active",
+        "raison_desactivation",
         ArrondissementFilter,
         "perimetre__departement",
     )
@@ -373,13 +379,30 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     @admin.action(description="🛢️ Rafraîchir depuis la base de données")
     def refresh_from_db(self, request, queryset):
-        for dossier in queryset:
-            task_refresh_dossier_from_saved_data.delay(dossier.ds_number)
+        if queryset.count() == 1:
+            refresh_dossier_from_saved_data(queryset.get())
+        else:
+            for dossier in queryset:
+                task_refresh_dossier_from_saved_data.delay(dossier.ds_number)
 
     @admin.action(description="☁️ Rafraîchir depuis DN")
     def refresh_from_ds(self, request, queryset):
-        for dossier in queryset:
-            task_save_one_dossier_from_ds.delay(dossier.ds_number)
+        if queryset.count() == 1:
+            try:
+                level, message = save_one_dossier_from_ds(
+                    queryset.get(), refresh_only_if_dossier_has_been_updated=False
+                )
+                self.message_user(request, message, level)
+            except DsServiceException:
+                self.message_user(
+                    request,
+                    "Une erreur s’est produite lors de l’appel à Démarche Numérique.",
+                    messages.ERROR,
+                )
+
+        else:
+            for dossier in queryset:
+                task_save_one_dossier_from_ds.delay(dossier.ds_number)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

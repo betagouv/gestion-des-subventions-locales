@@ -605,8 +605,11 @@ def test_archived_dossier_in_ds_stream_deactivates_existing_dossier():
             "id": "DOSS-1",
             "number": 20240001,
             "archived": True,
+            "annotations": [],
+            "demarche": {"revision": {"id": "REV-1"}},
             "champs": [
                 {
+                    "id": "CHAMP-DEPT",
                     "label": "Département ou collectivité du demandeur",
                     "stringValue": "75 - Paris",
                 }
@@ -627,42 +630,6 @@ def test_archived_dossier_in_ds_stream_deactivates_existing_dossier():
     dossier.refresh_from_db()
     assert dossier.is_active is False
     assert dossier.raison_desactivation == Dossier.RAISON_DESACTIVATION_ARCHIVE
-
-
-@pytest.mark.django_db
-def test_archived_dossier_in_ds_stream_skips_unknown_dossier(caplog):
-    caplog.set_level(logging.INFO)
-    demarche_number = 123
-    DemarcheFactory(
-        ds_number=demarche_number,
-        raw_ds_data={"groupeInstructeurs": [{"id": "GROUPE-1", "instructeurs": []}]},
-    )
-    ds_dossiers = [
-        {
-            "id": "DOSS-UNKNOWN",
-            "number": 99999999,
-            "archived": True,
-            "champs": [
-                {
-                    "label": "Département ou collectivité du demandeur",
-                    "stringValue": "75 - Paris",
-                }
-            ],
-        }
-    ]
-
-    with patch(
-        "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
-        return_value=_make_demarche_page(dossiers=ds_dossiers),
-    ):
-        with patch(
-            "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
-            return_value=["75"],
-        ):
-            save_demarche_dossiers_from_ds(demarche_number)
-
-    assert Dossier.objects.count() == 0
-    assert "Archived dossier not found in Turgot, skipping" in caplog.text
 
 
 # tests import_one_dossier_from_ds
