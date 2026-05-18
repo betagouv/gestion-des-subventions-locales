@@ -523,7 +523,15 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
 
         return list(
             ProgrammationProjet.objects.select_related(
-                "arrete", "lettre_notification", "lettre_et_arrete_signes"
+                "arrete",
+                "arrete__modele",
+                "lettre_notification",
+                "lettre_notification__modele",
+                "lettre_et_arrete_signes",
+                "dotation_projet__projet",
+                "dotation_projet__projet__dossier_ds",
+                "enveloppe",
+                "dotation_projet__projet__dossier_ds__ds_demandeur",
             )
             .prefetch_related(
                 "annexes",
