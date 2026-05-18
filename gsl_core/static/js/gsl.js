@@ -6,7 +6,7 @@ document.addEventListener(
   () => {
     document
       .querySelectorAll(
-        '.gsl-projet-table__status-select .fr-collapse--expanded'
+        '.gsl-projet-table .gsl-projet-table__status-select .fr-collapse--expanded'
       )
       .forEach((menu) => dsfr(menu).collapse.conceal())
   },
@@ -19,7 +19,7 @@ new window.MutationObserver((mutations) => {
   for (const mutation of mutations) {
     const menu = mutation.target
     if (!menu.classList.contains('fr-collapse')) continue
-    if (!menu.closest('.gsl-projet-table__status-select')) continue
+    if (!menu.closest('.gsl-projet-table .gsl-projet-table__status-select')) continue
     if (menu.classList.contains('fr-collapse--expanded')) {
       const trigger = document.querySelector(`[aria-controls="${menu.id}"]`)
       if (!trigger) continue
