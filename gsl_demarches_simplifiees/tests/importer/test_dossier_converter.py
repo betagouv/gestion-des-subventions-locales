@@ -119,6 +119,38 @@ def test_non_mapped_fields_are_imported(dossier_converter: DossierConverter):
     assert isinstance(dossier_converter.dossier.ds_demandeur, PersonneMorale)
 
 
+def test_fill_unmapped_fields_deactivates_archived_dossier(ds_dossier_data, dossier):
+    ds_dossier_data["archived"] = True
+    converter = DossierConverter(ds_dossier_data, dossier)
+    converter.fill_unmapped_fields()
+    assert dossier.is_active is False
+    assert dossier.raison_desactivation == Dossier.RAISON_DESACTIVATION_ARCHIVE
+
+
+def test_fill_unmapped_fields_keeps_active_non_archived_dossier(
+    ds_dossier_data, dossier
+):
+    ds_dossier_data["archived"] = False
+    converter = DossierConverter(ds_dossier_data, dossier)
+    converter.fill_unmapped_fields()
+    assert dossier.is_active is True
+    assert dossier.raison_desactivation == ""
+
+
+def test_fill_unmapped_fields_reactivates_previously_archived_dossier(
+    ds_dossier_data, dossier
+):
+    dossier.is_active = False
+    dossier.raison_desactivation = Dossier.RAISON_DESACTIVATION_ARCHIVE
+    dossier.save()
+
+    ds_dossier_data["archived"] = False
+    converter = DossierConverter(ds_dossier_data, dossier)
+    converter.fill_unmapped_fields()
+    assert dossier.is_active is True
+    assert dossier.raison_desactivation == ""
+
+
 def test_demandeur_is_properly_found_if_already_existing(
     dossier_converter, ds_dossier_data
 ):
@@ -145,6 +177,7 @@ def test_fill_unmapped_fields_with_personne_morale_incomplete_does_not_create_na
         "champs": [],
         "annotations": [],
         "demarche": {"revision": {"id": "rev-1"}},
+        "archived": False,
         "state": "en_construction",
         "dateDepot": "2024-10-16T10:09:32+02:00",
         "dateDerniereModification": "2024-10-16T10:09:33+02:00",
@@ -589,6 +622,7 @@ def test_fill_unmapped_fields_logs_warning_and_continues_when_key_is_missing(
         "champs": [],
         "annotations": [],
         "demarche": {"revision": {"id": "rev-1"}},
+        "archived": False,
         # "state" est intentionnellement absent pour provoquer une KeyError
         "dateDepot": "2024-10-16T10:09:32+02:00",
         "dateDerniereModification": "2024-10-16T10:09:33+02:00",

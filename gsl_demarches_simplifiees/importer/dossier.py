@@ -433,23 +433,6 @@ def _deactivate_deleted_dossier(deleted_dossier_data: dict, raison: str):
         dossier.save(update_fields=["is_active", "raison_desactivation"])
 
 
-def _deactivate_archived_dossier(ds_number: int):
-    try:
-        dossier = Dossier.objects.get(ds_number=ds_number)
-    except Dossier.DoesNotExist:
-        logger.info(
-            "Archived dossier not found in Turgot, skipping",
-            extra={"dossier_ds_number": ds_number},
-        )
-        return
-
-    raison = Dossier.RAISON_DESACTIVATION_ARCHIVE
-    if dossier.is_active or dossier.raison_desactivation != raison:
-        dossier.is_active = False
-        dossier.raison_desactivation = raison
-        dossier.save(update_fields=["is_active", "raison_desactivation"])
-
-
 def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
     dossier: Dossier,
     dossier_data: dict,
@@ -530,10 +513,6 @@ def _create_or_update_dossier_from_ds_data(
                 "dossier_ds_number": ds_dossier_number,
             },
         )
-        return
-
-    if dossier_data.get("archived"):
-        _deactivate_archived_dossier(ds_dossier_number)
         return
 
     try:
