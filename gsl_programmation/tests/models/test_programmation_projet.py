@@ -28,11 +28,12 @@ from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 
 @pytest.mark.django_db
-def test_programmation_projet_manager_excludes_inactive_dossier():
+def test_programmation_projet_active_manager_excludes_inactive_dossier():
     ProgrammationProjetFactory()
     ProgrammationProjetFactory(dotation_projet__projet__dossier_ds__is_active=False)
 
-    assert ProgrammationProjet.objects.count() == 1
+    assert ProgrammationProjet.active.count() == 1
+    assert ProgrammationProjet.objects.count() == 2
 
 
 @pytest.mark.parametrize(

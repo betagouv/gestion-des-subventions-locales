@@ -97,6 +97,7 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
 class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = (
         "id",
+        "is_active",
         "enveloppe",
         "status",
         "formatted_amount",
@@ -114,6 +115,7 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     )
     search_fields = ("dotation_projet__projet__dossier_ds__ds_number",)
     list_filter = (
+        "dotation_projet__projet__dossier_ds__is_active",
         "status",
         "enveloppe__dotation",
         "enveloppe__annee",
@@ -187,6 +189,10 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
                 f"{deleted_count} simulation(s) projet supprimée(s) suite au réassociement.",
                 messages.SUCCESS,
             )
+
+    @admin.display(boolean=True, description="Actif")
+    def is_active(self, obj):
+        return obj.dotation_projet.projet.dossier_ds.is_active
 
     def notified_at_custom(self, obj):
         return obj.projet.notified_at

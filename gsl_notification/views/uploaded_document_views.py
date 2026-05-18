@@ -41,7 +41,7 @@ class ChooseDocumentTypeForUploadView(LoginRequiredMixin, UpdateView):
     def get_queryset(self):
         # Only projects visible to user with accepted dotations
         return (
-            Projet.objects.for_user(self.request.user)
+            Projet.active.for_user(self.request.user)
             .filter(dotationprojet__status=PROJET_STATUS_ACCEPTED)
             .distinct()
         )
@@ -62,7 +62,7 @@ class ChooseDocumentTypeForUploadView(LoginRequiredMixin, UpdateView):
 @require_http_methods(["GET", "POST"])
 def create_uploaded_document_view(request, projet_id, dotation, document_type):
     programmation_projet = get_object_or_404(
-        ProgrammationProjet.objects.visible_to_user(request.user),
+        ProgrammationProjet.active.visible_to_user(request.user),
         dotation_projet__projet_id=projet_id,
         enveloppe__dotation=dotation,
         status=ProgrammationProjet.STATUS_ACCEPTED,
@@ -122,7 +122,7 @@ def download_uploaded_document(request, document_type, document_id, download=Tru
         raise Http404(user_message="Le type de document sélectionné n'existe pas.")
     doc = get_object_or_404(
         doc_class.objects.filter(
-            programmation_projet__dotation_projet__projet__in=Projet.objects.for_user(
+            programmation_projet__dotation_projet__projet__in=Projet.active.for_user(
                 request.user
             )
         ),

@@ -75,7 +75,7 @@ class SimulationTableCellEditMixin(UpdateView):
     matomo_action: str = ""
 
     def get_queryset(self):
-        return SimulationProjet.objects.in_user_perimeter(self.request.user)
+        return SimulationProjet.active.in_user_perimeter(self.request.user)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -119,7 +119,7 @@ class SimulationTableCellEditMixin(UpdateView):
             self._get_projets_queryset_with_filters()
         )
         selectable_ids_list = list(
-            SimulationProjet.objects.filter(
+            SimulationProjet.active.filter(
                 simulation=self.object.simulation,
                 status__in=BulkStatusJob.ALLOWED_TARGET_STATUSES,
                 dotation_projet__projet__notified_at__isnull=True,
@@ -192,7 +192,7 @@ class RefreshSimulationRowView(DetailView):
 
     def get_queryset(self):
         return (
-            SimulationProjet.objects.in_user_perimeter(self.request.user)
+            SimulationProjet.active.in_user_perimeter(self.request.user)
             .select_related(
                 "simulation",
                 "simulation__enveloppe",
@@ -222,7 +222,7 @@ class RefreshSimulationRowView(DetailView):
 @require_POST
 def patch_dotation_projet(request, pk):
     simulation_projet = get_object_or_404(
-        SimulationProjet.objects.in_user_perimeter(request.user), id=pk
+        SimulationProjet.active.in_user_perimeter(request.user), id=pk
     )
     form = DotationProjetForm(
         request.POST,
@@ -494,7 +494,7 @@ def _get_other_dotation_montants(
     if not simulation_projet.projet.has_double_dotations:
         return None
 
-    other_dotation_projet = DotationProjet.objects.filter(
+    other_dotation_projet = DotationProjet.active.filter(
         projet=simulation_projet.projet,
         dotation=(
             DOTATION_DETR
@@ -537,7 +537,7 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        return SimulationProjet.objects.in_user_perimeter(self.request.user)
+        return SimulationProjet.active.in_user_perimeter(self.request.user)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -614,7 +614,7 @@ class BulkSimulationProjetStatusUpdateView(OpenHtmxModalMixin, TemplateView):
             return HttpResponseClientRefresh()
 
         all_projets = list(
-            SimulationProjet.objects.in_user_perimeter(request.user)
+            SimulationProjet.active.in_user_perimeter(request.user)
             .filter(id__in=ids)
             .select_related(
                 "dotation_projet",
@@ -867,7 +867,7 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
 
     def get_queryset(self) -> SimulationProjetQuerySet:
         return (
-            SimulationProjet.objects.in_user_perimeter(self.request.user)
+            SimulationProjet.active.in_user_perimeter(self.request.user)
             # On exclut les simulations-projet liés à une programmation-projet déjà notifiée.
             .exclude(dotation_projet__projet__notified_at__isnull=False)
             .select_related(
