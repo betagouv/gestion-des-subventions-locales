@@ -89,7 +89,11 @@ def programmation_projet():
         ("porteur-fonction", "Fonction du porteur de projet", "Maire"),
         ("porteur-prenom", "Prénom du porteur de projet", "Jean"),
         ("porteur-nom", "Nom du porteur de projet", "Dupont"),
-        ("adresse-demandeur", "Adresse du demandeur", "1 rue de la Paix 75001 Paris"),
+        (
+            "adresse-demandeur",
+            "Adresse du demandeur",
+            "1 rue de la Paix<br/>75001 Paris",
+        ),
         ("commentaire-1", "Commentaire 1", "Commentaire important"),
         (
             "montant-subvention-lettres",
@@ -111,6 +115,9 @@ def test_replace_mentions_in_html_multiline_address():
     perimetre = PerimetreDepartementalFactory()
     adresse = AdresseFactory(
         label="DIRECTION GENERALE DES COLLECTIVITES LOCALES\r\n\r\n2 PLACE DES SAUSSAIES\r\n75008 PARIS\r\nFRANCE",
+        street_address="2 PLACE DES SAUSSAIES",
+        postal_code="75008",
+        commune__name="PARIS",
     )
     pp = ProgrammationProjetFactory(
         dotation_projet__projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
@@ -120,10 +127,28 @@ def test_replace_mentions_in_html_multiline_address():
     )
     html_content = '<p><span class="mention" data-type="mention" data-id="adresse-demandeur" data-label="Adresse du demandeur" data-mention-suggestion-char="@">@Adresse du demandeur</span></p>'
     result = replace_mentions_in_html(html_content, pp)
-    assert (
-        result
-        == "<p>DIRECTION GENERALE DES COLLECTIVITES LOCALES<br/><br/>2 PLACE DES SAUSSAIES<br/>75008 PARIS<br/>FRANCE</p>"
+    assert result == "<p>2 PLACE DES SAUSSAIES<br/>75008 PARIS</p>"
+
+
+@pytest.mark.django_db
+def test_replace_mentions_in_html_uses_address_two_lines():
+    perimetre = PerimetreDepartementalFactory()
+    adresse = AdresseFactory(
+        street_address="1 rue de la Paix",
+        postal_code="75001",
+        commune__name="Paris",
     )
+    pp = ProgrammationProjetFactory(
+        dotation_projet__projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
+            address=adresse,
+        ),
+        dotation_projet__projet__dossier_ds__perimetre=perimetre,
+    )
+    html_content = '<p><span class="mention" data-type="mention" data-id="adresse-demandeur" data-label="Adresse du demandeur" data-mention-suggestion-char="@">@Adresse du demandeur</span></p>'
+
+    result = replace_mentions_in_html(html_content, pp)
+
+    assert result == "<p>1 rue de la Paix<br/>75001 Paris</p>"
 
 
 @pytest.mark.django_db
