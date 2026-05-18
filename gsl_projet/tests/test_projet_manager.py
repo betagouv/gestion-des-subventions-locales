@@ -35,6 +35,13 @@ def test_manager():
     assert Projet.objects.all().count() == 10
 
 
+def test_manager_excludes_projets_with_inactive_dossier():
+    ProjetFactory.create_batch(3)
+    ProjetFactory(dossier_ds__is_active=False)
+
+    assert Projet.objects.count() == 3
+
+
 @pytest.mark.django_db
 def test_dossier_ds_join(django_assert_num_queries):
     for _ in range(10):

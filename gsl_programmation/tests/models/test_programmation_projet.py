@@ -27,6 +27,14 @@ from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 
+@pytest.mark.django_db
+def test_programmation_projet_manager_excludes_inactive_dossier():
+    ProgrammationProjetFactory()
+    ProgrammationProjetFactory(dotation_projet__projet__dossier_ds__is_active=False)
+
+    assert ProgrammationProjet.objects.count() == 1
+
+
 @pytest.mark.parametrize(
     "montant, assiette, finance_cout_total, expected_taux",
     (

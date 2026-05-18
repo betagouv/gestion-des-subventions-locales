@@ -276,6 +276,7 @@ class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
         return (
             super()
             .get_queryset()
+            .filter(dossier_ds__is_active=True)
             .select_related("dossier_ds")
             .prefetch_related("dotationprojet_set")
         )
@@ -525,6 +526,11 @@ class DotationProjetQuerySet(models.QuerySet):
         )
 
 
+class DotationProjetManager(models.Manager.from_queryset(DotationProjetQuerySet)):
+    def get_queryset(self):
+        return super().get_queryset().filter(projet__dossier_ds__is_active=True)
+
+
 class DotationProjet(BaseModel):
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
     dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
@@ -552,7 +558,7 @@ class DotationProjet(BaseModel):
         CategorieDetr, verbose_name="Catégories d’opération DETR"
     )
 
-    objects = DotationProjetQuerySet.as_manager()
+    objects = DotationProjetManager()
 
     class Meta:
         unique_together = ("projet", "dotation")
