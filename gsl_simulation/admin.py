@@ -103,6 +103,7 @@ class SimulationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 class SimulationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_display = (
         "id",
+        "is_active",
         "dossier_link",
         "projet_link",
         "intitule",
@@ -114,6 +115,7 @@ class SimulationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "dotation_projet__projet__id",
         "dotation_projet__projet__dossier_ds__ds_number",
     )
+    list_filter = ("status", "dotation_projet__projet__dossier_ds__is_active")
     raw_id_fields = (
         "dotation_projet",
         "simulation",
@@ -147,6 +149,10 @@ class SimulationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             .select_related("simulation")
         )
         return qs
+
+    @admin.display(boolean=True, description="Actif")
+    def is_active(self, obj):
+        return obj.dotation_projet.projet.dossier_ds.is_active
 
     def intitule(self, obj):
         return obj.dotation_projet.projet.dossier_ds.projet_intitule

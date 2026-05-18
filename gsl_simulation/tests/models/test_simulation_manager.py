@@ -14,11 +14,12 @@ from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFa
 
 
 @pytest.mark.django_db
-def test_simulation_projet_manager_excludes_inactive_dossier():
+def test_simulation_projet_active_manager_excludes_inactive_dossier():
     SimulationProjetFactory()
     SimulationProjetFactory(dotation_projet__projet__dossier_ds__is_active=False)
 
-    assert SimulationProjet.objects.count() == 1
+    assert SimulationProjet.active.count() == 1
+    assert SimulationProjet.objects.count() == 2
 
 
 @pytest.mark.django_db
