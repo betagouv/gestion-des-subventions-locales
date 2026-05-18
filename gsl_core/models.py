@@ -77,6 +77,12 @@ class Adresse(BaseModel):
             return f"{self.street_address} {self.postal_code} {self.commune.name}"
         return self.label
 
+    @property
+    def two_lines(self):
+        if self.commune:
+            return f"{self.street_address}\n{self.postal_code} {self.commune.name}"
+        return self.label
+
     def update_from_raw_ds_data(self, raw_ds_data):
         if isinstance(raw_ds_data, str):
             self.label = raw_ds_data
