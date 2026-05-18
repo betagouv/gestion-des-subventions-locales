@@ -941,6 +941,21 @@ def test_filter_search_matches_ignoring_diacritics_in_stored_value(
     assert searchable_projets["numerisation"] in qs
 
 
+def test_projet_list_view_excludes_inactive_dossiers():
+    perimetre = PerimetreDepartementalFactory()
+    user = CollegueFactory(perimetre=perimetre)
+    active_projet = ProjetFactory(dossier_ds__perimetre=perimetre)
+    ProjetFactory(dossier_ds__perimetre=perimetre, dossier_ds__is_active=False)
+
+    client = ClientWithLoggedUserFactory(user)
+    response = client.get(reverse("projet:list"))
+
+    assert response.status_code == 200
+    object_list = response.context["object_list"]
+    assert object_list.count() == 1
+    assert active_projet in object_list
+
+
 def test_view_has_correct_territoire_choices():
     perimetre_arrondissement_A = PerimetreArrondissementFactory()
     perimetre_arrondissement_B = PerimetreArrondissementFactory()

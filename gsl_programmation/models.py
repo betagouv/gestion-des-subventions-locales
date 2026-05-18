@@ -223,7 +223,12 @@ class ProgrammationProjetQuerySet(models.QuerySet):
 class ProgrammationProjetManager(
     models.Manager.from_queryset(ProgrammationProjetQuerySet)
 ):
-    pass
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .filter(dotation_projet__projet__dossier_ds__is_active=True)
+        )
 
 
 class ProgrammationProjet(models.Model):

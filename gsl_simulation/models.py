@@ -150,7 +150,12 @@ class SimulationProjetQuerySet(models.QuerySet):
 
 
 class SimulationProjetManager(models.Manager.from_queryset(SimulationProjetQuerySet)):
-    pass
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .filter(dotation_projet__projet__dossier_ds__is_active=True)
+        )
 
 
 class SimulationProjet(BaseModel):
