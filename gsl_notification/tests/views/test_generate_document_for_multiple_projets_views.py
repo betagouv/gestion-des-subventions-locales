@@ -1,12 +1,13 @@
 import io
+import os
 import zipfile
-from datetime import UTC, datetime
 from html import unescape
 from unittest.mock import patch
 
 import pytest
-from django.test import Client, override_settings
-from django.urls import reverse
+from django.core.files.storage import default_storage
+from django.test import override_settings
+from django.utils.text import slugify
 from freezegun import freeze_time
 
 from gsl_core.tests.factories import (
@@ -17,18 +18,20 @@ from gsl_core.tests.factories import (
 from gsl_notification.forms import (
     ARRETE_ET_LETTRE,
     EXPORT_FORMAT_ONE_PDF_ALL,
+    EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
+    EXPORT_FORMAT_ONE_PDF_PER_DOC,
+    EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
     GenerateDocumentsStep2Form,
 )
 from gsl_notification.models import LettreNotification
 from gsl_notification.tests.factories import (
-    ArreteFactory,
     LettreNotificationFactory,
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, LETTRE
+from gsl_projet.constants import DOTATION_DETR, LETTRE
 
 pytestmark = pytest.mark.django_db
 
@@ -68,264 +71,19 @@ def client(perimetre):
     return ClientWithLoggedUserFactory(user)
 
 
-## download_documents
-
-
-def test_download_documents_method_allowed(client):
-    url = reverse(
-        "notification:download-documents",
-        kwargs={
-            "dotation": DOTATION_DETR,
-            "document_type": LETTRE,
-        },
-    )
-    assert url == f"/notification/{DOTATION_DETR}/telechargement/lettre"
-    response = client.post(url)
-    assert response.status_code == 405
-
-
-@override_settings(DEBUG=False)
-def test_download_documents_with_wrong_dotation(client):
-    url = reverse("notification:download-documents", args=["raté", LETTRE])
-    response = client.get(url)
-    assert response.status_code == 404
-    assert "Dotation inconnue" in unescape(response.content.decode("utf-8"))
-
-
-@override_settings(DEBUG=False)
-def test_download_documents_with_wrong_document_type(client):
-    url = reverse(
-        "notification:download-documents",
-        args=[DOTATION_DETR, "raté"],
-    )
-    response = client.get(url)
-    assert response.status_code == 404
-    assert "Type de document inconnu" in unescape(response.content.decode("utf-8"))
-
-
-@freeze_time("2026-05-03")
-def test_download_documents_no_id(client):
-    pps = []
-    # Must be selected (good perimetre, status and notified_at)
-    pps += ProgrammationProjetFactory.create_batch(
-        3,
-        dotation_projet__dotation=DOTATION_DETR,
-        dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-        notified_at=None,
-    )
-
-    # Must not be selected
-    pps += ProgrammationProjetFactory.create_batch(
-        5,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-        notified_at=None,
-    )
-
-    pps += ProgrammationProjetFactory.create_batch(
-        4,
-        dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-        notified_at=datetime.now(UTC),
-    )
-
-    for pp in pps:
-        LettreNotificationFactory(programmation_projet=pp)
-
-    url = reverse(
-        "notification:download-documents",
-        args=[DOTATION_DETR, LETTRE],
-    )
+@pytest.fixture(autouse=True)
+def _mock_logo_base64():
+    """Step 4 of the wizard renders every PDF synchronously, which fetches the
+    modele logo via HTTP. Mock it so tests don't hit the network."""
     with patch(
         "gsl_notification.utils.get_logo_base64",
         return_value="mocked_base64",
     ):
-        response = client.get(url)
-
-    assert response.status_code == 200
-    assert (
-        response["Content-Disposition"]
-        == 'attachment; filename="export turgot 03-05-2026.zip"'
-    )
-
-    with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
-        assert len(zf.namelist()) == 3
+        yield
 
 
-@freeze_time("2026-05-03")
-def test_download_documents_no_id_with_filters(client):
-    data = {"montant_demande_min": "100000"}
+## Helpers
 
-    pps = []
-    for amount in [50_000, 100_000, 150_000]:
-        pps.append(
-            ProgrammationProjetFactory(
-                dotation_projet__dotation=DOTATION_DETR,
-                dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
-                dotation_projet__projet__dossier_ds__demande_montant=amount,
-                status=ProgrammationProjet.STATUS_ACCEPTED,
-                notified_at=None,
-            )
-        )
-
-    for pp in pps:
-        LettreNotificationFactory(programmation_projet=pp)
-
-    url = reverse(
-        "notification:download-documents",
-        args=[DOTATION_DETR, LETTRE],
-    )
-    with patch(
-        "gsl_notification.utils.get_logo_base64",
-        return_value="mocked_base64",
-    ):
-        response = client.get(url, data)
-
-    assert response.status_code == 200
-    assert (
-        response["Content-Disposition"]
-        == 'attachment; filename="export turgot 03-05-2026.zip"'
-    )
-
-    with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
-        assert len(zf.namelist()) == 2
-
-
-def _bad_wrong_perimetre():
-    return ProgrammationProjetFactory(dotation_projet__dotation=DOTATION_DETR)
-
-
-def _bad_wrong_dotation():
-    return ProgrammationProjetFactory(dotation_projet__dotation=DOTATION_DSIL)
-
-
-def _bad_already_notified():
-    return ProgrammationProjetFactory(notified_at=datetime.now(UTC))
-
-
-def _bad_refused():
-    return ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_REFUSED)
-
-
-@pytest.mark.parametrize(
-    "make_bad_pp, duplicate_id",
-    [
-        pytest.param(_bad_wrong_perimetre, False, id="wrong_perimetre"),
-        pytest.param(_bad_wrong_dotation, False, id="wrong_dotation"),
-        pytest.param(_bad_already_notified, False, id="already_notified"),
-        pytest.param(_bad_refused, False, id="refused"),
-        # missing_doc: append a PP that won't pass the dotation filter and
-        # also has no LettreNotification — exercises both rejection paths
-        # in a single parameter.
-        pytest.param(_bad_wrong_dotation, False, id="missing_doc"),
-        pytest.param(None, True, id="duplicate_id"),
-    ],
-)
-def test_download_documents_rejects_invalid_pp(
-    client, programmation_projets, make_bad_pp, duplicate_id
-):
-    for pp in programmation_projets:
-        LettreNotificationFactory(programmation_projet=pp)
-
-    if make_bad_pp is not None:
-        programmation_projets.append(make_bad_pp())
-
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    if duplicate_id:
-        ids += f",{str(programmation_projets[0].id)}"
-    url = (
-        reverse(
-            "notification:download-documents",
-            args=[DOTATION_DETR, LETTRE],
-        )
-        + f"?ids={ids}"
-    )
-    response = client.get(url)
-    assert response.status_code == 404
-    assert (
-        "Un ou plusieurs des projets n'est pas disponible pour une des raisons (identifiant inconnu, identifiant en double, projet déjà notifié ou refusé, projet associé à une autre dotation, ou hors de votre périmètre)."
-        in unescape(response.content.decode("utf-8"))
-    )
-
-
-@freeze_time("2026-05-03")
-def test_download_documents_correctly(client, programmation_projets):
-    for pp in programmation_projets:
-        LettreNotificationFactory(programmation_projet=pp)
-    pp_ids = [str(pp.id) for pp in programmation_projets]
-    ids = ",".join(pp_ids)
-    url = (
-        reverse(
-            "notification:download-documents",
-            args=[DOTATION_DETR, LETTRE],
-        )
-        + f"?ids={ids}"
-    )
-    with patch(
-        "gsl_notification.utils.get_logo_base64",
-        return_value="mocked_base64",
-    ):
-        response = client.get(url)
-
-    assert response.status_code == 200
-    assert (
-        response["Content-Disposition"]
-        == 'attachment; filename="export turgot 03-05-2026.zip"'
-    )
-
-    with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
-        assert len(zf.namelist()) == 3
-
-
-@freeze_time("2026-05-03")
-def test_download_documents_arrete_et_lettre_one_pdf_all_filename(
-    client, programmation_projets
-):
-    for pp in programmation_projets:
-        LettreNotificationFactory(programmation_projet=pp)
-        ArreteFactory(programmation_projet=pp)
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
-    url = (
-        reverse(
-            "notification:download-documents",
-            args=[DOTATION_DETR, ARRETE_ET_LETTRE],
-        )
-        + f"?ids={ids}&export_format={EXPORT_FORMAT_ONE_PDF_ALL}"
-    )
-    with patch(
-        "gsl_notification.utils.get_logo_base64",
-        return_value="mocked_base64",
-    ):
-        response = client.get(url)
-
-    assert response.status_code == 200
-    assert response["Content-Type"] == "application/pdf"
-    assert response["Content-Disposition"].startswith(
-        'attachment; filename="export lettres et arrêtés turgot'
-    )
-
-
-def test_download_documents_single_doc_returns_pdf(client):
-    pp = ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=client.user.perimetre,
-        dotation_projet__dotation=DOTATION_DETR,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
-        notified_at=None,
-    )
-    LettreNotificationFactory(programmation_projet=pp)
-    url = (
-        reverse("notification:download-documents", args=[DOTATION_DETR, LETTRE])
-        + f"?ids={pp.id}"
-    )
-    with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
-        response = client.get(url)
-
-    assert response.status_code == 200
-    assert response["Content-Type"] == "application/pdf"
-    assert response.content[:4] == b"%PDF"
-
-
-## Modal HTMX views
 
 HTMX_HEADERS = {"HTTP_HX_REQUEST": "true"}
 
@@ -333,6 +91,8 @@ WIZARD_PREFIX_DETR = f"generate_documents_wizard_{DOTATION_DETR}"
 
 
 def _wizard_url(dotation=DOTATION_DETR):
+    from django.urls import reverse
+
     return reverse("gsl_notification:generate-documents-modal", args=[dotation])
 
 
@@ -356,6 +116,28 @@ def _post_launch(client, ids=None, dotation=DOTATION_DETR):
         ),
         **HTMX_HEADERS,
     )
+
+
+def _storage_key_from_url(url):
+    """InMemoryStorage returns '/media/<key>' — strip the media prefix.
+    The url is URL-encoded; decode it back to the on-disk key."""
+    from urllib.parse import unquote
+
+    return unquote(url.removeprefix("/media/"))
+
+
+def _read_storage_body(url):
+    key = _storage_key_from_url(url)
+    assert default_storage.exists(key)
+    with default_storage.open(key) as f:
+        return key, f.read()
+
+
+def _template_names(response):
+    # Step 4 renders PDFs via render_to_string before rendering the success
+    # template, so the success template is not always at index 0. Compare
+    # against the full set.
+    return {t.name for t in response.templates}
 
 
 ## Launch step (PRG entry) and wizard GET (dialog rendering)
@@ -582,6 +364,7 @@ def _drive_through_step3(
     *,
     document_type=LETTRE,
     step2_fields,
+    export_format=EXPORT_FORMAT_ONE_PDF_PER_DOC,
     dotation=DOTATION_DETR,
 ):
     """Walk the wizard from launch through a step3 submit.
@@ -611,7 +394,7 @@ def _drive_through_step3(
         _wizard_url(dotation),
         _wizard_step_data(
             "step3",
-            {"export_format": "un_pdf_par_document"},
+            {"export_format": export_format},
             prefix=f"generate_documents_wizard_{dotation}",
         ),
         **HTMX_HEADERS,
@@ -655,8 +438,9 @@ def test_wizard_step4_creates_documents_and_returns_success(
     )
     response = _post_step4(client)
     assert response.status_code == 200
-    assert response.templates[0].name == (
+    assert (
         "gsl_notification/generated_document/multiple/modal_success_body.html"
+        in _template_names(response)
     )
     assert response.context["doc_count"] == 3
     assert len(list(response.context["refreshed_programmation_projets"])) == 3
@@ -665,6 +449,9 @@ def test_wizard_step4_creates_documents_and_returns_success(
         assert hasattr(pp, "lettre_notification")
         assert pp.lettre_notification.modele == detr_lettre_modele
         assert pp.lettre_notification.created_by == client.user
+
+    _, body = _read_storage_body(response.context["download_url"])
+    assert body[:2] == b"PK"  # ZIP (3 docs)
 
 
 def test_wizard_step4_replaces_existing_doc(
@@ -681,9 +468,12 @@ def test_wizard_step4_replaces_existing_doc(
             "overwrite_strategy": GenerateDocumentsStep2Form.STRATEGY_REMPLACER,
         },
     )
-    _post_step4(client)
+    response = _post_step4(client)
     pp.refresh_from_db()
     assert pp.lettre_notification.id != old_lettre.id
+
+    _, body = _read_storage_body(response.context["download_url"])
+    assert body[:2] == b"PK"
 
 
 def test_wizard_step2_conserver_when_all_covered_advances_to_step3(
@@ -735,8 +525,9 @@ def test_wizard_step4_conserver_creates_only_missing_documents(
     )
     response = _post_step4(client)
     assert response.status_code == 200
-    assert response.templates[0].name == (
+    assert (
         "gsl_notification/generated_document/multiple/modal_success_body.html"
+        in _template_names(response)
     )
 
     pp_with_existing.refresh_from_db()
@@ -745,6 +536,9 @@ def test_wizard_step4_conserver_creates_only_missing_documents(
         pp.refresh_from_db()
         assert hasattr(pp, "lettre_notification")
         assert pp.lettre_notification.modele == detr_lettre_modele
+
+    _, body = _read_storage_body(response.context["download_url"])
+    assert body[:2] == b"PK"
 
 
 def test_wizard_step4_remplacer_when_all_covered_replaces_all(
@@ -764,13 +558,17 @@ def test_wizard_step4_remplacer_when_all_covered_replaces_all(
     )
     response = _post_step4(client)
     assert response.status_code == 200
-    assert response.templates[0].name == (
+    assert (
         "gsl_notification/generated_document/multiple/modal_success_body.html"
+        in _template_names(response)
     )
     for pp, old_id in zip(programmation_projets, old_ids, strict=True):
         pp.refresh_from_db()
         assert pp.lettre_notification.id != old_id
         assert pp.lettre_notification.modele == detr_lettre_modele
+
+    _, body = _read_storage_body(response.context["download_url"])
+    assert body[:2] == b"PK"
 
 
 def test_wizard_step4_conserver_full_coverage_with_empty_ids_reaches_success(
@@ -802,15 +600,19 @@ def test_wizard_step4_conserver_full_coverage_with_empty_ids_reaches_success(
     )
     client.post(
         _wizard_url(),
-        _wizard_step_data("step3", {"export_format": "un_pdf_par_document"}),
+        _wizard_step_data("step3", {"export_format": EXPORT_FORMAT_ONE_PDF_PER_DOC}),
         **HTMX_HEADERS,
     )
     response = _post_step4(client)
     assert response.status_code == 200
-    assert response.templates[0].name == (
+    assert (
         "gsl_notification/generated_document/multiple/modal_success_body.html"
+        in _template_names(response)
     )
     assert LettreNotification.objects.count() == 3
+
+    _, body = _read_storage_body(response.context["download_url"])
+    assert body[:2] == b"PK"
 
 
 def test_wizard_step4_both_creates_arrete_and_lettre(
@@ -827,8 +629,9 @@ def test_wizard_step4_both_creates_arrete_and_lettre(
     )
     response = _post_step4(client)
     assert response.status_code == 200
-    assert response.templates[0].name == (
+    assert (
         "gsl_notification/generated_document/multiple/modal_success_body.html"
+        in _template_names(response)
     )
     form = response.context["form"]
     assert form.document_type == ARRETE_ET_LETTRE
@@ -842,15 +645,157 @@ def test_wizard_step4_both_creates_arrete_and_lettre(
         assert hasattr(pp, "lettre_notification")
         assert pp.lettre_notification.modele == detr_lettre_modele
 
+    key, body = _read_storage_body(response.context["download_url"])
+    assert body[:2] == b"PK"  # ZIP (6 docs)
+    with zipfile.ZipFile(io.BytesIO(body)) as zf:
+        assert len(zf.namelist()) == 6
 
-## Authentication
+
+## Export-format coverage — end-to-end through the wizard
 
 
-def test_download_documents_requires_authentication():
-    anonymous_client = Client()
-    url = reverse(
-        "notification:download-documents",
-        args=[DOTATION_DETR, LETTRE],
+@freeze_time("2026-05-03")
+def test_export_one_pdf_per_doc_single_returns_named_pdf(perimetre, detr_lettre_modele):
+    """One projet × LETTRE → single PDF named after the document."""
+    user = CollegueFactory(perimetre=perimetre)
+    client = ClientWithLoggedUserFactory(user)
+    pps = [
+        ProgrammationProjetFactory(
+            dotation_projet__projet__dossier_ds__perimetre=perimetre,
+            dotation_projet__dotation=DOTATION_DETR,
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            notified_at=None,
+        )
+    ]
+    _drive_through_step3(
+        client,
+        pps,
+        step2_fields={"modele_lettre_id": str(detr_lettre_modele.id)},
+        export_format=EXPORT_FORMAT_ONE_PDF_PER_DOC,
     )
-    response = anonymous_client.get(url)
-    assert response.status_code == 302
+    response = _post_step4(client)
+    assert response.status_code == 200
+
+    key, body = _read_storage_body(response.context["download_url"])
+    filename = os.path.basename(key)
+    assert filename == pps[0].lettre_notification.name
+    assert body[:4] == b"%PDF"
+
+
+@freeze_time("2026-05-03")
+def test_export_one_pdf_per_doc_multi_returns_zip(
+    client, programmation_projets, detr_lettre_modele
+):
+    _drive_through_step3(
+        client,
+        programmation_projets,
+        step2_fields={"modele_lettre_id": str(detr_lettre_modele.id)},
+        export_format=EXPORT_FORMAT_ONE_PDF_PER_DOC,
+    )
+    response = _post_step4(client)
+    assert response.status_code == 200
+
+    key, body = _read_storage_body(response.context["download_url"])
+    assert os.path.basename(key) == "export turgot 03-05-2026.zip"
+    assert body[:2] == b"PK"
+    with zipfile.ZipFile(io.BytesIO(body)) as zf:
+        assert len(zf.namelist()) == 3
+
+
+@freeze_time("2026-05-03")
+def test_export_one_pdf_all_merges_into_single_pdf(
+    client, programmation_projets, detr_lettre_modele
+):
+    """One_PDF_ALL is only offered for a single document type (lettre xor arrêté)."""
+    _drive_through_step3(
+        client,
+        programmation_projets,
+        step2_fields={"modele_lettre_id": str(detr_lettre_modele.id)},
+        export_format=EXPORT_FORMAT_ONE_PDF_ALL,
+    )
+    response = _post_step4(client)
+    assert response.status_code == 200
+
+    key, body = _read_storage_body(response.context["download_url"])
+    assert os.path.basename(key) == "export lettre turgot 03-05-2026.pdf"
+    assert body[:4] == b"%PDF"
+
+
+@freeze_time("2026-05-03")
+def test_export_one_pdf_per_project_single_returns_named_pdf(
+    perimetre, detr_arrete_modele, detr_lettre_modele
+):
+    user = CollegueFactory(perimetre=perimetre)
+    client = ClientWithLoggedUserFactory(user)
+    pp = ProgrammationProjetFactory(
+        dotation_projet__projet__dossier_ds__perimetre=perimetre,
+        dotation_projet__dotation=DOTATION_DETR,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+        notified_at=None,
+    )
+    _drive_through_step3(
+        client,
+        [pp],
+        document_type=ARRETE_ET_LETTRE,
+        step2_fields={
+            "modele_arrete_id": str(detr_arrete_modele.id),
+            "modele_lettre_id": str(detr_lettre_modele.id),
+        },
+        export_format=EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
+    )
+    response = _post_step4(client)
+    assert response.status_code == 200
+
+    key, body = _read_storage_body(response.context["download_url"])
+    ds_number = pp.dossier.ds_number
+    raison_sociale = slugify(pp.dossier.ds_demandeur.raison_sociale)
+    expected = f"lettre et arrêté - {ds_number} - {raison_sociale} - 03-05-2026.pdf"
+    assert os.path.basename(key) == expected
+    assert body[:4] == b"%PDF"
+
+
+@freeze_time("2026-05-03")
+def test_export_one_pdf_per_project_multi_returns_zip(
+    client, programmation_projets, detr_arrete_modele, detr_lettre_modele
+):
+    _drive_through_step3(
+        client,
+        programmation_projets,
+        document_type=ARRETE_ET_LETTRE,
+        step2_fields={
+            "modele_arrete_id": str(detr_arrete_modele.id),
+            "modele_lettre_id": str(detr_lettre_modele.id),
+        },
+        export_format=EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
+    )
+    response = _post_step4(client)
+    assert response.status_code == 200
+
+    key, body = _read_storage_body(response.context["download_url"])
+    assert os.path.basename(key) == "export turgot 03-05-2026.zip"
+    assert body[:2] == b"PK"
+    with zipfile.ZipFile(io.BytesIO(body)) as zf:
+        # One merged PDF per project.
+        assert len(zf.namelist()) == 3
+
+
+@freeze_time("2026-05-03")
+def test_export_one_pdf_all_grouped_merges_into_single_pdf(
+    client, programmation_projets, detr_arrete_modele, detr_lettre_modele
+):
+    _drive_through_step3(
+        client,
+        programmation_projets,
+        document_type=ARRETE_ET_LETTRE,
+        step2_fields={
+            "modele_arrete_id": str(detr_arrete_modele.id),
+            "modele_lettre_id": str(detr_lettre_modele.id),
+        },
+        export_format=EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
+    )
+    response = _post_step4(client)
+    assert response.status_code == 200
+
+    key, body = _read_storage_body(response.context["download_url"])
+    assert os.path.basename(key) == "export turgot 03-05-2026.pdf"
+    assert body[:4] == b"%PDF"

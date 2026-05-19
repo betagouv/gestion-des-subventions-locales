@@ -2,7 +2,6 @@ from django.urls import path
 
 from gsl_notification.views.generate_document_for_multiple_projets_views import (
     GenerateDocumentsWizard,
-    download_documents,
 )
 from gsl_notification.views.modele_views import (
     ChooseModeleDocumentType,
@@ -83,11 +82,6 @@ urlpatterns = [
         "<str:dotation>/generer/",
         GenerateDocumentsWizard.as_view(),
         name="generate-documents-modal",
-    ),
-    path(
-        "<str:dotation>/telechargement/<str:document_type>",
-        download_documents,
-        name="download-documents",
     ),
     # Uploaded files
     path(
