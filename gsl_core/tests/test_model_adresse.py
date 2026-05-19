@@ -2,6 +2,8 @@ import json
 
 import pytest
 
+from gsl_core.tests.factories import AdresseFactory
+
 from ..models import Adresse, Commune, Region
 
 pytestmark = pytest.mark.django_db
@@ -99,3 +101,13 @@ def test_it_works_with_a_simple_string(simple_string_address):
     adresse.save()
 
     assert adresse.label == simple_string_address
+
+
+def test_two_lines_returns_street_address_and_postal_code():
+    adresse = AdresseFactory(
+        street_address="1 rue de la Paix",
+        postal_code="75001",
+        commune__name="Paris",
+    )
+
+    assert adresse.two_lines == "1 rue de la Paix\n75001 Paris"
