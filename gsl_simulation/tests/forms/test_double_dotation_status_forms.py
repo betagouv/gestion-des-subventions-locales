@@ -1,8 +1,11 @@
 """
-Tests for double dotation status changes (form and notification).
+Tests for double dotation status changes.
 
 These tests verify that when a project has both DETR and DSIL dotations,
-status changes and notifications work correctly for each dotation independently.
+status changes work correctly for each dotation independently. Notification
+to DN is now a separate step (see gsl_notification tests), so even when all
+dotations resolve to refused/dismissed, the status-change form must not
+touch DN nor set ``projet.notified_at``.
 """
 
 from typing import cast
@@ -27,11 +30,7 @@ from gsl_projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
-from gsl_simulation.forms import (
-    DismissProjetForm,
-    RefuseProjetForm,
-    SimulationProjetStatusForm,
-)
+from gsl_simulation.forms import SimulationProjetStatusForm
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
@@ -67,20 +66,15 @@ def double_dotation_projet_detr_dsil():
 
 
 class TestRefuseOneDoubleDotation:
-    """Test refusing one dotation of a double dotation project."""
+    """Refusing one dotation never notifies DN at status-change time."""
 
-    def test_refuse_detr_with_simulation_form_when_dsil_processing(
+    def test_refuse_detr_when_dsil_processing(
         self, double_dotation_projet_detr_dsil, user
     ):
-        """
-        When refusing DETR with DSIL still processing, use SimulationProjetStatusForm.
-        This form doesn't notify DN, only updates dotation status.
-        """
         detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
         projet = double_dotation_projet_detr_dsil["projet"]
 
-        # Create simulation projet for DETR
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
@@ -90,13 +84,11 @@ class TestRefuseOneDoubleDotation:
             montant=5_000,
         )
 
-        # Use SimulationProjetStatusForm (not RefuseProjetForm) since DSIL is still processing
         form = SimulationProjetStatusForm(
             instance=detr_simulation_projet, status=SimulationProjet.STATUS_REFUSED
         )
         form.save(user)
 
-        # Verify statuses
         detr_dotation.refresh_from_db()
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
@@ -104,26 +96,19 @@ class TestRefuseOneDoubleDotation:
         assert detr_dotation.status == PROJET_STATUS_REFUSED
         assert dsil_dotation.status == PROJET_STATUS_PROCESSING
         assert projet.status == PROJET_STATUS_PROCESSING
-
-        # Projet should NOT be notified yet
         assert projet.notified_at is None
 
-    def test_refuse_detr_with_refuse_form_when_dsil_already_refused(
+    def test_refuse_detr_when_dsil_already_refused(
         self, double_dotation_projet_detr_dsil, user
     ):
-        """
-        When refusing DETR and DSIL already refused, use RefuseProjetForm.
-        This triggers DN notification because all dotations are now refused.
-        """
+        """Even when both dotations end up refused, no DS push at status time."""
         detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
         projet = double_dotation_projet_detr_dsil["projet"]
 
-        # Set DSIL to refused
         dsil_dotation.status = PROJET_STATUS_REFUSED
         dsil_dotation.save()
 
-        # Create simulation projet for DETR
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
@@ -134,21 +119,15 @@ class TestRefuseOneDoubleDotation:
         )
 
         with mock.patch(
-            "gsl_simulation.forms.DsMutator.dossier_refuser"
+            "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_refuser"
         ) as mock_ds_refuser:
-            # Use RefuseProjetForm since all dotations will be refused
-            form = RefuseProjetForm(
-                data={"justification": "Budget insuffisant"},
+            form = SimulationProjetStatusForm(
                 instance=detr_simulation_projet,
                 status=SimulationProjet.STATUS_REFUSED,
             )
-            assert form.is_valid()
             form.save(user)
+            mock_ds_refuser.assert_not_called()
 
-            # Verify DN was called (because all dotations are now refused)
-            mock_ds_refuser.assert_called_once()
-
-        # Verify statuses
         detr_dotation.refresh_from_db()
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
@@ -156,24 +135,18 @@ class TestRefuseOneDoubleDotation:
         assert detr_dotation.status == PROJET_STATUS_REFUSED
         assert dsil_dotation.status == PROJET_STATUS_REFUSED
         assert projet.status == PROJET_STATUS_REFUSED
-        assert projet.notified_at is not None
+        assert projet.notified_at is None
 
-    def test_refuse_detr_with_simulation_form_when_dsil_accepted(
+    def test_refuse_detr_when_dsil_accepted(
         self, double_dotation_projet_detr_dsil, user
     ):
-        """
-        When refusing DETR but DSIL accepted, use SimulationProjetStatusForm.
-        Project stays accepted (optimistic status), no DN notification.
-        """
         detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
         projet = double_dotation_projet_detr_dsil["projet"]
 
-        # Set DSIL to accepted
         dsil_dotation.status = PROJET_STATUS_ACCEPTED
         dsil_dotation.save()
 
-        # Create simulation projet for DETR
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
@@ -183,13 +156,11 @@ class TestRefuseOneDoubleDotation:
             montant=5_000,
         )
 
-        # Use SimulationProjetStatusForm since DSIL is accepted
         form = SimulationProjetStatusForm(
             instance=detr_simulation_projet, status=SimulationProjet.STATUS_REFUSED
         )
         form.save(user)
 
-        # Verify statuses
         detr_dotation.refresh_from_db()
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
@@ -201,20 +172,15 @@ class TestRefuseOneDoubleDotation:
 
 
 class TestDismissOneDoubleDotation:
-    """Test dismissing one dotation of a double dotation project."""
+    """Dismissing one dotation never notifies DN at status-change time."""
 
-    def test_dismiss_dsil_with_simulation_form_when_detr_processing(
+    def test_dismiss_dsil_when_detr_processing(
         self, double_dotation_projet_detr_dsil, user
     ):
-        """
-        When dismissing DSIL with DETR still processing, use SimulationProjetStatusForm.
-        This form doesn't notify DN, only updates dotation status.
-        """
         detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
         projet = double_dotation_projet_detr_dsil["projet"]
 
-        # Create simulation projet for DSIL
         dsil_enveloppe = DsilEnveloppeFactory(perimetre=projet.perimetre)
         dsil_simulation = SimulationFactory(enveloppe=dsil_enveloppe)
         dsil_simulation_projet = SimulationProjetFactory(
@@ -224,13 +190,11 @@ class TestDismissOneDoubleDotation:
             montant=7_500,
         )
 
-        # Use SimulationProjetStatusForm (not DismissProjetForm) since DETR is still processing
         form = SimulationProjetStatusForm(
             instance=dsil_simulation_projet, status=SimulationProjet.STATUS_DISMISSED
         )
         form.save(user)
 
-        # Verify statuses
         detr_dotation.refresh_from_db()
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
@@ -238,19 +202,15 @@ class TestDismissOneDoubleDotation:
         assert detr_dotation.status == PROJET_STATUS_PROCESSING
         assert dsil_dotation.status == PROJET_STATUS_DISMISSED
         assert projet.status == PROJET_STATUS_PROCESSING
+        assert projet.notified_at is None
 
-    def test_dismiss_dsil_with_dismiss_form_when_detr_dismissed(
+    def test_dismiss_dsil_when_detr_dismissed(
         self, double_dotation_projet_detr_dsil, user
     ):
-        """
-        When dismissing DSIL and DETR already dismissed, use DismissProjetForm.
-        This triggers DN notification because all dotations are now dismissed.
-        """
         detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
         projet = double_dotation_projet_detr_dsil["projet"]
 
-        # Set DETR to dismissed and create programmation for it
         detr_dotation.status = PROJET_STATUS_DISMISSED
         detr_dotation.save()
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
@@ -258,7 +218,6 @@ class TestDismissOneDoubleDotation:
             dotation_projet=detr_dotation, enveloppe=detr_enveloppe
         )
 
-        # Create simulation projet for DSIL
         dsil_enveloppe = DsilEnveloppeFactory(perimetre=projet.perimetre)
         dsil_simulation = SimulationFactory(enveloppe=dsil_enveloppe)
         dsil_simulation_projet = SimulationProjetFactory(
@@ -269,21 +228,15 @@ class TestDismissOneDoubleDotation:
         )
 
         with mock.patch(
-            "gsl_simulation.forms.DsService.dismiss_in_ds"
+            "gsl_demarches_simplifiees.services.DsService.dismiss_in_ds"
         ) as mock_ds_dismiss:
-            # Use DismissProjetForm since all dotations will be dismissed
-            form = DismissProjetForm(
-                data={"justification": "Projet abandonné"},
+            form = SimulationProjetStatusForm(
                 instance=dsil_simulation_projet,
                 status=SimulationProjet.STATUS_DISMISSED,
             )
-            assert form.is_valid()
             form.save(user)
+            mock_ds_dismiss.assert_not_called()
 
-            # Verify DN was called (because all dotations are now dismissed)
-            mock_ds_dismiss.assert_called_once()
-
-        # Verify statuses
         detr_dotation.refresh_from_db()
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
@@ -291,19 +244,15 @@ class TestDismissOneDoubleDotation:
         assert detr_dotation.status == PROJET_STATUS_DISMISSED
         assert dsil_dotation.status == PROJET_STATUS_DISMISSED
         assert projet.status == PROJET_STATUS_DISMISSED
+        assert projet.notified_at is None
 
-    def test_dismiss_dsil_with_dismiss_form_when_detr_refused(
+    def test_dismiss_dsil_when_detr_refused(
         self, double_dotation_projet_detr_dsil, user
     ):
-        """
-        When dismissing DSIL and DETR refused, use DismissProjetForm.
-        Projet becomes dismissed (dismissed takes precedence) and DN notification is sent.
-        """
         detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
         projet = double_dotation_projet_detr_dsil["projet"]
 
-        # Set DETR to refused and create programmation for it
         detr_dotation.status = PROJET_STATUS_REFUSED
         detr_dotation.save()
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
@@ -311,7 +260,6 @@ class TestDismissOneDoubleDotation:
             dotation_projet=detr_dotation, enveloppe=detr_enveloppe
         )
 
-        # Create simulation projet for DSIL
         dsil_enveloppe = DsilEnveloppeFactory(perimetre=projet.perimetre)
         dsil_simulation = SimulationFactory(enveloppe=dsil_enveloppe)
         dsil_simulation_projet = SimulationProjetFactory(
@@ -322,21 +270,15 @@ class TestDismissOneDoubleDotation:
         )
 
         with mock.patch(
-            "gsl_simulation.forms.DsService.dismiss_in_ds"
+            "gsl_demarches_simplifiees.services.DsService.dismiss_in_ds"
         ) as mock_ds_dismiss:
-            # Use DismissProjetForm since dismissed takes precedence over refused
-            form = DismissProjetForm(
-                data={"justification": "Projet abandonné"},
+            form = SimulationProjetStatusForm(
                 instance=dsil_simulation_projet,
                 status=SimulationProjet.STATUS_DISMISSED,
             )
-            assert form.is_valid()
             form.save(user)
+            mock_ds_dismiss.assert_not_called()
 
-            # Verify DN was called (dismissed takes precedence over refused)
-            mock_ds_dismiss.assert_called_once()
-
-        # Verify statuses
         detr_dotation.refresh_from_db()
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
@@ -344,10 +286,12 @@ class TestDismissOneDoubleDotation:
         assert detr_dotation.status == PROJET_STATUS_REFUSED
         assert dsil_dotation.status == PROJET_STATUS_DISMISSED
         assert projet.status == PROJET_STATUS_DISMISSED
+        assert projet.notified_at is None
 
 
 class TestAcceptOneDoubleDotation:
-    """Test accepting one dotation of a double dotation project."""
+    """Accepting still updates DS annotations because that's a per-dotation push,
+    not the applicant-facing notification."""
 
     @mock.patch(
         "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
@@ -355,12 +299,10 @@ class TestAcceptOneDoubleDotation:
     def test_accept_detr_leaves_dsil_processing(
         self, mock_ds_update, double_dotation_projet_detr_dsil, user
     ):
-        """When accepting DETR, DSIL remains in PROCESSING and projet stays PROCESSING."""
         detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
         projet = double_dotation_projet_detr_dsil["projet"]
 
-        # Create simulation projet for DETR
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
@@ -375,7 +317,6 @@ class TestAcceptOneDoubleDotation:
         )
         form.save(user)
 
-        # Verify DN update was called for DETR
         mock_ds_update.assert_called_once_with(
             dossier=projet.dossier_ds,
             user=user,
@@ -386,7 +327,6 @@ class TestAcceptOneDoubleDotation:
             taux=detr_simulation_projet.taux,
         )
 
-        # Verify statuses
         detr_dotation.refresh_from_db()
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
@@ -395,7 +335,6 @@ class TestAcceptOneDoubleDotation:
         assert dsil_dotation.status == PROJET_STATUS_PROCESSING
         assert projet.status == PROJET_STATUS_PROCESSING
 
-        # Verify programmation projet was created for DETR only
         assert ProgrammationProjet.objects.filter(
             dotation_projet=detr_dotation
         ).exists()
@@ -409,12 +348,10 @@ class TestAcceptOneDoubleDotation:
     def test_accept_both_dotations_separately(
         self, mock_ds_update, double_dotation_projet_detr_dsil, user
     ):
-        """Accepting both DETR and DSIL separately results in ACCEPTED projet with two programmations."""
         detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
         projet = double_dotation_projet_detr_dsil["projet"]
 
-        # Create simulation projets for both
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
@@ -433,7 +370,6 @@ class TestAcceptOneDoubleDotation:
             montant=7_500,
         )
 
-        # Accept DETR first
         form_detr = SimulationProjetStatusForm(
             instance=detr_simulation_projet, status=SimulationProjet.STATUS_ACCEPTED
         )
@@ -442,16 +378,13 @@ class TestAcceptOneDoubleDotation:
         projet.refresh_from_db()
         assert projet.status == PROJET_STATUS_PROCESSING
 
-        # Accept DSIL second
         form_dsil = SimulationProjetStatusForm(
             instance=dsil_simulation_projet, status=SimulationProjet.STATUS_ACCEPTED
         )
         form_dsil.save(user)
 
-        # Verify both DN updates were called
         assert mock_ds_update.call_count == 2
 
-        # Verify final statuses
         detr_dotation.refresh_from_db()
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
@@ -460,7 +393,6 @@ class TestAcceptOneDoubleDotation:
         assert dsil_dotation.status == PROJET_STATUS_ACCEPTED
         assert projet.status == PROJET_STATUS_ACCEPTED
 
-        # Verify two separate programmation projets were created
         assert ProgrammationProjet.objects.filter(
             dotation_projet=detr_dotation
         ).exists()
@@ -474,16 +406,13 @@ class TestAcceptOneDoubleDotation:
     def test_accept_detr_when_dsil_refused_projet_becomes_accepted(
         self, mock_ds_update, double_dotation_projet_detr_dsil, user
     ):
-        """When accepting DETR and DSIL is refused, projet becomes ACCEPTED (optimistic)."""
         detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
         projet = double_dotation_projet_detr_dsil["projet"]
 
-        # Set DSIL to refused
         dsil_dotation.status = PROJET_STATUS_REFUSED
         dsil_dotation.save()
 
-        # Create simulation projet for DETR
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
@@ -498,7 +427,6 @@ class TestAcceptOneDoubleDotation:
         )
         form.save(user)
 
-        # Verify statuses - projet is ACCEPTED (optimistic)
         detr_dotation.refresh_from_db()
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
@@ -508,119 +436,16 @@ class TestAcceptOneDoubleDotation:
         assert projet.status == PROJET_STATUS_ACCEPTED
 
 
-class TestNotificationBehaviorWithDoubleDotation:
-    """Test notification behavior for double dotation projects."""
-
-    def test_simulation_form_does_not_notify_projet(
-        self, double_dotation_projet_detr_dsil, user
-    ):
-        """SimulationProjetStatusForm doesn't notify projet when refusing one dotation."""
-        detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
-        projet = double_dotation_projet_detr_dsil["projet"]
-
-        # Create simulation projet for DETR
-        detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
-        detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
-        detr_simulation_projet = SimulationProjetFactory(
-            dotation_projet=detr_dotation,
-            simulation=detr_simulation,
-            status=SimulationProjet.STATUS_PROCESSING,
-            montant=5_000,
-        )
-
-        # Use SimulationProjetStatusForm (doesn't notify)
-        form = SimulationProjetStatusForm(
-            instance=detr_simulation_projet, status=SimulationProjet.STATUS_REFUSED
-        )
-        form.save(user)
-
-        projet.refresh_from_db()
-        assert projet.notified_at is None
-
-    def test_refuse_form_notifies_projet(self, double_dotation_projet_detr_dsil, user):
-        """RefuseProjetForm notifies projet when all dotations are refused."""
-        detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
-        dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
-        projet = double_dotation_projet_detr_dsil["projet"]
-
-        # Set DSIL to refused
-        dsil_dotation.status = PROJET_STATUS_REFUSED
-        dsil_dotation.save()
-
-        # Create simulation projet for DETR
-        detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
-        detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
-        detr_simulation_projet = SimulationProjetFactory(
-            dotation_projet=detr_dotation,
-            simulation=detr_simulation,
-            status=SimulationProjet.STATUS_PROCESSING,
-            montant=5_000,
-        )
-
-        with mock.patch("gsl_simulation.forms.DsMutator.dossier_refuser"):
-            form = RefuseProjetForm(
-                data={"justification": "Budget insuffisant"},
-                instance=detr_simulation_projet,
-                status=SimulationProjet.STATUS_REFUSED,
-            )
-            form.is_valid()
-            form.save(user)
-
-        projet.refresh_from_db()
-        assert projet.notified_at is not None
-
-    def test_dismiss_form_notifies_programmation_projet(
-        self, double_dotation_projet_detr_dsil, user
-    ):
-        """DismissProjetForm notifies the specific programmation_projet for the dotation."""
-        detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
-        dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
-        projet = double_dotation_projet_detr_dsil["projet"]
-
-        # Set DETR to dismissed and create programmation for it
-        detr_dotation.status = PROJET_STATUS_DISMISSED
-        detr_dotation.save()
-        detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
-        detr_prog = ProgrammationProjetFactory(
-            dotation_projet=detr_dotation, enveloppe=detr_enveloppe
-        )
-
-        # Create simulation projet for DSIL
-        dsil_enveloppe = DsilEnveloppeFactory(perimetre=projet.perimetre)
-        dsil_simulation = SimulationFactory(enveloppe=dsil_enveloppe)
-        dsil_simulation_projet = SimulationProjetFactory(
-            dotation_projet=dsil_dotation,
-            simulation=dsil_simulation,
-            status=SimulationProjet.STATUS_PROCESSING,
-            montant=7_500,
-        )
-
-        with mock.patch("gsl_simulation.forms.DsService.dismiss_in_ds"):
-            form = DismissProjetForm(
-                data={"justification": "Projet abandonné"},
-                instance=dsil_simulation_projet,
-                status=SimulationProjet.STATUS_DISMISSED,
-            )
-            form.is_valid()
-            form.save(user)
-
-        # Verify only DSIL programmation_projet is notified (not DETR)
-        detr_prog.refresh_from_db()
-        dsil_dotation.refresh_from_db()
-
-        # Note: the test checks project-level notification via deprecation warning
-        # But we verify the programmation is created and would be notifiable
-        assert dsil_dotation.programmation_projet is not None
+class TestSetBackToProcessing:
+    """Setting one dotation back to processing removes its programmation."""
 
     def test_set_back_to_processing_removes_programmation_for_one_dotation(
         self, double_dotation_projet_detr_dsil, user
     ):
-        """Setting one dotation back to processing removes its programmation_projet and clears notified_at."""
         detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
         projet = double_dotation_projet_detr_dsil["projet"]
 
-        # Refuse both dotations (which sets notified_at)
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
@@ -629,10 +454,9 @@ class TestNotificationBehaviorWithDoubleDotation:
             status=SimulationProjet.STATUS_PROCESSING,
             montant=5_000,
         )
-        form_detr = SimulationProjetStatusForm(
+        SimulationProjetStatusForm(
             instance=detr_simulation_projet, status=SimulationProjet.STATUS_REFUSED
-        )
-        form_detr.save(user)
+        ).save(user)
 
         dsil_enveloppe = DsilEnveloppeFactory(perimetre=projet.perimetre)
         dsil_simulation = SimulationFactory(enveloppe=dsil_enveloppe)
@@ -642,22 +466,14 @@ class TestNotificationBehaviorWithDoubleDotation:
             status=SimulationProjet.STATUS_PROCESSING,
             montant=7_500,
         )
+        SimulationProjetStatusForm(
+            instance=dsil_simulation_projet, status=SimulationProjet.STATUS_REFUSED
+        ).save(user)
 
-        with mock.patch("gsl_simulation.forms.DsMutator.dossier_refuser"):
-            form_dsil = RefuseProjetForm(
-                data={"justification": "Budget insuffisant"},
-                instance=dsil_simulation_projet,
-                status=SimulationProjet.STATUS_REFUSED,
-            )
-            form_dsil.is_valid()
-            form_dsil.save(user)
-
-        # Refresh to see refused statuses
         detr_dotation.refresh_from_db()
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
 
-        # Both should be refused with programmation projets
         assert detr_dotation.status == PROJET_STATUS_REFUSED
         assert dsil_dotation.status == PROJET_STATUS_REFUSED
         assert projet.status == PROJET_STATUS_REFUSED
@@ -667,13 +483,10 @@ class TestNotificationBehaviorWithDoubleDotation:
         assert ProgrammationProjet.objects.filter(
             dotation_projet=dsil_dotation
         ).exists()
-        # Verify notified_at was set
-        assert projet.notified_at is not None
+        # No notification happens at status-change time anymore.
+        assert projet.notified_at is None
 
-        # Set DETR back to processing
         detr_simulation_projet.refresh_from_db()
-        detr_simulation_projet.status = SimulationProjet.STATUS_REFUSED
-        detr_simulation_projet.save()
 
         with mock.patch(
             "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
@@ -681,13 +494,11 @@ class TestNotificationBehaviorWithDoubleDotation:
             with mock.patch(
                 "gsl_demarches_simplifiees.services.DsService.repasser_en_instruction"
             ):
-                form_back = SimulationProjetStatusForm(
+                SimulationProjetStatusForm(
                     instance=detr_simulation_projet,
                     status=SimulationProjet.STATUS_PROCESSING,
-                )
-                form_back.save(user)
+                ).save(user)
 
-        # DETR programmation should be removed, DSIL should remain
         assert not ProgrammationProjet.objects.filter(
             dotation_projet=detr_dotation
         ).exists()
@@ -695,14 +506,15 @@ class TestNotificationBehaviorWithDoubleDotation:
             dotation_projet=dsil_dotation
         ).exists()
 
-        # Refresh and verify statuses
         detr_dotation.refresh_from_db()
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
 
-        # DETR is back to processing, DSIL still refused, projet becomes processing
         assert detr_dotation.status == PROJET_STATUS_PROCESSING
         assert dsil_dotation.status == PROJET_STATUS_REFUSED
         assert projet.status == PROJET_STATUS_PROCESSING
-        # Verify notified_at was cleared
         assert projet.notified_at is None
+
+
+# Silence unused-import warnings for the factory used only in fixtures above.
+_ = DotationProjetFactory

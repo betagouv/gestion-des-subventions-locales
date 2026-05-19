@@ -18,11 +18,7 @@ from gsl_projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.tests.factories import DotationProjetFactory
-from gsl_simulation.forms import (
-    DismissProjetForm,
-    RefuseProjetForm,
-    SimulationProjetStatusForm,
-)
+from gsl_simulation.forms import SimulationProjetStatusForm
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
@@ -35,70 +31,44 @@ def user() -> Collegue:
 
 
 @pytest.mark.parametrize(
-    ("ds_service, dotation_projet_transition, form_class"),
+    ("simulation_projet_status, dotation_projet_transition"),
     (
-        (
-            ("gsl_simulation.forms.DsMutator.dossier_refuser", False, True),
-            (SimulationProjet.STATUS_REFUSED, "refuse", True, False),
-            RefuseProjetForm,
-        ),
-        (
-            ("gsl_simulation.forms.DsService.dismiss_in_ds", True, False),
-            (SimulationProjet.STATUS_DISMISSED, "dismiss", True, False),
-            DismissProjetForm,
-        ),
+        (SimulationProjet.STATUS_REFUSED, "refuse"),
+        (SimulationProjet.STATUS_DISMISSED, "dismiss"),
     ),
 )
-def test_simulation_projet_transition_are_called(
-    ds_service,
-    dotation_projet_transition,
-    form_class,
+def test_refuse_or_dismiss_does_not_touch_ds(
+    simulation_projet_status, dotation_projet_transition, user
 ):
+    """
+    Refuse and dismiss only update the DotationProjet status: no DS mutation,
+    no projet.notified_at update. Notification is now a separate step.
+    """
     simulation_projet = SimulationProjetFactory()
-    (ds_service, with_user, with_document) = ds_service
-    (
-        simulation_projet_status,
-        dotation_projet_transition,
-        with_enveloppe,
-        with_montant,
-    ) = dotation_projet_transition
+
     with mock.patch(
         f"gsl_projet.models.DotationProjet.{dotation_projet_transition}",
         wraps=getattr(simulation_projet.dotation_projet, dotation_projet_transition),
-    ) as mock_transition_dotation_projet:
-        with mock.patch(ds_service) as mock_ds_service:
-            args = {}
-            kwargs = {}
-            if with_enveloppe:
-                args["enveloppe"] = simulation_projet.enveloppe
-            if with_montant:
-                args["montant"] = simulation_projet.montant
-
-            form = form_class(
-                data={"justification": "justification"},
-                instance=simulation_projet,
-                status=simulation_projet_status,
+    ) as mock_transition:
+        with (
+            mock.patch(
+                "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_refuser"
+            ) as mock_refuser,
+            mock.patch(
+                "gsl_demarches_simplifiees.services.DsService.dismiss_in_ds"
+            ) as mock_dismiss,
+        ):
+            form = SimulationProjetStatusForm(
+                instance=simulation_projet, status=simulation_projet_status
             )
-            form.is_valid()
-            user = CollegueFactory()
             form.save(user)
-            mock_transition_dotation_projet.assert_called_once_with(**args, **kwargs)
 
-            args = {}
-            kwargs = {}
-            if with_user:
-                args["user"] = user
-            else:
-                args["user"] = ""
-            if with_document:
-                kwargs["document"] = None
+    mock_transition.assert_called_once_with(enveloppe=simulation_projet.enveloppe)
+    mock_refuser.assert_not_called()
+    mock_dismiss.assert_not_called()
 
-            mock_ds_service.assert_called_once_with(
-                simulation_projet.dossier,
-                args["user"],
-                motivation="justification",
-                **kwargs,
-            )
+    simulation_projet.refresh_from_db()
+    assert simulation_projet.projet.notified_at is None
 
 
 @mock.patch(

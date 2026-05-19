@@ -19,6 +19,7 @@ from gsl_core.tests.factories import (
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
+from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
 from gsl_projet.constants import (
     DOTATION_DETR,
@@ -160,7 +161,7 @@ class TestAcceptanceModalView:
             _accept_url(simulation_projet), headers={"HX-Request": "true"}
         )
         assert response.status_code == 200
-        assert "htmx/notify_later_confirmation_modal.html" in [
+        assert "htmx/programmation_status_change_modal.html" in [
             t.name for t in response.templates if t.name
         ]
 
@@ -255,3 +256,42 @@ class TestAcceptanceModalView:
         simulation_projet.refresh_from_db()
         assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
         mock_update.assert_not_called()
+
+    @mock.patch("gsl_projet.models.DsService.update_ds_annotations_for_one_dotation")
+    def test_post_shows_ds_error_inline_in_modal_and_rolls_back(
+        self,
+        mock_update,
+        client_with_user_logged,
+        collegue,
+        simulation,
+    ):
+        mock_update.side_effect = DsServiceException("Erreur DN simulée")
+        simulation_projet = _make_simulation_projet(
+            collegue, simulation, assiette=5_000, montant=3_000
+        )
+
+        response = client_with_user_logged.post(
+            _accept_url(simulation_projet), {}, headers={"HX-Request": "true"}
+        )
+
+        # The modal stays open with the DS error rendered inline (no client
+        # refresh / flash banner), and the atomic save rolled the status back.
+        assert response.status_code == 200
+        assert "HX-Refresh" not in response.headers
+        assert "htmx/programmation_status_change_modal.html" in [
+            t.name for t in response.templates if t.name
+        ]
+
+        html = response.content.decode()
+        error_message = (
+            "Une erreur est survenue lors de la mise à jour des informations "
+            "sur Démarche Numérique. Erreur DN simulée"
+        )
+        # The error must be rendered as a form error *inside* the modal dialog,
+        # not as a page-level flash banner.
+        dialog = html[html.index('<dialog class="fr-modal"') : html.index("</dialog>")]
+        assert error_message in dialog
+        assert 'class="errorlist nonfield"' in dialog
+
+        simulation_projet.refresh_from_db()
+        assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING

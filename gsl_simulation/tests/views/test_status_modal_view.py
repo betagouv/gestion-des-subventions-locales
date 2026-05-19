@@ -116,31 +116,21 @@ def test_refuse_modal_allows_non_notified_projects(
 
 
 @mock.patch("gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds")
-@mock.patch("gsl_simulation.forms.DsService.dismiss_in_ds")
 def test_dismiss_projet(
-    mock_dismiss_in_ds,
     mock_save_one_dossier_from_ds,
     client_with_user_logged,
     simulation_projet,
 ):
-    data = {"justification": "Ma motivation"}
-
     url = reverse(
         "gsl_simulation:simulation-projet-update-programmed-status",
         args=[simulation_projet.id, SimulationProjet.STATUS_DISMISSED],
     )
-    response = client_with_user_logged.post(url, data, headers={"HX-Request": "true"})
+    response = client_with_user_logged.post(url, {}, headers={"HX-Request": "true"})
 
     assert response.status_code == 200
 
     mock_save_one_dossier_from_ds.assert_called_once_with(
         simulation_projet.projet.dossier_ds
-    )
-
-    mock_dismiss_in_ds.assert_called_once_with(
-        simulation_projet.projet.dossier_ds,
-        client_with_user_logged.user,
-        motivation="Ma motivation",
     )
 
     messages = get_messages(response.wsgi_request)
@@ -150,6 +140,11 @@ def test_dismiss_projet(
     assert message.level == 25
     assert (
         message.message
-        == "La demande de financement avec la dotation DETR a bien été classée sans suite. Le dossier a bien été mis à jour sur Démarche Numérique."
+        == "La demande de financement avec la dotation DETR a bien été classée sans suite. Pensez à notifier le demandeur."
     )
     assert message.extra_tags == "dismissed"
+
+    # The status changed but notification is now decoupled: no DS update here.
+    simulation_projet.refresh_from_db()
+    assert simulation_projet.dotation_projet.status == "dismissed"
+    assert simulation_projet.projet.notified_at is None

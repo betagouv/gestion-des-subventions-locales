@@ -500,9 +500,10 @@ def test_status_and_notification_status_card_displays_the_correct_notification_s
     (
         (PROJET_STATUS_ACCEPTED, True),
         (PROJET_STATUS_PROCESSING, False),
-        # These statuses configurations should not exist when the projet has not been notified =>
-        (PROJET_STATUS_REFUSED, False),
-        (PROJET_STATUS_DISMISSED, False),
+        # Refused/dismissed projects also need a notification button now
+        # (the notification step is decoupled from the status change).
+        (PROJET_STATUS_REFUSED, True),
+        (PROJET_STATUS_DISMISSED, True),
     ),
 )
 def test_status_and_notification_status_card_displays_notification_button_simple_dotation_when_the_projet_has_not_been_notified(
@@ -595,13 +596,15 @@ def test_status_and_notification_status_card_does_not_display_notification_butto
         (PROJET_STATUS_ACCEPTED, PROJET_STATUS_ACCEPTED, True),
         (PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, True),
         (PROJET_STATUS_ACCEPTED, PROJET_STATUS_DISMISSED, True),
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING, True),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_REFUSED, False),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED, False),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_REFUSED, True),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED, True),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_DISMISSED, True),
+        # PROCESSING means the dotation has no programmation_projet yet, so
+        # the projet is not ready to be notified.
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING, False),
         (PROJET_STATUS_REFUSED, PROJET_STATUS_PROCESSING, False),
-        (PROJET_STATUS_DISMISSED, PROJET_STATUS_DISMISSED, False),
         (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING, False),
-        (PROJET_STATUS_PROCESSING, PROJET_STATUS_ACCEPTED, True),
+        (PROJET_STATUS_PROCESSING, PROJET_STATUS_ACCEPTED, False),
         (PROJET_STATUS_PROCESSING, PROJET_STATUS_REFUSED, False),
         (PROJET_STATUS_PROCESSING, PROJET_STATUS_DISMISSED, False),
         (PROJET_STATUS_PROCESSING, PROJET_STATUS_PROCESSING, False),

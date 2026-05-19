@@ -288,7 +288,7 @@ def test_dismiss_in_ds():
 
         mock_get_instructeur_id.assert_called_once_with(user)
         mock_dossier_classer_sans_suite.assert_called_once_with(
-            dossier.ds_id, "instructeur_id", "motivation"
+            dossier.ds_id, "instructeur_id", "motivation", document=None
         )
         mock_check_results.assert_called_once_with(
             results, dossier, user, "dismiss", value="motivation"

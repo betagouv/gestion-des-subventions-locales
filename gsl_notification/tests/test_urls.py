@@ -23,6 +23,14 @@ def test_documents_url():
     assert url == "/notification/123/documents/"
 
 
+def test_notify_refused_dismissed_url():
+    url = reverse(
+        "gsl_notification:notify-refused-dismissed",
+        kwargs={"projet_id": 123},
+    )
+    assert url == "/notification/123/notifier/refus-ou-classement/"
+
+
 # Document URLs
 
 

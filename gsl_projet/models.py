@@ -427,10 +427,14 @@ class Projet(BaseModel):
         )
 
     @property
-    def can_display_notification_tab(self) -> bool:
+    def has_accepted_dotation(self) -> bool:
         return any(
             d.status == PROJET_STATUS_ACCEPTED for d in self.dotationprojet_set.all()
         )
+
+    @property
+    def can_display_notification_tab(self) -> bool:
+        return self.has_accepted_dotation
 
     @property
     def dotation_not_treated(self) -> Optional[POSSIBLE_DOTATIONS]:
@@ -456,12 +460,9 @@ class Projet(BaseModel):
 
     @property
     def display_notification_button(self) -> bool:
-        return (
-            any(
-                dp.status == PROJET_STATUS_ACCEPTED
-                for dp in self.dotationprojet_set.all()
-            )
-            and self.notified_at is None
+        return self.to_notify and any(
+            dp.status != PROJET_STATUS_PROCESSING
+            for dp in self.dotationprojet_set.all()
         )
 
     @property

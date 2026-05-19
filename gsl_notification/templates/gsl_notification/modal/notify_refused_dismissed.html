@@ -1,0 +1,71 @@
+{% extends "htmx/_base_htmx_modal.html" %}
+{% load simulation_filters %}
+
+{% block button %}
+    {% if trigger_as_link %}
+        <a class="fr-link fr-link--icon-right fr-icon-mail-line"
+           href="#"
+           id="{{ modal_button_id }}"
+           aria-controls="{{ modal_id }}"
+           data-fr-opened="false">
+            À notifier
+        </a>
+    {% else %}
+        <button class="fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
+                id="{{ modal_button_id }}"
+                type="button"
+                aria-controls="{{ modal_id }}"
+                data-fr-opened="false">
+            Notifier le demandeur
+        </button>
+    {% endif %}
+{% endblock button %}
+
+{% block dialog_close_behavior %}
+{% endblock dialog_close_behavior %}
+
+{% block content %}
+    <h1 class="fr-modal__title" id="{{ modal_id }}-title">
+        <i class="fr-icon-mail-line"></i>
+        Notifier sur Démarche Numérique
+        {% if projet.has_double_dotations %}
+            {# djlint:off #}
+            ({% for dp in projet.dotationprojet_set.all %}{% if forloop.first %}{{ dp.status|status_to_action_word|capfirst }}{% else %}{{ dp.status|status_to_action_word }}{% endif %} {{ dp.dotation }}{% if not forloop.last %} et {% endif %}{% endfor %})
+            {# djlint:on #}
+        {% endif %}
+    </h1>
+    <p>
+        {# djlint:off #}
+        {% if projet.has_double_dotations %}Le demandeur sera notifié {% for dp in projet.dotationprojet_set.all %}{% if dp.status == "refused" %}du refus{% else %}du classement sans suite{% endif %} de la dotation {{ dp.dotation }}{% if not forloop.last %} et {% endif %}{% endfor %}.{% else %}Le demandeur sera notifié {% if projet.status == "refused" %}du refus{% else %}du classement sans suite{% endif %}.{% endif %}
+        {# djlint:on #}
+    </p>
+    <form id="{{ modal_id }}-form"
+          hx-post="{{ request.path }}"
+          hx-encoding="multipart/form-data"
+          hx-target="#{{ modal_id }}"
+          hx-swap="outerHTML"
+          hx-disabled-elt="#{{ modal_id }}-submit-button, #{{ modal_id }}-cancel-button">
+        {% csrf_token %}
+        {{ form }}
+    </form>
+    {% if projet.dossier_ds.ds_state == "en_construction" %}
+        <div class="fr-alert fr-alert--info fr-alert--sm fr-mt-2w">
+            <p class="fr-alert__title">
+                Dossier en construction
+            </p>
+            <p>
+                Le dossier de ce projet est actuellement en construction sur Démarche
+                Numérique. Le projet sera passé en instruction avant d'être notifié.
+            </p>
+        </div>
+    {% endif %}
+{% endblock content %}
+
+{% block confirmation_button %}
+    <button type="submit"
+            class="fr-btn fr-btn--primary"
+            form="{{ modal_id }}-form"
+            id="{{ modal_id }}-submit-button">
+        {{ projet.status|status_to_action_word|capfirst }}
+    </button>
+{% endblock confirmation_button %}
