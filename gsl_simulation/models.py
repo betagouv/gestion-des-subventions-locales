@@ -108,17 +108,22 @@ class Simulation(BaseModel):
             "notified": 0,
         }
         status_count = (
-            SimulationProjet.active.filter(simulation=self)
+            SimulationProjet.objects.active()
+            .filter(simulation=self)
             .values("status")
             .annotate(count=Count("status"))
         )
 
         summary = {item["status"]: item["count"] for item in status_count}
 
-        notified_count = SimulationProjet.active.filter(
-            simulation=self,
-            dotation_projet__projet__notified_at__isnull=False,
-        ).count()
+        notified_count = (
+            SimulationProjet.objects.active()
+            .filter(
+                simulation=self,
+                dotation_projet__projet__notified_at__isnull=False,
+            )
+            .count()
+        )
 
         return {**default_status_summary, **summary, "notified": notified_count}
 
@@ -139,6 +144,9 @@ class Simulation(BaseModel):
 
 
 class SimulationProjetQuerySet(models.QuerySet):
+    def active(self):
+        return self.filter(dotation_projet__projet__dossier_ds__is_active=True)
+
     def in_user_perimeter(self, user: Collegue):
         if user.is_staff:
             return self.all()
@@ -151,17 +159,6 @@ class SimulationProjetQuerySet(models.QuerySet):
 
 class SimulationProjetManager(models.Manager.from_queryset(SimulationProjetQuerySet)):
     pass
-
-
-class ActiveSimulationProjetManager(
-    models.Manager.from_queryset(SimulationProjetQuerySet)
-):
-    def get_queryset(self):
-        return (
-            super()
-            .get_queryset()
-            .filter(dotation_projet__projet__dossier_ds__is_active=True)
-        )
 
 
 class SimulationProjet(BaseModel):
@@ -205,7 +202,6 @@ class SimulationProjet(BaseModel):
     )
 
     objects = SimulationProjetManager()
-    active = ActiveSimulationProjetManager()
 
     class Meta:
         verbose_name = "Projet de simulation"

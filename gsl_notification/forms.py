@@ -388,7 +388,8 @@ class GenerateDocumentsLaunchForm(BaseGenerateDocumentsForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["ids"].queryset = (
-            ProgrammationProjet.active.visible_to_user(self.user)
+            ProgrammationProjet.objects.active()
+            .visible_to_user(self.user)
             .can_generate_documents()
             .filter(dotation_projet__dotation=self.dotation)
             .select_related("dotation_projet__projet")
@@ -595,7 +596,8 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
             )
 
         return list(
-            ProgrammationProjet.active.select_related(
+            ProgrammationProjet.objects.active()
+            .select_related(
                 "arrete",
                 "arrete__modele",
                 "lettre_notification",
@@ -623,9 +625,13 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
             ).delete()
             pps_to_create = programmation_projets
         else:
-            pps_to_create = ProgrammationProjet.active.filter(
-                pk__in=programmation_projets
-            ).exclude(pk__in=document_class.objects.values("programmation_projet_id"))
+            pps_to_create = (
+                ProgrammationProjet.objects.active()
+                .filter(pk__in=programmation_projets)
+                .exclude(
+                    pk__in=document_class.objects.values("programmation_projet_id")
+                )
+            )
 
         for pp in pps_to_create:
             document_class(

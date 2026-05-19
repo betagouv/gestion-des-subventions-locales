@@ -27,12 +27,11 @@ logger = getLogger(__name__)
 def _add_enveloppe_projets_to_simulation(simulation: Simulation):
     simulation_perimetre = simulation.enveloppe.perimetre
     simulation_dotation = simulation.enveloppe.dotation
-    selected_projets = Projet.active.for_perimetre(simulation_perimetre)
+    selected_projets = Projet.objects.active().for_perimetre(simulation_perimetre)
     selected_projets = selected_projets.for_current_year()
     selected_dotation_projet = (
-        DotationProjet.active.filter(
-            projet__in=selected_projets, dotation=simulation_dotation
-        )
+        DotationProjet.objects.active()
+        .filter(projet__in=selected_projets, dotation=simulation_dotation)
         .exclude(programmation_projet__enveloppe__annee__lt=simulation.enveloppe.annee)
         .select_related(
             "projet",
@@ -446,7 +445,8 @@ class BulkStatusJobForm(ModelForm):
         ids = cleaned.get("simulation_projet_ids")
         if simulation and ids:
             visible_ids = set(
-                SimulationProjet.active.in_user_perimeter(self.user)
+                SimulationProjet.objects.active()
+                .in_user_perimeter(self.user)
                 .filter(simulation=simulation, id__in=ids)
                 .values_list("id", flat=True)
             )

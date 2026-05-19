@@ -32,7 +32,7 @@ def test_programmation_projet_active_manager_excludes_inactive_dossier():
     ProgrammationProjetFactory()
     ProgrammationProjetFactory(dotation_projet__projet__dossier_ds__is_active=False)
 
-    assert ProgrammationProjet.active.count() == 1
+    assert ProgrammationProjet.objects.active().count() == 1
     assert ProgrammationProjet.objects.count() == 2
 
 

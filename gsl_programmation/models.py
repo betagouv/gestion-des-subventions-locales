@@ -110,7 +110,7 @@ class Enveloppe(BaseModel):
 
     @cached_property
     def enveloppe_projets_included(self):
-        return Projet.active.included_in_enveloppe(self)
+        return Projet.objects.active().included_in_enveloppe(self)
 
     @property
     def montant_asked(self):
@@ -121,11 +121,11 @@ class Enveloppe(BaseModel):
     @cached_property
     def enveloppe_projets_processed(self):
         if self.is_deleguee:
-            return ProgrammationProjet.active.filter(
+            return ProgrammationProjet.objects.active().filter(
                 enveloppe=self.delegation_root,
                 dotation_projet__projet__in=self.enveloppe_projets_included,
             )
-        return ProgrammationProjet.active.filter(enveloppe=self)
+        return ProgrammationProjet.objects.active().filter(enveloppe=self)
 
     @property
     def accepted_montant(self):
@@ -214,27 +214,21 @@ class ProgrammationProjetQuerySet(models.QuerySet):
             dotation_projet__projet__in=Projet.objects.for_perimetre(perimetre)
         )
 
+    def active(self):
+        return self.filter(dotation_projet__projet__dossier_ds__is_active=True)
+
     def visible_to_user(self, user):
         if user.is_staff:
             return self.all()
-        return self.filter(dotation_projet__projet__in=Projet.active.for_user(user))
+        return self.filter(
+            dotation_projet__projet__in=Projet.objects.active().for_user(user)
+        )
 
 
 class ProgrammationProjetManager(
     models.Manager.from_queryset(ProgrammationProjetQuerySet)
 ):
     pass
-
-
-class ActiveProgrammationProjetManager(
-    models.Manager.from_queryset(ProgrammationProjetQuerySet)
-):
-    def get_queryset(self):
-        return (
-            super()
-            .get_queryset()
-            .filter(dotation_projet__projet__dossier_ds__is_active=True)
-        )
 
 
 class ProgrammationProjet(models.Model):
@@ -280,7 +274,6 @@ class ProgrammationProjet(models.Model):
     )
 
     objects = ProgrammationProjetManager()
-    active = ActiveProgrammationProjetManager()
 
     class Meta:
         verbose_name = "Programmation projet"

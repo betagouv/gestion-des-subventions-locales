@@ -132,7 +132,8 @@ class BulkStatusJobProgressView(DetailView):
         if self.object.status != BulkStatusJob.STATUS_DONE:
             return []
         return list(
-            SimulationProjet.active.filter(
+            SimulationProjet.objects.active()
+            .filter(
                 id__in=self.object.simulation_projet_ids,
             )
             .select_related(

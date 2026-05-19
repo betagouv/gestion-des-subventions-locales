@@ -270,23 +270,15 @@ class ProjetQuerySet(models.QuerySet):
 
         return self._totals
 
+    def active(self):
+        return self.filter(dossier_ds__is_active=True)
+
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
     def get_queryset(self):
         return (
             super()
             .get_queryset()
-            .select_related("dossier_ds")
-            .prefetch_related("dotationprojet_set")
-        )
-
-
-class ActiveProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
-    def get_queryset(self):
-        return (
-            super()
-            .get_queryset()
-            .filter(dossier_ds__is_active=True)
             .select_related("dossier_ds")
             .prefetch_related("dotationprojet_set")
         )
@@ -356,7 +348,6 @@ class Projet(BaseModel):
     )
 
     objects = ProjetManager()
-    active = ActiveProjetManager()
 
     def __str__(self):
         return f"Projet {self.pk} — Dossier {self.dossier_ds.ds_number}"
@@ -536,14 +527,12 @@ class DotationProjetQuerySet(models.QuerySet):
             programmation_projet__lettre_et_arrete_signes__isnull=True,
         )
 
+    def active(self):
+        return self.filter(projet__dossier_ds__is_active=True)
+
 
 class DotationProjetManager(models.Manager.from_queryset(DotationProjetQuerySet)):
     pass
-
-
-class ActiveDotationProjetManager(models.Manager.from_queryset(DotationProjetQuerySet)):
-    def get_queryset(self):
-        return super().get_queryset().filter(projet__dossier_ds__is_active=True)
 
 
 class DotationProjet(BaseModel):
@@ -574,7 +563,6 @@ class DotationProjet(BaseModel):
     )
 
     objects = DotationProjetManager()
-    active = ActiveDotationProjetManager()
 
     class Meta:
         unique_together = ("projet", "dotation")
