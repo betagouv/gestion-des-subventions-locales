@@ -47,7 +47,8 @@
         {% if document.is_downloadable %}
             <div class="fr-enlarge-link">
                 <a href="{{ document.get_view_url }}"
-                   class="arrete-card__image-container">
+                   class="arrete-card__image-container"
+                   data-qr-code-toggle-target="link">
                     <img class="arrete-card__image"
                          src="{% static 'img/arrete_vignette.png' %}"
                          alt="Image d'un arrêté">
@@ -55,7 +56,8 @@
                 </a>
             </div>
             <a class="fr-link fr-link--download"
-               href="{{ document.get_download_url }}">
+               href="{{ document.get_download_url }}"
+               data-qr-code-toggle-target="link">
                 {{ document.name }} -
                 {{ document.file_type|upper }} -
                 {{ document.size|filesizeformat }}

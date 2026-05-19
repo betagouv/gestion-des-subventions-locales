@@ -188,3 +188,42 @@ def test_decode_per_page_returns_bbox_in_bottom_left(tmp_path):
         assert (w * h) < 0.1 * image_area, (
             f"bbox too large: area={w * h} vs image_area={image_area}"
         )
+
+
+@pytest.mark.django_db
+def test_no_qr_when_with_qr_code_is_false(tmp_path):
+    """with_qr_code=False produces a PDF without any decodable GSL QR."""
+    pytest.importorskip("pypdfium2")
+    pytest.importorskip("zxingcpp")
+
+    from gsl_notification.tests.factories import (
+        LettreNotificationFactory,
+        ModeleLettreNotificationFactory,
+    )
+    from gsl_notification.utils import generate_pdf_for_generated_document
+    from gsl_programmation.tests.factories import ProgrammationProjetFactory
+
+    pp = ProgrammationProjetFactory(
+        dotation_projet__projet__dossier_ds__ds_number=2222222,
+    )
+    modele = ModeleLettreNotificationFactory(
+        dotation=pp.dotation,
+        perimetre=pp.dotation_projet.projet.dossier_ds.perimetre,
+    )
+    document = LettreNotificationFactory(
+        programmation_projet=pp,
+        modele=modele,
+        content="<p>" + ("Contenu de test. " * 200) + "</p>",
+    )
+
+    with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
+        pdf_bytes = generate_pdf_for_generated_document(document, with_qr_code=False)
+
+    pdf_path = tmp_path / "doc.pdf"
+    pdf_path.write_bytes(pdf_bytes)
+
+    hits = decode_per_page(pdf_path)
+    assert hits, "no pages decoded"
+    assert all(hit is None for hit in hits), (
+        "no GSL QR should be present when with_qr_code=False"
+    )

@@ -49,14 +49,31 @@
                 </button>
             </div>
             {% if projet.documents %}
-                <ul class="arrete-list"
-                    data-controller="delete-notification-document-modal"
-                    data-delete-notification-document-modal-modal-id-value="delete-document-confirmation-modal"
-                    data-delete-notification-document-modal-form-id-value="delete-document-form">
-                    {% for document in projet.documents %}
-                        {% include "includes/_document_card.html" %}
-                    {% endfor %}
-                </ul>
+                <div data-controller="qr-code-toggle">
+                    <ul class="arrete-list"
+                        data-controller="delete-notification-document-modal"
+                        data-delete-notification-document-modal-modal-id-value="delete-document-confirmation-modal"
+                        data-delete-notification-document-modal-form-id-value="delete-document-form">
+                        {% for document in projet.documents %}
+                            {% include "includes/_document_card.html" %}
+                        {% endfor %}
+                    </ul>
+                    <div class="fr-checkbox-group fr-mt-3w">
+                        <input type="checkbox"
+                               id="with-qr-code"
+                               checked
+                               data-qr-code-toggle-target="checkbox"
+                               data-action="change->qr-code-toggle#toggle"
+                               aria-describedby="with-qr-code-hint">
+                        <label class="fr-label" for="with-qr-code">
+                            Inclure le QR code de suivi sur les documents
+                            <span class="fr-hint-text" id="with-qr-code-hint">
+                                Le QR code permet de rattacher automatiquement un document
+                                signé scanné au bon projet. Il est retiré lors de l’import.
+                            </span>
+                        </label>
+                    </div>
+                </div>
             {% else %}
                 <div class="no-documents-info">
                     Il n’y a pas de document pour le moment.

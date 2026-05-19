@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from django.contrib.messages import get_messages
 from django.urls import reverse
@@ -720,10 +722,58 @@ def test_document_download_url_with_correct_perimetre(
         kwargs={"document_type": document_type, "document_id": doc.id},
     )
     assert url == f"/notification/document/{document_type}/{doc.id}/download/"
-    response = correct_perimetre_client_with_user_logged.get(url)
+    with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
+        response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 200
     assert response["Content-Type"] == "application/pdf"
-    assert "attachment;filename=" in response["Content-Disposition"]
+    assert 'attachment; filename="' in response["Content-Disposition"]
+
+
+@pytest.mark.parametrize(
+    "document_type, factory",
+    (
+        (ARRETE, ArreteFactory),
+        (LETTRE, LettreNotificationFactory),
+    ),
+)
+def test_document_download_includes_qr_by_default_and_opts_out(
+    programmation_projet,
+    correct_perimetre_client_with_user_logged,
+    document_type,
+    factory,
+    tmp_path,
+):
+    pytest.importorskip("pypdfium2")
+    pytest.importorskip("zxingcpp")
+    from gsl_notification.qr import decode_per_page
+
+    doc = factory(
+        programmation_projet=programmation_projet,
+        content="<p>" + ("Contenu de test. " * 200) + "</p>",
+    )
+    url = reverse(
+        "notification:document-download",
+        kwargs={"document_type": document_type, "document_id": doc.id},
+    )
+
+    with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
+        # No param at all: QR included by default (opt-out).
+        default = correct_perimetre_client_with_user_logged.get(url)
+        # Explicit opt-out via query string: no QR.
+        opted_out = correct_perimetre_client_with_user_logged.get(
+            url, {"with_qr_code": "0"}
+        )
+
+    assert default.status_code == 200
+    assert opted_out.status_code == 200
+
+    default_path = tmp_path / "default.pdf"
+    default_path.write_bytes(default.content)
+    assert any(hit is not None for hit in decode_per_page(default_path))
+
+    opted_out_path = tmp_path / "opted_out.pdf"
+    opted_out_path.write_bytes(opted_out.content)
+    assert all(hit is None for hit in decode_per_page(opted_out_path))
 
 
 @pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
@@ -783,9 +833,11 @@ def test_document_view_url_with_correct_perimetre(
         kwargs={"document_type": document_type, "document_id": document.id},
     )
     assert url == f"/notification/document/{document_type}/{document.id}/view/"
-    response = correct_perimetre_client_with_user_logged.get(url)
+    with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
+        response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 200
     assert response["Content-Type"] == "application/pdf"
+    assert "inline; filename=" in response["Content-Disposition"]
 
 
 @pytest.mark.parametrize("document_type", (ARRETE, LETTRE))

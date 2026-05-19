@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -8,7 +9,6 @@ from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_http_methods, require_POST
 from django.views.generic import DeleteView, DetailView, UpdateView
 from django_htmx.http import HttpResponseClientRedirect
-from django_weasyprint import WeasyTemplateResponseMixin
 
 from gsl.utils.csp import csp_update
 from gsl_core.decorators import htmx_only
@@ -32,8 +32,7 @@ from gsl_notification.models import (
     GeneratedDocument,
 )
 from gsl_notification.utils import (
-    fix_empty_paragraphs_for_weasyprint,
-    get_doc_title,
+    generate_pdf_for_generated_document,
     get_form_class,
     get_generated_document_class,
     get_modele_class,
@@ -453,12 +452,11 @@ class DeleteDocumentView(DeleteView):
 # View and Download views -----------------------------------------------------------------------
 
 
-class PrintDocumentView(WeasyTemplateResponseMixin, DetailView):
+class PrintDocumentView(DetailView):
     model = GeneratedDocument
-    template_name = "gsl_notification/pdf/document.html"
     pk_url_kwarg = "document_id"
 
-    # show pdf in-line (default: True, show download dialog)
+    # show pdf in-line (False) or as a download dialog (True)
     pdf_attachment = False
 
     def get_queryset(self):
@@ -474,23 +472,14 @@ class PrintDocumentView(WeasyTemplateResponseMixin, DetailView):
             )
         )
 
-    def get_pdf_filename(self):
-        return self.get_object().name
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def get(self, request, *args, **kwargs):
         document = self.get_object()
-        content = fix_empty_paragraphs_for_weasyprint(document.content)
-        context.update(
-            {
-                "doc_title": get_doc_title(self.document_type),
-                "logo": document.modele.logo.url,
-                "alt_logo": document.modele.logo_alt_text,
-                "top_right_text": document.modele.top_right_text.strip(),
-                "content": mark_safe(content),
-            }
-        )
-        return context
+        with_qr_code = request.GET.get("with_qr_code") != "0"
+        pdf = generate_pdf_for_generated_document(document, with_qr_code=with_qr_code)
+        disposition = "attachment" if self.pdf_attachment else "inline"
+        response = HttpResponse(pdf, content_type="application/pdf")
+        response["Content-Disposition"] = f'{disposition}; filename="{document.name}"'
+        return response
 
 
 class DownloadDocumentView(PrintDocumentView):

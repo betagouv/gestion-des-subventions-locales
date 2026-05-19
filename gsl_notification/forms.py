@@ -483,6 +483,16 @@ class GenerateDocumentsStep3Form(BaseGenerateDocumentsForm):
         },
     )
 
+    with_qr_code = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Inclure le QR code de suivi sur chaque page",
+        help_text=(
+            "Le QR code permet de rattacher automatiquement un document "
+            "signé scanné au bon projet. Il est retiré lors de l'import."
+        ),
+    )
+
     def __init__(self, *args, document_type, **kwargs):
         super().__init__(*args, **kwargs)
         self.document_type = document_type

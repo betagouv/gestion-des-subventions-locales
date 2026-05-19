@@ -53,6 +53,7 @@
                     "doubleDotation": "/static/js/controllers/doubleDotation.js",
                     "modeleArreteForm": "/static/js/modeleArreteForm.js",
                     "deleteNotificationDocumentModal": "/static/js/deleteNotificationDocumentModal.js",
+                    "qrCodeToggle": "/static/js/qrCodeToggle.js",
                     "chooseDocumentType": "/static/js/chooseDocumentType.js",
                     "checkboxSelection": "/static/js/checkboxSelection.js",
                     "bindAmountFields": "/static/js/controllers/bindAmountTields.js",
@@ -127,6 +128,7 @@
             import { TipTapEditor } from "tiptapEditor"
             import { ModeleArreteForm } from "modeleArreteForm"
             import { DeleteNotificationDocumentModal } from "deleteNotificationDocumentModal"
+            import { QrCodeToggle } from "qrCodeToggle"
             import { CheckboxSelection } from "checkboxSelection"
             import { BindAmountFields } from "bindAmountFields"
             import { FormUtils } from "formUtils"
@@ -140,6 +142,7 @@
             Stimulus.register("tiptap-editor", TipTapEditor)
             Stimulus.register("modele-arrete-form", ModeleArreteForm)
             Stimulus.register("delete-notification-document-modal", DeleteNotificationDocumentModal)
+            Stimulus.register("qr-code-toggle", QrCodeToggle)
             Stimulus.register("checkbox-selection", CheckboxSelection)
             Stimulus.register("bind-amount-fields", BindAmountFields)
             Stimulus.register("form-utils", FormUtils)
