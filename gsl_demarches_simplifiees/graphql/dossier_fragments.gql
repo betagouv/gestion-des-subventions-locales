@@ -1,0 +1,278 @@
+fragment DossierFragment on Dossier {
+  id
+  number
+  archived
+  state
+  dateDerniereModification
+  dateDepot
+  datePassageEnConstruction
+  datePassageEnInstruction
+  dateTraitement
+  dateDerniereModificationChamps
+  groupeInstructeur {
+    id
+  }
+  demandeur {
+    __typename
+    ...PersonnePhysiqueFragment
+    ...PersonneMoraleFragment
+    ...PersonneMoraleIncompleteFragment
+  }
+  demarche {
+    revision {
+      id
+    }
+  }
+  champs {
+    ...ChampFragment
+    ...RootChampFragment
+  }
+  annotations {
+    ...ChampFragment
+    ...RootChampFragment
+  }
+}
+
+fragment GeoAreaFragment on GeoArea {
+  id
+  source
+  description
+  ... on ParcelleCadastrale {
+    commune
+    numero
+    section
+    prefixe
+    surface
+  }
+}
+
+fragment RootChampFragment on Champ {
+  ... on RepetitionChamp {
+    rows {
+      champs {
+        ...ChampFragment
+      }
+    }
+  }
+  ... on CarteChamp {
+    geoAreas {
+      ...GeoAreaFragment
+    }
+  }
+}
+
+fragment ChampFragment on Champ {
+  id
+  champDescriptorId
+  __typename
+  label
+  stringValue
+  updatedAt
+  prefilled
+  ... on DateChamp {
+    date
+  }
+  ... on DatetimeChamp {
+    datetime
+  }
+  ... on CheckboxChamp {
+    checked: value
+  }
+  ... on DecimalNumberChamp {
+    decimalNumber: value
+  }
+  ... on IntegerNumberChamp {
+    integerNumber: value
+  }
+  ... on CiviliteChamp {
+    civilite: value
+  }
+  ... on LinkedDropDownListChamp {
+    primaryValue
+    secondaryValue
+  }
+  ... on MultipleDropDownListChamp {
+    values
+  }
+  ... on PieceJustificativeChamp {
+    files {
+      ...FileFragment
+    }
+  }
+  ... on AddressChamp {
+    address {
+      ...AddressFragment
+    }
+    commune {
+      ...CommuneFragment
+    }
+    departement {
+      ...DepartementFragment
+    }
+  }
+  ... on EpciChamp {
+    epci {
+      ...EpciFragment
+    }
+    departement {
+      ...DepartementFragment
+    }
+  }
+  ... on CommuneChamp {
+    commune {
+      ...CommuneFragment
+    }
+    departement {
+      ...DepartementFragment
+    }
+  }
+  ... on DepartementChamp {
+    departement {
+      ...DepartementFragment
+    }
+  }
+  ... on RegionChamp {
+    region {
+      ...RegionFragment
+    }
+  }
+  ... on PaysChamp {
+    pays {
+      ...PaysFragment
+    }
+  }
+  ... on SiretChamp {
+    etablissement {
+      ...PersonneMoraleFragment
+    }
+  }
+  ... on RNFChamp {
+    rnf {
+      ...RNFFragment
+    }
+    commune {
+      ...CommuneFragment
+    }
+    departement {
+      ...DepartementFragment
+    }
+  }
+  ... on EngagementJuridiqueChamp {
+    engagementJuridique {
+      ...EngagementJuridiqueFragment
+    }
+  }
+}
+
+fragment PersonneMoraleFragment on PersonneMorale {
+  siret
+  siegeSocial
+  naf
+  libelleNaf
+  address {
+    ...AddressFragment
+  }
+  entreprise {
+    siren
+    capitalSocial
+    numeroTvaIntracommunautaire
+    formeJuridique
+    formeJuridiqueCode
+    nomCommercial
+    raisonSociale
+    siretSiegeSocial
+    codeEffectifEntreprise
+    dateCreation
+    nom
+    prenom
+    attestationFiscaleAttachment {
+      ...FileFragment
+    }
+    attestationSocialeAttachment {
+      ...FileFragment
+    }
+  }
+  association {
+    rna
+    titre
+    objet
+    dateCreation
+    dateDeclaration
+    datePublication
+  }
+}
+
+fragment PersonneMoraleIncompleteFragment on PersonneMoraleIncomplete {
+  siret
+}
+
+fragment PersonnePhysiqueFragment on PersonnePhysique {
+  civilite
+  nom
+  prenom
+  email
+}
+
+fragment FileFragment on File {
+  __typename
+  filename
+  contentType
+  checksum
+  byteSize: byteSizeBigInt
+  url
+  createdAt
+}
+
+fragment AddressFragment on Address {
+  label
+  type
+  streetAddress
+  streetNumber
+  streetName
+  postalCode
+  cityName
+  cityCode
+  departmentName
+  departmentCode
+  regionName
+  regionCode
+}
+
+fragment PaysFragment on Pays {
+  name
+  code
+}
+
+fragment RegionFragment on Region {
+  name
+  code
+}
+
+fragment DepartementFragment on Departement {
+  name
+  code
+}
+
+fragment EpciFragment on Epci {
+  name
+  code
+}
+
+fragment CommuneFragment on Commune {
+  name
+  code
+  postalCode
+}
+
+fragment RNFFragment on RNF {
+  id
+  title
+  address {
+    ...AddressFragment
+  }
+}
+
+fragment EngagementJuridiqueFragment on EngagementJuridique {
+  montantEngage
+  montantPaye
+}
