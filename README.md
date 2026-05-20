@@ -107,6 +107,16 @@ Le déploiement en production est automatisé via GitHub Actions.
 ### Procédure
 
 1. Se placer sur le commit à déployer (pas nécessairement le dernier commit de `main` — on peut remonter de quelques commits pour exclure des changements pas encore testés)
+
+   > Le commit doit appartenir à la branche `main` ou à une branche `hotfix/*`.
+   > GitHub n'exécute les tests automatiquement (hors PR) que sur ces branches
+   > (voir `.github/workflows/django.yml`), et le déploiement par tag exige des
+   > tests valides. Une branche `hotfix/*` sert typiquement à isoler un correctif
+   > urgent par cherry-pick : on crée la branche depuis le tag de la dernière
+   > release déployée, on y cherry-pick uniquement le ou les commits du fix, puis
+   > on tagge ce commit — ce qui permet de déployer sans embarquer les commits
+   > de `main` postérieurs à cette release qui n'auraient pas encore été recettés.
+
 2. Lancer la commande :
 
 ```bash
@@ -119,6 +129,14 @@ Cette commande crée automatiquement un tag au format `vYY.MM.DD` (avec un suffi
    - exécute les tests
    - crée une **Release GitHub** avec les notes auto-générées (liste des PRs depuis le dernier tag)
    - déploie sur Scalingo via l'API Sources
+
+   > Les notes auto-générées par GitHub se basent sur les PRs mergées dans la
+   > branche par défaut (`main`) depuis le dernier tag. Elles sont fiables pour
+   > un tag posé sur `main`. En revanche, pour un tag posé depuis une branche
+   > `hotfix/*`, les notes auto-générées ne reflètent pas le contenu réel du
+   > hotfix (elles listent les PRs de `main` postérieures à la release
+   > précédente) : il faut alors les réécrire à la main une fois la Release
+   > créée.
 
 4. **Confirmer le déploiement côté GitHub** : le job `deploy` utilise l'environnement `production`, qui nécessite une approbation manuelle dans GitHub. Un reviewer autorisé doit approuver le déploiement depuis l'interface GitHub Actions avant que celui-ci ne s'exécute.
 
