@@ -1,6 +1,7 @@
 import hashlib
 import secrets
 
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from gsl_core.models import BaseModel
@@ -21,10 +22,11 @@ class ProxyToken(BaseModel):
         on_delete=models.PROTECT,
         related_name="proxy_tokens",
     )
-    instructeurs = models.ManyToManyField(
-        "gsl_demarches_simplifiees.Profile",
-        verbose_name="Instructeurs autorisés",
+    groupe_instructeur_ds_id = models.CharField(
+        "ID du groupe instructeur DS",
+        max_length=255,
         blank=True,
+        db_index=True,
     )
     is_active = models.BooleanField("Actif", default=True)
 
@@ -38,6 +40,32 @@ class ProxyToken(BaseModel):
     @staticmethod
     def hash_key(plaintext: str) -> str:
         return hashlib.sha256(plaintext.encode("utf-8")).hexdigest()
+
+    def clean(self):
+        super().clean()
+        if not self.is_active:
+            return
+        if not self.groupe_instructeur_ds_id:
+            raise ValidationError(
+                {
+                    "groupe_instructeur_ds_id": (
+                        "Un groupe instructeur doit être sélectionné "
+                        "pour activer le token."
+                    )
+                }
+            )
+        raw = (self.demarche.raw_ds_data or {}) if self.demarche_id else {}
+        groupes = raw.get("groupeInstructeurs") or []
+        known_ids = {g.get("id") for g in groupes}
+        if self.groupe_instructeur_ds_id not in known_ids:
+            raise ValidationError(
+                {
+                    "groupe_instructeur_ds_id": (
+                        "Le groupe instructeur sélectionné n'appartient pas "
+                        "à la démarche."
+                    )
+                }
+            )
 
     def save(self, *args, **kwargs):
         if not self.key_hash:
