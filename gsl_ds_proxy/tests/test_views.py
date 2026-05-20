@@ -5,7 +5,6 @@ from django.test import TestCase, override_settings
 
 from gsl_demarches_simplifiees.tests.factories import (
     DemarcheFactory,
-    ProfileFactory,
 )
 from gsl_ds_proxy.tests.factories import ProxyTokenFactory
 
@@ -21,10 +20,11 @@ def _parse_stream(response):
 @override_settings(DS_API_TOKEN="test-ds-token", DS_API_URL="https://ds.test/graphql")
 class GraphqlProxyViewTest(TestCase):
     def setUp(self):
-        self.profile = ProfileFactory(ds_id="inst-a")
         self.demarche = DemarcheFactory(ds_number=123)
-        self.token = ProxyTokenFactory(demarche=self.demarche)
-        self.token.instructeurs.add(self.profile)
+        self.token = ProxyTokenFactory(
+            demarche=self.demarche,
+            groupe_instructeur_ds_id="GROUPE-1",
+        )
         self.url = "/ds-proxy/graphql/"
         self.headers = {"HTTP_AUTHORIZATION": f"Bearer {self.token.plaintext_key}"}
 
@@ -67,6 +67,14 @@ class GraphqlProxyViewTest(TestCase):
         response = self._post(self._get_demarche_payload())
         self.assertEqual(response.status_code, 401)
 
+    def test_unconfigured_token_returns_403(self):
+        self.token.groupe_instructeur_ds_id = ""
+        self.token.save()
+        response = self._post(self._get_demarche_payload())
+        self.assertEqual(response.status_code, 403)
+        body = json.loads(response.content)
+        self.assertEqual(body["errors"][0]["message"], "Token non configuré.")
+
     def test_invalid_json(self):
         response = self.client.post(
             self.url,
@@ -95,21 +103,11 @@ class GraphqlProxyViewTest(TestCase):
                         "nodes": [
                             {
                                 "number": 1,
-                                "groupeInstructeur": {
-                                    "instructeurs": [
-                                        {"id": "inst-a", "email": "a@t.fr"}
-                                    ]
-                                },
-                                "instructeurs": [],
+                                "groupeInstructeur": {"id": "GROUPE-1"},
                             },
                             {
                                 "number": 2,
-                                "groupeInstructeur": {
-                                    "instructeurs": [
-                                        {"id": "inst-b", "email": "b@t.fr"}
-                                    ]
-                                },
-                                "instructeurs": [],
+                                "groupeInstructeur": {"id": "GROUPE-2"},
                             },
                         ],
                     },

@@ -209,21 +209,32 @@ def _forward_to_ds(query, variables, operation_name):
     return ds_response.json(), None
 
 
-@csrf_exempt
-@require_POST
-def graphql_proxy(request):
-    # Auth
+def _resolve_token(request):
+    """Return (proxy_token, None) or (None, error_response)."""
     auth_header = request.META.get("HTTP_AUTHORIZATION", "")
     if not auth_header.startswith("Bearer "):
-        return _error_response("Authorization header manquant ou invalide.", 401)
+        return None, _error_response("Authorization header manquant ou invalide.", 401)
 
     token_key = auth_header[7:]
     try:
-        proxy_token = ProxyToken.objects.prefetch_related("instructeurs").get(
+        proxy_token = ProxyToken.objects.get(
             key_hash=ProxyToken.hash_key(token_key), is_active=True
         )
     except ProxyToken.DoesNotExist:
-        return _error_response("Token invalide ou désactivé.", 401)
+        return None, _error_response("Token invalide ou désactivé.", 401)
+
+    if not proxy_token.groupe_instructeur_ds_id:
+        return None, _error_response("Token non configuré.", 403)
+
+    return proxy_token, None
+
+
+@csrf_exempt
+@require_POST
+def graphql_proxy(request):
+    proxy_token, error = _resolve_token(request)
+    if error is not None:
+        return error
 
     # Parse body
     try:
@@ -263,15 +274,20 @@ def graphql_proxy(request):
             f"Champ démarche non autorisé : `{forbidden_field}`.", 403
         )
 
-    allowed_ids = set(proxy_token.instructeurs.values_list("ds_id", flat=True))
+    allowed_groupe_ds_id = proxy_token.groupe_instructeur_ds_id
     stream = _stream_ds_response(
-        proxy_token, root_field, operation_name, query, variables, allowed_ids
+        proxy_token,
+        root_field,
+        operation_name,
+        query,
+        variables,
+        allowed_groupe_ds_id,
     )
     return StreamingHttpResponse(stream, content_type="application/json", status=200)
 
 
 def _stream_ds_response(
-    proxy_token, root_field, operation_name, query, variables, allowed_ids
+    proxy_token, root_field, operation_name, query, variables, allowed_groupe_ds_id
 ):
     # Send a single whitespace byte immediately to close Scalingo's
     # 30s-to-first-byte window. Leading whitespace is valid JSON.
@@ -297,7 +313,7 @@ def _stream_ds_response(
         yield _graphql_error_bytes(scope_error)
         return
 
-    filtered = filter_response(response_data, allowed_ids)
+    filtered = filter_response(response_data, allowed_groupe_ds_id)
     yield json.dumps(filtered).encode()
 
 
