@@ -209,6 +209,7 @@ class RefusedDismissedNotificationModalView(OpenHtmxModalMixin, UpdateView):
     def get_queryset(self):
         return (
             Projet.objects.for_user(self.request.user)
+            .active()
             .to_notify()
             .filter(
                 ~Exists(

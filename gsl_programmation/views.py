@@ -145,8 +145,9 @@ class ProgrammationProjetListView(FilterView, ListView):
 
     def get_queryset(self):
         return (
-            ProgrammationProjet.objects.active()
-            .visible_to_user(self.request.user)
+            super()
+            .get_queryset()
+            .active()
             .select_related(
                 "dotation_projet",
                 "dotation_projet__projet",

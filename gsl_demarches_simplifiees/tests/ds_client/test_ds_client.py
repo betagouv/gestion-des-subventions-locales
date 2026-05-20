@@ -36,184 +36,100 @@ def test_launch_graphql_query_token_error_logs_and_raises(caplog):
         assert "DN forbidden access : token problem ?" in caplog.text
 
 
-def test_get_demarche_dossiers_with_updated_since_calls_graphql_with_iso_format():
-    """Test that get_demarche_dossiers converts datetime to ISO format for GraphQL query."""
+def _make_fetch_page_response(dossiers=None, pending_deleted=None, deleted=None):
+    def _stream(nodes=None):
+        return {
+            "nodes": nodes or [],
+            "pageInfo": {"hasNextPage": False, "endCursor": None},
+        }
+
+    return {
+        "data": {
+            "demarche": {
+                "dossiers": _stream(dossiers),
+                "pendingDeletedDossiers": _stream(pending_deleted),
+                "deletedDossiers": _stream(deleted),
+            }
+        }
+    }
+
+
+def test_fetch_demarche_page_converts_datetime_to_iso_format():
     client = DsClient()
-    demarche_number = 123
     updated_since = timezone.datetime(2024, 1, 15)
-    expected_iso_format = updated_since.isoformat()
-
-    mock_response = {
-        "data": {
-            "demarche": {
-                "dossiers": {
-                    "nodes": [{"id": "DOSS-1", "number": 20240001}],
-                    "pageInfo": {"hasNextPage": False, "endCursor": None},
-                }
-            }
-        }
-    }
 
     with patch.object(
-        client, "launch_graphql_query", return_value=mock_response
+        client, "launch_graphql_query", return_value=_make_fetch_page_response()
     ) as mock_query:
-        list(client.get_demarche_dossiers(demarche_number, updated_since=updated_since))
+        client.fetch_demarche_page(123, updated_since=updated_since)
 
-        # Verify the query was called
-        assert mock_query.call_count == 1
-
-        # Verify the variables passed to the query
-        call_args = mock_query.call_args
-        assert call_args[0][0] == "getDemarche"  # operation_name
-        variables = call_args[1]["variables"]
-
-        assert variables["demarcheNumber"] == demarche_number
-        assert variables["includeDossiers"] is True
-        assert variables["updatedSince"] == expected_iso_format
-        # Verify it's a string in ISO format
-        assert isinstance(variables["updatedSince"], str)
-        assert "T" in variables["updatedSince"]  # ISO format contains 'T'
-        assert variables["first"] == 50  # default page size
+        variables = mock_query.call_args[1]["variables"]
+        assert variables["updatedSince"] == updated_since.isoformat()
+        assert "T" in variables["updatedSince"]
 
 
-def test_get_demarche_dossiers_without_updated_since_passes_none():
-    """Test that get_demarche_dossiers passes None when updated_since is not provided."""
+def test_fetch_demarche_page_passes_none_when_no_updated_since():
     client = DsClient()
-    demarche_number = 123
-
-    mock_response = {
-        "data": {
-            "demarche": {
-                "dossiers": {
-                    "nodes": [{"id": "DOSS-1", "number": 20240001}],
-                    "pageInfo": {"hasNextPage": False, "endCursor": None},
-                }
-            }
-        }
-    }
 
     with patch.object(
-        client, "launch_graphql_query", return_value=mock_response
+        client, "launch_graphql_query", return_value=_make_fetch_page_response()
     ) as mock_query:
-        list(client.get_demarche_dossiers(demarche_number))
+        client.fetch_demarche_page(123)
 
-        # Verify the query was called
-        assert mock_query.call_count == 1
-
-        # Verify the variables passed to the query
-        call_args = mock_query.call_args
-        variables = call_args[1]["variables"]
-
-        assert variables["demarcheNumber"] == demarche_number
-        assert variables["includeDossiers"] is True
+        variables = mock_query.call_args[1]["variables"]
         assert variables["updatedSince"] is None
 
 
-def test_iter_demarche_dossiers_pages_with_after_cursor():
-    """Test that iter_demarche_dossiers_pages passes after_cursor in variables."""
+def test_fetch_demarche_page_passes_cursors_and_include_flags():
     client = DsClient()
-    demarche_number = 123
-    after_cursor = "abc123cursor=="
-
-    mock_response = {
-        "data": {
-            "demarche": {
-                "dossiers": {
-                    "nodes": [{"id": "DOSS-1", "number": 20240001}],
-                    "pageInfo": {"hasNextPage": False, "endCursor": "xyz789"},
-                }
-            }
-        }
-    }
 
     with patch.object(
-        client, "launch_graphql_query", return_value=mock_response
+        client, "launch_graphql_query", return_value=_make_fetch_page_response()
     ) as mock_query:
-        pages = list(
-            client.iter_demarche_dossiers_pages(
-                demarche_number, after_cursor=after_cursor
-            )
+        client.fetch_demarche_page(
+            123,
+            dossiers_after="cursor-d",
+            pending_deleted_after="cursor-p",
+            deleted_after="cursor-del",
+            include_dossiers=True,
+            include_pending_deleted=False,
+            include_deleted=True,
         )
 
-        assert mock_query.call_count == 1
         variables = mock_query.call_args[1]["variables"]
-        assert variables["after"] == after_cursor
-        assert variables["updatedSince"] is None
-        assert variables["first"] == 50  # default page size
+        assert variables["demarcheNumber"] == 123
+        assert variables["after"] == "cursor-d"
+        assert variables["pendingDeletedAfter"] == "cursor-p"
+        assert variables["deletedAfter"] == "cursor-del"
+        assert variables["includeDossiers"] is True
+        assert variables["includePendingDeletedDossiers"] is False
+        assert variables["includeDeletedDossiers"] is True
 
-        assert len(pages) == 1
-        nodes, end_cursor = pages[0]
-        assert nodes == [{"id": "DOSS-1", "number": 20240001}]
-        assert end_cursor == "xyz789"
 
-
-def test_iter_demarche_dossiers_pages_uses_explicit_page_size():
-    """Caller can override the GraphQL `first` argument via page_size."""
+def test_fetch_demarche_page_respects_page_size():
     client = DsClient()
-    demarche_number = 123
-
-    mock_response = {
-        "data": {
-            "demarche": {
-                "dossiers": {
-                    "nodes": [],
-                    "pageInfo": {"hasNextPage": False, "endCursor": None},
-                }
-            }
-        }
-    }
 
     with patch.object(
-        client, "launch_graphql_query", return_value=mock_response
+        client, "launch_graphql_query", return_value=_make_fetch_page_response()
     ) as mock_query:
-        list(client.iter_demarche_dossiers_pages(demarche_number, page_size=20))
+        client.fetch_demarche_page(123, page_size=20)
 
-        assert mock_query.call_count == 1
         variables = mock_query.call_args[1]["variables"]
         assert variables["first"] == 20
+        assert variables["pendingDeletedFirst"] == 20
+        assert variables["deletedFirst"] == 20
 
 
-def test_iter_demarche_dossiers_pages_paginates_until_no_next_page():
-    """Test that iter_demarche_dossiers_pages follows pagination until hasNextPage is False."""
+def test_fetch_demarche_page_returns_demarche_data():
     client = DsClient()
-    demarche_number = 123
-
-    page1_response = {
-        "data": {
-            "demarche": {
-                "dossiers": {
-                    "nodes": [{"id": "DOSS-1", "number": 1}],
-                    "pageInfo": {"hasNextPage": True, "endCursor": "cursor_page1"},
-                }
-            }
-        }
-    }
-    page2_response = {
-        "data": {
-            "demarche": {
-                "dossiers": {
-                    "nodes": [{"id": "DOSS-2", "number": 2}],
-                    "pageInfo": {"hasNextPage": False, "endCursor": "cursor_page2"},
-                }
-            }
-        }
-    }
+    nodes = [{"id": "DOSS-1", "number": 20240001}]
 
     with patch.object(
         client,
         "launch_graphql_query",
-        side_effect=[page1_response, page2_response],
-    ) as mock_query:
-        pages = list(client.iter_demarche_dossiers_pages(demarche_number))
+        return_value=_make_fetch_page_response(dossiers=nodes),
+    ):
+        result = client.fetch_demarche_page(123)
 
-        assert mock_query.call_count == 2
-        first_call_variables = mock_query.call_args_list[0][1]["variables"]
-        assert first_call_variables["first"] == 50
-        # Second call should use endCursor from first page
-        second_call_variables = mock_query.call_args_list[1][1]["variables"]
-        assert second_call_variables["after"] == "cursor_page1"
-        assert second_call_variables["first"] == 50
-
-        assert len(pages) == 2
-        assert pages[0] == ([{"id": "DOSS-1", "number": 1}], "cursor_page1")
-        assert pages[1] == ([{"id": "DOSS-2", "number": 2}], "cursor_page2")
+        assert result["dossiers"]["nodes"] == nodes
+        assert result["dossiers"]["pageInfo"]["hasNextPage"] is False

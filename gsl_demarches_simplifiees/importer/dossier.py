@@ -38,17 +38,20 @@ def save_demarche_dossiers_from_ds(demarche_number):
     if demarche.updated_since is None:
         api_updated_since = demarche.created_at
         dossiers_cursor = pending_deleted_cursor = deleted_cursor = None
+        has_date_changed = True
     else:
         dossiers_cursor = demarche.sync_cursor or None
         pending_deleted_cursor = demarche.pending_deleted_cursor or None
         deleted_cursor = demarche.deleted_cursor or None
         api_updated_since = demarche.updated_since
+        has_date_changed = False
 
     active_departement_insee_codes = _get_active_departement_insee_codes()
     groupe_index = _get_or_refresh_groupe_index(demarche, demarche_number)
 
     dossiers_count = 0
     has_more_dossiers = has_more_pending = has_more_deleted = True
+    dossiers_any_error = pending_any_error = deleted_any_error = False
 
     while has_more_dossiers or has_more_pending or has_more_deleted:
         demarche_data = client.fetch_demarche_page(
@@ -72,6 +75,8 @@ def save_demarche_dossiers_from_ds(demarche_number):
                 groupe_index,
             )
             dossiers_count += count
+            if dossiers_result.has_error:
+                dossiers_any_error = True
 
         if has_more_pending:
             pending_result = _process_deactivation_page(
@@ -80,6 +85,8 @@ def save_demarche_dossiers_from_ds(demarche_number):
                 demarche.ds_number,
                 "Error unhandled while deactivating pending deleted dossier",
             )
+            if pending_result.has_error:
+                pending_any_error = True
 
         if has_more_deleted:
             deleted_result = _process_deactivation_page(
@@ -88,22 +95,8 @@ def save_demarche_dossiers_from_ds(demarche_number):
                 demarche.ds_number,
                 "Error unhandled while deactivating deleted dossier",
             )
-
-        if dossiers_result and not dossiers_result.has_error and dossiers_result.cursor:
-            demarche.sync_cursor = dossiers_result.cursor
-            demarche.updated_since = api_updated_since
-        if pending_result and not pending_result.has_error and pending_result.cursor:
-            demarche.pending_deleted_cursor = pending_result.cursor
-        if deleted_result and not deleted_result.has_error and deleted_result.cursor:
-            demarche.deleted_cursor = deleted_result.cursor
-        demarche.save(
-            update_fields=[
-                "sync_cursor",
-                "updated_since",
-                "pending_deleted_cursor",
-                "deleted_cursor",
-            ]
-        )
+            if deleted_result.has_error:
+                deleted_any_error = True
 
         has_more_dossiers, dossiers_cursor = _advance_stream(
             dossiers_result, dossiers_cursor
@@ -114,6 +107,18 @@ def save_demarche_dossiers_from_ds(demarche_number):
         has_more_deleted, deleted_cursor = _advance_stream(
             deleted_result, deleted_cursor
         )
+
+    _commit_sync_cursors(
+        demarche,
+        has_date_changed,
+        dossiers_cursor=dossiers_cursor,
+        dossiers_any_error=dossiers_any_error,
+        pending_deleted_cursor=pending_deleted_cursor,
+        pending_any_error=pending_any_error,
+        deleted_cursor=deleted_cursor,
+        deleted_any_error=deleted_any_error,
+        api_updated_since=api_updated_since,
+    )
 
     logger.info(
         "Demarche dossiers has been updated from DN",
@@ -206,9 +211,51 @@ def _process_deactivation_page(
 def _advance_stream(
     result: "_PageState | None", current_cursor: str | None
 ) -> tuple[bool, str | None]:
-    if result is None or result.has_error:
+    if result is None:
         return False, current_cursor
     return result.has_more, result.cursor
+
+
+def _commit_sync_cursors(
+    demarche: "Demarche",
+    has_date_changed: bool,
+    *,
+    dossiers_cursor: str | None,
+    dossiers_any_error: bool,
+    pending_deleted_cursor: str | None,
+    pending_any_error: bool,
+    deleted_cursor: str | None,
+    deleted_any_error: bool,
+    api_updated_since,
+):
+    demarche.updated_since = api_updated_since
+
+    if dossiers_any_error:
+        if has_date_changed:
+            demarche.sync_cursor = ""
+    else:
+        demarche.sync_cursor = dossiers_cursor or ""
+
+    if pending_any_error:
+        if has_date_changed:
+            demarche.pending_deleted_cursor = ""
+    else:
+        demarche.pending_deleted_cursor = pending_deleted_cursor or ""
+
+    if deleted_any_error:
+        if has_date_changed:
+            demarche.deleted_cursor = ""
+    else:
+        demarche.deleted_cursor = deleted_cursor or ""
+
+    demarche.save(
+        update_fields=[
+            "sync_cursor",
+            "updated_since",
+            "pending_deleted_cursor",
+            "deleted_cursor",
+        ]
+    )
 
 
 def save_one_dossier_from_ds(
