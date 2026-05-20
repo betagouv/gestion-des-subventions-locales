@@ -3,9 +3,11 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from gsl_core.tests.factories import CollegueFactory
 from gsl_notification.forms import (
+    EXPORT_FORMAT_ONE_PDF_ALL,
     AnnexeForm,
     ArreteEtLettreSigneForm,
     ArreteForm,
+    GenerateDocumentsStep3Form,
     LettreNotificationForm,
     ModeleDocumentStepTwoForm,
 )
@@ -15,7 +17,7 @@ from gsl_notification.tests.factories import (
     ModeleLettreNotificationFactory,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.constants import ARRETE, DOTATION_DETR, DOTATION_DSIL
 
 # GeneratedDocumentForm
 
@@ -225,3 +227,31 @@ def test_modele_arrete_step_2_rejects_too_large_files(file_size, is_valid):
         },
     )
     assert form.is_valid() == is_valid, form.errors
+
+
+@pytest.mark.django_db
+def test_generate_documents_step3_form_exposes_with_qr_code():
+    user = CollegueFactory()
+    field = GenerateDocumentsStep3Form(
+        user=user,
+        dotation=DOTATION_DETR,
+        request=None,
+        document_type=ARRETE,
+    ).fields["with_qr_code"]
+    assert field.required is False
+    assert field.initial is True
+
+
+@pytest.mark.django_db
+def test_generate_documents_step3_form_valid_without_qr_field_submitted():
+    """An unchecked checkbox sends nothing: the form stays valid (opt-out)."""
+    user = CollegueFactory()
+    form = GenerateDocumentsStep3Form(
+        data={"export_format": EXPORT_FORMAT_ONE_PDF_ALL},
+        user=user,
+        dotation=DOTATION_DETR,
+        request=None,
+        document_type=ARRETE,
+    )
+    assert form.is_valid(), form.errors
+    assert form.cleaned_data["with_qr_code"] is False

@@ -177,6 +177,7 @@ class GenerateDocumentsWizard(SessionWizardView):
         step2_data = form_dict[self.STEP2].cleaned_data
         step3_data = form_dict[self.STEP3].cleaned_data
         export_format = step3_data.get("export_format")
+        with_qr_code = step3_data.get("with_qr_code")
 
         refreshed = form.save(
             modele_arrete=step2_data.get("modele_arrete_id"),
@@ -186,7 +187,11 @@ class GenerateDocumentsWizard(SessionWizardView):
 
         attrs = [get_programmation_projet_attribute(t) for t in form.selected_types]
         filename, content_type, body = build_export(
-            refreshed, attrs, export_format, form.document_type
+            refreshed,
+            attrs,
+            export_format,
+            form.document_type,
+            with_qr_code=with_qr_code,
         )
         download_url = upload_export_and_get_url(filename, content_type, body)
 

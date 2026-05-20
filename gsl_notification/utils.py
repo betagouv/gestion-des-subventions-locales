@@ -446,15 +446,21 @@ def fix_empty_paragraphs_for_weasyprint(html: str) -> str:
     return str(soup)
 
 
-def generate_pdf_for_generated_document(document: Arrete | LettreNotification) -> bytes:
+def generate_pdf_for_generated_document(
+    document: Arrete | LettreNotification, *, with_qr_code: bool = True
+) -> bytes:
     """
     Generate PDF bytes for a GeneratedDocument (Arrete or LettreNotification).
 
-    A per-page QR code is rendered at the bottom-left of every page so a
-    scanned, signed copy can be reattached to the right ProgrammationProjet.
-    Because each page needs a *different* QR (the payload includes the page
-    number), this is a two-pass render: first pass counts pages, second pass
-    emits one ``@page :nth(K)`` rule per page with the matching QR image.
+    When ``with_qr_code`` is True (default), a per-page QR code is rendered at
+    the bottom-left of every page so a scanned, signed copy can be reattached
+    to the right ProgrammationProjet. Because each page needs a *different* QR
+    (the payload includes the page number), this is a two-pass render: first
+    pass counts pages, second pass emits one ``@page :nth(K)`` rule per page
+    with the matching QR image.
+
+    When ``with_qr_code`` is False, a single, faster pass is rendered without
+    any QR code.
     """
     content = fix_empty_paragraphs_for_weasyprint(document.content)
     base_context = {
@@ -464,6 +470,17 @@ def generate_pdf_for_generated_document(document: Arrete | LettreNotification) -
         "top_right_text": document.modele.top_right_text.strip(),
         "content": mark_safe(content),
     }
+
+    if not with_qr_code:
+        html = render_to_string(
+            "gsl_notification/pdf/document.html",
+            {**base_context, "qr_css_rules": ""},
+        )
+        return HTML(
+            string=html,
+            url_fetcher=django_url_fetcher,
+            base_url=settings.STATIC_ROOT,
+        ).write_pdf()
 
     # Pass 1: render without QR to learn how many pages the document has.
     first_pass_html = render_to_string(

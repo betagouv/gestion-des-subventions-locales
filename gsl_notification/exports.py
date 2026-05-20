@@ -25,18 +25,28 @@ EXPORT_URL_TTL = 900  # 15 minutes
 
 
 def build_export(
-    programmation_projets, attrs, export_format, document_type
+    programmation_projets, attrs, export_format, document_type, *, with_qr_code=True
 ) -> tuple[str, str, bytes]:
     if export_format == EXPORT_FORMAT_ONE_PDF_ALL:
-        return _build_single_merged_pdf(programmation_projets, attrs, document_type)
+        return _build_single_merged_pdf(
+            programmation_projets, attrs, document_type, with_qr_code=with_qr_code
+        )
     if export_format == EXPORT_FORMAT_ONE_PDF_PER_PROJECT:
-        return _build_one_pdf_per_project(programmation_projets, attrs)
+        return _build_one_pdf_per_project(
+            programmation_projets, attrs, with_qr_code=with_qr_code
+        )
     if export_format == EXPORT_FORMAT_ONE_PDF_ALL_GROUPED:
-        return _build_grouped_merged_pdf(programmation_projets, attrs)
-    return _build_one_pdf_per_doc(programmation_projets, attrs)
+        return _build_grouped_merged_pdf(
+            programmation_projets, attrs, with_qr_code=with_qr_code
+        )
+    return _build_one_pdf_per_doc(
+        programmation_projets, attrs, with_qr_code=with_qr_code
+    )
 
 
-def _build_one_pdf_per_doc(programmation_projets, attrs) -> tuple[str, str, bytes]:
+def _build_one_pdf_per_doc(
+    programmation_projets, attrs, *, with_qr_code=True
+) -> tuple[str, str, bytes]:
     documents = [
         doc
         for attr in attrs
@@ -45,14 +55,18 @@ def _build_one_pdf_per_doc(programmation_projets, attrs) -> tuple[str, str, byte
 
     if len(documents) == 1:
         document = documents[0]
-        pdf_content = generate_pdf_for_generated_document(document)
+        pdf_content = generate_pdf_for_generated_document(
+            document, with_qr_code=with_qr_code
+        )
         logger.info(f"#1 {document} généré")
         return document.name, "application/pdf", pdf_content
 
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for i, document in enumerate(documents, start=1):
-            pdf_content = generate_pdf_for_generated_document(document)
+            pdf_content = generate_pdf_for_generated_document(
+                document, with_qr_code=with_qr_code
+            )
             zip_file.writestr(f"{document.name}", pdf_content)
             logger.info(f"#{i} {document} généré")
     date_str = timezone.now().strftime("%d-%m-%Y")
@@ -60,13 +74,15 @@ def _build_one_pdf_per_doc(programmation_projets, attrs) -> tuple[str, str, byte
 
 
 def _build_single_merged_pdf(
-    programmation_projets, attrs, document_type
+    programmation_projets, attrs, document_type, *, with_qr_code=True
 ) -> tuple[str, str, bytes]:
     pdf_bytes_list = []
     for pp in programmation_projets:
         for attr in attrs:
             pdf_bytes_list.append(
-                generate_pdf_for_generated_document(getattr(pp, attr))
+                generate_pdf_for_generated_document(
+                    getattr(pp, attr), with_qr_code=with_qr_code
+                )
             )
     merged = _merge_pdfs_bytes(pdf_bytes_list)
     date_str = timezone.now().strftime("%d-%m-%Y")
@@ -80,11 +96,16 @@ def _build_single_merged_pdf(
     return filename, "application/pdf", merged
 
 
-def _build_one_pdf_per_project(programmation_projets, attrs) -> tuple[str, str, bytes]:
+def _build_one_pdf_per_project(
+    programmation_projets, attrs, *, with_qr_code=True
+) -> tuple[str, str, bytes]:
     if len(programmation_projets) == 1:
         pp = programmation_projets[0]
         pdf_bytes_list = [
-            generate_pdf_for_generated_document(getattr(pp, attr)) for attr in attrs
+            generate_pdf_for_generated_document(
+                getattr(pp, attr), with_qr_code=with_qr_code
+            )
+            for attr in attrs
         ]
         merged = _merge_pdfs_bytes(pdf_bytes_list)
         date_str = timezone.now().strftime("%d-%m-%Y")
@@ -98,7 +119,10 @@ def _build_one_pdf_per_project(programmation_projets, attrs) -> tuple[str, str, 
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for pp in programmation_projets:
             project_pdfs = [
-                generate_pdf_for_generated_document(getattr(pp, attr)) for attr in attrs
+                generate_pdf_for_generated_document(
+                    getattr(pp, attr), with_qr_code=with_qr_code
+                )
+                for attr in attrs
             ]
             merged = _merge_pdfs_bytes(project_pdfs)
             ds_number = pp.dossier.ds_number
@@ -112,12 +136,16 @@ def _build_one_pdf_per_project(programmation_projets, attrs) -> tuple[str, str, 
     )
 
 
-def _build_grouped_merged_pdf(programmation_projets, attrs) -> tuple[str, str, bytes]:
+def _build_grouped_merged_pdf(
+    programmation_projets, attrs, *, with_qr_code=True
+) -> tuple[str, str, bytes]:
     pdf_bytes_list = []
     for pp in programmation_projets:
         for attr in attrs:
             pdf_bytes_list.append(
-                generate_pdf_for_generated_document(getattr(pp, attr))
+                generate_pdf_for_generated_document(
+                    getattr(pp, attr), with_qr_code=with_qr_code
+                )
             )
     merged = _merge_pdfs_bytes(pdf_bytes_list)
     date_str = timezone.now().strftime("%d-%m-%Y")
