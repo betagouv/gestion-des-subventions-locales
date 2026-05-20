@@ -150,6 +150,36 @@ class TestProgrammationProjetListViewWithDotation:
         )
 
 
+class TestProgrammationProjetListViewExcludesInactiveDossiers:
+    def test_list_view_excludes_projets_with_inactive_dossier(
+        self, user_with_perimetre
+    ):
+        detr_enveloppe = DetrEnveloppeFactory(
+            perimetre=user_with_perimetre.perimetre, annee=2024
+        )
+        active_pp = ProgrammationProjetFactory(
+            dotation_projet__projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
+            enveloppe=detr_enveloppe,
+        )
+        ProgrammationProjetFactory(
+            dotation_projet__projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
+            dotation_projet__projet__dossier_ds__is_active=False,
+            enveloppe=detr_enveloppe,
+        )
+
+        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
+        url = reverse(
+            "gsl_programmation:programmation-projet-list-dotation",
+            kwargs={"dotation": "DETR"},
+        )
+        response = client.get(url)
+
+        assert response.status_code == 200
+        programmation_projets = response.context["programmation_projets"]
+        assert programmation_projets.count() == 1
+        assert programmation_projets.first() == active_pp
+
+
 class TestProgrammationProjetDetailView:
     """Tests pour la vue détail d'un projet programmé"""
 

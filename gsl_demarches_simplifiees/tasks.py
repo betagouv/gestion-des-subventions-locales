@@ -69,7 +69,16 @@ def task_init_demarche_sync(demarche_number, updated_since_iso: str):
     demarche = Demarche.objects.get(ds_number=demarche_number)
     demarche.updated_since = updated_since
     demarche.sync_cursor = ""
-    demarche.save(update_fields=["updated_since", "sync_cursor"])
+    demarche.pending_deleted_cursor = ""
+    demarche.deleted_cursor = ""
+    demarche.save(
+        update_fields=[
+            "updated_since",
+            "sync_cursor",
+            "pending_deleted_cursor",
+            "deleted_cursor",
+        ]
+    )
 
     return save_demarche_dossiers_from_ds(demarche_number)
 

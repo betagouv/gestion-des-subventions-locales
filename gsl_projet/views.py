@@ -87,7 +87,7 @@ class ProjetCommentUpdateView(UpdateView):
     http_method_names = ["post"]
 
     def get_queryset(self):
-        return Projet.objects.for_user(self.request.user)
+        return Projet.objects.active().for_user(self.request.user)
 
     def _get_redirect_url(self):
         next_url = self.request.POST.get("next")
@@ -116,7 +116,9 @@ class ProjetListViewFilters(ProjetFilters):
             )
 
         selected_dotations = self.data.getlist("dotation")
-        visible_projets = Projet.objects.for_user(self.request.user).for_current_year()
+        visible_projets = (
+            Projet.objects.active().for_user(self.request.user).for_current_year()
+        )
 
         detr_selected = (
             "DETR" in selected_dotations or "DETR_et_DSIL" in selected_dotations
@@ -236,6 +238,9 @@ class ProjetListView(FilterView, ListView):
     filterset_class = ProjetListViewFilters
     template_name = "gsl_projet/projet_list.html"
 
+    def get_queryset(self):
+        return Projet.objects.active().all()
+
     def get(self, request, *args, **kwargs):
         if "reset_filters" in request.GET:
             if request.path == reverse("gsl_projet:list"):
@@ -260,7 +265,8 @@ class ProjetListView(FilterView, ListView):
         context["current_order"] = self.request.GET.get("order", "")
         context["sans_pieces_skip_keys"] = SANS_PIECES_SKIP_KEYS
         context["missing_annotations_count"] = (
-            Projet.objects.for_user(self.request.user)
+            Projet.objects.active()
+            .for_user(self.request.user)
             .with_missing_annotations()
             .count()
         )
@@ -286,7 +292,8 @@ class ProjetMissingAnnotationsListView(ListView):
 
     def get_queryset(self):
         return (
-            Projet.objects.for_user(self.request.user)
+            Projet.objects.active()
+            .for_user(self.request.user)
             .with_missing_annotations()
             .select_related(
                 "dossier_ds",

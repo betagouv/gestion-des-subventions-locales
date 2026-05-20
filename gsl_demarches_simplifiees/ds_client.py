@@ -2,7 +2,6 @@ import base64
 import hashlib
 import json
 import logging
-from collections.abc import Iterator
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
@@ -95,56 +94,42 @@ class DsClient(DsClientBase):
         }
         return self.launch_graphql_query("getDemarche", variables=variables)
 
-    def get_demarche_dossiers(
+    def fetch_demarche_page(
         self,
-        demarche_number,
+        demarche_number: int,
         updated_since: datetime | None = None,
+        dossiers_after: str | None = None,
+        pending_deleted_after: str | None = None,
+        deleted_after: str | None = None,
+        include_dossiers: bool = True,
+        include_pending_deleted: bool = True,
+        include_deleted: bool = True,
         page_size: int = 50,
-    ) -> Iterator[dict]:
+    ) -> dict:
         """
-        Get all dossiers from one given demarche
-        :param demarche_number:
-        :return: iterator on all available dossiers of demarche
-        """
-        for nodes, _cursor in self.iter_demarche_dossiers_pages(
-            demarche_number, updated_since=updated_since, page_size=page_size
-        ):
-            yield from nodes
+        Fetch one page of dossiers, pendingDeletedDossiers, and/or deletedDossiers.
+        Only the sets for which the corresponding include_* flag is True are fetched.
 
-    def iter_demarche_dossiers_pages(
-        self,
-        demarche_number,
-        updated_since: datetime | None = None,
-        after_cursor: str | None = None,
-        page_size: int = 50,
-    ) -> Iterator[tuple[list[dict], str | None]]:
+        :return: the 'demarche' dict from the GraphQL response
         """
-        Iterate over pages of dossiers from one given demarche, yielding (nodes, end_cursor)
-        per page. The caller can persist end_cursor after each page to enable resuming.
-
-        :param demarche_number:
-        :param updated_since: optional datetime filter (updatedSince in the GraphQL query)
-        :param after_cursor: optional cursor to resume from a previous run
-        :param page_size: number of dossiers requested per page (GraphQL `first`)
-        :return: iterator of (nodes, end_cursor) tuples
-        """
+        updated_since_iso = updated_since.isoformat() if updated_since else None
         variables = {
             "demarcheNumber": demarche_number,
-            "includeDossiers": True,
-            "updatedSince": updated_since.isoformat() if updated_since else None,
-            "after": after_cursor,
+            "includeDossiers": include_dossiers,
+            "includePendingDeletedDossiers": include_pending_deleted,
+            "includeDeletedDossiers": include_deleted,
+            "updatedSince": updated_since_iso,
+            "after": dossiers_after,
             "first": page_size,
+            "pendingDeletedAfter": pending_deleted_after,
+            "pendingDeletedFirst": page_size,
+            "pendingDeletedSince": updated_since_iso,
+            "deletedAfter": deleted_after,
+            "deletedFirst": page_size,
+            "deletedSince": updated_since_iso,
         }
-        while True:
-            result = self.launch_graphql_query("getDemarche", variables=variables)
-            dossiers_data = result["data"]["demarche"]["dossiers"]
-            nodes = dossiers_data["nodes"]
-            page_info = dossiers_data["pageInfo"]
-            end_cursor = page_info["endCursor"]
-            yield nodes, end_cursor
-            if not page_info["hasNextPage"]:
-                break
-            variables["after"] = end_cursor
+        result = self.launch_graphql_query("getDemarche", variables=variables)
+        return result["data"]["demarche"]
 
     def get_one_dossier(self, dossier_number) -> dict:
         variables = {

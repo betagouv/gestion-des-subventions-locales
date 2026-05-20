@@ -270,6 +270,9 @@ class ProjetQuerySet(models.QuerySet):
 
         return self._totals
 
+    def active(self):
+        return self.filter(dossier_ds__is_active=True)
+
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
     def get_queryset(self):
@@ -524,6 +527,13 @@ class DotationProjetQuerySet(models.QuerySet):
             programmation_projet__lettre_et_arrete_signes__isnull=True,
         )
 
+    def active(self):
+        return self.filter(projet__dossier_ds__is_active=True)
+
+
+class DotationProjetManager(models.Manager.from_queryset(DotationProjetQuerySet)):
+    pass
+
 
 class DotationProjet(BaseModel):
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
@@ -552,7 +562,7 @@ class DotationProjet(BaseModel):
         CategorieDetr, verbose_name="Catégories d’opération DETR"
     )
 
-    objects = DotationProjetQuerySet.as_manager()
+    objects = DotationProjetManager()
 
     class Meta:
         unique_together = ("projet", "dotation")

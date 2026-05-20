@@ -43,6 +43,16 @@ from gsl_simulation.tests.factories import SimulationProjetFactory
 pytestmark = pytest.mark.django_db
 
 
+# -- manager --
+
+
+def test_dotation_projet_manager_excludes_inactive_dossier():
+    DotationProjetFactory()
+    DotationProjetFactory(projet__dossier_ds__is_active=False)
+
+    assert DotationProjet.objects.active().count() == 1
+
+
 # -- compute_montant_from_taux --
 
 

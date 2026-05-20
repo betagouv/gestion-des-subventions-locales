@@ -131,12 +131,14 @@ class SimulationDetailView(SingleObjectMixin, FilterView):
             self.filterset.qs
         )
         selectable_ids_list = list(
-            SimulationProjet.objects.filter(
+            SimulationProjet.objects.active()
+            .filter(
                 simulation=simulation,
                 status__in=BulkStatusJob.ALLOWED_TARGET_STATUSES,
                 dotation_projet__projet__in=self.filterset.qs,
                 dotation_projet__projet__notified_at__isnull=True,
-            ).values_list("id", flat=True)
+            )
+            .values_list("id", flat=True)
         )
         context.update(
             {
@@ -175,9 +177,8 @@ class SimulationDetailView(SingleObjectMixin, FilterView):
 
     def _get_projet_base_queryset(self):
         return (
-            Projet.objects.filter(
-                dotationprojet__simulationprojet__simulation=self.object
-            )
+            Projet.objects.active()
+            .filter(dotationprojet__simulationprojet__simulation=self.object)
             .select_related("address", "address__commune")
             .prefetch_related(
                 "dotationprojet_set",
@@ -193,7 +194,7 @@ class SimulationDetailView(SingleObjectMixin, FilterView):
                 "dossier_ds__projet_contractualisation",
                 Prefetch(
                     "dotationprojet_set",
-                    queryset=DotationProjet.objects.filter(
+                    queryset=DotationProjet.objects.active().filter(
                         dotation=self.object.enveloppe.dotation
                     ),
                     to_attr="dotation_projet",
@@ -348,9 +349,8 @@ class FilteredProjetsExportView(SimulationDetailView):
         self.object = self.get_object()
         queryset = self.get_projet_queryset()
         simu_projet_qs = (
-            SimulationProjet.objects.filter(
-                simulation=self.object, dotation_projet__projet__in=queryset
-            )
+            SimulationProjet.objects.active()
+            .filter(simulation=self.object, dotation_projet__projet__in=queryset)
             .select_related(
                 "dotation_projet",
                 "dotation_projet__projet",

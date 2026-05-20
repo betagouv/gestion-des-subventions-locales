@@ -147,6 +147,7 @@ class ProgrammationProjetListView(FilterView, ListView):
         return (
             super()
             .get_queryset()
+            .active()
             .select_related(
                 "dotation_projet",
                 "dotation_projet__projet",

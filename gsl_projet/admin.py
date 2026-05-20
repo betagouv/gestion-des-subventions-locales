@@ -70,12 +70,14 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("address", "dossier_ds")
     list_display = (
         "__str__",
+        "is_active",
         "dossier_ds__projet_intitule",
         "get_status_display",
         "dossier_departement",
         "dotations",
     )
     list_filter = (
+        "dossier_ds__is_active",
         ProjetStatusFilter,
         ArrondissementFilter,
         "dossier_ds__perimetre__departement",
@@ -121,6 +123,10 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         except KeyError:
             pass
         return deleted_objects, model_count, perms_needed, protected
+
+    @admin.display(boolean=True, description="Actif")
+    def is_active(self, obj: Projet):
+        return obj.dossier_ds.is_active
 
     def dotations(self, obj):
         return ", ".join(obj.dotations)
@@ -188,6 +194,7 @@ class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("projet",)
     list_display = (
         "id",
+        "is_active",
         "dossier_link",
         "projet_link",
         "dotation",
@@ -199,7 +206,7 @@ class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "dotation",
         "projet__id",
     )
-    list_filter = ("dotation", "status")
+    list_filter = ("projet__dossier_ds__is_active", "dotation", "status")
     inlines = [SimulationProjetInline, ProgrammationProjetInline]
     readonly_fields = ("created_at", "updated_at", "dossier_link", "projet_link")
 
@@ -219,6 +226,10 @@ class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             return True
 
         return obj.projet.dotationprojet_set.count() > 1
+
+    @admin.display(boolean=True, description="Actif")
+    def is_active(self, obj: DotationProjet):
+        return obj.projet.dossier_ds.is_active
 
     def simulation_count(self, obj):
         return obj.simulation_count

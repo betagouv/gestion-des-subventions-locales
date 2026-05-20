@@ -44,7 +44,7 @@ def task_create_or_update_projet_and_co_from_dossier(
 ### for all
 @shared_task
 def task_create_or_update_dotation_projets_from_all_projets(batch_size=500):
-    projets = Projet.objects.all().values_list("pk", flat=True)
+    projets = Projet.objects.active().all().values_list("pk", flat=True)
     for batch in batched(projets, batch_size):
         task_create_or_update_dotation_projets_from_projet_batch.delay(batch)
 
@@ -61,5 +61,5 @@ def task_create_or_update_dotation_projets_from_projet_batch(
 ### for one
 @shared_task
 def task_create_or_update_dotation_projet_from_projet(projet_id):
-    projet = Projet.objects.get(id=projet_id)
+    projet = Projet.objects.active().get(id=projet_id)
     DotationProjetService.create_or_update_dotation_projet_from_projet(projet)

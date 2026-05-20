@@ -147,7 +147,7 @@ class ProjetNoteEditView(UpdateView):
             )
 
         get_object_or_404(
-            SimulationProjet.objects.in_user_perimeter(self.request.user),
+            SimulationProjet.objects.active().in_user_perimeter(self.request.user),
             id=self.simulation_projet_id,
         )
 

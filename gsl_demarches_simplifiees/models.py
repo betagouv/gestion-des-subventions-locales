@@ -70,6 +70,16 @@ class Demarche(BaseModel):
     sync_cursor = models.TextField(
         "Curseur de synchronisation DS", blank=True, default=""
     )
+    pending_deleted_cursor = models.TextField(
+        "Curseur de synchronisation des dossiers en attente de suppression",
+        blank=True,
+        default="",
+    )
+    deleted_cursor = models.TextField(
+        "Curseur de synchronisation des dossiers supprimés",
+        blank=True,
+        default="",
+    )
 
     class Meta:
         verbose_name = "Démarche"
@@ -206,6 +216,9 @@ class DossierQuerySet(models.QuerySet):
     def sans_pieces(self):
         return self.filter(demande_renouvellement__contains="SANS")
 
+    def active(self):
+        return self.filter(is_active=True)
+
 
 class Dossier(BaseModel):
     """
@@ -224,6 +237,25 @@ class Dossier(BaseModel):
         (STATE_EN_INSTRUCTION, "En instruction"),
         (STATE_REFUSE, "Refusé"),
         (STATE_SANS_SUITE, "Classé sans suite"),
+    )
+
+    RAISON_DESACTIVATION_ARCHIVE = "archive"
+    RAISON_DESACTIVATION_CORBEILLE = "corbeille"
+    RAISON_DESACTIVATION_SUPPRIME = "supprime"
+
+    RAISON_DESACTIVATION_CHOICES = (
+        (RAISON_DESACTIVATION_ARCHIVE, "Archivé"),
+        (RAISON_DESACTIVATION_CORBEILLE, "Dans la corbeille"),
+        (RAISON_DESACTIVATION_SUPPRIME, "Supprimé"),
+    )
+
+    is_active = models.BooleanField("Actif", default=True)
+    raison_desactivation = models.CharField(
+        "Raison de désactivation",
+        max_length=50,
+        choices=RAISON_DESACTIVATION_CHOICES,
+        blank=True,
+        default="",
     )
 
     perimetre = models.ForeignKey(
