@@ -1,20 +1,14 @@
 from logging import getLogger
 
 from django import forms
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.forms import ModelForm
-from django.utils import timezone
 from dsfr.forms import DsfrBaseForm
 
 from gsl_core.models import Collegue
 from gsl_core.templatetags.gsl_filters import euro
-from gsl_demarches_simplifiees.ds_client import DsMutator
-from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.services import DsService
-from gsl_notification.validators import document_file_validator
 from gsl_programmation.models import Enveloppe
 from gsl_projet.constants import (
     PROJET_STATUS_ACCEPTED,
@@ -225,9 +219,11 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
 
 class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):
     """
-    A form to centralize simulation status update **which does not trigger
-    notification** (e.g., all updates except refusal or dismissal of projects which have no other
-    processing dotation).
+    Centralizes every SimulationProjet status transition, for both the
+    simulation-only pending statuses and the final programmation statuses
+    (ACCEPTED/REFUSED/DISMISSED). Behaviour is selected from the injected
+    `status` kwarg; shared by SimulationProjetStatusUpdateView,
+    BulkSimulationProjetStatusUpdateView and ProgrammationStatusUpdateView.
     """
 
     def __init__(self, *args, status=None, **kwargs):
@@ -287,80 +283,6 @@ class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):
     class Meta:
         model = SimulationProjet
         fields = ()
-
-
-class RefuseProjetForm(SimulationProjetStatusForm):
-    justification = forms.CharField(
-        label="Motivation envoyée au demandeur (obligatoire)",
-        required=True,
-        widget=forms.Textarea(attrs={"rows": 3}),
-    )
-    justification_file = forms.FileField(
-        label="Ajouter un justificatif (optionnel)",
-        validators=[document_file_validator],
-        help_text=f"Taille maximale {settings.MAX_POST_FILE_SIZE_IN_MO} Mo. Formats supportés : jpg, png, pdf.",
-        required=False,
-    )
-
-    @transaction.atomic
-    def save(self, user: Collegue):
-        super().save(user)
-
-        # Dossier was recently refreshed DN thanks to RefuseProjetModalView.
-        # Race conditions remain possible, but should be rare enough and just fail without any side effect.
-        if self.instance.dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:
-            DsMutator().dossier_passer_en_instruction(
-                dossier_id=self.instance.dossier.ds_id,
-                instructeur_id=user.ds_id,
-            )
-
-        DsMutator().dossier_refuser(
-            self.instance.dossier,
-            user.ds_id,
-            motivation=self.cleaned_data["justification"],
-            document=self.cleaned_data["justification_file"],
-        )
-        self.instance.projet.notified_at = timezone.now()
-        self.instance.projet.save()
-
-    class Meta(SimulationProjetStatusForm.Meta):
-        model = SimulationProjet
-        fields = (
-            "justification",
-            "justification_file",
-        )
-
-
-class DismissProjetForm(SimulationProjetStatusForm):
-    justification = forms.CharField(
-        label="Motivation envoyée au demandeur (obligatoire)",
-        required=True,
-        widget=forms.Textarea(attrs={"rows": 3}),
-    )
-
-    @transaction.atomic
-    def save(self, user: Collegue):
-        super().save(user)
-        # Dossier was recently refreshed DN thanks to DismissProjetModalView.
-        # Race conditions remain possible, but should be rare enough and just fail without any side effect.
-        if self.instance.dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:
-            DsMutator().dossier_passer_en_instruction(
-                dossier_id=self.instance.dossier.ds_id,
-                instructeur_id=user.ds_id,
-            )
-
-        ds_service = DsService()
-        ds_service.dismiss_in_ds(
-            self.instance.dossier,
-            user,
-            motivation=self.cleaned_data["justification"],
-        )
-        self.instance.projet.notified_at = timezone.now()
-        self.instance.projet.save()
-
-    class Meta(SimulationProjetStatusForm.Meta):
-        model = SimulationProjet
-        fields = ("justification",)
 
 
 class AssietteSingleFieldForm(forms.ModelForm):

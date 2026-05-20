@@ -167,7 +167,7 @@ class TestGetSuccessMessageWhenSimpleDotation:
 
         assert (
             f"La demande de financement avec la dotation {dotation} a bien été {verbe}. "
-            f"Le dossier a bien été mis à jour sur Démarche Numérique." == message
+            f"Pensez à notifier le demandeur." == message
         )
 
 
@@ -355,7 +355,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
 
         assert (
             f"La demande de financement avec la dotation {dotation} a bien été refusée. "
-            f"Le dossier a bien été mis à jour sur Démarche Numérique." == message
+            f"Pensez à notifier le demandeur." == message
         )
 
     @pytest.mark.parametrize(
@@ -401,7 +401,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
 
         assert (
             f"La demande de financement avec la dotation {dotation} a bien été classée sans suite. "
-            f"Le dossier a bien été mis à jour sur Démarche Numérique." == message
+            f"Pensez à notifier le demandeur." == message
         )
 
     @pytest.mark.parametrize(
@@ -489,9 +489,8 @@ class TestGetSuccessMessageWhenDoubleDotation:
         message = _call_get_success_message(view)
 
         assert (
-            f"La demande de financement avec la dotation {dotation} a bien été refusée. "
-            f"Sachant que la dotation {OTHER_DOTATION[dotation]} a été classée sans suite, le dossier a bien été classé sans suite sur Démarche Numérique."
-            == message
+            f"La demande de financement avec la dotation {dotation} a bien été refusée."
+            f" Pensez à notifier le demandeur." == message
         )
 
     @pytest.mark.parametrize(
@@ -534,5 +533,5 @@ class TestGetSuccessMessageWhenDoubleDotation:
 
         assert (
             f"La demande de financement avec la dotation {dotation} a bien été classée sans suite. "
-            f"Le dossier a bien été mis à jour sur Démarche Numérique." == message
+            f"Pensez à notifier le demandeur." == message
         )

@@ -1,6 +1,9 @@
 {% if projet.to_notify %}
-    <a href="{% url 'gsl_notification:documents' projet.id %}"
-       class="fr-link fr-link--icon-right fr-icon-mail-line">À notifier</a>
+    <a href="{% if projet.has_accepted_dotation %}{% url 'gsl_notification:documents' projet.id %}{% else %}#{% endif %}"
+       class="fr-link fr-link--icon-right fr-icon-mail-line"
+       {% if not projet.has_accepted_dotation %}role="button" hx-get="{% url 'gsl_notification:notify-refused-dismissed' projet.id %}" hx-swap="outerHTML" id="notify-refused-dismissed-link-{{ projet.id }}" name="notify-refused-dismissed-link"{% endif %}>
+        À notifier
+    </a>
 {% elif projet.notified_at %}
     <p class="fr-badge fr-badge--sm fr-badge--success fr-badge--no-icon">
         Notifié

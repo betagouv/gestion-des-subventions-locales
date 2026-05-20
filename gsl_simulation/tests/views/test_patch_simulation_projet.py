@@ -239,6 +239,10 @@ def accepted_simulation_projet(collegue, simulation):
 def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
     _mock_save_one_dossier_from_ds, client_with_user_logged, simulation_projet
 ):
+    simulation_projet.projet.dossier_ds.ds_instructeurs.add(
+        client_with_user_logged.user.ds_profile
+    )
+
     page_url = reverse(
         "simulation:simulation-projet-detail", args=[simulation_projet.id]
     )
@@ -257,11 +261,12 @@ def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
             follow=True,
         )
     assert response.status_code == 200
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-    message = list(messages)[0]
-    assert message.level == 40
-    assert "Erreur !" == message.message
+    content = response.content.decode()
+    assert (
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique"
+        in content
+    )
+    assert "Erreur !" in content
     simulation_projet.refresh_from_db()
     assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING  # Not updated
     assert (

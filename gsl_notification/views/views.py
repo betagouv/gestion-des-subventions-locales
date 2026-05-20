@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.db.models import Exists, OuterRef
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -8,7 +9,7 @@ from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_http_methods, require_POST
 from django.views.generic import DeleteView, DetailView, UpdateView
-from django_htmx.http import HttpResponseClientRedirect
+from django_htmx.http import HttpResponseClientRedirect, HttpResponseClientRefresh
 
 from gsl.utils.csp import csp_update
 from gsl_core.decorators import htmx_only
@@ -27,6 +28,7 @@ from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_notification.forms import (
     ChooseDocumentTypeForGenerationForm,
     NotificationMessageForm,
+    RefusedDismissedNotificationForm,
 )
 from gsl_notification.models import (
     GeneratedDocument,
@@ -45,8 +47,10 @@ from gsl_projet.constants import (
     ARRETE,
     LETTRE,
     POSSIBLES_DOCUMENTS,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
 )
-from gsl_projet.models import Projet
+from gsl_projet.models import DotationProjet, Projet
 
 # Views for listing notification documents on a programmationProjet, -------------------
 # in various contexts
@@ -183,6 +187,70 @@ class CheckDsDossierUpToDateView(OpenHtmxModalMixin, DetailView):
                 )
 
         return super().render_to_response(context, *args, **kwargs)
+
+
+@method_decorator(htmx_only, name="dispatch")
+class RefusedDismissedNotificationModalView(OpenHtmxModalMixin, UpdateView):
+    """
+    Notification modal for projets that resolved to REFUSED or DISMISSED
+    (no accepted dotation). The status change happened earlier; this view
+    only sends the message to Démarches Numériques.
+    """
+
+    template_name = "gsl_notification/modal/notify_refused_dismissed.html"
+    pk_url_kwarg = "projet_id"
+    context_object_name = "projet"
+    form_class = RefusedDismissedNotificationForm
+
+    def get_queryset(self):
+        return (
+            Projet.objects.for_user(self.request.user)
+            .to_notify()
+            .filter(
+                ~Exists(
+                    DotationProjet.objects.filter(
+                        projet=OuterRef("pk"),
+                        status=PROJET_STATUS_ACCEPTED,
+                    )
+                )
+            )
+        )
+
+    def get_modal_id(self):
+        return f"notify-refused-dismissed-modal-{self.object.pk}"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["trigger_as_link"] = (
+            self.request.htmx.trigger_name == "notify-refused-dismissed-link"
+        )
+        return context
+
+    def form_valid(self, form):
+        try:
+            form.save(user=self.request.user)
+        except DsServiceException as e:
+            form.add_error(
+                None,
+                f"Une erreur est survenue lors de l'envoi de la notification. {str(e)}",
+            )
+            return self.form_invalid(form)
+
+        messages.success(
+            self.request,
+            "Le dossier a bien été mis à jour sur Démarche Numérique.",
+        )
+        queue_matomo_event(
+            self.request,
+            MATOMO_CATEGORY_NOTIFICATION,
+            MATOMO_ACTION_ENVOI_DN,
+            (
+                "classe_sans_suite"
+                if self.object.status == PROJET_STATUS_DISMISSED
+                else "refuse"
+            ),
+        )
+        return HttpResponseClientRefresh()
 
 
 # Edition form for arrêté --------------------------------------------------------------

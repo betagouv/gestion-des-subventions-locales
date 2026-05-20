@@ -6,8 +6,7 @@
 {% endblock button_label %}
 
 {% block content %}
-    <h1 class="fr-modal__title fr-text-default--{{ new_simulation_status|status_to_fr_color }}"
-        id="{{ modal_id }}-title">
+    <h1 class="fr-modal__title" id="{{ modal_id }}-title">
         <span class="fr-icon-{{ new_simulation_status|status_to_fr_color }}-fill fr-icon--lg"
               aria-hidden="true"></span>
         {{ new_simulation_status|status_to_action_word|capfirst }} la demande {{ object.enveloppe.dotation }}
@@ -17,11 +16,7 @@
         Il apparaîtra dans la programmation officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
     </p>
     <p>
-        {% if simulation_projet.dotation_projet.other_dotations|length > 0 and new_simulation_status != "valid" %}
-            Le demandeur ne va pas être notifié tout de suite car le projet est en double dotation.
-        {% else %}
-            Le demandeur ne va pas être notifié tout de suite.
-        {% endif %}
+        Le demandeur ne va pas être notifié tout de suite.
     </p>
     <p>
         Voulez-vous {{ new_simulation_status|status_to_action_word }} cette demande de dotation&nbsp;?

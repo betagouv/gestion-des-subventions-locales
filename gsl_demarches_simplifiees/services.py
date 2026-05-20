@@ -3,6 +3,7 @@ from logging import getLogger
 from typing import List, Literal
 
 from django.core.exceptions import FieldDoesNotExist
+from django.core.files.uploadedfile import UploadedFile
 
 from gsl_core.models import Collegue
 from gsl_demarches_simplifiees.ds_client import DsMutator
@@ -21,13 +22,18 @@ logger = getLogger(__name__)
 class DsService:
     MUTATION_KEYS = {
         "dismiss": "dossierClasserSansSuite",
+        "refuser": "dossierRefuser",
         "annotations": "dossierModifierAnnotations",
         "passer_en_instruction": "dossierPasserEnInstruction",
         "repasser_en_instruction": "dossierRepasserEnInstruction",
     }
 
     MUTATION_TYPES = Literal[
-        "dismiss", "annotations", "passer_en_instruction", "repasser_en_instruction"
+        "dismiss",
+        "refuser",
+        "annotations",
+        "passer_en_instruction",
+        "repasser_en_instruction",
     ]
 
     def __init__(self):
@@ -73,12 +79,32 @@ class DsService:
         dossier.save()
         return results
 
-    def dismiss_in_ds(self, dossier: Dossier, user: Collegue, motivation: str):
+    def dismiss_in_ds(
+        self,
+        dossier: Dossier,
+        user: Collegue,
+        motivation: str,
+        document: UploadedFile | None = None,
+    ):
         instructeur_id = self._get_instructeur_id(user)
         results = self.mutator.dossier_classer_sans_suite(
-            dossier.ds_id, instructeur_id, motivation
+            dossier.ds_id, instructeur_id, motivation, document=document
         )
         self._check_results(results, dossier, user, "dismiss", value=motivation)
+        return results
+
+    def refuser_in_ds(
+        self,
+        dossier: Dossier,
+        user: Collegue,
+        motivation: str,
+        document: UploadedFile | None = None,
+    ):
+        instructeur_id = self._get_instructeur_id(user)
+        results = self.mutator.dossier_refuser(
+            dossier, instructeur_id, motivation=motivation, document=document
+        )
+        self._check_results(results, dossier, user, "refuser", value=motivation)
         return results
 
     # Annotations

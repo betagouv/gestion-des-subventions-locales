@@ -17,7 +17,7 @@
 {% endif %}
 
 {% block content %}
-    <h1 class="fr-modal__title processing-color">
+    <h1 class="fr-modal__title">
         <span class="fr-icon-draft-fill fr-icon--lg" aria-hidden="true"></span>
         {% if object.dotation_projet.other_dotations|length == 0 %}
             Revenir au statut «&nbsp;{{ new_simulation_status|status_to_adjective }}&nbsp;»

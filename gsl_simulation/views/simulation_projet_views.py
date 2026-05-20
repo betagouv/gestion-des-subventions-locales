@@ -18,7 +18,6 @@ from gsl_core.exceptions import Http404
 from gsl_core.matomo import queue_matomo_event
 from gsl_core.matomo_constants import (
     MATOMO_ACTION_CHANGEMENT_STATUT,
-    MATOMO_ACTION_CHANGEMENT_STATUT_AVEC_NOTIFICATION_DEMANDE_CONFIRMATION,
     MATOMO_ACTION_CHANGEMENT_STATUT_BULK,
     MATOMO_ACTION_CHANGEMENT_STATUT_CONFIRME,
     MATOMO_ACTION_CHANGEMENT_STATUT_SANS_NOTIFICATION_DEMANDE_CONFIRMATION,
@@ -40,7 +39,6 @@ from gsl_projet.constants import (
     DOTATIONS,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.forms import DotationProjetForm, ProjetForm
@@ -50,9 +48,7 @@ from gsl_simulation.filters import SimulationProjetFilters
 from gsl_simulation.forms import (
     AssietteSingleFieldForm,
     CommentSingleFieldForm,
-    DismissProjetForm,
     MontantSingleFieldForm,
-    RefuseProjetForm,
     SimulationProjetForm,
     SimulationProjetStatusForm,
     TauxSingleFieldForm,
@@ -757,9 +753,20 @@ class BulkSimulationProjetStatusUpdateView(OpenHtmxModalMixin, TemplateView):
 
 @method_decorator(htmx_only, name="dispatch")
 class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
+    """
+    Status update of a SimulationProjet for the *programmation*
+    (official allocation) statuses: ACCEPTED, REFUSED, DISMISSED.
+    Requires the user to be a DS instructeur on the dossier.
+
+    Reuses the polymorphic SimulationProjetStatusForm (shared with
+    SimulationProjetStatusUpdateView and the bulk view), driven by
+    the injected `status` kwarg.
+    """
+
     context_object_name = "simulation_projet"
+    form_class = SimulationProjetStatusForm
     new_project_status: str = ""
-    acceptance_errors: list = []
+    acceptance_errors: list = None
 
     def dispatch(self, request, *args, **kwargs):
         if (
@@ -791,24 +798,12 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
 
-        if self.new_project_status in [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED]:
-            queue_matomo_event(
-                request,
-                MATOMO_CATEGORY_PROGRAMMATION,
-                MATOMO_ACTION_CHANGEMENT_STATUT_AVEC_NOTIFICATION_DEMANDE_CONFIRMATION,
-                f"{self.kwargs['status']}",
-            )
-
-        elif self.new_project_status in [
-            PROJET_STATUS_PROCESSING,
-            PROJET_STATUS_ACCEPTED,
-        ]:
-            queue_matomo_event(
-                request,
-                MATOMO_CATEGORY_PROGRAMMATION,
-                MATOMO_ACTION_CHANGEMENT_STATUT_SANS_NOTIFICATION_DEMANDE_CONFIRMATION,
-                f"{self.kwargs['status']}",
-            )
+        queue_matomo_event(
+            request,
+            MATOMO_CATEGORY_PROGRAMMATION,
+            MATOMO_ACTION_CHANGEMENT_STATUT_SANS_NOTIFICATION_DEMANDE_CONFIRMATION,
+            f"{self.kwargs['status']}",
+        )
 
         self.acceptance_errors = []
         if self.kwargs["status"] == SimulationProjet.STATUS_ACCEPTED:
@@ -838,15 +833,6 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         kwargs["status"] = self.kwargs["status"]
         return kwargs
 
-    def get_form_class(self):
-        if self.new_project_status == PROJET_STATUS_REFUSED:
-            return RefuseProjetForm
-
-        if self.new_project_status == PROJET_STATUS_DISMISSED:
-            return DismissProjetForm
-
-        return SimulationProjetStatusForm
-
     def get_template_names(self):
         if self.request.user.ds_id not in [
             i.ds_id for i in self.object.dossier.ds_instructeurs.all()
@@ -854,16 +840,7 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
             return ["htmx/not_instructeur_error.html"]
         if self.acceptance_errors:
             return ["htmx/acceptance_errors_modal.html"]
-        if self.new_project_status in [
-            PROJET_STATUS_PROCESSING,
-            PROJET_STATUS_ACCEPTED,
-        ]:
-            return ["htmx/notify_later_confirmation_modal.html"]
-
-        if self.new_project_status in [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED]:
-            return ["htmx/notify_project_confirmation_modal.html"]
-
-        raise ValueError(f"Invalid status: {self.new_project_status}")
+        return ["htmx/programmation_status_change_modal.html"]
 
     def get_queryset(self) -> SimulationProjetQuerySet:
         return (
@@ -889,34 +866,23 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
 
         message = SIMU_PROJET_STATUS_TO_MESSAGE[self.kwargs["status"]]
 
-        ds_message = ""
-
         if self.new_project_status in [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED]:
-            ds_message = " Le dossier a bien été mis à jour sur Démarche Numérique."
+            message += " Pensez à notifier le demandeur."
 
-            if (
-                self.new_project_status == PROJET_STATUS_DISMISSED
-                and self.kwargs["status"] == SimulationProjet.STATUS_REFUSED
-            ):
-                other_dotation = self.object.dotation_projet.other_dotations[0].dotation
-                ds_message = f" Sachant que la dotation {other_dotation} a été classée sans suite, le dossier a bien été classé sans suite sur Démarche Numérique."
-
-        return message + ds_message
+        return message
 
     def form_valid(self, form):
         try:
             form.save(user=self.request.user)
         except DsServiceException as e:
-            if self.get_form_class() == SimulationProjetStatusForm:
-                # If the form is SimulationProjetStatusForm, we have no modal to display the error in, so we raise
-                # the exception directly so it is handled in dispatch
-                raise e
-
+            # SimulationProjetStatusForm only touches DS for the ACCEPTED path
+            # (annotations push). The form's save() is atomic, so the status
+            # change was rolled back; display the error inline in the modal.
             form.add_error(
                 None,
                 f"Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. {str(e)}",
             )
-            return super().form_invalid(form)
+            return self.form_invalid(form)
 
         self.object.simulation.save(update_fields=["updated_at"])
         message = self.get_success_message()

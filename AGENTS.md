@@ -199,10 +199,11 @@ _(optionnel) Une ou plusieurs captures d'écran_
    └─ Status: accepted/refused/dismissed
 
 5. Document Generation & Notification
-   ├─ System generates legal document templates (arrêté, notification letter)
-   ├─ User signs document externally and uploads signed version
-   ├─ Automatic notification for refused/dismissed projects
-   └─ Manual trigger for accepted project notifications
+   ├─ Accepted projects: system generates legal document templates (arrêté,
+   │  notification letter); user signs externally and uploads the signed version
+   ├─ Refused/dismissed projects: notification is decoupled from the status
+   │  change — user explicitly triggers it from the "À notifier" action
+   └─ All notifications to Démarches Numériques are manually triggered
 ```
 
 ### Key Concepts
@@ -504,9 +505,26 @@ service.update_ds_annotations_for_one_dotation(
 
 ### Document Generation & Notification Workflow
 
-**For refused/dismissed projects:**
-- System automatically generates notification via DS API
-- Applicant sees decision in their DS dossier
+Notification of Démarches Numériques is now **decoupled from the status
+change** and always manually triggered.
+
+**For refused/dismissed projects (two steps):**
+1. In programmation, `ProgrammationStatusUpdateView`
+   (`gsl_simulation/views/simulation_projet_views.py`) only changes the status
+   via `SimulationProjetStatusForm`, using the unified modal
+   `gsl_simulation/templates/htmx/programmation_status_change_modal.html`
+   (no justification, no DS call). The project is marked "À notifier".
+2. The user later clicks the "À notifier" action, handled by
+   `RefusedDismissedNotificationModalView` (`gsl_notification/views/views.py`)
+   with `RefusedDismissedNotificationForm` (`gsl_notification/forms.py`),
+   modal `gsl_notification/templates/gsl_notification/modal/notify_refused_dismissed.html`,
+   route `notify-refused-dismissed`
+   (`/notification/<projet_id>/notifier/refus-ou-classement/`). The user enters
+   the justification and explicitly sends the notification to DS.
+
+Table cells and the project-detail card route the "À notifier" action based on
+`Projet.has_accepted_dotation`: accepted → documents flow; otherwise → the
+`notify-refused-dismissed` endpoint.
 
 **For accepted projects:**
 - System generates template documents (arrêté, notification letter)
@@ -713,7 +731,8 @@ See `.env.example` for required variables:
        ↓ (ProgrammationProjet records decision)
    Projet state → ACCEPTED | REFUSED | DISMISSED
        ↓
-   IF REFUSED/DISMISSED: Auto-notify via DS API
+   IF REFUSED/DISMISSED: marked "À notifier"; user later triggers
+       notification via notify-refused-dismissed (gsl_notification)
    IF ACCEPTED: Generate templates (arrêté, letter)
        ↓
    User signs externally → uploads signed version

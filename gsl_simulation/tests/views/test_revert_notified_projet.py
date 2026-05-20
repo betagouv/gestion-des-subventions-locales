@@ -251,7 +251,7 @@ class TestRevertNotifiedProjetToProcessingView:
         mock_update_annotations.assert_called_once()
 
     @patch("gsl_projet.models.DsService.update_ds_annotations_for_one_dotation")
-    @patch("gsl_simulation.forms.DsService.repasser_en_instruction")
+    @patch("gsl_projet.models.DsService.repasser_en_instruction")
     def test_post_clears_notified_at(
         self,
         mock_repasser_en_instruction,
@@ -276,7 +276,7 @@ class TestRevertNotifiedProjetToProcessingView:
         assert notified_simulation_projet.projet.notified_at is None
 
     @patch("gsl_projet.models.DsService.update_ds_annotations_for_one_dotation")
-    @patch("gsl_simulation.forms.DsService.repasser_en_instruction")
+    @patch("gsl_projet.models.DsService.repasser_en_instruction")
     def test_post_deletes_programmation_projet(
         self,
         mock_repasser_en_instruction,

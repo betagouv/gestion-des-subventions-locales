@@ -1,6 +1,7 @@
 from functools import cached_property
 
 from django import forms
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from dsfr.forms import DsfrBaseForm
@@ -22,11 +23,17 @@ from gsl_notification.utils import (
     merge_documents_into_pdf,
     replace_mentions_in_html,
 )
+from gsl_notification.validators import document_file_validator
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.utils.programmation_projet_filters import (
     ProgrammationProjetFilters,
 )
-from gsl_projet.constants import ARRETE, LETTRE, PROJET_STATUS_ACCEPTED
+from gsl_projet.constants import (
+    ARRETE,
+    LETTRE,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+)
 from gsl_projet.models import Projet
 
 
@@ -261,6 +268,62 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
     class Meta:
         model = Projet
         fields = ()
+
+
+class RefusedDismissedNotificationForm(DsfrBaseForm, forms.ModelForm):
+    """
+    Sends the refusal/classement notification to Démarches Numériques.
+
+    The form is rendered for projets whose resolved status is REFUSED or
+    DISMISSED (no accepted dotation).
+    """
+
+    justification = forms.CharField(
+        label="Motivation envoyée au demandeur (obligatoire)",
+        required=True,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+    justification_file = forms.FileField(
+        label="Ajouter un justificatif (optionnel)",
+        validators=[document_file_validator],
+        help_text=f"Taille maximale {settings.MAX_POST_FILE_SIZE_IN_MO} Mo. Formats supportés : jpg, png, pdf.",
+        required=False,
+    )
+
+    class Meta:
+        model = Projet
+        fields = ()
+
+    @transaction.atomic
+    def save(self, user):
+        projet = self.instance
+        dossier = projet.dossier_ds
+        ds = DsService()
+
+        # Dossier was recently refreshed DN thanks to the up-to-date check.
+        # Race conditions remain possible, but should be rare enough and just
+        # fail without any side effect.
+        if dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:
+            ds.passer_en_instruction(dossier=dossier, user=user)
+
+        if projet.status == PROJET_STATUS_DISMISSED:
+            ds.dismiss_in_ds(
+                dossier,
+                user,
+                motivation=self.cleaned_data["justification"],
+                document=self.cleaned_data.get("justification_file"),
+            )
+        else:
+            ds.refuser_in_ds(
+                dossier,
+                user,
+                motivation=self.cleaned_data["justification"],
+                document=self.cleaned_data.get("justification_file"),
+            )
+
+        projet.notified_at = timezone.now()
+        projet.save()
+        return projet
 
 
 # -- Multi-projet document generation modal forms --
