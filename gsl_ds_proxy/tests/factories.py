@@ -12,6 +12,7 @@ class ProxyTokenFactory(factory.django.DjangoModelFactory):
 
     label = factory.Sequence(lambda n: f"Token {n}")
     demarche = factory.SubFactory(DemarcheFactory)
+    groupe_instructeur_ds_id = factory.Sequence(lambda n: f"GROUPE-{n}")
     is_active = True
 
     @classmethod
