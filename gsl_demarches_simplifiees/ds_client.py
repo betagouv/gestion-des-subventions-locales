@@ -108,7 +108,7 @@ class DsClient(DsClientBase):
         include_pending_deleted: bool = True,
         include_deleted: bool = True,
         page_size: int = 50,
-    ) -> (dict, bool):
+    ) -> tuple[dict, bool]:
         """
         Fetch one page of dossiers, pendingDeletedDossiers, and/or deletedDossiers.
         Only the sets for which the corresponding include_* flag is True are fetched.
@@ -131,10 +131,10 @@ class DsClient(DsClientBase):
             "deletedFirst": page_size,
             "deletedSince": updated_since_iso,
         }
-        result, has_error = self.launch_graphql_query(
+        result, has_errors = self.launch_graphql_query(
             "getDemarche", variables=variables
         )
-        return (result["data"]["demarche"], has_error)
+        return (result["data"]["demarche"], has_errors)
 
     def get_one_dossier(self, dossier_number) -> dict:
         variables = {

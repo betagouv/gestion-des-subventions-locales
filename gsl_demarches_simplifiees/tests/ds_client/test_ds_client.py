@@ -137,14 +137,14 @@ def test_fetch_demarche_page_returns_demarche_data():
         "launch_graphql_query",
         return_value=(_make_fetch_page_response(dossiers=nodes), False),
     ):
-        result, has_error = client.fetch_demarche_page(123)
+        result, has_errors = client.fetch_demarche_page(123)
 
         assert result["dossiers"]["nodes"] == nodes
         assert result["dossiers"]["pageInfo"]["hasNextPage"] is False
-        assert has_error is False
+        assert has_errors is False
 
 
-def test_fetch_demarche_page_propagates_has_error_true():
+def test_fetch_demarche_page_propagates_has_errors_true():
     client = DsClient()
 
     with patch.object(
@@ -152,9 +152,9 @@ def test_fetch_demarche_page_propagates_has_error_true():
         "launch_graphql_query",
         return_value=(_make_fetch_page_response(), True),
     ):
-        _, has_error = client.fetch_demarche_page(123)
+        _, has_errors = client.fetch_demarche_page(123)
 
-        assert has_error is True
+        assert has_errors is True
 
 
 @responses.activate
