@@ -95,7 +95,7 @@ def test_start_view_rejects_invalid_target_status(
             reverse("simulation:bulk-status-job-start"),
             data={
                 "simulation": simulation.pk,
-                "target_status": SimulationProjet.STATUS_REFUSED,
+                "target_status": "invalid",
                 "simulation_projet_ids": f"{sp.id}",
             },
             headers={"HX-Request": "true"},

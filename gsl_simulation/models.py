@@ -268,6 +268,8 @@ class SimulationProjet(BaseModel):
 
 _ALLOWED_TARGET_STATUSES = (
     SimulationProjet.STATUS_ACCEPTED,
+    SimulationProjet.STATUS_REFUSED,
+    SimulationProjet.STATUS_DISMISSED,
     *SimulationProjet.SIMULATION_PENDING_STATUSES,
 )
 

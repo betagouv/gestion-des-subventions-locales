@@ -141,6 +141,19 @@ class BulkStatusJobProgressView(DetailView):
                 "dotation_projet",
                 "dotation_projet__projet",
                 "dotation_projet__projet__dossier_ds",
+                "dotation_projet__projet__dossier_ds__ds_demarche",
+                "dotation_projet__projet__dossier_ds__ds_demandeur",
+                "dotation_projet__projet__dossier_ds__porteur_de_projet_arrondissement",
+                "dotation_projet__projet__dossier_ds__demande_categorie_detr",
+                "dotation_projet__projet__dossier_ds__demande_categorie_dsil",
+                "dotation_projet__programmation_projet",
             )
-            .prefetch_related("dotation_projet__projet__dotationprojet_set")
+            .prefetch_related(
+                "dotation_projet__projet__dotationprojet_set",
+                "dotation_projet__projet__dotationprojet_set__programmation_projet",
+                "dotation_projet__projet__dotationprojet_set__simulationprojet_set",
+                "dotation_projet__projet__dossier_ds__demande_cofinancements",
+                "dotation_projet__projet__dossier_ds__projet_zonage",
+                "dotation_projet__projet__dossier_ds__projet_contractualisation",
+            )
         )
