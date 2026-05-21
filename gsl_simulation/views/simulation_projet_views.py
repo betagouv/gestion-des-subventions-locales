@@ -12,7 +12,6 @@ from django.views.generic import DetailView, TemplateView, UpdateView
 from django.views.generic.edit import BaseUpdateView
 from django_htmx.http import HttpResponseClientRefresh
 
-from gsl.settings import ALLOWED_HOSTS
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
 from gsl_core.matomo import queue_matomo_event
@@ -419,7 +418,7 @@ def redirect_to_same_page_or_to_simulation_detail_by_default(
 ):
     referer = request.headers.get("Referer")
     if referer and url_has_allowed_host_and_scheme(
-        referer, allowed_hosts=ALLOWED_HOSTS
+        referer, allowed_hosts=request.get_host()
     ):
         return redirect(referer)
 

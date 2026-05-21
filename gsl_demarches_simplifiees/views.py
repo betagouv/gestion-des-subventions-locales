@@ -14,7 +14,6 @@ from django.views.generic import UpdateView
 from django.views.generic.list import ListView
 from django_celery_results.models import TaskResult
 
-from gsl.settings import ALLOWED_HOSTS
 from gsl_core.exceptions import Http404
 from gsl_projet.models import Projet
 
@@ -69,7 +68,7 @@ def refresh_one_dossier(request, dossier_ds_number):
     if not url:
         url = request.headers.get("Referer")
 
-    is_url_safe = url_has_allowed_host_and_scheme(url, allowed_hosts=ALLOWED_HOSTS)
+    is_url_safe = url_has_allowed_host_and_scheme(url, allowed_hosts=request.get_host())
     if is_url_safe:
         return redirect(url)
 
