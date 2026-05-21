@@ -84,7 +84,7 @@ def test_save_demarche_dossiers_from_ds_calls_save_dossier_data_and_refresh_doss
 
     with patch(
         "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
-        return_value=_make_demarche_page(dossiers=ds_dossiers),
+        return_value=(_make_demarche_page(dossiers=ds_dossiers), False),
     ):
         with patch(
             "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
@@ -136,7 +136,7 @@ def test_save_demarche_dossiers_from_ds_update_raw_ds_data_dossiers():
 
     with patch(
         "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
-        return_value=_make_demarche_page(dossiers=ds_dossiers),
+        return_value=(_make_demarche_page(dossiers=ds_dossiers), False),
     ):
         with patch(
             "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
@@ -188,7 +188,7 @@ def test_save_demarche_dossiers_from_ds_with_one_empty_data(caplog):
 
     with patch(
         "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
-        return_value=_make_demarche_page(dossiers=ds_dossiers),
+        return_value=(_make_demarche_page(dossiers=ds_dossiers), False),
     ):
         with patch(
             "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
@@ -212,7 +212,7 @@ def test_save_demarche_dossiers_from_ds_update_sync_cursor():
 
     with patch(
         "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
-        return_value=_make_demarche_page(end_cursor=expected_cursor),
+        return_value=(_make_demarche_page(end_cursor=expected_cursor), False),
     ):
         save_demarche_dossiers_from_ds(demarche_number)
 
@@ -264,7 +264,7 @@ def test_save_demarche_dossiers_from_ds_multipage_different_stream_lengths():
 
     with patch(
         "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
-        side_effect=[page1, page2],
+        side_effect=[(page1, False), (page2, False)],
     ) as mock_fetch:
         with patch(
             "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
@@ -319,7 +319,7 @@ def test_save_demarche_dossiers_from_ds_error_on_page_continues_but_skips_cursor
 
     with patch(
         "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
-        side_effect=[page1, page2],
+        side_effect=[(page1, False), (page2, False)],
     ) as mock_fetch:
         with patch(
             "gsl_demarches_simplifiees.importer.dossier._create_or_update_dossier_from_ds_data",
@@ -742,7 +742,7 @@ def test_archived_dossier_in_ds_stream_deactivates_existing_dossier():
 
     with patch(
         "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
-        return_value=_make_demarche_page(dossiers=ds_dossiers),
+        return_value=(_make_demarche_page(dossiers=ds_dossiers), False),
     ):
         with patch(
             "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
@@ -893,6 +893,7 @@ def test_commit_sync_cursors_no_errors_updates_all_cursors():
     _commit_sync_cursors(
         demarche,
         False,
+        False,
         dossiers_cursor="new-d",
         dossiers_any_error=False,
         pending_deleted_cursor="new-p",
@@ -916,6 +917,7 @@ def test_commit_sync_cursors_updated_since_always_saved():
     _commit_sync_cursors(
         demarche,
         True,
+        False,
         dossiers_cursor=None,
         dossiers_any_error=True,
         pending_deleted_cursor=None,
@@ -939,6 +941,7 @@ def test_commit_sync_cursors_dossiers_error_keeps_sync_cursor():
     _commit_sync_cursors(
         demarche,
         False,
+        False,
         dossiers_cursor="new-d",
         dossiers_any_error=True,
         pending_deleted_cursor="new-p",
@@ -961,6 +964,7 @@ def test_commit_sync_cursors_pending_error_keeps_pending_cursor():
     _commit_sync_cursors(
         demarche,
         False,
+        False,
         dossiers_cursor="new-d",
         dossiers_any_error=False,
         pending_deleted_cursor="new-p",
@@ -982,6 +986,7 @@ def test_commit_sync_cursors_deleted_error_keeps_deleted_cursor():
 
     _commit_sync_cursors(
         demarche,
+        False,
         False,
         dossiers_cursor="new-d",
         dossiers_any_error=False,
@@ -1008,6 +1013,7 @@ def test_commit_sync_cursors_dossiers_error_with_date_changed_resets_cursor():
     _commit_sync_cursors(
         demarche,
         True,
+        False,
         dossiers_cursor="new-d",
         dossiers_any_error=True,
         pending_deleted_cursor="new-p",
@@ -1030,6 +1036,7 @@ def test_commit_sync_cursors_pending_error_with_date_changed_resets_cursor():
     _commit_sync_cursors(
         demarche,
         True,
+        False,
         dossiers_cursor="new-d",
         dossiers_any_error=False,
         pending_deleted_cursor="new-p",
@@ -1052,6 +1059,7 @@ def test_commit_sync_cursors_deleted_error_with_date_changed_resets_cursor():
     _commit_sync_cursors(
         demarche,
         True,
+        False,
         dossiers_cursor="new-d",
         dossiers_any_error=False,
         pending_deleted_cursor="new-p",
@@ -1065,3 +1073,87 @@ def test_commit_sync_cursors_deleted_error_with_date_changed_resets_cursor():
     assert demarche.sync_cursor == "new-d"
     assert demarche.pending_deleted_cursor == "new-p"
     assert demarche.deleted_cursor == ""  # remis à zéro
+
+
+# has_error_in_request=True : erreur HTTP-level dans la requête DS
+
+
+@pytest.mark.django_db
+def test_commit_sync_cursors_request_error_keeps_all_cursors():
+    """Quand la requête DS renvoie une erreur, aucun curseur n'est avancé."""
+    demarche = DemarcheFactory(
+        sync_cursor="old-d",
+        pending_deleted_cursor="old-p",
+        deleted_cursor="old-del",
+    )
+
+    _commit_sync_cursors(
+        demarche,
+        False,
+        True,  # has_error_in_request
+        dossiers_cursor="new-d",
+        dossiers_any_error=False,
+        pending_deleted_cursor="new-p",
+        pending_any_error=False,
+        deleted_cursor="new-del",
+        deleted_any_error=False,
+        api_updated_since=_API_UPDATED_SINCE,
+    )
+
+    demarche.refresh_from_db()
+    assert demarche.sync_cursor == "old-d"
+    assert demarche.pending_deleted_cursor == "old-p"
+    assert demarche.deleted_cursor == "old-del"
+    assert demarche.updated_since == _API_UPDATED_SINCE
+
+
+@pytest.mark.django_db
+def test_commit_sync_cursors_request_error_with_date_changed_resets_all_cursors():
+    """Quand la requête DS renvoie une erreur lors d'une première sync, tous les curseurs sont remis à zéro."""
+    demarche = DemarcheFactory(
+        sync_cursor="old-d",
+        pending_deleted_cursor="old-p",
+        deleted_cursor="old-del",
+    )
+
+    _commit_sync_cursors(
+        demarche,
+        True,  # has_date_changed
+        True,  # has_error_in_request
+        dossiers_cursor="new-d",
+        dossiers_any_error=False,
+        pending_deleted_cursor="new-p",
+        pending_any_error=False,
+        deleted_cursor="new-del",
+        deleted_any_error=False,
+        api_updated_since=_API_UPDATED_SINCE,
+    )
+
+    demarche.refresh_from_db()
+    assert demarche.sync_cursor == ""
+    assert demarche.pending_deleted_cursor == ""
+    assert demarche.deleted_cursor == ""
+
+
+@pytest.mark.django_db
+def test_save_demarche_dossiers_from_ds_request_error_keeps_cursors():
+    """Quand fetch_demarche_page signale une erreur DS, les curseurs ne sont pas avancés."""
+    demarche_number = 123
+    initial_cursor = "old-cursor"
+    demarche = DemarcheFactory(
+        ds_number=demarche_number,
+        sync_cursor=initial_cursor,
+        updated_since="2025-01-01T00:00:00+00:00",
+        raw_ds_data={"groupeInstructeurs": [{"id": "GROUPE-1", "instructeurs": []}]},
+    )
+
+    page = _make_demarche_page(end_cursor="new-cursor")
+
+    with patch(
+        "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
+        return_value=(page, True),  # has_error_in_request=True
+    ):
+        save_demarche_dossiers_from_ds(demarche_number)
+
+    demarche.refresh_from_db()
+    assert demarche.sync_cursor == initial_cursor

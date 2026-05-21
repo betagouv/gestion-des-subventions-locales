@@ -28,7 +28,7 @@ class DsClientBase:
         ) as query_file:
             self.query = query_file.read()
 
-    def launch_graphql_query(self, operation_name, variables=None) -> dict:
+    def launch_graphql_query(self, operation_name, variables=None) -> (dict, bool):
         headers = {
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json",
@@ -46,7 +46,10 @@ class DsClientBase:
 
         if response.status_code == 200:
             results = response.json()
+            has_errors = False
+
             if "errors" in results.keys():
+                has_errors = len(results["errors"]) > 0
                 for error in results["errors"]:
                     logger.warning(
                         "DN request error",
@@ -60,7 +63,7 @@ class DsClientBase:
                     raise DsServiceException(
                         level=logging.ERROR, log_message="DN request returned errors"
                     )
-            return results
+            return results, has_errors
 
         if response.status_code == 403:
             raise DsConnectionError(
@@ -92,7 +95,7 @@ class DsClient(DsClientBase):
             "includeGroupeInstructeurs": True,
             "includeRevision": True,  # to list custom fields with their ids
         }
-        return self.launch_graphql_query("getDemarche", variables=variables)
+        return self.launch_graphql_query("getDemarche", variables=variables)[0]
 
     def fetch_demarche_page(
         self,
@@ -105,7 +108,7 @@ class DsClient(DsClientBase):
         include_pending_deleted: bool = True,
         include_deleted: bool = True,
         page_size: int = 50,
-    ) -> dict:
+    ) -> (dict, bool):
         """
         Fetch one page of dossiers, pendingDeletedDossiers, and/or deletedDossiers.
         Only the sets for which the corresponding include_* flag is True are fetched.
@@ -128,14 +131,16 @@ class DsClient(DsClientBase):
             "deletedFirst": page_size,
             "deletedSince": updated_since_iso,
         }
-        result = self.launch_graphql_query("getDemarche", variables=variables)
-        return result["data"]["demarche"]
+        result, has_error = self.launch_graphql_query(
+            "getDemarche", variables=variables
+        )
+        return (result["data"]["demarche"], has_error)
 
     def get_one_dossier(self, dossier_number) -> dict:
         variables = {
             "dossierNumber": dossier_number,
         }
-        result = self.launch_graphql_query("getDossier", variables)
+        result, _ = self.launch_graphql_query("getDossier", variables)
         return result["data"]["dossier"]
 
 
@@ -158,7 +163,7 @@ class DsMutator(DsClientBase):
         }
         return self.launch_graphql_query(
             "dossierModifierAnnotations", variables=variables
-        )
+        )[0]
 
     def dossier_repasser_en_instruction(
         self, dossier_id, instructeur_id, disable_notification=False
@@ -175,7 +180,7 @@ class DsMutator(DsClientBase):
         # for the moment, if the dossier is in construction, it silently fails without any error
         return self.launch_graphql_query(
             "dossierRepasserEnInstruction", variables=variables
-        )
+        )[0]
 
     def dossier_passer_en_instruction(
         self, dossier_id, instructeur_id, disable_notification=False
@@ -190,7 +195,7 @@ class DsMutator(DsClientBase):
         }
         return self.launch_graphql_query(
             "dossierPasserEnInstruction", variables=variables
-        )
+        )[0]
 
     def _mutate_with_justificatif_and_motivation(
         self,
@@ -214,7 +219,7 @@ class DsMutator(DsClientBase):
 
         if justificatif_id:
             variables["input"]["justificatif"] = justificatif_id
-        return self.launch_graphql_query(action, variables=variables)
+        return self.launch_graphql_query(action, variables=variables)[0]
 
     def _upload_attachment(self, dossier_ds_id: str, file: UploadedFile) -> str:
         """
@@ -237,7 +242,7 @@ class DsMutator(DsClientBase):
                     "contentType": "application/pdf",
                 }
             },
-        )
+        )[0]
         upload_url = res["data"]["createDirectUpload"]["directUpload"]["url"]
         credential_headers = json.loads(
             res["data"]["createDirectUpload"]["directUpload"]["headers"]

@@ -59,7 +59,9 @@ def test_fetch_demarche_page_converts_datetime_to_iso_format():
     updated_since = timezone.datetime(2024, 1, 15)
 
     with patch.object(
-        client, "launch_graphql_query", return_value=_make_fetch_page_response()
+        client,
+        "launch_graphql_query",
+        return_value=(_make_fetch_page_response(), False),
     ) as mock_query:
         client.fetch_demarche_page(123, updated_since=updated_since)
 
@@ -72,7 +74,9 @@ def test_fetch_demarche_page_passes_none_when_no_updated_since():
     client = DsClient()
 
     with patch.object(
-        client, "launch_graphql_query", return_value=_make_fetch_page_response()
+        client,
+        "launch_graphql_query",
+        return_value=(_make_fetch_page_response(), False),
     ) as mock_query:
         client.fetch_demarche_page(123)
 
@@ -84,7 +88,9 @@ def test_fetch_demarche_page_passes_cursors_and_include_flags():
     client = DsClient()
 
     with patch.object(
-        client, "launch_graphql_query", return_value=_make_fetch_page_response()
+        client,
+        "launch_graphql_query",
+        return_value=(_make_fetch_page_response(), False),
     ) as mock_query:
         client.fetch_demarche_page(
             123,
@@ -110,7 +116,9 @@ def test_fetch_demarche_page_respects_page_size():
     client = DsClient()
 
     with patch.object(
-        client, "launch_graphql_query", return_value=_make_fetch_page_response()
+        client,
+        "launch_graphql_query",
+        return_value=(_make_fetch_page_response(), False),
     ) as mock_query:
         client.fetch_demarche_page(123, page_size=20)
 
@@ -127,9 +135,62 @@ def test_fetch_demarche_page_returns_demarche_data():
     with patch.object(
         client,
         "launch_graphql_query",
-        return_value=_make_fetch_page_response(dossiers=nodes),
+        return_value=(_make_fetch_page_response(dossiers=nodes), False),
     ):
-        result = client.fetch_demarche_page(123)
+        result, has_error = client.fetch_demarche_page(123)
 
         assert result["dossiers"]["nodes"] == nodes
         assert result["dossiers"]["pageInfo"]["hasNextPage"] is False
+        assert has_error is False
+
+
+def test_fetch_demarche_page_propagates_has_error_true():
+    client = DsClient()
+
+    with patch.object(
+        client,
+        "launch_graphql_query",
+        return_value=(_make_fetch_page_response(), True),
+    ):
+        _, has_error = client.fetch_demarche_page(123)
+
+        assert has_error is True
+
+
+@responses.activate
+def test_launch_graphql_query_returns_has_errors_false_when_no_errors():
+    responses.add(
+        responses.POST,
+        settings.DS_API_URL,
+        json={"data": {"demarche": {}}},
+        status=200,
+    )
+
+    client = DsClient()
+    results, has_errors = client.launch_graphql_query("someOperation")
+
+    assert has_errors is False
+    assert results == {"data": {"demarche": {}}}
+
+
+@responses.activate
+def test_launch_graphql_query_returns_has_errors_true_for_non_fatal_errors(caplog):
+    responses.add(
+        responses.POST,
+        settings.DS_API_URL,
+        json={
+            "data": {"demarche": {}},
+            "errors": [
+                {"message": "some partial error", "extensions": {"code": "partial"}}
+            ],
+        },
+        status=200,
+    )
+
+    client = DsClient()
+    with caplog.at_level(logging.WARNING):
+        results, has_errors = client.launch_graphql_query("someOperation")
+
+    assert has_errors is True
+    assert results["data"] == {"demarche": {}}
+    assert "DN request error" in caplog.text

@@ -54,7 +54,7 @@ def save_demarche_dossiers_from_ds(demarche_number):
     dossiers_any_error = pending_any_error = deleted_any_error = False
 
     while has_more_dossiers or has_more_pending or has_more_deleted:
-        demarche_data = client.fetch_demarche_page(
+        demarche_data, has_error_in_request = client.fetch_demarche_page(
             demarche_number,
             updated_since=api_updated_since,
             dossiers_after=dossiers_cursor,
@@ -111,6 +111,7 @@ def save_demarche_dossiers_from_ds(demarche_number):
     _commit_sync_cursors(
         demarche,
         has_date_changed,
+        has_error_in_request,
         dossiers_cursor=dossiers_cursor,
         dossiers_any_error=dossiers_any_error,
         pending_deleted_cursor=pending_deleted_cursor,
@@ -219,6 +220,7 @@ def _advance_stream(
 def _commit_sync_cursors(
     demarche: "Demarche",
     has_date_changed: bool,
+    has_error_in_request: bool,
     *,
     dossiers_cursor: str | None,
     dossiers_any_error: bool,
@@ -230,23 +232,18 @@ def _commit_sync_cursors(
 ):
     demarche.updated_since = api_updated_since
 
-    if dossiers_any_error:
-        if has_date_changed:
-            demarche.sync_cursor = ""
-    else:
-        demarche.sync_cursor = dossiers_cursor or ""
+    if has_date_changed:
+        demarche.sync_cursor = ""
+        demarche.pending_deleted_cursor = ""
+        demarche.deleted_cursor = ""
 
-    if pending_any_error:
-        if has_date_changed:
-            demarche.pending_deleted_cursor = ""
-    else:
-        demarche.pending_deleted_cursor = pending_deleted_cursor or ""
-
-    if deleted_any_error:
-        if has_date_changed:
-            demarche.deleted_cursor = ""
-    else:
-        demarche.deleted_cursor = deleted_cursor or ""
+    if not has_error_in_request:
+        if not dossiers_any_error:
+            demarche.sync_cursor = dossiers_cursor or ""
+        if not pending_any_error:
+            demarche.pending_deleted_cursor = pending_deleted_cursor or ""
+        if not deleted_any_error:
+            demarche.deleted_cursor = deleted_cursor or ""
 
     demarche.save(
         update_fields=[
