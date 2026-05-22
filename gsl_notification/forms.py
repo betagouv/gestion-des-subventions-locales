@@ -3,6 +3,7 @@ from functools import cached_property
 from django import forms
 from django.conf import settings
 from django.db import transaction
+from django.template.defaultfilters import pluralize
 from django.utils import timezone
 from dsfr.forms import DsfrBaseForm
 
@@ -430,10 +431,9 @@ class GenerateDocumentsStep2Form(BaseGenerateDocumentsForm):
     STRATEGY_CONSERVER = "conserver"
     STRATEGY_REMPLACER = "remplacer"
 
-    OVERWRITE_STRATEGY_CHOICES = [
-        (STRATEGY_CONSERVER, "Conserver"),
-        (STRATEGY_REMPLACER, "Remplacer"),
-    ]
+    # Plural noun per document type; (LETTRE, ARRETE) iteration order keeps
+    # "lettres" before "arrêtés" everywhere (selected_types is an unordered set).
+    _DOC_TYPE_NOUNS = {LETTRE: "lettres", ARRETE: "arrêtés"}
 
     @staticmethod
     def _modele_field(queryset, label):
@@ -453,31 +453,62 @@ class GenerateDocumentsStep2Form(BaseGenerateDocumentsForm):
         self.document_type = document_type
         self.programmation_projets = programmation_projets
 
-        if self.has_arrete:
-            self.fields["modele_arrete_id"] = self._modele_field(
-                self.modeles_arrete, "Modèle pour les arrêtés"
+        # Conserver/Remplacer first: its "…ci-dessous" wording refers to the
+        # model dropdowns rendered just below it.
+        if self.has_existing_docs():
+            self.fields["overwrite_strategy"] = forms.ChoiceField(
+                choices=[
+                    (self.STRATEGY_CONSERVER, self._conserver_label),
+                    (self.STRATEGY_REMPLACER, self._remplacer_label),
+                ],
+                widget=forms.RadioSelect,
+                required=True,
+                initial=self.STRATEGY_CONSERVER,
+                label=self._overwrite_field_label,
+                help_text="« Conserver » permet de ne pas régénérer les documents existants.",
             )
+
         if self.has_lettre:
             self.fields["modele_lettre_id"] = self._modele_field(
                 self.modeles_lettre,
                 "Modèle pour les lettres de notification",
             )
-
-        if self.has_existing_docs():
-            self.fields["overwrite_strategy"] = forms.ChoiceField(
-                choices=self.OVERWRITE_STRATEGY_CHOICES,
-                widget=forms.RadioSelect,
-                required=True,
-                initial=self.STRATEGY_CONSERVER,
-                label=f"Que voulez-vous faire avec les projets ayant déjà {
-                    ' ou '.join(
-                        [
-                            *(['une lettre'] if LETTRE in self.selected_types else []),
-                            *(['un arrêté'] if ARRETE in self.selected_types else []),
-                        ]
-                    )
-                } ?",
+        if self.has_arrete:
+            self.fields["modele_arrete_id"] = self._modele_field(
+                self.modeles_arrete, "Modèle pour les arrêtés"
             )
+
+    @cached_property
+    def _selected_nouns(self) -> list[str]:
+        return [
+            self._DOC_TYPE_NOUNS[t]
+            for t in (LETTRE, ARRETE)
+            if t in self.selected_types
+        ]
+
+    @property
+    def _overwrite_field_label(self) -> str:
+        nouns = " ou ".join(f"des {n}" for n in self._selected_nouns)
+        return f"Que voulez-vous faire avec les projets ayant déjà {nouns} ?"
+
+    @property
+    def _conserver_label(self) -> str:
+        nouns = " et ".join(f"les {n}" for n in self._selected_nouns)
+        # Feminine agreement only when "lettres" is the sole type.
+        fem = self.has_lettre and not self.has_arrete
+        return f"Conserver {nouns} existant{pluralize(fem, 'es,s')}"
+
+    @property
+    def _remplacer_label(self) -> str:
+        nouns = " et ".join(f"les {n}" for n in self._selected_nouns)
+        fem = self.has_lettre and not self.has_arrete
+        # "toutes/tous" agrees with the first noun ("lettres" when present).
+        quantifier = f"tou{pluralize(self.has_lettre, 'tes,s')}"
+        return (
+            f"Remplacer {quantifier} {nouns} par "
+            f"{pluralize(fem, 'celles,ceux')} "
+            f"sélectionné{pluralize(fem, 'es,s')} ci-dessous"
+        )
 
     @cached_property
     def has_arrete(self) -> bool:
