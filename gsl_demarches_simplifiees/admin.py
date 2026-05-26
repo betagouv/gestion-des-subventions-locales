@@ -13,8 +13,13 @@ from gsl.utils.csp import csp_update
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_core.models import Arrondissement
 from gsl_demarches_simplifiees.exceptions import DsServiceException
+from gsl_demarches_simplifiees.importer.demarche import save_demarche_from_ds
 
-from .forms import ImportDossierFromDsForm, RefreshDossiersDepotForm
+from .forms import (
+    AddDemarcheFromDsForm,
+    ImportDossierFromDsForm,
+    RefreshDossiersDepotForm,
+)
 from .importer.dossier import (
     import_one_dossier_from_ds,
     refresh_dossier_from_saved_data,
@@ -151,6 +156,42 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def link_to_json(self, obj):
         return mark_safe(f'<a href="{obj.json_url}">JSON brut</a>')
+
+    def add_view(self, request, form_url="", extra_context=None):
+        if request.method == "POST":
+            form = AddDemarcheFromDsForm(request.POST)
+            if form.is_valid():
+                ds_number = form.cleaned_data["ds_number"]
+                try:
+                    save_demarche_from_ds(ds_number)
+                except DsServiceException:
+                    self.message_user(
+                        request,
+                        "Une erreur s’est produite lors de l’appel à Démarche Numérique.",
+                        messages.ERROR,
+                    )
+                    return redirect(
+                        "admin:gsl_demarches_simplifiees_demarche_changelist"
+                    )
+                self.message_user(
+                    request,
+                    f"La démarche n°{ds_number} va être récupérée depuis DN.",
+                    messages.SUCCESS,
+                )
+                return redirect("admin:gsl_demarches_simplifiees_demarche_changelist")
+        else:
+            form = AddDemarcheFromDsForm()
+        context = {
+            **self.admin_site.each_context(request),
+            "form": form,
+            "opts": self.model._meta,
+            "title": "Ajouter une démarche depuis DN",
+        }
+        return render(
+            request,
+            "admin/gsl_demarches_simplifiees/demarche/add_demarche.html",
+            context,
+        )
 
     def get_urls(self):
         urls = super().get_urls()

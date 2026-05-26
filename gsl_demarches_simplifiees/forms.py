@@ -127,6 +127,15 @@ class ImportDossierFromDsForm(forms.Form):
     )
 
 
+class AddDemarcheFromDsForm(forms.Form):
+    """Formulaire admin : ajouter une démarche depuis DN par son numéro."""
+
+    ds_number = forms.IntegerField(
+        label="Numéro de la démarche",
+        min_value=1,
+    )
+
+
 class RefreshDossiersDepotForm(forms.Form):
     """Formulaire admin : rafraîchir les dossiers d'une démarche déposés après une date."""
 
