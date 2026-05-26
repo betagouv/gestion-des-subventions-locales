@@ -262,6 +262,27 @@ def test_wizard_step1_to_step2_both_types_renders_two_selectors(
     assert form.document_type == ARRETE_ET_LETTRE
 
 
+def test_wizard_step2_field_order_matches_figma(
+    client, programmation_projets, detr_arrete_modele, detr_lettre_modele
+):
+    """Figma: Conserver/Remplacer first, then lettres, then arrêtés."""
+    for pp in programmation_projets:
+        LettreNotificationFactory(programmation_projet=pp)
+
+    _open_wizard_at_step1(client, programmation_projets)
+    response = client.post(
+        _wizard_url(),
+        _wizard_step_data("step1", {"document_type": ARRETE_ET_LETTRE}),
+        **HTMX_HEADERS,
+    )
+    form = response.context["form"]
+    assert list(form.fields) == [
+        "overwrite_strategy",
+        "modele_lettre_id",
+        "modele_arrete_id",
+    ]
+
+
 def test_wizard_step2_missing_modele_re_renders_step2(client, programmation_projets):
     """Regression: previously the step3 view rendered step2 on missing_modele."""
     _open_wizard_at_step1(client, programmation_projets)

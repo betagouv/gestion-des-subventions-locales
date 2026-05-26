@@ -12,25 +12,28 @@
     {% endblock form_open %}
     {% block content %}
         {% if form.existing_lettre_count or form.existing_arrete_count %}
-            <div class="fr-alert fr-alert--warning fr-mt-2w fr-alert--sm" role="alert">
-                {% if form.existing_lettre_count %}
-                    <p>
-                        {{ form.existing_lettre_count }} projet{{ form.existing_lettre_count|pluralize }}
-                        {{ form.existing_lettre_count|pluralize:"a,ont" }}
-                        déjà une lettre.
-                    </p>
-                {% endif %}
-                {% if form.existing_arrete_count %}
-                    <p>
-                        {{ form.existing_arrete_count }} projet{{ form.existing_arrete_count|pluralize }}
-                        {{ form.existing_arrete_count|pluralize:"a,ont" }}
-                        déjà un arrêté.
-                    </p>
-                {% endif %}
+            <div class="fr-alert fr-alert--warning fr-mb-2w fr-alert--sm" role="alert">
+                <p>
+                    <strong>
+                        {% if form.existing_lettre_count %}
+                            {{ form.existing_lettre_count }} projet{{ form.existing_lettre_count|pluralize }}
+                            {{ form.existing_lettre_count|pluralize:"a,ont" }}
+                            {# keep the comma glued to "lettre": no space before it #}
+                            {# djlint:off #}
+                            déjà une lettre{% if form.existing_arrete_count %},{% endif %}
+                            {# djlint:on #}
+                        {% endif %}
+                        {% if form.existing_arrete_count %}
+                            {{ form.existing_arrete_count }} projet{{ form.existing_arrete_count|pluralize }}
+                            {{ form.existing_arrete_count|pluralize:"a,ont" }}
+                            déjà un arrêté
+                        {% endif %}
+                    </strong>
+                </p>
             </div>
         {% endif %}
         {% if form.has_arrete and not form.modeles_arrete %}
-            <div class="fr-alert fr-alert--warning fr-mt-2w fr-alert--sm">
+            <div class="fr-alert fr-alert--warning fr-mb-2w fr-alert--sm">
                 <p>
                     Vous n'avez créé aucun modèle d'arrêté pour le moment.
                     <a href="{% url 'gsl_notification:modele-creer' "arrete" dotation %}">Créer un modèle</a>
@@ -39,7 +42,7 @@
             </div>
         {% endif %}
         {% if form.has_lettre and not form.modeles_lettre %}
-            <div class="fr-alert fr-alert--warning fr-mt-2w fr-alert--sm">
+            <div class="fr-alert fr-alert--warning fr-mb-2w fr-alert--sm">
                 <p>
                     Vous n'avez créé aucun modèle de lettre pour le moment.
                     <a href="{% url 'gsl_notification:modele-creer' "lettre" dotation %}">Créer un modèle</a>
