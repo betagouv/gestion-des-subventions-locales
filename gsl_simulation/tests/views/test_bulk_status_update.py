@@ -13,7 +13,9 @@ from gsl_programmation.tests.factories import DetrEnveloppeFactory
 from gsl_projet.constants import (
     DOTATION_DETR,
     PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
     PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
 )
 from gsl_projet.tests.factories import DotationProjetFactory
 from gsl_simulation.models import SimulationProjet
@@ -118,16 +120,71 @@ def test_bulk_status_update_rejects_ids_outside_user_perimeter(
 
 
 @pytest.mark.parametrize(
-    "status",
+    "target_status",
     [SimulationProjet.STATUS_REFUSED, SimulationProjet.STATUS_DISMISSED],
 )
-def test_bulk_status_update_rejects_refused_and_dismissed(
-    client_with_user_logged, collegue, simulation, status
+def test_bulk_status_update_to_refused_or_dismissed_commits_directly(
+    client_with_user_logged, collegue, simulation, target_status
 ):
     sp = _make_simu_projet(collegue, simulation)
 
     response = client_with_user_logged.post(
-        _bulk_url(status),
+        _bulk_url(target_status),
+        data={"simulation_projet_ids": f"{sp.id}"},
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers.get("HX-Refresh") == "true"
+    sp.refresh_from_db()
+    assert sp.status == target_status
+
+
+@pytest.mark.parametrize(
+    "initial_status, target_status",
+    [
+        (SimulationProjet.STATUS_REFUSED, SimulationProjet.STATUS_DISMISSED),
+        (SimulationProjet.STATUS_DISMISSED, SimulationProjet.STATUS_REFUSED),
+    ],
+)
+def test_bulk_status_update_switches_between_refused_and_dismissed(
+    client_with_user_logged,
+    collegue,
+    simulation,
+    initial_status,
+    target_status,
+):
+    dotation_status = (
+        PROJET_STATUS_REFUSED
+        if initial_status == SimulationProjet.STATUS_REFUSED
+        else PROJET_STATUS_DISMISSED
+    )
+    sp = _make_simu_projet(
+        collegue,
+        simulation,
+        dotation_status=dotation_status,
+        simu_status=initial_status,
+    )
+
+    response = client_with_user_logged.post(
+        _bulk_url(target_status),
+        data={"simulation_projet_ids": f"{sp.id}"},
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers.get("HX-Refresh") == "true"
+    sp.refresh_from_db()
+    assert sp.status == target_status
+
+
+def test_bulk_status_update_rejects_truly_invalid_status(
+    client_with_user_logged, collegue, simulation
+):
+    sp = _make_simu_projet(collegue, simulation)
+
+    response = client_with_user_logged.post(
+        _bulk_url("not_a_real_status"),
         data={"simulation_projet_ids": f"{sp.id}"},
         headers={"HX-Request": "true"},
     )
