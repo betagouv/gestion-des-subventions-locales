@@ -1,5 +1,7 @@
 import json
 import logging
+import time
+import uuid
 
 import requests
 from django.conf import settings
@@ -20,19 +22,60 @@ _BUSINESS_FIELDS = {"demarche", "dossier"}
 _ALLOWED_ROOT_FIELDS = _BUSINESS_FIELDS | _INTROSPECTION_FIELDS
 _INTROSPECTION_SENTINEL = "__introspection__"
 
+# Same three connections as filters._filter_dossier_nodes; kept in sync so the
+# pre/post counts in the per-request log match what filter_response actually
+# touched.
+_DEMARCHE_DOSSIER_CONNECTIONS = (
+    "dossiers",
+    "pendingDeletedDossiers",
+    "deletedDossiers",
+)
+
 # Read timeout stays below Scalingo's 59s post-first-byte inactivity ceiling.
 _DS_TIMEOUT = (5, 55)
 
 
-def _error_response(message, status):
-    return JsonResponse({"errors": [{"message": message}]}, status=status)
+def _error_entry(message, request_id):
+    return {"message": message, "extensions": {"requestId": request_id}}
 
 
-def _graphql_error_bytes(message):
-    return json.dumps({"errors": [{"message": message}]}).encode()
+def _count_dossiers(response_data, root_field):
+    """Total dossiers in a DS response, summed across all connections.
+
+    Returns None for introspection (not applicable).
+    """
+    if root_field == _INTROSPECTION_SENTINEL:
+        return None
+    data = (response_data or {}).get("data") or {}
+    if root_field == "demarche":
+        demarche = data.get("demarche")
+        if not isinstance(demarche, dict):
+            return 0
+        total = 0
+        for field in _DEMARCHE_DOSSIER_CONNECTIONS:
+            connection = demarche.get(field)
+            if isinstance(connection, dict):
+                nodes = connection.get("nodes")
+                if isinstance(nodes, list):
+                    total += len(nodes)
+        return total
+    if root_field == "dossier":
+        dossier = data.get("dossier")
+        if isinstance(dossier, dict) and "number" in dossier:
+            return 1
+        return 0
+    return None
 
 
-def _pick_operation(doc, operation_name):
+def _error_response(message, status, request_id):
+    return JsonResponse({"errors": [_error_entry(message, request_id)]}, status=status)
+
+
+def _graphql_error_bytes(message, request_id):
+    return json.dumps({"errors": [_error_entry(message, request_id)]}).encode()
+
+
+def _pick_operation(doc, operation_name, request_id):
     """Return (OperationDefinitionNode, None) or (None, error_response).
 
     Mirrors the GraphQL spec's GetOperation algorithm:
@@ -41,23 +84,28 @@ def _pick_operation(doc, operation_name):
     """
     operations = [d for d in doc.definitions if isinstance(d, OperationDefinitionNode)]
     if not operations:
-        return None, _error_response("Aucune opération dans la requête.", 400)
+        return None, _error_response(
+            "Aucune opération dans la requête.", 400, request_id
+        )
     if operation_name:
         for op in operations:
             if op.name and op.name.value == operation_name:
                 return op, None
         return None, _error_response(
-            f"Opération '{operation_name}' introuvable dans la requête.", 400
+            f"Opération '{operation_name}' introuvable dans la requête.",
+            400,
+            request_id,
         )
     if len(operations) > 1:
         return None, _error_response(
             "operationName est requis quand plusieurs opérations sont définies.",
             400,
+            request_id,
         )
     return operations[0], None
 
 
-def _root_field(operation):
+def _root_field(operation, request_id):
     """Return (root_field, None) or (None, error_response).
 
     Inspects the operation's top-level selection set and identifies which
@@ -83,21 +131,26 @@ def _root_field(operation):
             return None, _error_response(
                 "Les fragments à la racine de l'opération ne sont pas autorisés.",
                 403,
+                request_id,
             )
         if sel.alias is not None:
             return None, _error_response(
-                "Les alias sur les champs racine ne sont pas autorisés.", 403
+                "Les alias sur les champs racine ne sont pas autorisés.",
+                403,
+                request_id,
             )
         if sel.name.value not in _ALLOWED_ROOT_FIELDS:
             return None, _error_response(
-                "Opération non autorisée pour cette démarche.", 403
+                "Opération non autorisée pour cette démarche.", 403, request_id
             )
         field_names.append(sel.name.value)
 
     business = [n for n in field_names if n in _BUSINESS_FIELDS]
     if len(business) > 1:
         return None, _error_response(
-            "Une seule opération métier est autorisée à la racine.", 403
+            "Une seule opération métier est autorisée à la racine.",
+            403,
+            request_id,
         )
     if business:
         introspection = [n for n in field_names if n in _INTROSPECTION_FIELDS]
@@ -105,20 +158,23 @@ def _root_field(operation):
             return None, _error_response(
                 "Mélanger introspection et opération métier n'est pas autorisé.",
                 403,
+                request_id,
             )
         return business[0], None
 
     return _INTROSPECTION_SENTINEL, None
 
 
-def _check_root_field_allowed(proxy_token, root_field, variables):
+def _check_root_field_allowed(proxy_token, root_field, variables, request_id):
     """Pre-forward validation, based on what we can check without hitting DS."""
     variables = variables or {}
     if (
         root_field == "demarche"
         and variables.get("demarcheNumber") != proxy_token.demarche.ds_number
     ):
-        return _error_response("Opération non autorisée pour cette démarche.", 403)
+        return _error_response(
+            "Opération non autorisée pour cette démarche.", 403, request_id
+        )
     return None
 
 
@@ -174,8 +230,11 @@ def _check_response_allowed(proxy_token, root_field, response_data):
     return None
 
 
-def _forward_to_ds(query, variables, operation_name):
-    """Call DS and return (response_data, None) or (None, error_message)."""
+def _forward_to_ds(
+    query, variables, operation_name, proxy_token, request_id
+) -> tuple[dict | None, str | None, int]:
+    """Call DS and return (response_data, None, elapsed_ms)
+    or (None, error_message, elapsed_ms)."""
     headers = {
         "Authorization": f"Bearer {settings.DS_API_TOKEN}",
         "Content-Type": "application/json",
@@ -186,6 +245,13 @@ def _forward_to_ds(query, variables, operation_name):
     if operation_name:
         ds_payload["operationName"] = operation_name
 
+    log_extra = {
+        "request_id": request_id,
+        "proxy_token_id": proxy_token.id,
+        "demarche_number": proxy_token.demarche.ds_number,
+    }
+
+    started_at = time.monotonic()
     try:
         ds_response = requests.post(
             settings.DS_API_URL,
@@ -194,26 +260,40 @@ def _forward_to_ds(query, variables, operation_name):
             timeout=_DS_TIMEOUT,
         )
     except requests.exceptions.ConnectionError:
-        logger.exception("DS proxy: connection error to DS API")
-        return None, "Erreur de connexion à Démarches Simplifiées."
+        elapsed_ms = int((time.monotonic() - started_at) * 1000)
+        log_extra["elapsed_ms"] = elapsed_ms
+        logger.exception("DS proxy: connection error to DS API", extra=log_extra)
+        return None, "Erreur de connexion à Démarches Simplifiées.", elapsed_ms
     except requests.exceptions.Timeout:
-        logger.exception("DS proxy: timeout from DS API")
-        return None, "Délai d'attente dépassé pour Démarches Simplifiées."
+        elapsed_ms = int((time.monotonic() - started_at) * 1000)
+        log_extra["elapsed_ms"] = elapsed_ms
+        logger.exception("DS proxy: timeout from DS API", extra=log_extra)
+        return None, "Délai d'attente dépassé pour Démarches Simplifiées.", elapsed_ms
+
+    elapsed_ms = int((time.monotonic() - started_at) * 1000)
 
     try:
         ds_response.raise_for_status()
     except requests.exceptions.HTTPError:
-        logger.exception("DS proxy: HTTP %s from DS API", ds_response.status_code)
-        return None, "Erreur de Démarches Simplifiées."
+        log_extra["elapsed_ms"] = elapsed_ms
+        log_extra["ds_status"] = ds_response.status_code
+        logger.exception(
+            "DS proxy: HTTP %s from DS API",
+            ds_response.status_code,
+            extra=log_extra,
+        )
+        return None, "Erreur de Démarches Simplifiées.", elapsed_ms
 
-    return ds_response.json(), None
+    return ds_response.json(), None, elapsed_ms
 
 
-def _resolve_token(request):
+def _resolve_token(request, request_id):
     """Return (proxy_token, None) or (None, error_response)."""
     auth_header = request.META.get("HTTP_AUTHORIZATION", "")
     if not auth_header.startswith("Bearer "):
-        return None, _error_response("Authorization header manquant ou invalide.", 401)
+        return None, _error_response(
+            "Authorization header manquant ou invalide.", 401, request_id
+        )
 
     token_key = auth_header[7:]
     try:
@@ -221,10 +301,10 @@ def _resolve_token(request):
             key_hash=ProxyToken.hash_key(token_key), is_active=True
         )
     except ProxyToken.DoesNotExist:
-        return None, _error_response("Token invalide ou désactivé.", 401)
+        return None, _error_response("Token invalide ou désactivé.", 401, request_id)
 
     if not proxy_token.groupe_instructeur_ds_id:
-        return None, _error_response("Token non configuré.", 403)
+        return None, _error_response("Token non configuré.", 403, request_id)
 
     return proxy_token, None
 
@@ -232,7 +312,9 @@ def _resolve_token(request):
 @csrf_exempt
 @require_POST
 def graphql_proxy(request):
-    proxy_token, error = _resolve_token(request)
+    request_id = uuid.uuid4().hex
+
+    proxy_token, error = _resolve_token(request, request_id)
     if error is not None:
         return error
 
@@ -240,7 +322,7 @@ def graphql_proxy(request):
     try:
         body = json.loads(request.body)
     except (json.JSONDecodeError, ValueError):
-        return _error_response("Corps de requête JSON invalide.", 400)
+        return _error_response("Corps de requête JSON invalide.", 400, request_id)
 
     query = body.get("query", "")
     variables = body.get("variables")
@@ -248,30 +330,32 @@ def graphql_proxy(request):
     try:
         doc = parse(query)
     except GraphQLError as exc:
-        return _error_response(f"Requête GraphQL invalide : {exc.message}", 400)
+        return _error_response(
+            f"Requête GraphQL invalide : {exc.message}", 400, request_id
+        )
 
-    operation, error = _pick_operation(doc, body.get("operationName"))
+    operation, error = _pick_operation(doc, body.get("operationName"), request_id)
     if error is not None:
         return error
 
     if operation.operation is not OperationType.QUERY:
-        return _error_response("Les mutations ne sont pas autorisées.", 403)
+        return _error_response("Les mutations ne sont pas autorisées.", 403, request_id)
 
-    root_field, error = _root_field(operation)
+    root_field, error = _root_field(operation, request_id)
     if error is not None:
         return error
 
     operation_name = operation.name.value if operation.name else None
 
     # Scope check: the token is tied to a single démarche
-    error = _check_root_field_allowed(proxy_token, root_field, variables)
+    error = _check_root_field_allowed(proxy_token, root_field, variables, request_id)
     if error is not None:
         return error
 
     forbidden_field = validate_demarche_selections(doc, operation)
     if forbidden_field is not None:
         return _error_response(
-            f"Champ démarche non autorisé : `{forbidden_field}`.", 403
+            f"Champ démarche non autorisé : `{forbidden_field}`.", 403, request_id
         )
 
     allowed_groupe_ds_id = proxy_token.groupe_instructeur_ds_id
@@ -282,38 +366,82 @@ def graphql_proxy(request):
         query,
         variables,
         allowed_groupe_ds_id,
+        request_id,
     )
     return StreamingHttpResponse(stream, content_type="application/json", status=200)
 
 
 def _stream_ds_response(
-    proxy_token, root_field, operation_name, query, variables, allowed_groupe_ds_id
+    proxy_token,
+    root_field,
+    operation_name,
+    query,
+    variables,
+    allowed_groupe_ds_id,
+    request_id,
 ):
     # Send a single whitespace byte immediately to close Scalingo's
     # 30s-to-first-byte window. Leading whitespace is valid JSON.
     yield b" "
 
-    response_data, error_message = _forward_to_ds(query, variables, operation_name)
+    response_data, error_message, elapsed_ms = _forward_to_ds(
+        query, variables, operation_name, proxy_token, request_id
+    )
     if error_message is not None:
-        yield _graphql_error_bytes(error_message)
+        yield _graphql_error_bytes(error_message, request_id)
         return
+
+    def _log_request(*, outcome, filtered=None):
+        original = _count_dossiers(response_data, root_field)
+        extra = {
+            "request_id": request_id,
+            "proxy_token_id": proxy_token.id,
+            "demarche_number": proxy_token.demarche.ds_number,
+            "operation_name": operation_name,
+            "root_field": root_field,
+            "elapsed_ms": elapsed_ms,
+            "ds_errors_count": len(response_data.get("errors") or []),
+            "outcome": outcome,
+        }
+        if original is not None:
+            post = _count_dossiers(filtered, root_field) if filtered is not None else 0
+            extra["ds_results_count"] = original
+            extra["filtered_out_count"] = original - post
+        logger.info("DS proxy: request", extra=extra)
 
     # If DS itself reported errors and returned no scopable data, forward the
     # upstream response verbatim so the caller can see the real error. There is
     # nothing to scope-check (data is null/absent), so no risk of leaking
-    # out-of-scope data.
+    # out-of-scope data. We prepend a marker error carrying our request_id so
+    # the partner can correlate with our server logs.
     if response_data.get("errors") and not _scoped_field_present(
         root_field, response_data
     ):
-        yield json.dumps(response_data).encode()
+        forwarded = dict(response_data)
+        forwarded["errors"] = [
+            _error_entry("Erreur Démarches Simplifiées transmise.", request_id),
+            *response_data["errors"],
+        ]
+        _log_request(outcome="verbatim_forward", filtered=response_data)
+        yield json.dumps(forwarded).encode()
         return
 
     scope_error = _check_response_allowed(proxy_token, root_field, response_data)
     if scope_error is not None:
-        yield _graphql_error_bytes(scope_error)
+        # Preserve any upstream DS errors so the caller still sees what DS
+        # signalled (e.g. partial Timeout on PersonneMorale.entreprise rows)
+        # alongside our own scope rejection.
+        upstream_errors = response_data.get("errors") or []
+        payload = {
+            "data": None,
+            "errors": [*upstream_errors, _error_entry(scope_error, request_id)],
+        }
+        _log_request(outcome="scope_error")
+        yield json.dumps(payload).encode()
         return
 
     filtered = filter_response(response_data, allowed_groupe_ds_id)
+    _log_request(outcome="ok", filtered=filtered)
     yield json.dumps(filtered).encode()
 
 
