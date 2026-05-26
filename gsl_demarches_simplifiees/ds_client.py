@@ -20,20 +20,39 @@ logger = getLogger(__name__)
 class DsClientBase:
     filename = ""
 
+    _graphql_cache: dict[str, str] = {}
+
     def __init__(self):
         self.token = settings.DS_API_TOKEN
         self.url = settings.DS_API_URL
-        with open(
-            Path(__file__).resolve().parent / "graphql" / self.filename
-        ) as query_file:
-            self.query = query_file.read()
+        self.query = self._load_graphql(self.filename) if self.filename else ""
 
-    def launch_graphql_query(self, operation_name, variables=None) -> (dict, bool):
+    @classmethod
+    def _load_graphql(cls, *filenames: str) -> str:
+        """
+        Read and concatenate one or more ``graphql/<filename>`` documents into a
+        single GraphQL document string. Each file is read once and cached.
+
+        Composing documents per operation lets each query ship only the
+        fragments it actually uses (GraphQL "fragments must be used" rule).
+        """
+        graphql_dir = Path(__file__).resolve().parent / "graphql"
+        parts = []
+        for filename in filenames:
+            if filename not in cls._graphql_cache:
+                with open(graphql_dir / filename) as query_file:
+                    cls._graphql_cache[filename] = query_file.read()
+            parts.append(cls._graphql_cache[filename])
+        return "\n".join(parts)
+
+    def launch_graphql_query(
+        self, operation_name, variables=None, query=None
+    ) -> tuple[dict, bool]:
         headers = {
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json",
         }
-        data = {"query": self.query, "operationName": operation_name}
+        data = {"query": query or self.query, "operationName": operation_name}
         if variables:
             data["variables"] = variables
         try:
@@ -80,22 +99,20 @@ class DsClientBase:
 
 
 class DsClient(DsClientBase):
-    filename = "ds_queries.gql"
-
     def get_demarche(self, demarche_number) -> dict:
         """
-        Get info about one demarche, without its dossiers.
-        Use it to get the list of instructeurs and the list of fields with their ids.
+        Get metadata about one demarche, without its dossiers: scalar fields,
+        active revision (champ/annotation descriptors) and groupe instructeurs.
+        Use it to get the list of instructeurs and the list of fields with
+        their ids.
         :param demarche_number: integer
         :return: json string
         """
-        variables = {
-            "demarcheNumber": demarche_number,
-            "includeDossiers": False,
-            "includeGroupeInstructeurs": True,
-            "includeRevision": True,  # to list custom fields with their ids
-        }
-        return self.launch_graphql_query("getDemarche", variables=variables)[0]
+        query = self._load_graphql("get_demarche_metadata.gql")
+        variables = {"demarcheNumber": demarche_number}
+        return self.launch_graphql_query(
+            "getDemarcheMetadata", variables=variables, query=query
+        )[0]
 
     def fetch_demarche_page(
         self,
@@ -115,6 +132,7 @@ class DsClient(DsClientBase):
 
         :return: the 'demarche' dict from the GraphQL response
         """
+        query = self._load_graphql("get_demarche_dossiers.gql", "dossier_fragments.gql")
         updated_since_iso = updated_since.isoformat() if updated_since else None
         variables = {
             "demarcheNumber": demarche_number,
@@ -132,15 +150,16 @@ class DsClient(DsClientBase):
             "deletedSince": updated_since_iso,
         }
         result, has_errors = self.launch_graphql_query(
-            "getDemarche", variables=variables
+            "getDemarcheDossiers", variables=variables, query=query
         )
-        return (result["data"]["demarche"], has_errors)
+        return result["data"]["demarche"], has_errors
 
     def get_one_dossier(self, dossier_number) -> dict:
+        query = self._load_graphql("get_one_dossier.gql", "dossier_fragments.gql")
         variables = {
             "dossierNumber": dossier_number,
         }
-        result, _ = self.launch_graphql_query("getDossier", variables)
+        result, _ = self.launch_graphql_query("getDossier", variables, query=query)
         return result["data"]["dossier"]
 
 

@@ -1,0 +1,66 @@
+query getDemarcheDossiers(
+  $demarcheNumber: Int!
+  $updatedSince: ISO8601DateTime
+  $first: Int
+  $after: String
+  $pendingDeletedFirst: Int
+  $pendingDeletedAfter: String
+  $pendingDeletedSince: ISO8601DateTime
+  $deletedFirst: Int
+  $deletedAfter: String
+  $deletedSince: ISO8601DateTime
+  $includeDossiers: Boolean = true
+  $includePendingDeletedDossiers: Boolean = true
+  $includeDeletedDossiers: Boolean = true
+) {
+  demarche(number: $demarcheNumber) {
+    dossiers(first: $first, after: $after, updatedSince: $updatedSince)
+      @include(if: $includeDossiers) {
+      pageInfo {
+        ...PageInfoFragment
+      }
+      nodes {
+        ...DossierFragment
+      }
+    }
+    pendingDeletedDossiers(
+      first: $pendingDeletedFirst
+      after: $pendingDeletedAfter
+      deletedSince: $pendingDeletedSince
+    ) @include(if: $includePendingDeletedDossiers) {
+      pageInfo {
+        ...PageInfoFragment
+      }
+      nodes {
+        ...DeletedDossierFragment
+      }
+    }
+    deletedDossiers(
+      first: $deletedFirst
+      after: $deletedAfter
+      deletedSince: $deletedSince
+    ) @include(if: $includeDeletedDossiers) {
+      pageInfo {
+        ...PageInfoFragment
+      }
+      nodes {
+        ...DeletedDossierFragment
+      }
+    }
+  }
+}
+
+fragment PageInfoFragment on PageInfo {
+  hasPreviousPage
+  hasNextPage
+  startCursor
+  endCursor
+}
+
+fragment DeletedDossierFragment on DeletedDossier {
+  id
+  number
+  dateSupression
+  state
+  reason
+}

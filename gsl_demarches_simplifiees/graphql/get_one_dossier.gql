@@ -1,0 +1,30 @@
+query getDossier($dossierNumber: Int!) {
+  dossier(number: $dossierNumber) {
+    ...DossierFragment
+    demarche {
+      ...DemarcheDescriptorFragment
+    }
+  }
+}
+
+fragment DemarcheDescriptorFragment on DemarcheDescriptor {
+  id
+  number
+  title
+  description
+  state
+  declarative
+  dateCreation
+  datePublication
+  dateDerniereModification
+  dateDepublication
+  dateFermeture
+  notice {
+    url
+  }
+  deliberation {
+    url
+  }
+  demarcheURL
+  cadreJuridiqueURL
+}
