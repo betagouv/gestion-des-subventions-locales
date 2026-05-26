@@ -13,6 +13,7 @@ dependencies = [
     "bs4",
     "celery",
     "dj-database-url",
+    "dj-email-url",
     "django-axes",
     "django_celery_results",
     "django-celery-beat>=2.9.0",

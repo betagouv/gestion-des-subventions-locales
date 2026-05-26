@@ -8,7 +8,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Count, OuterRef, Subquery
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -16,6 +16,7 @@ from import_export.admin import ImportMixin
 from import_export.formats.base_formats import CSV
 from import_export.forms import ImportForm
 
+from gsl_core.admin_alerts import notify_admins
 from gsl_core.models import (
     Adresse,
     Arrondissement,
@@ -190,6 +191,109 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
             readonly += ["is_superuser", "is_staff"]
         return readonly
 
+    @transaction.atomic
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        actor = request.user
+        # Cas création
+        if not change:
+            if obj.is_staff or obj.is_superuser:
+                notify_admins(
+                    f"Création d'utilisateur admin : {obj.username}",
+                    (
+                        f"Créé par {actor} ({actor.email}).\n"
+                        f"Emai  : {obj.email}\n"
+                        f"Statut équipe : {obj.is_staff}\n"
+                        f"Statut super-utilisateur : {obj.is_superuser}"
+                    ),
+                )
+            if obj.perimetre is not None:
+                notify_admins(
+                    "Création d'utilisateur",
+                    f"Créé par {actor} ({actor.email}).\n"
+                    f"Emai  : {obj.email}\n"
+                    f"Perimètre : {obj.perimetre}",
+                )
+            return
+        # Cas modification
+        for flag in ("is_staff", "is_superuser"):
+            if flag in form.changed_data and getattr(obj, flag):
+                notify_admins(
+                    f"Droit {flag} octroyé à {obj.email} ({obj.username})",
+                    f"Octroyé par {actor} ({actor.email}).",
+                )
+        if "ds_profile" in form.changed_data and obj.ds_profile_id:
+            notify_admins(
+                f"Profil DN associé à {obj.email} ({obj.username})",
+                (
+                    f"Associé par {actor} ({actor.email}).\n"
+                    f"Profil DN : {obj.ds_profile.ds_email} (id={obj.ds_profile.ds_id})"
+                ),
+            )
+        if "perimetre" in form.changed_data and obj.perimetre_id:
+            notify_admins(
+                f"Perimètre associé à {obj.email} ({obj.username})",
+                (
+                    f"Associé par {actor} ({actor.email}).\n"
+                    f"Perimètre : {obj.perimetre.entity_name} (id={obj.perimetre_id})"
+                ),
+            )
+        if "is_active" in form.changed_data and obj.is_active is True:
+            notify_admins(
+                f"Réactivation d'un utilisateur désactivé {obj.email} ({obj.username})",
+                f"Modifié par {actor} ({actor.email}).\n",
+            )
+
+    def process_result(self, result, request):
+        response = super().process_result(result, request)
+        self._notify_admins_of_import(result, request)
+        return response
+
+    def _notify_admins_of_import(self, result, request):
+        from import_export.results import RowResult
+
+        new_ids = [
+            r.object_id
+            for r in result.rows
+            if r.import_type == RowResult.IMPORT_TYPE_NEW and r.object_id
+        ]
+        updated_ids = [
+            r.object_id
+            for r in result.rows
+            if r.import_type == RowResult.IMPORT_TYPE_UPDATE and r.object_id
+        ]
+        if not new_ids and not updated_ids:
+            return
+
+        users_by_id = {
+            u.pk: u
+            for u in Collegue.objects.filter(
+                pk__in=new_ids + updated_ids
+            ).select_related(
+                "perimetre__region",
+                "perimetre__departement",
+                "perimetre__arrondissement",
+            )
+        }
+        actor = request.user
+        lines = [f"Action déclenchée par {actor} ({actor.email})."]
+        if new_ids:
+            lines.append(f"\nCréés ({len(new_ids)}) :")
+            lines += [
+                f"- {users_by_id[i].email} — {users_by_id[i].perimetre}"
+                for i in new_ids
+                if i in users_by_id
+            ]
+        if updated_ids:
+            lines.append(f"\nMis à jour ({len(updated_ids)}) :")
+            lines += [
+                f"- {users_by_id[i].email}" for i in updated_ids if i in users_by_id
+            ]
+        notify_admins(
+            f"Import groupé d'utilisateurs : {len(new_ids)} créé(s), {len(updated_ids)} mis à jour",
+            "\n".join(lines),
+        )
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
 
@@ -225,7 +329,29 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
     @admin.action(description="🔃 Association des profils DN aux utilisateurs")
     def associate_ds_profile_to_users(self, request, queryset):
         user_ids = list(queryset.values_list("id", flat=True))
+        before = dict(
+            Collegue.objects.filter(pk__in=user_ids).values_list("pk", "ds_profile_id")
+        )
         associate_or_update_ds_profile_to_users(user_ids)
+        newly_associated = (
+            Collegue.objects.filter(pk__in=user_ids, ds_profile__isnull=False)
+            .exclude(ds_profile_id__in=[v for v in before.values() if v is not None])
+            .select_related("ds_profile")
+        )
+        newly_associated = [
+            u for u in newly_associated if before.get(u.pk) != u.ds_profile_id
+        ]
+        if newly_associated:
+            lines = "\n".join(
+                f"- {u.username} ↔ {u.ds_profile.ds_email}" for u in newly_associated
+            )
+            notify_admins(
+                f"Association DN groupée : {len(newly_associated)} utilisateur(s)",
+                (
+                    f"Action déclenchée par {request.user} ({request.user.email}).\n"
+                    f"{lines}"
+                ),
+            )
 
     @admin.action(description="🚫 Désactivation des utilisateurs")
     def deactivate_users(self, request, queryset):
@@ -531,9 +657,27 @@ class DepartementAdmin(
     list_filter = ("region", "active")
     actions = ("activate_departement", "deactivate_departement")
 
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if change and "active" in form.changed_data and obj.active:
+            notify_admins(
+                f"Département activé : {obj.insee_code} {obj.name}",
+                f"Activé par {request.user} ({request.user.email}).",
+            )
+
     @admin.action(description="Activer le département")
     def activate_departement(self, request, queryset):
+        newly_activated = list(queryset.filter(active=False))
         queryset.update(active=True)
+        if newly_activated:
+            lines = "\n".join(f"- {d.insee_code} {d.name}" for d in newly_activated)
+            notify_admins(
+                f"Activation groupée de départements : {len(newly_activated)}",
+                (
+                    f"Action déclenchée par {request.user} ({request.user.email}).\n"
+                    f"{lines}"
+                ),
+            )
 
     @admin.action(description="Désactiver le département")
     def deactivate_departement(self, request, queryset):

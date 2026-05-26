@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 import dj_database_url
+import dj_email_url
 from django.utils.csp import CSP
 from dotenv import load_dotenv
 from sentry_sdk.integrations.logging import LoggingIntegration
@@ -189,6 +190,19 @@ if DATABASE_URL:
     }
 else:
     raise ValueError("Please set the DATABASE_URL environment variable")
+
+# Email configuration
+SMTP_URL = os.getenv("SMTP_URL")
+if SMTP_URL:
+    vars().update(dj_email_url.parse(SMTP_URL))
+
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "turgot-alerts@beta.gouv.fr")
+
+ADMIN_ALERT_RECIPIENTS = [
+    e.strip()
+    for e in os.getenv("ADMIN_ALERT_RECIPIENTS", "").split(ENV_SEPARATOR)
+    if e.strip()
+]
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
