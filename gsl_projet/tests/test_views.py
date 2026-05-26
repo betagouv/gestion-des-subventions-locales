@@ -899,6 +899,14 @@ def test_filter_search_matches_ds_number_exactly(req, view, searchable_projets):
     assert list(qs) == [searchable_projets["voirie"]]
 
 
+def test_filter_search_matches_ds_number_substring(req, view, searchable_projets):
+    # "123" n'est un fragment que du numéro de dossier 1234567
+    request = req.get("/", data={"search": "123"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    assert list(qs) == [searchable_projets["ecole"]]
+
+
 def test_filter_search_empty_returns_all(req, view, searchable_projets):
     request = req.get("/", data={"search": ""})
     view.request = request

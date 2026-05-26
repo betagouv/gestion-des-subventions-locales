@@ -1,6 +1,7 @@
 from django import forms
 from django.db import connection
-from django.db.models import Count, Exists, F, Func, OuterRef, Q, Value
+from django.db.models import CharField, Count, Exists, F, Func, OuterRef, Q, Value
+from django.db.models.functions import Cast
 from django.forms.utils import pretty_name
 from django.utils.translation import gettext_lazy as _
 from django_filters import (
@@ -237,7 +238,10 @@ def make_filter_search(intitule_field, raison_sociale_field, ds_number_field):
             )
 
         if value.isdigit():
-            q |= Q(**{ds_number_field: int(value)})
+            queryset = queryset.annotate(
+                _search_ds_number_str=Cast(F(ds_number_field), output_field=CharField())
+            )
+            q |= Q(_search_ds_number_str__contains=value)
 
         return queryset.filter(q).distinct()
 
