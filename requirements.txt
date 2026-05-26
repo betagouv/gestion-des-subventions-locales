@@ -72,6 +72,8 @@ diff-match-patch==20241021
     # via django-import-export
 dj-database-url==3.1.2
     # via gsl (pyproject.toml)
+dj-email-url==1.0.6
+    # via gsl (pyproject.toml)
 django==6.0.5
     # via
     #   dj-database-url
