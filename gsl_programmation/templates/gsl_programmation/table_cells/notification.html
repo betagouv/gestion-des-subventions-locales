@@ -1,5 +1,5 @@
 {% if programmation_projet.projet.to_notify %}
-    <a href="{% if programmation_projet.projet.has_accepted_dotation %}{% url 'gsl_notification:documents' programmation_projet.projet.id %}{% else %}#{% endif %}"
+    <a href="{% if programmation_projet.projet.has_accepted_dotation %}{% url 'gsl_notification:documents' programmation_projet.projet.id %}?back={{ request.get_full_path|urlencode }}{% else %}#{% endif %}"
        class="fr-link fr-link--icon-right fr-icon-mail-line"
        {% if not programmation_projet.projet.has_accepted_dotation %}role="button" hx-get="{% url 'gsl_notification:notify-refused-dismissed' programmation_projet.projet.id %}" hx-swap="outerHTML" id="notify-refused-dismissed-link-{{ programmation_projet.projet.id }}" name="notify-refused-dismissed-link"{% endif %}>
         À notifier

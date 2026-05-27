@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.csp import CSP
 from django.utils.decorators import method_decorator
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_http_methods, require_POST
 from django.views.generic import DeleteView, DetailView, UpdateView
@@ -70,17 +71,21 @@ class NotificationDocumentsView(DetailView):
 
     def get_context_data(self, **kwargs):
         title = self.object.dossier_ds.projet_intitule
+        back_url = self.request.GET.get("back", "")
+        if not back_url or not url_has_allowed_host_and_scheme(
+            back_url, allowed_hosts=self.request.get_host()
+        ):
+            back_url = reverse("gsl_programmation:programmation-projet-list")
         return super().get_context_data(
             **{
                 "dossier": self.object.dossier_ds,
                 "dotation_projets": self.object.dotationprojet_set.all(),
                 "title": title,
+                "go_back_link": back_url,
                 "breadcrumb_dict": {
                     "links": [
                         {
-                            "url": reverse(
-                                "gsl_programmation:programmation-projet-list"
-                            ),
+                            "url": back_url,
                             "title": "Programmation en cours",
                         },
                     ],

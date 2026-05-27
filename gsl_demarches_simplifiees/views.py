@@ -9,7 +9,6 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.views.generic import UpdateView
 
-from gsl.settings import ALLOWED_HOSTS
 from gsl_core.exceptions import Http404
 from gsl_projet.models import Projet
 
@@ -63,7 +62,7 @@ def refresh_one_dossier(request, dossier_ds_number):
     if not url:
         url = request.headers.get("Referer")
 
-    is_url_safe = url_has_allowed_host_and_scheme(url, allowed_hosts=ALLOWED_HOSTS)
+    is_url_safe = url_has_allowed_host_and_scheme(url, allowed_hosts=request.get_host())
     if is_url_safe:
         return redirect(url)
 

@@ -97,6 +97,41 @@ def test_get_documents_with_correct_perimetre_and_without_arrete(
     )
 
 
+def test_get_documents_without_back_param_uses_programmation_list(
+    programmation_projet, correct_perimetre_client_with_user_logged
+):
+    projet = programmation_projet.dotation_projet.projet
+    url = reverse("notification:documents", kwargs={"projet_id": projet.id})
+    response = correct_perimetre_client_with_user_logged.get(url)
+    assert response.status_code == 200
+    expected_back = reverse("gsl_programmation:programmation-projet-list")
+    assert response.context["go_back_link"] == expected_back
+
+
+def test_get_documents_with_valid_back_param_uses_it(
+    programmation_projet, correct_perimetre_client_with_user_logged
+):
+    projet = programmation_projet.dotation_projet.projet
+    url = reverse("notification:documents", kwargs={"projet_id": projet.id})
+    back = "/simulation/42/"
+    response = correct_perimetre_client_with_user_logged.get(url, {"back": back})
+    assert response.status_code == 200
+    assert response.context["go_back_link"] == back
+
+
+def test_get_documents_with_external_back_url_falls_back_to_programmation_list(
+    programmation_projet, correct_perimetre_client_with_user_logged
+):
+    projet = programmation_projet.dotation_projet.projet
+    url = reverse("notification:documents", kwargs={"projet_id": projet.id})
+    response = correct_perimetre_client_with_user_logged.get(
+        url, {"back": "https://evil.com/"}
+    )
+    assert response.status_code == 200
+    expected_back = reverse("gsl_programmation:programmation-projet-list")
+    assert response.context["go_back_link"] == expected_back
+
+
 #### select-modele -----------------------------------
 
 ####### Without correct perimetre
