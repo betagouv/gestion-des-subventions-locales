@@ -95,74 +95,74 @@
         </div>
         <div class="toolbar-buttons-group">
             <details class="new-gsl-dropdown">
-                <summary class="fr-btn fr-btn--tertiary fr-btn--icon-right fr-icon-arrow-down-s-line fr-py-0">
+                <summary class="fr-btn fr-btn--tertiary fr-btn--icon-right fr-icon-arrow-down-s-line fr-py-0 fr-ml-2w">
                     Tableau
                 </summary>
-                <ul class="new-gsl-dropdown-content no-list-style fr-m-0">
-                    <li>
+                <ul class="new-gsl-dropdown-content no-list-style tiptap-dropdown-list fr-m-0 fr-ml-2w">
+                    <li class="tiptap-dropdown-item">
                         <button data-tiptap-editor-target="toolbarButton"
                                 data-action="insertTable"
                                 type="button">
                             Insérer un tableau
                         </button>
                     </li>
-                    <li>
+                    <li class="tiptap-dropdown-item">
                         <button data-tiptap-editor-target="toolbarButton"
                                 data-action="addColumnBefore"
                                 type="button">
                             Colonne avant
                         </button>
                     </li>
-                    <li>
+                    <li class="tiptap-dropdown-item">
                         <button data-tiptap-editor-target="toolbarButton"
                                 data-action="addColumnAfter"
                                 type="button">
                             Colonne après
                         </button>
                     </li>
-                    <li>
+                    <li class="tiptap-dropdown-item">
                         <button data-tiptap-editor-target="toolbarButton"
                                 data-action="deleteColumn"
                                 type="button">
                             Supprimer colonne
                         </button>
                     </li>
-                    <li>
+                    <li class="tiptap-dropdown-item">
                         <button data-tiptap-editor-target="toolbarButton"
                                 data-action="addRowBefore"
                                 type="button">
                             Ligne avant
                         </button>
                     </li>
-                    <li>
+                    <li class="tiptap-dropdown-item">
                         <button data-tiptap-editor-target="toolbarButton"
                                 data-action="addRowAfter"
                                 type="button">
                             Ligne après
                         </button>
                     </li>
-                    <li>
+                    <li class="tiptap-dropdown-item">
                         <button data-tiptap-editor-target="toolbarButton"
                                 data-action="deleteRow"
                                 type="button">
                             Supprimer ligne
                         </button>
                     </li>
-                    <li>
+                    <li class="tiptap-dropdown-item">
                         <button data-tiptap-editor-target="toolbarButton"
                                 data-action="toggleHeaderColumn"
                                 type="button">
                             En-tête colonne
                         </button>
                     </li>
-                    <li>
+                    <li class="tiptap-dropdown-item">
                         <button data-tiptap-editor-target="toolbarButton"
                                 data-action="toggleHeaderRow"
                                 type="button">
                             En-tête ligne
                         </button>
                     </li>
-                    <li>
+                    <li class="tiptap-dropdown-item">
                         <button data-tiptap-editor-target="toolbarButton"
                                 data-action="mergeOrSplit"
                                 type="button">
@@ -180,10 +180,10 @@
                     <summary class="fr-btn fr-btn--tertiary fr-btn--icon-right fr-icon-arrow-down-s-line fr-py-0 fr-ml-2w">
                         Insérer une variable de publipostage
                     </summary>
-                    <ul class="new-gsl-dropdown-content no-list-style mention-list fr-m-0 fr-ml-2w"
+                    <ul class="new-gsl-dropdown-content no-list-style tiptap-dropdown-list fr-m-0 fr-ml-2w"
                         data-action="click->">
                         {% for mention in self.mentions %}
-                            <li class="mention-item">
+                            <li class="tiptap-dropdown-item">
                                 <button data-action="click->tiptap-editor#insertMention"
                                         data-id="{{ mention.id }}"
                                         type="button">

@@ -131,7 +131,7 @@
 }
 
 
-.mention-list {
+.tiptap-dropdown-list {
   position: absolute;
   z-index: 1000;
   background: white;
@@ -147,12 +147,12 @@
   overflow: auto;
 }
 
-.mention-item {
+.tiptap-dropdown-item {
   padding: 6px 12px;
   cursor: pointer;
 }
 
-.mention-item.selected {
+.tiptap-dropdown-item.selected {
   background: #d9e6ff;
 }
 
@@ -171,7 +171,7 @@ mark {
   font-size: 1.1em;
 }
 
-.mention-item > button {
+.tiptap-dropdown-item > button {
   width: 100%;
   text-align: left;
   height: 100%;
@@ -180,8 +180,8 @@ mark {
   padding: 8px;
 }
 
-.mention-item > button:hover,
-.mention-item > button:focus {
+.tiptap-dropdown-item > button:hover,
+.tiptap-dropdown-item > button:focus {
   background: #d9e6ff;
   outline-offset: -2px;
 }
@@ -227,6 +227,20 @@ mark {
 .tiptap.ProseMirror th p,
 .tiptap.ProseMirror td p {
   margin: 0;
+}
+
+.tiptap.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: var(--border-action-high-blue-france);
+  pointer-events: none;
+}
+
+.tiptap.ProseMirror.resize-cursor {
+  cursor: col-resize;
 }
 
 .tiptap.ProseMirror .selectedCell::after {

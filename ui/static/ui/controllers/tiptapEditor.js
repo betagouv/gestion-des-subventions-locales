@@ -7,7 +7,7 @@ const EXTENSIONS = [
     types: ['heading', 'paragraph']
   }),
   Highlight.configure({ multicolor: false }),
-  TableKit
+  TableKit.configure({ table: { resizable: true } })
 ]
 
 export class TipTapEditor extends Controller {
@@ -266,13 +266,13 @@ export class TipTapEditor extends Controller {
 
               // Créer le conteneur
               popup = document.createElement('div')
-              popup.className = 'mention-list mention-dynamic-list'
+              popup.className = 'tiptap-dropdown-list mention-dynamic-list'
               popup.setAttribute('tabindex', '-1') // Rendre focusable
 
               // Ajouter les éléments
               props.items.forEach(item => {
                 const div = document.createElement('div')
-                div.className = 'mention-item'
+                div.className = 'tiptap-dropdown-item'
                 div.textContent = item.label
                 div.dataset.id = item.id
                 div.addEventListener('click', () => {
@@ -306,7 +306,7 @@ export class TipTapEditor extends Controller {
 
               props.items.forEach(item => {
                 const div = document.createElement('div')
-                div.className = 'mention-item'
+                div.className = 'tiptap-dropdown-item'
                 div.textContent = item.label
                 div.dataset.id = item.id
                 div.addEventListener('click', () => {

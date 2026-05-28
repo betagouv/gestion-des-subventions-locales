@@ -276,6 +276,7 @@ class ChooseDocumentTypeForGenerationView(UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["dossier"] = self.object.dossier_ds
         context["cancel_link"] = reverse(
             "gsl_programmation:programmation-projet-detail", args=[self.object.id]
         )
@@ -326,6 +327,7 @@ def select_modele(request, projet_id, dotation, document_type):
 
     context = {
         "projet": programmation_projet.projet,
+        "dossier": programmation_projet.projet.dossier_ds,
         "programmation_projet": programmation_projet,
         "dotation": programmation_projet.dotation,
         "document_type": document_type,
@@ -443,6 +445,7 @@ def change_document_view(request, projet_id, dotation, document_type):
         "page_step_title": page_step_title,
         "modele": modele,
         "document_type": document_type,
+        "dossier": programmation_projet.projet.dossier_ds,
     }
     _enrich_context_for_create_or_get_arrete_view(
         context, programmation_projet, request
