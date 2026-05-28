@@ -14,6 +14,11 @@ from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 pytestmark = pytest.mark.django_db
 
 
+def test_projet_without_dotation_projet_has_no_status():
+    projet = ProjetFactory()
+    assert projet.status is None
+
+
 def test_update_projet_status_on_post_save():
     projet: Projet = ProjetFactory()
     dotation_projet: DotationProjet = DotationProjetFactory(
