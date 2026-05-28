@@ -203,3 +203,37 @@ mark {
 #toolbar > .toolbar-buttons-group:not(:last-child) {
     border-right:2px solid var(--background-alt-grey);
 }
+
+.tiptap.ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+
+.tiptap.ProseMirror th,
+.tiptap.ProseMirror td {
+  border: 1px solid var(--border-default-grey);
+  padding: 6px 10px;
+  min-width: 2em;
+  vertical-align: top;
+  position: relative;
+}
+
+.tiptap.ProseMirror th {
+  background: var(--background-alt-grey);
+  font-weight: bold;
+}
+
+.tiptap.ProseMirror th p,
+.tiptap.ProseMirror td p {
+  margin: 0;
+}
+
+.tiptap.ProseMirror .selectedCell::after {
+  background: var(--background-contrast-blue-france);
+  content: "";
+  inset: 0;
+  opacity: 0.3;
+  pointer-events: none;
+  position: absolute;
+}

@@ -1,4 +1,4 @@
-import { Editor, Highlight, Mention, StarterKit, TextAlign } from 'tiptap'
+import { Editor, Highlight, Mention, StarterKit, TableKit, TextAlign } from 'tiptap'
 import { Controller } from 'stimulus'
 
 const EXTENSIONS = [
@@ -6,7 +6,8 @@ const EXTENSIONS = [
   TextAlign.configure({
     types: ['heading', 'paragraph']
   }),
-  Highlight.configure({ multicolor: false })
+  Highlight.configure({ multicolor: false }),
+  TableKit
 ]
 
 export class TipTapEditor extends Controller {
@@ -171,6 +172,46 @@ export class TipTapEditor extends Controller {
           break
         case 'redo':
           this.editor.chain().focus().redo().run()
+          break
+        case 'insertTable':
+          this.editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+          btn.closest('details')?.removeAttribute('open')
+          break
+        case 'addColumnBefore':
+          this.editor.chain().focus().addColumnBefore().run()
+          btn.closest('details')?.removeAttribute('open')
+          break
+        case 'addColumnAfter':
+          this.editor.chain().focus().addColumnAfter().run()
+          btn.closest('details')?.removeAttribute('open')
+          break
+        case 'deleteColumn':
+          this.editor.chain().focus().deleteColumn().run()
+          btn.closest('details')?.removeAttribute('open')
+          break
+        case 'addRowBefore':
+          this.editor.chain().focus().addRowBefore().run()
+          btn.closest('details')?.removeAttribute('open')
+          break
+        case 'addRowAfter':
+          this.editor.chain().focus().addRowAfter().run()
+          btn.closest('details')?.removeAttribute('open')
+          break
+        case 'deleteRow':
+          this.editor.chain().focus().deleteRow().run()
+          btn.closest('details')?.removeAttribute('open')
+          break
+        case 'toggleHeaderColumn':
+          this.editor.chain().focus().toggleHeaderColumn().run()
+          btn.closest('details')?.removeAttribute('open')
+          break
+        case 'toggleHeaderRow':
+          this.editor.chain().focus().toggleHeaderRow().run()
+          btn.closest('details')?.removeAttribute('open')
+          break
+        case 'mergeOrSplit':
+          this.editor.chain().focus().mergeOrSplit().run()
+          btn.closest('details')?.removeAttribute('open')
           break
       }
     })
