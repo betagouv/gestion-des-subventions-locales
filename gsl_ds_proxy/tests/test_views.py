@@ -149,8 +149,8 @@ class GraphqlProxyViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         data = _parse_stream(response)
         self.assertEqual(
-            data,
-            {"errors": [{"message": "Erreur de connexion à Démarches Simplifiées."}]},
+            data["errors"][0]["message"],
+            "Erreur de connexion à Démarches Simplifiées.",
         )
 
     @patch("gsl_ds_proxy.views.requests.post")
@@ -164,8 +164,7 @@ class GraphqlProxyViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         data = _parse_stream(response)
         self.assertEqual(
-            data,
-            {"errors": [{"message": "Erreur de Démarches Simplifiées."}]},
+            data["errors"][0]["message"], "Erreur de Démarches Simplifiées."
         )
 
     @patch("gsl_ds_proxy.views.requests.post")
@@ -182,7 +181,8 @@ class GraphqlProxyViewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         raw = _read_stream(response).decode()
-        self.assertEqual(json.loads(raw)["errors"], upstream["errors"])
+        errors = json.loads(raw)["errors"]
+        self.assertIn(upstream["errors"][0], errors)
         self.assertNotIn("La requête doit inclure", raw)
 
     @patch("gsl_ds_proxy.views.requests.post")
@@ -199,7 +199,8 @@ class GraphqlProxyViewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         raw = _read_stream(response).decode()
-        self.assertEqual(json.loads(raw)["errors"], upstream["errors"])
+        errors = json.loads(raw)["errors"]
+        self.assertIn(upstream["errors"][0], errors)
         self.assertNotIn("La requête doit inclure", raw)
 
     @patch("gsl_ds_proxy.views.requests.post")
@@ -222,7 +223,8 @@ class GraphqlProxyViewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         raw = _read_stream(response).decode()
-        self.assertEqual(json.loads(raw)["errors"], upstream["errors"])
+        errors = json.loads(raw)["errors"]
+        self.assertIn(upstream["errors"][0], errors)
         self.assertNotIn("La requête doit inclure", raw)
 
     def test_getDemarche_wrong_demarche_number_rejected(self):
@@ -491,12 +493,8 @@ class GraphqlProxyViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         data = _parse_stream(response)
         self.assertEqual(
-            data,
-            {
-                "errors": [
-                    {"message": "Délai d'attente dépassé pour Démarches Simplifiées."}
-                ]
-            },
+            data["errors"][0]["message"],
+            "Délai d'attente dépassé pour Démarches Simplifiées.",
         )
 
     @patch("gsl_ds_proxy.views.requests.post")
@@ -772,3 +770,472 @@ class GraphqlProxyViewTest(TestCase):
             "Opération non autorisée pour cette démarche. "
             "La requête doit inclure `demarche { number }`.",
         )
+
+    # ------------------------------------------------------------------
+    # request_id propagation
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _request_ids(errors):
+        return [
+            e.get("extensions", {}).get("requestId")
+            for e in errors
+            if e.get("extensions", {}).get("requestId")
+        ]
+
+    def test_request_id_in_401_response(self):
+        response = self.client.post(
+            self.url,
+            data=json.dumps(self._get_demarche_payload()),
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer invalid-token",
+        )
+        self.assertEqual(response.status_code, 401)
+        body = json.loads(response.content)
+        request_ids = self._request_ids(body["errors"])
+        self.assertEqual(len(request_ids), 1)
+        self.assertTrue(request_ids[0])
+
+    def test_request_id_in_unconfigured_token_403(self):
+        self.token.groupe_instructeur_ds_id = ""
+        self.token.save()
+        response = self._post(self._get_demarche_payload())
+        self.assertEqual(response.status_code, 403)
+        body = json.loads(response.content)
+        self.assertTrue(
+            body["errors"][0]["extensions"]["requestId"],
+        )
+
+    def test_request_id_in_invalid_json_response(self):
+        response = self.client.post(
+            self.url,
+            data="not json",
+            content_type="application/json",
+            **self.headers,
+        )
+        self.assertEqual(response.status_code, 400)
+        body = json.loads(response.content)
+        self.assertTrue(body["errors"][0]["extensions"]["requestId"])
+
+    def test_request_id_in_malformed_graphql_response(self):
+        response = self._post(
+            {
+                "query": "query getDemarche { demarche { { } }",
+                "operationName": "getDemarche",
+            }
+        )
+        self.assertEqual(response.status_code, 400)
+        body = json.loads(response.content)
+        self.assertTrue(body["errors"][0]["extensions"]["requestId"])
+
+    def test_request_id_in_mutation_rejection(self):
+        response = self._post({"query": "mutation { dossierAccepter { id } }"})
+        self.assertEqual(response.status_code, 403)
+        body = json.loads(response.content)
+        self.assertTrue(body["errors"][0]["extensions"]["requestId"])
+
+    def test_request_id_in_forbidden_demarche_field(self):
+        response = self._post(
+            {
+                "query": (
+                    "query getDemarche { demarche "
+                    "{ groupeInstructeurs { instructeurs { id } } } }"
+                ),
+                "operationName": "getDemarche",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        self.assertEqual(response.status_code, 403)
+        body = json.loads(response.content)
+        self.assertTrue(body["errors"][0]["extensions"]["requestId"])
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_request_id_in_streamed_ds_http_error(self, mock_post):
+        import requests as req
+
+        mock_post.return_value.status_code = 502
+        mock_post.return_value.raise_for_status.side_effect = req.exceptions.HTTPError()
+
+        response = self._post(self._get_demarche_payload())
+        data = _parse_stream(response)
+        self.assertTrue(data["errors"][0]["extensions"]["requestId"])
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_request_id_in_streamed_timeout(self, mock_post):
+        import requests as req
+
+        mock_post.side_effect = req.exceptions.Timeout()
+
+        response = self._post(self._get_demarche_payload())
+        data = _parse_stream(response)
+        self.assertTrue(data["errors"][0]["extensions"]["requestId"])
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_request_id_in_streamed_connection_error(self, mock_post):
+        import requests as req
+
+        mock_post.side_effect = req.exceptions.ConnectionError()
+
+        response = self._post(self._get_demarche_payload())
+        data = _parse_stream(response)
+        self.assertTrue(data["errors"][0]["extensions"]["requestId"])
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_request_id_in_scope_error_after_response(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {"demarche": {"number": 999, "dossiers": {"nodes": []}}}
+        }
+        response = self._post(
+            {
+                "query": "query getDemarche { demarche { number } }",
+                "operationName": "getDemarche",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        data = _parse_stream(response)
+        request_ids = self._request_ids(data["errors"])
+        self.assertEqual(len(request_ids), 1)
+        self.assertTrue(request_ids[0])
+
+    # ------------------------------------------------------------------
+    # Upstream DS errors preserved with scope error
+    # ------------------------------------------------------------------
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_scope_error_preserves_upstream_ds_errors(self, mock_post):
+        """When DS returns partial errors AND data fails scope check, both
+        the upstream errors and our scope rejection are returned."""
+        upstream_errors = [
+            {
+                "message": "Timeout on PersonneMorale.entreprise",
+                "path": ["demarche", "dossiers", "nodes", 3, "demandeur", "entreprise"],
+            },
+            {
+                "message": "Timeout on GroupeInstructeur.id",
+                "path": ["demarche", "dossiers", "nodes", 7, "groupeInstructeur", "id"],
+            },
+        ]
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {"demarche": {"number": 999, "dossiers": {"nodes": []}}},
+            "errors": upstream_errors,
+        }
+        response = self._post(
+            {
+                "query": "query getDemarche { demarche { number } }",
+                "operationName": "getDemarche",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        data = _parse_stream(response)
+        self.assertIn(upstream_errors[0], data["errors"])
+        self.assertIn(upstream_errors[1], data["errors"])
+        scope_messages = [
+            e["message"]
+            for e in data["errors"]
+            if "La requête doit inclure" in e["message"]
+        ]
+        self.assertEqual(len(scope_messages), 1)
+        self.assertIsNone(data["data"])
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_verbatim_forward_prepends_request_id_marker(self, mock_post):
+        """DS errors + null data: forward verbatim AND add our request_id
+        marker so the partner can correlate with our logs."""
+        upstream_errors = [
+            {"message": "Field 'demaarche' doesn't exist on type 'Query'"},
+        ]
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": None,
+            "errors": upstream_errors,
+        }
+
+        response = self._post(self._get_demarche_payload())
+        data = _parse_stream(response)
+
+        self.assertIn(upstream_errors[0], data["errors"])
+        marker_entries = [
+            e for e in data["errors"] if e.get("extensions", {}).get("requestId")
+        ]
+        self.assertEqual(len(marker_entries), 1)
+        self.assertTrue(marker_entries[0]["extensions"]["requestId"])
+
+    # ------------------------------------------------------------------
+    # Logging enrichment
+    # ------------------------------------------------------------------
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_logging_extra_on_connection_error(self, mock_post):
+        import requests as req
+
+        mock_post.side_effect = req.exceptions.ConnectionError()
+
+        with self.assertLogs("gsl_ds_proxy.views", level="ERROR") as cm:
+            response = self._post(self._get_demarche_payload())
+            _read_stream(response)
+
+        record = cm.records[-1]
+        self.assertEqual(record.proxy_token_id, self.token.id)
+        self.assertEqual(record.demarche_number, self.demarche.ds_number)
+        self.assertTrue(record.request_id)
+        self.assertIsInstance(record.elapsed_ms, int)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_logging_extra_on_timeout(self, mock_post):
+        import requests as req
+
+        mock_post.side_effect = req.exceptions.Timeout()
+
+        with self.assertLogs("gsl_ds_proxy.views", level="ERROR") as cm:
+            response = self._post(self._get_demarche_payload())
+            _read_stream(response)
+
+        record = cm.records[-1]
+        self.assertEqual(record.proxy_token_id, self.token.id)
+        self.assertEqual(record.demarche_number, self.demarche.ds_number)
+        self.assertTrue(record.request_id)
+        self.assertIsInstance(record.elapsed_ms, int)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_logging_extra_on_http_error(self, mock_post):
+        import requests as req
+
+        mock_post.return_value.status_code = 503
+        mock_post.return_value.raise_for_status.side_effect = req.exceptions.HTTPError()
+
+        with self.assertLogs("gsl_ds_proxy.views", level="ERROR") as cm:
+            response = self._post(self._get_demarche_payload())
+            _read_stream(response)
+
+        record = cm.records[-1]
+        self.assertEqual(record.proxy_token_id, self.token.id)
+        self.assertEqual(record.demarche_number, self.demarche.ds_number)
+        self.assertEqual(record.ds_status, 503)
+        self.assertTrue(record.request_id)
+        self.assertIsInstance(record.elapsed_ms, int)
+
+    # ------------------------------------------------------------------
+    # Per-request structured log
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _request_log_records(records):
+        return [r for r in records if r.getMessage() == "DS proxy: request"]
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_request_log_on_successful_getDemarche(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {
+                "demarche": {
+                    "number": self.demarche.ds_number,
+                    "dossiers": {
+                        "nodes": [
+                            {"number": 1, "groupeInstructeur": {"id": "GROUPE-1"}},
+                            {"number": 2, "groupeInstructeur": {"id": "GROUPE-2"}},
+                            {"number": 3, "groupeInstructeur": {"id": "GROUPE-1"}},
+                        ]
+                    },
+                }
+            }
+        }
+
+        with self.assertLogs("gsl_ds_proxy.views", level="INFO") as cm:
+            response = self._post(self._get_demarche_payload())
+            _read_stream(response)
+
+        request_logs = self._request_log_records(cm.records)
+        self.assertEqual(len(request_logs), 1)
+        record = request_logs[0]
+        self.assertEqual(record.outcome, "ok")
+        self.assertEqual(record.root_field, "demarche")
+        self.assertEqual(record.operation_name, "getDemarche")
+        self.assertEqual(record.ds_results_count, 3)
+        self.assertEqual(record.filtered_out_count, 1)
+        self.assertEqual(record.ds_errors_count, 0)
+        self.assertEqual(record.proxy_token_id, self.token.id)
+        self.assertEqual(record.demarche_number, self.demarche.ds_number)
+        self.assertTrue(record.request_id)
+        self.assertIsInstance(record.elapsed_ms, int)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_request_log_counts_all_demarche_connections(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {
+                "demarche": {
+                    "number": self.demarche.ds_number,
+                    "dossiers": {
+                        "nodes": [
+                            {"number": 1, "groupeInstructeur": {"id": "GROUPE-1"}},
+                        ]
+                    },
+                    "pendingDeletedDossiers": {
+                        "nodes": [
+                            {"number": 2, "groupeInstructeur": {"id": "GROUPE-2"}},
+                            {"number": 3, "groupeInstructeur": {"id": "GROUPE-1"}},
+                        ]
+                    },
+                    "deletedDossiers": {
+                        "nodes": [
+                            {"number": 4, "groupeInstructeur": {"id": "GROUPE-2"}},
+                        ]
+                    },
+                }
+            }
+        }
+
+        with self.assertLogs("gsl_ds_proxy.views", level="INFO") as cm:
+            response = self._post(self._get_demarche_payload())
+            _read_stream(response)
+
+        record = self._request_log_records(cm.records)[0]
+        self.assertEqual(record.ds_results_count, 4)
+        self.assertEqual(record.filtered_out_count, 2)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_request_log_on_authorized_getDossier(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {
+                "dossier": {
+                    "number": 42,
+                    "groupeInstructeur": {"id": "GROUPE-1"},
+                    "demarche": {"number": self.demarche.ds_number},
+                }
+            }
+        }
+
+        with self.assertLogs("gsl_ds_proxy.views", level="INFO") as cm:
+            response = self._post(
+                {
+                    "query": "query getDossier { dossier { number } }",
+                    "operationName": "getDossier",
+                    "variables": {"dossierNumber": 42},
+                }
+            )
+            _read_stream(response)
+
+        record = self._request_log_records(cm.records)[0]
+        self.assertEqual(record.outcome, "ok")
+        self.assertEqual(record.root_field, "dossier")
+        self.assertEqual(record.ds_results_count, 1)
+        self.assertEqual(record.filtered_out_count, 0)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_request_log_on_filtered_getDossier(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {
+                "dossier": {
+                    "number": 42,
+                    "groupeInstructeur": {"id": "GROUPE-2"},
+                    "demarche": {"number": self.demarche.ds_number},
+                }
+            }
+        }
+
+        with self.assertLogs("gsl_ds_proxy.views", level="INFO") as cm:
+            response = self._post(
+                {
+                    "query": "query getDossier { dossier { number } }",
+                    "operationName": "getDossier",
+                    "variables": {"dossierNumber": 42},
+                }
+            )
+            _read_stream(response)
+
+        record = self._request_log_records(cm.records)[0]
+        self.assertEqual(record.outcome, "ok")
+        self.assertEqual(record.ds_results_count, 1)
+        self.assertEqual(record.filtered_out_count, 1)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_request_log_on_verbatim_forward(self, mock_post):
+        upstream_errors = [
+            {"message": "Field 'demaarche' doesn't exist on type 'Query'"},
+        ]
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": None,
+            "errors": upstream_errors,
+        }
+
+        with self.assertLogs("gsl_ds_proxy.views", level="INFO") as cm:
+            response = self._post(self._get_demarche_payload())
+            _read_stream(response)
+
+        record = self._request_log_records(cm.records)[0]
+        self.assertEqual(record.outcome, "verbatim_forward")
+        self.assertEqual(record.ds_errors_count, len(upstream_errors))
+        self.assertEqual(record.filtered_out_count, 0)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_request_log_on_scope_error(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {
+                "demarche": {
+                    "number": 999,
+                    "dossiers": {
+                        "nodes": [
+                            {"number": 1, "groupeInstructeur": {"id": "GROUPE-1"}},
+                            {"number": 2, "groupeInstructeur": {"id": "GROUPE-2"}},
+                        ]
+                    },
+                }
+            }
+        }
+
+        with self.assertLogs("gsl_ds_proxy.views", level="INFO") as cm:
+            response = self._post(self._get_demarche_payload())
+            _read_stream(response)
+
+        record = self._request_log_records(cm.records)[0]
+        self.assertEqual(record.outcome, "scope_error")
+        self.assertEqual(record.ds_results_count, 2)
+        self.assertEqual(record.filtered_out_count, record.ds_results_count)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    def test_request_log_on_introspection_omits_dossier_counts(self, mock_post):
+        introspection_payload = {"data": {"__schema": {"types": [{"name": "Query"}]}}}
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = introspection_payload
+
+        with self.assertLogs("gsl_ds_proxy.views", level="INFO") as cm:
+            response = self._post(
+                {
+                    "query": "query Whatever { __schema { types { name } } }",
+                    "operationName": "Whatever",
+                }
+            )
+            _read_stream(response)
+
+        record = self._request_log_records(cm.records)[0]
+        self.assertEqual(record.outcome, "ok")
+        self.assertFalse(hasattr(record, "ds_results_count"))
+        self.assertFalse(hasattr(record, "filtered_out_count"))
+
+    def test_no_request_log_on_pre_ds_rejection(self):
+        with self.assertLogs("gsl_ds_proxy.views", level="INFO") as cm:
+            # assertLogs requires at least one record at the given level; emit
+            # a sentinel so the context manager has something to capture.
+            import logging as _logging
+
+            _logging.getLogger("gsl_ds_proxy.views").info("sentinel")
+            response = self._post({"query": "mutation { dossierAccepter { id } }"})
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(self._request_log_records(cm.records), [])
