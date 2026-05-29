@@ -131,7 +131,7 @@
 }
 
 
-.mention-list {
+.tiptap-dropdown-list {
   position: absolute;
   z-index: 1000;
   background: white;
@@ -147,12 +147,12 @@
   overflow: auto;
 }
 
-.mention-item {
+.tiptap-dropdown-item {
   padding: 6px 12px;
   cursor: pointer;
 }
 
-.mention-item.selected {
+.tiptap-dropdown-item.selected {
   background: #d9e6ff;
 }
 
@@ -171,7 +171,7 @@ mark {
   font-size: 1.1em;
 }
 
-.mention-item > button {
+.tiptap-dropdown-item > button {
   width: 100%;
   text-align: left;
   height: 100%;
@@ -180,8 +180,8 @@ mark {
   padding: 8px;
 }
 
-.mention-item > button:hover,
-.mention-item > button:focus {
+.tiptap-dropdown-item > button:hover,
+.tiptap-dropdown-item > button:focus {
   background: #d9e6ff;
   outline-offset: -2px;
 }
@@ -202,4 +202,52 @@ mark {
 
 #toolbar > .toolbar-buttons-group:not(:last-child) {
     border-right:2px solid var(--background-alt-grey);
+}
+
+.tiptap.ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+
+.tiptap.ProseMirror th,
+.tiptap.ProseMirror td {
+  border: 1px solid var(--border-default-grey);
+  padding: 6px 10px;
+  min-width: 2em;
+  vertical-align: top;
+  position: relative;
+}
+
+.tiptap.ProseMirror th {
+  background: var(--background-alt-grey);
+  font-weight: bold;
+}
+
+.tiptap.ProseMirror th p,
+.tiptap.ProseMirror td p {
+  margin: 0;
+}
+
+.tiptap.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: var(--border-action-high-blue-france);
+  pointer-events: none;
+}
+
+.tiptap.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+
+.tiptap.ProseMirror .selectedCell::after {
+  background: var(--background-contrast-blue-france);
+  content: "";
+  inset: 0;
+  opacity: 0.3;
+  pointer-events: none;
+  position: absolute;
 }

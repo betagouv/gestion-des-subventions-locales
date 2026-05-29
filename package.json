@@ -9,11 +9,12 @@
   "private": true,
   "dependencies": {
     "@hotwired/stimulus": "^3",
-    "@tiptap/core": "^3.7.2",
-    "@tiptap/extension-highlight": "^3.7.2",
-    "@tiptap/extension-mention": "^3.7.2",
-    "@tiptap/extension-text-align": "^3.7.2",
-    "@tiptap/starter-kit": "^3.7.2",
+    "@tiptap/core": "^3.23.6",
+    "@tiptap/extension-highlight": "^3.23.6",
+    "@tiptap/extension-mention": "^3.23.6",
+    "@tiptap/extension-table": "^3.23.6",
+    "@tiptap/extension-text-align": "^3.23.6",
+    "@tiptap/starter-kit": "^3.23.6",
     "htmx.org": "^2"
   },
   "devDependencies": {
