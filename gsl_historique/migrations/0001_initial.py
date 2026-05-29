@@ -1,0 +1,110 @@
+import django.db.models.deletion
+from django.conf import settings
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+    initial = True
+
+    dependencies = [
+        ("gsl_projet", "0036_remove_projet_demandeur_delete_demandeur"),
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name="ProjetAction",
+            fields=[
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "action_type",
+                    models.CharField(
+                        choices=[
+                            ("status_change", "Changement de statut"),
+                            ("doc_generated", "Génération de document"),
+                            ("doc_modified", "Modification de document"),
+                            ("doc_deleted", "Suppression de document généré"),
+                            ("doc_uploaded", "Import de document"),
+                            ("doc_upload_deleted", "Suppression de document importé"),
+                            ("notified", "Notification"),
+                            ("assiette_modified", "Modification de l'assiette"),
+                            ("dotation_added", "Ajout de dotation"),
+                            ("dotation_removed", "Suppression de dotation"),
+                            ("montant_modified", "Modification du montant"),
+                            ("boolean_modified", "Modification de booléen"),
+                        ],
+                        max_length=50,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "source",
+                    models.CharField(
+                        choices=[("turgot", "Turgot"), ("ds", "DN")],
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "dotation",
+                    models.CharField(
+                        blank=True,
+                        choices=[("DETR", "DETR"), ("DSIL", "DSIL")],
+                        default="",
+                        max_length=10,
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(blank=True, default="", max_length=50),
+                ),
+                (
+                    "montant",
+                    models.DecimalField(
+                        blank=True, decimal_places=2, max_digits=12, null=True
+                    ),
+                ),
+                (
+                    "document_name",
+                    models.CharField(blank=True, default="", max_length=200),
+                ),
+                (
+                    "boolean_field",
+                    models.CharField(blank=True, default="", max_length=200),
+                ),
+                (
+                    "boolean_value",
+                    models.BooleanField(null=True),
+                ),
+                (
+                    "actor",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "projet",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="actions",
+                        to="gsl_projet.projet",
+                    ),
+                ),
+            ],
+            options={
+                "verbose_name": "Action sur projet",
+                "verbose_name_plural": "Actions sur projets",
+                "ordering": ["-created_at"],
+            },
+        ),
+    ]

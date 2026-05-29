@@ -63,7 +63,9 @@ def test_refuse_or_dismiss_does_not_touch_ds(
             )
             form.save(user)
 
-    mock_transition.assert_called_once_with(enveloppe=simulation_projet.enveloppe)
+    mock_transition.assert_called_once_with(
+        enveloppe=simulation_projet.enveloppe, actor=user
+    )
     mock_refuser.assert_not_called()
     mock_dismiss.assert_not_called()
 
@@ -155,7 +157,7 @@ SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS = {
     ),
 )
 def test_update_status_with_provisionally_accepted_from_refused_or_accepted_or_dismissed(
-    initial_status, new_status
+    initial_status, new_status, user
 ):
     dotation_projet = DotationProjetFactory(
         status=SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS[initial_status]

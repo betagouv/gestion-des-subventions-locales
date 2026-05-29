@@ -164,6 +164,8 @@ class ProjetForm(ModelForm, DsfrBaseForm):
 
     @transaction.atomic
     def save(self, commit=True):
+        from gsl_historique.models import ProjetAction
+
         instance: Projet = super().save(commit=False)
         if not commit:
             return instance
@@ -197,6 +199,28 @@ class ProjetForm(ModelForm, DsfrBaseForm):
 
         instance.save()
 
+        _BOOLEAN_FIELDS = [
+            ("is_budget_vert", "Budget vert"),
+            ("is_in_qpv", "QPV"),
+            ("is_attached_to_a_crte", "CRTE"),
+            ("is_frr", "FRR"),
+            ("is_acv", "ACV"),
+            ("is_pvd", "PVD"),
+            ("is_va", "Villages d'avenir"),
+            ("is_autre_zonage_local", "Autre zonage local"),
+            ("is_contrat_local", "Contrat local"),
+        ]
+        for field_name, field_label in _BOOLEAN_FIELDS:
+            if field_name in self.changed_data:
+                ProjetAction.objects.create(
+                    projet=instance,
+                    action_type=ProjetAction.TYPE_BOOLEAN_MODIFIED,
+                    actor=self.user,
+                    source=ProjetAction.SOURCE_TURGOT,
+                    boolean_field=field_label,
+                    boolean_value=self.cleaned_data.get(field_name),
+                )
+
         dotations = self.cleaned_data.get("dotations")
         if dotations:
             self.update_dotation(instance, dotations, self.user)
@@ -225,6 +249,8 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             )
             return
 
+        from gsl_historique.models import ProjetAction
+
         new_dotations = set(dotations) - set(projet.dotations)
         dotation_to_remove = set[POSSIBLE_DOTATIONS](projet.dotations) - set(dotations)
         dotations_updated_in_app = new_dotations or dotation_to_remove
@@ -235,6 +261,13 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             )
             DotationProjetService.create_simulation_projets_from_dotation_projet(
                 dotation_projet
+            )
+            ProjetAction.objects.create(
+                projet=projet,
+                action_type=ProjetAction.TYPE_DOTATION_ADDED,
+                actor=user,
+                source=ProjetAction.SOURCE_TURGOT,
+                dotation=dotation,
             )
 
         dotation_projet_to_remove = DotationProjet.objects.filter(
@@ -255,6 +288,15 @@ class ProjetForm(ModelForm, DsfrBaseForm):
                 dossier=projet.dossier_ds,
                 user=user,
                 dotations_to_be_checked=list(dotations_to_be_checked),
+            )
+
+        for dotation in dotation_to_remove:
+            ProjetAction.objects.create(
+                projet=projet,
+                action_type=ProjetAction.TYPE_DOTATION_REMOVED,
+                actor=user,
+                source=ProjetAction.SOURCE_TURGOT,
+                dotation=dotation,
             )
 
         dotation_projet_to_remove.delete()

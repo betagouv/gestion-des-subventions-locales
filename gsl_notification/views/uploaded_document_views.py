@@ -90,6 +90,9 @@ def create_uploaded_document_view(request, projet_id, dotation, document_type):
                 MATOMO_ACTION_IMPORT_DOCUMENT,
                 programmation_projet.enveloppe.dotation,
             )
+            _log_uploaded_document_action(
+                request.user, programmation_projet, uploaded_doc_class
+            )
             return redirect(
                 reverse(
                     "gsl_notification:documents",
@@ -112,6 +115,19 @@ def create_uploaded_document_view(request, projet_id, dotation, document_type):
         request,
         "gsl_notification/uploaded_document/upload_document.html",
         context=context,
+    )
+
+
+def _log_uploaded_document_action(user, programmation_projet, uploaded_doc_class):
+    from gsl_historique.models import ProjetAction
+
+    ProjetAction.objects.create(
+        projet=programmation_projet.dotation_projet.projet,
+        action_type=ProjetAction.TYPE_DOC_UPLOADED,
+        actor=user,
+        source=ProjetAction.SOURCE_TURGOT,
+        dotation=programmation_projet.dotation_projet.dotation,
+        document_name=uploaded_doc_class._meta.verbose_name.capitalize(),
     )
 
 

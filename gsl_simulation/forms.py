@@ -257,6 +257,8 @@ class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):
 
     @transaction.atomic
     def save(self, user: Collegue, commit=True):
+        from gsl_historique.models import ProjetAction
+
         if self.status == SimulationProjet.STATUS_ACCEPTED:
             self.instance.dotation_projet.accept(
                 montant=self.instance.montant,
@@ -264,9 +266,13 @@ class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):
                 user=user,
             )
         elif self.status == SimulationProjet.STATUS_REFUSED:
-            self.instance.dotation_projet.refuse(enveloppe=self.instance.enveloppe)
+            self.instance.dotation_projet.refuse(
+                enveloppe=self.instance.enveloppe, actor=user
+            )
         elif self.status == SimulationProjet.STATUS_DISMISSED:
-            self.instance.dotation_projet.dismiss(enveloppe=self.instance.enveloppe)
+            self.instance.dotation_projet.dismiss(
+                enveloppe=self.instance.enveloppe, actor=user
+            )
         elif (
             self.status in SimulationProjet.SIMULATION_PENDING_STATUSES
             and self.instance.status not in SimulationProjet.SIMULATION_PENDING_STATUSES
@@ -276,6 +282,16 @@ class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):
         self.instance.dotation_projet.save()
         self.instance.status = self.status
         self.instance.save()
+
+        if self.status in SimulationProjet.SIMULATION_PENDING_STATUSES:
+            ProjetAction.objects.create(
+                projet=self.instance.dotation_projet.projet,
+                action_type=ProjetAction.TYPE_STATUS_CHANGE,
+                actor=user,
+                source=ProjetAction.SOURCE_TURGOT,
+                dotation=self.instance.dotation_projet.dotation,
+                status=self.status,
+            )
 
         return self.instance
 
@@ -292,6 +308,8 @@ class AssietteSingleFieldForm(forms.ModelForm):
 
     @transaction.atomic
     def save(self, commit=True):
+        from gsl_historique.models import ProjetAction
+
         super().save(commit=commit)
 
         if self.instance.status == PROJET_STATUS_ACCEPTED:
@@ -301,6 +319,15 @@ class AssietteSingleFieldForm(forms.ModelForm):
                 user=self.user,
             )
             self.instance.save()
+
+        ProjetAction.objects.create(
+            projet=self.instance.projet,
+            action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
+            actor=self.user,
+            source=ProjetAction.SOURCE_TURGOT,
+            dotation=self.instance.dotation,
+            montant=self.cleaned_data.get("assiette"),
+        )
 
     class Meta:
         model = DotationProjet
@@ -315,6 +342,8 @@ class MontantSingleFieldForm(forms.ModelForm):
 
     @transaction.atomic
     def save(self, commit=True):
+        from gsl_historique.models import ProjetAction
+
         super().save(commit=commit)
 
         if self.instance.status == SimulationProjet.STATUS_ACCEPTED:
@@ -324,6 +353,15 @@ class MontantSingleFieldForm(forms.ModelForm):
                 user=self.user,
             )
             self.instance.dotation_projet.save()
+
+        ProjetAction.objects.create(
+            projet=self.instance.dotation_projet.projet,
+            action_type=ProjetAction.TYPE_MONTANT_MODIFIED,
+            actor=self.user,
+            source=ProjetAction.SOURCE_TURGOT,
+            dotation=self.instance.dotation_projet.dotation,
+            montant=self.cleaned_data.get("montant"),
+        )
 
     class Meta:
         model = SimulationProjet

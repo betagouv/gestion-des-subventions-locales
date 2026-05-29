@@ -1,0 +1,74 @@
+{% extends "gsl_simulation/simulation_projet_detail.html" %}
+{% load static %}
+
+{% block tab_projet %}
+    {% if actions %}
+        <div class="fr-table fr-table--bordered fr-mt-3w">
+            <div class="fr-table__wrapper">
+                <div class="fr-table__container">
+                    <div class="fr-table__content">
+                        <table>
+                            <caption class="fr-sr-only">
+                                Historique des actions sur le projet
+                            </caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">
+                                        Horodatage
+                                    </th>
+                                    <th scope="col">
+                                        Auteur
+                                    </th>
+                                    <th scope="col">
+                                        Action
+                                    </th>
+                                    <th scope="col">
+                                        Source
+                                    </th>
+                                    <th scope="col">
+                                        Dotation
+                                    </th>
+                                    <th scope="col">
+                                        Précision
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for action in actions %}
+                                    <tr>
+                                        <td>
+                                            {{ action.created_at|date:"d/m/Y H\hi" }}
+                                        </td>
+                                        <td>
+                                            {% if action.actor %}
+                                                {{ action.actor.get_full_name }}
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {{ action.action_label }}
+                                        </td>
+                                        <td>
+                                            {{ action.get_source_display }}
+                                        </td>
+                                        <td>
+                                            {{ action.dotation|default:"—" }}
+                                        </td>
+                                        <td>
+                                            {{ action.precision_display }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <p class="fr-text--sm fr-mt-3w fr-ml-1w">
+            Aucune action enregistrée pour ce projet.
+        </p>
+    {% endif %}
+{% endblock tab_projet %}
