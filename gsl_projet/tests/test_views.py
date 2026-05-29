@@ -787,6 +787,19 @@ def test_filter_by_status(req, view, projets_with_status, status, expected_count
     assert qs.first().status == status
 
 
+def test_filter_by_status_refused_excludes_project_without_dotation(req, view):
+    ProjetFactory()  # projet sans DotationProjet
+    projet_refuse = ProjetFactory()
+    DetrProjetFactory(projet=projet_refuse, status="refused")
+
+    request = req.get("/", data={"status": "refused"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 1
+    assert qs.first().pk == projet_refuse.pk
+
+
 ### Test du filtre par territoire
 @pytest.fixture
 def perimetre_29(dep_finistere):

@@ -115,6 +115,13 @@ class ProjetQuerySet(models.QuerySet):
             )
         )
 
+        has_refused = Exists(
+            DotationProjet.objects.filter(
+                projet=OuterRef("pk"),
+                status=PROJET_STATUS_REFUSED,
+            )
+        )
+
         return self.annotate(
             _status=Case(
                 # If not all dotations have programmation, return PROCESSING
@@ -132,8 +139,13 @@ class ProjetQuerySet(models.QuerySet):
                     has_dismissed,
                     then=Value(PROJET_STATUS_DISMISSED),
                 ),
-                # Otherwise return REFUSED
-                default=Value(PROJET_STATUS_REFUSED),
+                # If any dotation is REFUSED, return REFUSED
+                When(
+                    has_refused,
+                    then=Value(PROJET_STATUS_REFUSED),
+                ),
+                # Projects without any DotationProjet have no status
+                default=Value(None),
             )
         )
 
@@ -841,8 +853,13 @@ class ProjetNote(BaseModel):
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
 
 
-def projet_status_from_dotation_statuses(statuses: List[str] | Tuple[str]) -> str:
+def projet_status_from_dotation_statuses(
+    statuses: List[str] | Tuple[str],
+) -> str | None:
     from gsl_simulation.models import SimulationProjet
+
+    if not statuses:
+        return None
 
     if any(
         status == PROJET_STATUS_PROCESSING
