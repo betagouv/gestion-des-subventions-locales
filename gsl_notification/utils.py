@@ -1,6 +1,7 @@
 import base64
 import io
 import os
+import re
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
@@ -446,6 +447,96 @@ def fix_empty_paragraphs_for_weasyprint(html: str) -> str:
     return str(soup)
 
 
+# Approximate pixel width of the TipTap editor content area, used as the
+# reference base when converting absolute pixel widths to CSS percentages for
+# PDF rendering. Tables narrower than the full editor width are preserved at
+# their proportional size (e.g. 450px → 50% on a 900px reference).
+_TIPTAP_EDITOR_REFERENCE_WIDTH_PX = 900
+
+
+def fix_table_widths_for_weasyprint(html: str) -> str:
+    """
+    TipTap (resizable: true) stores column widths in pixels in <colgroup>.
+    WeasyPrint honours inline styles over the pdf.css `width: 100%` rule,
+    causing tables to overflow the page.
+
+    - Table has `width: Xpx`: convert to a percentage of
+      _TIPTAP_EDITOR_REFERENCE_WIDTH_PX so narrow tables stay narrow in PDF.
+    - Table has only `min-width: Xpx`: remove the inline style (CSS handles
+      it); full-width tables with resized columns fall into this case.
+
+    Col pixel widths are converted to proportional percentages in both cases.
+    Columns without an explicit width share the remaining percentage equally.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    for table in soup.find_all("table"):
+        result = _table_total_and_style(table)
+        if result is None:
+            table.attrs.pop("style", None)
+            for col in table.find_all("col"):
+                col.attrs.pop("style", None)
+                col.attrs.pop("width", None)
+            continue
+        total, new_style = result
+        if new_style:
+            table.attrs["style"] = new_style
+        else:
+            table.attrs.pop("style", None)
+        cols = table.find_all("col")
+        if cols:
+            _apply_col_pct_widths(cols, total)
+    return str(soup)
+
+
+def _table_total_and_style(table) -> tuple[float, str | None] | None:
+    """
+    Parse the table's inline style to determine the column width reference.
+    Returns (total_px, new_style) where new_style is the replacement inline
+    style for the table element (None = remove it, let CSS width: 100% apply).
+    Returns None if the table carries no parseable pixel width.
+    """
+    style = table.get("style", "")
+    width_match = re.search(r"(?<!-)width\s*:\s*([\d.]+)px", style)
+    if width_match:
+        table_px = float(width_match.group(1))
+        pct = table_px / _TIPTAP_EDITOR_REFERENCE_WIDTH_PX * 100
+        return table_px, f"width: {pct:.2f}%"
+    min_width_match = re.search(r"min-width\s*:\s*([\d.]+)px", style)
+    if min_width_match:
+        return float(min_width_match.group(1)), None
+    return None
+
+
+def _col_width_px(col) -> float | None:
+    """Return the explicit pixel width of a <col>, or None if unset."""
+    w_match = re.search(r"(?<!-)width\s*:\s*([\d.]+)px", col.get("style", ""))
+    if w_match:
+        return float(w_match.group(1))
+    html_w = col.get("width")
+    if html_w:
+        try:
+            return float(html_w)
+        except ValueError:
+            pass
+    return None
+
+
+def _apply_col_pct_widths(cols, total: float) -> None:
+    """Convert pixel col widths to percentages of `total`. No-op if all are None."""
+    col_widths = [_col_width_px(col) for col in cols]
+    if all(w is None for w in col_widths):
+        return
+    known_sum = sum(w for w in col_widths if w is not None)
+    n_unknown = col_widths.count(None)
+    remaining_pct = 100 - known_sum / total * 100
+    unknown_pct = remaining_pct / n_unknown if n_unknown else 0
+    for col, w in zip(cols, col_widths):
+        col.attrs.pop("style", None)
+        col.attrs.pop("width", None)
+        pct = w / total * 100 if w is not None else unknown_pct
+        col.attrs["style"] = f"width: {pct:.2f}%"
+
+
 def generate_pdf_for_generated_document(
     document: Arrete | LettreNotification, *, with_qr_code: bool = True
 ) -> bytes:
@@ -463,6 +554,7 @@ def generate_pdf_for_generated_document(
     any QR code.
     """
     content = fix_empty_paragraphs_for_weasyprint(document.content)
+    content = fix_table_widths_for_weasyprint(content)
     base_context = {
         "doc_title": get_doc_title(document.document_type),
         "logo": get_logo_base64(document.modele.logo.url),
