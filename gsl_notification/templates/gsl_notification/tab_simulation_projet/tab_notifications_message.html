@@ -50,6 +50,14 @@
                 Les pièces jointes vont être compressées en un seul fichier. Le message va être envoyé au demandeur
                 dans la messagerie de ce dossier, sur Démarche Numérique.
             </p>
+            <div class="fr-input-group{% if form.nom_du_fichier.errors %} fr-input-group--error{% endif %} fr-mb-2w">
+                <label class="fr-label" for="{{ form.nom_du_fichier.id_for_label }}">
+                    <b>{{ form.nom_du_fichier.label }}</b>
+                    <span class="fr-hint-text">{{ form.nom_du_fichier.help_text }}</span>
+                </label>
+                {{ form.nom_du_fichier }}
+                {{ form.nom_du_fichier.errors }}
+            </div>
             <div class="input-group fr-mb-2w">
                 <label class="fr-label" for="id_justification">
                     <b>
