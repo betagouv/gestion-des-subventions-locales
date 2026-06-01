@@ -132,7 +132,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         return ", ".join(obj.dotations)
 
     def get_status_display(self, obj: Projet):
-        return dict(PROJET_STATUS_CHOICES)[obj.status]
+        return dict(PROJET_STATUS_CHOICES)[obj.status] if obj.status else None
 
     get_status_display.short_description = "Statut"
 
