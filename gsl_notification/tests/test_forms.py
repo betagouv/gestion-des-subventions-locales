@@ -305,3 +305,11 @@ def test_clean_nom_du_fichier_empty_is_valid():
     form.is_valid()
     assert "nom_du_fichier" not in form.errors
     assert form.cleaned_data["nom_du_fichier"] == ""
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("invalid_name", ["foo/bar", "../etc/passwd", "/etc/passwd"])
+def test_clean_nom_du_fichier_rejects_path_traversal(invalid_name):
+    form = _make_notification_form(invalid_name)
+    form.is_valid()
+    assert "nom_du_fichier" in form.errors

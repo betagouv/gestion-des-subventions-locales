@@ -1,5 +1,6 @@
 import os
 from functools import cached_property
+from pathlib import Path
 
 from django import forms
 from django.conf import settings
@@ -257,6 +258,10 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
         value = self.cleaned_data["nom_du_fichier"].strip()
         if not value:
             return value
+        if Path(value).name != value:
+            raise forms.ValidationError(
+                'Le nom du fichier ne peut pas contenir de "/".'
+            )
         stem, ext = os.path.splitext(value)
         if ext.lower() == ".pdf":
             return stem
