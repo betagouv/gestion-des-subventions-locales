@@ -418,6 +418,18 @@ class TestMergeDocumentsIntoPdf:
         # Verify S3 was called with correct file name
         mock_get_s3.assert_called_once_with("test_annexe.pdf")
 
+    @patch("gsl_notification.utils.get_s3_object")
+    def test_merge_custom_filename(self, mock_get_s3, mock_annexe, sample_pdf_bytes):
+        """Test that a custom filename is used when provided."""
+        mock_get_s3.return_value = {
+            "Body": Mock(read=Mock(return_value=sample_pdf_bytes)),
+            "ContentType": "application/pdf",
+        }
+
+        result = merge_documents_into_pdf([mock_annexe], filename="mon-rapport.pdf")
+
+        assert result.name == "mon-rapport.pdf"
+
 
 @pytest.mark.django_db
 def test_generate_pdf_for_generated_document(programmation_projet):

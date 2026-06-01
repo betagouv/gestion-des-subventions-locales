@@ -10,6 +10,7 @@ from gsl_notification.forms import (
     GenerateDocumentsStep3Form,
     LettreNotificationForm,
     ModeleDocumentStepTwoForm,
+    NotificationMessageForm,
 )
 from gsl_notification.models import ModeleArrete
 from gsl_notification.tests.factories import (
@@ -255,3 +256,60 @@ def test_generate_documents_step3_form_valid_without_qr_field_submitted():
     )
     assert form.is_valid(), form.errors
     assert form.cleaned_data["with_qr_code"] is False
+
+
+# NotificationMessageForm.clean_nom_du_fichier
+
+
+def _make_notification_form(nom_du_fichier):
+    from gsl_projet.tests.factories import ProjetFactory
+
+    projet = ProjetFactory()
+    return NotificationMessageForm(
+        data={"nom_du_fichier": nom_du_fichier},
+        instance=projet,
+    )
+
+
+@pytest.mark.django_db
+def test_clean_nom_du_fichier_strips_pdf_extension():
+    form = _make_notification_form("mon-fichier.pdf")
+    form.is_valid()
+    assert form.cleaned_data["nom_du_fichier"] == "mon-fichier"
+
+
+@pytest.mark.django_db
+def test_clean_nom_du_fichier_strips_pdf_extension_uppercase():
+    form = _make_notification_form("MON-FICHIER.PDF")
+    form.is_valid()
+    assert form.cleaned_data["nom_du_fichier"] == "MON-FICHIER"
+
+
+@pytest.mark.django_db
+def test_clean_nom_du_fichier_accepts_no_extension():
+    form = _make_notification_form("mon-fichier")
+    form.is_valid()
+    assert form.cleaned_data["nom_du_fichier"] == "mon-fichier"
+
+
+@pytest.mark.django_db
+def test_clean_nom_du_fichier_rejects_other_extension():
+    form = _make_notification_form("mon-fichier.docx")
+    form.is_valid()
+    assert "nom_du_fichier" in form.errors
+
+
+@pytest.mark.django_db
+def test_clean_nom_du_fichier_empty_is_valid():
+    form = _make_notification_form("")
+    form.is_valid()
+    assert "nom_du_fichier" not in form.errors
+    assert form.cleaned_data["nom_du_fichier"] == ""
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("invalid_name", ["foo/bar", "../etc/passwd", "/etc/passwd"])
+def test_clean_nom_du_fichier_rejects_path_traversal(invalid_name):
+    form = _make_notification_form(invalid_name)
+    form.is_valid()
+    assert "nom_du_fichier" in form.errors

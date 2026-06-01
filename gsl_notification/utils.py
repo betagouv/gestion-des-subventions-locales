@@ -622,6 +622,7 @@ def _build_qr_css_rules(document: Arrete | LettreNotification, page_count: int) 
 
 def merge_documents_into_pdf(
     documents: list[LettreEtArreteSignes | Annexe],
+    filename: str = "documents.pdf",
 ) -> SimpleUploadedFile:
     documents_file_bytes = [_get_uploaded_document_pdf(doc) for doc in documents]
 
@@ -635,5 +636,5 @@ def merge_documents_into_pdf(
     pdf.save(bytes)
     bytes.seek(0)
     return SimpleUploadedFile(
-        name="documents.pdf", content=bytes.read(), content_type="application/pdf"
+        name=filename, content=bytes.read(), content_type="application/pdf"
     )

@@ -1,4 +1,6 @@
+import os
 from functools import cached_property
+from pathlib import Path
 
 from django import forms
 from django.conf import settings
@@ -231,15 +233,63 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
         required=False,
         widget=forms.Textarea,
     )
+    nom_du_fichier = forms.CharField(
+        label="Nom du fichier (facultatif)",
+        required=False,
+        widget=forms.TextInput,
+        help_text="Si non renseigné, le nom du premier document signé importé sera utilisé.",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["annexes"].queryset = Annexe.objects.filter(
+            programmation_projet__dotation_projet__projet=self.instance
+        )
+        first_lettre = LettreEtArreteSignes.objects.filter(
+            programmation_projet__dotation_projet__projet=self.instance
+        ).first()
+        if first_lettre:
+            self[
+                "nom_du_fichier"
+            ].help_text = f"Si non renseigné, le nom du premier document signé importé sera utilisé : « {first_lettre.name} »."
+            # We don't use self.fields because DsfrBaseForm adds the necessary classes on relevant fields in __init__, so we need to update the help_text on the already initialized field.
+
+    def clean_nom_du_fichier(self):
+        value = self.cleaned_data["nom_du_fichier"].strip()
+        if not value:
+            return value
+        if Path(value).name != value:
+            raise forms.ValidationError(
+                'Le nom du fichier ne peut pas contenir de "/".'
+            )
+        stem, ext = os.path.splitext(value)
+        if ext.lower() == ".pdf":
+            return stem
+        if ext:
+            raise forms.ValidationError(
+                "Le nom du fichier ne peut pas avoir une extension autre que .pdf."
+            )
+        return value
 
     def save(self, user):
+        lettres = LettreEtArreteSignes.objects.filter(
+            programmation_projet__dotation_projet__projet=self.instance
+        )
+        nom = self.cleaned_data.get("nom_du_fichier")
+        if not nom:
+            nom = (
+                os.path.splitext(lettres.first().name)[0]
+                if lettres.exists()
+                else "documents"
+            )
+        filename = nom + ".pdf"
+
         justificatif_file = merge_documents_into_pdf(
             [
-                *LettreEtArreteSignes.objects.filter(
-                    programmation_projet__dotation_projet__projet=self.instance
-                ),
+                *lettres,
                 *self.cleaned_data["annexes"],
-            ]
+            ],
+            filename=filename,
         )
 
         # Dossier was recently refreshed DN
@@ -259,12 +309,6 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
             )
 
             return self.instance
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["annexes"].queryset = Annexe.objects.filter(
-            programmation_projet__dotation_projet__projet=self.instance
-        )
 
     class Meta:
         model = Projet
