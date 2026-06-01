@@ -30,10 +30,10 @@ def ui_multiselect(*args, **kwargs) -> dict:
     tag_data["is_active"] = bool(selected)
 
     if selected:
-        choices_dict = dict(field.field.choices)
+        choices_dict = {str(k): v for k, v in field.field.choices}
         tag_data["placeholder"] = ", ".join(
-            str(choices_dict[v]) for v in selected if v in choices_dict
-        )
+            str(choices_dict[str(v)]) for v in selected if str(v) in choices_dict
+        ) or tag_data.get("default_placeholder", "")
     else:
         tag_data["placeholder"] = tag_data.get("default_placeholder", "")
 

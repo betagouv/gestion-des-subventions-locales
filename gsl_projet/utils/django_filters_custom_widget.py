@@ -36,10 +36,11 @@ class CustomCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
     def render(self, name, value, attrs=None, renderer=None):
         """Customize how the checkboxes are displayed in the HTML output."""
         output = []
+        str_values = {str(v) for v in value} if value else set()
         for i, (option_value, option_label) in enumerate(self.choices):
             color = self._get_color(option_value)
             color_class = f"color-{color}" if color else ""
-            checked = "checked" if value and option_value in value else ""
+            checked = "checked" if str(option_value) in str_values else ""
             checkbox = f'<input type="checkbox" name="{name}" value="{option_value}" id="id_{name}_{i}" {checked}>'
             label = f'<label for="id_{name}_{i}" class="fr-label {color_class}">{option_label}</label>'
             output.append(
