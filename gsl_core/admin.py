@@ -5,8 +5,10 @@ import openpyxl
 import tablib
 from django import forms
 from django.contrib import admin
+from django.contrib.admin.models import ADDITION, CHANGE, DELETION, LogEntry
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
+from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
 from django.db.models import Count, OuterRef, Subquery
@@ -114,6 +116,7 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
         "last_simulation_created_in_perimetre",
         "comment",
         "dn_profile",
+        "history_link",
     )
 
     list_editable = ("comment",)
@@ -428,6 +431,15 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
 
     dn_profile.short_description = "Profil DN"
     dn_profile.admin_order_field = "ds_profile__id"
+
+    def history_link(self, obj):
+        url = (
+            reverse("admin:admin_logentry_changelist")
+            + f"?object_id={obj.pk}&content_type={ContentType.objects.get_for_model(Collegue).pk}"
+        )
+        return mark_safe(f"<a href='{url}'>Historique</a>")
+
+    history_link.short_description = "Historique"
 
     @staticmethod
     def _normalize_department_code(dept_code) -> str:
@@ -760,6 +772,70 @@ class PerimetreAdmin(AllPermsForSuperUserAndViewOnlyForStaffUser, admin.ModelAdm
 
     user_count.admin_order_field = "user_count"
     user_count.short_description = "Nb d’utilisateurs"
+
+
+@admin.register(LogEntry)
+class CollegueLogEntryAdmin(admin.ModelAdmin):
+    list_display = (
+        "action_time",
+        "user",
+        "collegue_link",
+        "action_label",
+        "change_message",
+    )
+    list_filter = ("action_flag", "action_time")
+    search_fields = ("object_repr", "user__username", "user__email", "change_message")
+    date_hierarchy = "action_time"
+    readonly_fields = (
+        "action_time",
+        "user",
+        "content_type",
+        "object_id",
+        "object_repr",
+        "action_flag",
+        "change_message",
+    )
+
+    def has_module_permission(self, request):
+        return request.user.is_staff or request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_staff or request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def get_queryset(self, request):
+        collegue_ct = ContentType.objects.get_for_model(Collegue)
+        return (
+            super()
+            .get_queryset(request)
+            .filter(content_type=collegue_ct)
+            .select_related("user", "content_type")
+        )
+
+    def action_label(self, obj):
+        return {ADDITION: "Ajout", CHANGE: "Modification", DELETION: "Suppression"}.get(
+            obj.action_flag, "?"
+        )
+
+    action_label.short_description = "Action"
+
+    def collegue_link(self, obj):
+        try:
+            url = reverse("admin:gsl_core_collegue_change", args=[obj.object_id])
+            return mark_safe(f"<a href='{url}'>{obj.object_repr}</a>")
+        except Exception:
+            return obj.object_repr
+
+    collegue_link.short_description = "Collègue"
+    collegue_link.admin_order_field = "object_repr"
 
 
 admin.site.unregister(Group)
