@@ -65,7 +65,7 @@ class Migration(migrations.Migration):
                 ),
                 ("status", models.CharField(blank=True, default="", max_length=50)),
                 (
-                    "montant",
+                    "euro_field_value",
                     models.DecimalField(
                         blank=True, decimal_places=2, max_digits=12, null=True
                     ),

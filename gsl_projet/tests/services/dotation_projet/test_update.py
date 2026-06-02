@@ -712,7 +712,7 @@ def test_update_assiette_from_dossier_creates_action_when_assiette_changes():
     )
     assert actions.count() == 1
     action = actions.first()
-    assert action.montant == 20_000
+    assert action.euro_field_value == 20_000
     assert action.source == ProjetAction.SOURCE_DN
     assert action.actor is None
 
@@ -751,4 +751,4 @@ def test_update_assiette_from_dossier_creates_action_when_assiette_was_none():
         action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
     )
     assert actions.count() == 1
-    assert actions.first().montant == 15_000
+    assert actions.first().euro_field_value == 15_000

@@ -4,11 +4,24 @@ from django.urls import reverse
 from gsl_projet.constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
 from gsl_simulation.models import SimulationProjet
 
 register = template.Library()
+
+STATUS_LABELS = {
+    PROJET_STATUS_ACCEPTED: "Accepté",
+    PROJET_STATUS_REFUSED: "Refusé",
+    PROJET_STATUS_PROCESSING: "En traitement",
+    PROJET_STATUS_DISMISSED: "Classé sans suite",
+    SimulationProjet.STATUS_ACCEPTED: "Accepté",
+    SimulationProjet.STATUS_REFUSED: "Refusé",
+    SimulationProjet.STATUS_PROCESSING: "En traitement",
+    SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: "Accepté provisoirement",
+    SimulationProjet.STATUS_PROVISIONALLY_REFUSED: "Refusé provisoirement",
+}
 
 
 @register.filter(name="status_url")

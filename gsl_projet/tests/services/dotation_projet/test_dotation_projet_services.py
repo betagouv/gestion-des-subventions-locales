@@ -1408,7 +1408,7 @@ def test_update_accepted_dotation_projets_montant_from_dn_creates_action_when_mo
     )
     assert actions.count() == 1
     action = actions.first()
-    assert action.montant == 2_000
+    assert action.euro_field_value == 2_000
     assert action.source == ProjetAction.SOURCE_DN
     assert action.actor is None
 

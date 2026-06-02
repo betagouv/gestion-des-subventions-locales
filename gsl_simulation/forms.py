@@ -308,14 +308,15 @@ class AssietteSingleFieldForm(forms.ModelForm):
             )
             self.instance.save()
 
-        ProjetAction.objects.create(
-            projet=self.instance.projet,
-            action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
-            actor=self.user,
-            source=ProjetAction.SOURCE_TURGOT,
-            dotation=self.instance.dotation,
-            montant=self.cleaned_data.get("assiette"),
-        )
+        if "assiette" in self.changed_data:
+            ProjetAction.objects.create(
+                projet=self.instance.projet,
+                action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
+                actor=self.user,
+                source=ProjetAction.SOURCE_TURGOT,
+                dotation=self.instance.dotation,
+                euro_field_value=self.cleaned_data.get("assiette"),
+            )
 
     class Meta:
         model = DotationProjet

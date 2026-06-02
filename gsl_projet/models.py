@@ -762,7 +762,7 @@ class DotationProjet(BaseModel):
                 else ProjetAction.SOURCE_DN,
                 dotation=self.dotation,
                 status=PROJET_STATUS_ACCEPTED,
-                montant=montant,
+                euro_field_value=montant,
                 enveloppe=enveloppe,
             )
         elif previous_montant is not None and previous_montant != montant:
@@ -774,7 +774,7 @@ class DotationProjet(BaseModel):
                 if actor is not None
                 else ProjetAction.SOURCE_DN,
                 dotation=self.dotation,
-                montant=montant,
+                euro_field_value=montant,
             )
 
     @transaction.atomic

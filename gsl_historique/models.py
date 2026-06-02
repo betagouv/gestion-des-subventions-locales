@@ -2,18 +2,6 @@ from django.db import models
 
 from gsl_projet.constants import DOTATION_CHOICES
 
-STATUS_LABELS = {
-    "accepted": "Accepté",
-    "refused": "Refusé",
-    "processing": "En traitement",
-    "dismissed": "Classé sans suite",
-    "valid": "Accepté",
-    "cancelled": "Refusé",
-    "draft": "En traitement",
-    "provisionally_accepted": "Accepté provisoirement",
-    "provisionally_refused": "Refusé provisoirement",
-}
-
 
 class ProjetAction(models.Model):
     SOURCE_TURGOT = "turgot"
@@ -73,7 +61,7 @@ class ProjetAction(models.Model):
     )
 
     status = models.CharField(max_length=50, blank=True, default="")
-    montant = models.DecimalField(
+    euro_field_value = models.DecimalField(
         max_digits=12, decimal_places=2, null=True, blank=True
     )
     document_name = models.CharField(max_length=200, blank=True, default="")
@@ -90,13 +78,24 @@ class ProjetAction(models.Model):
 
     @property
     def status_label(self):
+        from gsl_simulation.templatetags.simulation_filters import STATUS_LABELS
+
         return STATUS_LABELS.get(self.status, self.status or "")
+
+    @property
+    def _status_change_label(self):
+        from datetime import date
+
+        label = f"Statut : {self.status_label}"
+        if self.enveloppe_id and self.enveloppe.annee != date.today().year:
+            label += f" (enveloppe {self.enveloppe.annee})"
+        return label
 
     @property
     def action_label(self):
         doc = self.document_name
         labels = {
-            self.TYPE_STATUS_CHANGE: f"Statut : {self.status_label}",
+            self.TYPE_STATUS_CHANGE: self._status_change_label,
             self.TYPE_DOC_GENERATED: f"Export {doc}",
             self.TYPE_DOC_MODIFIED: f"Modification : {doc}",
             self.TYPE_DOC_DELETED: f"Suppression : {doc}",
@@ -113,10 +112,10 @@ class ProjetAction(models.Model):
 
     @property
     def precision_display(self):
-        if self.montant is not None:
+        if self.euro_field_value is not None:
             from gsl_core.templatetags.gsl_filters import euro
 
-            return euro(self.montant)
+            return euro(self.euro_field_value)
         if self.boolean_value is not None:
             return "Oui" if self.boolean_value else "Non"
         return ""

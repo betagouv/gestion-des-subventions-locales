@@ -62,6 +62,8 @@ class ChooseDocumentTypeForUploadView(LoginRequiredMixin, UpdateView):
 
 @require_http_methods(["GET", "POST"])
 def create_uploaded_document_view(request, projet_id, dotation, document_type):
+    from gsl_historique.models import ProjetAction
+
     programmation_projet = get_object_or_404(
         ProgrammationProjet.objects.active().visible_to_user(request.user),
         dotation_projet__projet_id=projet_id,
@@ -90,8 +92,14 @@ def create_uploaded_document_view(request, projet_id, dotation, document_type):
                 MATOMO_ACTION_IMPORT_DOCUMENT,
                 programmation_projet.enveloppe.dotation,
             )
-            _log_uploaded_document_action(
-                request.user, programmation_projet, uploaded_doc_class
+
+            ProjetAction.objects.create(
+                projet=programmation_projet.dotation_projet.projet,
+                action_type=ProjetAction.TYPE_DOC_UPLOADED,
+                actor=request.user,
+                source=ProjetAction.SOURCE_TURGOT,
+                dotation=programmation_projet.dotation_projet.dotation,
+                document_name=uploaded_doc_class._meta.verbose_name.capitalize(),
             )
             return redirect(
                 reverse(
@@ -115,19 +123,6 @@ def create_uploaded_document_view(request, projet_id, dotation, document_type):
         request,
         "gsl_notification/uploaded_document/upload_document.html",
         context=context,
-    )
-
-
-def _log_uploaded_document_action(user, programmation_projet, uploaded_doc_class):
-    from gsl_historique.models import ProjetAction
-
-    ProjetAction.objects.create(
-        projet=programmation_projet.dotation_projet.projet,
-        action_type=ProjetAction.TYPE_DOC_UPLOADED,
-        actor=user,
-        source=ProjetAction.SOURCE_TURGOT,
-        dotation=programmation_projet.dotation_projet.dotation,
-        document_name=uploaded_doc_class._meta.verbose_name.capitalize(),
     )
 
 

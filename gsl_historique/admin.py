@@ -23,7 +23,7 @@ class ProjetActionAdmin(admin.ModelAdmin):
         "source",
         "dotation",
         "status",
-        "montant",
+        "euro_field_value",
         "document_name",
         "boolean_field",
         "boolean_value",

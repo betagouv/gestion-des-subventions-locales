@@ -502,7 +502,7 @@ class DotationProjetService:
                         actor=None,
                         source=ProjetAction.SOURCE_DN,
                         dotation=dotation_projet.dotation,
-                        montant=assiette,
+                        euro_field_value=assiette,
                     )
                 dotation_projet.assiette = assiette
             dotation_projet.save()
