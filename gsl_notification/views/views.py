@@ -426,6 +426,9 @@ def change_document_view(request, projet_id, dotation, document_type):
                     action,
                     programmation_projet.dotation_projet.dotation,
                 )
+            _log_generated_document_action(
+                request.user, programmation_projet, document_type, is_creating
+            )
             return redirect(
                 reverse(
                     "gsl_notification:documents",
@@ -522,6 +525,23 @@ class DeleteDocumentView(DeleteView):
         )
 
     def form_valid(self, form):
+        from gsl_historique.models import ProjetAction
+
+        pp = self.object.programmation_projet
+        doc_class_name = self.object.__class__._meta.verbose_name
+        action_type = (
+            ProjetAction.TYPE_DOC_UPLOAD_DELETED
+            if hasattr(self.object, "file")
+            else ProjetAction.TYPE_DOC_DELETED
+        )
+        ProjetAction.objects.create(
+            projet=pp.dotation_projet.projet,
+            action_type=action_type,
+            actor=self.request.user,
+            source=ProjetAction.SOURCE_TURGOT,
+            dotation=pp.dotation_projet.dotation,
+            document_name=doc_class_name,
+        )
         messages.success(self.request, "Le document a bien été supprimé.")
         return super().form_valid(form)
 
@@ -567,6 +587,27 @@ class PrintDocumentView(DetailView):
 
 class DownloadDocumentView(PrintDocumentView):
     pdf_attachment = True
+
+
+def _log_generated_document_action(
+    user, programmation_projet, document_type, is_creating
+):
+    from gsl_historique.models import ProjetAction
+
+    action_type = (
+        ProjetAction.TYPE_DOC_GENERATED
+        if is_creating
+        else ProjetAction.TYPE_DOC_MODIFIED
+    )
+    doc_label = "arrêté" if document_type == ARRETE else "lettre de notification"
+    ProjetAction.objects.create(
+        projet=programmation_projet.dotation_projet.projet,
+        action_type=action_type,
+        actor=user,
+        source=ProjetAction.SOURCE_TURGOT,
+        dotation=programmation_projet.dotation_projet.dotation,
+        document_name=doc_label,
+    )
 
 
 def _enrich_context_for_create_or_get_arrete_view(

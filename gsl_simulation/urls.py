@@ -8,6 +8,9 @@ from gsl_simulation.views.bulk_status_job_views import (
 from gsl_simulation.views.decorators import (
     simulation_must_be_visible_by_user,
 )
+from gsl_simulation.views.simulation_projet_historique_views import (
+    SimulationProjetHistoriqueView,
+)
 from gsl_simulation.views.simulation_projet_notes_views import (
     ProjetNoteEditView,
     SimulationProjetNotesView,
@@ -77,6 +80,11 @@ urlpatterns = [
         "projet-detail/<int:pk>/notes/",
         SimulationProjetNotesView.as_view(),
         name="simulation-projet-notes",
+    ),
+    path(
+        "projet-detail/<int:pk>/historique/",
+        SimulationProjetHistoriqueView.as_view(),
+        name="simulation-projet-historique",
     ),
     path(
         "edit-assiette/<int:pk>/",

@@ -165,7 +165,7 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
             dotation_projet = pp.dotation_projet
             dotation_projet.accept_without_ds_update(
-                montant=pp.montant, enveloppe=enveloppe_2025
+                montant=pp.montant, enveloppe=enveloppe_2025, actor=request.user
             )
             dotation_projet.save()
             success_count += 1

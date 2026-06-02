@@ -12,6 +12,7 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
+from gsl_historique.models import ProjetAction
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
@@ -54,6 +55,117 @@ def perimetres():
         dep_92,
         region_idf,
     ]
+
+
+# -- _update_dotation_projets_from_projet_accepted — ProjetAction dotation --
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
+def test_update_accepted_creates_dotation_added_action_for_new_dotation(perimetres):
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+
+    dossier = DossierFactory(
+        ds_state=Dossier.STATE_ACCEPTE,
+        demande_dispositif_sollicite="DETR et DSIL",
+        annotations_dotation="DETR et DSIL",
+        annotations_assiette_detr=10_000,
+        annotations_montant_accorde_detr=5_000,
+        annotations_assiette_dsil=20_000,
+        annotations_montant_accorde_dsil=10_000,
+        ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
+        perimetre=arr_dijon,
+    )
+    projet = ProjetFactory(dossier_ds=dossier)
+    dps._initialize_dotation_projets_from_projet(projet)
+    assert projet.dotationprojet_set.count() == 2
+
+    # Simulate DN adding DSIL after initial import had only DETR
+    projet.dotationprojet_set.filter(dotation=DOTATION_DSIL).delete()
+    assert projet.dotationprojet_set.count() == 1
+
+    dps._update_dotation_projets_from_projet_accepted(projet)
+
+    actions = ProjetAction.objects.filter(
+        projet=projet, action_type=ProjetAction.TYPE_DOTATION_ADDED
+    )
+    assert actions.count() == 1
+    action = actions.first()
+    assert action.dotation == DOTATION_DSIL
+    assert action.source == ProjetAction.SOURCE_DN
+    assert action.actor is None
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
+def test_update_accepted_creates_dotation_removed_action_when_dotation_dropped(
+    perimetres,
+):
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+
+    dossier = DossierFactory(
+        ds_state=Dossier.STATE_ACCEPTE,
+        demande_dispositif_sollicite="DETR et DSIL",
+        annotations_dotation="DETR",
+        annotations_assiette_detr=10_000,
+        annotations_montant_accorde_detr=5_000,
+        ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
+        perimetre=arr_dijon,
+    )
+    projet = ProjetFactory(dossier_ds=dossier)
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+    )
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_PROCESSING
+    )
+
+    dps._update_dotation_projets_from_projet_accepted(projet)
+
+    actions = ProjetAction.objects.filter(
+        projet=projet, action_type=ProjetAction.TYPE_DOTATION_REMOVED
+    )
+    assert actions.count() == 1
+    action = actions.first()
+    assert action.dotation == DOTATION_DSIL
+    assert action.source == ProjetAction.SOURCE_DN
+    assert action.actor is None
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
+def test_update_accepted_does_not_create_removed_action_for_already_refused_dotation(
+    perimetres,
+):
+    arr_dijon, dep_21, *_ = perimetres
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+
+    dossier = DossierFactory(
+        ds_state=Dossier.STATE_ACCEPTE,
+        demande_dispositif_sollicite="DETR",
+        annotations_dotation="DETR",
+        annotations_assiette_detr=10_000,
+        annotations_montant_accorde_detr=5_000,
+        ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
+        perimetre=arr_dijon,
+    )
+    projet = ProjetFactory(dossier_ds=dossier)
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_REFUSED
+    )
+
+    dps._update_dotation_projets_from_projet_accepted(projet)
+
+    assert (
+        ProjetAction.objects.filter(
+            projet=projet, action_type=ProjetAction.TYPE_DOTATION_REMOVED
+        ).count()
+        == 0
+    )
 
 
 @pytest.mark.django_db
@@ -578,3 +690,65 @@ def test_update_dotation_projets_from_projet_back_to_instruction_with_one_accept
     assert detr_dp.status == PROJET_STATUS_ACCEPTED, (
         "The accepted dotation projet should remain accepted because the programmation_projet was created before the date of passage en instruction"
     )
+
+
+# _update_assiette_from_dossier
+
+
+@pytest.mark.django_db
+def test_update_assiette_from_dossier_creates_action_when_assiette_changes():
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        assiette=10_000,
+        projet__dossier_ds__annotations_assiette_detr=20_000,
+    )
+
+    dps._update_assiette_from_dossier(dotation_projet.projet)
+
+    actions = ProjetAction.objects.filter(
+        projet=dotation_projet.projet,
+        action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
+        dotation=DOTATION_DETR,
+    )
+    assert actions.count() == 1
+    action = actions.first()
+    assert action.euro_field_value == 20_000
+    assert action.source == ProjetAction.SOURCE_DN
+    assert action.actor is None
+
+
+@pytest.mark.django_db
+def test_update_assiette_from_dossier_does_not_create_action_when_assiette_unchanged():
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        assiette=10_000,
+        projet__dossier_ds__annotations_assiette_detr=10_000,
+    )
+
+    dps._update_assiette_from_dossier(dotation_projet.projet)
+
+    assert (
+        ProjetAction.objects.filter(
+            projet=dotation_projet.projet,
+            action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
+        ).count()
+        == 0
+    )
+
+
+@pytest.mark.django_db
+def test_update_assiette_from_dossier_creates_action_when_assiette_was_none():
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        assiette=None,
+        projet__dossier_ds__annotations_assiette_detr=15_000,
+    )
+
+    dps._update_assiette_from_dossier(dotation_projet.projet)
+
+    actions = ProjetAction.objects.filter(
+        projet=dotation_projet.projet,
+        action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
+    )
+    assert actions.count() == 1
+    assert actions.first().euro_field_value == 15_000

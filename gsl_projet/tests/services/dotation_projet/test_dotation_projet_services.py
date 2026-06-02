@@ -14,6 +14,7 @@ from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
 )
+from gsl_historique.models import ProjetAction
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
@@ -586,6 +587,63 @@ def test_remove_or_add_dotations_creates_dotation_projet_with_assiette_from_doss
 
     dsil_dp = projet.dotationprojet_set.get(dotation=DOTATION_DSIL)
     assert dsil_dp.assiette == 20_000
+
+
+# -- _remove_or_add_dotations_from_dossier_ds — ProjetAction --
+
+
+@pytest.mark.django_db
+def test_remove_or_add_dotations_creates_removed_action_when_dotation_deleted():
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite="['DSIL']",
+    )
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+
+    dps._remove_or_add_dotations_from_dossier_ds(projet)
+
+    actions = ProjetAction.objects.filter(
+        projet=projet, action_type=ProjetAction.TYPE_DOTATION_REMOVED
+    )
+    assert actions.count() == 1
+    action = actions.first()
+    assert action.dotation == DOTATION_DETR
+    assert action.source == ProjetAction.SOURCE_DN
+    assert action.actor is None
+
+
+@pytest.mark.django_db
+def test_remove_or_add_dotations_creates_added_action_when_dotation_created():
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
+    )
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+
+    dps._remove_or_add_dotations_from_dossier_ds(projet)
+
+    actions = ProjetAction.objects.filter(
+        projet=projet, action_type=ProjetAction.TYPE_DOTATION_ADDED
+    )
+    assert actions.count() == 1
+    action = actions.first()
+    assert action.dotation == DOTATION_DSIL
+    assert action.source == ProjetAction.SOURCE_DN
+    assert action.actor is None
+
+
+@pytest.mark.django_db
+def test_remove_or_add_dotations_does_not_create_action_when_no_change():
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite="['DETR']",
+    )
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+
+    dps._remove_or_add_dotations_from_dossier_ds(projet)
+
+    assert ProjetAction.objects.filter(projet=projet).count() == 0
 
 
 # -- _update_assiette_from_dossier --
@@ -1330,6 +1388,49 @@ def test_update_accepted_dotation_projets_montant_from_dn_does_not_update_montan
     assert not ProgrammationProjet.objects.filter(
         dotation_projet=dotation_projet
     ).exists()
+
+
+@pytest.mark.django_db
+def test_update_accepted_dotation_projets_montant_from_dn_creates_action_when_montant_changes():
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_ACCEPTED,
+        projet__dossier_ds__annotations_montant_accorde_detr=2_000,
+    )
+    ProgrammationProjetFactory(dotation_projet=dotation_projet, montant=1_000)
+
+    dps._update_accepted_dotation_projets_montant_from_dn(dotation_projet.projet)
+
+    actions = ProjetAction.objects.filter(
+        projet=dotation_projet.projet,
+        action_type=ProjetAction.TYPE_MONTANT_MODIFIED,
+        dotation=DOTATION_DETR,
+    )
+    assert actions.count() == 1
+    action = actions.first()
+    assert action.euro_field_value == 2_000
+    assert action.source == ProjetAction.SOURCE_DN
+    assert action.actor is None
+
+
+@pytest.mark.django_db
+def test_update_accepted_dotation_projets_montant_from_dn_does_not_create_action_when_montant_unchanged():
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_ACCEPTED,
+        projet__dossier_ds__annotations_montant_accorde_detr=1_000,
+    )
+    ProgrammationProjetFactory(dotation_projet=dotation_projet, montant=1_000)
+
+    dps._update_accepted_dotation_projets_montant_from_dn(dotation_projet.projet)
+
+    assert (
+        ProjetAction.objects.filter(
+            projet=dotation_projet.projet,
+            action_type=ProjetAction.TYPE_MONTANT_MODIFIED,
+        ).count()
+        == 0
+    )
 
 
 # -- _accept_dotation_projet --

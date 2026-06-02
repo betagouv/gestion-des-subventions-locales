@@ -272,6 +272,8 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
         return value
 
     def save(self, user):
+        from gsl_historique.models import ProjetAction
+
         lettres = LettreEtArreteSignes.objects.filter(
             programmation_projet__dotation_projet__projet=self.instance
         )
@@ -307,6 +309,13 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
                 motivation=self.cleaned_data.get("justification", ""),
                 document=justificatif_file,
             )
+            ProjetAction.objects.create(
+                projet=self.instance,
+                action_type=ProjetAction.TYPE_NOTIFIED,
+                actor=user,
+                source=ProjetAction.SOURCE_TURGOT,
+                form_id=f"{type(self).__module__}.{type(self).__qualname__}",
+            )
 
             return self.instance
 
@@ -341,6 +350,8 @@ class RefusedDismissedNotificationForm(DsfrBaseForm, forms.ModelForm):
 
     @transaction.atomic
     def save(self, user):
+        from gsl_historique.models import ProjetAction
+
         projet = self.instance
         dossier = projet.dossier_ds
         ds = DsService()
@@ -368,6 +379,13 @@ class RefusedDismissedNotificationForm(DsfrBaseForm, forms.ModelForm):
 
         projet.notified_at = timezone.now()
         projet.save()
+        ProjetAction.objects.create(
+            projet=projet,
+            action_type=ProjetAction.TYPE_NOTIFIED,
+            actor=user,
+            source=ProjetAction.SOURCE_TURGOT,
+            form_id=f"{type(self).__module__}.{type(self).__qualname__}",
+        )
         return projet
 
 
@@ -660,6 +678,19 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
         self.document_type = document_type
         self.programmation_projets = programmation_projets
 
+    def _log_doc_action(self, pp, document_class):
+        from gsl_historique.models import ProjetAction
+
+        ProjetAction.objects.create(
+            projet=pp.dotation_projet.projet,
+            action_type=ProjetAction.TYPE_DOC_GENERATED,
+            actor=self.user,
+            source=ProjetAction.SOURCE_TURGOT,
+            dotation=pp.dotation_projet.dotation,
+            document_name=document_class._meta.verbose_name,
+            form_id=f"{type(self).__module__}.{type(self).__qualname__}",
+        )
+
     @transaction.atomic
     def save(self, *, modele_arrete, modele_lettre, overwrite_strategy):
         pps = self.programmation_projets
@@ -715,3 +746,4 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
                 created_by=self.user,
                 content=replace_mentions_in_html(modele.content, pp),
             ).save()
+            self._log_doc_action(pp, document_class)

@@ -555,6 +555,48 @@ user_perimetre = request.user.collegue.perimetre
 projects = Projet.objects.filter(perimetre=user_perimetre)
 ```
 
+### Recording Project Actions (ProjetAction)
+
+`ProjetAction` (`gsl_historique/models.py`) is the audit log for significant events on a project: status changes, montant/assiette updates, dotation changes, document generation/upload, notifications, etc.
+
+**Rule: call `ProjetAction.objects.create(...)` directly at the semantic site of the change.**
+
+Place the call in the method or form `save()` that owns the business logic — not in a wrapper, not in a service layer, not in a view. This keeps the audit trail co-located with the mutation that triggers it.
+
+```python
+# Good: inside the FSM transition method that changes the status
+def refuse(self, enveloppe, actor=None):
+    ...
+    ProjetAction.objects.create(
+        projet=self.projet,
+        action_type=ProjetAction.TYPE_STATUS_CHANGE,
+        source=ProjetAction.SOURCE_TURGOT if actor else ProjetAction.SOURCE_DS,
+        actor=actor,
+        dotation=self.dotation,
+        status=PROJET_STATUS_REFUSED,
+        enveloppe=enveloppe,
+    )
+
+# Good: inside Form.save() for a manual update
+if "assiette" in self.changed_data:
+    ProjetAction.objects.create(
+        projet=self.instance.projet,
+        action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
+        source=ProjetAction.SOURCE_TURGOT,
+        actor=self.user,
+        ...
+    )
+```
+
+**Key fields:**
+- `source`: `SOURCE_TURGOT` when an agent acts via the UI, `SOURCE_DS` when the change comes from a DN/DS sync (no `actor`)
+- `actor`: the logged-in `Collegue`, or `None` for automated DN updates
+- `enveloppe`: set for final-status changes (accepted/refused/dismissed) only
+
+**Idempotency:** only log when something actually changes. Check `self.changed_data` in forms, compare old vs new values in model methods before creating the action.
+
+**Do not** create a helper function or service method that wraps `ProjetAction.objects.create` — the directness is intentional.
+
 ## Testing
 
 ### Test Structure

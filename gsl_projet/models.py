@@ -717,7 +717,10 @@ class DotationProjet(BaseModel):
         return None
 
     @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
-    def accept_without_ds_update(self, montant: float, enveloppe: "Enveloppe"):
+    def accept_without_ds_update(
+        self, montant: float, enveloppe: "Enveloppe", actor=None
+    ):
+        from gsl_historique.models import ProjetAction
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -725,6 +728,14 @@ class DotationProjet(BaseModel):
             raise ValidationError(
                 "La dotation du projet et de l'enveloppe ne correspondent pas."
             )
+
+        status_is_changing = self.status != PROJET_STATUS_ACCEPTED
+        try:
+            previous_enveloppe = self.programmation_projet.enveloppe
+            previous_montant = self.programmation_projet.montant
+        except ProgrammationProjet.DoesNotExist:
+            previous_enveloppe = None
+            previous_montant = None
 
         SimulationProjet.objects.filter(dotation_projet=self).update(
             status=SimulationProjet.STATUS_ACCEPTED,
@@ -741,6 +752,31 @@ class DotationProjet(BaseModel):
         )
         self.programmation_projet = programmation_projet
 
+        if status_is_changing or previous_enveloppe != enveloppe.delegation_root:
+            ProjetAction.objects.create(
+                projet=self.projet,
+                action_type=ProjetAction.TYPE_STATUS_CHANGE,
+                actor=actor,
+                source=ProjetAction.SOURCE_TURGOT
+                if actor is not None
+                else ProjetAction.SOURCE_DN,
+                dotation=self.dotation,
+                status=PROJET_STATUS_ACCEPTED,
+                euro_field_value=montant,
+                enveloppe=enveloppe,
+            )
+        elif previous_montant is not None and previous_montant != montant:
+            ProjetAction.objects.create(
+                projet=self.projet,
+                action_type=ProjetAction.TYPE_MONTANT_MODIFIED,
+                actor=actor,
+                source=ProjetAction.SOURCE_TURGOT
+                if actor is not None
+                else ProjetAction.SOURCE_DN,
+                dotation=self.dotation,
+                euro_field_value=montant,
+            )
+
     @transaction.atomic
     @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
     def accept(
@@ -749,7 +785,7 @@ class DotationProjet(BaseModel):
         enveloppe: "Enveloppe",
         user: Collegue,
     ):
-        self.accept_without_ds_update(montant, enveloppe)
+        self.accept_without_ds_update(montant, enveloppe, actor=user)
 
         projet_dotation_checked = self.other_accepted_dotations
         ds_service = DsService()
@@ -764,7 +800,8 @@ class DotationProjet(BaseModel):
         )
 
     @transition(field=status, source="*", target=PROJET_STATUS_REFUSED)
-    def refuse(self, enveloppe: "Enveloppe"):
+    def refuse(self, enveloppe: "Enveloppe", actor=None):
+        from gsl_historique.models import ProjetAction
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -787,8 +824,21 @@ class DotationProjet(BaseModel):
             },
         )
 
+        ProjetAction.objects.create(
+            projet=self.projet,
+            action_type=ProjetAction.TYPE_STATUS_CHANGE,
+            actor=actor,
+            source=ProjetAction.SOURCE_TURGOT
+            if actor is not None
+            else ProjetAction.SOURCE_DN,
+            dotation=self.dotation,
+            status=PROJET_STATUS_REFUSED,
+            enveloppe=enveloppe,
+        )
+
     @transition(field=status, source="*", target=PROJET_STATUS_DISMISSED)
-    def dismiss(self, enveloppe: "Enveloppe"):
+    def dismiss(self, enveloppe: "Enveloppe", actor=None):
+        from gsl_historique.models import ProjetAction
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -810,12 +860,25 @@ class DotationProjet(BaseModel):
             },
         )
 
+        ProjetAction.objects.create(
+            projet=self.projet,
+            action_type=ProjetAction.TYPE_STATUS_CHANGE,
+            actor=actor,
+            source=ProjetAction.SOURCE_TURGOT
+            if actor is not None
+            else ProjetAction.SOURCE_DN,
+            dotation=self.dotation,
+            status=PROJET_STATUS_DISMISSED,
+            enveloppe=enveloppe,
+        )
+
     @transition(
         field=status,
         source=[PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED],
         target=PROJET_STATUS_PROCESSING,
     )
-    def set_back_status_to_processing_without_ds(self):
+    def set_back_status_to_processing_without_ds(self, actor=None):
+        from gsl_historique.models import ProjetAction
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -827,6 +890,17 @@ class DotationProjet(BaseModel):
         self.projet.notified_at = None
         self.projet.save()
 
+        ProjetAction.objects.create(
+            projet=self.projet,
+            action_type=ProjetAction.TYPE_STATUS_CHANGE,
+            actor=actor,
+            source=ProjetAction.SOURCE_TURGOT
+            if actor is not None
+            else ProjetAction.SOURCE_DN,
+            dotation=self.dotation,
+            status=PROJET_STATUS_PROCESSING,
+        )
+
     @transaction.atomic
     @transition(
         field=status,
@@ -835,7 +909,7 @@ class DotationProjet(BaseModel):
     )
     def set_back_status_to_processing(self, user: Collegue):
         is_notified = self.projet.notified_at is not None
-        self.set_back_status_to_processing_without_ds()
+        self.set_back_status_to_processing_without_ds(actor=user)
         ds_service = DsService()
         if is_notified:
             ds_service.repasser_en_instruction(self.projet.dossier_ds, user)

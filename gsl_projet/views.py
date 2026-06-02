@@ -80,6 +80,16 @@ def get_projet_notes(request, projet_id):
     return render(request, "gsl_projet/projet/tab_notes.html", context)
 
 
+@projet_visible_by_user
+@require_GET
+def get_projet_historique(request, projet_id):
+    context = _get_projet_context_info(projet_id)
+    context["actions"] = (
+        context["projet"].actions.select_related("actor").order_by("-created_at")
+    )
+    return render(request, "gsl_projet/projet/tab_historique.html", context)
+
+
 class ProjetCommentUpdateView(UpdateView):
     model = Projet
     form_class = ProjetCommentForm

@@ -264,9 +264,13 @@ class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):
                 user=user,
             )
         elif self.status == SimulationProjet.STATUS_REFUSED:
-            self.instance.dotation_projet.refuse(enveloppe=self.instance.enveloppe)
+            self.instance.dotation_projet.refuse(
+                enveloppe=self.instance.enveloppe, actor=user
+            )
         elif self.status == SimulationProjet.STATUS_DISMISSED:
-            self.instance.dotation_projet.dismiss(enveloppe=self.instance.enveloppe)
+            self.instance.dotation_projet.dismiss(
+                enveloppe=self.instance.enveloppe, actor=user
+            )
         elif (
             self.status in SimulationProjet.SIMULATION_PENDING_STATUSES
             and self.instance.status not in SimulationProjet.SIMULATION_PENDING_STATUSES
@@ -292,6 +296,8 @@ class AssietteSingleFieldForm(forms.ModelForm):
 
     @transaction.atomic
     def save(self, commit=True):
+        from gsl_historique.models import ProjetAction
+
         super().save(commit=commit)
 
         if self.instance.status == PROJET_STATUS_ACCEPTED:
@@ -301,6 +307,17 @@ class AssietteSingleFieldForm(forms.ModelForm):
                 user=self.user,
             )
             self.instance.save()
+
+        if "assiette" in self.changed_data:
+            ProjetAction.objects.create(
+                projet=self.instance.projet,
+                action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
+                actor=self.user,
+                source=ProjetAction.SOURCE_TURGOT,
+                dotation=self.instance.dotation,
+                euro_field_value=self.cleaned_data.get("assiette"),
+                form_id=f"{type(self).__module__}.{type(self).__qualname__}",
+            )
 
     class Meta:
         model = DotationProjet

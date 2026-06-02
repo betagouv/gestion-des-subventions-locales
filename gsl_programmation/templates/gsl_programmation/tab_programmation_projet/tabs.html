@@ -20,5 +20,11 @@
                    class="fr-tabs__tab fr-icon-mail-fill fr-tabs__tab--icon-left">Notifications du demandeur</a>
             </li>
         {% endif %}
+        <li>
+            {% url "programmation:programmation-projet-historique" projet_id=projet.id as historique_url %}
+            <a href="{{ historique_url }}{% querystring %}"
+               {% if current_tab == "historique" %}aria-selected="true"{% endif %}
+               class="fr-tabs__tab fr-icon-time-fill fr-tabs__tab--icon-left">Historique</a>
+        </li>
     </ul>
 </nav>

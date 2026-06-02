@@ -28,4 +28,9 @@ urlpatterns = [
         ProgrammationProjetDetailView.as_view(tab_name="notes"),
         name="programmation-projet-notes",
     ),
+    path(
+        "voir/<int:projet_id>/historique/",
+        ProgrammationProjetDetailView.as_view(tab_name="historique"),
+        name="programmation-projet-historique",
+    ),
 ]

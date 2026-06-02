@@ -115,6 +115,10 @@ class ProgrammationProjetDetailView(DetailView):
         if tab == "notes":
             context["projet_notes"] = self.object.notes.all()
             context["comment_cards"] = get_comment_cards(self.object)
+        elif tab == "historique":
+            context["actions"] = self.object.actions.select_related("actor").order_by(
+                "-created_at"
+            )
 
         return super().get_context_data(**context)
 
