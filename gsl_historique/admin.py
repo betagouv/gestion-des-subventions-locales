@@ -27,5 +27,6 @@ class ProjetActionAdmin(admin.ModelAdmin):
         "document_name",
         "boolean_field",
         "boolean_value",
+        "form_id",
     )
     ordering = ("-created_at",)

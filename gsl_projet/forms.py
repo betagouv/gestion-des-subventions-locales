@@ -219,6 +219,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
                     source=ProjetAction.SOURCE_TURGOT,
                     boolean_field=field_label,
                     boolean_value=self.cleaned_data.get(field_name),
+                    form_id=f"{type(self).__module__}.{type(self).__qualname__}",
                 )
 
         dotations = self.cleaned_data.get("dotations")
@@ -268,6 +269,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
                 actor=user,
                 source=ProjetAction.SOURCE_TURGOT,
                 dotation=dotation,
+                form_id=f"{type(self).__module__}.{type(self).__qualname__}",
             )
 
         dotation_projet_to_remove = DotationProjet.objects.filter(
@@ -297,6 +299,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
                 actor=user,
                 source=ProjetAction.SOURCE_TURGOT,
                 dotation=dotation,
+                form_id=f"{type(self).__module__}.{type(self).__qualname__}",
             )
 
         dotation_projet_to_remove.delete()

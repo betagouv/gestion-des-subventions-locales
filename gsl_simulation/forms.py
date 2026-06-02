@@ -316,6 +316,7 @@ class AssietteSingleFieldForm(forms.ModelForm):
                 source=ProjetAction.SOURCE_TURGOT,
                 dotation=self.instance.dotation,
                 euro_field_value=self.cleaned_data.get("assiette"),
+                form_id=f"{type(self).__module__}.{type(self).__qualname__}",
             )
 
     class Meta:

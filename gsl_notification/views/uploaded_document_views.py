@@ -99,7 +99,7 @@ def create_uploaded_document_view(request, projet_id, dotation, document_type):
                 actor=request.user,
                 source=ProjetAction.SOURCE_TURGOT,
                 dotation=programmation_projet.dotation_projet.dotation,
-                document_name=uploaded_doc_class._meta.verbose_name.capitalize(),
+                document_name=uploaded_doc_class._meta.verbose_name,
             )
             return redirect(
                 reverse(

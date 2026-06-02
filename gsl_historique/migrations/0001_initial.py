@@ -80,6 +80,10 @@ class Migration(migrations.Migration):
                 ),
                 ("boolean_value", models.BooleanField(blank=True, null=True)),
                 (
+                    "form_id",
+                    models.CharField(blank=True, default="", max_length=200),
+                ),
+                (
                     "actor",
                     models.ForeignKey(
                         blank=True,

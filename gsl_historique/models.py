@@ -67,6 +67,7 @@ class ProjetAction(models.Model):
     document_name = models.CharField(max_length=200, blank=True, default="")
     boolean_field = models.CharField(max_length=200, blank=True, default="")
     boolean_value = models.BooleanField(null=True, blank=True)
+    form_id = models.CharField(max_length=200, blank=True, default="")
 
     class Meta:
         ordering = ["-created_at"]

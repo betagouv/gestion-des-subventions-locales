@@ -314,6 +314,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
                 action_type=ProjetAction.TYPE_NOTIFIED,
                 actor=user,
                 source=ProjetAction.SOURCE_TURGOT,
+                form_id=f"{type(self).__module__}.{type(self).__qualname__}",
             )
 
             return self.instance
@@ -383,6 +384,7 @@ class RefusedDismissedNotificationForm(DsfrBaseForm, forms.ModelForm):
             action_type=ProjetAction.TYPE_NOTIFIED,
             actor=user,
             source=ProjetAction.SOURCE_TURGOT,
+            form_id=f"{type(self).__module__}.{type(self).__qualname__}",
         )
         return projet
 
@@ -685,7 +687,8 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
             actor=self.user,
             source=ProjetAction.SOURCE_TURGOT,
             dotation=pp.dotation_projet.dotation,
-            document_name=document_class._meta.verbose_name.capitalize(),
+            document_name=document_class._meta.verbose_name,
+            form_id=f"{type(self).__module__}.{type(self).__qualname__}",
         )
 
     @transaction.atomic

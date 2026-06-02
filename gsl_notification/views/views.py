@@ -528,7 +528,7 @@ class DeleteDocumentView(DeleteView):
         from gsl_historique.models import ProjetAction
 
         pp = self.object.programmation_projet
-        doc_class_name = self.object.__class__._meta.verbose_name.capitalize()
+        doc_class_name = self.object.__class__._meta.verbose_name
         action_type = (
             ProjetAction.TYPE_DOC_UPLOAD_DELETED
             if hasattr(self.object, "file")
@@ -599,7 +599,7 @@ def _log_generated_document_action(
         if is_creating
         else ProjetAction.TYPE_DOC_MODIFIED
     )
-    doc_label = "Arrêté" if document_type == ARRETE else "Lettre de notification"
+    doc_label = "arrêté" if document_type == ARRETE else "lettre de notification"
     ProjetAction.objects.create(
         projet=programmation_projet.dotation_projet.projet,
         action_type=action_type,
