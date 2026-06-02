@@ -466,11 +466,22 @@ class DotationProjetService:
 
     @classmethod
     def _update_assiette_from_dossier(cls, projet: Projet):
+        from gsl_historique.models import ProjetAction
+
         for dotation_projet in projet.dotationprojet_set.all():
             assiette = cls._get_assiette_from_dossier(
                 projet.dossier_ds, dotation_projet.dotation
             )
             if assiette is not None:
+                if dotation_projet.assiette != assiette:
+                    ProjetAction.objects.create(
+                        projet=projet,
+                        action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
+                        actor=None,
+                        source=ProjetAction.SOURCE_DN,
+                        dotation=dotation_projet.dotation,
+                        montant=assiette,
+                    )
                 dotation_projet.assiette = assiette
             dotation_projet.save()
 

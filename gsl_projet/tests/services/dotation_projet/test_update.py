@@ -12,6 +12,7 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
+from gsl_historique.models import ProjetAction
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
@@ -578,3 +579,65 @@ def test_update_dotation_projets_from_projet_back_to_instruction_with_one_accept
     assert detr_dp.status == PROJET_STATUS_ACCEPTED, (
         "The accepted dotation projet should remain accepted because the programmation_projet was created before the date of passage en instruction"
     )
+
+
+# _update_assiette_from_dossier
+
+
+@pytest.mark.django_db
+def test_update_assiette_from_dossier_creates_action_when_assiette_changes():
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        assiette=10_000,
+        projet__dossier_ds__annotations_assiette_detr=20_000,
+    )
+
+    dps._update_assiette_from_dossier(dotation_projet.projet)
+
+    actions = ProjetAction.objects.filter(
+        projet=dotation_projet.projet,
+        action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
+        dotation=DOTATION_DETR,
+    )
+    assert actions.count() == 1
+    action = actions.first()
+    assert action.montant == 20_000
+    assert action.source == ProjetAction.SOURCE_DN
+    assert action.actor is None
+
+
+@pytest.mark.django_db
+def test_update_assiette_from_dossier_does_not_create_action_when_assiette_unchanged():
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        assiette=10_000,
+        projet__dossier_ds__annotations_assiette_detr=10_000,
+    )
+
+    dps._update_assiette_from_dossier(dotation_projet.projet)
+
+    assert (
+        ProjetAction.objects.filter(
+            projet=dotation_projet.projet,
+            action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
+        ).count()
+        == 0
+    )
+
+
+@pytest.mark.django_db
+def test_update_assiette_from_dossier_creates_action_when_assiette_was_none():
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        assiette=None,
+        projet__dossier_ds__annotations_assiette_detr=15_000,
+    )
+
+    dps._update_assiette_from_dossier(dotation_projet.projet)
+
+    actions = ProjetAction.objects.filter(
+        projet=dotation_projet.projet,
+        action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
+    )
+    assert actions.count() == 1
+    assert actions.first().montant == 15_000
