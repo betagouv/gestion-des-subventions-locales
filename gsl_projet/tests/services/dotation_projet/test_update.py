@@ -116,8 +116,12 @@ def test_update_accepted_creates_dotation_removed_action_when_dotation_dropped(
         perimetre=arr_dijon,
     )
     projet = ProjetFactory(dossier_ds=dossier)
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+    )
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_PROCESSING
+    )
 
     dps._update_dotation_projets_from_projet_accepted(projet)
 
