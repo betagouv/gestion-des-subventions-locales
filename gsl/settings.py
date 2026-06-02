@@ -412,6 +412,18 @@ CELERY_RESULT_EXTENDED = True
 CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 100
 
+# Durée de vie max d'un verrou de synchronisation DS (secondes). Filet de
+# sécurité : si un worker meurt, le verrou est libéré au plus tard à l'expiration.
+# Chaque TTL doit rester supérieur à la durée réelle de la sync correspondante.
+#
+# Sync incrémentale (depuis le dernier curseur) : courte, peu de pages.
+DS_SYNC_LOCK_TIMEOUT = int(os.getenv("DS_SYNC_LOCK_TIMEOUT", 30 * 60))  # 30 min
+# Réinitialisation complète depuis une date passée (admin) : peut rejouer tout
+# l'historique de la démarche, donc bien plus longue.
+DS_INIT_SYNC_LOCK_TIMEOUT = int(
+    os.getenv("DS_INIT_SYNC_LOCK_TIMEOUT", 6 * 60 * 60)
+)  # 6 h
+
 
 # CSP Configuration
 

@@ -1,6 +1,8 @@
+import logging
 from datetime import datetime
 
 from celery import shared_task
+from django.conf import settings
 from django.utils import timezone
 
 from gsl_demarches_simplifiees.importer.demarche import (
@@ -12,7 +14,10 @@ from gsl_demarches_simplifiees.importer.dossier import (
     save_demarche_dossiers_from_ds,
     save_one_dossier_from_ds,
 )
+from gsl_demarches_simplifiees.locks import demarche_sync_lock
 from gsl_demarches_simplifiees.models import Demarche, Dossier
+
+logger = logging.getLogger(__name__)
 
 
 ## Refresh demarches from DN
@@ -47,7 +52,16 @@ def task_fetch_new_or_modified_ds_dossiers_for_every_published_demarche():
 #### of one demarche — incremental sync
 @shared_task
 def task_save_demarche_dossiers_from_ds(demarche_number):
-    return save_demarche_dossiers_from_ds(demarche_number)
+    with demarche_sync_lock(
+        demarche_number, timeout=settings.DS_SYNC_LOCK_TIMEOUT
+    ) as acquired:
+        if not acquired:
+            logger.info(
+                "A DS sync is already running for demarche %s, skipping.",
+                demarche_number,
+            )
+            return
+        return save_demarche_dossiers_from_ds(demarche_number)
 
 
 #### init sync for one demarche from a given date
@@ -66,21 +80,30 @@ def task_init_demarche_sync(demarche_number, updated_since_iso: str):
     if timezone.is_naive(updated_since):
         updated_since = timezone.make_aware(updated_since)
 
-    demarche = Demarche.objects.get(ds_number=demarche_number)
-    demarche.updated_since = updated_since
-    demarche.sync_cursor = ""
-    demarche.pending_deleted_cursor = ""
-    demarche.deleted_cursor = ""
-    demarche.save(
-        update_fields=[
-            "updated_since",
-            "sync_cursor",
-            "pending_deleted_cursor",
-            "deleted_cursor",
-        ]
-    )
+    with demarche_sync_lock(
+        demarche_number, timeout=settings.DS_INIT_SYNC_LOCK_TIMEOUT
+    ) as acquired:
+        if not acquired:
+            logger.info(
+                "A DS sync is already running for demarche %s, skipping init.",
+                demarche_number,
+            )
+            return
+        demarche = Demarche.objects.get(ds_number=demarche_number)
+        demarche.updated_since = updated_since
+        demarche.sync_cursor = ""
+        demarche.pending_deleted_cursor = ""
+        demarche.deleted_cursor = ""
+        demarche.save(
+            update_fields=[
+                "updated_since",
+                "sync_cursor",
+                "pending_deleted_cursor",
+                "deleted_cursor",
+            ]
+        )
 
-    return save_demarche_dossiers_from_ds(demarche_number)
+        return save_demarche_dossiers_from_ds(demarche_number)
 
 
 #### of one dossier
