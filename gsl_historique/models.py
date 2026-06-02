@@ -17,8 +17,8 @@ STATUS_LABELS = {
 
 class ProjetAction(models.Model):
     SOURCE_TURGOT = "turgot"
-    SOURCE_DS = "ds"
-    SOURCES = [(SOURCE_TURGOT, "Turgot"), (SOURCE_DS, "DN")]
+    SOURCE_DN = "dn"
+    SOURCES = [(SOURCE_TURGOT, "Turgot"), (SOURCE_DN, "DN")]
 
     TYPE_STATUS_CHANGE = "status_change"
     TYPE_DOC_GENERATED = "doc_generated"
@@ -57,6 +57,12 @@ class ProjetAction(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     actor = models.ForeignKey(
         "gsl_core.Collegue",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+    enveloppe = models.ForeignKey(
+        "gsl_programmation.Enveloppe",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,

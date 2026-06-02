@@ -13,6 +13,7 @@ from gsl_core.tests.factories import (
     PerimetreFactory,
 )
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_historique.models import ProjetAction
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
@@ -370,6 +371,68 @@ def test_accept_with_a_dotation_enveloppe_different_from_the_dotation():
         str(exc_info.value.message)
         == "La dotation du projet et de l'enveloppe ne correspondent pas."
     )
+
+
+def test_accept_creates_status_change_action_when_status_was_different():
+    dotation_projet = DotationProjetFactory(
+        assiette=10_000, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+    )
+    enveloppe = DetrEnveloppeFactory(annee=2025)
+
+    dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
+
+    actions = ProjetAction.objects.filter(
+        projet=dotation_projet.projet,
+        action_type=ProjetAction.TYPE_STATUS_CHANGE,
+        status=PROJET_STATUS_ACCEPTED,
+    )
+    assert actions.count() == 1
+    assert actions.first().enveloppe == enveloppe
+
+
+def test_accept_does_not_create_status_change_action_when_already_accepted_and_same_enveloppe():
+    enveloppe = DetrEnveloppeFactory(annee=2025)
+    dotation_projet = DotationProjetFactory(
+        assiette=10_000, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    ProgrammationProjetFactory(
+        dotation_projet=dotation_projet,
+        enveloppe=enveloppe,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+    )
+
+    dotation_projet.accept_without_ds_update(montant=6_000, enveloppe=enveloppe)
+
+    assert (
+        ProjetAction.objects.filter(
+            projet=dotation_projet.projet,
+            action_type=ProjetAction.TYPE_STATUS_CHANGE,
+        ).count()
+        == 0
+    )
+
+
+def test_accept_creates_status_change_action_when_already_accepted_but_enveloppe_changed():
+    old_enveloppe = DetrEnveloppeFactory(annee=2024)
+    new_enveloppe = DetrEnveloppeFactory(annee=2025)
+    dotation_projet = DotationProjetFactory(
+        assiette=10_000, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    ProgrammationProjetFactory(
+        dotation_projet=dotation_projet,
+        enveloppe=old_enveloppe,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+    )
+
+    dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=new_enveloppe)
+
+    actions = ProjetAction.objects.filter(
+        projet=dotation_projet.projet,
+        action_type=ProjetAction.TYPE_STATUS_CHANGE,
+        status=PROJET_STATUS_ACCEPTED,
+    )
+    assert actions.count() == 1
+    assert actions.first().enveloppe == new_enveloppe
 
 
 # Refuse

@@ -729,6 +729,12 @@ class DotationProjet(BaseModel):
                 "La dotation du projet et de l'enveloppe ne correspondent pas."
             )
 
+        status_is_changing = self.status != PROJET_STATUS_ACCEPTED
+        try:
+            previous_enveloppe = self.programmation_projet.enveloppe
+        except ProgrammationProjet.DoesNotExist:
+            previous_enveloppe = None
+
         SimulationProjet.objects.filter(dotation_projet=self).update(
             status=SimulationProjet.STATUS_ACCEPTED,
             montant=montant,
@@ -744,17 +750,19 @@ class DotationProjet(BaseModel):
         )
         self.programmation_projet = programmation_projet
 
-        ProjetAction.objects.create(
-            projet=self.projet,
-            action_type=ProjetAction.TYPE_STATUS_CHANGE,
-            actor=actor,
-            source=ProjetAction.SOURCE_TURGOT
-            if actor is not None
-            else ProjetAction.SOURCE_DS,
-            dotation=self.dotation,
-            status=PROJET_STATUS_ACCEPTED,
-            montant=montant,
-        )
+        if status_is_changing or previous_enveloppe != enveloppe.delegation_root:
+            ProjetAction.objects.create(
+                projet=self.projet,
+                action_type=ProjetAction.TYPE_STATUS_CHANGE,
+                actor=actor,
+                source=ProjetAction.SOURCE_TURGOT
+                if actor is not None
+                else ProjetAction.SOURCE_DN,
+                dotation=self.dotation,
+                status=PROJET_STATUS_ACCEPTED,
+                montant=montant,
+                enveloppe=enveloppe,
+            )
 
     @transaction.atomic
     @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
@@ -809,9 +817,10 @@ class DotationProjet(BaseModel):
             actor=actor,
             source=ProjetAction.SOURCE_TURGOT
             if actor is not None
-            else ProjetAction.SOURCE_DS,
+            else ProjetAction.SOURCE_DN,
             dotation=self.dotation,
             status=PROJET_STATUS_REFUSED,
+            enveloppe=enveloppe,
         )
 
     @transition(field=status, source="*", target=PROJET_STATUS_DISMISSED)
@@ -844,9 +853,10 @@ class DotationProjet(BaseModel):
             actor=actor,
             source=ProjetAction.SOURCE_TURGOT
             if actor is not None
-            else ProjetAction.SOURCE_DS,
+            else ProjetAction.SOURCE_DN,
             dotation=self.dotation,
             status=PROJET_STATUS_DISMISSED,
+            enveloppe=enveloppe,
         )
 
     @transition(
@@ -873,7 +883,7 @@ class DotationProjet(BaseModel):
             actor=actor,
             source=ProjetAction.SOURCE_TURGOT
             if actor is not None
-            else ProjetAction.SOURCE_DS,
+            else ProjetAction.SOURCE_DN,
             dotation=self.dotation,
             status=PROJET_STATUS_PROCESSING,
         )

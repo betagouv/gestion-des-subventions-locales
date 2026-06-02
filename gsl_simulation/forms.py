@@ -257,8 +257,6 @@ class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):
 
     @transaction.atomic
     def save(self, user: Collegue, commit=True):
-        from gsl_historique.models import ProjetAction
-
         if self.status == SimulationProjet.STATUS_ACCEPTED:
             self.instance.dotation_projet.accept(
                 montant=self.instance.montant,
@@ -282,16 +280,6 @@ class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):
         self.instance.dotation_projet.save()
         self.instance.status = self.status
         self.instance.save()
-
-        if self.status in SimulationProjet.SIMULATION_PENDING_STATUSES:
-            ProjetAction.objects.create(
-                projet=self.instance.dotation_projet.projet,
-                action_type=ProjetAction.TYPE_STATUS_CHANGE,
-                actor=user,
-                source=ProjetAction.SOURCE_TURGOT,
-                dotation=self.instance.dotation_projet.dotation,
-                status=self.status,
-            )
 
         return self.instance
 
