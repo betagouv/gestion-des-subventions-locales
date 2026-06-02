@@ -93,7 +93,7 @@ class CollegueFactory(factory.django.DjangoModelFactory):
         django_get_or_create = ("email",)
 
     username = factory.Sequence(lambda n: f"collegue_{n}")
-    email = factory.Faker("email")
+    email = factory.Sequence(lambda n: f"collegue_{n}@example.com")
     is_staff = False
     is_active = True
     perimetre = factory.SubFactory(PerimetreFactory)
