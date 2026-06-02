@@ -81,12 +81,21 @@ def reattach_signed_doc(
     pdf_source: Path | bytes | BinaryIO,
     user: Collegue,
     name_stem: str = "signed",
+    restrict_to_user_perimetre: bool = False,
+    remove_qr_code: bool = True,
 ) -> Iterator[ReattachEvent]:
     """Decode QRs from a scanned signed PDF, attach each group to its
     ProgrammationProjet as a LettreEtArreteSignes, and stream events.
 
     Side effects (DB writes, file storage) happen lazily as the caller
     iterates. Callers must drain the generator.
+
+    When `restrict_to_user_perimetre` is True, matching is scoped to the
+    ProgrammationProjet visible to `user` (used by the web upload flow); the
+    operator CLI leaves it False to keep matching global.
+
+    When `remove_qr_code` is True (the default), the GSL QR code is masked off
+    each stored page; set it False to keep the QR visible on the stored file.
     """
     pdf_bytes = _read_to_bytes(pdf_source)
 
@@ -120,7 +129,17 @@ def reattach_signed_doc(
 
         for (ds, dot), entries in groups.items():
             entries.sort(key=lambda e: (_DOCUMENT_TYPE_ORDER.get(e[1], 99), e[2]))
-            report = _attach_group(src, pdf_bytes, ds, dot, entries, user, name_stem)
+            report = _attach_group(
+                src,
+                pdf_bytes,
+                ds,
+                dot,
+                entries,
+                user,
+                name_stem,
+                restrict_to_user_perimetre,
+                remove_qr_code,
+            )
             if report.error is None:
                 yield GroupAttached(report=report)
             else:
@@ -161,7 +180,17 @@ def _group_pages(per_page):
     return groups, unreadable
 
 
-def _attach_group(src, pdf_bytes, ds, dot, entries, user, name_stem) -> GroupReport:
+def _attach_group(
+    src,
+    pdf_bytes,
+    ds,
+    dot,
+    entries,
+    user,
+    name_stem,
+    restrict_to_user_perimetre=False,
+    remove_qr_code=True,
+) -> GroupReport:
     by_type: dict[str, list[int]] = defaultdict(list)
     for scan_idx, doc_type, *_ in entries:
         by_type[doc_type].append(scan_idx + 1)
@@ -169,8 +198,17 @@ def _attach_group(src, pdf_bytes, ds, dot, entries, user, name_stem) -> GroupRep
         by_type[doc_type].sort()
     pages_by_doc_type = dict(by_type)
 
+    # Scope matching to the importer's perimetre for the web flow; the operator
+    # CLI keeps the global queryset. Out-of-perimetre groups simply miss the
+    # lookup and fall through to the DoesNotExist branch below.
+    queryset = (
+        ProgrammationProjet.objects.visible_to_user(user)
+        if restrict_to_user_perimetre
+        else ProgrammationProjet.objects
+    )
+
     try:
-        pp = ProgrammationProjet.objects.get(
+        pp = queryset.get(
             dotation_projet__projet__dossier_ds__ds_number=ds,
             dotation_projet__dotation=dot,
         )
@@ -191,7 +229,9 @@ def _attach_group(src, pdf_bytes, ds, dot, entries, user, name_stem) -> GroupRep
             error="multiple ProgrammationProjet (data inconsistency, fix manually)",
         )
 
-    uploaded = _build_group_pdf(src, entries, name_stem, ds, dot, pdf_bytes)
+    uploaded = _build_group_pdf(
+        src, entries, name_stem, ds, dot, pdf_bytes, remove_qr_code
+    )
     _replace_lettre_et_arrete(pp, uploaded, user)
 
     return GroupReport(
@@ -206,10 +246,8 @@ def _attach_group(src, pdf_bytes, ds, dot, entries, user, name_stem) -> GroupRep
 def _replace_lettre_et_arrete(pp, uploaded, user):
     with transaction.atomic():
         existing = LettreEtArreteSignes.objects.filter(programmation_projet=pp).first()
-        old_storage_file = None
         if existing is not None:
-            old_storage_file = existing.file
-            existing.delete()
+            existing.delete()  # post_delete signal removes its stored file
 
         doc = LettreEtArreteSignes(
             programmation_projet=pp,
@@ -221,15 +259,13 @@ def _replace_lettre_et_arrete(pp, uploaded, user):
         )
         doc.save()
 
-        if old_storage_file is not None:
-            transaction.on_commit(lambda f=old_storage_file: f.delete(save=False))
 
-
-def _build_group_pdf(src, entries, stem, ds, dot, pdf_bytes):
+def _build_group_pdf(src, entries, stem, ds, dot, pdf_bytes, remove_qr_code=True):
     out = Pdf.new()
     for scan_idx, _, _, bbox_px, image_height_px in entries:
         out.pages.append(src.pages[scan_idx])
-        _mask_qr_on_last_page(out, bbox_px, image_height_px, pdf_bytes, scan_idx)
+        if remove_qr_code:
+            _mask_qr_on_last_page(out, bbox_px, image_height_px, pdf_bytes, scan_idx)
     buf = io.BytesIO()
     out.save(buf)
     buf.seek(0)

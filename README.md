@@ -100,6 +100,30 @@ Les raccourcis suivants existent :
 - `just makemigrations`
 - `just migrate`
 
+## Configurer le bucket S3 (import/export de documents)
+
+L'import de scans se fait par envoi direct du navigateur vers le bucket S3 (POST
+présigné, voir `gsl_notification.views.import_views`). Pour que le navigateur soit
+autorisé à uploader, le bucket doit porter une règle CORS autorisant les requêtes
+`POST` depuis l'origine de l'app. Sans cette règle, S3/Scaleway répond `403` sans
+en-tête `Access-Control-Allow-Origin` et le navigateur signale une erreur
+cross-origin.
+
+La commande configure aussi des règles de cycle de vie qui font expirer après
+1 jour les objets temporaires d'import et d'export.
+
+```bash
+# Définir la règle CORS pour une ou plusieurs origines
+python manage.py configure_s3_bucket --origin http://localhost:8000
+python manage.py configure_s3_bucket --origin https://turgot.example.gouv.fr
+
+# Afficher la configuration CORS et de cycle de vie actuelle du bucket
+python manage.py configure_s3_bucket --show
+```
+
+L'option `--origin` peut être répétée pour autoriser plusieurs origines. La
+variable d'environnement `AWS_STORAGE_BUCKET_NAME` doit être configurée.
+
 ## Déploiement en production
 
 Le déploiement en production est automatisé via GitHub Actions.

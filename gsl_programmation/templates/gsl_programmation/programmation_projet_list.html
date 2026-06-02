@@ -78,6 +78,27 @@
                     </div>
                 </div>
             </dialog>
+            <button id="import-modal-button"
+                    aria-controls="import-modal"
+                    type="button"
+                    hidden
+                    data-fr-opened="false">
+            </button>
+            <dialog class="fr-modal"
+                    id="import-modal"
+                    aria-labelledby="import-modal-title"
+                    data-fr-concealing-backdrop="false">
+                <div class="fr-container fr-container--fluid fr-container-md">
+                    <div class="fr-grid-row fr-grid-row--center">
+                        <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
+                            <div class="fr-modal__body">
+                                <div id="import-modal-step">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </dialog>
             <div class="gsl-table-toolbar fr-mt-11v fr-mb-6v">
                 <span class="gsl-bulk-actions__count">
                     {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
@@ -115,6 +136,15 @@
                                 Générer les documents
                             </button>
                         </form>
+                    </li>
+                    <li>
+                        <button type="button"
+                                class="fr-btn fr-btn--secondary"
+                                hx-get="{% url 'gsl_notification:import-documents-modal' dotation %}"
+                                hx-target="#import-modal-step"
+                                hx-swap="outerHTML">
+                            Importer les documents signés
+                        </button>
                     </li>
                     <li>
                         {% include "gsl_core/_column_visibility_dropdown.html" with table_wrapper_id="programmation-table-wrapper" %}

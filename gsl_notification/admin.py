@@ -7,6 +7,7 @@ from gsl_core.admin import AllPermsForStaffUser
 from .models import (
     Annexe,
     Arrete,
+    DocumentImportJob,
     LettreEtArreteSignes,
     LettreNotification,
     ModeleArrete,
@@ -133,3 +134,55 @@ class ModeleArreteAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 @admin.register(ModeleLettreNotification)
 class ModeleLettreNotificationAdmin(ModeleArreteAdmin):
     pass
+
+
+@admin.register(DocumentImportJob)
+class DocumentImportJobAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "status",
+        "file_count",
+        "progress_display",
+        "remove_qr_code",
+        "created_by",
+        "created_at",
+    )
+    list_filter = ("status",)
+    search_fields = ("created_by__email",)
+    raw_id_fields = ("created_by",)
+    readonly_fields = (
+        "id",
+        "created_by",
+        "status",
+        "s3_keys",
+        "file_count",
+        "total_pages",
+        "processed_pages",
+        "progress_display",
+        "result",
+        "remove_qr_code",
+        "created_at",
+        "updated_at",
+    )
+    fields = (
+        "id",
+        "created_by",
+        "status",
+        "s3_keys",
+        "file_count",
+        "total_pages",
+        "processed_pages",
+        "progress_display",
+        "result",
+        "remove_qr_code",
+        "created_at",
+        "updated_at",
+    )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("created_by")
+
+    def progress_display(self, obj):
+        return f"{obj.processed_pages} / {obj.total_pages}"
+
+    progress_display.short_description = "Avancement"

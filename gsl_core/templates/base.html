@@ -50,6 +50,7 @@
                     "tiptap": "{% static 'vendor/tiptap.js' %}",
                     "tiptapEditor": "{% static 'ui/controllers/tiptapEditor.js' %}",
                     "modal": "{% static 'ui/controllers/modal.js' %}",
+                    "documentImport": "{% static 'ui/controllers/document_import_controller.js' %}",
                     "doubleDotation": "{% static 'js/controllers/doubleDotation.js' %}",
                     "modeleArreteForm": "{% static 'js/modeleArreteForm.js' %}",
                     "deleteNotificationDocumentModal": "{% static 'js/deleteNotificationDocumentModal.js' %}",
@@ -121,6 +122,7 @@
             import { Application } from "stimulus"
             import { DoubleDotation } from "doubleDotation"
             import { Modal } from "modal"
+            import { DocumentImport } from "documentImport"
             import { TipTapEditor } from "tiptapEditor"
             import { ModeleArreteForm } from "modeleArreteForm"
             import { DeleteNotificationDocumentModal } from "deleteNotificationDocumentModal"
@@ -135,6 +137,7 @@
 
             Stimulus.register("double-dotation", DoubleDotation)
             Stimulus.register("modal", Modal)
+            Stimulus.register("document-import", DocumentImport)
             Stimulus.register("tiptap-editor", TipTapEditor)
             Stimulus.register("modele-arrete-form", ModeleArreteForm)
             Stimulus.register("delete-notification-document-modal", DeleteNotificationDocumentModal)

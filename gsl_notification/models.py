@@ -1,4 +1,5 @@
 import os
+import uuid
 from secrets import token_urlsafe
 
 from django.conf import settings
@@ -8,7 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 
-from gsl_core.models import Collegue, Perimetre
+from gsl_core.models import BaseModel, Collegue, Perimetre
 from gsl_notification.validators import document_file_validator, logo_file_validator
 from gsl_projet.constants import (
     ANNEXE,
@@ -321,6 +322,54 @@ class LettreEtArreteSignes(UploadedDocument):
     @property
     def document_type(self):
         return LETTRE_ET_ARRETE_SIGNES
+
+
+class DocumentImportJob(BaseModel):
+    """
+    Tracks an async re-import of scanned, signed documents. The browser uploads
+    one or more PDFs straight to a temporary S3 prefix (presigned POST), then a
+    Celery task downloads each one, virus-scans it, decodes the per-page GSL QR
+    codes, and reattaches each page-group to its ProgrammationProjet as a
+    LettreEtArreteSignes. The row is the single source of truth for progress:
+    the browser polls a view that reads this model.
+    """
+
+    # S3 prefix where the browser uploads scans before processing; the task
+    # deletes these once done.
+    TEMP_S3_PREFIX = "imports/"
+
+    STATUS_PENDING = "pending"
+    STATUS_RUNNING = "running"
+    STATUS_DONE = "done"
+    STATUS_CHOICES = (
+        (STATUS_PENDING, "En attente"),
+        (STATUS_RUNNING, "En cours"),
+        (STATUS_DONE, "Terminé"),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
+    status = models.CharField(
+        max_length=16, choices=STATUS_CHOICES, default=STATUS_PENDING
+    )
+    s3_keys = models.JSONField(default=list)
+    total_pages = models.PositiveIntegerField(default=0)
+    processed_pages = models.PositiveIntegerField(default=0)
+    result = models.JSONField(default=dict)
+    remove_qr_code = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Import de documents signés"
+        verbose_name_plural = "Imports de documents signés"
+        ordering = ("-created_at",)
+
+    @property
+    def file_count(self) -> int:
+        return len(self.s3_keys)
+
+    @property
+    def is_running(self) -> bool:
+        return self.status in (self.STATUS_PENDING, self.STATUS_RUNNING)
 
 
 class Annexe(UploadedDocument):

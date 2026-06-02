@@ -1,0 +1,29 @@
+{% load custom_pluralize dsfr_tags %}
+<div id="{{ modal_id }}-step"
+     class="import-step--running"
+     hx-get="{% url 'gsl_notification:import-progress' pk=job.pk %}"
+     hx-trigger="every 2s"
+     hx-swap="outerHTML"
+     hx-target="this">
+    <div class="fr-modal__header">
+    </div>
+    <div class="fr-modal__content">
+        <h1 class="fr-modal__title" id="{{ modal_id }}-title">
+            Importer les documents signés
+        </h1>
+        {% dsfr_stepper current_step_id=2 total_steps=3 current_step_title="Traitement des documents" next_step_title="Synthèse de l'importation" %}
+        <div class="fr-alert fr-alert--info fr-mt-3w"
+             role="status"
+             aria-live="polite">
+            <p>
+                {{ job.file_count }} fichier{{ job.file_count|custom_pluralize }} en cours de traitement
+            </p>
+            <p>
+                {{ job.processed_pages }} page{{ job.processed_pages|custom_pluralize }} traitée{{ job.processed_pages|custom_pluralize }}…
+            </p>
+        </div>
+        <div class="fr-mt-3w fr-grid-row fr-grid-row--center" aria-hidden="true">
+            <span class="fr-icon-refresh-line fr-icon-spin"></span>
+        </div>
+    </div>
+</div>
