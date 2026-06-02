@@ -40,8 +40,10 @@
                                             {{ action.created_at|date:"d/m/Y H\hi" }}
                                         </td>
                                         <td>
-                                            {% if action.actor %}
+                                            {% if action.actor.get_full_name %}
                                                 {{ action.actor.get_full_name }}
+                                            {% elif action.actor.email %}
+                                                {{ action.actor.email }}
                                             {% else %}
                                                 —
                                             {% endif %}

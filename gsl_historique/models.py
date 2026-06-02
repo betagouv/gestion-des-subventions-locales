@@ -116,7 +116,7 @@ class ProjetAction(models.Model):
         if self.montant is not None:
             from gsl_core.templatetags.gsl_filters import euro
 
-            return f"Nouvelle : {euro(self.montant)}"
+            return euro(self.montant)
         if self.boolean_value is not None:
             return "Oui" if self.boolean_value else "Non"
         return ""

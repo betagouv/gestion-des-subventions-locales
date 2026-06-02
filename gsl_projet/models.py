@@ -732,8 +732,10 @@ class DotationProjet(BaseModel):
         status_is_changing = self.status != PROJET_STATUS_ACCEPTED
         try:
             previous_enveloppe = self.programmation_projet.enveloppe
+            previous_montant = self.programmation_projet.montant
         except ProgrammationProjet.DoesNotExist:
             previous_enveloppe = None
+            previous_montant = None
 
         SimulationProjet.objects.filter(dotation_projet=self).update(
             status=SimulationProjet.STATUS_ACCEPTED,
@@ -762,6 +764,17 @@ class DotationProjet(BaseModel):
                 status=PROJET_STATUS_ACCEPTED,
                 montant=montant,
                 enveloppe=enveloppe,
+            )
+        elif previous_montant is not None and previous_montant != montant:
+            ProjetAction.objects.create(
+                projet=self.projet,
+                action_type=ProjetAction.TYPE_MONTANT_MODIFIED,
+                actor=actor,
+                source=ProjetAction.SOURCE_TURGOT
+                if actor is not None
+                else ProjetAction.SOURCE_DN,
+                dotation=self.dotation,
+                montant=montant,
             )
 
     @transaction.atomic

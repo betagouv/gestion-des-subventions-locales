@@ -397,8 +397,6 @@ class DotationProjetService:
 
     @classmethod
     def _update_accepted_dotation_projets_montant_from_dn(cls, projet: Projet) -> None:
-        from gsl_historique.models import ProjetAction
-
         for dotation_projet in projet.dotationprojet_set.filter(
             status=PROJET_STATUS_ACCEPTED
         ):
@@ -415,14 +413,6 @@ class DotationProjetService:
                 and hasattr(dotation_projet, "programmation_projet")
                 and new_montant != dotation_projet.programmation_projet.montant
             ):
-                ProjetAction.objects.create(
-                    projet=projet,
-                    action_type=ProjetAction.TYPE_MONTANT_MODIFIED,
-                    actor=None,
-                    source=ProjetAction.SOURCE_DN,
-                    dotation=dotation_projet.dotation,
-                    montant=new_montant,
-                )
                 dotation_projet.accept_without_ds_update(
                     montant=new_montant,
                     enveloppe=dotation_projet.programmation_projet.enveloppe,

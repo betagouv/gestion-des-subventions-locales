@@ -330,8 +330,6 @@ class MontantSingleFieldForm(forms.ModelForm):
 
     @transaction.atomic
     def save(self, commit=True):
-        from gsl_historique.models import ProjetAction
-
         super().save(commit=commit)
 
         if self.instance.status == SimulationProjet.STATUS_ACCEPTED:
@@ -341,15 +339,6 @@ class MontantSingleFieldForm(forms.ModelForm):
                 user=self.user,
             )
             self.instance.dotation_projet.save()
-
-        ProjetAction.objects.create(
-            projet=self.instance.dotation_projet.projet,
-            action_type=ProjetAction.TYPE_MONTANT_MODIFIED,
-            actor=self.user,
-            source=ProjetAction.SOURCE_TURGOT,
-            dotation=self.instance.dotation_projet.dotation,
-            montant=self.cleaned_data.get("montant"),
-        )
 
     class Meta:
         model = SimulationProjet
