@@ -248,14 +248,36 @@ class DotationProjetService:
         if not dotations_to_accept:
             return projet.dotationprojet_set.all()
 
-        dotations_to_remove = set(projet.dotations) - set(dotations_to_accept)
+        from gsl_historique.models import ProjetAction
+
+        existing_dotations = set(projet.dotations)
+        dotations_to_remove = existing_dotations - set(dotations_to_accept)
+
         for dotation in dotations_to_accept:
             cls._accept_dotation_projet(projet, dotation)
+            if dotation not in existing_dotations:
+                ProjetAction.objects.create(
+                    projet=projet,
+                    action_type=ProjetAction.TYPE_DOTATION_ADDED,
+                    actor=None,
+                    source=ProjetAction.SOURCE_DN,
+                    dotation=dotation,
+                )
 
         for dotation in dotations_to_remove:
-            DotationProjet.objects.filter(projet=projet, dotation=dotation).exclude(
-                status__in=[PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED]
-            ).delete()
+            deleted_count, _ = (
+                DotationProjet.objects.filter(projet=projet, dotation=dotation)
+                .exclude(status__in=[PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED])
+                .delete()
+            )
+            if deleted_count:
+                ProjetAction.objects.create(
+                    projet=projet,
+                    action_type=ProjetAction.TYPE_DOTATION_REMOVED,
+                    actor=None,
+                    source=ProjetAction.SOURCE_DN,
+                    dotation=dotation,
+                )
 
         return projet.dotationprojet_set.all()
 
@@ -375,6 +397,8 @@ class DotationProjetService:
 
     @classmethod
     def _update_accepted_dotation_projets_montant_from_dn(cls, projet: Projet) -> None:
+        from gsl_historique.models import ProjetAction
+
         for dotation_projet in projet.dotationprojet_set.filter(
             status=PROJET_STATUS_ACCEPTED
         ):
@@ -391,6 +415,14 @@ class DotationProjetService:
                 and hasattr(dotation_projet, "programmation_projet")
                 and new_montant != dotation_projet.programmation_projet.montant
             ):
+                ProjetAction.objects.create(
+                    projet=projet,
+                    action_type=ProjetAction.TYPE_MONTANT_MODIFIED,
+                    actor=None,
+                    source=ProjetAction.SOURCE_DN,
+                    dotation=dotation_projet.dotation,
+                    montant=new_montant,
+                )
                 dotation_projet.accept_without_ds_update(
                     montant=new_montant,
                     enveloppe=dotation_projet.programmation_projet.enveloppe,
@@ -656,9 +688,19 @@ class DotationProjetService:
 
     @classmethod
     def _remove_or_add_dotations_from_dossier_ds(cls, projet: Projet):
+        from gsl_historique.models import ProjetAction
+
         dotation_to_delete = set(projet.dotations) - set(
             projet.dossier_ds.dotations_demande
         )
+        for dotation in dotation_to_delete:
+            ProjetAction.objects.create(
+                projet=projet,
+                action_type=ProjetAction.TYPE_DOTATION_REMOVED,
+                actor=None,
+                source=ProjetAction.SOURCE_DN,
+                dotation=dotation,
+            )
         projet.dotationprojet_set.filter(dotation__in=dotation_to_delete).delete()
 
         # Refresh projet to get the latest dotations
@@ -669,6 +711,13 @@ class DotationProjetService:
         )
         for dotation in dotations_to_add:
             cls._create_dotation_projet(projet, dotation)
+            ProjetAction.objects.create(
+                projet=projet,
+                action_type=ProjetAction.TYPE_DOTATION_ADDED,
+                actor=None,
+                source=ProjetAction.SOURCE_DN,
+                dotation=dotation,
+            )
 
         # Idem here
         projet.refresh_from_db()

@@ -57,6 +57,113 @@ def perimetres():
     ]
 
 
+# -- _update_dotation_projets_from_projet_accepted — ProjetAction dotation --
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
+def test_update_accepted_creates_dotation_added_action_for_new_dotation(perimetres):
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+
+    dossier = DossierFactory(
+        ds_state=Dossier.STATE_ACCEPTE,
+        demande_dispositif_sollicite="DETR et DSIL",
+        annotations_dotation="DETR et DSIL",
+        annotations_assiette_detr=10_000,
+        annotations_montant_accorde_detr=5_000,
+        annotations_assiette_dsil=20_000,
+        annotations_montant_accorde_dsil=10_000,
+        ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
+        perimetre=arr_dijon,
+    )
+    projet = ProjetFactory(dossier_ds=dossier)
+    dps._initialize_dotation_projets_from_projet(projet)
+    assert projet.dotationprojet_set.count() == 2
+
+    # Simulate DN adding DSIL after initial import had only DETR
+    projet.dotationprojet_set.filter(dotation=DOTATION_DSIL).delete()
+    assert projet.dotationprojet_set.count() == 1
+
+    dps._update_dotation_projets_from_projet_accepted(projet)
+
+    actions = ProjetAction.objects.filter(
+        projet=projet, action_type=ProjetAction.TYPE_DOTATION_ADDED
+    )
+    assert actions.count() == 1
+    action = actions.first()
+    assert action.dotation == DOTATION_DSIL
+    assert action.source == ProjetAction.SOURCE_DN
+    assert action.actor is None
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
+def test_update_accepted_creates_dotation_removed_action_when_dotation_dropped(
+    perimetres,
+):
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+
+    dossier = DossierFactory(
+        ds_state=Dossier.STATE_ACCEPTE,
+        demande_dispositif_sollicite="DETR et DSIL",
+        annotations_dotation="DETR",
+        annotations_assiette_detr=10_000,
+        annotations_montant_accorde_detr=5_000,
+        ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
+        perimetre=arr_dijon,
+    )
+    projet = ProjetFactory(dossier_ds=dossier)
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+
+    dps._update_dotation_projets_from_projet_accepted(projet)
+
+    actions = ProjetAction.objects.filter(
+        projet=projet, action_type=ProjetAction.TYPE_DOTATION_REMOVED
+    )
+    assert actions.count() == 1
+    action = actions.first()
+    assert action.dotation == DOTATION_DSIL
+    assert action.source == ProjetAction.SOURCE_DN
+    assert action.actor is None
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
+def test_update_accepted_does_not_create_removed_action_for_already_refused_dotation(
+    perimetres,
+):
+    arr_dijon, dep_21, *_ = perimetres
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+
+    dossier = DossierFactory(
+        ds_state=Dossier.STATE_ACCEPTE,
+        demande_dispositif_sollicite="DETR",
+        annotations_dotation="DETR",
+        annotations_assiette_detr=10_000,
+        annotations_montant_accorde_detr=5_000,
+        ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
+        perimetre=arr_dijon,
+    )
+    projet = ProjetFactory(dossier_ds=dossier)
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_REFUSED
+    )
+
+    dps._update_dotation_projets_from_projet_accepted(projet)
+
+    assert (
+        ProjetAction.objects.filter(
+            projet=projet, action_type=ProjetAction.TYPE_DOTATION_REMOVED
+        ).count()
+        == 0
+    )
+
+
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
 def test_update_dotation_projets_from_projet_accepted_creates_new_dotation_projets(
