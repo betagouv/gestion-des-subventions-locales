@@ -221,6 +221,52 @@ def test_save_demarche_dossiers_from_ds_update_sync_cursor():
     assert demarche.sync_cursor == expected_cursor
 
 
+@pytest.mark.django_db
+def test_save_demarche_dossiers_from_ds_empty_deleted_page_keeps_cursor():
+    """
+    Quand un flux est déjà à jour, DS renvoie une page vide (nodes=[],
+    hasNextPage=False, endCursor=None). Le curseur existant doit être conservé,
+    pas réinitialisé à "" — sinon le flux repart du début à la synchro suivante et
+    redésactive tous les dossiers historiquement supprimés (symptôme « 1 synchro
+    sur 2 »).
+    """
+    demarche_number = 123
+    demarche = DemarcheFactory(
+        ds_number=demarche_number,
+        updated_since="2025-01-01T00:00:00+00:00",
+        sync_cursor="s1",
+        pending_deleted_cursor="p1",
+        deleted_cursor="d1",
+        raw_ds_data={"groupeInstructeurs": [{"id": "GROUPE-1", "instructeurs": []}]},
+    )
+
+    # Les trois flux renvoient une page vide (endCursor=None par défaut).
+    empty_page = _make_demarche_page()
+
+    with patch(
+        "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
+        return_value=(empty_page, False),
+    ):
+        save_demarche_dossiers_from_ds(demarche_number)
+
+    demarche.refresh_from_db()
+    assert demarche.sync_cursor == "s1"
+    assert demarche.pending_deleted_cursor == "p1"
+    assert demarche.deleted_cursor == "d1"
+
+    # Deuxième synchro consécutive : les curseurs restent stables (pas d'oscillation).
+    with patch(
+        "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
+        return_value=(empty_page, False),
+    ):
+        save_demarche_dossiers_from_ds(demarche_number)
+
+    demarche.refresh_from_db()
+    assert demarche.sync_cursor == "s1"
+    assert demarche.pending_deleted_cursor == "p1"
+    assert demarche.deleted_cursor == "d1"
+
+
 def _ds_dossier(ds_id, number, departement_code="75"):
     return {
         "id": ds_id,
