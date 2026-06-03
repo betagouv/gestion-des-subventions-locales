@@ -172,13 +172,7 @@ class TestSimulationCreateView:
 
         # Assert: context has breadcrumb and title
         assert response.status_code == 200
-        assert "breadcrumb_dict" in response.context
         assert "title" in response.context
-
-        breadcrumb = response.context["breadcrumb_dict"]
-        assert breadcrumb["current"] == "Création d'une simulation de programmation"
-        assert breadcrumb["links"]
-        assert "Mes simulations de programmation" in breadcrumb["links"][0]["title"]
 
     def test_create_simulation_cannot_use_invisible_envelope(self):
         # Arrange: create two users with different perimetres and envelopes

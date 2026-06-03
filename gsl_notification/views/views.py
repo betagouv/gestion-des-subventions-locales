@@ -82,15 +82,6 @@ class NotificationDocumentsView(DetailView):
                 "dotation_projets": self.object.dotationprojet_set.all(),
                 "title": title,
                 "go_back_link": back_url,
-                "breadcrumb_dict": {
-                    "links": [
-                        {
-                            "url": back_url,
-                            "title": "Programmation en cours",
-                        },
-                    ],
-                    "current": title,
-                },
                 "is_instructor": self.request.user.ds_id
                 in self.object.dossier_ds.ds_instructeurs.values_list(
                     "ds_id", flat=True
@@ -119,24 +110,6 @@ class NotificationMessageView(UpdateView):
             **{
                 "dossier": self.object.dossier_ds,
                 "title": title,
-                "breadcrumb_dict": {
-                    "links": [
-                        {
-                            "url": reverse(
-                                "gsl_programmation:programmation-projet-list"
-                            ),
-                            "title": "Programmation en cours",
-                        },
-                        {
-                            "url": reverse(
-                                "gsl_programmation:programmation-projet-detail",
-                                args=[self.object.id],
-                            ),
-                            "title": title,
-                        },
-                    ],
-                    "current": title,
-                },
             }
         )
 

@@ -5,6 +5,7 @@ def export_vars(request):
     data = {}
     data["ENV"] = settings.ENV
     data["MATOMO_SITE_ID"] = settings.MATOMO_SITE_ID
+    data["skiplinks"] = [{"link": "#content", "label": "Accéder au contenu"}]
     return data
 
 

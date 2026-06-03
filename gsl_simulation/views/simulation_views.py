@@ -3,7 +3,7 @@ from datetime import date
 from django.db.models import Prefetch
 from django.http import HttpResponse, QueryDict
 from django.shortcuts import redirect
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -51,7 +51,6 @@ class SimulationListView(ListView):
         context["title"] = (
             "Mes simulations"  # todo si filtre par année : rappeler l'année ici
         )
-        context["breadcrumb_dict"] = {"current": "Mes simulations de programmation"}
 
         return context
 
@@ -156,15 +155,6 @@ class SimulationDetailView(SingleObjectMixin, FilterView):
                 "export_types": FilteredProjetsExportView.EXPORT_TYPES,
                 "matomo_category_simulation": MATOMO_CATEGORY_SIMULATION,
                 "matomo_action_export": MATOMO_ACTION_EXPORT,
-                "breadcrumb_dict": {
-                    "links": [
-                        {
-                            "url": reverse("simulation:simulation-list"),
-                            "title": "Mes simulations de programmation",
-                        }
-                    ],
-                    "current": simulation.title,
-                },
             }
         )
         if self.object.enveloppe.perimetre:
@@ -262,19 +252,6 @@ class SimulationRenameView(UpdateView):
         next_url = self._get_next_url()
         context["title"] = f"Renommer la simulation « {self.object.title} »"
         context["next_url"] = next_url
-        context["breadcrumb_dict"] = {
-            "links": [
-                {
-                    "url": reverse("gsl_simulation:simulation-list"),
-                    "title": "Mes simulations de programmation",
-                },
-                {
-                    "url": self.object.get_absolute_url(),
-                    "title": self.object.title,
-                },
-            ],
-            "current": "Renommer",
-        }
         return context
 
 
@@ -300,15 +277,6 @@ class SimulationCreateView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["breadcrumb_dict"] = {
-            "links": [
-                {
-                    "url": reverse("gsl_simulation:simulation-list"),
-                    "title": "Mes simulations de programmation",
-                },
-            ],
-            "current": "Création d'une simulation de programmation",
-        }
         context["title"] = "Création d'une simulation de programmation"
         return context
 

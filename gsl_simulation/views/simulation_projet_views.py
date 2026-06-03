@@ -4,7 +4,6 @@ from django.contrib import messages
 from django.db import transaction
 from django.http import Http404 as DjangoHttp404
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
@@ -462,22 +461,6 @@ def _enrich_simulation_projet_context_with_generic_info_for_all_tabs(
     context.update(
         {
             "title": title,
-            "breadcrumb_dict": {
-                "links": [
-                    {
-                        "url": reverse("simulation:simulation-list"),
-                        "title": "Mes simulations de programmation",
-                    },
-                    {
-                        "url": reverse(
-                            "simulation:simulation-detail",
-                            kwargs={"slug": simulation_projet.simulation.slug},
-                        ),
-                        "title": simulation_projet.simulation.title,
-                    },
-                ],
-                "current": title,
-            },
             "simu": simulation_projet,
             "projet": simulation_projet.projet,
             "dotation_projet": simulation_projet.dotation_projet,

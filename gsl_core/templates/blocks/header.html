@@ -2,6 +2,11 @@
 {% load i18n static %}
 {% url 'index' as home_url %}
 
+{% block brand %}
+    <p class="fr-logo">
+    </p>
+{% endblock brand %}
+
 {% block header_tools %}
     <li>
         <a href="{% url 'user-help-and-contact' %}"
@@ -9,13 +14,6 @@
            class="fr-btn fr-icon-questionnaire-fill">
             Aide et contact
         </a>
-    </li>
-    <li>
-        <button class="fr-btn--display fr-btn"
-                aria-controls="fr-theme-modal"
-                data-fr-opened="false">
-            {% translate "Display settings" %}
-        </button>
     </li>
     <li>
         {% if user.is_authenticated %}
@@ -50,13 +48,6 @@
     </li>
 {% endblock header_tools %}
 
-{% block operator_logo %}
-    <div class="fr-header__operator">
-        <img class="fr-responsive-img"
-             src="{% static "img/logo-collectivites-locales.png" %}"
-             alt="Direction Générale des Collectivités Locales" />
-    </div>
-{% endblock operator_logo %}
 
 {# Leave burger_menu and main_menu blocks empty if the main menu is not used #}
 {% block burger_menu %}

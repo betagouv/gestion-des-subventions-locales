@@ -246,7 +246,6 @@ class TestProgrammationProjetDetailView:
         assert "title" in response.context
         assert "projet" in response.context
         assert "dossier" in response.context
-        assert "breadcrumb_dict" in response.context
         assert "menu_dict" in response.context
 
     def test_detail_view_optimized_queries(
@@ -413,7 +412,6 @@ class TestProgrammationProjetNotesView:
         assert "title" in response.context
         assert "projet" in response.context
         assert "dossier" in response.context
-        assert "breadcrumb_dict" in response.context
         assert "menu_dict" in response.context
         assert "comment_cards" in response.context
         assert len(response.context["comment_cards"]) == 3
