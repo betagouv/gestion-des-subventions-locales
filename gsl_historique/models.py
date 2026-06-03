@@ -1,3 +1,4 @@
+from django.contrib.admin.models import LogEntry
 from django.db import models
 
 from gsl_projet.constants import DOTATION_CHOICES
@@ -120,3 +121,11 @@ class ProjetAction(models.Model):
         if self.boolean_value is not None:
             return "Oui" if self.boolean_value else "Non"
         return ""
+
+
+class CollegueLogEntry(LogEntry):
+    class Meta:
+        proxy = True
+        app_label = "gsl_historique"
+        verbose_name = "Entrée d'historique utilisateur"
+        verbose_name_plural = "Entrées d'historique des utilisateurs"
