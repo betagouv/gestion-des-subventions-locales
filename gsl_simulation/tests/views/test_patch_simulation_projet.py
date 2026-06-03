@@ -80,9 +80,8 @@ def simulation_projet(collegue, simulation):
     )
 
 
-@mock.patch("gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds")
 def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
-    _mock_save_one_dossier_from_ds, client_with_user_logged, simulation_projet
+    client_with_user_logged, simulation_projet
 ):
     page_url = reverse(
         "simulation:simulation-detail", args=[simulation_projet.simulation.slug]
@@ -134,14 +133,12 @@ data_test = (
 )
 
 
-@mock.patch("gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds")
 @mock.patch(
     "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
 @pytest.mark.parametrize("status, expected_message, expected_tag", data_test)
 def test_patch_status_simulation_projet_gives_message(
     mock_ds_update,
-    _mock_save_one_dossier_from_ds,
     client_with_user_logged,
     simulation_projet,
     status,
@@ -235,9 +232,8 @@ def accepted_simulation_projet(collegue, simulation):
     )
 
 
-@mock.patch("gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds")
 def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
-    _mock_save_one_dossier_from_ds, client_with_user_logged, simulation_projet
+    client_with_user_logged, simulation_projet
 ):
     simulation_projet.projet.dossier_ds.ds_instructeurs.add(
         client_with_user_logged.user.ds_profile

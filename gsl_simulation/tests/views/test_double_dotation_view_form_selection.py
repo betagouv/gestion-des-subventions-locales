@@ -33,14 +33,6 @@ from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFa
 pytestmark = pytest.mark.django_db
 
 
-@pytest.fixture(autouse=True)
-def mock_save_dossier():
-    with mock.patch(
-        "gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds"
-    ):
-        yield
-
-
 @pytest.fixture
 def perimetre_departemental():
     return PerimetreDepartementalFactory()

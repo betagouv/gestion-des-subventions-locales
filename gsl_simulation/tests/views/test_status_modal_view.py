@@ -1,6 +1,4 @@
 from datetime import date
-from unittest import mock
-from unittest.mock import patch
 
 import pytest
 from django.contrib.messages import get_messages
@@ -81,19 +79,14 @@ def test_refuse_modal_excludes_notified_projects(
         args=[simulation_projet.id, SimulationProjet.STATUS_REFUSED],
     )
 
-    with patch(
-        "gsl_demarches_simplifiees.importer.dossier.save_one_dossier_from_ds",
-        return_value=None,
-    ):
-        response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
+    response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
 
     # Since the queryset excludes notified projets, the view should 404
     assert response.status_code == 404
 
 
-@mock.patch("gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds")
 def test_refuse_modal_allows_non_notified_projects(
-    mock_save_dossier, client_with_user_logged, simulation_projet
+    client_with_user_logged, simulation_projet
 ):
     # Ensure a related ProgrammationProjet exists without notification
     ProgrammationProjetFactory(
@@ -106,18 +99,12 @@ def test_refuse_modal_allows_non_notified_projects(
         args=[simulation_projet.id, SimulationProjet.STATUS_REFUSED],
     )
 
-    with patch(
-        "gsl_demarches_simplifiees.importer.dossier.save_one_dossier_from_ds",
-        return_value=None,
-    ):
-        response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
+    response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
 
     assert response.status_code == 200
 
 
-@mock.patch("gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds")
 def test_dismiss_projet(
-    mock_save_one_dossier_from_ds,
     client_with_user_logged,
     simulation_projet,
 ):
@@ -128,10 +115,6 @@ def test_dismiss_projet(
     response = client_with_user_logged.post(url, {}, headers={"HX-Request": "true"})
 
     assert response.status_code == 200
-
-    mock_save_one_dossier_from_ds.assert_called_once_with(
-        simulation_projet.projet.dossier_ds
-    )
 
     messages = get_messages(response.wsgi_request)
     assert len(messages) == 1

@@ -30,7 +30,6 @@ from gsl_core.matomo_constants import (
 from gsl_core.templatetags.gsl_filters import euro
 from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.exceptions import DsServiceException
-from gsl_demarches_simplifiees.importer.dossier import save_one_dossier_from_ds
 from gsl_programmation.models import Enveloppe
 from gsl_projet.constants import (
     DOTATION_DETR,
@@ -793,7 +792,6 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
 
     def get_object(self, queryset=None) -> SimulationProjet:
         obj = super().get_object(queryset)
-        save_one_dossier_from_ds(obj.projet.dossier_ds)
         self.new_project_status = projet_status_from_dotation_statuses(
             (
                 self.kwargs["status"],

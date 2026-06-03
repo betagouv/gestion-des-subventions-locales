@@ -356,9 +356,8 @@ class RefusedDismissedNotificationForm(DsfrBaseForm, forms.ModelForm):
         dossier = projet.dossier_ds
         ds = DsService()
 
-        # Dossier was recently refreshed DN thanks to the up-to-date check.
-        # Race conditions remain possible, but should be rare enough and just
-        # fail without any side effect.
+        # Dossier was recently refreshed DN
+        # Race conditions remain possible, but should be rare enough and just fail without any side effect.
         if dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:
             ds.passer_en_instruction(dossier=dossier, user=user)
 

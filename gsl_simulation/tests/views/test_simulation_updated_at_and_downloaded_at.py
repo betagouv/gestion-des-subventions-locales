@@ -176,12 +176,11 @@ class TestSimulationUpdatedAtOnStatusChange:
         simulation_projet.simulation.refresh_from_db()
         assert simulation_projet.simulation.updated_at > before
 
-    @mock.patch("gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds")
     @mock.patch(
         "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
     )
     def test_programmation_status_accept_updates_simulation_updated_at(
-        self, _mock_ds, _mock_save, client_with_user_logged, simulation_projet
+        self, _mock_ds, client_with_user_logged, simulation_projet
     ):
         before = simulation_projet.simulation.updated_at
         page_url = reverse(
@@ -199,12 +198,11 @@ class TestSimulationUpdatedAtOnStatusChange:
         simulation_projet.simulation.refresh_from_db()
         assert simulation_projet.simulation.updated_at > before
 
-    @mock.patch("gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds")
     @mock.patch(
         "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
     )
     def test_accept_does_not_update_other_simulations_updated_at(
-        self, _mock_ds, _mock_save, client_with_user_logged, simulation_projet
+        self, _mock_ds, client_with_user_logged, simulation_projet
     ):
         """Quand on accepte un simulation_projet, la cascade met à jour tous les
         SimulationProjet liés au même DotationProjet, mais on ne doit mettre à

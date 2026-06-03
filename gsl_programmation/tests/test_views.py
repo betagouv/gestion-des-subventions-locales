@@ -13,6 +13,7 @@ from gsl_programmation.tests.factories import (
     DsilEnveloppeFactory,
     ProgrammationProjetFactory,
 )
+from gsl_projet.constants import PROJET_STATUS_ACCEPTED
 from gsl_projet.tests.factories import ProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -204,6 +205,31 @@ class TestProgrammationProjetDetailView:
         response = client.get(url)
         assert response.status_code == 200
         assert response.context["projet"] == programmation_projet.projet
+
+    def test_accepted_notify_button_links_straight_to_documents(
+        self, user_with_perimetre, projet
+    ):
+        """Pour un projet accepté, le bouton « Notifier le demandeur » est un
+        lien direct vers la page documents (aucun appel DN à l'ouverture)."""
+        ProgrammationProjetFactory(
+            dotation_projet__projet=projet,
+            dotation_projet__status=PROJET_STATUS_ACCEPTED,
+            notified_at=None,
+        )
+        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
+        url = reverse(
+            "gsl_programmation:programmation-projet-detail",
+            kwargs={"projet_id": projet.id},
+        )
+        response = client.get(url)
+        assert response.status_code == 200
+
+        content = response.content.decode()
+        documents_url = reverse("gsl_notification:documents", args=[projet.id])
+        assert f'href="{documents_url}"' in content
+        assert "Notifier le demandeur" in content
+        # The accepted button must be a plain anchor, with no DS round-trip on open.
+        assert "check-ds-dossier-up-to-date" not in content
 
     def test_detail_view_unauthorized_user_gets_404(
         self, user_with_perimetre, other_programmation_projet
