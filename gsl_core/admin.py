@@ -5,8 +5,10 @@ import openpyxl
 import tablib
 from django import forms
 from django.contrib import admin
+from django.contrib.admin.models import CHANGE, LogEntry
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
+from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
 from django.db.models import Count, OuterRef, Subquery
@@ -356,11 +358,31 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
 
     @admin.action(description="🚫 Désactivation des utilisateurs")
     def deactivate_users(self, request, queryset):
+        affected = list(queryset.filter(is_active=True))
         queryset.update(is_active=False)
+        self._log_is_active_change(request, affected)
 
     @admin.action(description="✅ Réactivation des utilisateurs")
     def activate_users(self, request, queryset):
+        affected = list(queryset.filter(is_active=False))
         queryset.update(is_active=True)
+        self._log_is_active_change(request, affected)
+
+    def _log_is_active_change(self, request, users):
+        ct = ContentType.objects.get_for_model(Collegue)
+        LogEntry.objects.bulk_create(
+            [
+                LogEntry(
+                    user_id=request.user.pk,
+                    content_type_id=ct.pk,
+                    object_id=obj.pk,
+                    object_repr=str(obj),
+                    action_flag=CHANGE,
+                    change_message=[{"changed": {"fields": ["is_active"]}}],
+                )
+                for obj in users
+            ]
+        )
 
     def is_staff_custom(self, obj):
         return obj.is_staff
