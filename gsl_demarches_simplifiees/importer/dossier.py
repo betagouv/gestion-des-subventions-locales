@@ -213,7 +213,10 @@ def _advance_stream(
 ) -> tuple[bool, str | None]:
     if result is None:
         return False, current_cursor
-    return result.has_more, result.cursor
+    # An empty connection returns endCursor=None (with hasNextPage=False); keep the
+    # cursor we already have instead of resetting the stream to the beginning.
+    next_cursor = current_cursor if result.cursor is None else result.cursor
+    return result.has_more, next_cursor
 
 
 def _save_cursors_after_page(
