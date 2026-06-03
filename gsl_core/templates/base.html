@@ -46,20 +46,20 @@
             <script type="importmap" nonce="{{ csp_nonce }}">
             {
                 "imports": {
-                    "stimulus": "/static/vendor/stimulus.js",
-                    "tiptap": "/static/vendor/tiptap.js",
-                    "tiptapEditor": "/static/ui/controllers/tiptapEditor.js",
-                    "modal": "/static/ui/controllers/modal.js",
-                    "doubleDotation": "/static/js/controllers/doubleDotation.js",
-                    "modeleArreteForm": "/static/js/modeleArreteForm.js",
-                    "deleteNotificationDocumentModal": "/static/js/deleteNotificationDocumentModal.js",
-                    "qrCodeToggle": "/static/js/qrCodeToggle.js",
-                    "chooseDocumentType": "/static/js/chooseDocumentType.js",
-                    "checkboxSelection": "/static/js/checkboxSelection.js",
-                    "bindAmountFields": "/static/js/controllers/bindAmountTields.js",
-                    "formUtils": "/static/js/controllers/formUtils.js",
-                    "dotationDropdown": "/static/js/controllers/dotationDropdown.js",
-                    "commentArbitrage": "/static/js/controllers/commentArbitrage.js"
+                    "stimulus": "{% static 'vendor/stimulus.js' %}",
+                    "tiptap": "{% static 'vendor/tiptap.js' %}",
+                    "tiptapEditor": "{% static 'ui/controllers/tiptapEditor.js' %}",
+                    "modal": "{% static 'ui/controllers/modal.js' %}",
+                    "doubleDotation": "{% static 'js/controllers/doubleDotation.js' %}",
+                    "modeleArreteForm": "{% static 'js/modeleArreteForm.js' %}",
+                    "deleteNotificationDocumentModal": "{% static 'js/deleteNotificationDocumentModal.js' %}",
+                    "qrCodeToggle": "{% static 'js/qrCodeToggle.js' %}",
+                    "chooseDocumentType": "{% static 'js/chooseDocumentType.js' %}",
+                    "checkboxSelection": "{% static 'js/checkboxSelection.js' %}",
+                    "bindAmountFields": "{% static 'js/controllers/bindAmountTields.js' %}",
+                    "formUtils": "{% static 'js/controllers/formUtils.js' %}",
+                    "dotationDropdown": "{% static 'js/controllers/dotationDropdown.js' %}",
+                    "commentArbitrage": "{% static 'js/controllers/commentArbitrage.js' %}"
                 }
             }
             </script>
