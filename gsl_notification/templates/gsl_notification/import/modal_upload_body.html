@@ -69,6 +69,11 @@
            hidden
            data-document-import-target="progress">
         </p>
+        <p class="fr-mt-2w"
+           aria-live="assertive"
+           hidden
+           data-document-import-target="error">
+        </p>
         <form hidden
               data-document-import-target="form"
               hx-post="{% url 'gsl_notification:import-start' %}"
@@ -92,7 +97,7 @@
                         class="fr-btn fr-icon-arrow-right-s-line"
                         disabled
                         data-document-import-target="submit"
-                        data-action="document-import#submitFiles">
+                        data-action="document-import#goToProcessing">
                     Continuer
                 </button>
             </li>
