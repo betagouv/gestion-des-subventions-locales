@@ -3,14 +3,13 @@ from django.db.models import Exists, OuterRef
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.csp import CSP
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_http_methods, require_POST
 from django.views.generic import DeleteView, DetailView, UpdateView
-from django_htmx.http import HttpResponseClientRedirect, HttpResponseClientRefresh
+from django_htmx.http import HttpResponseClientRefresh
 
 from gsl.utils.csp import csp_update
 from gsl_core.decorators import htmx_only
@@ -24,7 +23,6 @@ from gsl_core.matomo_constants import (
     MATOMO_CATEGORY_NOTIFICATION,
 )
 from gsl_core.view_mixins import OpenHtmxModalMixin
-from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_notification.forms import (
     ChooseDocumentTypeForGenerationForm,
@@ -167,35 +165,6 @@ class NotificationMessageView(UpdateView):
             "gsl_programmation:programmation-projet-detail",
             args=[self.object.id],
         )
-
-
-@method_decorator(htmx_only, name="dispatch")
-class CheckDsDossierUpToDateView(OpenHtmxModalMixin, DetailView):
-    """
-    This view is used to check if the dossier is up to date. It should be used in a modal.
-    """
-
-    template_name = "gsl_notification/modal/ds_dossier_not_up_to_date.html"
-    pk_url_kwarg = "projet_id"
-    context_object_name = "projet"
-    modal_id = "dossier-not-up-to-date-modal"
-
-    def get_queryset(self):
-        return Projet.objects.active().for_user(self.request.user)
-
-    def render_to_response(self, context, *args, **kwargs):
-        dossier = self.object.dossier_ds
-        client = DsClient()
-        dossier_data = client.get_one_dossier(dossier.ds_number)
-        date_modif_ds = dossier_data.get("dateDerniereModification", None)
-        if date_modif_ds:
-            date_modif_ds = timezone.datetime.fromisoformat(date_modif_ds)
-            if date_modif_ds <= dossier.ds_date_derniere_modification:
-                return HttpResponseClientRedirect(
-                    reverse("gsl_notification:documents", args=[self.object.id])
-                )
-
-        return super().render_to_response(context, *args, **kwargs)
 
 
 @method_decorator(htmx_only, name="dispatch")

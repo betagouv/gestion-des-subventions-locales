@@ -244,10 +244,8 @@ status_update_expected_status_summary = {
 }
 
 
-@mock.patch("gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds")
 @pytest.mark.django_db
 def test_patch_status_simulation_projet_url_with_htmx(
-    _mock_save_one_dossier_from_ds,
     client_with_cote_d_or_user_logged,
     cote_dorien_simulation_projet,
 ):

@@ -19,7 +19,6 @@ from gsl_notification.views.uploaded_document_views import (
     view_uploaded_document,
 )
 from gsl_notification.views.views import (
-    CheckDsDossierUpToDateView,
     ChooseDocumentTypeForGenerationView,
     DeleteDocumentView,
     DownloadDocumentView,
@@ -32,11 +31,6 @@ from gsl_notification.views.views import (
 )
 
 urlpatterns = [
-    path(
-        "<int:projet_id>/",
-        CheckDsDossierUpToDateView.as_view(),
-        name="check-ds-dossier-up-to-date",
-    ),
     path(
         "<int:projet_id>/documents/",
         NotificationDocumentsView.as_view(),

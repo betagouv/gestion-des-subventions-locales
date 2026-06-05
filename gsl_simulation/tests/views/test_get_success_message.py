@@ -6,7 +6,6 @@ the correct success messages for all status combinations.
 """
 
 from decimal import Decimal
-from unittest import mock
 
 import pytest
 
@@ -35,15 +34,6 @@ OTHER_DOTATION = {
     DOTATION_DSIL: DOTATION_DETR,
     DOTATION_DETR: DOTATION_DSIL,
 }
-
-
-@pytest.fixture(autouse=True)
-def mock_save_dossier():
-    """Mock save_one_dossier_from_ds for all tests in this module."""
-    with mock.patch(
-        "gsl_simulation.views.simulation_projet_views.save_one_dossier_from_ds"
-    ):
-        yield
 
 
 @pytest.fixture
