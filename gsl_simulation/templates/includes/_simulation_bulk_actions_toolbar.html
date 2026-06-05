@@ -13,7 +13,7 @@
 
 <div class="gsl-table-toolbar fr-mt-11v fr-mb-6v">
     {{ selectable_ids_list|json_script:"checkbox-selection-selectable-ids" }}
-    <span class="gsl-bulk-actions__count">
+    <span>
         {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
         <span class="fr-text-mention--grey fr-ml-2w"
               data-checkbox-selection-target="counterWrapper">
