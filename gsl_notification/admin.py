@@ -179,6 +179,10 @@ class DocumentImportJobAdmin(admin.ModelAdmin):
         "updated_at",
     )
 
+    def has_add_permission(self, request):
+        # Jobs are created by the import flow, never by hand.
+        return False
+
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("created_by")
 

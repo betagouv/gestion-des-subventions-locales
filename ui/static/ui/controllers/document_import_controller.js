@@ -29,12 +29,19 @@ export class DocumentImport extends Controller {
     this.files = []
     this._refresh()
 
+    this.dialog = this.element.closest('.fr-modal')
+
+    // This controller lives on the deposit (step 1) and summary (step 3) steps,
+    // both of which offer a "Fermer" affordance, so backdrop-click closing is
+    // allowed here. The processing step (step 2) has no controller: it leaves
+    // the attribute set to "false" by `submitFiles` so it cannot be dismissed.
+    this._setBackdropClose(true)
+
     // The summary step (step 3) re-uses this controller solely to reload the
     // programmation list once the user closes the modal, so the freshly
     // re-attached documents show up. DSFR fires `dsfr.conceal` on the dialog
     // (with a dot in the name, so it can't be a Stimulus data-action).
-    if (this.reloadOnConcealValue) {
-      this.dialog = this.element.closest('.fr-modal')
+    if (this.reloadOnConcealValue && this.dialog) {
       this._reloadOnConceal = () => window.location.reload()
       this.dialog.addEventListener('dsfr.conceal', this._reloadOnConceal)
     }
@@ -77,23 +84,27 @@ export class DocumentImport extends Controller {
   addFiles (fileList) {
     const maxBytes = this.maxSizeMoValue * 1024 * 1024
     let total = this.files.reduce((sum, f) => sum + f.size, 0)
+    // Accumulate one message per rejected file so a batch with several invalid
+    // files surfaces every reason at once, not just the last one.
+    const errors = []
     for (const file of Array.from(fileList)) {
       const safeName = this._escapeHtml(file.name)
       if (!this._isPdf(file)) {
-        this._setError(`«&nbsp;${safeName}&nbsp;» n'est pas un PDF et a été ignoré.`)
+        errors.push(`«&nbsp;${safeName}&nbsp;» n'est pas un PDF et a été ignoré.`)
         continue
       }
       if (this._isDuplicate(file)) {
-        this._setError(`«&nbsp;${safeName}&nbsp;» est déjà sélectionné et a été ignoré.`)
+        errors.push(`«&nbsp;${safeName}&nbsp;» est déjà sélectionné et a été ignoré.`)
         continue
       }
       if (total + file.size > maxBytes) {
-        this._setError(`La taille totale dépasse ${this.maxSizeMoValue} Mo. «&nbsp;${safeName}&nbsp;» a été ignoré.`)
+        errors.push(`La taille totale dépasse ${this.maxSizeMoValue} Mo. «&nbsp;${safeName}&nbsp;» a été ignoré.`)
         continue
       }
       total += file.size
       this.files.push(file)
     }
+    this._setError(errors.join('<br>'))
     this._refresh()
   }
 
@@ -121,6 +132,10 @@ export class DocumentImport extends Controller {
       const keys = await this._uploadAll()
       this.keysInputTarget.value = JSON.stringify(keys)
       this.removeQrInputTarget.value = this.removeQrTarget.checked ? 'true' : 'false'
+      // Entering the processing step (no "Fermer" affordance): lock the backdrop
+      // so the modal cannot be dismissed mid-import. The processing partial has
+      // no controller, so this attribute on the dialog persists across the swap.
+      this._setBackdropClose(false)
       // htmx is loaded as a self-initializing ES module and isn't exposed as a
       // global, so we dispatch a native submit event (which htmx listens for on
       // the hx-post form) rather than calling htmx.trigger directly.
@@ -128,7 +143,20 @@ export class DocumentImport extends Controller {
     } catch (error) {
       this.uploading = false
       this.submitTarget.disabled = false
+      this._setBackdropClose(true)
       this._setError(`Une erreur est survenue pendant l'envoi : ${this._escapeHtml(error.message)}`)
+    }
+  }
+
+  // DSFR reads `data-fr-concealing-backdrop` live on each backdrop click
+  // (`"false" !== getAttribute(...)`), so toggling it at runtime is enough to
+  // enable/disable closing the modal by clicking outside it.
+  _setBackdropClose (allowed) {
+    if (!this.dialog) return
+    if (allowed) {
+      this.dialog.removeAttribute('data-fr-concealing-backdrop')
+    } else {
+      this.dialog.setAttribute('data-fr-concealing-backdrop', 'false')
     }
   }
 

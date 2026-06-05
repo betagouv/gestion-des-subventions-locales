@@ -35,7 +35,9 @@
                         {{ job.result.files_processed }} fichier{{ job.result.files_processed|custom_pluralize }} traité{{ job.result.files_processed|custom_pluralize }}
                     </li>
                     <li>
-                        {{ job.result.pages_extracted }} page{{ job.result.pages_extracted|custom_pluralize }}
+                        {{ job.result.pages_attached }}&nbsp;/&nbsp;{{ job.result.pages_extracted }}
+                        page{{ job.result.pages_extracted|custom_pluralize }}
+                        rattachée{{ job.result.pages_extracted|custom_pluralize }}
                     </li>
                     <li>
                         {{ job.result.lettres_arretes_attached }} lettre{{ job.result.lettres_arretes_attached|custom_pluralize }}/arrêté{{ job.result.lettres_arretes_attached|custom_pluralize }} rattaché{{ job.result.lettres_arretes_attached|custom_pluralize }}
@@ -48,21 +50,33 @@
                 <h3 class="fr-alert__title">
                     {{ job.result.errors|length }} élément{{ job.result.errors|length|custom_pluralize }} non rattaché{{ job.result.errors|length|custom_pluralize }}
                 </h3>
-                <ul class="fr-mb-0">
-                    {% for error in job.result.errors %}
-                        <li>
-                            {% if error.type == "unreadable_page" %}
-                                Page {{ error.scan_page }} de «&nbsp;{{ error.file }}&nbsp;» : aucun QR code lisible.
-                            {% elif error.type == "group_failed" %}
-                                Dossier {{ error.ds_number }} ({{ error.dotation }}) : {{ error.message }}
-                            {% elif error.type == "infected_file" %}
-                                «&nbsp;{{ error.file }}&nbsp;» : {{ error.message }}
-                            {% else %}
-                                {{ error.message }}
-                            {% endif %}
-                        </li>
-                    {% endfor %}
-                </ul>
+                {% for file_errors in error_groups.unreadable %}
+                    <p class="fr-mb-1v fr-text--bold">
+                        {{ file_errors.file }}&nbsp;:
+                    </p>
+                    <ul class="fr-mb-2w">
+                        {% for page in file_errors.pages %}
+                            <li>
+                                Page {{ page }}&nbsp;: aucun QR code lisible.
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endfor %}
+                {% if error_groups.other %}
+                    <ul class="fr-mb-0">
+                        {% for error in error_groups.other %}
+                            <li>
+                                {% if error.type == "group_failed" %}
+                                    Dossier {{ error.ds_number }} ({{ error.dotation }}) : {{ error.message }}
+                                {% elif error.type == "infected_file" %}
+                                    {{ error.file }}&nbsp;: {{ error.message }}
+                                {% else %}
+                                    {{ error.message }}
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
             </div>
         {% endif %}
     </div>

@@ -74,6 +74,21 @@ def _build_pdf_for_pp(ds_number, content_blocks=200, perimetre=None):
     return pp, generate_pdf_for_generated_document(document)
 
 
+def _split_pdf(pdf_bytes: bytes, at: int) -> tuple[bytes, bytes]:
+    """Split `pdf_bytes` into two PDFs: pages [0, at) and [at, end)."""
+    src = Pdf.open(io.BytesIO(pdf_bytes))
+    try:
+        head, tail = Pdf.new(), Pdf.new()
+        for index, page in enumerate(src.pages):
+            (head if index < at else tail).pages.append(page)
+        head_buf, tail_buf = io.BytesIO(), io.BytesIO()
+        head.save(head_buf)
+        tail.save(tail_buf)
+        return head_buf.getvalue(), tail_buf.getvalue()
+    finally:
+        src.close()
+
+
 # PresignedUploadView ---------------------------------------------------------
 
 
@@ -199,6 +214,47 @@ def test_start_view_e2e_attaches_signed_document(client, user, perimetre):
 
     attached = LettreEtArreteSignes.objects.get(programmation_projet=pp)
     assert f"programmation_projet_{pp.id}/" in attached.file.name
+
+
+def test_start_view_merges_pages_of_same_project_across_files(client, user, perimetre):
+    pytest.importorskip("pypdfium2")
+    pytest.importorskip("zxingcpp")
+
+    # Two files of the *same* import that both carry pages for the same project
+    # (e.g. an arrêté file + a lettre file) must merge into a single combined
+    # LettreEtArreteSignes, not have the second file replace the first.
+    pp, pdf_bytes = _build_pdf_for_pp(
+        ds_number=2223334, perimetre=perimetre, content_blocks=1000
+    )
+    total_pages = len(Pdf.open(io.BytesIO(pdf_bytes)).pages)
+    assert total_pages >= 2, "test assumes a multi-page generated PDF"
+
+    head, tail = _split_pdf(pdf_bytes, 1)
+    blobs = {"imports/abc/arrete.pdf": head, "imports/abc/lettre.pdf": tail}
+
+    fake_s3 = MagicMock()
+    fake_s3.download_fileobj.side_effect = lambda b, k, f: f.write(blobs[k])
+
+    with patch("gsl_notification.utils.get_s3_client", return_value=fake_s3):
+        client.post(
+            reverse("gsl_notification:import-start"),
+            {"s3_keys": json.dumps(list(blobs))},
+            **HTMX_HEADERS,
+        )
+
+    job = DocumentImportJob.objects.get()
+    assert job.status == DocumentImportJob.STATUS_DONE
+    assert job.result["files_processed"] == 2
+    assert job.result["pages_extracted"] == total_pages
+    assert job.result["pages_attached"] == total_pages
+    assert job.result["lettres_arretes_attached"] == 1
+    assert job.result["errors"] == []
+
+    # One combined document holding every page from both files.
+    docs = LettreEtArreteSignes.objects.filter(programmation_projet=pp)
+    assert docs.count() == 1
+    with docs.get().file.open("rb") as fh:
+        assert len(Pdf.open(io.BytesIO(fh.read())).pages) == total_pages
 
 
 def test_start_view_does_not_attach_out_of_perimetre(client, user):

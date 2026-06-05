@@ -78,27 +78,6 @@
                     </div>
                 </div>
             </dialog>
-            <button id="import-modal-button"
-                    aria-controls="import-modal"
-                    type="button"
-                    hidden
-                    data-fr-opened="false">
-            </button>
-            <dialog class="fr-modal"
-                    id="import-modal"
-                    aria-labelledby="import-modal-title"
-                    data-fr-concealing-backdrop="false">
-                <div class="fr-container fr-container--fluid fr-container-md">
-                    <div class="fr-grid-row fr-grid-row--center">
-                        <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
-                            <div class="fr-modal__body">
-                                <div id="import-modal-step">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </dialog>
             <div class="gsl-table-toolbar fr-mt-11v fr-mb-6v">
                 <span class="gsl-bulk-actions__count">
                     {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
@@ -107,7 +86,7 @@
                         <span data-checkbox-selection-target="counter">0</span> projets sélectionnés
                     </span>
                 </span>
-                <ul class="fr-btns-group fr-btns-group--inline fr-btns-group--right fr-btns-group--icon-right">
+                <ul class="fr-btns-group fr-btns-group--inline-lg fr-btns-group--right fr-btns-group--icon-right">
                     <li>
                         <button type="button" class="fr-btn fr-btn--tertiary" data-action="click->checkbox-selection#toggleSelectAll" data-checkbox-selection-target="selectAllButton"
                             {% if not to_notify_projets_count %}
@@ -141,7 +120,7 @@
                         <button type="button"
                                 class="fr-btn fr-btn--secondary"
                                 hx-get="{% url 'gsl_notification:import-documents-modal' dotation %}"
-                                hx-target="#import-modal-step"
+                                hx-target="this"
                                 hx-swap="outerHTML">
                             Importer les documents signés
                         </button>

@@ -209,10 +209,11 @@ def test_event_stream_emits_per_page_decode_events(tmp_path):
     assert events[0] == DecodeStarted(total_pages=total_pages)
 
     per_page_events = events[1 : 1 + total_pages]
+    # Each page event carries the stem of its source file.
     expected_per_page = [
-        PageDecoded(scan_page=i) for i in range(1, valid_page_count + 1)
+        PageDecoded(scan_page=i, file=scan.stem) for i in range(1, valid_page_count + 1)
     ]
-    expected_per_page.append(UnreadablePage(scan_page=total_pages))
+    expected_per_page.append(UnreadablePage(scan_page=total_pages, file=scan.stem))
     assert per_page_events == expected_per_page
 
     assert len(events) == 1 + total_pages + 1

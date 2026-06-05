@@ -39,13 +39,14 @@ def _max_import_bytes() -> int:
 @method_decorator(htmx_only, name="dispatch")
 class ImportDocumentsModalView(OpenHtmxModalMixin, TemplateView):
     """
-    Opens the import wizard: renders the step-1 dropzone body, swapped into the
-    modal shell already present on the page, and triggers the DSFR modal-open
-    click. GET because opening the modal is side-effect-free and carries no
-    project selection (QR matching is global).
+    Opens the import wizard following the project's HTMX+DSFR modal pattern:
+    swaps the toolbar's hx-get button for a DSFR modal-open button, appends the
+    <dialog> (with the step-1 dropzone body) to <body> out-of-band, and triggers
+    the synthetic modal-open click. GET because opening the modal is
+    side-effect-free and carries no project selection (QR matching is global).
     """
 
-    template_name = TEMPLATE_BASE + "modal_upload_body.html"
+    template_name = TEMPLATE_BASE + "modal_open.html"
     modal_id = IMPORT_MODAL_ID
 
     def dispatch(self, request, *args, **kwargs):
@@ -158,4 +159,27 @@ class ImportJobProgressView(DetailView):
         context = super().get_context_data(**kwargs)
         context["modal_id"] = IMPORT_MODAL_ID
         context["stale"] = self._is_stale()
+        context["error_groups"] = _group_import_errors(
+            (self.object.result or {}).get("errors", [])
+        )
         return context
+
+
+def _group_import_errors(errors: list[dict]) -> dict:
+    """Reshape the flat error list into the summary's display groups: unreadable
+    pages bundled per source file, other failures (unrouted groups, infected
+    files, crashes) kept as a flat list."""
+    unreadable_by_file: dict[str, list[int]] = {}
+    other: list[dict] = []
+    for error in errors:
+        if error.get("type") == "unreadable_page":
+            unreadable_by_file.setdefault(error.get("file"), []).append(
+                error.get("scan_page")
+            )
+        else:
+            other.append(error)
+
+    unreadable = [
+        {"file": file, "pages": pages} for file, pages in unreadable_by_file.items()
+    ]
+    return {"unreadable": unreadable, "other": other}

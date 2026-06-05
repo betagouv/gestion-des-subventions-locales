@@ -1,0 +1,34 @@
+{% comment %}
+HTMX+DSFR modal-open response (see gsl_simulation/templates/htmx/_base_htmx_modal.html
+for the canonical pattern). The toolbar's hx-get button targets itself and is
+swapped for the button below — visually identical, but with the DSFR modal
+attributes and no htmx attributes, so it just opens the modal. The <dialog> is
+appended to <body> out-of-band (it is not pre-rendered in the page).
+OpenHtmxModalMixin then fires a synthetic click on #{{ modal_button_id }}.
+
+The dialog starts with backdrop-close allowed (no data-fr-concealing-backdrop);
+the document-import controller toggles it off while the processing step runs
+(no "Fermer" affordance) and back on for the deposit/summary steps.
+{% endcomment %}
+<button type="button"
+        class="fr-btn fr-btn--secondary"
+        id="{{ modal_button_id }}"
+        aria-controls="{{ modal_id }}"
+        data-fr-opened="false">
+    Importer les documents signés
+</button>
+<div hx-swap-oob="beforeend:body">
+    <dialog class="fr-modal"
+            id="{{ modal_id }}"
+            aria-labelledby="{{ modal_id }}-title">
+        <div class="fr-container fr-container--fluid fr-container-md">
+            <div class="fr-grid-row fr-grid-row--center">
+                <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
+                    <div class="fr-modal__body">
+                        {% include "gsl_notification/import/modal_upload_body.html" %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </dialog>
+</div>
