@@ -5,10 +5,12 @@ import pytest
 from django.contrib import messages
 from django.utils.timezone import datetime
 
+from gsl_core.tests.factories import DepartementFactory
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsConnectionError, DsServiceException
 from gsl_demarches_simplifiees.importer.dossier import (
-    _is_dossier_in_active_departement,
+    _get_handled_departement_insee_codes,
+    _is_dossier_in_handled_departement,
     _reinit_demarche_sync_state,
     _save_cursors_after_page,
     _save_dossier_data_and_refresh_dossier_and_projet_and_co,
@@ -88,7 +90,7 @@ def test_save_demarche_dossiers_from_ds_calls_save_dossier_data_and_refresh_doss
         return_value=(_make_demarche_page(dossiers=ds_dossiers), False),
     ):
         with patch(
-            "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
+            "gsl_demarches_simplifiees.importer.dossier._get_handled_departement_insee_codes",
             return_value=["75"],
         ):
             with patch(
@@ -140,7 +142,7 @@ def test_save_demarche_dossiers_from_ds_update_raw_ds_data_dossiers():
         return_value=(_make_demarche_page(dossiers=ds_dossiers), False),
     ):
         with patch(
-            "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
+            "gsl_demarches_simplifiees.importer.dossier._get_handled_departement_insee_codes",
             return_value=["75"],
         ):
             save_demarche_dossiers_from_ds(demarche_number)
@@ -192,7 +194,7 @@ def test_save_demarche_dossiers_from_ds_with_one_empty_data(caplog):
         return_value=(_make_demarche_page(dossiers=ds_dossiers), False),
     ):
         with patch(
-            "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
+            "gsl_demarches_simplifiees.importer.dossier._get_handled_departement_insee_codes",
             return_value=["75"],
         ):
             save_demarche_dossiers_from_ds(demarche_number)
@@ -314,7 +316,7 @@ def test_save_demarche_dossiers_from_ds_multipage_different_stream_lengths():
         side_effect=[(page1, False), (page2, False)],
     ) as mock_fetch:
         with patch(
-            "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
+            "gsl_demarches_simplifiees.importer.dossier._get_handled_departement_insee_codes",
             return_value=["75"],
         ):
             with patch(
@@ -585,11 +587,11 @@ def test_has_dossier_been_updated_on_ds():
     assert _has_dossier_been_updated_on_ds(dossier, ds_data_older) is False
 
 
-# test _is_dossier_in_active_departement
+# test _is_dossier_in_handled_departement
 
 
-def test_is_dossier_in_active_departement_department_found_and_in_active_list():
-    """Test when department field is found and code is in active departments."""
+def test_is_dossier_in_handled_departement_department_found_and_in_active_list():
+    """Test when department field is found and code is in handled departments."""
     raw_data = {
         "champs": [
             {
@@ -599,12 +601,12 @@ def test_is_dossier_in_active_departement_department_found_and_in_active_list():
         ]
     }
     departements_actifs = ["75", "13", "69"]
-    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    is_active, label = _is_dossier_in_handled_departement(raw_data, departements_actifs)
     assert is_active is True
     assert label == "75 - Paris"
 
 
-def test_is_dossier_in_active_departement_department_found_but_not_in_active_list():
+def test_is_dossier_in_handled_departement_department_found_but_not_in_active_list():
     """Test when department field is found but code is NOT in active departments."""
     raw_data = {
         "champs": [
@@ -615,12 +617,12 @@ def test_is_dossier_in_active_departement_department_found_but_not_in_active_lis
         ]
     }
     departements_actifs = ["13", "69", "92"]
-    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    is_active, label = _is_dossier_in_handled_departement(raw_data, departements_actifs)
     assert is_active is False
     assert label == "75 - Paris"
 
 
-def test_is_dossier_in_active_departement_empty_value():
+def test_is_dossier_in_handled_departement_empty_value():
     """Test when department field is found but value is empty."""
     raw_data = {
         "champs": [
@@ -631,12 +633,12 @@ def test_is_dossier_in_active_departement_empty_value():
         ]
     }
     departements_actifs = ["75", "13", "69"]
-    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    is_active, label = _is_dossier_in_handled_departement(raw_data, departements_actifs)
     assert is_active is False
     assert label == ""
 
 
-def test_is_dossier_in_active_departement_whitespace_only_value():
+def test_is_dossier_in_handled_departement_whitespace_only_value():
     """Test when department field has only whitespace."""
     raw_data = {
         "champs": [
@@ -647,12 +649,12 @@ def test_is_dossier_in_active_departement_whitespace_only_value():
         ]
     }
     departements_actifs = ["75", "13", "69"]
-    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    is_active, label = _is_dossier_in_handled_departement(raw_data, departements_actifs)
     assert is_active is False
     assert label == ""
 
 
-def test_is_dossier_in_active_departement_field_not_found():
+def test_is_dossier_in_handled_departement_field_not_found():
     """Test when department field is not found in champs."""
     raw_data = {
         "champs": [
@@ -660,30 +662,30 @@ def test_is_dossier_in_active_departement_field_not_found():
         ]
     }
     departements_actifs = ["75", "13", "69"]
-    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    is_active, label = _is_dossier_in_handled_departement(raw_data, departements_actifs)
     assert is_active is False
     assert label == "inconnu"
 
 
-def test_is_dossier_in_active_departement_no_champs_key():
+def test_is_dossier_in_handled_departement_no_champs_key():
     """Test when champs key is missing from raw_data."""
     raw_data = {}
     departements_actifs = ["75", "13", "69"]
-    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    is_active, label = _is_dossier_in_handled_departement(raw_data, departements_actifs)
     assert is_active is False
     assert label == "inconnu"
 
 
-def test_is_dossier_in_active_departement_empty_champs():
+def test_is_dossier_in_handled_departement_empty_champs():
     """Test when champs is an empty list."""
     raw_data = {"champs": []}
     departements_actifs = ["75", "13", "69"]
-    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    is_active, label = _is_dossier_in_handled_departement(raw_data, departements_actifs)
     assert is_active is False
     assert label == "inconnu"
 
 
-def test_is_dossier_in_active_departement_with_whitespace_in_code():
+def test_is_dossier_in_handled_departement_with_whitespace_in_code():
     """Test when department code has whitespace that should be stripped."""
     raw_data = {
         "champs": [
@@ -694,12 +696,12 @@ def test_is_dossier_in_active_departement_with_whitespace_in_code():
         ]
     }
     departements_actifs = ["75", "13", "69"]
-    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    is_active, label = _is_dossier_in_handled_departement(raw_data, departements_actifs)
     assert is_active is True
     assert label == "75  - Paris"
 
 
-def test_is_dossier_in_active_departement_with_different_format():
+def test_is_dossier_in_handled_departement_with_different_format():
     """Test with different format variations."""
     raw_data = {
         "champs": [
@@ -710,12 +712,12 @@ def test_is_dossier_in_active_departement_with_different_format():
         ]
     }
     departements_actifs = ["13", "69"]
-    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    is_active, label = _is_dossier_in_handled_departement(raw_data, departements_actifs)
     assert is_active is True
     assert label == "13- Bouches-du-Rhône"
 
 
-def test_is_dossier_in_active_departement_with_list_of_strings():
+def test_is_dossier_in_handled_departement_with_list_of_strings():
     """Test that it works with list of strings for active departments."""
     raw_data = {
         "champs": [
@@ -726,12 +728,12 @@ def test_is_dossier_in_active_departement_with_list_of_strings():
         ]
     }
     departements_actifs = ["69", "75"]
-    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    is_active, label = _is_dossier_in_handled_departement(raw_data, departements_actifs)
     assert is_active is True
     assert label == "69 - Rhône"
 
 
-def test_is_dossier_in_active_departement_with_set():
+def test_is_dossier_in_handled_departement_with_set():
     """Test that it works with a set for active departments."""
     raw_data = {
         "champs": [
@@ -742,12 +744,12 @@ def test_is_dossier_in_active_departement_with_set():
         ]
     }
     departements_actifs = {"92", "75", "13"}
-    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    is_active, label = _is_dossier_in_handled_departement(raw_data, departements_actifs)
     assert is_active is True
     assert label == "92 - Hauts-de-Seine"
 
 
-def test_is_dossier_in_active_departement_no_stringValue_key():
+def test_is_dossier_in_handled_departement_no_stringValue_key():
     """Test when stringValue key is missing from the champ."""
     raw_data = {
         "champs": [
@@ -757,9 +759,47 @@ def test_is_dossier_in_active_departement_no_stringValue_key():
         ]
     }
     departements_actifs = ["75", "13", "69"]
-    is_active, label = _is_dossier_in_active_departement(raw_data, departements_actifs)
+    is_active, label = _is_dossier_in_handled_departement(raw_data, departements_actifs)
     assert is_active is False
     assert label == ""
+
+
+def test_is_dossier_in_handled_departement_not_handled_territory():
+    """A dossier in a NOT_HANDLED_TERRITORIES code is not handled."""
+    raw_data = {
+        "champs": [
+            {
+                "label": "Département ou collectivité du demandeur",
+                "stringValue": "987 - Polynésie",
+            }
+        ]
+    }
+    # The handled set is what _get_handled_departement_insee_codes would return:
+    # every real departement minus the special territories. "987" is excluded.
+    handled_codes = ["75", "13", "69"]
+    is_handled, label = _is_dossier_in_handled_departement(raw_data, handled_codes)
+    assert is_handled is False
+    assert label == "987 - Polynésie"
+
+
+# test _get_handled_departement_insee_codes
+
+
+@pytest.mark.django_db
+def test_get_handled_departement_insee_codes_excludes_not_handled_and_unknown():
+    """
+    Returns every Departement row except those in NOT_HANDLED_TERRITORIES, and a
+    code with no Departement record is naturally absent (unknown-code case).
+    """
+    DepartementFactory(insee_code="75")
+    DepartementFactory(insee_code="987")  # in NOT_HANDLED_TERRITORIES
+
+    handled_codes = set(_get_handled_departement_insee_codes())
+
+    assert "75" in handled_codes
+    assert "987" not in handled_codes
+    # "99" has no Departement record at all
+    assert "99" not in handled_codes
 
 
 @pytest.mark.django_db
@@ -792,7 +832,7 @@ def test_archived_dossier_in_ds_stream_deactivates_existing_dossier():
         return_value=(_make_demarche_page(dossiers=ds_dossiers), False),
     ):
         with patch(
-            "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
+            "gsl_demarches_simplifiees.importer.dossier._get_handled_departement_insee_codes",
             return_value=["75"],
         ):
             save_demarche_dossiers_from_ds(demarche_number)
@@ -875,7 +915,7 @@ def test_import_one_dossier_from_ds_dossier_deja_existant(caplog):
 
 
 @pytest.mark.django_db
-def test_import_one_dossier_from_ds_departement_inactif(caplog):
+def test_import_one_dossier_from_ds_territoire_non_gere(caplog):
     caplog.set_level(logging.INFO)
     demarche = DemarcheFactory()
     dossier_number = 20240001
@@ -888,7 +928,7 @@ def test_import_one_dossier_from_ds_departement_inactif(caplog):
         return_value=dossier_data,
     ):
         with patch(
-            "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
+            "gsl_demarches_simplifiees.importer.dossier._get_handled_departement_insee_codes",
             return_value=["75"],
         ):
             level, message = import_one_dossier_from_ds(dossier_number)
@@ -896,7 +936,7 @@ def test_import_one_dossier_from_ds_departement_inactif(caplog):
     assert Dossier.objects.count() == 0
     assert level == messages.WARNING
     assert "99" in message
-    assert "Dossier dans un département inactif" in caplog.text
+    assert "Dossier dans un territoire non géré" in caplog.text
 
 
 @pytest.mark.django_db
@@ -910,7 +950,7 @@ def test_import_one_dossier_from_ds_cree_le_dossier():
         return_value=dossier_data,
     ):
         with patch(
-            "gsl_demarches_simplifiees.importer.dossier._get_active_departement_insee_codes",
+            "gsl_demarches_simplifiees.importer.dossier._get_handled_departement_insee_codes",
             return_value=["75"],
         ):
             with patch(
