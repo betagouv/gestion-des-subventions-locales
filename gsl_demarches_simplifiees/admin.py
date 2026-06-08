@@ -5,6 +5,7 @@ from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.csp import CSP
 from django.utils.decorators import method_decorator
+from django.utils.formats import date_format
 from django.utils.safestring import mark_safe
 from django_json_widget.widgets import JSONEditorWidget
 from import_export.admin import ImportExportMixin
@@ -313,6 +314,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
                     "is_active",
                     "raison_desactivation",
                     "ds_demandeur",
+                    "perimetre",
                     "admin_projet_link",
                     "app_projet_link",
                     "link_to_ds",
@@ -346,6 +348,8 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
                     "ds_date_traitement",
                     "ds_date_derniere_modification",
                     "ds_date_derniere_modification_champs",
+                    "turgot_created_at",
+                    "turgot_updated_at",
                 ),
             },
         ),
@@ -376,7 +380,17 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "link_to_ds",
         "link_to_json",
         "link_to_edit_dossier_data",
+        "turgot_created_at",
+        "turgot_updated_at",
     ]
+
+    @admin.display(description="Import dans Turgot")
+    def turgot_created_at(self, obj: Dossier):
+        return date_format(timezone.localtime(obj.created_at), "DATETIME_FORMAT")
+
+    @admin.display(description="Dernière synchro dans Turgot")
+    def turgot_updated_at(self, obj: Dossier):
+        return date_format(timezone.localtime(obj.updated_at), "DATETIME_FORMAT")
 
     def get_urls(self):
         urls = super().get_urls()

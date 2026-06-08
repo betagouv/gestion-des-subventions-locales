@@ -75,6 +75,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "get_status_display",
         "dossier_departement",
         "dotations",
+        "notified_at",
     )
     list_filter = (
         "dossier_ds__is_active",
@@ -87,7 +88,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         DotationProjetInline,
     ]
     search_fields = ("dossier_ds__ds_number", "dossier_ds__projet_intitule")
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("created_at", "updated_at", "perimetre", "reporte")
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -143,6 +144,17 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     dossier_departement.admin_order_field = (
         "dossier_ds__perimetre__departement__insee_code"
     )
+
+    def reporte(self, obj: Projet):
+        return obj.dossier_ds.demande_renouvellement or None
+
+    reporte.short_description = "Report / Renouvellement"
+    reporte.admin_order_field = "dossier_ds__demande_renouvellement"
+
+    def perimetre(self, obj: Projet):
+        return obj.perimetre
+
+    perimetre.short_description = "Périmètre"
 
 
 class SimulationProjetInline(admin.TabularInline):
