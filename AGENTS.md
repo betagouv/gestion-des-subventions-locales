@@ -418,6 +418,27 @@ Run with: `python -m celery --app gsl worker --beat --scheduler django_celery_be
 
 Or use `just run-celery`.
 
+#### Task priorities
+
+Priority is decided **at the dispatch site**, not baked into the task — the same
+task can be high or low depending on context. Constants and helper live in
+`gsl/celery.py` (Redis: lower number = served first): `TASK_PRIORITY_HIGH = 0`,
+`TASK_PRIORITY_NORMAL = 5` (= `CELERY_TASK_DEFAULT_PRIORITY`),
+`TASK_PRIORITY_LOW = 9`, `TASK_BULK_DISPATCH_THRESHOLD = 10`.
+
+- **High (0)** — short non-blocking task, including a small interactive batch
+  (count < 10), admin or not.
+- **Normal (5, default)** — long task that blocks the agent waiting on it, or a
+  moderate count. Use plain `.delay()` (no override).
+- **Low (9)** — long admin task, or a high count (≥ 10: batch wrappers and their
+  children, sync fan-out).
+
+Sites dispatched both per-unit and en masse: use `priority_for_dispatch_count(count)`
+(high if `< 10` else low). If the dispatch lives in a shared helper reached by
+several contexts, thread the priority down as a parameter per entry point instead
+of hardcoding it (see `_save_dossier_data_and_refresh_dossier_and_projet_and_co`'s
+`refresh_priority`).
+
 ## Coding Conventions
 
 ### General

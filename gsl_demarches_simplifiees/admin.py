@@ -10,6 +10,7 @@ from django.utils.safestring import mark_safe
 from django_json_widget.widgets import JSONEditorWidget
 from import_export.admin import ImportExportMixin
 
+from gsl.celery import TASK_PRIORITY_LOW, priority_for_dispatch_count
 from gsl.utils.csp import csp_update
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_core.models import Arrondissement
@@ -211,9 +212,9 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             if form.is_valid():
                 demarche = form.cleaned_data["demarche"]
                 updated_after = form.cleaned_data["updated_after"]
-                task_init_demarche_sync.delay(
-                    demarche.ds_number,
-                    updated_after.isoformat(),
+                task_init_demarche_sync.apply_async(
+                    (demarche.ds_number, updated_after.isoformat()),
+                    priority=TASK_PRIORITY_LOW,
                 )
                 self.message_user(
                     request,
@@ -437,8 +438,12 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         if queryset.count() == 1:
             refresh_dossier_from_saved_data(queryset.get())
         else:
+            count = queryset.count()
             for dossier in queryset:
-                task_refresh_dossier_from_saved_data.delay(dossier.ds_number)
+                task_refresh_dossier_from_saved_data.apply_async(
+                    (dossier.ds_number,),
+                    priority=priority_for_dispatch_count(count),
+                )
 
     @admin.action(description="☁️ Rafraîchir depuis DN")
     def refresh_from_ds(self, request, queryset):
@@ -456,8 +461,12 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
                 )
 
         else:
+            count = queryset.count()
             for dossier in queryset:
-                task_save_one_dossier_from_ds.delay(dossier.ds_number)
+                task_save_one_dossier_from_ds.apply_async(
+                    (dossier.ds_number,),
+                    priority=priority_for_dispatch_count(count),
+                )
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

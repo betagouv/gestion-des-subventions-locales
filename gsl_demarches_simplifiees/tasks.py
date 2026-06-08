@@ -5,6 +5,7 @@ from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
 
+from gsl.celery import priority_for_dispatch_count
 from gsl_demarches_simplifiees.importer.demarche import (
     refresh_field_mappings_on_demarche,
     save_demarche_from_ds,
@@ -24,9 +25,12 @@ logger = logging.getLogger(__name__)
 #### of every demarches => useful in cron tasks !
 @shared_task
 def task_refresh_every_demarche(refresh_only_if_demarche_has_been_updated=True):
-    for d in Demarche.objects.all():
-        task_save_demarche_from_ds.delay(
-            d.ds_number, refresh_only_if_demarche_has_been_updated
+    demarches = list(Demarche.objects.all())
+    priority = priority_for_dispatch_count(len(demarches))
+    for d in demarches:
+        task_save_demarche_from_ds.apply_async(
+            (d.ds_number, refresh_only_if_demarche_has_been_updated),
+            priority=priority,
         )
 
 
