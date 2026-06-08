@@ -40,17 +40,7 @@
                                     </div>
                                 </div>
                             </th>
-                            <th>
-                                <div>
-                                    <div class="icon">
-                                        <span class="fr-icon-map-pin-2-fill fr-icon--sm"></span>
-                                    </div>
-                                    <div class="text">
-                                        Nom territoire
-                                    </div>
-                                </div>
-                            </th>
-                            <th>
+                            <th class="col--130px">
                                 <div>
                                     <div class="icon">
                                         <span class="fr-icon-coin-fill fr-icon--sm"></span>
@@ -60,7 +50,7 @@
                                     </div>
                                 </div>
                             </th>
-                            <th>
+                            <th class="col--130px">
                                 <div>
                                     <div class="icon">
                                         <span class="fr-icon-coin-fill fr-icon--sm"></span>
@@ -77,6 +67,16 @@
                                     </div>
                                     <div class="text">
                                         Montant accepté
+                                    </div>
+                                </div>
+                            </th>
+                            <th>
+                                <div>
+                                    <div class="icon">
+                                        <span class="fr-icon-scales-3-fill fr-icon--sm"></span>
+                                    </div>
+                                    <div class="text">
+                                        Reste à attribuer
                                     </div>
                                 </div>
                             </th>
@@ -103,7 +103,7 @@
                             <th>
                                 <div>
                                     <div class="icon">
-                                        <span class="fr-icon-folder-2-fill fr-icon--sm"></span>
+                                        <span class="fr-icon-account-circle-fill fr-icon--sm"></span>
                                     </div>
                                     <div class="text">
                                         Demandeurs
@@ -120,21 +120,22 @@
                                     </div>
                                 </div>
                             </th>
-                            <th>
-                            </th>
+                            {% if not hide_actions %}
+                                <th>
+                                </th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
                         {% for enveloppe in enveloppes %}
-                            {% include "includes/_enveloppe_summary_line.html" with level=1 %}
+                            {% include "includes/_enveloppe_summary_line.html" with level=1 hide_actions=hide_actions %}
                             {% if enveloppes_with_children %}
                                 {% for sous_enveloppe in enveloppe.ordered_sous_enveloppes %}
-                                    {% include "includes/_enveloppe_summary_line.html" with enveloppe=sous_enveloppe level=2 %}
-
+                                    {% include "includes/_enveloppe_summary_line.html" with enveloppe=sous_enveloppe level=2 hide_actions=hide_actions %}
                                 {% endfor %}
                             {% endif %}
                         {% empty %}
-                            {% include "includes/_enveloppe_summary_line.html" %}
+                            {% include "includes/_enveloppe_summary_line.html" with hide_actions=hide_actions %}
                         {% endfor %}
                     </tbody>
                 </table>

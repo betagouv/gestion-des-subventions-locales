@@ -235,3 +235,8 @@ def column_cell_value(context, column):
 @register.simple_tag(takes_context=True)
 def other_dotation_cell_value(context, column):
     return column.other_dotation_getter(context)
+
+
+@register.filter
+def perimetre_type_abbrev(perimetre_type):
+    return f"{perimetre_type[:3]}."

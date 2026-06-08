@@ -33,7 +33,7 @@
             {% endfor %}
         </div>
     </div>
-    {% include "includes/_enveloppe_summary.html" %}
+    {% include "includes/_enveloppe_summary.html" with hide_actions=True %}
     {% include "includes/_projet_list_filters.html" %}
 
     <div id="simulation-table-wrapper" data-controller="checkbox-selection">
