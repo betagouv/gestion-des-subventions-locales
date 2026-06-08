@@ -2,9 +2,44 @@ html {
     scroll-behavior: smooth;
 }
 
+.fr-header__service-title {
+    font-size: 1.125rem;
+}
+
+#content h1 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+}
+
 .fr-header__operator .fr-responsive-img {
     max-width: 8rem;
 }
+
+@media (width >= 62em) {
+    .fr-header__body-row {
+        padding: 0.5rem 0;
+    }
+
+    .fr-header__logo,
+    .fr-header__operator,
+    .fr-header__service {
+        padding: 0.5rem 1rem;
+    }
+}
+
+.fr-header__logo .fr-logo::after {
+    display: none;
+}
+
+.fr-footer {
+    padding-top:0;
+}
+
+.fr-footer__bottom {
+    box-shadow:none;
+}
+
+
 
 .dgcl-logo-footer {
     max-width: 12rem;

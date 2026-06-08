@@ -98,15 +98,6 @@ class ProgrammationProjetDetailView(DetailView):
             "projet": self.object,
             "dotation_projets": self.object.dotationprojet_set.all(),
             "dossier": self.object.dossier_ds,
-            "breadcrumb_dict": {
-                "links": [
-                    {
-                        "url": reverse("gsl_programmation:programmation-projet-list"),
-                        "title": "Programmation en cours",
-                    },
-                ],
-                "current": title,
-            },
             "menu_dict": PROJET_MENU,
             "current_tab": tab,
             "go_back_link": self.get_go_back_link(),
@@ -229,9 +220,6 @@ class ProgrammationProjetListView(FilterView, ListView):
                         "id", flat=True
                     )
                 ),
-                "breadcrumb_dict": {
-                    "current": "Programmation en cours",
-                },
                 "current_order": self.request.GET.get("order", ""),
                 "columns": PROGRAMMATION_TABLE_COLUMNS,
             }

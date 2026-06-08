@@ -55,9 +55,6 @@ def _get_projet_context_info(projet_id):
         "title": title,
         "projet": projet,
         "dossier": projet.dossier_ds,
-        "breadcrumb_dict": {
-            "current": title,
-        },
         "menu_dict": PROJET_MENU,
         "projet_notes": projet.notes.all(),
         "dotation_projets": projet.dotationprojet_set.all(),
@@ -265,7 +262,6 @@ class ProjetListView(FilterView, ListView):
             self.filterset.qs
         )  # utile pour ne pas avoir la pagination de context["object_list"]
         context["title"] = "Projets"
-        context["breadcrumb_dict"] = {}
         context["aggregates"] = qs_global.totals()
         context["enveloppes"] = (
             self.request.user.perimetre.enveloppe_set.for_current_year().all()
