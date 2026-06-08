@@ -5,8 +5,10 @@ import openpyxl
 import tablib
 from django import forms
 from django.contrib import admin
+from django.contrib.admin.models import CHANGE, LogEntry
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
+from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
 from django.db.models import Count, OuterRef, Subquery
@@ -114,6 +116,7 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
         "last_simulation_created_in_perimetre",
         "comment",
         "dn_profile",
+        "history_link",
     )
 
     list_editable = ("comment",)
@@ -355,11 +358,31 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
 
     @admin.action(description="🚫 Désactivation des utilisateurs")
     def deactivate_users(self, request, queryset):
+        affected = list(queryset.filter(is_active=True))
         queryset.update(is_active=False)
+        self._log_is_active_change(request, affected)
 
     @admin.action(description="✅ Réactivation des utilisateurs")
     def activate_users(self, request, queryset):
+        affected = list(queryset.filter(is_active=False))
         queryset.update(is_active=True)
+        self._log_is_active_change(request, affected)
+
+    def _log_is_active_change(self, request, users):
+        ct = ContentType.objects.get_for_model(Collegue)
+        LogEntry.objects.bulk_create(
+            [
+                LogEntry(
+                    user_id=request.user.pk,
+                    content_type_id=ct.pk,
+                    object_id=obj.pk,
+                    object_repr=str(obj),
+                    action_flag=CHANGE,
+                    change_message=[{"changed": {"fields": ["is_active"]}}],
+                )
+                for obj in users
+            ]
+        )
 
     def is_staff_custom(self, obj):
         return obj.is_staff
@@ -428,6 +451,15 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
 
     dn_profile.short_description = "Profil DN"
     dn_profile.admin_order_field = "ds_profile__id"
+
+    def history_link(self, obj):
+        url = (
+            reverse("admin:gsl_historique_colleguelogentry_changelist")
+            + f"?object_id={obj.pk}"
+        )
+        return mark_safe(f"<a href='{url}'>Historique</a>")
+
+    history_link.short_description = "Historique"
 
     @staticmethod
     def _normalize_department_code(dept_code) -> str:
