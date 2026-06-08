@@ -102,7 +102,6 @@ def reattach_signed_doc(
     yield from reattach_signed_docs(
         [(name_stem, pdf_bytes)],
         user,
-        name_stem=name_stem,
         restrict_to_user_perimetre=restrict_to_user_perimetre,
         remove_qr_code=remove_qr_code,
     )
@@ -119,7 +118,6 @@ GroupEntry = tuple[
 def reattach_signed_docs(
     files: list[tuple[str, bytes]],
     user: Collegue,
-    name_stem: str = "signed",
     restrict_to_user_perimetre: bool = False,
     remove_qr_code: bool = True,
 ) -> Iterator[ReattachEvent]:
@@ -178,7 +176,6 @@ def reattach_signed_docs(
                 dot,
                 entries,
                 user,
-                name_stem,
                 restrict_to_user_perimetre,
                 remove_qr_code,
             )
@@ -230,7 +227,6 @@ def _attach_group(
     dot,
     entries,
     user,
-    name_stem,
     restrict_to_user_perimetre=False,
     remove_qr_code=True,
 ) -> GroupReport:
@@ -273,9 +269,7 @@ def _attach_group(
             "(incohérence, à corriger manuellement).",
         )
 
-    uploaded = _build_group_pdf(
-        srcs, entries, name_stem, ds, dot, pdf_bytes_list, remove_qr_code
-    )
+    uploaded = _build_group_pdf(srcs, entries, ds, dot, pdf_bytes_list, remove_qr_code)
     _replace_lettre_et_arrete(pp, uploaded, user)
 
     return GroupReport(
@@ -304,7 +298,7 @@ def _replace_lettre_et_arrete(pp, uploaded, user):
         doc.save()
 
 
-def _build_group_pdf(srcs, entries, stem, ds, dot, pdf_bytes_list, remove_qr_code=True):
+def _build_group_pdf(srcs, entries, ds, dot, pdf_bytes_list, remove_qr_code=True):
     out = Pdf.new()
     for file_idx, scan_idx, _, _, bbox_px, image_height_px in entries:
         out.pages.append(srcs[file_idx].pages[scan_idx])
@@ -316,7 +310,7 @@ def _build_group_pdf(srcs, entries, stem, ds, dot, pdf_bytes_list, remove_qr_cod
     out.save(buf)
     buf.seek(0)
     return SimpleUploadedFile(
-        name=f"{stem}_ds{ds}_{dot}.pdf",
+        name=f"documents-signes-{ds}-{dot}.pdf",
         content=buf.read(),
         content_type="application/pdf",
     )
