@@ -1,4 +1,4 @@
-{% extends "gsl_programmation/programmation_projet_list.html" %}
+{% extends "base.html" %}
 {% load static dsfr_tags gsl_filters %}
 
 {% block extra_css %}
@@ -9,10 +9,7 @@
     <link rel="stylesheet" href="{% static 'ui/components/tiptap.css' %}">
 {% endblock extra_css %}
 
-{% block tab_submenu %}
-{% endblock tab_submenu %}
-
-{% block tab_content %}
+{% block content %}
     <div class="fr-my-6w" data-controller="modele-arrete-form">
         <a href="{% url "gsl_notification:modele-liste" dotation %}"
            class='fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-arrow-left-s-line fr-mb-4w'
@@ -67,4 +64,4 @@
             </div>
         {% endblock form_content %}
     </div>
-{% endblock tab_content %}
+{% endblock content %}

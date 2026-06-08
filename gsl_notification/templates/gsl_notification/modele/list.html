@@ -1,4 +1,4 @@
-{% extends "gsl_programmation/programmation_projet_list.html" %}
+{% extends "base.html" %}
 {% load static dsfr_tags gsl_filters ui_tags %}
 
 {% block extra_css %}
@@ -8,14 +8,14 @@
     <link rel="stylesheet" href="{% static "css/notification.css" %}">
 {% endblock extra_css %}
 
-{% block tab_content %}
+{% block content %}
+    <h1>
+        Modèles de publipostage {{ dotation }}
+    </h1>
     <div class="fr-my-4w"
          data-controller="delete-notification-document-modal"
          data-delete-notification-document-modal-modal-id-value="delete-modele-arrete"
          data-delete-notification-document-modal-form-id-value="delete-modele-arrete-form">
-        <h2>
-            Modèles {{ dotation }}
-        </h2>
         <div class="text-align-right fr-mt-4v fr-mb-4v">
             <a class="fr-btn fr-btn--icon-left fr-icon-add-line"
                href="{% url "notification:modele-creer-choix-du-type" dotation %}">Créer un modèle {{ dotation }}</a>
@@ -34,7 +34,7 @@
             {% endfor %}
         </ul>
     </div>
-{% endblock tab_content %}
+{% endblock content %}
 
 {% block modal %}
     {% ui_confirmation_modal modal_id="delete-modele-arrete" title="Suppression du modèle d’arrêté" text="Êtes-vous sûr de vouloir supprimer ce modèle ?<br><b>⚠️ Les autres utilisateurs ayant accès à ce modèle ne pourront plus l’utiliser ni le voir.</b>" form="delete-modele-arrete-form" action_text="Supprimer" %}
