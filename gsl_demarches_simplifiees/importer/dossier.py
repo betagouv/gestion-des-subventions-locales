@@ -8,7 +8,10 @@ from gsl_core.models import Departement
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverter
-from gsl_demarches_simplifiees.importer.utils import get_or_create_profile
+from gsl_demarches_simplifiees.importer.utils import (
+    NOT_HANDLED_TERRITORIES,
+    get_or_create_profile,
+)
 from gsl_demarches_simplifiees.models import Demarche, Dossier, DossierData
 from gsl_projet.services.projet_services import ProjetService
 
@@ -43,7 +46,7 @@ def save_demarche_dossiers_from_ds(demarche_number):
     pending_deleted_cursor = demarche.pending_deleted_cursor or None
     deleted_cursor = demarche.deleted_cursor or None
 
-    active_departement_insee_codes = _get_active_departement_insee_codes()
+    handled_departement_insee_codes = _get_handled_departement_insee_codes()
     groupe_index = _get_or_refresh_groupe_index(demarche, demarche_number)
 
     dossiers_count = 0
@@ -72,7 +75,7 @@ def save_demarche_dossiers_from_ds(demarche_number):
             dossiers_result, count = _process_dossiers_page(
                 demarche_data["dossiers"],
                 demarche,
-                active_departement_insee_codes,
+                handled_departement_insee_codes,
                 groupe_index,
             )
             dossiers_count += count
@@ -143,7 +146,7 @@ def _get_or_refresh_groupe_index(demarche: Demarche, demarche_number: int) -> di
 def _process_dossiers_page(
     page: dict,
     demarche: Demarche,
-    active_departement_insee_codes: Iterable[str],
+    handled_departement_insee_codes: Iterable[str],
     groupe_index: dict,
 ) -> tuple["_PageState", int]:
     has_error = False
@@ -159,7 +162,7 @@ def _process_dossiers_page(
         try:
             _create_or_update_dossier_from_ds_data(
                 dossier_data,
-                active_departement_insee_codes,
+                handled_departement_insee_codes,
                 demarche,
                 groupe_index=groupe_index,
             )
@@ -278,9 +281,9 @@ def save_one_dossier_from_ds(
 def create_or_update_dossier_from_ds_number(ds_number: str):
     client = DsClient()
     dossier_data = client.get_one_dossier(ds_number)
-    active_departement_insee_codes = _get_active_departement_insee_codes()
+    handled_departement_insee_codes = _get_handled_departement_insee_codes()
     return _create_or_update_dossier_from_ds_data(
-        dossier_data, active_departement_insee_codes
+        dossier_data, handled_departement_insee_codes
     )
 
 
@@ -333,21 +336,23 @@ def import_one_dossier_from_ds(dossier_number: int):
             f"Le dossier #{dossier_number} existe déjà sur Turgot.",
         )
 
-    active_departement_insee_codes = _get_active_departement_insee_codes()
-    is_active, departement = _is_dossier_in_active_departement(
-        dossier_data, active_departement_insee_codes
+    handled_departement_insee_codes = _get_handled_departement_insee_codes()
+    is_handled, departement = _is_dossier_in_handled_departement(
+        dossier_data, handled_departement_insee_codes
     )
-    if not is_active:
+    if not is_handled:
         logger.info(
-            "Dossier dans un département inactif, import ignoré",
+            "Dossier dans un territoire non géré, import ignoré",
             extra={"dossier_ds_number": dossier_number, "departement": departement},
         )
         return (
             messages.WARNING,
-            f"Le dossier #{dossier_number} appartient au département « {departement} » qui n'est pas actif sur Turgot.",
+            f"Le dossier #{dossier_number} appartient au territoire « {departement} » qui n'est pas géré sur Turgot.",
         )
 
-    _create_or_update_dossier_from_ds_data(dossier_data, active_departement_insee_codes)
+    _create_or_update_dossier_from_ds_data(
+        dossier_data, handled_departement_insee_codes
+    )
     return (
         messages.SUCCESS,
         f"Le dossier #{dossier_number} a été importé avec succès.",
@@ -523,13 +528,15 @@ def _has_dossier_been_updated_on_ds(dossier: Dossier, dossier_data: dict) -> boo
     return date_modif_ds > dossier.ds_date_derniere_modification
 
 
-def _get_active_departement_insee_codes():
-    return Departement.objects.filter(active=True).values_list("insee_code", flat=True)
+def _get_handled_departement_insee_codes():
+    return Departement.objects.exclude(
+        insee_code__in=NOT_HANDLED_TERRITORIES
+    ).values_list("insee_code", flat=True)
 
 
 def _create_or_update_dossier_from_ds_data(
     dossier_data: dict | None,
-    active_departement_insee_codes: Iterable[str],
+    handled_departement_insee_codes: Iterable[str],
     demarche: Demarche | None = None,
     groupe_index: dict | None = None,
 ):
@@ -539,12 +546,12 @@ def _create_or_update_dossier_from_ds_data(
         demarche_number = dossier_data["demarche"]["number"]
         demarche = Demarche.objects.get(ds_number=demarche_number)
 
-    must_create_or_update_dossier, _ = _is_dossier_in_active_departement(
-        dossier_data, active_departement_insee_codes
+    must_create_or_update_dossier, _ = _is_dossier_in_handled_departement(
+        dossier_data, handled_departement_insee_codes
     )
     if not must_create_or_update_dossier:
         logger.info(
-            "Dossier is not in an active departement",
+            "Dossier is not in a handled departement",
             extra={
                 "demarche_ds_number": demarche.ds_number,
                 "dossier_ds_number": ds_dossier_number,
@@ -571,8 +578,8 @@ def _create_or_update_dossier_from_ds_data(
     )
 
 
-def _is_dossier_in_active_departement(
-    raw_data: dict, departements_actifs: Iterable[str]
+def _is_dossier_in_handled_departement(
+    raw_data: dict, handled_departement_insee_codes: Iterable[str]
 ) -> tuple[bool, str]:
     champs = raw_data.get("champs", [])
 
@@ -586,7 +593,7 @@ def _is_dossier_in_active_departement(
             # Exemple valeur : "75 - Paris"
             code_insee = valeur.split("-")[0].strip()
 
-            return code_insee in set(departements_actifs), valeur
+            return code_insee in set(handled_departement_insee_codes), valeur
 
     # Champ non trouvé
     return False, "inconnu"

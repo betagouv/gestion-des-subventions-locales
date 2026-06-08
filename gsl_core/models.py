@@ -33,7 +33,14 @@ class Departement(BaseModel):
     insee_code = models.CharField("Code INSEE", unique=True, primary_key=True)
     name = models.CharField("Nom")
     region = models.ForeignKey(Region, on_delete=models.PROTECT)
-    active = models.BooleanField(default=False)
+    active = models.BooleanField(
+        "Préfecture embarquée",
+        default=False,
+        help_text=(
+            "Préfecture embarquée disposant d'utilisateurs (utilisé pour les "
+            "statistiques). N'influence plus la synchronisation des dossiers."
+        ),
+    )
 
     class Meta:
         verbose_name = "Département"
