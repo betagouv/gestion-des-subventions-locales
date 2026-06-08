@@ -3,19 +3,25 @@
     id="projet-states-count"
     hx-swap-oob="{{ hx_swap_oob }}">
     <li>
-        <p class="fr-badge fr-badge--green-menthe">
+        <p class="fr-badge fr-badge--success fr-badge--no-icon ">
+            <i class="fr-icon--sm fr-icon-checkbox-circle-fill fr-mr-1v"
+               aria-hidden="true"></i>
             {{ status_summary.valid }} projet{{ status_summary.valid|custom_pluralize }}
             accepté{{ status_summary.valid|custom_pluralize }}
         </p>
     </li>
     <li>
-        <p class="fr-badge fr-badge--pink-macaron">
+        <p class="fr-badge fr-badge--error fr-badge--no-icon">
+            <i class="fr-icon--sm fr-icon-close-circle-fill fr-mr-1v"
+               aria-hidden="true"></i>
             {{ status_summary.cancelled }} projet{{ status_summary.cancelled|custom_pluralize }}
             refusé{{ status_summary.cancelled|custom_pluralize }}
         </p>
     </li>
     <li>
-        <p class="fr-badge fr-badge--blue-cumulus">
+        <p class="fr-badge fr-badge--info fr-badge--no-icon">
+            <i class="fr-icon--sm fr-icon-mail-check-fill fr-mr-1v"
+               aria-hidden="true"></i>
             {{ status_summary.notified }} projet{{ status_summary.notified|custom_pluralize }}
             notifié{{ status_summary.notified|custom_pluralize }}
         </p>
