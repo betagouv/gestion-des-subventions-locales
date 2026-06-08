@@ -1,3 +1,4 @@
+import json
 import os
 from functools import cached_property
 from pathlib import Path
@@ -7,6 +8,7 @@ from django.conf import settings
 from django.db import transaction
 from django.template.defaultfilters import pluralize
 from django.utils import timezone
+from django.utils.text import get_valid_filename
 from dsfr.forms import DsfrBaseForm
 
 from gsl_demarches_simplifiees.ds_client import DsMutator
@@ -15,10 +17,12 @@ from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.models import (
     Annexe,
     Arrete,
+    DocumentImportJob,
     LettreEtArreteSignes,
     LettreNotification,
     ModeleDocument,
 )
+from gsl_notification.tasks import run_document_import_job
 from gsl_notification.utils import (
     get_generated_document_class,
     get_modele_class,
@@ -38,6 +42,55 @@ from gsl_projet.constants import (
     PROJET_STATUS_DISMISSED,
 )
 from gsl_projet.models import Projet
+
+
+class PresignedUploadForm(forms.Form):
+    filename = forms.CharField(error_messages={"required": "Nom de fichier manquant."})
+
+    def clean_filename(self):
+        sanitized = get_valid_filename(self.cleaned_data["filename"].strip())
+        if not sanitized.lower().endswith(".pdf"):
+            raise forms.ValidationError("Seuls les fichiers PDF sont acceptés.")
+        return sanitized
+
+
+class S3KeysField(forms.Field):
+    """JSON-encoded list of S3 keys, filtered to the temp import prefix."""
+
+    default_error_messages = {
+        "invalid": "Requête invalide.",
+        "required": "Aucun fichier à importer.",
+    }
+
+    def to_python(self, value):
+        if value in self.empty_values:
+            return []
+        try:
+            raw = json.loads(value)
+        except json.JSONDecodeError:
+            raise forms.ValidationError(self.error_messages["invalid"], code="invalid")
+        if not isinstance(raw, list):
+            raise forms.ValidationError(self.error_messages["invalid"], code="invalid")
+        # Never trust the client with an arbitrary bucket key.
+        return [
+            key
+            for key in raw
+            if isinstance(key, str) and key.startswith(DocumentImportJob.TEMP_S3_PREFIX)
+        ]
+
+
+class ImportJobStartForm(forms.Form):
+    s3_keys = S3KeysField()
+    remove_qr_code = forms.BooleanField(required=False)
+
+    def save(self, user):
+        job = DocumentImportJob.objects.create(
+            created_by=user,
+            s3_keys=self.cleaned_data["s3_keys"],
+            remove_qr_code=self.cleaned_data["remove_qr_code"],
+        )
+        run_document_import_job.delay(str(job.pk))
+        return job
 
 
 class RadioSelect(forms.RadioSelect):

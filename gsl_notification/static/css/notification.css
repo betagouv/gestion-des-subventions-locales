@@ -162,3 +162,15 @@
   font-size: 2rem;
   animation: generate-docs-spin 1s linear infinite;
 }
+
+/* Zone de dépôt de fichiers (import des documents signés) */
+.gsl-dropzone {
+  border: 2px dashed var(--border-default-grey);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.gsl-dropzone--over {
+  border-color: var(--border-active-blue-france);
+  background: var(--background-alt-blue-france);
+}

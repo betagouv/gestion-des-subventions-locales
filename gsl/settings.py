@@ -426,23 +426,6 @@ DS_INIT_SYNC_LOCK_TIMEOUT = int(
 )  # 6 h
 
 
-# CSP Configuration
-
-SECURE_CSP = {
-    "default-src": [CSP.SELF],
-    "img-src": [CSP.SELF, "data:", "stats.beta.gouv.fr"],
-    "style-src": [CSP.SELF, CSP.NONCE],
-    "script-src": [CSP.SELF, CSP.NONCE, "stats.beta.gouv.fr"],
-    "connect-src": [CSP.SELF, "https://stats.beta.gouv.fr"],
-}
-
-SECURE_CSP_REPORT_ONLY = {}
-
-# Cookie configuration
-
-CSRF_COOKIE_SECURE = not DEBUG
-SESSION_COOKIE_SECURE = not DEBUG
-
 # Storage
 AWS_ACCESS_KEY_ID = os.getenv("SCALEWAY_S3_KEY")
 AWS_SECRET_ACCESS_KEY = os.getenv("SCALEWAY_S3_SECRET")
@@ -452,7 +435,35 @@ AWS_S3_ENDPOINT_URL = os.getenv(
     "AWS_S3_ENDPOINT_URL", f"https://s3.{AWS_S3_REGION_NAME}.scw.cloud"
 )
 
-MAX_POST_FILE_SIZE_IN_MO = os.getenv("MAX_POST_FILE_SIZE_IN_MO", 20)
+MAX_POST_FILE_SIZE_IN_MO = int(os.getenv("MAX_POST_FILE_SIZE_IN_MO", 20))
+# Cumulative size cap for the signed-document re-import wizard. Files are
+# uploaded directly to S3 via presigned POST (bypassing Scalingo's request-body
+# limit), so this only bounds the browser-side selection and the per-file S3
+# policy.
+MAX_IMPORT_TOTAL_SIZE_IN_MO = int(os.getenv("MAX_IMPORT_TOTAL_SIZE_IN_MO", 1024))
+
+# CSP Configuration
+
+SECURE_CSP = {
+    "default-src": [CSP.SELF],
+    "img-src": [CSP.SELF, "data:", "stats.beta.gouv.fr"],
+    "style-src": [CSP.SELF, CSP.NONCE],
+    "script-src": [CSP.SELF, CSP.NONCE, "stats.beta.gouv.fr"],
+    # AWS_S3_ENDPOINT_URL is whitelisted so the signed-document import wizard can
+    # upload PDFs straight from the browser to S3 via presigned POST.
+    "connect-src": [
+        CSP.SELF,
+        "https://stats.beta.gouv.fr",
+        *([AWS_S3_ENDPOINT_URL] if AWS_S3_ENDPOINT_URL else []),
+    ],
+}
+
+SECURE_CSP_REPORT_ONLY = {}
+
+# Cookie configuration
+
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
 
 # Axes configuration
 

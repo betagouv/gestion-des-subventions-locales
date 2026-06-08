@@ -125,6 +125,25 @@ class TestProgrammationProjetListViewWithDotation:
             == dsil_programmation_projet
         )
 
+    def test_list_view_renders_import_documents_button(
+        self, user_with_perimetre, detr_programmation_projet
+    ):
+        """La barre d'outils propose l'import des documents signés."""
+        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
+        url = reverse(
+            "gsl_programmation:programmation-projet-list-dotation",
+            kwargs={"dotation": "DETR"},
+        )
+        response = client.get(url)
+        content = response.content.decode()
+        assert "Importer les documents signés" in content
+        assert (
+            reverse(
+                "gsl_notification:import-documents-modal", kwargs={"dotation": "DETR"}
+            )
+            in content
+        )
+
     @pytest.fixture
     def user_with_regional_perimetre(self):
         """Utilisateur avec un périmètre régional"""

@@ -209,10 +209,11 @@ def test_event_stream_emits_per_page_decode_events(tmp_path):
     assert events[0] == DecodeStarted(total_pages=total_pages)
 
     per_page_events = events[1 : 1 + total_pages]
+    # Each page event carries the stem of its source file.
     expected_per_page = [
-        PageDecoded(scan_page=i) for i in range(1, valid_page_count + 1)
+        PageDecoded(scan_page=i, file=scan.stem) for i in range(1, valid_page_count + 1)
     ]
-    expected_per_page.append(UnreadablePage(scan_page=total_pages))
+    expected_per_page.append(UnreadablePage(scan_page=total_pages, file=scan.stem))
     assert per_page_events == expected_per_page
 
     assert len(events) == 1 + total_pages + 1
@@ -420,4 +421,83 @@ def test_qr_is_removed_from_stored_pdf(tmp_path):
     assert stored_decoded, "stored PDF should have at least one page"
     assert all(p is None for p in stored_decoded), (
         f"expected no GSL QR in stored PDF, found: {stored_decoded}"
+    )
+
+
+@pytest.mark.django_db
+def test_qr_is_kept_when_remove_qr_code_is_false(tmp_path):
+    """With remove_qr_code=False, the stored PDF keeps its decodable QRs."""
+    pytest.importorskip("pypdfium2")
+    pytest.importorskip("zxingcpp")
+
+    from gsl_notification.reattach import reattach_signed_doc
+
+    user = CollegueFactory(email="op@example.com")
+    pp, _, pdf_bytes = _build_pdf_for_pp(ds_number=9999999)
+
+    # Sanity: the generated (pre-masking) PDF carries decodable QRs.
+    pre_decoded = _decode_pdf_bytes(pdf_bytes)
+    assert any(p is not None for p in pre_decoded), (
+        "generated PDF should carry QRs before reattachment"
+    )
+
+    scan = tmp_path / "scan.pdf"
+    scan.write_bytes(pdf_bytes)
+
+    list(reattach_signed_doc(scan, user, name_stem=scan.stem, remove_qr_code=False))
+
+    doc = LettreEtArreteSignes.objects.get(programmation_projet=pp)
+    with doc.file.open("rb") as fh:
+        stored_decoded = _decode_pdf_bytes(fh.read())
+
+    assert stored_decoded, "stored PDF should have at least one page"
+    assert any(p is not None for p in stored_decoded), (
+        f"expected GSL QR to remain in stored PDF, found: {stored_decoded}"
+    )
+
+
+@pytest.mark.django_db
+def test_reimport_same_scan_filename_keeps_new_file(
+    tmp_path, django_capture_on_commit_callbacks
+):
+    """Re-importing the *same* scan filename (so the storage key collides) must
+    keep the freshly-written file, not delete it.
+
+    The old `_replace_lettre_et_arrete` deleted the old file twice: once via the
+    `post_delete` signal, then again with a redundant `transaction.on_commit`
+    callback. Because the storage key is deterministic for the same scan stem
+    and `file_overwrite=True`, the second import wrote the new PDF to the same
+    key the old file used — and the `on_commit` delete then removed that
+    freshly-written file. This test forces `on_commit` callbacks to run so it
+    fails on the old code and passes after the fix.
+    """
+    pytest.importorskip("pypdfium2")
+    pytest.importorskip("zxingcpp")
+
+    from gsl_notification.reattach import reattach_signed_doc
+
+    user = CollegueFactory(email="op@example.com")
+    pp, _, pdf_bytes = _build_pdf_for_pp(ds_number=9999992)
+
+    scan = tmp_path / "scan.pdf"
+    scan.write_bytes(pdf_bytes)
+
+    # 1st import: QR removed.
+    list(reattach_signed_doc(scan, user, name_stem="scan", remove_qr_code=True))
+
+    # 2nd import: same scan stem (colliding storage key), QR kept. Forcing the
+    # on_commit callbacks to run reproduces the bug on FileSystemStorage.
+    with django_capture_on_commit_callbacks(execute=True):
+        list(reattach_signed_doc(scan, user, name_stem="scan", remove_qr_code=False))
+
+    doc = LettreEtArreteSignes.objects.get(programmation_projet=pp)
+    assert doc.file.storage.exists(doc.file.name), (
+        "freshly-written file was deleted after re-import with a colliding key"
+    )
+    with doc.file.open("rb") as fh:
+        stored_decoded = _decode_pdf_bytes(fh.read())
+
+    assert stored_decoded, "stored PDF should have at least one page"
+    assert any(p is not None for p in stored_decoded), (
+        f"expected GSL QR to remain in re-imported stored PDF, found: {stored_decoded}"
     )

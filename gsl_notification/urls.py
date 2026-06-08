@@ -3,6 +3,12 @@ from django.urls import path
 from gsl_notification.views.generate_document_for_multiple_projets_views import (
     GenerateDocumentsWizard,
 )
+from gsl_notification.views.import_views import (
+    ImportDocumentsModalView,
+    ImportJobProgressView,
+    ImportJobStartView,
+    PresignedUploadView,
+)
 from gsl_notification.views.modele_views import (
     ChooseModeleDocumentType,
     CreateModelDocumentWizard,
@@ -82,6 +88,27 @@ urlpatterns = [
         "<str:dotation>/generer/",
         GenerateDocumentsWizard.as_view(),
         name="generate-documents-modal",
+    ),
+    # Modal HTMX - import des documents signés
+    path(
+        "import-documents-modal/<str:dotation>/",
+        ImportDocumentsModalView.as_view(),
+        name="import-documents-modal",
+    ),
+    path(
+        "import/presigned-upload/",
+        PresignedUploadView.as_view(),
+        name="import-presigned-upload",
+    ),
+    path(
+        "import/start/",
+        ImportJobStartView.as_view(),
+        name="import-start",
+    ),
+    path(
+        "import/<uuid:pk>/progress/",
+        ImportJobProgressView.as_view(),
+        name="import-progress",
     ),
     # Uploaded files
     path(
