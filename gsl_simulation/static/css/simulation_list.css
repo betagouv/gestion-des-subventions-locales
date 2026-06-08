@@ -19,10 +19,9 @@
   min-width: 15rem;
 }
 
-.simulation-card .projet-states-count {
+.simulation-card #projet-states-count {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   width: 17%;
   min-width: 200px;
 }
@@ -38,4 +37,27 @@
 
 .simulation-card__navigate:hover {
   background-color: var(--background-contrast-blue-ecume) !important;
+}
+
+@media (width <= 62em) {
+  .simulation-card {
+    flex-wrap: wrap;
+  }
+
+  .simulation-card__creation-info {
+    flex: 1 1 auto;
+  }
+
+  .simulation-card #projet-states-count {
+    flex: 1 1 200px;
+    width: auto;
+    min-width: 0;
+    flex-flow: row wrap;
+    gap: 0.5rem;
+  }
+
+  .simulation-card__navigate {
+    flex-shrink: 0;
+    border-left: none;
+  }
 }
