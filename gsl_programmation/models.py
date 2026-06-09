@@ -137,6 +137,10 @@ class Enveloppe(BaseModel):
         )
 
     @property
+    def reste_a_attribuer(self):
+        return self.montant - self.accepted_montant
+
+    @property
     def validated_projets_count(self):
         return self.enveloppe_projets_processed.filter(
             status=ProgrammationProjet.STATUS_ACCEPTED
@@ -157,6 +161,10 @@ class Enveloppe(BaseModel):
     @property
     def projets_count(self):
         return self.enveloppe_projets_included.count()
+
+    @property
+    def is_arrondissement(self):
+        return self.perimetre.type == Perimetre.TYPE_ARRONDISSEMENT
 
     def clean(self):
         if self.dotation == DOTATION_DETR:  # scope "département"

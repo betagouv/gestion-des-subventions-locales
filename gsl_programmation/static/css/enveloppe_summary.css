@@ -32,19 +32,12 @@
   }
 }
 
-.enveloppe-summary thead {
-  color: var(--text-title-blue-france);
-}
-
 .enveloppe-summary tbody {
   font-size: calc(1rem * 12 / 16) !important;
 }
 
 .enveloppe-summary th {
   border-top: 1px solid var(--border-default-grey);
-}
-
-.enveloppe-summary th:not(:last-child) {
   line-height: 1rem;
   vertical-align: middle;
 }
@@ -56,7 +49,14 @@
   justify-content: center;
   flex-flow: column wrap;
   white-space: normal;
+}
+
+.enveloppe-summary .align-center {
   text-align: center;
+}
+
+.enveloppe-summary .align-right {
+  text-align: right;
 }
 
 .enveloppe-summary th .text {
@@ -76,14 +76,15 @@
   flex-shrink: 0; /* Prevents icon from shrinking */
 }
 
+.enveloppe-summary th.col--130px {
+  width: 130px;
+}
+
 
 .enveloppe-summary tr {
   border-bottom: 2px solid var(--border-default-grey);
 }
 
-.enveloppe-summary tbody tr td {
-  text-align: center;
-}
 
 .enveloppe-summary .color-icon-success::before,
 .enveloppe-summary .color-success {
@@ -121,11 +122,6 @@
 
 .enveloppe-summary .fr-menu .fr-nav__link::before {
   margin-right: 0.5rem;
-}
-
-.enveloppe-summary tr.sous-enveloppe td:not(:last-child) {
-  position: relative;
-  left: 1rem;
 }
 
 .enveloppe-summary tr.sous-enveloppe .sub {
