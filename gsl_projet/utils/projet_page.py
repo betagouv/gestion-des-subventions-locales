@@ -1,3 +1,18 @@
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
+
+
+def get_projet_go_back_context(request):
+    back = request.GET.get("back", "")
+    if back and url_has_allowed_host_and_scheme(back, allowed_hosts=request.get_host()):
+        prog_list = reverse("gsl_programmation:programmation-projet-list")
+        return {
+            "go_back_link": back,
+            "go_back_to_programmation": back.startswith(prog_list),
+        }
+    return {"go_back_link": reverse("projet:list"), "go_back_to_programmation": False}
+
+
 PROJET_MENU = {
     "title": "Menu",
     "items": (

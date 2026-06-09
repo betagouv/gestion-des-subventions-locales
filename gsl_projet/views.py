@@ -23,7 +23,7 @@ from gsl_projet.utils.projet_filters import (
     ProjetFilters,
     ProjetOrderingFilter,
 )
-from gsl_projet.utils.projet_page import PROJET_MENU
+from gsl_projet.utils.projet_page import PROJET_MENU, get_projet_go_back_context
 from gsl_projet.utils.utils import get_comment_cards
 
 from .models import Projet
@@ -48,7 +48,7 @@ def projet_visible_by_user(func):
     return wrapper
 
 
-def _get_projet_context_info(projet_id):
+def _get_projet_context_info(request, projet_id):
     projet = get_object_or_404(Projet, id=projet_id)
     title = projet.dossier_ds.projet_intitule
     context = {
@@ -60,27 +60,28 @@ def _get_projet_context_info(projet_id):
         "dotation_projets": projet.dotationprojet_set.all(),
         "comment_cards": get_comment_cards(projet),
     }
+    context.update(get_projet_go_back_context(request))
     return context
 
 
 @projet_visible_by_user
 @require_GET
 def get_projet(request, projet_id):
-    context = _get_projet_context_info(projet_id)
+    context = _get_projet_context_info(request, projet_id)
     return render(request, "gsl_projet/projet.html", context)
 
 
 @projet_visible_by_user
 @require_GET
 def get_projet_notes(request, projet_id):
-    context = _get_projet_context_info(projet_id)
+    context = _get_projet_context_info(request, projet_id)
     return render(request, "gsl_projet/projet/tab_notes.html", context)
 
 
 @projet_visible_by_user
 @require_GET
 def get_projet_historique(request, projet_id):
-    context = _get_projet_context_info(projet_id)
+    context = _get_projet_context_info(request, projet_id)
     context["actions"] = (
         context["projet"].actions.select_related("actor").order_by("-created_at")
     )

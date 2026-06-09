@@ -292,7 +292,7 @@ class ProgrammationProjet(models.Model):
         from django.urls import reverse
 
         return reverse(
-            "gsl_programmation:programmation-projet-detail",
+            "projet:get-projet",
             kwargs={"projet_id": self.projet.id},
         )
 
