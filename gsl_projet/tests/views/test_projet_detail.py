@@ -286,7 +286,6 @@ def test_unified_projet_page_back_button_defaults_to_projet_list():
     url = reverse("gsl_projet:get-projet", kwargs={"projet_id": projet.id})
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
-    assert response.context["go_back_to_programmation"] is False
     assert "Retour à la liste des projets" in response.content.decode()
 
 
@@ -302,9 +301,10 @@ def test_unified_projet_page_back_button_returns_to_programmation_when_back_para
     url = reverse("gsl_projet:get-projet", kwargs={"projet_id": projet.id})
     response = ClientWithLoggedUserFactory(user=user).get(url, {"back": back})
     assert response.status_code == 200
-    assert response.context["go_back_to_programmation"] is True
     assert response.context["go_back_link"] == back
-    assert "Retour à la liste des projets programmés" in response.content.decode()
+    content = response.content.decode()
+    assert "Retour à la liste des projets programmés" in content
+    assert 'aria-current="true"' in _nav_opening_tag(content, "Programmation")
 
 
 def _nav_opening_tag(content, label):

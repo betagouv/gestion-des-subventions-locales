@@ -106,7 +106,6 @@ def test_get_documents_without_back_param_uses_projet_list(
     assert response.status_code == 200
     expected_back = reverse("projet:list")
     assert response.context["go_back_link"] == expected_back
-    assert response.context["go_back_to_programmation"] is False
 
 
 def test_get_documents_with_valid_back_param_uses_it(
@@ -131,7 +130,6 @@ def test_get_documents_with_external_back_url_falls_back_to_projet_list(
     assert response.status_code == 200
     expected_back = reverse("projet:list")
     assert response.context["go_back_link"] == expected_back
-    assert response.context["go_back_to_programmation"] is False
 
 
 #### select-modele -----------------------------------
