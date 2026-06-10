@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from django.utils.html import format_html, format_html_join
 
 from gsl_core.table_columns import (
@@ -31,6 +33,15 @@ from gsl_core.table_columns import (
 )
 from gsl_core.templatetags.gsl_filters import euro_value, percent, percent_value
 
+
+def _intitule_url(ctx):
+    base = ctx["programmation_projet"].get_absolute_url()
+    request = ctx.get("request")
+    if request:
+        return f"{base}?{urlencode({'back': request.get_full_path()})}"
+    return base
+
+
 COLUMN_INTITULE = Column(
     key="intitule",
     label="Intitulé du projet",
@@ -39,12 +50,8 @@ COLUMN_INTITULE = Column(
         f"Informations pour la dotation {ctx['other_dotation'].dotation}"
     ),
     link=CellLink(
-        url_getter=lambda ctx: ctx["programmation_projet"].get_absolute_url(),
+        url_getter=_intitule_url,
         fr_link=True,
-        keep_querystring=True,
-        querystring_extras_getter=lambda ctx: {
-            "dotation": ctx["programmation_projet"].dotation
-        },
         title_from_value=True,
     ),
     hideable=False,

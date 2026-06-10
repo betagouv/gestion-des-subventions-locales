@@ -97,14 +97,14 @@ def test_get_documents_with_correct_perimetre_and_without_arrete(
     )
 
 
-def test_get_documents_without_back_param_uses_programmation_list(
+def test_get_documents_without_back_param_uses_projet_list(
     programmation_projet, correct_perimetre_client_with_user_logged
 ):
     projet = programmation_projet.dotation_projet.projet
     url = reverse("notification:documents", kwargs={"projet_id": projet.id})
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 200
-    expected_back = reverse("gsl_programmation:programmation-projet-list")
+    expected_back = reverse("projet:list")
     assert response.context["go_back_link"] == expected_back
 
 
@@ -119,7 +119,7 @@ def test_get_documents_with_valid_back_param_uses_it(
     assert response.context["go_back_link"] == back
 
 
-def test_get_documents_with_external_back_url_falls_back_to_programmation_list(
+def test_get_documents_with_external_back_url_falls_back_to_projet_list(
     programmation_projet, correct_perimetre_client_with_user_logged
 ):
     projet = programmation_projet.dotation_projet.projet
@@ -128,7 +128,7 @@ def test_get_documents_with_external_back_url_falls_back_to_programmation_list(
         url, {"back": "https://evil.com/"}
     )
     assert response.status_code == 200
-    expected_back = reverse("gsl_programmation:programmation-projet-list")
+    expected_back = reverse("projet:list")
     assert response.context["go_back_link"] == expected_back
 
 

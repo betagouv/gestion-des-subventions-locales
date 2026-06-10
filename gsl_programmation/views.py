@@ -1,14 +1,12 @@
 from django.contrib import messages
 from django.contrib.auth.views import RedirectURLMixin
 from django.db.models import ProtectedError
-from django.http import Http404 as DjangoHttp404
 from django.shortcuts import redirect
 from django.template.defaultfilters import pluralize
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, UpdateView
-from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 from django_filters.views import FilterView
 
@@ -28,106 +26,7 @@ from gsl_programmation.utils.programmation_projet_filters import (
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
 )
-from gsl_projet.models import Projet
-from gsl_projet.utils.projet_page import PROJET_MENU
-from gsl_projet.utils.utils import get_comment_cards
-
-
-class ProgrammationProjetDetailView(DetailView):
-    model = Projet
-    pk_url_kwarg = "projet_id"
-    tab_name = None
-
-    def get(self, request, *args, **kwargs):
-        try:
-            return super().get(request, *args, **kwargs)
-        except DjangoHttp404:
-            # The Projet may exist but no longer have a ProgrammationProjet
-            # (e.g., after a DN refresh reverting the status to processing).
-            if (
-                Projet.objects.for_user(request.user)
-                .filter(pk=kwargs["projet_id"])
-                .exists()
-            ):
-                messages.warning(request, "Ce projet n'est plus en programmation.")
-                return redirect("gsl_programmation:programmation-projet-list")
-            raise
-
-    def get_template_names(self):
-        if self.tab_name:
-            return [
-                f"gsl_programmation/tab_programmation_projet/tab_{self.tab_name}.html"
-            ]
-        return ["gsl_programmation/programmation_projet_detail.html"]
-
-    def get_queryset(self):
-        return (
-            Projet.objects.for_user(self.request.user)
-            .with_at_least_one_programmed_dotation()
-            .select_related(
-                "dossier_ds",
-                "dossier_ds__perimetre",
-                "dossier_ds__perimetre__departement",
-            )
-            .prefetch_related("dotationprojet_set__detr_categories")
-        )
-
-    def get_context_data(self, **kwargs):
-        tab = self.tab_name or "projet"
-        title = self.object.dossier_ds.projet_intitule
-        if "dotation" in self.request.GET:
-            try:
-                programmation_projet = ProgrammationProjet.objects.get(
-                    dotation_projet__projet=self.object,
-                    dotation_projet__dotation=self.request.GET["dotation"],
-                    dotation_projet__status=PROJET_STATUS_ACCEPTED,
-                )
-            except ProgrammationProjet.DoesNotExist:
-                programmation_projet = ProgrammationProjet.objects.filter(
-                    dotation_projet__projet=self.object,
-                    dotation_projet__status=PROJET_STATUS_ACCEPTED,
-                ).first()
-        else:
-            programmation_projet = ProgrammationProjet.objects.filter(
-                dotation_projet__projet=self.object
-            ).first()
-        context = {
-            "title": title,
-            "projet": self.object,
-            "dotation_projets": self.object.dotationprojet_set.all(),
-            "dossier": self.object.dossier_ds,
-            "menu_dict": PROJET_MENU,
-            "current_tab": tab,
-            "go_back_link": self.get_go_back_link(),
-            "programmation_projet": programmation_projet,
-        }
-        if tab == "notes":
-            context["projet_notes"] = self.object.notes.all()
-            context["comment_cards"] = get_comment_cards(self.object)
-        elif tab == "historique":
-            context["actions"] = self.object.actions.select_related("actor").order_by(
-                "-created_at"
-            )
-
-        return super().get_context_data(**context)
-
-    def get_go_back_link(self):
-        url = reverse("gsl_programmation:programmation-projet-list")
-        if "dotation" in self.request.GET:
-            url = reverse(
-                "gsl_programmation:programmation-projet-list-dotation",
-                kwargs={"dotation": self.request.GET["dotation"]},
-            )
-        if self.request.GET.urlencode():
-            params = self.request.GET.copy()
-            params.pop("dotation", None)
-
-            if params:
-                url += "?" + params.urlencode()
-
-        return url
 
 
 class ProgrammationProjetListView(FilterView, ListView):

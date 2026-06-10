@@ -1,3 +1,14 @@
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
+
+
+def get_projet_go_back_context(request):
+    back = request.GET.get("back", "")
+    if back and url_has_allowed_host_and_scheme(back, allowed_hosts=request.get_host()):
+        return {"go_back_link": back}
+    return {"go_back_link": reverse("projet:list")}
+
+
 PROJET_MENU = {
     "title": "Menu",
     "items": (

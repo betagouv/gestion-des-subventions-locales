@@ -1,13 +1,11 @@
 from django.contrib import messages
 from django.db.models import Case, DecimalField, F, Max, Prefetch, Q, Sum, When
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.views.decorators.http import require_GET
-from django.views.generic import ListView, UpdateView
+from django.views.generic import DetailView, ListView, UpdateView
 from django_filters.views import FilterView
 
-from gsl_core.exceptions import Http404
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
@@ -23,68 +21,50 @@ from gsl_projet.utils.projet_filters import (
     ProjetFilters,
     ProjetOrderingFilter,
 )
-from gsl_projet.utils.projet_page import PROJET_MENU
+from gsl_projet.utils.projet_page import PROJET_MENU, get_projet_go_back_context
 from gsl_projet.utils.utils import get_comment_cards
 
 from .models import Projet
 from .table_columns import PROJET_TABLE_COLUMNS, SANS_PIECES_SKIP_KEYS
 
 
-def projet_visible_by_user(func):
-    def wrapper(*args, **kwargs):
-        user = args[0].user
-        if user.is_staff:
-            return func(*args, **kwargs)
+class BaseProjetDetailView(DetailView):
+    model = Projet
+    pk_url_kwarg = "projet_id"
+    context_object_name = "projet"
+    http_method_names = ["get"]
 
-        projet = get_object_or_404(Projet, id=kwargs["projet_id"])
-        is_projet_visible_by_user = (
-            Projet.objects.for_user(user).filter(id=projet.id).exists()
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return Projet.objects.all()
+        return Projet.objects.for_user(self.request.user)
+
+    def get_context_data(self, **kwargs):
+        projet = self.object
+        context = super().get_context_data(**kwargs)
+        context.update(
+            {
+                "title": projet.dossier_ds.projet_intitule,
+                "dossier": projet.dossier_ds,
+                "menu_dict": PROJET_MENU,
+                "projet_notes": projet.notes.all(),
+                "dotation_projets": projet.dotationprojet_set.all(),
+                "comment_cards": get_comment_cards(projet),
+                **get_projet_go_back_context(self.request),
+            }
         )
-        if not is_projet_visible_by_user:
-            raise Http404(user_message="Projet non trouvé")
-
-        return func(*args, **kwargs)
-
-    return wrapper
+        return context
 
 
-def _get_projet_context_info(projet_id):
-    projet = get_object_or_404(Projet, id=projet_id)
-    title = projet.dossier_ds.projet_intitule
-    context = {
-        "title": title,
-        "projet": projet,
-        "dossier": projet.dossier_ds,
-        "menu_dict": PROJET_MENU,
-        "projet_notes": projet.notes.all(),
-        "dotation_projets": projet.dotationprojet_set.all(),
-        "comment_cards": get_comment_cards(projet),
-    }
-    return context
+class ProjetHistoriqueView(BaseProjetDetailView):
+    template_name = "gsl_projet/projet/tab_historique.html"
 
-
-@projet_visible_by_user
-@require_GET
-def get_projet(request, projet_id):
-    context = _get_projet_context_info(projet_id)
-    return render(request, "gsl_projet/projet.html", context)
-
-
-@projet_visible_by_user
-@require_GET
-def get_projet_notes(request, projet_id):
-    context = _get_projet_context_info(projet_id)
-    return render(request, "gsl_projet/projet/tab_notes.html", context)
-
-
-@projet_visible_by_user
-@require_GET
-def get_projet_historique(request, projet_id):
-    context = _get_projet_context_info(projet_id)
-    context["actions"] = (
-        context["projet"].actions.select_related("actor").order_by("-created_at")
-    )
-    return render(request, "gsl_projet/projet/tab_historique.html", context)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["actions"] = self.object.actions.select_related("actor").order_by(
+            "-created_at"
+        )
+        return context
 
 
 class ProjetCommentUpdateView(UpdateView):
