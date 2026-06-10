@@ -16,7 +16,7 @@ urlpatterns = [
     ),
     path(
         "dossier/<int:dossier_ds_number>/refresh/",
-        views.refresh_one_dossier,
+        views.RefreshOneDossierView.as_view(),
         name="refresh-one-dossier",
     ),
     path(
