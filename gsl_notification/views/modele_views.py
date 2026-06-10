@@ -3,7 +3,7 @@ import os
 from django.conf import settings
 from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
-from django.db.models import ProtectedError
+from django.db.models import ProtectedError, Q
 from django.db.models.fields import files
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
@@ -12,8 +12,9 @@ from django.urls import reverse
 from django.utils.csp import CSP
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
-from django.views.decorators.http import require_GET, require_http_methods
+from django.views.decorators.http import require_GET
 from django.views.generic import FormView, ListView
+from django.views.generic.edit import DeleteView
 from formtools.wizard.views import SessionWizardView
 
 from gsl.utils.csp import csp_update
@@ -40,7 +41,6 @@ from gsl_notification.utils import (
     get_modele_class,
     get_modele_perimetres,
 )
-from gsl_notification.views.decorators import modele_visible_by_user
 from gsl_projet.constants import ARRETE, DOTATION_DETR, DOTATION_DSIL, DOTATIONS, LETTRE
 
 TAG_LABEL_MAPPING = {
@@ -238,7 +238,7 @@ class CreateModelDocumentWizard(SessionWizardView):
         )
         messages.success(
             self.request,
-            f"Le modèle {type_and_article} “{instance.name}” a bien été {verbe}.",
+            f'Le modèle {type_and_article} "{instance.name}" a bien été {verbe}.',
             extra_tags=extra_tags,
         )
 
@@ -396,33 +396,49 @@ class DuplicateModele(UpdateModele):
         super()._set_success_message(instance, verbe="créé", extra_tags="success")
 
 
-@modele_visible_by_user
-@require_http_methods(["POST"])
-def delete_modele_view(request, modele_type, modele_id):
-    _class = get_modele_class(modele_type)
-    modele = get_object_or_404(_class, id=modele_id)
-    dotation = modele.dotation
-    name = modele.name
+class DeleteModeleView(DeleteView):
+    http_method_names = ["post"]
+    pk_url_kwarg = "modele_id"
 
-    try:
-        modele.delete()
-        type_and_article = (
-            "d’arrêté" if modele_type == ARRETE else "de lettre de notification"
+    def get_queryset(self):
+        _class = get_modele_class(self.kwargs["modele_type"])
+        user = self.request.user
+        if user.is_staff:
+            return _class.objects.all()
+
+        q = Q()
+        for dotation in DOTATIONS:
+            try:
+                perimetres = get_modele_perimetres(dotation, user.perimetre)
+                q |= Q(dotation=dotation, perimetre__in=perimetres)
+            except ValueError:
+                pass
+        return _class.objects.filter(q)
+
+    def get_success_url(self):
+        return reverse(
+            "gsl_notification:modele-liste", kwargs={"dotation": self.object.dotation}
         )
 
-        messages.info(
-            request,
-            f"Le modèle {type_and_article} “{name}” a été supprimé.",
-            extra_tags="delete_modele_arrete",
-        )
+    def form_valid(self, form):
+        modele_type = self.kwargs["modele_type"]
+        name = self.object.name
 
-    except ProtectedError as e:
-        objects_count = len(e.protected_objects)
-        _add_error_message(request, objects_count, modele_type)
+        try:
+            response = super().form_valid(form)
+            type_and_article = (
+                "d’arrêté" if modele_type == ARRETE else "de lettre de notification"
+            )
+            messages.info(
+                self.request,
+                f"Le modèle {type_and_article} “{name}” a été supprimé.",
+                extra_tags="delete_modele_arrete",
+            )
+        except ProtectedError as e:
+            _add_error_message(self.request, len(e.protected_objects), modele_type)
+            return redirect(self.get_success_url())
 
-    return redirect(
-        reverse("gsl_notification:modele-liste", kwargs={"dotation": dotation})
-    )
+        return response
 
 
 @require_GET

@@ -260,7 +260,7 @@ def get_modele_perimetres(
     | user périmètre | DETR                     | DSIL                       |
     | -------------- | ------------------------ | -------------------------- |
     | Arrondissement | Mon arrondissement + dpt | Mon arrond. + dpt + région |
-    | Département    | Mon dpt                  | Mon arrond. + région       |
+    | Département    | Mon dpt                  | Mon dpt + région           |
     | Région         | /                        | Ma région                  |
     """
     try:
